@@ -299,7 +299,6 @@ header li:hover {
 
 a.buttons {
 	-webkit-font-smoothing: antialiased;
-	color: #660033;
 	background: url(../images/arrow-down.png) no-repeat;
 	font-weight: normal;
 	text-shadow: rgba(0, 0, 0, 0.4) 0 -1px 0;
