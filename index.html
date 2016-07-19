@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>IPAddress by seancfoley</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">IPAddress</h1>
+        <p class="header">Library for handling IP addresses, both IPv4 and IPv6</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/seancfoley/IPAddress/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/seancfoley/IPAddress/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/seancfoley/IPAddress">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/seancfoley">seancfoley</a></p>
+
+
+      </header>
+      <section>
+        <h3>
+<a id="benefits-of-this-library" class="anchor" href="#benefits-of-this-library" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Benefits of this Library</h3>
+
+<p>The library was intended to satisfy the following primary goals:</p>
+
+<ul>
+<li><p>Support parsing of all host and ipv4/ipv6 address formats in usage plus some additional formats (see below or see javadoc for IPAddressString class for the extensive list)</p></li>
+<li>
+<p>Support both the parsing and representation of subnets, either those specified by network prefix length or those specified with ranges of segment values.  All strings in the list below represent the same IPv4 subnet:</p>
+
+<ul>
+<li>CIDR network prefix length:1.2.0.0/16</li>
+<li>with mask: 1.2.0.0/255.255.0.0</li>
+<li>wildcard segments: 1.2.<em>.</em>
+</li>
+<li>range segments: 1.2.0-255.0-255</li>
+<li>range using inet_aton format: 0x1.0x2.0x0-0xffff</li>
+<li>SQL-style single wildcards to end segments: 1.2.<strong><em>.</em></strong>
+</li>
+<li>IPv4 mapped IPv6: ::ffff:1.2.0.0/112</li>
+</ul>
+</li>
+<li><p>Allow the separation of address parsing from host parsing.  In some cases you may have an address,  in others you may have a host name, in some cases either one, so this supports all three options (for instance, when validating invalid input “1.2.3.a” as an address only, it will not be treated as a host with DNS lookup attempted in the way that InetAddress.getByName does)</p></li>
+<li><p>Allpw control over which formats are allowed, whether IPv4/6, or subnets, or inet_aton formats, and so on.</p></li>
+<li><p>Support the production of collections of valid IPv4 and IPv6 address strings of different formats for a given address.
+Some addresses can have hundreds of thousands of potential string representations (when you consider hex capitalization, ipv6 compression, and leading zeros, the various IPv4 and IPv6 formats, and combinations of all the above), although there are generally a handful of commonly used formats.  Generating these strings, whether the handful of commonly used strings or whether the exhaustive lists of all possible strings, can help when searching or matching addresses in databases or text.</p></li>
+<li><p>Polymorphism in the code for IPv4/IPv6 for applications which must support both transparently.</p></li>
+<li><p>Thread-safety and immutability.  The core objects (host names, address strings, addresses, address sections, address segments) are all immutable (like java.lang.String or java.lang.Integer instances).  They do not change values.  Additionally, some state (such as string representations) is generated upon demand and/or cached in a thread-safe manner.</p></li>
+<li><p>Manipulation of addresses with prefixes, masks, sections, segments and subnetting: applying network prefixes, masking, splitting addresses into sections, joining address segments into larger segments, generating new subnets and supernets from existing addresses and subnets, iterating through subnets, checking containment within subnets, ipv4-ipv6 conversion</p></li>
+<li><p>Sorting and comparison of host names, addresses, address strings and subnets</p></li>
+<li><p>Integrates with the java classes InetAddress, Inet6Address, Inet4Address.</p></li>
+</ul>
+
+<h2>
+<a id="supported-formats" class="anchor" href="#supported-formats" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Supported formats</h2>
+
+<p>This includes, those supported by inet_aton or inet_pton, the subnet formats listed above, all combinations of the above, and others:   </p>
+
+<ul>
+<li>all the formats supported by inet_pton and inet_aton</li>
+<li>all the formats supported by nmap</li>
+<li>all the subnet formats listed above, whether prefixed, masked, wildcards, ranges</li>
+<li>IPV6 canonical, compressed (1::1), mixed (1:2:3:4:5:6:1.2.3.4), [bracketed], and so on</li>
+<li>* represents all addresses both ipv4 and ipv6</li>
+<li>/x which is just a network prefix length x with no associated address, is considered to be the mask for that network prefix length</li>
+<li>“” the empty string is considered the default loopback
+For a more detailed list or formats parsed, see the javadoc for IPAddressString.</li>
+</ul>
+
+<h2>
+<a id="subnet-formats" class="anchor" href="#subnet-formats" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Subnet formats</h2>
+
+<ul>
+<li>*<em>CIDR (Classless Inter-Domain Routing) prefix length subnets: *</em>
+Adding the prefix length /x creates the subnet for that network prefix length.  So the subnet 1.2.0.0/16 is the set of all addresses starting with 1.2</li>
+<li>
+<strong>Wildcard (* _) and range (-) subnets:</strong>
+* denotes all possible values in one or more segments, so 1.<em>.</em>.* or just 1.* is equivalent to 1.0.0.0/8
+0-1 denotes the range from 0 to 1 
+_ replaces any digit at the end of a segment, for example 1_ represents 10 to 19 in decimal or 10 to 1f in hex</li>
+<li>
+<strong>Combinations:</strong>
+Applying a prefix length to a subnet simply applies the prefix to every element of the subnet.  1.*.0.0/16 is the same subnet of addresses as 1.0.0.0/8</li>
+</ul>
+
+<hr>
+
+<h3>
+<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Designer Templates</h3>
+
+<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+
+<h3>
+<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating pages manually</h3>
+
+<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+
+<h3>
+<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+
+<p>You can <a href="https://help.github.com/articles/basic-writing-and-formatting-syntax/#mentioning-users-and-teams" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+
+<h3>
+<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support or Contact</h3>
+
+<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
