@@ -3,7 +3,9 @@
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
-	<property name="rootdocsdir" location="${rootOffset}/docs"/>
+	<property name="javadocdir" value="javadoc"/>
+	<property name="rootjavadocdir" location="${rootOffset}/${javadocdir}"/>
+	<property name="functional_doclet_dir" location="${rootOffset}/../../Functional-Doclet-for-Javadoc/Functional Doclet for Javadoc" />
 	<property name="version" value="1.0"/>
 	<property name="jarExtension" value=".jar"/>
 	<property name="src_location" value="${rootOffset}/src" />
@@ -47,14 +49,15 @@ java -cp ${archivename} ${rootPackage}.test.TestRunner fast performance
 	</target>
 
 	<target name="create javadoc">
+		<echo>${functional_doclet_dir}</echo>
 		<delete includeemptydirs="true" verbose="true">
-		    <fileset dir="${rootdocsdir}" includes="**/*"/>
+		    <fileset dir="${rootjavadocdir}" includes="**/*"/>
 		</delete>
 		<!-- these packages used internally - ${rootPackage}.format.validate -->
-		<javadoc sourcepath="${src_location}" destdir="${rootdocsdir}" packagenames="${rootPackage},${rootPackage}.format,${rootPackage}.format.util,${rootPackage}.format.util.sql,${rootPackage}.ipv6,${rootPackage}.ipv4"
-			stylesheetfile="${rootOffset}/../Functional Doclet/stylesheet_custom.css"
+		<javadoc sourcepath="${src_location}" destdir="${rootjavadocdir}" packagenames="${rootPackage},${rootPackage}.format,${rootPackage}.format.util,${rootPackage}.format.util.sql,${rootPackage}.ipv6,${rootPackage}.ipv4"
+			stylesheetfile="${functional_doclet_dir}/stylesheet_custom.css"
 			verbose="true" author="true" public="true" use="true">
-			<doclet name="tools.doclets.formats.html.FunctionalDoclet" path="${rootOffset}/../Functional Doclet/dist/FunctionalDoclet_v1.0_20160613-231858.jar">
+			<doclet name="tools.doclets.formats.html.FunctionalDoclet" path="${functional_doclet_dir}/dist/FunctionalDoclet_v1.0_20160614-003149.jar">
 				 <param name="-tag" value="custom.core:a:Core" />
 			</doclet>
 		</javadoc>
@@ -75,7 +78,7 @@ java -cp ${archivename} ${rootPackage}.test.TestRunner fast performance
 				<include name="${rootPackagePath}/**/*.class" />
 			</fileset>
 			<fileset id="ipaddress.javadoc" dir="${rootOffset}">
-				<include name="docs/**/*.*" />
+				<include name="${javadocdir}/**/*.*" />
 			</fileset>
 			<fileset id="ipaddress.docs" dir="${rootOffset}">
 				<include name="docs.odt" />
