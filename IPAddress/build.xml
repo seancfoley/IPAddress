@@ -57,7 +57,7 @@ java -cp ${archivename} ${rootPackage}.test.TestRunner fast performance
 		<javadoc sourcepath="${src_location}" destdir="${rootjavadocdir}" packagenames="${rootPackage},${rootPackage}.format,${rootPackage}.format.util,${rootPackage}.format.util.sql,${rootPackage}.ipv6,${rootPackage}.ipv4"
 			stylesheetfile="${functional_doclet_dir}/stylesheet_custom.css"
 			verbose="true" author="true" public="true" use="true">
-			<doclet name="tools.doclets.formats.html.FunctionalDoclet" path="${functional_doclet_dir}/dist/FunctionalDoclet_v1.0_20160614-003149.jar">
+			<doclet name="tools.doclets.formats.html.FunctionalDoclet" path="${functional_doclet_dir}/dist/FunctionalDoclet.jar">
 				 <param name="-tag" value="custom.core:a:Core" />
 			</doclet>
 		</javadoc>
