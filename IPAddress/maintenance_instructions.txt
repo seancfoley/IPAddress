@@ -1,0 +1,51 @@
+instructions
+
+Neither of these procedures are difficult if you follow the steps carefully.
+
+To update the javadoc
+---------------------
+
+1. You check out into your Eclipse workspace the master branch of the IPAddress Eclipse project in the IPAddress repository which contains this file.
+https://github.com/seancfoley/IPAddress
+
+2. You check out into your Eclipse workspace the master branch of the "Functional Doclet for Javadoc" Eclipse project in the Functional-Doclet-for-Javadoc repository.
+https://github.com/seancfoley/Functional-Doclet-for-Javadoc
+
+3. You run the build.xml ant task to generate the javadoc into the javadoc folder in the IPAddress project
+
+4. In eclipse you switch the IPAddress project to the local gh-pages branch.  Do not commit the javadoc files before doing so.  
+Since those files do not belong to any branch, they will remain in your IPAddress project as you switch branches.
+
+5. Once in gh-pages, you cut and paste the new javadoc files from the uncommitted javadoc folder to the apidocs folder, overwriting the old ones
+
+6. You commit and push the new contents in the apidocs folder.
+
+Done.
+
+To update the gh-pages docs
+---------------------------
+
+1. The master file for the docs is the docs.odt file checked into the IPAddress Eclipse project in the IPAddress repository which contains this file.
+You edit that file first.
+
+2. When you are done, you save your changes to the odt file.  Then you save as a filtered html file using MS Word.  
+If you are using some other word processor you would save as html but at the moment the online file was generated from Word.
+
+3. In the gh-pages branch of the IPAddress repository, you edit the file index.html.  
+At this point in time I have just been using the github editor which works directly on the github repo and thus no push will be required, just a commit.
+
+4. Inside index.html, there are two sections that can be replaced: the <style> in the html header, and the content inside the <section> tags.
+There are comments that denote the start and end.
+
+5. Optional: Typically you do not need to replace the style, but if so, you simply cut and paste the corresponding <style> from the header in the word html file into the index.html file.
+If you do replace the style, note that I had to delete the "a:visited" and "a:link" strings in that <style> section which were not needed but interfered with the existing styles in the page.
+You do not delete the style settings for them because the setting also applied to some MS Word style class or div.  See the diff for the check-in "adjust link colors"
+
+6. You cut and paste the <div class=WordSection1> section from the word file inside the <section> section in the index.html file
+
+7. You commit the index.html file in the github repository.
+
+Done.
+
+
+
