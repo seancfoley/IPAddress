@@ -228,7 +228,7 @@ ul
     <div class="wrapper">
       <header>
         <h1 class="header">IPAddress</h1>
-        <p class="header">Library for handling IP addresses, both IPv4 and IPv6</p>
+        <p class="header">Java library for handling IP addresses, both IPv4 and IPv6</p>
 
         <ul>
           <li class="download"><a class="buttons" href="https://github.com/seancfoley/IPAddress/zipball/master">Download ZIP</a></li>
@@ -395,7 +395,7 @@ margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<sp
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
 style='font-family:"Arial",sans-serif'>Polymorphism</span></b><span
 style='font-family:"Arial",sans-serif'> in the code for IPv4/IPv6 for
-applications which must support both transparently.</span></p>
+applications which must support both transparently.  You can write generic non-version-specific code to validate addresses, connect to addresses, print addresses, mask addresses, etc.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -403,9 +403,8 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
 style='font-family:"Arial",sans-serif'>Thread-safety and immutability</span></b><span
 style='font-family:"Arial",sans-serif'>.  The core objects (host names, address
 strings, addresses, address sections, address segments) are all immutable (like
-java.lang.String or java.lang.Integer instances).  They do not change values. 
-Additionally, some state (such as string representations) is generated upon
-demand and/or cached in a thread-safe manner.</span></p>
+java.lang.String or java.lang.Integer instances).  They do not change their underlying value. 
+</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
