@@ -4,9 +4,9 @@
 .mtj.tmp/
 
 # Package Files #
-*.jar
-*.war
-*.ear
+# *.jar
+# *.war
+# *.ear
 
 # Javadoc must not be committed to master, only to gh-pages
 javadoc/
