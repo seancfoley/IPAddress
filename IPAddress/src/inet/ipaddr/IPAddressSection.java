@@ -3,6 +3,7 @@ package inet.ipaddr;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -390,6 +391,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		return getSegmentCount() * getBitsPerSegment() - networkPrefixLength;
 	}
 	
+	//TODO to eliminate the casts, make methods like this static, then pass "this" as an argument to a parameter of type R, then all instance methods to be called on that
 	protected <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R getSubnetSegments(
 			IPAddressSection maskSection,
 			Integer networkPrefixLength,
@@ -576,6 +578,152 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	}
 	
 	/**
+	 * Subtract the give subnet from this subnet, returning an array of sections for the result (the subnets will not be contiguous so an array is required).
+	 * 
+	 * Computes the subnet difference, the set of addresses in this address section but not in the provided section.
+	 * 
+	 * @param other
+	 * @throws IPAddressTypeException if the two sections are not comparable
+	 * @return the difference
+	 */
+	public IPAddressSection[] subtract(IPAddressSection other) {
+		return subtract(other, getAddressCreator());
+	}
+	
+	protected <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R[] 
+			subtract(IPAddressSection other, IPAddressCreator<T, R, S> addrCreator) {
+		//check if they are comparable first
+		IPVersion version = getIPVersion();
+		if(!version.equals(other.getIPVersion())) {
+			throw new IPAddressTypeException(this, other, "ipaddress.error.typeMismatch");
+		}
+		int segCount = getSegmentCount();
+		if(segCount != other.getSegmentCount()) {
+			throw new IPAddressTypeException(this, other, "ipaddress.error.sizeMismatch");
+		}
+		if(!isMultiple()) {
+			if(other.contains(this)) {
+				return null;
+			}
+			R result[] = addrCreator.createAddressSectionArray(1);
+			result[0] = cast(this);
+			return result;
+		} else {
+			//getDifference: same as removing the intersection
+			//   first you confirm there is an intersection in each segment.  
+			// Then you remove each intersection, one at a time, leaving the other segments the same, since only one segment needs to differ.
+			// To prevent adding the same section twice, use only the intersection (ie the relative complement of the diff) of segments already handled and not the whole segment.
+			
+			// For example: 0-3.0-3.2.4 subtracting 1-4.1-3.2.4
+			// The diff of the first segment is just 0, giving 0.0-3.2.4
+			// The diff of the second segment is also 0, but for the first segment we use the intersection since we handled the first already, givings 1-3.0.2.4
+			
+			for(int i = 0; i < segCount; i++) {
+				IPAddressSegment seg = getSegment(i);
+				IPAddressSegment otherSeg = other.getSegment(i);
+				int lower = seg.getLowerSegmentValue();
+				int higher = seg.getUpperSegmentValue();
+				int otherLower = otherSeg.getLowerSegmentValue();
+				int otherHigher = otherSeg.getUpperSegmentValue();
+				if(otherLower > higher || lower > otherHigher) {
+					//no overlap in this segment means no overlap at all
+					R result[] = addrCreator.createAddressSectionArray(1);
+					result[0] = cast(this);
+					return result;
+				}
+			}
+			
+			S intersections[] = addrCreator.createAddressSegmentArray(segCount);
+			ArrayList<R> sections = new ArrayList<R>();
+			for(int i = 0; i < segCount; i++) {
+				S seg = cast(getSegment(i));
+				IPAddressSegment otherSeg = other.getSegment(i);
+				int lower = seg.getLowerSegmentValue();
+				int higher = seg.getUpperSegmentValue();
+				int otherLower = otherSeg.getLowerSegmentValue();
+				int otherHigher = otherSeg.getUpperSegmentValue();
+				if(lower >= otherLower) {
+					if(higher <= otherHigher) {
+						//this segment is contained in the other
+						if(seg.isPrefixed()) {
+							intersections[i] = addrCreator.createAddressSegment(lower, higher, null);
+						} else {
+							intersections[i] = seg;
+						}
+						continue;
+					}
+					//otherLower <= lower <= otherHigher < higher
+					intersections[i] = addrCreator.createAddressSegment(lower, otherHigher, null);
+					R section = createDiffSection(otherHigher + 1, higher, i, addrCreator, intersections);
+					sections.add(section);
+				} else {
+					//lower < otherLower <= otherHigher
+					R section = createDiffSection(lower, otherLower - 1, i, addrCreator, intersections);
+					sections.add(section);
+					if(higher <= otherHigher) {
+						intersections[i] = addrCreator.createAddressSegment(otherLower, higher, null);
+					} else {
+						//lower < otherLower <= otherHigher < higher
+						intersections[i] = addrCreator.createAddressSegment(otherLower, otherHigher, null);
+						section = createDiffSection(otherHigher + 1, higher, i, addrCreator, intersections);
+						sections.add(section);
+					}
+				}
+			}
+			
+			
+			if(this.isPrefixed()) {
+				int thisPrefix = getNetworkPrefixLength();
+				for(int i = 0; i < sections.size(); i++) {
+					R section = sections.get(i);
+					int bitCount = section.getBitCount();
+					int totalPrefix = bitCount;
+					for(int j = getSegmentCount() - 1; j >= 0 ; j--) {
+						IPAddressSegment seg = section.getSegment(j);
+						int segBitCount = seg.getBitCount();
+						int segPrefix = seg.getMinPrefix();
+						if(segPrefix == segBitCount) {
+							break;
+						} else {
+							totalPrefix -= segBitCount;
+							if(segPrefix != 0) {
+								totalPrefix += segPrefix;
+								break;
+							}
+						}
+					}
+					if(totalPrefix != bitCount) {
+						if(totalPrefix < thisPrefix) {
+							totalPrefix = thisPrefix;
+						}
+						section = cast(section.toSubnet(totalPrefix));
+						sections.set(i, section);
+					}
+				}
+			}
+			R result[] = addrCreator.createAddressSectionArray(sections.size());
+			sections.toArray(result);
+			return result;
+		}
+	}
+	
+	private <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R 
+			createDiffSection(int lower, int upper, int diffIndex, IPAddressCreator<T, R, S> addrCreator, S intersectingValues[]) {
+		int segCount = getSegmentCount();
+		S segments[] = addrCreator.createAddressSegmentArray(segCount);
+		for(int j = 0; j < diffIndex; j++) {
+			segments[j] = intersectingValues[j];
+		}
+		S diff = addrCreator.createAddressSegment(lower, upper, null);
+		segments[diffIndex] = diff;
+		for(int j = diffIndex + 1; j < segCount; j++) {
+			segments[j] = cast(getSegment(j));
+		}
+		R section = addrCreator.createSectionInternal(segments);
+		return section;
+	}
+	
+	/**
 	 * Creates a subnet address using the given mask. 
 	 */
 	public abstract IPAddressSection toSubnet(IPAddressSection mask) throws IPAddressTypeException;
@@ -745,11 +893,17 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			int totalPrefix = getBitCount();
 			for(int i = getSegmentCount() - 1; i >= 0 ; i--) {
 				IPAddressSegment seg = getSegment(i);
-				totalPrefix -= seg.getBitCount();
+				
+				int segBitCount = seg.getBitCount();
 				int segPrefix = seg.getMinPrefix();
-				if(segPrefix != 0) {
-					totalPrefix += segPrefix;
+				if(segPrefix == segBitCount) {
 					break;
+				} else {
+					totalPrefix -= segBitCount;
+					if(segPrefix != 0) {
+						totalPrefix += segPrefix;
+						break;
+					}
 				}
 			}
 			cachedMinPrefix = totalPrefix;

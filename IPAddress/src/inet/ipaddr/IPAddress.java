@@ -617,6 +617,17 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return addressSection.contains(other.addressSection);
 	}
 	
+	/**
+	 * Subtract the give subnet from this subnet, returning an array of sections for the result (the subnets will not be contiguous so an array is required).
+	 * 
+	 * Computes the subnet difference, the set of addresses in this address section but not in the provided section.
+	 * 
+	 * @param other
+	 * @throws IPAddressTypeException if the two sections are not comparable
+	 * @return the difference
+	 */
+	public abstract IPAddress[] subtract(IPAddress other);
+
 	public static IPAddress from(InetAddress inetAddress) {
 		byte bytes[] = inetAddress.getAddress();
 		if(bytes.length == IPv6Address.BYTE_COUNT) {
@@ -887,15 +898,17 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return addressSection.getMinPrefix();
 	}
 		
+
 	/**
-	 * Returns the smallest CIDR prefix possible (largest network),
-	 * such that this address paired with that prefix represents the exact same range of addresses.
+	 * Returns a prefix length for which the range of this address can be specified only using the address lower value and the prefix length
+	 * 
+	 * If no such prefix exists, returns null.
 	 * 
 	 * Examples:
 	 * 1.2.3.4 returns 32
 	 * 1.2.*.* returns 16
 	 * 1.2.*.0/24 returns 16 
-	 * 1.2.*.4 returns 32
+	 * 1.2.*.4 returns null
 	 * 1.2.252-255.* returns 22
 	 * 1.2.3.4/x returns x
 	 * 

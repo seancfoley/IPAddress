@@ -11,6 +11,7 @@ import inet.ipaddr.ipv4.IPv4AddressSection;
 public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address> {
 	
 	private static final IPv6AddressSegment emptySegments[] = {};
+	private static final IPv6AddressSection emptySection[] = {};
 	
 	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
@@ -92,6 +93,14 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address> {
 		
 		public IPv6AddressSection createSection(IPv6AddressSegment segments[], Integer networkPrefixLength) {
 			return new IPv6AddressSection(segments, networkPrefixLength);
+		}
+		
+		@Override
+		protected IPv6AddressSection[] createAddressSectionArray(int length) {
+			if(length == 0) {
+				return emptySection;
+			}
+			return new IPv6AddressSection[length];
 		}
 
 		@Override
@@ -210,6 +219,7 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address> {
 			IPv6AddressSegment result = new IPv6AddressSegment(lower, upper, segmentPrefixLength);
 			return result;
 		}
+		
 	};
 
 	IPv6AddressNetwork() {

@@ -244,13 +244,28 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	public IPv4Address[] subtract(IPAddress other) {
+		IPv4AddressSection thisSection = getSegments();
+		IPv4AddressSection sections[] = thisSection.subtract(other.getSegments());
+		if(sections == null) {
+			return null;
+		}
+		IPv4AddressCreator creator = getAddressCreator();
+		IPv4Address result[] = new IPv4Address[sections.length];
+		for(int i = 0; i < result.length; i++) {
+			result[i] = creator.createAddress(sections[i]);
+		}
+		return result;
+	}
+	
+	@Override
 	public IPv4Address toSubnet(int networkPrefixLength) throws IPAddressTypeException {
 		IPv4AddressSection thisSection = getSegments();
 		IPv4AddressSection subnetSection = thisSection.toSubnet(networkPrefixLength);
 		if(thisSection == subnetSection) {
 			return this;
 		}
-		return network.getAddressCreator().createAddress(subnetSection);
+		return getAddressCreator().createAddress(subnetSection);
 	}
 		
 	/**
@@ -271,7 +286,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		if(thisSection == subnetSection) {
 			return this;
 		}
-		return network.getAddressCreator().createAddress(subnetSection);
+		return getAddressCreator().createAddress(subnetSection);
 	}
 	
 	@Override

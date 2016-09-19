@@ -16,7 +16,9 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address> {
 	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSegment> {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 		
-		IPv4AddressSegment emptySegments[] = new IPv4AddressSegment[0];
+		IPv4AddressSegment emptySegments[] = {};
+		IPv4AddressSection emptySection[] = {};
+		
 		private static IPv4AddressSegment segmentCache[] = new IPv4AddressSegment[IPv4Address.MAX_VALUE_PER_SEGMENT + 1];
 		private static IPv4AddressSegment segmentPrefixCache[][]; 
 		private static IPv4AddressSegment allPrefixedCache[] = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT];
@@ -86,6 +88,14 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address> {
 		
 		public IPv4AddressSection createSection(IPv4AddressSegment segments[]) {
 			return new IPv4AddressSection(segments);
+		}
+		
+		@Override
+		protected IPv4AddressSection[] createAddressSectionArray(int length) {
+			if(length == 0) {
+				return emptySection;
+			}
+			return new IPv4AddressSection[length];
 		}
 		
 		@Override
@@ -167,6 +177,7 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address> {
 			IPv4AddressSegment result = new IPv4AddressSegment(lower, upper, segmentPrefixLength);
 			return result;
 		}
+		
 	}
 	
 	@SuppressWarnings("unchecked")

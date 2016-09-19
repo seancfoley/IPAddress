@@ -204,7 +204,7 @@ public class IPv6AddressSection extends IPAddressSection {
 		return getAddressCreator(startIndex);
 	}
 	
-	protected IPv6AddressCreator getAddressCreator(final int startIndex) {
+	protected static IPv6AddressCreator getAddressCreator(final int startIndex) {
 		IPv6AddressCreator result = creators[startIndex];
 		if(result == null) {
 			creators[startIndex] = result = new IPv6AddressCreator() {
@@ -340,7 +340,9 @@ public class IPv6AddressSection extends IPAddressSection {
 	
 	@Override
 	public boolean contains(IPAddressSection other) {
-		return other.isIPv6() && super.contains(other);
+		return other.isIPv6() &&
+				startIndex == ((IPv6AddressSection) other).startIndex && 
+				super.contains(other);
 	}
 	
 	@Override
@@ -360,6 +362,11 @@ public class IPv6AddressSection extends IPAddressSection {
 			return startIndex == other.startIndex && super.isSameGrouping(other);
 		}
 		return false;
+	}
+	
+	@Override
+	public IPv6AddressSection[] subtract(IPAddressSection other) {
+		return (IPv6AddressSection[]) super.subtract(other);
 	}
 	
 	@Override

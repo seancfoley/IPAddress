@@ -508,6 +508,21 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		}
 		return getSegment(i).matches(1);
 	}
+	
+	@Override
+	public IPv6Address[] subtract(IPAddress other) {
+		IPv6AddressSection thisSection = getSegments();
+		IPv6AddressSection sections[] = thisSection.subtract(other.getSegments());
+		if(sections == null) {
+			return null;
+		}
+		IPv6AddressCreator creator = getAddressCreator();
+		IPv6Address result[] = new IPv6Address[sections.length];
+		for(int i = 0; i < result.length; i++) {
+			result[i] = creator.createAddress(sections[i]);
+		}
+		return result;
+	}
 
 	@Override
 	public IPv6Address toSubnet(int networkPrefixLength) throws IPAddressTypeException {

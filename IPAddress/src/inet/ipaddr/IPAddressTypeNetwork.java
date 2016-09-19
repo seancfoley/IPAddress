@@ -39,6 +39,8 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddres
 	protected static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> 
 			extends ParsedAddressCreator<T,R,S> implements IPAddressSegmentCreator<S> {
 		
+		protected abstract R[] createAddressSectionArray(int length);
+		
 		protected T createAddressInternal(S segments[]) {
 			return createAddress(createSectionInternal(segments));
 		}

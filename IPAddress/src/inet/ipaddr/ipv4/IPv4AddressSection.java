@@ -175,6 +175,11 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	@Override
+	public IPv4AddressSection[] subtract(IPAddressSection other) {
+		return (IPv4AddressSection[]) super.subtract(other);
+	}
+	
+	@Override
 	public int getByteIndex(Integer networkPrefixLength) {
 		return getByteIndex(networkPrefixLength, IPv4Address.BYTE_COUNT);
 	}
