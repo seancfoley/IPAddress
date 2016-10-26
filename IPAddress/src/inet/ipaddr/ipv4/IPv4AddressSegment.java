@@ -2,9 +2,9 @@ package inet.ipaddr.ipv4;
 
 import java.util.Iterator;
 
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressTypeException;
-import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 
 /**
@@ -81,6 +81,11 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
+	public IPv4AddressSegment toNetworkSegment(Integer segmentPrefixLength) {
+		return toNetworkSegment(segmentPrefixLength, true);
+	}
+	
+	@Override
 	public IPv4AddressSegment toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength) {
 		if(isNetworkChangedByPrefix(segmentPrefixLength, withPrefixLength)) {
 			return super.toNetworkSegment(segmentPrefixLength, withPrefixLength, getSegmentCreator());
@@ -108,22 +113,21 @@ public class IPv4AddressSegment extends IPAddressSegment {
 		return this;
 	}
 	
-	@Override
 	protected boolean isChangedByMask(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws IPAddressTypeException {
 		if(!(maskSegment instanceof IPv4AddressSegment)) {
 			throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
 		}
-		return super.isChangedByMask(maskSegment, segmentPrefixLength);
+		return super.isChangedByMask(maskSegment.getLowerSegmentValue(), segmentPrefixLength);
 	}
 	
 	@Override
 	public IPv4AddressSegment getLowest() {
-		return (IPv4AddressSegment) getLowestOrHighest(getSegmentCreator(), true);
+		return getLowestOrHighest(this, getSegmentCreator(), true);
 	}
 	
 	@Override
 	public IPv4AddressSegment getHighest() {
-		return (IPv4AddressSegment) getLowestOrHighest(getSegmentCreator(), false);
+		return getLowestOrHighest(this, getSegmentCreator(), false);
 	}
 	
 	public static IPv4AddressCreator getSegmentCreator() {
@@ -132,7 +136,7 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	
 	@Override
 	public Iterator<IPv4AddressSegment> iterator() {
-		return iterator(getSegmentCreator());
+		return iterator(this, getSegmentCreator());
 	}
 	
 	static IPv4AddressSegment getZeroSegment() {

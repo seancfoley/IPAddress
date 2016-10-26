@@ -1,14 +1,16 @@
 package inet.ipaddr.ipv6;
 
-import inet.ipaddr.IPAddressTypeNetwork;
+import java.util.function.BiFunction;
+
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressTypeNetwork;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 
 /**
  * 
  * @author sfoley
  */
-public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address> {
+public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6AddressSegment> {
 	
 	private static final IPv6AddressSegment emptySegments[] = {};
 	private static final IPv6AddressSection emptySection[] = {};
@@ -223,10 +225,15 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address> {
 	};
 
 	IPv6AddressNetwork() {
+		//super(IPv6Address.class, (address, index) -> address.getSegment(index));
 		super(IPv6Address.class);
 	}
 	
-	@SuppressWarnings("unchecked")
+	@Override
+	protected BiFunction<IPv6Address, Integer, IPv6AddressSegment> getSegmentProducer() {
+		return (address, index) -> address.getSegment(index);
+	}
+	
 	@Override
 	protected IPv6AddressCreator createAddressCreator() {
 		return new IPv6AddressCreator();

@@ -402,7 +402,7 @@ public abstract class TestBase {
 			String subnetString,
 			String cidrString,
 			String compressedWildcardString) {
-		
+		//TODO test unc string
 		String c = ipAddr.toCompressedString();
 		String canonical = ipAddr.toCanonicalString();
 		String s = ipAddr.toSubnetString();

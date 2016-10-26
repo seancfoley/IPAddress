@@ -231,9 +231,28 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		private int expandSegment[]; //the same as expandSegments but for each segment
 		private String segmentStrPrefix; //eg for inet_aton style there is 0x for hex, 0 for octal
 		private int radix;
+		private char separator;
+		private String addressSuffix = "";
 		
-		protected StringParams(int radix) {
+		protected StringParams(int radix, char separator) {
 			this.radix = radix;
+			this.separator = separator;
+		}
+		
+		public String getAddressSuffix() {
+			return addressSuffix;
+		}
+		
+		public void setAddressSuffix(String suffix) {
+			this.addressSuffix = suffix;
+		}
+		
+		public char getSeparator() {
+			return separator;
+		}
+		
+		public void setSeparator(char separator) {
+			this.separator = separator;
 		}
 		
 		public int getRadix() {
@@ -278,6 +297,11 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 			expandSegments = expand;
 		}
 		
+		@Override
+		public char getTrailingSegmentSeparator() {
+			return separator;
+		}
+
 		@Override
 		public abstract StringBuilder append(StringBuilder builder, T addr);
 		

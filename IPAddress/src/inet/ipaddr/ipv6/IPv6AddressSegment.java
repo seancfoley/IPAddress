@@ -85,6 +85,11 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
+	public IPv6AddressSegment toNetworkSegment(Integer segmentPrefixLength) {
+		return toNetworkSegment(segmentPrefixLength, true);
+	}
+	
+	@Override
 	public IPv6AddressSegment toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength) {
 		if(isNetworkChangedByPrefix(segmentPrefixLength, withPrefixLength)) {
 			return super.toNetworkSegment(segmentPrefixLength, withPrefixLength, getSegmentCreator());
@@ -113,22 +118,21 @@ public class IPv6AddressSegment extends IPAddressSegment {
 		return this;
 	}
 	
-	@Override
 	protected boolean isChangedByMask(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws IPAddressTypeException {
 		if(!(maskSegment instanceof IPv6AddressSegment)) {
 			throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
 		}
-		return super.isChangedByMask(maskSegment, segmentPrefixLength);
+		return super.isChangedByMask(maskSegment.getLowerSegmentValue(), segmentPrefixLength);
 	}
 	
 	@Override
 	public IPv6AddressSegment getLowest() {
-		return (IPv6AddressSegment) getLowestOrHighest(getSegmentCreator(), true);
+		return getLowestOrHighest(this, getSegmentCreator(), true);
 	}
 	
 	@Override
 	public IPv6AddressSegment getHighest() {
-		return (IPv6AddressSegment) getLowestOrHighest(getSegmentCreator(), false);
+		return getLowestOrHighest(this, getSegmentCreator(), false);
 	}
 	
 	private static IPv6AddressCreator getSegmentCreator() {
@@ -137,7 +141,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	
 	@Override
 	public Iterator<IPv6AddressSegment> iterator() {
-		return iterator(getSegmentCreator());
+		return iterator(this, getSegmentCreator());
 	}
 	
 	static IPv6AddressSegment getZeroSegment() {

@@ -128,7 +128,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 
 	@Override
 	public IPv4AddressSegment getSegment(int index) {
-		return (IPv4AddressSegment) super.getSegment(index);
+		return getSegments().getSegment(index);
 	}
 
 	@Override
@@ -207,19 +207,36 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return null;
 	}
 	
+	private IPv4Address getLowestOrHighest(boolean lowest) {
+		IPv4AddressCreator creator = getAddressCreator();
+		return getSingle(this, () -> {
+			IPv4AddressSection section = getSegments();
+			IPv4AddressSegment[] segs = createSingle(section, creator, i -> {
+				IPv4AddressSegment seg = getSegment(i);
+				return lowest ? seg.getLowest() : seg.getHighest();
+			});
+			return creator.createAddressInternal(segs);
+		});
+	}
+	
 	@Override
 	public IPv4Address getLowest() {
-		return getLowestOrHighest(getAddressCreator(), true);
+		return getLowestOrHighest(true);
 	}
 	
 	@Override
 	public IPv4Address getHighest() {
-		return getLowestOrHighest(getAddressCreator(), false);
+		return getLowestOrHighest(false);
 	}
 	
 	@Override
 	public Iterator<IPv4Address> iterator() {
-		return iterator(getAddressCreator());
+		return iterator(this, getAddressCreator(), () -> getSegments().getLowestSegments(), index -> getSegment(index).iterator());
+	}
+	
+	@Override
+	public Iterable<IPv4Address> getAddresses() {
+		return this;
 	}
 	
 	public static IPv4AddressNetwork network() {
@@ -296,7 +313,10 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSection getNetworkSection() {
-		return (IPv4AddressSection) super.getNetworkSection();
+		if(isPrefixed()) {
+			return getNetworkSection(getNetworkPrefixLength(), true);
+		}
+		return getNetworkSection(getBitCount(), true);
 	}
 	
 	@Override
@@ -306,7 +326,10 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSection getHostSection() {
-		return (IPv4AddressSection) super.getHostSection();
+		if(isPrefixed()) {
+			return getHostSection(getNetworkPrefixLength());
+		}
+		return getHostSection(0);
 	}
 
 	@Override
@@ -360,8 +383,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSegments().toInetAtonString(radix, joinedCount);
 	}
 	
+	@Override
+	public String toUNCHostName() {
+		return super.toCanonicalString();
+	}
 	
-
 	@Override
 	public IPAddressPartStringCollection toStandardStringCollection() {
 		return toStringCollection(IPv4StringBuilderOptions.STANDARD_OPTS);

@@ -9,6 +9,8 @@ import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 import inet.ipaddr.IPAddressComparator.CountComparator;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
@@ -28,6 +30,34 @@ import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
+
+
+/**
+ TODO reverse or arpa
+http://www.gestioip.net/docu/ipv6_address_examples.html
+
+Microsoft UNC http://www.techrepublic.com/blog/10-things/10-things-you-should-know-about-ipv6-addressing/
+https://en.wikipedia.org/wiki/IPv6_address#Literal_IPv6_addresses_in_UNC_path_names
+\\127.0.0.1
+TODO on ipv4 side, just do a reverse loop on the segments, and use the suffix, eg 8.18.255.4 becomes 4.255.18.8.in-addr.arpa
+TODO on the ipv6 side, IPAddressDivision.toUnsignedString can possibly be modified.  Need leading zeros.  
+pointer domain name for 2001:db8::567:89ab is b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.
+
+
+http://ipv6-literal.com/  IPV6 UNC rfc2732, IPV6 literal windows
+ok, beats me what this is
+actually, now I know, it turns out they are just wrong, they use the square brackets 
+
+ ont his page it states cannot start with - OK I handled that, no more compression
+https://msdn.microsoft.com/en-us/library/aa385353.aspx
+so need to ensure not compressed at front
+
+
+http://v6decode.com/#address=74DC%3a:02BA
+this shows the reverse or arpa
+
+ */
+
 
 /**
  * A single IP address, or a subnet of multiple addresses.  Subnets have one or more segments that are a range of values.
@@ -352,13 +382,17 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 */
 	public abstract IPAddress getHighest();
 	
-	protected <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> T getLowestOrHighest(IPAddressCreator<T, R, S> creator, boolean lowest) {
-		if(!isMultiple() && !isPrefixed()) {
-			return IPAddressSection.cast(this);
+	protected static <R extends IPAddressSection, S extends IPAddressSegment> S[] createSingle(R original, IPAddressSegmentCreator<S> segmentCreator, IntFunction<S> segProducer) {
+		return IPAddressSection.createSingle(original, segmentCreator, segProducer);
+	}
+	
+	protected static <T extends IPAddress> T getSingle(
+			T original,
+			Supplier<T> singleFromMultipleCreator) {
+		if(!original.isMultiple() && !original.isPrefixed()) {
+			return original;
 		}
-		S[] segs = IPAddressSection.cast(addressSection.createLowestOrHighest(creator, lowest));
-    	T result = creator.createAddressInternal(segs);
-    	return result;
+		return singleFromMultipleCreator.get();
 	}
 	
 	public abstract Iterator<? extends IPAddress> iterator();
@@ -366,14 +400,16 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	/**
 	 * @return an object to iterate over the individual addresses represented by this object.
 	 */
-	public Iterable<? extends IPAddress> getAddresses() {
-		return IPAddressSection.cast(this);
-	}
+	public abstract Iterable<? extends IPAddress> getAddresses();
 	
-	protected <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> Iterator<T> iterator(final IPAddressCreator<T, R, S> creator) {
+	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> Iterator<T> iterator(
+			T original,
+			IPAddressCreator<T, R, S> creator,
+			Supplier<S[]> segs,
+			IntFunction<Iterator<S>> segIteratorProducer) {
 		return new Iterator<T>() {
-			private boolean doThis = !isPrefixed() && !isMultiple(); //note that a non-multiple address can have a prefix (either /32 or /128)
-			private Iterator<S[]> iterator = IPAddressSection.cast(addressSection.iterator(addressSection.getSegmentCreator(), doThis));
+			private boolean doThis = !original.isPrefixed() && !original.isMultiple(); //note that a non-multiple address can have a prefix (either /32 or /128)
+			private Iterator<S[]> iterator = original.addressSection.iterator(creator, doThis, segs, segIteratorProducer);
 			
 			@Override
 			public boolean hasNext() {
@@ -387,7 +423,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		    	}
 		    	if(doThis) {
 		    		doThis = false;
-			    	return IPAddressSection.cast(IPAddress.this);
+			    	return original;
 		    	}
 		    	S[] next = iterator.next();
 		    	return creator.createAddressInternal(next);
@@ -838,6 +874,13 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	/**
+	 * Generates the Microsoft UNC path component for this address
+	 * 
+	 * @return
+	 */
+	public abstract String toUNCHostName();
+	
+	/**
 	 * Generates an IPAddressString object for this IPAddress object.
 	 *   
 	 * This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
@@ -1051,12 +1094,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * Generates the network section of the address if the address is a CIDR prefix, otherwise it generates the entire address as a prefixed address with prefix matching the address bit length.
 	 * @return
 	 */
-	public IPAddressSection getNetworkSection() {
-		if(isPrefixed()) {
-			return getNetworkSection(getNetworkPrefixLength());
-		}
-		return getNetworkSection(getBitCount());
-	}
+	public abstract IPAddressSection getNetworkSection();
 	
 	/**
 	 * Generates the host section of the address.  The returned section will have only as many segments as needed
@@ -1073,12 +1111,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * 
 	 * @return
 	 */
-	public IPAddressSection getHostSection() {
-		if(isPrefixed()) {
-			return getHostSection(getNetworkPrefixLength());
-		}
-		return getHostSection(0);
-	}
+	public abstract IPAddressSection getHostSection();
 
 	/**
 	 * Return an address for the network encompassing this address.  

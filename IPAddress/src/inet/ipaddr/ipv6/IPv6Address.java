@@ -58,8 +58,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	private static IPv6AddressNetwork network = new IPv6AddressNetwork();
 	
 	/* An IPv6 zone distinguishes two IPv6 addresses that are the same.
-	 * They are used with link-local addresses fe80::/10 and distinguishes two interfaces to the link-local network.
-	 * They are used with site-local addresses to distinguish sites.
+	 * They are used with link-local addresses fe80::/10 and distinguishes two interfaces to the link-local network, this is known as the zone id.
+	 * They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
+	 * 
+	 * A zone that consists of a scope id is called a scoped zone.
 	 */
 	private final String zone;
 	
@@ -171,7 +173,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6AddressSegment getSegment(int index) {
-		return (IPv6AddressSegment) super.getSegment(index);
+		return getSegments().getSegment(index);
 	}
 
 	@Override
@@ -224,19 +226,36 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return BIT_COUNT;
 	}
 	
+	private IPv6Address getLowestOrHighest(boolean lowest) {
+		IPv6AddressCreator creator = getAddressCreator();
+		return getSingle(this, () -> {
+			IPv6AddressSection section = getSegments();
+			IPv6AddressSegment[] segs = createSingle(section, creator, i -> {
+				IPv6AddressSegment seg = getSegment(i);
+				return lowest ? seg.getLowest() : seg.getHighest();
+			});
+			return creator.createAddressInternal(segs);
+		});
+	}
+	
 	@Override
 	public IPv6Address getLowest() {
-		return getLowestOrHighest(getAddressCreator(), true);
+		return getLowestOrHighest(true);
 	}
 	
 	@Override
 	public IPv6Address getHighest() {
-		return getLowestOrHighest(getAddressCreator(), false);
+		return getLowestOrHighest(false);
 	}
 	
 	@Override
 	public Iterator<IPv6Address> iterator() {
-		return iterator(getAddressCreator());
+		return iterator(this, getAddressCreator(), () -> getSegments().getLowestSegments(), index -> getSegment(index).iterator());
+	}
+	
+	@Override
+	public Iterable<IPv6Address> getAddresses() {
+		return this;
 	}
 
 	protected IPv6AddressCreator getAddressCreator() {
@@ -566,7 +585,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6AddressSection getNetworkSection() {
-		return (IPv6AddressSection) super.getNetworkSection();
+		if(isPrefixed()) {
+			return getNetworkSection(getNetworkPrefixLength(), true);
+		}
+		return getNetworkSection(getBitCount(), true);
 	}
 	
 	@Override
@@ -576,7 +598,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6AddressSection getHostSection() {
-		return (IPv6AddressSection) super.getHostSection();
+		if(isPrefixed()) {
+			return getHostSection(getNetworkPrefixLength());
+		}
+		return getHostSection(0);
 	}
 
 	public boolean hasZone() {
@@ -585,6 +610,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	public String getZone() {
 		return zone;
+	}
+	
+	public IPv6Address removeZone() {
+		return network.getAddressCreator().createAddress(getSegments());
 	}
 
 	@Override
@@ -848,9 +877,21 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					params.segmentStrPrefix,
 					true,
 					params.ipv4Opts,
-					params.compressOptions);
+					params.compressOptions,
+					params.separator,
+					params.zoneSeparator,
+					params.addrSuffix);
 		}
 		return toNormalizedString(params);
+	}
+	
+	@Override
+	public String toUNCHostName() {
+		String result;
+		if(hasNoCache() || (result = stringCache.uncString) == null) {
+			stringCache.uncString = result = toNormalizedString(IPv6StringCache.uncParams);
+		}
+		return result;
 	}
 	
 	@Override

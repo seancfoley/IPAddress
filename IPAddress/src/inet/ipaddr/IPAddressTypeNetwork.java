@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.BiFunction;
 
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.format.IPAddressSegmentGrouping.RangeList;
@@ -16,7 +17,7 @@ import inet.ipaddr.format.validate.ParsedAddressCreator;
  *
  * @param <T> the address class
  */
-public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddressNetwork {
+public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddressSegment> extends IPAddressNetwork {
 	private final T subnets[];
 	private final T subnetMasks[];
 	private final T hostMasks[];
@@ -104,12 +105,13 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddres
 		}
 	}
 	
-	private IPAddressCreator<T, ?, ?> creator;
+	private IPAddressCreator<T, ?, S> creator;
 	
+	@SuppressWarnings("unchecked")
 	protected IPAddressTypeNetwork(Class<T> addressType) {
 		IPVersion version = getIPVersion();
 		int bitSize = IPAddress.bitCount(version);
-		this.subnets = IPAddressSection.cast(Array.newInstance(addressType, bitSize + 1));
+		this.subnets = (T[]) Array.newInstance(addressType, bitSize + 1);
 		this.subnetMasks = this.subnets.clone();
 		this.hostMasks = this.subnets.clone();
 		this.creator = createAddressCreator();
@@ -128,9 +130,11 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddres
 		}
 	}
 	
-	protected abstract <R extends IPAddressSection, S extends IPAddressSegment> IPAddressCreator<T, R, S> createAddressCreator();
+	protected abstract BiFunction<T, Integer, S> getSegmentProducer();
+	
+	protected abstract IPAddressCreator<T, ?, S> createAddressCreator();
 
-	protected IPAddressCreator<T, ?, ?> getAddressCreator() {
+	protected IPAddressCreator<T, ?, S> getAddressCreator() {
 		return creator;
 	}
 
@@ -187,75 +191,88 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddres
 		return getNetworkMask(networkPrefixLength, true);
 	}
 	
+	
 	@Override
 	public T getNetworkMask(int networkPrefixLength, boolean withPrefixLength) {
-		return getMask(networkPrefixLength, withPrefixLength ? subnets : subnetMasks, true, creator, withPrefixLength);
+		return getMask(networkPrefixLength, withPrefixLength ? subnets : subnetMasks, true, withPrefixLength);
 	}
 	
 	@Override
 	public T getHostMask(int networkPrefixLength) {
-		return getMask(networkPrefixLength, hostMasks, false, creator, false);
+		return getMask(networkPrefixLength, hostMasks, false, false);
 	}
 	
-	private <R extends IPAddressSection, S extends IPAddressSegment> T getMask(int networkPrefixLength, T cache[], boolean network, IPAddressCreator<T, R, S> creator, boolean withPrefixLength) {
+	private T getMask(int networkPrefixLength, T cache[], boolean network, boolean withPrefixLength) {
 		int bits = networkPrefixLength;
 		IPVersion version = getIPVersion();
 		int addressBitLength = IPAddress.bitCount(version);
 		if(bits < 0 || bits > addressBitLength) {
 			throw new IPAddressTypeException(bits, version, "ipaddress.error.prefixSize");
 		}
-		int prefix = bits;
 		int cacheIndex = bits;
-		int segmentCount = IPAddress.segmentCount(version);
-		int bitsPerSegment = IPAddress.bitsPerSegment(version);
-		int onesSubnetIndex = network ? addressBitLength : 0;
-		int zerosSubnetIndex = network ? 0 : addressBitLength;
-		
-		S onesSegment, zerosSegment;
-		T onesSubnet = cache[onesSubnetIndex];
-		T zerosSubnet = cache[zerosSubnetIndex];
-		if(onesSubnet == null || zerosSubnet == null) {
-			synchronized(cache) {
-				onesSubnet = cache[onesSubnetIndex];
-				if(onesSubnet == null) {
-					S newSegments[] = creator.createAddressSegmentArray(segmentCount);
-					int maxSegmentValue = IPAddress.maxSegmentValue(version);
-					if(network && withPrefixLength) {
-						S segment = creator.createAddressSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
-						Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
-						S lastSegment = creator.createAddressSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bitsPerSegment) /* bitsPerSegment */ );
-						newSegments[newSegments.length - 1] = lastSegment;
-					} else {
-						S segment = creator.createAddressSegment(maxSegmentValue);
-						Arrays.fill(newSegments, segment);
-					}
-					onesSubnet = creator.createAddressInternal(newSegments);
-					initMaskCachedValues(onesSubnet.addressSection, network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment);
-					cache[onesSubnetIndex] = onesSubnet;
-				}
-				zerosSubnet = cache[zerosSubnetIndex];
-				if(zerosSubnet == null) {
-					S newSegments[] = creator.createAddressSegmentArray(segmentCount);
-					S seg;
-					if(network && withPrefixLength) {
-						seg = creator.createAddressSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
-					} else {
-						seg = creator.createAddressSegment(0);
-					}
-					Arrays.fill(newSegments, seg);
-					zerosSubnet = creator.createAddressInternal(newSegments);
-					initMaskCachedValues(zerosSubnet.addressSection, network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment);
-					cache[zerosSubnetIndex] = zerosSubnet;
-				}
-			}
-		}
-		onesSegment = IPAddressSection.cast(onesSubnet.getSegment(1));
-		zerosSegment = IPAddressSection.cast(zerosSubnet.getSegment(1));
 		T subnet = cache[cacheIndex];
 		if(subnet == null) {
+			int onesSubnetIndex, zerosSubnetIndex;
+			if(network) {
+				onesSubnetIndex = addressBitLength;
+				zerosSubnetIndex = 0;
+			} else {
+				onesSubnetIndex = 0;
+				zerosSubnetIndex = addressBitLength;
+			}
+			T onesSubnet = cache[onesSubnetIndex];
+			T zerosSubnet = cache[zerosSubnetIndex];
+			if(onesSubnet == null || zerosSubnet == null) {
+				synchronized(cache) {
+					int segmentCount = IPAddress.segmentCount(version);
+					int bitsPerSegment = IPAddress.bitsPerSegment(version);
+					onesSubnet = cache[onesSubnetIndex];
+					if(onesSubnet == null) {
+						IPAddressCreator<T, ?, S> creator = getAddressCreator();
+						S newSegments[] = creator.createAddressSegmentArray(segmentCount);
+						int maxSegmentValue = IPAddress.maxSegmentValue(version);
+						if(network && withPrefixLength) {
+							S segment = creator.createAddressSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
+							Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
+							S lastSegment = creator.createAddressSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bitsPerSegment) /* bitsPerSegment */ );
+							newSegments[newSegments.length - 1] = lastSegment;
+						} else {
+							S segment = creator.createAddressSegment(maxSegmentValue);
+							Arrays.fill(newSegments, segment);
+						}
+						onesSubnet = creator.createAddressInternal(newSegments);
+						initMaskCachedValues(onesSubnet.addressSection, network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment);
+						cache[onesSubnetIndex] = onesSubnet;
+					}
+					zerosSubnet = cache[zerosSubnetIndex];
+					if(zerosSubnet == null) {
+						IPAddressCreator<T, ?, S> creator = getAddressCreator();
+						S newSegments[] = creator.createAddressSegmentArray(segmentCount);
+						S seg;
+						if(network && withPrefixLength) {
+							seg = creator.createAddressSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
+						} else {
+							seg = creator.createAddressSegment(0);
+						}
+						Arrays.fill(newSegments, seg);
+						zerosSubnet = creator.createAddressInternal(newSegments);
+						initMaskCachedValues(zerosSubnet.addressSection, network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment);
+						cache[zerosSubnetIndex] = zerosSubnet;
+					}
+				}
+			}
+			
 			synchronized(cache) {
 				subnet = cache[cacheIndex];
-				if(subnet == null) {
+				if(subnet == null) {			
+					BiFunction<T, Integer, S> segProducer = getSegmentProducer();				
+					int segmentCount = IPAddress.segmentCount(version);
+					int bitsPerSegment = IPAddress.bitsPerSegment(version);
+					int prefix = bits;
+					S onesSegment = segProducer.apply(onesSubnet, 1);
+					S zerosSegment = segProducer.apply(zerosSubnet, 1);
+					IPAddressCreator<T, ?, S> creator = getAddressCreator();
+					
 					ArrayList<S> segmentList = new ArrayList<S>(segmentCount);
 					int i = 0;
 					for(; bits > 0; i++, bits -= bitsPerSegment) {
@@ -268,7 +285,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress> extends IPAddres
 								if(entry != cacheIndex) { //we already know that the entry at cacheIndex is null
 									T prev = cache[entry];
 									if(prev != null) {
-										segment = IPAddressSection.cast(prev.getSegment(j));
+										segment = segProducer.apply(prev, j);
 										break;
 									}
 								}

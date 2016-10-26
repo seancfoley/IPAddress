@@ -61,7 +61,8 @@ public class IPv4AddressSection extends IPAddressSection {
 	private transient IPv4StringCache stringCache;
 
 	public IPv4AddressSection(IPv4AddressSegment[] segments, Integer networkPrefixLength) {
-		this(toCIDRSegments(networkPrefixLength, segments, getIPv4SegmentCreator()), false);
+		this(toCIDRSegments(networkPrefixLength, segments, getIPv4SegmentCreator(),  IPv4AddressSegment::toNetworkSegment), false);
+		
 	}
 	
 	public IPv4AddressSection(IPv4AddressSegment segments[]) {
@@ -83,35 +84,62 @@ public class IPv4AddressSection extends IPAddressSection {
 	public IPv4AddressSection(byte bytes[]) {
 		this(bytes, null, true);
 	}
-
+	
+	private IPv4AddressSegment[] getLowestOrHighestSegments(boolean lowest) {
+		return getSingle(this, (IPv4AddressSegment[]) divisions, getAddressCreator(), (i) -> {
+			IPv4AddressSegment seg = getSegment(i);
+			return lowest ? seg.getLowest() : seg.getHighest();
+		}, false);
+	}
+	
+	@Override
+	public IPv4AddressSegment[] getSegments() {
+		return (IPv4AddressSegment[]) divisions.clone();
+	}
+	
 	@Override
 	public IPv4AddressSegment[] getLowestSegments() {
-		return (IPv4AddressSegment[]) super.getLowestSegments();
+		return getLowestOrHighestSegments(true);
 	}
 	
 	@Override
 	public IPv4AddressSegment[] getHighestSegments() {
-		return (IPv4AddressSegment[]) super.getHighestSegments();
+		return getLowestOrHighestSegments(false);
+	}
+	
+	private IPv4AddressSection getLowestOrHighestSection(boolean lowest) {
+		IPv4AddressCreator creator = getAddressCreator();
+		return getSingle(this, () -> {
+			IPv4AddressSegment[] segs = createSingle(this, creator, i -> {
+				IPv4AddressSegment seg = getSegment(i);
+				return lowest ? seg.getLowest() : seg.getHighest();
+			});
+			return creator.createSectionInternal(segs);
+		});
 	}
 	
 	@Override
 	public IPv4AddressSection getLowestSection() {
-		return (IPv4AddressSection) super.getLowestSection();
+		return getLowestOrHighestSection(true);
 	}
 	
 	@Override
 	public IPv4AddressSection getHighestSection() {
-		return (IPv4AddressSection) super.getHighestSection();
+		return getLowestOrHighestSection(false);
 	}
 	
 	@Override
 	public Iterator<IPv4AddressSection> sectionIterator() {
-		return new SectionIterator<IPv4Address, IPv4AddressSection, IPv4AddressSegment>();
+		return new SectionIterator<IPv4Address, IPv4AddressSection, IPv4AddressSegment>(this, getAddressCreator(), iterator(true));
+	}
+	
+	private Iterator<IPv4AddressSegment[]> iterator(boolean skipThis) {
+		return super.iterator(getSegmentCreator(), skipThis, this::getLowestSegments, index -> getSegment(index).iterator());
 	}
 	
 	@Override
 	public Iterator<IPv4AddressSegment[]> iterator() {
-		return cast(super.iterator());
+		return iterator(false);
 	}
 	
 	@Override
@@ -176,7 +204,10 @@ public class IPv4AddressSection extends IPAddressSection {
 	
 	@Override
 	public IPv4AddressSection[] subtract(IPAddressSection other) {
-		return (IPv4AddressSection[]) super.subtract(other);
+		if(!(other instanceof IPv4AddressSection)) {
+			throw new IPAddressTypeException(this, other, "ipaddress.error.typeMismatch");
+		}
+		return subtract(this, (IPv4AddressSection) other, getAddressCreator(), this::getSegment, (section, prefix) -> section.toSubnet(prefix));
 	}
 	
 	@Override
@@ -196,7 +227,13 @@ public class IPv4AddressSection extends IPAddressSection {
 	
 	@Override
 	public IPv4AddressSection toSubnet(int networkPrefixLength) throws IPAddressTypeException {
-		return (IPv4AddressSection) super.toSubnet(networkPrefixLength);
+		super.checkSubnet(networkPrefixLength);
+		if(isPrefixed() && networkPrefixLength >= getNetworkPrefixLength()) {
+			return this;
+		}
+		IPv4Address addressMask = getNetwork().getNetworkMask(networkPrefixLength, false);
+		IPv4AddressSection mask = addressMask.getNetworkSection(getBitCount(), false);
+		return getSubnetSegments(this, mask, networkPrefixLength, getAddressCreator(), false, this::getSegment, mask::getSegment);
 	}
 
 	/**
@@ -213,7 +250,12 @@ public class IPv4AddressSection extends IPAddressSection {
 	 */
 	@Override
 	public IPv4AddressSection toSubnet(IPAddressSection mask, Integer networkPrefixLength) throws IPAddressTypeException {
-		return (IPv4AddressSection) super.toSubnet(mask, networkPrefixLength);
+		if(!(mask instanceof IPv4AddressSection)) {
+			throw new IPAddressTypeException(this, mask, "ipaddress.error.typeMismatch");
+		}
+		IPv4AddressSection theMask = (IPv4AddressSection) mask;
+		super.checkSubnet(theMask, networkPrefixLength);
+		return getSubnetSegments(this, theMask, networkPrefixLength, getAddressCreator(), true, this::getSegment, theMask::getSegment);
 	}
 	
 	@Override
@@ -223,12 +265,14 @@ public class IPv4AddressSection extends IPAddressSection {
 	
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) {
-		return (IPv4AddressSection) super.getNetworkSection(networkPrefixLength, withPrefixLength);
+		int cidrSegmentCount = getNetworkSegmentCount(networkPrefixLength);
+		return getNetworkSegments(this, networkPrefixLength, cidrSegmentCount, withPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, withPrefixLength));
 	}
 	
 	@Override
 	public IPv4AddressSection getHostSection(int networkPrefixLength) {
-		return (IPv4AddressSection) super.getHostSection(networkPrefixLength);
+		int cidrSegmentCount = getHostSegmentCount(networkPrefixLength);
+		return getHostSegments(this, networkPrefixLength, cidrSegmentCount, getAddressCreator(), (i, prefix) -> getSegment(i).toHostSegment(prefix));
 	}
 
 	private boolean hasNoCache() {
@@ -364,11 +408,11 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	private static IPv4StringParams toParams(StringOptions opts) {
-		IPv4StringParams result = new IPv4StringParams();
+		IPv4StringParams result = new IPv4StringParams(opts.base, opts.separator);
 		result.expandSegments(opts.expandSegments);
 		result.setWildcardOption(opts.wildcardOptions);
-		result.setRadix(opts.base);
 		result.setSegmentStrPrefix(opts.segmentStrPrefix);
+		result.setAddressSuffix(opts.addrSuffix);
 		return result;
 	}
 	
@@ -620,12 +664,8 @@ public class IPv4AddressSection extends IPAddressSection {
 		 */
 		static class IPv4StringParams extends StringParams<IPAddressPart> {
 			
-			IPv4StringParams(int radix) {
-				super(radix);
-			}
-			
-			public IPv4StringParams() {
-				this(IPv4Address.DEFAULT_TEXTUAL_RADIX);
+			IPv4StringParams(int radix, char separator) {
+				super(radix, separator);
 			}
 			
 			@Override
@@ -634,11 +674,6 @@ public class IPv4AddressSection extends IPAddressSection {
 					return addr.getDivisionCount() - 1;
 				}
 				return 0;
-			}
-			
-			@Override
-			public char getTrailingSegmentSeparator() {
-				return IPv4Address.SEGMENT_SEPARATOR;
 			}
 			
 			@Override
@@ -665,16 +700,21 @@ public class IPv4AddressSection extends IPAddressSection {
 						} else { //wildcardOption == WildcardOptions.WildcardOption.NETWORK_ONLY
 							seg.getPrefixAdjustedWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, builder);
 						}
-						builder.append(IPv4Address.SEGMENT_SEPARATOR);
+						char separator = getSeparator();
+						builder.append(separator);
 					}
 					builder.deleteCharAt(builder.length() - 1);
+					String suffix = getAddressSuffix();
+					if(suffix.length() > 0) {
+						builder.append(suffix);
+					}
 				}
 				return builder;
 			}
 			
 			@Override
 			public String toString(IPAddressPart addr) {
-				StringBuilder builder = new StringBuilder(IPv4Address.MAX_STRING_LEN + EXTRA_SPACE);
+				StringBuilder builder = new StringBuilder(IPv4Address.MAX_STRING_LEN + EXTRA_SPACE + getAddressSuffix().length());
 				return append(builder, addr).toString();
 			}
 			
@@ -728,7 +768,7 @@ public class IPv4AddressSection extends IPAddressSection {
 				}
 				for(int radix : radices) {
 					ArrayList<IPv4StringParams> radixParams = new ArrayList<IPv4StringParams>();
-					IPv4StringParams stringParams = new IPv4StringParams(radix);
+					IPv4StringParams stringParams = new IPv4StringParams(radix, IPv4Address.SEGMENT_SEPARATOR);
 					radixParams.add(stringParams);
 					switch(radix) {
 						case 8:
@@ -778,7 +818,7 @@ public class IPv4AddressSection extends IPAddressSection {
 					} else if(options.includes(IPStringBuilderOptions.LEADING_ZEROS_FULL_ALL_SEGMENTS)) {
 						boolean allExpandable = isExpandable(radix);
 						if(allExpandable) {
-							IPv4StringParams expandParams = new IPv4StringParams();
+							IPv4StringParams expandParams = new IPv4StringParams(IPv4Address.DEFAULT_TEXTUAL_RADIX, IPv4Address.SEGMENT_SEPARATOR);
 							expandParams.expandSegments(true);
 							radixParams.add(expandParams);
 						}

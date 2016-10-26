@@ -1,17 +1,16 @@
 package inet.ipaddr.ipv4;
 
-import inet.ipaddr.IPAddressTypeNetwork;
 import inet.ipaddr.IPAddress.IPVersion;
+
+import java.util.function.BiFunction;
+
+import inet.ipaddr.IPAddressTypeNetwork;
 
 /**
  * 
  * @author sfoley
  */
-public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address> {
-	
-	IPv4AddressNetwork() {
-		super(IPv4Address.class);
-	}
+public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4AddressSegment> {
 	
 	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSegment> {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
@@ -180,7 +179,15 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address> {
 		
 	}
 	
-	@SuppressWarnings("unchecked")
+	IPv4AddressNetwork() {
+		super(IPv4Address.class);
+	}
+	
+	@Override
+	protected BiFunction<IPv4Address, Integer, IPv4AddressSegment> getSegmentProducer() {
+		return (address, index) -> address.getSegment(index);
+	}
+
 	@Override
 	protected IPv4AddressCreator createAddressCreator() {
 		return new IPv4AddressCreator();
