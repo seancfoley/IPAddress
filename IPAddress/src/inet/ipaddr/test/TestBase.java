@@ -403,6 +403,7 @@ public abstract class TestBase {
 			String cidrString,
 			String compressedWildcardString) {
 		//TODO test unc string
+		//TODO test reverse lookup string
 		String c = ipAddr.toCompressedString();
 		String canonical = ipAddr.toCanonicalString();
 		String s = ipAddr.toSubnetString();

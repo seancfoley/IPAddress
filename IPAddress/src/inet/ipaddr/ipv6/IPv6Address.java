@@ -880,7 +880,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					params.compressOptions,
 					params.separator,
 					params.zoneSeparator,
-					params.addrSuffix);
+					params.addrSuffix,
+					params.reverse,
+					params.splitDigits);
 		}
 		return toNormalizedString(params);
 	}
@@ -890,6 +892,15 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		String result;
 		if(hasNoCache() || (result = stringCache.uncString) == null) {
 			stringCache.uncString = result = toNormalizedString(IPv6StringCache.uncParams);
+		}
+		return result;
+	}
+	
+	@Override
+	public String toReverseDNSLookupString() {
+		String result;
+		if(hasNoCache() || (result = stringCache.reverseDNSString) == null) {
+			stringCache.reverseDNSString = result = getSegments().toNormalizedString(IPv6StringCache.reverseDNSParams, "");//the zone is dropped
 		}
 		return result;
 	}

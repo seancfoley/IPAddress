@@ -32,7 +32,7 @@ public class IPv4AddressSection extends IPAddressSection {
 
 	private static final long serialVersionUID = 1L;
 
-	private static class IPv4StringCache extends StringCache {
+	static class IPv4StringCache extends StringCache {
 		//a set of pre-defined string types
 		private static final StringOptions fullParams;
 		private static final StringOptions canonicalParams;
@@ -40,25 +40,26 @@ public class IPv4AddressSection extends IPAddressSection {
 		private static final StringOptions sqlWildcardParams;
 		private static final StringOptions octalParams;
 		private static final StringOptions hexParams;
+		static final StringOptions reverseDNSParams;
 		
 		static {
 			WildcardOptions allWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL);
 			WildcardOptions allSQLWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL, new Wildcards(IPAddress.SEGMENT_SQL_WILDCARD_STR, IPAddress.SEGMENT_SQL_SINGLE_WILDCARD_STR));
-			WildcardOptions onlyNetworkWildcards = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY);
-			WildcardOptions fullWildcards = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR));
-			fullParams = new StringOptions.Builder().setRadix(IPv4Address.DEFAULT_TEXTUAL_RADIX).setExpandSegments(true).setWildcardOptions(fullWildcards).toParams();
-			canonicalParams = new StringOptions.Builder().setRadix(IPv4Address.DEFAULT_TEXTUAL_RADIX).setExpandSegments(false).setWildcardOptions(onlyNetworkWildcards).toParams();
-			normalizedWildcardParams = new StringOptions.Builder().setRadix(IPv4Address.DEFAULT_TEXTUAL_RADIX).setExpandSegments(false).setWildcardOptions(allWildcards).toParams();
-			sqlWildcardParams = new StringOptions.Builder().setRadix(IPv4Address.DEFAULT_TEXTUAL_RADIX).setExpandSegments(false).setWildcardOptions(allSQLWildcards).toParams();
-			octalParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.OCTAL.getRadix()).setExpandSegments(false).setWildcardOptions(onlyNetworkWildcards).setSegmentStrPrefix(IPv4Address.inet_aton_radix.OCTAL.getSegmentStrPrefix()).toParams();
-			hexParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.HEX.getRadix()).setExpandSegments(false).setWildcardOptions(onlyNetworkWildcards).setSegmentStrPrefix(IPv4Address.inet_aton_radix.HEX.getSegmentStrPrefix()).toParams();
+			WildcardOptions wildcardsRangeOnlyNetworkOnly = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR));
+			fullParams = new StringOptions.Builder().setExpandedSegments(true).setWildcardOptions(wildcardsRangeOnlyNetworkOnly).toParams();
+			canonicalParams = new StringOptions.Builder().toParams();
+			normalizedWildcardParams = new StringOptions.Builder().setWildcardOptions(allWildcards).toParams();
+			sqlWildcardParams = new StringOptions.Builder().setWildcardOptions(allSQLWildcards).toParams();
+			octalParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.OCTAL.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.OCTAL.getSegmentStrPrefix()).toParams();
+			hexParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.HEX.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.HEX.getSegmentStrPrefix()).toParams();
+			reverseDNSParams = new StringOptions.Builder().setReverse(true).setAddressSuffix(".in-addr.arpa").toParams();
 		}
 		
 		public String octalString;
 		public String hexString;
 	}
 	
-	private transient IPv4StringCache stringCache;
+	transient IPv4StringCache stringCache;
 
 	public IPv4AddressSection(IPv4AddressSegment[] segments, Integer networkPrefixLength) {
 		this(toCIDRSegments(networkPrefixLength, segments, getIPv4SegmentCreator(),  IPv4AddressSegment::toNetworkSegment), false);
@@ -275,7 +276,7 @@ public class IPv4AddressSection extends IPAddressSection {
 		return getHostSegments(this, networkPrefixLength, cidrSegmentCount, getAddressCreator(), (i, prefix) -> getSegment(i).toHostSegment(prefix));
 	}
 
-	private boolean hasNoCache() {
+	boolean hasNoCache() {
 		if(stringCache == null) {
 			synchronized(this) {
 				if(stringCache == null) {
@@ -408,11 +409,19 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	private static IPv4StringParams toParams(StringOptions opts) {
-		IPv4StringParams result = new IPv4StringParams(opts.base, opts.separator);
-		result.expandSegments(opts.expandSegments);
-		result.setWildcardOption(opts.wildcardOptions);
-		result.setSegmentStrPrefix(opts.segmentStrPrefix);
-		result.setAddressSuffix(opts.addrSuffix);
+		//since the params here are not dependent on the section, we could cache the params in the options 
+		//this is not true on the IPv6 side where compression settings change based on the section
+		IPv4StringParams result = (IPv4StringParams) getCachedParams(opts);
+		if(result == null) {
+			result = new IPv4StringParams(opts.base, opts.separator);
+			result.expandSegments(opts.expandSegments);
+			result.setWildcardOption(opts.wildcardOptions);
+			result.setSegmentStrPrefix(opts.segmentStrPrefix);
+			result.setAddressSuffix(opts.addrSuffix);
+			result.setReverse(opts.reverse);
+			result.setSplitDigits(opts.splitDigits);
+			setCachedParams(opts, result);
+		}
 		return result;
 	}
 	
@@ -679,10 +688,13 @@ public class IPv4AddressSection extends IPAddressSection {
 			@Override
 			public StringBuilder append(StringBuilder builder, IPAddressPart addr) {
 				appendSegments(builder, addr);
-				Integer networkPrefixLength = addr.getNetworkPrefixLength();
-				if(networkPrefixLength != null && getWildcardOption().wildcardOption != WildcardOptions.WildcardOption.ALL) {
-					builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
+				if(!isReverse()) {
+					Integer networkPrefixLength = addr.getNetworkPrefixLength();
+					if(networkPrefixLength != null && getWildcardOption().wildcardOption != WildcardOptions.WildcardOption.ALL) {
+						builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
+					}
 				}
+				appendSuffix(builder);
 				return builder;
 			}
 			
@@ -692,22 +704,26 @@ public class IPv4AddressSection extends IPAddressSection {
 					WildcardOptions wildcardOptions = getWildcardOption();
 					WildcardOptions.WildcardOption wildcardOption = wildcardOptions.wildcardOption;
 					boolean isAll = wildcardOption == WildcardOptions.WildcardOption.ALL;
-					for(int i = 0; i < part.getDivisionCount(); i++) {
-						IPAddressDivision seg = part.getDivision(i);
-						int leadingZeroCount = getLeadingZeros(i);
-						if(isAll) {
-							seg.getWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, builder);
+					int count = part.getDivisionCount();
+					boolean reverse = isReverse();
+					for(int i = 0; i < count; i++) {
+						int segIndex;
+						if(reverse) {
+							segIndex = count - i - 1;
+						} else {
+							segIndex = i;
+						}
+						IPAddressDivision seg = part.getDivision(segIndex);
+						int leadingZeroCount = getLeadingZeros(segIndex);
+						char separator = getSeparator();
+						if(isAll || isSplitDigits()) {
+							seg.getWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, isSplitDigits(), separator, isReverse(), builder);
 						} else { //wildcardOption == WildcardOptions.WildcardOption.NETWORK_ONLY
 							seg.getPrefixAdjustedWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, builder);
 						}
-						char separator = getSeparator();
 						builder.append(separator);
 					}
 					builder.deleteCharAt(builder.length() - 1);
-					String suffix = getAddressSuffix();
-					if(suffix.length() > 0) {
-						builder.append(suffix);
-					}
 				}
 				return builder;
 			}

@@ -33,33 +33,6 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
 
 
 /**
- TODO reverse or arpa
-http://www.gestioip.net/docu/ipv6_address_examples.html
-
-Microsoft UNC http://www.techrepublic.com/blog/10-things/10-things-you-should-know-about-ipv6-addressing/
-https://en.wikipedia.org/wiki/IPv6_address#Literal_IPv6_addresses_in_UNC_path_names
-\\127.0.0.1
-TODO on ipv4 side, just do a reverse loop on the segments, and use the suffix, eg 8.18.255.4 becomes 4.255.18.8.in-addr.arpa
-TODO on the ipv6 side, IPAddressDivision.toUnsignedString can possibly be modified.  Need leading zeros.  
-pointer domain name for 2001:db8::567:89ab is b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.
-
-
-http://ipv6-literal.com/  IPV6 UNC rfc2732, IPV6 literal windows
-ok, beats me what this is
-actually, now I know, it turns out they are just wrong, they use the square brackets 
-
- ont his page it states cannot start with - OK I handled that, no more compression
-https://msdn.microsoft.com/en-us/library/aa385353.aspx
-so need to ensure not compressed at front
-
-
-http://v6decode.com/#address=74DC%3a:02BA
-this shows the reverse or arpa
-
- */
-
-
-/**
  * A single IP address, or a subnet of multiple addresses.  Subnets have one or more segments that are a range of values.
  * <p>
  * IPAddress objects are immutable and cannot change values.  This also makes them thread-safe.
@@ -802,7 +775,27 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	/**
+	 * Generates the Microsoft UNC path component for this address
+	 * 
+	 * @return
+	 */
+	public abstract String toUNCHostName();
+	
+	/**
+	 * Generates the reverse DNS lookup string
+	 * For 8.255.4.4 it is 4.4.255.8.in-addr.arpa
+	 * For 2001:db8::567:89ab it is b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
+	 * 
+	 *
+	 * @throw IPAddressTypeException if this address is a subnet of multiple addresses
+	 * @return
+	 */
+	public abstract String toReverseDNSLookupString();
+	
+	/**
 	 * Constructs a string representing this address according to the given parameters
+	 * 
+	 * @throw IPAddressTypeException if this address is a subnet of multiple addresses, you have selected splitDigits, and the address range cannot be represented in split digits
 	 * 
 	 * @param params the parameters for the address string
 	 */
@@ -872,13 +865,6 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	public IPAddressPartStringCollection toStringCollection(IPStringBuilderOptions options) {
 		return addressSection.toStringCollection(options);
 	}
-	
-	/**
-	 * Generates the Microsoft UNC path component for this address
-	 * 
-	 * @return
-	 */
-	public abstract String toUNCHostName();
 	
 	/**
 	 * Generates an IPAddressString object for this IPAddress object.

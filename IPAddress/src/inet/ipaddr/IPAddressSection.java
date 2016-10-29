@@ -20,6 +20,7 @@ import inet.ipaddr.format.IPAddressPart;
 import inet.ipaddr.format.IPAddressSegmentGrouping;
 import inet.ipaddr.format.util.IPAddressPartConfiguredString;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
+import inet.ipaddr.format.util.IPAddressPartStringParams;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
 import inet.ipaddr.format.util.sql.SQLStringMatcher;
@@ -1329,6 +1330,9 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		public String normalizedWildcardString;
 		public String fullString;
 		public String sqlWildcardString;
+		
+		//we piggy-back on the section cache for strings that are full address only
+		public String reverseDNSString;
 	}
 	
 	public static class WildcardOptions {
@@ -1381,6 +1385,14 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		}
 	}
 	
+	protected static IPAddressPartStringParams<?> getCachedParams(StringOptions opts) {
+		return opts.cachedParams;
+	}
+	
+	protected static void setCachedParams(StringOptions opts, IPAddressPartStringParams<?> cachedParams) {
+		opts.cachedParams = cachedParams;
+	}
+	
 	/**
 	 * Represents a clear way to create a specific type of string.
 	 * 
@@ -1393,6 +1405,11 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		public final String segmentStrPrefix;
 		public final char separator;
 		public final String addrSuffix;
+		public final boolean reverse;
+		public final boolean splitDigits;
+		
+		//use this field if the options to params conversion is not dependent on the address part
+		IPAddressPartStringParams<?> cachedParams; 
 		
 		protected StringOptions(
 				int base,
@@ -1400,13 +1417,17 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				WildcardOptions wildcardOptions,
 				String segmentStrPrefix,
 				char separator,
-				String suffix) {
+				String suffix,
+				boolean reverse,
+				boolean splitDigits) {
 			this.expandSegments = expandSegments;
 			this.wildcardOptions = wildcardOptions;
 			this.base = base;
 			this.segmentStrPrefix = segmentStrPrefix;
 			this.separator = separator;
 			this.addrSuffix = suffix;
+			this.reverse = reverse;
+			this.splitDigits = splitDigits;
 		}
 		
 		public static class Builder {
@@ -1418,6 +1439,9 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			protected String segmentStrPrefix;
 			protected char separator;
 			protected String addrSuffix = "";
+			protected boolean reverse;
+			protected boolean splitDigits;
+			
 			
 			public Builder() {
 				this(IPv4Address.DEFAULT_TEXTUAL_RADIX, IPv4Address.SEGMENT_SEPARATOR);
@@ -1433,7 +1457,17 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				return this;
 			}
 			
-			public Builder setExpandSegments(boolean expandSegments) {
+			public Builder setReverse(boolean reverse) {
+				this.reverse = reverse;
+				return this;
+			}
+			
+			public Builder setSplitDigits(boolean splitDigits) {
+				this.splitDigits = splitDigits;
+				return this;
+			}
+			
+			public Builder setExpandedSegments(boolean expandSegments) {
 				this.expandSegments = expandSegments;
 				return this;
 			}
@@ -1459,7 +1493,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			}
 			
 			public StringOptions toParams() {
-				return new StringOptions(base, expandSegments, wildcardOptions, segmentStrPrefix, separator, addrSuffix);
+				return new StringOptions(base, expandSegments, wildcardOptions, segmentStrPrefix, separator, addrSuffix, reverse, splitDigits);
 			}
 		}
 	}

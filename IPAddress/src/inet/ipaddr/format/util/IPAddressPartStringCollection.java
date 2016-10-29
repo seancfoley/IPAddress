@@ -231,12 +231,37 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		private int expandSegment[]; //the same as expandSegments but for each segment
 		private String segmentStrPrefix; //eg for inet_aton style there is 0x for hex, 0 for octal
 		private int radix;
+		
+		//the segment separator and in the case of split digits, the digit separator
 		private char separator;
+		
 		private String addressSuffix = "";
+		
+		//print the segments in reverse, and in the case of splitDigits, print the digits in reverse as well
+		private boolean reverse;
+		
+		//in each segment, split the digits with the separator, so that 123.456.1.1 becomes 1.2.3.4.5.6.1.1
+		private boolean splitDigits;
 		
 		protected StringParams(int radix, char separator) {
 			this.radix = radix;
 			this.separator = separator;
+		}
+		
+		public void setSplitDigits(boolean split) {
+			this.splitDigits = split;
+		}
+		
+		public boolean isSplitDigits() {
+			return splitDigits;
+		}
+		
+		public void setReverse(boolean rev) {
+			this.reverse = rev;
+		}
+		
+		public boolean isReverse() {
+			return reverse;
 		}
 		
 		public String getAddressSuffix() {
@@ -306,6 +331,13 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		public abstract StringBuilder append(StringBuilder builder, T addr);
 		
 		public abstract StringBuilder appendSegments(StringBuilder builder, T part);
+		
+		public void appendSuffix(StringBuilder builder) {
+			String suffix = getAddressSuffix();
+			if(suffix != null && suffix.length() > 0) {
+				builder.append(suffix);
+			}
+		}
 		
 		//returns -1 for MAX, or 0, 1, 2, 3 to indicate the string prefix length
 		protected int getLeadingZeros(int segmentIndex) {

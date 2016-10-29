@@ -11,6 +11,7 @@ import inet.ipaddr.format.IPAddressPart;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions;
+import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCache;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
@@ -386,6 +387,16 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public String toUNCHostName() {
 		return super.toCanonicalString();
+	}
+	
+	@Override
+	public String toReverseDNSLookupString() {
+		String result;
+		IPv4AddressSection section = getSegments();
+		if(section.hasNoCache() || (result = section.stringCache.reverseDNSString) == null) {
+			section.stringCache.reverseDNSString = result = toNormalizedString(IPv4StringCache.reverseDNSParams);
+		}
+		return result;
 	}
 	
 	@Override
