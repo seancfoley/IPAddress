@@ -16,7 +16,7 @@ public class HostIdentifierException extends Exception {
 	
 	static {
 		String propertyFileName = "IPAddressResources";
-		String name = HostIdentifierException.class.getPackage().getName() + "." + propertyFileName;
+		String name = HostIdentifierException.class.getPackage().getName() + '.' + propertyFileName;
 		try {
 			bundle = ResourceBundle.getBundle(name);
 		} catch (MissingResourceException e) {
@@ -37,7 +37,7 @@ public class HostIdentifierException extends Exception {
 	}
 	
 	public HostIdentifierException(String errorMessage, String key) {
-		super(errorMessage + " " + getMessage(key));
+		super(errorMessage + ' ' + getMessage(key));
 	}
 
 	public static String getMessage(String key) {
