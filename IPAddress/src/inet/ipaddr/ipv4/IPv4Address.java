@@ -209,32 +209,35 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	private IPv4Address getLowestOrHighest(boolean lowest) {
-		IPv4AddressCreator creator = getAddressCreator();
 		return getSingle(this, () -> {
 			IPv4AddressSection section = getSegments();
-			IPv4AddressSegment[] segs = createSingle(section, creator, i -> {
+			IPv4AddressSegment[] segs = createSingle(section, getAddressCreator(), i -> {
 				IPv4AddressSegment seg = getSegment(i);
-				return lowest ? seg.getLowest() : seg.getHighest();
+				return lowest ? seg.getLower() : seg.getUpper();
 			});
-			return creator.createAddressInternal(segs);
+			return getAddressCreator().createAddressInternal(segs);
 		});
 	}
 	
 	@Override
-	public IPv4Address getLowest() {
+	public IPv4Address getLower() {
 		return getLowestOrHighest(true);
 	}
 	
 	@Override
-	public IPv4Address getHighest() {
+	public IPv4Address getUpper() {
 		return getLowestOrHighest(false);
 	}
 	
 	@Override
 	public Iterator<IPv4Address> iterator() {
-		return iterator(this, getAddressCreator(), () -> getSegments().getLowestSegments(), index -> getSegment(index).iterator());
+		return iterator(
+				this, 
+				getAddressCreator(),
+				() -> getSegments().getLowerSegments(),
+				index -> getSegment(index).iterator());
 	}
-	
+
 	@Override
 	public Iterable<IPv4Address> getAddresses() {
 		return this;

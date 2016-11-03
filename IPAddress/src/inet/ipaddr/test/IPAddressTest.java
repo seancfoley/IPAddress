@@ -230,8 +230,8 @@ public class IPAddressTest extends TestBase {
 			while(addrIterator.hasNext()) {
 				next = addrIterator.next();
 				if(counter == 0) {
-					if(!next.equals(val.getLowest())) {
-						addFailure(new Failure("lowest: " + val.getLowest(), next));
+					if(!next.equals(val.getLower())) {
+						addFailure(new Failure("lowest: " + val.getLower(), next));
 					}
 				}
 				set.add(next);
@@ -240,11 +240,11 @@ public class IPAddressTest extends TestBase {
 			if(set.size() != number || counter != number) {
 				addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
 			} else {
-				if(!next.equals(val.getHighest())) {
-					addFailure(new Failure("highest: " + val.getHighest(), next));
+				if(!next.equals(val.getUpper())) {
+					addFailure(new Failure("highest: " + val.getUpper(), next));
 				} else {
-					if(counter == 1 && !val.getHighest().equals(val.getLowest())) {
-						addFailure(new Failure("highest: " + val.getHighest() + " lowest: " + val.getLowest(), next));
+					if(counter == 1 && !val.getUpper().equals(val.getLower())) {
+						addFailure(new Failure("highest: " + val.getUpper() + " lowest: " + val.getLower(), next));
 					}
 				}
 			}

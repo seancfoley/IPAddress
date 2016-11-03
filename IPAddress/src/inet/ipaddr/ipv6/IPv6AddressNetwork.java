@@ -15,7 +15,9 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 	private static final IPv6AddressSegment emptySegments[] = {};
 	private static final IPv6AddressSection emptySection[] = {};
 	
-	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> {
+	protected static interface IPv6AddressSegmentCreator extends IPAddressSegmentCreator<IPv6AddressSegment> {}
+	
+	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> implements IPv6AddressSegmentCreator {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 		
 		//there are 0x10000 (ie 0xffff + 1) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
@@ -27,32 +29,18 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		private static IPv6AddressSegment segmentPrefixCache[][][] = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT][][];
 		private static IPv6AddressSegment allPrefixedCache[] = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT];
 		
-		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[], String zone) {
-			return super.createAddressInternal(segments, zone);
+			return createAddress(createSectionInternal(segments), zone);
 		}
 		
 		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
-			return super.createAddressInternal(segments, (String) null);
+			return createAddress(createSectionInternal(segments), null);
 		}
 		
 		@Override
 		protected IPv6AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
 			return new IPv6AddressSection(bytes, prefix, false);
-		}
-
-		@Override
-		protected IPv6AddressSection createSectionInternal(byte[] bytes, String zone) {
-			if(zone != null) {
-				throw new IllegalArgumentException();
-			}
-			return createSectionInternal(bytes);
-		}
-
-		@Override
-		protected IPv6AddressSection createSectionInternal(byte[] bytes) {
-			return new IPv6AddressSection(bytes, null, false);
 		}
 		
 		@Override
@@ -70,19 +58,20 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], int startIndex) {
 			return new IPv6AddressSection(segments, startIndex, false);
 		}
-		
-		@Override
-		protected IPv6Address createAddressInternal(IPv6AddressSection section, String zone) {
-			return createAddress(section, zone);
-		}
 
+		@Override
 		public IPv6Address createAddress(IPv6AddressSection section, String zone) {
+			//TODO caching
 			return new IPv6Address(section, zone);
+		}
+		
+		public IPv6Address createAddress(IPv6AddressSegment segments[], String zone) {
+			return createAddress(createSection(segments), zone);
 		}
 		
 		@Override
 		public IPv6Address createAddress(IPv6AddressSection section) {
-			return new IPv6Address(section);
+			return createAddress(section, null);
 		}
 		
 		public IPv6AddressSection createSection(byte bytes[], Integer prefix) {

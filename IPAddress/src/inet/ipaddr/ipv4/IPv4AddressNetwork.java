@@ -32,14 +32,6 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		@Override
-		protected IPv4Address createAddressInternal(IPv4AddressSection section, String zone) {
-			if(zone != null) {
-				throw new IllegalArgumentException();
-			}
-			return createAddress(section);
-		}
-		
-		@Override
 		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
 			return createAddress(createSectionInternal(segments));
 		}
@@ -58,44 +50,9 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		protected IPv4AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
 			return new IPv4AddressSection(bytes, prefix, false);
 		}
-
-		@Override
-		protected IPv4AddressSection createSectionInternal(byte[] bytes, String zone) {
-			if(zone != null) {
-				throw new IllegalArgumentException();
-			}
-			return createSectionInternal(bytes);
-		}
-
-		@Override
-		protected IPv4AddressSection createSectionInternal(byte[] bytes) {
-			return new IPv4AddressSection(bytes, null, false);
-		}
 		
-		@Override
-		public IPv4Address createAddress(IPv4AddressSection section) {
-			return new IPv4Address(section);
-		}
 		
-		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
-			return new IPv4AddressSection(bytes, prefix);
-		}
 		
-		public IPv4AddressSection createSection(IPv4AddressSegment segments[], Integer networkPrefixLength) {
-			return new IPv4AddressSection(segments, networkPrefixLength);
-		}
-		
-		public IPv4AddressSection createSection(IPv4AddressSegment segments[]) {
-			return new IPv4AddressSection(segments);
-		}
-		
-		@Override
-		protected IPv4AddressSection[] createAddressSectionArray(int length) {
-			if(length == 0) {
-				return emptySection;
-			}
-			return new IPv4AddressSection[length];
-		}
 		
 		@Override
 		public IPv4AddressSegment[] createAddressSegmentArray(int length) {
@@ -175,6 +132,44 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 			}
 			IPv4AddressSegment result = new IPv4AddressSegment(lower, upper, segmentPrefixLength);
 			return result;
+		}
+		
+
+		@Override
+		protected IPv4AddressSection[] createAddressSectionArray(int length) {
+			if(length == 0) {
+				return emptySection;
+			}
+			return new IPv4AddressSection[length];
+		}
+		
+		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
+			return new IPv4AddressSection(bytes, prefix);
+		}
+		
+		public IPv4AddressSection createSection(IPv4AddressSegment segments[], Integer networkPrefixLength) {
+			return new IPv4AddressSection(segments, networkPrefixLength);
+		}
+		
+		public IPv4AddressSection createSection(IPv4AddressSegment segments[]) {
+			return new IPv4AddressSection(segments);
+		}
+		
+		
+		
+		@Override
+		protected IPv4Address createAddress(IPv4AddressSection section, String zone) {
+			return createAddress(section);
+		}
+		
+		public IPv4Address createAddress(IPv4AddressSegment segments[]) {
+			return createAddress(createSection(segments));
+		}
+		
+		@Override
+		public IPv4Address createAddress(IPv4AddressSection section) {
+			//TODO caching
+			return new IPv4Address(section);
 		}
 		
 	}

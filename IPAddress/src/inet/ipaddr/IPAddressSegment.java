@@ -246,9 +246,17 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return super.isMaskCompatibleWithRange(maskValue, segmentPrefix);
 	}
 
-	public abstract IPAddressSegment getLowest();
+	/**
+	 * If this segment represents a range of values, returns a segment representing just the lowest value in the range, otherwise returns this.
+	 * @return
+	 */
+	public abstract IPAddressSegment getLower();
 	
-	public abstract IPAddressSegment getHighest();
+	/**
+	 * If this segment represents a range of values, returns a segment representing just the highest value in the range, otherwise returns this.
+	 * @return
+	 */
+	public abstract IPAddressSegment getUpper();
 	
 	protected static <S extends IPAddressSegment> S getLowestOrHighest(S original, IPAddressSegmentCreator<S> segmentCreator, boolean lowest) {
 		if(!original.isMultiple() && !original.isPrefixed()) {//like with the iterator, we do not return segments with prefix, even if it is the full bit length
@@ -379,19 +387,31 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return value != upperValue;
 	}
 	
+	/**
+	 * returns the lower value
+	 */
 	public int getLowerSegmentValue() {
 		return value;
 	}
 	
+	/**
+	 * returns the upper value
+	 */
 	public int getUpperSegmentValue() {
 		return upperValue;
 	}
 	
+	/**
+	 * returns the lower value as a long, although for individual segments {@link #getLowerSegmentValue()} provides the same value as an int
+	 */
 	@Override
 	public long getLowerValue() {
 		return value;
 	}
 	
+	/**
+	 * returns the lower upper value as a long, although for individual segments {@link #getUpperSegmentValue()} provides the same value as an int
+	 */
 	@Override
 	public long getUpperValue() {
 		return upperValue;
@@ -442,6 +462,10 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 
 	public static boolean isFullRange(int lower, int upper, IPVersion version) {
 		return lower == 0 && upper == getMaxSegmentValue(version);
+	}
+	
+	protected static boolean fastToUnsignedString(int value, int radix, boolean uppercase, StringBuilder appendable) {
+		return IPAddressDivision.fastToUnsignedString(value, radix, uppercase, appendable);
 	}
 	
 	void setStandardString(

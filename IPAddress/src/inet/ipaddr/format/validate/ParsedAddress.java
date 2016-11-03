@@ -130,11 +130,11 @@ class ParsedAddress implements Serializable {
 		if(version == IPVersion.IPV4) {
 			IPv4AddressSection section = createIPv4Section();
 			ParsedAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSegment> creator = getIPv4AddressCreator();
-			return fromHost == null ? creator.createAddressInternal(section, fromString) : creator.createAddressInternal(section, fromHost);
+			return creator.createAddressInternal(section, null, fromString, fromHost);
 		} else if(version == IPVersion.IPV6) {
 			IPv6AddressSection section = createIPv6Section();
 			ParsedAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> creator = getIPv6AddressCreator();
-			return fromHost == null ? creator.createAddressInternal(section, qualifier.getZone(), fromString) : creator.createAddressInternal(section, qualifier.getZone(), fromHost);
+			return creator.createAddressInternal(section, qualifier.getZone(), fromString, fromHost);
 		}
 		return null;
 	}
@@ -407,7 +407,7 @@ class ParsedAddress implements Serializable {
 		}
 		S result;
 		if(flags == null) {
-			result = creator.createAddressSegment(val, segmentPrefixLength);
+			result = creator.createAddressSegment(val, val, segmentPrefixLength);
 		} else {
 			result = creator.createAddressSegmentInternal(
 				val,
@@ -514,7 +514,7 @@ class ParsedAddress implements Serializable {
 						segmentMask,
 						creator);
 			}
-			return fromHost == null ? creator.createAddressInternal(segments, fromString) : creator.createAddressInternal(segments, fromHost);
+			return creator.createAddressInternal(segments, null, fromString, fromHost);
 		} else {
 			ParsedAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> creator = getIPv6AddressCreator();
 			IPv6AddressSegment segments[] = creator.createAddressSegmentArray(segmentCount);
@@ -531,7 +531,7 @@ class ParsedAddress implements Serializable {
 						segmentMask,
 						creator);
 			}
-			return fromHost == null ? creator.createAddressInternal(segments, qualifier.getZone(), fromString) : creator.createAddressInternal(segments, qualifier.getZone(), fromHost);
+			return creator.createAddressInternal(segments, qualifier.getZone(), fromString, fromHost);
 		}
 	}
 	

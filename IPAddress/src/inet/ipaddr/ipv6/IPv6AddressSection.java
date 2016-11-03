@@ -169,7 +169,7 @@ public class IPv6AddressSection extends IPAddressSection {
 	private IPv6AddressSegment[] getLowestOrHighestSegments(boolean lowest) {
 		return getSingle(this, (IPv6AddressSegment[]) divisions, getAddressCreator(), (i) -> {
 			IPv6AddressSegment seg = getSegment(i);
-			return lowest ? seg.getLowest() : seg.getHighest();
+			return lowest ? seg.getLower() : seg.getUpper();
 		}, false);
 	}
 	
@@ -179,12 +179,12 @@ public class IPv6AddressSection extends IPAddressSection {
 	}
 	
 	@Override
-	public IPv6AddressSegment[] getLowestSegments() {
+	public IPv6AddressSegment[] getLowerSegments() {
 		return getLowestOrHighestSegments(true);
 	}
 	
 	@Override
-	public IPv6AddressSegment[] getHighestSegments() {
+	public IPv6AddressSegment[] getUpperSegments() {
 		return getLowestOrHighestSegments(false);
 	}
 	
@@ -193,19 +193,19 @@ public class IPv6AddressSection extends IPAddressSection {
 		return getSingle(this, () -> {
 			IPv6AddressSegment[] segs = createSingle(this, creator, i -> {
 				IPv6AddressSegment seg = getSegment(i);
-				return lowest ? seg.getLowest() : seg.getHighest();
+				return lowest ? seg.getLower() : seg.getUpper();
 			});
 			return creator.createSectionInternal(segs);
 		});
 	}
 	
 	@Override
-	public IPv6AddressSection getLowestSection() {
+	public IPv6AddressSection getLowerSection() {
 		return getLowestOrHighestSection(true);
 	}
 	
 	@Override
-	public IPv6AddressSection getHighestSection() {
+	public IPv6AddressSection getUpperSection() {
 		return getLowestOrHighestSection(false);
 	}
 	
@@ -216,7 +216,7 @@ public class IPv6AddressSection extends IPAddressSection {
 	
 	@Override
 	public Iterator<IPv6AddressSegment[]> iterator() {
-		return super.iterator(getSegmentCreator(), false, this::getLowestSegments, index -> getSegment(index).iterator());
+		return super.iterator(getSegmentCreator(), false, this::getLowerSegments, index -> getSegment(index).iterator());
 	}
 	
 	@Override
@@ -593,6 +593,13 @@ public class IPv6AddressSection extends IPAddressSection {
 			stringCache.normalizedString = result = toNormalizedString(IPv6StringCache.normalizedParams);
 		}
 		return result;
+	}
+
+	@Override
+	protected void cacheNormalizedString(String str) {
+		if(hasNoCache() || stringCache.normalizedString == null) {
+			stringCache.normalizedString = str;
+		}
 	}
 	
 	public String toNormalizedString(IPv6StringOptions params) {
@@ -1357,7 +1364,8 @@ public class IPv6AddressSection extends IPAddressSection {
 				}
 				if(reverse ? firstCompressedSegmentIndex != 0 : nextUncompressedIndex <= lastIndex) {//the last segment we printed was after any compression, so delete the extra separator at the end
 					if(builder.length() > 0) {
-						builder.deleteCharAt(builder.length() - 1);
+						builder.setLength(builder.length() - 1);
+						//builder.deleteCharAt(builder.length() - 1);
 					}
 				}
 				return builder;

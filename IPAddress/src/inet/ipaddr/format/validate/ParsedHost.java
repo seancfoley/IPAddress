@@ -162,40 +162,31 @@ public class ParsedHost implements Serializable {
 				if(bytes.length == IPv6Address.BYTE_COUNT) {
 					String zone = labelsQualifier.getZone();
 					ParsedAddressCreator<IPv6Address, ?, ?> creator = IPv6Address.network().getAddressCreator();
-					if(zone != null) {
-						result = creator.createAddressInternal(bytes, zone, originatingHost);
-					} else {
-						result = createAddress(originatingHost, bytes, creator);
-					}
+					result = createAddress(originatingHost, bytes, zone, creator);
 				} else {
 					ParsedAddressCreator<IPv4Address, ?, ?> creator = IPv4Address.network().getAddressCreator();
-					result = createAddress(originatingHost, bytes, creator);
+					result = createAddress(originatingHost, bytes, null, creator);
 				}
 			}
 		}
 		return result;
 	}
 	
-	private <T extends IPAddress> T createAddress(HostName originatingHost, byte bytes[], ParsedAddressCreator<T, ?, ?> creator) throws HostNameException {
-		T result;
-		Integer networkPrefixLength;
-		IPAddress mask;
-		if((networkPrefixLength = labelsQualifier.getNetworkPrefixLength()) != null) {//for a.b.com/24 addresses
-			result = creator.createAddressInternal(bytes, networkPrefixLength, originatingHost);
-		} else if((mask = labelsQualifier.getMask()) != null) {
-			byte maskBytes[] = mask.getBytes();
-			if(maskBytes.length != bytes.length) {
-				throw new HostNameException(originalStr, "ipaddress.error.ipMismatch");
+	private <T extends IPAddress> T createAddress(HostName originatingHost, byte bytes[], String zone, ParsedAddressCreator<T, ?, ?> creator) throws HostNameException {
+		Integer networkPrefixLength = labelsQualifier.getNetworkPrefixLength();
+		if(networkPrefixLength == null) {
+			IPAddress mask = labelsQualifier.getMask();
+			if(mask != null) {
+				byte maskBytes[] = mask.getBytes();
+				if(maskBytes.length != bytes.length) {
+					throw new HostNameException(originalStr, "ipaddress.error.ipMismatch");
+				}
+				for(int i = 0; i < bytes.length; i++) {
+					bytes[i] &= maskBytes[i];
+				}
+				networkPrefixLength = mask.getMaskPrefixLength(true);
 			}
-			Integer bits = mask.getMaskPrefixLength(true);
-			for(int i = 0; i < bytes.length; i++) {
-				bytes[i] &= maskBytes[i];
-			}
-			result = creator.createAddressInternal(bytes, bits, originatingHost);
-		} else {
-			result = creator.createAddressInternal(bytes, originatingHost);
 		}
-		return result;
+		return creator.createAddressInternal(bytes, networkPrefixLength, zone, originatingHost);
 	}
-
 }

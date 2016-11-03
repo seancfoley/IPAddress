@@ -132,8 +132,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	private static final IPAddressStringException IS_IPV6_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv6");
 	private static final IPAddressStringException IS_IPV4_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv4");
 	
-	public static final IPAddressString EMPTY_ADDRESS = new IPAddressString(""); //represents a blank address which resolves to the loopback
-	public static final IPAddressString ALL_ADDRESSES = new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 addres
+	public static final IPAddressString EMPTY_ADDRESS = new IPAddressString(""); //represents a blank address which resolves to the loopback //TODO get from creator
+	public static final IPAddressString ALL_ADDRESSES = new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 address //TODO get from creator
 	
 	final IPAddressStringParameters validationOptions;
 	
@@ -185,20 +185,27 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	IPAddressString(IPAddress address) {
-		this(address.toCanonicalString(), AddressProvider.getProviderFor(address));
+		validationOptions = null; //no validation required, already validated
+		fullAddr = address.toNormalizedString();
+		initByAddress(address);
+	}
+
+	void cacheAddress(IPAddress address) {
+		if(addressProvider == AddressProvider.NO_TYPE_PROVIDER) {
+			initByAddress(address);
+		}
 	}
 	
-	IPAddressString(String str, AddressProvider provider) {
-		validationOptions = null; //no validation required, already validated
+	void initByAddress(IPAddress address) {
+		AddressProvider provider = AddressProvider.getProviderFor(address);
 		if(provider.isIPv4()) {
 			ipv6Exception = IS_IPV4_EXCEPTION;
 		} else if(provider.isIPv6()) {
 			ipv4Exception = IS_IPV6_EXCEPTION;
 		}
-		fullAddr = str;
 		addressProvider = provider;
 	}
-
+	
 	public IPAddressStringParameters getValidationOptions() {
 		return validationOptions;
 	}

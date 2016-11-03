@@ -26,7 +26,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 	private T loopback;
 	private String loopbackStrings[];
 	
-	static interface IPAddressSegmentCreator<S extends IPAddressSegment> {
+	protected static interface IPAddressSegmentCreator<S extends IPAddressSegment> {
 		
 		S[] createAddressSegmentArray(int length);
 		
@@ -39,20 +39,6 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 
 	protected static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> 
 			extends ParsedAddressCreator<T,R,S> implements IPAddressSegmentCreator<S> {
-		
-		protected abstract R[] createAddressSectionArray(int length);
-		
-		protected T createAddressInternal(S segments[]) {
-			return createAddress(createSectionInternal(segments));
-		}
-		
-		protected T createAddressInternal(S segments[], String zone) {
-			return createAddressInternal(createSectionInternal(segments), zone);
-		}
-		
-		protected abstract T createAddress(R section);
-		
-		protected abstract T createAddressInternal(R section, String zone);
 		
 		@Override
 		protected S createAddressSegmentInternal(int value, Integer segmentPrefixLength, String addressStr, int originalVal, boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex) {
@@ -69,40 +55,34 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 			segment.setWildcardString(addressStr, isStandardRangeString, lowerStringStartIndex, upperStringEndIndex, originalLower, originalUpper);
 			return segment;
 		}
+		
 
+		protected abstract R[] createAddressSectionArray(int length);
+		
 		@Override
 		protected abstract R createSectionInternal(S segments[]);
 		
-		@Override
-		protected abstract R createSectionInternal(byte bytes[]);
 		
-		@Override
-		protected T createAddressInternal(R section, String zone, IPAddressString fromString) {
-			T result = createAddressInternal(section, zone);
-			result.fromString = fromString;
-			return result;
+		protected T createAddressInternal(S segments[]) {
+			return createAddress(createSectionInternal(segments));
+		}
+		
+		protected T createAddressInternal(byte bytes[], Integer prefix, String zone) {
+			return createAddress(createSectionInternal(bytes, prefix), zone);
 		}
 		
 		@Override
-		protected T createAddressInternal(R section, String zone, HostName fromHost) {
-			T result = createAddressInternal(section, zone);
+		protected T createAddressInternal(R section, String zone, IPAddressString fromString, HostName fromHost) {
+			T result = createAddress(section, zone);
+			result.fromString = fromString;
 			result.fromHost = fromHost;
 			return result;
 		}
+		
+		protected abstract T createAddress(R section);
 
-		@Override
-		protected T createAddressInternal(R section, IPAddressString fromString) {
-			T result = createAddress(section);
-			result.fromString = fromString;
-			return result;
-		}
-		
-		@Override
-		protected T createAddressInternal(R section, HostName fromHost) {
-			T result = createAddress(section);
-			result.fromHost = fromHost;
-			return result;
-		}
+		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it (internally it is always null) */
+		protected abstract T createAddress(R section, String zone);
 	}
 	
 	private IPAddressCreator<T, ?, S> creator;

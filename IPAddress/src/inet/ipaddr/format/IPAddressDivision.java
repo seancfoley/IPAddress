@@ -615,13 +615,16 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 	}
 	
 	protected static String toUnsignedString(long value, int radix) {
+		//TODO try using our own code here, see if it is faster, which it probably is, instead of Long.toString.  Also can remove this initial check.
+		//in fact, Long.toString creates two char arrays, when creating the string the char array is duped, but using a StringBUilder we can avoid that
+		//also, in our fast code we actually precalc the string size so that is a good thing
 		if(value == 0) {
 			return "0";
 		}
 		return Long.toString(value, radix);
 	}
 	
-	private static boolean fastToUnsignedString(int value, int radix, boolean uppercase, StringBuilder appendable) {
+	protected static boolean fastToUnsignedString(int value, int radix, boolean uppercase, StringBuilder appendable) {
 		switch(value) {
 			case 0:
 				appendable.append('0');
@@ -856,10 +859,11 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 			if(stringPrefix != null) {
 				appendable.append(stringPrefix);
 			}
-			long value = getLowerValue();
-			String zerosPrefix = getLeadingZerosFor(value, radix, leadingZeroCount);
-			if(zerosPrefix != null) {
-				appendable.append(zerosPrefix);
+			if(leadingZeroCount != 0) {
+				String zerosPrefix = getLeadingZerosFor(getLowerValue(), radix, leadingZeroCount);
+				if(zerosPrefix != null) {
+					appendable.append(zerosPrefix);
+				}
 			}
 			if(isDefaultRadix && (!uppercase || radix <= 10)) {
 				appendable.append(getString());

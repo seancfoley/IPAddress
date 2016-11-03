@@ -165,7 +165,7 @@ public class HostTest extends TestBase {
 				} else {
 					String bracketed;
 					if(h1.isAddress() && h1.asAddress().isPrefixed()) {
-						bracketed = '[' + h1.asAddress().getLowest().toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
+						bracketed = '[' + h1.asAddress().getLower().toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
 					} else if(h1.isAddress()) {
 						bracketed = '[' + h1.asAddress().toNormalizedWildcardString() + "]";
 					} else {
@@ -177,7 +177,7 @@ public class HostTest extends TestBase {
 						addFailure(new Failure("failed: bracketed is " + bracketed, h1));
 					} else {
 						if(h2.isAddress() && h2.asAddress().isPrefixed()) {
-							bracketed = '[' + h2.asAddress().getLowest().toNormalizedString() + "]/" + h2.asAddress().getNetworkPrefixLength();
+							bracketed = '[' + h2.asAddress().getLower().toNormalizedString() + "]/" + h2.asAddress().getNetworkPrefixLength();
 						} else if(h2.isAddress()) {
 							bracketed = '[' + h2.asAddress().toNormalizedWildcardString() + "]";
 						} else {

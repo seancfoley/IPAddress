@@ -935,16 +935,41 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		return result;
 	}
 
-	public abstract IPAddressSection getLowestSection();
-	
-	public abstract IPAddressSection getHighestSection();
-	
-	public abstract IPAddressSegment[] getLowestSegments();
-	
-	public abstract IPAddressSegment[] getHighestSegments();
+	/**
+	 * If this represents an address section with ranging values, returns an address section representing the lower values of the range
+	 * If this represents an address section with a single value in each segment, returns this.
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressSection getLowerSection();
 	
 	/**
-	 * @return a new array containing the segments
+	 * If this represents an address section with ranging values, returns an address section representing the upper values of the range
+	 * If this represents an address section with a single value in each segment, returns this.
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressSection getUpperSection();
+	
+	/**
+	 * If this represents an address section with ranging values, returns an array of address segments representing the lower values of the range
+	 * If this represents an address section with a single value in each segment, returns an array containing the segments for this section.
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressSegment[] getLowerSegments();
+	
+	
+	/**
+	 * If this represents an address section with ranging values, returns an an array of address segments representing the upper values of the rang
+	 * If this represents an address section with a single value in each segment, returns an array containing the segments for this section.
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressSegment[] getUpperSegments();
+	
+	/**
+	 * @return an array containing the segments
 	 */
 	public abstract IPAddressSegment[] getSegments();
 	
@@ -1119,7 +1144,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 
 	@Override
 	public String toString() {
-		return toCanonicalString();
+		return toNormalizedString();
 	}
 
 	/**
@@ -1142,6 +1167,8 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	 * IPs are not compressed nor mixed in this representation.
 	 */
 	public abstract String toNormalizedString();
+	
+	protected abstract void cacheNormalizedString(String str);
 	
 	/**
 	 * This produces the shortest valid string.

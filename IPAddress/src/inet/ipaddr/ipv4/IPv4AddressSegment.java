@@ -121,12 +121,12 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
-	public IPv4AddressSegment getLowest() {
+	public IPv4AddressSegment getLower() {
 		return getLowestOrHighest(this, getSegmentCreator(), true);
 	}
 	
 	@Override
-	public IPv4AddressSegment getHighest() {
+	public IPv4AddressSegment getUpper() {
 		return getLowestOrHighest(this, getSegmentCreator(), false);
 	}
 	

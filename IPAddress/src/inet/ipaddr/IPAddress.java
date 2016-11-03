@@ -1,6 +1,5 @@
 package inet.ipaddr;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.Inet6Address;
@@ -24,11 +23,10 @@ import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.validate.AddressProvider;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.ipv4.IPv4Address;
-import inet.ipaddr.ipv4.IPv4AddressSection;
+import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
-import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
 
 
@@ -103,10 +101,10 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	public static final String SEGMENT_SQL_SINGLE_WILDCARD_STR = String.valueOf(SEGMENT_SQL_SINGLE_WILDCARD);
 	public static final char PREFIX_LEN_SEPARATOR = '/';
 	
-	//The default way addresses are converted
+	//The default way by which addresses are converted
 	public static final IPAddressConverter addressConverter = new DefaultAddressConverter();
 	
-	//The default way addresses are compared
+	//The default way by which addresses are compared
 	public static final IPAddressComparator addressComparator = new CountComparator();
 	
 	/* the segments.  For IPv4, each element is actually just 1 byte and the array has 4 elements, while for IPv6, each element is 2 bytes and the array has 8 elements. */
@@ -177,7 +175,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 			Integer networkPrefixLength) {
 		int cidrByteIndex = getByteIndex(networkPrefixLength, bytes.length);
 		T segments[] = creator.createAddressSegmentArray(segmentCount);
-		for(int i = 0; i < bytes.length; i += bytesPerSegment) {
+		for(int i = 0, segmentIndex = 0; i < bytes.length; i += bytesPerSegment, segmentIndex++) {
 			int value = 0;
 			int k = bytesPerSegment + i;
 			for(int j = i; j < k; j++) {
@@ -203,11 +201,44 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 				value <<= 8;
 				value |= 0xff & byteValue;
 			}
-			int segmentIndex = i / bytesPerSegment;
+			//int segmentIndex = i / bytesPerSegment;
 			Integer prefix = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, segmentIndex);
 			segments[segmentIndex] = creator.createAddressSegment(value, prefix);
 		}
 		return segments;
+	}
+	
+	protected static String toNormalizedString(byte bytes[]) {
+		if(bytes.length == IPv4Address.BYTE_COUNT) {
+			return toNormalizedString(bytes, IPv4Address.SEGMENT_COUNT, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT, IPv4Address.SEGMENT_SEPARATOR, IPv4Address.DEFAULT_TEXTUAL_RADIX);
+		}
+		if(bytes.length == IPv6Address.BYTE_COUNT) {
+			return toNormalizedString(bytes, IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.DEFAULT_TEXTUAL_RADIX);
+		}
+		throw new IllegalArgumentException();
+	}
+	
+	private static String toNormalizedString(
+			byte bytes[],
+			int segmentCount,
+			int bytesPerSegment,
+			int bitsPerSegment,
+			char separator,
+			int radix) {
+		StringBuilder builder = new StringBuilder(IPv4Address.MAX_STRING_LEN + 8);
+		for(int i = 0; i < bytes.length; i += bytesPerSegment) {
+			int value = 0;
+			int k = bytesPerSegment + i;
+			for(int j = i; j < k; j++) {
+				int byteValue = bytes[j];
+				value <<= 8;
+				value |= 0xff & byteValue;
+			}
+			IPAddressSegment.fastToUnsignedString(value, radix, false, builder);
+			builder.append(separator);
+		}
+		builder.setLength(builder.length() - 1);
+		return builder.toString();
 	}
 	
 	public abstract IPAddressNetwork getNetwork();
@@ -340,20 +371,20 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	/**
-	 * If this represents a range of addresses, returns the lowest in the range.
-	 * If this represents a single address, returns this.
+	 * If this represents an address with ranging values, returns an address representing the lower values of the range.
+	 * If this represents an address with a single value in each segment, returns this.
 	 * 
 	 * @return
 	 */
-	public abstract IPAddress getLowest();
+	public abstract IPAddress getLower();
 	
 	/**
-	 * If this represents a range of addresses, returns the highest in the range
-	 * If this represents a single address, returns this.
+	 * If this represents an address with ranging values, returns an address representing the upper values of the range
+	 * If this represents an address with a single value in each segment, returns this.
 	 * 
 	 * @return
 	 */
-	public abstract IPAddress getHighest();
+	public abstract IPAddress getUpper();
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> S[] createSingle(R original, IPAddressSegmentCreator<S> segmentCreator, IntFunction<S> segProducer) {
 		return IPAddressSection.createSingle(original, segmentCreator, segProducer);
@@ -508,15 +539,6 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 */
 	public abstract boolean isLoopback();
 	
-	
-	public boolean isReachable(int timeout) throws IOException {
-		return toInetAddress().isReachable(timeout);
-	}
-	
-	public boolean isReachable(NetworkInterface netif, int ttl, int timeout) throws IOException {
-		return toInetAddress().isReachable(netif, ttl, timeout);
-	}
-	
 	/**
 	 * @throws IPAddressTypeException if this address does not map to a single address.
 	 * If you want to get subnet bytes or mask bytes, call getLowestBytes
@@ -652,11 +674,10 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 				zone = networkInterface.getName();
 			}
 			IPv6AddressCreator ipv6Creator = IPv6Address.network().getAddressCreator();
-			IPAddressCreator<IPv6Address, IPv6AddressSection, ?> creator = ipv6Creator;
-			return ipv6Creator.createAddress(creator.createSectionInternal(bytes), zone);
+			return ipv6Creator.createAddressInternal(bytes, null, zone);
 		} else {
-			IPAddressCreator<IPv4Address, IPv4AddressSection, ?> creator = IPv4Address.network().getAddressCreator();
-			return creator.createAddress(creator.createSectionInternal(bytes));
+			IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
+			return creator.createAddressInternal(bytes, null, null);
 		}
 	}
 	
@@ -668,7 +689,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	
 	@Override
 	public String toString() {
-		return toCanonicalString();
+		return toNormalizedString();
 	}
 
 	/**
@@ -702,6 +723,10 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 */
 	public String toNormalizedString() {
 		return addressSection.toNormalizedString();
+	}
+	
+	protected void cacheNormalizedString(String str) {
+		addressSection.cacheNormalizedString(str);
 	}
 	
 	/**
@@ -889,7 +914,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return an IPAddressString object for this IPAddress.
 	 */
 	public IPAddressString toAddressString() {
-		if(fromString == null) {
+		if(fromString == null) {//TODO get from creator
 			fromString = new IPAddressString(this);
 		}
 		return fromString;

@@ -89,7 +89,7 @@ public class IPv4AddressSection extends IPAddressSection {
 	private IPv4AddressSegment[] getLowestOrHighestSegments(boolean lowest) {
 		return getSingle(this, (IPv4AddressSegment[]) divisions, getAddressCreator(), (i) -> {
 			IPv4AddressSegment seg = getSegment(i);
-			return lowest ? seg.getLowest() : seg.getHighest();
+			return lowest ? seg.getLower() : seg.getUpper();
 		}, false);
 	}
 	
@@ -99,12 +99,12 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	@Override
-	public IPv4AddressSegment[] getLowestSegments() {
+	public IPv4AddressSegment[] getLowerSegments() {
 		return getLowestOrHighestSegments(true);
 	}
 	
 	@Override
-	public IPv4AddressSegment[] getHighestSegments() {
+	public IPv4AddressSegment[] getUpperSegments() {
 		return getLowestOrHighestSegments(false);
 	}
 	
@@ -113,19 +113,19 @@ public class IPv4AddressSection extends IPAddressSection {
 		return getSingle(this, () -> {
 			IPv4AddressSegment[] segs = createSingle(this, creator, i -> {
 				IPv4AddressSegment seg = getSegment(i);
-				return lowest ? seg.getLowest() : seg.getHighest();
+				return lowest ? seg.getLower() : seg.getUpper();
 			});
 			return creator.createSectionInternal(segs);
 		});
 	}
 	
 	@Override
-	public IPv4AddressSection getLowestSection() {
+	public IPv4AddressSection getLowerSection() {
 		return getLowestOrHighestSection(true);
 	}
 	
 	@Override
-	public IPv4AddressSection getHighestSection() {
+	public IPv4AddressSection getUpperSection() {
 		return getLowestOrHighestSection(false);
 	}
 	
@@ -135,7 +135,7 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	private Iterator<IPv4AddressSegment[]> iterator(boolean skipThis) {
-		return super.iterator(getSegmentCreator(), skipThis, this::getLowestSegments, index -> getSegment(index).iterator());
+		return super.iterator(getSegmentCreator(), skipThis, this::getLowerSegments, index -> getSegment(index).iterator());
 	}
 	
 	@Override
@@ -320,7 +320,7 @@ public class IPv4AddressSection extends IPAddressSection {
 	public String toCompressedString() {
 		return toCanonicalString();
 	}
-	
+
 	/**
 	 * The normalized string returned by this method is consistent with java.net.Inet4Address,
 	 * and is the same as the canonical string.
@@ -329,7 +329,14 @@ public class IPv4AddressSection extends IPAddressSection {
 	public String toNormalizedString() {
 		return toCanonicalString();
 	}
-	
+
+	@Override
+	protected void cacheNormalizedString(String str) {
+		if(hasNoCache() || stringCache.canonicalString == null) {
+			stringCache.canonicalString = str;
+		}
+	}
+
 	@Override
 	public String toCompressedWildcardString() {
 		return toNormalizedWildcardString();
@@ -723,7 +730,8 @@ public class IPv4AddressSection extends IPAddressSection {
 						}
 						builder.append(separator);
 					}
-					builder.deleteCharAt(builder.length() - 1);
+					builder.setLength(builder.length() - 1);
+					//builder.deleteCharAt(builder.length() - 1);
 				}
 				return builder;
 			}

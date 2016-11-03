@@ -126,12 +126,12 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
-	public IPv6AddressSegment getLowest() {
+	public IPv6AddressSegment getLower() {
 		return getLowestOrHighest(this, getSegmentCreator(), true);
 	}
 	
 	@Override
-	public IPv6AddressSegment getHighest() {
+	public IPv6AddressSegment getUpper() {
 		return getLowestOrHighest(this, getSegmentCreator(), false);
 	}
 	
