@@ -32,30 +32,7 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		@Override
-		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
-			return createAddress(createSectionInternal(segments));
-		}
-		
-		@Override
-		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[]) {
-			return new IPv4AddressSection(segments, false);
-		}
-		
-		@Override
-		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[], IPv4AddressSection mixedSection) {
-			return mixedSection;
-		}
-		
-		@Override
-		protected IPv4AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
-			return new IPv4AddressSection(bytes, prefix, false);
-		}
-		
-		
-		
-		
-		@Override
-		public IPv4AddressSegment[] createAddressSegmentArray(int length) {
+		public IPv4AddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
 				return emptySegments;
 			}
@@ -63,7 +40,7 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		@Override
-		public IPv4AddressSegment createAddressSegment(int value) {
+		public IPv4AddressSegment createSegment(int value) {
 			IPv4AddressSegment result = segmentCache[value];
 			if(result == null) {
 				segmentCache[value] = result = new IPv4AddressSegment(value);
@@ -72,9 +49,9 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		@Override
-		public IPv4AddressSegment createAddressSegment(int value, Integer segmentPrefixLength) {
+		public IPv4AddressSegment createSegment(int value, Integer segmentPrefixLength) {
 			if(segmentPrefixLength == null) {
-				return createAddressSegment(value);
+				return createSegment(value);
 			}
 			if(segmentPrefixLength == 0) {
 				return IPv4AddressSegment.ZERO_PREFIX_SEGMENT;
@@ -100,23 +77,23 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		@Override
-		public IPv4AddressSegment createAddressSegment(int lower, int upper, Integer segmentPrefixLength) {
+		public IPv4AddressSegment createSegment(int lower, int upper, Integer segmentPrefixLength) {
 			if(segmentPrefixLength == null) {
 				if(lower == upper) {
-					return createAddressSegment(lower);
+					return createSegment(lower);
 				}
 				if(lower == 0 && upper == IPv4Address.MAX_VALUE_PER_SEGMENT) {
 					return IPv4AddressSegment.ALL_RANGE_SEGMENT;
 				}
 			} else {
 				if(segmentPrefixLength == 0) {
-					return createAddressSegment(0, 0);
+					return createSegment(0, 0);
 				}
 				if(CACHE_SEGMENTS_BY_PREFIX) {
 					int mask = IPv4Address.network().getSegmentNetworkMask(segmentPrefixLength);
 					lower &= mask;
 					if((upper & mask) == lower) {
-						return createAddressSegment(lower, segmentPrefixLength);
+						return createSegment(lower, segmentPrefixLength);
 					}
 					if(lower == 0 && upper == mask) {
 						//cache */26 type segments
@@ -136,11 +113,26 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		
 
 		@Override
-		protected IPv4AddressSection[] createAddressSectionArray(int length) {
+		protected IPv4AddressSection[] createSectionArray(int length) {
 			if(length == 0) {
 				return emptySection;
 			}
 			return new IPv4AddressSection[length];
+		}
+		
+		@Override
+		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[]) {
+			return new IPv4AddressSection(segments, false);
+		}
+		
+		@Override
+		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[], IPv4AddressSection mixedSection) {
+			return mixedSection;
+		}
+		
+		@Override
+		protected IPv4AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
+			return new IPv4AddressSection(bytes, prefix, false);
 		}
 		
 		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
@@ -156,19 +148,17 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		}
 		
 		
+		@Override
+		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
+			return createAddress(createSectionInternal(segments));
+		}
 		
 		@Override
 		protected IPv4Address createAddress(IPv4AddressSection section, String zone) {
 			return createAddress(section);
 		}
 		
-		public IPv4Address createAddress(IPv4AddressSegment segments[]) {
-			return createAddress(createSection(segments));
-		}
-		
-		@Override
 		public IPv4Address createAddress(IPv4AddressSection section) {
-			//TODO caching
 			return new IPv4Address(section);
 		}
 		
@@ -192,11 +182,11 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 	protected IPv4Address createLoopback() {
 		IPv4AddressCreator creator = getAddressCreator();
 		IPv4AddressSegment zero = IPv4AddressSegment.ZERO_SEGMENT;
-		IPv4AddressSegment segs[] = creator.createAddressSegmentArray(IPv4Address.SEGMENT_COUNT);
-		segs[0] = creator.createAddressSegment(127);
+		IPv4AddressSegment segs[] = creator.createSegmentArray(IPv4Address.SEGMENT_COUNT);
+		segs[0] = creator.createSegment(127);
 		segs[1] = segs[2] = zero;
-		segs[3] = creator.createAddressSegment(1);
-		return creator.createAddressInternal(segs);
+		segs[3] = creator.createSegment(1);
+		return creator.createAddressInternal(segs); /* address creation */
 	}
 	
 	@Override

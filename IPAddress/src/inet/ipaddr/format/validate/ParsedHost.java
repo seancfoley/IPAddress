@@ -157,7 +157,7 @@ public class ParsedHost implements Serializable {
 			if(strHost.length() == 0 && !options.emptyIsLoopback) {
 				result = null;
 			} else {
-				InetAddress inetAddress = InetAddress.getByName(getHost());
+				InetAddress inetAddress = InetAddress.getByName(strHost);
 				byte bytes[] = inetAddress.getAddress();
 				if(bytes.length == IPv6Address.BYTE_COUNT) {
 					String zone = labelsQualifier.getZone();
@@ -187,6 +187,6 @@ public class ParsedHost implements Serializable {
 				networkPrefixLength = mask.getMaskPrefixLength(true);
 			}
 		}
-		return creator.createAddressInternal(bytes, networkPrefixLength, zone, originatingHost);
+		return creator.createAddressInternal(bytes, networkPrefixLength, zone, originatingHost); /* address creation */
 	}
 }

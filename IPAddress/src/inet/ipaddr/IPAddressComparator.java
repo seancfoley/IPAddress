@@ -6,6 +6,7 @@ import java.util.Comparator;
 import inet.ipaddr.format.IPAddressDivision;
 import inet.ipaddr.format.IPAddressJoinedSegments;
 import inet.ipaddr.format.IPAddressSegmentGrouping;
+import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv4.IPv4JoinedSegments;

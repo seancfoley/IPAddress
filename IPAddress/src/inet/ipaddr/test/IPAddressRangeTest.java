@@ -480,7 +480,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testIPv4Strings("1.2__.5.5/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.200-252.0.0/14" : "1.200-255.0.0/14", "1.200-255.*.*", "1.2__.%.%", "001.200-252.000.000/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0310-0374.00.00/14" : "01.0310-0377.00.00/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0xc8-0xfc.0x0.0x0/14" : "0x1.0xc8-0xff.0x0.0x0/14");
 		testIPv4Strings("1.*.5.5/12", "1.*.0.0/12", "1.*.*.*", "1.%.%.%", "001.000-240.000.000/12", "01.*.00.00/12", "0x1.*.0x0.0x0/12");
 		
-		//TODO at least one that starts with compressed
+		//TODO test at least one that starts with a compressed segment
 		testIPv6Strings("a:b:c:d:e:f:a:b",
 				"a:b:c:d:e:f:a:b",
 				"a:b:c:d:e:f:a:b",

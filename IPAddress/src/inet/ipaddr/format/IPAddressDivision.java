@@ -214,7 +214,7 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 			&&  getUpperValue() == (lowerValue | getDivisionHostMask(divisionPrefixLen));
 	}
 	
-	private static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, int divisionPrefixLen, long networkMask, long hostMask) {
+	private static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, long networkMask, long hostMask) {
 		return lowerValue == (lowerValue & networkMask)
 				&& finalUpperValue == (upperValue | hostMask);
 	}
@@ -229,7 +229,6 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		return testRange(segmentValue,
 				upperValue,
 				upperValue,
-				divisionPrefixLen,
 				getDivisionNetworkMask(divisionPrefixLen),
 				getDivisionHostMask(divisionPrefixLen));
 	}
@@ -244,7 +243,6 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		return testRange(segmentValue,
 				segmentValue,
 				upperValue,
-				divisionPrefixLen,
 				getDivisionNetworkMask(divisionPrefixLen),
 				getDivisionHostMask(divisionPrefixLen));
 	}
@@ -430,49 +428,51 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		return Math.max(0, getDefaultMaxChars(radix) - width);
 	}
 	
-	private String getLeadingZeros(int digits, boolean splitDigits, char splitDigitSeparator) {
+	private int adjustLeadingZeroCount(int leadingZeroCount, long value, int radix) {
+		if(leadingZeroCount < 0) {
+			int width = getCharWidth(value, radix);
+			return Math.max(0, getDefaultMaxChars() - width);
+		}
+		return leadingZeroCount;
+	}
+	
+	private static void getSplitChar(int count, char splitDigitSeparator, String characters, StringBuilder builder) {
+		while(count-- > 0) {
+			builder.append(characters);
+			builder.append(splitDigitSeparator);
+		}
+		builder.setLength(builder.length() - 1);
+	}
+	
+	private static void getSplitChar(int count, char splitDigitSeparator, char character, StringBuilder builder) {
+		while(count-- > 0) {
+			builder.append(character);
+			builder.append(splitDigitSeparator);
+		}
+		builder.setLength(builder.length() - 1);
+	}
+
+	private static void getLeadingZeros(int leadingZeroCount, boolean splitDigits, char splitDigitSeparator, StringBuilder builder) {
 		if(splitDigits) {
-			StringBuilder builder = new StringBuilder(digits << 1);
-			while(digits-- > 0) {
-				builder.append('0');
-				builder.append(splitDigitSeparator);
-			}
-			builder.setLength(builder.length() - 1);
-			return builder.toString();
+			getSplitChar(leadingZeroCount, splitDigitSeparator, '0', builder);
+			return;
 		}
 		String stringArray[] = zeroes;
-		if(digits >= stringArray.length) {
-			StringBuilder builder = new StringBuilder(digits);
+		if(leadingZeroCount >= stringArray.length) {
 			int increment = stringArray.length - 1;
 			String incrementStr = stringArray[increment];
-			while(digits >= increment) {
+			while(leadingZeroCount >= increment) {
 				builder.append(incrementStr);
-				digits -= increment;
+				leadingZeroCount -= increment;
 			}
-			builder.append(stringArray[digits]);
-			return builder.toString();
+			builder.append(stringArray[leadingZeroCount]);
+			return;
 		}
-		return stringArray[digits];
+		builder.append(stringArray[leadingZeroCount]);
 	}
 	
-	private String getLeadingZerosFor(long value, int radix, int leadingZeroCount, boolean splitDigits, char splitDigitSeparator) {
-		if(leadingZeroCount != 0) {
-			if(leadingZeroCount < 0) {
-				int width = getCharWidth(value, radix);
-				int expansion = Math.max(0, getDefaultMaxChars() - width);
-				if(expansion > 0) {
-					return getLeadingZeros(expansion, splitDigits, splitDigitSeparator);
-				}
-				return null;
-			} else {
-				return getLeadingZeros(leadingZeroCount, splitDigits, splitDigitSeparator);
-			}
-		}
-		return null;
-	}
-	
-	private String getLeadingZerosFor(long value, int radix, int leadingZeroCount) {
-		return getLeadingZerosFor(value, radix, leadingZeroCount, false, (char) 0);
+	private static void getLeadingZeros(int leadingZeroCount, StringBuilder builder) {
+		getLeadingZeros(leadingZeroCount, false, (char) 0, builder);
 	}
 	
 	/////// strings below
@@ -495,17 +495,16 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 				result = cachedString;
 				if(result == null) {
 					if(isRangeEquivalentToPrefix()) { //covers the case of !isMultiple, ie single addresses
-						long value = getLowerValue();
-						result = toUnsignedString(value, getDefaultTextualRadix());
+						result = toDefaultString(getLowerValue(), getDefaultTextualRadix());
 					} else if(isFullRange()) {
 						result = IPAddress.SEGMENT_WILDCARD_STR;
 					} else {
+						long upperValue = getUpperValue();
 						if(ADJUST_RANGES_BY_PREFIX && isPrefixed()) {
 							long mask = getDivisionNetworkMask(getDivisionPrefixLength());
-							result = getRangeString(getLowerValue(), getUpperValue() & mask, IPAddress.RANGE_SEPARATOR_STR, null, 0, null, getDefaultTextualRadix(), 0, false);
-						} else {
-							result = getRangeString(getLowerValue(), getUpperValue(), IPAddress.RANGE_SEPARATOR_STR, null, 0, null, getDefaultTextualRadix(), 0, false);
+							upperValue &= mask;
 						}
+						result = toDefaultRangeString(getLowerValue(), upperValue, getDefaultTextualRadix());
 					}
 					cachedString = result;
 				}
@@ -530,7 +529,7 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 					} else if(isFullRange()) {
 						result = IPAddress.SEGMENT_WILDCARD_STR;
 					} else {
-						result = getRangeString(getLowerValue(), getUpperValue(), IPAddress.RANGE_SEPARATOR_STR, null, 0, null, getDefaultTextualRadix(), 0, false);
+						result = toDefaultRangeString(getLowerValue(), getUpperValue(), getDefaultTextualRadix());
 					}
 					cachedWildcardString = result;
 				}
@@ -547,7 +546,7 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 	 */
 	public void getWildcardString(
 			Wildcards wildcards,
-			int leadingZeroCount,
+			int leadingZeroCount,//-1 means max leading zeros
 			String stringPrefix,
 			int radix,
 			boolean uppercase,
@@ -559,22 +558,25 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 			if(stringPrefix != null) {
 				appendable.append(stringPrefix);
 			}
-			String zerosPrefix = getLeadingZerosFor(getLowerValue(), radix, leadingZeroCount, splitDigits, splitDigitSeparator);
+			long lowerValue = getLowerValue();
 			if(splitDigits) {
 				if(reverseSplitDigits) {
 					toUnsignedString(getLowerValue(), radix, -1, uppercase, splitDigits, splitDigitSeparator, reverseSplitDigits, appendable);
-					if(zerosPrefix != null) {
-						appendable.append(splitDigitSeparator).append(zerosPrefix);
+					if(leadingZeroCount != 0) {
+						appendable.append(splitDigitSeparator);
+						getLeadingZeros(leadingZeroCount, splitDigits, splitDigitSeparator, appendable);
 					}
 				} else {
-					if(zerosPrefix != null) {
-						appendable.append(zerosPrefix).append(splitDigitSeparator);
+					if(leadingZeroCount != 0) {
+						getLeadingZeros(leadingZeroCount, splitDigits, splitDigitSeparator, appendable);
+						appendable.append(splitDigitSeparator);
 					}
 					toUnsignedString(getLowerValue(), radix, -1, uppercase, splitDigits, splitDigitSeparator, reverseSplitDigits, appendable);
 				}
 			} else {
-				if(zerosPrefix != null) {
-					appendable.append(zerosPrefix);
+				if(leadingZeroCount != 0) {
+					leadingZeroCount = adjustLeadingZeroCount(leadingZeroCount, lowerValue, radix);
+					getLeadingZeros(leadingZeroCount, appendable);
 				}
 				if((!uppercase || radix <= 10) && radix == getDefaultTextualRadix()) {
 					appendable.append(getWildcardString());
@@ -584,46 +586,229 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 			}
 			return;
 		}
-		//TODO can do better here.  you can handle full range. also, as with masks, other ranges can work if the lower range is full: 1.2.3-4.*
-		//but do you really care?  what's the point?
-		if(splitDigits) {
-			throw new IPAddressTypeException(this, "ipaddress.error.splitMismatch");
-		}
 		if(isFullRange()) {
 			String wildcard = wildcards.wildcard;
 			if(wildcard != null) {
 				if(wildcard.equals(IPAddress.SEGMENT_WILDCARD_STR)) {
-					appendable.append(getWildcardString());//call getWildcardString to cache the result
+					if(splitDigits) {
+						getSplitChar(getDefaultMaxChars(), splitDigitSeparator, '*', appendable);
+					} else {
+						appendable.append(getWildcardString());//call getWildcardString to cache the result
+					}
 				} else {
-					appendable.append(wildcard);
+					if(splitDigits) {
+						getSplitChar(getDefaultMaxChars(), splitDigitSeparator, wildcard, appendable);
+					} else {
+						appendable.append(wildcard);
+					}
 				}
 				return;
 			}
 		}
+		
 		//check the remaining case where we can defer to getWildcardString which is cached:
 		//no character prefix, and using the same wildcards as getWildcardString
 		String rangeSeparator = wildcards.rangeSeparator;
 		int rangeDigitCount = wildcards.singleWildcard == null ? 0 : getRangeDigitCount(radix);
-		if(leadingZeroCount == 0 && rangeSeparator.equals(IPAddress.RANGE_SEPARATOR_STR) && rangeDigitCount == 0 && radix == getDefaultTextualRadix()) {
+		if(leadingZeroCount == 0 && rangeSeparator.equals(IPAddress.RANGE_SEPARATOR_STR) && rangeDigitCount == 0 && radix == getDefaultTextualRadix() && !splitDigits) {
 			if(stringPrefix != null) {
 				appendable.append(stringPrefix);
 			}
 			appendable.append(getWildcardString());
 			return;
 		}
-		getRangeString(getLowerValue(), getUpperValue(), wildcards.rangeSeparator, wildcards.singleWildcard, leadingZeroCount, stringPrefix, radix, rangeDigitCount, uppercase, appendable);
-	}
-	
-	protected static String toUnsignedString(long value, int radix) {
-		//TODO try using our own code here, see if it is faster, which it probably is, instead of Long.toString.  Also can remove this initial check.
-		//in fact, Long.toString creates two char arrays, when creating the string the char array is duped, but using a StringBUilder we can avoid that
-		//also, in our fast code we actually precalc the string size so that is a good thing
-		if(value == 0) {
-			return "0";
+		
+		//TODO can do better here.  as with masks, other ranges can work if the lower range(s) is full, eg 1.2.3-4.* or 1.2.3.4-5 or 1.2-3.*.*
+		//So, take the radix.  Take lower and higher.  For each digit, figure out if low and high match the radix.
+		//For non range values for splits we create the num at end of buffer then copy it over to lower on buffer
+		//So how do we do it for range values?  First we find the lengths of each in the range.  Then we go through the digits one by one, both nums at the same time.
+		//I think we need TWO separate sections, one for each number reversed:
+		//1.2.3.21-654
+		//1.2.3.____12___456 becomes 1.2.3.0-6.1-5.2-4
+		//but in reality that is not valid, lower ranges must be full
+		//1.2.3.0-699 works
+		//1.2.3.____0___996 becomes 1.2.3.0-6.0-9.0-9 and the last 2 ranges run from 0 to 9
+		//1.2.3.__100___996 becomes 1.2.3.1-6.0-9.0-9 and the last 2 ranges run from 0 to 9
+		if(splitDigits) {
+			throw new IPAddressTypeException(this, "ipaddress.error.splitMismatch");
 		}
-		return Long.toString(value, radix);
+		//TODO maybe I can do repeated calls to getRangeString?  Yeah.  Slightly inefficient though.  Could do the same for the non-range split digits.
+		//Doing both forward and reverse is tricky though.
+		//Could do each number separately and then rearrange.  But not optimal.
+		//Probabyl best to go with the original.
+		//In fact, doing the loop with both numbers at same time works nicely I think, it makes sure we have equal number of digits for both sides of range.
+		//OK, tht should do it.  Also, need to alter the rangeDigit section, nbut that will be similar to handling '*' and handling a single number
+		//I think we need to separate the splitDigit path right here and not alter the getRangeString method
+				
+		//TODO must also account for splitDigitSeparator and reverseSplitDigits when handling splitDigits
+		
+		long lowerVal = getLowerValue();
+		long upperVal = getUpperValue();
+		getRangeString(
+				lowerVal,
+				upperVal,
+				wildcards.rangeSeparator,
+				wildcards.singleWildcard,
+				adjustLeadingZeroCount(leadingZeroCount, lowerVal, radix),
+				adjustLeadingZeroCount(leadingZeroCount, upperVal, radix),
+				stringPrefix,
+				radix,
+				rangeDigitCount,
+				uppercase,
+				appendable);
+	}
+
+	private static String toDefaultRangeString(long val1, long val2, int radix) {
+		int len1, len2, value1, value2, quotient, remainder; //we iterate on //value == quotient * radix + remainder
+		if(radix == 10) {
+			if(val1 < 10) {
+				len1 = 1;
+			} else if(val1 < 100) {
+				len1 = 2;
+			} else if(val1 < 1000) {
+				len1 = 3;
+			} else {
+				return getRangeString(val1, val2, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false);
+			}
+			value1 = (int) val1;
+			if(val2 < 10) {
+				len2 = 1;
+			} else if(val2 < 100) {
+				len2 = 2;
+			} else if(val2 < 1000) {
+				len2 = 3;
+			} else {
+				return getRangeString(val1, val2, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false);
+			}
+			value2 = (int) val2;
+			len2 += len1 + 1;
+			char chars[] = new char[len2];
+			chars[len1] = IPAddress.RANGE_SEPARATOR;
+			char dig[] = digits;
+			do {
+				//value == quotient * 10 + remainder
+				quotient = (value1 * 0xcccd) >>> 19; //floor of n/10 is floor of ((0xcccd * n / (2 ^ 16)) / (2 ^ 3))
+				remainder = value1 - ((quotient << 3) + (quotient << 1)); //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
+				chars[--len1] = dig[remainder];
+				value1 = quotient;
+	        } while(value1 != 0);
+			do {
+				quotient = (value2 * 0xcccd) >>> 19;
+				remainder = value2 - ((quotient << 3) + (quotient << 1));
+				chars[--len2] = dig[remainder];
+				value2 = quotient;
+	        } while(value2 != 0);
+			return new String(chars);
+		}
+		if(radix == 16) {
+			if(val1 < 0x10) {
+				len1 = 1;
+			} else if(val1 < 0x100) {
+				len1 = 2;
+			} else if(val1 < 0x1000) {
+				len1 = 3;
+			} else if(val1 < 0x10000) {
+				len1 = 4;
+			} else {
+				return getRangeString(val1, val2, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false);
+			}
+			value1 = (int) val1;
+			if(val2 < 0x10) {
+				len2 = 1;
+			} else if(val2 < 0x100) {
+				len2 = 2;
+			} else if(val2 < 0x1000) {
+				len2 = 3;
+			} else if(val2 < 0x10000) {
+				len2 = 4;
+			} else {
+				return getRangeString(val1, val2, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false);
+			}
+			value2 = (int) val2;
+			len2 += len1 + 1;
+			char chars[] = new char[len2];
+			chars[len1] = IPAddress.RANGE_SEPARATOR;
+			char dig[] = digits;
+			do {//value1 == quotient * 16 + remainder
+				quotient = value1 >>> 4;
+				remainder = value1 - (quotient << 4);
+				chars[--len1] = dig[remainder];
+				value1 = quotient;
+			} while(value1 != 0);
+			do {
+				quotient = value2 >>> 4;
+				remainder = value2 - (quotient << 4);
+				chars[--len2] = dig[remainder];
+				value2 = quotient;
+			} while(value2 != 0);
+			return new String(chars);
+		}
+		return getRangeString(val1, val2, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false);
 	}
 	
+	private static String toDefaultString(long val, int radix) {
+		switch((int) val) {
+			case 0:
+				return "0";
+			case 1:
+				return "1";
+			default:
+		}
+		int len, quotient, remainder, value; //we iterate on //value == quotient * radix + remainder
+		if(radix == 10) {
+			if(val < 10) {
+				return String.valueOf(digits, (int) val, 1);
+			} else if(val < 100) {
+				len = 2;
+				value = (int) val;
+			} else if(val < 1000) {
+				len = 3;
+				value = (int) val;
+			} else {
+				return Long.toString(val, radix);
+			}
+			char chars[] = new char[len];
+			char dig[] = digits;
+			do {
+				//value == quotient * 10 + remainder
+				quotient = (value * 0xcccd) >>> 19; //floor of n/10 is floor of ((0xcccd * n / (2 ^ 16)) / (2 ^ 3))
+				remainder = value - ((quotient << 3) + (quotient << 1)); //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
+				chars[--len] = dig[remainder];
+				value = quotient;
+	        } while(value != 0);
+			return new String(chars);
+		}
+		if(radix == 16) {
+			if(val < 0x10) {
+				return String.valueOf(digits, (int) val, 1);
+			} else if(val < 0x100) {
+				len = 2;
+				value = (int) val;
+			} else if(val < 0x1000) {
+				len = 3;
+				value = (int) val;
+			} else if(val < 0x10000) {
+				if(val == 0xffff) {
+					return "ffff";
+				}
+				value = (int) val;
+				len = 4;
+			} else {
+				return Long.toString(val, radix);
+			}
+			char chars[] = new char[len];
+			char dig[] = digits;
+			do {//value2 == quotient * 16 + remainder
+				quotient = value >>> 4;
+				remainder = value - (quotient << 4);
+				chars[--len] = dig[remainder];
+				value = quotient;
+			} while(value != 0);
+			return new String(chars);
+		}
+		return Long.toString(val, radix);
+	}
+
 	protected static boolean fastToUnsignedString(int value, int radix, boolean uppercase, StringBuilder appendable) {
 		switch(value) {
 			case 0:
@@ -848,7 +1033,7 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 	 */
 	public void getPrefixAdjustedWildcardString(
 			Wildcards wildcards,
-			int leadingZeroCount,
+			int leadingZeroCount,//-1 means max leading zeros
 			String stringPrefix,
 			int radix,
 			boolean uppercase,
@@ -860,10 +1045,9 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 				appendable.append(stringPrefix);
 			}
 			if(leadingZeroCount != 0) {
-				String zerosPrefix = getLeadingZerosFor(getLowerValue(), radix, leadingZeroCount);
-				if(zerosPrefix != null) {
-					appendable.append(zerosPrefix);
-				}
+				long lowerValue = getLowerValue();
+				leadingZeroCount = adjustLeadingZeroCount(leadingZeroCount, lowerValue, radix);
+				getLeadingZeros(leadingZeroCount, appendable);
 			}
 			if(isDefaultRadix && (!uppercase || radix <= 10)) {
 				appendable.append(getString());
@@ -881,7 +1065,6 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 			String wildcard = wildcards.wildcard;
 			if(wildcard != null) {
 				if(wildcard.equals(IPAddress.SEGMENT_WILDCARD_STR)) {
-					//getWildcardString(appendable);//call this to cache the result
 					appendable.append(getWildcardString());
 				} else {
 					appendable.append(wildcard);
@@ -906,7 +1089,11 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		}
 		//here we adjust by prefix, using this mask
 		long mask = getDivisionNetworkMask(getDivisionPrefixLength());
-		getRangeString(getLowerValue() & mask, getUpperValue() & mask, rangeSeparator, wildcards.singleWildcard, leadingZeroCount, stringPrefix, radix, rangeDigitCount, uppercase, appendable);
+		long lowerMasked = getLowerValue() & mask;
+		long upperMasked = getUpperValue() & mask;
+		int lowerLeadingZeroCount = adjustLeadingZeroCount(leadingZeroCount, lowerMasked, radix);
+		int upperLeadingZeroCount = adjustLeadingZeroCount(leadingZeroCount, upperMasked, radix);
+		getRangeString(lowerMasked, upperMasked, rangeSeparator, wildcards.singleWildcard, lowerLeadingZeroCount, upperLeadingZeroCount, stringPrefix, radix, rangeDigitCount, uppercase, appendable);
 	}
 	
 	private int getRangeDigitCount(int radix) {
@@ -945,44 +1132,45 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		}
 	}
 	
-	private String getRangeString(
+	private static String getRangeString(
 			long lower,
 			long upper,
 			String rangeSeparator,
 			String singleWildcard,
-			int leadingZerosCount,
+			int lowerLeadingZerosCount,
+			int upperLeadingZerosCount,
 			String stringPrefix,
 			int radix,
 			int rangeDigits,
 			boolean uppercase) {
 		StringBuilder builder = new StringBuilder(20);
-		getRangeString(lower, upper, rangeSeparator, singleWildcard, leadingZerosCount, stringPrefix, radix, rangeDigits, uppercase, builder);
+		getRangeString(lower, upper, rangeSeparator, singleWildcard, lowerLeadingZerosCount, upperLeadingZerosCount, stringPrefix, radix, rangeDigits, uppercase, builder);
 		return builder.toString();
 	}
-			
-	private void getRangeString(
+	
+	protected static void getRangeString(
 			long lower,
 			long upper,
 			String rangeSeparator,
 			String singleWildcard,
-			int leadingZerosCount,
+			int lowerLeadingZerosCount,
+			int upperLeadingZerosCount,
 			String stringPrefix,
 			int radix,
 			int rangeDigits,
 			boolean uppercase,
 			StringBuilder appendable) {
-		String lowerZerosPrefix = getLeadingZerosFor(lower, radix, leadingZerosCount);
 		if(rangeDigits != 0) {
-			//Note: ranges like ___ intended to represent 0-fff do not work because the range does not include 2 digit and 1 digit numbers
-			//This only happens when the lower value is 0 and the is more than 1 range digit
+			//Note: ranges like ___ intended to represent 0-fff cannot work because the range does not include 2 digit and 1 digit numbers
+			//This only happens when the lower value is 0 and there is more than 1 range digit
 			//That's because you can then omit any leading zeros.
 			//Ranges like f___ representing f000-ffff are fine.
 			if(lower != 0 || rangeDigits == 1) { 
 				if(stringPrefix != null) {
 					appendable.append(stringPrefix);
 				}
-				if(lowerZerosPrefix != null) {
-					appendable.append(lowerZerosPrefix);
+				if(lowerLeadingZerosCount > 0) {
+					getLeadingZeros(lowerLeadingZerosCount, appendable);
 				}
 				toUnsignedString(lower, radix, rangeDigits, uppercase, false, (char) 0, false, appendable);
 				for(int i = 0; i < rangeDigits; i++) {
@@ -997,17 +1185,16 @@ public abstract class IPAddressDivision implements Comparable<IPAddressDivision>
 		if(stringPrefix != null) {
 			appendable.append(stringPrefix);
 		}
-		if(lowerZerosPrefix != null) {
-			appendable.append(lowerZerosPrefix);
+		if(lowerLeadingZerosCount > 0) {
+			getLeadingZeros(lowerLeadingZerosCount, appendable);
 		}
 		toUnsignedString(lower, radix, uppercase, appendable);
 		appendable.append(rangeSeparator);
 		if(stringPrefix != null) {
 			appendable.append(stringPrefix);
 		}
-		String upperZerosPrefix = getLeadingZerosFor(upper, radix, leadingZerosCount);
-		if(upperZerosPrefix != null) {
-			appendable.append(upperZerosPrefix);
+		if(upperLeadingZerosCount > 0) {
+			getLeadingZeros(upperLeadingZerosCount, appendable);
 		}
 		toUnsignedString(upper, radix, uppercase, appendable);
 		return;

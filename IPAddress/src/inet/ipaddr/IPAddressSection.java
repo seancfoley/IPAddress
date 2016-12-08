@@ -78,7 +78,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	}
 	
 	protected static <S extends IPAddressSegment> S[] toSegments(byte bytes[], int segmentCount, int bytesPerSegment, int bitsPerSegment, IPAddressSegmentCreator<S> creator, Integer networkPrefixLength) {
-		return IPAddress.toSegments(bytes, segmentCount, bytesPerSegment, bitsPerSegment, creator, networkPrefixLength);
+		return IPAddress.toSegments(bytes, null, segmentCount, bytesPerSegment, bitsPerSegment, creator, networkPrefixLength);
 	}
 	
 	protected static <S extends IPAddressSegment> S[] toCIDRSegments(Integer bits, S segments[], IPAddressSegmentCreator<S> segmentCreator, BiFunction<S, Integer, S> segProducer) {
@@ -319,7 +319,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		if(networkPrefixLength > totalBits) {
 			return original;
 		}
-		S result[] = creator.createAddressSegmentArray(networkSegmentCount);
+		S result[] = creator.createSegmentArray(networkSegmentCount);
 		if(networkSegmentCount > 0) {
 			for(int i = 0; i < networkSegmentCount; i++) {
 				Integer prefix = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
@@ -352,7 +352,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			return original;
 		}
 		int segmentCount = original.getSegmentCount();
-		S result[] = creator.createAddressSegmentArray(networkSegmentCount);
+		S result[] = creator.createSegmentArray(networkSegmentCount);
 		if(networkSegmentCount > 0) {
 			int bitsPerSegment = original.getBitsPerSegment();
 			for(int i = networkSegmentCount - 1, j = segmentCount - 1; i >= 0; i--, j--) {
@@ -404,7 +404,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			S seg = segProducer.apply(i);
 			S mask = maskSegProducer.apply(i);
 			if(seg.isChangedByMask(mask.getLowerSegmentValue(), segmentPrefixLength)) {
-				S newSegments[] = creator.createAddressSegmentArray(original.getSegmentCount());
+				S newSegments[] = creator.createSegmentArray(original.getSegmentCount());
 				original.copySegments(0, i, newSegments, 0);
 				for(int j = i; j < original.getSegmentCount(); j++) {
 					segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, j);
@@ -417,7 +417,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 						if(verifyMask && !seg.isMaskCompatibleWithRange(maskValue, segmentPrefixLength)) {
 							throw new IPAddressTypeException(seg, mask, "ipaddress.error.maskMismatch");
 						}
-						newSegments[j] = creator.createAddressSegment(seg.getLowerSegmentValue() & maskValue, seg.getUpperSegmentValue() & maskValue, segmentPrefixLength);
+						newSegments[j] = creator.createSegment(seg.getLowerSegmentValue() & maskValue, seg.getUpperSegmentValue() & maskValue, segmentPrefixLength);
 					}
 				}
 				return creator.createSectionInternal(newSegments);
@@ -598,7 +598,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			if(other.contains(first)) {
 				return null;
 			}
-			R result[] = addrCreator.createAddressSectionArray(1);
+			R result[] = addrCreator.createSectionArray(1);
 			result[0] = first;
 			return result;
 		} else {
@@ -620,13 +620,13 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				int otherHigher = otherSeg.getUpperSegmentValue();
 				if(otherLower > higher || lower > otherHigher) {
 					//no overlap in this segment means no overlap at all
-					R result[] = addrCreator.createAddressSectionArray(1);
+					R result[] = addrCreator.createSectionArray(1);
 					result[0] = first;
 					return result;
 				}
 			}
 			
-			S intersections[] = addrCreator.createAddressSegmentArray(segCount);
+			S intersections[] = addrCreator.createSegmentArray(segCount);
 			ArrayList<R> sections = new ArrayList<R>();
 			for(int i = 0; i < segCount; i++) {
 				S seg = segProducer.apply(i);
@@ -639,14 +639,14 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 					if(higher <= otherHigher) {
 						//this segment is contained in the other
 						if(seg.isPrefixed()) {
-							intersections[i] = addrCreator.createAddressSegment(lower, higher, null);
+							intersections[i] = addrCreator.createSegment(lower, higher, null);
 						} else {
 							intersections[i] = seg;
 						}
 						continue;
 					}
 					//otherLower <= lower <= otherHigher < higher
-					intersections[i] = addrCreator.createAddressSegment(lower, otherHigher, null);
+					intersections[i] = addrCreator.createSegment(lower, otherHigher, null);
 					R section = createDiffSection(first, otherHigher + 1, higher, i, addrCreator, segProducer, intersections);
 					sections.add(section);
 				} else {
@@ -654,10 +654,10 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 					R section = createDiffSection(first, lower, otherLower - 1, i, addrCreator, segProducer, intersections);
 					sections.add(section);
 					if(higher <= otherHigher) {
-						intersections[i] = addrCreator.createAddressSegment(otherLower, higher, null);
+						intersections[i] = addrCreator.createSegment(otherLower, higher, null);
 					} else {
 						//lower < otherLower <= otherHigher < higher
-						intersections[i] = addrCreator.createAddressSegment(otherLower, otherHigher, null);
+						intersections[i] = addrCreator.createSegment(otherLower, otherHigher, null);
 						section = createDiffSection(first, otherHigher + 1, higher, i, addrCreator, segProducer, intersections);
 						sections.add(section);
 					}
@@ -694,7 +694,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 					}
 				}
 			}
-			R result[] = addrCreator.createAddressSectionArray(sections.size());
+			R result[] = addrCreator.createSectionArray(sections.size());
 			sections.toArray(result);
 			return result;
 		}
@@ -703,11 +703,11 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	private static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R 
 			createDiffSection(R original, int lower, int upper, int diffIndex, IPAddressCreator<T, R, S> addrCreator, IntFunction<S> segProducer, S intersectingValues[]) {
 		int segCount = original.getSegmentCount();
-		S segments[] = addrCreator.createAddressSegmentArray(segCount);
+		S segments[] = addrCreator.createSegmentArray(segCount);
 		for(int j = 0; j < diffIndex; j++) {
 			segments[j] = intersectingValues[j];
 		}
-		S diff = addrCreator.createAddressSegment(lower, upper, null);
+		S diff = addrCreator.createSegment(lower, upper, null);
 		segments[diffIndex] = diff;
 		for(int j = diffIndex + 1; j < segCount; j++) {
 			segments[j] = segProducer.apply(j);
@@ -986,7 +986,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> S[] createSingle(R original, IPAddressSegmentCreator<S> segmentCreator, IntFunction<S> segProducer) {
 		int segmentCount = original.getSegmentCount();
-		S segs[] = segmentCreator.createAddressSegmentArray(segmentCount);
+		S segs[] = segmentCreator.createSegmentArray(segmentCount);
 		for(int i = 0; i < segmentCount; i++) {
 			segs[i] = segProducer.apply(i);
 		}
@@ -1081,7 +1081,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			@SuppressWarnings("unchecked")
 			private final Iterator<S> variations[] = new Iterator[segmentCount];
 			
-			private S nextSet[] = segmentCreator.createAddressSegmentArray(segmentCount);  {
+			private S nextSet[] = segmentCreator.createSegmentArray(segmentCount);  {
 				updateVariations(0);
 				if(skipThis) {
 					increment();
@@ -1435,7 +1435,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		public final boolean reverse;
 		public final boolean splitDigits;
 		
-		//use this field if the options to params conversion is not dependent on the address part
+		//use this field if the options to params conversion is not dependent on the address part so it can be reused
 		IPAddressPartStringParams<?> cachedParams; 
 		
 		protected StringOptions(

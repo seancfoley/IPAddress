@@ -24,8 +24,8 @@ public class IPv6AddressSegment extends IPAddressSegment {
 
 	public static final int MAX_CHARS = 4;
 	
-	static final IPv6AddressSegment ZERO_SEGMENT = getSegmentCreator().createAddressSegment(0);
-	static final IPv6AddressSegment ALL_SEGMENT = getSegmentCreator().createAddressSegment(IPv6Address.MAX_VALUE_PER_SEGMENT);
+	static final IPv6AddressSegment ZERO_SEGMENT = getSegmentCreator().createSegment(0);
+	static final IPv6AddressSegment ALL_SEGMENT = getSegmentCreator().createSegment(IPv6Address.MAX_VALUE_PER_SEGMENT);
 	static final IPv6AddressSegment ZERO_PREFIX_SEGMENT = new IPv6AddressSegment(0, 0);
 	static final IPv6AddressSegment ALL_RANGE_SEGMENT = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, null);
 	
@@ -113,7 +113,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 				throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.maskMismatch");
 			}
 			int maskValue = maskSegment.getLowerSegmentValue();
-			return getSegmentCreator().createAddressSegment(getLowerSegmentValue() & maskValue, getUpperSegmentValue() & maskValue, segmentPrefixLength);
+			return getSegmentCreator().createSegment(getLowerSegmentValue() & maskValue, getUpperSegmentValue() & maskValue, segmentPrefixLength);
 		}
 		return this;
 	}
@@ -190,10 +190,10 @@ public class IPv6AddressSegment extends IPAddressSegment {
 			Integer lowPrefixBits = getSplitSegmentPrefix(IPv4Address.BITS_PER_SEGMENT, myPrefix, 1);
 			IPv4AddressCreator creator = getIPv4AddressCreator();
 			if(index >= 0 && index < segs.length) {
-				segs[index] = creator.createAddressSegment(highByte(), highPrefixBits);
+				segs[index] = creator.createSegment(highByte(), highPrefixBits);
 			}
 			if(++index >= 0 && index < segs.length) {
-				segs[index] = creator.createAddressSegment(lowByte(), lowPrefixBits);
+				segs[index] = creator.createSegment(lowByte(), lowPrefixBits);
 			}
 		} else {
 			getIPv4SegmentsMultiple(segs, index);
@@ -208,7 +208,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 			int highUpper = highByte(getUpperSegmentValue());
 			Integer highPrefixBits = getSplitSegmentPrefix(IPv4Address.BITS_PER_SEGMENT, myPrefix, 0);
 			if(highLower == highUpper) {
-				segs[index] = creator.createAddressSegment(highLower, highPrefixBits);
+				segs[index] = creator.createSegment(highLower, highPrefixBits);
 			} else {
 				segs[index] = createSegment(highLower, highUpper, highPrefixBits);
 			}
@@ -218,7 +218,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 			int lowUpper = lowByte(getUpperSegmentValue());
 			Integer lowPrefixBits = getSplitSegmentPrefix(IPv4Address.BITS_PER_SEGMENT, myPrefix, 1);
 			if(lowLower == lowUpper) {
-				segs[index] = creator.createAddressSegment(lowLower, lowPrefixBits);
+				segs[index] = creator.createSegment(lowLower, lowPrefixBits);
 			} else {
 				segs[index] = createSegment(lowLower, lowUpper, lowPrefixBits);
 			}
@@ -231,7 +231,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	 */
 	public IPv4AddressSegment[] split() {
 		IPv4AddressCreator creator = getIPv4AddressCreator();
-		IPv4AddressSegment segs[] = creator.createAddressSegmentArray(IPv6Address.BYTES_PER_SEGMENT / IPv4Address.BYTES_PER_SEGMENT);
+		IPv4AddressSegment segs[] = creator.createSegmentArray(IPv6Address.BYTES_PER_SEGMENT / IPv4Address.BYTES_PER_SEGMENT);
 		getIPv4Segments(segs, 0);
 		return segs;
 	}
@@ -245,7 +245,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	 */
 	static IPv4AddressSegment[] split(IPv6AddressSegment high, IPv6AddressSegment low) {
 		IPv4AddressCreator creator = getIPv4AddressCreator();
-		IPv4AddressSegment segs[] = creator.createAddressSegmentArray((2 * IPv6Address.BYTES_PER_SEGMENT) / IPv4Address.BYTES_PER_SEGMENT);
+		IPv4AddressSegment segs[] = creator.createSegmentArray((2 * IPv6Address.BYTES_PER_SEGMENT) / IPv4Address.BYTES_PER_SEGMENT);
 		high.getIPv4Segments(segs, 0);
 		low.getIPv4Segments(segs, IPv6Address.BYTES_PER_SEGMENT / IPv4Address.BYTES_PER_SEGMENT);
 		return segs;
@@ -257,7 +257,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 	
 	private IPv4AddressSegment createSegment(int highLower, int highUpper, Integer highPrefixBits) {
 		IPv4AddressCreator creator = getIPv4AddressCreator();
-		return creator.createAddressSegment(highLower, highUpper, highPrefixBits);
+		return creator.createSegment(highLower, highUpper, highPrefixBits);
 	}
 	
 	/**
@@ -277,7 +277,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 				throw new IPAddressTypeException(high, low, "ipaddress.error.invalidMixedRange");
 			}
 		}
-		return getSegmentCreator().createAddressSegment(
+		return getSegmentCreator().createSegment(
 				(high.getLowerSegmentValue() << shift) | low.getLowerSegmentValue(), 
 				(high.getUpperSegmentValue() << shift) | low.getUpperSegmentValue(),
 				prefix);
@@ -299,7 +299,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 				throw new IPAddressTypeException(one, two, "ipaddress.error.invalidMixedRange");
 			}
 		}
-		return getSegmentCreator().createAddressSegment(
+		return getSegmentCreator().createSegment(
 				(upperRangeLower << shift) | lowerRangeLower,
 				(upperRangeUpper << shift) | lowerRangeUpper,
 				segmentPrefixLength);
@@ -317,7 +317,7 @@ public class IPv6AddressSegment extends IPAddressSegment {
 			IPv4AddressSegment highlow,
 			IPv4AddressSegment lowHigh,
 			IPv4AddressSegment lowLow) throws IPAddressTypeException {
-		IPv6AddressSegment segs[] = getSegmentCreator().createAddressSegmentArray(2);
+		IPv6AddressSegment segs[] = getSegmentCreator().createSegmentArray(2);
 		segs[0] = join(highHigh, highlow);
 		segs[1] = join(lowHigh, lowLow);
 		return segs;

@@ -6,7 +6,7 @@ package inet.ipaddr;
  * @author sfoley
  *
  */
-public interface HostIdentifierString {
+interface HostIdentifierString {
 	
 	/**
 	 * provides a unique normalized String representation for the host identified by this HostIdentifierString instance

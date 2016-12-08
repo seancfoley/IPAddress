@@ -6,6 +6,7 @@ import java.net.UnknownHostException;
 
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.format.validate.AddressProvider;
+import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.format.validate.Validator;
 
@@ -78,6 +79,15 @@ public class HostName implements HostIdentifierString, Comparable<HostName>, Ser
 		}
 		this.validationOptions = options;
 		this.host = (host == null) ? "" : host.trim();;
+	}
+	
+	void cacheAddress(IPAddress addr) {
+		if(parsedHost == null) {
+			parsedHost = new ParsedHost(host, AddressProvider.getProviderFor(addr));
+			normalizedString = addr.toNormalizedString();
+		} else if(normalizedString == null) {
+			normalizedString = addr.toNormalizedString();
+		}
 	}
 	
 	public HostNameParameters getValidationOptions() {
@@ -157,11 +167,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName>, Ser
 			try {
 				validate();
 				if(isAddressString()) {
-					//if(isAddress() && asAddress().isIPv6()) {
-					//	result = toBracketed();
-					//} else {
-						result = IPAddressString.toNormalizedString(parsedHost.addressProvider);
-					//}
+					result = IPAddressString.toNormalizedString(parsedHost.addressProvider);
 				} else {
 					result = parsedHost.getHost();
 				}

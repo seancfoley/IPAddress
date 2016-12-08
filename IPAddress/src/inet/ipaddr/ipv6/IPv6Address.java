@@ -196,7 +196,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	private static IPv6AddressSection createSection(IPv6AddressSegment nonMixedSection[], IPv4Address mixedSection) throws IPAddressTypeException {
 		IPv4AddressSection ipv4Section = mixedSection.getSegments();
 		IPv6AddressCreator creator = network.getAddressCreator();
-		IPv6AddressSegment newSegs[] = creator.createAddressSegmentArray(SEGMENT_COUNT);
+		IPv6AddressSegment newSegs[] = creator.createSegmentArray(SEGMENT_COUNT);
 		newSegs[0] = nonMixedSection[0];
 		newSegs[1] = nonMixedSection[1];
 		newSegs[2] = nonMixedSection[2];
@@ -249,16 +249,16 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public Iterator<IPv6Address> iterator() {
 		return iterator(
-				this,
-				new IPv6AddressCreator() {
-					@Override
-					protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
-						IPv6AddressCreator creator = network.getAddressCreator();
-						return creator.createAddressInternal(segments, zone);
-					}
-				},
-				() -> getSegments().getLowerSegments(),
-				index -> getSegment(index).iterator());
+			this,
+			hasZone() ? network.getAddressCreator() : new IPv6AddressCreator() {//using a lambda for this one results in a big performance hit
+				@Override
+				protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
+					IPv6AddressCreator creator = network.getAddressCreator();
+					return creator.createAddressInternal(segments, zone); /* address creation */
+				}
+			},
+			() -> getSegments().getLowerSegments(),
+			index -> getSegment(index).iterator());
 	}
 	
 	@Override
@@ -266,13 +266,12 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return this;
 	}
 	
-	public static IPAddress from(byte bytes[], String zone) {
-		if(bytes.length != BYTE_COUNT) {
-			throw new IllegalArgumentException();
-		}
-		IPv6AddressCreator addressCreator = network().getAddressCreator();
-		IPv6AddressSegment segments[] = toSegments(bytes, SEGMENT_COUNT, BYTES_PER_SEGMENT, BITS_PER_SEGMENT, addressCreator, null);
-		return addressCreator.createAddressInternal(segments, zone);
+	public static IPv6Address from(byte bytes[], byte bytes2[], Integer prefix, String zone) {
+		return (IPv6Address) IPAddress.from(bytes, bytes2, prefix, zone);
+	}
+	
+	public static IPv6Address from(byte bytes[], String zone) {
+		return from(bytes, null, null, zone);
 	}
 
 	/**
@@ -329,10 +328,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public static IPv6Address toIPv4Mapped(IPv4Address addr) throws IPAddressTypeException {
 		IPv6AddressSegment zero = IPv6AddressSegment.ZERO_SEGMENT;
 		IPv6AddressCreator creator = network.getAddressCreator();
-		IPv6AddressSegment segs[] = creator.createAddressSegmentArray(MIXED_ORIGINAL_SEGMENT_COUNT);
+		IPv6AddressSegment segs[] = creator.createSegmentArray(MIXED_ORIGINAL_SEGMENT_COUNT);
 		segs[0] = segs[1] = segs[2] = segs[3] = segs[4] = zero;
 		segs[5] = IPv6AddressSegment.ALL_SEGMENT;
-		return creator.createAddress(createSection(segs, addr));
+		return creator.createAddress(createSection(segs, addr)); /* address creation */
 	}
 	
 	/**
@@ -343,17 +342,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return getSegments().getMixedSection();
 		}
 		return null;
-	}
-	
-	/**
-	 * Returns the embedded {@link IPv4Address} in the lowest (least-significant) two segments.
-	 * This is used by IPv4-mapped, IPv4-compatible, ISATAP addresses and 6over4 addresses
-	 * 
-	 * @return the embedded {@link IPv4Address}
-	 */
-	public IPv4Address getLowerIPv4Address() {
-		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-		return creator.createAddress(getSegments().getMixedSection());
 	}
 	
 	/**
@@ -368,6 +356,17 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	/**
+	 * Returns the embedded {@link IPv4Address} in the lowest (least-significant) two segments.
+	 * This is used by IPv4-mapped, IPv4-compatible, ISATAP addresses and 6over4 addresses
+	 * 
+	 * @return the embedded {@link IPv4Address}
+	 */
+	public IPv4Address getMixedAddress() {
+		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
+		return creator.createAddress(getSegments().getMixedSection()); /* address creation */
+	}
+	
+	/**
 	 * Produces an IPv4 address from any sequence of 4 bytes in this IPv6 address.
 	 * 
 	 * @param byteIndex the byte index to start
@@ -376,10 +375,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public IPv4Address getEmbeddedIPv4Address(int byteIndex) {
 		if(byteIndex == IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT * IPv6Address.BYTES_PER_SEGMENT) {
-			return getLowerIPv4Address();
+			return getMixedAddress();
 		}
 		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-		return creator.createAddress(getSegments().getEmbeddedIPv4AddressSection(byteIndex, byteIndex + IPv4Address.BYTE_COUNT));
+		return creator.createAddress(getSegments().getEmbeddedIPv4AddressSection(byteIndex, byteIndex + IPv4Address.BYTE_COUNT)); /* address creation */
 	}
 	
 	/**
@@ -526,7 +525,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		}
 		IPv6Address result[] = new IPv6Address[sections.length];
 		for(int i = 0; i < result.length; i++) {
-			result[i] = network.getAddressCreator().createAddress(sections[i], zone);
+			result[i] = network.getAddressCreator().createAddress(sections[i], zone); /* address creation */
 		}
 		return result;
 	}
@@ -539,7 +538,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return this;
 		}
 		IPv6AddressCreator creator = network.getAddressCreator();
-		return creator.createAddress(subnetSection);
+		return creator.createAddress(subnetSection); /* address creation */
 	}
 
 	/**
@@ -563,7 +562,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return this;
 		}
 		IPv6AddressCreator creator = network.getAddressCreator();
-		return creator.createAddress(subnetSection);
+		return creator.createAddress(subnetSection); /* address creation */
 	}
 
 	@Override
@@ -601,7 +600,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	public IPv6Address removeZone() {
-		return network.getAddressCreator().createAddress(getSegments());
+		return network.getAddressCreator().createAddress(getSegments()); /* address creation */
 	}
 
 	@Override
@@ -926,6 +925,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return coll;
 	}
 	
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
 	public interface IPv6AddressConverter {
 		/**
 		 * If the given address is IPv6, or can be converted to IPv6, returns that {@link IPv6Address}.  Otherwise, returns null.

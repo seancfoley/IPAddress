@@ -1,6 +1,5 @@
 package inet.ipaddr.format.validate;
 
-import inet.ipaddr.HostIdentifierStringValidator;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;

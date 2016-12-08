@@ -21,7 +21,7 @@ public class IPv4AddressSegment extends IPAddressSegment {
 
 	public static final int MAX_CHARS = 3;
 
-	static final IPv4AddressSegment ZERO_SEGMENT = getSegmentCreator().createAddressSegment(0);
+	static final IPv4AddressSegment ZERO_SEGMENT = getSegmentCreator().createSegment(0);
 	static final IPv4AddressSegment ZERO_PREFIX_SEGMENT = new IPv4AddressSegment(0, 0);//we do not use the creator for this one because this one is used by the creator
 	static final IPv4AddressSegment ALL_RANGE_SEGMENT = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, null);//we do not use the creator for this one because this one is used by the creator
 	
@@ -108,7 +108,7 @@ public class IPv4AddressSegment extends IPAddressSegment {
 			if(!isMaskCompatibleWithRange(maskSegment, segmentPrefixLength)) {
 				throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.maskMismatch");
 			}
-			return getSegmentCreator().createAddressSegment(getLowerSegmentValue() & maskSegment.getLowerSegmentValue(), getUpperSegmentValue() & maskSegment.getLowerSegmentValue(), segmentPrefixLength);
+			return getSegmentCreator().createSegment(getLowerSegmentValue() & maskSegment.getLowerSegmentValue(), getUpperSegmentValue() & maskSegment.getLowerSegmentValue(), segmentPrefixLength);
 		}
 		return this;
 	}

@@ -18,9 +18,9 @@ import inet.ipaddr.ipv4.IPv4AddressSection;
  */
 public abstract class ParsedAddressCreator<T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> {
 	
-	public abstract S[] createAddressSegmentArray(int length);
+	public abstract S[] createSegmentArray(int length);
 
-	public abstract S createAddressSegment(int lower, int upper, Integer segmentPrefixLength);
+	public abstract S createSegment(int lower, int upper, Integer segmentPrefixLength);
 
 	/* 
 	 * These methods are for internal use only.  
@@ -29,9 +29,9 @@ public abstract class ParsedAddressCreator<T extends IPAddress, R extends IPAddr
 	 * Also, segment arrays are not cloned, they is used by the resulting address or address section.
 	 */
 	
-	protected abstract S createAddressSegmentInternal(int value, Integer segmentPrefixLength, String addressStr, int originalVal, boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex);
+	protected abstract S createSegmentInternal(int value, Integer segmentPrefixLength, String addressStr, int originalVal, boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex);
 	
-	protected abstract S createAddressSegmentInternal(int lower, int upper, Integer segmentPrefixLength, String addressStr, int originalLower, int originalUpper, boolean isStandardString, boolean isStandardRangeString, int lowerStringStartIndex, int lowerStringEndIndex, int upperStringEndIndex);
+	protected abstract S createSegmentInternal(int lower, int upper, Integer segmentPrefixLength, String addressStr, int originalLower, int originalUpper, boolean isStandardString, boolean isStandardRangeString, int lowerStringStartIndex, int lowerStringEndIndex, int upperStringEndIndex);
 
 
 	protected abstract R createSectionInternal(byte bytes[], Integer prefix);

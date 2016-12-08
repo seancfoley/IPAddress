@@ -233,13 +233,13 @@ public class IPv6AddressSection extends IPAddressSection {
 		return getAddressCreator(startIndex);
 	}
 	
-	protected static IPv6AddressCreator getAddressCreator(final int startIndex) {
+	protected static IPv6AddressCreator getAddressCreator(int startIndex) {
 		IPv6AddressCreator result = creators[startIndex];
 		if(result == null) {
 			creators[startIndex] = result = new IPv6AddressCreator() {
 				@Override
 				protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[]) {
-					return IPv6Address.network().getAddressCreator().createSectionInternal(segments, startIndex);
+					return IPv6Address.network().getAddressCreator().createSectionInternal(segments, startIndex); /* address creation */
 				}
 			};
 		}
@@ -264,7 +264,7 @@ public class IPv6AddressSection extends IPAddressSection {
 			return getMixedSection();
 		}
 		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-		IPv4AddressSegment[] segments = creator.createAddressSegmentArray((endIndex - startIndex) >> 1);
+		IPv4AddressSegment[] segments = creator.createSegmentArray((endIndex - startIndex) >> 1);
 		int i = startIndex, j = 0;
 		if(i % IPv6Address.BYTES_PER_SEGMENT == 1) {
 			IPv6AddressSegment ipv6Segment = getSegment(i++ / IPv6Address.BYTES_PER_SEGMENT);

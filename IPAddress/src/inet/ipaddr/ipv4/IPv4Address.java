@@ -215,7 +215,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				IPv4AddressSegment seg = getSegment(i);
 				return lowest ? seg.getLower() : seg.getUpper();
 			});
-			return getAddressCreator().createAddressInternal(segs);
+			return getAddressCreator().createAddressInternal(segs); /* address creation */
 		});
 	}
 	
@@ -233,7 +233,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public Iterator<IPv4Address> iterator() {
 		return iterator(
 				this, 
-				getAddressCreator(),
+				getAddressCreator(),//using a lambda for this one results in a big performance hit
 				() -> getSegments().getLowerSegments(),
 				index -> getSegment(index).iterator());
 	}
@@ -274,7 +274,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		IPv4AddressCreator creator = getAddressCreator();
 		IPv4Address result[] = new IPv4Address[sections.length];
 		for(int i = 0; i < result.length; i++) {
-			result[i] = creator.createAddress(sections[i]);
+			result[i] = creator.createAddress(sections[i]); /* address creation */ 
 		}
 		return result;
 	}
@@ -286,7 +286,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		if(thisSection == subnetSection) {
 			return this;
 		}
-		return getAddressCreator().createAddress(subnetSection);
+		return getAddressCreator().createAddress(subnetSection); /* address creation */
 	}
 		
 	/**
@@ -307,7 +307,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		if(thisSection == subnetSection) {
 			return this;
 		}
-		return getAddressCreator().createAddress(subnetSection);
+		return getAddressCreator().createAddress(subnetSection); /* address creation */
 	}
 	
 	@Override
@@ -437,6 +437,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return coll;
 	}
 	
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
 	public interface IPv4AddressConverter {
 		/**
 		 * If the given address is IPv4, or can be converted to IPv4, returns that {@link IPv4Address}.  Otherwise, returns null.
@@ -444,6 +449,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		IPv4Address toIPv4(IPAddress address);
 	}
 	
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
 	public static enum inet_aton_radix { OCTAL, HEX, DECIMAL;
 		int getRadix() {
 			if(this == OCTAL) {

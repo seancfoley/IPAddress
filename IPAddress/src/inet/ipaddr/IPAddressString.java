@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.format.validate.AddressProvider;
+import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -132,8 +133,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	private static final IPAddressStringException IS_IPV6_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv6");
 	private static final IPAddressStringException IS_IPV4_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv4");
 	
-	public static final IPAddressString EMPTY_ADDRESS = new IPAddressString(""); //represents a blank address which resolves to the loopback //TODO get from creator
-	public static final IPAddressString ALL_ADDRESSES = new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 address //TODO get from creator
+	public static final IPAddressString EMPTY_ADDRESS = new IPAddressString(""); //represents a blank address which resolves to the loopback /* address string creation */
+	public static final IPAddressString ALL_ADDRESSES = new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 address /* address string creation */
 	
 	final IPAddressStringParameters validationOptions;
 	

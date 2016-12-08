@@ -3,6 +3,7 @@ package inet.ipaddr;
 import java.util.Map;
 
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 
 
 /**
@@ -61,8 +62,8 @@ public abstract class IPAddressNetwork {
 		if(prefix == null) {
 			synchronized(cache) {
 				prefix = cache[cacheIndex];
-				if(prefix == null) {//TODO get from creator
-					cache[cacheIndex] = prefix = 
+				if(prefix == null) {
+					cache[cacheIndex] = prefix = /* address string creation */
 							new IPAddressString(new StringBuilder(HostIdentifierStringValidator.MAX_PREFIX_CHARS + 1).append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength).toString());
 				}
 			}
@@ -87,16 +88,10 @@ public abstract class IPAddressNetwork {
 	 *
 	 * @param <T> the type to be cached, typically either IPAddressString or HostName
 	 */
-	public static class HostIdentifierStringCache<T extends HostIdentifierString> {
+	static abstract class HostIdentifierStringCache<T extends HostIdentifierString> {
 		protected Map<String, T> backingMap;
-		protected HostIdentifierStringCreator<T> creator;
 		
-		public HostIdentifierStringCache(Map<String, T> backingMap, HostIdentifierStringCreator<T> creator) {
-			this.backingMap = backingMap;
-			this.creator = creator;
-		}
-		
-		HostIdentifierStringCache(Map<String, T> backingMap) {
+		public HostIdentifierStringCache(Map<String, T> backingMap) {
 			this.backingMap = backingMap;
 		}
 		
@@ -123,7 +118,7 @@ public abstract class IPAddressNetwork {
 		public T get(String key) {
 			T result = backingMap.get(key);
 			if(result == null) {
-				result = creator.create(key);
+				result = create(key);
 				String normalizedKey = result.toNormalizedString();
 				T existing = backingMap.putIfAbsent(normalizedKey, result);
 				if(existing == null) {
@@ -138,21 +133,46 @@ public abstract class IPAddressNetwork {
 			return result;
 		}
 		
-		protected static interface HostIdentifierStringCreator<R extends HostIdentifierString> {
-			R create(String key);
+		public T get(byte bytes[]) {
+			return get(bytes, null, null, null);
 		}
+		
+		public T get(byte bytes[], byte bytes2[], Integer prefixLength) {
+			return get(bytes, bytes2, prefixLength, null);
+		}
+		
+		public T get(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
+			String key = IPAddress.toNormalizedString(bytes, bytes2, prefixLength, zone);
+			T result = backingMap.get(key);
+			if(result == null) {
+				IPAddress addr = IPAddress.from(bytes, bytes2, prefixLength, zone);
+				addr.cacheNormalizedString(key);
+				//get the object that wraps the address, either HostName or IPAddressString or other
+				result = create(addr);
+				T existing = backingMap.putIfAbsent(key, result);
+				if(existing == null) {
+					added(result);
+				} else {
+					result = existing;
+					//Since we have the address, we can make the existing entry wrap it
+					//If I could add non-public methods to interfaces I would not need instanceof here
+					if(result instanceof IPAddressString) {
+						((IPAddressString) result).cacheAddress(addr);
+					} else if (result instanceof HostName) {
+						((HostName) result).cacheAddress(addr);
+					}
+				}
+			}
+			return result;
+		}
+		
+		protected abstract T create(String key);
+			
+		protected abstract T create(IPAddress addr);
 	}
-	
-	//TODO in doclet, make the nested classes appear with types even if core?  This is also causing a little clutter.  Maybe just add the core tag to them.
-	//TODO we should perhaps provide the option to assign a cache to the network!  Then when creating addresses internally, the cache will be used.
-	//When creating addresses externally, can add code to add to the cache in the constructor, but that still doesn't help avoid the creation... so maybe not.
-	//the cache already uses the address creators, so need an interplay between them: when the cache is using the creator the creator cannot go back to that cache,
-	//so maybe need a separate internal creator method for strings and hostnames that check the cache first and then call the main creator methods
-	//while the cache itself calls the main creator methods, although be careful, the network cache is not always the same as the current cache, there can be many caches,
-	//maybe the cache should check if it is the network cache to decide which creator method to call
 
 	/**
-	 * Choose a map of your choice to implement a cache of address strings and addresses.
+	 * Choose a map of your choice to implement a cache of address strings and their associated addresses.
 	 * 
 	 * The map will map string representations of the address to IPAddressString objects, which in turn cache any resulting IPAddress objects.
 	 * 
@@ -161,65 +181,46 @@ public abstract class IPAddressNetwork {
 	 * @author sfoley
 	 *
 	 */
-	public static class IPAddressStringCache extends HostIdentifierStringCache<IPAddressString> implements HostIdentifierStringCache.HostIdentifierStringCreator<IPAddressString> {
+	public static class IPAddressStringCache extends HostIdentifierStringCache<IPAddressString> {
 		IPAddressStringParameters options;
 
 		public IPAddressStringCache(Map<String, IPAddressString> backingMap, IPAddressStringParameters options) {
-			this(backingMap);
+			super(backingMap);
 			this.options = options;
 		}
 		
 		public IPAddressStringCache(Map<String, IPAddressString> backingMap) {
 			super(backingMap);
-			creator = this;
 		}
 
-		//TODO maybe I have just one type of cache taking both hosts and ip strings?
 		@Override
-		public IPAddressString create(String key) {
-			IPAddressString str = options == null ? new IPAddressString(key) : new IPAddressString(key, options);
-			return str;
+		protected IPAddressString create(String addressString) {
+			return options == null ? new IPAddressString(addressString) : new IPAddressString(addressString, options);
 		}
 		
-		//TODO if I want to cache in the network, then I need the caches to offer the same options as the constructors and the creators
-		//but really, constructing from sections and segments is no concern, only from bytes and strings
-		//so for one thing, TODO I need a method that takes bytes with the zone, and also with the prefix, and on the ipv4 side the prefix and also from an int
-		//once these options exist, both here and in the creators, then 
-		//I can put the hooks in the creators to the caches.
-		//I can put the hooks in the few spots we create strings into the creators
-		//external -> creator -> cache
-		//internal -> creator -> cache
-		//but there is two creators, the cache interface is simpler
-		//
-		//or?
-		//external -> cache -> creator
-		//clearly this second option not so simple since it is opposite from internal.
-		//
-		//really the purpose of the creator is for creation to go through one place, and we can assign our own
-		//so if creator points to cache, then when we override, we bypass cache
-		//so the second option is preferable
-		//also, going that way eliminates the Ipv6 Ipv4 confusion.  You just have strings or bytes.
-		//Still, with the bytes we need to offer the zone and the prefix on ipv6 and the prefix and the int on ipv4
-		//
-		//We need to be careful where we put hooks into the cache in the code, not anywhere in the string parsing
+		@Override
+		protected IPAddressString create(IPAddress addr) {
+			return addr.toAddressString();
+		}
 		
-		//TODO this could be a host name too
+		@Override
+		public IPAddressString get(String key) {
+			return super.get(key);
+		}
+		
+		@Override
 		public IPAddressString get(byte bytes[]) {
-			String key = IPAddress.toNormalizedString(bytes);
-			IPAddressString result = backingMap.get(key);
-			if(result == null) {
-				IPAddress addr = IPAddress.from(bytes);
-				result = addr.toAddressString();//TODO here is where I could instead construct a HostName xxx
-				IPAddressString existing = backingMap.putIfAbsent(key, result);
-				if(existing == null) {
-					added(result);
-					addr.cacheNormalizedString(key);
-				} else {
-					result = existing;
-					result.cacheAddress(addr);
-				}
-			}
-			return result;
+			return super.get(bytes);
+		}
+		
+		@Override
+		public IPAddressString get(byte bytes[], byte bytes2[], Integer prefixLength) {
+			return super.get(bytes, bytes2, prefixLength);
+		}
+		
+		@Override
+		public IPAddressString get(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
+			return super.get(bytes, bytes2, prefixLength, zone);
 		}
 	}
 
@@ -236,22 +237,46 @@ public abstract class IPAddressNetwork {
 	 * @author sfoley
 	 *
 	 */
-	public static class HostNameCache extends HostIdentifierStringCache<HostName> implements HostIdentifierStringCache.HostIdentifierStringCreator<HostName> {
+	public static class HostNameCache extends HostIdentifierStringCache<HostName> {
 		HostNameParameters options;
 
 		public HostNameCache(Map<String, HostName> backingMap, HostNameParameters options) {
-			this(backingMap);
+			super(backingMap);
 			this.options = options;
 		}
 		
 		public HostNameCache(Map<String, HostName> backingMap) {
 			super(backingMap);
-			creator = this;
 		}
 
 		@Override
-		public HostName create(String key) {
+		protected HostName create(String key) {
 			return options == null ? new HostName(key) : new HostName(key, options);
+		}
+		
+		@Override
+		protected HostName create(IPAddress addr) {
+			return new HostName(addr);
+		}
+		
+		@Override
+		public HostName get(String key) {
+			return super.get(key);
+		}
+		
+		@Override
+		public HostName get(byte bytes[]) {
+			return super.get(bytes);
+		}
+		
+		@Override
+		public HostName get(byte bytes[], byte bytes2[], Integer prefixLength) {
+			return super.get(bytes, bytes2, prefixLength);
+		}
+		
+		@Override
+		public HostName get(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
+			return super.get(bytes, bytes2, prefixLength, zone);
 		}
 	}
 }
