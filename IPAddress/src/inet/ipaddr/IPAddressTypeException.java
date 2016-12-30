@@ -31,6 +31,10 @@ public class IPAddressTypeException extends RuntimeException {
 		super(one + ", " + errorMessage + " " + getMessage(key));
 	}
 	
+	public IPAddressTypeException(long lower, long upper, String key) {
+		super(lower + "-" + upper + ", " + errorMessage + " " + getMessage(key));
+	}
+	
 	public IPAddressTypeException(IPAddressSection one, int prefixLength, String key) {
 		super(one + " /" + prefixLength + ", " + errorMessage + " " + getMessage(key));
 	}

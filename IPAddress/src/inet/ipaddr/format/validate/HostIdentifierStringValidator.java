@@ -2,10 +2,9 @@ package inet.ipaddr.format.validate;
 
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
-import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringException;
-import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.ipv6.IPv6Address;
 
 /**

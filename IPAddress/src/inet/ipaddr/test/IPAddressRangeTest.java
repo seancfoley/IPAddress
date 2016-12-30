@@ -246,10 +246,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		incrementTestCount();
 	}
 	
-	void testIPv4Strings(String addr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString) {
+	void testIPv4Strings(String addr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString, String reverseDNSString) {
 		IPAddressString w = createAddress(addr);
 		IPAddress ipAddr = w.getAddress();
-		testIPv4Strings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString);
+		testIPv4Strings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString);
 	}
 	
 	void testIPv6Strings(String addr, 
@@ -265,7 +265,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 			String mixedStringNoCompressMixed,
 			String mixedStringNoCompressHost,
 			String mixedStringCompressCoveredHost,
-			String mixedString) {
+			String mixedString,
+			String reverseDNSString,
+			String uncHostString) {
 		IPAddressString w = createAddress(addr);
 		IPAddress ipAddr = w.getAddress();
 		testIPv6Strings(w,
@@ -282,7 +284,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				mixedStringNoCompressMixed,
 				mixedStringNoCompressHost,
 				mixedStringCompressCoveredHost,
-				mixedString);
+				mixedString,
+				reverseDNSString,
+				uncHostString);
 	}
 	
 	void testTree(String start, String parents[]) {
@@ -449,38 +453,42 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	void testStrings() {
-		testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4");
-		testIPv4Strings("1.2.3.4/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16");
-		testIPv4Strings("1.2.*.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
-		testIPv4Strings("1.2.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*");
-		testIPv4Strings("1.2.*.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16");
-		testIPv4Strings("1.2.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16");
-		testIPv4Strings("1.*.*/16",  "1.*.0.0/16", "1.*.*.*", "1.%.%.%", "001.000-255.000.000/16",  "01.*.00.00/16",  "0x1.*.0x0.0x0/16");
+		testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4", "4.3.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.4/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.*.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
+		testIPv4Strings("1.2.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.*.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
+		testIPv4Strings("1.*.*/16",  "1.*.0.0/16", "1.*.*.*", "1.%.%.%", "001.000-255.000.000/16",  "01.*.00.00/16",  "0x1.*.0x0.0x0/16", "*.*.*.1.in-addr.arpa");
 		
 		//9, 63, 127, 254   11, 77, 177, 376   9, 3f, 7f, fe
-		testIPv4Strings("0.0.0.0", "0.0.0.0", "0.0.0.0", "0.0.0.0", "000.000.000.000", "00.00.00.00", "0x0.0x0.0x0.0x0");
-		testIPv4Strings("9.63.127.254", "9.63.127.254", "9.63.127.254", "9.63.127.254", "009.063.127.254", "011.077.0177.0376", "0x9.0x3f.0x7f.0xfe");
-		testIPv4Strings("9.63.127.254/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16");
-		testIPv4Strings("9.63.*.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
-		testIPv4Strings("9.63.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*");
-		testIPv4Strings("9.63.*.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16");
-		testIPv4Strings("9.63.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16");
-		testIPv4Strings("9.*.*/16",  "9.*.0.0/16", "9.*.*.*", "9.%.%.%", "009.000-255.000.000/16", "011.*.00.00/16", "0x9.*.0x0.0x0/16"); 
+		testIPv4Strings("0.0.0.0", "0.0.0.0", "0.0.0.0", "0.0.0.0", "000.000.000.000", "00.00.00.00", "0x0.0x0.0x0.0x0", "0.0.0.0.in-addr.arpa");
+		testIPv4Strings("9.63.127.254", "9.63.127.254", "9.63.127.254", "9.63.127.254", "009.063.127.254", "011.077.0177.0376", "0x9.0x3f.0x7f.0xfe", "254.127.63.9.in-addr.arpa");
+		testIPv4Strings("9.63.127.254/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
+		testIPv4Strings("9.63.*.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
+		testIPv4Strings("9.63.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa");
+		testIPv4Strings("9.63.*.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
+		testIPv4Strings("9.63.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
+		testIPv4Strings("9.*.*/16",  "9.*.0.0/16", "9.*.*.*", "9.%.%.%", "009.000-255.000.000/16", "011.*.00.00/16", "0x9.*.0x0.0x0/16", "*.*.*.9.in-addr.arpa"); 
 		
-		testIPv4Strings("1.2.3.250-255", "1.2.3.250-255", "1.2.3.250-255", "1.2.3.25_", "001.002.003.250-255", "01.02.03.0372-0377", "0x1.0x2.0x3.0xfa-0xff");
-		testIPv4Strings("1.2.3.200-255", "1.2.3.200-255", "1.2.3.200-255", "1.2.3.2__", "001.002.003.200-255", "01.02.03.0310-0377", "0x1.0x2.0x3.0xc8-0xff");
-		testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7");
-		testIPv4Strings("100-199.2.3.100-199", "100-199.2.3.100-199", "100-199.2.3.100-199", "1__.2.3.1__", "100-199.002.003.100-199", "0144-0307.02.03.0144-0307", "0x64-0xc7.0x2.0x3.0x64-0xc7");
-		testIPv4Strings("100-199.2.3.100-198", "100-199.2.3.100-198", "100-199.2.3.100-198", "1__.2.3.100-198", "100-199.002.003.100-198", "0144-0307.02.03.0144-0306", "0x64-0xc7.0x2.0x3.0x64-0xc6");
-		testIPv4Strings("1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "001.002.003.000-099", "01.02.03.00-0143", "0x1.0x2.0x3.0x0-0x63");
-		testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7");
-		testIPv4Strings("1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "001.002.003.100-155", "01.02.03.0144-0233", "0x1.0x2.0x3.0x64-0x9b");
-		testIPv4Strings("1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "001.002.003.100-255", "01.02.03.0144-0377", "0x1.0x2.0x3.0x64-0xff");
-		testIPv4Strings("1.129-254.5.5/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.128-240.0.0/12" : "1.128-255.0.0/12", "1.128-255.*.*", "1.128-255.%.%", "001.128-240.000.000/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0200-0360.00.00/12" : "01.0200-0377.00.00/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0x80-0xf0.0x0.0x0/12" : "0x1.0x80-0xff.0x0.0x0/12");
-		testIPv4Strings("1.2__.5.5/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.200-252.0.0/14" : "1.200-255.0.0/14", "1.200-255.*.*", "1.2__.%.%", "001.200-252.000.000/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0310-0374.00.00/14" : "01.0310-0377.00.00/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0xc8-0xfc.0x0.0x0/14" : "0x1.0xc8-0xff.0x0.0x0/14");
-		testIPv4Strings("1.*.5.5/12", "1.*.0.0/12", "1.*.*.*", "1.%.%.%", "001.000-240.000.000/12", "01.*.00.00/12", "0x1.*.0x0.0x0/12");
+		testIPv4Strings("1.2.3.250-255", "1.2.3.250-255", "1.2.3.250-255", "1.2.3.25_", "001.002.003.250-255", "01.02.03.0372-0377", "0x1.0x2.0x3.0xfa-0xff", "250-255.3.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.200-255", "1.2.3.200-255", "1.2.3.200-255", "1.2.3.2__", "001.002.003.200-255", "01.02.03.0310-0377", "0x1.0x2.0x3.0xc8-0xff", "200-255.3.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7", "100-199.3.2.1.in-addr.arpa");
+		testIPv4Strings("100-199.2.3.100-199", "100-199.2.3.100-199", "100-199.2.3.100-199", "1__.2.3.1__", "100-199.002.003.100-199", "0144-0307.02.03.0144-0307", "0x64-0xc7.0x2.0x3.0x64-0xc7", "100-199.3.2.100-199.in-addr.arpa");
+		testIPv4Strings("100-199.2.3.100-198", "100-199.2.3.100-198", "100-199.2.3.100-198", "1__.2.3.100-198", "100-199.002.003.100-198", "0144-0307.02.03.0144-0306", "0x64-0xc7.0x2.0x3.0x64-0xc6", "100-198.3.2.100-199.in-addr.arpa");
+		testIPv4Strings("1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "001.002.003.000-099", "01.02.03.00-0143", "0x1.0x2.0x3.0x0-0x63", "0-99.3.2.1.in-addr.arpa");
+		// dup of the one above testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7");
+		testIPv4Strings("1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "001.002.003.100-155", "01.02.03.0144-0233", "0x1.0x2.0x3.0x64-0x9b", "100-155.3.2.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "001.002.003.100-255", "01.02.03.0144-0377", "0x1.0x2.0x3.0x64-0xff", "100-255.3.2.1.in-addr.arpa");
+		testIPv4Strings("1.129-254.5.5/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.128-240.0.0/12" : "1.128-255.0.0/12", "1.128-255.*.*", "1.128-255.%.%", "001.128-240.000.000/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0200-0360.00.00/12" : "01.0200-0377.00.00/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0x80-0xf0.0x0.0x0/12" : "0x1.0x80-0xff.0x0.0x0/12", "*.*.128-255.1.in-addr.arpa");
+		testIPv4Strings("1.2__.5.5/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.200-252.0.0/14" : "1.200-255.0.0/14", "1.200-255.*.*", "1.2__.%.%", "001.200-252.000.000/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0310-0374.00.00/14" : "01.0310-0377.00.00/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0xc8-0xfc.0x0.0x0/14" : "0x1.0xc8-0xff.0x0.0x0/14", "*.*.200-255.1.in-addr.arpa");
+		testIPv4Strings("1.*.5.5/12", "1.*.0.0/12", "1.*.*.*", "1.%.%.%", "001.000-240.000.000/12", "01.*.00.00/12", "0x1.*.0x0.0x0/12", "*.*.*.1.in-addr.arpa");
 		
-		//TODO test at least one that starts with a compressed segment
+		
+	
+		
+		
+		
 		testIPv6Strings("a:b:c:d:e:f:a:b",
 				"a:b:c:d:e:f:a:b",
 				"a:b:c:d:e:f:a:b",
@@ -494,7 +502,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:e:f:0.10.0.11",
 				"a:b:c:d:e:f:0.10.0.11",
 				"a:b:c:d:e:f:0.10.0.11",
-				"a:b:c:d:e:f:0.10.0.11");
+				"a:b:c:d:e:f:0.10.0.11",
+				"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-e-f-a-b.ipv6-literal.net");
 		testIPv6Strings("a:b:c:d:e:f:a:b/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -508,7 +518,41 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::/64",
-				"a:b:c:d::/64");
+				"a:b:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+		testIPv6Strings("::c:d:e:f:a:b/64",
+				"0:0:c:d:0:0:0:0/64",
+				"0:0:c:d:*:*:*:*",
+				"::c:d:*:*:*:*",
+				"0:0:c:d:%:%:%:%",
+				"0000:0000:000c:000d:0000:0000:0000:0000/64",
+				"0:0:c:d::/64",
+				"0:0:c:d::/64",
+				"0:0:c:d::/64",
+				"::c:d:*:*:*:*",
+				"::c:d:0:0:0.0.0.0/64",
+				"::c:d:0:0:0.0.0.0/64",
+				"0:0:c:d::/64",
+				"0:0:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-c-d-0-0-0-0.ipv6-literal.net/64");
+		testIPv6Strings("::c:d:e:f:a:b",
+				"0:0:c:d:e:f:a:b",
+				"0:0:c:d:e:f:a:b",
+				"::c:d:e:f:a:b",
+				"0:0:c:d:e:f:a:b",
+				"0000:0000:000c:000d:000e:000f:000a:000b",
+				"::c:d:e:f:a:b",
+				"::c:d:e:f:a:b",
+				"::c:d:e:f:a:b",
+				"::c:d:e:f:a:b",
+				"::c:d:e:f:0.10.0.11",
+				"::c:d:e:f:0.10.0.11",
+				"::c:d:e:f:0.10.0.11",
+				"::c:d:e:f:0.10.0.11",
+				"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-c-d-e-f-a-b.ipv6-literal.net");
 		testIPv6Strings("a:b:c:d::",
 				"a:b:c:d:0:0:0:0",
 				"a:b:c:d:0:0:0:0",
@@ -522,7 +566,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0",
 				"a:b:c:d::",
 				"a:b:c:d::",
-				"a:b:c:d::");
+				"a:b:c:d::",
+				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net");
 		testIPv6Strings("a:b:c:d::/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -536,7 +582,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::/64",
-				"a:b:c:d::/64");
+				"a:b:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a:b:c:*::/64",
 				"a:b:c:*:0:0:0:0/64",
 				"a:b:c:*:*:*:*:*",
@@ -550,7 +598,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:*::0.0.0.0/64",
 				"a:b:c:*::0.0.0.0/64",
 				"a:b:c:*::/64",
-				"a:b:c:*::/64");
+				"a:b:c:*::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-*-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a:b:c:d:*::/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -564,7 +614,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::/64",
-				"a:b:c:d::/64");
+				"a:b:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a::/64",
 				"a:0:0:0:0:0:0:0/64",
 				"a:0:0:0:*:*:*:*",
@@ -578,7 +630,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::0.0.0.0/64",
 				"a::0.0.0.0/64",
 				"a::/64",
-				"a::/64");
+				"a::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-0-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a:b:c:*:*:*:*:*",//as noted above, addresses are not converted to prefix if starting as wildcards.  call toCIDREquivalent() or getMinPrefix()
 				"a:b:c:*:*:*:*:*",
 				"a:b:c:*:*:*:*:*",
@@ -592,7 +646,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:*:*:*:*.*.*.*",
 				"a:b:c:*:*:*:*.*.*.*",
 				"a:b:c:*:*:*:*.*.*.*",
-				"a:b:c:*:*:*:*.*.*.*");
+				"a:b:c:*:*:*:*.*.*.*",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-*-*-*-*-*.ipv6-literal.net");
 		testIPv6Strings("a:0:0:d:e:f:0:0/112",
 				"a:0:0:d:e:f:0:0/112",
 				"a:0:0:d:e:f:0:*",
@@ -606,7 +662,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::d:e:f:0.0.0.0/112",
 				"a::d:e:f:0.0.0.0/112",
 				"a::d:e:f:0.0.0.0/112",
-				"a:0:0:d:e:f::/112");
+				"a:0:0:d:e:f::/112",
+				"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-d-e-f-0-0.ipv6-literal.net/112");
 		testIPv6Strings("a:0:c:d:e:f:0:0/112",
 				"a:0:c:d:e:f:0:0/112",			
 				"a:0:c:d:e:f:0:*",
@@ -620,7 +678,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.0.0.0/112",
 				"a::c:d:e:f:0.0.0.0/112",
 				"a::c:d:e:f:0.0.0.0/112",
-				"a:0:c:d:e:f::/112");
+				"a:0:c:d:e:f::/112",
+				"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/112");
 		testIPv6Strings("a:0:c:d:e:f:0:0/97",
 				"a:0:c:d:e:f:0:0/97",		
 				"a:0:c:d:e:f:0-7fff:*",
@@ -634,7 +694,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.0.0.0/97",
 				"a::c:d:e:f:0.0.0.0/97",
 				"a::c:d:e:f:0.0.0.0/97",
-				"a:0:c:d:e:f::/97");
+				"a:0:c:d:e:f::/97",
+				"*.*.*.*.*.*.*.0-7.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/97");
 		testIPv6Strings("a:0:c:d:e:f:0:0/96",
 				"a:0:c:d:e:f:0:0/96",			
 				"a:0:c:d:e:f:*:*",
@@ -648,7 +710,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.0.0.0/96",
 				"a::c:d:e:f:0.0.0.0/96",
 				"a:0:c:d:e:f::/96",
-				"a:0:c:d:e:f::/96");
+				"a:0:c:d:e:f::/96",
+				"*.*.*.*.*.*.*.*.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/96");
 		testIPv6Strings("a:0:c:d:e:f:1:0/112",
 				"a:0:c:d:e:f:1:0/112",
 				"a:0:c:d:e:f:1:*",
@@ -662,7 +726,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.1.0.0/112",//mixed, no compress
 				"a::c:d:e:f:0.1.0.0/112",//mixed, no compress host
 				"a::c:d:e:f:0.1.0.0/112",
-				"a::c:d:e:f:0.1.0.0/112");//mixed
+				"a::c:d:e:f:0.1.0.0/112",
+				"*.*.*.*.1.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-e-f-1-0.ipv6-literal.net/112");//mixed
 		testIPv6Strings("a:0:c:d:0:0:1:0/112",
 				"a:0:c:d:0:0:1:0/112", //normalized
 				"a:0:c:d:0:0:1:*",//normalized wildcard
@@ -676,7 +742,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:c:d::0.1.0.0/112",//mixed, no compress
 				"a:0:c:d::0.1.0.0/112",//mixed, no compress host
 				"a:0:c:d::0.1.0.0/112",
-				"a:0:c:d::0.1.0.0/112");//mixed
+				"a:0:c:d::0.1.0.0/112",
+				"*.*.*.*.1.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-0-0-1-0.ipv6-literal.net/112");//mixed
 		testIPv6Strings("a:0:c:d:e:f:a:0/112",
 				"a:0:c:d:e:f:a:0/112",
 				"a:0:c:d:e:f:a:*",
@@ -690,7 +758,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.10.0.0/112",
 				"a::c:d:e:f:0.10.0.0/112",
 				"a::c:d:e:f:0.10.0.0/112",
-				"a::c:d:e:f:0.10.0.0/112");
+				"a::c:d:e:f:0.10.0.0/112",
+				"*.*.*.*.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-e-f-a-0.ipv6-literal.net/112");
 		testIPv6Strings("a:0:c:d:0:0:0:100/120",
 				"a:0:c:d:0:0:0:100/120", //normalized
 				"a:0:c:d:0:0:0:100-1ff",//normalized wildcard
@@ -704,7 +774,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:c:d::0.0.1.0/120",//mixed, no compress
 				"a:0:c:d::0.0.1.0/120",//mixed, no compress host
 				"a:0:c:d::0.0.1.0/120",
-				"a:0:c:d::0.0.1.0/120");//mixed
+				"a:0:c:d::0.0.1.0/120",
+				"*.*.1.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-c-d-0-0-0-100.ipv6-literal.net/120");//mixed
 		testIPv6Strings("a:b:c:d:*", 
 				"a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
@@ -718,7 +790,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
-				"a:b:c:d:*:*:*.*.*.*");
+				"a:b:c:d:*:*:*.*.*.*",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-*-*-*-*.ipv6-literal.net");
 		testIPv6Strings("a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
@@ -732,7 +806,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
-				"a:b:c:d:*:*:*.*.*.*");
+				"a:b:c:d:*:*:*.*.*.*",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-*-*-*-*.ipv6-literal.net");
 		testIPv6Strings("a:b:c:d:*/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -746,7 +822,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::/64",
-				"a:b:c:d::/64");
+				"a:b:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a:b:c:d:*:*:*:*/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -760,7 +838,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::0.0.0.0/64",
 				"a:b:c:d::/64",
-				"a:b:c:d::/64");
+				"a:b:c:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a::c:d:*",
 				"a:0:0:0:0:c:d:*",
 				"a:0:0:0:0:c:d:*",
@@ -774,7 +854,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:0.13.*.*",
 				"a::c:0.13.*.*",
 				"a::c:0.13.*.*",
-				"a::c:0.13.*.*");
+				"a::c:0.13.*.*",
+				"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-0-0-c-d-*.ipv6-literal.net");
 		testIPv6Strings("a::d:*:*:*:*",
 				"a:0:0:d:*:*:*:*",
 				"a:0:0:d:*:*:*:*",
@@ -788,7 +870,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::d:*:*:*.*.*.*",
 				"a::d:*:*:*.*.*.*",
 				"a::d:*:*:*.*.*.*",
-				"a::d:*:*:*.*.*.*");
+				"a::d:*:*:*.*.*.*",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-d-*-*-*-*.ipv6-literal.net");
 		testIPv6Strings("a::c:d:*/64",
 				"a:0:0:0:0:0:0:0/64",
 				"a:0:0:0:*:*:*:*",
@@ -802,7 +886,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::0.0.0.0/64",
 				"a::0.0.0.0/64",
 				"a::/64",
-				"a::/64");
+				"a::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-0-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("a::d:*:*:*:*/64",
 				"a:0:0:d:0:0:0:0/64",
 				"a:0:0:d:*:*:*:*",
@@ -816,7 +902,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::d:0:0:0.0.0.0/64",
 				"a::d:0:0:0.0.0.0/64",
 				"a:0:0:d::/64",
-				"a:0:0:d::/64");
+				"a:0:0:d::/64",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-d-0-0-0-0.ipv6-literal.net/64");
 		testIPv6Strings("1::/32",
 				"1:0:0:0:0:0:0:0/32",
 				"1:0:*:*:*:*:*:*",
@@ -830,7 +918,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1::0.0.0.0/32",
 				"1::0.0.0.0/32",
 				"1::/32",
-				"1::/32");
+				"1::/32",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.1.0.0.0.ip6.arpa",
+				"1-0-0-0-0-0-0-0.ipv6-literal.net/32");
 		testIPv6Strings("ffff::/8",
 				"ff00:0:0:0:0:0:0:0/8",
 				"ff00-ffff:*:*:*:*:*:*:*",
@@ -844,7 +934,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ff00::0.0.0.0/8",
 				"ff00::0.0.0.0/8",
 				"ff00::/8",
-				"ff00::/8");
+				"ff00::/8",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.f.f.ip6.arpa",
+				"ff00-0-0-0-0-0-0-0.ipv6-literal.net/8");
 		testIPv6Strings("ffff::/104",
 				"ffff:0:0:0:0:0:0:0/104",
 				"ffff:0:0:0:0:0:0-ff:*",
@@ -858,7 +950,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/104",
 				"ffff::0.0.0.0/104",
 				"ffff::0.0.0.0/104",
-				"ffff::/104");
+				"ffff::/104",
+				"*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104");
 		testIPv6Strings("ffff::/108",
 				"ffff:0:0:0:0:0:0:0/108",
 				"ffff:0:0:0:0:0:0-f:*",
@@ -872,7 +966,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/108",
 				"ffff::0.0.0.0/108",
 				"ffff::0.0.0.0/108",
-				"ffff::/108");
+				"ffff::/108",
+				"*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/108");
 		testIPv6Strings("ffff::1000:0/108",
 				"ffff:0:0:0:0:0:1000:0/108",
 				"ffff:0:0:0:0:0:1000-100f:*",
@@ -886,7 +982,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::16.0.0.0/108",
 				"ffff::16.0.0.0/108",
 				"ffff::16.0.0.0/108",
-				"ffff::16.0.0.0/108");
+				"ffff::16.0.0.0/108",
+				"*.*.*.*.*.0.0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-1000-0.ipv6-literal.net/108");
 		testIPv6Strings("ffff::a000:0/108",
 				"ffff:0:0:0:0:0:a000:0/108",
 				"ffff:0:0:0:0:0:a000-a00f:*",
@@ -900,7 +998,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::160.0.0.0/108",
 				"ffff::160.0.0.0/108",
 				"ffff::160.0.0.0/108",
-				"ffff::160.0.0.0/108");
+				"ffff::160.0.0.0/108",
+				"*.*.*.*.*.0.0.a.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-a000-0.ipv6-literal.net/108");
 		testIPv6Strings("ffff::eeee:eeee/108",
 				"ffff:0:0:0:0:0:eee0:0/108",
 				"ffff:0:0:0:0:0:eee0-eeef:*",
@@ -914,7 +1014,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::238.224.0.0/108",
 				"ffff::238.224.0.0/108",
 				"ffff::238.224.0.0/108",
-				"ffff::238.224.0.0/108");
+				"ffff::238.224.0.0/108",
+				"*.*.*.*.*.e.e.e.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-eee0-0.ipv6-literal.net/108");
 		testIPv6Strings("ffff::/107",
 				"ffff:0:0:0:0:0:0:0/107",
 				"ffff:0:0:0:0:0:0-1f:*",
@@ -928,7 +1030,25 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/107",
 				"ffff::0.0.0.0/107",
 				"ffff::0.0.0.0/107",
-				"ffff::/107");
+				"ffff::/107",
+				"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/107");
+		testIPv6Strings("abcd::/107",
+				"abcd:0:0:0:0:0:0:0/107",
+				"abcd:0:0:0:0:0:0-1f:*",
+				"abcd::0-1f:*",
+				"abcd:0:0:0:0:0:0-1f:%",
+				"abcd:0000:0000:0000:0000:0000:0000:0000/107",
+				"abcd::/107",
+				"abcd::/107",
+				"abcd::/107",
+				"abcd::0-1f:*",
+				"abcd::0.0.0.0/107",
+				"abcd::0.0.0.0/107",
+				"abcd::0.0.0.0/107",
+				"abcd::/107",
+				"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.ip6.arpa",
+				"abcd-0-0-0-0-0-0-0.ipv6-literal.net/107");
 		testIPv6Strings("1:2:3:4::%:%:%", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
 				"1:2:3:4:0:0:0:0%:%:%", //normalized
 				"1:2:3:4:0:0:0:0%:%:%", //normalizedWildcards
@@ -942,7 +1062,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::0.0.0.0%:%:%",//mixed no compress
 				"1:2:3:4::%:%:%",//mixedNoCompressHost
 				"1:2:3:4::%:%:%",
-				"1:2:3:4::%:%:%");//mixed
+				"1:2:3:4::%:%:%",
+				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-4-0-0-0-0s-s-s.ipv6-literal.net");//mixed
 		testIPv6Strings("1:2:3:4::*:*:*",
 				"1:2:3:4:0:*:*:*", //normalized
 				"1:2:3:4:0:*:*:*", //normalizedWildcards
@@ -956,7 +1078,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::*:*.*.*.*",//mixed no compress
 				"1:2:3:4::*:*.*.*.*",//mixedNoCompressHost
 				"1:2:3:4::*:*.*.*.*",
-				"1:2:3:4::*:*.*.*.*");//mixed
+				"1:2:3:4::*:*.*.*.*",
+				"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-4-0-*-*-*.ipv6-literal.net");//mixed
 		testIPv6Strings("1:2:3:4::/80",
 				"1:2:3:4:0:0:0:0/80", //normalized
 				"1:2:3:4:0:*:*:*", //normalizedWildcards
@@ -970,7 +1094,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::0.0.0.0/80",//mixed no compress
 				"1:2:3:4::0.0.0.0/80",//mixedNoCompressHost
 				"1:2:3:4::/80",
-				"1:2:3:4::/80");//mixed
+				"1:2:3:4::/80",
+				"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-4-0-0-0-0.ipv6-literal.net/80");//mixed
 		testIPv6Strings("1:2:3:4::",
 				"1:2:3:4:0:0:0:0", //normalized
 				"1:2:3:4:0:0:0:0", //normalizedWildcards
@@ -984,7 +1110,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::0.0.0.0",//mixed no compress
 				"1:2:3:4::",//mixedNoCompressHost
 				"1:2:3:4::",
-				"1:2:3:4::");//mixed 
+				"1:2:3:4::",
+				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-4-0-0-0-0.ipv6-literal.net");//mixed 
 		testIPv6Strings("1:2:3:4:0:6::",
 				"1:2:3:4:0:6:0:0", //normalized
 				"1:2:3:4:0:6:0:0", //normalizedWildcards
@@ -998,7 +1126,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::6:0.0.0.0",//mixed no compress
 				"1:2:3:4:0:6::",//mixedNoCompressHost
 				"1:2:3:4:0:6::",
-				"1:2:3:4:0:6::");//mixed
+				"1:2:3:4:0:6::",
+				"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-4-0-6-0-0.ipv6-literal.net");//mixed
 		testIPv6Strings("1:2:3:0:0:6::",
 				"1:2:3:0:0:6:0:0", //normalized
 				"1:2:3:0:0:6:0:0", //normalizedWildcards
@@ -1012,7 +1142,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3::6:0.0.0.0",//mixed no compress
 				"1:2:3::6:0.0.0.0",//mixedNoCompressHost
 				"1:2:3::6:0.0.0.0",
-				"1:2:3:0:0:6::");//mixed
+				"1:2:3:0:0:6::",
+				"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+				"1-2-3-0-0-6-0-0.ipv6-literal.net");//mixed
 		//1:2::%:%:%
 		//strings to compare look like 
 		//1:2:0:0:0:6::

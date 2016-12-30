@@ -155,12 +155,7 @@ public abstract class IPAddressNetwork {
 				} else {
 					result = existing;
 					//Since we have the address, we can make the existing entry wrap it
-					//If I could add non-public methods to interfaces I would not need instanceof here
-					if(result instanceof IPAddressString) {
-						((IPAddressString) result).cacheAddress(addr);
-					} else if (result instanceof HostName) {
-						((HostName) result).cacheAddress(addr);
-					}
+					cache(result, addr);
 				}
 			}
 			return result;
@@ -169,6 +164,8 @@ public abstract class IPAddressNetwork {
 		protected abstract T create(String key);
 			
 		protected abstract T create(IPAddress addr);
+		
+		protected abstract void cache(T result, IPAddress addr);
 	}
 
 	/**
@@ -204,7 +201,7 @@ public abstract class IPAddressNetwork {
 		}
 		
 		@Override
-		public IPAddressString get(String key) {
+		public IPAddressString get(String key) {//These methods that override and call super are superfluous but it seems this is only way to get them into javadoc
 			return super.get(key);
 		}
 		
@@ -221,6 +218,11 @@ public abstract class IPAddressNetwork {
 		@Override
 		public IPAddressString get(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
 			return super.get(bytes, bytes2, prefixLength, zone);
+		}
+		
+		@Override
+		protected void cache(IPAddressString result, IPAddress addr) {
+			result.cacheAddress(addr);
 		}
 	}
 
@@ -277,6 +279,11 @@ public abstract class IPAddressNetwork {
 		@Override
 		public HostName get(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
 			return super.get(bytes, bytes2, prefixLength, zone);
+		}
+		
+		@Override
+		protected void cache(HostName result, IPAddress addr) {
+			result.cacheAddress(addr);
 		}
 	}
 }

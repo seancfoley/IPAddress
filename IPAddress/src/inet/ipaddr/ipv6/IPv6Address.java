@@ -44,6 +44,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public static final char SEGMENT_SEPARATOR = ':';
 	public static final char ZONE_SEPARATOR = '%';
 	
+	public static final char UNC_SEGMENT_SEPARATOR = '-';
+	public static final char UNC_ZONE_SEPARATOR = 's';
+	public static final char UNC_RANGE_SEPARATOR = '›';
+	public static final String UNC_RANGE_SEPARATOR_STR = String.valueOf(UNC_RANGE_SEPARATOR);
+	
 	public static final int BITS_PER_SEGMENT = 16;
 	public static final int BYTES_PER_SEGMENT = 2;
 	public static final int SEGMENT_COUNT = 8;
@@ -166,13 +171,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressSection getSegments() {
-		return (IPv6AddressSection) super.getSegments();
+	public IPv6AddressSection getSection() {
+		return (IPv6AddressSection) super.getSection();
 	}
 	
 	@Override
 	public IPv6AddressSegment getSegment(int index) {
-		return getSegments().getSegment(index);
+		return getSection().getSegment(index);
 	}
 
 	@Override
@@ -181,7 +186,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	public IPAddressPart[] getParts(IPv6StringBuilderOptions options) {
-		IPAddressPart parts[] = getSegments().getParts(options);
+		IPAddressPart parts[] = getSection().getParts(options);
 		IPv4Address ipv4Addr = getConverted(options);
 		if(ipv4Addr != null) {
 			IPAddressPart ipv4Parts[] = ipv4Addr.getParts(options.ipv4ConverterOptions);
@@ -194,7 +199,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	private static IPv6AddressSection createSection(IPv6AddressSegment nonMixedSection[], IPv4Address mixedSection) throws IPAddressTypeException {
-		IPv4AddressSection ipv4Section = mixedSection.getSegments();
+		IPv4AddressSection ipv4Section = mixedSection.getSection();
 		IPv6AddressCreator creator = network.getAddressCreator();
 		IPv6AddressSegment newSegs[] = creator.createSegmentArray(SEGMENT_COUNT);
 		newSegs[0] = nonMixedSection[0];
@@ -206,7 +211,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		newSegs[6] = IPv6AddressSegment.join(ipv4Section.getSegment(0), ipv4Section.getSegment(1));
 		newSegs[7] = IPv6AddressSegment.join(ipv4Section.getSegment(2), ipv4Section.getSegment(3));
 		IPv6AddressSection result = creator.createSectionInternal(newSegs);
-		result.mixedSection = ipv4Section;
+		result.embeddedIPv4Section = ipv4Section;
 		return result;
 	}
 	
@@ -227,7 +232,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	private IPv6Address getLowestOrHighest(boolean lowest) {
 		return getSingle(this, () -> {
-			IPv6AddressSection section = getSegments();
+			IPv6AddressSection section = getSection();
 			IPv6AddressSegment[] segs = createSingle(section, network.getAddressCreator(), i -> {
 				IPv6AddressSegment seg = getSegment(i);
 				return lowest ? seg.getLower() : seg.getUpper();
@@ -235,7 +240,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return network.getAddressCreator().createAddressInternal(segs, zone);
 		});
 	}
-	
+
 	@Override
 	public IPv6Address getLower() {
 		return getLowestOrHighest(true);
@@ -257,7 +262,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					return creator.createAddressInternal(segments, zone); /* address creation */
 				}
 			},
-			() -> getSegments().getLowerSegments(),
+			() -> getSection().getLowerSegments(),
 			index -> getSegment(index).iterator());
 	}
 	
@@ -339,7 +344,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public IPv4AddressSection toMappedIPv4Segments() {
 		if(isIPv4Mapped()) {
-			return getSegments().getMixedSection();
+			return getSection().getEmbeddedIPv4AddressSection();
 		}
 		return null;
 	}
@@ -361,9 +366,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * 
 	 * @return the embedded {@link IPv4Address}
 	 */
-	public IPv4Address getMixedAddress() {
+	public IPv4Address getEmbeddedIPv4Address() {
 		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-		return creator.createAddress(getSegments().getMixedSection()); /* address creation */
+		return creator.createAddress(getSection().getEmbeddedIPv4AddressSection()); /* address creation */
 	}
 	
 	/**
@@ -375,10 +380,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public IPv4Address getEmbeddedIPv4Address(int byteIndex) {
 		if(byteIndex == IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT * IPv6Address.BYTES_PER_SEGMENT) {
-			return getMixedAddress();
+			return getEmbeddedIPv4Address();
 		}
 		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-		return creator.createAddress(getSegments().getEmbeddedIPv4AddressSection(byteIndex, byteIndex + IPv4Address.BYTE_COUNT)); /* address creation */
+		return creator.createAddress(getSection().getEmbeddedIPv4AddressSection(byteIndex, byteIndex + IPv4Address.BYTE_COUNT)); /* address creation */
 	}
 	
 	/**
@@ -433,6 +438,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Whether the address is IPv6 to IPv4 relay
+	 * @see #get6to4IPv4Address()
 	 */
 	public boolean is6To4() {
 		//2002::/16
@@ -518,8 +524,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address[] subtract(IPAddress other) {
-		IPv6AddressSection thisSection = getSegments();
-		IPv6AddressSection sections[] = thisSection.subtract(other.getSegments());
+		IPv6AddressSection thisSection = getSection();
+		IPv6AddressSection sections[] = thisSection.subtract(other.getSection());
 		if(sections == null) {
 			return null;
 		}
@@ -532,7 +538,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6Address toSubnet(int networkPrefixLength) throws IPAddressTypeException {
-		IPv6AddressSection thisSection = getSegments();
+		IPv6AddressSection thisSection = getSection();
 		IPv6AddressSection subnetSection = thisSection.toSubnet(networkPrefixLength);
 		if(thisSection == subnetSection) {
 			return this;
@@ -556,8 +562,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	@Override
 	public IPv6Address toSubnet(IPAddress mask, Integer networkPrefixLength) throws IPAddressTypeException {
-		IPv6AddressSection thisSection = getSegments();
-		IPv6AddressSection subnetSection = thisSection.toSubnet(mask.getSegments(), networkPrefixLength);
+		IPv6AddressSection thisSection = getSection();
+		IPv6AddressSection subnetSection = thisSection.toSubnet(mask.getSection(), networkPrefixLength);
 		if(thisSection == subnetSection) {
 			return this;
 		}
@@ -567,7 +573,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) {
-		return getSegments().getNetworkSection(networkPrefixLength, withPrefixLength);
+		return getSection().getNetworkSection(networkPrefixLength, withPrefixLength);
 	}
 	
 	@Override
@@ -580,7 +586,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6AddressSection getHostSection(int networkPrefixLength) {
-		return getSegments().getHostSection(networkPrefixLength);
+		return getSection().getHostSection(networkPrefixLength);
 	}
 	
 	@Override
@@ -600,7 +606,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	public IPv6Address removeZone() {
-		return network.getAddressCreator().createAddress(getSegments()); /* address creation */
+		return network.getAddressCreator().createAddress(getSection()); /* address creation */
 	}
 
 	@Override
@@ -677,7 +683,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	//////////////// string creation below ///////////////////////////////////////////////////////////////////////////////////////////
 	
-	private boolean hasNoCache() {
+	private boolean hasNoStringCache() {
 		if(stringCache == null) {
 			synchronized(this) {
 				if(stringCache == null) {
@@ -685,8 +691,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 						stringCache = new IPv6StringCache();
 					} else {
 						//when there is no zone, the section and address strings are the same, so we use the same cache
-						IPv6AddressSection section = getSegments();
-						boolean result = section.hasNoCache();
+						IPv6AddressSection section = getSection();
+						boolean result = section.hasNoStringCache();
 						stringCache = section.stringCache;
 						return result;
 					}
@@ -699,11 +705,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	public String toMixedString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.mixedString) == null) {
+		if(hasNoStringCache() || (result = stringCache.mixedString) == null) {
 			if(hasZone()) {
 				stringCache.mixedString = result = toNormalizedString(IPv6StringCache.mixedParams);
 			} else {
-				result = getSegments().toMixedString();//the cache is shared so no need to update it here
+				result = getSection().toMixedString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -712,11 +718,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toCanonicalString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.canonicalString) == null) {
+		if(hasNoStringCache() || (result = stringCache.canonicalString) == null) {
 			if(hasZone()) {
 				stringCache.canonicalString = result = toNormalizedString(IPv6StringCache.canonicalParams);
 			} else {
-				result = getSegments().toCanonicalString();//the cache is shared so no need to update it here
+				result = getSection().toCanonicalString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -725,11 +731,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toFullString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.fullString) == null) {
+		if(hasNoStringCache() || (result = stringCache.fullString) == null) {
 			if(hasZone()) {
 				stringCache.fullString = result = toNormalizedString(IPv6StringCache.fullParams);
 			} else {
-				result = getSegments().toFullString();//the cache is shared so no need to update it here
+				result = getSection().toFullString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -738,11 +744,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toNormalizedString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.normalizedString) == null) {
+		if(hasNoStringCache() || (result = stringCache.normalizedString) == null) {
 			if(hasZone()) {
 				stringCache.normalizedString = result = toNormalizedString(IPv6StringCache.normalizedParams);
 			} else {
-				result = getSegments().toNormalizedString();//the cache is shared so no need to update it here
+				result = getSection().toNormalizedString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -751,11 +757,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toCompressedString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.compressedString) == null) {
+		if(hasNoStringCache() || (result = stringCache.compressedString) == null) {
 			if(hasZone()) {
 				stringCache.compressedString = result = toNormalizedString(IPv6StringCache.compressedParams);
 			} else {
-				result = getSegments().toCompressedString();//the cache is shared so no need to update it here
+				result = getSection().toCompressedString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -770,11 +776,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toNormalizedWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.normalizedWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.normalizedWildcardString) == null) {
 			if(hasZone()) {
 				stringCache.normalizedWildcardString = result = toNormalizedString(IPv6StringCache.wildcardNormalizedParams);
 			} else {
-				result = getSegments().toNormalizedWildcardString();//the cache is shared so no need to update it here
+				result = getSection().toNormalizedWildcardString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -783,11 +789,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toCanonicalWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.canonicalWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.canonicalWildcardString) == null) {
 			if(hasZone()) {
 				stringCache.canonicalWildcardString = result = toNormalizedString(IPv6StringCache.wildcardCanonicalParams);
 			} else {
-				result = getSegments().toCanonicalWildcardString();//the cache is shared so no need to update it here
+				result = getSection().toCanonicalWildcardString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -796,11 +802,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toCompressedWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.compressedWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.compressedWildcardString) == null) {
 			if(hasZone()) {
 				stringCache.compressedWildcardString = result = toNormalizedString(IPv6StringCache.wildcardCompressedParams);
 			} else {
-				result = getSegments().toCompressedWildcardString();//the cache is shared with the section, so no need to update it here
+				result = getSection().toCompressedWildcardString();//the cache is shared with the section, so no need to update it here
 			}
 		}
 		return result;
@@ -809,24 +815,42 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toSQLWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.sqlWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.sqlWildcardString) == null) {
 			if(hasZone()) {
 				stringCache.sqlWildcardString = result = toNormalizedString(IPv6StringCache.sqlWildcardParams);
 			} else {
-				result = getSegments().toSQLWildcardString();//the cache is shared so no need to update it here
+				result = getSection().toSQLWildcardString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
 	}
 	
 	@Override
+	public String toHexString(boolean withPrefix) {
+		String result;
+		if(hasNoStringCache() || (result = (withPrefix ? stringCache.hexStringPrefixed : stringCache.hexString)) == null) {
+			if(hasZone()) {
+				result = getSection().toHexString(withPrefix, zone);
+				if(withPrefix) {
+					stringCache.hexStringPrefixed = result;
+				} else {
+					stringCache.hexString = result;
+				}
+			} else {
+				result = getSection().toHexString(withPrefix);//the cache is shared so no need to update it here
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public String toNetworkPrefixLengthString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.networkPrefixLengthString) == null) {
+		if(hasNoStringCache() || (result = stringCache.networkPrefixLengthString) == null) {
 			if(hasZone()) {
 				stringCache.networkPrefixLengthString = result = toNormalizedString(IPv6StringCache.networkPrefixLengthParams);
 			} else {
-				result = getSegments().toNetworkPrefixLengthString();//the cache is shared so no need to update it here
+				result = getSection().toNetworkPrefixLengthString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;
@@ -842,11 +866,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public String toNormalizedString(StringOptions params) {
-		return toNormalizedString(IPv6StringOptions.from(params));
+		return getSection().toNormalizedString(params, zone);
 	}
 	
 	public String toNormalizedString(IPv6StringOptions params) {
-		return getSegments().toNormalizedString(params, zone);
+		return getSection().toNormalizedString(params, zone);
 	}
 
 	/**
@@ -867,9 +891,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					params.compressOptions,
 					params.separator,
 					params.zoneSeparator,
+					params.addrPrefix,
 					params.addrSuffix,
 					params.reverse,
-					params.splitDigits);
+					params.splitDigits,
+					params.uppercase);
 		}
 		return toNormalizedString(params);
 	}
@@ -877,8 +903,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toUNCHostName() {
 		String result;
-		if(hasNoCache() || (result = stringCache.uncString) == null) {
-			stringCache.uncString = result = toNormalizedString(IPv6StringCache.uncParams);
+		if(hasNoStringCache() || (result = stringCache.uncString) == null) {
+			stringCache.uncString = result = getSection().toNormalizedString(IPv6StringCache.uncParams, zone.replace(IPv6Address.ZONE_SEPARATOR, IPv6Address.UNC_ZONE_SEPARATOR).replace(IPv6Address.SEGMENT_SEPARATOR, IPv6Address.UNC_SEGMENT_SEPARATOR));
 		}
 		return result;
 	}
@@ -886,8 +912,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public String toReverseDNSLookupString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.reverseDNSString) == null) {
-			stringCache.reverseDNSString = result = getSegments().toNormalizedString(IPv6StringCache.reverseDNSParams, "");//the zone is dropped
+		if(hasNoStringCache() || (result = stringCache.reverseDNSString) == null) {
+			stringCache.reverseDNSString = result = getSection().toNormalizedString(IPv6StringCache.reverseDNSParams, "");//the zone is dropped
 		}
 		return result;
 	}
@@ -916,7 +942,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	public IPAddressPartStringCollection toStringCollection(IPv6StringBuilderOptions opts) {
-		IPv6StringCollection coll = getSegments().toStringCollection(opts, zone);
+		IPv6StringCollection coll = getSection().toStringCollection(opts, zone);
 		IPv4Address ipv4Addr = getConverted(opts);
 		if(ipv4Addr != null) {
 			IPAddressPartStringCollection ipv4StringCollection = ipv4Addr.toStringCollection(opts.ipv4ConverterOptions);

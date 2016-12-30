@@ -221,7 +221,8 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 	 * 
 	 * @author sfoley
 	 */
-	protected static abstract class StringParams<T extends IPAddressPart> extends IPAddressPartStringParams<T> {
+	//TODO make protected again, but not sure how, this is accessed in IPaddressSection package and no collection class for enclosing it 
+	public static class StringParams<T extends IPAddressPart> extends IPAddressPartStringParams<T> {
 		
 		public static final WildcardOptions DEFAULT_WILDCARD_OPTIONS = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY);
 		protected static final int EXTRA_SPACE = 16;
@@ -233,8 +234,9 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		private int radix;
 		
 		//the segment separator and in the case of split digits, the digit separator
-		private char separator;
+		private Character separator;
 		
+		private String addressLabel = "";
 		private String addressSuffix = "";
 		
 		//print the segments in reverse, and in the case of splitDigits, print the digits in reverse as well
@@ -243,9 +245,20 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		//in each segment, split the digits with the separator, so that 123.456.1.1 becomes 1.2.3.4.5.6.1.1
 		private boolean splitDigits;
 		
-		protected StringParams(int radix, char separator) {
+		private boolean uppercase; //whether to print A or a
+		
+		public StringParams(int radix, Character separator, boolean uppercase) {
 			this.radix = radix;
 			this.separator = separator;
+			this.uppercase = uppercase;
+		}
+		
+		public void setUppercase(boolean uppercase) {
+			this.uppercase = uppercase;
+		}
+		
+		public boolean isUppercase() {
+			return uppercase;
 		}
 		
 		public void setSplitDigits(boolean split) {
@@ -272,11 +285,19 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 			this.addressSuffix = suffix;
 		}
 		
-		public char getSeparator() {
+		public String getAddressLabel() {
+			return addressLabel;
+		}
+		
+		public void setAddressLabel(String str) {
+			this.addressLabel = str;
+		}
+		
+		public Character getSeparator() {
 			return separator;
 		}
 		
-		public void setSeparator(char separator) {
+		public void setSeparator(Character separator) {
 			this.separator = separator;
 		}
 		
@@ -326,17 +347,35 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 		public char getTrailingSegmentSeparator() {
 			return separator;
 		}
-
-		@Override
-		public abstract StringBuilder append(StringBuilder builder, T addr);
-		
-		public abstract StringBuilder appendSegments(StringBuilder builder, T part);
 		
 		public void appendSuffix(StringBuilder builder) {
 			String suffix = getAddressSuffix();
-			if(suffix != null && suffix.length() > 0) {
+			if(suffix != null) {
 				builder.append(suffix);
 			}
+		}
+		
+		public int getAddressSuffixLength() {
+			String suffix = getAddressSuffix();
+			if(suffix != null) {
+				return suffix.length();
+			}
+			return 0;
+		}
+		
+		public void appendLabel(StringBuilder builder) {
+			String str = getAddressLabel();
+			if(str != null) {
+				builder.append(str);
+			}
+		}
+		
+		public int getAddressLabelLength() {
+			String str = getAddressLabel();
+			if(str != null) {
+				return str.length();
+			}
+			return 0;
 		}
 		
 		//returns -1 for MAX, or 0, 1, 2, 3 to indicate the string prefix length
@@ -357,6 +396,107 @@ public class IPAddressPartStringCollection extends AddressPartStringCollection<I
 				parms.expandSegment = expandSegment.clone();
 			}
 			return parms;
+		}
+		
+		@Override
+		public String toString(T addr) {	
+			int length = getStringLength(addr);
+			StringBuilder builder = new StringBuilder(length);
+			append(builder, addr);
+			checkLengths(length, builder);
+			return builder.toString();
+		}
+		
+		@Override
+		public int getTrailingSeparatorCount(T addr) {
+			if(addr.getDivisionCount() > 0) {
+				return addr.getDivisionCount() - 1;
+			}
+			return 0;
+		}
+		
+		@Override
+		public int getStringLength(T addr) {
+			int count = getSegmentsStringLength(addr);
+			if(!isReverse() && getWildcardOption().wildcardOption != WildcardOptions.WildcardOption.ALL) {
+				count += addr.getPrefixStringLength();
+			}
+			count += getAddressSuffixLength();
+			count += getAddressLabelLength();
+			return count;
+		}
+		
+		@Override
+		public StringBuilder append(StringBuilder builder, T addr) {
+			appendLabel(builder);
+			appendSegments(builder, addr);
+			/*
+			 * Our order is suffix, then prefix length.
+			 * This is documented in more detail on the IPv6 side.
+			 */
+			appendSuffix(builder);
+			if(!isReverse() && getWildcardOption().wildcardOption != WildcardOptions.WildcardOption.ALL) {
+				appendPrefixIndicator(builder, addr);
+			}
+			return builder;
+		}
+
+		public int getSegmentsStringLength(T part) {
+			int count = 0;
+			if(part.getDivisionCount() != 0) {
+				WildcardOptions wildcardOptions = getWildcardOption();
+				WildcardOptions.WildcardOption wildcardOption = wildcardOptions.wildcardOption;
+				boolean isAll = wildcardOption == WildcardOptions.WildcardOption.ALL;
+				int divCount = part.getDivisionCount();
+				Character separator = getSeparator();
+				for(int i = 0; i < divCount; i++) {
+					IPAddressDivision seg = part.getDivision(i);
+					int leadingZeroCount = getLeadingZeros(i);
+					if(isAll || isSplitDigits()) {
+						count += seg.getWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), isUppercase(), isSplitDigits(), separator, false, null);
+					} else { //wildcardOption == WildcardOptions.WildcardOption.NETWORK_ONLY
+						count += seg.getPrefixAdjustedWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), isUppercase(), null);
+					}
+				}
+				if(separator != null) {
+					count += divCount - 1;
+				}
+			}
+			return count;
+		}
+
+		public StringBuilder appendSegments(StringBuilder builder, T part) {
+			if(part.getDivisionCount() != 0) {
+				WildcardOptions wildcardOptions = getWildcardOption();
+				WildcardOptions.WildcardOption wildcardOption = wildcardOptions.wildcardOption;
+				boolean isAll = wildcardOption == WildcardOptions.WildcardOption.ALL;
+				int count = part.getDivisionCount();
+				boolean reverse = isReverse();
+				int i = 0;
+				Character separator = getSeparator();
+				while(true) {
+					int segIndex;
+					if(reverse) {
+						segIndex = count - i - 1;
+					} else {
+						segIndex = i;
+					}
+					IPAddressDivision seg = part.getDivision(segIndex);
+					int leadingZeroCount = getLeadingZeros(segIndex);
+					if(isAll || isSplitDigits()) {
+						seg.getWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), isUppercase(), isSplitDigits(), separator, isReverse(), builder);
+					} else { //wildcardOption == WildcardOptions.WildcardOption.NETWORK_ONLY
+						seg.getPrefixAdjustedWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), isUppercase(), builder);
+					}
+					if(++i == count) {
+						break;
+					}
+					if(separator != null) {
+						builder.append(separator);
+					}
+				}
+			}
+			return builder;
 		}
 	}
 }

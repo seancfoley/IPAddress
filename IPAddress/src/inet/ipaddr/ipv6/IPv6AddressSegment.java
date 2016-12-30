@@ -2,12 +2,12 @@ package inet.ipaddr.ipv6;
 
 import java.util.Iterator;
 
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressTypeException;
-import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.ipv4.IPv4Address;
-import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
+import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
@@ -344,5 +344,5 @@ public class IPv6AddressSegment extends IPAddressSegment {
 			}
 		}
 		return 0;
-	}	
+	}
 }

@@ -24,4 +24,19 @@ public interface IPAddressPart extends Serializable {
 	 * @return the prefix length
 	 */
 	Integer getNetworkPrefixLength();
+	
+	/**
+	 * whether this is a pat of more than one address.  In other words, it is the same part of many potential addresses.
+	 */
+	boolean isMultiple();
+	
+	default int getPrefixStringLength() {//TODO xxx move to seg grouping class xxx
+		Integer networkPrefixLength = getNetworkPrefixLength();
+		if(networkPrefixLength != null) {
+			return IPAddressDivision.toUnsignedStringLength(networkPrefixLength, 10) + 1;
+		}
+		return 0;
+	}
 }
+
+

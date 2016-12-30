@@ -13,6 +13,7 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressSection.WildcardOptions.Wildcards;
 import inet.ipaddr.IPAddressTypeNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressTypeNetwork.IPAddressSegmentCreator;
 import inet.ipaddr.format.IPAddressDivision;
@@ -20,6 +21,7 @@ import inet.ipaddr.format.IPAddressPart;
 import inet.ipaddr.format.IPAddressSegmentGrouping;
 import inet.ipaddr.format.util.IPAddressPartConfiguredString;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
+import inet.ipaddr.format.util.IPAddressPartStringCollection.StringParams;
 import inet.ipaddr.format.util.IPAddressPartStringParams;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
@@ -43,16 +45,24 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	private static final long serialVersionUID = 1L;
 	private static final IPAddressPart EMPTY_PARTS[] = new IPAddressPart[0];
 	
-	/* for caching */
-	private transient Integer networkMaskPrefixLen; //null indicates this field not initialized, -1 indicates the prefix len is null
-	private transient Integer hostMaskPrefixLen; //null indicates this field not initialized, -1 indicates the prefix len is null
-	
-	/* also for caching */
-	private transient Integer cachedMinPrefix; //null indicates this field not initialized
-	private transient Integer cachedEquivalentPrefix; //null indicates this field not initialized, -1 indicates the prefix len is null
-	
 	/* the address bytes for the lowest value */
 	private transient byte[] lowerBytes;
+
+	/* caches objects to avoid recomputing them */
+	protected static class SectionCache {
+		/* for caching */
+		private Integer networkMaskPrefixLen; //null indicates this field not initialized, -1 indicates the prefix len is null
+		private Integer hostMaskPrefixLen; //null indicates this field not initialized, -1 indicates the prefix len is null
+		
+		/* also for caching */
+		private Integer cachedMinPrefix; //null indicates this field not initialized
+		private Integer cachedEquivalentPrefix; //null indicates this field not initialized, -1 indicates the prefix len is null
+		
+		public IPAddressSection lowerSection;
+		public IPAddressSection upperSection;
+	}
+	
+	protected transient SectionCache sectionCache;
 	
 	protected IPAddressSection(IPAddressSegment segments[], byte bytes[], boolean cloneSegments, boolean cloneBytes) {
 		super(cloneSegments ? segments.clone() : segments);
@@ -103,14 +113,17 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			BigInteger cachedCount,
 			RangeList zeroSegments,
 			RangeList zeroRanges) {
+		if(sectionCache == null) {
+			sectionCache = new SectionCache();
+		}
 		if(network) {
 			setNetworkMaskPrefix(prefixLen);
 		} else {
 			setHostMaskPrefix(prefixLen);
 		}
 		super.initCachedValues(cachedNetworkPrefix, cachedCount);
-		this.cachedMinPrefix = cachedMinPrefix;
-		this.cachedEquivalentPrefix = cachedEquivalentPrefix;
+		sectionCache.cachedMinPrefix = cachedMinPrefix;
+		sectionCache.cachedEquivalentPrefix = cachedEquivalentPrefix;
 	}
 	
 	protected static RangeList getNoZerosRange() {
@@ -263,13 +276,11 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	public Integer getMaskPrefixLength(boolean network) {
 		Integer prefixLen;
 		if(network) {
-			prefixLen = networkMaskPrefixLen;
-			if(prefixLen == null) {
+			if(hasNoSectionCache() || (prefixLen = sectionCache.networkMaskPrefixLen) == null) {
 				prefixLen = setNetworkMaskPrefix(checkForPrefixMask(network));
 			}
 		} else {
-			prefixLen = hostMaskPrefixLen;
-			if(prefixLen == null) {
+			if(hasNoSectionCache() || (prefixLen = sectionCache.hostMaskPrefixLen) == null) {
 				prefixLen = setHostMaskPrefix(checkForPrefixMask(network));
 			}
 		}
@@ -281,24 +292,24 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	
 	private Integer setHostMaskPrefix(Integer prefixLen) {
 		if(prefixLen == null) {
-			prefixLen = hostMaskPrefixLen = -1;
+			prefixLen = sectionCache.hostMaskPrefixLen = -1;
 		} else {
-			hostMaskPrefixLen = prefixLen;
-			networkMaskPrefixLen = -1; //cannot be both network and host mask
+			sectionCache.hostMaskPrefixLen = prefixLen;
+			sectionCache.networkMaskPrefixLen = -1; //cannot be both network and host mask
 		}
 		return prefixLen;
 	}
 	
 	private Integer setNetworkMaskPrefix(Integer prefixLen) {
 		if(prefixLen == null) {
-			prefixLen = networkMaskPrefixLen = -1;
+			prefixLen = sectionCache.networkMaskPrefixLen = -1;
 		} else {
-			networkMaskPrefixLen = prefixLen;
-			hostMaskPrefixLen = -1; //cannot be both network and host mask
+			sectionCache.networkMaskPrefixLen = prefixLen;
+			sectionCache.hostMaskPrefixLen = -1; //cannot be both network and host mask
 		}
 		return prefixLen;
 	}
-	
+
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment>
 			R getNetworkSegments(
 					R original,
@@ -861,6 +872,18 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		return newPrefix;
 	}
 	
+	protected boolean hasNoSectionCache() {
+		if(sectionCache == null) {
+			synchronized(this) {
+				if(sectionCache == null) {
+					sectionCache = new SectionCache();
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
 	/**
 	 * Returns the smallest CIDR prefix possible (largest network),
 	 * such that this address paired with that prefix represents the exact same range of addresses.
@@ -870,11 +893,11 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	 * @return
 	 */
 	public int getMinPrefix() {
-		if(cachedMinPrefix == null) {
+		Integer result;
+		if(hasNoSectionCache() || (result = sectionCache.cachedMinPrefix) == null) {
 			int totalPrefix = getBitCount();
 			for(int i = getSegmentCount() - 1; i >= 0 ; i--) {
 				IPAddressSegment seg = getSegment(i);
-				
 				int segBitCount = seg.getBitCount();
 				int segPrefix = seg.getMinPrefix();
 				if(segPrefix == segBitCount) {
@@ -887,9 +910,9 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 					}
 				}
 			}
-			cachedMinPrefix = totalPrefix;
+			sectionCache.cachedMinPrefix = result = totalPrefix;
 		}
-		return cachedMinPrefix;
+		return result;
 	}
 	
 	/**
@@ -901,40 +924,42 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	 * @return
 	 */
 	public Integer getEquivalentPrefix() {
-		Integer result = cachedEquivalentPrefix;
-		if(result == null) {
-			int totalPrefix = 0;
-			for(int i = 0; i < getSegmentCount(); i++) {
-				IPAddressSegment seg = getSegment(i);
-				int segPrefix = seg.getMinPrefix();
-				if(!seg.isRangeEquivalent(segPrefix)) {
-					cachedEquivalentPrefix = -1;
+		if(!hasNoSectionCache()) {
+			Integer result = sectionCache.cachedEquivalentPrefix;
+			if(result != null) {
+				if(result < 0) {
 					return null;
 				}
-				if(seg.isPrefixed()) {
-					return cachedEquivalentPrefix = totalPrefix + segPrefix;
-				}
-				if(segPrefix < seg.getBitCount()) {
-					//remaining segments must be full range or we return null
-					for(i++; i < getSegmentCount(); i++) {
-						IPAddressSegment laterSeg = getSegment(i);
-						if(!laterSeg.isFullRange()) {
-							cachedEquivalentPrefix = -1;
-							return null;
-						}
-					}
-					return cachedEquivalentPrefix = totalPrefix + segPrefix;
-				}
-				totalPrefix += segPrefix;
+				return result;
 			}
-			return cachedEquivalentPrefix = totalPrefix;
 		}
-		if(result < 0) {
-			return null;
+		int totalPrefix = 0;
+		for(int i = 0; i < getSegmentCount(); i++) {
+			IPAddressSegment seg = getSegment(i);
+			int segPrefix = seg.getMinPrefix();
+			if(!seg.isRangeEquivalent(segPrefix)) {
+				sectionCache.cachedEquivalentPrefix = -1;
+				return null;
+			}
+			if(seg.isPrefixed()) {
+				return sectionCache.cachedEquivalentPrefix = totalPrefix + segPrefix;
+			}
+			if(segPrefix < seg.getBitCount()) {
+				//remaining segments must be full range or we return null
+				for(i++; i < getSegmentCount(); i++) {
+					IPAddressSegment laterSeg = getSegment(i);
+					if(!laterSeg.isFullRange()) {
+						sectionCache.cachedEquivalentPrefix = -1;
+						return null;
+					}
+				}
+				return sectionCache.cachedEquivalentPrefix = totalPrefix + segPrefix;
+			}
+			totalPrefix += segPrefix;
 		}
-		return result;
+		return sectionCache.cachedEquivalentPrefix = totalPrefix;
 	}
-
+	
 	/**
 	 * If this represents an address section with ranging values, returns an address section representing the lower values of the range
 	 * If this represents an address section with a single value in each segment, returns this.
@@ -975,7 +1000,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> S[] getSingle(
 			R original, S originalSegs[], IPAddressSegmentCreator<S> segmentCreator, IntFunction<S> segProducer, boolean allowTheseSegments) {
-		if(!original.isMultiple() && !original.isPrefixed()) {
+		if(!original.isPrefixed() && !original.isMultiple()) {
 			if(allowTheseSegments) {
 				return originalSegs;
 			}
@@ -993,12 +1018,12 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		return segs;
 	}
 	
-	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R getSection(IPAddressCreator<T, R, S> creator, S segs[]) {
+	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R createSection(IPAddressCreator<T, R, S> creator, S segs[]) {
 		return creator.createSectionInternal(segs);
 	}
 	
 	protected static <R extends IPAddressSection> R getSingle(R original, Supplier<R> singleFromMultipleCreator) {
-		if(!original.isMultiple() && !original.isPrefixed()) {
+		if(!original.isPrefixed() && !original.isMultiple()) {
 			return original;
 		}
 		return singleFromMultipleCreator.get();
@@ -1216,8 +1241,198 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 	 */
 	public abstract String toSQLWildcardString();
 	
-	public abstract String toNormalizedString(StringOptions params);
 	
+	protected abstract StringCache getStringCache();
+	
+	protected abstract boolean hasNoStringCache();
+	
+	/*
+	 * There are two approaches when going beyond the usual segment by segment approach to strings for IPv6 and IPv4.
+	 * We can use the inet_aton approach, creating new segments as desired (one, two or three segments instead of the usual 4).
+	 * Then each such segment must simply know it's own sizes, whether bits, bytes, or characters, as IPAddressJoinedSegments and its subclasses show.
+	 * The limitations to this are the fact that arithmetic is done with Java longs, limiting the possible sizes.  Also, we must define new classes to accommodate the new segments.
+	 * A con to this approach is that the new segments may be short lived, so any caching is not helpful.
+	 * 
+	 * The second approach is to print with no separator chars (no '.' or ':') and with leading zeros, but otherwise print in the same manner.
+	 * So 1:2 would become 00010002.  
+	 * This works in cases where the string character boundaries line up with the segment boundaries.
+	 * This works for hexadecimal, where each segment is exactly two characters for IPv4, and each segment is exactly 4 characters for IPv6.
+	 * For other radices, this is not so simple.
+	 * 
+	 * A hybrid approach would use both approaches.  For instance, for octal we could simply divide into segments where each segment has 6 bits,
+	 * corresponding to exactly two octal characters, or each segment has some multiple of 3 bits.  It helps if the segment bit length
+	 * divides the total bit length, so the first segment does not end up with too many leading zeros.  
+	 * In the cases where the above approaches do not work, this approach works.
+	 */
+	/*
+	 * TODO let's do octal using hybrid.  You want a single segment of just 2 bits, then a segment of 30 bits, for IPv4.  For IPv6, 63, 63, 2, or 30,30,30,30,3,3,2
+	 * Need the same initial test isDualString.  Almost all the work is in the new segment classes.
+	 * 
+	 * base 85: how do we do that?  not a power of 2.  Cannot split easily.  128 is nearest power of 2, 7 bits.
+	 * But we do not need an exact bit match, that is just useful for using shift arithmetic.
+	 * All we need is a sensible distribution. Long.MAX is less than 85 to the power of 9, greater than 85 to the power of 8.  So we can put 8 base 85 digits in a long.
+	 * So we choose 2 segments of 8 digits and one more of 4 digits.
+	 * Still, this is awkward arithmetic, it's not like we can take the entire number of just divide by 85 to the power of 8.
+	 * 
+	 * http://www.numberworld.org/y-cruncher/internals/radix-conversion.html
+	 * 
+	 * N = 32, M = 20, b = 85
+X is a 32 digit number base 16 
+Want a 20 digit number R in base 85
+
+Compute
+high = floor(X / (85 ^ 10))  where we got 10 as 20/2
+low = X - ((85 ^ 10) * high)
+
+This give two numbers to be converted to 10 digits each
+
+Do this again on each of high and low
+
+high2 = floor(Y / (85 ^ 5))
+low2 = Y - ((85 ^ 5) * high)
+
+So now we have 4 sections of 5 base 85 digits
+
+These are still too large for ints, which makes sense since the original 128 bits divided into 4 sections is 32 bits
+which is slightly too large for a signed int.
+
+But we can use our optimized IPAddressDivision algorith anyway which does its own switching over to ints.
+
+So I'd say we convert the 128 bit integer to a BigInteger, then we divide into 4 segments as above.  4 segments, each responsible for 5 base 85 chars.
+Each will be similar to IPAddressJoinedSegments but this time no joining taking place.  The bit count will be 32 for each.
+In fact, I don't think I need to do any division, or do I?  This is a bit confusing.  In fact, not sure about the bit count.
+85^5 is 4,437,053,125
+2^32 is 4,294,967,296
+So the bit count doesn't align with the segments.
+So IPAddressDivision, as is, does not quite align perfectly either.
+
+One option is to move stuff from IPAddressDivision to IPaddresssegment if we can.
+Move getMaskPrefixLength, isMaskCompatibleWithRange...  Not sure this is feasible.  We have the prefix, which is bit-focused, integrated into the string generation.
+There is no number of bits that aligns with a base 85 set of digits, except when we have just one segment, in which case long no good.
+
+OR, even if they do not align perfectly, each number of bits corresponds to a segment.  But there is still no "bit count" for each one.
+
+It may be easiest to just not use IPAddressDivision but to use static methods within it.  The fact is, we cannot align bits or prefixes to 
+pieces of the base 85 address of 20 chars.  We would need a simplified pair of string params and divisions that did not have bits or prefixes.
+In fact, the string params themselbes are fine.
+Maybe we can just reuse everything with the rpefix stuff not working?
+How do we even know what the prefix is if we do not have it stored in the segments.
+
+More and MOre I think I need to reuse existing string params, but just use a single division for all 32 bits.
+Then the prefix and so on makes sense.  Those things operate on IPAddressPart.
+Each part provides a division.  We need to break up division so it is not long-based.
+We wanted to do the same for Mac Address!  The reason was to drop the prefix, not to drop the "long".
+But we wanted to support mac address prefixes too, in some ways they are similar.
+
+OK, so that means we change "networkPrefixLength" to just prefixLength
+In which case IPAddressPart can be change to AddressPart
+Then we need to change IPAddressDivision to be conformant to both mac and to base 85
+
+	 */
+	
+
+	/**
+	 * Writes this address as a single hexadecimal value with always the exact same number of characters, with or without a preceding 0x prefix.
+	 * 
+	 * For IPv4 there are 8 hex characters, for IPv6 there are 32 hex characters.
+	 * 
+	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
+	 */
+	public String toHexString(boolean withPrefix) {  
+		String result;
+		if(hasNoStringCache() || (result = (withPrefix ? getStringCache().hexStringPrefixed : getStringCache().hexString)) == null) {
+			result = toHexString(withPrefix, null);
+			if(withPrefix) {
+				getStringCache().hexStringPrefixed = result;
+			} else {
+				getStringCache().hexString = result;
+			}
+		}
+		return result;
+	}
+	
+	private boolean isDualString() {
+		int count = getSegmentCount();
+		for(int i = 0; i < count; i++) {
+			IPAddressSegment segment = getSegment(i);
+			if(!segment.isRangeEquivalentToPrefix()) {
+				boolean isLastFull = true;
+				IPAddressSegment lastSegment = null;
+				for(int j = count - 1; j >= 0; j--) {
+					segment = getSegment(j);
+					if(segment.isMultiple()) {
+						if(!isLastFull) {
+							throw new IPAddressTypeException(segment, i, lastSegment, i + 1, "ipaddress.error.segmentMismatch");
+						}
+						isLastFull = segment.isFullRange();
+					} else {
+						isLastFull = false;
+					}
+					lastSegment = segment;
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	protected String toHexString(boolean withPrefix, String zone) {
+		if(isDualString()) {
+			return toNormalizedStringRange(withPrefix ? StringCache.hexPrefixedParams : StringCache.hexParams, zone);
+		}
+		return toNormalizedString(withPrefix ? StringCache.hexPrefixedParams : StringCache.hexParams);
+	}
+	
+	protected static StringParams<IPAddressPart> toParams(StringOptions opts) {
+		//since the params here are not dependent on the section, we could cache the params in the options 
+		//this is not true on the IPv6 side where compression settings change based on the section
+		@SuppressWarnings("unchecked")
+		StringParams<IPAddressPart> result = (StringParams<IPAddressPart>) getCachedParams(opts);
+		if(result == null) {
+			result = new StringParams<IPAddressPart>(opts.base, opts.separator, opts.uppercase);
+			result.expandSegments(opts.expandSegments);
+			result.setWildcardOption(opts.wildcardOptions);
+			result.setSegmentStrPrefix(opts.segmentStrPrefix);
+			result.setAddressSuffix(opts.addrSuffix);
+			result.setAddressLabel(opts.addrPrefix);
+			result.setReverse(opts.reverse);
+			result.setSplitDigits(opts.splitDigits);
+			setCachedParams(opts, result);
+		}
+		return result;
+	}
+	
+	protected String toNormalizedStringRange(StringOptions stringOptions, String zone) {
+		IPAddressPart part1 = getLowerSection(), part2 = getUpperSection();
+		StringParams<IPAddressPart> params = toParams(stringOptions);
+		int length = params.getStringLength(part1) + params.getStringLength(part2);
+		StringBuilder builder;
+		String separator = params.getWildcardOption().wildcards.rangeSeparator;
+		if(separator != null) {
+			length += separator.length();
+			builder = new StringBuilder(length);
+			params.append(params.append(builder, part1).append(separator), part2);
+		} else {
+			builder = new StringBuilder(length);
+			params.append(params.append(builder, part1), part2);
+		}
+		params.checkLengths(length, builder);
+		return builder.toString();
+	}
+	
+	//this is overridden in the IPv6 subclass to handle the zone which is IPv6 only
+	protected String toNormalizedString(StringOptions stringOptions, String zone) {
+		return toNormalizedString(stringOptions);
+	}
+	
+	public String toNormalizedString(StringOptions stringOptions) {
+		return toNormalizedString(stringOptions, this);
+	}
+
+	public static String toNormalizedString(StringOptions opts, IPAddressPart section) {
+		return toParams(opts).toString(section);
+	}
+		
 	/**
 	 * Returns at most a couple dozen string representations:
 	 * 
@@ -1353,10 +1568,21 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 
 	/* the various string representations - these fields are for caching */
 	protected static class StringCache {
+		public static final StringOptions hexParams;
+		public static final StringOptions hexPrefixedParams;
+		
+		static {
+			WildcardOptions wildcardsRangeOnlyNetworkOnly = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR));
+			hexParams = new StringOptions.Builder().setSeparator(null).setExpandedSegments(true).setWildcardOptions(wildcardsRangeOnlyNetworkOnly).setRadix(16).toParams();
+			hexPrefixedParams = new StringOptions.Builder().setSeparator(null).setExpandedSegments(true).setWildcardOptions(wildcardsRangeOnlyNetworkOnly).setRadix(16).setAddressPrefix("0x").toParams();
+		}
+		
 		public String canonicalString;
 		public String normalizedWildcardString;
 		public String fullString;
 		public String sqlWildcardString;
+		public String hexString;
+		public String hexStringPrefixed;
 		
 		//we piggy-back on the section cache for strings that are full address only
 		public String reverseDNSString;
@@ -1430,10 +1656,12 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		public final boolean expandSegments;
 		public final int base;
 		public final String segmentStrPrefix;
-		public final char separator;
+		public final Character separator;
 		public final String addrSuffix;
+		public final String addrPrefix;
 		public final boolean reverse;
 		public final boolean splitDigits;
+		public final boolean uppercase;
 		
 		//use this field if the options to params conversion is not dependent on the address part so it can be reused
 		IPAddressPartStringParams<?> cachedParams; 
@@ -1443,18 +1671,22 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				boolean expandSegments,
 				WildcardOptions wildcardOptions,
 				String segmentStrPrefix,
-				char separator,
+				Character separator,
+				String prefix,
 				String suffix,
 				boolean reverse,
-				boolean splitDigits) {
+				boolean splitDigits,
+				boolean uppercase) {
 			this.expandSegments = expandSegments;
 			this.wildcardOptions = wildcardOptions;
 			this.base = base;
 			this.segmentStrPrefix = segmentStrPrefix;
 			this.separator = separator;
 			this.addrSuffix = suffix;
+			this.addrPrefix = prefix;
 			this.reverse = reverse;
 			this.splitDigits = splitDigits;
+			this.uppercase = uppercase;
 		}
 		
 		public static class Builder {
@@ -1462,13 +1694,14 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		
 			protected WildcardOptions wildcardOptions = DEFAULT_WILDCARD_OPTIONS;
 			protected boolean expandSegments;
-			protected int base = IPv4Address.DEFAULT_TEXTUAL_RADIX;
+			protected int base;
 			protected String segmentStrPrefix;
-			protected char separator;
+			protected Character separator;
+			protected String addrPrefix = "";
 			protected String addrSuffix = "";
 			protected boolean reverse;
 			protected boolean splitDigits;
-			
+			protected boolean uppercase;
 			
 			public Builder() {
 				this(IPv4Address.DEFAULT_TEXTUAL_RADIX, IPv4Address.SEGMENT_SEPARATOR);
@@ -1489,6 +1722,10 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				return this;
 			}
 			
+			public Builder setUppercase(boolean uppercase) {
+				this.uppercase = uppercase;
+				return this;
+			}
 			public Builder setSplitDigits(boolean splitDigits) {
 				this.splitDigits = splitDigits;
 				return this;
@@ -1504,11 +1741,22 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 				return this;
 			}
 			
-			public Builder setSeparator(char separator) {
+			/*
+			 * separates the divisions of the address, typically ':' or '.', but also can be null for no separator
+			 */
+			public Builder setSeparator(Character separator) {
 				this.separator = separator;
 				return this;
 			}
 			
+			public Builder setAddressPrefix(String prefix) {
+				this.addrPrefix = prefix;
+				return this;
+			}
+			
+			/*
+			 * .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
+			 */
 			public Builder setAddressSuffix(String suffix) {
 				this.addrSuffix = suffix;
 				return this;
@@ -1520,7 +1768,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 			}
 			
 			public StringOptions toParams() {
-				return new StringOptions(base, expandSegments, wildcardOptions, segmentStrPrefix, separator, addrSuffix, reverse, splitDigits);
+				return new StringOptions(base, expandSegments, wildcardOptions, segmentStrPrefix, separator, addrPrefix, addrSuffix, reverse, splitDigits, uppercase);
 			}
 		}
 	}

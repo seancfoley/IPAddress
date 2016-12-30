@@ -248,7 +248,7 @@ abstract class BaseComparator implements IPAddressComparator {
 		if(!one.getIPVersion().equals(two.getIPVersion())) {
 			return one.getIPVersion().ordinal() - two.getIPVersion().ordinal();
 		}
-		int result = compare(one.getSegments(), two.getSegments());
+		int result = compare(one.getSection(), two.getSection());
 		if(result == 0) {
 			if(one.isIPv6()) {
 				IPv6Address oneIPv6 = (IPv6Address) one;

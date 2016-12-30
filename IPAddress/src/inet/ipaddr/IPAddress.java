@@ -281,7 +281,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 				if(segmentPrefixLength != null) {
 					value &= network.getSegmentNetworkMask(segmentPrefixLength);
 				}
-				IPAddressSegment.fastToUnsignedString(value, radix, builder);
+				IPAddressSegment.toUnsignedStringFast(value, radix, builder);
 			} else {
 				if(segmentPrefixLength != null) {
 					int mask = network.getSegmentNetworkMask(segmentPrefixLength);
@@ -289,7 +289,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 					value2 &= mask;
 				}
 				if(value == value2) {
-					IPAddressSegment.fastToUnsignedString(value, radix, builder);
+					IPAddressSegment.toUnsignedStringFast(value, radix, builder);
 				} else {
 					if(value > value2) {
 						int tmp = value2;
@@ -334,10 +334,10 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	/**
-	 * Breaks the address down into the standard segment arrangement.
+	 * Returns the address as an address section comprising all segments in the address.
 	 * @return
 	 */
-	public IPAddressSection getSegments() {
+	public IPAddressSection getSection() {
 		return addressSection;
 	}
 	
@@ -346,7 +346,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return
 	 */
 	public IPAddressPart[] getParts(IPStringBuilderOptions options) {
-		return new IPAddressPart[] { getSegments() };
+		return new IPAddressPart[] { getSection() };
 	}
 	
 	public int getMaxSegmentValue() {
@@ -467,7 +467,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	protected static <T extends IPAddress> T getSingle(
 			T original,
 			Supplier<T> singleFromMultipleCreator) {
-		if(!original.isMultiple() && !original.isPrefixed()) {
+		if(!original.isPrefixed() && !original.isMultiple()) {
 			return original;
 		}
 		return singleFromMultipleCreator.get();
@@ -486,7 +486,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 			Supplier<S[]> segs,
 			IntFunction<Iterator<S>> segIteratorProducer) {
 		return new Iterator<T>() {
-			private boolean doThis = !original.isPrefixed() && !original.isMultiple(); //note that a non-multiple address can have a prefix (either /32 or /128)
+			private boolean doThis = !original.isMultiple() && !original.isPrefixed(); //note that a non-multiple address can have a prefix (either /32 or /128)
 			private Iterator<S[]> iterator = original.addressSection.iterator(creator, doThis, segs, segIteratorProducer);
 			
 			@Override
@@ -668,7 +668,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	public boolean isSameAddress(IPAddress other) {
-		return other == this || getSegments().equals(other.getSegments());
+		return other == this || getSection().equals(other.getSection());
 	}
 	
 	/**
@@ -872,6 +872,13 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return
 	 */
 	public abstract String toReverseDNSLookupString();
+	
+	/**
+	 * Writes this address as hexadecimal, with or without a preceding 0x prefix
+	 */
+	public String toHexString(boolean withPrefix) {
+		return addressSection.toHexString(withPrefix);
+	}
 	
 	/**
 	 * Constructs a string representing this address according to the given parameters
@@ -1100,7 +1107,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return
 	 */
 	public boolean isMaskCompatibleWithRange(IPAddress mask, Integer networkPrefixLength) {
-		return getSegments().isMaskCompatibleWithRange(mask.getSegments(), networkPrefixLength);
+		return getSection().isMaskCompatibleWithRange(mask.getSection(), networkPrefixLength);
 	}
 	
 	/**

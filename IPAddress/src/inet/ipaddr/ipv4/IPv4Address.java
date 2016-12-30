@@ -123,13 +123,13 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 
 	@Override
-	public IPv4AddressSection getSegments() {
-		return (IPv4AddressSection) super.getSegments();
+	public IPv4AddressSection getSection() {
+		return (IPv4AddressSection) super.getSection();
 	}
 
 	@Override
 	public IPv4AddressSegment getSegment(int index) {
-		return getSegments().getSegment(index);
+		return getSection().getSegment(index);
 	}
 
 	@Override
@@ -138,7 +138,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	public IPAddressPart[] getParts(IPv4StringBuilderOptions options) {
-		IPAddressPart parts[] = getSegments().getParts(options);
+		IPAddressPart parts[] = getSection().getParts(options);
 		IPv6Address ipv6Addr = getConverted(options);
 		if(ipv6Addr != null) {
 			IPAddressPart ipv6Parts[] = ipv6Addr.getParts(options.ipv6ConverterOptions);
@@ -210,7 +210,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	private IPv4Address getLowestOrHighest(boolean lowest) {
 		return getSingle(this, () -> {
-			IPv4AddressSection section = getSegments();
+			IPv4AddressSection section = getSection();
 			IPv4AddressSegment[] segs = createSingle(section, getAddressCreator(), i -> {
 				IPv4AddressSegment seg = getSegment(i);
 				return lowest ? seg.getLower() : seg.getUpper();
@@ -234,7 +234,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return iterator(
 				this, 
 				getAddressCreator(),//using a lambda for this one results in a big performance hit
-				() -> getSegments().getLowerSegments(),
+				() -> getSection().getLowerSegments(),
 				index -> getSegment(index).iterator());
 	}
 
@@ -266,8 +266,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address[] subtract(IPAddress other) {
-		IPv4AddressSection thisSection = getSegments();
-		IPv4AddressSection sections[] = thisSection.subtract(other.getSegments());
+		IPv4AddressSection thisSection = getSection();
+		IPv4AddressSection sections[] = thisSection.subtract(other.getSection());
 		if(sections == null) {
 			return null;
 		}
@@ -281,7 +281,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address toSubnet(int networkPrefixLength) throws IPAddressTypeException {
-		IPv4AddressSection thisSection = getSegments();
+		IPv4AddressSection thisSection = getSection();
 		IPv4AddressSection subnetSection = thisSection.toSubnet(networkPrefixLength);
 		if(thisSection == subnetSection) {
 			return this;
@@ -302,8 +302,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 */
 	@Override
 	public IPv4Address toSubnet(IPAddress mask, Integer networkPrefixLength) throws IPAddressTypeException {
-		IPv4AddressSection thisSection = getSegments();
-		IPv4AddressSection subnetSection = thisSection.toSubnet(mask.getSegments(), networkPrefixLength);
+		IPv4AddressSection thisSection = getSection();
+		IPv4AddressSection subnetSection = thisSection.toSubnet(mask.getSection(), networkPrefixLength);
 		if(thisSection == subnetSection) {
 			return this;
 		}
@@ -312,7 +312,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) {
-		return getSegments().getNetworkSection(networkPrefixLength, withPrefixLength);
+		return getSection().getNetworkSection(networkPrefixLength, withPrefixLength);
 	}
 	
 	@Override
@@ -325,7 +325,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSection getHostSection(int networkPrefixLength) {
-		return getSegments().getHostSection(networkPrefixLength);
+		return getSection().getHostSection(networkPrefixLength);
 	}
 	
 	@Override
@@ -380,11 +380,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @return
 	 */
 	public String toInetAtonString(IPv4Address.inet_aton_radix radix) {
-		return getSegments().toInetAtonString(radix);
+		return getSection().toInetAtonString(radix);
 	}
 	
 	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) {
-		return getSegments().toInetAtonString(radix, joinedCount);
+		return getSection().toInetAtonString(radix, joinedCount);
 	}
 	
 	@Override
@@ -395,8 +395,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public String toReverseDNSLookupString() {
 		String result;
-		IPv4AddressSection section = getSegments();
-		if(section.hasNoCache() || (result = section.stringCache.reverseDNSString) == null) {
+		IPv4AddressSection section = getSection();
+		if(section.hasNoStringCache() || (result = section.stringCache.reverseDNSString) == null) {
 			section.stringCache.reverseDNSString = result = toNormalizedString(IPv4StringCache.reverseDNSParams);
 		}
 		return result;
@@ -427,7 +427,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	public IPAddressPartStringCollection toStringCollection(IPv4StringBuilderOptions opts) {
 		IPv4StringCollection coll = new IPv4StringCollection();
-		IPAddressPartStringCollection sectionColl = getSegments().toStringCollection(opts);
+		IPAddressPartStringCollection sectionColl = getSection().toStringCollection(opts);
 		coll.addAll(sectionColl);
 		IPv6Address ipv6Addr = getConverted(opts);
 		if(ipv6Addr != null) {

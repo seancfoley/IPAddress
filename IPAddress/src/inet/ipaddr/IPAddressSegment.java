@@ -464,12 +464,12 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return lower == 0 && upper == getMaxSegmentValue(version);
 	}
 	
-	protected static boolean fastToUnsignedString(int value, int radix, StringBuilder appendable) {
-		return IPAddressDivision.fastToUnsignedString(value, radix, false, appendable);
+	protected static boolean toUnsignedStringFast(int value, int radix, StringBuilder appendable) {
+		return toUnsignedStringFast(value, radix, false, appendable);
 	}
 	
 	protected static void getRangeString(int lower, int upper, int radix, StringBuilder appendable) {
-		getRangeString(lower, upper, IPAddress.RANGE_SEPARATOR_STR, null, 0, 0, null, radix, 0, false, appendable);
+		getRangeString(lower, upper, IPAddress.RANGE_SEPARATOR_STR, 0, 0, null, radix, false, appendable);
 	}
 	
 	void setStandardString(

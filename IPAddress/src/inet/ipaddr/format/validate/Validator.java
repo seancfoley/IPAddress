@@ -147,6 +147,7 @@ public class Validator implements HostIdentifierStringValidator {
 						parseData.isAll = true;
 						break;
 					}
+					//TODO handle new values depending on characters and length - check base 85 flag, check for ipv6 chars, in obth cases check count of chars
 					//it is ipv4 single segment like 4294967295 which is equivalent to 255.255.255.255
 					currentChar = IPv4Address.SEGMENT_SEPARATOR;
 				}
@@ -555,7 +556,7 @@ public class Validator implements HostIdentifierStringValidator {
 					isIPv4Hex = true;
 					leadingZeroCount = 0;
 					++index;
-				} else {
+				} else {//TODO base 85 - handle some additional chars without throwing if we allow base 85.  But if we do, we need to throw later when we find a char that is no base-85, like a segment separator
 					//invalid char
 					throw new IPAddressStringException(str, index, false);
 				}
@@ -665,7 +666,7 @@ public class Validator implements HostIdentifierStringValidator {
 			if(parseData.mixedParsedAddress != null) {
 				totalSegmentCount += IPv6Address.MIXED_REPLACED_SEGMENT_COUNT;
 			}
-			if(totalSegmentCount < IPv6Address.SEGMENT_COUNT && !parseData.anyWildcard && !parseData.isCompressed()) {
+			if(totalSegmentCount < IPv6Address.SEGMENT_COUNT && !parseData.anyWildcard && !parseData.isCompressed()) {//TODO new address values - do not throw here.
 				throw new IPAddressStringException(fullAddr, "ipaddress.error.ipv6.too.few.segments");
 			}
 		}
@@ -730,7 +731,7 @@ public class Validator implements HostIdentifierStringValidator {
 			//before we attempt to parse, ensure the string is a reasonable size
 			if(!allowPrefixesBeyondAddressSize && digitCount > (asIPv4 ? 2 : 3)) {
 				if(asIPv4 && validationOptions.getIPv4Parameters().inet_aton_joinedSegments && validationOptions.getIPv4Parameters().inet_aton_single_segment_mask) {
-					return null; //treat it as single segment ipv4
+					return null; //treat it as single segment ipv4 mask (ie /xxx not a prefix of length xxx but the mask xxx
 				}
 				throw new IPAddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
 			}
@@ -1162,7 +1163,7 @@ public class Validator implements HostIdentifierStringValidator {
 					break;
 				}
 				boolean segmentCountMatches = (labelCount + 1 == IPv4Address.SEGMENT_COUNT) ||
-						(labelCount + 1 < IPv4Address.SEGMENT_COUNT && validationOptions.addressOptions.getIPv4Parameters().inet_aton_joinedSegments);
+						(labelCount + 1 < IPv4Address.SEGMENT_COUNT && validationOptions.addressOptions.getIPv4Parameters().inet_aton_joinedSegments);//TODO new address values
 				if(isAllDigits) {
 					if(segmentCountMatches) {
 						tryIPv4 = true;
@@ -1251,6 +1252,7 @@ public class Validator implements HostIdentifierStringValidator {
 			} else if(currentChar == '_') {//this is not supported in host names but is supported in domain names, see discussion in Host class
 				isAllDigits = false;
 			} else if(currentChar == '-') {
+				//host name segments cannot end with '-'
 				if(index == lastSeparatorIndex + 1 || index == addrLen - 1 || str.charAt(index + 1) == HostName.LABEL_SEPARATOR) {
 					throw new HostNameException(str, index);
 				}
@@ -1322,7 +1324,7 @@ public class Validator implements HostIdentifierStringValidator {
 						//Note: 
 						//Firstly, we need to find the address end which is denoted by the end bracket
 						//Secondly, while zones appear inside bracket, prefix appears outside, according to rfc 4038
-						//So we keep track of the boolean endsWithBracket to indicate prefix appearing outside of the bracket
+						//So we keep track of the boolean endsWithPrefix to differentiate.
 						int endIndex = addrLen - 1;
 						boolean endsWithPrefix = str.charAt(endIndex) != HostName.IPV6_END_BRACKET;
 						if(endsWithPrefix) {
@@ -1441,6 +1443,15 @@ public class Validator implements HostIdentifierStringValidator {
 				if(!isNotNormalized) {
 					parsedHost.host = str;
 				}
+				
+				//TODO for special hosts reverse dns and unc hosts, check for this, if so, then parse the address
+				//call validateAddress when the string is ready
+				//for UNC, replace - with :, then replace the IPv6Address.UNC_RANGE_SEPARATOR_STR with -
+				//for reverse dns, count dots
+				//if 3, then just reverse, parse, and ensure the result is ipv4
+				//if more than 3, we need to join the segments
+				//But in fact, maybe we just parse as is, after it's done we will have the ParseData structure to tell us how many 
+				//there are and then we reverse them (we also change to ipv6 if more than 3)
 			}
 			return parsedHost;
 		} catch(IPAddressStringException e) {

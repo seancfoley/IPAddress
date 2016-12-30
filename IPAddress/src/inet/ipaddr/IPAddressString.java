@@ -122,7 +122,41 @@ import inet.ipaddr.ipv6.IPv6Address;
  * Discussion of theses formats: http://tools.ietf.org/html/draft-main-ipaddr-text-rep-02
  * RFCs of interest are 2732, 2373, 3986, 4291, 5952, 2765, 1918, 3513 (IPv4 rfcs 1123 0953) 1883 1884 (original spec of 3 string representations of IPv6), 4007 6874 for IPv6 zone identifier or scope id
  * 
+ * Nice cheat sheet for IPv6: http://www.roesen.org/files/ipv6_cheat_sheet.pdf
  */
+//TODO check http://www.deepspace6.net/projects/ipv6calc.html#idp5031248 this was linked from the cheat sheet
+//Add the DNS ptr example to the docs ie in our case we get an address section and then we do the reverse addr string (make sure we have that)
+//one is base 85 ha ha 
+//TODO maybe treat 32 hex chars as ipv6?  And treat some smaller number as ipv4?  ipv4 hex byte reversed - network order has the d in a.b.c.d first?  Simple 0xaabbccdd as ipv4?  
+//Yeah, I like this idea, maybe even with or without the 0x
+//In fact, the way I do the parsing now might work well with this
+//We go by the number of chars.  20 chars is base 85.  32 chars is ipv6.  8 chars or less is ipv4.  We treat as hex.  Maybe we even allow octal chars or decimal.
+//bitstring labels arpa: https://www.ibm.com/support/knowledgecenter/SSLTBW_1.13.0/com.ibm.zos.r13.halz002/f1a1b3b1220.htm
+//Document: sections: addresses can be broken up into sections, and reconstituted from sections, such as EUI-64 hosts, mac addresses, etc
+//TODO treat 20 chars as base 85
+
+//TODO could have methods that extract mac address EUI 64 as an IPV6AddressSection, or methods that reconstitute an IPV6AddressSection from a mac address
+//https://supportforums.cisco.com/document/100566/understanding-ipv6-eui-64-bit-address
+//But also, we could have a segment grouping that is a mac address, since MAC addresses group segments like ab-cd-ef 
+//Once we have this new mac address class, easier to jump back and forth
+//A segment grouping is a series of divisions, 
+//TODO MAC address design: so we need a mac address division, and then we have a macaddresssection extending IPAddressSegmentGrouping like ipaddresssection does
+//but I think we actually split into two, we keep IPAddressSegmentgrouping and we create SegmentGrouping, the former has anything prefix related which is address-section specific
+//Once we have this, we can have methods that create IPV6Section from mac, and for vice versa maybe nice to create an address from two separate sections?
+//We also do the same for IPAddressDivision, we spit off the prefix-related stuff.
+//the method isRangeEquivalentToPrefix must become isRangeImplied or isRangeInString or isRangeVisible
+//getNetworkPrefixLength is the only part of IPAddressPart that would not apply to the SegmentGrouping, so we split tht up too
+//BUT mac addresses have prefix too, 24 bits worth of the 48 total - http://aruljohn.com/mac.pl
+
+//In HostName
+//TODO support parsing the reverse DNS lookup string which is structured as a host
+		//Similar to UNC Host, when you see the arpa suffix, then reverse the address in both IPv4 and IPv6, in IPV6 join the digits, then parse with the usual machinery
+		//If an exception occurs, store it in the parsedHost object in its own field, then make that available here
+		//Either that, or just throw it as HostException, which in its own way makes sense
+		//TODO support parsing the IPv6 UNC Host name 0-0-0-1-0-0-0-1.ipv6.literal.net here in HostName - parse it as a host and recognize as an address, maybe create a special addressProvider object for that, but you probably want to put this in Validator
+		//In Validator, when you see the ipv6.literal.net, convert the dashes and then parse the address with the usual machinery
+		
+
 public class IPAddressString implements HostIdentifierString, Comparable<IPAddressString>, Serializable {
 	
 	private static final long serialVersionUID = 1L;

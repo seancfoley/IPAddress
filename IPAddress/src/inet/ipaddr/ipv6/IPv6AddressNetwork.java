@@ -159,7 +159,7 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		@Override
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection mixedSection) {
 			IPv6AddressSection result = new IPv6AddressSection(segments, 0, false);
-			result.mixedSection = mixedSection;
+			result.embeddedIPv4Section = mixedSection;
 			return result;
 		}
 		

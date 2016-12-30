@@ -26,7 +26,7 @@ public interface IPAddressConverter extends IPv6AddressConverter, IPv4AddressCon
 		@Override
 		public IPv4Address toIPv4(IPAddress address) {
 			if(isIPv4Convertible(address)) {
-				return address.isIPv4() ? address.toIPv4() : address.toIPv6().getMixedAddress();
+				return address.isIPv4() ? address.toIPv4() : address.toIPv6().getEmbeddedIPv4Address();
 			}
 			return null;
 		}

@@ -462,7 +462,7 @@ public class IPAddressTest extends TestBase {
 			byte[] b = inetAddress.getAddress();
 			byte[] b2 = addr.getBytes();
 			if(!Arrays.equals(b, b2)) {
-				byte[] b3 = addr.isIPv4() ? addr.getSegments().getBytes() : addr.toIPv6().toMappedIPv4Segments().getBytes();
+				byte[] b3 = addr.isIPv4() ? addr.getSection().getBytes() : addr.toIPv6().toMappedIPv4Segments().getBytes();
 				if(!Arrays.equals(b, b3)) {
 					failed = true;
 					addFailure(new Failure("bytes on addr " + inetAddress, addr));
@@ -713,7 +713,7 @@ public class IPAddressTest extends TestBase {
 				IPv6AddressSection converted = (IPv6AddressSection) partsConverted[0];
 				partsConverted = new IPv6Address(converted).getParts(convertIPv4Opts);
 				IPv4AddressSection convertedBack = (IPv4AddressSection) partsConverted[0];
-				if(!ad.getSegments().equals(convertedBack)) {
+				if(!ad.getSection().equals(convertedBack)) {
 					addFailure(new Failure("converted " + convertedBack + " does not match expected", ad));
 				}
 			}
@@ -726,7 +726,7 @@ public class IPAddressTest extends TestBase {
 					IPv4AddressSection converted = (IPv4AddressSection) partsConverted[0];
 					partsConverted = new IPv4Address(converted).getParts(convertIPv6Opts);
 					IPv6AddressSection convertedBack = (IPv6AddressSection) partsConverted[0];
-					if(!ad.getSegments().equals(convertedBack)) {
+					if(!ad.getSection().equals(convertedBack)) {
 						addFailure(new Failure("converted " + convertedBack + " does not match expected", ad));
 					}
 				}
@@ -1404,7 +1404,7 @@ public class IPAddressTest extends TestBase {
 			if(w.isPrefixed()) {
 				network = w.getNetworkSection(w.getNetworkPrefixLength(), false);
 			} else {
-				network = w.getSegments();
+				network = w.getSection();
 			}
 			TestSQLTranslator translator = new TestSQLTranslator();
 			StringBuilder builder = new StringBuilder();

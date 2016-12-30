@@ -36,15 +36,16 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 	private transient BigInteger cachedCount;
 	private transient Integer cachedNetworkPrefix; //null indicates this field not initialized, -1 indicates the prefix len is null
 	
+	/* for addresses not multiple, we must check each segment, so we cache */
+	private transient Boolean isMultiple;
+	
 	protected int hashCode;
 	
 	public IPAddressSegmentGrouping(IPAddressDivision divisions[]) {
 		this.divisions = divisions;
 	}
 	
-	protected void initCachedValues(
-			Integer cachedNetworkPrefix,
-			BigInteger cachedCount) {
+	protected void initCachedValues(Integer cachedNetworkPrefix, BigInteger cachedCount) {
 		this.cachedNetworkPrefix = cachedNetworkPrefix;
 		this.cachedCount = cachedCount;
 	}
@@ -138,14 +139,19 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 	 * @return whether this address represents more than one address.
 	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
 	 */
+	@Override
 	public boolean isMultiple() {
-		for(int i = divisions.length - 1; i >= 0; i--) {//go in reverse order, with prefixes multiple more likely to show up in last segment
-			IPAddressDivision seg = divisions[i];
-			if(seg.isMultiple()) {
-				return true;
+		Boolean result = isMultiple;
+		if(result == null) {
+			for(int i = divisions.length - 1; i >= 0; i--) {//go in reverse order, with prefixes multiple more likely to show up in last segment
+				IPAddressDivision seg = divisions[i];
+				if(seg.isMultiple()) {
+					return isMultiple = true;
+				}
 			}
+			return isMultiple = false;
 		}
-		return false;
+		return result;
 	}
 	
 	public boolean isMultipleByNetworkPrefix() {

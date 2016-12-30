@@ -14,12 +14,10 @@ import inet.ipaddr.format.IPAddressPart;
 import inet.ipaddr.format.IPAddressSegmentGrouping;
 import inet.ipaddr.format.util.IPAddressPartConfiguredString;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
-import inet.ipaddr.format.util.IPAddressPartStringParams;
 import inet.ipaddr.format.util.IPAddressPartStringSubCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4AddressSectionStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4StringBuilder;
-import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4StringParams;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 
@@ -52,7 +50,7 @@ public class IPv4AddressSection extends IPAddressSection {
 			sqlWildcardParams = new StringOptions.Builder().setWildcardOptions(allSQLWildcards).toParams();
 			octalParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.OCTAL.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.OCTAL.getSegmentStrPrefix()).toParams();
 			hexParams = new StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.HEX.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.HEX.getSegmentStrPrefix()).toParams();
-			reverseDNSParams = new StringOptions.Builder().setReverse(true).setAddressSuffix(".in-addr.arpa").toParams();
+			reverseDNSParams = new StringOptions.Builder().setWildcardOptions(allWildcards).setReverse(true).setAddressSuffix(".in-addr.arpa").toParams();
 		}
 		
 		public String octalString;
@@ -109,13 +107,23 @@ public class IPv4AddressSection extends IPAddressSection {
 	}
 	
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest) {
-		IPv4AddressCreator creator = getAddressCreator();
 		return getSingle(this, () -> {
-			IPv4AddressSegment[] segs = createSingle(this, creator, i -> {
-				IPv4AddressSegment seg = getSegment(i);
-				return lowest ? seg.getLower() : seg.getUpper();
-			});
-			return creator.createSectionInternal(segs);
+			IPAddressSection result;
+			if(hasNoSectionCache() || (result = (lowest ? sectionCache.lowerSection : sectionCache.upperSection)) == null) {
+				IPv4AddressCreator creator = getAddressCreator();
+				IPv4AddressSegment[] segs = createSingle(this, creator, i -> {
+					IPv4AddressSegment seg = getSegment(i);
+					return lowest ? seg.getLower() : seg.getUpper();
+				});
+				IPv4AddressSection newSection = creator.createSectionInternal(segs);
+				if(lowest) {
+					sectionCache.lowerSection = newSection;
+				} else {
+					sectionCache.upperSection = newSection;
+				}
+				return newSection;
+			}
+			return (IPv4AddressSection) result;
 		});
 	}
 	
@@ -276,7 +284,8 @@ public class IPv4AddressSection extends IPAddressSection {
 		return getHostSegments(this, networkPrefixLength, cidrSegmentCount, getAddressCreator(), (i, prefix) -> getSegment(i).toHostSegment(prefix));
 	}
 
-	boolean hasNoCache() {
+	@Override
+	protected boolean hasNoStringCache() {
 		if(stringCache == null) {
 			synchronized(this) {
 				if(stringCache == null) {
@@ -288,13 +297,18 @@ public class IPv4AddressSection extends IPAddressSection {
 		return false;
 	}
 	
+	@Override
+	protected StringCache getStringCache() {
+		return stringCache;
+	}
+	
 	/**
 	 * This produces a canonical string.
 	 */
 	@Override
 	public String toCanonicalString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.canonicalString) == null) {
+		if(hasNoStringCache() || (result = stringCache.canonicalString) == null) {
 			stringCache.canonicalString = result = toNormalizedString(IPv4StringCache.canonicalParams);
 		}
 		return result;
@@ -307,7 +321,7 @@ public class IPv4AddressSection extends IPAddressSection {
 	@Override
 	public String toFullString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.fullString) == null) {
+		if(hasNoStringCache() || (result = stringCache.fullString) == null) {
 			stringCache.fullString = result = toNormalizedString(IPv4StringCache.fullParams);
 		}
 		return result;
@@ -332,7 +346,7 @@ public class IPv4AddressSection extends IPAddressSection {
 
 	@Override
 	protected void cacheNormalizedString(String str) {
-		if(hasNoCache() || stringCache.canonicalString == null) {
+		if(hasNoStringCache() || stringCache.canonicalString == null) {
 			stringCache.canonicalString = str;
 		}
 	}
@@ -355,11 +369,11 @@ public class IPv4AddressSection extends IPAddressSection {
 	public String toInetAtonString(IPv4Address.inet_aton_radix radix) {
 		String result;
 		if(radix == IPv4Address.inet_aton_radix.OCTAL) {
-			if(hasNoCache() || (result = stringCache.octalString) == null) {
+			if(hasNoStringCache() || (result = stringCache.octalString) == null) {
 				stringCache.octalString = result = toNormalizedString(IPv4StringCache.octalParams);
 			}
 		} else if(radix == IPv4Address.inet_aton_radix.HEX) {
-			if(hasNoCache() || (result = stringCache.hexString) == null) {
+			if(hasNoStringCache() || (result = stringCache.hexString) == null) {
 				stringCache.hexString = result = toNormalizedString(IPv4StringCache.hexParams);
 			}
 		} else {
@@ -386,7 +400,7 @@ public class IPv4AddressSection extends IPAddressSection {
 	@Override
 	public String toNormalizedWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.normalizedWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.normalizedWildcardString) == null) {
 			stringCache.normalizedWildcardString = result = toNormalizedString(IPv4StringCache.normalizedWildcardParams);
 		}
 		return result;
@@ -400,40 +414,10 @@ public class IPv4AddressSection extends IPAddressSection {
 	@Override
 	public String toSQLWildcardString() {
 		String result;
-		if(hasNoCache() || (result = stringCache.sqlWildcardString) == null) {
+		if(hasNoStringCache() || (result = stringCache.sqlWildcardString) == null) {
 			stringCache.sqlWildcardString = result = toNormalizedString(IPv4StringCache.sqlWildcardParams);
 		}
 		return result;
-	}
-	
-	@Override
-	public String toNormalizedString(StringOptions stringOptions) {
-		return toNormalizedString(stringOptions, this);
-	}
-	
-	public static String toNormalizedString(StringOptions opts, IPAddressPart section) {
-		return toParams(opts).toString(section);
-	}
-	
-	private static IPv4StringParams toParams(StringOptions opts) {
-		//since the params here are not dependent on the section, we could cache the params in the options 
-		//this is not true on the IPv6 side where compression settings change based on the section
-		IPv4StringParams result = (IPv4StringParams) getCachedParams(opts);
-		if(result == null) {
-			result = new IPv4StringParams(opts.base, opts.separator);
-			result.expandSegments(opts.expandSegments);
-			result.setWildcardOption(opts.wildcardOptions);
-			result.setSegmentStrPrefix(opts.segmentStrPrefix);
-			result.setAddressSuffix(opts.addrSuffix);
-			result.setReverse(opts.reverse);
-			result.setSplitDigits(opts.splitDigits);
-			setCachedParams(opts, result);
-		}
-		return result;
-	}
-	
-	protected static IPAddressPartStringParams<IPAddressPart> toStringParams(StringOptions opts) {
-		return toParams(opts);
 	}
 	
 	public String toNormalizedString(StringOptions stringParams, int joinCount) {
@@ -674,72 +658,16 @@ public class IPv4AddressSection extends IPAddressSection {
 		
 		/**
 		 * Each IPv4StringParams instance has settings to write exactly one IPv4 address section string.
+		 * Using this class allows us to avoid referencing StringParams<IPAddressPart> everywhere,
+		 * but in reality this class has no functionality of its own.
 		 * 
 		 * @author sfoley
 		 *
 		 */
-		static class IPv4StringParams extends StringParams<IPAddressPart> {
+		private static class IPv4StringParams extends StringParams<IPAddressPart> {
 			
-			IPv4StringParams(int radix, char separator) {
-				super(radix, separator);
-			}
-			
-			@Override
-			public int getTrailingSeparatorCount(IPAddressPart addr) {
-				if(addr.getDivisionCount() > 0) {
-					return addr.getDivisionCount() - 1;
-				}
-				return 0;
-			}
-			
-			@Override
-			public StringBuilder append(StringBuilder builder, IPAddressPart addr) {
-				appendSegments(builder, addr);
-				if(!isReverse()) {
-					Integer networkPrefixLength = addr.getNetworkPrefixLength();
-					if(networkPrefixLength != null && getWildcardOption().wildcardOption != WildcardOptions.WildcardOption.ALL) {
-						builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
-					}
-				}
-				appendSuffix(builder);
-				return builder;
-			}
-			
-			@Override
-			public StringBuilder appendSegments(StringBuilder builder, IPAddressPart part) {
-				if(part.getDivisionCount() != 0) {
-					WildcardOptions wildcardOptions = getWildcardOption();
-					WildcardOptions.WildcardOption wildcardOption = wildcardOptions.wildcardOption;
-					boolean isAll = wildcardOption == WildcardOptions.WildcardOption.ALL;
-					int count = part.getDivisionCount();
-					boolean reverse = isReverse();
-					for(int i = 0; i < count; i++) {
-						int segIndex;
-						if(reverse) {
-							segIndex = count - i - 1;
-						} else {
-							segIndex = i;
-						}
-						IPAddressDivision seg = part.getDivision(segIndex);
-						int leadingZeroCount = getLeadingZeros(segIndex);
-						char separator = getSeparator();
-						if(isAll || isSplitDigits()) {
-							seg.getWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, isSplitDigits(), separator, isReverse(), builder);
-						} else { //wildcardOption == WildcardOptions.WildcardOption.NETWORK_ONLY
-							seg.getPrefixAdjustedWildcardString(wildcardOptions.wildcards, leadingZeroCount, getSegmentStrPrefix(), getRadix(), false, builder);
-						}
-						builder.append(separator);
-					}
-					builder.setLength(builder.length() - 1);
-					//builder.deleteCharAt(builder.length() - 1);
-				}
-				return builder;
-			}
-			
-			@Override
-			public String toString(IPAddressPart addr) {
-				StringBuilder builder = new StringBuilder(IPv4Address.MAX_STRING_LEN + EXTRA_SPACE + getAddressSuffix().length());
-				return append(builder, addr).toString();
+			IPv4StringParams(int radix) {
+				super(radix, IPv4Address.SEGMENT_SEPARATOR, false);
 			}
 			
 			@Override
@@ -792,7 +720,7 @@ public class IPv4AddressSection extends IPAddressSection {
 				}
 				for(int radix : radices) {
 					ArrayList<IPv4StringParams> radixParams = new ArrayList<IPv4StringParams>();
-					IPv4StringParams stringParams = new IPv4StringParams(radix, IPv4Address.SEGMENT_SEPARATOR);
+					IPv4StringParams stringParams = new IPv4StringParams(radix);
 					radixParams.add(stringParams);
 					switch(radix) {
 						case 8:
@@ -842,7 +770,7 @@ public class IPv4AddressSection extends IPAddressSection {
 					} else if(options.includes(IPStringBuilderOptions.LEADING_ZEROS_FULL_ALL_SEGMENTS)) {
 						boolean allExpandable = isExpandable(radix);
 						if(allExpandable) {
-							IPv4StringParams expandParams = new IPv4StringParams(IPv4Address.DEFAULT_TEXTUAL_RADIX, IPv4Address.SEGMENT_SEPARATOR);
+							IPv4StringParams expandParams = new IPv4StringParams(IPv4Address.DEFAULT_TEXTUAL_RADIX);
 							expandParams.expandSegments(true);
 							radixParams.add(expandParams);
 						}

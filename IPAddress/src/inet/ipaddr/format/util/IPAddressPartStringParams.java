@@ -1,5 +1,6 @@
 package inet.ipaddr.format.util;
 
+import inet.ipaddr.IPAddress;
 import inet.ipaddr.format.IPAddressPart;
 
 /**
@@ -12,6 +13,8 @@ public abstract class IPAddressPartStringParams<T extends IPAddressPart> impleme
 	protected IPAddressPartStringParams() {}
 	
 	protected abstract StringBuilder append(StringBuilder builder, T addr);
+	
+	protected abstract int getStringLength(T addr);
 	
 	/**
 	 * 
@@ -28,7 +31,6 @@ public abstract class IPAddressPartStringParams<T extends IPAddressPart> impleme
 	public abstract int getTrailingSeparatorCount(T addr);
 	
 	public abstract char getTrailingSegmentSeparator();
-	
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -38,4 +40,37 @@ public abstract class IPAddressPartStringParams<T extends IPAddressPart> impleme
 		} catch(CloneNotSupportedException e) {}
 		return null;
 	}
+	
+	protected void appendPrefixIndicator(StringBuilder builder, T addr) {
+		Integer networkPrefixLength = addr.getNetworkPrefixLength();
+		if(networkPrefixLength != null ) {
+			builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
+		}
+	}
+	
+	//TODO disable eventually
+	public void checkLengths(int length, StringBuilder builder) {
+		boolean calcMatch = length == builder.length();
+		boolean capMatch = length == builder.capacity();
+		totalCount++;
+		if(calcMatch) {
+			calcMatchCount++;
+		}
+		if(capMatch) {
+			capMatchCount++;
+		}
+		if(!calcMatch) {
+			System.out.println(builder);
+		}
+		if(!capMatch) {
+			System.out.println(builder);
+		}
+		if(!calcMatch || !capMatch) {
+			System.out.println(" calculated length misses: " + (totalCount - calcMatchCount) + " capacity misses: " +  (totalCount - capMatchCount) + " total: " + totalCount);
+		}
+	}
+	
+	static int calcMatchCount;
+	static int capMatchCount;
+	static int totalCount;
 }

@@ -257,8 +257,8 @@ public abstract class TestBase {
 	
 	abstract void runTest();
 	
-	void testIPv4Strings(IPAddressString w, IPAddress ipAddr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString) {
-		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, normalizedWildcardString, sqlString, fullString, normalizedString, normalizedString, normalizedWildcardString, normalizedString, normalizedWildcardString);
+	void testIPv4Strings(IPAddressString w, IPAddress ipAddr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString, String reverseDNSString) {
+		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, normalizedWildcardString, sqlString, fullString, normalizedString, normalizedString, normalizedWildcardString, normalizedString, normalizedWildcardString, reverseDNSString, normalizedString);
 	
 		//now test some IPv4-only strings
 		testIPv4OnlyStrings(w, (IPv4Address) ipAddr, octalString, hexString);
@@ -307,7 +307,7 @@ public abstract class TestBase {
 					}
 				} catch(IPAddressTypeException e) {
 					//verify this case: joining segments results in a joined segment that is not a contiguous range
-					IPv4AddressSection section =  ipAddr.getSegments();
+					IPv4AddressSection section =  ipAddr.getSection();
 					boolean verifiedIllegalJoin = false;
 					for(int j = section.getSegmentCount() - i - 1; j < section.getSegmentCount() - 1; j++) {
 						if(section.getSegment(j).isMultiple()) {
@@ -341,9 +341,11 @@ public abstract class TestBase {
 			String mixedStringNoCompressMixed,
 			String mixedStringNoCompressHost,
 			String mixedStringCompressCoveredHost,
-			String mixedString) {
+			String mixedString,
+			String reverseDNSString,
+			String uncHostString) {
 		
-		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, canonicalWildcardString, sqlString, fullString, compressedString, canonicalString, subnetString, subnetString, compressedWildcardString);
+		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, canonicalWildcardString, sqlString, fullString, compressedString, canonicalString, subnetString, subnetString, compressedWildcardString, reverseDNSString, uncHostString);
 		
 		//now test some IPv6-only strings
 		testIPv6OnlyStrings(w, (IPv6Address) ipAddr, mixedStringNoCompressMixed,
@@ -401,9 +403,10 @@ public abstract class TestBase {
 			String canonicalString,
 			String subnetString,
 			String cidrString,
-			String compressedWildcardString) {
-		//TODO test unc string
-		//TODO test reverse lookup string
+			String compressedWildcardString,
+			String reverseDNSString,
+			String uncHostString) {
+		//TODO test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
 		String c = ipAddr.toCompressedString();
 		String canonical = ipAddr.toCanonicalString();
 		String s = ipAddr.toSubnetString();
@@ -414,11 +417,24 @@ public abstract class TestBase {
 		String cw = ipAddr.toCompressedWildcardString();
 		String sql = ipAddr.toSQLWildcardString();
 		String full = ipAddr.toFullString();
+		String rDNS = ipAddr.toReverseDNSLookupString();
+		String unc = ipAddr.toUNCHostName();
 		
 //		System.out.print("\"" + n + "\", \"" + nw + "\", \"" + sql + "\", \"" + full + "\", \"" + c + "\", \"" + 
 //				canonical + "\", \"" + s + "\", \"" +
 //				//cidr + "\", " +
 //				"\"" + cw);
+		
+		//TODO test the hex string
+//		try {
+//			if(ipAddr.isIPv6()) {
+//			String hex = ipAddr.toHexString(true);
+//			String hex2 = ipAddr.toHexString(false);
+//			System.out.println("" + hex + " " + hex2);
+//			}
+//		} catch(IPAddressTypeException e) {
+//			System.out.println("not hexable: " + caw);
+//		}
 		
 		boolean nMatch = normalizedString.equals(n);
 		if(!nMatch) {
@@ -459,6 +475,16 @@ public abstract class TestBase {
 											boolean fullMatch = fullString.equals(full);
 											if(!fullMatch) {
 												addFailure(new Failure("failed expected: " + fullString + " actual: " + full, w));
+											} else {
+												boolean rdnsMatch = reverseDNSString.equals(rDNS);
+												if(!rdnsMatch) {
+													addFailure(new Failure("failed expected: " + reverseDNSString + " actual: " + rDNS, w));
+												} else {
+													boolean uncMatch = uncHostString.equals(unc);
+													if(!uncMatch) {
+														addFailure(new Failure("failed expected: " + uncHostString + " actual: " + unc, w));
+													}
+												}
 											}
 										}
 									}
