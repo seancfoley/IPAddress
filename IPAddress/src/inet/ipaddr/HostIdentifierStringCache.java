@@ -1,6 +1,7 @@
 package inet.ipaddr;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Choose a map of your choice to implement a cache of addresses and/or host names.
@@ -57,11 +58,22 @@ public class HostIdentifierStringCache<T extends HostIdentifierString> {
 		if(result == null) {
 			result = creator.create(key);
 			String normalizedKey = result.toNormalizedString();
-			T existing = backingMap.putIfAbsent(normalizedKey, result);
-			if(existing == null) {
-				added(result);
+			if(backingMap instanceof ConcurrentMap) {
+				ConcurrentMap<String, T> concurrentMap = (ConcurrentMap<String, T>) backingMap;
+				T existing = concurrentMap.putIfAbsent(normalizedKey, result);
+				if(existing == null) {
+					added(result);
+				} else {
+					result = existing;
+				}
 			} else {
-				result = existing;
+		        T existing = backingMap.get(normalizedKey);
+		        if (existing == null) {
+		        	backingMap.put(normalizedKey, result);
+		        } else {
+		        	result = existing;
+		        }
+		        return result;
 			}
 			if(!normalizedKey.equals(key)) {
 				backingMap.put(key, result);
