@@ -6,13 +6,16 @@
 	<property name="javadocdir" value="javadoc"/>
 	<property name="rootjavadocdir" location="${rootOffset}/${javadocdir}"/>
 	<property name="functional_doclet_dir" location="${rootOffset}/../../Functional-Doclet-for-Javadoc/Functional Doclet for Javadoc" />
-	<property name="version" value="1.0"/>
+	<property name="version" value="2.0.0"/>
 	<property name="jarExtension" value=".jar"/>
 	<property name="src_location" value="${rootOffset}/src" />
 	<property name="bin_location" value="${rootOffset}/bin" />
 	<property name="rootPackage" value="inet.ipaddr"/>
 	<property name="rootPackagePath" value="inet/ipaddr"/>
-					
+	<property name="runScriptName" value="ip_address_test" />
+	<property name="runScriptPath" value="${rootdistdir}/${runScriptName}" />
+	<property name="jarname" value="IPAddress${jarExtension}" />
+			
 	<target name="check root dist dir">
 		<available property="rootdistdir.exists" file="${rootdistdir}" />
 	</target>
@@ -26,10 +29,7 @@
 	</target>
 	
 	<target name="create dist name" depends="generate time stamps" >
-		<property name="jarname" value="IPAddress${jarExtension}" />
 		<property name="archivename" value="IPAddress_v${version}_${timestamp}${jarExtension}" />
-		<property name="runScriptName" value="ip_address_test" />
-		<property name="runScriptPath" value="${rootdistdir}/${runScriptName}" />
 	</target>
 	
 	<target name="create run script" depends="create dist name">
@@ -42,15 +42,18 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	</target>
 	
 	<target name="compile">
-		<property name="java_level" value="1.7"/>
+		<!-- rely on Eclipse compiler
+		<property name="java_level" value="1.8"/>
 		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
 				source="${java_level}" target="${java_level}" failonerror="false" >
 			<include name="${rootPackagePath}/**/*.java"/>
 		</javac>
+		-->
 	</target>
 
 	<target name="create javadoc">
 		<echo>${functional_doclet_dir}</echo>
+		<mkdir dir="${rootjavadocdir}"/>
 		<delete includeemptydirs="true" verbose="true">
 		    <fileset dir="${rootjavadocdir}" includes="**/*"/>
 		</delete>
@@ -68,52 +71,156 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			</doclet>
 		</javadoc>
 	</target>
-			
-	<target name="create class jar" depends="compile, create dist name">	
+	
+	<target name="create file sets">
+		<fileset id="ipaddress.src" dir="${src_location}">
+			<include name="${rootPackagePath}/*.java" />
+			<include name="${rootPackagePath}/format/**/*.java" />
+			<include name="${rootPackagePath}/ipv4/**/*.java" />
+			<include name="${rootPackagePath}/ipv6/**/*.java" />
+			<include name="${rootPackagePath}/mac/**/*.java" />
+		</fileset>
+		<fileset id="ipaddress.src.xml" dir="${src_location}">
+			<include name="${rootPackagePath}/**/*.xml" />
+		</fileset>
+		<fileset id="ipaddress.src.test" dir="${src_location}">
+			<include name="${rootPackagePath}/test/**/*.java" />
+		</fileset>
+		<fileset id="ipaddress.src.properties" dir="${src_location}">
+			<include name="${rootPackagePath}/**/*.properties" />
+		</fileset>
+		<fileset id="ipaddress.jar.contents" dir="${bin_location}">
+			<include name="${rootPackagePath}/*.class" />
+			<include name="${rootPackagePath}/format/**/*.class" />
+			<include name="${rootPackagePath}/ipv4/*.class" />
+			<include name="${rootPackagePath}/ipv6/*.class" />
+			<include name="${rootPackagePath}/mac/*.class" />
+			<include name="${rootPackagePath}/**/*.properties" />
+		</fileset>
+		<fileset id="ipaddress.jar.test.contents" dir="${bin_location}">
+			<include name="${rootPackagePath}/test/**/*.class" />
+		</fileset>
+		<fileset id="ipaddress.javadoc.folder" dir="${rootOffset}">
+			<include name="${javadocdir}/**/*.*" />
+		</fileset>
+		<fileset id="ipaddress.javadoc" dir="${rootOffset}/javadoc" />
+		<fileset id="ipaddress.docs" dir="${rootOffset}">
+			<include name="docs.odt" />
+			<include name="build.xml" />
+		</fileset>
+	</target>
+		
+	<target name="create class jar" depends="compile, create file sets, create dist name">	
 		<property name="jarloc" location="${rootdistdir}/${jarname}" />
 		<jar destfile="${jarloc}" filesonly="true">
 			<manifest>
 				<attribute name="Version" value="${version}"/>
 				<attribute name="Timestamp" value="${timestamp}"/>
 			</manifest>
-			<fileset id="ipaddress.jar.properties" dir="${src_location}">
-				<include name="${rootPackagePath}/**/*.properties" />
-			</fileset>
-			<fileset id="ipaddress.jar.contents" dir="${bin_location}">
-				<include name="${rootPackagePath}/*.class" />
-				<include name="${rootPackagePath}/format/**/*.class" />
-				<include name="${rootPackagePath}/ipv4/*.class" />
-				<include name="${rootPackagePath}/ipv6/*.class" />
-			</fileset>
+			<fileset refid="ipaddress.jar.contents" />
 		</jar>
 		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
-	<target name="create dist jar" depends="compile, create dist name, create javadoc">	
+	<target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name">	
 		<property name="archiveloc" location="${rootdistdir}/${archivename}" />
 		<jar destfile="${archiveloc}" filesonly="true">
 			<manifest>
 				<attribute name="Version" value="${version}"/>
 				<attribute name="Timestamp" value="${timestamp}"/>
 			</manifest>
-			<fileset id="ipaddress.src" dir="${src_location}">
-				<include name="${rootPackagePath}/**/*.java" />
-				<include name="${rootPackagePath}/**/*.xml" />
-				<include name="${rootPackagePath}/**/*.properties" />
-			</fileset>
-			<fileset id="ipaddress.contents" dir="${bin_location}">
-				<include name="${rootPackagePath}/**/*.class" />
-			</fileset>
-			<fileset id="ipaddress.javadoc" dir="${rootOffset}">
-				<include name="${javadocdir}/**/*.*" />
-			</fileset>
-			<fileset id="ipaddress.docs" dir="${rootOffset}">
-				<include name="docs.odt" />
-				<include name="build.xml" />
-			</fileset>
+			<fileset refid="ipaddress.src" />
+			<fileset refid="ipaddress.src.xml" />
+			<fileset refid="ipaddress.src.test" />
+			<fileset refid="ipaddress.jar.contents" />
+			<fileset refid="ipaddress.jar.test.contents" />
+			<fileset refid="ipaddress.javadoc.folder" />
+			<fileset refid="ipaddress.docs" />
 		</jar>
 		<echo message ="Source files included: ${toString:ipaddress.src}" />
 	</target>
+	
+	<!-- define Maven coordinates -->
+			<property name="groupId" value="com.github.seancfoley" />
+			<property name="artifactId" value="ipaddress" />
+			
+			<!-- define artifacts' name, which follows the convention of Maven -->
+			<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
+			<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
+			<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />
+			
+			
+	<target name="create maven artifacts" depends="create dist jar">
+		
+		<mkdir dir="${rootdistdir}/mavenlib"/>
+		
+		<jar destfile="${jar}" filesonly="true" >
+			<fileset refid="ipaddress.jar.contents" />
+		</jar>
+		
+		<jar destfile="${javadoc-jar}" filesonly="true">
+			<fileset refid="ipaddress.javadoc" />
+		</jar>
+
+		<jar destfile="${sources-jar}" filesonly="true">
+			<fileset refid="ipaddress.src" />
+			<fileset refid="ipaddress.src.properties" />
+		</jar>
+		
+		<copy file="pom.xml" todir="${rootdistdir}/mavenlib" />
+	</target>
+
+	<target name="sign maven artifacts" depends="create maven artifacts">
+		<echo>
+			Running gpg from a JVM directly causes the JVM to hang, so run these from a cmd prompt,
+			or run the created batch file.
+			gpg -ab ${jar}
+			gpg -ab ${javadoc-jar}
+			gpg -ab ${sources-jar}
+			gpg -ab ${rootdistdir}/mavenlib/pom.xml
+			gpg --verify ${jar}.asc
+			gpg --verify ${javadoc-jar}.asc
+			gpg --verify ${sources-jar}.asc
+			gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
+		</echo>
+		<property name="batch" location="${rootdistdir}/mavenlib/sign.bat" />
+		<concat destfile="${batch}">
+:: Do not edit this file, it is generated by build.xml
+gpg -ab ${jar}
+gpg -ab ${javadoc-jar}
+gpg -ab ${sources-jar}
+gpg -ab ${rootdistdir}/mavenlib/pom.xml
+gpg --verify ${jar}.asc
+gpg --verify ${javadoc-jar}.asc
+gpg --verify ${sources-jar}.asc
+gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
+		</concat>
+		<fixcrlf file="${batch}" eol="crlf"/>
+		<echo message="created ${batch}"/>
+		<!--
+		<exec executable="cmd" os="Windows 7">
+		      <arg line="/c ${batch}"/>
+		</exec>
+		<delete file="${batch}" />
+		-->
+	</target>
+	
+	<target name="create maven bundle" >
+		<jar destfile="${rootdistdir}/bundle.jar" filesonly="true">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="*" />
+			</fileset>
+		</jar>
+	</target>
+	
+	<!--
+	After bundling, follow instructions here for manual deployment:
+	http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
+	which requires that you go here https://oss.sonatype.org/
+	to upload.
+	
+	Your sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28545
+	-->
 	
 	<target name="deploy" depends="create class jar, create run script">
 		<scp file="${runScriptPath}.sh" todir="${machine_user}@${machine}:${machine_dir}" password="${machine_pw}" trust="yes" />
@@ -121,7 +228,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<sshexec host="${machine}" username="${machine_user}" password="${machine_pw}" trust="yes" 
 			command="chmod 777 ${machine_dir}/*.sh; cd ${machine_dir}; ./${runScriptName}.sh"/>
 	</target>
-	
+
 	<target name="clean binaries">
 		<echo message="deleting compiled files" />
     	<delete verbose="false" includeemptydirs="true">
@@ -146,6 +253,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	<target name="clean previous deployments" depends="check root dist dir" if="rootdistdir.exists" description="remove previous distributions" >
 		<delete verbose="true" includeemptydirs="true">
     		<fileset dir="${rootdistdir}" />
+			<fileset dir="${rootdistdir}/mavenlib" />
     	</delete>
 	</target>
 

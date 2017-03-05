@@ -450,7 +450,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	/**
-	 * @custom.core
 	 * @author sfoley
 	 *
 	 */
