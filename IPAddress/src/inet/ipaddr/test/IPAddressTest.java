@@ -662,6 +662,10 @@ public class IPAddressTest extends TestBase {
 		iptest(pass, createAddress(x), isZero, false, false);
 	}
 	
+	void ipv6test(boolean pass, String x, boolean isZero, boolean notBothTheSame) {
+		iptest(pass, createAddress(x), isZero, notBothTheSame, false);
+	}
+	
 	/**
 	 * Returns just a few string representations:
 	 * 
@@ -1754,6 +1758,11 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
+	boolean isLenient() {
+		return false;
+	}
+	
 	@Override
 	void runTest() {
 		testEquivalentPrefix("1.2.3.4", 32);
@@ -2304,14 +2313,14 @@ public class IPAddressTest extends TestBase {
 			ipv4test(false, builder.toString());
 		}
 		
-		ipv4test(false, ""); //this needs special validation options to be valid
+		ipv4test(isLenient(), ""); //this needs special validation options to be valid
 		
 		ipv4test(true, "1.2.3.4");
 		ipv4test(false, "[1.2.3.4]");//only ipv6 can be in the square brackets
 		
 		ipv4test(!true, "a");
 		
-		ipv4test(!true, "1.2.3");
+		ipv4test(isLenient(), "1.2.3");
 		
 		ipv4test(!true, "a.2.3.4");
 		ipv4test(!true, "1.a.3.4");
@@ -2343,10 +2352,10 @@ public class IPAddressTest extends TestBase {
 		
 		ipv4test(true, "000.000.000.000", true);
 		
-		ipv4test(!true, "0000.0.0.0");
-		ipv4test(!true, "0.0000.0.0");
-		ipv4test(!true, "0.0.0000.0");
-		ipv4test(!true, "0.0.0.0000");
+		ipv4test(isLenient(), "0000.0.0.0", true);
+		ipv4test(isLenient(), "0.0000.0.0", true);
+		ipv4test(isLenient(), "0.0.0000.0", true);
+		ipv4test(isLenient(), "0.0.0.0000", true);
 		
 		ipv4test(!true, ".0.0.0");
 		ipv4test(!true, "0..0.0");
@@ -2376,6 +2385,9 @@ public class IPAddressTest extends TestBase {
 		ipv6test(false, "1:2::3:1.2.3.4//16");
 		ipv6test(false, "1:2::3:1.2.3.4//");
 		ipv6test(false, "1:2::3:1.2.3.4/y");
+		
+		ipv4test(false, "127.0.0.1/x");
+		ipv4test(false, "127.0.0.1/127.0.0.1/x");
 		
 		ipv4_inet_aton_test(true, "0.0.0.255");
 		ipv4_inet_aton_test(false, "0.0.0.256");
@@ -2423,7 +2435,11 @@ public class IPAddressTest extends TestBase {
 		ipv4testOnly(!true, "1:2:3:4:5:6:7:8");
 		ipv4testOnly(!true, "::1");
 		
-		ipv6test(0, ""); // empty string //this needs special validation options to be valid
+		//in this test, the validation will fail unless validation options have allowEmpty
+		//if you allowempty and also emptyIsLoopback, then this will evaluate to either ipv4
+		//or ipv6 depending on the loopback
+		//if loopback is ipv4, then ipv6 validation fails but general validation passes because ipv4 passes because loopback is ipv4
+		ipv6test(false, "", false, isLenient());
 		
 		ipv6test(1, "/0");
 		ipv6test(1, "/1");
@@ -2459,8 +2475,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"FF02:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(1,"0000:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(1,"0000:0000:0000:0000:0000:0000:0000:0000", true);
-		ipv6test(0,"02001:0000:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
-		ipv6test(0,"2001:0000:1234:0000:00001:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"02001:0000:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"2001:0000:1234:0000:00001:C1C0:ABCD:0876"); // extra 0 not allowed!
 		//ipv6test(1," 2001:0000:1234:0000:0000:C1C0:ABCD:0876"); // leading space
 		//ipv6test(1,"2001:0000:1234:0000:0000:C1C0:ABCD:0876 "); // trailing space
 		//ipv6test(1," 2001:0000:1234:0000:0000:C1C0:ABCD:0876  "); // leading and trailing space
@@ -2599,7 +2615,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"fe80:0:0:0:204:61ff:254.157.241.86");
 		ipv6test(1,"fe80::204:61ff:254.157.241.86");
 		ipv6test(1,"::ffff:12.34.56.78");
-		ipv6test(0,"::ffff:2.3.4");
+		ipv6test(isLenient(),"::ffff:2.3.4");
 		ipv6test(0,"::ffff:257.1.2.3");
 		ipv6testOnly(0,"1.2.3.4");
 		
@@ -2628,7 +2644,7 @@ public class IPAddressTest extends TestBase {
 		// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
 		// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
 		//ipv6test(0,"fe80:0000:0000:0000:0204:61ff:254.157.241.086");
-		ipv6test(1,"fe80:0000:0000:0000:0204:61ff:254.157.241.086");
+		ipv6test(!isLenient(),"fe80:0000:0000:0000:0204:61ff:254.157.241.086");//note the 086 is treated as octal when lenient!  So the lenient in this case fails.
 		ipv6test(1,"::ffff:192.0.2.128");   // this is always OK, since there's a single digit
 		ipv6test(0,"XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:1.2.3.4");
 		//ipv6test(0,"1111:2222:3333:4444:5555:6666:00.00.00.00");
@@ -2702,7 +2718,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"2001:db8:a::123");
 		ipv6test(1,"fe80::");
 		
-		ipv6test(0,"123");
+		ipv6test(false, "123", false, isLenient());//this is passing the ipv4 side as inet_aton
 		ipv6test(0,"ldkfj");
 		ipv6test(0,"2001::FFD3::57ab");
 		ipv6test(0,"2001:db8:85a3::8a2e:37023:7334");
@@ -2813,7 +2829,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:4444");
 		ipv6test(0,"1111:2222:3333");
 		ipv6test(0,"1111:2222");
-		ipv6test(0,"1111");
+		ipv6test(false, "1111", false, isLenient());// this is passing the ipv4 side for inet_aton
 		
 		// Missing :
 		ipv6test(0,"11112222:3333:4444:5555:6666:7777:8888");

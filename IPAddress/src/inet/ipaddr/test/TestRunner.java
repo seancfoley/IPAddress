@@ -412,7 +412,13 @@ public class TestRunner extends TestBase implements AddressCreator {
 	
 	public Failures testAll() {
 		Failures failures = new Failures();
-		TestBase tests[] = new TestBase[] {new SpecialTypesTest(this), new IPAddressTest(this), new HostTest(this), new IPAddressRangeTest(this), new HostRangeTest(this)};
+		TestBase tests[] = new TestBase[] {
+				new SpecialTypesTest(this),
+				new IPAddressTest(this),
+				new HostTest(this),
+				new IPAddressRangeTest(this),
+				new IPAddressAllTest(this),
+				new HostRangeTest(this)};
 		for(TestBase test : tests) {
 			test.fullTest = fullTest;
 			test.runTest();

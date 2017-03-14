@@ -52,8 +52,14 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 		private boolean allowMixed = DEFAULT_ALLOW_MIXED;
 		private boolean allowZone = DEFAULT_ALLOW_ZONE;
 		private IPAddressStringParameters.Builder embeddedIPv4OptionsBuilder;
+
+		//Note we need to have an ipv6 builder here to avoid using the default ipv6 options object which is also 
+		//static and which are reference this static field, so we must avoid the circular dependency
+		//But we don't need default ipv6 options anyway, we don't support ipv6 in the mixed section at all
+		//and in fact it makes no sense that you might think there was ipv6 there anyway
 		static private IPAddressStringParameters DEFAULT_MIXED_OPTS = new IPAddressStringParameters.Builder().
-				allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).toParams();
+				allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).
+				getIPv6AddressParametersBuilder().allowMixed(false).getParentBuilder().toParams();
 		
 		public Builder() {}
 		

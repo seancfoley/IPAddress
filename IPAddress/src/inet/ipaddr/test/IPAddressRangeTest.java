@@ -2185,10 +2185,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		
 		ipv4test(true, "000.000.000.*", false);
 		
-		ipv4test(!true, "0000.0.*.0");
-		ipv4test(!true, "*.0000.0.0");
-		ipv4test(!true, "0.*.0000.0");
-		ipv4test(!true, "*.0.0.0000");
+		ipv4test(isLenient(), "0000.0.*.0");
+		ipv4test(isLenient(), "*.0000.0.0");
+		ipv4test(isLenient(), "0.*.0000.0");
+		ipv4test(isLenient(), "*.0.0.0000");
 		
 		ipv4test(!true, ".0.*.0");
 		ipv4test(!true, "0..*.0");
@@ -2256,7 +2256,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1,"FF02:0000:0000:0000:0000:0000:*:0001");
 		ipv6test(1,"*:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(0,"0000:0000:0000:0000:*0000:0000:0000:*0", true);
-		ipv6test(0,"02001:*:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"02001:*:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
 		ipv6test(0,"2001:0000:1234:0000:0*:C1C0:ABCD:0876"); // extra 0 not allowed!
 		ipv6test(1,"2001:0000:1234:0000:*:C1C0:ABCD:0876"); 
 		
@@ -2322,7 +2322,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
 		// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
 		//ipv6test(0,"fe80:0000:0000:*:0204:61ff:254.157.241.086");
-		ipv6test(1,"fe80:0000:0000:*:0204:61ff:254.157.241.086");
+		ipv6test(!isLenient(),"fe80:0000:0000:*:0204:61ff:254.157.241.086");//the 086 is treated as octal and fails in the lenient case due to the 8, so in this case the lenient fails!
 		//ipv6test(1,"::*:192.0.*.128");
 		ipv6test(1,"::*:192.0.128.*"); 
 		ipv6test(0,"XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:1.2.3.4");
@@ -2390,9 +2390,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(true, "1.*.*");
 		ipv4test(true, "*.*.1");
 		ipv4test(true, "*.1.*");
-		ipv4test(false, "1");
-		ipv4test(false, "1.1");
-		ipv4test(false, "1.1.1");
+		ipv4test(isLenient(), "1");
+		ipv4test(isLenient(), "1.1");
+		ipv4test(isLenient(), "1.1.1");
 		
 		ipv4test(true, "*.1.2.*");
 		ipv4test(true, "*.1.*.2");
@@ -2445,13 +2445,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1, "::2:*.1.2");//compression takes precedence so the wildcard does not cover both ipv6 and ipv4 parts
 		ipv6test(0, "1:1.*.2");
 		ipv6test(0, "1:1.*.2.2");
-		ipv6test(0, "1:*:1.2");
+		ipv6test(isLenient(), "1:*:1.2");
 		
 		
 		ipv6test(1, "*:1:1.*");
-		ipv6test(0, "*:1:1.2.3");
+		ipv6test(isLenient(), "*:1:1.2.3");
 		ipv6test(1, "::1:1.*");
-		ipv6test(0, "::1:1.2.3");
+		ipv6test(isLenient(), "::1:1.2.3");
 		
 		ipv6test(1, "1:*:1");
 		ipv6test(1, "1:*:1:1.1.*");
@@ -2459,7 +2459,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1, "1:*:1:*");
 		ipv6test(1, "1:*:1:*.1.2");
 		ipv6test(1, "1:*:1:1.*");
-		ipv6test(0, "1:*:1:1.2.3");
+		ipv6test(isLenient(), "1:*:1:1.2.3");
 		
 		ipv6test(0, "1:*:1:2:3:4:5:6:7");
 		ipv6test(0, "1:*:1:2:3:4:5:1.2.3.4");
@@ -2487,10 +2487,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(true, "___.2.255.4");
 		ipv4test(true, "1.___.3.255");
 		
-		ipv4test(false, "255.____.3.4");
-		ipv4test(false, "1.255.____.4");
-		ipv4test(false, "____.2.255.4");
-		ipv4test(false, "1.____.3.255");
+		ipv4test(isLenient(), "255.____.3.4");
+		ipv4test(isLenient(), "1.255.____.4");
+		ipv4test(isLenient(), "____.2.255.4");
+		ipv4test(isLenient(), "1.____.3.255");
 		
 		ipv4test(false, "255._2_.3.4");
 		ipv4test(false, "1.255._2_.4");
@@ -2705,7 +2705,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1,"1___::2___:3___");
 		ipv6test(1,"1_::2___");
 		
-		ipv6test(0, "*:1:1._.__");
+		ipv6test(isLenient(), "*:1:1._.__");
 		ipv6test(1, "*:1:1._.__.___");
 		//ipv6test(0, "*:_:1:_.1.1._");//this passes validation but conversion to mask fails because the ipv4 ranges cannot be converted to ipv6 ranges
 		ipv6test(1, "*:_:1:1._.1._");
