@@ -25,6 +25,6 @@ public class IPAddressStringException extends HostIdentifierException {
 	}
 	
 	public IPAddressStringException(String key) {
-		super(key, errorMessage);
+		super(errorMessage, key);
 	}
 }
