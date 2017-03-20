@@ -6,7 +6,7 @@
 	<property name="javadocdir" value="javadoc"/>
 	<property name="rootjavadocdir" location="${rootOffset}/${javadocdir}"/>
 	<property name="functional_doclet_dir" location="${rootOffset}/../../Functional-Doclet-for-Javadoc/Functional Doclet for Javadoc" />
-	<property name="version" value="2.0.0"/>
+	<property name="version" value="2.0.1"/>
 	<property name="jarExtension" value=".jar"/>
 	<property name="src_location" value="${rootOffset}/src" />
 	<property name="bin_location" value="${rootOffset}/bin" />
@@ -214,7 +214,7 @@ gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
 	</target>
 	
 	<!--
-	After bundling, follow instructions here for manual deployment:
+	After bundling and signing, follow instructions here for manual deployment:
 	http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
 	which requires that you go here https://oss.sonatype.org/
 	to upload.
