@@ -26,7 +26,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 	private T loopback;
 	private String loopbackStrings[];
 	
-	protected static interface IPAddressSegmentCreator<S extends IPAddressSegment> {
+	public static interface IPAddressSegmentCreator<S extends IPAddressSegment> {
 		
 		S[] createSegmentArray(int length);
 		

@@ -7,8 +7,8 @@ import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressTypeException;
 import inet.ipaddr.IPAddressStringParameters.RangeParameters;
+import inet.ipaddr.IPAddressTypeException;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -392,6 +392,27 @@ public abstract class TestBase {
 		incrementTestCount();
 	}
 	
+	void testHostAddress(String addressStr) {
+		IPAddressString str = createAddress(addressStr);
+		IPAddress address = str.getAddress();
+		if(address != null) {
+			IPAddress hostAddress = str.getHostAddress();
+			int prefixIndex = addressStr.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
+			if(prefixIndex < 0) {
+				if(!address.contains(hostAddress)) {
+					addFailure(new Failure("failed host address: " + hostAddress + " expected: " + address, str));
+				}
+			} else {
+				String substr = addressStr.substring(0, prefixIndex);
+				IPAddressString str2 = createAddress(substr);
+				IPAddress address2 = str2.getAddress();
+				if(!address2.equals(hostAddress)) {
+					addFailure(new Failure("failed host address: " + hostAddress + " expected: " + address, str));
+				}
+			}
+		}
+	}
+	
 	void testStrings(IPAddressString w,
 			IPAddress ipAddr,
 			String normalizedString,
@@ -406,7 +427,8 @@ public abstract class TestBase {
 			String compressedWildcardString,
 			String reverseDNSString,
 			String uncHostString) {
-		//TODO test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
+		testHostAddress(w.toString());
+		
 		String c = ipAddr.toCompressedString();
 		String canonical = ipAddr.toCanonicalString();
 		String s = ipAddr.toSubnetString();
@@ -425,7 +447,7 @@ public abstract class TestBase {
 //				//cidr + "\", " +
 //				"\"" + cw);
 		
-		//TODO test the hex string
+		
 //		try {
 //			if(ipAddr.isIPv6()) {
 //			String hex = ipAddr.toHexString(true);

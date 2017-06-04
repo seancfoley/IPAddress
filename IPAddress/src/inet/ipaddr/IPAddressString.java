@@ -516,6 +516,22 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return false;
 	}
 	
+	/**
+	 * If this address string was constructed from a host address with prefix, 
+	 * then this provides the host address, rather than the full subnet block of addresses sharing the same prefix
+	 * that is supplied by {@link #getAddress()}
+	 * 
+	 * @return
+	 */
+	public IPAddress getHostAddress() {
+		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
+			try {
+				return toHostAddress();
+			} catch(IPAddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+		}
+		return null;
+	}
+	
 	public IPAddress getAddress(IPVersion version) {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
@@ -580,6 +596,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return addressProvider.getAddress();
 	}
 	
+	public IPAddress toHostAddress() throws IPAddressStringException, IPAddressTypeException {
+		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
+		return addressProvider.getHostAddress();
+	}
+
 	/**
 	 * Return an address for the network encompassing this address.  
 	 * The bits indicate the number of additional network bits in the network address in comparison to this address.

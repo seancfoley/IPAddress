@@ -1684,10 +1684,15 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testSubnet(String addressStr, String maskStr, int prefix, 
+	
+	
+	void testSubnet(String addressStr, 
+			String maskStr, 
+			int prefix, 
 			String normalizedPrefixSubnetString,
 			String normalizedSubnetString, 
 			String normalizedPrefixString) {
+		testHostAddress(addressStr);
 		boolean isValidWithPrefix = normalizedPrefixSubnetString != null;
 		boolean isValidMask = normalizedSubnetString != null;
 		IPAddressString str = createAddress(addressStr);

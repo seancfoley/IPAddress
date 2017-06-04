@@ -49,7 +49,7 @@ class ParsedAddressQualifier implements Serializable {
 	
 	IPAddress getMask() {
 		if(mask != null) {
-			return mask.createAddress();
+			return mask.createAddresses().getAddress();
 		}
 		return null;
 	}

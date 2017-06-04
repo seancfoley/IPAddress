@@ -6,9 +6,11 @@ import java.util.Objects;
 
 import inet.ipaddr.HostName;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressString;
-import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.format.validate.ParsedAddress.CachedIPAddresses;
+import inet.ipaddr.format.validate.ParsedAddress.IPAddresses;
 import inet.ipaddr.ipv6.IPv6Address;
 
 /**
@@ -72,6 +74,8 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 	private AddressProvider() {}
 	
 	public abstract AddressProvider.IPType getType();
+	
+	public abstract IPAddress getHostAddress();
 	
 	public abstract IPAddress getAddress();
 	
@@ -196,6 +200,11 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		}
 		
 		@Override
+		public IPAddress getHostAddress() {
+			return null;
+		}
+		
+		@Override
 		public IPAddress getAddress() {
 			return null;
 		}
@@ -218,17 +227,17 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 	//constructor where we already have a value
 	private static class CachedAddressProvider extends AddressProvider {
 		private static final long serialVersionUID = 1L;
-		IPAddress value;
+		CachedIPAddresses<?> values;
 		
 		CachedAddressProvider() {}
 		
 		private CachedAddressProvider(IPAddress value) {
-			this.value = value;
+			values = new CachedIPAddresses<IPAddress>(value);
 		}
 		
 		@Override
 		public IPVersion getIPVersion() {
-			return value.getIPVersion();
+			return getAddress().getIPVersion();
 		}
 		
 		@Override
@@ -243,22 +252,27 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		
 		@Override
 		public boolean isIPv4() {
-			return value.isIPv4();
+			return getAddress().isIPv4();
 		}
 		
 		@Override
 		public boolean isIPv6() {
-			return value.isIPv6();
+			return getAddress().isIPv6();
+		}
+		
+		@Override
+		public IPAddress getHostAddress()  {
+			return values.getHostAddress();
 		}
 		
 		@Override
 		public IPAddress getAddress()  {
-			return value;
+			return values.getAddress();
 		}
 		
 		@Override
 		public Integer getNetworkPrefixLength() {
-			return value.getNetworkPrefixLength();
+			return getAddress().getNetworkPrefixLength();
 		}
 		
 		@Override
@@ -280,18 +294,27 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 			return super.getAddress(version);
 		}
 		
-		@Override
-		public IPAddress getAddress()  {
-			IPAddress val = value;
+		private CachedIPAddresses<?> getCachedAddresses()  {
+			CachedIPAddresses<?> val = values;
 			if(val == null) {
 				synchronized(this) {
-					val = value;
+					val = values;
 					if(val == null) {
-						value = val = createAddress();
+						values = val = createAddresses();
 					}
 				}
 			}
 			return val;
+		}
+		
+		@Override
+		public IPAddress getHostAddress()  {
+			return getCachedAddresses().getHostAddress();
+		}
+		
+		@Override
+		public IPAddress getAddress()  {
+			return getCachedAddresses().getAddress();
 		}
 		
 		@Override
@@ -300,7 +323,7 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 			return super.getNetworkPrefixLength();
 		}
 		
-		abstract IPAddress createAddress();
+		abstract CachedIPAddresses<?> createAddresses();
 	}
 	
 	static class ParsedAddressProvider extends CachedAddressCreator {
@@ -336,8 +359,8 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		}
 		
 		@Override
-		IPAddress createAddress() {
-			IPAddress result = parseResult.createAddress();
+		IPAddresses<?,?> createAddresses() {
+			IPAddresses<?,?> result = parseResult.createAddresses();
 			parseResult = null;
 			return result;
 		}
@@ -441,6 +464,14 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 			}
 			return qualifier.getNetworkPrefixLength();
 		}
+
+		@Override
+		public IPAddress getHostAddress()  {
+			if(adjustedVersion == null) {
+				return null;
+			}
+			return super.getHostAddress();
+		}
 		
 		@Override
 		public IPAddress getAddress()  {
@@ -467,7 +498,7 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 			if(adjustedVersion == null) {
 				return getNetworkPrefixLength();
 			}
-			return getAdjustedValue().hashCode();
+			return getAddress().hashCode();
 		}
 		
 		@Override
@@ -506,14 +537,14 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 			return IPType.from(adjustedVersion).ordinal() - other.getType().ordinal();
 		}
 
-		private IPAddress createVersionedMask(IPVersion version, int bits) {
+		private IPAddress createVersionedMask(IPVersion version, int bits, boolean withPrefix) {
 			IPAddressNetwork network = IPAddress.network(version);
-			return network.getNetworkMask(bits, true);
+			return network.getNetworkMask(bits, withPrefix);
 		}
 		
 		@Override
 		IPAddress createVersionedAddress(IPVersion version) {
-			return createVersionedMask(version, getNetworkPrefixLength());
+			return createVersionedMask(version, getNetworkPrefixLength(), true);
 		}
 		
 		@Override
@@ -535,23 +566,10 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		}
 		
 		@Override
-		public IPAddress getAddress()  {
-			if(adjustedVersion == null) {
-				return null;
-			}
-			return getAdjustedValue();
-		}
-		
-		private IPAddress getAdjustedValue()  {
-			if(value == null) {
-				value = createAddress();
-			}
-			return value;
-		}
-		
-		@Override
-		IPAddress createAddress() {
-			return createVersionedMask(adjustedVersion, getNetworkPrefixLength());
+		CachedIPAddresses<?> createAddresses() {
+			return new CachedIPAddresses<IPAddress>(
+					createVersionedMask(adjustedVersion, getNetworkPrefixLength(), true),
+					createVersionedMask(adjustedVersion, getNetworkPrefixLength(), false));
 		}
 	}
 	
@@ -589,8 +607,8 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		
 		@Override
 		IPAddress createVersionedAddress(IPVersion version) {
-			if(value != null && version.equals(value.getIPVersion())) {
-				return value;
+			if(values != null && version.equals(values.getAddress().getIPVersion())) {
+				return values.getAddress();
 			}
 			IPAddress address = IPAddress.getLoopback(version);
 			if(zone != null && zone.length() > 0 && version.isIPv6()) {
@@ -600,13 +618,16 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		}
 		
 		@Override
-		IPAddress createAddress() {
+		CachedIPAddresses<IPAddress> createAddresses() {
 			InetAddress loopback = InetAddress.getLoopbackAddress();
 			byte bytes[] = loopback.getAddress();
+			IPAddress result;
 			if(zone != null && zone.length() > 0 && bytes.length == IPv6Address.BYTE_COUNT) {
-				return IPv6Address.from(bytes, zone);
+				result = IPv6Address.from(bytes, zone);
+			} else {
+				result = IPAddress.from(bytes);
 			}
-			return IPAddress.from(bytes);
+			return new CachedIPAddresses<IPAddress>(result);
 		}
 		
 		@Override
@@ -664,8 +685,8 @@ public abstract class AddressProvider implements Serializable, Comparable<Addres
 		}
 		
 		@Override
-		IPAddress createAddress() {
-			return ParsedAddress.createAllAddress(adjustedVersion, qualifier, fromHost, fromString);
+		CachedIPAddresses<?> createAddresses() {
+			return new CachedIPAddresses<IPAddress>(ParsedAddress.createAllAddress(adjustedVersion, qualifier, fromHost, fromString));
 		}
 	}
 }
