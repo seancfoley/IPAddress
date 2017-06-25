@@ -1,12 +1,13 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
 		
+	<property name="version" value="2.0.2"/>
+		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
 	<property name="javadocdir" value="javadoc"/>
 	<property name="rootjavadocdir" location="${rootOffset}/${javadocdir}"/>
 	<property name="functional_doclet_dir" location="${rootOffset}/../../Functional-Doclet-for-Javadoc/Functional Doclet for Javadoc" />
-	<property name="version" value="2.0.1"/>
 	<property name="jarExtension" value=".jar"/>
 	<property name="src_location" value="${rootOffset}/src" />
 	<property name="bin_location" value="${rootOffset}/bin" />
