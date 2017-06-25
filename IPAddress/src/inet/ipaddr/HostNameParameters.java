@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr;
 
 import java.io.Serializable;
@@ -14,7 +32,7 @@ import java.io.Serializable;
  */
 public class HostNameParameters implements Cloneable, Comparable<HostNameParameters>, Serializable {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	public static final boolean DEFAULT_ALLOW_EMPTY = true;
 	public static final boolean DEFAULT_EMPTY_IS_LOOPBACK = true; //Note that with InetAddress, empty strings are interpreted as the loopback address
@@ -22,13 +40,15 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 	public static final boolean DEFAULT_ACCEPT_BRACKETED_IPV4 = true;
 	public static final boolean DEFAULT_NORMALIZE_TO_LOWER_CASE = true;
 	public static final boolean DEFAULT_ALLOW_IP_ADDRESS = true;
-	
+	public static final boolean DEFAULT_ALLOW_PORT = true;
+
 	public final boolean allowEmpty;
 	public final boolean emptyIsLoopback;
 	public final boolean allowBracketedIPv4;
 	public final boolean allowBracketedIPv6;
 	public final boolean normalizeToLowercase;
 	public final boolean allowIPAddress;
+	public final boolean allowPort;
 	public final IPAddressStringParameters addressOptions;
 	
 	public HostNameParameters(
@@ -38,13 +58,15 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 			boolean allowBracketedIPv6,
 			boolean allowBracketedIPv4,
 			boolean normalizeToLowercase,
-			boolean allowIPAddress) {
+			boolean allowIPAddress,
+			boolean allowPort) {
 		this.allowEmpty = allowEmpty;
 		this.emptyIsLoopback = emptyIsLoopback;
 		this.allowBracketedIPv6 = allowBracketedIPv6;
 		this.allowBracketedIPv4 = allowBracketedIPv4;
 		this.normalizeToLowercase = normalizeToLowercase;
 		this.allowIPAddress = allowIPAddress;
+		this.allowPort = allowPort;
 		this.addressOptions = addressOptions;
 	}
 	
@@ -56,6 +78,7 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		builder.allowBracketedIPv6 = allowBracketedIPv6;
 		builder.normalizeToLowercase = normalizeToLowercase;
 		builder.allowIPAddress = allowIPAddress;
+		builder.allowPort = allowPort;
 		builder.addressOptionsBuilder = toAddressOptionsBuilder();
 		return builder;
 	}
@@ -71,11 +94,17 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		private boolean allowBracketedIPv4 = DEFAULT_ACCEPT_BRACKETED_IPV4;
 		private boolean normalizeToLowercase = DEFAULT_NORMALIZE_TO_LOWER_CASE;
 		private boolean allowIPAddress = DEFAULT_ALLOW_IP_ADDRESS;
+		private boolean allowPort = DEFAULT_ALLOW_PORT;
 		
 		private IPAddressStringParameters.Builder addressOptionsBuilder;
 		private static final IPAddressStringParameters DEFAULT_ADDRESS_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 		
 		public Builder() {}
+		
+		public Builder allowPort(boolean allow) {
+			allowPort = allow;
+			return this;
+		}
 		
 		public Builder allowIPAddress(boolean allow) {
 			allowIPAddress = allow;
@@ -115,14 +144,14 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 			return addressOptionsBuilder;
 		}
 		
-		public HostNameParameters toOptions() {
+		public HostNameParameters toParams() {
 			IPAddressStringParameters addressOpts;
 			if(addressOptionsBuilder == null) {
 				addressOpts = DEFAULT_ADDRESS_OPTIONS;
 			} else {
 				addressOpts = addressOptionsBuilder.toParams();
 			}
-			return new HostNameParameters(addressOpts, allowEmpty, emptyIsLoopback, allowIPAddress && allowBracketedIPv6, allowIPAddress && allowBracketedIPv4,  normalizeToLowercase, allowIPAddress);
+			return new HostNameParameters(addressOpts, allowEmpty, emptyIsLoopback, allowIPAddress && allowBracketedIPv6, allowIPAddress && allowBracketedIPv4,  normalizeToLowercase, allowIPAddress, allowPort);
 		}
 	}
 	
@@ -146,7 +175,10 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 					if(result == 0) {
 						result = Boolean.compare(allowIPAddress, o.allowIPAddress);
 						if(result == 0) {
-							result = addressOptions.compareTo(o.addressOptions);
+							result = Boolean.compare(allowPort, o.allowPort);
+							if(result == 0) {
+								result = addressOptions.compareTo(o.addressOptions);
+							}
 						}
 					}
 				}
@@ -164,6 +196,7 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 					allowBracketedIPv4 == other.allowBracketedIPv4 &&
 					normalizeToLowercase == other.normalizeToLowercase &&
 					allowIPAddress == other.allowIPAddress &&
+					allowPort == other.allowPort &&
 					addressOptions.equals(other.addressOptions);
 		}
 		return false;
@@ -177,13 +210,16 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		if(allowEmpty) {
 			hash |= 0x20000000;
 		}
-		if(normalizeToLowercase) {
-			hash |= 0x40000000;
-		}
+//		if(normalizeToLowercase) {
+//			hash |= 0x40000000;
+//		}
 		if(allowIPAddress) {
 			if(allowBracketedIPv6 || allowBracketedIPv4) {
 				hash |= 0x80000000;
 			}
+		}
+		if(allowPort) {
+			hash |= 0x40000000;
 		}
 		return hash;
 	}

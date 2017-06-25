@@ -1,10 +1,28 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv6;
 
 import java.util.Objects;
 
+import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressStringParameters.IPVersionAddressStringParameters;
-import inet.ipaddr.IPAddressStringParameters.RangeParameters;
+import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 import inet.ipaddr.ipv4.IPv4AddressStringParameters;
 
 /**
@@ -13,12 +31,13 @@ import inet.ipaddr.ipv4.IPv4AddressStringParameters;
  * @author sfoley
  *
  */
-public class IPv6AddressStringParameters extends IPVersionAddressStringParameters implements Comparable<IPv6AddressStringParameters> {
+public class IPv6AddressStringParameters extends IPAddressStringFormatParameters implements Comparable<IPv6AddressStringParameters> {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	public static final boolean DEFAULT_ALLOW_MIXED = true;
 	public static final boolean DEFAULT_ALLOW_ZONE = true;
+	public static final boolean DEFAULT_ALLOW_BASE85 = true;
 	
 	/**
 	 * Allows IPv6 addresses with embedded ipv4 like a:b:c:d:e:f:1.2.3.4
@@ -31,6 +50,8 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 	 * @see #DEFAULT_ALLOW_ZONE
 	 */
 	public final boolean allowZone;
+	
+	public final boolean allowBase85;
 	
 	/**
 	 * if you allow mixed, this is the options used for the ipv4 section, 
@@ -48,9 +69,10 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 		return (Builder) toBuilder(builder);
 	}
 	
-	public static class Builder extends IPVersionAddressStringParameters.BuilderBase {
+	public static class Builder extends IPAddressStringFormatParameters.BuilderBase {
 		private boolean allowMixed = DEFAULT_ALLOW_MIXED;
 		private boolean allowZone = DEFAULT_ALLOW_ZONE;
+		private boolean allowBase85 = DEFAULT_ALLOW_BASE85;
 		private IPAddressStringParameters.Builder embeddedIPv4OptionsBuilder;
 		
 		//Note we need to have an ipv6 builder here to avoid using the default ipv6 options object which is also 
@@ -113,7 +135,7 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 			//The only thing that matters in ipv6 is the zone, we must treat zones the same way as in the encompassing address.
 			if(embeddedIPv4OptionsBuilder == null) {
 				embeddedIPv4OptionsBuilder = new IPAddressStringParameters.Builder().
-						allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false);
+						allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).allowIPv6(false);
 				embeddedIPv4OptionsBuilder.getIPv6AddressParametersBuilder().allowZone = allowZone;
 			}
 			setMixedParent(embeddedIPv4OptionsBuilder, this);
@@ -175,6 +197,7 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 					allowMixed,
 					mixedOptions,
 					allowZone,
+					allowBase85,
 					rangeOptions,
 					allowWildcardedSeparator,
 					allowPrefixesBeyondAddressSize);
@@ -187,13 +210,15 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 			boolean allowUnlmitedLeadingZeros,
 			boolean allowMixed,
 			IPAddressStringParameters mixedOptions,
-			boolean allowZone, 
+			boolean allowZone,
+			boolean allowBase85,
 			RangeParameters rangeOptions,
 			boolean allowWildcardedSeparator,
 			boolean allowPrefixesBeyondAddressSize) {
 		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.allowMixed = allowMixed;
 		this.allowZone = allowZone;
+		this.allowBase85 = allowBase85;
 		this.embeddedIPv4Options = mixedOptions;
 	}
 
@@ -221,6 +246,9 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 				result = Boolean.compare(allowMixed, o.allowMixed);
 				if(result == 0) {
 					result = Boolean.compare(allowZone, o.allowZone);
+					if(result == 0) {
+						result = Boolean.compare(allowBase85, o.allowBase85);
+					}
 				}
 			}
 		}
@@ -235,7 +263,8 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 				//Of the mixed options neither the ipv6 options nor the general options are used and variable
 				return Objects.equals(embeddedIPv4Options.getIPv4Parameters(), other.embeddedIPv4Options.getIPv4Parameters())
 					&& allowMixed == other.allowMixed
-					&& allowZone == other.allowZone;
+					&& allowZone == other.allowZone
+					&& allowBase85 == other.allowBase85;
 			}
 		}
 		return false;
@@ -256,6 +285,9 @@ public class IPv6AddressStringParameters extends IPVersionAddressStringParameter
 		}
 		if(allowZone) {
 			hash |= 0x10000;
+		}
+		if(allowBase85) {
+			hash |= 0x20000;
 		}
 		return hash;
 	}

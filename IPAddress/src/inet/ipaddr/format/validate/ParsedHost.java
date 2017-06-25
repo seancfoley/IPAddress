@@ -1,17 +1,31 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.format.validate;
 
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
+import inet.ipaddr.AddressStringException;
 import inet.ipaddr.HostName;
-import inet.ipaddr.HostNameException;
-import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressString;
-import inet.ipaddr.ipv4.IPv4Address;
-import inet.ipaddr.ipv6.IPv6Address;
 
 /**
  * The result of parsing a valid host name.
@@ -21,41 +35,121 @@ import inet.ipaddr.ipv6.IPv6Address;
  */
 public class ParsedHost implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
-	public final AddressProvider addressProvider;
+	private static final EmbeddedAddress NO_EMBEDDED_ADDRESS = new EmbeddedAddress();
+	static final ParsedHostIdentifierStringQualifier NO_QUALIFIER = new ParsedHostIdentifierStringQualifier();
 	
 	private String normalizedLabels[];
 	private int separatorIndices[];
 	private boolean normalizedFlags[];
 	
-	public final ParsedAddressQualifier labelsQualifier;
+	private final ParsedHostIdentifierStringQualifier labelsQualifier;
+	
+	private EmbeddedAddress embeddedAddress;
 	
 	String host;
 	private final String originalStr;
 	
-	public ParsedHost(String originalStr, AddressProvider valueProvider) {
-		this.addressProvider = valueProvider;
-		this.labelsQualifier = null;
-		this.originalStr = originalStr;
+	public ParsedHost(String originalStr, IPAddressProvider valueProvider) {
+		this(originalStr, null, null, NO_QUALIFIER, new EmbeddedAddress());
+		embeddedAddress.addressProvider = valueProvider;
 	}
 	
-	ParsedHost(String originalStr, int separatorIndices[], boolean normalizedFlags[], ParsedAddressQualifier labelsQualifier) {
-		this.addressProvider = null;
+	public ParsedHost(String originalStr, IPAddressProvider valueProvider, ParsedHostIdentifierStringQualifier portQualifier) {
+		this(originalStr, null, null, portQualifier, new EmbeddedAddress());
+		embeddedAddress.addressProvider = valueProvider;
+	}
+
+	ParsedHost(String originalStr, int separatorIndices[], boolean normalizedFlags[], ParsedHostIdentifierStringQualifier labelsQualifier) {
+		this(originalStr, separatorIndices, normalizedFlags, labelsQualifier, null);
+	}
+	
+	ParsedHost(String originalStr, int separatorIndices[], boolean normalizedFlags[], ParsedHostIdentifierStringQualifier labelsQualifier, EmbeddedAddress embeddedAddress) {
+		//this.addressProvider = embeddedAddress.addressProvider;
 		this.labelsQualifier = labelsQualifier;
 		this.normalizedFlags = normalizedFlags;
 		this.separatorIndices = separatorIndices;
 		this.originalStr = originalStr;
+		this.embeddedAddress = embeddedAddress == null ? NO_EMBEDDED_ADDRESS : embeddedAddress;
+	}
+	
+	static class EmbeddedAddress implements Serializable {
+		
+		private static final long serialVersionUID = 3L;
+		
+		boolean isUNCIPv6Literal;
+		boolean isReverseDNS;
+		
+		AddressStringException addressStringException;
+		
+		IPAddressProvider addressProvider;
+	}
+	
+	public boolean isIPv6Address() {
+		return hasEmbeddedAddress() && getAddressProvider().isIPv6();
+	}
+	
+	public Integer getPort() {
+		return labelsQualifier.getPort();
+	}
+	
+	public Integer getNetworkPrefixLength() {
+		return labelsQualifier.getNetworkPrefixLength();
+	}
+	
+	public Integer getEquivalentPrefixLength() {
+		Integer pref = labelsQualifier.getNetworkPrefixLength();
+		if(pref == null) {
+			IPAddress mask = getMask();
+			if(mask != null) {
+				pref = mask.getMaskPrefixLength(true);
+			}
+		}
+		return pref;
+	}
+	
+	public IPAddress getMask() {
+		return labelsQualifier.getMask();
+	}
+	
+	public IPAddressProvider getAddressProvider() {
+		return embeddedAddress.addressProvider;
+	}
+	
+	private boolean hasEmbeddedAddress() {
+		return embeddedAddress.addressProvider != null;
+	}
+	
+	public boolean isAddressString() {
+		return getAddressProvider() != null;
+	}
+	
+	public IPAddress asAddress(IPVersion version) {
+		if(hasEmbeddedAddress()) {
+			return getAddressProvider().getAddress(version);
+		}
+		return null;
+	}
+	
+	public IPAddress asAddress() {
+		if(hasEmbeddedAddress()) {
+			return getAddressProvider().getAddress();
+		}
+		return null;
 	}
 	
 	public IPAddressString asGenericAddressString() {
-		if(addressProvider != null) {
+		if(hasEmbeddedAddress()) {
+			IPAddressProvider addressProvider = getAddressProvider();
 			if(addressProvider.isAllAddresses()) {
 				return IPAddressString.ALL_ADDRESSES;
 			} else if(addressProvider.isPrefixOnly()) {
 				return IPAddressNetwork.getPrefix(addressProvider.getNetworkPrefixLength());
 			} else if(addressProvider.isEmpty()) {
 				return IPAddressString.EMPTY_ADDRESS;
+			} else {
+				return getAddressProvider().getAddress().toAddressString();
 			}
 		}
 		return null;
@@ -67,7 +161,8 @@ public class ParsedHost implements Serializable {
 			synchronized(this) {
 				labels = normalizedLabels;
 				if(labels == null) {
-					if(addressProvider != null) {
+					if(hasEmbeddedAddress()) {
+						IPAddressProvider addressProvider = getAddressProvider();
 						IPAddress addr = addressProvider.getAddress();
 						if(addr == null) {
 							if(addressProvider.isEmpty()) {
@@ -75,7 +170,7 @@ public class ParsedHost implements Serializable {
 							}
 							return new String[] {asGenericAddressString().toString()};
 						}
-						return addr.getSegmentStrings();
+						labels = addr.getSegmentStrings();
 					} else {
 						labels = new String[separatorIndices.length];
 						for(int i = 0, lastSep = -1; i < labels.length; i++) {
@@ -109,31 +204,27 @@ public class ParsedHost implements Serializable {
 				synchronized(this) {
 					str = host;
 					if(str == null) {
-						StringBuilder builder = new StringBuilder(originalStr.length());
-						String labels[] = normalizedLabels;
-						if(labels == null) {
-							int labelIndex = 0;
-							boolean isNormalized = normalizedFlags[0];
-							for(int j = 0; j < originalStr.length(); j++) {
-								char c = originalStr.charAt(j);
-								if(c == HostName.LABEL_SEPARATOR) {
-									isNormalized = normalizedFlags[++labelIndex];
-									builder.append(c);
-								} else if(c == IPAddress.PREFIX_LEN_SEPARATOR) {
-									break;
-								} else if(isNormalized || c < 'A' || c > 'Z') {
-									builder.append(c);
-								} else {
-									builder.append((char) (c + ('a' - 'A')));
-								}
+						if(hasEmbeddedAddress()) {
+							IPAddressProvider addressProvider = getAddressProvider();
+							IPAddress addr = addressProvider.getAddress();
+							if(addr == null) {
+								//note that this means prefix only (/16 or /64) is a valid host
+								return asGenericAddressString().toString();
 							}
+							//toNormalizedWildcardString removes prefix
+							//port was stripped out 
+							//mask and prefix removed by toNormalizedWildcardString
+							//getSection() removes zone
+							return addr.getSection().toNormalizedWildcardString();
 						} else {
-							builder.append(normalizedLabels[0]);
-							for(int i = 1; i < normalizedLabels.length; i++) {
-								builder.append(HostName.LABEL_SEPARATOR).append(normalizedLabels[i]);
+							StringBuilder builder = new StringBuilder(originalStr.length());
+							String labels[] = getNormalizedLabels();
+							builder.append(labels[0]);
+							for(int i = 1; i < labels.length; i++) {
+								builder.append(HostName.LABEL_SEPARATOR).append(labels[i]);
 							}
+							str = builder.toString();
 						}
-						str = builder.toString();
 					}
 				}
 			} else {
@@ -143,50 +234,16 @@ public class ParsedHost implements Serializable {
 		}
 		return str;
 	}
-
-	public boolean isIPv6Address() {
-		return addressProvider != null && addressProvider.isIPv6();
-	}
-
-	public IPAddress resolveAddress(HostName originatingHost, HostNameParameters options) throws HostNameException, UnknownHostException {
-		IPAddress result;
-		if(addressProvider != null) {
-			result = addressProvider.getAddress();
-		} else {
-			String strHost = getHost();
-			if(strHost.length() == 0 && !options.emptyIsLoopback) {
-				result = null;
-			} else {
-				InetAddress inetAddress = InetAddress.getByName(strHost);
-				byte bytes[] = inetAddress.getAddress();
-				if(bytes.length == IPv6Address.BYTE_COUNT) {
-					String zone = labelsQualifier.getZone();
-					ParsedAddressCreator<IPv6Address, ?, ?> creator = IPv6Address.network().getAddressCreator();
-					result = createAddress(originatingHost, bytes, zone, creator);
-				} else {
-					ParsedAddressCreator<IPv4Address, ?, ?> creator = IPv4Address.network().getAddressCreator();
-					result = createAddress(originatingHost, bytes, null, creator);
-				}
-			}
-		}
-		return result;
+	
+	public AddressStringException getAddressStringException() {
+		return embeddedAddress.addressStringException;
 	}
 	
-	private <T extends IPAddress> T createAddress(HostName originatingHost, byte bytes[], String zone, ParsedAddressCreator<T, ?, ?> creator) throws HostNameException {
-		Integer networkPrefixLength = labelsQualifier.getNetworkPrefixLength();
-		if(networkPrefixLength == null) {
-			IPAddress mask = labelsQualifier.getMask();
-			if(mask != null) {
-				byte maskBytes[] = mask.getBytes();
-				if(maskBytes.length != bytes.length) {
-					throw new HostNameException(originalStr, "ipaddress.error.ipMismatch");
-				}
-				for(int i = 0; i < bytes.length; i++) {
-					bytes[i] &= maskBytes[i];
-				}
-				networkPrefixLength = mask.getMaskPrefixLength(true);
-			}
-		}
-		return creator.createAddressInternal(bytes, networkPrefixLength, zone, originatingHost); /* address creation */
+	public boolean isUNCIPv6Literal() {
+		return embeddedAddress.isUNCIPv6Literal;
+	}
+	
+	public boolean isReverseDNS() {
+		return embeddedAddress.isReverseDNS;
 	}
 }

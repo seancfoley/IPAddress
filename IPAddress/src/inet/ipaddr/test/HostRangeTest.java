@@ -1,29 +1,44 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.test;
 
+import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressStringParameters.RangeParameters;
-import inet.ipaddr.test.IPAddressTest.HostKey;
-import inet.ipaddr.test.IPAddressTest.IPAddressStringKey;
-
 
 public class HostRangeTest extends HostTest {
 
-	private static final HostNameParameters HOST_ONLY_OPTIONS = HOST_OPTIONS.toBuilder().allowIPAddress(false).toOptions();
+	private static final HostNameParameters HOST_ONLY_OPTIONS = HOST_OPTIONS.toBuilder().allowIPAddress(false).toParams();
 	
 	private static final HostNameParameters HOST_WILDCARD_OPTIONS = HOST_OPTIONS.toBuilder().getAddressOptionsBuilder().
-			allowAll(true).setRangeParameters(RangeParameters.WILDCARD_ONLY).getParentBuilder().toOptions();
+			allowAll(true).setRangeOptions(RangeParameters.WILDCARD_ONLY).getParentBuilder().toParams();
 	
 	private static final HostNameParameters HOST_WILDCARD_AND_RANGE_OPTIONS = HOST_WILDCARD_OPTIONS.toBuilder().getAddressOptionsBuilder().
-			setRangeParameters(RangeParameters.WILDCARD_AND_RANGE).getParentBuilder().toOptions();
+			setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).getParentBuilder().toParams();
 
 	private static final HostNameParameters HOST_WILDCARD_AND_RANGE_INET_ATON_OPTIONS = HOST_WILDCARD_OPTIONS.toBuilder().getAddressOptionsBuilder().
-			setRangeParameters(RangeParameters.WILDCARD_AND_RANGE).allow_inet_aton(true).getParentBuilder().toOptions();
+			setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).allow_inet_aton(true).getParentBuilder().toParams();
 
-	private static final IPAddressStringParameters ADDRESS_WILDCARD_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeParameters(RangeParameters.WILDCARD_ONLY).toParams();
+	private static final IPAddressStringParameters ADDRESS_WILDCARD_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_ONLY).toParams();
 	
 	HostRangeTest(AddressCreator creator) {
 		super(creator);
@@ -67,8 +82,12 @@ public class HostRangeTest extends HostTest {
 				addFailure(new Failure("addr string is " + addr.toNormalizedString() + " expected " + normalizedAddressString, h));
 			} else {
 				String nhString = h.toNormalizedString();
-				//String expected = isValidAddress ? (h.asAddress().isIPv6() ? '[' + normalizedAddressString + ']': normalizedAddressString) : (isValidHost ? normalizedHostString : h.toString());
-				String expected = isValidAddress ? normalizedAddressString : (isValidHost ? normalizedHostString : h.toString());
+				String expected;
+				if(h.isAddress() && addr.isIPv6()) {
+					expected = isValidHost ? normalizedHostString : h.toString();
+				} else {
+					expected = isValidAddress ? normalizedAddressString : (isValidHost ? normalizedHostString : h.toString());
+				}
 				if (!nhString.equals(expected)) {
 					addFailure(new Failure("host string is " + nhString + " expected " + expected, h));
 				}
@@ -167,7 +186,7 @@ public class HostRangeTest extends HostTest {
 		testHostOrAddress_inet_aton("1-9.0x1-0x22", 2, 4, "1-9.0x1-0x22", "1-9.0.0.1-34");
 		testHostOnly("9-1.0x1-0x22", 2, "9-1.0x1-0x22", null);
 		testHostOrAddress_inet_aton("1-9.0x1-0x22.03.04", 4, 4, "1-9.0x1-0x22.03.04", "1-9.1-34.3.4");
-		testAddress("1::2", 8, "1:0:0:0:0:0:0:2", "1:0:0:0:0:0:0:2");
+		testAddress("1::2", 8, "[1:0:0:0:0:0:0:2]", "1:0:0:0:0:0:0:2");
 		testAddress("1.2.3.4", 4, "1.2.3.4", "1.2.3.4");
 		
 		testMatches(true, "1.2.3.4/255.0.0.0", "1.*.*.*");

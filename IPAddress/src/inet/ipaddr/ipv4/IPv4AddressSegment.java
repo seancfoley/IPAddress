@@ -1,10 +1,30 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv4;
 
 import java.util.Iterator;
 
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
+import inet.ipaddr.AddressSegment;
+import inet.ipaddr.AddressTypeException;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
-import inet.ipaddr.IPAddressTypeException;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 
 /**
@@ -15,9 +35,9 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
  * @author sfoley
  *
  */
-public class IPv4AddressSegment extends IPAddressSegment {
+public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv4AddressSegment> {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	public static final int MAX_CHARS = 3;
 
@@ -32,6 +52,9 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	 */
 	public IPv4AddressSegment(int value) {
 		super(value);
+		if(value > IPv4Address.MAX_VALUE_PER_SEGMENT) {
+			throw new IllegalArgumentException();
+		}
 	}
 	
 	/**
@@ -42,6 +65,9 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	 */
 	public IPv4AddressSegment(int value, Integer segmentPrefixLength) {
 		super(value, segmentPrefixLength == null ? null : Math.min(IPv4Address.BITS_PER_SEGMENT, segmentPrefixLength));
+		if(getLowerSegmentValue() > IPv4Address.MAX_VALUE_PER_SEGMENT) {
+			throw new IllegalArgumentException();
+		}
 	}
 	
 	/**
@@ -53,6 +79,9 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	 */
 	public IPv4AddressSegment(int lower, int upper, Integer segmentPrefixLength) {
 		super(lower, upper, segmentPrefixLength == null ? null : Math.min(IPv4Address.BITS_PER_SEGMENT, segmentPrefixLength));
+		if(getUpperSegmentValue() > IPv4Address.MAX_VALUE_PER_SEGMENT) {
+			throw new IllegalArgumentException();
+		}
 	}
 
 	@Override
@@ -63,6 +92,11 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	@Override
 	public IPVersion getIPVersion() {
 		return IPVersion.IPV4;
+	}
+	
+	@Override
+	protected byte[] getBytesImpl(boolean low) {
+		return new byte[] {(byte) (low ? getLowerSegmentValue() : getUpperSegmentValue())};
 	}
 	
 	@Override
@@ -103,19 +137,19 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	
 	/* returns a new segment masked by the given mask */
 	@Override
-	public IPv4AddressSegment toMaskedSegment(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws IPAddressTypeException {
+	public IPv4AddressSegment toMaskedSegment(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws AddressTypeException {
 		if(isChangedByMask(maskSegment, segmentPrefixLength)) {
 			if(!isMaskCompatibleWithRange(maskSegment, segmentPrefixLength)) {
-				throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.maskMismatch");
+				throw new AddressTypeException(this, maskSegment, "ipaddress.error.maskMismatch");
 			}
 			return getSegmentCreator().createSegment(getLowerSegmentValue() & maskSegment.getLowerSegmentValue(), getUpperSegmentValue() & maskSegment.getLowerSegmentValue(), segmentPrefixLength);
 		}
 		return this;
 	}
 	
-	protected boolean isChangedByMask(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws IPAddressTypeException {
+	protected boolean isChangedByMask(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws AddressTypeException {
 		if(!(maskSegment instanceof IPv4AddressSegment)) {
-			throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
+			throw new AddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
 		}
 		return super.isChangedByMask(maskSegment.getLowerSegmentValue(), segmentPrefixLength);
 	}
@@ -135,17 +169,17 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
-	public Iterator<IPv4AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator());
-	}
-	
-	static IPv4AddressSegment getZeroSegment() {
-		return ZERO_SEGMENT;
+	public Iterable<IPv4AddressSegment> getIterable() {
+		return this;
 	}
 	
 	@Override
-	protected int getLeadingZerosAdjustment() {
-		return Long.SIZE - IPv4Address.BITS_PER_SEGMENT;
+	public Iterator<IPv4AddressSegment> iterator() {
+		return iterator(this, getSegmentCreator(), !isPrefixed());
+	}
+
+	static IPv4AddressSegment getZeroSegment() {
+		return ZERO_SEGMENT;
 	}
 	
 	@Override
@@ -164,17 +198,60 @@ public class IPv4AddressSegment extends IPAddressSegment {
 	}
 	
 	@Override
-	public int getDefaultMaxChars() {
+	public int getMaxDigitCount() {
 		return MAX_CHARS;
+	}
+	
+	@Override
+	public IPv4AddressSegment reverseBits(boolean perByte) {
+		return reverseBits();
+	}
+	
+	public IPv4AddressSegment reverseBits() {
+		if(isMultiple()) {
+			if(isReversibleRange(this)) {
+				if(isPrefixed()) {
+					AddressSegmentCreator<IPv4AddressSegment> creator = getSegmentCreator();
+					return creator.createSegment(getLowerSegmentValue(), getUpperSegmentValue(), null);
+				}
+				return this;
+			}
+			throw new AddressTypeException(this, "ipaddress.error.reverseRange");
+		}
+		int oldVal = getLowerSegmentValue();
+		int newVal = reverseBits((byte) oldVal);
+		if(oldVal == newVal && !isPrefixed()) {
+			return this;
+		}
+		AddressSegmentCreator<IPv4AddressSegment> creator = getSegmentCreator();
+		return creator.createSegment(newVal);
+	}
+	
+	@Override
+	public IPv4AddressSegment reverseBytes() {
+		return removePrefix(this, false, getSegmentCreator());
+	}
+	
+	@Override
+	public IPv4AddressSegment removePrefixLength(boolean zeroed) {
+		return removePrefix(this, zeroed, getSegmentCreator());
+	}
+	
+	@Override
+	public IPv4AddressSegment removePrefixLength() {
+		return removePrefixLength(true);
 	}
 
 	@Override
-	public boolean contains(IPAddressSegment other) {
-		return other.isIPv4() && super.contains(other);
+	public boolean contains(AddressSegment other) {
+		return other instanceof IPv4AddressSegment && super.contains(other);
 	}
 	
 	@Override
 	public boolean equals(Object other) {
+		if(this == other) {
+			return true;
+		}
 		return other instanceof IPv4AddressSegment && isSameValues((IPv4AddressSegment) other);
 	}
 }

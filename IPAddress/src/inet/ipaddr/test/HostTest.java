@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.test;
 
 import inet.ipaddr.HostName;
@@ -5,7 +23,10 @@ import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
-import inet.ipaddr.IPAddressTypeException;
+
+import java.util.Objects;
+
+import inet.ipaddr.AddressTypeException;
 import inet.ipaddr.ipv6.IPv6Address;
 
 
@@ -27,7 +48,7 @@ public class HostTest extends TestBase {
 	
 	void testResolved(HostName original, String originalStr, String expectedResolved) {
 		try {
-			IPAddress resolvedAddress = original.resolve();
+			IPAddress resolvedAddress = original.getAddress();
 			boolean result;
 			if(resolvedAddress == null && original.isAllAddresses() && expectedResolved != null) {
 				//special case for "*"
@@ -46,7 +67,7 @@ public class HostTest extends TestBase {
 					//System.out.println("" + resolvedAddress.toCanonicalHostName());
 				}
 			}
-		} catch(IPAddressTypeException e) {
+		} catch(AddressTypeException e) {
 			addFailure(new Failure(e.toString(), original));
 		} catch(RuntimeException e) {
 			addFailure(new Failure(e.toString(), original));
@@ -54,7 +75,7 @@ public class HostTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testNormalized(boolean expectMatch, String original, String expected) {
+	void testNormalizedHost(boolean expectMatch, String original, String expected) {
 		HostName w = createHost(original);
 		String normalized = w.toNormalizedString();
 		if(!(normalized.equals(expected) == expectMatch)) {
@@ -67,25 +88,50 @@ public class HostTest extends TestBase {
 		HostName w = createHost(original);
 		String canonical = w.asAddress().toCanonicalString();
 		if(!canonical.equals(expected)) {
-			addFailure(new Failure("normalization was " + canonical, w));
+			addFailure(new Failure("canonicalization was " + canonical, w));
 		}
 		incrementTestCount();
 	}
 	
 	void hostTest_inet_aton(boolean pass, String x) {
 		HostName addr = createHost_inet_aton(x);
-		hostTestDouble(pass, addr);
+		hostTestDouble(pass, addr, false);
 	}
 	
 	void hostTest(boolean pass, String x) {
 		HostName addr = createHost(x);
-		hostTestDouble(pass, addr);
+		hostTestDouble(pass, addr, true);
 	}
 	
-	void hostTestDouble(boolean pass, HostName addr) {
+	static int i;
+	
+	void hostTestDouble(boolean pass, HostName addr, boolean doubleTest) {
 		hostTest(pass, addr);
 		//do it a second time to test the caching
 		hostTest(pass, addr);
+		if(pass && doubleTest) {
+			try {
+				//here we call getHost twice, once after calling getNormalizedLabels and once without calling getNormalizedLabels,
+				//this is because getHost will use the labels but only if they exist already
+				HostName two = createHost(addr.toString());
+				String twoString, oneString;
+				if(i++ % 2 == 0) {
+					two.getNormalizedLabels();
+					twoString = two.getHost();
+					oneString = addr.getHost();
+				} else {
+					oneString = addr.getHost();
+					two.getNormalizedLabels();
+					twoString = two.getHost();
+				}
+				if(!oneString.equals(twoString)) {
+					addFailure(new Failure(oneString + ' ' + twoString, addr));
+				}
+			} catch(RuntimeException e) {
+				addFailure(new Failure(e.getMessage(), addr));
+			}
+			incrementTestCount();
+		}
 	}
 	
 	void hostTest(boolean pass, HostName addr) {
@@ -163,36 +209,63 @@ public class HostTest extends TestBase {
 				if(matches != h1.equals(h2) && matches != conversionMatches(h1, h2)) {
 					addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h1, h2));
 				} else {
-					String bracketed;
-					if(h1.isAddress() && h1.asAddress().isPrefixed()) {
-						bracketed = '[' + h1.asAddress().getLower().toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
-					} else if(h1.isAddress()) {
-						bracketed = '[' + h1.asAddress().toNormalizedWildcardString() + "]";
-					} else {
-						String h1String  = h1.toNormalizedString();
-						bracketed = h1.isAddress() ? ('[' + h1String + ']') : h1String;
-					}
-					String h1Bracketed = h1.toURLString();
-					if(!h1Bracketed.equals(bracketed)) {
-						addFailure(new Failure("failed: bracketed is " + bracketed, h1));
-					} else {
-						if(h2.isAddress() && h2.asAddress().isPrefixed()) {
-							bracketed = '[' + h2.asAddress().getLower().toNormalizedString() + "]/" + h2.asAddress().getNetworkPrefixLength();
-						} else if(h2.isAddress()) {
-							bracketed = '[' + h2.asAddress().toNormalizedWildcardString() + "]";
-						} else {
-							String h2String  = h2.toNormalizedString();
-							bracketed = (h2.isAddress()) ? ('[' + h2String + ']') : h2String;
-						}
-						String h2Bracketed = h2.toURLString();
-						if(!h2Bracketed.equals(bracketed.toLowerCase())) {
-							addFailure(new Failure("failed: bracketed is " + bracketed, h2));
-						}
-					}
+					testNormalizedMatches(h1);
+					testNormalizedMatches(h2);
 				}
 			}
 		}
 		incrementTestCount();
+	}
+	
+	
+	private void testNormalizedMatches(HostName h1) {
+		String normalized;
+		if(h1.isAddress() && h1.asAddress().isPrefixed() && h1.asAddress().isIPv6()) {
+			normalized = '[' + h1.asAddress().getLower().toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
+		} else if(h1.isAddress() && h1.asAddress().isIPv6()) {
+			normalized = '[' + h1.asAddress().toNormalizedWildcardString() + "]";
+		} else {
+			normalized = h1.toNormalizedString();
+		}
+		String h1Bracketed = h1.toNormalizedString();
+		if(!h1Bracketed.equals(normalized)) {
+			addFailure(new Failure("failed: bracketed is " + normalized, h1));
+		}
+		incrementTestCount();
+	}
+	
+	void testHost(String host, String addrExpected, Integer portExpected, String expectedZone) {
+		testHost(host, addrExpected, addrExpected, portExpected, expectedZone);
+	}
+	
+	void testHost(String host, String hostExpected, String addrExpected, Integer portExpected, String expectedZone) {
+		HostName hostName = createHost(host);
+		try {
+			String h = hostName.getHost();
+			IPAddress addressExpected = addrExpected == null ? null : createAddress(addrExpected).getAddress();
+			IPAddress addrHost = hostName.asAddress();
+			Integer port = hostName.getPort();
+			String zone = null;
+			if(addrHost != null && addrHost.isIPv6()) {
+				zone = addrHost.toIPv6().getZone();
+			}
+			if(!h.equals(hostExpected)) {
+				addFailure(new Failure("failed: host is " + h, hostName));
+			} else if(!Objects.equals(port, portExpected)) {
+				addFailure(new Failure("failed: port is " + port, hostName));
+			} else if(!Objects.equals(zone, expectedZone)) {
+				addFailure(new Failure("failed:  zone is " + zone, hostName));
+			} else if(!Objects.equals(addrHost, addressExpected)) {
+				addFailure(new Failure("failed: address is " + addrHost, hostName));
+			}
+		} catch(RuntimeException e) {
+			addFailure(new Failure(e.getMessage(), hostName));
+		}
+		incrementTestCount();
+	}
+	
+	boolean isLenient() {
+		return false;
 	}
 
 	public static boolean runDNS = true;
@@ -264,16 +337,16 @@ public class HostTest extends TestBase {
 		testResolved("9.70.146.84", "9.70.146.84");
 		testResolved("", null);
 		
-		testNormalized(true, "[A::b:c:d:1.2.03.4]", "a:0:0:b:c:d:102:304");//square brackets can enclose ipv6 in host names but not addresses
-		testNormalized(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "2001:0:1234:0:0:c1c0:abcd:876");//square brackets can enclose ipv6 in host names but not addresses
-		testNormalized(true, "1.2.3.04", "1.2.3.4");
+		testNormalizedHost(true, "[A::b:c:d:1.2.03.4]", "[a:0:0:b:c:d:102:304]");//square brackets can enclose ipv6 in host names but not addresses
+		testNormalizedHost(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "[2001:0:1234:0:0:c1c0:abcd:876]");//square brackets can enclose ipv6 in host names but not addresses
+		testNormalizedHost(true, "1.2.3.04", "1.2.3.4");
 		
 		testCanonical("[A:0::c:d:1.2.03.4]", "a::c:d:102:304");//square brackets can enclose ipv6 in host names but not addresses
 		testCanonical("[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "2001:0:1234::c1c0:abcd:876");//square brackets can enclose ipv6 in host names but not addresses
 		testCanonical("1.2.3.04", "1.2.3.4");
 		
-		testNormalized(true, "WWW.ABC.COM", "www.abc.com");
-		testNormalized(true, "WWW.AB-C.COM", "www.ab-c.com");
+		testNormalizedHost(true, "WWW.ABC.COM", "www.abc.com");
+		testNormalizedHost(true, "WWW.AB-C.COM", "www.ab-c.com");
 
 		testURL("http://1.2.3.4");
 		testURL("http://[a:a:a:a:b:b:b:b]");
@@ -287,8 +360,8 @@ public class HostTest extends TestBase {
 		hostLabelsTest("one.Two.three", new String[] {"one", "two", "three"});
 		hostLabelsTest("onE.two", new String[] {"one", "two"});
 		hostLabelsTest("one", new String[] {"one"});
-		hostLabelsTest("", new String[0]);
-		hostLabelsTest(" ", new String[0]);
+		hostLabelsTest("", isLenient() ? new String[] {"127", "0", "0", "1"} : new String[0]);
+		hostLabelsTest(" ", isLenient() ? new String[] {"127", "0", "0", "1"} : new String[0]);
 		hostLabelsTest("1.2.3.4", new String[] {"1", "2", "3", "4"});
 		hostLabelsTest("1:2:3:4:5:6:7:8", new String[] {"1", "2", "3", "4", "5", "6", "7", "8"});
 		hostLabelsTest("[::]", new String[] {"0", "0", "0", "0", "0", "0", "0", "0"});
@@ -322,7 +395,6 @@ public class HostTest extends TestBase {
 		hostTest(true, "_ab.com");
 		hostTest(true, "_ab_.com");
 		hostTest(false, "-ab-.com");
-		hostTest(false, "-ab-.com");
 		hostTest(false, "ab-.com");
 		hostTest(false, "-ab.com");
 		hostTest(false, "ab.-com");
@@ -338,6 +410,10 @@ public class HostTest extends TestBase {
 		hostTest(false, "999.111");
 		
 		hostTest(false, "a*b.com");
+		hostTest(false, "*ab.com");
+		hostTest(false, "ab.com*");
+		hostTest(false, "*.ab.com");
+		hostTest(false, "ab.com.*");
 		hostTest(false, "ab.co&m");
 		hostTest(false, "#.ab.com");
 		hostTest(false, "cd.ab.com.~");
@@ -471,5 +547,48 @@ public class HostTest extends TestBase {
 		hostTest(false, "as.b..com");//double dot
 		hostTest(false, "..as.b.com");//starts with dots
 		hostTest(false, "as.b.com..");//ends with dots	
+		
+		
+		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, null);
+		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbbbseth0.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, "eth0");
+		testHost("aa-bb-cc-dd-ee-ff.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments
+		testHost("aa-Bb-cc-dd-ee-FF.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments
+		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
+		testHost("aa-Bb-cc-dd-ee-FF-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
+		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.arpa", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
+		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
+		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
+		testHost("F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
+		testHost("f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "f.f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", 45, null);//not a valid address
+		testHost("255.22.2.111.in-addr.arpa", "111.2.22.255", null, null);
+		testHost("255.22.2.111.in-addr.arpa:35", "111.2.22.255", 35, null);
+		testHost("255.22.2.111.3.in-addr.arpa:35", "255.22.2.111.3.in-addr.arpa", 35, null);
+		testHost("1.2.2.1:33", "1.2.2.1", 33, null);
+		testHost("[::1]:33", "0:0:0:0:0:0:0:1", 33, null);
+		testHost("::1:33", "0:0:0:0:0:0:1:33", null, null);
+		testHost("::1%eth0", "0:0:0:0:0:0:0:1", null, "eth0");
+		testHost("[::1%eth0]:33", "0:0:0:0:0:0:0:1", 33, "eth0");
+		testHost("bla.bla:33", "bla.bla", null, 33, null);
+		testHost("blA:33", "bla", 33, null);
+		testHost("f:33", "f", 33, null);
+		testHost("f::33", "f:0:0:0:0:0:0:33", null, null);
+		testHost("::1", "0:0:0:0:0:0:0:1", null, null);
+		testHost("[::1]", "0:0:0:0:0:0:0:1", null, null);
+		testHost("/16", "/16", null, null);
+		testHost("/32", "/32", null, null);
+		testHost("/64", "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff:0:0:0:0/64", null, null);
+		
+		hostTest(true, "255.22.2.111.3.in-addr.arpa:35");//not a valid address but still a valid host
+		hostTest(false, "[::1]x");
+		hostTest(false, "[::1x]");
+		hostTest(false, "[::x1]");
+		hostTest(false, "x[::1]");
+		hostTest(false, "[]");
+		hostTest(false, "[a]");
+		hostTest(false, "1.2.2.256:33");
+		hostTest(true, "f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45");//not an address, but a valid host
+		hostTest(true, "f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int");//not an address, but a valid host
+		hostTest(false, "aa-bb-cc-dd-ee-ff-.ipv6-literal.net");
+		hostTest(true, "aa-bb-cc-dd-ge-ff.ipv6-literal.net"); //not an address but a valid host
 	}
 }

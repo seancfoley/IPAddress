@@ -1,8 +1,27 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv4;
 
+import inet.ipaddr.AddressStringParameters;
+import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressStringParameters.IPVersionAddressStringParameters;
-import inet.ipaddr.IPAddressStringParameters.RangeParameters;
+import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 
 /**
  * The IPv4-specific parameters within a {@link IPAddressStringParameters} instance.
@@ -10,9 +29,9 @@ import inet.ipaddr.IPAddressStringParameters.RangeParameters;
  * @author sfoley
  *
  */
-public class IPv4AddressStringParameters extends IPVersionAddressStringParameters implements Comparable<IPv4AddressStringParameters> {
+public class IPv4AddressStringParameters extends IPAddressStringFormatParameters implements Comparable<IPv4AddressStringParameters> {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON = true;
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK = false; //When not allowing prefixes beyond address size, whether 1.2.3.4/33 has a mask of ipv4 address 33 rather than treating it like a prefix
@@ -24,12 +43,14 @@ public class IPv4AddressStringParameters extends IPVersionAddressStringParameter
 	
 	/**
 	 * Allows ipv4 inet_aton octal format, 04.05.06.07 being an example.
-	 * Can be overridden by {@link IPVersionAddressStringParameters#allowLeadingZeros}
+	 * Can be overridden by {@link IPAddressStringFormatParameters#allowLeadingZeros}
 	 */
 	public final boolean inet_aton_octal;
 	
 	/**
 	 * Allows ipv4 joined segments like 1.2.3, 1.2, or just 1
+	 * 
+	 * For the case of just 1 segment, the behaviour is controlled by {@link AddressStringParameters#allowSingleSegment}
 	 */
 	public final boolean inet_aton_joinedSegments;
 	
@@ -64,7 +85,7 @@ public class IPv4AddressStringParameters extends IPVersionAddressStringParameter
 		return (Builder) toBuilder(builder);
 	}
 	
-	public static class Builder extends IPVersionAddressStringParameters.BuilderBase {
+	public static class Builder extends IPAddressStringFormatParameters.BuilderBase {
 		private boolean inet_aton_hex = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_octal = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_joinedSegments = DEFAULT_ALLOW_IPV4_INET_ATON;

@@ -1,36 +1,129 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
+import java.math.BigInteger;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
+import inet.ipaddr.Address;
+import inet.ipaddr.AddressStringException;
+import inet.ipaddr.AddressStringParameters.RangeParameters;
+import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressComparator;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressString;
-import inet.ipaddr.IPAddressStringException;
 import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressTypeException;
-import inet.ipaddr.IPAddressComparator.ValueComparator;
-import inet.ipaddr.IPAddressStringParameters.RangeParameters;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv4.IPv4AddressSection;
 
 
 public class IPAddressRangeTest extends IPAddressTest {
 	
-	private static final IPAddressStringParameters WILDCARD_AND_RANGE_ADDRESS_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeParameters(RangeParameters.WILDCARD_AND_RANGE).toParams();
-	private static final IPAddressStringParameters WILDCARD_ONLY_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeParameters(RangeParameters.WILDCARD_ONLY).toParams();
-	private static final IPAddressStringParameters NO_RANGE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeParameters(RangeParameters.NO_RANGE).toParams();
+	static final IPAddressStringParameters WILDCARD_AND_RANGE_ADDRESS_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).toParams();
+	static final IPAddressStringParameters WILDCARD_ONLY_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeOptions(RangeParameters.WILDCARD_ONLY).toParams();
+	private static final IPAddressStringParameters NO_RANGE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeOptions(RangeParameters.NO_RANGE).toParams();
 	
-	private static final IPAddressStringParameters INET_ATON_WILDCARD_OPTS = INET_ATON_WILDCARD_AND_RANGE_OPTIONS.toBuilder().setRangeParameters(RangeParameters.WILDCARD_ONLY).toParams();
-	private static final IPAddressStringParameters WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().getIPv6AddressParametersBuilder().allowZone(false).getParentBuilder().toParams();
+	private static final IPAddressStringParameters INET_ATON_WILDCARD_OPTS = INET_ATON_WILDCARD_AND_RANGE_OPTIONS.toBuilder().setRangeOptions(RangeParameters.WILDCARD_ONLY).toParams();
 	private static IPAddressStringParameters optionsCache[][] = new IPAddressStringParameters[3][3];
 
 	IPAddressRangeTest(AddressCreator creator) {
 		super(creator);
 	}
 	
+	void testIPv4Strings(IPAddressString w, IPAddress ipAddr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString, String reverseDNSString,
+			String singleHex,
+			String singleOctal) {
+		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, normalizedWildcardString, sqlString, fullString, 
+				normalizedString, normalizedString, normalizedWildcardString, normalizedString, normalizedWildcardString, reverseDNSString, normalizedString,
+				singleHex, singleOctal);
+	
+		//now test some IPv4-only strings
+		testIPv4OnlyStrings(w, (IPv4Address) ipAddr, octalString, hexString);
+		testInetAtonCombos(w, (IPv4Address) ipAddr);
+	}
+	
+	private void testIPv4OnlyStrings(IPAddressString w, IPv4Address ipAddr, String octalString, String hexString) {
+		String oct = ipAddr.toInetAtonString(IPv4Address.inet_aton_radix.OCTAL);
+		String hex = ipAddr.toInetAtonString(IPv4Address.inet_aton_radix.HEX);
+		
+		boolean octMatch = oct.equals(octalString);
+		if(!octMatch) {
+			addFailure(new Failure("failed expected: " + octalString + " actual: " + oct, w));
+		} else {
+			boolean hexMatch = hex.equals(hexString);
+			if(!hexMatch) {
+				addFailure(new Failure("failed expected: " + hexString + " actual: " + hex, w));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testInetAtonCombos(IPAddressString w, IPv4Address ipAddr) {
+		for(IPv4Address.inet_aton_radix radix : IPv4Address.inet_aton_radix.values()) {
+			for(int i = 0; i < IPv4Address.SEGMENT_COUNT; i++) {
+				try {
+					String str = ipAddr.toInetAtonString(radix, i);
+					IPAddressString parsed = new IPAddressString(str, INET_ATON_WILDCARD_AND_RANGE_OPTIONS);
+					try {
+						IPAddress parsedValue = parsed.getAddress();
+						if(!ipAddr.equals(parsedValue)) {
+							addFailure(new Failure("failed expected: " + ipAddr + " actual: " + parsedValue, w));
+						} else {
+							int pos;
+							int count = 0;
+							while ((pos = str.indexOf(IPv4Address.SEGMENT_SEPARATOR)) >= 0) {
+								str = str.substring(pos + 1);
+								count++;
+							}
+							if(IPv4Address.SEGMENT_COUNT - 1 - i != count) {
+								addFailure(new Failure("failed expected separator count: " + (IPv4Address.SEGMENT_COUNT - 1 - i) + " actual separator count: " + count, w));
+							}
+						}
+					} catch(AddressTypeException e) {
+						addFailure(new Failure("failed expected: " + ipAddr + " actual: " + e.getMessage(), w));
+					}
+				} catch(AddressTypeException e) {
+					//verify this case: joining segments results in a joined segment that is not a contiguous range
+					IPv4AddressSection section =  ipAddr.getSection();
+					boolean verifiedIllegalJoin = false;
+					for(int j = section.getSegmentCount() - i - 1; j < section.getSegmentCount() - 1; j++) {
+						if(section.getSegment(j).isMultiple()) {
+							for(j++; j < section.getSegmentCount(); j++) {
+								if(!section.getSegment(j).isFullRange()) {
+									verifiedIllegalJoin = true;
+									break;
+								}
+							}
+						}
+					}
+					if(!verifiedIllegalJoin) {
+						addFailure(new Failure("failed expected: " + ipAddr + " actual: " + e.getMessage(), w));
+					}
+				}
+				incrementTestCount();
+			}
+		}
+	}
+
 	@Override
 	protected IPAddressString createInetAtonAddress(String x) {
 		IPAddressStringParameters opts;
@@ -94,7 +187,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		} else if(options.equals(RangeParameters.WILDCARD_AND_RANGE)) {
 			return WILDCARD_AND_RANGE_ADDRESS_OPTIONS;
 		}
-		return WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeParameters(options).toParams();
+		return WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeOptions(options).toParams();
 	}
 	
 	protected IPAddressString createAddress(String x, RangeParameters options) {
@@ -165,9 +258,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		if(origAddr.isMultiple()) {
 			try {
 				origAddr.getBytes();
-				addFailure(new Failure("wildcard bytes on addr ", origAddr));
+				//addFailure(new Failure("wildcard bytes on addr ", origAddr)); now this just gets the lower bytes
+				//failed = true;
+			} catch(AddressTypeException e) {
 				failed = true;
-			} catch(IPAddressTypeException e) {
 				//pass
 				//wild addresses have no bytes
 			}
@@ -179,14 +273,54 @@ public class IPAddressRangeTest extends IPAddressTest {
 	
 	@Override
 	void testMaskBytes(String cidr2, IPAddressString w2)
-			throws IPAddressStringException {
+			throws AddressStringException {
 		IPAddress addr = w2.toAddress();
 		testBytes(addr);
 	}
 	
 	void testCount(String original, int number, RangeParameters rangeOptions) {
 		IPAddressString w = createAddress(original, rangeOptions);
-		testCount(w, number);
+		testCount(this, w, number);
+	}
+	
+	void testCount(String original, int number) {
+		IPAddressString w = createAddress(original);
+		testCount(this, w, number);
+	}
+	
+	static void testCount(TestBase testBase, HostIdentifierString w, int number) {
+		Address val = w.getAddress();
+		BigInteger count = val.getCount();
+		if(!count.equals(BigInteger.valueOf(number))) {
+			testBase.addFailure(new Failure("count was " + count, w));
+		} else {
+			Iterator<? extends Address> addrIterator = val.iterator();
+			int counter = 0;
+			Set<Address> set = new HashSet<Address>();
+			Address next = null;
+			while(addrIterator.hasNext()) {
+				next = addrIterator.next();
+				if(counter == 0) {
+					if(!next.equals(val.getLower())) {
+						testBase.addFailure(new Failure("lowest: " + val.getLower(), next));
+					}
+				}
+				set.add(next);
+				counter++;
+			}
+			if(set.size() != number || counter != number) {
+				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+			} else {
+				if(!next.equals(val.getUpper())) {
+					testBase.addFailure(new Failure("highest: " + val.getUpper(), next));
+				} else {
+					if(counter == 1 && !val.getUpper().equals(val.getLower())) {
+						testBase.addFailure(new Failure("highest: " + val.getUpper() + " lowest: " + val.getLower(), next));
+					}
+				}
+			}
+		}
+		testBase.incrementTestCount();
 	}
 	
 	void testIPv4Wildcarded(String original, int bits, String expected, String expectedSQL) {
@@ -201,7 +335,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	void testWildcarded(String original, int bits, String expectedSubnet, String expectedNormalized, String expectedCanonical, String expectedCompressed, String expectedSQL) {
 		IPAddressString w = createAddress(original);
 		IPAddress addr = w.getAddress();
-		addr = addr.toSubnet(bits);
+		addr = addr.applyPrefixLength(bits);
 		String string = addr.toCompressedWildcardString();
 		if(!string.equals(expectedCompressed)) {
 			addFailure(new Failure("failed expected: " + expectedCompressed + " actual: " + string, w));
@@ -246,11 +380,14 @@ public class IPAddressRangeTest extends IPAddressTest {
 		incrementTestCount();
 	}
 	
-	void testIPv4Strings(String addr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString, String reverseDNSString) {
+	void testIPv4Strings(String addr, String normalizedString, String normalizedWildcardString, String sqlString, String fullString, String octalString, String hexString, String reverseDNSString, String singleHex, String singleOctal) {
 		IPAddressString w = createAddress(addr);
 		IPAddress ipAddr = w.getAddress();
-		testIPv4Strings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString);
+		//createList(w);
+		testIPv4Strings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString, singleHex, singleOctal);
 	}
+	
+	void createList(IPAddressString str) {}
 	
 	void testIPv6Strings(String addr, 
 			String normalizedString,
@@ -267,9 +404,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 			String mixedStringCompressCoveredHost,
 			String mixedString,
 			String reverseDNSString,
-			String uncHostString) {
+			String uncHostString,
+			String base85String,
+			String singleHex,
+			String singleOctal) {
 		IPAddressString w = createAddress(addr);
 		IPAddress ipAddr = w.getAddress();
+		
+		//createList(w);
+		
 		testIPv6Strings(w,
 				ipAddr,
 				normalizedString,
@@ -286,51 +429,52 @@ public class IPAddressRangeTest extends IPAddressTest {
 				mixedStringCompressCoveredHost,
 				mixedString,
 				reverseDNSString,
-				uncHostString);
+				uncHostString,
+				base85String,
+				singleHex,
+				singleOctal);
 	}
 	
 	void testTree(String start, String parents[]) {
 		IPAddressString str = createAddress(start, WILDCARD_AND_RANGE_ADDRESS_OPTIONS);
-		
+		IPAddressString originaLabelStr = str;
+		IPAddressString labelStr = str;
 		if(!str.isPrefixed()) { 
 			IPAddress address = str.getAddress();
-			if(address != null && address.isMultiple()) {
-				//convert 1.2.3.* to 1.2.3.*/24 which is needed by toSupernet
-				address = address.toPrefixedEquivalent();
-				str = address.toAddressString();
-			}
+			//convert 1.2.3.* to 1.2.3.*/24 which is needed by adjustPrefixBySegment
+			address = address.toPrefixedEquivalent();
+			str = address.toAddressString();
 		}
 		
 		IPAddressString original = str;
 		
 		int i = 0;
 		do {
-			//System.out.println('"' + getLabel(str) + "\",");
-			String label = getLabel(str);
+			String label = getLabel(labelStr);
 			String expected = parents[i];
 			if(!label.equals(expected)) {
 				addFailure(new Failure("failed expected: " + expected + " actual: " + label, str));
 				break;
 			}
-			str = str.toSupernet();
+			labelStr = str = str.adjustPrefixBySegment(false);
 			i++;
 		} while(str != null);
 		
 		
 		//now do the same thing but use the IPAddress objects instead
+		labelStr = originaLabelStr;
 		str = original;
 		i = 0;
 		do {
-			//System.out.println('"' + getLabel(str) + "\",");
-			String label = getLabel(str);
+			String label = getLabel(labelStr);
 			String expected = parents[i];
 			if(!label.equals(expected)) {
 				addFailure(new Failure("failed expected: " + expected + " actual: " + label, str));
 				break;
 			}
-			str = str.getAddress().toSupernet().toAddressString();
+			labelStr = str = str.getAddress().adjustPrefixBySegment(false).toAddressString();
 			i++;
-		} while(str.getNetworkPrefixLength() != 0); //when network prefix is 0, IPAddress.toSupernet() returns the same address
+		} while(str.getNetworkPrefixLength() != 0); //when network prefix is 0, IPAddress.adjustPrefixBySegment() returns the same address
 		incrementTestCount();
 	}
 	
@@ -453,41 +597,155 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	void testStrings() {
-		testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4", "4.3.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.3.4/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.*.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
-		testIPv4Strings("1.2.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.*.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa");
-		testIPv4Strings("1.*.*/16",  "1.*.0.0/16", "1.*.*.*", "1.%.%.%", "001.000-255.000.000/16",  "01.*.00.00/16",  "0x1.*.0x0.0x0/16", "*.*.*.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4", "4.3.2.1.in-addr.arpa", "0x01020304", "000100401404");
+		testIPv4Strings("1.2.3.4/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777");
+		testIPv4Strings("1.2.*.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
+		testIPv4Strings("1.2.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777");
+		testIPv4Strings("1.2.*.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777");
+		testIPv4Strings("1.2.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777");
+		testIPv4Strings("1.*.*/16",  "1.*.0.0/16", "1.*.*.*", "1.%.%.%", "001.000-255.000.000/16",  "01.*.00.00/16",  "0x1.*.0x0.0x0/16", "*.*.*.1.in-addr.arpa", "0x01000000-0x01ffffff", "000100000000-000177777777");
 		
-		//9, 63, 127, 254   11, 77, 177, 376   9, 3f, 7f, fe
-		testIPv4Strings("0.0.0.0", "0.0.0.0", "0.0.0.0", "0.0.0.0", "000.000.000.000", "00.00.00.00", "0x0.0x0.0x0.0x0", "0.0.0.0.in-addr.arpa");
-		testIPv4Strings("9.63.127.254", "9.63.127.254", "9.63.127.254", "9.63.127.254", "009.063.127.254", "011.077.0177.0376", "0x9.0x3f.0x7f.0xfe", "254.127.63.9.in-addr.arpa");
-		testIPv4Strings("9.63.127.254/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
-		testIPv4Strings("9.63.*.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
-		testIPv4Strings("9.63.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa");
-		testIPv4Strings("9.63.*.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
-		testIPv4Strings("9.63.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa");
-		testIPv4Strings("9.*.*/16",  "9.*.0.0/16", "9.*.*.*", "9.%.%.%", "009.000-255.000.000/16", "011.*.00.00/16", "0x9.*.0x0.0x0/16", "*.*.*.9.in-addr.arpa"); 
+		testIPv4Strings("0.0.0.0", "0.0.0.0", "0.0.0.0", "0.0.0.0", "000.000.000.000", "00.00.00.00", "0x0.0x0.0x0.0x0", "0.0.0.0.in-addr.arpa", "0x00000000", "000000000000");
+		testIPv4Strings("9.63.127.254", "9.63.127.254", "9.63.127.254", "9.63.127.254", "009.063.127.254", "011.077.0177.0376", "0x9.0x3f.0x7f.0xfe", "254.127.63.9.in-addr.arpa", "0x093f7ffe", "001117677776");
+		testIPv4Strings("9.63.127.254/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777");
+		testIPv4Strings("9.63.*.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777");//note that wildcards are never converted to CIDR.  //for CIDR call toCIDREquivalent() or getMinPrefix() or getMaskPrefixLength()
+		testIPv4Strings("9.63.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777");
+		testIPv4Strings("9.63.*.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777");
+		testIPv4Strings("9.63.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777");
+		testIPv4Strings("9.*.*/16",  "9.*.0.0/16", "9.*.*.*", "9.%.%.%", "009.000-255.000.000/16", "011.*.00.00/16", "0x9.*.0x0.0x0/16", "*.*.*.9.in-addr.arpa", "0x09000000-0x09ffffff", "001100000000-001177777777"); 
 		
-		testIPv4Strings("1.2.3.250-255", "1.2.3.250-255", "1.2.3.250-255", "1.2.3.25_", "001.002.003.250-255", "01.02.03.0372-0377", "0x1.0x2.0x3.0xfa-0xff", "250-255.3.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.3.200-255", "1.2.3.200-255", "1.2.3.200-255", "1.2.3.2__", "001.002.003.200-255", "01.02.03.0310-0377", "0x1.0x2.0x3.0xc8-0xff", "200-255.3.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7", "100-199.3.2.1.in-addr.arpa");
-		testIPv4Strings("100-199.2.3.100-199", "100-199.2.3.100-199", "100-199.2.3.100-199", "1__.2.3.1__", "100-199.002.003.100-199", "0144-0307.02.03.0144-0307", "0x64-0xc7.0x2.0x3.0x64-0xc7", "100-199.3.2.100-199.in-addr.arpa");
-		testIPv4Strings("100-199.2.3.100-198", "100-199.2.3.100-198", "100-199.2.3.100-198", "1__.2.3.100-198", "100-199.002.003.100-198", "0144-0307.02.03.0144-0306", "0x64-0xc7.0x2.0x3.0x64-0xc6", "100-198.3.2.100-199.in-addr.arpa");
-		testIPv4Strings("1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "001.002.003.000-099", "01.02.03.00-0143", "0x1.0x2.0x3.0x0-0x63", "0-99.3.2.1.in-addr.arpa");
-		// dup of the one above testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7");
-		testIPv4Strings("1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "001.002.003.100-155", "01.02.03.0144-0233", "0x1.0x2.0x3.0x64-0x9b", "100-155.3.2.1.in-addr.arpa");
-		testIPv4Strings("1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "001.002.003.100-255", "01.02.03.0144-0377", "0x1.0x2.0x3.0x64-0xff", "100-255.3.2.1.in-addr.arpa");
-		testIPv4Strings("1.129-254.5.5/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.128-240.0.0/12" : "1.128-255.0.0/12", "1.128-255.*.*", "1.128-255.%.%", "001.128-240.000.000/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0200-0360.00.00/12" : "01.0200-0377.00.00/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0x80-0xf0.0x0.0x0/12" : "0x1.0x80-0xff.0x0.0x0/12", "*.*.128-255.1.in-addr.arpa");
-		testIPv4Strings("1.2__.5.5/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.200-252.0.0/14" : "1.200-255.0.0/14", "1.200-255.*.*", "1.2__.%.%", "001.200-252.000.000/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0310-0374.00.00/14" : "01.0310-0377.00.00/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0xc8-0xfc.0x0.0x0/14" : "0x1.0xc8-0xff.0x0.0x0/14", "*.*.200-255.1.in-addr.arpa");
-		testIPv4Strings("1.*.5.5/12", "1.*.0.0/12", "1.*.*.*", "1.%.%.%", "001.000-240.000.000/12", "01.*.00.00/12", "0x1.*.0x0.0x0/12", "*.*.*.1.in-addr.arpa");
+		testIPv4Strings("1.2.3.250-255", "1.2.3.250-255", "1.2.3.250-255", "1.2.3.25_", "001.002.003.250-255", "01.02.03.0372-0377", "0x1.0x2.0x3.0xfa-0xff", "250-255.3.2.1.in-addr.arpa", "0x010203fa-0x010203ff", "000100401772-000100401777");
+		testIPv4Strings("1.2.3.200-255", "1.2.3.200-255", "1.2.3.200-255", "1.2.3.2__", "001.002.003.200-255", "01.02.03.0310-0377", "0x1.0x2.0x3.0xc8-0xff", "200-255.3.2.1.in-addr.arpa", "0x010203c8-0x010203ff", "000100401710-000100401777");
+		testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7", "100-199.3.2.1.in-addr.arpa", "0x01020364-0x010203c7", "000100401544-000100401707");
+		testIPv4Strings("100-199.2.3.100-199", "100-199.2.3.100-199", "100-199.2.3.100-199", "1__.2.3.1__", "100-199.002.003.100-199", "0144-0307.02.03.0144-0307", "0x64-0xc7.0x2.0x3.0x64-0xc7", "100-199.3.2.100-199.in-addr.arpa", null, null);
+		testIPv4Strings("100-199.2.3.100-198", "100-199.2.3.100-198", "100-199.2.3.100-198", "1__.2.3.100-198", "100-199.002.003.100-198", "0144-0307.02.03.0144-0306", "0x64-0xc7.0x2.0x3.0x64-0xc6", "100-198.3.2.100-199.in-addr.arpa", null, null);
+		testIPv4Strings("1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "001.002.003.000-099", "01.02.03.00-0143", "0x1.0x2.0x3.0x0-0x63", "0-99.3.2.1.in-addr.arpa", "0x01020300-0x01020363", "000100401400-000100401543");
+		testIPv4Strings("1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "001.002.003.100-155", "01.02.03.0144-0233", "0x1.0x2.0x3.0x64-0x9b", "100-155.3.2.1.in-addr.arpa", "0x01020364-0x0102039b", "000100401544-000100401633");
+		testIPv4Strings("1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "001.002.003.100-255", "01.02.03.0144-0377", "0x1.0x2.0x3.0x64-0xff", "100-255.3.2.1.in-addr.arpa", "0x01020364-0x010203ff", "000100401544-000100401777");
+		testIPv4Strings("1.129-254.5.5/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.128-240.0.0/12" : "1.128-255.0.0/12", "1.128-255.*.*", "1.128-255.%.%", "001.128-240.000.000/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0200-0360.00.00/12" : "01.0200-0377.00.00/12", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0x80-0xf0.0x0.0x0/12" : "0x1.0x80-0xff.0x0.0x0/12", "*.*.128-255.1.in-addr.arpa", "0x01800000-0x01ffffff", "000140000000-000177777777");
+		testIPv4Strings("1.2__.5.5/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.200-252.0.0/14" : "1.200-255.0.0/14", "1.200-255.*.*", "1.2__.%.%", "001.200-252.000.000/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "01.0310-0374.00.00/14" : "01.0310-0377.00.00/14", IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0x1.0xc8-0xfc.0x0.0x0/14" : "0x1.0xc8-0xff.0x0.0x0/14", "*.*.200-255.1.in-addr.arpa", "0x01c80000-0x01ffffff", "000162000000-000177777777");
+		testIPv4Strings("1.*.5.5/12", "1.*.0.0/12", "1.*.*.*", "1.%.%.%", "001.000-240.000.000/12", "01.*.00.00/12", "0x1.*.0x0.0x0/12", "*.*.*.1.in-addr.arpa", "0x01000000-0x01ffffff", "000100000000-000177777777");
+
+
+		testIPv6Strings("::",
+				"0:0:0:0:0:0:0:0",
+				"0:0:0:0:0:0:0:0",
+				"::",
+				"0:0:0:0:0:0:0:0",
+				"0000:0000:0000:0000:0000:0000:0000:0000",
+				"::",
+				"::",
+				"::",
+				"::",
+				"::0.0.0.0",
+				"::",
+				"::",
+				"::",
+				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-0-0-0-0-0.ipv6-literal.net",
+				"00000000000000000000",
+				"0x00000000000000000000000000000000",
+				"00000000000000000000000000000000000000000000");
 		
+		testIPv6Strings("::2",
+				"0:0:0:0:0:0:0:2",
+				"0:0:0:0:0:0:0:2",
+				"::2",
+				"0:0:0:0:0:0:0:2",
+				"0000:0000:0000:0000:0000:0000:0000:0002",
+				"::2",
+				"::2",
+				"::2",
+				"::2",
+				"::0.0.0.2",
+				"::0.0.0.2",
+				"::0.0.0.2",
+				"::0.0.0.2",
+				"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-0-0-0-0-2.ipv6-literal.net",
+				"00000000000000000002",
+				"0x00000000000000000000000000000002",
+				"00000000000000000000000000000000000000000002");
 		
-	
+		testIPv6Strings("::7fff:ffff:ffff:ffff",
+				"0:0:0:0:7fff:ffff:ffff:ffff",
+				"0:0:0:0:7fff:ffff:ffff:ffff",
+				"::7fff:ffff:ffff:ffff",
+				"0:0:0:0:7fff:ffff:ffff:ffff",
+				"0000:0000:0000:0000:7fff:ffff:ffff:ffff",
+				"::7fff:ffff:ffff:ffff",
+				"::7fff:ffff:ffff:ffff",
+				"::7fff:ffff:ffff:ffff",
+				"::7fff:ffff:ffff:ffff",
+				"::7fff:ffff:255.255.255.255",
+				"::7fff:ffff:255.255.255.255",
+				"::7fff:ffff:255.255.255.255",
+				"::7fff:ffff:255.255.255.255",
+				"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.7.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-0-7fff-ffff-ffff-ffff.ipv6-literal.net",
+				"0000000000d*-h_{Y}sg",
+				"0x00000000000000007fffffffffffffff",
+				"00000000000000000000000777777777777777777777");
 		
+		testIPv6Strings("0:0:0:1::",
+				"0:0:0:1:0:0:0:0",
+				"0:0:0:1:0:0:0:0",
+				"0:0:0:1::",
+				"0:0:0:1:0:0:0:0",
+				"0000:0000:0000:0001:0000:0000:0000:0000",
+				"0:0:0:1::",
+				"0:0:0:1::",
+				"0:0:0:1::",
+				"0:0:0:1::",
+				"::1:0:0:0.0.0.0",
+				"0:0:0:1::",
+				"0:0:0:1::",
+				"0:0:0:1::",
+				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-1-0-0-0-0.ipv6-literal.net",
+				"0000000000_sw2=@*|O1",
+				"0x00000000000000010000000000000000",
+				"00000000000000000000002000000000000000000000");
 		
+		testIPv6Strings("::8fff:ffff:ffff:ffff",
+				"0:0:0:0:8fff:ffff:ffff:ffff",
+				"0:0:0:0:8fff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff",
+				"0:0:0:0:8fff:ffff:ffff:ffff",
+				"0000:0000:0000:0000:8fff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff",
+				"::8fff:ffff:255.255.255.255",
+				"::8fff:ffff:255.255.255.255",
+				"::8fff:ffff:255.255.255.255",
+				"::8fff:ffff:255.255.255.255",
+				"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-0-8fff-ffff-ffff-ffff.ipv6-literal.net",
+				"0000000000i(`c)xypow",
+				"0x00000000000000008fffffffffffffff",
+				"00000000000000000000001077777777777777777777");
+		
+		testIPv6Strings("::8fff:ffff:ffff:ffff:ffff",
+				"0:0:0:8fff:ffff:ffff:ffff:ffff",
+				"0:0:0:8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff:ffff",
+				"0:0:0:8fff:ffff:ffff:ffff:ffff",
+				"0000:0000:0000:8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:ffff:ffff",
+				"::8fff:ffff:ffff:255.255.255.255",
+				"::8fff:ffff:ffff:255.255.255.255",
+				"::8fff:ffff:ffff:255.255.255.255",
+				"::8fff:ffff:ffff:255.255.255.255",
+				"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.8.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+				"0-0-0-8fff-ffff-ffff-ffff-ffff.ipv6-literal.net",
+				"00000004&U-n{rbbza$w",
+				"0x0000000000008fffffffffffffffffff",
+				"00000000000000000217777777777777777777777777");
 		
 		testIPv6Strings("a:b:c:d:e:f:a:b",
 				"a:b:c:d:e:f:a:b",
@@ -504,7 +762,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:e:f:0.10.0.11",
 				"a:b:c:d:e:f:0.10.0.11",
 				"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-e-f-a-b.ipv6-literal.net");
+				"a-b-c-d-e-f-a-b.ipv6-literal.net",
+				"00|N0s0$ND2DCD&%D3QB",
+				"0x000a000b000c000d000e000f000a000b",
+				"00000240001300006000032000160000740002400013");
 		testIPv6Strings("a:b:c:d:e:f:a:b/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -520,7 +781,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::/64",
 				"a:b:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("::c:d:e:f:a:b/64",
 				"0:0:c:d:0:0:0:0/64",
 				"0:0:c:d:*:*:*:*",
@@ -536,7 +800,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"0:0:c:d::/64",
 				"0:0:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
-				"0-0-c-d-0-0-0-0.ipv6-literal.net/64");
+				"0-0-c-d-0-0-0-0.ipv6-literal.net/64",
+				"0000001G~Ie?xF;x&)@P›0000001G~JZkWI!qp&GP/64",
+				"0x00000000000c000d0000000000000000-0x00000000000c000dffffffffffffffff",
+				"00000000000000006000032000000000000000000000-00000000000000006000033777777777777777777777");
 		testIPv6Strings("::c:d:e:f:a:b",
 				"0:0:c:d:e:f:a:b",
 				"0:0:c:d:e:f:a:b",
@@ -552,7 +819,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"::c:d:e:f:0.10.0.11",
 				"::c:d:e:f:0.10.0.11",
 				"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
-				"0-0-c-d-e-f-a-b.ipv6-literal.net");
+				"0-0-c-d-e-f-a-b.ipv6-literal.net",
+				"0000001G~Ie^C9jXExx>",
+				"0x00000000000c000d000e000f000a000b",
+				"00000000000000006000032000160000740002400013");
 		testIPv6Strings("a:b:c:d::",
 				"a:b:c:d:0:0:0:0",
 				"a:b:c:d:0:0:0:0",
@@ -568,7 +838,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::",
 				"a:b:c:d::",
 				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net",
+				"00|N0s0$ND2BxK96%Chk",
+				"0x000a000b000c000d0000000000000000",
+				"00000240001300006000032000000000000000000000");
 		testIPv6Strings("a:b:c:d::/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -584,7 +857,48 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::/64",
 				"a:b:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
+		testIPv6Strings("a::d:*:*:*:*/65",
+				"a:0:0:d:*:0:0:0/65",
+				"a:0:0:d:*:*:*:*",
+				"a::d:*:*:*:*",
+				"a:0:0:d:%:%:%:%",
+				"000a:0000:0000:000d:0000-8000:0000:0000:0000/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"a::d:*:*:*:*",
+				"a::d:*:0:0.0.0.0/65",
+				"a::d:*:0:0.0.0.0/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-d-*-0-0-0.ipv6-literal.net/65",
+				"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/65",
+				"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+				"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777");
+		testIPv6Strings("a::d:*:0:0:0/65",
+				"a:0:0:d:*:0:0:0/65",
+				"a:0:0:d:*:*:*:*",
+				"a::d:*:*:*:*",
+				"a:0:0:d:%:%:%:%",
+				"000a:0000:0000:000d:0000-8000:0000:0000:0000/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"a::d:*:*:*:*",
+				"a::d:*:0:0.0.0.0/65",
+				"a::d:*:0:0.0.0.0/65",
+				"a:0:0:d:*::/65",
+				"a:0:0:d:*::/65",
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+				"a-0-0-d-*-0-0-0.ipv6-literal.net/65",
+				"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/65",
+				"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+				"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777");
 		testIPv6Strings("a:b:c:*::/64",
 				"a:b:c:*:0:0:0:0/64",
 				"a:b:c:*:*:*:*:*",
@@ -600,7 +914,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:*::/64",
 				"a:b:c:*::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-*-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-*-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$N0-%*(tF5l-X›00|N0s0;%a&*sUa#KSGX/64",
+				"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
+				"00000240001300006000000000000000000000000000-00000240001300006377777777777777777777777777");
 		testIPv6Strings("a:b:c:d:*::/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -616,7 +933,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::/64",
 				"a:b:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("a::/64",
 				"a:0:0:0:0:0:0:0/64",
 				"a:0:0:0:*:*:*:*",
@@ -632,7 +952,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::/64",
 				"a::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-0-0-0-0-0.ipv6-literal.net/64");
+				"a-0-0-0-0-0-0-0.ipv6-literal.net/64",
+				"00|M>t|ttwH6V62lVY`A›00|M>t|ttxBz48@eGWJA/64",
+				"0x000a0000000000000000000000000000-0x000a000000000000ffffffffffffffff",
+				"00000240000000000000000000000000000000000000-00000240000000000000001777777777777777777777");
 		testIPv6Strings("a:b:c:*:*:*:*:*",//as noted above, addresses are not converted to prefix if starting as wildcards.  call toCIDREquivalent() or getMinPrefix()
 				"a:b:c:*:*:*:*:*",
 				"a:b:c:*:*:*:*:*",
@@ -648,7 +971,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:*:*:*:*.*.*.*",
 				"a:b:c:*:*:*:*.*.*.*",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-*-*-*-*-*.ipv6-literal.net");
+				"a-b-c-*-*-*-*-*.ipv6-literal.net",
+				"00|N0s0$N0-%*(tF5l-X›00|N0s0;%a&*sUa#KSGX",
+				"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
+				"00000240001300006000000000000000000000000000-00000240001300006377777777777777777777777777");
 		testIPv6Strings("a:0:0:d:e:f:0:0/112",
 				"a:0:0:d:e:f:0:0/112",
 				"a:0:0:d:e:f:0:*",
@@ -664,7 +990,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::d:e:f:0.0.0.0/112",
 				"a:0:0:d:e:f::/112",
 				"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-d-e-f-0-0.ipv6-literal.net/112");
+				"a-0-0-d-e-f-0-0.ipv6-literal.net/112",
+				"00|M>t|tt+WcwbECb*xq/112",
+				"0x000a00000000000d000e000f00000000-0x000a00000000000d000e000f0000ffff",
+				"00000240000000000000032000160000740000000000-00000240000000000000032000160000740000177777");
 		testIPv6Strings("a:0:c:d:e:f:0:0/112",
 				"a:0:c:d:e:f:0:0/112",			
 				"a:0:c:d:e:f:0:*",
@@ -680,7 +1009,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.0.0.0/112",
 				"a:0:c:d:e:f::/112",
 				"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-e-f-0-0.ipv6-literal.net/112");
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/112",
+				"00|M>t};s?v~hFl`j3_$/112",
+				"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000f0000ffff",
+				"00000240000000006000032000160000740000000000-00000240000000006000032000160000740000177777");
 		testIPv6Strings("a:0:c:d:e:f:0:0/97",
 				"a:0:c:d:e:f:0:0/97",		
 				"a:0:c:d:e:f:0-7fff:*",
@@ -696,7 +1028,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.0.0.0/97",
 				"a:0:c:d:e:f::/97",
 				"*.*.*.*.*.*.*.0-7.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-e-f-0-0.ipv6-literal.net/97");
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/97",
+				"00|M>t};s?v~hFl`j3_$/97",
+				"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000f7fffffff",
+				"00000240000000006000032000160000740000000000-00000240000000006000032000160000757777777777");
 		testIPv6Strings("a:0:c:d:e:f:0:0/96",
 				"a:0:c:d:e:f:0:0/96",			
 				"a:0:c:d:e:f:*:*",
@@ -712,7 +1047,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:c:d:e:f::/96",
 				"a:0:c:d:e:f::/96",
 				"*.*.*.*.*.*.*.*.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-e-f-0-0.ipv6-literal.net/96");
+				"a-0-c-d-e-f-0-0.ipv6-literal.net/96",
+				"00|M>t};s?v~hFl`j3_$/96",
+				"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000fffffffff",
+				"00000240000000006000032000160000740000000000-00000240000000006000032000160000777777777777");
 		testIPv6Strings("a:0:c:d:e:f:1:0/112",
 				"a:0:c:d:e:f:1:0/112",
 				"a:0:c:d:e:f:1:*",
@@ -728,7 +1066,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.1.0.0/112",
 				"a::c:d:e:f:0.1.0.0/112",
 				"*.*.*.*.1.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-e-f-1-0.ipv6-literal.net/112");//mixed
+				"a-0-c-d-e-f-1-0.ipv6-literal.net/112",
+				"00|M>t};s?v~hFl`jD0%/112",
+				"0x000a0000000c000d000e000f00010000-0x000a0000000c000d000e000f0001ffff",
+				"00000240000000006000032000160000740000200000-00000240000000006000032000160000740000377777");//mixed
 		testIPv6Strings("a:0:c:d:0:0:1:0/112",
 				"a:0:c:d:0:0:1:0/112", //normalized
 				"a:0:c:d:0:0:1:*",//normalized wildcard
@@ -744,7 +1085,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:c:d::0.1.0.0/112",
 				"a:0:c:d::0.1.0.0/112",
 				"*.*.*.*.1.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-0-0-1-0.ipv6-literal.net/112");//mixed
+				"a-0-c-d-0-0-1-0.ipv6-literal.net/112",
+				"00|M>t};s?v}5L>MDR^a/112",
+				"0x000a0000000c000d0000000000010000-0x000a0000000c000d000000000001ffff",
+				"00000240000000006000032000000000000000200000-00000240000000006000032000000000000000377777");//mixed
 		testIPv6Strings("a:0:c:d:e:f:a:0/112",
 				"a:0:c:d:e:f:a:0/112",
 				"a:0:c:d:e:f:a:*",
@@ -760,7 +1104,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:d:e:f:0.10.0.0/112",
 				"a::c:d:e:f:0.10.0.0/112",
 				"*.*.*.*.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-e-f-a-0.ipv6-literal.net/112");
+				"a-0-c-d-e-f-a-0.ipv6-literal.net/112",
+				"00|M>t};s?v~hFl`k9s=/112",
+				"0x000a0000000c000d000e000f000a0000-0x000a0000000c000d000e000f000affff",
+				"00000240000000006000032000160000740002400000-00000240000000006000032000160000740002577777");
 		testIPv6Strings("a:0:c:d:0:0:0:100/120",
 				"a:0:c:d:0:0:0:100/120", //normalized
 				"a:0:c:d:0:0:0:100-1ff",//normalized wildcard
@@ -776,7 +1123,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:c:d::0.0.1.0/120",
 				"a:0:c:d::0.0.1.0/120",
 				"*.*.1.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-c-d-0-0-0-100.ipv6-literal.net/120");//mixed
+				"a-0-c-d-0-0-0-100.ipv6-literal.net/120",
+				"00|M>t};s?v}5L>MDI>a/120",
+				"0x000a0000000c000d0000000000000100-0x000a0000000c000d00000000000001ff",
+				"00000240000000006000032000000000000000000400-00000240000000006000032000000000000000000777");//mixed
 		testIPv6Strings("a:b:c:d:*", 
 				"a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
@@ -792,7 +1142,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-*-*-*-*.ipv6-literal.net");
+				"a-b-c-d-*-*-*-*.ipv6-literal.net",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
 				"a:b:c:d:*:*:*:*",
@@ -808,7 +1161,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d:*:*:*.*.*.*",
 				"a:b:c:d:*:*:*.*.*.*",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-*-*-*-*.ipv6-literal.net");
+				"a-b-c-d-*-*-*-*.ipv6-literal.net",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("a:b:c:d:*/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -824,7 +1180,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::/64",
 				"a:b:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("a:b:c:d:*:*:*:*/64",
 				"a:b:c:d:0:0:0:0/64",
 				"a:b:c:d:*:*:*:*",
@@ -840,7 +1199,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:b:c:d::/64",
 				"a:b:c:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
-				"a-b-c-d-0-0-0-0.ipv6-literal.net/64");
+				"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+				"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+				"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+				"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777");
 		testIPv6Strings("a::c:d:*",
 				"a:0:0:0:0:c:d:*",
 				"a:0:0:0:0:c:d:*",
@@ -856,7 +1218,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::c:0.13.*.*",
 				"a::c:0.13.*.*",
 				"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-0-0-c-d-*.ipv6-literal.net");
+				"a-0-0-0-0-c-d-*.ipv6-literal.net",
+				"00|M>t|ttwH6V6EEzblZ›00|M>t|ttwH6V6EEzkrZ",
+				"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
+				"00000240000000000000000000000000600003200000-00000240000000000000000000000000600003377777");
 		testIPv6Strings("a::d:*:*:*:*",
 				"a:0:0:d:*:*:*:*",
 				"a:0:0:d:*:*:*:*",
@@ -872,7 +1237,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::d:*:*:*.*.*.*",
 				"a::d:*:*:*.*.*.*",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-d-*-*-*-*.ipv6-literal.net");
+				"a-0-0-d-*-*-*-*.ipv6-literal.net",
+				"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N",
+				"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+				"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777");
 		testIPv6Strings("a::c:d:*/64",
 				"a:0:0:0:0:0:0:0/64",
 				"a:0:0:0:*:*:*:*",
@@ -888,7 +1256,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a::/64",
 				"a::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-0-0-0-0-0.ipv6-literal.net/64");
+				"a-0-0-0-0-0-0-0.ipv6-literal.net/64",
+				"00|M>t|ttwH6V62lVY`A›00|M>t|ttxBz48@eGWJA/64",
+				"0x000a0000000000000000000000000000-0x000a000000000000ffffffffffffffff",
+				"00000240000000000000000000000000000000000000-00000240000000000000001777777777777777777777");
 		testIPv6Strings("a::d:*:*:*:*/64",
 				"a:0:0:d:0:0:0:0/64",
 				"a:0:0:d:*:*:*:*",
@@ -904,7 +1275,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"a:0:0:d::/64",
 				"a:0:0:d::/64",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
-				"a-0-0-d-0-0-0-0.ipv6-literal.net/64");
+				"a-0-0-d-0-0-0-0.ipv6-literal.net/64",
+				"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/64",
+				"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+				"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777");
 		testIPv6Strings("1::/32",
 				"1:0:0:0:0:0:0:0/32",
 				"1:0:*:*:*:*:*:*",
@@ -920,7 +1294,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1::/32",
 				"1::/32",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.1.0.0.0.ip6.arpa",
-				"1-0-0-0-0-0-0-0.ipv6-literal.net/32");
+				"1-0-0-0-0-0-0-0.ipv6-literal.net/32",
+				"008JOm8Mm5*yBppL!sg1›008JPeGE6kXzV|T&xr^1/32",
+				"0x00010000000000000000000000000000-0x00010000ffffffffffffffffffffffff",
+				"00000020000000000000000000000000000000000000-00000020000077777777777777777777777777777777");
 		testIPv6Strings("ffff::/8",
 				"ff00:0:0:0:0:0:0:0/8",
 				"ff00-ffff:*:*:*:*:*:*:*",
@@ -936,7 +1313,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ff00::/8",
 				"ff00::/8",
 				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.f.f.ip6.arpa",
-				"ff00-0-0-0-0-0-0-0.ipv6-literal.net/8");
+				"ff00-0-0-0-0-0-0-0.ipv6-literal.net/8",
+				"=SN{mv>Qn+T=L9X}Vo30›=r54lj&NUUO~Hi%c2ym0/8",
+				"0xff000000000000000000000000000000-0xffffffffffffffffffffffffffffffff",
+				"03770000000000000000000000000000000000000000-03777777777777777777777777777777777777777777");
 		testIPv6Strings("ffff::/104",
 				"ffff:0:0:0:0:0:0:0/104",
 				"ffff:0:0:0:0:0:0-ff:*",
@@ -952,7 +1332,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/104",
 				"ffff::/104",
 				"*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104");
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104",
+				"=q{+M|w0(OeO5^EGP660/104",
+				"0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff",
+				"03777760000000000000000000000000000000000000-03777760000000000000000000000000000077777777");
 		testIPv6Strings("ffff::/108",
 				"ffff:0:0:0:0:0:0:0/108",
 				"ffff:0:0:0:0:0:0-f:*",
@@ -968,7 +1351,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/108",
 				"ffff::/108",
 				"*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/108");
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/108",
+				"=q{+M|w0(OeO5^EGP660/108",
+				"0xffff0000000000000000000000000000-0xffff00000000000000000000000fffff",
+				"03777760000000000000000000000000000000000000-03777760000000000000000000000000000003777777");
 		testIPv6Strings("ffff::1000:0/108",
 				"ffff:0:0:0:0:0:1000:0/108",
 				"ffff:0:0:0:0:0:1000-100f:*",
@@ -984,7 +1370,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::16.0.0.0/108",
 				"ffff::16.0.0.0/108",
 				"*.*.*.*.*.0.0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-1000-0.ipv6-literal.net/108");
+				"ffff-0-0-0-0-0-1000-0.ipv6-literal.net/108",
+				"=q{+M|w0(OeO5^ELbE%G/108",
+				"0xffff0000000000000000000010000000-0xffff00000000000000000000100fffff",
+				"03777760000000000000000000000000002000000000-03777760000000000000000000000000002003777777");
 		testIPv6Strings("ffff::a000:0/108",
 				"ffff:0:0:0:0:0:a000:0/108",
 				"ffff:0:0:0:0:0:a000-a00f:*",
@@ -1000,7 +1389,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::160.0.0.0/108",
 				"ffff::160.0.0.0/108",
 				"*.*.*.*.*.0.0.a.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-a000-0.ipv6-literal.net/108");
+				"ffff-0-0-0-0-0-a000-0.ipv6-literal.net/108",
+				"=q{+M|w0(OeO5^E(z82>/108",
+				"0xffff00000000000000000000a0000000-0xffff00000000000000000000a00fffff",
+				"03777760000000000000000000000000024000000000-03777760000000000000000000000000024003777777");
 		testIPv6Strings("ffff::eeee:eeee/108",
 				"ffff:0:0:0:0:0:eee0:0/108",
 				"ffff:0:0:0:0:0:eee0-eeef:*",
@@ -1016,7 +1408,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::238.224.0.0/108",
 				"ffff::238.224.0.0/108",
 				"*.*.*.*.*.e.e.e.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-eee0-0.ipv6-literal.net/108");
+				"ffff-0-0-0-0-0-eee0-0.ipv6-literal.net/108",
+				"=q{+M|w0(OeO5^F85=Cb/108",
+				"0xffff00000000000000000000eee00000-0xffff00000000000000000000eeefffff",
+				"03777760000000000000000000000000035670000000-03777760000000000000000000000000035673777777");
 		testIPv6Strings("ffff::/107",
 				"ffff:0:0:0:0:0:0:0/107",
 				"ffff:0:0:0:0:0:0-1f:*",
@@ -1032,7 +1427,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff::0.0.0.0/107",
 				"ffff::/107",
 				"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/107");
+				"ffff-0-0-0-0-0-0-0.ipv6-literal.net/107",
+				"=q{+M|w0(OeO5^EGP660/107",
+				"0xffff0000000000000000000000000000-0xffff00000000000000000000001fffff",
+				"03777760000000000000000000000000000000000000-03777760000000000000000000000000000007777777");
 		testIPv6Strings("abcd::/107",
 				"abcd:0:0:0:0:0:0:0/107",
 				"abcd:0:0:0:0:0:0-1f:*",
@@ -1048,7 +1446,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"abcd::0.0.0.0/107",
 				"abcd::/107",
 				"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.ip6.arpa",
-				"abcd-0-0-0-0-0-0-0.ipv6-literal.net/107");
+				"abcd-0-0-0-0-0-0-0.ipv6-literal.net/107",
+				"o6)n`s#^$cP5&p^H}p=a/107",
+				"0xabcd0000000000000000000000000000-0xabcd00000000000000000000001fffff",
+				"02536320000000000000000000000000000000000000-02536320000000000000000000000000000007777777");
 		testIPv6Strings("1:2:3:4::%:%:%", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
 				"1:2:3:4:0:0:0:0%:%:%", //normalized
 				"1:2:3:4:0:0:0:0%:%:%", //normalizedWildcards
@@ -1064,7 +1465,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::%:%:%",
 				"1:2:3:4::%:%:%",
 				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-4-0-0-0-0s-s-s.ipv6-literal.net");//mixed
+				"1-2-3-4-0-0-0-0s-s-s.ipv6-literal.net",
+				"008JQWOV7Skb)C|ve)jA§:%:%",
+				"0x00010002000300040000000000000000%:%:%",
+				"00000020000200001400010000000000000000000000%:%:%");//mixed
 		testIPv6Strings("1:2:3:4::*:*:*",
 				"1:2:3:4:0:*:*:*", //normalized
 				"1:2:3:4:0:*:*:*", //normalizedWildcards
@@ -1080,7 +1484,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::*:*.*.*.*",
 				"1:2:3:4::*:*.*.*.*",
 				"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-4-0-*-*-*.ipv6-literal.net");//mixed
+				"1-2-3-4-0-*-*-*.ipv6-literal.net",
+				"008JQWOV7Skb)C|ve)jA›008JQWOV7Skb?_P3;X#A",
+				"0x00010002000300040000000000000000-0x00010002000300040000ffffffffffff",
+				"00000020000200001400010000000000000000000000-00000020000200001400010000007777777777777777");
 		testIPv6Strings("1:2:3:4::/80",
 				"1:2:3:4:0:0:0:0/80", //normalized
 				"1:2:3:4:0:*:*:*", //normalizedWildcards
@@ -1096,7 +1503,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::/80",
 				"1:2:3:4::/80",
 				"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-4-0-0-0-0.ipv6-literal.net/80");//mixed
+				"1-2-3-4-0-0-0-0.ipv6-literal.net/80",
+				"008JQWOV7Skb)C|ve)jA/80",
+				"0x00010002000300040000000000000000-0x00010002000300040000ffffffffffff",
+				"00000020000200001400010000000000000000000000-00000020000200001400010000007777777777777777");
 		testIPv6Strings("1:2:3:4::",
 				"1:2:3:4:0:0:0:0", //normalized
 				"1:2:3:4:0:0:0:0", //normalizedWildcards
@@ -1112,7 +1522,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::",
 				"1:2:3:4::",
 				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-4-0-0-0-0.ipv6-literal.net");//mixed 
+				"1-2-3-4-0-0-0-0.ipv6-literal.net",
+				"008JQWOV7Skb)C|ve)jA",
+				"0x00010002000300040000000000000000",
+				"00000020000200001400010000000000000000000000");//mixed 
 		testIPv6Strings("1:2:3:4:0:6::",
 				"1:2:3:4:0:6:0:0", //normalized
 				"1:2:3:4:0:6:0:0", //normalizedWildcards
@@ -1128,7 +1541,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4:0:6::",
 				"1:2:3:4:0:6::",
 				"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-4-0-6-0-0.ipv6-literal.net");//mixed
+				"1-2-3-4-0-6-0-0.ipv6-literal.net",
+				"008JQWOV7Skb)D3fCrWG",
+				"0x00010002000300040000000600000000",
+				"00000020000200001400010000000000300000000000");
 		testIPv6Strings("1:2:3:0:0:6::",
 				"1:2:3:0:0:6:0:0", //normalized
 				"1:2:3:0:0:6:0:0", //normalizedWildcards
@@ -1144,641 +1560,25 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3::6:0.0.0.0",
 				"1:2:3:0:0:6::",
 				"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-				"1-2-3-0-0-6-0-0.ipv6-literal.net");//mixed
-		//1:2::%:%:%
-		//strings to compare look like 
-		//1:2:0:0:0:6::
+				"1-2-3-0-0-6-0-0.ipv6-literal.net",
+				"008JQWOV7O(=61h*;$LC",
+				"0x00010002000300000000000600000000",
+				"00000020000200001400000000000000300000000000");
 	}
 	
-	static final IPAddressStringParameters ORDERING_OPTS = WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS.toBuilder().allowEmpty(true).setEmptyAsLoopback(false).toParams();
-	
-	class Ordering implements Comparable<Ordering> {
-		final IPAddressString address;
-		final int order;
-		
-		Ordering(String address, int order) {
-			this.address = createAddress(address, ORDERING_OPTS);
-			this.order = order;
-		}
-
-		@Override
-		public int hashCode() {
-			return address.hashCode();
-		}
-		
-		@Override
-		public int compareTo(Ordering o) {
-			return address.compareTo(o.address);
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if(o instanceof Ordering) {
-				Ordering other = (Ordering) o;
-				return address.equals(other.address);
-			}
-			return false;
-		}
-		
-		@Override
-		public String toString() {
-			return "(" + order + ") " + address;
-		}
-	}
-	
-	void testOrder() {
-		testDefaultOrder();
-		
-		class OrderingComparator implements Comparator<Ordering> {
-			private final IPAddressComparator comp;
-			
-			OrderingComparator(IPAddressComparator comp) {
-				this.comp = comp;
-			}
-			
-			@Override
-			public int compare(Ordering o1, Ordering o2) {
-				IPAddress one = o1.address.getAddress();
-				IPAddress two = o2.address.getAddress();
-				if(one != null && two != null) {
-					return comp.compare(one, two);
-				}
-				return o1.address.compareTo(o2.address);
-			}
-		}
-		
-		testLowValueOrder(new OrderingComparator(new ValueComparator(false)));
-		
-		
-		testHighValueOrder(new OrderingComparator(new ValueComparator(true)));
-		
-		testDefaultOrder();
-	}
-	
-	void testHighValueOrder(Comparator<? super Ordering> comparator) {
-		
-		ArrayList<Ordering> ordering = new ArrayList<Ordering>();
-
-		//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
-		int orderNumber = 0;
-
-		//invalid
-		String strs[] = new String[] {
-			"bla",
-			"foo",
-			"fo",
-			"four",
-			"xxx",
-			"/129" //invalid prefix
-		};
-		Arrays.sort(strs);
-		for(String s : strs) {
-			ordering.add(new Ordering(s, orderNumber++));
-		}
-
-		//empty
-		ordering.add(new Ordering("", orderNumber));
-		ordering.add(new Ordering("  ", orderNumber));
-		ordering.add(new Ordering("     ", orderNumber));
-		ordering.add(new Ordering("", orderNumber));
-		orderNumber++;
-		
-		//a bunch of address and prefixes
-		
-		
-		
-		ordering.add(new Ordering("1.0.0.0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4", orderNumber));
-		ordering.add(new Ordering("1.2.003.4", orderNumber));
-		ordering.add(new Ordering("1.2.3.4", orderNumber));
-		ordering.add(new Ordering("001.002.003.004", orderNumber));
-		orderNumber++;
-		
-		
-		ordering.add(new Ordering("1.002.3.*", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/31", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("1.002.3.*/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4/16", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/16", orderNumber));
-		ordering.add(new Ordering("001.002.003.004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.2.003.4/15", orderNumber));
-		ordering.add(new Ordering("1.2.3.4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("255.254.255.254", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.254.255.255", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*.*.1-3.*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("255.255.255.254", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*.*.*.*", orderNumber));
-		ordering.add(new Ordering("*.*.%*.*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("255.255.255.255", orderNumber));
-		orderNumber++;
-		
-		//ipv6
-		
-		ordering.add(new Ordering("1::", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("1::2:003:4", orderNumber));
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/111", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/127", orderNumber));
-		ordering.add(new Ordering("1::2:3:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:1-3:4:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/17", orderNumber));
-		ordering.add(new Ordering("1::2:003:4/17", orderNumber));
-		ordering.add(new Ordering("1::2:7:8/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:003:4/15", orderNumber));
-		ordering.add(new Ordering("1::2:3:4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:003:4/16", orderNumber));
-		ordering.add(new Ordering("1::2:003:*/16", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1:f000::2/17", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("a1:f000::2/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("ffff::fffe:ffff:fffe", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::fffe:ffff:ffff", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::ffff:ffff:fffe", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*::*:*:*", orderNumber));
-		ordering.add(new Ordering("*::*:%*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("ffff::ffff:ffff:ffff", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*/16", orderNumber));
-		ordering.add(new Ordering("*:*", orderNumber));
-		ordering.add(new Ordering("*:*:*:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("/33", orderNumber));//interpreted as ipv6
-		orderNumber++;
-		
-		ordering.add(new Ordering("/64", orderNumber));//interpreted as ipv6
-		orderNumber++;
-		
-		ordering.add(new Ordering("/128", orderNumber));//interpreted as ipv6
-		orderNumber++;
-
-		
-//		ordering.add(new Ordering("/128", orderNumber)); now interpreted as ipv6
-//		orderNumber++;
-//		ordering.add(new Ordering("/64", orderNumber)); now interpreted as ipv6
-//		orderNumber++;
-		ordering.add(new Ordering("/32", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/24", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*", orderNumber));
-		ordering.add(new Ordering("**", orderNumber));
-		ordering.add(new Ordering(" *", orderNumber));
-		ordering.add(new Ordering("%%", orderNumber));
-		orderNumber++;
-		
-		checkOrdering(ordering, orderNumber, comparator);
-	}
-	
-	void testLowValueOrder(Comparator<? super Ordering> comparator) {
-		
-		ArrayList<Ordering> ordering = new ArrayList<Ordering>();
-
-		//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
-		int orderNumber = 0;
-
-		//invalid
-		String strs[] = new String[] {
-			"bla",
-			"foo",
-			"fo",
-			"four",
-			"xxx",
-			"/129" //invalid prefix
-		};
-		Arrays.sort(strs);
-		for(String s : strs) {
-			ordering.add(new Ordering(s, orderNumber++));
-		}
-
-		//empty
-		ordering.add(new Ordering("", orderNumber));
-		ordering.add(new Ordering("  ", orderNumber));
-		ordering.add(new Ordering("     ", orderNumber));
-		ordering.add(new Ordering("", orderNumber));
-		orderNumber++;
-		
-		//a bunch of address and prefixes
-		
-		ordering.add(new Ordering("*.*.*.*", orderNumber));
-		ordering.add(new Ordering("*.*.%*.*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*.*.1-3.*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.0.0.0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.*/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4/16", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/16", orderNumber));
-		ordering.add(new Ordering("001.002.003.004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.2.003.4/15", orderNumber));
-		ordering.add(new Ordering("1.2.3.4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.*", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4", orderNumber));
-		ordering.add(new Ordering("1.2.003.4", orderNumber));
-		ordering.add(new Ordering("1.2.3.4", orderNumber));
-		ordering.add(new Ordering("001.002.003.004", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("255.254.255.254", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.254.255.255", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.255.255.254", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.255.255.255", orderNumber));
-		orderNumber++;
-		
-		//ipv6
-		
-		ordering.add(new Ordering("1::2:003:4/15", orderNumber));
-		ordering.add(new Ordering("1::2:3:4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*::*:*:*", orderNumber));
-		ordering.add(new Ordering("*::*:%*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*/16", orderNumber));
-		ordering.add(new Ordering("*:*", orderNumber));
-		ordering.add(new Ordering("*:*:*:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/17", orderNumber));
-		ordering.add(new Ordering("1::2:003:4/17", orderNumber));
-		ordering.add(new Ordering("1::2:7:8/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:003:4/16", orderNumber));
-		ordering.add(new Ordering("1::2:003:*/16", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/111", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/127", orderNumber));
-		ordering.add(new Ordering("1::2:3:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("1::2:003:4", orderNumber));
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:1-3:4:*", orderNumber));
-		orderNumber++;
-
-		ordering.add(new Ordering("1:f000::2/17", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("a1:f000::2/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("ffff::fffe:ffff:fffe", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::fffe:ffff:ffff", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::ffff:ffff:fffe", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::ffff:ffff:ffff", orderNumber));
-		orderNumber++;
-
-		ordering.add(new Ordering("/33", orderNumber));//interpreted as ipv6, ffff:ffff:8000::/33
-		orderNumber++;
-		
-		ordering.add(new Ordering("ffff:ffff:ffff::", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("/64", orderNumber));//interpreted as ipv6 ffff:ffff:ffff:ffff::
-		orderNumber++;
-		
-		ordering.add(new Ordering("ffff:ffff:ffff:ffff::1", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("/128", orderNumber));//interpreted as ipv6
-		orderNumber++;
-		
-		
-		ordering.add(new Ordering("/32", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/24", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*", orderNumber));
-		ordering.add(new Ordering("**", orderNumber));
-		ordering.add(new Ordering(" *", orderNumber));
-		ordering.add(new Ordering("%%", orderNumber));
-		orderNumber++;
-		
-		checkOrdering(ordering, orderNumber, comparator);
-	}
-
-	private void checkOrdering(ArrayList<Ordering> ordering, int orderCount, Comparator<? super Ordering> comparator) {
-		//Count the number of unique ones using a hashset
-		HashSet<Ordering> counterSet = new HashSet<Ordering>();
-		counterSet.addAll(ordering);
-		
-		if(counterSet.size() != orderCount) {
-			addFailure(new Failure("mismatch of unique addresses, expected " + orderCount + " got " + counterSet.size()));
-		}
-		
-		//mix em up by using a hashset - we need to wrap them to ensure this set doesn't consider any of them equal
-		class Wrapper {
-			Ordering o;
-			Wrapper(Ordering o) {
-				this.o = o;
-			}
-		}
-		HashSet<Wrapper> set = new HashSet<Wrapper>();
-		for(Ordering o : ordering) {
-			set.add(new Wrapper(o));
-		}
-		ordering.clear();
-		for(Wrapper w : set) {
-			ordering.add(w.o);
-		}
-		
-		if(comparator != null) {
-			Collections.sort(ordering, comparator);
-		} else {
-			Collections.sort(ordering);
-		}
-		
-		ArrayList<String> sorted = new ArrayList<String>(ordering.size());
-		int previousOrder = -1, lastIndex = -1;
-		for(int i=0; i<ordering.size(); i++) {
-			Ordering o = ordering.get(i);
-			int currentOrder = o.order;
-			int index;
-			if(currentOrder == previousOrder) {
-				index = lastIndex;
-			} else {
-				index = i + 1;
-			}
-			sorted.add("\n(" + index + ") " + o.address + (o.address.getAddress() == null ? "" : "\t\t\t (" + o.address.getAddress().toNormalizedWildcardString() + ")"));
-			previousOrder = currentOrder;
-			lastIndex = index;
-		}
-		
-		boolean failedOrdering = false;
-		int lastOrder = -1;
-		for(int i=0; i<ordering.size(); i++) {
-			Ordering orderingItem = ordering.get(i);
-			int order = orderingItem.order;
-			if(order < lastOrder) {
-				failedOrdering = true;
-				//addFailure(new Failure("item " + (i + 1) + ": " + orderingItem.address + " is in wrong place in ordering (" + order + ", " + lastOrder + ") : " + sorted, orderingItem.address));
-				addFailure(new Failure("item " + (i + 1) + ": " + orderingItem.address + " is in wrong place in ordering ( order number: " + order + ", previous order number: " + lastOrder + ")", orderingItem.address));
-			}
-			lastOrder = order;
-		}
-		
-		if(failedOrdering) {
-			addFailure(new Failure("ordering failed: " + sorted));
-		}
-		
+	void testPrefix(String original, Integer prefixLength, int minPrefix, Integer equivalentPrefix) {
+		IPAddress mac = createAddress(original).getAddress();
+		testPrefix(mac, prefixLength, minPrefix, equivalentPrefix);
 		incrementTestCount();
 	}
 	
-	void testDefaultOrder() {
-		
-		ArrayList<Ordering> ordering = new ArrayList<Ordering>();
-
-		//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
-		int orderNumber = 0;
-
-		//invalid
-		String strs[] = new String[] {
-			"bla",
-			"foo",
-			"fo",
-			"four",
-			"xxx",
-			"/129" //invalid prefix
-		};
-		Arrays.sort(strs);
-		for(String s : strs) {
-			ordering.add(new Ordering(s, orderNumber++));
-		}
-
-		//empty
-		ordering.add(new Ordering("", orderNumber));
-		ordering.add(new Ordering("  ", orderNumber));
-		ordering.add(new Ordering("     ", orderNumber));
-		ordering.add(new Ordering("", orderNumber));
-		orderNumber++;
-		
-		//a bunch of address and prefixes
-		ordering.add(new Ordering("1.0.0.0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4", orderNumber));
-		ordering.add(new Ordering("1.2.003.4", orderNumber));
-		ordering.add(new Ordering("1.2.3.4", orderNumber));
-		ordering.add(new Ordering("001.002.003.004", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("255.254.255.254", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.254.255.255", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.255.255.254", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("255.255.255.255", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.*", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/31", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("1.002.3.*/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.002.3.4/16", orderNumber));
-		ordering.add(new Ordering("1.002.3.*/16", orderNumber));
-		ordering.add(new Ordering("001.002.003.004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1.2.003.4/15", orderNumber));
-		ordering.add(new Ordering("1.2.3.4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*.*.1-3.*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*.*.*.*", orderNumber));
-		ordering.add(new Ordering("*.*.%*.*", orderNumber));
-		orderNumber++;
-		
-		//xx ipv6 x;
-		
-		ordering.add(new Ordering("1::", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("1::2:003:4", orderNumber));
-		ordering.add(new Ordering("1::2:3:4", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::fffe:ffff:fffe", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::fffe:ffff:ffff", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::ffff:ffff:fffe", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("ffff::ffff:ffff:ffff", orderNumber));
-		orderNumber++;
-
-		ordering.add(new Ordering("/128", orderNumber));//interpreted as ipv6
-		orderNumber++;
-
-		ordering.add(new Ordering("1::2:3:*/127", orderNumber));
-		ordering.add(new Ordering("1::2:3:*", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("1::2:3:*/111", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("1::2:1-3:4:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("/64", orderNumber));//interpreted as ipv6
-		orderNumber++;
-		
-		ordering.add(new Ordering("*::*:*:*", orderNumber));
-		ordering.add(new Ordering("*::*:%*:*", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("/33", orderNumber));//interpreted as ipv6
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("1::2:3:*/17", orderNumber));
-		ordering.add(new Ordering("1::2:003:4/17", orderNumber));
-		ordering.add(new Ordering("1::2:7:8/17", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("1:f000::2/17", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("a1:f000::2/17", orderNumber));
-		orderNumber++;
-		
-		
-		ordering.add(new Ordering("1::2:003:4/16", orderNumber));
-		ordering.add(new Ordering("1::2:003:*/16", orderNumber));
-		ordering.add(new Ordering("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-		
-		
-		ordering.add(new Ordering("1::2:003:4/15", orderNumber));
-		ordering.add(new Ordering("1::2:3:4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*:*:a:*:*:*:*:*/16", orderNumber));
-		ordering.add(new Ordering("*:*", orderNumber));
-		ordering.add(new Ordering("*:*:*:*:*:*:*:*", orderNumber));
-		orderNumber++;
-		
-//		ordering.add(new Ordering("/128", orderNumber)); now interpreted as ipv6
-//		orderNumber++;
-//		ordering.add(new Ordering("/64", orderNumber)); now interpreted as ipv6
-//		orderNumber++;
-		ordering.add(new Ordering("/32", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/24", orderNumber));
-		orderNumber++;
-		ordering.add(new Ordering("/0", orderNumber));
-		orderNumber++;
-		
-		ordering.add(new Ordering("*", orderNumber));
-		ordering.add(new Ordering("**", orderNumber));
-		ordering.add(new Ordering(" *", orderNumber));
-		ordering.add(new Ordering("%%", orderNumber));
-		orderNumber++;
-		
-		checkOrdering(ordering, orderNumber, null);
+	@Override
+	boolean allowsRange() {
+		return true;
 	}
+
+	
+	
 	
 	@Override
 	void runTest() {
@@ -1821,12 +1621,25 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testEquivalentPrefix("1:2:fffb-ffff:0-fffe:*", null, 64);
 		testEquivalentPrefix("1:2:fffb-ffff:0-ffff:*", null, 48);
 		
-		testOrder();
+		testReverseHostAddress("*.*.*.0/20");
+		testReverseHostAddress("*.*.0.0/16");
+		testReverseHostAddress("*:*::/20");
 		
 		testStrings();
 		
 		testTrees();
-
+		
+		testReverse("1:2:*:4:5:6:a:b", false, false);
+		testReverse("1:1:1:1-fffe:2:3:3:3", false, false);
+		testReverse("1:1:1:0-fffe:1-fffe:*:1:1", false, false);
+		testReverse("ffff:80:*:ff:01:ffff", false, false);
+		testReverse("ffff:8000:fffe::7fff:0001:ffff", true, false);
+		testReverse("ffff:8000:*:8000:1:*:01:ffff", true, false);
+		testReverse("ffff:8118:ffff:*:1-fffe:ffff", false, true);
+		testReverse("ffff:8181:c3c3::4224:2400:0-fffe", false, true);
+		testReverse("ffff:1:ff:ff:*:*", false, false);
+		
+		
 		testMatches(true, "1.2.3.4/16", "1.2.*.*");
 		testMatches(true, "1.2.3.4/16", "1.2.*");
 		testMatches(false, "1.2.3.4/15", "1.2.*.*");
@@ -1924,6 +1737,14 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "00-0.0-0.00-00.00-0", "0.0.0.0");
 		testMatches(true, "0-00:0-0:00-00:00-0:0-000:0000-0000:0000-00:0000-0", "::");
 		
+		testMatches(true, "-1.22.33.4", "0-1.22.33.4");
+		testMatches(true, "-1.22.33.4", "0-1.22.33.4");
+		testMatches(true, "22.1-.33.4", "22.1-255.33.4");
+		testMatches(true, "22.33.4.1-", "22.33.4.1-255");
+		testMatches(true, "aa:-1:cc::d:ee:f", "aa:0-1:cc::d:ee:f");
+		testMatches(true, "aa:dd-:cc::d:ee:f", "aa:dd-ffff:cc::d:ee:f");
+		testMatches(true, "::1:0:0:0.0.0.0", "0:0:0:1::0.0.0.0");
+		
 		testMasks("9.*.237.26/0", "0.0.0.0/0");
 		testMasks("9.*.237.26/1", "0.0.0.0/1");
 		testMasks("9.*.237.26/4", "0.0.0.0/4");
@@ -1948,6 +1769,28 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testSubnet("::1:0-ff", "::1:fff0", 124, IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0:0:0:0:0:0:1:0-f0/124" : "0:0:0:0:0:0:1:0-ff/124", null, IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0:0:0:0:0:0:1:0-f0/124" : "0:0:0:0:0:0:1:0-ff/124");
 		testSubnet("*::1:0-f", "ffff::1:fff0", 124, "*:0:0:0:0:0:1:0/124", "*:0:0:0:0:0:1:0", "*:0:0:0:0:0:1:0/124");
 		
+		testBitwiseOr("1.2.0.0/16", 8, "0.0.3.248", "1.2.3.248-255");
+		testBitwiseOr("1.2.0.0/16", 7, "0.0.2.0", "1.2.2-3.*");
+		testBitwiseOr("1.2.0.0/16", 7, "0.0.3.0", "1.2.3.*");
+		testBitwiseOr("0.0.0.0/0", 0, "128.192.224.240", "128-255.192-255.224-255.240-255");
+		testBitwiseOr("0.0.0.0/0", 0, "128.192.224.64", null);
+		
+		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.2.8", "0.0.*.0/18");
+		
+		
+		testBitwiseOr("1:2::/32", 16, "0:0:3:fff8::", "1:2:3:fff8-ffff:*");
+		testBitwiseOr("1:2::/32", 15, "0:0:2::", "1:2:2-3:*");
+		testBitwiseOr("1:2::/32", 15, "0:0:3::", "1:2:3:*");
+		testBitwiseOr("::/0", 0, "8000:c000:e000:fff0::", "8000-ffff:c000-ffff:e000-ffff:fff0-ffff:*");
+		testBitwiseOr("::/0", 0, "8000:c000:e000:4000::", null);
+		
+		testPrefixBitwiseOr("::/32", 34, "0:0:2:8::", "0:0:*::/34");
+		
+		testDelimitedCount("1,2-3,4:3:4,5:6:7:8:ffff:ffff", 8); 
+		testDelimitedCount("1,2::3,6:7:8:4,5-6:6,8", 16);
+		testDelimitedCount("1:2:3:*:4::5", 1);
+		testDelimitedCount("1:2,3,*:3:ffff:ffff:6:4:5,ff,7,8,99", 15);
+		testDelimitedCount("0,1-2,3,5:3::6:4:5,ffff,7,8,99", 30);
 		
 		testContains("0.0.0.0/0", "1-2.*.3.*", false);
 		testContains("0-127.0.0.0/1", "127-127.*.3.*", false);
@@ -2003,6 +1846,24 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testContains("ffff:*:0:0:0:0:0:fffa-ffff/126", "ffff:*::ffff/126", false);
 		testContains("ffff:*::ffff/126", "ffff:*:0:0:0:0:0:fffc-ffff/126", true);
 		testContains("ffff:1-2::ffff/126", "ffff:1-2:0:0:0:0:0:fffc-ffff/126", true);
+		
+		testPrefix("25:51:27:*:*:*:*:*", null, 48, 48);
+		testPrefix("25:51:27:*:*:*:*:*/48", 48, 48, 48);
+		testPrefix("25:50-51:27::/48", 48, 48, null);
+		testPrefix("25:50-51:27:*:*:*:*:*", null, 48, null);
+		testPrefix("25:51:27:12:82:55:2:2", null, 128, 128);
+		testPrefix("*:*:*:*:*:*:*:*", null, 0, 0);
+		testPrefix("*:*:*:*:*:*:0-fe:*", null, 112, null);
+		testPrefix("*:*:*:*:*:*:0-ff:*", null, 104, null);
+		testPrefix("*:*:*:*:*:*:0-ffff:*", null, 0, 0);
+		testPrefix("*:*:*:*:*:*:0-7fff:*", null, 97, null);
+		testPrefix("*:*:*:*:*:*:8000-ffff:*", null, 97, null);
+		testPrefix("*.*.*.*", null, 0, 0);
+		testPrefix("3.*.*.*", null, 8, 8);
+		testPrefix("3.*.*.1-3", null, 32, null);
+		testPrefix("3.0-127.*.*", null, 9, 9);
+		testPrefix("3.128-255.*.*", null, 9, 9);
+		
 		
 		ipv4test(true, "1.2.*.4/1");
 		ipv4test(false, "1.2.*.4/-1");
@@ -2132,13 +1993,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4_inet_aton_test(true, "0.0.0x100-017777");
 		ipv4_inet_aton_test(false, "0.0.0x100-0200000");
 		ipv4_inet_aton_test(true, "0.0x10000-077777777");
-		//ipv4_inet_aton_test(false, "0.0x1-077777777"); the given address throw IPAddressTypeException as expected, would need to rewrite the test to make that a pass
+		//ipv4_inet_aton_test(false, "0.0x1-077777777"); the given address throw AddressTypeException as expected, would need to rewrite the test to make that a pass
 		ipv4_inet_aton_test(false, "0.0x10000-0100000000");
 		ipv4_inet_aton_test(true, "0x1000000-03777777777");
+		ipv4_inet_aton_test(true, "0x1000000-037777777777");
 		ipv4_inet_aton_test(false, "0x1000000-040000000000");
 		
 		ipv4test(true, "*"); //toAddress() should not work on this, toAddress(Version) should.
-		ipv4test(false, "*%", false, true); //no zone for ipv4
+		
+		ipv4test(false, "*%", false, true); //because the string could represent ipv6, and we are allowing zone, we treat the % as ipv6 zone, and then we invalidate because no zone for ipv4
 		ipv4test(false, "*%x", false, true); //no zone for ipv4
 		ipv4test(true, "**"); //toAddress() should not work on this, toAddress(Version) should.
 		ipv6test(true, "*%x"); //ipv6 which allows zone
@@ -2147,20 +2010,20 @@ public class IPAddressRangeTest extends IPAddressTest {
 		
 		ipv4test(true, "1.*.3");
 		
-		ipv4test(!true, "a.*.3.4");
-		ipv4test(!true, "*.a.3.4");
-		ipv4test(!true, "1.*.a.4");
-		ipv4test(!true, "1.*.3.a");
+		ipv4test(false, "a.*.3.4");
+		ipv4test(false, "*.a.3.4");
+		ipv4test(false, "1.*.a.4");
+		ipv4test(false, "1.*.3.a");
 		
-		ipv4test(!true, ".2.3.*");
-		ipv4test(!true, "1..*.4");
-		ipv4test(!true, "1.*..4");
-		ipv4test(!true, "*.2.3.");
+		ipv4test(false, ".2.3.*");
+		ipv4test(false, "1..*.4");
+		ipv4test(false, "1.*..4");
+		ipv4test(false, "*.2.3.");
 		
-		ipv4test(!true, "256.*.3.4");
-		ipv4test(!true, "1.256.*.4");
-		ipv4test(!true, "*.2.256.4");
-		ipv4test(!true, "1.*.3.256");
+		ipv4test(false, "256.*.3.4");
+		ipv4test(false, "1.256.*.4");
+		ipv4test(false, "*.2.256.4");
+		ipv4test(false, "1.*.3.256");
 		
 		
 		ipv4test(true, "0.0.*.0", false);
@@ -2185,15 +2048,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 		
 		ipv4test(true, "000.000.000.*", false);
 		
-		ipv4test(!true, "0000.0.*.0");
-		ipv4test(!true, "*.0000.0.0");
-		ipv4test(!true, "0.*.0000.0");
-		ipv4test(!true, "*.0.0.0000");
+		ipv4test(isLenient(), "0000.0.*.0");
+		ipv4test(isLenient(), "*.0000.0.0");
+		ipv4test(isLenient(), "0.*.0000.0");
+		ipv4test(isLenient(), "*.0.0.0000");
 		
-		ipv4test(!true, ".0.*.0");
-		ipv4test(!true, "0..*.0");
-		ipv4test(!true, "0.*..0");
-		ipv4test(!true, "*.0.0.");
+		ipv4test(false, ".0.*.0");
+		ipv4test(false, "0..*.0");
+		ipv4test(false, "0.*..0");
+		ipv4test(false, "*.0.0.");
 		
 		ipv4test(true, "1.*.3.4/255.1.0.0");
 		ipv4test(false, "1.*.3.4/255.1.0.0/16");
@@ -2207,8 +2070,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(false, "1:2::/1:*::");//range in mask
 		ipv6test(false, "1:2::/1:1-2::");//range in mask
 		
-		ipv4testOnly(!true, "1:2:3:4:5:*:7:8"); //fixed
-		ipv4testOnly(!true, "*::1"); //fixed
+		ipv4testOnly(false, "1:2:3:4:5:*:7:8"); //fixed
+		ipv4testOnly(false, "*::1"); //fixed
 		
 		ipv6test(1, "*"); //toAddress() should not work on this, toAddress(version) should
 		ipv6test(1, "*%"); //toAddress() should not work on this, toAddress(version) should
@@ -2256,7 +2119,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1,"FF02:0000:0000:0000:0000:0000:*:0001");
 		ipv6test(1,"*:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(0,"0000:0000:0000:0000:*0000:0000:0000:*0", true);
-		ipv6test(0,"02001:*:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"02001:*:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
 		ipv6test(0,"2001:0000:1234:0000:0*:C1C0:ABCD:0876"); // extra 0 not allowed!
 		ipv6test(1,"2001:0000:1234:0000:*:C1C0:ABCD:0876"); 
 		
@@ -2322,7 +2185,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
 		// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
 		//ipv6test(0,"fe80:0000:0000:*:0204:61ff:254.157.241.086");
-		ipv6test(1,"fe80:0000:0000:*:0204:61ff:254.157.241.086");
+		ipv6test(!isLenient(),"fe80:0000:0000:*:0204:61ff:254.157.241.086");
 		//ipv6test(1,"::*:192.0.*.128");
 		ipv6test(1,"::*:192.0.128.*"); 
 		ipv6test(0,"XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:1.2.3.4");
@@ -2390,9 +2253,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(true, "1.*.*");
 		ipv4test(true, "*.*.1");
 		ipv4test(true, "*.1.*");
-		ipv4test(false, "1");
-		ipv4test(false, "1.1");
-		ipv4test(false, "1.1.1");
+		ipv4test(isLenient(), "1");
+		ipv4test(isLenient(), "1.1");
+		ipv4test(isLenient(), "1.1.1");
 		
 		ipv4test(true, "*.1.2.*");
 		ipv4test(true, "*.1.*.2");
@@ -2415,7 +2278,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(true, "1::1.2.*%z");
 		ipv6test(false, "1:%:1");
 		ipv6test(true, "1::%:1");
-		ipv4test(false, "1.2.%");
+		ipv4test(true, "1.2.%"); //we allow this now, the % is seen as a wildcard because we are ipv4 - if we allow zone and the string can be interpreted as ipv6 then % is seen as zone character
 		
 		ipv6test(1, "1:*");
 		ipv6test(1, "*:1:*");
@@ -2445,13 +2308,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1, "::2:*.1.2");//compression takes precedence so the wildcard does not cover both ipv6 and ipv4 parts
 		ipv6test(0, "1:1.*.2");
 		ipv6test(0, "1:1.*.2.2");
-		ipv6test(0, "1:*:1.2");
+		ipv6test(isLenient(), "1:*:1.2");
 		
 		
 		ipv6test(1, "*:1:1.*");
-		ipv6test(0, "*:1:1.2.3");
+		ipv6test(isLenient(), "*:1:1.2.3");
 		ipv6test(1, "::1:1.*");
-		ipv6test(0, "::1:1.2.3");
+		ipv6test(isLenient(), "::1:1.2.3");
 		
 		ipv6test(1, "1:*:1");
 		ipv6test(1, "1:*:1:1.1.*");
@@ -2459,7 +2322,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1, "1:*:1:*");
 		ipv6test(1, "1:*:1:*.1.2");
 		ipv6test(1, "1:*:1:1.*");
-		ipv6test(0, "1:*:1:1.2.3");
+		ipv6test(isLenient(), "1:*:1:1.2.3");
 		
 		ipv6test(0, "1:*:1:2:3:4:5:6:7");
 		ipv6test(0, "1:*:1:2:3:4:5:1.2.3.4");
@@ -2487,10 +2350,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(true, "___.2.255.4");
 		ipv4test(true, "1.___.3.255");
 		
-		ipv4test(false, "255.____.3.4");
-		ipv4test(false, "1.255.____.4");
-		ipv4test(false, "____.2.255.4");
-		ipv4test(false, "1.____.3.255");
+		ipv4test(isLenient(), "255.____.3.4");
+		ipv4test(isLenient(), "1.255.____.4");
+		ipv4test(isLenient(), "____.2.255.4");
+		ipv4test(isLenient(), "1.____.3.255");
 		
 		ipv4test(false, "255._2_.3.4");
 		ipv4test(false, "1.255._2_.4");
@@ -2705,7 +2568,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1,"1___::2___:3___");
 		ipv6test(1,"1_::2___");
 		
-		ipv6test(0, "*:1:1._.__");
+		ipv6test(isLenient(), "*:1:1._.__");
 		ipv6test(1, "*:1:1._.__.___");
 		//ipv6test(0, "*:_:1:_.1.1._");//this passes validation but conversion to mask fails because the ipv4 ranges cannot be converted to ipv6 ranges
 		ipv6test(1, "*:_:1:1._.1._");

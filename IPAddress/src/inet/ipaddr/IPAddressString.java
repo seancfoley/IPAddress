@@ -1,18 +1,41 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr;
 
-import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.format.validate.AddressProvider;
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
+import inet.ipaddr.format.validate.IPAddressProvider;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.mac.MACAddress;
 
 /**
- * Parses the string representation of an IP address.  Such a string can represent just a single address or a subnet like 1.2.0.0/16 or 1.*.1-3.1-4.
+ * Parses the string representation of an IP address.  Such a string can represent just a single address like 1.2.3.4 or 1:2:3:4:6:7:8, or a subnet like 1.2.0.0/16 or 1.*.1-3.1-4 or 1111:222::/64.
  * <p>
- * This supports a much wider range of address string formats than InetAddress.getByName, supports subnet formats, provides specific error messages, and allows more specific configuration.
+ * This supports a much wider range of address string formats than InetAddress.getByName.  It supports subnet formats, provides specific error messages, and allows more specific configuration.
  * <p>
  * You can control all of the supported formats using {@link IPAddressStringParameters.Builder} to build a parameters instance of {@link IPAddressStringParameters}.
  * When not using the constructor that takes a {@link IPAddressStringParameters}, a default instance of {@link IPAddressStringParameters} is used that is generally permissive.
@@ -23,7 +46,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * Subnets are supported:
  * <ul>
  * <li>wildcards '*' and ranges '-' (for example 1.*.2-3.4), useful for working with subnets</li>
- * <li>SQL wildcards '%" and "_", although '%' is considered an SQL wildcard only when it is not considered an IPv6 zone indicator</li>
+ * <li>SQL wildcards '%' and '_', although '%' is considered an SQL wildcard only when it is not considered an IPv6 zone indicator</li>
  * <li>CIDR network prefix length addresses, like 1.2.3.4/16, which is equivalent to 1.2.*.*</li>
  * <li>address/mask pairs, in which the mask is applied to the address, like 1.2.3.4/255.255.0.0, which is also equivalent to 1.2.*.*</li>
  * </ul>
@@ -36,6 +59,8 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <li>IPv6 zones or scope ids, like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%zone</li>
  * <li>IPv6 mixed addresses are supported, which are addresses for which the last two IPv6 segments are represented as IPv4, like ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255</li>
  * <li>IPv6 compressed addresses like ::1</li>
+ * <li>A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimited 0x</li>
+ * <li>A base 85 address like 4)+k&C#VzJ4br>0wv%Yp as in rfc 1924 https://tools.ietf.org/html/rfc1924</li>
  * </ul>
  * <p>
  * All of the above subnet variations also work for IPv6, whether network prefixes, masks, ranges or wildcards.
@@ -46,9 +71,10 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <ul>
  * <li>IPv4 hex: 0x1.0x2.0x3.0x4 (0x prefix)</li>
  * <li>IPv4 octal: 01.02.03.0234.  Note this clashes with the same address interpreted as dotted decimal</li>
- * <li>IPv4 3 part: 1.2.3 (which is interpreted as 1.2.0.3 (ie the third part covers the last two)</li>
- * <li>IPv4 2 part: 1.2 (which is interpreted as 1.0.0.2 (ie the 2nd part covers the last 3)</li>
- * <li>IPv4 1 part: 1 (which is interpreted as 0.0.0.1 (ie the number represents all 4 segments)</li>
+ * <li>3-part IPv4: 1.2.3 (which is interpreted as 1.2.0.3 (ie the third part covers the last two)</li>
+ * <li>2-part IPv4: 1.2 (which is interpreted as 1.0.0.2 (ie the 2nd part covers the last 3)</li>
+ * <li>1-part IPv4: 1 (which is interpreted as 0.0.0.1 (ie the number represents all 4 segments, and can be any number of digits less than the 32 digits which would be interpreted as IPv6)</li>
+ * <li>hex or octal variants of 1, 2, and 3 part, such as 0xffffffff (which is interpreted as 255.255.255.255)</li>
  * </ul><br>
  * inet_aton (and this class) allows mixing octal, hex and decimal (e.g. 0xa.11.013.11 which is equivalent to 11.11.11.11).  String variations using prefixes, masks, ranges, and wildcards also work for inet_aton style.
  * <p>
@@ -66,8 +92,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * </ul>
  * <p>
  * Not supported:<br>
- * IPv6 dotted decimal: 1.2.3.4.1.2.3.4.1.2.3.4.1.2.3.4<br>
- * IPv6 base 85: RFC 1924<br>
+ * IPv6 dotted decimal: 1.2.3.444.1.2.3.4.1.2.3.4.1.2.3.4<br>
  * <p>
  * <h2>Usage</h2>
  * Once you have constructed an IPAddressString object, you can convert it to an IPAddress object with various methods.  
@@ -80,7 +105,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <pre><code>
  * try {
  *  {@link IPAddress} address = new IPAddressString("1.2.3.4").{@link #toAddress()};
- * } catch({@link IPAddressStringException} e) {
+ * } catch({@link AddressStringException} e) {
  *	//e.getMessage() provides description of validation failure
  * }
  * </code></pre>
@@ -94,11 +119,11 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <li>empty string "" is interpreted as the default loopback address.  You can provide the ipv4/ipv6 version to{@link #getAddress(IPVersion)}to get the loopback version of your choice.</li>
  * </ul>
  * <p>
- * The other exception is subnets in which the range of values in a segment of the subnet are not sequential, for which {@link #getAddress()} throws IPAddressTypeException because there is no single IPAddress value, there would be many.
+ * The other exception is subnets in which the range of values in a segment of the subnet are not sequential, for which {@link #getAddress()} throws {@link AddressTypeException} because there is no single IPAddress value, there would be many.
  * An IPAddress instance requires that all segments can be represented as a range of values.
  * There are only two unusual circumstances when this can occur:
  * <ul>
- * <li>using masks on subnets specified with wildcard or range characters causing non-sequential segments such as the final IPv4 segment of 0.0.0.*\/0.0.0.128, 
+ * <li>using masks on subnets specified with wildcard or range characters causing non-sequential segments such as the final IPv4 segment of 0.0.0.* with mask 0.0.0.128, 
  * this example translating to the two addresses 0.0.0.0 and 0.0.0.128, so the last IPv4 segment cannot be represented as a sequential range of values.</li>
  * <li>using wildcards or range characters in the IPv4 section of an IPv6 mixed address causing non-sequential segments such as the last IPv6 segment of ::ffff:0.0.*.0, 
  * this example translating to the addresses ::ffff:0:100, ::ffff:0:200, , ::ffff:0:300, ..., so the last IPv6 segment cannot be represented as a sequential range of values.</li>
@@ -123,49 +148,26 @@ import inet.ipaddr.ipv6.IPv6Address;
  * RFCs of interest are 2732, 2373, 3986, 4291, 5952, 2765, 1918, 3513 (IPv4 rfcs 1123 0953) 1883 1884 (original spec of 3 string representations of IPv6), 4007 6874 for IPv6 zone identifier or scope id
  * 
  * Nice cheat sheet for IPv6: http://www.roesen.org/files/ipv6_cheat_sheet.pdf
+ * 
+ * Nice summary on zones and parsing http://veithen.github.io/2013/12/30/how-to-correctly-parse-ipv6-addresses.html
+ * 
+ * Nice resource on IPv6 vs IPv4 and lots of stuff including MAC: 
+ * https://communities.bmc.com/docs/DOC-19235
+ * Another: https://www.midnightfreddie.com/ipv6-ipv4-similar.html
+ * 
+ * Some parsing code for various languages: https://rosettacode.org/wiki/Parse_an_IP_Address
+ * 
  */
-//TODO check http://www.deepspace6.net/projects/ipv6calc.html#idp5031248 this was linked from the cheat sheet
-//Add the DNS ptr example to the docs ie in our case we get an address section and then we do the reverse addr string (make sure we have that)
-//one is base 85 ha ha 
-//TODO maybe treat 32 hex chars as ipv6?  And treat some smaller number as ipv4?  ipv4 hex byte reversed - network order has the d in a.b.c.d first?  Simple 0xaabbccdd as ipv4?  
-//Yeah, I like this idea, maybe even with or without the 0x
-//In fact, the way I do the parsing now might work well with this
-//We go by the number of chars.  20 chars is base 85.  32 chars is ipv6.  8 chars or less is ipv4.  We treat as hex.  Maybe we even allow octal chars or decimal.
-//bitstring labels arpa: https://www.ibm.com/support/knowledgecenter/SSLTBW_1.13.0/com.ibm.zos.r13.halz002/f1a1b3b1220.htm
-//Document: sections: addresses can be broken up into sections, and reconstituted from sections, such as EUI-64 hosts, mac addresses, etc
-//TODO treat 20 chars as base 85
 
-//TODO could have methods that extract mac address EUI 64 as an IPV6AddressSection, or methods that reconstitute an IPV6AddressSection from a mac address
-//https://supportforums.cisco.com/document/100566/understanding-ipv6-eui-64-bit-address
-//But also, we could have a segment grouping that is a mac address, since MAC addresses group segments like ab-cd-ef 
-//Once we have this new mac address class, easier to jump back and forth
-//A segment grouping is a series of divisions, 
-//TODO MAC address design: so we need a mac address division, and then we have a macaddresssection extending IPAddressSegmentGrouping like ipaddresssection does
-//but I think we actually split into two, we keep IPAddressSegmentgrouping and we create SegmentGrouping, the former has anything prefix related which is address-section specific
-//Once we have this, we can have methods that create IPV6Section from mac, and for vice versa maybe nice to create an address from two separate sections?
-//We also do the same for IPAddressDivision, we spit off the prefix-related stuff.
-//the method isRangeEquivalentToPrefix must become isRangeImplied or isRangeInString or isRangeVisible
-//getNetworkPrefixLength is the only part of IPAddressPart that would not apply to the SegmentGrouping, so we split tht up too
-//BUT mac addresses have prefix too, 24 bits worth of the 48 total - http://aruljohn.com/mac.pl
-
-//In HostName
-//TODO support parsing the reverse DNS lookup string which is structured as a host
-		//Similar to UNC Host, when you see the arpa suffix, then reverse the address in both IPv4 and IPv6, in IPV6 join the digits, then parse with the usual machinery
-		//If an exception occurs, store it in the parsedHost object in its own field, then make that available here
-		//Either that, or just throw it as HostException, which in its own way makes sense
-		//TODO support parsing the IPv6 UNC Host name 0-0-0-1-0-0-0-1.ipv6.literal.net here in HostName - parse it as a host and recognize as an address, maybe create a special addressProvider object for that, but you probably want to put this in Validator
-		//In Validator, when you see the ipv6.literal.net, convert the dashes and then parse the address with the usual machinery
-		
-
-public class IPAddressString implements HostIdentifierString, Comparable<IPAddressString>, Serializable {
+public class IPAddressString implements HostIdentifierString, Comparable<IPAddressString> {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	/* Generally permissive, settings are the default constants in IPAddressStringParameters.  % denotes a zone, not an SQL wildcard (allowZone is true), and leading zeros are considered decimal, not octal (allow_inet_aton_octal is false). */
 	private static final IPAddressStringParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 	
-	private static final IPAddressStringException IS_IPV6_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv6");
-	private static final IPAddressStringException IS_IPV4_EXCEPTION = new IPAddressStringException("ipaddress.error.address.is.ipv4");
+	private static final AddressStringException IS_IPV6_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv6");
+	private static final AddressStringException IS_IPV4_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv4");
 	
 	public static final IPAddressString EMPTY_ADDRESS = new IPAddressString(""); //represents a blank address which resolves to the loopback /* address string creation */
 	public static final IPAddressString ALL_ADDRESSES = new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 address /* address string creation */
@@ -178,10 +180,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	// fields for validation state
 	
 	/* exceptions and booleans for validation - for type INVALID both of ipv6Exception and ipv4Exception are non-null */
-	private IPAddressStringException ipv6Exception, ipv4Exception;
+	private AddressStringException ipv6Exception, ipv4Exception;
 	
 	//an object created by parsing that will provide the associated IPAddress(es)
-	private AddressProvider addressProvider = AddressProvider.NO_TYPE_PROVIDER;
+	private IPAddressProvider addressProvider = IPAddressProvider.NO_TYPE_PROVIDER;
 	
 	/**
 	 * Constructs an IPAddressString instance using the given String instance.
@@ -195,8 +197,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 *		If a terminating mask is equivalent to a network prefix, then it will be the same as specifying the prefix, so a.b.c.d/16 is the same as a.b.c.d/255.255.0.0
 	 *		If a terminating mask is not equivalent to a network prefix, then the mask will simply be applied to the address to produce a single address.
 	 * <p>
-	 *		You can also alter the addresses to include ranges using the wildcards * and -, such as 1.*.1-2.3, although this behaviour is not allowed by default,
-	 *		you must provide your own IPAddressStringParameters for this, or you can use DEFAULT_WILDCARD_OPTIONS or DEFAULT_WILDCARD_AND_RANGE_OPTIONS as the validation options supplied to the constructor.
+	 *		You can also alter the addresses to include ranges using the wildcards * and -, such as 1.*.1-2.3.
 	 */
 	public IPAddressString(String addr) {
 		this(addr, DEFAULT_BASIC_VALIDATION_OPTIONS);
@@ -206,8 +207,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @param addr the address in string format
 	 * 
 	 * 	This constructor allows you to alter the default validation options.
-	 * 
-	 *	For example, you can alter the validation options to allow ranges using the wildcards * and -, such as 1.*.1-2.3.  Wildcards are not allowed in trailing masks.
 	 */
 	public IPAddressString(String addr, IPAddressStringParameters valOptions) {
 		if(addr == null) {
@@ -218,7 +217,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		}
 		this.validationOptions = valOptions;
 	}
-	
+
 	IPAddressString(IPAddress address) {
 		validationOptions = null; //no validation required, already validated
 		fullAddr = address.toNormalizedString();
@@ -226,13 +225,13 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	void cacheAddress(IPAddress address) {
-		if(addressProvider == AddressProvider.NO_TYPE_PROVIDER) {
+		if(addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) {
 			initByAddress(address);
 		}
 	}
 	
 	void initByAddress(IPAddress address) {
-		AddressProvider provider = AddressProvider.getProviderFor(address);
+		IPAddressProvider provider = address.getProvider();
 		if(provider.isIPv4()) {
 			ipv6Exception = IS_IPV4_EXCEPTION;
 		} else if(provider.isIPv6()) {
@@ -272,7 +271,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			try {
 				validate();
 				return true;
-			} catch(IPAddressStringException e) {
+			} catch(AddressStringException e) {
 				return false;
 			}
 		}
@@ -325,8 +324,20 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return isValid() && addressProvider.isIPv6();
 	}
 	
+	/**
+	 * If this address string represents an IPv6 address, returns whether the lower 4 bytes were represented as IPv4
+	 * @return
+	 */
 	public boolean isMixedIPv6() {
 		return isIPv6() && addressProvider.isMixedIPv6();
+	}
+	
+	/**
+	 * If this address string represents an IPv6 address, returns whether the string was base 85
+	 * @return
+	 */
+	public boolean isBase85IPv6() {
+		return isIPv6() && addressProvider.isBase85IPv6();
 	}
 	
 	public IPVersion getIPVersion() {
@@ -351,50 +362,51 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 
 	/**
 	 * Validates this string is a valid IPv4 address, and if not, throws an exception with a descriptive message indicating why it is not.
-	 * @throws IPAddressStringException
+	 * @throws AddressStringException
 	 */
-	public void validateIPv4() throws IPAddressStringException {
+	public void validateIPv4() throws AddressStringException {
 		validate(IPVersion.IPV4);
 		checkIPv4Exception();
 	}
 
 	/**
 	 * Validates this string is a valid IPv6 address, and if not, throws an exception with a descriptive message indicating why it is not.
-	 * @throws IPAddressStringException
+	 * @throws AddressStringException
 	 */
-	public void validateIPv6() throws IPAddressStringException {
+	public void validateIPv6() throws AddressStringException {
 		validate(IPVersion.IPV6);
 		checkIPv6Exception();
 	}
 	
 	/**
 	 * Validates this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-	 * @throws IPAddressStringException
+	 * @throws AddressStringException
 	 */
-	public void validate() throws IPAddressStringException {
+	@Override
+	public void validate() throws AddressStringException {
 		validate(null);
 	}
 	
-	private void checkIPv4Exception() throws IPAddressStringException {
+	private void checkIPv4Exception() throws AddressStringException {
 		if(ipv4Exception != null) {
 			if(ipv4Exception == IS_IPV6_EXCEPTION) {
-				ipv4Exception = new IPAddressStringException("ipaddress.error.address.is.ipv6");
+				ipv4Exception = new AddressStringException("ipaddress.error.address.is.ipv6");
 			}
 			throw ipv4Exception;
 		}
 	}
 	
-	private void checkIPv6Exception() throws IPAddressStringException {
+	private void checkIPv6Exception() throws AddressStringException {
 		if(ipv6Exception != null) {
 			if(ipv6Exception == IS_IPV4_EXCEPTION) {
-				ipv6Exception = new IPAddressStringException("ipaddress.error.address.is.ipv4");
+				ipv6Exception = new AddressStringException("ipaddress.error.address.is.ipv4");
 			}
 			throw ipv6Exception;
 		}
 	}
 	
-	private boolean isValidated(IPVersion version) throws IPAddressStringException {
-		if(addressProvider != AddressProvider.NO_TYPE_PROVIDER) {
+	private boolean isValidated(IPVersion version) throws AddressStringException {
+		if(addressProvider != IPAddressProvider.NO_TYPE_PROVIDER) {
 			if(version == null) {
 				if(ipv6Exception != null && ipv4Exception != null) {
 					throw ipv4Exception;//the two exceptions are the same, so no need to choose
@@ -413,7 +425,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return Validator.VALIDATOR;
 	}
 	
-	private void validate(IPVersion version) throws IPAddressStringException {
+	private void validate(IPVersion version) throws AddressStringException {
 		if(isValidated(version)) {
 			return;
 		}
@@ -423,7 +435,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			}
 			//we know nothing about this address.  See what it is.
 			try {
-				AddressProvider valueCreator = getValidator().validateAddress(this);
+				IPAddressProvider valueCreator = getValidator().validateAddress(this);
 
 				//either the address is ipv4, ipv6, or indeterminate, and we set the cached validation exception appropriately
 				IPVersion createdVersion = valueCreator.getIPVersion();
@@ -435,9 +447,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 					}
 				}
 				this.addressProvider = valueCreator;
-			} catch(IPAddressStringException e) {
+			} catch(AddressStringException e) {
 				ipv6Exception = ipv4Exception = e;
-				this.addressProvider = AddressProvider.INVALID_PROVIDER;
+				this.addressProvider = IPAddressProvider.INVALID_PROVIDER;
 				throw e;
 			}
 		}
@@ -448,20 +460,20 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @param ipVersion IPv4, IPv6, or null if you do not know in which case it will be assumed that it can be either
 	 * @param networkPrefixLength the network prefix length integer as a string, eg "24"
 	 * @return the network prefix length
-	 * @throws IPAddressTypeException if invalid with an appropriate message
+	 * @throws AddressTypeException if invalid with an appropriate message
 	 */
-	public static int validateNetworkPrefixLength(IPVersion ipVersion, CharSequence networkPrefixLength) throws IPAddressTypeException {
+	public static int validateNetworkPrefixLength(IPVersion ipVersion, CharSequence networkPrefixLength) throws AddressTypeException {
 		try {
 			return Validator.VALIDATOR.validatePrefix(networkPrefixLength, ipVersion);
-		} catch(IPAddressStringException e) {
-			throw new IPAddressTypeException(networkPrefixLength, ipVersion, "ipaddress.error.invalidCIDRPrefix", e);
+		} catch(AddressStringException e) {
+			throw new AddressTypeException(networkPrefixLength, ipVersion, "ipaddress.error.invalidCIDRPrefix", e);
 		}
 	}
 	
-	public static void validateNetworkPrefix(IPVersion ipVersion, int networkPrefixLength, boolean allowPrefixesBeyondAddressSize) throws IPAddressTypeException {
+	public static void validateNetworkPrefix(IPVersion ipVersion, int networkPrefixLength, boolean allowPrefixesBeyondAddressSize) throws AddressTypeException {
 		boolean asIPv4 = (ipVersion != null && ipVersion.isIPv4());
 		if(networkPrefixLength > (asIPv4 ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT)) {
-			throw new IPAddressTypeException(networkPrefixLength, ipVersion, "ipaddress.error.prefixSize");
+			throw new AddressTypeException(networkPrefixLength, ipVersion, "ipaddress.error.prefixSize");
 		}
 	}
 	
@@ -516,24 +528,46 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return false;
 	}
 	
-	public IPAddress getAddress(IPVersion version) {
+	/**
+	 * If this address string was constructed from a host address with prefix, 
+	 * then this provides just the host address, rather than the subnet block of addresses
+	 * provided by getAddress that incorporates the prefix.
+	 * 
+	 * @return
+	 */
+	public IPAddress getHostAddress() {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
-				return toAddress(version);
-			} catch(IPAddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+				return toHostAddress();
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
 		}
 		return null;
 	}
 	
+	public IPAddress getAddress(IPVersion version) {
+		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
+			try {
+				return toAddress(version);
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+		}
+		return null;
+	}
+	
+	@Override
 	public IPAddress getAddress() {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
 				return toAddress();
-			} catch(IPAddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
 		}
 		return null;
 	}
 
+	public IPAddress toHostAddress() throws AddressStringException, AddressTypeException {
+		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
+		return addressProvider.getHostAddress();
+	}
+	
 	/**
 	 * Produces the {@link IPAddress} of the specified address version corresponding to this IPAddressString.
 	 * <p>
@@ -555,10 +589,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * @param version the address version that this address should represent.
 	 * @return
-	 * @throws IPAddressStringException
-	 * @throws IPAddressTypeException address in proper format cannot be converted to an address: for masks inconsistent with associated address range, or ipv4 mixed segments that cannot be joined into ipv6 segments
+	 * @throws AddressStringException
+	 * @throws AddressTypeException address in proper format cannot be converted to an address: for masks inconsistent with associated address range, or ipv4 mixed segments that cannot be joined into ipv6 segments
 	 */
-	public IPAddress toAddress(IPVersion version) throws IPAddressStringException, IPAddressTypeException {
+	public IPAddress toAddress(IPVersion version) throws AddressStringException, AddressTypeException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getAddress(version);
 	}
@@ -571,35 +605,30 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * 
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
 	 * 
-	 * @throws IPAddressStringException if the address format is invalid
-	 * @throws IPAddressTypeException address in proper format cannot be converted to an address: for masks inconsistent with associated address range, or ipv4 mixed segments that cannot be joined into ipv6 segments
+	 * @throws AddressStringException if the address format is invalid
+	 * @throws AddressTypeException if a valid address string representing multiple addresses in a non-standard format cannot be represented by a IPAddress which has the standard format
+	 * 	This happens only for masks inconsistent with the associated address ranges, or ranges in ipv4 mixed segments that cannot be joined into ipv6 segments
 	 * 
 	 */
-	public IPAddress toAddress() throws IPAddressStringException, IPAddressTypeException {
+	@Override
+	public IPAddress toAddress() throws AddressStringException, AddressTypeException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getAddress();
 	}
 	
-	/**
-	 * Return an address for the network encompassing this address.  
-	 * The bits indicate the number of additional network bits in the network address in comparison to this address.
-	 * 
-	 * @param prefixLengthDecrement the number to reduce the network bits in order to create a larger network.  
-	 * 	If null, then this method has the same behaviour as toSupernet()
-	 * @return the encompassing network
-	 */
-	public IPAddressString toSupernet(Integer prefixLengthDecrement) {
+	public IPAddressString adjustPrefixBySegment(boolean nextSegment) {
 		if(isPrefixOnly()) {
-			int bits;
-			if(prefixLengthDecrement == null) {
-				//Use IPv4 segment boundaries
-				int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
-				int adjustment = getNetworkPrefixLength() % bitsPerSegment;
-				bits = (adjustment > 0) ? adjustment : bitsPerSegment;
+			//Use IPv4 segment boundaries
+			int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
+			int existingPrefixLength = getNetworkPrefixLength();
+			int newBits;
+			if(nextSegment) {
+				int adjustment = existingPrefixLength % bitsPerSegment;
+				newBits = Math.min(IPv6Address.BIT_COUNT, existingPrefixLength + bitsPerSegment - adjustment);
 			} else {
-				bits = prefixLengthDecrement;
+				int adjustment = ((existingPrefixLength - 1) % bitsPerSegment) + 1;
+				newBits = Math.max(0, existingPrefixLength - adjustment);
 			}
-			int newBits = Math.max(0, getNetworkPrefixLength() - bits);
 			return IPAddressNetwork.getPrefix(newBits);
 		}
 		IPAddress address = getAddress();
@@ -607,33 +636,214 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			return null;
 		}
 		Integer prefix = address.getNetworkPrefixLength();
-		if(prefix != null && prefix == 0) {
+		if(!nextSegment && prefix != null && prefix == 0) {
 			return ALL_ADDRESSES;
 		}
-		return address.toSupernet(prefixLengthDecrement).toAddressString();
+		return address.adjustPrefixBySegment(nextSegment).toAddressString();
+	}
+
+	public IPAddressString adjustPrefixLength(int adjustment) {
+		if(isPrefixOnly()) {
+			int newBits = adjustment > 0 ? Math.min(IPv6Address.BIT_COUNT, getNetworkPrefixLength() + adjustment) : Math.max(0, getNetworkPrefixLength() + adjustment);
+			return IPAddressNetwork.getPrefix(newBits);
+		}
+		IPAddress address = getAddress();
+		if(address == null) {
+			return null;
+		}
+		if(adjustment == 0) {
+			return this;
+		}
+		Integer prefix = address.getNetworkPrefixLength();
+		if(prefix != null && prefix + adjustment < 0) {
+			return ALL_ADDRESSES;
+		}
+		return address.adjustPrefixLength(adjustment).toAddressString();
 	}
 	
 	/**
-	 * Return an address for the network encompassing this address,
-	 * with the network portion of the returned address extending to the furthest segment boundary
-	 * located entirely within but not matching the network portion of this address.
+	 * Given a string with comma delimiters to denote segment elements, this method will count the possible combinations.
 	 * 
-	 * If the network portion has no bits then {@link #ALL_ADDRESSES} is returned.
-	 * If this object is equal to {@link #ALL_ADDRESSES} then null is returned.
+	 * For example, given "1,2.3.4,5.6" this method will return 4 for the possible combinations: "1.3.4.6", "1.3.5.6", "2.3.4.6" and "2.3.5.6"
 	 * 
-	 * @return the encompassing network
+	 * @param str
+	 * @return
 	 */
-	public IPAddressString toSupernet() {
-		return toSupernet(null);
+	public static int countDelimitedAddresses(String str) {
+		int segDelimitedCount = 0;
+		int result = 1;
+		for(int i = 0; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if(isDelimitedBoundary(c)) {
+				if(segDelimitedCount > 0) {
+					result *= segDelimitedCount + 1;
+					segDelimitedCount = 0;
+				}
+			} else if(c == SEGMENT_VALUE_DELIMITER) {
+				segDelimitedCount++;
+			}
+		}
+		if(segDelimitedCount > 0) {
+			result *= segDelimitedCount + 1;
+		}
+		return result;
 	}
 	
+	private static boolean isDelimitedBoundary(char c) {
+		return c == IPv4Address.SEGMENT_SEPARATOR ||
+				c == IPv6Address.SEGMENT_SEPARATOR ||
+				c == Address.RANGE_SEPARATOR ||
+				c == MACAddress.DASHED_SEGMENT_RANGE_SEPARATOR;
+	}
+	
+	/**
+	 * Given a string with comma delimiters to denote segment elements, this method will provide an iterator to iterate through the possible combinations.
+	 * 
+	 * For example, given "1,2.3.4,5.6" this will iterate through "1.3.4.6", "1.3.5.6", "2.3.4.6" and "2.3.5.6"
+	 * 
+	 * Another example: "1-2,3.4.5.6" will iterate through "1-2.4.5.6" and "1-3.4.5.6".
+	 * 
+	 * This method will not validate strings.  Each string produced can be validated using an instance of IPAddressString.
+	 * 
+	 * @param str
+	 * @return
+	 */
+	public static Iterator<String> parseDelimitedSegments(String str) { 
+		List<List<String>> parts = null;
+		int lastSegmentStartIndex = 0;
+		int lastPartIndex = 0;
+		int lastDelimiterIndex = 0;
+		boolean anyDelimited = false;
+		List<String> delimitedList = null;
+		for(int i = 0; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if(isDelimitedBoundary(c)) {
+				if(delimitedList != null) {
+					if(parts == null) {
+						parts = new ArrayList<List<String>>(8);
+					}
+					addParts(str, parts, lastSegmentStartIndex, lastPartIndex, lastDelimiterIndex, delimitedList, i);
+					lastPartIndex = i;
+					delimitedList = null;
+				}
+				lastSegmentStartIndex = lastDelimiterIndex = i + 1; 
+			} else if(c == SEGMENT_VALUE_DELIMITER) {
+				anyDelimited = true;
+				if(delimitedList == null) {
+					delimitedList = new ArrayList<String>();
+				}
+				String sub = str.substring(lastDelimiterIndex, i);
+				delimitedList.add(sub);
+				lastDelimiterIndex = i + 1;
+			}
+		}
+		if(anyDelimited) {
+			if(delimitedList != null) {
+				if(parts == null) {
+					parts = new ArrayList<List<String>>(8);
+				}
+				addParts(str, parts, lastSegmentStartIndex, lastPartIndex, lastDelimiterIndex, delimitedList, str.length());
+			} else {
+				parts.add(Arrays.asList(new String[] {str.substring(lastPartIndex, str.length())}));
+			}
+			return iterator(parts);
+		}
+		return new Iterator<String>() {
+			boolean done;
+			
+			@Override
+			public boolean hasNext() {
+				return !done;
+			}
+
+		    @Override
+			public String next() {
+		    	if(done) {
+		    		throw new NoSuchElementException();
+		    	}
+		    	done = true;
+		    	return str;
+		    }
+
+		    @Override
+			public void remove() {
+		    	throw new UnsupportedOperationException();
+		    }
+		};
+	}
+	
+	private static Iterator<String> iterator(List<List<String>> parts) {
+		return new Iterator<String>() {
+			private boolean done;
+			final int partCount = parts.size();
+			
+			@SuppressWarnings("unchecked")
+			private final Iterator<String> variations[] = new Iterator[partCount];
+			
+			private String nextSet[] = new String[partCount];  {
+				updateVariations(0);
+			}
+			
+			private void updateVariations(int start) {
+				for(int i = start; i < partCount; i++) {
+					variations[i] = parts.get(i).iterator();
+					nextSet[i] = variations[i].next();
+				}
+			}
+			
+			@Override
+			public boolean hasNext() {
+				return !done;
+			}
+			
+		    @Override
+			public String next() {
+		    	if(done) {
+		    		throw new NoSuchElementException();
+		    	}
+		    	StringBuilder result = new StringBuilder();
+		    	for(int i = 0; i < partCount; i++) {
+		    		result.append(nextSet[i]);
+		    	}
+		    	increment();
+		    	return result.toString();
+		    }
+		    
+		    private void increment() {
+		    	for(int j = partCount - 1; j >= 0; j--) {
+		    		if(variations[j].hasNext()) {
+		    			nextSet[j] = variations[j].next();
+		    			updateVariations(j + 1);
+		    			return;
+		    		}
+		    	}
+		    	done = true;
+		    }
+
+		    @Override
+			public void remove() {
+		    	throw new UnsupportedOperationException();
+		    }
+		};
+	}
+
+	private static void addParts(String str, List<List<String>> parts, int lastSegmentStartIndex, int lastPartIndex,
+			int lastDelimiterIndex, List<String> delimitedList, int i) {
+		String sub = str.substring(lastDelimiterIndex, i);
+		delimitedList.add(sub);
+		if(lastPartIndex != lastSegmentStartIndex) {
+			parts.add(Arrays.asList(new String[] {str.substring(lastPartIndex, lastSegmentStartIndex)}));
+		}
+		parts.add(delimitedList);
+	}
+
 	/**
 	 * Converts this address to a prefix length
 	 * 
 	 * @return the prefix of the indicated IP type represented by this address or null if this address is valid but cannot be represented by a network prefix length
-	 * @throws IPAddressStringException if the address is invalid
+	 * @throws AddressStringException if the address is invalid
 	 */
-	public String convertToPrefixLength() throws IPAddressStringException {
+	public String convertToPrefixLength() throws AddressStringException {
 		IPAddress address = toAddress();
 		Integer prefix;
 		if(address == null) {
@@ -648,11 +858,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 				return null;
 			}
 		}
-		StringBuilder builder = new StringBuilder(HostIdentifierStringValidator.MAX_PREFIX_CHARS + 1);
-		return builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(prefix).toString();
+		return IPAddressSegment.toUnsignedString(prefix, 10, 
+				new StringBuilder(IPAddressSegment.toUnsignedStringLength(prefix, 10) + 1).append(IPAddress.PREFIX_LEN_SEPARATOR)).toString();
 	}
 
-	static String toNormalizedString(AddressProvider addressProvider) {
+	private static String toNormalizedString(IPAddressProvider addressProvider) {
 		String result;
 		if(addressProvider.isAllAddresses()) {
 			result = IPAddress.SEGMENT_WILDCARD_STR;

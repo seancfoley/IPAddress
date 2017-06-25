@@ -1,23 +1,44 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv6;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressTypeNetwork;
 import inet.ipaddr.ipv4.IPv4AddressSection;
+import inet.ipaddr.mac.MACAddress;
+import inet.ipaddr.mac.MACAddressSection;
 
 /**
  * 
  * @author sfoley
  */
-public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6AddressSegment> {
+public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6AddressSection, IPv6AddressSegment> {
 	
 	private static final IPv6AddressSegment emptySegments[] = {};
 	private static final IPv6AddressSection emptySection[] = {};
 	
-	protected static interface IPv6AddressSegmentCreator extends IPAddressSegmentCreator<IPv6AddressSegment> {}
-	
-	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv6AddressSegment> implements IPv6AddressSegmentCreator {
+	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment> {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 		
 		//there are 0x10000 (ie 0xffff + 1) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
@@ -147,6 +168,11 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		}
 		
 		@Override
+		protected IPv6AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
+			return new IPv6AddressSection(lowerValueProvider, upperValueProvider, prefix);
+		}
+
+		@Override
 		protected IPv6AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
 			return new IPv6AddressSection(bytes, prefix, false);
 		}
@@ -157,13 +183,18 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		}
 		
 		@Override
-		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection mixedSection) {
+		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection embeddedSection) {
 			IPv6AddressSection result = new IPv6AddressSection(segments, 0, false);
-			result.embeddedIPv4Section = mixedSection;
+			result.embeddedIPv4Section = embeddedSection;
 			return result;
 		}
 		
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], int startIndex) {
+			return new IPv6AddressSection(segments, startIndex, false);
+		}
+		
+		@Override
+		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment[] segments, int startIndex, boolean extended) {
 			return new IPv6AddressSection(segments, startIndex, false);
 		}
 		
@@ -186,25 +217,51 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		public IPv6AddressSection createSection(IPv6AddressSegment segments[], Integer networkPrefixLength) {
 			return new IPv6AddressSection(segments, networkPrefixLength);
 		}
-
+		
+		public IPv6AddressSection createSection(MACAddress eui) {
+			return new IPv6AddressSection(eui);
+		}
+		
+		public IPv6AddressSection createSection(MACAddressSection eui) {
+			return new IPv6AddressSection(eui);
+		}
+		
 		@Override
-		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[], String zone) {
+		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[], CharSequence zone) {
 			return createAddress(createSectionInternal(segments), zone);
 		}
 		
 		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
-			return createAddress(createSectionInternal(segments), null);
+			return new IPv6Address(createSectionInternal(segments));
+		}
+		
+		@Override
+		protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone, HostIdentifierString from) {
+			IPv6Address result = super.createAddressInternal(section, zone, from);
+			return result;
+		}
+		
+		@Override
+		protected IPv6Address createAddressInternal(IPv6AddressSection section, HostIdentifierString from) {
+			IPv6Address result = super.createAddressInternal(section, from);
+			return result;
 		}
 
 		@Override
-		public IPv6Address createAddress(IPv6AddressSection section, String zone) {
+		public IPv6Address createAddress(IPv6AddressSection section, CharSequence zone) {
 			return new IPv6Address(section, zone);
 		}
 		
+		@Override
 		public IPv6Address createAddress(IPv6AddressSection section) {
-			return createAddress(section, null);
+			return new IPv6Address(section);
 		}
+		
+		public IPv6Address createAddress(IPv6AddressSection section, MACAddressSection eui) {
+			return new IPv6Address(section, eui);
+		}
+		
 	};
 
 	IPv6AddressNetwork() {
@@ -214,6 +271,11 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 	@Override
 	protected BiFunction<IPv6Address, Integer, IPv6AddressSegment> getSegmentProducer() {
 		return (address, index) -> address.getSegment(index);
+	}
+	
+	@Override
+	protected Function<IPv6Address, IPv6AddressSection> getSectionProducer() {
+		return IPv6Address::getSection;
 	}
 	
 	@Override

@@ -1,12 +1,33 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr;
 
-
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.IPAddressTypeNetwork.IPAddressSegmentCreator;
+import inet.ipaddr.IPAddressSection.IPStringCache;
+import inet.ipaddr.IPAddressSection.IPStringOptions;
+import inet.ipaddr.format.AddressDivision;
 import inet.ipaddr.format.IPAddressDivision;
+import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -18,12 +39,11 @@ import inet.ipaddr.ipv6.IPv6Address;
  * @author sfoley
  *
  */
-public abstract class IPAddressSegment extends IPAddressDivision {
+public abstract class IPAddressSegment extends IPAddressDivision implements AddressSegment {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 	
 	//These two values define the uniqueness of a segment with respect to equality and comparison, while the prefix is ignored as these values encapsulate the range of addresses created by the prefix.
-	//In other words, the prefix denotes how many of the bits are network and nothing more, which has no impact on the range of values.
 	private final int value; //the lower value of the segment
 	private final int upperValue; //the upper value of a CIDR or other type of range, if not a range it is the same as value
 	
@@ -33,6 +53,9 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 * @param value the value of the segment
 	 */
 	protected IPAddressSegment(int value) {
+		if(value < 0) {
+			throw new IllegalArgumentException();
+		}
 		this.value = this.upperValue = value;
 	}
 	
@@ -56,6 +79,14 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 */
 	protected IPAddressSegment(int lower, int upper, Integer segmentPrefixLength) {
 		super(segmentPrefixLength);
+		if(lower < 0 || upper < 0) {
+			throw new IllegalArgumentException();
+		}
+		if(lower > upper) {
+			int tmp = lower;
+			lower = upper;
+			upper = tmp;
+		}
 		segmentPrefixLength = getSegmentPrefixLength();
 		if(segmentPrefixLength == null) {
 			this.value = lower;
@@ -107,20 +138,12 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	
 	protected abstract int getSegmentHostMask(int bits);
 	
+	@Override
 	public int getMinPrefix() {
 		if(isPrefixed() && getSegmentPrefixLength() == 0) {
 			return 0;
 		}
-		int result = getBitCount();
-		int lowerZeros = Integer.numberOfTrailingZeros(value);
-		if(lowerZeros != 0) {
-			int upperOnes = Integer.numberOfTrailingZeros(~upperValue);
-			if(upperOnes != 0) {
-				int prefixedBitCount = Math.min(lowerZeros, upperOnes);
-				result -= prefixedBitCount;
-			}
-		}
-		return result;
+		return super.getMinPrefix();
 	}
 	
 	public static int getMaxSegmentValue(IPVersion version) {
@@ -130,7 +153,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	protected boolean isNetworkChangedByPrefix(Integer bits, boolean withPrefixLength) {
 		boolean hasBits = (bits != null);
 		if(hasBits && (bits < 0 || bits > getBitCount())) {
-			throw new IPAddressTypeException(this, bits, "ipaddress.error.prefixSize");
+			throw new AddressTypeException(this, bits, "ipaddress.error.prefixSize");
 		}
 		withPrefixLength &= hasBits;
 		boolean thisHasPrefix = isPrefixed();
@@ -154,14 +177,13 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 * used by getNetworkSection and by constructors of IPAddressSection, see {@link IPAddress#getNetworkSection(int, boolean)}
 	 */
 	public abstract IPAddressSegment toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength);
-	
-	protected <T extends IPAddressSegment> T toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength, IPAddressSegmentCreator<T> creator) {
+
+	protected <S extends IPAddressSegment> S toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength, AddressSegmentCreator<S> creator) {
 		int newLower = value;
 		int newUpper = upperValue;
 		if(segmentPrefixLength != null) {
 			int mask = getSegmentNetworkMask(segmentPrefixLength);
 			newLower &= mask;
-			newUpper &= mask;
 			newUpper |= getSegmentHostMask(segmentPrefixLength);
 		}
 		if(newLower != newUpper) {
@@ -183,7 +205,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 */
 	public abstract IPAddressSegment toHostSegment(Integer segmentPrefixLength);
 	
-	protected <T extends IPAddressSegment> T toHostSegment(Integer segmentPrefixLength, IPAddressSegmentCreator<T> creator) {
+	protected <S extends IPAddressSegment> S toHostSegment(Integer segmentPrefixLength, AddressSegmentCreator<S> creator) {
 		int mask = (segmentPrefixLength == null) ? 0 : getSegmentHostMask(segmentPrefixLength);
 		int newLower = value & mask;
 		int newUpper = upperValue & mask;
@@ -196,7 +218,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	protected boolean isHostChangedByPrefix(Integer bits) {
 		boolean hasBits = (bits != null);
 		if(hasBits && (bits < 0 || bits > getBitCount())) {
-			throw new IPAddressTypeException(this, bits, "ipaddress.error.prefixSize");
+			throw new AddressTypeException(this, bits, "ipaddress.error.prefixSize");
 		}
 		//a host segment has no prefix, so if this remains unchanged it must have no prefix length
 		if(isPrefixed()) {
@@ -212,18 +234,18 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 * 
 	 * This method applies the mask first to every address in the range, and it does not preserve any existing prefix.
 	 * The given prefix will be applied to the range of addresses after the mask.
-	 * If the combination of the two does not result in a contiguous range of addresses, then IPAddressTypeException is thrown.
+	 * If the combination of the two does not result in a contiguous range, then {@link AddressTypeException} is thrown.
 	 * 
-	 * See {@link IPAddress#toSubnet(int)},
-	 * {@link IPAddress#toSubnet(IPAddress, Integer)},
+	 * See {@link IPAddress#applyPrefixLength(int)},
+	 * {@link IPAddress#apply(IPAddress, Integer)},
 	 * {@link IPAddress#isMaskCompatibleWithRange(IPAddress, Integer)}
 	 */
-	public abstract IPAddressSegment toMaskedSegment(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws IPAddressTypeException;
+	public abstract IPAddressSegment toMaskedSegment(IPAddressSegment maskSegment, Integer segmentPrefixLength) throws AddressTypeException;
 	
-	protected boolean isChangedByMask(int maskValue, Integer segmentPrefixLength) throws IPAddressTypeException {
+	protected boolean isChangedByMask(int maskValue, Integer segmentPrefixLength) throws AddressTypeException {
 		boolean hasBits = (segmentPrefixLength != null);
 		if(hasBits && (segmentPrefixLength < 0 || segmentPrefixLength > getBitCount())) {
-			throw new IPAddressTypeException(this, segmentPrefixLength, "ipaddress.error.prefixSize");
+			throw new AddressTypeException(this, segmentPrefixLength, "ipaddress.error.prefixSize");
 		}
 		
 		//note that the mask can represent a range (for example a CIDR mask), 
@@ -233,10 +255,39 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 						(isPrefixed() ? !getSegmentPrefixLength().equals(segmentPrefixLength) : hasBits);
 	}
 	
+	protected boolean isChangedByOr(int maskValue, Integer segmentPrefixLength) throws AddressTypeException {
+		boolean hasBits = (segmentPrefixLength != null);
+		if(hasBits && (segmentPrefixLength < 0 || segmentPrefixLength > getBitCount())) {
+			throw new AddressTypeException(this, segmentPrefixLength, "ipaddress.error.prefixSize");
+		}
+		
+		//note that the mask can represent a range (for example a CIDR mask), 
+		//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
+		return value != (value | maskValue) ||
+				upperValue != (upperValue | maskValue) ||
+				(isPrefixed() ? !getSegmentPrefixLength().equals(segmentPrefixLength) : hasBits);
+	}
+	
+	/**
+	 * Check that the range resulting from the mask is contiguous, otherwise we cannot represent it.
+	 * 
+	 * For instance, for the range 0 to 3 (bits are 00 to 11), if we mask all 4 numbers from 0 to 3 with 2 (ie bits are 10), 
+	 * then we are left with 1 and 3.  2 is not included.  So we cannot represent 1 and 3 as a contiguous range.
+	 * 
+	 * The underlying rule is that mask bits that are 0 must be above the resulting range in each segment.
+	 * 
+	 * Any bit in the mask that is 0 must not fall below any bit in the masked segment range that is different between low and high.
+	 * 
+	 * Any network mask must eliminate the entire segment range.  Any host mask is fine.
+	 * 
+	 * @param maskSegment
+	 * @param segmentPrefixLength
+	 * @return
+	 */
 	public boolean isMaskCompatibleWithRange(IPAddressSegment maskSegment, Integer segmentPrefixLength) {
 		IPVersion version = getIPVersion();
 		if(!version.equals(maskSegment.getIPVersion())) {
-			throw new IPAddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
+			throw new AddressTypeException(this, maskSegment, "ipaddress.error.typeMismatch");
 		}
 		int maskValue = maskSegment.value; //for mask we only use the lower value
 		return isMaskCompatibleWithRange(maskValue, segmentPrefixLength);
@@ -250,85 +301,28 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 * If this segment represents a range of values, returns a segment representing just the lowest value in the range, otherwise returns this.
 	 * @return
 	 */
+	@Override
 	public abstract IPAddressSegment getLower();
 	
 	/**
 	 * If this segment represents a range of values, returns a segment representing just the highest value in the range, otherwise returns this.
 	 * @return
 	 */
+	@Override
 	public abstract IPAddressSegment getUpper();
 	
-	protected static <S extends IPAddressSegment> S getLowestOrHighest(S original, IPAddressSegmentCreator<S> segmentCreator, boolean lowest) {
+	protected static <S extends IPAddressSegment> S getLowestOrHighest(S original, AddressSegmentCreator<S> segmentCreator, boolean lowest) {
 		if(!original.isMultiple() && !original.isPrefixed()) {//like with the iterator, we do not return segments with prefix, even if it is the full bit length
 			return original;
 		}
 		return segmentCreator.createSegment(lowest ? original.getLowerSegmentValue() : original.getUpperSegmentValue());
 	}
 	
-	public abstract Iterator<? extends IPAddressSegment> iterator();	
+	@Override
+	public abstract Iterable<? extends IPAddressSegment> getIterable();
 	
-	protected static <S extends IPAddressSegment> Iterator<S> iterator(S original, IPAddressSegmentCreator<S> creator) {
-		if(!original.isMultiple()) {
-			return new Iterator<S>() {
-				boolean done;
-				
-				@Override
-				public boolean hasNext() {
-					return !done;
-				}
-
-			   @Override
-				public S next() {
-			    	if(!hasNext()) {
-			    		throw new NoSuchElementException();
-			    	}
-			    	done = true;
-			    	S thisSegment = original;
-			    	
-			    	//Even though this segment represents a single value, it still might have a prefix extending to the end of the segment
-			    	//Iterators must return non-prefixed segments.
-			    	//This is required by the IPAddressSection iterator which uses an array of segment iterators.
-			    	//If the segments at the end with prefixes of 0 iterate through all values with no prefix, 
-			    	//then so must the preceding segment with a non-zero prefix,
-			    	//even if that non-zero prefix extends to the end of the segment.
-		    		if(thisSegment.isPrefixed()) {
-			    		S result = creator.createSegment(thisSegment.getLowerSegmentValue());
-			    		return result;
-			    	}
-			    	return thisSegment;
-			    }
-
-			    @Override
-				public void remove() {
-			    	throw new UnsupportedOperationException();
-			    }
-			};
-		}
-		return new Iterator<S>() {
-			boolean done;
-			int current = original.getLowerSegmentValue();
-			
-			@Override
-			public boolean hasNext() {
-				return !done;
-			}
-
-		    @Override
-			public S next() {
-		    	if(done) {
-		    		throw new NoSuchElementException();
-		    	}
-		    	S result = creator.createSegment(current);
-		    	done = ++current > original.getUpperSegmentValue();
-		    	return result;
-		    }
-
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
-		    }
-		};
-	}
+	@Override
+	public abstract Iterator<? extends IPAddressSegment> iterator();	
 	
 	public static int getBitCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BITS_PER_SEGMENT : IPv6Address.BITS_PER_SEGMENT;
@@ -342,6 +336,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return version.isIPv4() ? IPv4Address.DEFAULT_TEXTUAL_RADIX : IPv6Address.DEFAULT_TEXTUAL_RADIX;
 	}
 	
+	@Override
 	public boolean matches(int value) {
 		return super.matches(value);
 	}
@@ -350,13 +345,19 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return super.matchesWithPrefix(value, segmentPrefixLength);
 	}
 	
+	@Override
 	public boolean matchesWithMask(int value, int mask) {
 		return super.matchesWithMask(value, mask);
 	}
 	
 	@Override
-	public long getCount() {
+	public int getValueCount() {
 		return upperValue - value + 1;
+	}
+	
+	@Override
+	public long getDivisionValueCount() {
+		return getValueCount();
 	}
 	
 	protected int highByte() {
@@ -379,8 +380,6 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	public long getMaxValue() {
 		return getMaxSegmentValue();
 	}
-	
-	public abstract int getMaxSegmentValue();
 
 	@Override
 	public boolean isMultiple() {
@@ -390,6 +389,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	/**
 	 * returns the lower value
 	 */
+	@Override
 	public int getLowerSegmentValue() {
 		return value;
 	}
@@ -397,6 +397,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	/**
 	 * returns the upper value
 	 */
+	@Override
 	public int getUpperSegmentValue() {
 		return upperValue;
 	}
@@ -417,12 +418,43 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return upperValue;
 	}
 	
+	@Override
+	public abstract IPAddressSegment reverseBits(boolean perByte);
+	
+	@Override
+	public abstract IPAddressSegment reverseBytes();
+
+	public abstract IPAddressSegment removePrefixLength();
+	
+	public abstract IPAddressSegment removePrefixLength(boolean zeroed);
+	
+	protected static <S extends IPAddressSegment> S removePrefix(S original, boolean zeroed, AddressSegmentCreator<S> creator) {
+		if(original.isPrefixed()) {
+			int lower = original.getLowerSegmentValue();
+			int upper = original.getUpperSegmentValue();
+			if(zeroed) {
+				int maskBits = original.getSegmentNetworkMask(original.getSegmentPrefixLength());
+				if(!original.isMaskCompatibleWithRange(maskBits, null)) {
+					throw new AddressTypeException(original, maskBits, "ipaddress.error.maskMismatch");
+				}
+				return creator.createSegment(lower & maskBits, upper & maskBits, null);
+			}
+			return creator.createSegment(lower, upper, null);
+		}
+		return original;
+	}
+	
+	@Override
+	public boolean isBoundedBy(int value) {
+		return getUpperSegmentValue() < value;
+	}
+	
 	public Integer getSegmentPrefixLength() {
 		return getDivisionPrefixLength();
 	}
 	
 	@Override
-	protected boolean isSameValues(IPAddressDivision other) {
+	protected boolean isSameValues(AddressDivision other) {
 		if(other instanceof IPAddressSegment) {
 			return isSameValues((IPAddressSegment) other);
 		}
@@ -448,8 +480,9 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 	 * @param other
 	 * @return whether this subnet segment contains the given address segment
 	 */
-	public boolean contains(IPAddressSegment other) {
-		return other.value >= value && other.upperValue <= upperValue;
+	@Override
+	public boolean contains(AddressSegment other) {
+		return other instanceof IPAddressSegment && other.getLowerSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
 	}
 
 	public static boolean isFullRange(int lower, int upper, Integer prefix, IPVersion version) {
@@ -464,38 +497,59 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		return lower == 0 && upper == getMaxSegmentValue(version);
 	}
 	
-	protected static boolean toUnsignedStringFast(int value, int radix, StringBuilder appendable) {
-		return toUnsignedStringFast(value, radix, false, appendable);
+	@Override
+	public boolean isFullRange() {
+		return getLowerSegmentValue() == 0 && getUpperSegmentValue() == getMaxSegmentValue();
 	}
 	
-	protected static void getRangeString(int lower, int upper, int radix, StringBuilder appendable) {
-		getRangeString(lower, upper, IPAddress.RANGE_SEPARATOR_STR, 0, 0, null, radix, false, appendable);
+	@Override
+	public String toHexString(boolean with0xPrefix) {
+		return toNormalizedString(with0xPrefix ? IPStringCache.hexPrefixedParams : IPStringCache.hexParams);
+	}
+
+	@Override
+	public String toNormalizedString() {
+		return toNormalizedString(IPStringCache.canonicalSegmentParams);
 	}
 	
+	public String toNormalizedString(IPStringOptions options) {
+		IPAddressStringWriter<IPAddressStringDivisionSeries> params =  IPAddressSection.toIPParams(options);
+		StringBuilder builder = new StringBuilder(params.getDivisionStringLength(this));
+		return params.appendDivision(builder, this).toString();
+	}
+	
+	protected static int toUnsignedStringLength(int value, int radix) {
+		return AddressDivision.toUnsignedStringLength(value, radix);
+	}
+	
+	protected static StringBuilder toUnsignedString(int value, int radix, StringBuilder appendable) {
+		return toUnsignedString(value, radix, 0, false, DIGITS, appendable);
+	}
+
 	void setStandardString(
-			String addressStr, 
+			CharSequence addressStr, 
 			boolean isStandardString,
 			int lowerStringStartIndex,
 			int lowerStringEndIndex,
 			int originalLowerValue) {
 		if(cachedString == null && isStandardString && originalLowerValue == getLowerValue()) {
-			cachedString = addressStr.substring(lowerStringStartIndex, lowerStringEndIndex);
+			cachedString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
 		}
 	}
 
 	void setWildcardString(
-			String addressStr, 
+			CharSequence addressStr, 
 			boolean isStandardString,
 			int lowerStringStartIndex,
 			int lowerStringEndIndex,
 			int lowerValue) {
 		if(cachedWildcardString == null && isStandardString && lowerValue == getLowerValue() && lowerValue == getUpperValue()) {
-			cachedWildcardString = addressStr.substring(lowerStringStartIndex, lowerStringEndIndex);
+			cachedWildcardString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
 		}
 	}
 	
 	void setStandardString(
-			String addressStr, 
+			CharSequence addressStr, 
 			boolean isStandardString,
 			boolean isStandardRangeString,
 			int lowerStringStartIndex,
@@ -506,7 +560,7 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 		if(cachedString == null) {
 			if(isRangeEquivalentToPrefix()) {
 				if(isStandardString && rangeLower == getLowerValue()) {
-					cachedString = addressStr.substring(lowerStringStartIndex, lowerStringEndIndex);
+					cachedString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
 				}
 			} else if(isFullRange()) {
 				cachedString = IPAddress.SEGMENT_WILDCARD_STR;
@@ -516,13 +570,14 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 					upper &= getDivisionNetworkMask(getDivisionPrefixLength());
 				}
 				if(rangeUpper == upper) {
-					cachedString = addressStr.substring(lowerStringStartIndex, upperStringEndIndex);
+					cachedString = addressStr.subSequence(lowerStringStartIndex, upperStringEndIndex).toString();
 				}
 			}
 		}
 	}
 	
-	void setWildcardString(String addressStr, 
+	void setWildcardString(
+			CharSequence addressStr, 
 			boolean isStandardRangeString,
 			int lowerStringStartIndex,
 			int upperStringEndIndex,
@@ -532,9 +587,8 @@ public abstract class IPAddressSegment extends IPAddressDivision {
 			if(isFullRange()) {
 				cachedWildcardString = IPAddress.SEGMENT_WILDCARD_STR;
 			} else if(isStandardRangeString && rangeLower == getLowerValue() && rangeUpper == getUpperValue()) {
-				cachedWildcardString = addressStr.substring(lowerStringStartIndex, upperStringEndIndex);
+				cachedWildcardString = addressStr.subSequence(lowerStringStartIndex, upperStringEndIndex).toString();
 			}
 		}
 	}
-
 }

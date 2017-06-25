@@ -1,13 +1,30 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.format;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
+import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.ipv6.IPv6Address;
 
 /**
- * IPAddressSegmentGrouping objects consist of a series of IPAddressDivision objects, each division containing one or more segments.
+ * IPAddressDivisionGrouping objects consist of a series of IPAddressDivision objects, each division containing one or more segments.
  * <p>
  * With the IPAddressSection subclass, each division is one segment (eg either groupings of 4 like 1.2.3.4 or groupings of 8 like 1:2:3:4:5:6:7:8). 
  * 
@@ -15,15 +32,19 @@ import inet.ipaddr.ipv6.IPv6Address;
  * 
  * Alternative groupings include ipv4 groupings define by inet_aton (eg groupings of 1, 2, or 3 divisions like 1, 1.2, and 1.2.3) and the mixed ipv6/ipv4 representation of ipv6 addresses (eg a grouping of 10 divisions like a:b:c:d:e:f:1.2.3.4)
  * 
- * IPAddressSegmentGrouping objects are immutable.  Some of the derived state is created upon demand and cached.
+ * IPAddressDivisionGrouping objects are immutable.  Some of the derived state is created upon demand and cached.
  * 
  * This also makes them thread-safe.
  * 
+ * May be associated with a prefix length, in which case that number of bits in the upper-most
+ * portion of the object represent a prefix, while the remaining bits can assume all possible values.
+ * 
  *  @author sfoley
  */
-public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAddressSegmentGrouping> {
+public class IPAddressDivisionGrouping extends AddressDivisionGrouping implements IPAddressStringDivisionSeries {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
+	
 	protected static final RangeCache ZEROS_CACHE = new RangeCache();
 	static {
 		if(RangeCache.PRELOAD_CACHE) {
@@ -31,69 +52,54 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 		}
 	}
 	
-	protected final IPAddressDivision divisions[];
-	protected String string;
-	private transient BigInteger cachedCount;
-	private transient Integer cachedNetworkPrefix; //null indicates this field not initialized, -1 indicates the prefix len is null
-	
-	/* for addresses not multiple, we must check each segment, so we cache */
-	private transient Boolean isMultiple;
-	
-	protected int hashCode;
-	
-	public IPAddressSegmentGrouping(IPAddressDivision divisions[]) {
-		this.divisions = divisions;
-	}
-	
-	protected void initCachedValues(Integer cachedNetworkPrefix, BigInteger cachedCount) {
-		this.cachedNetworkPrefix = cachedNetworkPrefix;
-		this.cachedCount = cachedCount;
+	public IPAddressDivisionGrouping(IPAddressDivision divisions[]) {
+		super(divisions);
 	}
 	
 	@Override
 	public IPAddressDivision getDivision(int index) {
-		return divisions[index];
-	}
-
-	@Override
-	public int getDivisionCount() {
-		return divisions.length;
+		return (IPAddressDivision) super.getDivision(index);
 	}
 	
 	@Override
-	public int getByteCount() {
-		int bytes = 0;
-		for(IPAddressDivision combo: divisions) {
-			bytes += combo.getByteCount();
+	public int isMore(AddressDivisionSeries other) {
+		if(!isMultiple()) {
+			return other.isMultiple() ? -1 : 0;
 		}
-		return bytes;
-	}
-	
-	public int getBitCount() {
-		int bits = 0;
-		for(IPAddressDivision combo: divisions) {
-			bits += combo.getBitCount();
+		if(!other.isMultiple()) {
+			return 1;
 		}
-		return bits;
+		if(isRangeEquivalentToPrefix() && other.isRangeEquivalentToPrefix()) {
+			int bits = getBitCount() - getPrefixLength();
+			int otherBits = other.getBitCount() - other.getPrefixLength();
+			return bits - otherBits;
+		}
+		return getCount().compareTo(other.getCount());
 	}
 	
 	/**
 	 * @return whether this address represents a network prefix or the set of all addresses with the same network prefix
 	 */
+	@Override
 	public boolean isPrefixed() {
 		//across the address prefixes are (none)::(1 to 16)::(0), see getSegmentPrefixLength
 		//so it is enough to check just the last one
-		return divisions.length > 0 && divisions[divisions.length - 1].isPrefixed();
+		int count = getDivisionCount();
+		return count > 0 && getDivision(count - 1).isPrefixed();
 	}
 	
 	@Override
+	public Integer getPrefixLength() {
+		return getNetworkPrefixLength();
+	}
+	
 	public Integer getNetworkPrefixLength() {
-		Integer ret = cachedNetworkPrefix;
+		Integer ret = cachedPrefix;
 		if(ret == null) {
 			if(isPrefixed()) {
 				int result = 0;
 				for(int i=0; i < divisions.length; i++) { 
-					IPAddressDivision div = divisions[i];
+					IPAddressDivision div = getDivision(i);
 					Integer prefix = div.getDivisionPrefixLength();
 					if(prefix != null) {
 						result += prefix;
@@ -102,9 +108,9 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 						result += div.getBitCount();
 					}
 				}
-				return cachedNetworkPrefix = result;
+				return cachedPrefix = result;
 			} else {
-				cachedNetworkPrefix = -1;
+				cachedPrefix = -1;
 				return null;
 			}
 		}
@@ -113,65 +119,33 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 		}
 		return ret;
 	}
-	
-	/**
-	 * gets the count of addresses that this address may represent
-	 * 
-	 * If this address is not a CIDR and it has no range, then there is only one such address.
-	 * 
-	 * @return
-	 */
-	public BigInteger getCount() {
-		if(cachedCount != null) {
-			return cachedCount;
-		}
-		BigInteger result = BigInteger.ONE;
-		if(isMultiple()) {
-			for(int i = 0; i < divisions.length; i++) {
-				long segCount = divisions[i].getCount();
-				result = result.multiply(BigInteger.valueOf(segCount));
-			}
-		}
-		return cachedCount = result;
-	}
-	
-	/**
-	 * @return whether this address represents more than one address.
-	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
-	 */
-	@Override
-	public boolean isMultiple() {
-		Boolean result = isMultiple;
-		if(result == null) {
-			for(int i = divisions.length - 1; i >= 0; i--) {//go in reverse order, with prefixes multiple more likely to show up in last segment
-				IPAddressDivision seg = divisions[i];
-				if(seg.isMultiple()) {
-					return isMultiple = true;
-				}
-			}
-			return isMultiple = false;
-		}
-		return result;
-	}
-	
+
 	public boolean isMultipleByNetworkPrefix() {
 		if(!isPrefixed()) {
 			return false;
 		}
-		IPAddressDivision div = divisions[divisions.length - 1];
+		IPAddressDivision div = getDivision(getDivisionCount() - 1);
 		return div.getDivisionPrefixLength() < div.getBitCount(); 
 	}
 
+	@Override
+	public boolean isMultipleByPrefix() {
+		return isMultipleByNetworkPrefix();
+	}
+	
 	/**
 	 * @return whether this address represents more than one address determined entirely by the network prefix length.
 	 */
+	@Override
 	public boolean isRangeEquivalentToPrefix() {
 		if(!isMultipleByNetworkPrefix()) {
 			return !isMultiple();
 		}
-		for(int i = 0; i < divisions.length; i++) {
-			IPAddressDivision div = divisions[i];
-			if(div.isPrefixed() && div.getDivisionPrefixLength() == 0) {
+		int count = getDivisionCount();
+		for(int i = 0; i < count; i++) {
+			IPAddressDivision div = getDivision(i);
+			Integer divPrefix = div.getDivisionPrefixLength();
+			if(divPrefix != null && divPrefix == 0) {
 				//all subsequent prefixes will also be 0 and the range will be full on all of them
 				break;
 			}
@@ -183,42 +157,31 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 	}
 	
 	@Override
-	public int hashCode() {
-		int res = hashCode;
-		if(res == 0) {
-			int fullResult = 1;
-			for(int i = 0; i < getDivisionCount(); i++) {
-				IPAddressDivision combo = getDivision(i);
-				long value = combo.getLowerValue();
-				long shifted = value >>> 32;
-				int adjusted = (int) ((shifted == 0) ? value : (value ^ shifted));
-				fullResult = 31 * fullResult + adjusted;
-				long upperValue = combo.getUpperValue();
-				if(upperValue != value) {
-					shifted = upperValue >>> 32;
-					adjusted = (int) ((shifted == 0) ? upperValue : (upperValue ^ shifted));
-					fullResult = 31 * fullResult + adjusted;
+	public Integer getEquivalentPrefix() {
+		int totalPrefix = 0;
+		int divCount = getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			IPAddressDivision div = getDivision(i);
+			int segPrefix = div.getMinPrefix();
+			if(!div.isRangeEquivalent(segPrefix)) {
+				return null;
+			}
+			if(div.isPrefixed()) {
+				return totalPrefix + segPrefix;
+			}
+			if(segPrefix < div.getBitCount()) {
+				//remaining segments must be full range or we return null
+				for(i++; i < divCount; i++) {
+					IPAddressDivision laterDiv = getDivision(i);
+					if(!laterDiv.isFullRange()) {
+						return null;
+					}
 				}
+				return totalPrefix + segPrefix;
 			}
-			hashCode = res = fullResult;
+			totalPrefix += segPrefix;
 		}
-		return res;
-	}
-	
-	protected boolean isSameGrouping(IPAddressSegmentGrouping other) {
-		IPAddressDivision oneSegs[] = divisions;
-		IPAddressDivision twoSegs[] = other.divisions;
-		if(oneSegs.length != twoSegs.length) {
-			return false;
-		}
-		for(int i = 0; i < oneSegs.length; i++) {
-			IPAddressDivision one = oneSegs[i];
-			IPAddressDivision two = twoSegs[i];
-			if(!one.isSameValues(two)) {
-				return false;
-			}
-		}
-		return true;
+		return totalPrefix;
 	}
 
 	@Override
@@ -226,35 +189,13 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 		if(o == this) {
 			return true;
 		}
-		if(o instanceof IPAddressSegmentGrouping) {
-			IPAddressSegmentGrouping other = (IPAddressSegmentGrouping) o;
+		if(o instanceof IPAddressDivisionGrouping) {
+			IPAddressDivisionGrouping other = (IPAddressDivisionGrouping) o;
 			return other.isSameGrouping(this); //we call isSameGrouping on the other object to defer to subclasses
 		}
 		return false;
 	}
 
-	@Override
-	public int compareTo(IPAddressSegmentGrouping other) {
-		return IPAddress.addressComparator.compare(this, other);
-	}
-
-	@Override
-	public String toString() {
-		if(string == null) {
-			string = Arrays.asList(divisions).toString();
-		}
-		return string;
-	}
-	
-	public boolean isZero() {
-		for(int i = 0; i < getDivisionCount(); i++) {
-			if(!getDivision(i).isZero()) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
 	/**
 	 * @return the segments which are zero
 	 */
@@ -460,6 +401,149 @@ public class IPAddressSegmentGrouping implements IPAddressPart, Comparable<IPAdd
 				}
 			}
 			return next;
+		}
+	}
+	
+	/**
+	 * Each StringParams has settings to write exactly one type of IP address part string.
+	 * 
+	 * @author sfoley
+	 */
+	protected static class IPAddressStringParams<T extends IPAddressStringDivisionSeries> extends AddressStringParams<T> implements IPAddressStringWriter<T> {
+		
+		public static final WildcardOption DEFAULT_WILDCARD_OPTION = WildcardOption.NETWORK_ONLY;
+		
+		protected static final int EXTRA_SPACE = 16;
+		 
+		private WildcardOption wildcardOption = DEFAULT_WILDCARD_OPTION;
+		private int expandSegment[]; //the same as expandSegments but for each segment
+		private String addressSuffix = "";
+		
+		public IPAddressStringParams(int radix, Character separator, boolean uppercase) {
+			this(radix, separator, uppercase, (char) 0);
+		}
+		
+		public IPAddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
+			super(radix, separator, uppercase, zoneSeparator);
+		}
+		
+		public String getAddressSuffix() {
+			return addressSuffix;
+		}
+		
+		public void setAddressSuffix(String suffix) {
+			this.addressSuffix = suffix;
+		}
+		
+		@Override
+		public boolean preferWildcards() {
+			return wildcardOption == WildcardOption.ALL;
+		}
+		
+		public void setWildcardOption(WildcardOption option) {
+			wildcardOption = option;
+		}
+		
+		public int getExpandedSegmentLength(int segmentIndex) {
+			if(expandSegment == null || expandSegment.length <= segmentIndex) {
+				return 0;
+			}
+			return expandSegment[segmentIndex];
+		}
+		
+		public void expandSegment(int index, int expansionLength, int segmentCount) {
+			if(expandSegment == null) {
+				expandSegment = new int[segmentCount];
+			}
+			expandSegment[index] = expansionLength;
+		}
+
+		@Override
+		public char getTrailingSegmentSeparator() {
+			return separator;
+		}
+		
+		public StringBuilder appendSuffix(StringBuilder builder) {
+			String suffix = getAddressSuffix();
+			if(suffix != null) {
+				builder.append(suffix);
+			}
+			return builder;
+		}
+		
+		public int getAddressSuffixLength() {
+			String suffix = getAddressSuffix();
+			if(suffix != null) {
+				return suffix.length();
+			}
+			return 0;
+		}
+		
+		//returns -1 for MAX, or 0, 1, 2, 3 to indicate the string prefix length
+		@Override
+		public int getLeadingZeros(int segmentIndex) {
+			if(expandSegments) {
+				return -1;
+			} else if(expandSegment != null && expandSegment.length > segmentIndex) {
+				return expandSegment[segmentIndex];
+			}
+			return 0;
+		}
+		
+		@Override
+		public IPAddressStringParams<T> clone() {
+			IPAddressStringParams<T> parms = (IPAddressStringParams<T>) super.clone();
+			if(expandSegment != null) {
+				parms.expandSegment = expandSegment.clone();
+			}
+			return parms;
+			
+		}
+
+		@Override
+		public int getTrailingSeparatorCount(T addr) {
+			if(addr.getDivisionCount() > 0) {
+				return addr.getDivisionCount() - 1;
+			}
+			return 0;
+		}
+		
+		public static int getPrefixStringLength(IPAddressStringDivisionSeries addr) {
+			if(addr.isPrefixed()) {
+				return AddressDivision.toUnsignedStringLengthFast(addr.getPrefixLength(), 10) + 1;
+			}
+			return 0;
+		}
+		
+		@Override
+		public int getStringLength(T addr) {
+			int count = getSegmentsStringLength(addr);
+			if(!isReverse() && !preferWildcards()) {
+				count += getPrefixStringLength(addr);
+			}
+			return count + getAddressSuffixLength() + getAddressLabelLength();
+		}
+		
+		public void appendPrefixIndicator(StringBuilder builder, IPAddressStringDivisionSeries addr) {
+			if(addr.isPrefixed()) {
+				builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(addr.getPrefixLength());
+			}
+		}
+		
+		@Override
+		public StringBuilder append(StringBuilder builder, T addr, CharSequence zone) {
+			/* 
+			 * Our order is zone, then suffix, then prefix length.  This is documented in more detail for the IPv6-only case.
+			 */
+			appendSegments(appendLabel(builder), addr);
+			if(zone != null) {
+				appendZone(builder, zone);
+			}
+			appendSuffix(builder);
+			if(!isReverse() && !preferWildcards()) {
+				appendPrefixIndicator(builder, addr);
+			}
+			return builder;
 		}
 	}
 }

@@ -1,26 +1,38 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr;
 
-import java.io.Serializable;
-import java.math.BigInteger;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.function.IntFunction;
-import java.util.function.Supplier;
+import java.util.Objects;
 
-import inet.ipaddr.IPAddressComparator.CountComparator;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
-import inet.ipaddr.IPAddressSection.StringOptions;
+import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressTypeNetwork.IPAddressCreator;
-import inet.ipaddr.IPAddressTypeNetwork.IPAddressSegmentCreator;
-import inet.ipaddr.format.IPAddressPart;
+import inet.ipaddr.format.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
-import inet.ipaddr.format.validate.AddressProvider;
+import inet.ipaddr.format.validate.IPAddressProvider;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
@@ -39,7 +51,7 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
  * String creation:
  * <p>
  * There are several public classes used to customize IP address strings.
- * For single strings from an address or address section, you use {@link StringOptions} or {@link inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions} along with {@link #toNormalizedString(IPAddressSection.StringOptions)}.
+ * For single strings from an address or address section, you use {@link IPStringOptions} or {@link inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions} along with {@link #toNormalizedString(IPAddressSection.IPStringOptions)}.
  * Or you use one of the methods like {@link #toCanonicalString()} which does the same.
  * <p>
  * For string collections from an address or address section, use {@link inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions}, {@link inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions}, {@link IPStringBuilderOptions} along with {@link #toStringCollection(IPAddressSection.IPStringBuilderOptions)} or {@link #toStrings(IPAddressSection.IPStringBuilderOptions)}.
@@ -71,16 +83,15 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
  * IPv6StringBuilder/IPv4StringBuilder/IPAddressStringBuilder, used to create collections of strings, are not public either
  *
  */
-public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
+public abstract class IPAddress extends Address {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 
 	/**
-	 * @custom.core
 	 * @author sfoley
 	 *
 	 */
-	public enum IPVersion {
+	public static enum IPVersion {
 		IPV4,
 		IPV6;
 		
@@ -91,29 +102,27 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		public boolean isIPv6() {
 			return this == IPV6;
 		}
+		
+		/**
+		 * @throws IllegalArgumentException if not the byte length of IPv4 or IPv6 (4 or 16)
+		 * @param length
+		 * @return
+		 */
+		public static IPVersion fromByteLength(int length) {
+			switch(length) {
+				case IPv4Address.BYTE_COUNT:
+					return IPV4;
+				case IPv6Address.BYTE_COUNT:
+					return IPV6;
+			}
+			throw new IllegalArgumentException();
+		}
 	};
 	
-	public static final char RANGE_SEPARATOR = '-';
-	public static final String RANGE_SEPARATOR_STR = String.valueOf(RANGE_SEPARATOR);
-	public static final char SEGMENT_WILDCARD = '*';
-	public static final String SEGMENT_WILDCARD_STR = String.valueOf(SEGMENT_WILDCARD);
-	public static final char SEGMENT_SQL_WILDCARD = '%';
-	public static final String SEGMENT_SQL_WILDCARD_STR = String.valueOf(SEGMENT_SQL_WILDCARD);
-	public static final char SEGMENT_SQL_SINGLE_WILDCARD = '_';
-	public static final String SEGMENT_SQL_SINGLE_WILDCARD_STR = String.valueOf(SEGMENT_SQL_SINGLE_WILDCARD);
 	public static final char PREFIX_LEN_SEPARATOR = '/';
 	
 	//The default way by which addresses are converted
 	public static final IPAddressConverter addressConverter = new DefaultAddressConverter();
-	
-	//The default way by which addresses are compared
-	public static final IPAddressComparator addressComparator = new CountComparator();
-	
-	/* the segments.  For IPv4, each element is actually just 1 byte and the array has 4 elements, while for IPv6, each element is 2 bytes and the array has 8 elements. */
-	final IPAddressSection addressSection;
-	
-	/* an IPAddressString representing the address, which is the one used to construct the address if the address was constructed from a IPAddressString */
-	protected IPAddressString fromString;
 	
 	/* a Host representing the address, which is the one used to construct the address if the address was resolved from a Host.  
 	 * Note this is different than if the Host was an address itself, in which case the Host holds a reference to the address
@@ -132,9 +141,9 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @param section the address segments
 	 */
 	protected IPAddress(IPAddressSection section) {
-		this.addressSection = section;
+		super(section);
 	}
-	
+
 	/**
 	 * If this address was resolved from a host, returns that host.  Otherwise, does a reverse name lookup.
 	 */
@@ -146,6 +155,21 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return host;
 	}
 	
+	void cache(HostIdentifierString string) {
+		if(string instanceof HostName) {
+			fromHost = (HostName) string;
+		} else if(string instanceof IPAddressString) {
+			fromString = (IPAddressString) string;
+		}
+	}
+
+	protected IPAddressProvider getProvider() {
+		if(isPrefixed()) {
+			return IPAddressProvider.getProviderFor(this, removePrefixLength(true, true));
+		}
+		return IPAddressProvider.getProviderFor(this, this);
+	}
+	
 	/**
 	 * Does a reverse name lookup to get the canonical host name.
 	 */
@@ -153,14 +177,14 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		HostName host = canonicalHost;
 		if(host == null) {
 			if(isMultiple()) {
-				throw new IPAddressTypeException(this, "ipaddress.error.unavailable.numeric");
+				throw new AddressTypeException(this, "ipaddress.error.unavailable.numeric");
 			}
 			InetAddress inetAddress = toInetAddress();
 			//String hostStr1 = inetAddress.getHostName();
 			String hostStr = inetAddress.getCanonicalHostName();//note: this does not return ipv6 addresses enclosed in brackets []
 			if(hostStr.equals(inetAddress.getHostAddress())) {
 				//we got back the address, so the host is me
-				host = new HostName(hostStr, new ParsedHost(hostStr, AddressProvider.getProviderFor(this)));
+				host = new HostName(hostStr, new ParsedHost(hostStr, getProvider()));
 				host.resolvedAddress = this;
 			} else {
 				//the reverse lookup succeeded in finding a host string
@@ -172,74 +196,64 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	public static IPAddress from(byte bytes[]) {
-		return from(bytes, null, null, null);
+		return from(bytes, null, null);
 	}
 	
 	public static IPAddress from(byte bytes[], Integer prefixLength) {
-		return from(bytes, null, prefixLength, null);
+		return from(bytes, prefixLength, null);
 	}
 	
-	public static IPAddress from(byte bytes[], byte bytes2[], Integer prefixLength) {
-		return from(bytes, bytes2, prefixLength, null);
+	public static IPAddress from(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
+		return from(version, lowerValueProvider, upperValueProvider, prefixLength, null);
 	}
 	
-	protected static IPAddress from(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
-		if(bytes.length == IPv4Address.BYTE_COUNT) {
+	protected static IPAddress from(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
+		if(version == IPVersion.IPV4) {
 			if(zone != null) {
 				throw new IllegalArgumentException();
 			}
-			IPAddressCreator<IPv4Address, ?, IPv4AddressSegment> addressCreator = IPv4Address.network().getAddressCreator();
-			IPv4AddressSegment segments[] = toSegments(bytes, bytes2, IPv4Address.SEGMENT_COUNT, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT, addressCreator, prefixLength);
-			return addressCreator.createAddressInternal(segments); /* address creation */
+			IPAddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> addressCreator = IPv4Address.network().getAddressCreator();
+			return addressCreator.createAddressInternal(lowerValueProvider, upperValueProvider, prefixLength);
 		}
-		if(bytes.length == IPv6Address.BYTE_COUNT) {
-			IPAddressCreator<IPv6Address, ?, IPv6AddressSegment> addressCreator = IPv6Address.network().getAddressCreator();
-			IPv6AddressSegment segments[] = toSegments(bytes, bytes2, IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, addressCreator, prefixLength);
-			return addressCreator.createAddressInternal(segments, zone); /* address creation */
+		if(version == IPVersion.IPV6) {
+			IPAddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> addressCreator = IPv6Address.network().getAddressCreator();
+			return addressCreator.createAddressInternal(lowerValueProvider, upperValueProvider, prefixLength, zone);
+		}
+		throw new IllegalArgumentException();
+	}
+	
+	protected static IPAddress from(byte lowerBytes[], Integer prefixLength, CharSequence zone) {
+		if(lowerBytes.length == IPv4Address.BYTE_COUNT) {
+			if(zone != null) {
+				throw new IllegalArgumentException();
+			}
+			IPAddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> addressCreator = IPv4Address.network().getAddressCreator();
+			return addressCreator.createAddressInternal(lowerBytes, prefixLength);
+		}
+		if(lowerBytes.length == IPv6Address.BYTE_COUNT) {
+			IPAddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> addressCreator = IPv6Address.network().getAddressCreator();
+			return addressCreator.createAddressInternal(lowerBytes, prefixLength, zone);
 		}
 		throw new IllegalArgumentException();
 	}
 
-	protected static <T extends IPAddressSegment> T[] toSegments(
-			byte bytes[],
-			byte bytes2[],
-			int segmentCount,
-			int bytesPerSegment,
-			int bitsPerSegment,
-			IPAddressSegmentCreator<T> creator,
-			Integer networkPrefixLength) {
-		T segments[] = creator.createSegmentArray(segmentCount);
-		for(int i = 0, segmentIndex = 0; i < bytes.length; i += bytesPerSegment, segmentIndex++) {
-			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, segmentIndex);
-			if(segmentPrefixLength != null && segmentPrefixLength == 0) {
-				segments[segmentIndex] = creator.createSegment(0, 0);
-				continue;
-			}
-			int value = 0, value2 = 0;
-			int k = bytesPerSegment + i;
-			for(int j = i; j < k; j++) {
-				int byteValue = bytes[j];
-				value <<= 8;
-				value |= 0xff & byteValue;
-				if(bytes2 != null) {
-					byteValue = bytes2[j];
-					value2 <<= 8;
-					value2 |= 0xff & byteValue;
-				}
-			}
-			segments[segmentIndex] = (bytes2 != null) ? creator.createSegment(value, value2, segmentPrefixLength) : creator.createSegment(value, segmentPrefixLength);
-		}
-		return segments;
-	}
-	
-	protected static String toNormalizedString(byte bytes[], byte bytes2[], Integer prefixLength, String zone) {
-		if(bytes.length == IPv4Address.BYTE_COUNT) {
-			return toNormalizedString(bytes, bytes2, prefixLength, 
+	/**
+	 * Creates the normalized string for an address without having to create the address objects first.
+	 * 
+	 * @param lowerValueProvider
+	 * @param upperValueProvider
+	 * @param prefixLength
+	 * @param zone
+	 * @return
+	 */
+	protected static String toNormalizedString(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
+		if(version == IPVersion.IPV4) {
+			return toNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, 
 					IPv4Address.SEGMENT_COUNT, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT, IPv4Address.MAX_VALUE_PER_SEGMENT, IPv4Address.SEGMENT_SEPARATOR, IPv4Address.DEFAULT_TEXTUAL_RADIX,
 					null, IPv4Address.network());
 		}
-		if(bytes.length == IPv6Address.BYTE_COUNT) {
-			return toNormalizedString(bytes, bytes2, prefixLength, 
+		if(version == IPVersion.IPV6) {
+			return toNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, 
 					IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.DEFAULT_TEXTUAL_RADIX,
 					zone, IPv6Address.network());
 		}
@@ -247,8 +261,8 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	private static String toNormalizedString(
-			byte bytes[],
-			byte bytes2[],
+			SegmentValueProvider lowerValueProvider,
+			SegmentValueProvider upperValueProvider,
 			Integer prefixLength,
 			int segmentCount,
 			int bytesPerSegment,
@@ -256,63 +270,142 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 			int segmentMaxValue,
 			char separator,
 			int radix,
-			String zone,
+			CharSequence zone,
 			IPAddressNetwork network) {
-		StringBuilder builder = new StringBuilder(IPv4Address.MAX_STRING_LEN + 8);
-		for(int i = 0; i < bytes.length; i += bytesPerSegment) {
-			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, i);
+		int length = toNormalizedString(
+				lowerValueProvider,
+				upperValueProvider,
+				prefixLength,
+				segmentCount,
+				bytesPerSegment,
+				bitsPerSegment,
+				segmentMaxValue,
+				separator,
+				radix,
+				zone,
+				network,
+				null);
+		StringBuilder builder = new StringBuilder(length);
+		toNormalizedString(
+				lowerValueProvider,
+				upperValueProvider,
+				prefixLength,
+				segmentCount,
+				bytesPerSegment,
+				bitsPerSegment,
+				segmentMaxValue,
+				separator,
+				radix,
+				zone,
+				network,
+				builder);
+		IPAddressSection.checkLengths(length, builder);
+		return builder.toString();
+	}
+	
+	private static int toNormalizedString(
+			SegmentValueProvider lowerValueProvider,
+			SegmentValueProvider upperValueProvider,
+			Integer prefixLength,
+			int segmentCount,
+			int bytesPerSegment,
+			int bitsPerSegment,
+			int segmentMaxValue,
+			char separator,
+			int radix,
+			CharSequence zone,
+			IPAddressNetwork network,
+			StringBuilder builder) {
+		int segmentIndex = 0, count = 0;
+		while(true) {
+			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 			if(segmentPrefixLength != null && segmentPrefixLength == 0) {
-				builder.append('0').append(separator);
-				continue;
-			}
-			int value = 0, value2 = 0;
-			int k = bytesPerSegment + i;
-			for(int j = i; j < k; j++) {
-				int byteValue = bytes[j];
-				value <<= 8;
-				value |= 0xff & byteValue;
-				if(bytes2 != null) {
-					byteValue = bytes2[j];
-					value2 <<= 8;
-					value2 |= 0xff & byteValue;
-				}
-			}
-			if(bytes2 == null) {
-				if(segmentPrefixLength != null) {
-					value &= network.getSegmentNetworkMask(segmentPrefixLength);
-				}
-				IPAddressSegment.toUnsignedStringFast(value, radix, builder);
-			} else {
-				if(segmentPrefixLength != null) {
-					int mask = network.getSegmentNetworkMask(segmentPrefixLength);
-					value &= mask;
-					value2 &= mask;
-				}
-				if(value == value2) {
-					IPAddressSegment.toUnsignedStringFast(value, radix, builder);
+				if(builder == null) {
+					count++;
 				} else {
-					if(value > value2) {
-						int tmp = value2;
-						value2 = value;
-						value = tmp;
-					} 
-					if(value == 0 && value2 == segmentMaxValue) {
-						builder.append(IPAddress.SEGMENT_WILDCARD_STR);
+					builder.append('0');//.append(separator);
+				}
+			} else {
+				int value = 0, value2 = 0;
+				if(lowerValueProvider == null) {
+					value = upperValueProvider.getValue(segmentIndex, bytesPerSegment);
+				} else {
+					value = lowerValueProvider.getValue(segmentIndex, bytesPerSegment);
+					if(upperValueProvider != null) {
+						value2 = upperValueProvider.getValue(segmentIndex, bytesPerSegment);
+					}
+				}
+				
+				if(lowerValueProvider == null || upperValueProvider == null) {
+					if(segmentPrefixLength != null) {
+						value &= network.getSegmentNetworkMask(segmentPrefixLength);
+					}
+					if(builder == null) {
+						count += IPAddressSegment.toUnsignedStringLength(value, radix);
 					} else {
-						IPAddressSegment.getRangeString(value, value2, radix, builder);
+						IPAddressSegment.toUnsignedString(value, radix, builder);
+					}
+				} else {
+					if(segmentPrefixLength != null) {
+						int mask = network.getSegmentNetworkMask(segmentPrefixLength);
+						value &= mask;
+						value2 &= mask;
+					}
+					if(value == value2) {
+						if(builder == null) {
+							count += IPAddressSegment.toUnsignedStringLength(value, radix);
+						} else {
+							IPAddressSegment.toUnsignedString(value, radix, builder);
+						}
+					} else {
+						if(value > value2) {
+							int tmp = value2;
+							value2 = value;
+							value = tmp;
+						} 
+						if(value == 0 && value2 == segmentMaxValue) {
+							if(builder == null) {
+								count += IPAddress.SEGMENT_WILDCARD_STR.length();
+							} else {
+								builder.append(IPAddress.SEGMENT_WILDCARD_STR);
+							}
+						} else {
+							if(builder == null) {
+								count += IPAddressSegment.toUnsignedStringLength(value, radix) + 
+										IPAddressSegment.toUnsignedStringLength(value2, radix) + 
+										IPAddress.RANGE_SEPARATOR_STR.length();
+							} else {
+								IPAddressSegment.toUnsignedString(value2, radix, IPAddressSegment.toUnsignedString(value, radix, builder).append(IPAddress.RANGE_SEPARATOR_STR));
+							}
+						}
 					}
 				}
 			}
-			builder.append(separator);
+			if(++segmentIndex >= segmentCount) {
+				break;
+			}
+			if(builder != null) {
+				builder.append(separator);
+			}
 		}
-		builder.setLength(builder.length() - 1);
+		if(builder == null) {
+			count += segmentCount - 1;//separators
+		}
 		if(zone != null && zone.length() > 0) {
-			builder.append(IPv6Address.ZONE_SEPARATOR).append(zone);
+			if(builder == null) {
+				count += zone.length() + 1;
+			} else {
+				builder.append(IPv6Address.ZONE_SEPARATOR).append(zone);
+			}
 		}
 		if(prefixLength != null) {
-			builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(prefixLength);
+			if(builder == null) {
+				count += IPAddressSegment.toUnsignedStringLength(prefixLength, 10) + 1;
+			} else {
+				builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(prefixLength);
+			}
 		} 
-		return builder.toString();
+		return count;
 	}
 	
 	public abstract IPAddressNetwork getNetwork();
@@ -337,18 +430,30 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * Returns the address as an address section comprising all segments in the address.
 	 * @return
 	 */
+	@Override
 	public IPAddressSection getSection() {
-		return addressSection;
+		return (IPAddressSection) super.getSection();
+	}
+
+	@Override
+	public IPAddressSection getSection(int index) {
+		return getSection().getSection(index);
+	}
+
+	@Override
+	public IPAddressSection getSection(int index, int endIndex) {
+		return getSection().getSection(index, endIndex);
 	}
 	
 	/**
 	 * Returns all the ways of breaking this address down into segments, as selected.
 	 * @return
 	 */
-	public IPAddressPart[] getParts(IPStringBuilderOptions options) {
-		return new IPAddressPart[] { getSection() };
+	public IPAddressStringDivisionSeries[] getParts(IPStringBuilderOptions options) {
+		return new IPAddressStringDivisionSeries[] { getSection() };
 	}
 	
+	@Override
 	public int getMaxSegmentValue() {
 		return IPAddressSegment.getMaxSegmentValue(getIPVersion());
 	}
@@ -357,10 +462,12 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return IPAddressSegment.getMaxSegmentValue(version);
 	}
 	
+	@Override
 	public int getBytesPerSegment() {
 		return IPAddressSegment.getByteCount(getIPVersion());
 	}
 	
+	@Override
 	public int getBitsPerSegment() {
 		return IPAddressSegment.getBitCount(getIPVersion());
 	}
@@ -369,79 +476,39 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return IPAddressSegment.getBitCount(version);
 	}
 	
-	public abstract int getByteCount();
+	@Override
+	public int getByteCount() {
+		return getSection().getByteCount();
+	}
 	
 	public static int byteCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BYTE_COUNT : IPv6Address.BYTE_COUNT;
-	}
-	
-	public abstract int getSegmentCount();
-	
-	public int getSegmentIndex(Integer networkPrefixLength) {
-		return addressSection.getSegmentIndex(networkPrefixLength);
-	}
-	
-	static int getSegmentIndex(Integer networkPrefixLength, int byteLength, int bytesPerSegment) {
-		return IPAddressSection.getSegmentIndex(networkPrefixLength, byteLength, bytesPerSegment);
-	}
-	
-	public int getByteIndex(Integer networkPrefixLength) {
-		return addressSection.getByteIndex(networkPrefixLength);
-	}
-	
-	static int getByteIndex(Integer networkPrefixLength, int byteLength) {
-		return IPAddressSection.getByteIndex(networkPrefixLength, byteLength);
 	}
 	
 	public static int segmentCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT;
 	}
 	
-	public abstract int getBitCount();
-	
 	public static int bitCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT;
 	}
 	
 	public boolean isMultipleByNetworkPrefix() {
-		return addressSection.isMultipleByNetworkPrefix();
-	}
-	
-	/**
-	 * @return whether this address represents more than one address.
-	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
-	 */
-	public boolean isMultiple() {
-		return addressSection.isMultiple();
-	}
-
-	/**
-	 * @return whether this address represents a network prefix or the set of all addresses with the same network prefix
-	 */
-	public boolean isPrefixed() {
-		return addressSection.isPrefixed();
+		return getSection().isMultipleByNetworkPrefix();
 	}
 	
 	public Integer getNetworkPrefixLength() {
-		return addressSection.getNetworkPrefixLength();
+		return getSection().getNetworkPrefixLength();
 	}
 	
+	@Override
 	public IPAddressSegment getSegment(int index) {
-		return addressSection.getSegment(index);
+		return (IPAddressSegment) super.getSegment(index);
 	}
 	
-	/**
-	 * Gets the count of addresses that this address may represent.
-	 * 
-	 * If this address is not a CIDR network prefix and it has no range, then there is only one such address.
-	 * 
-	 * @return
-	 */
-	public BigInteger getCount() {
-		if(!isMultiple()) {
-			return BigInteger.ONE;
-		}
-		return addressSection.getCount();
+	@Override
+	public IPAddressSegment[] getSegments() {
+		return getSection().getSegments();
 	}
 	
 	/**
@@ -450,6 +517,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * 
 	 * @return
 	 */
+	@Override
 	public abstract IPAddress getLower();
 	
 	/**
@@ -458,72 +526,61 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * 
 	 * @return
 	 */
+	@Override
 	public abstract IPAddress getUpper();
 	
-	protected static <R extends IPAddressSection, S extends IPAddressSegment> S[] createSingle(R original, IPAddressSegmentCreator<S> segmentCreator, IntFunction<S> segProducer) {
-		return IPAddressSection.createSingle(original, segmentCreator, segProducer);
-	}
+	/**
+	 * 
+	 * If this address has an associated prefix length, then the prefix length is dropped for the reversed address.
+	 */
+	/**
+	 * Returns a new IPAddress which has the bits reversed.
+	 * 
+	 * If this represents a range of values, then this throws AddressTypeException.
+	 * 
+	 * In such cases where isMultiple() is true, call iterator(), getLower(), getUpper() or some other methods to transform the address 
+	 * into an address representing a single value.
+	 * 
+	 * @param perByte if true, only the bits in each byte are reversed, if false, then all bits in the address are reversed
+	 * @throw AddressTypeException if isMultiple() returns true
+	 * @return
+	 */
+	@Override
+	public abstract IPAddress reverseBits(boolean perByte);
 	
-	protected static <T extends IPAddress> T getSingle(
-			T original,
-			Supplier<T> singleFromMultipleCreator) {
-		if(!original.isPrefixed() && !original.isMultiple()) {
-			return original;
-		}
-		return singleFromMultipleCreator.get();
-	}
+	@Override
+	public abstract IPAddress reverseBytes();
 	
+	@Override
+	public abstract IPAddress reverseBytesPerSegment();
+	
+	@Override
+	public abstract IPAddress reverseSegments();
+	
+	@Override
 	public abstract Iterator<? extends IPAddress> iterator();
+	
+	@Override
+	public Iterator<? extends IPAddressSegment[]> segmentsIterator() {
+		return getSection().segmentsIterator();
+	}
 	
 	/**
 	 * @return an object to iterate over the individual addresses represented by this object.
 	 */
-	public abstract Iterable<? extends IPAddress> getAddresses();
-	
-	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> Iterator<T> iterator(
-			T original,
-			IPAddressCreator<T, R, S> creator,
-			Supplier<S[]> segs,
-			IntFunction<Iterator<S>> segIteratorProducer) {
-		return new Iterator<T>() {
-			private boolean doThis = !original.isMultiple() && !original.isPrefixed(); //note that a non-multiple address can have a prefix (either /32 or /128)
-			private Iterator<S[]> iterator = original.addressSection.iterator(creator, doThis, segs, segIteratorProducer);
-			
-			@Override
-			public boolean hasNext() {
-				return iterator.hasNext() || doThis;
-			}
-
-		    @Override
-			public T next() {
-		    	if(!hasNext()) {
-		    		throw new NoSuchElementException();
-		    	}
-		    	if(doThis) {
-		    		doThis = false;
-			    	return original;
-		    	}
-		    	S[] next = iterator.next();
-		    	return creator.createAddressInternal(next); /* address creation */
-		    }
-
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
-		    }
-		};
-	}
+	@Override
+	public abstract Iterable<? extends IPAddress> getIterable();
 	
 	public boolean isIPv4() {
-		return addressSection.isIPv4();
+		return getSection().isIPv4();
 	}
 	
 	public boolean isIPv6() {
-		return addressSection.isIPv6();
+		return getSection().isIPv6();
 	}
 	
 	public IPVersion getIPVersion() {
-		return addressSection.getIPVersion();
+		return getSection().getIPVersion();
 	}
 	
 	/**
@@ -577,11 +634,11 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @see java.net.InetAddress#isSiteLocalAddress()
 	 */
 	public abstract boolean isSiteLocal();
-	
-	/**
-	 * @see java.net.InetAddress#isMulticastAddress()
-	 */
-	public abstract boolean isMulticast();
+
+	@Override
+	public boolean isLocal() {
+		return isLinkLocal() || isSiteLocal() || isAnyLocal();
+	}
 	
 	/**
 	 * @see java.net.InetAddress#isAnyLocalAddress()
@@ -596,27 +653,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	public abstract boolean isLoopback();
 	
 	/**
-	 * @throws IPAddressTypeException if this address does not map to a single address.
-	 * If you want to get subnet bytes or mask bytes, call getLowestBytes
-	 */
-	public byte[] getBytes() {
-		if(isMultiple()) {
-			throw new IPAddressTypeException(this, "ipaddress.error.unavailable.numeric");
-		}
-		return getLowestBytes();
-	}
-	
-	/**
-	 * Gets the bytes for the lowest address in the range represented by this address.
-	 * 
-	 * @return
-	 */
-	public byte[] getLowestBytes() {
-		return addressSection.getLowestBytes();
-	}
-	
-	/**
-	 * @throws IPAddressTypeException if this address does not map to a single address, ie it is a subnet
+	 * @throws AddressTypeException if this address does not map to a single address, ie it is a subnet
 	 */
 	public InetAddress toInetAddress() {
 		if(inetAddress == null) {
@@ -631,26 +668,6 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		}
 		return inetAddress;
 	}
-	
-	public boolean isZero() {
-		if(isMultipleByNetworkPrefix()) {
-			return false;
-		}
-		return addressSection.isZero();
-	}
-	
-	@Override
-	public int hashCode() {
-		return addressSection.hashCode();
-	}
-	
-	@Override
-	public int compareTo(IPAddress other) {
-		if(this == other) {
-			return 0;
-		}
-		return addressComparator.compare(this, other);
-	}
 
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
@@ -661,33 +678,26 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		return otherAddr != null && isSameAddress(otherAddr);
 	}
 	
-	protected boolean isFromSameString(IPAddressString otherString) {
-		return fromString != null && otherString != null &&
-				(fromString == otherString || fromString.fullAddr.equals(otherString.fullAddr)) &&
-				fromString.validationOptions == otherString.validationOptions;//we could do equals here but 99% of the time this gives the right answer in less time because the validation options are not expected to change
+	@Override
+	protected boolean isFromSameString(HostIdentifierString other) {
+		if(fromString != null && other instanceof IPAddressString) {
+			IPAddressString fromString = (IPAddressString) this.fromString;
+			IPAddressString otherString = (IPAddressString) other;
+			return (fromString == otherString || 
+					(fromString.fullAddr.equals(otherString.fullAddr)) &&
+					Objects.equals(fromString.validationOptions, otherString.validationOptions));
+		}
+		return false;
 	}
 	
 	public boolean isSameAddress(IPAddress other) {
 		return other == this || getSection().equals(other.getSection());
 	}
-	
-	/**
-	 * Two IPAddress objects are equal if they represent the same set of addresses.
-	 * Whether one or the other has an associated network prefix length is not considered.
-	 * 
-	 * Also, an IPAddressString and IPAddress are considered equal if they represent the same set of addresses.
-	 */
+
 	@Override
-	public boolean equals(Object o) {
-		if(o == this) {
-			return true;
-		}
-		if(o instanceof IPAddress) {
-			IPAddress other = (IPAddress) o;
-			if(isFromSameString(other.fromString)) {
-				return true;
-			}
-			return isSameAddress(other);
+	public boolean contains(Address other) {
+		if(other instanceof IPAddress) {
+			return contains((IPAddress) other);
 		}
 		return false;
 	}
@@ -701,16 +711,18 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 		if(other == this) {
 			return true;
 		}
-		return addressSection.contains(other.addressSection);
+		return getSection().contains(other.getSection());
 	}
 	
 	/**
-	 * Subtract the give subnet from this subnet, returning an array of sections for the result (the subnets will not be contiguous so an array is required).
+	 * Subtract the give subnet from this subnet, returning an array of subnets for the result (the subnets will not be contiguous so an array is required).
 	 * 
-	 * Computes the subnet difference, the set of addresses in this address section but not in the provided section.
+	 * Computes the subnet difference, the set of addresses in this address subnet but not in the provided subnet.
+	 * 
+	 * If the address is not the same version, the default conversion will be applied, and it that fails, AddressTypeException will be thrown.
 	 * 
 	 * @param other
-	 * @throws IPAddressTypeException if the two sections are not comparable
+	 * @throws AddressTypeException if the two sections are not comparable
 	 * @return the difference
 	 */
 	public abstract IPAddress[] subtract(IPAddress other);
@@ -733,32 +745,14 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 			return ipv6Creator.createAddressInternal(bytes, null, zone); /* address creation */
 		} else {
 			IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
-			return creator.createAddressInternal(bytes, null, null); /* address creation */
+			return creator.createAddressInternal(bytes, null); /* address creation */
 		}
 	}
 	
 	//////////////// string creation below ///////////////////////////////////////////////////////////////////////////////////////////
 	
 	public String[] getSegmentStrings() {
-		return addressSection.getSegmentStrings();
-	}
-	
-	@Override
-	public String toString() {
-		return toNormalizedString();
-	}
-
-	/**
-	 * This produces a canonical string.
-	 * 
-	 * RFC 5952 describes canonical representations.
-	 * http://en.wikipedia.org/wiki/IPv6_address#Recommended_representation_as_text
-	 * http://tools.ietf.org/html/rfc5952
-	 * 
-	 * Each address has a unique canonical string, not counting the prefix, which can give two equal addresses different strings.
-	 */
-	public String toCanonicalString() {
-		return addressSection.toCanonicalString();
+		return getSection().getSegmentStrings();
 	}
 
 	/**
@@ -768,32 +762,11 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * Each address has a unique full string, not counting CIDR the prefix, which can give two equal addresses different strings.
 	 */
 	public String toFullString() {
-		return addressSection.toFullString();
-	}
-	
-	/**
-	 * The normalized string returned by this method is consistent with java.net.Inet4Address and java.net.Inet6Address.
-	 * IPs are not compressed nor mixed in this representation.
-	 * 
-	 * The string returned by this method is unique for each address, not counting CIDR the prefix, which can give two equal addresses different strings.
-	 */
-	public String toNormalizedString() {
-		return addressSection.toNormalizedString();
+		return getSection().toFullString();
 	}
 	
 	protected void cacheNormalizedString(String str) {
-		addressSection.cacheNormalizedString(str);
-	}
-	
-	/**
-	 * This produces the shortest valid string for the address.
-	 * 
-	 * Each address has a unique compressed string, not counting the prefix, which can give two equal addresses different strings.
-	 * 
-	 * For subnets the string will not have wildcards in host segments (there will be zeros instead), only in network segments.
-	 */
-	public String toCompressedString() {
-		return addressSection.toCompressedString();
+		getSection().cacheNormalizedString(str);
 	}
 	
 	/**
@@ -803,7 +776,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * In the case of IPv6, when a network prefix has been supplied, the prefix will be shown and the host section will be compressed with ::.
 	 */
 	public String toSubnetString() {
-		return addressSection.toSubnetString();
+		return getSection().toSubnetString();
 	}
 	
 	/**
@@ -811,7 +784,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * CIDR addresses will be shown with wildcards and ranges instead of using the CIDR prefix notation.
 	 */
 	public String toNormalizedWildcardString() {
-		return addressSection.toNormalizedWildcardString();
+		return getSection().toNormalizedWildcardString();
 	}
 	
 	/**
@@ -820,14 +793,14 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * IPv6 addresses will be compressed according to the canonical representation.
 	 */
 	public String toCanonicalWildcardString() {
-		return addressSection.toCanonicalWildcardString();
+		return getSection().toCanonicalWildcardString();
 	}
 	
 	/**
 	 * This is similar to toNormalizedWildcardString, avoiding the CIDR prefix, but with compression as well.
 	 */
 	public String toCompressedWildcardString() {
-		return addressSection.toCompressedWildcardString();
+		return getSection().toCompressedWildcardString();
 	}
 	
 	/**
@@ -835,7 +808,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * it uses IPAddress.SEGMENT_SQL_WILDCARD instead of IPAddress.SEGMENT_WILDCARD and also uses IPAddress.SEGMENT_SQL_SINGLE_WILDCARD
 	 */
 	public String toSQLWildcardString() {
-		 return addressSection.toSQLWildcardString();
+		 return getSection().toSQLWildcardString();
 	}
 	
 	/**
@@ -843,8 +816,8 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * For IPv6, the host section will be compressed with ::, for IPv4 the host section will be zeros.
 	 * @return
 	 */
-	public String toNetworkPrefixLengthString() {
-		return addressSection.toNetworkPrefixLengthString();
+	public String toPrefixLengthString() {
+		return getSection().toPrefixLengthString();
 	}
 	
 	/**
@@ -868,27 +841,40 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * For 2001:db8::567:89ab it is b.a.9.8.7.6.5.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
 	 * 
 	 *
-	 * @throw IPAddressTypeException if this address is a subnet of multiple addresses
+	 * @throw {@link AddressTypeException} if this address is a subnet of multiple addresses
 	 * @return
 	 */
-	public abstract String toReverseDNSLookupString();
+	public String toReverseDNSLookupString() {
+		return getSection().toReverseDNSLookupString();
+	}
 	
 	/**
-	 * Writes this address as hexadecimal, with or without a preceding 0x prefix
+	 * Writes this address as a single binary value with always the exact same number of characters
+	 * 
+	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
 	 */
-	public String toHexString(boolean withPrefix) {
-		return addressSection.toHexString(withPrefix);
+	public String toBinaryString() {
+		return getSection().toBinaryString();
+	}
+	
+	/**
+	 * Writes this address as a single octal value with always the exact same number of characters, with or without a preceding 0 prefix.
+	 * 
+	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
+	 */
+	public String toOctalString(boolean with0Prefix) {
+		return getSection().toOctalString(with0Prefix);
 	}
 	
 	/**
 	 * Constructs a string representing this address according to the given parameters
 	 * 
-	 * @throw IPAddressTypeException if this address is a subnet of multiple addresses, you have selected splitDigits, and the address range cannot be represented in split digits
+	 * @throw {@link AddressTypeException} if this address is a subnet of multiple addresses, you have selected splitDigits, and the address range cannot be represented in split digits
 	 * 
 	 * @param params the parameters for the address string
 	 */
-	public String toNormalizedString(StringOptions params) {
-		return addressSection.toNormalizedString(params);
+	public String toNormalizedString(IPStringOptions params) {
+		return getSection().toNormalizedString(params);
 	}
 	
 	/**
@@ -943,15 +929,15 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	}
 	
 	public IPAddressPartStringCollection toStandardStringCollection() {
-		return addressSection.toStandardStringCollection();
+		return getSection().toStandardStringCollection();
 	}
 
 	public IPAddressPartStringCollection toAllStringCollection() {
-		return addressSection.toAllStringCollection();
+		return getSection().toAllStringCollection();
 	}
 	
 	public IPAddressPartStringCollection toStringCollection(IPStringBuilderOptions options) {
-		return addressSection.toStringCollection(options);
+		return getSection().toStringCollection(options);
 	}
 	
 	/**
@@ -976,11 +962,16 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * 
 	 * @return an IPAddressString object for this IPAddress.
 	 */
+	@Override
 	public IPAddressString toAddressString() {
 		if(fromString == null) {
 			fromString = new IPAddressString(this); /* address string creation */
 		}
-		return fromString;
+		return getAddressfromString();
+	}
+	
+	protected IPAddressString getAddressfromString() {
+		return (IPAddressString) fromString;
 	}
 	
 	public static String toDelimitedSQLStrs(String strs[]) {
@@ -997,51 +988,11 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	///////////////////// masks and subnets below ///////////////////////
 	
 	/**
-	 * @return whether this address represents more than one address and the set of addresses is determined entirely by the prefix length.
-	 */
-	public boolean isRangeEquivalentToPrefix() {
-		return addressSection.isRangeEquivalentToPrefix();
-	}
-	
-	/**
-	 * Returns the smallest CIDR prefix possible (largest network),
-	 * such that this address paired with that prefix represents the exact same range of addresses.
-	 *
-	 * @see inet.ipaddr.format.IPAddressDivision#getMaskPrefixLength(boolean)
-	 * 
-	 * @return
-	 */
-	public int getMinPrefix() {
-		return addressSection.getMinPrefix();
-	}
-		
-
-	/**
-	 * Returns a prefix length for which the range of this address can be specified only using the address lower value and the prefix length
-	 * 
-	 * If no such prefix exists, returns null.
-	 * 
-	 * Examples:
-	 * 1.2.3.4 returns 32
-	 * 1.2.*.* returns 16
-	 * 1.2.*.0/24 returns 16 
-	 * 1.2.*.4 returns null
-	 * 1.2.252-255.* returns 22
-	 * 1.2.3.4/x returns x
-	 * 
-	 * @return
-	 */
-	public Integer getEquivalentPrefix() {
-		return addressSection.getEquivalentPrefix();
-	}
-	
-	/**
 	 * Returns the equivalent CIDR address for which the range of addresses represented 
-	 * is specified using just a single value and a prefix length in the returned section.
+	 * is specified using just a single value and a prefix length.
 	 * 
 	 * Otherwise, returns null.
 	 * 
-	 * If this address represents just a single address, this object is returned.
 	 * 
 	 * Examples:
 	 * 1.2.3.4 returns 1.2.3.4/32
@@ -1054,11 +1005,8 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return
 	 */
 	public IPAddress toPrefixedEquivalent() {
-		if(!isMultiple()) {
-			return this;
-		}
 		Integer newPrefix = getEquivalentPrefix();
-		return newPrefix == null ? null : toSubnet(newPrefix);
+		return newPrefix == null ? null : applyPrefixLength(newPrefix);
 	}
 	
 	/**
@@ -1067,10 +1015,10 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * 
 	 * @return
 	 */
-	public IPAddress toPrefixedMin() {
-		return toSubnet(getMinPrefix());
+	public IPAddress toMinPrefixedEquivalent() {
+		return applyPrefixLength(getMinPrefix());
 	}
-	
+
 	/**
 	 * If this address is equivalent to the mask for a CIDR prefix, it returns that prefix length.
 	 * Otherwise, it returns null.
@@ -1087,59 +1035,60 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return the prefix length corresponding to this mask, or null if this address is not a CIDR prefix mask
 	 */
 	public Integer getMaskPrefixLength(boolean network) {
-		return addressSection.getMaskPrefixLength(network);
+		return getSection().getMaskPrefixLength(network);
 	}
-
+	
 	/**
-	 * Check that the range in each segment resulting from the mask is contiguous, otherwise we cannot represent it.
+	 * Applies the given mask to all addresses represented by this IPAddress.
 	 * 
-	 * For instance, for the range 0 to 3 (bits are 00 to 11), if we mask all 4 numbers from 0 to 3 with 2 (ie bits are 10), 
-	 * then we are left with 1 and 3.  2 is not included.  So we cannot represent 1 and 3 as a contiguous range.
+	 * Any existing prefix is removed as the mask is applied to all individual addresses.
 	 * 
-	 * The underlying rule is that mask bits that are 0 must be above the resulting range in each segment.
+	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
+	 * that cannot be represented as a contiguous range within each segment, then {@link AddressTypeException} is thrown.
 	 * 
-	 * Any bit in the mask that is 0 must not fall below any bit in the masked segment range that is different between low and high
+	 */
+	public abstract IPAddress mask(IPAddress mask) throws AddressTypeException;
+	
+	/**
+	 * Applies the given mask up until the given prefix length to all addresses represented by this IPAddress.
 	 * 
-	 * Any network mask must eliminate each entire segment range.  Any host mask is fine.
+	 * Any existing prefix length is removed as the mask is applied to all individual addresses.
+	 * If networkPrefixLength is non-null, it is applied after the mask has been applied.
+	 * 
+	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
+	 * that cannot be represented as a contiguous range within each segment, then {@link AddressTypeException} is thrown.
+	 * 
+	 */
+	public abstract IPAddress maskNetwork(IPAddress mask, int networkPrefixLength) throws AddressTypeException;
+	
+	/**
+	 * Applies the given prefix length to create a new address.
+	 * 
+	 * If this address has a prefix length that is smaller than the given one, 
+	 * then the method has no effect and simply returns this address.
+	 */
+	@Override
+	public abstract IPAddress applyPrefixLength(int networkPrefixLength);
+	
+	/**
+	 * Does the bitwise disjunction with this address.  Useful when subnetting.
+	 * @param mask
+	 * @return
+	 * @throws AddressTypeException
+	 */
+	public abstract IPAddress bitwiseOr(IPAddress mask) throws AddressTypeException;
+	
+	/**
+	 * Does the bitwise disjunction with this address.  Useful when subnetting.
+	 * 
+	 * Any existing prefix length is dropped for the new prefix length and the mask is applied up to the end the new prefix length.
 	 * 
 	 * @param mask
-	 * @param networkPrefixLength
+	 * @param networkPrefixLength the new prefix length for the address
 	 * @return
+	 * @throws AddressTypeException
 	 */
-	public boolean isMaskCompatibleWithRange(IPAddress mask, Integer networkPrefixLength) {
-		return getSection().isMaskCompatibleWithRange(mask.getSection(), networkPrefixLength);
-	}
-	
-	/**
-	 * Creates a subnet address using the given mask.
-	 * Any existing prefix is removed as the mask is applied to all individual addresses.
-	 * 
-	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
-	 * that cannot be represented as a contiguous range, then IPAddressTypeException is thrown.
-	 * 
-	 * See {@link #isMaskCompatibleWithRange(IPAddress, Integer)}
-	 */
-	public abstract IPAddress toSubnet(IPAddress mask) throws IPAddressTypeException;
-	
-	/**
-	 * Creates a subnet address using the given mask.  
-	 * Any existing prefix is removed as the mask is applied to all individual addresses.
-	 * If networkPrefixLength is non-null, applies that prefix after the mask has been applied.
-	 * 
-	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
-	 * that cannot be represented as a contiguous range, then IPAddressTypeException is thrown.
-	 * 
-	 * See {@link #isMaskCompatibleWithRange(IPAddress, Integer)}
-	 */
-	public abstract IPAddress toSubnet(IPAddress mask, Integer networkPrefixLength) throws IPAddressTypeException;
-	
-	/**
-	 * Creates a subnet address using the given CIDR prefix bits.
-	 * 
-	 * Since no mask is applied to all of the addresses represented (as with the other toSubnet methods), 
-	 * any existing prefix or range remains the same before applying the additional prefix.
-	 */
-	public abstract IPAddress toSubnet(int networkPrefixLength);
+	public abstract IPAddress bitwiseOrNetwork(IPAddress mask, int networkPrefixLength) throws AddressTypeException;
 	
 	/**
 	 * Generates the network section of the address.  The returned section will have only as many segments as needed
@@ -1160,9 +1109,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @param networkPrefixLength
 	 * @return
 	 */
-	public IPAddressSection getNetworkSection(int networkPrefixLength) {
-		return addressSection.getNetworkSection(networkPrefixLength);
-	}
+	public abstract IPAddressSection getNetworkSection(int networkPrefixLength);
 	
 	/**
 	 * Generates the network section of the address if the address is a CIDR prefix, otherwise it generates the entire address as a prefixed address with prefix matching the address bit length.
@@ -1186,31 +1133,24 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @return
 	 */
 	public abstract IPAddressSection getHostSection();
-
-	/**
-	 * Return an address for the network encompassing this address.  
-	 * The bits indicate the number of additional network bits in the network address in comparison to this address.
-	 * 
-	 * @param prefixLengthDecrement the number to reduce the network bits in order to create a larger network.  
-	 * 	If null, then this method has the same behaviour as toSupernet()
-	 * @return
-	 */
-	public IPAddress toSupernet(Integer prefixLengthDecrement) {
-		int newPrefix = addressSection.getSupernetPrefix(prefixLengthDecrement);
-		return toSubnet(newPrefix);
-	}
 	
-	/**
-	 * Return an address for the network encompassing this address,
-	 * with the network portion of the returned address extending to the furthest segment boundary
-	 * located entirely within but not matching the network portion of this address,
-	 * unless the network portion has no bits in which case the same address is returned.  
-	 * 
-	 * @return the encompassing network
-	 */
-	public IPAddress toSupernet() {
-		return toSupernet(null);
-	}
+	@Override
+	public abstract IPAddress removePrefixLength();
+	
+	public abstract IPAddress removePrefixLength(boolean zeroed);
+	
+	protected abstract IPAddress removePrefixLength(boolean zeroed, boolean onlyPrefixZeroed);
+	
+	@Override
+	public abstract IPAddress adjustPrefixBySegment(boolean nextSegment);
+
+	@Override
+	public abstract IPAddress adjustPrefixLength(int adjustment);
+
+	@Override
+	public abstract IPAddress setPrefixLength(int prefixLength);
+
+	public abstract IPAddress setPrefixLength(int prefixLength, boolean zeroed);
 	
 	/**
 	 * returns a clause for matching this address.
@@ -1222,7 +1162,7 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @param sqlExpression
 	 */
 	public void getMatchesSQLClause(StringBuilder builder, String sqlExpression) {
-		addressSection.getStartsWithSQLClause(builder, sqlExpression);
+		getSection().getStartsWithSQLClause(builder, sqlExpression);
 	}
 	
 	/**
@@ -1235,6 +1175,6 @@ public abstract class IPAddress implements Comparable<IPAddress>, Serializable {
 	 * @param translator
 	 */
 	public void getMatchesSQLClause(StringBuilder builder, String sqlExpression, IPAddressSQLTranslator translator) {
-		addressSection.getStartsWithSQLClause(builder, sqlExpression, translator);
+		getSection().getStartsWithSQLClause(builder, sqlExpression, translator);
 	}
 }

@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv4;
 
 import inet.ipaddr.format.IPAddressJoinedSegments;
@@ -9,7 +27,7 @@ import inet.ipaddr.format.IPAddressJoinedSegments;
  */
 public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 3L;
 	private static int MAX_CHARS[] = new int[IPv4Address.SEGMENT_COUNT - 1];
 	
 	public IPv4JoinedSegments(int joinedCount, int value) {
@@ -34,10 +52,10 @@ public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 	}
 	
 	@Override
-	public int getDefaultMaxChars() {
+	public int getMaxDigitCount() {
 		int result = MAX_CHARS[joinedCount - 1];
 		if(result == 0) {
-			result = MAX_CHARS[joinedCount - 1] = super.getDefaultMaxChars();
+			result = MAX_CHARS[joinedCount - 1] = super.getMaxDigitCount();
 		}
 		return result;
 	}
@@ -55,11 +73,6 @@ public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 	@Override
 	protected int getBitsPerSegment() {
 		return IPv4Address.BITS_PER_SEGMENT;
-	}
-
-	@Override
-	protected int getBytesPerSegment() {
-		return IPv4Address.BYTES_PER_SEGMENT;
 	}
 
 	@Override

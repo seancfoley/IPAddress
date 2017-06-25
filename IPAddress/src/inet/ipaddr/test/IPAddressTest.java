@@ -1,13 +1,28 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.test;
 
-import java.io.Serializable;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -15,33 +30,30 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import inet.ipaddr.HostName;
-import inet.ipaddr.HostNameParameters;
+import inet.ipaddr.AddressSegmentSeries;
+import inet.ipaddr.AddressStringException;
+import inet.ipaddr.AddressTypeException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
-import inet.ipaddr.IPAddressSection.StringOptions;
+import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressString;
-import inet.ipaddr.IPAddressStringException;
-import inet.ipaddr.IPAddressStringParameters;
-import inet.ipaddr.IPAddressTypeException;
-import inet.ipaddr.format.IPAddressPart;
+import inet.ipaddr.format.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions;
+import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringOptions;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSection.CompressOptions;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions;
-import inet.ipaddr.test.IPAddressTest.HostKey;
-import inet.ipaddr.test.IPAddressTest.IPAddressStringKey;
 
 
 public class IPAddressTest extends TestBase {
@@ -49,161 +61,10 @@ public class IPAddressTest extends TestBase {
 	IPAddressTest(AddressCreator creator) {
 		super(creator);
 	}
-	
-	static abstract class LookupKey<T extends Comparable<T>> implements Comparable<LookupKey<T>>, Serializable {
-		
-		private static final long serialVersionUID = 1L;
-		
-		String keyString;
-		T options;
-		
-		static class LookupKeyComparator<T extends Comparable<T>> implements Comparator<T> {
-			
-			@Override
-			public int compare(T o1, T o2) {
-				return o1 == null ? -1 : (o2 == null ? 1 : o1.compareTo(o2));
-			}
-		}
-		
-		LookupKey(String x) {
-			this(x, null);
-		}
-		
-		LookupKey(String x, T opts) {
-			if(x == null) {
-				x = "";
-			}
-			this.keyString = x;
-			this.options = opts;
-		}
-		
-		abstract int compareOptions(T otherOptions);
-		
-		@Override
-		public int compareTo(LookupKey<T> o) {
-			int comparison = keyString.compareTo(o.keyString);
-			if(comparison == 0) {
-				comparison = compareOptions(o.options);
-			}
-			return comparison;
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if(o instanceof LookupKey<?>) {
-				LookupKey<?> other = (LookupKey<?>) o;
-				return keyString.equals(other.keyString) && Objects.equals(options, other.options);
-			}
-			return false;
-		}
-		
-		@Override
-		public int hashCode() {
-//			if(options != null) {
-//				int optsHash = options.hashCode();
-//				return (optsHash << 5) - optsHash + keyString.hashCode();
-//			}
-//			return keyString.hashCode();
-			int hash = keyString.hashCode(); //not sure which hash is better, seems to be close, but I think this is slightly better
-			if(options != null) {
-				hash *= options.hashCode();
-			}
-			return hash;
-		}
-	}
-	
-
-	static class IPAddressStringKey extends LookupKey<IPAddressStringParameters> {
-	
-		private static final long serialVersionUID = 1L;
-		private static final Comparator<IPAddressStringParameters> comparator = new LookupKeyComparator<IPAddressStringParameters>();
-		
-		
-		IPAddressStringKey(String x) {
-			this(x, null);
-		}
-		
-		IPAddressStringKey(String x, IPAddressStringParameters opts) {
-			super(x, opts);
-		}
-		
-		@Override
-		int compareOptions(IPAddressStringParameters otherOptions){
-			return Objects.compare(options, otherOptions, comparator);
-		}
-	}
-	
-	static class HostKey extends LookupKey<HostNameParameters> {
-		
-		private static final long serialVersionUID = 1L;
-		private static final Comparator<HostNameParameters> comparator = new LookupKeyComparator<HostNameParameters>();
-		
-		HostKey(String x) {
-			this(x, null);
-		}
-		
-		HostKey(String x, HostNameParameters opts) {
-			super(x, opts);
-		}
-		
-		@Override
-		int compareOptions(HostNameParameters otherOptions){
-			return Objects.compare(options, otherOptions, comparator);
-		}
-	}
-	
-	static class IPAddressKey implements Comparable<IPAddressKey>, Serializable {
-		
-		private static final long serialVersionUID = 1L;
-		
-		byte bytes[];
-		
-		IPAddressKey(byte bytes[]) {
-			this.bytes = bytes;
-		}
-		
-		static int getIPv4Addr(byte addr[]) {
-			return addr[3] & 0xFF
-        		| ((addr[2] << 8) & 0xFF00)
-        		| ((addr[1] << 16) & 0xFF0000)
-        		| ((addr[0] << 24) & 0xFF000000);
-		}
-		
-		@Override
-		public int compareTo(IPAddressKey o) {
-			int comparison = bytes.length - bytes.length;
-			if(comparison == 0) {
-				if(bytes.length <= 4) {
-					comparison = getIPv4Addr(bytes) - getIPv4Addr(o.bytes);
-				} else {
-					for(int i=0; i<bytes.length; i++) {
-						comparison = bytes[i] = o.bytes[i];
-						if(comparison != 0) {
-							break;
-						}
-					}
-				}
-			}
-			return comparison;
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if(o instanceof IPAddressKey) {
-				return Arrays.equals(bytes, ((IPAddressKey) o).bytes);
-			}
-			return false;
-		}
-		
-		@Override
-		public int hashCode() {
-			return Arrays.hashCode(bytes);
-		}
-	}
 
 	void testResolved(String original, String expected) {
 		IPAddressString origAddress = createAddress(original);
-		IPAddress resolvedAddress = origAddress.isIPAddress() ? origAddress.getAddress() : createHost(original).resolve();
+		IPAddress resolvedAddress = origAddress.isIPAddress() ? origAddress.getAddress() : createHost(original).getAddress();
 		IPAddressString expectedAddress = createAddress(expected);
 		boolean result = (resolvedAddress == null) ? (expected == null) : resolvedAddress.equals(expectedAddress.getAddress());
 		if(!result) {
@@ -212,45 +73,7 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testCount(String original, int number) {
-		IPAddressString w = createAddress(original);
-		testCount(w, number);
-	}
 	
-	void testCount(IPAddressString w, int number) {
-		IPAddress val = w.getAddress();
-		BigInteger count = val.getCount();
-		if(!count.equals(BigInteger.valueOf(number))) {
-			addFailure(new Failure("count was " + count, w));
-		} else {
-			Iterator<? extends IPAddress> addrIterator = val.iterator();
-			int counter = 0;
-			Set<IPAddress> set = new HashSet<IPAddress>();
-			IPAddress next = null;
-			while(addrIterator.hasNext()) {
-				next = addrIterator.next();
-				if(counter == 0) {
-					if(!next.equals(val.getLower())) {
-						addFailure(new Failure("lowest: " + val.getLower(), next));
-					}
-				}
-				set.add(next);
-				counter++;
-			}
-			if(set.size() != number || counter != number) {
-				addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
-			} else {
-				if(!next.equals(val.getUpper())) {
-					addFailure(new Failure("highest: " + val.getUpper(), next));
-				} else {
-					if(counter == 1 && !val.getUpper().equals(val.getLower())) {
-						addFailure(new Failure("highest: " + val.getUpper() + " lowest: " + val.getLower(), next));
-					}
-				}
-			}
-		}
-		incrementTestCount();
-	}
 	
 	void testNormalized(String original, String expected) {
 		testNormalized(original, expected, false, true);
@@ -261,7 +84,7 @@ public class IPAddressTest extends TestBase {
 		IPAddress orig = w.getAddress();
 		IPAddressString maskString = createAddress(mask);
 		IPAddress maskAddr = maskString.getAddress();
-		IPAddress masked = orig.toSubnet(maskAddr);
+		IPAddress masked = orig.mask(maskAddr);
 		IPAddressString expectedStr = createAddress(expected);
 		IPAddress expectedAddr = expectedStr.getAddress();
 		if(!masked.equals(expectedAddr)) {
@@ -284,13 +107,13 @@ public class IPAddressTest extends TestBase {
 			}
 			normalized = val.toNormalizedString(keepMixed, params);
 			if(!normalized.equals(expected)) {
-				addFailure(new Failure("normalization was " + normalized, w));
+				addFailure(new Failure("normalization 1 was " + normalized, w));
 			}
 		} else if(w.isIPv4()) {
 			IPv4Address val = (IPv4Address) w.getAddress();
 			normalized = val.toNormalizedString();
 			if(!normalized.equals(expected)) {
-				addFailure(new Failure("normalization was " + normalized, w));
+				addFailure(new Failure("normalization 2 was " + normalized, w));
 			}
 		} else {
 			addFailure(new Failure("normalization failed on " + original, w));
@@ -301,12 +124,9 @@ public class IPAddressTest extends TestBase {
 	void testCompressed(String original, String expected) {
 		IPAddressString w = createAddress(original);
 		String normalized;
-		if(w.isIPv6()) {
-			IPv6Address val = (IPv6Address) w.getAddress();
+		if(w.isIPAddress()) {
+			IPAddress val = w.getAddress();
 			normalized = val.toCompressedString();
-		} else if(w.isIPv4()) {
-			IPv4Address val = (IPv4Address) w.getAddress();
-			normalized = val.toNormalizedString();
 		} else {
 			normalized = w.toString();
 		}
@@ -318,7 +138,8 @@ public class IPAddressTest extends TestBase {
 	
 	void testCanonical(String original, String expected) {
 		IPAddressString w = createAddress(original);
-		String normalized = w.getAddress().toCanonicalString();
+		IPAddress addr = w.getAddress();
+		String normalized = addr.toCanonicalString();
 		if(!normalized.equals(expected)) {
 			addFailure(new Failure("canonical was " + normalized, w));
 		}
@@ -348,7 +169,7 @@ public class IPAddressTest extends TestBase {
 	void testRadices(String original, String expected, int radix) {
 		IPAddressString w = createAddress(original);
 		IPAddress val = w.getAddress();
-		StringOptions options = new StringOptions.Builder().setRadix(radix).toParams();
+		IPStringOptions options = new IPv4StringOptions.Builder().setRadix(radix).toParams();
 		String normalized = val.toNormalizedString(options);
 		if(!normalized.equals(expected)) {
 			addFailure(new Failure("string was " + normalized + " expected was " + expected, w));
@@ -369,7 +190,7 @@ public class IPAddressTest extends TestBase {
 	boolean prefixtest(boolean pass, IPAddressString addr, boolean isZero) {
 		boolean failed = false;
 		boolean isNotExpected;
-		boolean oneWay = (evenOdd % 2 == 0);
+		boolean oneWay = ((evenOdd & 1) == 0);
 		if(oneWay) {
 			isNotExpected = isNotExpectedForPrefix(pass, addr) || isNotExpectedForPrefixConversion(pass, addr);
 		} else {
@@ -439,7 +260,7 @@ public class IPAddressTest extends TestBase {
 					}
 				}
 			} 
-		} catch(IPAddressTypeException e) {
+		} catch(AddressTypeException e) {
 			failed = true;
 			addFailure(new Failure(e.toString(), addr));
 		} catch(RuntimeException e) {
@@ -477,7 +298,7 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	void testMaskBytes(String cidr2, IPAddressString w2)
-			throws IPAddressStringException {
+			throws AddressStringException {
 		int index = cidr2.indexOf('/');
 		IPAddressString w3 = createAddress(cidr2.substring(0, index));
 		try {
@@ -488,7 +309,7 @@ public class IPAddressTest extends TestBase {
 			if(!Arrays.equals(b, b2)) {
 				addFailure(new Failure("bytes on addr " + inetAddress, w3));
 			} else {
-				byte b3[] = w2.toAddress().getLowestBytes();
+				byte b3[] = w2.toAddress().getBytes();
 				if(!Arrays.equals(b3, b2)) {
 					addFailure(new Failure("bytes on addr " + w3, w2));
 				}
@@ -504,6 +325,17 @@ public class IPAddressTest extends TestBase {
 		boolean result = addr.equals(addr2.getAddress());
 		if(!result) {
 			addFailure(new Failure("created was " + addr + " expected was " + addr2, addr));
+		} else if(addr.isIPv4()) {
+			int val = 0;
+			for(int i = 0; i < bytes.length; i++) {
+				val <<= 8;
+				val |= 0xff & bytes[i];
+			}
+			addr = createAddress(val);
+			result = addr.equals(addr2.getAddress());
+			if(!result) {
+				addFailure(new Failure("created was " + addr + " expected was " + addr2, addr));
+			}
 		}
 		incrementTestCount();
 	}
@@ -524,7 +356,7 @@ public class IPAddressTest extends TestBase {
 				addr.validate();
 			}
 			return !expectedPass;
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			return expectedPass;
 		}
 	}
@@ -533,12 +365,12 @@ public class IPAddressTest extends TestBase {
 		try {
 			addr.validate();
 			return !expectedPass;
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			return expectedPass;
 		}
 	}
 	
-	public String convertToMask(IPAddressString str, IPVersion version) throws IPAddressStringException {
+	public String convertToMask(IPAddressString str, IPVersion version) throws AddressStringException {
 		IPAddress address =str.toAddress(version);
 		if(address != null) {
 			return address.toNormalizedString();
@@ -563,7 +395,7 @@ public class IPAddressTest extends TestBase {
 				return expectedPass;
 			}
 			return !expectedPass;
-		} catch(IPAddressStringException | IPAddressTypeException e) {
+		} catch(AddressStringException | AddressTypeException e) {
 			return expectedPass;
 		}
 	}
@@ -662,6 +494,10 @@ public class IPAddressTest extends TestBase {
 		iptest(pass, createAddress(x), isZero, false, false);
 	}
 	
+	void ipv6test(boolean pass, String x, boolean isZero, boolean notBothTheSame) {
+		iptest(pass, createAddress(x), isZero, notBothTheSame, false);
+	}
+	
 	/**
 	 * Returns just a few string representations:
 	 * 
@@ -697,7 +533,7 @@ public class IPAddressTest extends TestBase {
 		String standardStrs[] = standardCollection.toStrings();
 		testStrings(standardStrs, expectedStandard, address);
 		
-		IPAddressPart parts[] = ad.getParts(ad.isIPv6() ? IPv6StringBuilderOptions.ALL_OPTS : IPv4StringBuilderOptions.ALL_OPTS);
+		IPAddressStringDivisionSeries parts[] = ad.getParts(ad.isIPv6() ? IPv6StringBuilderOptions.ALL_OPTS : IPv4StringBuilderOptions.ALL_OPTS);
 		if(parts.length != expectedPartCount) {
 			addFailure(new Failure("Part count " + parts.length + " does not match expected " + expectedPartCount, ad));
 		}
@@ -706,7 +542,7 @@ public class IPAddressTest extends TestBase {
 		IPv4StringBuilderOptions convertIPv6Opts = new IPv4StringBuilderOptions(IPv4StringBuilderOptions.IPV6_CONVERSIONS);
 		IPv6StringBuilderOptions convertIPv4Opts = new IPv6StringBuilderOptions(IPv6StringBuilderOptions.IPV4_CONVERSIONS);
 		if(ad.isIPv4()) {
-			IPAddressPart partsConverted[] = ad.getParts(convertIPv6Opts);
+			IPAddressStringDivisionSeries partsConverted[] = ad.getParts(convertIPv6Opts);
 			if(partsConverted.length == 0) {
 				addFailure(new Failure("converted count does not match expected", ad));
 			} else {
@@ -719,7 +555,7 @@ public class IPAddressTest extends TestBase {
 			}
 		} else {
 			if(ad.isIPv4Convertible()) {
-				IPAddressPart partsConverted[] = ad.getParts(convertIPv4Opts);
+				IPAddressStringDivisionSeries partsConverted[] = ad.getParts(convertIPv4Opts);
 				if(partsConverted.length == 0) {
 					addFailure(new Failure("converted count does not match expected", ad));
 				} else {
@@ -731,7 +567,7 @@ public class IPAddressTest extends TestBase {
 					}
 				}
 			} else {
-				IPAddressPart partsConverted[] = ad.getParts(convertIPv4Opts);
+				IPAddressStringDivisionSeries partsConverted[] = ad.getParts(convertIPv4Opts);
 				if(partsConverted.length > 0) {
 					addFailure(new Failure("converted count does not match expected", ad));
 				}
@@ -741,8 +577,8 @@ public class IPAddressTest extends TestBase {
 		
 		if(fullTest || expectedAll < 100) {
 			IPAddressPartStringCollection allCollection = ad.toAllStringCollection();
-			IPAddressPart collParts[] = allCollection.getParts(new IPAddressPart[allCollection.getPartCount()]);
-			if(!new HashSet<IPAddressPart>(Arrays.asList(parts)).equals(new HashSet<IPAddressPart>(Arrays.asList(collParts)))) {
+			IPAddressStringDivisionSeries collParts[] = allCollection.getParts(new IPAddressStringDivisionSeries[allCollection.getPartCount()]);
+			if(!new HashSet<IPAddressStringDivisionSeries>(Arrays.asList(parts)).equals(new HashSet<IPAddressStringDivisionSeries>(Arrays.asList(collParts)))) {
 				addFailure(new Failure("Parts " + Arrays.asList(parts) + " and collection parts " + Arrays.asList(collParts) + " not the same ", ad));
 			} else {
 				incrementTestCount();
@@ -792,23 +628,23 @@ public class IPAddressTest extends TestBase {
 		}
 		if(expectedCount != strs.length) {
 			addFailure(new Failure("String count " + strs.length + " doesn't match expected count " + expectedCount, addr));
-		} else {
-			Set<String> set = new HashSet<String>();
-			Collections.addAll(set, strs);
-			if(set.size() != strs.length) {
-				addFailure(new Failure((strs.length - set.size()) + " duplicates for " + addr, addr));
-				set.clear();
-				for(String str: strs) {
-					if(set.contains(str)) {
-						System.out.println("dup " + str);
-					}
-					set.add(str);
+			incrementTestCount();
+		}
+		Set<String> set = new HashSet<String>();
+		Collections.addAll(set, strs);
+		if(set.size() != strs.length) {
+			addFailure(new Failure((strs.length - set.size()) + " duplicates for " + addr, addr));
+			set.clear();
+			for(String str: strs) {
+				if(set.contains(str)) {
+					System.out.println("dup " + str);
 				}
-			} else for(String str: strs) {
-				if(str.length() > 45) {
-					addFailure(new Failure("excessive length " + str + " for " + addr, addr));
-					break;
-				}
+				set.add(str);
+			}
+		} else for(String str: strs) {
+			if(str.length() > 45) {
+				addFailure(new Failure("excessive length " + str + " for " + addr, addr));
+				break;
 			}
 		}
 		incrementTestCount();
@@ -836,7 +672,7 @@ public class IPAddressTest extends TestBase {
 	private void checkNotMask(String addr) {
 		IPAddressString addressStr = createAddress(addr);
 		IPAddress address = addressStr.getAddress();
-		boolean val = ((address.getBytes()[0] % 2) == 0);
+		boolean val = ((address.getBytes()[0] & 1) == 0);
 		if(checkNotMask(address, val)) {
 			checkNotMask(address, !val);
 		}
@@ -861,7 +697,7 @@ public class IPAddressTest extends TestBase {
 				String prefixExtra = originalPrefixStr;
 				IPAddress addressWithNoPrefix;
 				if(address.isPrefixed()){
-					addressWithNoPrefix = address.toSubnet(address.getNetwork().getNetworkMask(address.getNetworkPrefixLength()));
+					addressWithNoPrefix = address.mask(address.getNetwork().getNetworkMask(address.getNetworkPrefixLength()));
 				} else {
 					addressWithNoPrefix = address;
 				}
@@ -882,7 +718,7 @@ public class IPAddressTest extends TestBase {
 						return false;
 					}
 				}
-			} catch(IPAddressStringException | RuntimeException e) {
+			} catch(AddressStringException | RuntimeException e) {
 				addFailure(new Failure("failed conversion: " + e.getMessage(), address));
 				return false;
 			}
@@ -891,7 +727,7 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 		if(!secondTry) {
 			secondTry = true;
-			byte bytes[] = address.getLowestBytes();
+			byte bytes[] = address.getBytes();
 			IPAddress another = network ? IPAddress.from(bytes, prefixBits) : IPAddress.from(bytes);
 			boolean result = checkMask(another, prefixBits, network);
 			secondTry = false;
@@ -927,7 +763,7 @@ public class IPAddressTest extends TestBase {
 					int prefix = IPAddressString.validateNetworkPrefixLength(version, maskString);
 					IPAddress maskAddress = IPAddress.network(version).getNetworkMask(prefix, false);
 					return maskAddress.toNormalizedString();
-				} catch(IPAddressTypeException e) {
+				} catch(AddressTypeException e) {
 					//if validation vails, fall through and return mask string
 				}
 			}
@@ -974,7 +810,7 @@ public class IPAddressTest extends TestBase {
 					testMaskBytes(normalizedString, w2);
 				}
 			}
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + w2, w));
 		}
 		incrementTestCount();
@@ -1013,8 +849,8 @@ public class IPAddressTest extends TestBase {
 					}
 				}
 			}
-		} catch(IPAddressStringException e) {
-			addFailure(new Failure("failed " + e, new IPAddressString(cidr1)));
+		} catch(AddressStringException e) {
+			addFailure(new Failure("failed " + e));
 		}
 		incrementTestCount();
 	}
@@ -1028,8 +864,8 @@ public class IPAddressTest extends TestBase {
 			} else if(w2.contains(w)) {
 				addFailure(new Failure("failed " + w, w2));
 			}
-		} catch(IPAddressStringException e) {
-			addFailure(new Failure("failed " + e, new IPAddressString(cidr1)));
+		} catch(AddressStringException e) {
+			addFailure(new Failure("failed " + e));
 		}
 		incrementTestCount();
 	}
@@ -1058,9 +894,7 @@ public class IPAddressTest extends TestBase {
 			if(!sectionStrWithPrefix.equals(networkWithPrefix)) {
 				addFailure(new Failure("failed got " + sectionStrWithPrefix + " expected " + networkWithPrefix, w));
 			} else {
-				IPAddress maskAddress = section.getNetwork().getNetworkMask(bits);
-				IPAddressSection maskSection = maskAddress.getNetworkSection(bits);
-				IPAddressSection s = section.toSubnet(maskSection);
+				IPAddressSection s = section.isPrefixed() ? section.removePrefixLength() : section.getLower();
 				String sectionStrNoRange = s.toNormalizedString();
 				if(!sectionStrNoRange.equals(networkNoRange) || s.getCount().intValue() != 1) {
 					addFailure(new Failure("failed got " + sectionStrNoRange + " expected " + networkNoRange, w));
@@ -1097,8 +931,6 @@ public class IPAddressTest extends TestBase {
 				&& internal.getMinPrefix() == supplied.getMinPrefix()
 				&& Objects.equals(internal.getEquivalentPrefix(), supplied.getEquivalentPrefix())
 				&& internal.getCount().equals(supplied.getCount());
-//				&& Arrays.deepEquals(internal.getZeroSegments(), supplied.getZeroSegments())
-//				&& Arrays.deepEquals(internal.getZeroRangeSegments(), supplied.getZeroRangeSegments());
 	}
 	
 	void testNetmasks(int prefix, String ipv4NetworkAddress, String ipv4NetworkAddressNoPrefix, String ipv4HostAddress, String ipv6NetworkAddress, String ipv6NetworkAddressNoPrefix, String ipv6HostAddress) {
@@ -1144,49 +976,49 @@ public class IPAddressTest extends TestBase {
 										if(!isSameAllAround(wValue, addr4)) {
 											addFailure(new Failure("failed " + addr4, w));
 										} 
-									} catch(IPAddressStringException e) {
+									} catch(AddressStringException e) {
 										addFailure(new Failure("failed " + addr4, w));
 									}
 								}
-							} catch(IPAddressStringException | IPAddressTypeException e) {
+							} catch(AddressStringException | AddressTypeException e) {
 								addFailure(new Failure("failed prefix val", w));
 							}
 						} else { //prefix > IPv4Address.BIT_COUNT
 							try {
 								w.toAddress(); //this should throw
 								addFailure(new Failure("succeeded with invalid prefix", w));
-							} catch(IPAddressStringException e) {
+							} catch(AddressStringException e) {
 								try {
 									ipv4network.getNetworkMask(prefix);//this should throw
-									addFailure(new Failure("succeeded with invalid prefix", new IPAddressString("/" + prefix)));
-								} catch(IPAddressTypeException e2) {	
+									addFailure(new Failure("succeeded with invalid prefix /" + prefix));
+								} catch(AddressTypeException e2) {	
 								}
 							}
 						}
-					} catch(IPAddressStringException e) {
+					} catch(AddressStringException e) {
 						addFailure(new Failure("failed " + addr6, w2));
 					}
 				}
-			} catch(IPAddressStringException | IPAddressTypeException e) {
+			} catch(AddressStringException | AddressTypeException e) {
 				addFailure(new Failure("failed prefix val", w2));
 			}
 		} else {
 			try {
 				w2.toAddress();
 				addFailure(new Failure("succeeded with invalid prefix", w2));
-			} catch(IPAddressStringException e) {
+			} catch(AddressStringException e) {
 				try {
 					w.toAddress();
 					addFailure(new Failure("succeeded with invalid prefix", w));
-				} catch(IPAddressStringException e4) {
+				} catch(AddressStringException e4) {
 					try {
 						ipv6network.getNetworkMask(prefix);//this should throw
-						addFailure(new Failure("succeeded with invalid prefix", new IPAddressString("/" + prefix)));
-					} catch(IPAddressTypeException e2) {
+						addFailure(new Failure("succeeded with invalid prefix /" + prefix));
+					} catch(AddressTypeException e2) {
 						try {
 							ipv4network.getNetworkMask(prefix);//this should throw
-							addFailure(new Failure("succeeded with invalid prefix", new IPAddressString("/" + prefix)));
-						} catch(IPAddressTypeException e3) {	
+							addFailure(new Failure("succeeded with invalid prefix /" + prefix));
+						} catch(AddressTypeException e3) {	
 						}
 					}
 				}
@@ -1206,7 +1038,7 @@ public class IPAddressTest extends TestBase {
 		try {
 			w.toAddress();
 			addFailure(new Failure("failed: " + "URL " + url, w));
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			//pass
 			e.getMessage();
 		}
@@ -1424,8 +1256,8 @@ public class IPAddressTest extends TestBase {
 					addFailure(new Failure("failed got string:\n" + builder + "\nexpected:\n" + translator.expected("COLUMN", expectedConditions, w.isIPv4()), w));
 				}
 			}
-		} catch(IPAddressStringException e) {
-			addFailure(new Failure("failed " + e, new IPAddressString(addr)));
+		} catch(AddressStringException e) {
+			addFailure(new Failure("failed " + e));
 		}
 		incrementTestCount();
 	}
@@ -1660,7 +1492,7 @@ public class IPAddressTest extends TestBase {
 					if(minPref != minPrefix) {
 						addFailure(new Failure("failed: prefix expected: " + minPrefix + " prefix got: " + minPref, h1));
 					} else {
-						IPAddress minPrefixed = h1.toPrefixedMin();
+						IPAddress minPrefixed = h1.toMinPrefixedEquivalent();
 						index = host.indexOf('/');
 						if(index == -1) {
 							bareHost = host;
@@ -1674,7 +1506,7 @@ public class IPAddressTest extends TestBase {
 					}
 				}
 			}
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + e, str));
 		}
 		incrementTestCount();
@@ -1684,6 +1516,7 @@ public class IPAddressTest extends TestBase {
 			String normalizedPrefixSubnetString,
 			String normalizedSubnetString, 
 			String normalizedPrefixString) {
+		testHostAddress(addressStr);
 		boolean isValidWithPrefix = normalizedPrefixSubnetString != null;
 		boolean isValidMask = normalizedSubnetString != null;
 		IPAddressString str = createAddress(addressStr);
@@ -1692,13 +1525,13 @@ public class IPAddressTest extends TestBase {
 			IPAddress value = str.toAddress();
 			try {
 				IPAddress mask = maskString.toAddress();
-				IPAddress subnet3 = value.toSubnet(prefix);
+				IPAddress subnet3 = value.applyPrefixLength(prefix);
 				String string3 = subnet3.toNormalizedString();
 				if(!string3.equals(normalizedPrefixString)) {
 					addFailure(new Failure("failed normalizedPrefixString: " + string3 + " expected: " + normalizedPrefixString, subnet3));
 				} else {
 					try {
-						IPAddress subnet = value.toSubnet(mask, prefix);
+						IPAddress subnet = value.maskNetwork(mask, prefix);
 						if(!isValidWithPrefix) {
 							addFailure(new Failure("failed to throw with mask " + mask + " and prefix " + prefix, value));
 						} else {
@@ -1707,7 +1540,7 @@ public class IPAddressTest extends TestBase {
 								addFailure(new Failure("failed: " + string + " expected: " + normalizedPrefixSubnetString, subnet));
 							} else {
 								try {
-									IPAddress subnet2 = value.toSubnet(mask);
+									IPAddress subnet2 = value.mask(mask);
 									if(!isValidMask) {
 										addFailure(new Failure("failed to throw with mask " + mask, value));
 									} else {
@@ -1716,19 +1549,19 @@ public class IPAddressTest extends TestBase {
 											addFailure(new Failure("failed: " + string2 + " expected: " + normalizedSubnetString, subnet2));
 										}
 									}
-								} catch(IPAddressTypeException e) {
+								} catch(AddressTypeException e) {
 									if(isValidMask) {
 										addFailure(new Failure("failed with mask " + mask + " " + e, value));
 									}
 								}
 							}
 						}
-					} catch(IPAddressTypeException e) {
+					} catch(AddressTypeException e) {
 						if(isValidWithPrefix) {
 							addFailure(new Failure("failed with mask " + mask + " and prefix " + prefix + ": " + e, value));
 						} else {
 							try {
-								IPAddress subnet2 = value.toSubnet(mask);
+								IPAddress subnet2 = value.mask(mask);
 								if(!isValidMask) {
 									addFailure(new Failure("failed to throw with mask " + mask, value));
 								} else {
@@ -1737,7 +1570,7 @@ public class IPAddressTest extends TestBase {
 										addFailure(new Failure("failed: " + normalizedSubnetString + " expected: " + string2, subnet2));
 									}
 								}
-							} catch(IPAddressTypeException e2) {
+							} catch(AddressTypeException e2) {
 								if(isValidMask) {
 									addFailure(new Failure("failed with mask " + mask + " " + e2, value));
 								}
@@ -1745,14 +1578,142 @@ public class IPAddressTest extends TestBase {
 						}
 					}
 				} 
-			} catch(IPAddressStringException e) {
+			} catch(AddressStringException e) {
 				addFailure(new Failure("failed " + e, maskString));
 			}
-		} catch(IPAddressStringException e) {
+		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + e, str));
 		}
 		incrementTestCount();
 	}
+	
+	void testReverse(String addressStr, boolean bitsReversedIsSame, boolean bitsReversedPerByteIsSame) {
+		IPAddressString str = createAddress(addressStr);
+		try {
+			testReverse(str.getAddress(), bitsReversedIsSame, bitsReversedPerByteIsSame);
+		} catch(RuntimeException e) {
+			addFailure(new Failure("reversal: " + addressStr));
+		}
+		incrementTestCount();
+	}
+	
+	void testPrefixes(
+			String orig, 
+			int prefix, int adjustment, 
+			String next,
+			String previous,
+			String adjusted,
+			String prefixSet,
+			String prefixApplied) {
+		IPAddress original = createAddress(orig).getAddress();
+		if(original.isPrefixed()) {
+			AddressSegmentSeries removed = original.removePrefixLength(false);
+			for(int i = 0; i < removed.getSegmentCount(); i++) {
+				if(!removed.getSegment(i).equals(original.getSegment(i))) {
+					addFailure(new Failure("removed prefix: " + removed, original));
+					break;
+				}
+			}
+		}
+		testPrefixes(original,
+				prefix, adjustment, 
+				createAddress(next).getAddress(),
+				createAddress(previous).getAddress(),
+				createAddress(adjusted).getAddress(),
+				createAddress(prefixSet).getAddress(),
+				createAddress(prefixApplied).getAddress());
+		incrementTestCount();
+	}
+	
+	void testBitwiseOr(String orig, Integer prefixAdjustment, String or, String expectedResult) {
+		IPAddress original = createAddress(orig).getAddress();
+		IPAddress orAddr = createAddress(or).getAddress();
+		if(prefixAdjustment != null) {
+			original = original.adjustPrefixLength(prefixAdjustment);
+		}
+		try {
+			IPAddress result = original.bitwiseOr(orAddr);
+			if(expectedResult == null) {
+				addFailure(new Failure("ored expected throw " + original + " orAddr: " + orAddr, original));
+			} else {
+				IPAddress expectedResultAddr = createAddress(expectedResult).getAddress();
+				if(!expectedResultAddr.equals(result)) {
+					addFailure(new Failure("ored expected: " + expectedResultAddr + " actual: " + result, original));
+				}
+			}
+		} catch(AddressTypeException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("ored threw unexpectedly " + original + " orAddr: " + orAddr, original));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testPrefixBitwiseOr(String orig, Integer prefix, String or, String expectedResult) {
+		IPAddress original = createAddress(orig).getAddress();
+		IPAddress orAddr = createAddress(or).getAddress();
+		try {
+			IPAddress result = original.bitwiseOrNetwork(orAddr, prefix);
+			if(expectedResult == null) {
+				addFailure(new Failure("ored expected throw " + original + " orAddr: " + orAddr, original));
+			} else {
+				IPAddressString expected = createAddress(expectedResult);
+				IPAddress expectedResultAddr = expected.getAddress();
+				if(!expectedResultAddr.equals(result)) {
+					addFailure(new Failure("ored expected: " + expectedResultAddr + " actual: " + result, original));
+				}
+			}
+		} catch(AddressTypeException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("ored threw unexpectedly " + original + " orAddr: " + orAddr, original));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testDelimitedCount(String str, int expectedCount) {
+		Iterator<String> strings = IPAddressString.parseDelimitedSegments(str);
+		HashSet<IPAddress> set = new HashSet<IPAddress>();
+		int count = 0;
+		try {
+			while(strings.hasNext()) {
+				set.add(createAddress(strings.next()).toAddress());
+				count++;
+			}
+			if(count != expectedCount || set.size() != count || count != IPAddressString.countDelimitedAddresses(str)) {
+				addFailure(new Failure("count mismatch, count: " + count + " set count: " + set.size() + " calculated count: " + IPAddressString.countDelimitedAddresses(str) + " expected: " + expectedCount));
+			}
+		} catch (AddressStringException | AddressTypeException e) {
+			addFailure(new Failure("threw unexpectedly " + str));
+		}
+		incrementTestCount();
+	}
+	
+	void testReverseHostAddress(String str) {
+		IPAddressString addrStr = createAddress(str);
+		IPAddress addr = addrStr.getAddress();
+		IPAddress hostAddr = addrStr.getHostAddress();
+		IPAddress hostAddr2;
+		if(addr.isIPv6()) {
+			hostAddr2 = new IPv6Address(addr.toIPv6().getSection()).toAddressString().getHostAddress();
+		} else {
+			hostAddr2 = new IPv4Address(addr.toIPv4().getSection()).toAddressString().getHostAddress();
+		}
+		if(!hostAddr.equals(hostAddr2)) {
+			addFailure(new Failure("expected " + hostAddr + " got " + hostAddr2, hostAddr2));
+		}
+		incrementTestCount();
+	}
+
+	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
+	boolean isLenient() {
+		return false;
+	}
+	
+	boolean allowsRange() {
+		return false;
+	}
+	
 	
 	@Override
 	void runTest() {
@@ -1767,6 +1728,238 @@ public class IPAddressTest extends TestBase {
 		testEquivalentPrefix("1:2::/31", 31);
 		testEquivalentPrefix("1:2::/34", 34);
 		testEquivalentPrefix("1:2::/128", 128);
+		
+		testReverse("255.127.128.255", false, false);
+		testReverse("255.127.128.255/16", false, false);
+		testReverse("1.2.3.4", false, false);
+		testReverse("1.1.2.2", false, false);
+		testReverse("1.1.1.1", false, false);
+		testReverse("0.0.0.0", true, true);
+		
+		testReverse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true, true);
+		testReverse("ffff:ffff:1:ffff:ffff:ffff:ffff:ffff", false, false);
+		testReverse("ffff:ffff:8181:ffff:ffff:ffff:ffff:ffff", false, true);
+		testReverse("ffff:ffff:c3c3:ffff:ffff:ffff:ffff:ffff", false, true);
+		testReverse("ffff:4242:c3c3:2424:ffff:ffff:ffff:ffff", false, true);
+		testReverse("ffff:ffff:8000:ffff:ffff:0001:ffff:ffff", true, false);
+		testReverse("ffff:ffff:1:ffff:ffff:ffff:ffff:ffff/64", false, false);
+		testReverse("1:2:3:4:5:6:7:8", false, false);
+		testReverse("1:1:2:2:3:3:4:4", false, false);
+		testReverse("1:1:1:1:1:1:1:1", false, false);
+		testReverse("::", true, true);
+		
+		testPrefixes("255.127.128.255", 
+				16, -5, 
+				"255.127.128.255",
+				"255.127.128.255/32",
+				"255.127.128.224/27",
+				"255.127.0.0/16",
+				"255.127.0.0/16");
+		
+		testPrefixes("255.127.128.255/32", 
+				16, -5, 
+				"255.127.128.255",
+				"255.127.128.0/24",
+				"255.127.128.224/27",
+				"255.127.0.0/16",
+				"255.127.0.0/16");
+		
+		testPrefixes("255.127.0.0/16", 
+				16, -5, 
+				"255.127.0.0/24",
+				"255.0.0.0/8",
+				"255.96.0.0/11",
+				"255.127.0.0/16",
+				"255.127.0.0/16");
+		
+		testPrefixes("255.127.0.0/17", 
+				16, -17, 
+				"255.127.0.0/24",
+				"255.127.0.0/16",
+				"0.0.0.0/0",
+				"255.127.0.0/16",
+				"255.127.0.0/16");
+		
+		testPrefixes("255.127.0.0/16", 
+				18, 17, 
+				"255.127.0.0/24",
+				"255.0.0.0/8",
+				"255.127.0.0",
+				"255.127.0.0/18",
+				"255.127.0.0/16");
+		
+		testPrefixes("255.127.0.0/16", 
+				18, 16, 
+				"255.127.0.0/24",
+				"255.0.0.0/8",
+				"255.127.0.0/32",
+				"255.127.0.0/18",
+				"255.127.0.0/16");
+		
+		testPrefixes("254.0.0.0/7", 
+				18, 17, 
+				"254.0.0.0/8",
+				"0.0.0.0/0",
+				"254.0.0.0/24",
+				"254.0.0.0/18",
+				"254.0.0.0/7");
+		
+		testPrefixes("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				16, -5,
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0/123",
+				"ffff::/16",
+				"ffff::/16");
+		
+		testPrefixes("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128",
+				16, -5,
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:0/112",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0/123",
+				"ffff::/16",
+				"ffff::/16");
+		
+		testPrefixes("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				15, 1,
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				"fffe::/15",
+				"fffe::/15");
+		
+		testPrefixes("ffff:ffff:1:ffff::/64",
+				16, -5,
+				"ffff:ffff:1:ffff::/80",
+				"ffff:ffff:1::/48",
+				"ffff:ffff:1:ffe0::/59",
+				"ffff::/16",
+				"ffff::/16");
+		
+		testPrefixes("ffff:ffff:1:ffff::/64",
+				16, 1,
+				"ffff:ffff:1:ffff::/80",
+				"ffff:ffff:1::/48",
+				"ffff:ffff:1:ffff::/65",
+				"ffff::/16",
+				"ffff::/16");
+		
+		testPrefixes("ffff:ffff:1:ffff::/63",
+				16, -5,
+				"ffff:ffff:1:fffe::/64",
+				"ffff:ffff:1::/48",
+				"ffff:ffff:1:ffc0::/58",
+				"ffff::/16",
+				"ffff::/16");
+		
+		testPrefixes("ffff:ffff:1:ffff::/63",
+				17, -64,
+				"ffff:ffff:1:fffe::/64",
+				"ffff:ffff:1::/48",
+				"::",
+				"ffff:8000::/17",
+				"ffff:8000::/17");
+		
+		testPrefixes("ffff:ffff:1:ffff::/63",
+				15, -63,
+				"ffff:ffff:1:fffe::/64",
+				"ffff:ffff:1::/48",
+				"::/0",
+				"fffe::/15",
+				"fffe::/15");
+		
+		testPrefixes("ffff:ffff:1:ffff::/63",
+				65, 1,
+				"ffff:ffff:1:fffe::/64",
+				"ffff:ffff:1::/48",
+				"ffff:ffff:1:fffe::/64",
+				"ffff:ffff:1:fffe::/65",
+				"ffff:ffff:1:fffe::/63");
+		
+		testPrefixes("ffff:ffff:1:ffff:ffff:ffff:ffff:ffff/128",
+				127, 1,
+				"ffff:ffff:1:ffff:ffff:ffff:ffff:ffff",
+				"ffff:ffff:1:ffff:ffff:ffff:ffff::/112",
+				"ffff:ffff:1:ffff:ffff:ffff:ffff:ffff",
+				"ffff:ffff:1:ffff:ffff:ffff:ffff:fffe/127",
+				"ffff:ffff:1:ffff:ffff:ffff:ffff:fffe/127");
+		
+		testBitwiseOr("1.2.0.0", null, "0.0.3.4", "1.2.3.4");
+		testBitwiseOr("1.2.0.0", null, "0.0.0.0", "1.2.0.0");
+		testBitwiseOr("1.2.0.0", null, "255.255.255.255", "255.255.255.255");
+		testBitwiseOr("1.0.0.0/8", 16, "0.2.3.0", "1.2.3.0/24");//note the prefix length is dropped to become "1.2.3.*", but equality still holds
+		testBitwiseOr("1.2.0.0/16", 8, "0.0.3.0", "1.2.3.0/24");//note the prefix length is dropped to become "1.2.3.*", but equality still holds
+		
+		testBitwiseOr("0.0.0.0", null, "1.2.3.4", "1.2.3.4");
+		testBitwiseOr("0.0.0.0", 1, "1.2.3.4", "1.2.3.4");
+		testBitwiseOr("0.0.0.0", -1, "1.2.3.4", "1.2.3.4/31");
+		testBitwiseOr("0.0.0.0", 0, "1.2.3.4", "1.2.3.4");
+		testBitwiseOr("0.0.0.0/0", -1, "1.2.3.4", "1.2.3.4");
+		testBitwiseOr("0.0.0.0/16", null, "0.0.255.255", "0.0.255.255");
+		
+		
+		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.98.8", null);
+		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.194.8", "0.0.192.0/18");
+		
+		testPrefixBitwiseOr("1.2.0.0/16", 24, "0.0.3.248", null);
+		testPrefixBitwiseOr("1.2.0.0/16", 23, "0.0.3.0", null);
+		testPrefixBitwiseOr("1.2.0.0/22", 24, "0.0.3.248", "1.2.3.0/24");
+		testPrefixBitwiseOr("1.2.0.0/22", 23, "0.0.3.0", "1.2.2.0/23");
+		testPrefixBitwiseOr("1.2.0.0/24", 24, "0.0.3.248", "1.2.3.0/24");
+		testPrefixBitwiseOr("1.2.0.0/24", 23, "0.0.3.0", "1.2.2.0/23");
+		testPrefixBitwiseOr("1.2.0.0", 24, "0.0.3.248", "1.2.3.0/24");
+		testPrefixBitwiseOr("1.2.0.0", 23, "0.0.3.0", "1.2.2.0/23");
+		
+		
+		testBitwiseOr("1:2::", null, "0:0:3:4::", "1:2:3:4::");
+		testBitwiseOr("1:2::", null, "::", "1:2::");
+		testBitwiseOr("1:2::", null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testBitwiseOr("1:2::", null, "fffe:fffd:ffff:ffff:ffff:ffff:ff0f:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ff0f:ffff");
+		testBitwiseOr("1::/16", 32, "0:2:3::", "1:2:3::/48");//note the prefix length is dropped to become "1.2.3.*", but equality still holds
+		testBitwiseOr("1:2::/32", 16, "0:0:3::", "1:2:3::/48");//note the prefix length is dropped to become "1.2.3.*", but equality still holds
+		
+		testBitwiseOr("::", null, "::1:2:3:4", "::1:2:3:4");
+		testBitwiseOr("::", 1, "::1:2:3:4", "::1:2:3:4");
+		testBitwiseOr("::", -1, "::1:2:3:4", "::1:2:3:4/127");
+		testBitwiseOr("::", 0, "::1:2:3:4", "::1:2:3:4");
+		testBitwiseOr("::/0", -1, "::1:2:3:4", "::1:2:3:4");
+		testBitwiseOr("::/32", null, "::ffff:ffff:ffff:ffff:ffff:ffff", "::ffff:ffff:ffff:ffff:ffff:ffff");
+		
+		testPrefixBitwiseOr("::/32", 36, "0:0:6004:8::", null);
+		testPrefixBitwiseOr("::/32", 36, "0:0:f000:8::", "0:0:f000::/36");
+		
+		testPrefixBitwiseOr("1:2::/32", 48, "0:0:3:effe::", null);
+		testPrefixBitwiseOr("1:2::/32", 47, "0:0:3::", null);
+		testPrefixBitwiseOr("1:2::/46", 48, "0:0:3:248::", "1:2:3::/48");
+		testPrefixBitwiseOr("1:2::/46", 47, "0:0:3::", "1:2:2::/47");
+		testPrefixBitwiseOr("1:2::/48", 48, "0:0:3:248::", "1:2:3::/48");
+		testPrefixBitwiseOr("1:2::/48", 47, "0:0:3::", "1:2:2::/47");
+		testPrefixBitwiseOr("1:2::", 48, "0:0:3:248::", "1:2:3::/48");
+		testPrefixBitwiseOr("1:2::", 47, "0:0:3::", "1:2:2::/47");
+		
+		testDelimitedCount("1,2.3.4,5.6", 4); //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+		testDelimitedCount("1,2.3,6.4,5.6,8", 16); //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+		testDelimitedCount("1:2:3:6:4:5:6:8", 1); //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+		testDelimitedCount("1:2,3,4:3:6:4:5,6fff,7,8,99:6:8", 15); //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+		
+		ipv6test(allowsRange(), "aa:-1:cc::d:ee:f");//same as "aa:0-1:cc::d:ee:f"
+		ipv6test(allowsRange(), "aa:-dd:cc::d:ee:f");//same as "aa:0-dd:cc::d:ee:f"
+		ipv6test(allowsRange(), "aa:1-:cc:d::ee:f");//same as "aa:1-ff:cc:d::ee:f"
+		ipv6test(allowsRange(), "-1:aa:cc:d::ee:f");//same as "aa:0-1:cc:d::ee:f"
+		ipv6test(allowsRange(), "1-:aa:cc:d::ee:f");//same as "aa:0-1:cc:d::ee:f"
+		ipv6test(allowsRange(), "aa:cc:d::ee:f:1-");
+		ipv6test(allowsRange(), "aa:0-1:cc:d::ee:f");
+		ipv6test(allowsRange(), "aa:1-ff:cc:d::ee:f");
+		
+		ipv4test(allowsRange(), "1.-1.33.4");
+		ipv4test(allowsRange(), "-1.22.33.4");
+		ipv4test(allowsRange(), "22.1-.33.4");
+		ipv4test(allowsRange(), "22.33.4.1-");
+		ipv4test(allowsRange(), "1-.22.33.4");
+		ipv4test(allowsRange(), "22.0-1.33.4");
+		ipv4test(allowsRange(), "22.1-22.33.4");
+		
+		
 		
 		testMatches(false, "1::", "2::");
 		testMatches(false, "1::", "1.2.3.4");
@@ -1957,7 +2150,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(false, "1::1/129");//we are not allowing extra-large prefixes
 		ipv6test(true, "1::1/1::1");
 		
-				
+		
 		testNetmasks(0, "0.0.0.0/0", "0.0.0.0", "255.255.255.255", "::/0", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"); //test that the given prefix gives ipv4 and ipv6 addresses matching the netmasks
 		testNetmasks(1, "128.0.0.0/1", "128.0.0.0", "127.255.255.255", "8000::/1", "8000::", "7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 		testNetmasks(15, "255.254.0.0/15", "255.254.0.0", "0.1.255.255", "fffe::/15", "fffe::", "1:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
@@ -2043,6 +2236,7 @@ public class IPAddressTest extends TestBase {
 		testSubnet("1.2.3.4/12", "255.248.0.0", 13, IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "1.0-8.0.0/13" : "1.0-15.0.0/13", null, "1.0.0.0/12");
 		
 		testSubnet("1.2.128.4/15", "255.254.128.0", 17, "1.2.*.0/17", null, "1.2.0.0/15");
+		testSubnet("1.2.128.4/15", "255.255.128.0", 17, "1.2-3.*.0/17", null, "1.2.0.0/15");
 		testSubnet("1.2.128.4/15", "255.252.128.0", 17, "1.0.*.0/17", null, "1.2.0.0/15");
 		testSubnet("1.2.128.4/15", "255.252.128.0", 18, null, null, "1.2.0.0/15");
 		testSubnet("1.2.3.4/15", "255.255.127.0", 15, "1.2.0.0/15", "1.2-3.0-127.0", "1.2.0.0/15");
@@ -2066,6 +2260,11 @@ public class IPAddressTest extends TestBase {
 		testSubnet("::/8", "ffff::", 128, "0-ff:0:0:0:0:0:0:0/128", "0-ff:0:0:0:0:0:0:0", "0:0:0:0:0:0:0:0/8");
 		testSubnet("::/8", "fff0::", 128, null, null, "0:0:0:0:0:0:0:0/8");
 		testSubnet("::/8", "fff0::", 12, IPAddressSegment.ADJUST_RANGES_BY_PREFIX ? "0-f0:0:0:0:0:0:0:0/12" : "0-ff:0:0:0:0:0:0:0/12", null, "0:0:0:0:0:0:0:0/8");
+		
+		testSubnet("1.2.0.0/16", "255.255.0.1", 24, "1.2.0.0/24", "1.2.0.0-1", "1.2.0.0/16");
+		testSubnet("1.2.0.0/16", "255.255.0.3", 24, "1.2.0.0/24", "1.2.0.0-3", "1.2.0.0/16");
+		testSubnet("1.2.0.0/16", "255.255.3.3", 24, "1.2.0-3.0/24", "1.2.0-3.0-3", "1.2.0.0/16");
+		
 
 		testSplit("9.129.237.26", 0, "", "", "", 1, "9.129.237.26", 2); //compare the two for equality.  compare the bytes of the second one with the bytes of the second one having no mask.
 //		testSplit("9.129.237.26", 1, "0.0.0.0", 1");
@@ -2143,7 +2342,7 @@ public class IPAddressTest extends TestBase {
 		testVariantCounts("::", 2, 2, 9, 1297);
 		testVariantCounts("::1", 2, 2, 10, 1298);
 		testVariantCounts("::1", 2, 2, IPv6Address.getStandardLoopbackStrings().length, 1298);//this confirms that IPv6Address.getStandardLoopbackStrings() is being initialized properly
-		testVariantCounts("::ffff:1.2.3.4", 6, 4, 20, 1409, 1320);//ipv4 mapped
+		testVariantCounts("::ffff:1.2.3.4", 6, 4, 20, 1410, 1320);//ipv4 mapped
 		testVariantCounts("::fffe:1.2.3.4", 2, 4, 20, 1320, 1320);//almost identical but not ipv4 mapped
 		testVariantCounts("::ffff:0:0", 6, 4, 24, 1474, 1384);//ipv4 mapped
 		testVariantCounts("::fffe:0:0", 2, 4, 24, 1384, 1384);//almost identical but not ipv4 mapped
@@ -2161,11 +2360,14 @@ public class IPAddressTest extends TestBase {
 		testVariantCounts("111a:1111:1111:1111:1111:1111:9999:9999", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
 		testVariantCounts("aaaa:b:cccc:dddd:eeee:ffff:aaaa:bbbb", 2, 2, 4 * USE_UPPERCASE, 4 * USE_UPPERCASE);
 		testVariantCounts("aaaa:b:cc:dddd:eeee:ffff:aaaa:bbbb", 2, 2, 4 * USE_UPPERCASE, 8 * USE_UPPERCASE);
-		testVariantCounts("1.2.3.4", 6, 1, 2, 419, 89, 16);
+		testVariantCounts("1.2.3.4", 6, 1, 2, 420, 90, 16);
 		testVariantCounts("0.0.0.0", 6, 1, 2, 484, 90, 16);
 		testVariantCounts("1111:2222:aaaa:4444:5555:6666:7070:700a", 2,  1 * USE_UPPERCASE, 1 * USE_UPPERCASE + 2 * USE_UPPERCASE, 1 * USE_UPPERCASE + 2 * USE_UPPERCASE);//this one can be capitalized when mixed 
 		testVariantCounts("1111:2222:3333:4444:5555:6666:7070:700a", 2, 2, 1 * USE_UPPERCASE + 2, 1 * USE_UPPERCASE + 2);//this one can only be capitalized when not mixed, so the 2 mixed cases are not doubled
-		
+
+		testReverseHostAddress("1.2.0.0/20");
+		testReverseHostAddress("1.2.3.4");
+		testReverseHostAddress("1:f000::/20");
 		
 		testFromBytes(new byte[] {-1, -1, -1, -1}, "255.255.255.255");
 		testFromBytes(new byte[] {1, 2, 3, 4}, "1.2.3.4");
@@ -2260,7 +2462,6 @@ public class IPAddressTest extends TestBase {
 		testRadices("0.1.0.1", "0.1.0.1", 15);
 		testRadices("1.0.1.0", "1.0.1.0", 15);
 		
-		
 		testNormalized("A:B:C:D:E:F:000.000.000.000", "a:b:c:d:e:f::", true, true);
 		testNormalized("A:B:C:D:E::000.000.000.000", "a:b:c:d:e::", true, true);
 		testNormalized("::B:C:D:E:F:000.000.000.000", "0:b:c:d:e:f::", true, true);
@@ -2293,7 +2494,7 @@ public class IPAddressTest extends TestBase {
 		testMask("A:B:C:D:E:F:A:B", "A:0:C:0:E:0:A:0", "A:0:C:0:E:0:A:0");
 		testMask("A:B:C:D:E:F:A:B", "FFFF:FFFF:FFFF:FFFF::", "A:B:C:D::");
 		testMask("A:B:C:D:E:F:A:B", "::FFFF:FFFF:FFFF:FFFF", "::E:F:A:B");
-		
+
 		if(fullTest) {
 			int len = 5000;
 			StringBuilder builder = new StringBuilder(len + 6);
@@ -2304,29 +2505,29 @@ public class IPAddressTest extends TestBase {
 			ipv4test(false, builder.toString());
 		}
 		
-		ipv4test(false, ""); //this needs special validation options to be valid
+		ipv4test(isLenient(), ""); //this needs special validation options to be valid
 		
 		ipv4test(true, "1.2.3.4");
-		ipv4test(false, "[1.2.3.4]");//only ipv6 can be in the square brackets
+		ipv4test(false, "[1.2.3.4]");//HostName accepts square brackets, not addresses
 		
-		ipv4test(!true, "a");
+		ipv4test(false, "a");
 		
-		ipv4test(!true, "1.2.3");
+		ipv4test(isLenient(), "1.2.3");
 		
-		ipv4test(!true, "a.2.3.4");
-		ipv4test(!true, "1.a.3.4");
-		ipv4test(!true, "1.2.a.4");
-		ipv4test(!true, "1.2.3.a");
+		ipv4test(false, "a.2.3.4");
+		ipv4test(false, "1.a.3.4");
+		ipv4test(false, "1.2.a.4");
+		ipv4test(false, "1.2.3.a");
 		
-		ipv4test(!true, ".2.3.4");
-		ipv4test(!true, "1..3.4");
-		ipv4test(!true, "1.2..4");
-		ipv4test(!true, "1.2.3.");
+		ipv4test(false, ".2.3.4");
+		ipv4test(false, "1..3.4");
+		ipv4test(false, "1.2..4");
+		ipv4test(false, "1.2.3.");
 		
-		ipv4test(!true, "256.2.3.4");
-		ipv4test(!true, "1.256.3.4");
-		ipv4test(!true, "1.2.256.4");
-		ipv4test(!true, "1.2.3.256");
+		ipv4test(false, "256.2.3.4");
+		ipv4test(false, "1.256.3.4");
+		ipv4test(false, "1.2.256.4");
+		ipv4test(false, "1.2.3.256");
 		
 		ipv4test(false, "f.f.f.f");
 		
@@ -2343,15 +2544,81 @@ public class IPAddressTest extends TestBase {
 		
 		ipv4test(true, "000.000.000.000", true);
 		
-		ipv4test(!true, "0000.0.0.0");
-		ipv4test(!true, "0.0000.0.0");
-		ipv4test(!true, "0.0.0000.0");
-		ipv4test(!true, "0.0.0.0000");
+		ipv4test(isLenient(), "0000.0.0.0", true);
+		ipv4test(isLenient(), "0.0000.0.0", true);
+		ipv4test(isLenient(), "0.0.0000.0", true);
+		ipv4test(isLenient(), "0.0.0.0000", true);
 		
-		ipv4test(!true, ".0.0.0");
-		ipv4test(!true, "0..0.0");
-		ipv4test(!true, "0.0..0");
-		ipv4test(!true, "0.0.0.");
+		
+		ipv4test(true, "3.3.3.3", false);
+		ipv4test(true, "33.3.3.3", false);
+		ipv4test(true, "3.33.3.3", false);
+		ipv4test(true, "3.3.33.3", false);
+		ipv4test(true, "3.3.3.33", false);
+		ipv4test(true, "233.3.3.3", false);
+		ipv4test(true, "3.233.3.3", false);
+		ipv4test(true, "3.3.233.3", false);
+		ipv4test(true, "3.3.3.233", false);
+		
+		ipv4test(true, "200.200.200.200", false);
+		
+		ipv4test(isLenient(), "0333.0.0.0", false);
+		ipv4test(isLenient(), "0.0333.0.0", false);
+		ipv4test(isLenient(), "0.0.0333.0", false);
+		ipv4test(isLenient(), "0.0.0.0333", false);
+		
+		
+		
+		ipv6test(true, "0:0:0:0:0:0:0:0", true);
+		ipv6test(true, "00:0:0:0:0:0:0:0", true);
+		ipv6test(true, "0:00:0:0:0:0:0:0", true);
+		ipv6test(true, "0:0:00:0:0:0:0:0", true);
+		ipv6test(true, "0:0:0:00:0:0:0:0", true);
+		ipv6test(true, "0:0:0:0:00:0:0:0", true);
+		ipv6test(true, "0:0:0:0:0:00:0:0", true);
+		ipv6test(true, "0:0:0:0:0:0:00:0", true);
+		ipv6test(true, "0:0:0:0:0:0:0:00", true);
+		ipv6test(true, "0:0:0:0:0:0:0:0", true);
+		ipv6test(true, "000:0:0:0:0:0:0:0", true);
+		ipv6test(true, "0:000:0:0:0:0:0:0", true);
+		ipv6test(true, "0:0:000:0:0:0:0:0", true);
+		ipv6test(true, "0:0:0:000:0:0:0:0", true);
+		ipv6test(true, "0:0:0:0:000:0:0:0", true);
+		ipv6test(true, "0:0:0:0:0:000:0:0", true);
+		ipv6test(true, "0:0:0:0:0:0:000:0", true);
+		ipv6test(true, "0:0:0:0:0:0:0:000", true);
+		ipv6test(true, "0000:0:0:0:0:0:0:0", true);
+		ipv6test(true, "0:0000:0:0:0:0:0:0", true);
+		ipv6test(true, "0:0:0000:0:0:0:0:0", true);
+		ipv6test(true, "0:0:0:0000:0:0:0:0", true);
+		ipv6test(true, "0:0:0:0:0000:0:0:0", true);
+		ipv6test(true, "0:0:0:0:0:0000:0:0", true);
+		ipv6test(true, "0:0:0:0:0:0:0000:0", true);
+		ipv6test(true, "0:0:0:0:0:0:0:0000", true);
+		ipv6test(isLenient(), "00000:0:0:0:0:0:0:0", true);
+		ipv6test(isLenient(), "0:00000:0:0:0:0:0:0", true);
+		ipv6test(isLenient(), "0:0:00000:0:0:0:0:0", true);
+		ipv6test(isLenient(), "0:0:0:00000:0:0:0:0", true);
+		ipv6test(isLenient(), "0:0:0:0:00000:0:0:0", true);
+		ipv6test(isLenient(), "0:0:0:0:0:00000:0:0", true);
+		ipv6test(isLenient(), "0:0:0:0:0:0:00000:0", true);
+		ipv6test(isLenient(), "0:0:0:0:0:0:0:00000", true);
+		ipv6test(isLenient(), "00000:00000:00000:00000:00000:00000:00000:00000", true);
+		
+		ipv6test(isLenient(), "03333:0:0:0:0:0:0:0", false);
+		ipv6test(isLenient(), "0:03333:0:0:0:0:0:0", false);
+		ipv6test(isLenient(), "0:0:03333:0:0:0:0:0", false);
+		ipv6test(isLenient(), "0:0:0:03333:0:0:0:0", false);
+		ipv6test(isLenient(), "0:0:0:0:03333:0:0:0", false);
+		ipv6test(isLenient(), "0:0:0:0:0:03333:0:0", false);
+		ipv6test(isLenient(), "0:0:0:0:0:0:03333:0", false);
+		ipv6test(isLenient(), "0:0:0:0:0:0:0:03333", false);
+		ipv6test(isLenient(), "03333:03333:03333:03333:03333:03333:03333:03333", false);
+		
+		ipv4test(false, ".0.0.0");
+		ipv4test(false, "0..0.0");
+		ipv4test(false, "0.0..0");
+		ipv4test(false, "0.0.0.");
 		
 		ipv4test(true, "/0");
 		ipv4test(true, "/1");
@@ -2377,6 +2644,9 @@ public class IPAddressTest extends TestBase {
 		ipv6test(false, "1:2::3:1.2.3.4//");
 		ipv6test(false, "1:2::3:1.2.3.4/y");
 		
+		ipv4test(false, "127.0.0.1/x");
+		ipv4test(false, "127.0.0.1/127.0.0.1/x");
+
 		ipv4_inet_aton_test(true, "0.0.0.255");
 		ipv4_inet_aton_test(false, "0.0.0.256");
 		ipv4_inet_aton_test(true, "0.0.65535");
@@ -2400,6 +2670,7 @@ public class IPAddressTest extends TestBase {
 		ipv4_inet_aton_test(true, "0.077777777");
 		ipv4_inet_aton_test(false, "0.0100000000");
 		ipv4_inet_aton_test(true, "03777777777");
+		ipv4_inet_aton_test(true, "037777777777");
 		ipv4_inet_aton_test(false, "040000000000");
 		
 		ipv4_inet_aton_test(false, "1.00x.1.1");
@@ -2414,16 +2685,23 @@ public class IPAddressTest extends TestBase {
 		ipv4test(false, "1.0x4x.1.1");
 		ipv4test(false, "1.x4.1.1");
 		
+		ipv4test(false, "1.4.1.1%1");//ipv4 zone
+		
 		ipv6test(false, "1:00x:3:4:5:6:7:8");
 		ipv6test(false, "1:0xx:3:4:5:6:7:8");
 		ipv6test(false, "1:xx:3:4:5:6:7:8");
 		ipv6test(false, "1:0x4x:3:4:5:6:7:8");
 		ipv6test(false, "1:x4:3:4:5:6:7:8");
 		
-		ipv4testOnly(!true, "1:2:3:4:5:6:7:8");
-		ipv4testOnly(!true, "::1");
+		ipv4testOnly(false, "1:2:3:4:5:6:7:8");
+		ipv4testOnly(false, "::1");
 		
-		ipv6test(0, ""); // empty string //this needs special validation options to be valid
+		//in this test, the validation will fail unless validation options have allowEmpty
+		//if you allowempty and also emptyIsLoopback, then this will evaluate to either ipv4
+		//or ipv6 depending on the loopback
+		//if loopback is ipv4, then ipv6 validation fails but general validation passes because ipv4 passes because loopback is ipv4
+		ipv6test(false, "", false, isLenient());	
+		//ipv6test(0, ""); // empty string //this needs special validation options to be valid
 		
 		ipv6test(1, "/0");
 		ipv6test(1, "/1");
@@ -2459,8 +2737,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"FF02:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(1,"0000:0000:0000:0000:0000:0000:0000:0001");
 		ipv6test(1,"0000:0000:0000:0000:0000:0000:0000:0000", true);
-		ipv6test(0,"02001:0000:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
-		ipv6test(0,"2001:0000:1234:0000:00001:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"02001:0000:1234:0000:0000:C1C0:ABCD:0876"); // extra 0 not allowed!
+		ipv6test(isLenient(),"2001:0000:1234:0000:00001:C1C0:ABCD:0876"); // extra 0 not allowed!
 		//ipv6test(1," 2001:0000:1234:0000:0000:C1C0:ABCD:0876"); // leading space
 		//ipv6test(1,"2001:0000:1234:0000:0000:C1C0:ABCD:0876 "); // trailing space
 		//ipv6test(1," 2001:0000:1234:0000:0000:C1C0:ABCD:0876  "); // leading and trailing space
@@ -2599,7 +2877,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"fe80:0:0:0:204:61ff:254.157.241.86");
 		ipv6test(1,"fe80::204:61ff:254.157.241.86");
 		ipv6test(1,"::ffff:12.34.56.78");
-		ipv6test(0,"::ffff:2.3.4");
+		ipv6test(isLenient(),"::ffff:2.3.4");
 		ipv6test(0,"::ffff:257.1.2.3");
 		ipv6testOnly(0,"1.2.3.4");
 		
@@ -2628,7 +2906,7 @@ public class IPAddressTest extends TestBase {
 		// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
 		// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
 		//ipv6test(0,"fe80:0000:0000:0000:0204:61ff:254.157.241.086");
-		ipv6test(1,"fe80:0000:0000:0000:0204:61ff:254.157.241.086");
+		ipv6test(!isLenient(),"fe80:0000:0000:0000:0204:61ff:254.157.241.086");//note the 086 is treated as octal when lenient!  So the lenient in this case fails.
 		ipv6test(1,"::ffff:192.0.2.128");   // this is always OK, since there's a single digit
 		ipv6test(0,"XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:1.2.3.4");
 		//ipv6test(0,"1111:2222:3333:4444:5555:6666:00.00.00.00");
@@ -2702,7 +2980,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"2001:db8:a::123");
 		ipv6test(1,"fe80::");
 		
-		ipv6test(0,"123");
+		ipv6test(false, "123", false, isLenient());//this is passing the ipv4 side as inet_aton
+		//ipv6test(0,"123");
 		ipv6test(0,"ldkfj");
 		ipv6test(0,"2001::FFD3::57ab");
 		ipv6test(0,"2001:db8:85a3::8a2e:37023:7334");
@@ -2813,7 +3092,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:4444");
 		ipv6test(0,"1111:2222:3333");
 		ipv6test(0,"1111:2222");
-		ipv6test(0,"1111");
+		ipv6test(false, "1111", false, isLenient());// this is passing the ipv4 side for inet_aton
+		//ipv6test(0,"1111");
 		
 		// Missing :
 		ipv6test(0,"11112222:3333:4444:5555:6666:7777:8888");
@@ -3066,15 +3346,9 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"::0:a:b:c:d:e:f"); // syntactically correct, but bad form (::0:... could be combined)
 		ipv6test(1,"a:b:c:d:e:f:0::");
 		ipv6test(0,"':10.0.0.1");
-
+		
 		testSQLMatching();
 	}
 }
 
-interface AddressCreator {
-	HostName createHost(HostKey key);
-	
-	IPAddressString createAddress(IPAddressStringKey key);
-	
-	IPAddress createAddress(byte bytes[]);
-}
+

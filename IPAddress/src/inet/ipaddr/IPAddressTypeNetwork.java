@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr;
 
 import java.lang.reflect.Array;
@@ -5,10 +23,12 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.format.IPAddressSegmentGrouping.RangeList;
-import inet.ipaddr.format.validate.ParsedAddressCreator;
+import inet.ipaddr.format.AddressCreator;
+import inet.ipaddr.format.IPAddressDivisionGrouping.RangeList;
 
 /**
  * A network of addresses of a single version (ie bit length) providing a collection of standard addresses and segments for that version, such as masks and loopbacks.
@@ -17,7 +37,7 @@ import inet.ipaddr.format.validate.ParsedAddressCreator;
  *
  * @param <T> the address class
  */
-public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddressSegment> extends IPAddressNetwork {
+public abstract class IPAddressTypeNetwork<T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> extends IPAddressNetwork {
 	private final T subnets[];
 	private final T subnetMasks[];
 	private final T hostMasks[];
@@ -25,23 +45,12 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 	private final long hostSegmentMasks[][];
 	private T loopback;
 	private String loopbackStrings[];
-	
-	protected static interface IPAddressSegmentCreator<S extends IPAddressSegment> {
-		
-		S[] createSegmentArray(int length);
-		
-		S createSegment(int value);
-		
-		S createSegment(int value, Integer segmentPrefixLength);
-		
-		S createSegment(int lower, int upper, Integer segmentPrefixLength);
-	}
 
-	protected static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> 
-			extends ParsedAddressCreator<T,R,S> implements IPAddressSegmentCreator<S> {
+	protected static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, E extends IPAddressSection, S extends IPAddressSegment> 
+			extends AddressCreator<T, R, E, S> {
 		
 		@Override
-		protected S createSegmentInternal(int value, Integer segmentPrefixLength, String addressStr, int originalVal, boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex) {
+		protected S createSegmentInternal(int value, Integer segmentPrefixLength, CharSequence addressStr, int originalVal, boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex) {
 			S segment = createSegment(value, segmentPrefixLength);
 			segment.setStandardString(addressStr, isStandardString, lowerStringStartIndex, lowerStringEndIndex, originalVal);
 			segment.setWildcardString(addressStr, isStandardString, lowerStringStartIndex, lowerStringEndIndex, originalVal);
@@ -49,44 +58,77 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 		}
 		
 		@Override
-		protected S createSegmentInternal(int lower, int upper, Integer segmentPrefixLength, String addressStr, int originalLower, int originalUpper, boolean isStandardString, boolean isStandardRangeString, int lowerStringStartIndex, int lowerStringEndIndex, int upperStringEndIndex) {
+		protected S createSegmentInternal(int lower, int upper, Integer segmentPrefixLength, CharSequence addressStr, int originalLower, int originalUpper, boolean isStandardString, boolean isStandardRangeString, int lowerStringStartIndex, int lowerStringEndIndex, int upperStringEndIndex) {
 			S segment = createSegment(lower, upper, segmentPrefixLength);
 			segment.setStandardString(addressStr, isStandardString,  isStandardRangeString, lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex, originalLower, originalUpper);
 			segment.setWildcardString(addressStr, isStandardRangeString, lowerStringStartIndex, upperStringEndIndex, originalLower, originalUpper);
 			return segment;
 		}
-		
 
 		protected abstract R[] createSectionArray(int length);
 		
 		@Override
 		protected abstract R createSectionInternal(S segments[]);
 		
+		protected abstract R createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix);
+		
+		protected abstract R createSectionInternal(byte bytes[], Integer prefix);
+		
+		@Override
 		protected T createAddressInternal(S segments[]) {
 			return createAddress(createSectionInternal(segments), null);
 		}
 		
-		protected T createAddressInternal(S segments[], String zone) {
+		protected T createAddressInternal(S segments[], CharSequence zone) {
 			return createAddress(createSectionInternal(segments), zone);
 		}
 		
-		protected T createAddressInternal(byte bytes[], Integer prefix, String zone) {
+		protected T createAddressInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
+			return createAddress(createSection(lowerValueProvider, upperValueProvider, prefix));
+		}
+		
+		protected T createAddressInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix, CharSequence zone) {
+			return createAddress(createSection(lowerValueProvider, upperValueProvider, prefix), zone);
+		}
+
+		protected T createAddressInternal(byte bytes[], Integer prefix) {
+			return createAddress(createSectionInternal(bytes, prefix));
+		}
+		
+		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone) {
 			return createAddress(createSectionInternal(bytes, prefix), zone);
 		}
 		
-		@Override
-		protected T createAddressInternal(R section, String zone, IPAddressString fromString, HostName fromHost) {
-			T result = createAddress(section, zone);
-			result.fromString = fromString;
-			result.fromHost = fromHost;
-			return result;
+		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone, HostName fromHost) {
+			return createAddressInternal(createSectionInternal(bytes, prefix), zone, fromHost);
 		}
 		
+		protected T createAddressInternal(byte bytes[], Integer prefix, HostName fromHost) {
+			return createAddressInternal(createSectionInternal(bytes, prefix), fromHost);
+		}
+
+		@Override
+		protected T createAddressInternal(R section, CharSequence zone, HostIdentifierString from) {
+			T result = createAddress(section, zone);
+			result.cache(from);
+			return result;
+		}
+
+		@Override
+		protected T createAddressInternal(R section, HostIdentifierString from) {
+			T result = createAddress(section);
+			result.cache(from);
+			return result;
+		}
+
 		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it (internally it is always null) */
-		protected abstract T createAddress(R section, String zone);
+		protected abstract T createAddress(R section, CharSequence zone);
+
+		@Override
+		public abstract T createAddress(R section);
 	}
 	
-	private IPAddressCreator<T, ?, S> creator;
+	private IPAddressCreator<T, R, ?, S> creator;
 	
 	@SuppressWarnings("unchecked")
 	protected IPAddressTypeNetwork(Class<T> addressType) {
@@ -113,9 +155,11 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 	
 	protected abstract BiFunction<T, Integer, S> getSegmentProducer();
 	
-	protected abstract IPAddressCreator<T, ?, S> createAddressCreator();
+	protected abstract Function<T, R> getSectionProducer();
+	
+	protected abstract IPAddressCreator<T, R, ?, S> createAddressCreator();
 
-	protected IPAddressCreator<T, ?, S> getAddressCreator() {
+	protected IPAddressCreator<T, R, ?, S> getAddressCreator() {
 		return creator;
 	}
 
@@ -172,10 +216,14 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 		return getNetworkMask(networkPrefixLength, true);
 	}
 	
-	
 	@Override
 	public T getNetworkMask(int networkPrefixLength, boolean withPrefixLength) {
 		return getMask(networkPrefixLength, withPrefixLength ? subnets : subnetMasks, true, withPrefixLength);
+	}
+	
+	@Override
+	public R getNetworkMaskSection(int networkPrefixLength) {
+		return getSectionProducer().apply(getNetworkMask(networkPrefixLength, true));
 	}
 	
 	@Override
@@ -183,12 +231,17 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 		return getMask(networkPrefixLength, hostMasks, false, false);
 	}
 	
+	@Override
+	public R getHostMaskSection(int networkPrefixLength) {
+		return getSectionProducer().apply(getHostMask(networkPrefixLength));
+	}
+	
 	private T getMask(int networkPrefixLength, T cache[], boolean network, boolean withPrefixLength) {
 		int bits = networkPrefixLength;
 		IPVersion version = getIPVersion();
 		int addressBitLength = IPAddress.bitCount(version);
 		if(bits < 0 || bits > addressBitLength) {
-			throw new IPAddressTypeException(bits, version, "ipaddress.error.prefixSize");
+			throw new AddressTypeException(bits, version, "ipaddress.error.prefixSize");
 		}
 		int cacheIndex = bits;
 		T subnet = cache[cacheIndex];
@@ -209,7 +262,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 					int bitsPerSegment = IPAddress.bitsPerSegment(version);
 					onesSubnet = cache[onesSubnetIndex];
 					if(onesSubnet == null) {
-						IPAddressCreator<T, ?, S> creator = getAddressCreator();
+						IPAddressCreator<T, ?, ?, S> creator = getAddressCreator();
 						S newSegments[] = creator.createSegmentArray(segmentCount);
 						int maxSegmentValue = IPAddress.maxSegmentValue(version);
 						if(network && withPrefixLength) {
@@ -222,12 +275,12 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 							Arrays.fill(newSegments, segment);
 						}
 						onesSubnet = creator.createAddressInternal(newSegments); /* address creation */
-						initMaskCachedValues(onesSubnet.addressSection, network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment);
+						initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment);
 						cache[onesSubnetIndex] = onesSubnet;
 					}
 					zerosSubnet = cache[zerosSubnetIndex];
 					if(zerosSubnet == null) {
-						IPAddressCreator<T, ?, S> creator = getAddressCreator();
+						IPAddressCreator<T, ?, ?, S> creator = getAddressCreator();
 						S newSegments[] = creator.createSegmentArray(segmentCount);
 						S seg;
 						if(network && withPrefixLength) {
@@ -237,7 +290,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 						}
 						Arrays.fill(newSegments, seg);
 						zerosSubnet = creator.createAddressInternal(newSegments); /* address creation */
-						initMaskCachedValues(zerosSubnet.addressSection, network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment);
+						initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment);
 						cache[zerosSubnetIndex] = zerosSubnet;
 					}
 				}
@@ -252,7 +305,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 					int prefix = bits;
 					S onesSegment = segProducer.apply(onesSubnet, 1);
 					S zerosSegment = segProducer.apply(zerosSubnet, 1);
-					IPAddressCreator<T, ?, S> creator = getAddressCreator();
+					IPAddressCreator<T, ?, ?, S> creator = getAddressCreator();
 					
 					ArrayList<S> segmentList = new ArrayList<S>(segmentCount);
 					int i = 0;
@@ -298,7 +351,7 @@ public abstract class IPAddressTypeNetwork<T extends IPAddress, S extends IPAddr
 					subnet = creator.createAddressInternal(newSegments); /* address creation */
 					
 					//initialize the cache fields since we know what they are now - they do not have to be calculated later
-					initMaskCachedValues(subnet.addressSection, network, withPrefixLength, addressBitLength, prefix, segmentCount, bitsPerSegment);
+					initMaskCachedValues(subnet.getSection(), network, withPrefixLength, addressBitLength, prefix, segmentCount, bitsPerSegment);
 					cache[cacheIndex] = subnet; //last thing is to put into the cache - don't put it there before we are done with it
 				} // end subnet from cache is null
 			} //end synchronized

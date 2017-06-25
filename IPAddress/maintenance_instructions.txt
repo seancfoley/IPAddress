@@ -1,6 +1,7 @@
 instructions
 
-Neither of these procedures are difficult if you follow the steps carefully.
+These procedures are not difficult if you follow the steps carefully.
+
 
 To update the javadoc
 ---------------------
@@ -21,6 +22,7 @@ Since those files do not belong to any branch, they will remain in your IPAddres
 6. You commit and push the new contents in the apidocs folder.
 
 Done.
+
 
 To update the gh-pages docs
 ---------------------------
@@ -46,6 +48,32 @@ You do not delete the style settings for them because the setting also applied t
 7. You commit the index.html file in the github repository.
 
 Done.
+
+
+To do a release
+----------------------
+
+1. Edit the release property in build.xml and pom.xml
+
+2. Use build.xml to "create dist jar" and replace IPAddress.jar with the dist jar created.
+
+3. Check in and push the changes.
+
+4. Create the release using the github releases button - this creates the tag as well
+
+5. Use build.xml to "create maven artifacts" and "sign maven artifacts".  You should see the maven artifacts created.
+
+The signing will create a batch file to do the signing.  Running gpg firectly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
+
+6. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
+
+7. Follow instructions here for manual deployment:
+http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
+which requires that you go here https://oss.sonatype.org/ to upload.
+	
+Your original sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28545
+
+Use your sonatype user/pw.
 
 
 

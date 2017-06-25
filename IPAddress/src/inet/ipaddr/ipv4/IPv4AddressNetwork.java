@@ -1,18 +1,37 @@
+/*
+ * Copyright 2017 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.ipv4;
 
-import inet.ipaddr.IPAddress.IPVersion;
-
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressTypeNetwork;
 
 /**
  * 
  * @author sfoley
  */
-public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4AddressSegment> {
+public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4AddressSection, IPv4AddressSegment> {
 	
-	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSegment> {
+	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment> {
 		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 		
 		IPv4AddressSegment emptySegments[] = {};
@@ -125,14 +144,27 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 			return new IPv4AddressSection(segments, false);
 		}
 		
-		@Override
-		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[], IPv4AddressSection mixedSection) {
-			return mixedSection;
+		protected IPv4AddressSection createSectionInternal(int value) {
+			return new IPv4AddressSection(value);
+		}
+		
+		protected IPv4AddressSection createSectionInternal(int value, Integer prefix) {
+			return new IPv4AddressSection(value, prefix);
 		}
 		
 		@Override
+		protected IPv4AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
+			return new IPv4AddressSection(lowerValueProvider, upperValueProvider, prefix);
+		}
+
+		@Override
 		protected IPv4AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
 			return new IPv4AddressSection(bytes, prefix, false);
+		}
+		
+		@Override
+		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment[] segments, int startIndex, boolean extended) {
+			return new IPv4AddressSection(segments);
 		}
 		
 		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
@@ -146,22 +178,21 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		public IPv4AddressSection createSection(IPv4AddressSegment segments[]) {
 			return new IPv4AddressSection(segments);
 		}
-		
-		
+
 		@Override
 		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
 			return createAddress(createSectionInternal(segments));
 		}
 		
 		@Override
-		protected IPv4Address createAddress(IPv4AddressSection section, String zone) {
+		protected IPv4Address createAddress(IPv4AddressSection section, CharSequence zone) {
 			return createAddress(section);
 		}
 		
+		@Override
 		public IPv4Address createAddress(IPv4AddressSection section) {
 			return new IPv4Address(section);
 		}
-		
 	}
 	
 	IPv4AddressNetwork() {
@@ -171,6 +202,11 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 	@Override
 	protected BiFunction<IPv4Address, Integer, IPv4AddressSegment> getSegmentProducer() {
 		return (address, index) -> address.getSegment(index);
+	}
+	
+	@Override
+	protected Function<IPv4Address, IPv4AddressSection> getSectionProducer() {
+		return IPv4Address::getSection;
 	}
 
 	@Override
