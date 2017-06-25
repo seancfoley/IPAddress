@@ -11,5 +11,7 @@
 # Javadoc must not be committed to master, only to gh-pages
 javadoc/
 
+IPAddress/bin
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
