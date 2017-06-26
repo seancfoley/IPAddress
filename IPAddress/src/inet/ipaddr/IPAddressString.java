@@ -91,9 +91,6 @@ import inet.ipaddr.mac.MACAddress;
  *  /64 is interpreted as the 64 bit network mask (ie 64 ones followed by 64 zeros)</li>
  * </ul>
  * <p>
- * Not supported:<br>
- * IPv6 dotted decimal: 1.2.3.444.1.2.3.4.1.2.3.4.1.2.3.4<br>
- * <p>
  * <h2>Usage</h2>
  * Once you have constructed an IPAddressString object, you can convert it to an IPAddress object with various methods.  
  * It is as simple as:<br>
@@ -156,6 +153,7 @@ import inet.ipaddr.mac.MACAddress;
  * Another: https://www.midnightfreddie.com/ipv6-ipv4-similar.html
  * 
  * Some parsing code for various languages: https://rosettacode.org/wiki/Parse_an_IP_Address
+ * http://www.cisco.com/c/en/us/support/docs/ip/routing-information-protocol-rip/13788-3.html
  * 
  */
 
