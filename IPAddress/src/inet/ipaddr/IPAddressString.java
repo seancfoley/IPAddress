@@ -529,7 +529,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	/**
 	 * If this address string was constructed from a host address with prefix, 
 	 * then this provides just the host address, rather than the subnet block of addresses
-	 * provided by getAddress that incorporates the prefix.
+	 * provided by {@link #getAddress()} that incorporates the prefix.
+	 * 
+	 * Otherwise this returns the same object as {@link #getAddress()}.
+	 * 
+	 * This method returns null for invalid formats, the equivalent method {@link #toHostAddress()} throws exceptions for invalid formats.
 	 * 
 	 * @return
 	 */
@@ -551,6 +555,17 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return null;
 	}
 	
+	/**
+	 * If this represents an ip address, returns that address.
+	 * Otherwise, returns null, but only for strings that are considered valid address strings but cannot be converted to address objects,
+	 * or are invalid address strings.
+	 * 
+	 * This method will return null for invalid formats.  Use {@link #toAddress()} for an equivalent method that throws exceptions for invalid formats.
+	 * 
+	 * If you have a prefix address and you wish to get only the host rather the the subnet block of addresses with the same prefix, use {@link #getHostAddress()}
+	 * 
+	 * @return the address
+	 */
 	@Override
 	public IPAddress getAddress() {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
@@ -561,6 +576,17 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return null;
 	}
 
+	/**
+	 * If this address string was constructed from a host address with prefix, 
+	 * then this provides just the host address, rather than the subnet block of addresses
+	 * provided by {@link #toAddress()} that incorporates the prefix.
+	 * 
+	 *  Otherwise this returns the same object as {@link #toAddress()}
+	 * 
+	 * This method throws exceptions for invalid formats, the equivalent method {@link #getHostAddress()} will simply return null in such cases.
+	 * 
+	 * @return
+	 */
 	public IPAddress toHostAddress() throws AddressStringException, AddressTypeException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getHostAddress();
@@ -600,6 +626,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * which may be the case if this object represents a network prefix or if it represents the empty address string.
 	 * 
 	 * If the string used to construct this object is not a known format (empty string, address, range of addresses, or prefix) then this method throws IPAddressException.
+	 * 
+	 * An equivalent method that does not throw exception for invalid formats is {@link #getAddress()}
+	 * 
+	 * If you have a prefixed address and you wish to get only the host rather the the subnet block of addresses with the same prefix, use {@link #toHostAddress()}
+
 	 * 
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
 	 * 

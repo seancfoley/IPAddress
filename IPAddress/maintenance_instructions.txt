@@ -48,10 +48,14 @@ You do not delete the style settings for them because the setting also applied t
 
 7. You commit the index.html file in the github repository.
 
-Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save as html, edit html yourself, then save as odt again, which helped.
-But even then you cannot create new hyperlink anchors, the underlying issue seems to be anchors in new Word inserted in front of heading, while old anchors surrounded heading.
-
 Done.
+
+Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save as html, edit html yourself, then save as odt again, which helped.
+But even then you cannot create new hyperlink anchors that match the existing, the underlying issue seems to be anchors in new Word inserted in front of heading, while old anchors surrounded heading:
+<a name="x"></a>Bla 
+<a name="x">Bla</a>
+
+
 
 
 To do a release

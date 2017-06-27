@@ -500,7 +500,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	
 	/**
 	 * If this represents an ip address, returns that address.
-	 * Otherwise, returns null.  Call toResolvedAddress or resolve to get the resolved address, which is different.
+	 * Otherwise, returns null.  Call {@link #toAddress()} or {@link #getAddress()} to get the resolved address.
 	 * 
 	 * @return
 	 */
@@ -511,6 +511,17 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return null;
 	}
 	
+	/**
+	 * If this represents an ip address, returns that address.
+	 * If this represents a host, returns the resolved ip address of that host.
+	 * Otherwise, returns null, but only for strings that are considered valid address strings but cannot be converted to address objects.
+	 * 
+	 * This method will throw exceptions for invalid formats and failures to resolve the address.  The equivalent method {@link #getAddress()} will simply return null rather than throw those exceptions.
+	 * 
+	 * If you wish to get the represented address and avoid DNS resolution, use {@link #asAddress()} or {@link #asAddressString()}
+	 * 
+	 * @return
+	 */
 	@Override
 	public IPAddress toAddress() throws UnknownHostException, HostNameException {
 		IPAddress addr = resolvedAddress;
@@ -567,6 +578,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * If this represents an ip address, returns that address.
 	 * If this represents a host, returns the resolved ip address of that host.
 	 * Otherwise, returns null.
+	 * 
+	 * If you wish to get the represented address and avoid DNS resolution, use {@link #asAddress()} or {@link #asAddressString()}
+	 * 
 	 * @return
 	 */
 	@Override
