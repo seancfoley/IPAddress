@@ -359,7 +359,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * Validates this string is a valid IPv4 address, and if not, throws an exception with a descriptive message indicating why it is not.
+	 * Validates that this string is a valid IPv4 address, and if not, throws an exception with a descriptive message indicating why it is not.
 	 * @throws AddressStringException
 	 */
 	public void validateIPv4() throws AddressStringException {
@@ -368,7 +368,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * Validates this string is a valid IPv6 address, and if not, throws an exception with a descriptive message indicating why it is not.
+	 * Validates that this string is a valid IPv6 address, and if not, throws an exception with a descriptive message indicating why it is not.
 	 * @throws AddressStringException
 	 */
 	public void validateIPv6() throws AddressStringException {
@@ -377,7 +377,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
-	 * Validates this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
+	 * Validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
 	 * @throws AddressStringException
 	 */
 	@Override

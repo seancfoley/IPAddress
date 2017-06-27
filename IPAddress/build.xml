@@ -56,7 +56,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		</delete>
 		<!-- these packages used internally - ${rootPackage}.format.validate -->
 		<javadoc sourcepath="${src_location}" destdir="${rootjavadocdir}"
-			packagenames="${rootPackage},${rootPackage}.format,${rootPackage}.format.util,${rootPackage}.format.util.sql,${rootPackage}.ipv6,${rootPackage}.ipv4"
+			packagenames="${rootPackage},${rootPackage}.format,${rootPackage}.format.util,${rootPackage}.format.util.sql,${rootPackage}.ipv6,${rootPackage}.ipv4,${rootPackage}.mac"
 			stylesheetfile="${functional_doclet_dir}/stylesheet_custom.css"
 			verbose="true"
 			author="true"

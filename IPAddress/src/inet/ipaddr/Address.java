@@ -242,7 +242,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	}
 	
 	/**
-	 * Gets the bytes for the lowest address in the range represented by this address.
+	 * Gets the bytes for the highest address in the range represented by this address.
 	 * 
 	 * @return
 	 */
@@ -317,7 +317,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	/**
 	 * Returns a host identifier string representation for this address,
-	 * which will of course be pre-validated.
+	 * which will be validated already.
 	 * 
 	 * @return
 	 */
@@ -336,8 +336,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	}
 
 	/**
-	 * The normalized string returned by this method is consistent with java.net.Inet4Address and java.net.Inet6Address.
-	 * Addresses are not compressed nor mixed in this representation.
+	 * The normalized string returned by this method is a common and consistent representation of the address.
 	 * 
 	 * The string returned by this method is unique for each address.
 	 */

@@ -34,7 +34,8 @@ You edit that file first.  But that contains only the content, and not the menu 
 If you are using some other word processor you would save as html but at the moment the online file was generated from Word.
 
 3. In the gh-pages branch of the IPAddress repository, you edit the file index.html.  
-At this point in time I have just been using the github editor which works directly on the github repo and thus no push will be required, just a commit.
+In some cases I have just been using the github editor which works directly on the github repo and thus no push will be required, just a commit.
+However, if you do it with Eclipse, you can switch to the branch inside Eclipse and then go to the github repo in the filesystem.
 
 4. Inside index.html, there are two sections that can be replaced: the <style> in the html header, and the content inside the <section> tags.
 There are comments that denote the start and end.
@@ -47,11 +48,17 @@ You do not delete the style settings for them because the setting also applied t
 
 7. You commit the index.html file in the github repository.
 
+Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save as html, edit html yourself, then save as odt again, which helped.
+But even then you cannot create new hyperlink anchors, the underlying issue seems to be anchors in new Word inserted in front of heading, while old anchors surrounded heading.
+
 Done.
 
 
 To do a release
 ----------------------
+
+0. If you are doing a major release, in gh-pages branch create a new folder with the old docs and put a link to it from the main page, to preserve them.
+Figure out your branching strategy for the release, if applicable.
 
 1. Edit the release property in build.xml and pom.xml
 
@@ -74,6 +81,4 @@ which requires that you go here https://oss.sonatype.org/ to upload.
 Your original sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28545
 
 Use your sonatype user/pw.
-
-
 

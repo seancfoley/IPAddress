@@ -103,8 +103,8 @@ public interface AddressComponent extends AddressItem {
 	Iterable<? extends AddressComponent> getIterable();
 
 	/**
-	 * Address components can represent a single segment, address, section or it can represent multiple,
-	 * typically a subnet or range of values.
+	 * An address component can represent a single segment, address, or section, or it can represent multiple,
+	 * typically a subnet or range of segment, address, or section values.
 	 * 
 	 * Call {@link #isMultiple()} to determine if this instance represents multiple.
 	 * 
