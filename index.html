@@ -1042,7 +1042,7 @@ font-family:Consolas;color:black'>              </span><span style=
 font-family:Consolas;color:black'>       };</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>       <i><span style='background:silver'>parseHost</span></i>(</span><span
+font-family:Consolas;color:black'>       <i>parseHost</i>(</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostFormats</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
 
@@ -1198,9 +1198,8 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       </span><span style='font-size:10.0pt;
-font-family:Consolas;color:black;background:silver'>String</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>prefixedFormats</span><span
+font-family:Consolas;color:black'>String </span><span style='font-size:10.0pt;
+font-family:Consolas;color:#6A3E3E'>prefixedFormats</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>[] = {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
@@ -1236,8 +1235,8 @@ font-family:Consolas;color:black'>              </span><span style=
 style='font-size:10.0pt;font-family:Consolas;color:black'>};</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>       <span style='background:silver'>String</span>
-</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>rangeFormats</span><span
+font-family:Consolas;color:black'>       String </span><span style='font-size:
+10.0pt;font-family:Consolas;color:#6A3E3E'>rangeFormats</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>[] = {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
@@ -1273,8 +1272,8 @@ style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>rangeFormats</span><
 style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>       <span style='background:silver'>String</span>
-</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostFormats</span><span
+font-family:Consolas;color:black'>       String </span><span style='font-size:
+10.0pt;font-family:Consolas;color:#6A3E3E'>hostFormats</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>[] = {</span></p>
 
 <p class=MsoNormal style='margin-left:35.45pt;text-indent:35.45pt;text-autospace:
@@ -1501,8 +1500,7 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>HostNameParameters </s
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>HOST_OPTIONS_EXAMPLE</span></i></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><b><span
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>new</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> <span
-style='background:silver'>HostNameParameters.Builder</span>().</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'> HostNameParameters.Builder().</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>              allowEmpty(</span><b><span
@@ -1583,7 +1581,7 @@ style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>false</span></b><spa
 style='font-size:10.0pt;font-family:Consolas;color:black'>).</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>                           allowWildcardedSeparator(</span><b><span
+font-family:Consolas;color:black'>                           allowWildcardedSeparator(</span><b><span
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>true</span></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>).</span></p>
 
@@ -1631,11 +1629,10 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot;host: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>getHost</span>() + </span><span style='font-size:
-10.0pt;font-family:Consolas;color:#2A00FF'>&quot; address: &quot;</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.getHost() + </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; address:
+&quot;</span><span style='font-size:10.0pt;font-family:Consolas;color:black'> +
+</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getAddress() + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; port: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
@@ -1658,9 +1655,8 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot;host: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>getHost</span>() + </span><span style='font-size:
-10.0pt;font-family:Consolas;color:#2A00FF'>&quot; port: &quot;</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.getHost() + </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; port: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getPort());</span></p>
@@ -1681,11 +1677,10 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot;host: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>getHost</span>() + </span><span style='font-size:
-10.0pt;font-family:Consolas;color:#2A00FF'>&quot; address: &quot;</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.getHost() + </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; address:
+&quot;</span><span style='font-size:10.0pt;font-family:Consolas;color:black'> +
+</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>hostName</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getAddress() + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; port: &quot;</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
@@ -1837,8 +1832,7 @@ style='font-family:"Arial",sans-serif;color:#24292E'>10.1.2.3/24 which has the
 prefix length of 24, this notation may typically denote the single, distinct
 interface address 10.1.2.3 with the first 24 bits indicating the IPv4 block, or
 the the IPv4 block of 255 addresses which includes 10.1.2.3 (although typically
-the block would be denoted 10.1.2.0/24 with zeros outside the length of the
-prefix).</span></p>
+the block would be denoted 10.1.2.0/24 with zeros outside the length of the prefix).</span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
@@ -1946,9 +1940,19 @@ style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>In this
 library, 10.1.2.3/24 is equivalent to 10.1.2.* when it comes to equality or
 comparison.  The prefix is stored in the address, so the former will be aware
 that it is &quot;prefixed&quot;, printing strings that incorporate the prefix
-and providing the network section upon calls to getNetworkSection() in
-IPAddress.  If you have the latter address with no prefix length, you can
-convert to the former using the method toPrefixedEquivalent() in IPAddress.</span></span></p>
+and providing the network section upon calls to </span></span><span
+class=StrongEmphasis><span style='font-family:Consolas;color:#222222;
+font-weight:normal'>getNetworkSection()</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'> in </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>IPAddress</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'>.  If you have the latter address with no prefix length,
+you can convert to the former using the method </span></span><span
+class=StrongEmphasis><span style='font-family:Consolas;color:#222222;
+font-weight:normal'>toPrefixedEquivalent()</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'> in IPAddress.</span></span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas'>&nbsp;</span></p>
@@ -1986,8 +1990,8 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>);</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'>//base 85</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>       <span style='background:silver'>IPAddress</span>
-</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+font-family:Consolas;color:black'>       IPAddress </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>ipAddressString</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getAddress();</span></p>
@@ -2258,7 +2262,7 @@ Sections</span></a></h2>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Addresses
 can be broken up into sections, and reconstituted from sections.  A section is
-a series of segments.  You can get the section for the full address by calling </span><span
+a series of segments.  You can get the section for the full address by calling </span><span
 style='font-family:Consolas;color:#222222'>getSection()</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, or you can get
 subsections by calling one of the variants, either </span><span
@@ -2385,7 +2389,7 @@ style='font-family:Consolas;color:#222222'> applyPrefixLength</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, and </span><span
 style='font-family:Consolas;color:#222222'>setPrefixLength</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> allow you to apply and
-adjust prefix lengths and masks to addresses and subnets.  When applying an
+adjust prefix lengths and masks to addresses and subnets.  When applying an
 operation to a subnet, the operation is applied to every member of the subnet,
 so the result must something be representable with contiguous ranges, or you
 will get AddressTypeException.  For instance, masking the subnet block of 255
@@ -2583,7 +2587,7 @@ style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'>//removePrefixLength
 
 <p class=MsoNormal style='text-indent:35.45pt;text-autospace:none'><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>IPAddress </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E;background:yellow'>prefixRemoved</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>prefixRemoved</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnet</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.removePrefixLength(</span><b><span
@@ -2597,8 +2601,8 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot;prefix
 removed &quot;</span><span style='font-size:10.0pt;font-family:Consolas;
 color:black'> + </span><span style='font-size:10.0pt;font-family:Consolas;
-color:#6A3E3E;background:silver'>prefixRemoved</span><span style='font-size:
-10.0pt;font-family:Consolas;color:black'>);</span></p>
+color:#6A3E3E'>prefixRemoved</span><span style='font-size:10.0pt;font-family:
+Consolas;color:black'>);</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas'>&nbsp;</span></p>
@@ -2690,7 +2694,7 @@ address will span the same range of values as the original.</span></p>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
 style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><span style='font-family:Consolas;color:black;background:silver'>getMaskPrefixLength</span><span
+</span></span><span style='font-family:Consolas;color:black'>getMaskPrefixLength</span><span
 style='font-family:"Arial",sans-serif;color:black'>: Will return the prefix
 length for a network or host mask, or null otherwise</span></p>
 
@@ -2707,7 +2711,7 @@ To remove, use a variant of </span><span style='font-family:Consolas'>getSection
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
 style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><span style='font-family:Consolas;color:black;background:silver'>adjustPrefixBySegment</span><span
+</span></span><span style='font-family:Consolas;color:black'>adjustPrefixBySegment</span><span
 style='font-family:"Arial",sans-serif;color:black'>: Will create a larger
 network or smaller subnet address by increasing or decreasing the prefix length
 to the next segment boundary. If prefix length is increased, the additional
@@ -2716,20 +2720,21 @@ prefix bits can be either zero or the full range of possible values. </span></p>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
 style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><span style='font-family:"Courier New"'>removePrefixLength,
-adjustPrefixLength, applyPrefixLength, setPrefixLength</span><span
+</span></span><span style='font-family:Consolas'>removePrefixLength</span><span
+style='font-family:"Courier New"'>, </span><span style='font-family:Consolas'>adjustPrefixLength</span><span
+style='font-family:"Courier New"'>, </span><span style='font-family:Consolas'>applyPrefixLength</span><span
+style='font-family:"Courier New"'>, </span><span style='font-family:Consolas'>setPrefixLength</span><span
 style='font-family:"Arial",sans-serif'>:  Add, remove or adjust prefix lengths
 by the indicated values.  There are variants to control whether extended prefix
 lengths have zeros for the added bits, or whether the bits remain full range. 
 The default behavior when extending a prefix length is to insert zeros in the
 bits added to the prefix.  The difference between </span><span
-style='font-family:"Courier New"'>applyPrefixLength </span><span
-style='font-family:"Arial",sans-serif'>and </span><span style='font-family:
-"Courier New"'>setPrefixLength</span><span style='font-family:"Arial",sans-serif'>
-is that the former does not shorten a prefix length; </span><span
-style='font-family:"Courier New"'>applyPrefixLength</span><span
-style='font-family:"Arial",sans-serif'> will not decrease the size of a
-subnet.  </span></p>
+style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
+"Courier New"'> </span><span style='font-family:"Arial",sans-serif'>and </span><span
+style='font-family:Consolas'>setPrefixLength</span><span style='font-family:
+"Arial",sans-serif'> is that the former does not shorten a prefix length; </span><span
+style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
+"Arial",sans-serif'> will not decrease the size of a subnet.  </span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
@@ -3567,18 +3572,18 @@ been allocated.</span></p>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>MAC Addresses don’t have the exact same concept of prefix length
-as IP addresses.  But concept of prefix can be applied in a more implicit
-sense.  For instance, a MAC address is typically divided into an OUI
-(Organizationally Unique Identifier) and ODI (Organizational Defined
-Identifier), so you might consider the OUI bits as the prefix.  There are other
-ways of assigning MAC address blocks as well, such as IAB (individual address
-block), or MA-S/MA-M/MA-L (MAC Address block small, medium, and large), in
-which a certain number of higher bits are provided as an identifier to
-organizations from which they can create various extended identifiers using the
-lower bits.  There is generally a pre-defined set of high bits that can be
-considered a prefix. This prefix is not variable and was typically assigned by
-the IEEE. However, there is no explicit way to represent a MAC address with an
-associated prefix, so the prefix is implicit to the address when it is created.</span></p>
+as IP addresses.  But concept of prefix can be applied in a more implicit sense. 
+For instance, a MAC address is typically divided into an OUI (Organizationally
+Unique Identifier) and ODI (Organizational Defined Identifier), so you might
+consider the OUI bits as the prefix.  There are other ways of assigning MAC
+address blocks as well, such as IAB (individual address block), or
+MA-S/MA-M/MA-L (MAC Address block small, medium, and large), in which a certain
+number of higher bits are provided as an identifier to organizations from which
+they can create various extended identifiers using the lower bits.  There is
+generally a pre-defined set of high bits that can be considered a prefix. This
+prefix is not variable and was typically assigned by the IEEE. However, there
+is no explicit way to represent a MAC address with an associated prefix, so the
+prefix is implicit to the address when it is created.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
@@ -3590,8 +3595,8 @@ with the same set of higher bits.</span></p>
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>For instance, the prefix length of aa:*:*:*:*:* is 8 because the
 address represents all addresses that start with the same 8 bits
-&quot;aa&quot;.  The prefix length of aa:*:cc:*:*:* is 24 because the address represents
-all addresses that start with the same 16 bits aa:*:cc.  The address
+&quot;aa&quot;.  The prefix length of aa:*:cc:*:*:* is 24 because the address
+represents all addresses that start with the same 16 bits aa:*:cc.  The address
 aa:bb:cc:dd:ee:ff does not have a prefix or prefix length as it represents just
 a single address.</span></p>
 
@@ -3623,7 +3628,7 @@ bits are reversed in each byte of a MAC address.  </span></p>
 <p class=Textbody><span style='font-family:"Arial",sans-serif'>&nbsp;</span></p>
 
 <h2><a name="_IPv6_–_MAC"><span style='font-size:18.0pt;font-style:normal'>IPv6
-– MAC Address Integration</span> </a> </h2>
+– MAC Address Integration</span></a></h2>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif'>There
@@ -3799,10 +3804,9 @@ a full IPv6 address section containing all segments:</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><b><span style='font-size:10.0pt;
 font-family:Consolas;color:#7F0055'>public</span></b><span style='font-size:
-10.0pt;font-family:Consolas;color:black'> <span style='background:silver'>IPv6AddressSection</span>
-prepend(IPv6AddressSection </span><span style='font-size:10.0pt;font-family:
-Consolas;color:#6A3E3E'>other</span><span style='font-size:10.0pt;font-family:
-Consolas;color:black'>)</span></p>
+10.0pt;font-family:Consolas;color:black'> IPv6AddressSection prepend(IPv6AddressSection
+</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>other</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>)</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><b><span style='font-size:10.0pt;
 font-family:Consolas;color:#7F0055'>public</span></b><span style='font-size:
@@ -3860,11 +3864,11 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>)</span></p>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif'>For
 instance, if the IPV6 address section is the 8 bytes corresponding to the
-network prefix of an IPV6 address section, then the resulting MAC address
-section will be 0 bytes.  If the IPV6 address section is the 8 bytes
-corresponding to the interface identifier, and that identifier has the required
-0xfffe values in the 5<sup>th</sup> and 6<sup>th</sup> bytes, then the MAC
-address section will be the full 8 bytes of an EUI-64 MAC address.</span></p>
+network prefix of an IPV6 address section, then the resulting MAC address section
+will be 0 bytes.  If the IPV6 address section is the 8 bytes corresponding to
+the interface identifier, and that identifier has the required 0xfffe values in
+the 5<sup>th</sup> and 6<sup>th</sup> bytes, then the MAC address section will
+be the full 8 bytes of an EUI-64 MAC address.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif'>&nbsp;</span></p>
@@ -4126,9 +4130,8 @@ font-family:Consolas;color:black'>       </span><b><span style='font-size:
 font-family:Consolas;color:#7F0055'>static</span></b><span style='font-size:
 10.0pt;font-family:Consolas;color:black'> </span><b><span style='font-size:
 10.0pt;font-family:Consolas;color:#7F0055'>void</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> <span
-style='background:silver'>printStrings</span>(AddressSegmentSeries </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>series</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> printStrings(AddressSegmentSeries
+</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>series</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
@@ -4430,42 +4433,37 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toCanonicalString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toCanonicalString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toFullString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toFullString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toNormalizedString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toNormalizedString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toSQLWildcardString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toSQLWildcardString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toSubnetString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toSubnetString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       </span><b><span style='font-size:10.0pt;
@@ -4482,18 +4480,16 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.isIPv6()) {</span></p
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>                    System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toIPv6().toMixedString());</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toIPv6().toMixedString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>                    System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toIPv6().toBase85String());</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toIPv6().toBase85String());</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'>//throws for
 a:b:c:*:: because the address cannot be represented as a range of two single
 values</span></p>
@@ -4504,10 +4500,9 @@ font-family:Consolas;color:black'>              }</span></p>
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>              System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toBinaryString());</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toBinaryString());</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'>//throws for
 a:b:c:*:: because the address cannot be represented as a range of two single
 values</span></p>
@@ -4515,10 +4510,9 @@ values</span></p>
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>              System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>.<span
-style='background:silver'>println</span>(</span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E'>address</span><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>.toHexString(</span><b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.toHexString(</span><b><span
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>true</span></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>));</span><span
 style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'> //throws for
@@ -4770,7 +4764,7 @@ font-family:Consolas;color:black'>              </span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       IPAddressSection </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E;background:yellow'>addressSection</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>addressSection</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getNetworkSection(64);</span></p>
@@ -4779,7 +4773,7 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.getNetworkSection(64)
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E;background:silver'>addressSection</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>addressSection</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.toReverseDNSLookupString());</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
@@ -4813,7 +4807,7 @@ font-family:Consolas;color:black'>              </span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       </span><span style='font-size:10.0pt;
-font-family:Consolas;color:#6A3E3E;background:yellow'>addressSection</span><span
+font-family:Consolas;color:#6A3E3E'>addressSection</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>address</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.getNetworkSection();</span></p>
@@ -4822,7 +4816,7 @@ style='font-size:10.0pt;font-family:Consolas;color:black'>.getNetworkSection();<
 font-family:Consolas;color:black'>       System.</span><b><i><span
 style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E;background:silver'>addressSection</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>addressSection</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>.toReverseDNSLookupString());</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
@@ -5298,7 +5292,7 @@ Consolas;color:black'>)</span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>Note that string collections never have duplicate strings.  The
+color:#222222'>Note that string collections never have duplicate strings.  The
 String collections can be customized with</span><span style='font-family:"Helvetica Neue";
 color:#222222'> </span><span style='font-family:Consolas;color:black'>toStrings(IPStringBuilderOptions
 </span><span style='font-family:Consolas;color:#6A3E3E'>options</span><span
@@ -5457,8 +5451,8 @@ margin-left:0in'><span style='font-size:10.0pt;font-family:Consolas;color:black'
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>For
-IPv4, another way to search for a subnet like 1.2.0.0/16 would be to do a
-SELECT with the following string</span></p>
+IPv4, another way to search for a subnet like 1.2.0.0/16 would be to do a SELECT
+with the following string</span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><b><span style='font-size:10.0pt;font-family:Consolas;
@@ -5678,7 +5672,7 @@ style='font-size:18.0pt;font-style:normal'>Networks and Caches</span></a></h2>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
-library provides singleton network objects for each address type.   The network
+library provides singleton network objects for each address type.   The network
 objects have methods for obtaining masks and loopbacks.  The networks also
 provide creator objects that create addresses, sections, and segments, and they
 perform caching of these address components for efficient memory usage and
@@ -5715,11 +5709,10 @@ address library.</span></p>
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
 </span><span style='font-family:Consolas;color:#222222'>IPAddressNetwork</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> class defines </span><span
-style='font-size:10.0pt;font-family:Consolas;color:black;background:silver'>IPAddressStringCache</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> </span><span
-style='font-family:"Arial",sans-serif;color:#222222'>and </span><span
-style='font-size:10.0pt;font-family:Consolas;color:black;background:silver'>HostNameCache</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>.  These cache classes
+style='font-family:Consolas;color:#222222'>IPAddressStringCache</span><span
+style='font-family:"Arial",sans-serif;color:#222222'> and </span><span
+style='font-family:Consolas;color:#222222'>HostNameCache</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>.  These cache classes
 allow you to cache identifier strings.  Note that identifier strings will cache
 their associated addresses, whether parsed or resolved.  Also note that
 addresses cache their associated strings and various other objects.  Therefore,
