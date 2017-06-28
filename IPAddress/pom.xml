@@ -32,7 +32,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
    <scm>
     <connection>scm:git:git://github.com/seancfoley/IPAddress.git</connection>
     <developerConnection>scm:git:ssh://github.com:seancfoley/IPAddress.git</developerConnection>
-    <url>https://github.com/seancfoley/IPAddress/tree/master</url>
+    <url>https://github.com/seancfoley/IPAddress/tree/v2</url>
    </scm>
 
    <distributionManagement>
