@@ -1,0 +1,25 @@
+Version 3 release:
+
+Version 3 additions
+-MAC address support
+-MAC address integration with IPv6
+-IPv6 base 85 strings, both parsing and producing
+-parsing and producing hex strings
+-IPvx octal and binary strings
+-new address framework
+-UNC IPv6 literal strings, both parsing and producing
+-Reverse DNS lookup strings, both parsing and producing
+-new reverse operations - reverse bits, bits, segments, bits per segment
+-new set of prefix and mask operations: set/apply/adjust/removePrefixLength, mask, maskNetwork, bitwiseOr, bitwiseOrNetwork
+-new set of section operations, append/prepend/replace, also getSection variants
+-parse host names with ports
+-parsing delimited segments 1,2.3.4,5,6.7
+-improved host identifier string caches
+-getHostAddress in IPAddressString
+
+
+Version 3 is not backwards compatible with version 2, but migration is straightforward.
+
+No functionality has been removed. A few classes and methods have been renamed.
+-toSubnet methods replaced by mask, maskNetwork, setPrefixLength, applyPrefixLength, removePrefixLength, adjustPrefixLength.
+-IPAddressStringException is now AddressStringException
