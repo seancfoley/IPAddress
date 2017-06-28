@@ -70,7 +70,7 @@ Figure out your branching strategy for the release, if applicable.
 
 3. Check in and push the changes.
 
-4. Create the release using the github releases button - this creates the tag as well
+4. Create the release using the github releases button - this creates the tag as well.  Add the dist jar to the release.  The source code zip and tar files are automatically created by github.
 
 5. Use build.xml to "create maven artifacts" and "sign maven artifacts".  You should see the maven artifacts created.
 
