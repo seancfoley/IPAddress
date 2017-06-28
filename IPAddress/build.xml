@@ -106,8 +106,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		</fileset>
 		<fileset id="ipaddress.javadoc" dir="${rootOffset}/javadoc" />
 		<fileset id="ipaddress.docs" dir="${rootOffset}">
-			<include name="docs.odt" />
-			<include name="build.xml" />
+			<include name="docs.pdf" />
 		</fileset>
 	</target>
 		
