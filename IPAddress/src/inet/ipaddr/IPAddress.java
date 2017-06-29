@@ -536,7 +536,7 @@ public abstract class IPAddress extends Address {
 	/**
 	 * Returns a new IPAddress which has the bits reversed.
 	 * 
-	 * If this represents a range of values, then this throws AddressTypeException.
+	 * If this represents a range of values that cannot be reversed, then this throws AddressTypeException.
 	 * 
 	 * In such cases where isMultiple() is true, call iterator(), getLower(), getUpper() or some other methods to transform the address 
 	 * into an address representing a single value.

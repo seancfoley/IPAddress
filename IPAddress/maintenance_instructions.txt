@@ -70,11 +70,11 @@ Figure out your branching strategy for the release, if applicable.
 
 3. Check in and push the changes.
 
-4. Create the release using the github releases button - this creates the tag as well.  Add the dist jar to the release.  The source code zip and tar files are automatically created by github.
+4. Create the release using the github releases button - this creates the tag as well.  Add the dist jar from (2) to the release.  The source code zip and tar files are automatically created by github.
 
 5. Use build.xml to "create maven artifacts" and "sign maven artifacts".  You should see the maven artifacts created.
 
-The signing will create a batch file to do the signing.  Running gpg firectly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
+The signing will create a batch file to do the signing.  Running gpg directly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
 
 6. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
 

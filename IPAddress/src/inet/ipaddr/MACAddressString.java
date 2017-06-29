@@ -104,11 +104,11 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	
 	private static final long serialVersionUID = 3L;
 
-	/* Generally permissive, settings are the default constants in IPAddressStringParameters.  % denotes a zone, not an SQL wildcard (allowZone is true), and leading zeros are considered decimal, not octal (allow_inet_aton_octal is false). */
+	/* Generally permissive, settings are the default constants in MACAddressStringParameters.  */
 	private static final MACAddressStringParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new MACAddressStringParameters.Builder().toParams();
 	
-	public static final MACAddressString EMPTY_ADDRESS = new MACAddressString(""); //represents a blank address which resolves to the loopback /* address string creation */
-	public static final MACAddressString ALL_ADDRESSES = new MACAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any IPv6 or IPv4 address /* address string creation */
+	public static final MACAddressString EMPTY_ADDRESS = new MACAddressString(""); //represents a blank address /* address string creation */
+	public static final MACAddressString ALL_ADDRESSES = new MACAddressString(IPAddress.SEGMENT_WILDCARD_STR); //represents any MAC address /* address string creation */
 	
 	final MACAddressStringParameters validationOptions;
 	
@@ -117,7 +117,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	
 	// fields for validation state
 	
-	/* exceptions and booleans for validation - for type INVALID both of ipv6Exception and ipv4Exception are non-null */
+	/* exceptions and booleans for validation - for type INVALID it is non-null */
 	private AddressStringException cachedException;
 	
 	//an object created by parsing that will provide the associated IPAddress(es)
@@ -190,7 +190,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	/**
-	 * @return whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
+	 * @return whether the address represents the set all all valid MAC addresses 
 	 */
 	public boolean isAllAddresses() {
 		MACAddress addr = getAddress();
@@ -211,8 +211,8 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	/**
-	 * @return whether the address represents one of the accepted IP address types, which are:
-	 * an IPv4 address, an IPv6 address, a network prefix, the address representing all addresses of all types, or an empty string.
+	 * @return whether the address represents one of the accepted address types, which are:
+	 * a MAC address, the address representing all addresses of all types, or an empty string.
 	 * If it does not, and you want more details, call validate() and examine the thrown exception.
 	 */
 	public boolean isValid() {
@@ -300,12 +300,9 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	/**
-	 * Two IPAddressString objects are equal if they represent the same set of addresses.
-	 * Whether one or the other has an associated network prefix length is not considered.
+	 * Two MACAddressString objects are equal if they represent the same set of addresses.
 	 * 
-	 * Also, an IPAddressString and IPAddress are considered equal if they represent the same set of addresses.
-	 * 
-	 * If an IPAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
+	 * If a MACAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
 	 * 
 	 */
 	@Override
@@ -332,6 +329,15 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		return false;
 	}
 	
+	/**
+	 * Produces the {@link MACAddress} corresponding to this MACAddressString.  
+	 * 
+	 * If this object does not represent a specific MACAddress or a ranged MACAddress, 
+	 * or if the string used to construct this object is not a known format, null is returned.
+	 * 
+	 * It is equivalent to {@link #toAddress()} except for the fact that it does not throw AddressStringException for invalid address formats.
+	 * 
+	 */
 	@Override
 	public MACAddress getAddress() {
 		if(isValid()) { //Avoid the exception the second time with this check
@@ -341,10 +347,10 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	/**
-	 * Produces the {@link MACAddress} corresponding to this IPAddressString.  If this object does not represent a specific MACAddress or a ranged MACAddress, null is returned,
+	 * Produces the {@link MACAddress} corresponding to this MACAddressString.  If this object does not represent a specific MACAddress or a ranged MACAddress, null is returned,
 	 * which may be the case if this object represents the empty address string.
 	 * 
-	 * If the string used to construct this object is not a known format then this method throws IPAddressException.
+	 * If the string used to construct this object is not a known format then this method throws AddressStringException, unlike the equivalent method {@link #getAddress()} which simply returns null in such cases.
 	 * 
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
 	 * 

@@ -90,10 +90,25 @@ import inet.ipaddr.format.AddressItem;
 //
 public interface AddressComponent extends AddressItem {
 	
+	/**
+	 * If this instance represents multiple address components, returns the one with the lowest numeric value.
+	 * 
+	 * @return
+	 */
 	AddressComponent getLower();
 	
+	/**
+	 * If this instance represents multiple address components, returns the one with the highest numeric value.
+	 * 
+	 * @return
+	 */
 	AddressComponent getUpper();
 
+	/**
+	 * returns the number of bytes in each of the address components represented by this instance
+	 * 
+	 * @return
+	 */
 	int getByteCount();
 	
 	/**
@@ -130,7 +145,7 @@ public interface AddressComponent extends AddressItem {
 	/**
 	 * Returns a new AddressComponent with the bits reversed.
 	 * 
-	 * If this represents a range of values, then this throws AddressTypeException.  In a range the most significant bits stay constant
+	 * If this component represents a range of values that cannot be reversed, then this throws AddressTypeException.  In a range the most significant bits stay constant
 	 * while the least significant bits range over different values, so reversing that scenario results in a series of non-consecutive values, in most cases,
 	 * which cannot be represented with a single AddressComponent object.
 	 * 
@@ -145,7 +160,7 @@ public interface AddressComponent extends AddressItem {
 	/**
 	 * Returns an AddressComponent with the bytes reversed.
 	 * 
-	 * If this series represents a range of values, then this throws AddressTypeException.  In a range the most significant bits stay constant
+	 * If this component represents a range of values that cannot be reversed, then this throws AddressTypeException.  In a range the most significant bits stay constant
 	 * while the least significant bits range over different values, so reversing that scenario results in a series of non-consecutive values, in most cases,
 	 * which cannot be represented with a single AddressComponent object.
 	 * 

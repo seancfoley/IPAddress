@@ -500,8 +500,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * Two IPAddressString objects are equal if they represent the same set of addresses.
 	 * Whether one or the other has an associated network prefix length is not considered.
 	 * 
-	 * Also, an IPAddressString and IPAddress are considered equal if they represent the same set of addresses.
-	 * 
 	 * If an IPAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
 	 * 
 	 */
