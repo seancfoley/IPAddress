@@ -18,4 +18,4 @@ Versions:
 
 [v2.0.2](https://github.com/seancfoley/IPAddress/releases/tag/v2.0.2) and later requires Java 8
 
-**Latest Version [v3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0)** features MAC address support, EUI-48 and EUI-64 MAC integration with IPv6, new address framework, new IP string formats parsed and produced, and other additions
+**[Latest Version v3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0)** features MAC address support, EUI-48 and EUI-64 MAC integration with IPv6, new address framework, new IP string formats parsed and produced, and other additions
