@@ -18,6 +18,7 @@
 
 package inet.ipaddr.test;
 
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -1705,6 +1706,15 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 
+	void testBigIntegerConversion(String str, BigInteger expectedInteger) {
+		IPAddressString addrStr = createAddress(str);
+		IPAddress addr = addrStr.getAddress();
+		if(!addr.toBigInteger().equals(expectedInteger)) {
+			addFailure(new Failure("expected " + expectedInteger + " got " + addr.toBigInteger()));
+		}
+		incrementTestCount();
+	}
+
 	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	boolean isLenient() {
 		return false;
@@ -3346,7 +3356,10 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"::0:a:b:c:d:e:f"); // syntactically correct, but bad form (::0:... could be combined)
 		ipv6test(1,"a:b:c:d:e:f:0::");
 		ipv6test(0,"':10.0.0.1");
-		
+
+		testBigIntegerConversion("1.2.3.4", BigInteger.valueOf(16909060));
+		testBigIntegerConversion("1:2:3:4:5:6:7:8", new BigInteger("5192455318486707404433266433261576"));
+
 		testSQLMatching();
 	}
 }

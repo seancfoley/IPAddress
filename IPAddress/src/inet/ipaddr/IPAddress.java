@@ -18,6 +18,7 @@
 
 package inet.ipaddr;
 
+import java.math.BigInteger;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -1008,7 +1009,24 @@ public abstract class IPAddress extends Address {
 		Integer newPrefix = getEquivalentPrefix();
 		return newPrefix == null ? null : applyPrefixLength(newPrefix);
 	}
-	
+
+	/**
+	 * Returns the equivalent BigInteger address.
+	 *
+	 * Examples:
+	 * 1.2.3.4 returns 16909060
+	 * 1:2:3:4:5:6:7:8 returns 5192455318486707404433266433261576
+	 *
+	 * @return
+	 */
+	public BigInteger toBigInteger() {
+		BigInteger value = BigInteger.valueOf(0);
+		for (IPAddressSegment seg : this.getSegments()) {
+			value = value.shiftLeft(this.getBitsPerSegment()).add(BigInteger.valueOf(seg.getLowerValue()));
+		}
+		return value;
+	}
+
 	/**
 	 * Constructs an equivalent address with the smallest CIDR prefix possible (largest network),
 	 * such that the address represents the exact same range of addresses.
