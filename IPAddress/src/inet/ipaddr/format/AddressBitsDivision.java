@@ -18,6 +18,8 @@
 
 package inet.ipaddr.format;
 
+import inet.ipaddr.AddressValueException;
+
 /**
  * An address division for mac
  * 
@@ -26,16 +28,16 @@ package inet.ipaddr.format;
  */
 public class AddressBitsDivision extends AddressDivision {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	protected final int value; //the lower value
-	protected final int upperValue; //the upper value of a CIDR or other type of range, if not a range it is the same as value
+	protected final int upperValue; //the upper value of a range, if not a range it is the same as value
 	private final int bitCount;
 	private final int defaultRadix;
 	
 	public AddressBitsDivision(int value, int bitCount, int defaultRadix) {
 		if(value < 0) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(value);
 		}
 		this.value = this.upperValue = value;
 		this.bitCount = bitCount;
@@ -44,7 +46,7 @@ public class AddressBitsDivision extends AddressDivision {
 
 	public AddressBitsDivision(int lower, int upper, int bitCount, int defaultRadix) {
 		if(lower < 0 || upper < 0) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(lower < 0 ? lower : upper);
 		}
 		if(lower > upper) {
 			int tmp = lower;

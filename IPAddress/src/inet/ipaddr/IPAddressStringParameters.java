@@ -34,7 +34,7 @@ import inet.ipaddr.ipv6.IPv6AddressStringParameters;
  */
 public class IPAddressStringParameters extends AddressStringParameters implements Comparable<IPAddressStringParameters> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	//The defaults are permissive
 	//One thing to note: since zones are allowed by default, the % character is interpreted as a zone, not as an SQL wildcard.
@@ -114,6 +114,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		private boolean allowPrefixOnly = DEFAULT_ALLOW_PREFIX_ONLY;
 		private boolean allowIPv4 = DEFAULT_ALLOW_IPV4;
 		private boolean allowIPv6 = DEFAULT_ALLOW_IPV6;
+		//private boolean noIpv4Params, noIpv6Params;
 		
 		IPv4AddressStringParameters.Builder ipv4Builder;
 		static private IPv4AddressStringParameters DEFAULT_IPV4_OPTS = new IPv4AddressStringParameters.Builder().toParams();
@@ -121,7 +122,6 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		static private IPv6AddressStringParameters DEFAULT_IPV6_OPTS = new IPv6AddressStringParameters.Builder().toParams();
 		
 		HostNameParameters.Builder parent;
-		IPv6AddressStringParameters.Builder mixedParent;
 		
 		public Builder() {}
 		
@@ -179,6 +179,12 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			return this;
 		}
 		
+		public Builder allowWildcardedSeparator(boolean allow) {
+			getIPv4AddressParametersBuilder().allowWildcardedSeparator(allow);
+			getIPv6AddressParametersBuilder().allowWildcardedSeparator(allow);
+			return this;
+		}
+		
 		public Builder setRangeOptions(RangeParameters rangeOptions) {
 			getIPv4AddressParametersBuilder().setRangeOptions(rangeOptions);
 			getIPv6AddressParametersBuilder().setRangeOptions(rangeOptions);
@@ -192,6 +198,13 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		}
 		
 		/**
+		 * Replaces all existing IPv6 parameters with the ones in the supplied parameters instance.
+		 */
+		public void setIPv6AddressParameters(IPv6AddressStringParameters params) {
+			ipv6Builder = params.toBuilder();
+		}
+		
+		/**
 		 * Get the sub-builder for setting IPv6 parameters.
 		 * @return the IPv6 builder
 		 */
@@ -201,6 +214,13 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			}
 			((IPAddressStringFormatParameters.BuilderBase) ipv6Builder).parent = this;
 			return ipv6Builder;
+		}
+		
+		/**
+		 * Replaces all existing IPv4 parameters with the ones in the supplied parameters instance.
+		 */
+		public void setIPv4AddressParameters(IPv4AddressStringParameters params) {
+			ipv4Builder = params.toBuilder();
 		}
 		
 		/**
@@ -232,23 +252,23 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		}
 	}
 
-	public static class IPAddressStringFormatParameters extends AddressStringFormatParameters {
+	public abstract static class IPAddressStringFormatParameters extends AddressStringFormatParameters {
 
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		public static final boolean DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS = true;
 		public static final boolean DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE = false;
 		
 		/**
 		 * controls whether ipv4 can have prefix length bigger than 32 and whether ipv6 can have prefix length bigger than 128
-		 * @see IPAddressStringParameters#DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE
+		 * @see #DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE
 		 */
 		public final boolean allowPrefixesBeyondAddressSize; 
 		
 		/**
 		 * controls whether you allow addresses with prefixes that have leasing zeros like 1.0.0.0/08 or 1::/064
 		 * 
-		 * @see IPAddressStringParameters#DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS
+		 * @see #DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS
 		 */
 		public final boolean allowPrefixLengthLeadingZeros;
 		
@@ -276,10 +296,6 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			protected boolean allowPrefixLengthLeadingZeros = DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS;
 			
 			IPAddressStringParameters.Builder parent;
-			
-			protected static void setMixedParent(IPAddressStringParameters.Builder builder, IPv6AddressStringParameters.Builder parent) {
-				builder.mixedParent = parent;
-			}
 			
 			public IPAddressStringParameters.Builder getParentBuilder() {
 				return parent;
@@ -315,6 +331,8 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 				return (BuilderBase) super.allowUnlimitedLeadingZeros(allow);
 			}
 		}
+		
+		public abstract IPAddressNetwork<?, ?, ?, ?, ?> getNetwork();
 
 		protected int compareTo(IPAddressStringFormatParameters o) {
 			int result = super.compareTo(o);
@@ -363,6 +381,9 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		builder.allowIPv4 = allowIPv4;
 		builder.ipv4Builder = ipv4Options.toBuilder();
 		builder.ipv6Builder = ipv6Options.toBuilder(isMixed);
+		builder.allowSingleSegment = allowSingleSegment;
+		builder.allowEmpty = allowEmpty;
+		builder.allowAll = allowAll;
 		return builder;
 	}
 

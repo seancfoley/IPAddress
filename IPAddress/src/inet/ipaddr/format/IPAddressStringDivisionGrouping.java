@@ -18,15 +18,29 @@
 
 package inet.ipaddr.format;
 
+import inet.ipaddr.IPAddressNetwork;
+
 public class IPAddressStringDivisionGrouping extends AddressStringDivisionGrouping implements IPAddressStringDivisionSeries {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
+	private IPAddressNetwork<?, ?, ?, ?, ?> network;
 	private final Integer prefixLength;
 	
-	public IPAddressStringDivisionGrouping(AddressDivisionBase divisions[], Integer prefixLength) {
+	public IPAddressStringDivisionGrouping(IPAddressStringDivision divisions[], IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength) {
 		super(divisions);
 		this.prefixLength = prefixLength;
+		this.network = network;
+	}
+	
+	@Override
+	public IPAddressNetwork<?, ?, ?, ?, ?> getNetwork() {
+		return network;
+	}
+	
+	@Override
+	public IPAddressStringDivision getDivision(int index) {
+		return (IPAddressStringDivision) divisions[index];
 	}
 
 	@Override
@@ -37,5 +51,33 @@ public class IPAddressStringDivisionGrouping extends AddressStringDivisionGroupi
 	@Override
 	public Integer getPrefixLength() {
 		return prefixLength;
+	}
+	
+	@Override
+	public boolean isPrefixBlock() {
+		Integer networkPrefixLength = getPrefixLength();
+		if(networkPrefixLength == null) {
+			return false;
+		}
+		if(network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			return true;
+		}
+		int divCount = getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			IPAddressStringDivision div = getDivision(i);
+			Integer segmentPrefixLength = div.getDivisionPrefixLength();
+			if(segmentPrefixLength != null) {
+				if(!div.isPrefixBlock(segmentPrefixLength)) {
+					return false;
+				}
+				for(++i; i < divCount; i++) {
+					div = getDivision(i);
+					if(!div.isFullRange()) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 }

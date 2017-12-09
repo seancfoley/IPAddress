@@ -33,16 +33,34 @@ import inet.ipaddr.format.AddressDivisionSeries;
  */
 public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComponent {
 	
+	/**
+	 * Returns the network object for series of the same version (eg IPv4, IPv6 and MAC each have their own network object)
+	 * @return
+	 */
+	AddressNetwork<?> getNetwork();
+	
+	/**
+	 * Returns the number of segments in this series.
+	 * @return
+	 */
 	int getSegmentCount();
 	
+	/**
+	 * Returns the number of bits comprising each segment in this series.  Segments in the same series are equal length.
+	 * @return
+	 */
 	int getBitsPerSegment();
 	
+	/**
+	 * Returns the number of bytes comprising each segment in this series.  Segments in the same series are equal length.
+	 * @return
+	 */
 	int getBytesPerSegment();
 	
 	/**
 	 * Gets the subsection from the series starting from the given index
 	 * 
-	 * @throws IndexOutOfBoundsException if index < 0
+	 * @throws IndexOutOfBoundsException if index is negative
 	 * @param index
 	 * @return
 	 */
@@ -51,40 +69,84 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Gets the subsection from the series starting from the given index and ending just before the give endIndex
 	 * 
-	 * @throws IndexOutOfBoundsException if index < 0 or endIndex extends beyond the end of the series
+	 * @throws IndexOutOfBoundsException if index is negative or endIndex extends beyond the end of the series
 	 * @param index
 	 * @param endIndex
 	 * @return
 	 */
 	AddressSection getSection(int index, int endIndex);
 
+	/**
+	 * Returns the segment from this series at the given index.
+	 * 
+	 * @throws IndexOutOfBoundsException if the index is negative or as large as the segment count
+	 * 
+	 * @return
+	 */
 	AddressSegment getSegment(int index);
 	
+	/**
+	 * Returns the an array with the values of each segment as they would appear in the normalized with wildcards string.
+	 * 
+	 * @return
+	 */
+	String[] getSegmentStrings();
+	
+	/**
+	 * Copies the existing segments into the given array.  The array size should be at least as large as {@link #getSegmentCount()} 
+	 * 
+	 * @throws IndexOutOfBoundsException if the provided array is too small
+	 */
 	void getSegments(AddressSegment segs[]);
 	
 	/**
 	 * get the segments from start to end and insert into the segs array at the the given index
-	 * @param start
-	 * @param end
-	 * @param segs
-	 * @param index
+	 * @param start the first segment index from this series to be included
+	 * @param end the segment index after first to be excluded
+	 * @param segs the target array
+	 * @param index where to insert the segments in the segs array
 	 */
 	void getSegments(int start, int end, AddressSegment segs[], int index);
 	
+	/**
+	 * Returns the segments of this series of segments as an array.  This must create a new array, so for efficiency use {@link #getSegment(int)} and {@link #getSegmentCount()} instead when feasible.
+	 * 
+	 * @return
+	 */
 	AddressSegment[] getSegments();
 	
+	/**
+	 * If this represents a series with ranging values, returns a series representing the lower values of the range.
+	 * If this represents an series with a single value in each segment, returns this.
+	 * 
+	 * @return
+	 */
 	@Override
 	AddressSegmentSeries getLower();
 	
+	/**
+	 * If this represents a series with ranging values, returns a series representing the upper values of the range
+	 * If this represents a series with a single value in each segment, returns this.
+	 * 
+	 * @return
+	 */
 	@Override
 	AddressSegmentSeries getUpper();
 	
 	@Override
 	Iterable<? extends AddressSegmentSeries> getIterable();
 	
+	/**
+	 * Iterates through the individual segment series.
+	 * 
+	 * The resulting elements will not have an assigned prefix.
+	 */
 	@Override
 	Iterator<? extends AddressSegmentSeries> iterator();
 	
+	/**
+	 * Iterates through the individual segments.
+	 */
 	Iterator<? extends AddressSegment[]> segmentsIterator();
 
 	/**
@@ -102,7 +164,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Returns a new segment series with the segments reversed.
 	 * 
-	 * This does not throw AddressTypeException.
+	 * This does not throw {@link IncompatibleAddressException} since all address series can reverse their segments.
 	 * 
 	 * @return
 	 */
@@ -111,7 +173,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Returns a new segment series with the bits reversed.
 	 * 
-	 * @throws AddressTypeException if reversing the bits within a single segment cannot be done 
+	 * @throws IncompatibleAddressException if reversing the bits within a single segment cannot be done 
 	 * because the segment represents a range, and when all values in that range are reversed, the result is not contiguous.
 	 * 
 	 * In practice this means that to be reversible the range must include all values except possibly the largest and/or smallest.
@@ -124,7 +186,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Returns a new segment series with the bytes reversed.
 	 * 
-	 * @throws AddressTypeException if the segments have more than 1 bytes, 
+	 * @throws IncompatibleAddressException if the segments have more than 1 bytes, 
 	 * and if reversing the bits within a single segment cannot be done because the segment represents a range that is not the entire segment range.
 	 * 
 	 * @return
@@ -135,7 +197,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Returns a new segment series with the bytes reversed within each segment.
 	 * 
-	 * @throws AddressTypeException if the segments have more than 1 bytes, 
+	 * @throws IncompatibleAddressException if the segments have more than 1 bytes, 
 	 * and if reversing the bits within a single segment cannot be done because the segment represents a range that is not the entire segment range.
 	 * 
 	 * @return
@@ -143,19 +205,26 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries reverseBytesPerSegment();
 	
 	/**
-	 * Removes the prefix.  
+	 * If this series has a prefix length, returns the block for that prefix. Otherwise, this address series is returned.
 	 * 
-	 * When the series already had a prefix, the bits previously not within the prefix are zero.
+	 * @return the block of address series for the prefix length
+	 */
+	AddressSegmentSeries toPrefixBlock();
+	
+	/**
+	 * Removes the prefix length.  
+	 * <p>
+	 * If the series already has a prefix length, the bits previously not within the prefix become zero.
 	 * 
-	 * @param nextSegment
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength();
 	
 	/**
 	 * Increases or decreases prefix length to the next segment boundary.
-	 * 
-	 * When prefix length is increased, the bits moved within the prefix are zero.
+	 * <p>
+	 * When prefix length is increased, the bits moved within the prefix become zero.
+	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
 	 * 
 	 * @param nextSegment
 	 * @return
@@ -164,32 +233,44 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	
 	/**
 	 * Increases or decreases prefix length by the given increment.
-	 * 
+	 * <p>
 	 * When prefix length is increased, the bits moved within the prefix become zero.
-	 * 
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
+	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
 	 * 
-	 * @param nextSegment
+	 * @param adjustment
 	 * @return
 	 */
 	AddressSegmentSeries adjustPrefixLength(int adjustment);
 	
 	/**
 	 * Sets the prefix length.
-	 * 
-	 * When the series already had a prefix, and the prefix length is increased, the bits moved within the prefix are zero.
-	 * 
+	 * <p>
+	 * If this series has a prefix length, and the prefix length is increased, the bits moved within the prefix become zero.
+	 * <p>
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
-	 * 
-	 * @param nextSegment
+	 * <p>
+	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
+	 *
+	 * @see #applyPrefixLength(int)
+	 * @param prefixLength
 	 * @return
 	 */
 	AddressSegmentSeries setPrefixLength(int prefixLength);
-	
+
 	/**
-	 * Applies the given prefix length to create a new segment series representing all segment series starting with the same prefix.
-	 * 
-	 * When this series already has a prefix length that is smaller, then this method returns this series.
+	 * Applies the given prefix length to create a new segment series.
+	 * <p>
+	 * Similar to {@link #setPrefixLength(int)} except that prefix lengths are never increased. 
+	 * When this series already has a prefix length that is less than or equal to the requested prefix length, this series is returned.
+	 * <p>
+	 * Otherwise the returned series has the given prefix length.
+	 * <p>
+	 * With some address types, the bits moved outside the prefix will become zero in the returned series.
+	 *
+	 * @see #setPrefixLength(int)
+	 * @param prefixLength
+	 * @return
 	 */
-	AddressSegmentSeries applyPrefixLength(int networkPrefixLength);
+	AddressSegmentSeries applyPrefixLength(int prefixLength);
 }

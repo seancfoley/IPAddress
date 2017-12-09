@@ -28,7 +28,7 @@ import java.util.ResourceBundle;
  */
 public class HostIdentifierException extends Exception {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	static ResourceBundle bundle;
 	

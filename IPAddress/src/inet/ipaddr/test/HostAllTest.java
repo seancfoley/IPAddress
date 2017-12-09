@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
-import inet.ipaddr.IPAddressNetwork.HostNameCache;
+import inet.ipaddr.IPAddressNetwork.HostNameGenerator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 
@@ -242,7 +242,7 @@ public class HostAllTest extends HostRangeTest {
 	}
 
 	void testCaches(Map<String, HostName> map, boolean testSize, boolean useBytes) {
-		HostNameCache cache2 = new HostNameCache(map);
+		HostNameGenerator cache2 = new HostNameGenerator(map);
 		testCache(HOST_SAMPLING, cache2, str -> createHost(str), testSize, useBytes);
 	}
 	

@@ -24,23 +24,24 @@ import java.util.Iterator;
 import inet.ipaddr.format.AddressDivision;
 
 /**
- * This represents a single segment of an address.
- * 
+ * Represents a single segment of an address.
+ * <p>
  * The current implementations of this class are the most common representations of IPv4, IPv6 and MAC; 
  * segments are 1 byte for Ipv4, they are two bytes for Ipv6, and they are 1 byte for MAC addresses.
- * 
+ * <p>
  * There are alternative forms of dividing addresses into segments, such as dotted representation for MAC like 1111.2222.3333,
  * embedded IPv4 representation for IPv6 like f:f:f:f:f:f:1.2.3.4, inet_aton formats like 1.2 for IPv4, and so on.
- * 
- * If those alternative representations were to follow the general rules for segment representation, then you could reuse this class.
- * 
+ * <p>
+ * If those alternative representations were to follow the general rules for segment representation, then you could reuse this class
+ * for thos alternative representations.
+ * <p>
  * The general rules are that segments have a whole number of bytes, and in a given address all segments have the same length.
- * 
+ * <p>
  * When alternatives forms do not follow the general rules for segments,
  * you can use the {@link inet.ipaddr.format.AddressDivision} interface instead.  
  * Divisions do not have the restriction that divisions of an address are equal length and a whole number of bytes.
  * Divisions can be grouped using {@link inet.ipaddr.format.AddressDivisionGrouping}.
- * 
+ * <p>
  * AddressSegment objects are immutable and thus also thread-safe.
  * 
  * @custom.core
@@ -49,6 +50,8 @@ import inet.ipaddr.format.AddressDivision;
  */
 public interface AddressSegment extends AddressComponent, Comparable<AddressDivision> {
 
+	AddressNetwork<?> getNetwork();
+	
 	/**
 	 * @return the same value as {@link #getCount()}
 	 */

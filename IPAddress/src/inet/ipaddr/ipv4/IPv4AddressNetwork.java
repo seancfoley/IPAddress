@@ -18,53 +18,78 @@
 
 package inet.ipaddr.ipv4;
 
+import java.net.Inet4Address;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.AddressNetwork;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.IPAddressTypeNetwork;
+import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressSection;
+import inet.ipaddr.ipv4.IPv4AddressSection.EmbeddedIPv4AddressSection;
 
 /**
  * 
  * @author sfoley
  */
-public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4AddressSection, IPv4AddressSegment> {
+public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment, Inet4Address> {
 	
-	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment> {
-		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
+	private static final long serialVersionUID = 4L;
+
+	private static PrefixConfiguration defaultPrefixConfiguration = AddressNetwork.getDefaultPrefixConfiguration();
+
+	private static boolean CACHE_SEGMENTS_BY_PREFIX = true;
+	
+	private static final IPv4AddressSegment EMPTY_SEGMENTS[] = {};
+	private static final IPv4AddressSection EMPTY_SECTION[] = {};
+	
+	public class IPv4AddressCreator extends IPAddressCreator {
 		
-		IPv4AddressSegment emptySegments[] = {};
-		IPv4AddressSection emptySection[] = {};
+		private static final long serialVersionUID = 4L;
+
+		private transient IPv4AddressSegment ZERO_PREFIX_SEGMENT, ALL_RANGE_SEGMENT;
+		private transient IPv4AddressSegment segmentCache[];
+		private transient IPv4AddressSegment segmentPrefixCache[][]; 
+		private transient IPv4AddressSegment allPrefixedCache[];
 		
-		private static IPv4AddressSegment segmentCache[] = new IPv4AddressSegment[IPv4Address.MAX_VALUE_PER_SEGMENT + 1];
-		private static IPv4AddressSegment segmentPrefixCache[][]; 
-		private static IPv4AddressSegment allPrefixedCache[] = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT];
-		
-		static {
-			if(CACHE_SEGMENTS_BY_PREFIX) {
-				segmentPrefixCache = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT][];
-				for(int i = 0, digits = 2; i < segmentPrefixCache.length; i++, digits <<= 1) {
-					segmentPrefixCache[i] = new IPv4AddressSegment[digits];
-				}
-			}
+		@Override
+		public void clearCaches() {
+			segmentCache = null;
+			allPrefixedCache = null;
+			segmentPrefixCache = null;
 		}
 		
 		@Override
+		public IPv4AddressNetwork getNetwork() {
+			return IPv4AddressNetwork.this;
+		}
+
+		@Override
 		public IPv4AddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
-				return emptySegments;
+				return EMPTY_SEGMENTS;
 			}
 			return new IPv4AddressSegment[length];
 		}
 		
 		@Override
 		public IPv4AddressSegment createSegment(int value) {
-			IPv4AddressSegment result = segmentCache[value];
-			if(result == null) {
-				segmentCache[value] = result = new IPv4AddressSegment(value);
+			if(value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT) {
+				IPv4AddressSegment result, cache[] = segmentCache;
+				if(cache == null) {
+					segmentCache = cache = new IPv4AddressSegment[IPv4Address.MAX_VALUE_PER_SEGMENT + 1];
+					cache[value] = result = new IPv4AddressSegment(value);
+				} else {
+					result = cache[value];
+					if(result == null) {
+						cache[value] = result = new IPv4AddressSegment(value);
+					}
+				}
+				return result;
 			}
-			return result;
+			return new IPv4AddressSegment(value);
 		}
 		
 		@Override
@@ -72,24 +97,44 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 			if(segmentPrefixLength == null) {
 				return createSegment(value);
 			}
-			if(segmentPrefixLength == 0) {
-				return IPv4AddressSegment.ZERO_PREFIX_SEGMENT;
-			}
-			if(CACHE_SEGMENTS_BY_PREFIX) {
-				int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
-				if(segmentPrefixLength > bitsPerSegment) {
-					segmentPrefixLength = bitsPerSegment;
+			if(value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv4Address.BIT_COUNT) {
+				if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+					IPv4AddressSegment result = ZERO_PREFIX_SEGMENT;
+					if(result == null) {
+						ZERO_PREFIX_SEGMENT = result = new IPv4AddressSegment(0, 0);
+					}
+					return result;
 				}
-				int mask = IPv4Address.network().getSegmentNetworkMask(segmentPrefixLength);
-				value &= mask;
-				int prefixIndex = segmentPrefixLength - 1;
-				int valueIndex = value >>> (bitsPerSegment - segmentPrefixLength);
-				IPv4AddressSegment cache[][] = segmentPrefixCache;
-				IPv4AddressSegment result = cache[prefixIndex][valueIndex];
-				if(result == null) {
-					cache[prefixIndex][valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
+				if(CACHE_SEGMENTS_BY_PREFIX) {
+					int mask = getSegmentNetworkMask(segmentPrefixLength);
+					int prefixIndex = segmentPrefixLength;
+					int valueIndex;
+					boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+					if(isAllSubnets) {
+						value &= mask;
+						valueIndex = value >>> (IPv4Address.BITS_PER_SEGMENT - segmentPrefixLength);
+					} else {
+						valueIndex = value;
+					}
+					IPv4AddressSegment result, block[], cache[][] = segmentPrefixCache;
+					if(cache == null) {
+						segmentPrefixCache = cache = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT + 1][];
+						cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? 1 << prefixIndex : 256];
+						block[valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
+					} else {
+						block = cache[prefixIndex];
+						if(block == null) {
+							cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? 1 << prefixIndex : 256];
+							block[valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
+						} else {
+							result = block[valueIndex];
+							if(result == null) {
+								block[valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
+							}
+						}
+					}
+					return result;
 				}
-				return result;
 			}
 			IPv4AddressSegment result = new IPv4AddressSegment(value, segmentPrefixLength);
 			return result;
@@ -102,27 +147,62 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 					return createSegment(lower);
 				}
 				if(lower == 0 && upper == IPv4Address.MAX_VALUE_PER_SEGMENT) {
-					return IPv4AddressSegment.ALL_RANGE_SEGMENT;
+					IPv4AddressSegment result = ALL_RANGE_SEGMENT;
+					if(result == null) {
+						ALL_RANGE_SEGMENT = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, null);
+					}
+					return result;
 				}
 			} else {
-				if(segmentPrefixLength == 0) {
-					return createSegment(0, 0);
-				}
-				if(CACHE_SEGMENTS_BY_PREFIX) {
-					int mask = IPv4Address.network().getSegmentNetworkMask(segmentPrefixLength);
-					lower &= mask;
-					if((upper & mask) == lower) {
-						return createSegment(lower, segmentPrefixLength);
+				if(lower >= 0 && lower <= IPv4Address.MAX_VALUE_PER_SEGMENT &&
+						upper >= 0 && upper <= IPv4Address.MAX_VALUE_PER_SEGMENT &&
+						segmentPrefixLength >= 0 && segmentPrefixLength <= IPv4Address.BIT_COUNT) {
+					if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+						return createSegment(0, 0);
 					}
-					if(lower == 0 && upper == mask) {
-						//cache */26 type segments
-						int prefixIndex = segmentPrefixLength - 1;
-						IPv4AddressSegment cache[] = allPrefixedCache;
-						IPv4AddressSegment result = cache[prefixIndex];
-						if(result == null) {
-							cache[prefixIndex] = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+					if(CACHE_SEGMENTS_BY_PREFIX) {
+						int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
+						if(segmentPrefixLength > bitsPerSegment) {
+							segmentPrefixLength = bitsPerSegment;
 						}
-						return result;
+						if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+							int mask = getSegmentNetworkMask(segmentPrefixLength);
+							lower &= mask;
+							if((upper & mask) == lower) {
+								return createSegment(lower, segmentPrefixLength);
+							}
+							if(lower == 0 && upper >= mask) {
+								//cache */26 type segments
+								int prefixIndex = segmentPrefixLength;
+								IPv4AddressSegment result, cache[] = allPrefixedCache;
+								if(cache == null) {
+									allPrefixedCache = cache = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT + 1];
+									cache[prefixIndex] = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+								} else {
+									result = cache[prefixIndex];
+									if(result == null) {
+										cache[prefixIndex] = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+									}
+								}
+								return result;
+							}
+						} else {
+							if(lower == 0 && upper == IPv4Address.MAX_VALUE_PER_SEGMENT) {
+								//cache */26 type segments
+								int prefixIndex = segmentPrefixLength;
+								IPv4AddressSegment result, cache[] = allPrefixedCache;
+								if(cache == null) {
+									allPrefixedCache = cache = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT + 1];
+									cache[prefixIndex] = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+								} else {
+									result = cache[prefixIndex];
+									if(result == null) {
+										cache[prefixIndex] = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+									}
+								}
+								return result;
+							}
+						}
 					}
 				}
 			}
@@ -134,7 +214,7 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		@Override
 		protected IPv4AddressSection[] createSectionArray(int length) {
 			if(length == 0) {
-				return emptySection;
+				return EMPTY_SECTION;
 			}
 			return new IPv4AddressSection[length];
 		}
@@ -143,18 +223,23 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment segments[]) {
 			return new IPv4AddressSection(segments, false);
 		}
-		
+
+		@Override
+		protected IPv4AddressSection createPrefixedSectionInternal(IPv4AddressSegment segments[], Integer prefix, boolean singleOnly) {
+			return new IPv4AddressSection(segments, false, prefix, singleOnly);
+		}
+
 		protected IPv4AddressSection createSectionInternal(int value) {
 			return new IPv4AddressSection(value);
 		}
-		
+
 		protected IPv4AddressSection createSectionInternal(int value, Integer prefix) {
 			return new IPv4AddressSection(value, prefix);
 		}
 		
 		@Override
-		protected IPv4AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
-			return new IPv4AddressSection(lowerValueProvider, upperValueProvider, prefix);
+		public IPv4AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix) {
+			return new IPv4AddressSection(lowerValueProvider, upperValueProvider, segmentCount, prefix);
 		}
 
 		@Override
@@ -167,16 +252,24 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 			return new IPv4AddressSection(segments);
 		}
 		
+		@Override
 		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv4AddressSection(bytes, prefix);
 		}
 		
+		@Override
 		public IPv4AddressSection createSection(IPv4AddressSegment segments[], Integer networkPrefixLength) {
 			return new IPv4AddressSection(segments, networkPrefixLength);
 		}
 		
+		@Override
 		public IPv4AddressSection createSection(IPv4AddressSegment segments[]) {
 			return new IPv4AddressSection(segments);
+		}
+		
+		@Override
+		protected IPv4AddressSection createEmbeddedSectionInternal(IPAddressSection encompassingSection, IPv4AddressSegment[] segments) {
+			return new EmbeddedIPv4AddressSection(encompassingSection, segments);
 		}
 
 		@Override
@@ -193,10 +286,40 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 		public IPv4Address createAddress(IPv4AddressSection section) {
 			return new IPv4Address(section);
 		}
+		
+		@Override
+		public IPv4Address createAddress(Inet4Address addr) {
+			return new IPv4Address(addr);
+		}
 	}
 	
-	IPv4AddressNetwork() {
+	public IPv4AddressNetwork() {
 		super(IPv4Address.class);
+	}
+	
+	@Override
+	public PrefixConfiguration getPrefixConfiguration() {
+		return defaultPrefixConfiguration;
+	}
+
+	/**
+	 * Sets the default prefix configuration used by this network.
+	 * 
+	 * @see #getDefaultPrefixConfiguration()
+	 * @see PrefixConfiguration
+	 */
+	public static void setDefaultPrefixConfiguration(PrefixConfiguration config) {
+		defaultPrefixConfiguration = config;
+	}
+	
+	/**
+	 * Gets the default prefix configuration used by this network.
+	 * 
+	 * @see AddressNetwork#getDefaultPrefixConfiguration()
+	 * @see PrefixConfiguration
+	 */
+	public static PrefixConfiguration getDefaultPrefixConfiguration() {
+		return defaultPrefixConfiguration;
 	}
 	
 	@Override
@@ -217,7 +340,7 @@ public class IPv4AddressNetwork extends IPAddressTypeNetwork<IPv4Address, IPv4Ad
 	@Override
 	protected IPv4Address createLoopback() {
 		IPv4AddressCreator creator = getAddressCreator();
-		IPv4AddressSegment zero = IPv4AddressSegment.ZERO_SEGMENT;
+		IPv4AddressSegment zero = creator.createSegment(0);
 		IPv4AddressSegment segs[] = creator.createSegmentArray(IPv4Address.SEGMENT_COUNT);
 		segs[0] = creator.createSegment(127);
 		segs[1] = segs[2] = zero;

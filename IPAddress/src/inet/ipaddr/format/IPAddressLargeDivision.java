@@ -22,7 +22,10 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import inet.ipaddr.Address;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressValueException;
+import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -33,10 +36,10 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  * @author sfoley
  *
  */
-public class AddressLargeDivision extends AddressDivisionBase {
+public class IPAddressLargeDivision extends AddressDivisionBase implements IPAddressStringDivision {
 
 	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-	
+
 	public static final char EXTENDED_DIGITS_RANGE_SEPARATOR = Address.ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String EXTENDED_DIGITS_RANGE_SEPARATOR_STR = String.valueOf(EXTENDED_DIGITS_RANGE_SEPARATOR);
 	
@@ -50,77 +53,219 @@ public class AddressLargeDivision extends AddressDivisionBase {
 			 ';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}', 
 			 '~' };
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	private final BigInteger value, upperValue, maxValue, upperValueMasked;
 	private final BigInteger defaultRadix;//we keep radix as a big integer because some operations required it, but we only support integer radices so it can be converted via BigInteger.intValue() at any time
 	private final int bitCount;
 	private final Integer networkPrefixLength;
-	private final boolean isRangeEquivalentToPrefix;
+	private final boolean isSinglePrefixBlock, isPrefixBlock;
+	protected transient String cachedWildcardString;
 	
-	public AddressLargeDivision(
-			byte bytes[], byte upperBytes[], int bitCount, int defaultRadix, Integer networkPrefixLength) {
+	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix) throws AddressValueException {
+		bytes = extend(bytes, bitCount);
+		maxValue = getMaxValue(bitCount);
 		this.bitCount = bitCount;
 		this.defaultRadix = BigInteger.valueOf(defaultRadix);
-		boolean isUpperMasked = networkPrefixLength == null;
-		boolean isRangeEquivalentToPrefix;
-		byte maskedBytes[] = null;
-		if(!isUpperMasked) {
-			int shift = bitCount - networkPrefixLength;
-			int byteIndex = (shift + 7) / 8;
-			int mask = ~0 << (shift % 8);
-			bytes[byteIndex] &= mask;
-			isUpperMasked = bytes == upperBytes;
-			isRangeEquivalentToPrefix = isUpperMasked;
-			if(!isUpperMasked) {
-				byte upper = upperBytes[byteIndex];
-				byte newUpper = (byte) (upper & mask);
-				isUpperMasked = newUpper == upper;
-				isRangeEquivalentToPrefix = newUpper == (bytes[byteIndex] & mask);
-				if(isRangeEquivalentToPrefix) {
-					for(int i = byteIndex - 1; i >= 0; i--) {
-						if(bytes[i] != upperBytes[i]) {
-							isRangeEquivalentToPrefix = false;
-							break;
-						}
-					}
-				}
-				
-				if(isUpperMasked) {
-					for(int i = byteIndex; i < upperBytes.length; i++) {
-						if(bytes[i] != 0) {
-							isUpperMasked = false;
-							break;
-						}
-					}
-				}
-				if(!isUpperMasked) {
-					maskedBytes = Arrays.copyOf(upperBytes, upperBytes.length);
-					maskedBytes[byteIndex] = newUpper;
-					Arrays.fill(maskedBytes, byteIndex + 1, maskedBytes.length, (byte) 0);
+		isPrefixBlock = isSinglePrefixBlock = false;
+		upperValueMasked = upperValue = value = new BigInteger(1, bytes);
+		networkPrefixLength = null;
+		if(upperValue.compareTo(maxValue) > 0) {
+			throw new AddressValueException(upperValue);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param bytes
+	 * @param bitCount
+	 * @param defaultRadix
+	 * @param network can be null if prefixLength is null
+	 * @param prefixLength
+	 */
+	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength) throws AddressValueException {
+		if(prefixLength != null && prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		bytes = extend(bytes, bitCount);
+		maxValue = getMaxValue(bitCount);
+		this.bitCount = bitCount;
+		this.defaultRadix = BigInteger.valueOf(defaultRadix);
+		if(prefixLength == null || prefixLength >= bitCount) {
+			if(prefixLength != null && prefixLength > bitCount) {
+				prefixLength = bitCount;
+			}
+			isPrefixBlock = isSinglePrefixBlock = prefixLength != null;
+			upperValueMasked = upperValue = value = new BigInteger(1, bytes);
+		} else {
+			byte upperBytes[] = bytes.clone();
+			int shift = bitCount - prefixLength;
+			int byteShift = (shift + 7) / 8;
+			int byteIndex = bytes.length - byteShift;
+			int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
+			if(network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				bytes[byteIndex] &= mask;
+				Arrays.fill(bytes, byteIndex + 1, bytes.length, (byte) 0);
+				upperValueMasked = value = new BigInteger(1, bytes);
+				upperBytes[byteIndex] |= ~mask;
+				Arrays.fill(upperBytes, byteIndex + 1, bytes.length, (byte) 0xff);
+				upperValue = new BigInteger(1, upperBytes);
+				isPrefixBlock = isSinglePrefixBlock = true;
+			} else {
+				byte maskedUpperBytes[] = upperBytes.clone();
+				maskedUpperBytes[byteIndex] &= mask;
+				Arrays.fill(maskedUpperBytes, byteIndex + 1, bytes.length, (byte) 0);
+				upperValueMasked = new BigInteger(1, maskedUpperBytes);
+				upperValue = value = new BigInteger(1, bytes);
+				isPrefixBlock = isSinglePrefixBlock = false;
+			}
+		}
+		if(upperValue.compareTo(maxValue) > 0) {
+			throw new AddressValueException(upperValue);
+		}
+		networkPrefixLength = prefixLength;
+	}
+
+	public IPAddressLargeDivision(
+			byte bytes[], byte upperBytes[], int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength) throws AddressValueException {
+		if(prefixLength != null && prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		bytes = extend(bytes, bitCount);
+		upperBytes = extend(upperBytes, bitCount);
+		maxValue = getMaxValue(bitCount);
+		this.bitCount = bitCount;
+		this.defaultRadix = BigInteger.valueOf(defaultRadix);
+		if(prefixLength == null || prefixLength >= bitCount) {
+			if(prefixLength != null && prefixLength > bitCount) {
+				prefixLength = bitCount;
+			}
+			BigInteger low, high;
+			if(Arrays.equals(bytes, upperBytes)) {
+				low = high = new BigInteger(1, bytes);
+			} else {
+				low = new BigInteger(1, bytes);
+				high = new BigInteger(1, upperBytes);
+				if(low.compareTo(high) > 0) {
+					BigInteger tmp = high;
+					high = low;
+					low = tmp;
 				}
 			}
+			isSinglePrefixBlock = isPrefixBlock = prefixLength != null;
+			value = low;
+			upperValueMasked = upperValue = high;
 		} else {
-			isRangeEquivalentToPrefix = true;
-			if(bytes != upperBytes) {
-				for(int i = bytes.length - 1; i >= 0; i--) {
-					if(bytes[i] != upperBytes[i]) {
-						isRangeEquivalentToPrefix = false;
-						break;
+			int shift = bitCount - prefixLength;
+			int byteShift = (shift + 7) / 8;
+			int byteIndex = bytes.length - byteShift;
+			int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
+			int upperByteIndex = upperBytes.length - byteShift;
+			if(network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				BigInteger low, high, highMasked;
+				while(true) {
+					bytes[byteIndex] &= mask;
+					Arrays.fill(bytes, byteIndex + 1, bytes.length, (byte) 0);
+					low = new BigInteger(1, bytes);
+					
+					upperBytes[upperByteIndex] |= ~mask;
+					Arrays.fill(upperBytes, upperByteIndex + 1, upperBytes.length, (byte) 0xff);
+					high = new BigInteger(1, upperBytes);
+				
+					byte maskedUpperBytes[] = upperBytes.clone();
+					maskedUpperBytes[upperByteIndex] &= mask;
+					Arrays.fill(maskedUpperBytes, upperByteIndex + 1, upperBytes.length, (byte) 0);
+					highMasked = new BigInteger(1, maskedUpperBytes);
+					
+					if(low.compareTo(high) > 0) {
+						byte tmp[] = upperBytes;
+						upperBytes = bytes;
+						bytes = tmp;
+						continue;
 					}
+					break;
+				}
+				value = low;
+				upperValue = high;
+				upperValueMasked = highMasked;
+				isPrefixBlock = true;
+				isSinglePrefixBlock = isPrefixSubnetBlock(bytes, upperBytes, bitCount, prefixLength, true, false);
+			} else {
+				BigInteger low, high;
+				if(Arrays.equals(bytes, upperBytes)) {
+					low = high = new BigInteger(1, bytes);
+					isPrefixBlock = isSinglePrefixBlock = false;
+				} else {
+					low = new BigInteger(1, bytes);
+					high = new BigInteger(1, upperBytes);
+					boolean backIsPrefixed = isPrefixSubnetBlock(bytes, upperBytes, bitCount, prefixLength, false, true);
+					if(backIsPrefixed) {
+						isPrefixBlock = true;
+						isSinglePrefixBlock = isPrefixSubnetBlock(bytes, upperBytes, bitCount, prefixLength, true, false);
+					} else {
+						isPrefixBlock = isSinglePrefixBlock = false;
+					}
+					if(low.compareTo(high) > 0) {
+						BigInteger tmp = high;
+						high = low;
+						low = tmp;
+					}
+				}
+				value = low;
+				upperValue = high;
+				byte maskedUpperBytes[] = upperBytes.clone();
+				maskedUpperBytes[byteIndex] &= mask;
+				Arrays.fill(maskedUpperBytes, byteIndex + 1, bytes.length, (byte) 0);
+				upperValueMasked = new BigInteger(1, maskedUpperBytes);
+			}
+			
+		}
+		if(upperValue.compareTo(maxValue) > 0) {
+			throw new AddressValueException(upperValue);
+		}
+		networkPrefixLength = prefixLength;
+	}
+	
+	private static boolean isPrefixSubnetBlock(byte bytes[], byte upperBytes[], int bitCount, Integer prefix, boolean front, boolean back) {
+		if(prefix == null) {
+			return false;
+		}
+		int shift = bitCount - prefix;
+		int byteShift = (shift + 7) / 8;
+		int byteIndex = bytes.length - byteShift;
+		int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
+		byte lowerByte = bytes[byteIndex];
+		byte upperByte = upperBytes[byteIndex];
+		if(front) {
+			int lower = lowerByte & mask;
+			int upper = upperByte & mask;
+			if(lower != upper) {
+				return false;
+			}
+			for(int i = byteIndex - 1; i >= 0; i--) {
+				if(bytes[i] != upperBytes[i]) {
+					return false;
 				}
 			}
 		}
-		this.isRangeEquivalentToPrefix = isRangeEquivalentToPrefix;
-		upperValue = new BigInteger(1, upperBytes);
-		upperValueMasked = isUpperMasked ? upperValue : new BigInteger(1, maskedBytes);
-		value = (bytes == upperBytes) ? upperValue : new BigInteger(1, bytes);
-		maxValue = getMaxValue(bitCount);
-		this.networkPrefixLength = networkPrefixLength;
+		if(back) {
+			int hostMask = 0xff & ~mask;
+			int lower = lowerByte & hostMask;
+			int upper = upperByte & hostMask;
+			if(lower != 0 || upper != hostMask) {
+				return false;
+			}
+			for(int i = byteIndex + 1; i < bytes.length; i++) {
+				if(bytes[i] != 0 || upperBytes[i] != (byte) 0xff) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
-	public AddressLargeDivision(byte bytes[], int bitCount, int defaultRadix, Integer prefix) {
-		this(bytes, bytes, bitCount, defaultRadix, prefix);
+	private static byte[] extend(byte bytes[], int bitCount) {
+		return AddressDivisionGrouping.convert(bytes, (bitCount + 7) / 8, "");
 	}
 
 	@Override
@@ -164,7 +309,7 @@ public class AddressLargeDivision extends AddressDivisionBase {
 
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		return low ? value.toByteArray() : upperValue.toByteArray();
+		return AddressDivisionGrouping.convert(low ? value.toByteArray() : upperValue.toByteArray(), (bitCount + 7) / 8, "");
 	}
 
 	@Override
@@ -254,7 +399,22 @@ public class AddressLargeDivision extends AddressDivisionBase {
 		if(isExtendedDigits(radix)) {
 			return EXTENDED_DIGITS;
 		}
-		return uppercase ? UPPED_DIGITS : DIGITS;
+		return uppercase ? UPPERCASE_DIGITS : DIGITS;
+	}
+	
+	@Override
+	protected void appendUppercase(CharSequence str, int radix, StringBuilder appendable) {
+		if(radix > 10 && !isExtendedDigits()) {
+			for(int i = 0; i < str.length(); i++) {
+				char c = str.charAt(i);
+				if(c >= 'a' && c <= 'z') {
+					c += 'A' - 'a';
+				}
+				appendable.append(c);
+			}
+		} else {
+			appendable.append(str);
+		}
 	}
 	
 	private static String toDefaultString(BigInteger val, BigInteger radix, boolean uppercase, int choppedDigits, int maxDigits) {
@@ -286,6 +446,59 @@ public class AddressLargeDivision extends AddressDivisionBase {
 		}
 		return builder.toString();
 	}
+	
+	/**
+	 * Produces a normalized string to represent the segment.
+	 * If the segment CIDR prefix length covers the range, then it is assumed to be a CIDR, and the string has only the lower value of the CIDR range.
+	 * Otherwise, the explicit range will be printed.
+	 * @return
+	 */
+	@Override
+	public String getString() {
+		String result = cachedString;
+		if(result == null) {
+			synchronized(this) {
+				result = cachedString;
+				if(result == null) {
+					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
+						result = getDefaultString();
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
+						if(isPrefixed() && isPrefixBlock(getDivisionPrefixLength())) {
+							result = getDefaultMaskedRangeString();
+						} else {
+							result = getDefaultRangeString();
+						}
+					}
+					cachedString = result;
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Produces a string to represent the segment, favouring wildcards and range characters over the network prefix to represent subnets.
+	 * If it exists, the segment CIDR prefix is ignored and the explicit range is printed.
+	 * @return
+	 */
+	@Override
+	public String getWildcardString() {
+		String result = cachedWildcardString;
+		if(result == null) {
+			synchronized(this) {
+				result = cachedWildcardString;
+				if(result == null) {
+					if(!isPrefixed() || !isMultiple()) {
+						result = getString();
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
+						result = getDefaultRangeString();
+					}
+					cachedWildcardString = result;
+				}
+			}
+		}
+		return result;
+	}
 
 	@Override
 	protected String getDefaultString() {
@@ -294,9 +507,17 @@ public class AddressLargeDivision extends AddressDivisionBase {
 
 	@Override
 	protected String getDefaultRangeString() {
-		return toDefaultString(value, defaultRadix, false, 0, getMaxDigitCount()) + 
+		int maxDigitCount = getMaxDigitCount();
+		return toDefaultString(value, defaultRadix, false, 0, maxDigitCount) + 
 				getDefaultRangeSeparatorString() + 
-				toDefaultString(upperValue, defaultRadix, false, 0, getMaxDigitCount());
+				toDefaultString(upperValue, defaultRadix, false, 0, maxDigitCount);
+	}
+	
+	protected String getDefaultMaskedRangeString() {
+		int maxDigitCount = getMaxDigitCount();
+		return toDefaultString(value, defaultRadix, false, 0, maxDigitCount) + 
+				getDefaultRangeSeparatorString() + 
+				toDefaultString(upperValueMasked, defaultRadix, false, 0, maxDigitCount);
 	}
 	
 	@Override
@@ -344,11 +565,12 @@ public class AddressLargeDivision extends AddressDivisionBase {
 			char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix, StringBuilder appendable) {
 		StringBuilder builder = new StringBuilder();
 		getLowerString(radix, choppedDigits, uppercase, builder);
+		int prefLen = stringPrefix.length();
 		for(int i = 0; i < builder.length(); i++) {
 			if(i > 0) {
 				appendable.append(splitDigitSeparator);
 			}
-			if(stringPrefix != null) {
+			if(prefLen > 0) {
 				appendable.append(stringPrefix);
 			}
 			appendable.append(builder.charAt(reverseSplitDigits ? (builder.length() - i - 1) : i));
@@ -377,6 +599,7 @@ public class AddressLargeDivision extends AddressDivisionBase {
 		char zeroDigit = dig[0];
 		char highestDigit = dig[radix - 1];
 		int len = lowerBuilder.length();
+		int prefLen = stringPrefix.length();
 		for(int i = 0; i < len; i++) {
 			int index = reverseSplitDigits ? (len - i - 1) : i;
 			char lower = lowerBuilder.charAt(index);
@@ -386,9 +609,9 @@ public class AddressLargeDivision extends AddressDivisionBase {
 			}
 			if(lower == upper) {
 				if(nextMustBeFull) {
-					throw new AddressTypeException(lower, upper, "ipaddress.error.splitMismatch");
+					throw new IncompatibleAddressException(lower, upper, "ipaddress.error.splitMismatch");
 				}
-				if(stringPrefix != null) {
+				if(prefLen > 0) {
 					appendable.append(stringPrefix);
 				}
 				appendable.append(lower);
@@ -398,9 +621,9 @@ public class AddressLargeDivision extends AddressDivisionBase {
 					appendable.append(wildcard);
 				} else {
 					if(nextMustBeFull) {
-						throw new AddressTypeException(lower, upper, "ipaddress.error.splitMismatch");
+						throw new IncompatibleAddressException(lower, upper, "ipaddress.error.splitMismatch");
 					}
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					appendable.append(lower);
@@ -409,7 +632,7 @@ public class AddressLargeDivision extends AddressDivisionBase {
 				}
 				if(reverseSplitDigits) {
 					if(!previousWasFull) {
-						throw new AddressTypeException(lower, upper, "ipaddress.error.splitMismatch");
+						throw new IncompatibleAddressException(lower, upper, "ipaddress.error.splitMismatch");
 					}
 					previousWasFull = isFullRange;
 				} else {
@@ -424,7 +647,7 @@ public class AddressLargeDivision extends AddressDivisionBase {
 	protected int getSplitRangeStringLength(String rangeSeparator, String wildcard, int leadingZeroCount,
 			int radix, boolean uppercase, char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix) {
 		int digitsLength = -1;
-		int stringPrefixLength = (stringPrefix == null) ? 0 : stringPrefix.length();
+		int stringPrefixLength = stringPrefix.length();
 		StringBuilder lowerBuilder = new StringBuilder();
 		StringBuilder upperBuilder = new StringBuilder();
 		getLowerString(radix, uppercase, lowerBuilder);
@@ -492,20 +715,68 @@ public class AddressLargeDivision extends AddressDivisionBase {
 	}
 	
 	@Override
-	public int getConfiguredString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
-		if(params.preferWildcards() || params.isSplitDigits()) {
-			return getStandardString(segmentIndex, params, appendable);
+	public int getPrefixAdjustedRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
+		return super.getPrefixAdjustedRangeString(segmentIndex, params, appendable);
+	}
+
+	public boolean isPrefixBlock() {
+		return isPrefixBlock;
+	}
+	
+	/**
+	 * Returns whether the division range matches the block of values for its prefix length
+	 */
+	@Override
+	public boolean isSinglePrefixBlock() {
+		return isSinglePrefixBlock;
+	}
+
+	@Override
+	public Integer getDivisionPrefixLength() {
+		return networkPrefixLength;
+	}
+	
+	public boolean isPrefixed() {
+		return networkPrefixLength != null;
+	}
+
+	@Override
+	public boolean isPrefixBlock(Integer divisionPrefixLen) {
+		if(divisionPrefixLen == null) {
+			return true;
 		}
-		return getPrefixAdjustedString(segmentIndex, params, appendable);
-	}
-	
-	@Override
-	protected boolean isRangeAdjustedToPrefix() {
-		return networkPrefixLength == null || networkPrefixLength == bitCount || !IPAddressDivision.ADJUST_RANGES_BY_PREFIX;
-	}
-	
-	@Override
-	protected boolean isRangeEquivalentToPrefix() {
-		return isRangeEquivalentToPrefix;
+		if(divisionPrefixLen == 0) {
+			return isFullRange();
+		}
+		int prefixLen = divisionPrefixLen;
+		BigInteger lower = value, upper = upperValue;
+		int hostBits = bitCount - prefixLen;
+		long fullMask = ~0L;
+		do {
+			long low = lower.longValue(); //returns lower % 2^64
+			long up = upper.longValue();
+			if(hostBits <= 64) {
+				long networkMask, hostMask;
+				if(hostBits == 64) {
+					networkMask = 0;
+					hostMask = fullMask;
+				} else {
+					networkMask = fullMask << hostBits;//prefixLen must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+					hostMask = ~networkMask; 
+				}
+				long maskedLow = low & networkMask;
+				long maskedUp = up | hostMask;
+				return low == maskedLow
+						&& up == maskedUp;
+			} else {
+				if(low != 0 || up != fullMask) {
+					return false;
+				}
+			}
+			lower = lower.shiftRight(64);
+			upper = upper.shiftRight(64);
+			hostBits -= 64;
+		} while(!upper.equals(BigInteger.ZERO));
+		return false;
 	}
 }

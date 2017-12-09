@@ -37,8 +37,9 @@ import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.MACAddressStringParameters.AddressSize;
 import inet.ipaddr.MACAddressStringParameters.MACAddressStringFormatParameters;
-import inet.ipaddr.format.AddressLargeDivision;
+import inet.ipaddr.format.IPAddressLargeDivision;
 import inet.ipaddr.format.validate.IPAddressProvider.AllCreator;
+import inet.ipaddr.format.validate.IPAddressProvider.LoopbackCreator;
 import inet.ipaddr.format.validate.IPAddressProvider.MaskCreator;
 import inet.ipaddr.format.validate.IPAddressProvider.ParsedAddressProvider;
 import inet.ipaddr.format.validate.ParsedHost.EmbeddedAddress;
@@ -64,7 +65,7 @@ import inet.ipaddr.mac.MACAddressSegment;
 public class Validator implements HostIdentifierStringValidator {
 	
 	private static final int extendedChars[] = new int[128]; static {
-		char[] extendedDigits = AddressLargeDivision.EXTENDED_DIGITS;
+		char[] extendedDigits = IPAddressLargeDivision.EXTENDED_DIGITS;
 		for(int i = 0; i < extendedDigits.length; i++) {
 			extendedChars[extendedDigits[i]] = i;
 		}
@@ -136,14 +137,13 @@ public class Validator implements HostIdentifierStringValidator {
 	public MACAddressProvider validateAddress(MACAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		MACAddressStringParameters validationOptions = fromString.getValidationOptions();
-		MACAddressParseData macAddressParseData = new MACAddressParseData();
+		MACAddressParseData macAddressParseData = new MACAddressParseData(str);
 		validateMACAddress(validationOptions, str, 0, str.length(), macAddressParseData);
 		AddressParseData addressParseData = macAddressParseData.addressParseData;
 		if(addressParseData.isEmpty) {
 			return MACAddressProvider.EMPTY_PROVIDER;
 		} else if(addressParseData.isAll) {
-			AddressSize allAddresses = validationOptions.addressSize;
-			return (allAddresses == AddressSize.EUI64) ? MACAddressProvider.ALL_EUI_64 : MACAddressProvider.ALL_MAC;
+			return MACAddressProvider.getAllProvider(validationOptions);
 		} else {
 			ParsedMACAddress parsedAddress = createParsedMACAddress(
 					fromString,
@@ -157,7 +157,7 @@ public class Validator implements HostIdentifierStringValidator {
 	static IPAddressProvider validateAddressImpl(IPAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		IPAddressStringParameters validationOptions = fromString.getValidationOptions();
-		IPAddressParseData ipAddressParseData = new IPAddressParseData();
+		IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 		validateIPAddress(validationOptions, str, 0, str.length(), ipAddressParseData);
 		return createProvider(fromString, str, validationOptions, ipAddressParseData,
 			parseQualifier(str, validationOptions, null, ipAddressParseData, str.length()));
@@ -188,14 +188,15 @@ public class Validator implements HostIdentifierStringValidator {
 			final MACAddressStringParameters validationOptions,
 			final MACAddressParseData parseData) throws AddressStringException {
 		if(parseData.format != null) {
+			boolean hasWildcardSeparator = parseData.addressParseData.anyWildcard && validationOptions.getFormatParameters().allowWildcardedSeparator;
 			//note that too many segments is checked inside the general parsing method
 			int segCount = parseData.addressParseData.segmentCount;
 			if(parseData.format == MACFormat.DOTTED) {
 				if(segCount <= MACAddress.MEDIA_ACCESS_CONTROL_DOTTED_SEGMENT_COUNT && validationOptions.addressSize != AddressSize.EUI64) {
-					if(segCount != MACAddress.MEDIA_ACCESS_CONTROL_DOTTED_SEGMENT_COUNT && !parseData.addressParseData.anyWildcard) {
+					if(!hasWildcardSeparator && segCount != MACAddress.MEDIA_ACCESS_CONTROL_DOTTED_SEGMENT_COUNT) {
 						throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 					}
-				} else if(segCount < MACAddress.MEDIA_ACCESS_CONTROL_DOTTED_64_SEGMENT_COUNT && !parseData.addressParseData.anyWildcard) {
+				} else if(!hasWildcardSeparator && segCount < MACAddress.MEDIA_ACCESS_CONTROL_DOTTED_64_SEGMENT_COUNT) {
 					throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 				} else {
 					parseData.isExtended = true;
@@ -203,10 +204,10 @@ public class Validator implements HostIdentifierStringValidator {
 			} else {
 				if(segCount > 2) {
 					if(segCount <= MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && validationOptions.addressSize != AddressSize.EUI64) {
-						if(segCount != MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && !parseData.addressParseData.anyWildcard) {
+						if(!hasWildcardSeparator && segCount != MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT) {
 							throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 						}
-					} else if(segCount < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT && !parseData.addressParseData.anyWildcard) {
+					} else if(!hasWildcardSeparator && segCount < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
 						throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 					} else {
 						parseData.isExtended = true;
@@ -242,7 +243,7 @@ public class Validator implements HostIdentifierStringValidator {
 								checkMaxValues(fullAddr, data, 1, params, MAC_MAX_TRIPLE, MAC_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_DOUBLE_SEGMENT_DIGIT_COUNT);
 							}
 						}
-					} else if(!parseData.addressParseData.anyWildcard) {
+					} else if(!hasWildcardSeparator) {
 						throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 					}
 					
@@ -595,8 +596,9 @@ public class Validator implements HostIdentifierStringValidator {
 						parseData.segmentCount++;
 					}
 					IPAddressStringParameters mixedOptions = ipv6SpecificOptions.getMixedParameters();
-					IPAddressParseData mixedAddressParseData = new IPAddressParseData();
+					IPAddressParseData mixedAddressParseData = new IPAddressParseData(str);
 					validateIPAddress(mixedOptions, str, lastSeparatorIndex + 1, strEndIndex, mixedAddressParseData, true);
+					mixedAddressParseData.clearQualifier();
 					ipAddressParseData.mixedParsedAddress = createIPAddressProvider(null, str, mixedOptions, mixedAddressParseData, ParsedHost.NO_QUALIFIER);
 					index = mixedAddressParseData.addressParseData.addressEndIndex;
 				} else {
@@ -1271,8 +1273,8 @@ public class Validator implements HostIdentifierStringValidator {
 					if(isMac) {
 						throw new AddressStringException(str, index);
 					}
-					ipAddressParseData.isPrefixed = true;
 					strEndIndex = index;
+					ipAddressParseData.isPrefixed = true;
 					ipAddressParseData.qualifierIndex = index + 1;
 				} else if(currentChar == Address.SEGMENT_WILDCARD || (isZoneChar = (currentChar == Address.SEGMENT_SQL_WILDCARD))) {
 					//the character * is always treated as wildcard (but later can be determined to be a base 85 character)
@@ -1299,8 +1301,8 @@ public class Validator implements HostIdentifierStringValidator {
 							throw new AddressStringException(str, extendedCharacterIndex);
 						}
 						isBase85 = false;
-						ipAddressParseData.isZoned = true;
 						strEndIndex = index;
+						ipAddressParseData.isZoned = true;
 						ipAddressParseData.qualifierIndex = index + 1;
 					} else {
 						++wildcardCount;
@@ -1325,7 +1327,7 @@ public class Validator implements HostIdentifierStringValidator {
 						leadingZeroCount = 0;
 					}
 					++index;
-				} else if(currentChar == AddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR) {
+				} else if(currentChar == IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR) {
 					if(isBase85) {
 						if(extendedCharacterIndex < 0) {
 							extendedCharacterIndex = index;
@@ -1342,8 +1344,8 @@ public class Validator implements HostIdentifierStringValidator {
 					++index;
 				} else if(currentChar == IPv6Address.ALTERNATIVE_ZONE_SEPARATOR) {
 					if(isBase85 && !isMac && ipv6SpecificOptions.allowZone) {
-						ipAddressParseData.isZoned = ipAddressParseData.isBase85Zoned = true;
 						strEndIndex = index;
+						ipAddressParseData.isZoned = ipAddressParseData.isBase85Zoned = true;
 						ipAddressParseData.qualifierIndex = index + 1;
 					} else {
 						throw new AddressStringException(str, index);
@@ -1367,13 +1369,10 @@ public class Validator implements HostIdentifierStringValidator {
 				}
 			}
 		}
-		//return parseData;
 	}
 	
 	private static IPAddressProvider createProvider(
 			final HostIdentifierString originator,
-			//final HostName fromHost,
-			//final IPAddressString fromString,
 			final CharSequence fullAddr,
 			final IPAddressStringParameters validationOptions,
 			final IPAddressParseData parseData,
@@ -1384,26 +1383,21 @@ public class Validator implements HostIdentifierStringValidator {
 			IPVersion optionsVersion = validationOptions.inferVersion();
 			if(version == null) {
 				parseData.ipVersion = version = optionsVersion;
-			} else {
-				if(optionsVersion != null && !version.equals(optionsVersion)) {
-					throw new AddressStringException(fullAddr, version == IPVersion.IPV6 ? "ipaddress.error.ipv6" : "ipaddress.error.ipv4");
-				}
+			} else if(optionsVersion != null && !version.equals(optionsVersion)) {
+				throw new AddressStringException(fullAddr, version == IPVersion.IPV6 ? "ipaddress.error.ipv6" : "ipaddress.error.ipv4");
 			}
 			if(parseData.addressParseData.isEmpty) {
 				if(qualifier.getNetworkPrefixLength() != null) {
-					return new MaskCreator(qualifier, version);
+					return new MaskCreator(qualifier, version, validationOptions);
 				} else {
 					//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
 					if(validationOptions.emptyIsLoopback) {
-						return IPAddressProvider.LOOPBACK_CREATOR;
+						return new LoopbackCreator(validationOptions);//IPAddressProvider.LOOPBACK_CREATOR;
 					}
 					return IPAddressProvider.EMPTY_PROVIDER;
 				}
 			} else { //isAll
-				if(qualifier == ParsedHost.NO_QUALIFIER && version == null) {
-					return IPAddressProvider.ALL_ADDRESSES_CREATOR;
-				}
-				return new AllCreator(qualifier, version, originator);
+				return new AllCreator(qualifier, version, originator, validationOptions);
 			}
 		} else {
 			if(parseData.isZoned && parseData.ipVersion.isIPv4()) {
@@ -1465,9 +1459,13 @@ public class Validator implements HostIdentifierStringValidator {
 		if(version.isIPv4()) {
 			int missingCount = IPv4Address.SEGMENT_COUNT - segCount;
 			final IPv4AddressStringParameters ipv4Options = validationOptions.getIPv4Parameters();
-			if(missingCount > 0 && !parseData.addressParseData.anyWildcard) {
-				//single segments are handled in the parsing code with the allowSingleSegment setting
-				if(segCount > 1 && !ipv4Options.inet_aton_joinedSegments) {
+			boolean hasWildcardSeparator = parseData.addressParseData.anyWildcard && ipv4Options.allowWildcardedSeparator;
+			
+			//single segments are handled in the parsing code with the allowSingleSegment setting
+			if(missingCount > 0 && segCount > 1) {
+				if(ipv4Options.inet_aton_joinedSegments) {
+					parseData.is_inet_aton_joined = true;
+				} else if(!hasWildcardSeparator) {
 					throw new AddressStringException(fullAddr, "ipaddress.error.ipv4.too.few.segments");
 				}
 			}
@@ -1479,7 +1477,7 @@ public class Validator implements HostIdentifierStringValidator {
 				int indices[] = parseData.addressParseData.indices[i];
 				int lowerRadix = indices[AddressParseData.LOWER_RADIX_INDEX];
 				int upperRadix = indices[AddressParseData.UPPER_RADIX_INDEX];
-				if(i == segCount - 1 && missingCount > 0) {
+				if(i == segCount - 1 && missingCount > 0 && ipv4Options.inet_aton_joinedSegments) {
 					max = getMaxIPv4Value(missingCount);
 					maxDigits = getMaxIPv4StringLength(missingCount, lowerRadix);
 					maxUpperDigits = (upperRadix != lowerRadix) ? getMaxIPv4StringLength(missingCount, upperRadix) : maxDigits;
@@ -1502,11 +1500,12 @@ public class Validator implements HostIdentifierStringValidator {
 			if(parseData.mixedParsedAddress != null) {
 				totalSegmentCount += IPv6Address.MIXED_REPLACED_SEGMENT_COUNT;
 			}
-			if(totalSegmentCount != 1 && totalSegmentCount < IPv6Address.SEGMENT_COUNT && !parseData.addressParseData.anyWildcard && !parseData.isCompressed()) {
+			boolean hasWildcardSeparator = parseData.addressParseData.anyWildcard && validationOptions.getIPv6Parameters().allowWildcardedSeparator;
+			if(!hasWildcardSeparator && totalSegmentCount != 1 && totalSegmentCount < IPv6Address.SEGMENT_COUNT && !parseData.isCompressed()) {
 				throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 			}
 		}
-		ParsedIPAddress valueCreator = new ParsedIPAddress(originator, fullAddr, parseData, version, qualifier);
+		ParsedIPAddress valueCreator = new ParsedIPAddress(originator, fullAddr, validationOptions, parseData, version, qualifier);
 		return valueCreator;
 	}
 	
@@ -1604,7 +1603,6 @@ public class Validator implements HostIdentifierStringValidator {
 			//before we attempt to parse, ensure the string is a reasonable size
 			if(!allowPrefixesBeyondAddressSize && digitCount > (asIPv4 ? 2 : 3)) {
 				if(asIPv4 && validationOptions.allowSingleSegment) {
-				//if(asIPv4 && validationOptions.getIPv4Parameters().inet_aton_joinedSegments && validationOptions.getIPv4Parameters().inet_aton_single_segment_mask) {
 					return null; //treat it as single segment ipv4 mask (ie /xxx not a prefix of length xxx but the mask xxx
 				}
 				throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
@@ -1612,7 +1610,6 @@ public class Validator implements HostIdentifierStringValidator {
 			int result = parse10(fullAddr, index, endIndex);
 			if(!allowPrefixesBeyondAddressSize && result > (asIPv4 ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT)) {
 				if(asIPv4 && validationOptions.allowSingleSegment) {
-				//if(asIPv4 && validationOptions.getIPv4Parameters().inet_aton_joinedSegments && validationOptions.getIPv4Parameters().inet_aton_single_segment_mask) {
 					return null; //treat it as a single segment ipv4 mask
 				}
 				throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
@@ -1701,7 +1698,7 @@ public class Validator implements HostIdentifierStringValidator {
 					//check for a mask
 					//check if we need a new validation options for the mask
 					IPAddressStringParameters maskOptions = toMaskOptions(validationOptions, ipVersion);
-					IPAddressParseData ipAddressParseData = new IPAddressParseData();
+					IPAddressParseData ipAddressParseData = new IPAddressParseData(fullAddr);
 					validateIPAddress(maskOptions, fullAddr, index, endIndex, ipAddressParseData);
 					AddressParseData maskParseData = ipAddressParseData.addressParseData;
 					if(maskParseData.isEmpty || maskParseData.isAll) {
@@ -2298,6 +2295,8 @@ public class Validator implements HostIdentifierStringValidator {
 						}
 						throw new HostNameException(str, index);
 					}
+				} else if(currentChar == IPAddress.ALTERNATIVE_RANGE_SEPARATOR) {
+					isAllDigits = false;
 				} else {
 					throw new HostNameException(str, index);
 				}
@@ -2323,7 +2322,7 @@ public class Validator implements HostIdentifierStringValidator {
 				}
 			} else if(isIPAddress || isPossiblyIPv4 || isPossiblyIPv6) {
 				try {
-					IPAddressParseData ipAddressParseData = new IPAddressParseData();
+					IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 					ParsedHostIdentifierStringQualifier addrQualifier;
 					ParsedHostIdentifierStringQualifier hostQualifier = ParsedHost.NO_QUALIFIER;
 					if(squareBracketed) {
@@ -2576,7 +2575,7 @@ public class Validator implements HostIdentifierStringValidator {
 				}
 				emb = new EmbeddedAddress();
 				emb.isUNCIPv6Literal = true;
-				IPAddressParseData ipAddressParseData = new IPAddressParseData();
+				IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 				IPAddressStringParameters params = DEFAULT_UNC_OPTS;
 				validateIPAddress(params, builder, 0, builder.length(), ipAddressParseData);
 				IPAddressProvider provider = createProvider(null, builder, params, ipAddressParseData,
@@ -2585,11 +2584,11 @@ public class Validator implements HostIdentifierStringValidator {
 						parseQualifier(builder, DEFAULT_UNC_OPTS, null, ipAddressParseData, builder.length()));
 				emb.addressProvider = provider;
 			}
-			//TODO later? support bitstring labels and support subnets
+			//TODO later? support bitstring labels and support subnets in them
 			//rfc 2673
 			//arpa: https://www.ibm.com/support/knowledgecenter/SSLTBW_1.13.0/com.ibm.zos.r13.halz002/f1a1b3b1220.htm
 			//Also, support partial dns lookups and map then to the associated subnet with prefix length, which I think we may 
-			//already do for ipv4 but not for ipv6, ipv4 uses hte prefix notation d.c.b.a/x but ipv6 uses fewer nibbles
+			//already do for ipv4 but not for ipv6, ipv4 uses the prefix notation d.c.b.a/x but ipv6 uses fewer nibbles
 			//on the ipv6 side, would just need to add the proper number of zeros and the prefix length
 			String suffix3 = IPv6Address.REVERSE_DNS_SUFFIX_DEPRECATED;
 			if(addrLen > suffix3.length()) {
@@ -2604,7 +2603,7 @@ public class Validator implements HostIdentifierStringValidator {
 					emb.isReverseDNS = true;
 					if(isIPv4) {
 						//unlike IPv6, we parse first then reverse the segments
-						IPAddressParseData ipAddressParseData = new IPAddressParseData();
+						IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 						IPAddressStringParameters params = REVERSE_DNS_IPV4_OPTS;
 						validateIPAddress(params, str, 0, suffixStartIndex, ipAddressParseData);
 						ipAddressParseData.reverseSegments();
@@ -2612,7 +2611,7 @@ public class Validator implements HostIdentifierStringValidator {
 						emb.addressProvider = provider;
 					} else {
 						CharSequence sequence = convertReverseDNSIPv6(str, suffixStartIndex);
-						IPAddressParseData ipAddressParseData = new IPAddressParseData();
+						IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 						IPAddressStringParameters params = REVERSE_DNS_IPV6_OPTS;
 						validateIPAddress(params, sequence, 0, sequence.length(), ipAddressParseData);
 						IPAddressProvider provider = createProvider(null, sequence, params, ipAddressParseData, hostQualifier != null ? hostQualifier : ParsedHost.NO_QUALIFIER);

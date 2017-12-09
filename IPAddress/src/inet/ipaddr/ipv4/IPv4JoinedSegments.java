@@ -18,6 +18,8 @@
 
 package inet.ipaddr.ipv4;
 
+import inet.ipaddr.AddressValueException;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.IPAddressJoinedSegments;
 
 /**
@@ -27,30 +29,59 @@ import inet.ipaddr.format.IPAddressJoinedSegments;
  */
 public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	private static int MAX_CHARS[] = new int[IPv4Address.SEGMENT_COUNT - 1];
 	
 	public IPv4JoinedSegments(int joinedCount, int value) {
 		super(joinedCount, value);
 		if(joinedCount >= IPv4Address.SEGMENT_COUNT) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(joinedCount);
 		}
 	}
 
-	public IPv4JoinedSegments(int joinedCount, long value, Integer segmentPrefix) {
-		super(joinedCount, value, segmentPrefix == null ? null : Math.min((joinedCount + 1) * IPv4Address.BITS_PER_SEGMENT, segmentPrefix));
+	public IPv4JoinedSegments(int joinedCount, long value, Integer segmentPrefixLength) {
+		super(joinedCount, value, segmentPrefixLength);
 		if(joinedCount >= IPv4Address.SEGMENT_COUNT) {
-			throw new IllegalArgumentException();
-		}
+			throw new AddressValueException(joinedCount);
+		} else if(segmentPrefixLength != null && segmentPrefixLength > IPv4Address.BIT_COUNT) {
+			throw new PrefixLenException(segmentPrefixLength);
+		} else {
+			checkMax(value);
+		} 
 	}
 
-	public IPv4JoinedSegments(int joinedCount, long lower, long upper, Integer segmentPrefix) {
-		super(joinedCount, lower, upper, segmentPrefix == null ? null : Math.min((joinedCount + 1) * IPv4Address.BITS_PER_SEGMENT, segmentPrefix));
+	public IPv4JoinedSegments(int joinedCount, long lower, long upper, Integer segmentPrefixLength) {
+		super(joinedCount, lower, upper, segmentPrefixLength);
 		if(joinedCount >= IPv4Address.SEGMENT_COUNT) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(joinedCount);
+		} else if(segmentPrefixLength != null && segmentPrefixLength > IPv4Address.BIT_COUNT) {
+			throw new PrefixLenException(segmentPrefixLength);
+		}  else {
+			checkMax(getUpperValue());
 		}
 	}
 	
+	private void checkMax(long val) {
+		long max = 0;
+		switch(joinedCount) {
+		case 0:
+			max = 255;
+			break;
+		case 1:
+			max = 65535;
+			break;
+		case 2:
+			max = 16777215;
+			break;
+		case 3:
+			max = 4294967295L;
+			break;
+		}
+		if(value > max) {
+			throw new AddressValueException(value);
+		}
+	}
+
 	@Override
 	public int getMaxDigitCount() {
 		int result = MAX_CHARS[joinedCount - 1];
@@ -62,14 +93,19 @@ public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 
 	@Override
 	protected long getDivisionNetworkMask(int bits) {
-		return IPv4Address.network().getSegmentNetworkMask(bits, joinedCount);
+		int totalBits = IPv4Address.BITS_PER_SEGMENT * (joinedCount + 1);
+		long fullMask = ~(~0L << totalBits); //totalBits must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+		long networkMask = fullMask & (fullMask << (totalBits - bits));
+		return networkMask;
 	}
 
 	@Override
 	protected long getDivisionHostMask(int bits) {
-		return IPv4Address.network().getSegmentHostMask(bits, joinedCount);
+		int totalBits = IPv4Address.BITS_PER_SEGMENT * (joinedCount + 1);
+		long hostMask = ~(~0L << (totalBits - bits));
+		return hostMask;
 	}
-	
+
 	@Override
 	protected int getBitsPerSegment() {
 		return IPv4Address.BITS_PER_SEGMENT;

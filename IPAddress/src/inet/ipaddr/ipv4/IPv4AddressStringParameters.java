@@ -18,10 +18,12 @@
 
 package inet.ipaddr.ipv4;
 
+import inet.ipaddr.Address;
 import inet.ipaddr.AddressStringParameters;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
+import inet.ipaddr.ipv6.IPv6AddressStringParameters;
 
 /**
  * The IPv4-specific parameters within a {@link IPAddressStringParameters} instance.
@@ -31,7 +33,7 @@ import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
  */
 public class IPv4AddressStringParameters extends IPAddressStringFormatParameters implements Comparable<IPv4AddressStringParameters> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON = true;
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK = false; //When not allowing prefixes beyond address size, whether 1.2.3.4/33 has a mask of ipv4 address 33 rather than treating it like a prefix
@@ -59,6 +61,11 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	 */
 	public final boolean inet_aton_single_segment_mask;
 	
+	/**
+	 * The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
+	 */
+	private final IPv4AddressNetwork network;
+	
 	public IPv4AddressStringParameters(
 			boolean allowLeadingZeros,
 			boolean allowCIDRPrefixLeadingZeros,
@@ -69,12 +76,14 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			boolean inet_aton_hex,
 			boolean inet_aton_octal,
 			boolean inet_aton_joinedSegments,
-			boolean inet_aton_single_segment_mask) {
-		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, rangeOptions.allowsWildcard() && allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
+			boolean inet_aton_single_segment_mask,
+			IPv4AddressNetwork network) {
+		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.inet_aton_hex = inet_aton_hex;
 		this.inet_aton_octal = inet_aton_octal;
 		this.inet_aton_joinedSegments = inet_aton_joinedSegments;
 		this.inet_aton_single_segment_mask = inet_aton_single_segment_mask;
+		this.network = network;
 	}
 	
 	public Builder toBuilder() {
@@ -82,6 +91,8 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		builder.inet_aton_hex = inet_aton_hex;
 		builder.inet_aton_octal = inet_aton_octal;
 		builder.inet_aton_joinedSegments = inet_aton_joinedSegments;
+		builder.inet_aton_single_segment_mask = this.inet_aton_single_segment_mask;
+		builder.network = network;
 		return (Builder) toBuilder(builder);
 	}
 	
@@ -90,6 +101,17 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		private boolean inet_aton_octal = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_joinedSegments = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_single_segment_mask = DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK;
+		private IPv4AddressNetwork network;
+		
+		IPv6AddressStringParameters.Builder mixedParent;
+		
+		public void setMixedParent(IPv6AddressStringParameters.Builder parent) {
+			mixedParent = parent;
+		}
+		
+		public IPv6AddressStringParameters.Builder getEmbeddedIPv4AddressParentBuilder() {
+			return mixedParent;
+		}
 		
 		public Builder allow_inet_aton(boolean allow) {
 			inet_aton_joinedSegments = inet_aton_octal = inet_aton_hex = allow;
@@ -137,6 +159,16 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			return this;
 		}
 		
+		/**
+		 * @see IPv4AddressStringParameters#network
+		 * @param network if null, the default network will be used
+		 * @return the builder
+		 */
+		public Builder setNetwork(IPv4AddressNetwork network) {
+			this.network = network;
+			return this;
+		}
+		
 		@Override
 		public Builder setRangeOptions(RangeParameters rangeOptions) {
 			super.setRangeOptions(rangeOptions);
@@ -174,9 +206,27 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		}
 		
 		public IPv4AddressStringParameters toParams() {
-			return new IPv4AddressStringParameters(allowLeadingZeros, allowPrefixLengthLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, 
-					allowWildcardedSeparator, allowPrefixesBeyondAddressSize, inet_aton_hex, inet_aton_octal, inet_aton_joinedSegments, inet_aton_single_segment_mask);
+			return new IPv4AddressStringParameters(
+					allowLeadingZeros,
+					allowPrefixLengthLeadingZeros,
+					allowUnlimitedLeadingZeros,
+					rangeOptions, 
+					allowWildcardedSeparator,
+					allowPrefixesBeyondAddressSize,
+					inet_aton_hex,
+					inet_aton_octal,
+					inet_aton_joinedSegments,
+					inet_aton_single_segment_mask,
+					network);
 		}
+	}
+	
+	@Override
+	public IPv4AddressNetwork getNetwork() {
+		if(network == null) {
+			return Address.defaultIpv4Network();
+		}
+		return network;
 	}
 	
 	@Override

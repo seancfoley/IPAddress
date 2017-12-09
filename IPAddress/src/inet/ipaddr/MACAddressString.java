@@ -25,10 +25,9 @@ import inet.ipaddr.format.validate.MACAddressProvider;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.mac.MACAddress;
 
-
 /* 
  * 
- * MAC address resources:
+ * Some MAC address resources:
  * https://supportforums.cisco.com/document/100566/understanding-ipv6-eui-64-bit-address
  * http://aruljohn.com/mac.pl
  * https://standards.ieee.org/events/automotive/2014/18_Looming_Ethernet_MAC_Address_Crisis.pdf
@@ -102,7 +101,7 @@ import inet.ipaddr.mac.MACAddress;
  */
 public class MACAddressString implements HostIdentifierString, Comparable<MACAddressString> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	/* Generally permissive, settings are the default constants in MACAddressStringParameters.  */
 	private static final MACAddressStringParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new MACAddressStringParameters.Builder().toParams();
@@ -355,11 +354,11 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
 	 * 
 	 * @throws AddressStringException if the address format is invalid
-	 * @throws AddressTypeException if a valid address string representing multiple addresses in a non-standard format cannot be represented by a MACAddress which has the standard 1 byte segment format
+	 * @throws IncompatibleAddressException if a valid address string representing multiple addresses cannot be represented
 	 * 
 	 */
 	@Override
-	public MACAddress toAddress() throws AddressStringException, AddressTypeException {
+	public MACAddress toAddress() throws AddressStringException, IncompatibleAddressException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return parsedAddress.getAddress();
 	}

@@ -9,5 +9,5 @@
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="inet.ipaddr.test.TestRunner"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="fast performance"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="IPAddress"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xjit:exclude={inet/ipaddr/mac/MACAddressSection.getPrefixLength()Ljava/lang/Integer;}"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xjit:exclude={inet/ipaddr/mac/MACAddressSection.getPrefixLength()Ljava/lang/Integer;},exclude={inet/ipaddr/mac/MACAddress.adjustPrefixBySegment(Z)Linet/ipaddr/mac/MACAddress;},exclude={inet/ipaddr/mac/MACAddressSection.adjustPrefixBySegment(Z)Linet/ipaddr/mac/MACAddressSection;},exclude={inet/ipaddr/test/MACAddressRangeTest.testTree(Ljava/lang/String;[Ljava/lang/String;)V} -Xmx2g"/>
 </launchConfiguration>

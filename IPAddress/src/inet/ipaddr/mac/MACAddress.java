@@ -21,12 +21,16 @@ package inet.ipaddr.mac;
 import java.util.Iterator;
 
 import inet.ipaddr.Address;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressPositionException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierString;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.format.AddressDivisionGrouping;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6AddressNetwork;
+import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.AddressCache;
@@ -37,8 +41,8 @@ import inet.ipaddr.mac.MACAddressSection.AddressCache;
  *
  */
 public class MACAddress extends Address implements Iterable<MACAddress> {
-
-	private static final long serialVersionUID = 3L;
+	
+	private static final long serialVersionUID = 4L;
 	
 	public static final char COLON_SEGMENT_SEPARATOR = ':';
 	public static final char DASH_SEGMENT_SEPARATOR = '-';
@@ -61,105 +65,54 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT = 3;
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_BIT_COUNT = ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT * BITS_PER_SEGMENT;
 	
-	protected static MACAddressNetwork network = new MACAddressNetwork();
-	
 	transient AddressCache sectionCache;
 	
 	/**
 	 * Constructs a MAC address.
 	 * @param segments the address segments
 	 */
-	public MACAddress(MACAddressSegment[] segments) {
-		this(segments, null);
-	}
-	
-	/**
-	 * Constructs a MAC address.
-	 * @param segments the address segments
-	 */
-	public MACAddress(MACAddressSegment[] segments, Integer prefixLength) {
-		this(getAddressCreator().createSection(segments, segments.length == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, prefixLength));
+	public MACAddress(MACAddressSegment[] segments) throws AddressValueException {
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(segments, segments.length == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null));
+		int segCount = segments.length;
+		if(segCount != MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && segCount != EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+			throw new AddressValueException("ipaddress.error.mac.invalid.segment.count", segCount);
+		}
 	}
 	
 	/**
 	 * Constructs a MAC address.
 	 * @param section the address segments
 	 */
-	public MACAddress(MACAddressSection section) {
+	public MACAddress(MACAddressSection section) throws AddressValueException {
 		super(section);
 		int segCount = section.getSegmentCount();
 		if(segCount != MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && segCount != EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
-			throw new IllegalArgumentException(getMessage("ipaddress.error.mac.invalid.segment.count") + ' ' + segCount);
+			throw new AddressValueException("ipaddress.error.mac.invalid.segment.count", segCount);
+		}
+		if(section.addressSegmentIndex != 0) {
+			throw new AddressPositionException(section.addressSegmentIndex);
 		}
 	}
 
 	/**
 	 * Constructs a MAC address.
 	 */
-	public MACAddress(long address) {
-		this(address, false, null);
+	public MACAddress(long address) throws AddressValueException {
+		this(address, false);
 	}
 	
 	/**
 	 * Constructs a MAC address.
 	 */
-	public MACAddress(long address, boolean extended) {
-		this(address, extended, null);
-	}
-	
-	/**
-	 * Constructs a MAC address.
-	 */
-	public MACAddress(long address, Integer prefixLength) {
-		this(address, false, prefixLength);
-	}
-	
-	/**
-	 * Constructs a MAC address.
-	 * 
-	 * @param address the bytes
-	 * @param prefixLength the length for which the address represents all addresses with the same prefix identifier such as the 24 bit Organizational Unique Identifier (OUI)
-	 * @param extended if true, treated as an 8-byte EUI-64 address, otherwise treated as a 6-byte MAC or EUI-48
-	 */
-	public MACAddress(long address, boolean extended, Integer prefixLength) {
-		super(getAddressCreator().createSection(address, 0, extended, prefixLength));
+	public MACAddress(long address, boolean extended) throws AddressValueException {
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(address, 0, extended, null));
 	}
 
 	/**
 	 * Constructs a MAC address.
 	 */
-	public MACAddress(byte[] bytes) {
-		this(bytes, null);
-	}
-	
-	/**
-	 * Constructs a MAC address.
-	 */
-	public MACAddress(byte[] bytes, Integer prefixLength) {
-		super(getAddressCreator().createSection(bytes, 0, bytes.length == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, prefixLength));
-		if(bytes.length != MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && bytes.length != EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
-			throw new IllegalArgumentException(getMessage("ipaddress.error.mac.invalid.byte.count") + ' ' + bytes.length);
-		}
-	}
-	
-	/**
-	 * Constructs a MAC address
-	  * 
-	 * @param lowerValueProvider supplies the 1 byte lower values for each segment
-	 * @param upperValueProvider supplies the 1 byte upper values for each segment
-	 */
-	public MACAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, boolean extended, Integer prefixLength) {
-		super(getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, extended, prefixLength));
-	}
-	
-	/**
-	 * Constructs a MAC address
-	  * 
-	 * @param lowerValueProvider supplies the 1 byte lower values for each segment
-	 * @param upperValueProvider supplies the 1 byte upper values for each segment
-	 */
-	public MACAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
-		super(getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, false, prefixLength));
+	public MACAddress(byte[] bytes) throws AddressValueException {
+		super(thisAddress -> createSection((MACAddress) thisAddress, bytes));
 	}
 	
 	/**
@@ -169,7 +122,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 * @param upperValueProvider supplies the 1 byte upper values for each segment
 	 */
 	public MACAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, boolean extended) {
-		super(getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, extended, null));
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, extended, null));
 	}
 	
 	/**
@@ -179,19 +132,64 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 * @param upperValueProvider supplies the 1 byte upper values for each segment
 	 */
 	public MACAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider) {
-		this(lowerValueProvider, upperValueProvider, null);
+		this(lowerValueProvider, upperValueProvider, false);
+	}
+	
+	/**
+	 * Constructs a MAC address
+	 * 
+	 * @param valueProvider supplies the 1 byte value for each segment
+	 */
+	public MACAddress(SegmentValueProvider valueProvider, boolean extended) throws AddressValueException {
+		this(valueProvider, valueProvider, extended);
+	}
+	
+	/**
+	 * Constructs a MAC address
+	 * 
+	 * @param valueProvider supplies the 1 byte value for each segment
+	 */
+	public MACAddress(SegmentValueProvider valueProvider) {
+		this(valueProvider, false);
+	}
+	
+	private static MACAddressSection createSection(MACAddress addr, byte[] bytes) {
+		int segCount;
+		int len = bytes.length;
+		//We round down the bytes to 6 bytes if we can.  Otherwise, we round up.
+		if(len < EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+			segCount = MEDIA_ACCESS_CONTROL_SEGMENT_COUNT;
+			if(len > MEDIA_ACCESS_CONTROL_SEGMENT_COUNT) {
+				int i = 0;
+				do {
+					if(bytes[i++] != 0) {
+						segCount = EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
+						break;
+					}
+				} while(--len > MEDIA_ACCESS_CONTROL_SEGMENT_COUNT);
+			}
+		} else {
+			segCount = EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
+		}
+		bytes = MACAddressSection.convert(bytes, segCount, "ipaddress.error.mac.invalid.byte.count");
+		return addr.getAddressCreator().createSection(bytes, 0, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null);
 	}
 	
 	protected static String getMessage(String key) {
 		return Address.getMessage(key);
 	}
 	
-	public static MACAddressNetwork network() {
-		return network;
+	@Override
+	public MACAddressNetwork getNetwork() {
+		return defaultMACNetwork();
 	}
 	
-	public static MACAddressCreator getAddressCreator() {
-		return network().getAddressCreator();
+	public IPv6AddressNetwork getIPv6Network() {
+		return defaultIpv6Network();
+	}
+	
+	public MACAddressCreator getAddressCreator() {
+		return getNetwork().getAddressCreator();
 	}
 	
 	public boolean isExtended() {
@@ -307,6 +305,14 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return getSection().getLowestOrHighest(this, lowest);
 	}
 	
+	public long longValue() {
+		return getSection().longValue();
+	}
+	
+	public long upperLongValue() {
+		return getSection().upperLongValue();
+	}
+	
 	/**
 	 * Use to produce:
 	 * "MSB format", "IBM format", "Token-Ring format", and "non-canonical form"
@@ -351,8 +357,8 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
-	public MACAddress applyPrefixLength(int networkPrefixLength) {
-		return checkIdentity(getSection().applyPrefixLength(networkPrefixLength));
+	public MACAddress applyPrefixLength(int prefixLength) {
+		return checkIdentity(getSection().applyPrefixLength(prefixLength));
 	}
 	
 	@Override
@@ -388,16 +394,41 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return getSection().getOUISection();
 	}
 	
-	public MACAddress toOUIPrefixed() {
-		return getAddressCreator().createAddress(getSection().toOUIPrefixed());
-	}
-
-	public IPv6Address toLinkLocalIPv6() {
-		return IPv6Address.network().getAddressCreator().createAddress(IPv6AddressSection.LINK_LOCAL_PREFIX.append(toEUI64IPv6()));
+	/**
+	 * Returns an address in which the range of values match the block for the OUI (organizationally unique identifier)
+	 * 
+	 * @return
+	 */
+	public MACAddress toOUIPrefixBlock() {
+		return checkIdentity(getSection().toOUIPrefixBlock());
 	}
 	
+	@Override
+	public MACAddress toPrefixBlock() {
+		return checkIdentity(getSection().toPrefixBlock());
+	}
+	
+	/**
+	 * Converts to a link-local Ipv6 address.  Any MAC prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
+	 * This will provide the latter 4 segments of an IPv6 address, to be paired with the link-local IPv6 prefix of 4 segments.
+	 * 
+	 * @return
+	 */
+	public IPv6Address toLinkLocalIPv6() {
+		IPv6AddressNetwork network = getIPv6Network();
+		IPv6AddressSection linkLocalPrefix = network.getLinkLocalPrefix();
+		IPv6AddressCreator creator = network.getAddressCreator();
+		return creator.createAddress(linkLocalPrefix.append(toEUI64IPv6()));
+	}
+	
+	/**
+	 * Converts to an Ipv6 address section.  Any MAC prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
+	 * This will provide the latter 4 segments of an IPv6 address, to be paired with an IPv6 prefix of 4 segments.
+	 * 
+	 * @return
+	 */
 	public IPv6AddressSection toEUI64IPv6() {
-		return IPv6Address.network().getAddressCreator().createSection(this);
+		return getIPv6Network().getAddressCreator().createSection(this);
 	}
 	
 	/**
@@ -433,9 +464,18 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 			MACAddressSegment segs[] = creator.createSegmentArray(EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
 			MACAddressSection section = getSection();
 			section.getSegments(0,  3, segs, 0);
-			segs[3] = MACAddressSegment.FF_SEGMENT;
-			segs[4] = asMAC ? MACAddressSegment.FF_SEGMENT : MACAddressSegment.FE_SEGMENT;
+			MACAddressSegment ffSegment = creator.createSegment(0xff);
+			segs[3] = ffSegment;
+			segs[4] = asMAC ? ffSegment : creator.createSegment(0xfe);
 			section.getSegments(3,  6, segs, 5);
+			Integer prefLength = getPrefixLength();
+			if(prefLength != null) {
+				MACAddressSection resultSection = creator.createSectionInternal(segs, true);
+				if(prefLength >= 24) {
+					prefLength += MACAddress.BITS_PER_SEGMENT << 2; //two segments
+				}
+				resultSection.assignPrefixLength(prefLength);
+			}
 			return creator.createAddressInternal(segs);
 		} else {
 			MACAddressSection section = getSection();
@@ -445,7 +485,21 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 				return this;
 			}
 		}
-		throw new AddressTypeException(this, "ipaddress.mac.error.not.eui.convertible");
+		throw new IncompatibleAddressException(this, "ipaddress.mac.error.not.eui.convertible");
+	}
+	
+	/**
+	 * Replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
+	 * 
+	 * @param startIndex
+	 * @param endIndex
+	 * @param replacement
+	 * @param replacementIndex
+	 * @throws IndexOutOfBoundsException
+	 * @return
+	 */
+	public MACAddress replace(int startIndex, int endIndex, MACAddress replacement, int replacementIndex) {
+		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
 	}
 	
 	public AddressDivisionGrouping getDottedAddress() {

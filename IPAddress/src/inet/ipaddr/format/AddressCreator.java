@@ -36,12 +36,22 @@ import inet.ipaddr.format.validate.ParsedAddressCreator;
  */
 public abstract class AddressCreator<T extends Address, R extends AddressSection, E extends AddressSection, S extends AddressSegment> extends ParsedAddressCreator<T, R, E, S>  implements AddressSegmentCreator<S> {
 
+	private static final long serialVersionUID = 4L;
+
+	public abstract void clearCaches();
+	
 	protected abstract T createAddressInternal(S segments[]);
+
+	protected abstract T createAddressInternal(S segments[], Integer prefix);
+	
+	protected abstract T createAddressInternal(S segments[], Integer prefix, boolean singleOnly);
 	
 	@Override
 	protected abstract R createSectionInternal(S segments[]);
 	
+	protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix, boolean singleOnly);
+	
 	protected abstract R createSectionInternal(S segments[], int startIndex, boolean extended);
 	
-	protected abstract T createAddress(R section);
+	public abstract T createAddress(R section);
 }

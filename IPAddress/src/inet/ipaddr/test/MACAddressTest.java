@@ -19,6 +19,7 @@
 package inet.ipaddr.test;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -28,9 +29,11 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.TreeSet;
 
+import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressStringException;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.MACAddressStringParameters.AddressSize;
@@ -52,7 +55,7 @@ public class MACAddressTest extends TestBase {
 
 	static class MACAddressStringKey extends LookupKey<MACAddressStringParameters> {
 	
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private static final Comparator<MACAddressStringParameters> comparator = new LookupKeyComparator<MACAddressStringParameters>();
 		
 		
@@ -72,7 +75,7 @@ public class MACAddressTest extends TestBase {
 	
 	static class MACAddressLongKey implements Comparable<MACAddressLongKey>, Serializable {
 
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 4L;
 		
 		long val;
 		boolean extended;
@@ -107,7 +110,7 @@ public class MACAddressTest extends TestBase {
 	
 	static class MACAddressKey implements Comparable<MACAddressKey>, Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		byte bytes[];
 		
@@ -174,10 +177,25 @@ public class MACAddressTest extends TestBase {
 	void testRadices(String original, String expected, int radix) {
 		MACAddressString w = createMACAddress(original);
 		MACAddress val = w.getAddress();
-		StringOptions options = new MACStringOptions.Builder().setRadix(radix).toParams();
+		StringOptions options = new MACStringOptions.Builder().setRadix(radix).toOptions();
 		String normalized = val.toNormalizedString(options);
 		if(!normalized.equals(expected)) {
 			addFailure(new Failure("string was " + normalized + " expected was " + expected, w));
+		}
+		incrementTestCount();
+	}
+	
+	void testOUIPrefixed(String original, String expected, int expectedPref) {
+		MACAddressString w = createMACAddress(original);
+		MACAddress val = w.getAddress();
+		MACAddressString w2 = createMACAddress(expected);
+		MACAddress expectedAddress = w2.getAddress();
+		MACAddress prefixed = val.toOUIPrefixBlock();
+		if(!prefixed.equals(expectedAddress)) {
+			addFailure(new Failure("oui prefixed was " + prefixed + " expected was " + expected, w));
+		}
+		if(expectedPref != prefixed.getPrefixLength().intValue()) {
+			addFailure(new Failure("oui prefix was " + prefixed.getPrefixLength() + " expected was " + expectedPref, w));
 		}
 		incrementTestCount();
 	}
@@ -202,7 +220,7 @@ public class MACAddressTest extends TestBase {
 					}
 				}
 			} 
-		} catch(AddressTypeException e) {
+		} catch(IncompatibleAddressException e) {
 			failed = true;
 			addFailure(new Failure(e.toString(), addr));
 		} catch(RuntimeException e) {
@@ -312,9 +330,9 @@ public class MACAddressTest extends TestBase {
 				if(equal ? !w2.contains(w) : w2.contains(w)) {
 					addFailure(new Failure("failed " + w, w2));
 					if(equal) {
-						System.out.println(!w2.contains(w));
+						System.out.println("containment: " + !w2.contains(w));
 					} else {
-						System.out.println(w2.contains(w));
+						System.out.println("containment: " + w2.contains(w));
 					}
 				}
 			}
@@ -339,6 +357,24 @@ public class MACAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	private static Integer prefixAdjust(Integer existing, int max, int adj) {
+		if(existing == null) {
+			return null;
+		}
+		if(existing > max) {
+			return null;
+		}
+		return Math.max(0, existing + adj);
+	}
+	
+	private static boolean allEquals(Object one, Object two) {
+		return Objects.equals(one, two);
+	}
+	
+	private static boolean allEquals(Object one, Object two, Object three) {
+		return allEquals(one, two) && allEquals(one, three);
+	}
+
 	void testSections(String addrString) {
 		MACAddressString w = createMACAddress(addrString);
 		MACAddress v = w.getAddress();
@@ -346,19 +382,28 @@ public class MACAddressTest extends TestBase {
 		MACAddressSection ouiSection = v.getOUISection();
 		MACAddressSection front = v.getSection(0,  3);
 		MACAddressSection back = v.getSection(front.getSegmentCount());
-		if(!ouiSection.equals(front)) {
-			addFailure(new Failure("failed odi " + ouiSection + " expected " + front, w));
-		} else if(!odiSection.equals(back)) {
-			addFailure(new Failure("failed odi " + odiSection + " expected " + back, w));
+		boolean first;
+		if((first = !ouiSection.equals(front)) || !allEquals(ouiSection.getPrefixLength(), front.getPrefixLength(), prefixAdjust(v.getPrefixLength(), 24, 0))) {
+			if(first) {
+				addFailure(new Failure("failed oui " + ouiSection + " expected " + front, w));
+			} else {
+				addFailure(new Failure("failed oui pref " + ouiSection.getPrefixLength() + " expected " + prefixAdjust(v.getPrefixLength(), 24, 0) + " for " + front, w));
+			}
+		} else if((first = !odiSection.equals(back)) || !allEquals(odiSection.getPrefixLength(), back.getPrefixLength(), prefixAdjust(v.getPrefixLength(), 64, -24))) {
+			if(first) {
+				addFailure(new Failure("failed odi " + odiSection + " expected " + back, w));
+			} else {
+				addFailure(new Failure("failed odi pref " + odiSection.getPrefixLength() + " expected " + prefixAdjust(v.getPrefixLength(), 64, -24) + " for " + back, w));
+			}
 		} else {
 			MACAddressSection middle = v.getSection(1, 5);
 			MACAddressSection odiSection2 = odiSection.getSection(0, 5 - ouiSection.getSegmentCount());
 			MACAddressSection ouiSection2 = ouiSection.getSection(1);
 			odiSection = middle.getODISection();
 			ouiSection = middle.getOUISection();
-			if(!ouiSection.equals(ouiSection2)) {
+			if(!ouiSection.equals(ouiSection2) || !allEquals(ouiSection.getPrefixLength(), ouiSection2.getPrefixLength())) {
 				addFailure(new Failure("failed odi " + ouiSection + " expected " + ouiSection2, w));
-			} else if(!odiSection.equals(odiSection2)) {
+			} else if(!odiSection.equals(odiSection2) || !allEquals(odiSection.getPrefixLength(), odiSection2.getPrefixLength())) {
 				addFailure(new Failure("failed odi " + odiSection + " expected " + odiSection2, w));
 			} else if(ouiSection.getSegmentCount() != 2 || ouiSection2.getSegmentCount() != 2) {
 				addFailure(new Failure("failed oui count " + ouiSection.getSegmentCount() + " expected " + 2, w));
@@ -417,7 +462,7 @@ public class MACAddressTest extends TestBase {
 	}
 	
 	void testPrefixes(String original, 
-			int prefix, int adjustment, 
+			int prefix, int adjustment,
 			String next,
 			String previous,
 			String adjusted,
@@ -451,7 +496,7 @@ public class MACAddressTest extends TestBase {
 			if(count != expectedCount || set.size() != count || count != MACAddressString.countDelimitedAddresses(str)) {
 				addFailure(new Failure("count mismatch, count: " + count + " set count: " + set.size() + " calculated count: " + IPAddressString.countDelimitedAddresses(str) + " expected: " + expectedCount));
 			}
-		} catch (AddressStringException | AddressTypeException e) {
+		} catch (AddressStringException | IncompatibleAddressException e) {
 			addFailure(new Failure("threw unexpectedly " + str));
 		}
 		incrementTestCount();
@@ -601,141 +646,180 @@ public class MACAddressTest extends TestBase {
 							if(!backFromMac.equals(back)) {
 								addFailure(new Failure("eui 64 conv 3" + back, backFromMac));
 							} else {
-								IPv6AddressSection frontIpv6 = addr.getNetworkSection(64, false);
-								IPv6AddressSection backLinkLocal = linkLocal.getHostSection(64);
-								IPv6AddressSection backIpv6 = addr.getHostSection(64);
-								IPv6Address splitJoined1 = new IPv6Address(frontIpv6, backIpv6.toEUI(true));
-								IPv6Address splitJoined2 = new IPv6Address(frontIpv6, backIpv6.toEUI(false));
-								IPv6Address splitJoined3 = new IPv6Address(frontIpv6.append(backIpv6));
-								MACAddressSection other = new MACAddressSection(new MACAddressSegment(0xee));
-								for(int j = 0; j < 2; j++) {
-									MACAddress m;
-									if(j == 0) {
-										m = macAddr64;
-									} else {
-										m = macAddr;
+								boolean withPrefix = false;//we do the loop twice, once with prefixes, the other without
+								do {
+									IPv6AddressSection frontIpv6 = addr.getNetworkSection(64, withPrefix);
+									if(withPrefix) {
+										addr = addr.setPrefixLength(64, false);
 									}
-									for(int i = 0; i <= m.getSegmentCount(); i++) {
-										MACAddressSection backSec = m.getSection(i, m.getSegmentCount());
-										MACAddressSection frontSec = m.getSection(0, i);
-										
-										if(j == 1) {
-											if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
-												addFailure(new Failure("eui 64 test " + backSec, frontSec));
-											}
-											if(i >= 3) {
-												MACAddressSection frontSec2 = frontSec.toEUI64(false);
-												if(!frontSec2.isEUI64(false)) {
-													addFailure(new Failure("eui 64 test " + backSec, frontSec));
-												}
-											}
-											if(i <= 3) {
-												MACAddressSection backSec2 = backSec.toEUI64(false);
-												if(!backSec2.isEUI64(false)) {
-													addFailure(new Failure("eui 64 test " + backSec, frontSec));
-												}
-											}
-											
+									IPv6AddressSection backLinkLocal = linkLocal.getHostSection(64);
+									IPv6AddressSection backIpv6 = addr.getHostSection(64);
+									IPv6Address splitJoined1 = new IPv6Address(frontIpv6, backIpv6.toEUI(true));
+									IPv6Address splitJoined2 = new IPv6Address(frontIpv6, backIpv6.toEUI(false));
+									IPv6Address splitJoined3 = new IPv6Address(frontIpv6.append(backIpv6));
+									MACAddressSection other = new MACAddressSection(new MACAddressSegment(0xee));
+									for(int j = 0; j < 2; j++) {
+										MACAddress m;
+										if(j == 0) {
+											m = macAddr64;
 										} else {
-											if(i < 4) {
-												if(backSec.isEUI64(true) || !backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
+											m = macAddr;
+										}
+										for(int i = 0; i <= m.getSegmentCount(); i++) {
+											MACAddressSection backSec = m.getSection(i, m.getSegmentCount());
+											MACAddressSection frontSec = m.getSection(0, i);
+											
+											if(j == 1) {
+												if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
 													addFailure(new Failure("eui 64 test " + backSec, frontSec));
-												} else {
-													MACAddressSection backSec2 = backSec.replace(other, 3 - i);
-													if(backSec2.isEUI64(false)) {
-														addFailure(new Failure("eui 64 test " + backSec2, backSec2));
+												}
+												if(i >= 3) {
+													MACAddressSection frontSec2 = frontSec.toEUI64(false);
+													if(!frontSec2.isEUI64(false)) {
+														addFailure(new Failure("eui 64 test " + backSec, frontSec));
 													}
 												}
-											} else if(i == 4) {
-												if(backSec.isEUI64(true) || 
-														backSec.isEUI64(false) || !backSec.isEUI64(false, true) ||
-														frontSec.isEUI64(true) ||
-														frontSec.isEUI64(false) || !frontSec.isEUI64(false, true)) {
-													addFailure(new Failure("eui 64 test " + backSec, frontSec));
-												} else {
-													backSec = backSec.toEUI64(false);
-													frontSec = frontSec.toEUI64(false);
-													if(!backSec.isEUI64(false, true) || backSec.isEUI64(false) || !frontSec.isEUI64(false, true) || frontSec.isEUI64(false)) {
+												if(i <= 3) {
+													MACAddressSection backSec2 = backSec.toEUI64(false);
+													if(!backSec2.isEUI64(false)) {
+														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+													}
+												}
+												
+											} else {
+												if(i < 4) {
+													if(backSec.isEUI64(true) || !backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
 														addFailure(new Failure("eui 64 test " + backSec, frontSec));
 													} else {
-														MACAddressSection frontSec2 = frontSec.replace(other, 3);//take backSec and frontSec, stick something else in the middle other than fffe
-														MACAddressSection backSec2 = backSec.replace(other, 4 - i);
-														if(backSec2.isEUI64(false, true) || frontSec2.isEUI64(false, true)) {
-															addFailure(new Failure("eui 64 test " + backSec2, frontSec2));
+														MACAddressSection backSec2 = backSec.replace(3 - i, other);
+														if(backSec2.isEUI64(false)) {
+															addFailure(new Failure("eui 64 test " + backSec2, backSec2));
+														}
+													}
+												} else if(i == 4) {
+													if(backSec.isEUI64(true) || 
+															backSec.isEUI64(false) || !backSec.isEUI64(false, true) ||
+															frontSec.isEUI64(true) ||
+															frontSec.isEUI64(false) || !frontSec.isEUI64(false, true)) {
+														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+													} else {
+														backSec = backSec.toEUI64(false);
+														frontSec = frontSec.toEUI64(false);
+														if(!backSec.isEUI64(false, true) || backSec.isEUI64(false) || !frontSec.isEUI64(false, true) || frontSec.isEUI64(false)) {
+															addFailure(new Failure("eui 64 test " + backSec, frontSec));
+														} else {
+															MACAddressSection frontSec2 = frontSec.replace(3, other);//take backSec and frontSec, stick something else in the middle other than fffe
+															MACAddressSection backSec2 = backSec.replace(4 - i, other);
+															if(backSec2.isEUI64(false, true) || frontSec2.isEUI64(false, true)) {
+																addFailure(new Failure("eui 64 test " + backSec2, frontSec2));
+															}
+														}
+													}
+												} else {
+													if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || !frontSec.isEUI64(false)) {
+														addFailure(new Failure("eui 64 test " + backSec, backSec));
+													} else {
+														MACAddressSection frontSec2 = frontSec.replace(4, other);
+														if(frontSec2.isEUI64(false)) {
+															addFailure(new Failure("eui 64 test " + frontSec2, frontSec2));
 														}
 													}
 												}
+											}
+											IPv6AddressSection backIpv6Sec = new IPv6AddressSection(backSec);
+											IPv6AddressSection frontIpv6Sec = new IPv6AddressSection(frontSec);
+											IPv6AddressSection both1, both2;
+											
+											//For the blocks below...
+											//i is the index where we split the mac address
+											//j==1 means mac address is 48 bits, i == 3 is the middle index
+											//
+											//Start with MAC ff:ff:fa:bf:ff:ff
+											//Split at even index like 2: ff:ff  fa:bf:ff:ff
+											//Convert each to IPv6: ffff faff:febf:ffff
+											//Then we can just append to get the ipv6 segs: ffff:faff:febf:ffff
+											//
+											//Split at odd index like 1: ff  ff:fa:bf:ff:ff
+											//Convert each to IPv6: ff00 00ff:faff:febf:ffff
+											//We cannot just append.
+											//Instead we must merge with bitwiseOr the segments where we split: ff00 00ff into ffff
+											//Then we can append ffff with faff:febf:ffff to get: ffff:faff:febf:ffff
+											//
+											//Also, if we split at index 3 we get ff:ff:fa  bf:ff:ff
+											//Convert each to IPv6: ffff:faff  febf:ffff
+											//In this case there are no extra segments and we can just append: ffff:faff:febf:ffff
+											if((i % 2 == 0) || ((j == 1) && (i == 3))) {
+												//no merging of segments required, see comment below
+												//either the MAC segments are split at an even index so the ipv6 conversion segment count is just right,
+												//or we split the mac address at i == 3 and the resultant IPv6 will have the ff:ff or ff:fe stuck in there and we will not have extra bits to be merged
+												both1 = frontIpv6Sec.append(backIpv6Sec);
+												both2 = frontIpv6Sec.append(backIpv6Sec);
 											} else {
-												if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || !frontSec.isEUI64(false)) {
-													addFailure(new Failure("eui 64 test " + backSec, backSec));
-												} else {
-													MACAddressSection frontSec2 = frontSec.replace(other, 4);
-													if(frontSec2.isEUI64(false)) {
-														addFailure(new Failure("eui 64 test " + frontSec2, frontSec2));
-													}
+												//When we are splitting up our MAC address at an odd index, 
+												//and then we convert each side to IPv6, then we will have 0 bits at the back of the front IPv6 section,
+												//and we will have 0 bits at the front of the back IPv6 section,
+												//so we can just merge the two segments with a bitWise or back to a single segment (merged)
+												int frontCount = frontIpv6Sec.getSegmentCount();
+												IPv6AddressSection lastFront = frontIpv6Sec.getSection(frontCount - 1, frontCount);
+												IPv6AddressSection frontBack = backIpv6Sec.getSection(0, 1);
+												if(frontBack.isMultiple()) {
+													//the technique of bitwiseOr won't work when dealing with multiple
+													continue;
 												}
+												if(i == 1 && frontSec.getSegment(0).matchesWithMask(0x2, 0x2)) {
+													//the back section will have flipped on the toggle bit since it has the first segment but not the first half of the segment
+													//so it will be flipped on when it should remain off
+													frontBack = frontBack.mask(new IPv6AddressSection(new IPv6AddressSegment(0xfdff)));
+												}
+												IPv6AddressSection merged = lastFront.bitwiseOr(frontBack);//frontback has bit flipped on here and it should not
+												IPv6AddressSection mergedAll = frontIpv6Sec.replace(frontCount - 1, merged);
+												IPv6AddressSection backRes = backIpv6Sec.getSection(1, backIpv6Sec.getSegmentCount());
+												both1 = mergedAll.append(backRes);
+												both2 = mergedAll.append(backRes);
 											}
-										}
-										
-										IPv6AddressSection backIpv6Sec = new IPv6AddressSection(backSec);
-										IPv6AddressSection frontIpv6Sec = new IPv6AddressSection(frontSec);
-										IPv6AddressSection both1, both2;
-										if(i % 2 == 0 || ((j == 1) && i == 3 || i == 4)) {
-											both1 = frontIpv6Sec.append(backIpv6Sec);
-											both2 = backIpv6Sec.prepend(frontIpv6Sec);
-										} else {
-											int frontCount = frontIpv6Sec.getSegmentCount();
-											IPv6AddressSection lastFront = frontIpv6Sec.getSection(frontCount - 1, frontCount);
-											IPv6AddressSection frontBack = backIpv6Sec.getSection(0, 1);
-											if(frontBack.isMultiple()) {
-												//the technique of bitwiseOr won't work when dealing with multiple
-												continue;
+											IPv6AddressSection both3 = backFromMac;
+											IPv6Address all[] = new IPv6Address[14];
+											all[0] = new IPv6Address(addr.getSection().replace(4, both1));
+											all[1] = new IPv6Address(addr.getSection().replace(4, both2));
+											all[2] = new IPv6Address(addr.getSection().replace(4, both3));
+											all[3] = new IPv6Address(frontIpv6.append(both1));
+											all[4] = new IPv6Address(frontIpv6.append(both2));
+											all[5] = new IPv6Address(frontIpv6.append(both3));
+											all[6] = new IPv6Address(frontIpv6.append(both1));
+											all[7] = new IPv6Address(frontIpv6.append(both2));
+											all[8] = new IPv6Address(frontIpv6.append(both3));
+											all[9] = splitJoined1;
+											all[10] = splitJoined2;
+											all[11] = splitJoined3;
+											all[12] = new IPv6Address(addr.getSection().replace(4, backLinkLocal));
+											all[13] = new IPv6Address(frontIpv6.append(backLinkLocal));
+											
+											//All of these should be equal!
+											HashSet<IPv6Address> set = new HashSet<IPv6Address>();
+											Integer prefix = all[0].getNetworkPrefixLength();
+											for(IPv6Address one : all) {
+												if(!Objects.equals(prefix, one.getNetworkPrefixLength())) {
+													addFailure(new Failure("eui 64 conv set prefix is " + one.getNetworkPrefixLength() + " previous was " + prefix, one));
+												}
+												set.add(one);
 											}
-											if(i == 1 && frontSec.getSegment(0).matchesWithMask(0x2, 0x2)) {
-												//the back section will have flipped on the toggle bit since it has the first segment but not the first half of the segment
-												//so it will be flipped on when it should remain off
-												frontBack = frontBack.mask(new IPv6AddressSection(new IPv6AddressSegment(0xfdff)));
+											if(set.size() != 1) {
+												addFailure(new Failure("eui 64 conv set " + set.size() + ' ' + set.toString()));
 											}
-											IPv6AddressSection merged = lastFront.bitwiseOr(frontBack);//frontback has bit flipped on here and it should not
-											IPv6AddressSection mergedAll = frontIpv6Sec.replace(merged, frontCount - 1);
-											IPv6AddressSection backRes = backIpv6Sec.getSection(1, backIpv6Sec.getSegmentCount());
-											both1 = mergedAll.append(backRes);
-											both2 = backRes.prepend(mergedAll);
-										}
-										IPv6AddressSection both3 = backFromMac;
-										IPv6Address all[] = new IPv6Address[14];
-										all[0] = new IPv6Address(addr.getSection().replace(both1, 4));
-										all[1] = new IPv6Address(addr.getSection().replace(both2, 4));
-										all[2] = new IPv6Address(addr.getSection().replace(both3, 4));
-										all[3] = new IPv6Address(frontIpv6.append(both1));
-										all[4] = new IPv6Address(frontIpv6.append(both2));
-										all[5] = new IPv6Address(frontIpv6.append(both3));
-										all[6] = new IPv6Address(both1.prepend(frontIpv6));
-										all[7] = new IPv6Address(both2.prepend(frontIpv6));
-										all[8] = new IPv6Address(both3.prepend(frontIpv6));
-										all[9] = splitJoined1;
-										all[10] = splitJoined2;
-										all[11] = splitJoined3;
-										all[12] = new IPv6Address(addr.getSection().replace(backLinkLocal, 4));
-										all[13] = new IPv6Address(backLinkLocal.prepend(frontIpv6));
-										
-										//All of these should be equal!
-										HashSet<IPv6Address> set = new HashSet<IPv6Address>();
-										for(IPv6Address one : all) {
-											set.add(one);
-										}
-										if(set.size() != 1) {
-											addFailure(new Failure("eui 64 conv set " + set.size() + ' ' + set.toString()));
-										}
-										TreeSet<IPv6Address> treeSet = new TreeSet<IPv6Address>();
-										for(IPv6Address one : all) {
-											treeSet.add(one);
-										}
-										if(treeSet.size() != 1) {
-											addFailure(new Failure("eui 64 conv set " + treeSet.size() + ' ' + treeSet.toString()));
+											TreeSet<IPv6Address> treeSet = new TreeSet<IPv6Address>();
+											for(IPv6Address one : all) {
+												treeSet.add(one);
+											}
+											if(treeSet.size() != 1) {
+												addFailure(new Failure("eui 64 conv set " + treeSet.size() + ' ' + treeSet.toString()));
+											}
 										}
 									}
-								}
+									if(withPrefix || addr.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+										break;
+									}
+									withPrefix = true;
+								} while(true);
 							}
 						}
 					}
@@ -743,6 +827,140 @@ public class MACAddressTest extends TestBase {
 			}
 		}
 		incrementTestCount();
+	}
+	
+	void testInsertAndAppend(String front, String back, int expectedPref[]) {
+		Integer is[] = new Integer[expectedPref.length];
+		for(int i = 0; i < expectedPref.length; i++) {
+			is[i] = expectedPref[i];
+		}
+		testInsertAndAppend(front, back, is);
+	}
+	
+	void testInsertAndAppend(String front, String back, Integer expectedPref[]) {
+		MACAddress f = createMACAddress(front).getAddress();
+		MACAddress b = createMACAddress(back).getAddress();
+		testAppendAndInsert(f, b, f.getSegmentStrings(), b.getSegmentStrings(), 
+				MACAddress.COLON_SEGMENT_SEPARATOR, expectedPref, true);
+	}
+	
+	void testReplace(String front, String back) {
+		MACAddress f = createMACAddress(front).getAddress();
+		MACAddress b = createMACAddress(back).getAddress();
+		testReplace(f, b, f.getSegmentStrings(), b.getSegmentStrings(), 
+				MACAddress.COLON_SEGMENT_SEPARATOR, true);
+	}
+	
+	void testInvalidMACValues() {
+		try {
+			byte bytes[] = new byte[9];
+			bytes[0] = 1;
+			MACAddress addr = new MACAddress(bytes);
+			addFailure(new Failure("failed expected exception for " + addr, addr));
+		} catch(AddressValueException e) {}
+		try {
+			new MACAddress(new byte[9]);
+			//addFailure(new Failure("failed expected exception for " + addr, addr));
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+		try {
+			new MACAddress(new byte[8]);
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+		try {
+			new MACAddress(new byte[7]);
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+		try {
+			new MACAddress(new byte[6]);
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+		try {
+			new MACAddress(new byte[5]);
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+		try {
+			MACAddress addr = new MACAddress(new SegmentValueProvider() {
+				@Override
+				public int getValue(int segmentIndex) {
+					return 256;
+				}
+			});
+			addFailure(new Failure("failed expected exception for " + addr, addr));
+		} catch(AddressValueException e) {}
+		try {
+			MACAddress addr = new MACAddress(new SegmentValueProvider() {
+				@Override
+				public int getValue(int segmentIndex) {
+					return -1;
+				}
+			});
+			addFailure(new Failure("failed expected exception for " + addr, addr));
+		} catch(AddressValueException e) {}
+		try {
+			new MACAddress(new SegmentValueProvider() {
+				@Override
+				public int getValue(int segmentIndex) {
+					return 255;
+				}
+			});
+		} catch(AddressValueException e) {
+			addFailure(new Failure("unexpected exception " + e));
+		}
+	}
+	
+	void testMACValues(int segs[], String decimal) {
+		testMACValues(segs, decimal, null);
+	}
+	
+	void testMACValues(int segs[], String decimal, String negativeDecimal) {
+		byte vals[] = new byte[segs.length];
+		StringBuilder strb = new StringBuilder();
+		long longval = 0;
+		BigInteger bigInteger = BigInteger.ZERO;
+		int bitsPerSegment = MACAddress.BITS_PER_SEGMENT;
+		for(int i = 0; i < segs.length; i++) {
+			int seg = segs[i];
+			if(strb.length() > 0) {
+				strb.append(':');
+			}
+			strb.append(Integer.toHexString(seg));
+			vals[i] = (byte) seg;
+			longval = (longval << bitsPerSegment) | seg;
+			bigInteger = bigInteger.shiftLeft(bitsPerSegment).add(BigInteger.valueOf(seg));
+		}
+		MACAddress addr[] = new MACAddress[3];
+		int i = 0;
+		addr[i++] = createMACAddress(vals);
+		addr[i++] = createMACAddress(strb.toString()).getAddress();
+		addr[i++] = createMACAddress(longval, segs.length == 8);
+		for(int j = 0; j < addr.length; j++) {
+			for(int k = j; k < addr.length; k++) {
+				if(!addr[k].equals(addr[j]) || !addr[j].equals(addr[k])) {
+					addFailure(new Failure("failed equals: " + addr[k] + " and " + addr[j]));
+				}
+			}
+		}
+		if(decimal != null) {
+			for(i = 0; i < addr.length; i++) {
+				if(!decimal.equals(addr[i].getValue().toString())) {
+					addFailure(new Failure("failed equals: " + addr[i].getValue() + " and " + decimal));
+				}
+				long longVal = addr[i].longValue();
+				if(longVal < 0) {
+					if(!String.valueOf(longVal).equals(negativeDecimal)) {
+						addFailure(new Failure("failed equals: " + addr[i].longValue() + " and " + decimal));
+					}
+				} else if(!decimal.equals(String.valueOf(longVal))) {
+					addFailure(new Failure("failed equals: " + addr[i].longValue() + " and " + decimal));
+				}
+			}
+		}
 	}
 	
 	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
@@ -1046,8 +1264,6 @@ public class MACAddressTest extends TestBase {
 		testCanonical("0001000200030000", "00-01-00-02-00-03-00-00");
 		testCanonical("000100020003", "00-01-00-02-00-03");
 
-
-		
 		testMatches(true, "0A0B0C0D0E0F", "0a0b0c-0d0e0f");
 		testMatches(true, "0A0B0C0D0E0F", "0a:0b:0c:0d:0e:0f");
 		testMatches(true, "0A 0B 0C 0D 0E 0F", "0a:0b:0c:0d:0e:0f");
@@ -1058,10 +1274,7 @@ public class MACAddressTest extends TestBase {
 		testMatches(true, "0A0B.0C0D.0E0F", "0a:0b:0c:0d:0e:0f");
 		testMatches(false, "0A0B.1C0D.0E0F", "0a:0b:0c:0d:0e:0f");
 		testMatches(false, "0A0B.1C0D.0E0F", "aa:bb:0a:0b:0c:0d:0e:0f");
-		
-		
 
-		
 		testReverse("1:2:3:4:5:6", false, false);
 		testReverse("1:1:2:2:3:3", false, false);
 		testReverse("1:1:1:1:1:1", false, false);
@@ -1220,6 +1433,21 @@ public class MACAddressTest extends TestBase {
 		testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 15);
 		testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 15);
 		
+		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8", new Integer[9]);
+		testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8");
+		
 		testStrings();
+		
+		testInvalidMACValues();
+
+		testMACValues(new int[] {1, 2, 3, 4, 5, 6}, "1108152157446");
+		testMACValues(new int[] {1, 2, 3, 4, 5, 6, 7, 8}, "72623859790382856");
+		testMACValues(new int[8], "0");
+		testMACValues(new int[6], "0");
+		testMACValues(new int[] {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, String.valueOf(0xffffffffffffL));
+		
+		BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
+		BigInteger sixty4 = thirtyTwo.shiftLeft(32).or(thirtyTwo);
+		testMACValues(new int[] {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, sixty4.toString(), String.valueOf(-1));
 	}
 }

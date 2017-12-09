@@ -19,64 +19,30 @@
 package inet.ipaddr.format.validate;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
+import inet.ipaddr.MACAddressStringParameters;
+import inet.ipaddr.MACAddressStringParameters.AddressSize;
 import inet.ipaddr.mac.MACAddress;
+import inet.ipaddr.mac.MACAddressNetwork;
+import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
+import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
 public class MACAddressProvider implements Serializable {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	private ParsedMACAddress parsedAddress;
 	private MACAddress address;
 	
 	static final MACAddressProvider EMPTY_PROVIDER = new MACAddressProvider() {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 
 		@Override
 		public MACAddress getAddress() {
 			return null;
-		}
-	};
-	
-	private static final MACAddress ALL_MAC_ADDRESSES = new MACAddress(new MACAddressSegment[] {
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT
-	});
-	
-	static final MACAddressProvider ALL_MAC = new MACAddressProvider() {
-
-		private static final long serialVersionUID = 3L;
-
-		@Override
-		public MACAddress getAddress() {
-			return ALL_MAC_ADDRESSES;
-		}
-	};
-	
-	private static final MACAddress ALL_EUI_64_ADDRESSES = new MACAddress(new MACAddressSegment[] {
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT,
-		MACAddressSegment.ALL_RANGE_SEGMENT
-	});
-	
-	static final MACAddressProvider ALL_EUI_64 = new MACAddressProvider() {
-
-		private static final long serialVersionUID = 3L;
-
-		@Override
-		public MACAddress getAddress() {
-			return ALL_EUI_64_ADDRESSES;
 		}
 	};
 	
@@ -101,6 +67,29 @@ public class MACAddressProvider implements Serializable {
 		}
 		return address;
 	}
+	
+	public static MACAddressProvider getAllProvider(MACAddressStringParameters validationOptions) {
+		MACAddressNetwork network = validationOptions.getNetwork();
+		AddressSize allAddresses = validationOptions.addressSize;
+		MACAddressCreator creator = network.getAddressCreator();
+		MACAddressSegment allRangeSegment = creator.createRangeSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
+		MACAddressSegment segments[] = creator.createSegmentArray(allAddresses == AddressSize.EUI64 ? 
+			MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT :
+			MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT);
+		Arrays.fill(segments, allRangeSegment);
+		return new MACAddressProvider() {
+
+			private static final long serialVersionUID = 4L;
+
+			@Override
+			public MACAddress getAddress() {
+				ParsedAddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> parsedCreator = creator;
+				MACAddressSection section = parsedCreator.createSectionInternal(segments);
+				return creator.createAddress(section);
+			}
+		};
+	}
+	
 	
 	@Override
 	public String toString() {

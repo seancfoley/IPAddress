@@ -19,34 +19,34 @@
 package inet.ipaddr.format.validate;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.MACAddressString;
 import inet.ipaddr.format.validate.ParsedMACAddress.MACAddressParseData.MACFormat;
 import inet.ipaddr.ipv4.IPv4Address;
-import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv6.IPv6Address;
-import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
 import inet.ipaddr.mac.MACAddress;
-import inet.ipaddr.mac.MACAddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
 class AddressParseData implements Serializable {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	//these are for the segment values
 	public static final int LOWER_INDEX = 0, UPPER_INDEX = 1, EXTENDED_LOWER_INDEX = 2, EXTENDED_UPPER_INDEX = 3;
@@ -73,6 +73,12 @@ class AddressParseData implements Serializable {
 	int consecutiveSepIndex = -1;
 	int addressEndIndex;
 	
+	final CharSequence str;
+	
+	AddressParseData(CharSequence str) {
+		this.str = str;
+	}
+	
 	void initSegmentData(int segmentCapacity) {
 		flags = new boolean[segmentCapacity][STANDARD_RANGE_STR_INDEX + 1];
 		indices = new int[segmentCapacity][UPPER_STR_END_INDEX + 1];
@@ -97,17 +103,96 @@ class AddressParseData implements Serializable {
 			values[reverseIndex] = tmpl;
 		}
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("address string: ").append(str).append('\n');
+		if(addressEndIndex > 0 && addressEndIndex < str.length()) {
+			builder.append("address end: ").append(str.subSequence(addressEndIndex, str.length())).append('\n');
+		}
+		builder.append("segment count: ").append(segmentCount).append('\n');
+		if(segmentCount > 0) {
+			for(int i = 0; i < segmentCount; i++) {
+				builder.append("segment ").append(i).append(":\n");
+				boolean flags[] = this.flags[i];
+				boolean isWildcard = flags[WILDCARD_INDEX];
+				if(isWildcard) {
+					builder.append("\tis wildcard").append('\n');
+				} else {
+					long values[] = this.values[i];
+					long lower = values[LOWER_INDEX];
+					long upper = values[UPPER_INDEX];
+					long extendedUpper = values[EXTENDED_UPPER_INDEX];
+					long extendedLower = values[EXTENDED_LOWER_INDEX];
+					BigInteger lowerResult;
+					if(extendedLower != 0) {
+						BigInteger extended = BigInteger.valueOf(extendedLower);
+						BigInteger shiftMore = extended.shiftLeft(Long.SIZE);
+						BigInteger notExtended = BigInteger.valueOf(lower);
+						lowerResult = shiftMore.or(notExtended);
+						builder.append("\tvalue: ").append(lowerResult).append('\n');
+						builder.append("\tvalue in hex: ").append(lowerResult.toString(16)).append('\n');
+					} else {
+						builder.append("\tvalue: ").append(lower).append('\n');
+						builder.append("\tvalue in hex: ").append(Long.toHexString(lower)).append('\n');
+						lowerResult = null;
+					}
+					int indices[] = this.indices[i];
+					builder.append("\tstring: ").append(str.subSequence(indices[LOWER_STR_START_INDEX], indices[LOWER_STR_END_INDEX])).append('\n');
+					builder.append("\tradix: ").append(indices[LOWER_RADIX_INDEX]).append('\n');
+					builder.append("\tis standard: ").append(flags[STANDARD_STR_INDEX]).append('\n');
+					if(extendedUpper != 0) {
+						BigInteger extended = BigInteger.valueOf(extendedUpper);
+						BigInteger shiftMore = extended.shiftLeft(Long.SIZE);
+						BigInteger notExtended = BigInteger.valueOf(upper);
+						BigInteger result = shiftMore.or(notExtended);
+						if(!result.equals(lowerResult)) {
+							builder.append("\tupper value: ").append(result).append('\n');
+							builder.append("\tupper value in hex: ").append(result.toString(16)).append('\n');
+							builder.append("\tupper string: ").append(str.subSequence(indices[UPPER_STR_START_INDEX], indices[UPPER_STR_END_INDEX])).append('\n');
+							builder.append("\tupper radix: ").append(indices[UPPER_RADIX_INDEX]).append('\n');
+							builder.append("\tis standard range: ").append(flags[STANDARD_RANGE_STR_INDEX]).append('\n');
+						}
+					} else {
+						if(upper != lower) {
+							builder.append("\tupper value: ").append(upper).append('\n');
+							builder.append("\tupper value in hex: ").append(Long.toHexString(upper)).append('\n');
+							builder.append("\tupper string: ").append(str.subSequence(indices[UPPER_STR_START_INDEX], indices[UPPER_STR_END_INDEX])).append('\n');
+							builder.append("\tupper radix: ").append(indices[UPPER_RADIX_INDEX]).append('\n');
+							builder.append("\tis standard range: ").append(flags[STANDARD_RANGE_STR_INDEX]).append('\n');
+						}
+					}
+					if(flags[SINGLE_WILDCARD_INDEX]) {
+						builder.append("\thas single wildcard: ").append('\n');
+					}
+				}
+			}
+			builder.append("has a wildcard segment: ").append(anyWildcard).append('\n');
+			if(consecutiveSepIndex >= 0) {
+				builder.append("has compressed segment(s) at character ").append(consecutiveSepIndex + 1).append('\n');
+			}
+			if(isSingleSegment) {
+				builder.append("is single segment").append('\n');
+			}
+		} else if (isEmpty) {
+			builder.append("is empty").append('\n');
+		} else if (isAll) {
+			builder.append("is all addresses").append('\n');
+		}
+		return builder.toString();
+	}
 }
 
 class ParsedMACAddress implements Serializable {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	static class MACAddressParseData implements Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
-		AddressParseData addressParseData = new AddressParseData();
+		final AddressParseData addressParseData;
 		
 		static enum MACFormat {
 			DASHED(MACAddress.DASH_SEGMENT_SEPARATOR),
@@ -124,12 +209,24 @@ class ParsedMACAddress implements Serializable {
 			char getSeparator() {
 				return separator;
 			}
+			
+			@Override
+			public String toString() {
+				StringBuilder builder = new StringBuilder();
+				builder.append("mac format:").append(super.toString()).append('\n');
+				builder.append("segment separator:").append(separator).append('\n');
+				return builder.toString();
+			}
 		};
 		
 		boolean isDoubleSegment;
 		boolean isExtended;
 		
 		MACFormat format;
+		
+		MACAddressParseData(CharSequence str) {
+			addressParseData = new AddressParseData(str);
+		}
 		
 		void initSegmentData(int segmentCapacity) {
 			addressParseData.initSegmentData(segmentCapacity);
@@ -138,14 +235,28 @@ class ParsedMACAddress implements Serializable {
 		boolean isWildcard(int index) {
 			return addressParseData.isWildcard(index);
 		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append(addressParseData);
+			if(isDoubleSegment) {
+				builder.append("is double segment").append('\n');
+			}
+			builder.append("bit length:").append(isExtended ? 64 : 48).append('\n');
+			if(format != null) {
+				builder.append(format);
+			}
+			return builder.toString();
+		}
 	};
 	
 	private final String addressString;
-	private final HostIdentifierString originator;
+	private final MACAddressString originator;
 	private final MACAddressParseData parseData;
 	
 	ParsedMACAddress(
-			HostIdentifierString from, 
+			MACAddressString from, 
 			String addressString,
 			MACAddressParseData parseData) {
 		this.parseData = parseData;
@@ -153,9 +264,8 @@ class ParsedMACAddress implements Serializable {
 		this.originator = from;
 	}
 
-	private static MACAddressCreator getMACAddressCreator() {
-		MACAddressNetwork network = MACAddress.network();
-		return network.getAddressCreator();
+	private MACAddressCreator getMACAddressCreator() {
+		return originator.getValidationOptions().getNetwork().getAddressCreator();
 	}
 
 	MACAddress createAddress()  {
@@ -206,7 +316,7 @@ class ParsedMACAddress implements Serializable {
 				int adjustedLower2 = ((int) lower) & 0xff;
 				int adjustedUpper2 = ((int) upper) & 0xff;
 				if(lowerHalfLower != lowerHalfUpper && adjustedUpper2 - adjustedLower2 != 0xff) {
-					throw new AddressTypeException(addressString, "ipaddress.error.invalid.joined.ranges");
+					throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
 				}
 				segments[normalizedSegmentIndex++] = createSegment(
 						addressString,
@@ -233,7 +343,7 @@ class ParsedMACAddress implements Serializable {
 						boolean segFlags[] = flags;
 						if(isRange) {
 							int segmentMask = MACAddress.MAX_VALUE_PER_SEGMENT;
-							int shift = MACAddress.BITS_PER_SEGMENT * count;
+							int shift = count << 3;
 							newLower = (int) (lower >>> shift) & segmentMask;
 							newUpper = (int) (upper >>> shift) & segmentMask;
 							if(previousAdjustedWasRange && newUpper - newLower != MACAddress.MAX_VALUE_PER_SEGMENT) {
@@ -241,7 +351,7 @@ class ParsedMACAddress implements Serializable {
 								//otherwise there is no way for us to represent the address
 								//so we need to check whether the lower parts cover the full range
 								//eg cannot represent 0.0.0x100-0x10f or 0.0.1-1ff, but can do 0.0.0x100-0x1ff or 0.0.0-1ff
-								throw new AddressTypeException(addressString, "ipaddress.error.invalid.joined.ranges");
+								throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
 							}
 							previousAdjustedWasRange = newLower != newUpper;
 							
@@ -255,7 +365,7 @@ class ParsedMACAddress implements Serializable {
 								segFlags = null;
 							}
 						} else {
-							newLower = newUpper = (int) (lower >> (MACAddress.BITS_PER_SEGMENT * count)) & MACAddress.MAX_VALUE_PER_SEGMENT;
+							newLower = newUpper = (int) (lower >> (count << 3)) & MACAddress.MAX_VALUE_PER_SEGMENT;
 							if(count != 0 || newLower != lower) {
 								segFlags = null;
 							}
@@ -387,7 +497,7 @@ class ParsedMACAddress implements Serializable {
  */
 class ParsedIPAddress implements Serializable {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	/**
 	 * Stores the data from a parsed address.  This data can later be translated into {@link IPv4Address} or {@link IPv6Address} objects.
@@ -396,9 +506,9 @@ class ParsedIPAddress implements Serializable {
 	 */
 	static class IPAddressParseData implements Serializable {
 	
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
-		AddressParseData addressParseData = new AddressParseData();
+		AddressParseData addressParseData;
 		
 		int qualifierIndex = -1;
 		
@@ -406,17 +516,26 @@ class ParsedIPAddress implements Serializable {
 		
 		IPVersion ipVersion;
 		
-		boolean isMixed;
+		boolean is_inet_aton_joined;
 		ParsedIPAddress mixedParsedAddress;
 	
 		boolean isBase85, isBase85Zoned;
+		
+		IPAddressParseData(CharSequence str) {
+			addressParseData = new AddressParseData(str);
+		}
 		
 		void initSegmentData(int segmentCapacity) {
 			addressParseData.initSegmentData(segmentCapacity);
 		}
 		
+		void clearQualifier() {
+			qualifierIndex = -1;
+			isBase85Zoned = isPrefixed = isZoned = hasPort = false;
+		}
+
 		void reverseSegments() {
-			if(isMixed) {
+			if(mixedParsedAddress != null) {
 				mixedParsedAddress.reverseSegments();
 			}
 			addressParseData.reverseSegments();
@@ -436,11 +555,77 @@ class ParsedIPAddress implements Serializable {
 		boolean isWildcard(int index) {
 			return addressParseData.isWildcard(index);
 		}
+		
+		boolean isMixedIPv6() {
+			return mixedParsedAddress != null;
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append(addressParseData);
+			builder.append("ip version: ").append(ipVersion);
+			if(ipVersion.isIPv6()) {
+				if(isMixedIPv6()) {
+					if(isZoned) {
+						builder.append(", with zone ");
+						printQualifier(builder);
+					}
+					if(isPrefixed) {
+						builder.append(", with prefix length ");
+						printQualifier(builder);
+					}
+					builder.append(", with IPv4 embedded address: ").append('\n').append(mixedParsedAddress.parseData);
+				} else {
+					if(isBase85) {
+						builder.append(" base 85");
+						if(isBase85Zoned) {
+							builder.append(", with zone ");
+							printQualifier(builder);
+						}
+					} else {
+						if(isZoned) {
+							builder.append(", with zone ");
+							printQualifier(builder);
+						}
+					}
+					if(isPrefixed) {
+						builder.append(", with prefix length ");
+						printQualifier(builder);
+					}
+					builder.append('\n');
+				}
+			} else if(ipVersion.isIPv4()) {
+				if(isPrefixed) {
+					builder.append(", with prefix length  ");
+					printQualifier(builder);
+				}
+				if(is_inet_aton_joined) {
+					builder.append(", with joined segments");
+				}
+				builder.append('\n');
+			}
+			if(hasPort) {
+				builder.append(", with port ");
+				printQualifier(builder);
+				builder.append('\n');
+			}
+			return builder.toString();
+		}
+
+		private void printQualifier(StringBuilder builder) {
+			if(qualifierIndex >= 0) {//zone, prefix, or port
+				CharSequence str = addressParseData.str;
+				builder.append(str.subSequence(qualifierIndex, str.length()));
+			} else {
+				builder.append("unknown");
+			}
+		}
 	};
 
 	static class CachedIPAddresses<T extends IPAddress> implements Serializable {
 		
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 4L;
 		
 		//address is 1.2.0.0/16 and hostAddress is 1.2.3.4 for the string 1.2.3.4/16
 		protected T address, hostAddress;
@@ -467,7 +652,7 @@ class ParsedIPAddress implements Serializable {
 	
 	abstract class IPAddresses<T extends IPAddress, R extends IPAddressSection> extends CachedIPAddresses<T>  {
 
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 4L;
 		
 		private final R section, hostSection;
 
@@ -481,7 +666,7 @@ class ParsedIPAddress implements Serializable {
 		@Override
 		public T getAddress() {
 			if(address == null) {
-				address = getCreator().createAddressInternal(getSection(), qualifier.getZone(), originator);
+				address = getCreator().createAddressInternal(section, qualifier.getZone(), originator);
 			}
 			return address;
 		}
@@ -492,36 +677,46 @@ class ParsedIPAddress implements Serializable {
 				return getAddress();
 			}
 			if(hostAddress == null) {
-				hostAddress = getCreator().createAddressInternal(getHostSection(), qualifier.getZone(), null);
+				hostAddress = getCreator().createAddressInternal(hostSection, qualifier.getZone(), null);
 			}
 			return hostAddress;
 		}
 		
-		private R getSection() {
+		R getSection() {
 			return section;
-		}
-		
-		private R getHostSection() {
-			if(hostSection == null) {
-				return getSection();
-			}
-			return hostSection;
 		}
 	}
 	
 	private final IPVersion ipVersion; //the version, either IPv4 or IPv6.
 	private final ParsedHostIdentifierStringQualifier qualifier;
 	private final CharSequence addressString;
+	final IPAddressStringParameters options;
 	private final HostIdentifierString originator;
 	private final IPAddressParseData parseData;
 	
-	ParsedIPAddress(HostIdentifierString from, CharSequence addressString, IPAddressParseData parseData, IPVersion ipVersion, ParsedHostIdentifierStringQualifier qualifier) {
+	ParsedIPAddress(
+			HostIdentifierString from, 
+			CharSequence addressString,
+			IPAddressStringParameters options,
+			IPAddressParseData parseData,
+			IPVersion ipVersion,
+			ParsedHostIdentifierStringQualifier qualifier) {
 		this.ipVersion = ipVersion;
 		this.parseData = parseData;
 		this.qualifier = qualifier;
 		this.addressString = addressString;
+		this.options = options;
 		this.originator = from;
 	}
+	
+	private IPv6AddressCreator getIPv6AddressCreator() {
+		return options.getIPv6Parameters().getNetwork().getAddressCreator();
+	}
+	
+	private IPv4AddressCreator getIPv4AddressCreator() {
+		return options.getIPv4Parameters().getNetwork().getAddressCreator();
+	}
+	
 	
 	void reverseSegments() {
 		parseData.reverseSegments();
@@ -532,7 +727,7 @@ class ParsedIPAddress implements Serializable {
 	}
 	
 	boolean isMixedIPv6() {
-		return parseData.mixedParsedAddress != null;
+		return parseData.isMixedIPv6();
 	}
 	
 	boolean isBase85IPv6() {
@@ -581,6 +776,10 @@ class ParsedIPAddress implements Serializable {
 	@SuppressWarnings("serial")
 	private IPAddresses<IPv4Address, IPv4AddressSection> createIPv4Addresses() {
 		IPAddress mask = qualifier.getMask();
+		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
+			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
+		}
+		boolean hasMask = mask != null;
 		int segmentCount = parseData.addressParseData.segmentCount;
 		IPv4AddressCreator creator = getIPv4AddressCreator();
 		int ipv4SegmentCount = IPv4Address.SEGMENT_COUNT;
@@ -588,6 +787,8 @@ class ParsedIPAddress implements Serializable {
 		IPv4AddressSegment hostSegments[] = null;
 		IPv4AddressSegment segments[] = creator.createSegmentArray(ipv4SegmentCount);
 		boolean expandedSegments = (missingCount <= 0);
+		int expandedStart, expandedEnd;
+		expandedStart = expandedEnd = -1;
 		for(int i = 0, normalizedSegmentIndex = 0; i < segmentCount; i++, normalizedSegmentIndex++) {
 			long vals[] = parseData.addressParseData.values[i];
 			boolean flags[] = parseData.addressParseData.flags[i];
@@ -596,37 +797,21 @@ class ParsedIPAddress implements Serializable {
 			long upper = vals[AddressParseData.UPPER_INDEX];
 			
 			//handle inet_aton style joined segments
-			if(!expandedSegments && i == segmentCount - 1 && !parseData.isWildcard(i)) {
+			boolean isLastSegment = i == segmentCount - 1;
+			if(!expandedSegments && isLastSegment && !parseData.isWildcard(i)) {
+				expandedSegments = true;
 				int count = missingCount;
-				boolean previousAdjustedWasRange = false;
+				expandedStart = i;
+				expandedEnd = i + count;
 				while(count >= 0) { //add the missing segments
 					Integer currentPrefix = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
 					int newLower, newUpper;
 					boolean segFlags[] = flags;
 					if(lower != upper) {
-						//adjustedSegment = null;
 						int shift = IPv4Address.BITS_PER_SEGMENT * count;
 						int segmentMask = IPv4Address.MAX_VALUE_PER_SEGMENT;
 						newLower = (int) (lower >>> shift) & segmentMask;
 						newUpper = (int) (upper >>> shift) & segmentMask;
-						boolean isStillRange = newLower != newUpper;
-						if(currentPrefix != null) {
-							IPv4AddressNetwork network = IPv4Address.network();
-							int segMask = network.getSegmentNetworkMask(currentPrefix);
-							newLower &= segMask;
-							int upperMask = network.getSegmentHostMask(currentPrefix);
-							newUpper |= upperMask;
-						}
-						if(previousAdjustedWasRange && newUpper - newLower != IPv4Address.MAX_VALUE_PER_SEGMENT) {
-							//any range extending into upper segments must have full range in lower segments
-							//otherwise there is no way for us to represent the address
-							//so we need to check whether the lower parts cover the full range
-							//eg cannot represent 0.0.0x100-0x10f or 0.0.1-1ff, but can do 0.0.0x100-0x1ff or 0.0.0-1ff
-							throw new AddressTypeException(addressString, "ipaddress.error.invalid.joined.ranges");
-						}
-						
-						previousAdjustedWasRange = isStillRange;
-						
 						//we may be able to reuse our strings on the final segment
 						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.  
 						if(count == 0 && newLower == lower) {
@@ -642,7 +827,7 @@ class ParsedIPAddress implements Serializable {
 							segFlags = null;
 						}
 					}
-					Integer segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+					Integer segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 					if(segmentMask != null || currentPrefix != null) {
 						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
 						hostSegments[normalizedSegmentIndex] = createSegment(addressString, IPVersion.IPV4, newLower, newUpper, flags, indices, null, null, creator);
@@ -662,7 +847,7 @@ class ParsedIPAddress implements Serializable {
 				}
 				break;
 			} //end handle inet_aton joined segments
-			Integer segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+			Integer segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
 			if(segmentMask != null || segmentPrefixLength != null) {
 				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
@@ -678,48 +863,54 @@ class ParsedIPAddress implements Serializable {
 					segmentPrefixLength,
 					segmentMask,
 					creator);
-			if(!expandedSegments) {
-				//check for any missing segments that we should account for here
-				if(parseData.isWildcard(i)) {
-					boolean expandSegments = true;
-					for(int j = i + 1; j < segmentCount; j++) {
-						if(parseData.isWildcard(j)) {//another wildcard further down
-							expandSegments = false;
-							break;
-						}
+			if(!expandedSegments &&
+					//check for any missing segments that we should account for here
+					parseData.isWildcard(i) && (!parseData.is_inet_aton_joined || isLastSegment)) {
+				boolean expandSegments = true;
+				for(int j = i + 1; j < segmentCount; j++) {
+					if(parseData.isWildcard(j)) {//another wildcard further down
+						expandSegments = false;
+						break;
 					}
-					if(expandSegments) {
-						expandedSegments = true;
-						int count = missingCount;
-						while(count-- > 0) { //add the missing segments
-							++normalizedSegmentIndex;
-							segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
-							segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
-							if(segmentMask != null || segmentPrefixLength != null) {
-								hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
-								hostSegments[normalizedSegmentIndex] = createSegment(addressString, IPVersion.IPV4, (int) lower, (int) upper, flags, indices, null, null, creator);
-							}
-							segments[normalizedSegmentIndex] = createSegment(
-								addressString,
-								IPVersion.IPV4,
-								0,
-								IPv4Address.MAX_VALUE_PER_SEGMENT,
-								null,
-								null,
-								segmentPrefixLength,
-								segmentMask,
-								creator);
+				}
+				if(expandSegments) {
+					expandedSegments = true;
+					int count = missingCount;
+					while(count-- > 0) { //add the missing segments
+						++normalizedSegmentIndex;
+						segmentMask = hasMask ?  mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
+						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
+						if(segmentMask != null || segmentPrefixLength != null) {
+							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							hostSegments[normalizedSegmentIndex] = createSegment(addressString, IPVersion.IPV4, (int) lower, (int) upper, flags, indices, null, null, creator);
 						}
+						segments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV4,
+							0,
+							IPv4Address.MAX_VALUE_PER_SEGMENT,
+							null,
+							null,
+							segmentPrefixLength,
+							segmentMask,
+							creator);
 					}
 				}
 			}
 		}
 		ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> addressCreator = creator;
-		IPv4AddressSection result = addressCreator.createSectionInternal(segments);
+		Integer prefLength = getPrefixLength(qualifier);
+		IPv4AddressSection result = addressCreator.createPrefixedSectionInternal(segments, prefLength);
 		IPv4AddressSection hostResult;
 		if(hostSegments != null) {
 			hostResult = addressCreator.createSectionInternal(hostSegments);
 		} else {
+			hostResult = null;
+		}
+		if(checkExpandedValues(result, expandedStart, expandedEnd)) {
+			throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+		}
+		if(checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
 			hostResult = null;
 		}
 		return new IPAddresses<IPv4Address, IPv4AddressSection>(result, hostResult) {
@@ -730,9 +921,41 @@ class ParsedIPAddress implements Serializable {
 		};
 	}
 	
+	/*
+	 * When expanding a set of segments into multiple, it is possible that the new segments do not accurately
+	 * cover the same ranges of values.  This occurs when there is a range in the upper segments and the lower
+	 * segments do not cover the full range (as is the case in the original unexpanded segment).
+	 * 
+	 * This does not include compressed 0 segments or compressed '*' segments, as neither can have the issue.
+	 * 
+	 * Returns true if the expansion was invalid.
+	 * 
+	 */
+	private boolean checkExpandedValues(IPAddressSection section, int start, int end) {
+		if(section != null && start < end) {
+			IPAddressSegment seg = section.getSegment(start);
+			boolean lastWasRange = seg.isMultiple();
+			do {
+				seg = section.getSegment(++start);
+				if(lastWasRange) {
+					if(!seg.isFullRange()) {
+						return true;
+					}
+				} else {
+					lastWasRange = seg.isMultiple();
+				}
+			} while(start < end);
+		}
+		return false;
+	}
+	
 	@SuppressWarnings("serial")
 	IPAddresses<IPv6Address, IPv6AddressSection> createIPv6Addresses()  {
 		IPAddress mask = qualifier.getMask();
+		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
+			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
+		}
+		boolean hasMask = mask != null;
 		int segmentCount = parseData.addressParseData.segmentCount;
 		IPv6AddressCreator creator = getIPv6AddressCreator();
 		int ipv6SegmentCount = IPv6Address.SEGMENT_COUNT;
@@ -742,6 +965,9 @@ class ParsedIPAddress implements Serializable {
 		int normalizedSegmentIndex = 0;
 		int missingSegmentCount = (mixed ? IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT) - segmentCount;
 		boolean expandedSegments = (missingSegmentCount <= 0);
+		int expandedStart, expandedEnd;
+		expandedStart = expandedEnd = -1;
+		
 		//get the segments for IPv6
 		for(int i = 0; i < segmentCount; i++) {
 			long vals[] = parseData.addressParseData.values[i];
@@ -752,6 +978,7 @@ class ParsedIPAddress implements Serializable {
 			
 			//handle joined segments
 			if(!expandedSegments && i == segmentCount - 1 && !parseData.isWildcard(i)) {
+				expandedSegments = true;
 				int count = missingSegmentCount;
 				long lowerHighBytes, upperHighBytes;
 				boolean isRange;
@@ -763,7 +990,9 @@ class ParsedIPAddress implements Serializable {
 					lowerHighBytes = upperHighBytes = 0;
 					isRange = (lower != upper);
 				}
-				boolean previousAdjustedWasRange = false;
+				expandedStart = i;
+				expandedEnd = i + count;
+				
 				while(count >= 0) { //add the missing segments
 					Integer currentPrefix = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 					int newLower, newUpper;
@@ -779,24 +1008,6 @@ class ParsedIPAddress implements Serializable {
 							newLower = (int) (lower >>> shift) & segmentMask;
 							newUpper = (int) (upper >>> shift) & segmentMask;
 						}
-						
-						boolean isStillRange = newLower != newUpper;
-						if(currentPrefix != null) {
-							IPv6AddressNetwork network = IPv6Address.network();
-							int segMask = network.getSegmentNetworkMask(currentPrefix);
-							newLower &= segMask;
-							int upperMask = network.getSegmentHostMask(currentPrefix);
-							newUpper |= upperMask;
-						}
-						if(previousAdjustedWasRange && newUpper - newLower != IPv6Address.MAX_VALUE_PER_SEGMENT) {
-							//any range extending into upper segments must have full range in lower segments
-							//otherwise there is no way for us to represent the address
-							//so we need to check whether the lower parts cover the full range
-							//eg cannot represent 0.0.0x100-0x10f or 0.0.1-1ff, but can do 0.0.0x100-0x1ff or 0.0.0-1ff
-							throw new AddressTypeException(addressString, "ipaddress.error.invalid.joined.ranges");
-						}
-						previousAdjustedWasRange = isStillRange;
-						
 						//we may be able to reuse our strings on the final segment
 						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.  
 						if(count == 0 && newLower == lower && lowerHighBytes == 0) {
@@ -817,7 +1028,7 @@ class ParsedIPAddress implements Serializable {
 							}
 						}
 					}
-					Integer segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+					Integer segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 					if(segmentMask != null || currentPrefix != null) {
 						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 						hostSegments[normalizedSegmentIndex] = createSegment(addressString, IPVersion.IPV6, newLower, newUpper, segFlags, indices, null, null, creator);
@@ -838,7 +1049,7 @@ class ParsedIPAddress implements Serializable {
 				break;
 			} //end joined segments
 			
-			Integer segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+			Integer segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 			if(segmentMask != null || segmentPrefixLength != null) {
 				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
@@ -881,7 +1092,7 @@ class ParsedIPAddress implements Serializable {
 					expandedSegments = true;
 					int count = missingSegmentCount;
 					while(count-- > 0) { //add the missing segments
-						segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+						segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 						if(segmentMask != null || segmentPrefixLength != null) {
 							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
@@ -907,13 +1118,12 @@ class ParsedIPAddress implements Serializable {
 		ParsedAddressCreator<?, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment> addressCreator = creator;
 		if(mixed) {
 			IPv4AddressSection ipv4AddressSection = parseData.mixedParsedAddress.createIPv4Addresses().getSection();
-			//IPv4AddressSection ipv4AddressSection = parseData.mixedParsedAddress.createIPv4Section();
 			boolean embeddedSectionIsChanged = false;
 			for(int n = 0; n < 2; n++) {
 				int m = n << 1;
 				IPv4AddressSegment one = ipv4AddressSection.getSegment(m);
 				IPv4AddressSegment two = ipv4AddressSection.getSegment(m + 1);
-				Integer segmentMask = mask == null ? null : mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue();
+				Integer segmentMask = hasMask ? mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue() : null;
 				IPv6AddressSegment newSegment;
 				Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 				boolean doHostSegment = segmentMask != null || segmentPrefixLength != null;
@@ -924,19 +1134,20 @@ class ParsedIPAddress implements Serializable {
 				int twoLower = two.getLowerSegmentValue();
 				if(!one.isMultiple() && !two.isMultiple()) {
 					if(doHostSegment) {
-						hostSegments[normalizedSegmentIndex] = createSegment(oneLower, twoLower, null, null);
+						hostSegments[normalizedSegmentIndex] = createSegment(oneLower, twoLower, null, null, creator);
 					}
 					segments[normalizedSegmentIndex] = newSegment = createSegment(
 							oneLower,
 							twoLower,
 							segmentPrefixLength,
-							segmentMask);
+							segmentMask,
+							creator);
 				} else {
-					// this can throw AddressTypeException
+					// this can throw IncompatibleAddressException
 					int oneUpper = one.getUpperSegmentValue();
 					int twoUpper = two.getUpperSegmentValue();
 					if(doHostSegment) {
-						hostSegments[normalizedSegmentIndex] = createSegment(one, two, oneLower, oneUpper, twoLower, twoUpper, null, null);
+						hostSegments[normalizedSegmentIndex] = createSegment(one, two, oneLower, oneUpper, twoLower, twoUpper, null, null, creator);
 					}
 					segments[normalizedSegmentIndex] = newSegment = createSegment(
 							one, 
@@ -946,9 +1157,10 @@ class ParsedIPAddress implements Serializable {
 							twoLower,
 							twoUpper,
 							segmentPrefixLength,
-							segmentMask);
+							segmentMask,
+							creator);
 				}
-				embeddedSectionIsChanged |= newSegment.isPrefixed() || /* parseData.mixedParsedAddress is never prefixed */ 
+				embeddedSectionIsChanged |= newSegment.isPrefixed() || /* note that parseData.mixedParsedAddress is never prefixed */ 
 						newSegment.getLowerSegmentValue() != ((one.getLowerSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getLowerSegmentValue()) ||
 						newSegment.getUpperSegmentValue() != ((one.getUpperSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getUpperSegmentValue());
 				normalizedSegmentIndex++;
@@ -957,14 +1169,20 @@ class ParsedIPAddress implements Serializable {
 				if(hostSegments != null) {
 					hostResult = addressCreator.createSectionInternal(hostSegments, ipv4AddressSection);
 				}
-				result = addressCreator.createSectionInternal(segments, ipv4AddressSection);
+				result = addressCreator.createSectionInternal(segments, ipv4AddressSection, getPrefixLength(qualifier));
 			}
 		} 
 		if(result == null) {
 			if(hostSegments != null) {
 				hostResult = addressCreator.createSectionInternal(hostSegments);
 			}
-			result = addressCreator.createSectionInternal(segments);
+			result = addressCreator.createPrefixedSectionInternal(segments, getPrefixLength(qualifier));
+		}
+		if(checkExpandedValues(result, expandedStart, expandedEnd)) {
+			throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+		}
+		if(checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
+			hostResult = null;
 		}
 		return new IPAddresses<IPv6Address, IPv6AddressSection>(result, hostResult) {
 			@Override
@@ -1010,12 +1228,13 @@ class ParsedIPAddress implements Serializable {
 	/*
 	 * create an IPv6 segment by joining two IPv4 segments
 	 */
-	private static IPv6AddressSegment createSegment(int value1, int value2, Integer segmentPrefixLength, Integer mask) {
+	private static IPv6AddressSegment createSegment(int value1, int value2, Integer segmentPrefixLength, Integer mask,
+			IPv6AddressCreator creator) {
 		int value = (value1 << IPv4Address.BITS_PER_SEGMENT) | value2;
 		if(mask != null) {
 			value &= mask;
 		}
-		IPv6AddressSegment result = getIPv6AddressCreator().createSegment(value, segmentPrefixLength);
+		IPv6AddressSegment result = creator.createSegment(value, segmentPrefixLength);
 		return result;
 	}
 	
@@ -1030,7 +1249,8 @@ class ParsedIPAddress implements Serializable {
 			int lowerRangeLower,
 			int lowerRangeUpper,
 			Integer segmentPrefixLength,
-			Integer mask) throws AddressTypeException {
+			Integer mask,
+			IPv6AddressCreator creator) throws IncompatibleAddressException {
 		boolean hasMask = (mask != null);
 		if(hasMask) {
 			int maskInt = mask.intValue();
@@ -1041,11 +1261,50 @@ class ParsedIPAddress implements Serializable {
 			lowerRangeLower &= maskInt;
 			lowerRangeUpper &= maskInt;
 		}
-		IPv6AddressSegment result = IPv6AddressSegment.join(one, two, upperRangeLower, upperRangeUpper, lowerRangeLower, lowerRangeUpper, segmentPrefixLength);
+		IPv6AddressSegment result = join(one, two, upperRangeLower, upperRangeUpper, lowerRangeLower, lowerRangeUpper, segmentPrefixLength, creator);
 		if(hasMask && !result.isMaskCompatibleWithRange(mask.intValue(), segmentPrefixLength)) {
-			throw new AddressTypeException(result, mask, "ipaddress.error.maskMismatch");
+			throw new IncompatibleAddressException(result, mask, "ipaddress.error.maskMismatch");
 		}
 		return result;
+	}
+	
+	private static IPv6AddressSegment join(
+			IPv4AddressSegment one,
+			IPv4AddressSegment two,
+			int upperRangeLower,
+			int upperRangeUpper,
+			int lowerRangeLower,
+			int lowerRangeUpper,
+			Integer segmentPrefixLength,
+			IPv6AddressCreator creator) throws IncompatibleAddressException {
+		int shift = IPv4Address.BITS_PER_SEGMENT;
+		if(upperRangeLower != upperRangeUpper) {
+			//if the high segment has a range, the low segment must match the full range, 
+			//otherwise it is not possible to create an equivalent IPv6 range when joining two IPv4 ranges
+			if(segmentPrefixLength != null && creator.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				if(segmentPrefixLength > shift) {
+					int lowerPrefixLength = segmentPrefixLength - shift;
+					
+					int fullMask = ~(~0 << shift); //allBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+					int networkMask = fullMask & (fullMask << (shift - lowerPrefixLength));
+					int hostMask = ~networkMask & fullMask;
+					lowerRangeLower &= networkMask;
+					lowerRangeUpper |= hostMask;
+					if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
+						throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+					}
+				} else {
+					lowerRangeLower = 0;
+					lowerRangeUpper = IPv4Address.MAX_VALUE_PER_SEGMENT;
+				}
+			} else if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
+				throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+			}
+		}
+		return creator.createSegment(
+				(upperRangeLower << shift) | lowerRangeLower,
+				(upperRangeUpper << shift) | lowerRangeUpper,
+				segmentPrefixLength);
 	}
 	
 	private static <S extends IPAddressSegment> S createRangeSegment(
@@ -1083,17 +1342,22 @@ class ParsedIPAddress implements Serializable {
 				indices[AddressParseData.UPPER_STR_END_INDEX]);
 		}
 		if(hasMask && !result.isMaskCompatibleWithRange(mask.intValue(), segmentPrefixLength)) {
-			throw new AddressTypeException(result, mask, "ipaddress.error.maskMismatch");
+			throw new IncompatibleAddressException(result, mask, "ipaddress.error.maskMismatch");
 		}
 		return result;
 	}
 	
-	static IPAddress createAllAddress(IPVersion version, ParsedHostIdentifierStringQualifier qualifier, HostIdentifierString originator) {
-		int segmentCount = IPAddress.segmentCount(version);
+	static IPAddress createAllAddress(IPVersion version, ParsedHostIdentifierStringQualifier qualifier, HostIdentifierString originator, 
+			IPAddressStringParameters options) {
+		int segmentCount = IPAddress.getSegmentCount(version);
 		IPAddress mask = qualifier.getMask();
+		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
+			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
+		}
 		boolean hasMask = mask != null;
+		Integer prefLength = getPrefixLength(qualifier);
 		if(version.isIPv4()) {
-			ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = getIPv4AddressCreator();
+			ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getAddressCreator();
 			IPv4AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 			for(int i = 0; i < segmentCount; i++) {
 				Integer segmentMask = hasMask ? mask.getSegment(i).getLowerSegmentValue() : null;
@@ -1108,9 +1372,9 @@ class ParsedIPAddress implements Serializable {
 						segmentMask,
 						creator);
 			}
-			return creator.createAddressInternal(segments, originator);
+			return creator.createAddressInternal(segments, originator, prefLength);
 		} else {
-			ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = getIPv6AddressCreator();
+			ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getAddressCreator();
 			IPv6AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 			for(int i = 0; i < segmentCount; i++) {
 				Integer segmentMask = hasMask ? mask.getSegment(i).getLowerSegmentValue() : null;
@@ -1125,21 +1389,16 @@ class ParsedIPAddress implements Serializable {
 						segmentMask,
 						creator);
 			}
-			return creator.createAddressInternal(segments, qualifier.getZone(), originator);
+			return creator.createAddressInternal(segments, qualifier.getZone(), originator, prefLength);
 		}
 	}
-	
 
-	private static IPv6AddressCreator getIPv6AddressCreator() {
-		IPv6AddressNetwork network = IPv6Address.network();
-		return network.getAddressCreator();
+	private static Integer getPrefixLength(ParsedHostIdentifierStringQualifier qualifier) {
+		IPAddress mask = qualifier.getMask();
+		Integer bits = mask != null ? mask.getBlockMaskPrefixLength(true) : qualifier.getNetworkPrefixLength(); //note that the result of mask.getBlockMaskPrefixLength(true) is cached inside IPAddressSection
+		return bits;
 	}
-	
-	private static IPv4AddressCreator getIPv4AddressCreator() {
-		IPv4AddressNetwork network = IPv4Address.network();
-		return network.getAddressCreator();
-	}
-	
+
 	/**
 	 * Across the address prefixes are:
 	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
@@ -1154,7 +1413,7 @@ class ParsedIPAddress implements Serializable {
 		IPAddress mask = qualifier.getMask();
 		Integer networkPrefixLength = qualifier.getNetworkPrefixLength();
 		//note that either mask or networkPrefixLength is non-null but not both
-		Integer bits = mask != null ? mask.getMaskPrefixLength(true) : networkPrefixLength; //note that the result of mask.getMaskPrefixLength(true) is cached inside IPAddressSection
+		Integer bits = mask != null ? mask.getBlockMaskPrefixLength(true) : networkPrefixLength; //note that the result of mask.getBlockMaskPrefixLength(true) is cached inside IPAddressSection
 		return IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bits, segmentIndex);
 	}
 	
@@ -1177,4 +1436,3 @@ class ParsedIPAddress implements Serializable {
 		return addressString.toString();
 	}
 }
-

@@ -22,20 +22,17 @@ import java.util.Iterator;
 
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressValueException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.format.AddressDivision;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions;
 import inet.ipaddr.format.util.AddressDivisionWriter;
+import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.MACStringCache;
 
 public class MACAddressSegment extends AddressDivision implements AddressSegment, Iterable<MACAddressSegment> {
 
-	public static final MACAddressSegment ALL_RANGE_SEGMENT = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
-	public static final MACAddressSegment FF_SEGMENT = MACAddress.getAddressCreator().createSegment(0xff);
-	public static final MACAddressSegment FE_SEGMENT = MACAddress.getAddressCreator().createSegment(0xfe);
-	public static final MACAddressSegment ZERO_SEGMENT = MACAddress.getAddressCreator().createSegment(0);
-		
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	public static final int MAX_CHARS = 2;
 	
@@ -45,11 +42,12 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	/**
 	 * Constructs a segment of an IPv4 or IPv6 address with the given value.
 	 * 
+	 * @throws AddressValueException if value is negative or too large
 	 * @param value the value of the segment
 	 */
 	public MACAddressSegment(int value) {
 		if(value < 0 || value > MACAddress.MAX_VALUE_PER_SEGMENT) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(value);
 		}
 		this.value = this.upperValue = value;
 	}
@@ -57,6 +55,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	/**
 	 * Constructs a segment of a MAC address that represents a range of values.
 	 * 
+	 * @throws AddressValueException if value is negative or too large
 	 * @param lower the lower value of the range of values represented by the segment.
 	 * @param upper the upper value of the range of values represented by the segment.
 	 */
@@ -67,7 +66,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 			upper = tmp;
 		}
 		if(lower < 0 || upper < 0 || upper > MACAddress.MAX_VALUE_PER_SEGMENT) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(lower < 0 ? lower : upper);
 		}
 		this.value = lower;
 		this.upperValue = upper;
@@ -78,16 +77,43 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		return new byte[] { (byte) (low ? getLowerSegmentValue() : getUpperSegmentValue())};
 	}
 	
-	protected MACAddressSegment toPrefixedSegment(Integer segmentPrefixLength) {
-		return toPrefixedSegment(this, segmentPrefixLength, getSegmentCreator());
+	protected boolean isPrefixBlock(int segmentPrefixLength) {
+		if(segmentPrefixLength < MACAddress.BITS_PER_SEGMENT) {
+			int mask = ~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength);
+			int lower = getLowerSegmentValue();
+			int newLower = lower & mask;
+			if(lower != newLower) {
+				return false;
+			}
+			int upper = getUpperSegmentValue();
+			return upper == (upper | ~mask);
+		}
+		return true;
+	}
+	
+	protected MACAddressSegment toPrefixBlockSegment(int segmentPrefixLength) {
+		if(segmentPrefixLength < MACAddress.BITS_PER_SEGMENT && !isPrefixBlock(segmentPrefixLength)) {
+			int lower = getLowerSegmentValue();
+			int upper = getUpperSegmentValue();
+			int mask = ~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength);
+			lower &= mask;
+			upper |= ~mask;
+			return getSegmentCreator().createRangeSegment(lower, upper);
+		}
+		return this;
 	}
 	
 	protected MACAddressSegment setPrefixedSegment(Integer oldPrefixLength, Integer segmentPrefixLength) {
 		return setPrefixedSegment(this, oldPrefixLength, segmentPrefixLength, getSegmentCreator());
 	}
+
+	private MACAddressCreator getSegmentCreator() {
+		return getNetwork().getAddressCreator();
+	}
 	
-	private static AddressSegmentCreator<MACAddressSegment> getSegmentCreator() {
-		return MACAddress.network().getAddressCreator();
+	@Override
+	public MACAddressNetwork getNetwork() {
+		return MACAddress.defaultMACNetwork();
 	}
 	
 	@Override
@@ -168,7 +194,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 			if(isReversibleRange(this)) {
 				return this;
 			}
-			throw new AddressTypeException(this, "ipaddress.error.reverseRange");
+			throw new IncompatibleAddressException(this, "ipaddress.error.reverseRange");
 		}
 		int oldValue = value;
 		int newValue = reverseBits((byte) oldValue);

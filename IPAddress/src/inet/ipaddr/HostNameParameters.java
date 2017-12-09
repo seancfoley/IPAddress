@@ -32,7 +32,7 @@ import java.io.Serializable;
  */
 public class HostNameParameters implements Cloneable, Comparable<HostNameParameters>, Serializable {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	public static final boolean DEFAULT_ALLOW_EMPTY = true;
 	public static final boolean DEFAULT_EMPTY_IS_LOOPBACK = true; //Note that with InetAddress, empty strings are interpreted as the loopback address
@@ -97,7 +97,6 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		private boolean allowPort = DEFAULT_ALLOW_PORT;
 		
 		private IPAddressStringParameters.Builder addressOptionsBuilder;
-		private static final IPAddressStringParameters DEFAULT_ADDRESS_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 		
 		public Builder() {}
 		
@@ -147,11 +146,11 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		public HostNameParameters toParams() {
 			IPAddressStringParameters addressOpts;
 			if(addressOptionsBuilder == null) {
-				addressOpts = DEFAULT_ADDRESS_OPTIONS;
+				addressOpts = IPAddressString.DEFAULT_VALIDATION_OPTIONS;
 			} else {
 				addressOpts = addressOptionsBuilder.toParams();
 			}
-			return new HostNameParameters(addressOpts, allowEmpty, emptyIsLoopback, allowIPAddress && allowBracketedIPv6, allowIPAddress && allowBracketedIPv4,  normalizeToLowercase, allowIPAddress, allowPort);
+			return new HostNameParameters(addressOpts, allowEmpty, emptyIsLoopback, allowIPAddress && allowBracketedIPv6, allowIPAddress && allowBracketedIPv4, normalizeToLowercase, allowIPAddress, allowPort);
 		}
 	}
 	

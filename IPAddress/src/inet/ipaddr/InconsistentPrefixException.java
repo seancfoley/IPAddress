@@ -16,25 +16,19 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr;
 
-public class AddressStringDivisionGrouping implements AddressStringDivisionSeries {
+import inet.ipaddr.format.AddressItem;
 
-	private static final long serialVersionUID = 4L;
+public class InconsistentPrefixException extends AddressValueException {
 
-	protected final AddressStringDivision divisions[];
+	private static final long serialVersionUID = 1L;
 	
-	public AddressStringDivisionGrouping(AddressStringDivision divisions[]) {
-		this.divisions = divisions;
+	static String getMessage(String key) {
+		return AddressStringException.getMessage(key);
 	}
 
-	@Override
-	public AddressStringDivision getDivision(int index) {
-		return divisions[index];
-	}
-
-	@Override
-	public int getDivisionCount() {
-		return divisions.length;
+	public InconsistentPrefixException(AddressItem one, AddressItem two, Integer prefixLength) {
+		super(one + ", " + two + ", " + prefixLength + ", " + errorMessage + " " + getMessage("ipaddress.error.inconsistent.prefixes"));
 	}
 }

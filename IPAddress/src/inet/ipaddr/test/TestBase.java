@@ -22,34 +22,46 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
 import inet.ipaddr.Address;
+import inet.ipaddr.Address.AddressProvider;
+import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.AddressNetwork.HostIdentifierStringGenerator;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
+import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressSegmentSeries;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressNetwork.HostIdentifierStringCache;
+import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSection.CompressOptions;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions;
 import inet.ipaddr.mac.MACAddress;
+import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.test.MACAddressTest.MACAddressStringKey;
 import inet.ipaddr.test.TestBase.HostKey;
 import inet.ipaddr.test.TestBase.IPAddressStringKey;
 
 public abstract class TestBase {
-	
+
+	public static PrefixConfiguration prefixConfiguration;
+			
 	static class Failure {
 		HostIdentifierString addr;
 		Address addrValue;
@@ -178,7 +190,7 @@ public abstract class TestBase {
 	
 	static abstract class LookupKey<T extends Comparable<T>> implements Comparable<LookupKey<T>>, Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		String keyString;
 		T options;
@@ -231,12 +243,17 @@ public abstract class TestBase {
 			}
 			return hash;
 		}
+		
+		@Override
+		public String toString() {
+			return keyString;
+		}
 	}
 	
 
 	static class IPAddressStringKey extends LookupKey<IPAddressStringParameters> {
 	
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private static final Comparator<IPAddressStringParameters> comparator = new LookupKeyComparator<IPAddressStringParameters>();
 		
 		
@@ -256,7 +273,7 @@ public abstract class TestBase {
 	
 	static class HostKey extends LookupKey<HostNameParameters> {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private static final Comparator<HostNameParameters> comparator = new LookupKeyComparator<HostNameParameters>();
 		
 		HostKey(String x) {
@@ -275,7 +292,7 @@ public abstract class TestBase {
 	
 	static class IPAddressKey implements Comparable<IPAddressKey>, Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		byte bytes[];
 		
@@ -292,7 +309,7 @@ public abstract class TestBase {
 		
 		@Override
 		public int compareTo(IPAddressKey o) {
-			int comparison = bytes.length - bytes.length;
+			int comparison = bytes.length - o.bytes.length;
 			if(comparison == 0) {
 				if(bytes.length <= 4) {
 					comparison = getIPv4Addr(bytes) - getIPv4Addr(o.bytes);
@@ -342,16 +359,14 @@ public abstract class TestBase {
 						allowUnlimitedLeadingZeros(false).
 						allowPrefixLengthLeadingZeros(true).
 						allowPrefixesBeyondAddressSize(false).
-						allowWildcardedSeparator(false).
-						//allowWildcardedSeparator(true).
+						allowWildcardedSeparator(true).
 						getParentBuilder().
 				getIPv6AddressParametersBuilder().
 						allowLeadingZeros(true).
 						allowUnlimitedLeadingZeros(false).
 						allowPrefixLengthLeadingZeros(true).
 						allowPrefixesBeyondAddressSize(false).
-						//allowWildcardedSeparator(true).
-						allowWildcardedSeparator(false).
+						allowWildcardedSeparator(true).
 						allowMixed(true).
 						allowZone(true).
 						getParentBuilder().getParentBuilder().toParams();
@@ -361,12 +376,11 @@ public abstract class TestBase {
 	protected static final MACAddressStringParameters MAC_ADDRESS_OPTIONS = new MACAddressStringParameters.Builder().
 			allowEmpty(false).
 			allowAll(false).
-			//allowSingleSegment(false).
 			getFormatBuilder().
 				setRangeOptions(RangeParameters.NO_RANGE).
 				allowLeadingZeros(true).
 				allowUnlimitedLeadingZeros(false).
-				allowWildcardedSeparator(false).
+				allowWildcardedSeparator(true).
 				allowShortSegments(true).
 			getParentBuilder().
 			toParams();
@@ -383,7 +397,7 @@ public abstract class TestBase {
 				allow_inet_aton(true).
 				allowEmpty(false).
 				setEmptyAsLoopback(false).
-				allowAll(false).
+				allowAll(true).
 				allowPrefixOnly(false).
 				getIPv4AddressParametersBuilder().
 						allowPrefixLengthLeadingZeros(true).
@@ -397,8 +411,8 @@ public abstract class TestBase {
 			allow_inet_aton(true).allowSingleSegment(true).getParentBuilder().toParams();
 
 	boolean fullTest = false;
-	final Failures failures = new Failures();
-	final Perf perf = new Perf();
+	Failures failures = new Failures();
+	Perf perf = new Perf();
 	private final AddressCreator addressCreator;
 	
 	TestBase(AddressCreator creator) {
@@ -440,11 +454,11 @@ public abstract class TestBase {
 	protected HostName createHost(String x) {
 		return createHost(new HostKey(x, HOST_OPTIONS));
 	}
-	
+
 	protected HostName createHost(String x, HostNameParameters options) {
 		return createHost(new HostKey(x, options));
 	}
-	
+
 	protected IPAddressString createInetAtonAddress(String x) {
 		return createAddress(x, INET_ATON_WILDCARD_AND_RANGE_OPTIONS);
 	}
@@ -479,13 +493,57 @@ public abstract class TestBase {
 		showMessage(getClass().getSimpleName());
 		perf.report();
 		failures.report();
-		showMessage("Done: " + getClass().getSimpleName() + "\n");
+		showMessage("Done: " + getClass().getSimpleName());
 	}
 	
 	abstract void runTest();
 	
+	static class ExpectedPrefixes {
+		Integer next;
+		Integer previous;
+		Integer adjusted;
+		Integer set;
+		Integer applied;
+		
+		ExpectedPrefixes(boolean isMac, Integer original, int bitLength, int segmentBitLength, int set, int adjustment) {
+			if(original == null) {
+				next = null;
+				previous = isMac ? bitLength - segmentBitLength : bitLength;//bitLength is not a possible prefix with MAC (a prefix of bitlength is interpreted as null prefix length)
+				adjusted = adjustment > 0 ? null : bitLength + adjustment;
+				applied = this.set = set;
+			} else {
+				next = original == bitLength ? null : Math.min(bitLength, ((original + segmentBitLength) / segmentBitLength) * segmentBitLength);
+				previous = Math.max(0, ((original - 1) / segmentBitLength) * segmentBitLength);
+				int adj = Math.max(0, original + adjustment);
+				adjusted = adj > bitLength ? null : adj;
+				this.set = set;
+				applied = Math.min(original, set);
+			}
+		}
+		
+		boolean compare(Integer next, Integer previous, Integer adjusted, Integer set, Integer applied) {
+			return Objects.equals(next, this.next) &&
+					Objects.equals(previous, this.previous) &&
+					Objects.equals(adjusted, this.adjusted) &&
+					Objects.equals(set, this.set) &&
+					Objects.equals(applied, this.applied);
+		}
+		
+		String print(Integer next, Integer previous, Integer adjusted, Integer set, Integer applied) {
+			return print(next, this.next, "next") + "\n" +
+					print(previous, this.previous, "previous") + "\n" +
+					print(adjusted, this.adjusted, "adjusted") + "\n" +
+					print(set, this.set, "set") + "\n" +
+					print(applied, this.applied, "applied");
+		}
+		
+		String print(Integer result, Integer expected, String label) {
+			return "expected " + label + ": " + expected + " result: " + result;
+		}
+	}
+
 	void testPrefixes(AddressSegmentSeries original, 
-			int prefix, int adjustment, 
+			int prefix, int adjustment,
 			AddressSegmentSeries next,
 			AddressSegmentSeries previous,
 			AddressSegmentSeries adjusted,
@@ -515,7 +573,8 @@ public abstract class TestBase {
 					int lower = seg.getLowerSegmentValue();
 					int upper = seg.getUpperSegmentValue();
 					if((lower & mask) != lower || (upper & mask) != upper) {
-						addFailure(new Failure("prefix app: " + removed, original));
+						removed = original.removePrefixLength();
+						addFailure(new Failure("prefix app: " + removed + " " + (lower & mask) + " " + (upper & mask), original));
 						break;
 					}
 				}
@@ -523,26 +582,56 @@ public abstract class TestBase {
 		} else if(!removed.equals(original)) {
 			addFailure(new Failure("prefix removed: " + removed, original));
 		}
-		if(!original.adjustPrefixBySegment(true).equals(next)) {
-			addFailure(new Failure("prefix next: " + original.adjustPrefixBySegment(true), next));
-		} else if(!original.adjustPrefixBySegment(false).equals(previous)) {
-			addFailure(new Failure("prefix previous: " + original.adjustPrefixBySegment(false), previous));
-		} else if(!original.adjustPrefixLength(adjustment).equals(adjusted)) {
-			addFailure(new Failure("prefix adjusted: " + original.adjustPrefixLength(adjustment), adjusted));
-		} else if(!original.setPrefixLength(prefix).equals(prefixSet)) {
-			addFailure(new Failure("prefix set: " + original.setPrefixLength(prefix), prefixSet));
-		} else if(!original.applyPrefixLength(prefix).equals(prefixApplied)) {
-			addFailure(new Failure("prefix applied: " + original.applyPrefixLength(prefix), prefixApplied));
+		AddressSegmentSeries adjustedSeries = original.adjustPrefixBySegment(true);
+		Integer nextPrefix = adjustedSeries.getPrefixLength();
+		if(!adjustedSeries.equals(next)) {
+			addFailure(new Failure("prefix next: " + adjustedSeries, next));
+		} else {
+			adjustedSeries = original.adjustPrefixBySegment(false);
+			Integer prevPrefix = adjustedSeries.getPrefixLength();
+			if(!adjustedSeries.equals(previous)) {
+				addFailure(new Failure("prefix previous: " + adjustedSeries, previous));
+			} else {
+				adjustedSeries = original.adjustPrefixLength(adjustment);
+				Integer adjustedPrefix = adjustedSeries.getPrefixLength();
+				if(!adjustedSeries.equals(adjusted)) {
+					//original.adjustPrefixLength(adjustment);
+					addFailure(new Failure("prefix adjusted: " + adjustedSeries, adjusted));
+				} else {
+					adjustedSeries = original.setPrefixLength(prefix);
+					Integer setPrefix = adjustedSeries.getPrefixLength();
+					if(!adjustedSeries.equals(prefixSet)) {
+						addFailure(new Failure("prefix set: " + adjustedSeries, prefixSet));
+					} else {
+						adjustedSeries = original.applyPrefixLength(prefix);
+						Integer appliedPrefix = adjustedSeries.getPrefixLength();
+						if(!adjustedSeries.equals(prefixApplied)) {
+							addFailure(new Failure("prefix applied: " + adjustedSeries, prefixApplied));
+						} else {
+							ExpectedPrefixes expected = new ExpectedPrefixes(original instanceof MACAddress, original.getPrefixLength(), original.getBitCount(), original.getBitsPerSegment(), prefix, adjustment);
+							if(!expected.compare(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)) {
+								//System.out.println(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix));
+								//System.out.println();
+								addFailure(new Failure(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)));
+							} 
+//							else {
+//								System.out.println("all good");
+//								System.out.println();
+//							}
+						}
+					}
+				}
+			}
 		}
 	}
 	
 	void testPrefix(AddressSegmentSeries original, Integer prefixLength, int minPrefix, Integer equivalentPrefix) {
 		if(!Objects.equals(original.getPrefixLength(), prefixLength)) {
 			addFailure(new Failure("prefix: " + original.getPrefixLength() + " expected: " + prefixLength, original));
-		} else if(!Objects.equals(original.getMinPrefix(), minPrefix)) {
-			addFailure(new Failure("min prefix: " + original.getMinPrefix() + " expected: " + minPrefix, original));
-		} else if(!Objects.equals(original.getEquivalentPrefix(), equivalentPrefix)) {
-			addFailure(new Failure("equivalent prefix: " + original.getEquivalentPrefix() + " expected: " + equivalentPrefix, original));
+		} else if(!Objects.equals(original.getMinPrefixLengthForBlock(), minPrefix)) {
+			addFailure(new Failure("min prefix: " + original.getMinPrefixLengthForBlock() + " expected: " + minPrefix, original));
+		} else if(!Objects.equals(original.getPrefixLengthForSingleBlock(), equivalentPrefix)) {
+			addFailure(new Failure("equivalent prefix: " + original.getPrefixLengthForSingleBlock() + " expected: " + equivalentPrefix, original));
 		}
 	}
 	
@@ -623,47 +712,58 @@ public abstract class TestBase {
 			String mixedString,
 			String base85String) {
 
-		String base85 = ipAddr.toBase85String();
-		
-		String m = ipAddr.toMixedString();
-		
-		CompressOptions compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.COVERED_BY_HOST);
-		IPv6StringOptions mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toParams();
-		String mixedCompressCoveredHost = ipAddr.toNormalizedString(mixedParams);
-		
-		compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.NO_HOST);
-		mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toParams();
-		String mixedNoCompressHost = ipAddr.toNormalizedString(mixedParams);
-		
-		compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.NO);
-		mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toParams();
-		String mixedNoCompressMixed = ipAddr.toNormalizedString(mixedParams);
-
-		confirmAddrStrings(ipAddr, m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85);
-		
-		boolean nMatch = m.equals(mixedString);
-		if(!nMatch) {
-			addFailure(new Failure("failed expected: " + mixedString + " actual: " + m, w));
-		} else {
-			boolean mccMatch = mixedCompressCoveredHost.equals(mixedStringCompressCoveredHost);
-			if(!mccMatch) {
-				addFailure(new Failure("failed expected: " + mixedStringCompressCoveredHost + " actual: " + mixedCompressCoveredHost, w));
+		try {
+			String base85 = null;
+			try {
+				base85 = ipAddr.toBase85String();
+				boolean b85Match = base85.equals(base85String);
+				if(!b85Match) {
+					addFailure(new Failure("failed expected: " + base85String + " actual: " + base85, w));
+				}
+			} catch(IncompatibleAddressException e) {
+				boolean isMatch = base85String == null;
+				if(!isMatch) {
+					addFailure(new Failure("failed expected non-null, actual: " + e, w));
+				}
+			}
+			
+			String m = ipAddr.toMixedString();
+			
+			CompressOptions compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.COVERED_BY_HOST);
+			IPv6StringOptions mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toOptions();
+			String mixedCompressCoveredHost = ipAddr.toNormalizedString(mixedParams);
+			
+			compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.NO_HOST);
+			mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toOptions();
+			String mixedNoCompressHost = ipAddr.toNormalizedString(mixedParams);
+			
+			compressOpts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.NO);
+			mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressOpts).toOptions();
+			String mixedNoCompressMixed = ipAddr.toNormalizedString(mixedParams);
+	
+			confirmAddrStrings(ipAddr, m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85);
+			
+			boolean nMatch = m.equals(mixedString);
+			if(!nMatch) {
+				addFailure(new Failure("failed expected: " + mixedString + " actual: " + m, w));
 			} else {
-				boolean msMatch = mixedNoCompressHost.equals(mixedStringNoCompressHost);
-				if(!msMatch) {
-					addFailure(new Failure("failed expected: " + mixedStringNoCompressHost + " actual: " + mixedNoCompressHost, w));
+				boolean mccMatch = mixedCompressCoveredHost.equals(mixedStringCompressCoveredHost);
+				if(!mccMatch) {
+					addFailure(new Failure("failed expected: " + mixedStringCompressCoveredHost + " actual: " + mixedCompressCoveredHost, w));
 				} else {
-					boolean mncmMatch = mixedNoCompressMixed.equals(mixedStringNoCompressMixed);
-					if(!mncmMatch) {
-						addFailure(new Failure("failed expected: " + mixedStringNoCompressMixed + " actual: " + mixedNoCompressMixed, w));
+					boolean msMatch = mixedNoCompressHost.equals(mixedStringNoCompressHost);
+					if(!msMatch) {
+						addFailure(new Failure("failed expected: " + mixedStringNoCompressHost + " actual: " + mixedNoCompressHost, w));
 					} else {
-						boolean b85Match = base85.equals(base85String);
-						if(!b85Match) {
-							addFailure(new Failure("failed expected: " + base85String + " actual: " + base85, w));
+						boolean mncmMatch = mixedNoCompressMixed.equals(mixedStringNoCompressMixed);
+						if(!mncmMatch) {
+							addFailure(new Failure("failed expected: " + mixedStringNoCompressMixed + " actual: " + mixedNoCompressMixed, w));
 						}
 					}
 				}
 			}
+		} catch(IncompatibleAddressException e) {
+			addFailure(new Failure("unexpected throw " + e.toString()));
 		}
 		incrementTestCount();
 	}
@@ -685,6 +785,9 @@ public abstract class TestBase {
 	
 	boolean confirmAddrStrings(IPAddress ipAddr, String ...strs) {
 		for(String str : strs) {
+			if(str == null) {
+				continue;
+			}
 			IPAddressString addrString = createAddress(str, DEFAULT_BASIC_VALIDATION_OPTIONS);
 			IPAddress addr = addrString.getAddress();
 			if(!ipAddr.equals(addr)) {
@@ -720,8 +823,6 @@ public abstract class TestBase {
 			hostName = new HostName(again);
 			a = hostName.getAddress();
 			if(!ipAddr.equals(a)) {
-				//System.out.println(ipAddr + " " + str + " " + again + " " + a);
-				//new HostName(str).toNormalizedString();
 				addFailure(new Failure("failed produced string: " + str, ipAddr));
 				return false;
 			}
@@ -741,7 +842,6 @@ public abstract class TestBase {
 			str = new HostName(again);
 			a = str.getAddress();
 			if(!ipAddr.equals(a)) {
-				//System.out.println(ipAddr + " " + str + " " + a);
 				addFailure(new Failure("failed produced string: " + str, ipAddr));
 				return false;
 			}
@@ -771,7 +871,7 @@ public abstract class TestBase {
 		try {
 			hex = ipAddr.toHexString(true);
 			confirmAddrStrings(ipAddr, hex);
-		} catch(AddressTypeException | IllegalStateException e) {
+		} catch(IncompatibleAddressException | IllegalStateException e) {
 			boolean isMatch = singleHex == null;
 			if(!isMatch) {
 				addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
@@ -784,7 +884,7 @@ public abstract class TestBase {
 				addFailure(new Failure("failed expected: " + singleHex + " actual: " + hexNoPrefix, w));
 			}
 			confirmAddrStrings(ipAddr, hexNoPrefix);//For ipv4, no 0x means decimal
-		} catch(AddressTypeException | IllegalStateException e) {
+		} catch(IncompatibleAddressException | IllegalStateException e) {
 			boolean isMatch = singleHex == null;
 			if(!isMatch) {
 				addFailure(new Failure("failed expected non-null, actual: " + e, w));
@@ -815,7 +915,7 @@ public abstract class TestBase {
 							dotted = ipAddr.toDottedString();
 							confirmAddrStrings(ipAddr, dotted);
 							sMatch = dotted.equals(dottedString);
-						} catch(AddressTypeException e) {
+						} catch(IncompatibleAddressException e) {
 							sMatch = (dottedString == null);
 						}
 						if(!sMatch) {
@@ -876,147 +976,159 @@ public abstract class TestBase {
 			String singleHex,
 			String singleOctal) {
 		// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
-		testHostAddress(w.toString());
-		
-		String c = ipAddr.toCompressedString();
-		String canonical = ipAddr.toCanonicalString();
-		String s = ipAddr.toSubnetString();
-		String cidr = ipAddr.toPrefixLengthString();
-		String n = ipAddr.toNormalizedString();
-		String nw = ipAddr.toNormalizedWildcardString();
-		String caw = ipAddr.toCanonicalWildcardString();
-		String cw = ipAddr.toCompressedWildcardString();
-		String sql = ipAddr.toSQLWildcardString();
-		String full = ipAddr.toFullString();
-		String rDNS = ipAddr.toReverseDNSLookupString();
-		String unc = ipAddr.toUNCHostName();
-		
-		String hex, hexNoPrefix, octal;
-		
 		try {
-			hex = ipAddr.toHexString(true);
-			boolean isMatch = singleHex.equals(hex);
-			if(!isMatch) {
-				addFailure(new Failure("failed expected: " + singleHex + " actual: " + hex, w));
-			}
-			confirmAddrStrings(ipAddr, hex);
-		} catch(AddressTypeException | IllegalStateException e) {
-			boolean isMatch = singleHex == null;
-			if(!isMatch) {
-				addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
-			}
-		}
-		try {
-			hexNoPrefix = ipAddr.toHexString(false);
-			if(ipAddr.isIPv6()) {
-				confirmAddrStrings(ipAddr, hexNoPrefix);//For ipv4, no 0x means decimal
-			}
-		} catch(AddressTypeException | IllegalStateException e) {
-			boolean isMatch = singleHex == null;
-			if(!isMatch) {
-				addFailure(new Failure("failed expected non-null, actual: " + e, w));
-			}
-		}
-		try {
-			octal = ipAddr.toOctalString(true);
-			boolean isMatch = singleOctal.equals(octal);
-			if(!isMatch) {
-				addFailure(new Failure("failed expected: " + singleOctal + " actual: " + octal, w));
-			}
-			if(ipAddr.isIPv4()) {
-				confirmAddrStrings(ipAddr, octal);
-			}
-		} catch(AddressTypeException | IllegalStateException e) {
-			boolean isMatch = singleOctal == null;
-			if(!isMatch) {
-				addFailure(new Failure("failed expected: " + singleOctal + " actual: " + e, w));
-			}
-		}
-		
-		try {
-			String binary = ipAddr.toBinaryString();
-			for(int i = 0; i < binary.length(); i++) {
-				char c2 = binary.charAt(i);
-				if(c2 == '%') {
-					break;
+			testHostAddress(w.toString());
+			
+			String c = ipAddr.toCompressedString();
+			String canonical = ipAddr.toCanonicalString();
+			String s = ipAddr.toSubnetString();
+			String cidr = ipAddr.toPrefixLengthString();
+			String n = ipAddr.toNormalizedString();
+			String nw = ipAddr.toNormalizedWildcardString();
+			String caw = ipAddr.toCanonicalWildcardString();
+			String cw = ipAddr.toCompressedWildcardString();
+			String sql = ipAddr.toSQLWildcardString();
+			String full = ipAddr.toFullString();
+			String rDNS = ipAddr.toReverseDNSLookupString();
+			String unc = ipAddr.toUNCHostName();
+			
+			String hex, hexNoPrefix, octal;
+			
+			try {
+				hex = ipAddr.toHexString(true);
+				boolean isMatch = singleHex.equals(hex);
+				if(!isMatch) {
+					addFailure(new Failure("failed expected: " + singleHex + " actual: " + hex, w));
 				}
-				if(c2 != '0' && c2 != '1' && c2 != '-') {
-					addFailure(new Failure("failed expected non-null binary string but got: " + binary, w));
+				confirmAddrStrings(ipAddr, hex);
+			} catch(IncompatibleAddressException | IllegalStateException e) {
+				boolean isMatch = singleHex == null;
+				if(!isMatch) {
+					addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
 				}
 			}
-		} catch(AddressTypeException | IllegalStateException e) {
-			boolean isMatch = singleHex == null;//iff hex is null is binary null
-			if(!isMatch) {
-				addFailure(new Failure("failed expected non-null binary string but got: " + e, w));
+			try {
+				hexNoPrefix = ipAddr.toHexString(false);
+				if(ipAddr.isIPv6()) {
+					confirmAddrStrings(ipAddr, hexNoPrefix);//For ipv4, no 0x means decimal
+				}
+			} catch(IncompatibleAddressException | IllegalStateException e) {
+				boolean isMatch = singleHex == null;
+				if(!isMatch) {
+					addFailure(new Failure("failed expected non-null, actual: " + e, w));
+				}
 			}
-		}
-		
-
-		confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
-		if(ipAddr.isIPv6()) {
-			confirmAddrStrings(ipAddr, full);
-		} else {
-			IPAddressStringParameters params = new IPAddressStringParameters.Builder().allow_inet_aton(false).toParams();
-			IPAddressString fullAddrString = new IPAddressString(full, params);
-			confirmAddrStrings(ipAddr, fullAddrString);
-		}
-		confirmHostStrings(ipAddr, rDNS, unc);//these two are valid hosts with embedded addresses
-		confirmHostStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
-		if(ipAddr.isIPv6()) {
-			confirmHostStrings(ipAddr, full);
-		} else {
-			HostNameParameters params = new HostNameParameters.Builder().getAddressOptionsBuilder().allow_inet_aton(false).getParentBuilder().toParams();
-			HostName fullAddrString = new HostName(full, params);
-			confirmHostStrings(ipAddr, fullAddrString);
-		}
-		
-		boolean nMatch = normalizedString.equals(n);
-		if(!nMatch) {
-			addFailure(new Failure("failed expected: " + normalizedString + " actual: " + n, w));
-		} else {
-			boolean nwMatch = normalizedWildcardString.equals(nw);
-			if(!nwMatch) {
-				addFailure(new Failure("failed expected: " + normalizedWildcardString + " actual: " + nw, w));
-			}  else {
-				boolean cawMatch = canonicalWildcardString.equals(caw);
-				if(!cawMatch) {
-					addFailure(new Failure("failed expected: " + canonicalWildcardString + " actual: " + caw, w));
-				} else {
-					boolean cMatch = compressedString.equals(c);
-					if(!cMatch) {
-						addFailure(new Failure("failed expected: " + compressedString + " actual: " + c, w));
-					} else {
-						boolean sMatch = subnetString.equals(s);
-						if(!sMatch) {
-							addFailure(new Failure("failed expected: " + subnetString + " actual: " + s, w));
+			try {
+				octal = ipAddr.toOctalString(true);
+				boolean isMatch = singleOctal.equals(octal);
+				if(!isMatch) {
+					addFailure(new Failure("failed expected: " + singleOctal + " actual: " + octal, w));
+				}
+				if(ipAddr.isIPv4()) {
+					confirmAddrStrings(ipAddr, octal);
+				}
+			} catch(IncompatibleAddressException | IllegalStateException e) {
+				boolean isMatch = singleOctal == null;
+				if(!isMatch) {
+					addFailure(new Failure("failed expected: " + singleOctal + " actual: " + e, w));
+				}
+			}
+			
+			try {
+				String binary = ipAddr.toBinaryString();
+				for(int i = 0; i < binary.length(); i++) {
+					char c2 = binary.charAt(i);
+					if(c2 == '%' || c2 == '/') {//in most cases we handle prefixed strings by printing the whole address as a range.
+						//however, for prefixed non-multiple addresses we still have the prefix
+						int next = binary.indexOf('-', i + 1);
+						if(next >= 0) {
+							i = next + 1;
 						} else {
-							boolean cwMatch = compressedWildcardString.equals(cw);
-							if(!cwMatch) {
-								addFailure(new Failure("failed expected: " + compressedWildcardString + " actual: " + cw, w));
+							if(c2 == '/' && binary.length() - i > 4) {
+								addFailure(new Failure("failed binary prefix: " + binary, w));
+							}
+							break;
+						}
+					}
+					if(c2 != '0' && c2 != '1' && c2 != '-') {
+						addFailure(new Failure("failed expected non-null binary string but got: " + binary, w));
+						break;
+					}
+				}
+			} catch(IncompatibleAddressException | IllegalStateException e) {
+				boolean isMatch = singleHex == null;//iff hex is null is binary null
+				if(!isMatch) {
+					addFailure(new Failure("failed expected non-null binary string but got: " + e, w));
+				}
+			}
+			
+	
+			confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
+			if(ipAddr.isIPv6()) {
+				confirmAddrStrings(ipAddr, full);
+			} else {
+				IPAddressStringParameters params = new IPAddressStringParameters.Builder().allow_inet_aton(false).toParams();
+				IPAddressString fullAddrString = new IPAddressString(full, params);
+				confirmAddrStrings(ipAddr, fullAddrString);
+			}
+			confirmHostStrings(ipAddr, rDNS, unc);//these two are valid hosts with embedded addresses
+			confirmHostStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
+			if(ipAddr.isIPv6()) {
+				confirmHostStrings(ipAddr, full);
+			} else {
+				HostNameParameters params = new HostNameParameters.Builder().getAddressOptionsBuilder().allow_inet_aton(false).getParentBuilder().toParams();
+				HostName fullAddrString = new HostName(full, params);
+				confirmHostStrings(ipAddr, fullAddrString);
+			}
+			
+			boolean nMatch = normalizedString.equals(n);
+			if(!nMatch) {
+				addFailure(new Failure("failed expected: " + normalizedString + " actual: " + n, w));
+			} else {
+				boolean nwMatch = normalizedWildcardString.equals(nw);
+				if(!nwMatch) {
+					addFailure(new Failure("failed expected: " + normalizedWildcardString + " actual: " + nw, w));
+				}  else {
+					boolean cawMatch = canonicalWildcardString.equals(caw);
+					if(!cawMatch) {
+						addFailure(new Failure("failed expected: " + canonicalWildcardString + " actual: " + caw, w));
+					} else {
+						boolean cMatch = compressedString.equals(c);
+						if(!cMatch) {
+							addFailure(new Failure("failed expected: " + compressedString + " actual: " + c, w));
+						} else {
+							boolean sMatch = subnetString.equals(s);
+							if(!sMatch) {
+								addFailure(new Failure("failed expected: " + subnetString + " actual: " + s, w));
 							} else {
-								boolean wMatch = sqlString.equals(sql);
-								if(!wMatch) {
-									addFailure(new Failure("failed expected: " + sqlString + " actual: " + sql, w));
+								boolean cwMatch = compressedWildcardString.equals(cw);
+								if(!cwMatch) {
+									addFailure(new Failure("failed expected: " + compressedWildcardString + " actual: " + cw, w));
 								} else {
-									boolean cidrMatch = cidrString.equals(cidr);
-									if(!cidrMatch) {
-										addFailure(new Failure("failed expected: " + cidrString + " actual: " + cidr, w));
+									boolean wMatch = sqlString.equals(sql);
+									if(!wMatch) {
+										addFailure(new Failure("failed expected: " + sqlString + " actual: " + sql, w));
 									} else {
-										boolean canonicalMatch = canonicalString.equals(canonical);
-										if(!canonicalMatch) {
-											addFailure(new Failure("failed expected: " + canonicalString + " actual: " + canonical, w));
+										boolean cidrMatch = cidrString.equals(cidr);
+										if(!cidrMatch) {
+											addFailure(new Failure("failed expected: " + cidrString + " actual: " + cidr, w));
 										} else {
-											boolean fullMatch = fullString.equals(full);
-											if(!fullMatch) {
-												addFailure(new Failure("failed expected: " + fullString + " actual: " + full, w));
+											boolean canonicalMatch = canonicalString.equals(canonical);
+											if(!canonicalMatch) {
+												addFailure(new Failure("failed expected: " + canonicalString + " actual: " + canonical, w));
 											} else {
-												boolean rdnsMatch = reverseDNSString.equals(rDNS);
-												if(!rdnsMatch) {
-													addFailure(new Failure("failed expected: " + reverseDNSString + " actual: " + rDNS, w));
+												boolean fullMatch = fullString.equals(full);
+												if(!fullMatch) {
+													addFailure(new Failure("failed expected: " + fullString + " actual: " + full, w));
 												} else {
-													boolean uncMatch = uncHostString.equals(unc);
-													if(!uncMatch) {
-														addFailure(new Failure("failed expected: " + uncHostString + " actual: " + unc, w));
+													boolean rdnsMatch = reverseDNSString.equals(rDNS);
+													if(!rdnsMatch) {
+														addFailure(new Failure("failed expected: " + reverseDNSString + " actual: " + rDNS, w));
+													} else {
+														boolean uncMatch = uncHostString.equals(unc);
+														if(!uncMatch) {
+															addFailure(new Failure("failed expected: " + uncHostString + " actual: " + unc, w));
+														}
 													}
 												}
 											}
@@ -1028,6 +1140,8 @@ public abstract class TestBase {
 					}
 				}
 			}
+		} catch(RuntimeException e) {
+			addFailure(new Failure("unexpected throw: " + e));
 		}
 		incrementTestCount();
 	}
@@ -1051,7 +1165,7 @@ public abstract class TestBase {
 		incrementTestCount();
 	}
 	
-	void testCache(String strs[], HostIdentifierStringCache<? extends HostIdentifierString> cache, Function<String, ? extends HostIdentifierString> producer, boolean testSize, boolean useBytes) {
+	void testCache(String strs[], HostIdentifierStringGenerator<? extends HostIdentifierString> cache, Function<String, ? extends HostIdentifierString> producer, boolean testSize, boolean useBytes) {
 		for(String str: strs) {
 			if(useBytes) {
 				IPAddressString first = (IPAddressString) producer.apply(str);
@@ -1059,18 +1173,34 @@ public abstract class TestBase {
 				if(firstAddr == null) {
 					cache.get(str);
 				} else {
-					if(firstAddr.isIPv6()) {
-						cache.get(firstAddr.getIPVersion(), 
-								HostIdentifierStringCache.getValueProvider(firstAddr.getBytes()),
-								HostIdentifierStringCache.getValueProvider(firstAddr.getUpperBytes()),
-								firstAddr.getPrefixLength(),
-								firstAddr.toIPv6().getZone());
-					} else {
-						cache.get(firstAddr.getIPVersion(), 
-							HostIdentifierStringCache.getValueProvider(firstAddr.getBytes()),
-							HostIdentifierStringCache.getValueProvider(firstAddr.getUpperBytes()),
-							firstAddr.getPrefixLength());
-					}
+					cache.get(new AddressProvider() {
+
+						@Override
+						public int getSegmentCount() {
+							return firstAddr.isIPv6() ? IPv6Address.SEGMENT_COUNT : IPv4Address.SEGMENT_COUNT;
+						}
+
+						@Override
+						public SegmentValueProvider getValues() {
+							return IPAddressStringGenerator.getValueProvider(firstAddr.getBytes());
+						}
+
+						@Override
+						public SegmentValueProvider getUpperValues() {
+							return IPAddressStringGenerator.getValueProvider(firstAddr.getUpperBytes());
+						}
+
+						@Override
+						public Integer getPrefixLength() {
+							return firstAddr.getPrefixLength();
+						}
+
+						@Override
+						public String getZone() {
+							return firstAddr.isIPv6() ? firstAddr.toIPv6().getZone() : null;
+						}
+						
+					});
 					IPAddressString second = (IPAddressString) producer.apply(str);
 					//this tests cacheNormalizedString where we create the normalized string first, then stick it in the address,
 					//rather than creating it from the address
@@ -1095,13 +1225,8 @@ public abstract class TestBase {
 			} 
 		}
 		
-		//The identity set size is a little bigger because two equal addresses can have two different normalized strings due to prefix.  But that is OK.
-		//TreeSet<HostIdentifierString> set = new TreeSet<HostIdentifierString>();
-		//IdentityHashMap<HostIdentifierString, Class<?>> setMap = new IdentityHashMap<HostIdentifierString, Class<?>>();
 		for(String str: strs) {
 			HostIdentifierString string = cache.get(str);
-			//set.add(string);
-			//setMap.put(string, getClass());
 			HostIdentifierString second = producer.apply(str);
 			if(!string.equals(second)) {
 				synchronized(this) {
@@ -1109,7 +1234,308 @@ public abstract class TestBase {
 				}
 			}
 		}
-		//System.out.println("cache size is " + cache.getBackingMap().size() + " array size is " + strs.length + " set size is " + set.size() + " identity set size is " + setMap.size());
+	}
+	
+	void testReplace(Address front, Address back, String fronts[], String backs[], char sep, boolean isMac) {
+		int bitsPerSegment = front.getBitsPerSegment();
+		int segmentCount = front.getSegmentCount();
+		boolean isIpv4 = !isMac && segmentCount == IPv4Address.SEGMENT_COUNT;
+		StringBuilder prefixes = new StringBuilder("[\n");
+		for(int replaceTargetIndex = 0; replaceTargetIndex < fronts.length; replaceTargetIndex++) {
+			if(replaceTargetIndex > 0) {
+				prefixes.append(",\n");
+			}
+			prefixes.append("[");
+			for(int replaceCount = 0; replaceCount < fronts.length - replaceTargetIndex; replaceCount++) {
+				if(replaceCount > 0) {
+					prefixes.append(",\n");
+				}
+				prefixes.append("    [");
+				StringBuilder lowest = new StringBuilder();
+				for(int replaceSourceIndex = 0; replaceSourceIndex < backs.length - replaceCount; replaceSourceIndex++) {
+					//We are replacing replaceCount segments in front at index replaceTargetIndex with the same number of segments starting at replaceSourceIndex in back
+					StringBuilder str = new StringBuilder();
+					int k = 0;
+					for(; k < replaceTargetIndex; k++) {
+						if(str.length() > 0) {
+							str.append(sep);
+						}
+						str.append(fronts[k]);
+					}
+					int current = k;
+					int limit = replaceCount + current;
+					for(; k < limit; k++) {
+						if(str.length() > 0) {
+							str.append(sep);
+						}
+						str.append(backs[replaceSourceIndex + k - current]);
+					}
+					for(; k < segmentCount; k++) {
+						if(str.length() > 0) {
+							str.append(sep);
+						}
+						str.append(fronts[k]);
+					}
+					Integer prefix;
+					boolean frontPrefixed = front.isPrefixed();
+					if(frontPrefixed && front.getPrefixLength() <= replaceTargetIndex * bitsPerSegment && (isMac || replaceTargetIndex > 0)) {//when replaceTargetIndex is 0, slight difference between mac and ipvx, for ipvx we do not account for a front prefix of 0
+						prefix = front.getPrefixLength();
+					} else if(back.isPrefixed() && back.getPrefixLength() <= (replaceSourceIndex + replaceCount) * bitsPerSegment && (isMac || replaceCount > 0)) {//when replaceCount 0, slight difference between mac and ipvx, for ipvx we do not account for a back prefix
+						prefix = (replaceTargetIndex * bitsPerSegment) + Math.max(0, back.getPrefixLength() - (replaceSourceIndex * bitsPerSegment));
+					} else if(frontPrefixed) {
+						if(front.getPrefixLength() <= (replaceTargetIndex + replaceCount) * bitsPerSegment) {
+							prefix = (replaceTargetIndex + replaceCount) * bitsPerSegment;
+						} else {
+							prefix = front.getPrefixLength();
+						}
+					} else {
+						prefix = null;
+					}
+					String replaceStr = (isMac ? "MAC" : (isIpv4 ? "IPv4" : "IPv6")) + " replacing " + replaceCount + " segments in " + front + " at index " + replaceTargetIndex + 
+							" with segments from " + back + " starting at " + replaceSourceIndex;
+					
+					Address new1, new2;
+					if(isMac) {
+						new1 = ((MACAddress) front).replace(replaceTargetIndex, replaceTargetIndex + replaceCount, (MACAddress) back, replaceSourceIndex);
+						HostIdentifierString hostIdStr = createMACAddress(str.toString());
+						new2 = hostIdStr.getAddress();
+						if(prefix != null) {
+							new2 = new2.setPrefixLength(prefix);
+						}
+					} else {
+						if(prefix != null) {
+							str.append('/').append(prefix);
+						}
+						HostIdentifierString hostIdStr = createAddress(str.toString());
+						new2 = hostIdStr.getAddress();
+						if(isIpv4) {
+							new1 = ((IPv4Address) front).replace(replaceTargetIndex, replaceTargetIndex + replaceCount, (IPv4Address) back, replaceSourceIndex);
+						} else {
+							new1 = ((IPv6Address) front).replace(replaceTargetIndex, replaceTargetIndex + replaceCount, (IPv6Address) back, replaceSourceIndex);
+						}
+					}
+					if(!new1.equals(new2)) {
+						String failStr = "Replacement was " + new1 + " expected was " + new2 + " " + replaceStr;
+						addFailure(new Failure(failStr, front));
+						
+						IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
+						IPv6AddressSection backSection = ((IPv6Address) back).getSection();
+						frontSection.replace(replaceTargetIndex, replaceTargetIndex + replaceCount, backSection, replaceSourceIndex, replaceSourceIndex + replaceCount);
+					}
+					if(lowest.length() > 0) {
+						lowest.append(',');
+					}
+					lowest.append(prefix);
+				}
+				prefixes.append(lowest).append(']');
+			}
+			prefixes.append(']');
+		}
+		prefixes.append(']');
+	}
+
+	void testAppendAndInsert(Address front, Address back, String fronts[], String backs[], char sep, Integer expectedPref[], boolean isMac) {
+		if(front.getSegmentCount() >= expectedPref.length) {
+			throw new IllegalArgumentException();
+		}
+		int extra = 0;
+		if(isMac) {
+			extra = MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT - front.getSegmentCount();
+		}
+		int bitsPerSegment = front.getBitsPerSegment();
+		boolean isIpv4 = !isMac && front.getSegmentCount() == IPv4Address.SEGMENT_COUNT;
+		for(int i = 0; i < fronts.length; i++) {
+			StringBuilder str = new StringBuilder();
+			int k = 0;
+			for(; k < i; k++) {
+				if(str.length() > 0) {
+					str.append(sep);
+				}
+				str.append(fronts[k]);
+			}
+			for(; k < fronts.length; k++) {
+				if(str.length() > 0) {
+					str.append(sep);
+				}
+				str.append(backs[k]);
+			}
+			HostIdentifierString hostIdStr = null;
+			
+			//Split up into two sections to test append
+			AddressSection frontSection = front.getSection(0, i);
+			AddressSection backSection = back.getSection(i);
+			AddressSection backSectionInvalid = null;
+			AddressSection frontSectionInvalid = null;
+			if(i - (1 + extra) >= 0 && i + 1 + extra <= front.getSegmentCount()) {
+				backSectionInvalid = back.getSection(i - (1 + extra));
+				frontSectionInvalid = front.getSection(0, i + 1 + extra);
+			}
+
+			//Split up even further into 3 sections to test insert
+			List<AddressSection[]> splits = new ArrayList<AddressSection[]>(front.getSegmentCount() + 3);
+			for(int m = 0; m <= frontSection.getSegmentCount(); m++) {
+				AddressSection sub1 = frontSection.getSection(0, m);
+				AddressSection sub2 = frontSection.getSection(m, frontSection.getSegmentCount());
+				splits.add(new AddressSection[] {sub1, sub2, backSection});
+			}
+			for(int m = 0; m <= backSection.getSegmentCount(); m++) {
+				AddressSection sub1 = backSection.getSection(0, m);
+				AddressSection sub2 = backSection.getSection(m, backSection.getSegmentCount());
+				splits.add(new AddressSection[] {frontSection, sub1, sub2});
+			}
+			//now you can insert the middle one after appending the first and last
+			//Keep in mind that inserting the first one is like a prepend, which is like an append
+			//Inserting the last one is an append
+			//We already test append pretty good
+			//So really, just insert the middle one after appending first and last
+			List<Address> splitsJoined = new ArrayList<Address>(splits.size());
+			try {
+				Address mixed, mixed2;
+				if(isMac) {
+					hostIdStr = createMACAddress(str.toString());
+					mixed = hostIdStr.getAddress();
+					if(front.isPrefixed() && front.getPrefixLength() <= i * bitsPerSegment) {
+						mixed = mixed.setPrefixLength(front.getPrefixLength());
+					} else if(back.isPrefixed()) {
+						mixed = mixed.setPrefixLength(Math.max(i * bitsPerSegment, back.getPrefixLength()));
+					}
+					MACAddressSection sec = ((MACAddressSection) frontSection).append((MACAddressSection) backSection);
+					mixed2 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+					if(frontSectionInvalid != null && backSectionInvalid != null) {
+						try {
+							((MACAddressSection) frontSection).append((MACAddressSection) backSectionInvalid);
+							addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+						} catch(AddressValueException e) {
+							//pass
+						}
+						try {
+							((MACAddressSection) frontSectionInvalid).append((MACAddressSection) backSection);
+							addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+						} catch(AddressValueException e) {
+							//pass
+						}
+					}
+					for(int o = 0; o < splits.size(); o++) {
+						AddressSection split[] = splits.get(o);
+						AddressSection f = split[0];
+						AddressSection g = split[1];
+						AddressSection h = split[2];
+						sec = ((MACAddressSection) f).append((MACAddressSection) h);
+						if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
+							sec = sec.appendToPrefix((MACAddressSection) g);
+						} else {
+							sec = sec.insert(f.getSegmentCount(), (MACAddressSection) g);
+						}
+						MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+						splitsJoined.add(mixed3);
+					}
+				} else {
+					if(front.isPrefixed() && front.getPrefixLength() <= i * bitsPerSegment && i > 0) {
+						str.append('/').append(front.getPrefixLength());
+					} else if(back.isPrefixed()) {
+						str.append('/').append(Math.max(i * bitsPerSegment, back.getPrefixLength()));
+					}
+					hostIdStr = createAddress(str.toString());
+					mixed = hostIdStr.getAddress();
+					
+					
+					if(isIpv4) {
+						IPv4AddressSection sec = ((IPv4AddressSection) frontSection).append((IPv4AddressSection) backSection);
+						mixed2 = ((IPv4Address) back).getNetwork().getAddressCreator().createAddress(sec);
+						if(frontSectionInvalid != null && backSectionInvalid != null) {
+							try {
+								((IPv4AddressSection) frontSection).append((IPv4AddressSection) backSectionInvalid);
+								addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+							} catch(AddressValueException e) {
+								//pass
+							}
+							try {
+								((IPv4AddressSection) frontSectionInvalid).append((IPv4AddressSection) backSection);
+								addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+							} catch(AddressValueException e) {
+								//pass
+							}
+						}
+						for(int o = 0; o < splits.size(); o++) {
+							AddressSection split[] = splits.get(o);
+							AddressSection f = split[0];
+							AddressSection g = split[1];
+							AddressSection h = split[2];
+							sec = ((IPv4AddressSection) f).append((IPv4AddressSection) h);
+							if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
+								sec = sec.appendToNetwork((IPv4AddressSection) g);
+							} else {
+								sec = sec.insert(f.getSegmentCount(), (IPv4AddressSection) g);
+							}
+							IPv4Address mixed3 = ((IPv4Address) back).getNetwork().getAddressCreator().createAddress(sec);
+							splitsJoined.add(mixed3);
+						}
+					} else {
+						IPv6AddressSection sec = ((IPv6AddressSection) frontSection).append((IPv6AddressSection) backSection);
+						mixed2 = ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
+						if(frontSectionInvalid != null && backSectionInvalid != null) {
+							try {
+								((IPv6AddressSection) frontSection).append((IPv6AddressSection) backSectionInvalid);
+								addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+							} catch(AddressValueException e) {
+								//pass
+							}
+							try {
+								((IPv6AddressSection) frontSectionInvalid).append((IPv6AddressSection) backSection);
+								addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+							} catch(AddressValueException e) {
+								//pass
+							}
+						}
+						
+						for(int o = 0; o < splits.size(); o++) {
+							AddressSection split[] = splits.get(o);
+							AddressSection f = split[0];
+							AddressSection g = split[1];
+							AddressSection h = split[2];
+							sec = ((IPv6AddressSection) f).append((IPv6AddressSection) h);
+							if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
+								sec = sec.appendToNetwork((IPv6AddressSection) g);
+							} else {
+								sec = sec.insert(f.getSegmentCount(), (IPv6AddressSection) g);
+							}
+							IPv6Address mixed3 = ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
+							splitsJoined.add(mixed3);
+						}
+					}
+				}
+				if(!mixed.equals(mixed2)) {
+					addFailure(new Failure("mixed was " + mixed + " expected was " + mixed2, mixed));
+				}
+				if(!Objects.equals(expectedPref[i], mixed.getPrefixLength())) {
+					addFailure(new Failure("mixed prefix was " + mixed.getPrefixLength() + " expected was " + expectedPref[i], mixed));
+				}
+				if(!Objects.equals(expectedPref[i], mixed2.getPrefixLength())) {
+					addFailure(new Failure("mixed2 prefix was " + mixed2.getPrefixLength() + " expected was " + expectedPref[i], mixed2));
+				}
+				for(int o = 0; o < splitsJoined.size(); o++) {
+					Address mixed3 = splitsJoined.get(o);
+					if(!mixed.equals(mixed3)) {
+						addFailure(new Failure("mixed was " + mixed3 + " expected was " + mixed, mixed3));
+					}
+					if(!mixed3.equals(mixed2)) {
+						addFailure(new Failure("mixed was " + mixed3 + " expected was " + mixed2, mixed3));
+					}
+					if(!Objects.equals(expectedPref[i], mixed3.getPrefixLength())) {
+						addFailure(new Failure("mixed3 prefix was " + mixed3.getPrefixLength() + " expected was " + expectedPref[i], mixed3));
+					}
+				}
+			} catch(IncompatibleAddressException e) {
+				if(expectedPref[i] == null || expectedPref[i] >= 0) {
+					addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
+				}
+			} catch(IllegalArgumentException e) {
+				if(expectedPref[i] == null || expectedPref[i] >= 0) {
+					addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
+				}
+			}
+		}
+		incrementTestCount();
 	}
 }
 

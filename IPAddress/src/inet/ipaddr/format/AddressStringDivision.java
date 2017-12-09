@@ -46,7 +46,22 @@ public interface AddressStringDivision {
 	/**
 	 * Configures a segment string according to the given params and the given segment index.
 	 * Appends the string to appendable.
+	 * <p>
+	 * If appendable is null, simply returns the length of the string that would have been appended.
+	 * <p>
+	 * Prefix length of this segment is not accounted for in this method when creating this string.
 	 * 
+	 * @param segmentIndex
+	 * @param params
+	 * @param appendable
+	 * @return
+	 */
+	int getStandardString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable);
+	
+	/**
+	 * Configures a segment string according to the given params and the given segment index, but using only the lower value of the segment range,
+	 * if there is a range.
+	 * <p>
 	 * If appendable is null, simply returns the length of the string that would have been appended.
 	 * 
 	 * @param segmentIndex
@@ -54,5 +69,5 @@ public interface AddressStringDivision {
 	 * @param appendable
 	 * @return
 	 */
-	int getConfiguredString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable);
+	int getLowerStandardString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable);
 }

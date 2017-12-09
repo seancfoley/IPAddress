@@ -25,7 +25,7 @@ package inet.ipaddr;
  */
 public class HostNameException extends HostIdentifierException {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	private static String errorMessage = getMessage("ipaddress.host.error");
 	

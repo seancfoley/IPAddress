@@ -18,6 +18,7 @@
 
 package inet.ipaddr.format;
 
+import inet.ipaddr.AddressValueException;
 
 /**
  * A combination of two or more IP address segments.
@@ -27,7 +28,7 @@ package inet.ipaddr.format;
  */
 public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	protected final int joinedCount;
 	protected final long value; //the lower value
@@ -35,13 +36,12 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 	
 	public IPAddressJoinedSegments(int joinedCount, int value) {
 		if(value < 0) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(value);
+		} else if(joinedCount <= 0) {
+			throw new AddressValueException(joinedCount);
 		}
 		this.value = this.upperValue = value;
 		this.joinedCount = joinedCount;
-		if(joinedCount <= 0) {
-			throw new IllegalArgumentException();
-		}
 	}
 
 	public IPAddressJoinedSegments(int joinedCount, long value, Integer segmentPrefixLength) {
@@ -51,7 +51,9 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 	public IPAddressJoinedSegments(int joinedCount, long lower, long upper, Integer segmentPrefixLength) {
 		super(segmentPrefixLength);
 		if(lower < 0 || upper < 0) {
-			throw new IllegalArgumentException();
+			throw new AddressValueException(lower < 0 ? lower : upper);
+		} else if(joinedCount <= 0) {
+			throw new AddressValueException(joinedCount);
 		}
 		if(lower > upper) {
 			long tmp = lower;
@@ -61,9 +63,6 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 		this.value = lower;
 		this.upperValue = upper;
 		this.joinedCount = joinedCount;
-		if(joinedCount <= 0) {
-			throw new IllegalArgumentException();
-		}
 	}
 	
 	public int getJoinedCount() {

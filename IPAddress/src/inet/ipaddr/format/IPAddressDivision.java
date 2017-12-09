@@ -18,10 +18,9 @@
 
 package inet.ipaddr.format;
 
-import inet.ipaddr.AddressTypeException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection;
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -33,17 +32,14 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  * @author sfoley
  *
  */
-public abstract class IPAddressDivision extends AddressDivision {
+public abstract class IPAddressDivision extends AddressDivision implements IPAddressStringDivision {
 
-	private static final long serialVersionUID = 3L;
-
-	//when printing a string, whether the prefix affects the printed range, for instance, whether to print 100-127/5 or 100-124/5
-	public static final boolean ADJUST_RANGES_BY_PREFIX = true;
+	private static final long serialVersionUID = 4L;
 
 	private final Integer divisionNetworkPrefix;//the prefix length for this division, or null if there is none
 	
 	protected transient String cachedWildcardString;
-	private transient Boolean isRangeEquivalentToPrefix;
+	private transient Boolean isSinglePrefixBlock;
 	
 	protected IPAddressDivision() {
 		this(null);
@@ -51,7 +47,7 @@ public abstract class IPAddressDivision extends AddressDivision {
 	
 	protected IPAddressDivision(Integer networkPrefixLength) {
 		if(networkPrefixLength != null && networkPrefixLength < 0) {
-			throw new IllegalArgumentException();
+			throw new PrefixLenException(networkPrefixLength);
 		}
 		this.divisionNetworkPrefix = networkPrefixLength;
 	}
@@ -81,11 +77,12 @@ public abstract class IPAddressDivision extends AddressDivision {
 	 * 
 	 * @return
 	 */
+	@Override
 	public Integer getDivisionPrefixLength() {
 		return divisionNetworkPrefix;
 	}
 
-	public boolean matchesWithPrefix(long value, Integer divisionPrefixLen) {
+	public boolean matchesWithPrefixMask(long value, Integer divisionPrefixLen) {
 		if(divisionPrefixLen == null) {
 			return matches(value);
 		}
@@ -99,7 +96,7 @@ public abstract class IPAddressDivision extends AddressDivision {
 	protected abstract long getDivisionHostMask(int bits);
 	
 	/**
-	 * If this is equivalent to the mask for a CIDR prefix, it returns that prefix length.
+	 * If this is equivalent to the mask for a CIDR prefix length block or subnet class, it returns the prefix length.
 	 * Otherwise, it returns null.
 	 * A CIDR network mask is an address with all 1s in the network section (the upper bits) and then all 0s in the host section.
 	 * A CIDR host mask is an address with all 0s in the network section (the lower bits) and then all 1s in the host section.
@@ -112,12 +109,12 @@ public abstract class IPAddressDivision extends AddressDivision {
 	 * 
 	 * This method applies only to the lower value of the range if this segment represents multiple values.
 	 * 
-	 * @see IPAddressSection#getEquivalentPrefix()
+	 * @see IPAddressSection#getPrefixLengthForSingleBlock()
 	 * 
 	 * @param network whether to check for a network mask or a host mask
-	 * @return the prefix length corresponding to this mask, or null if this address is not a CIDR prefix mask
+	 * @return the prefix length corresponding to this mask, or null if there is no such prefix length
 	 */
-	public Integer getMaskPrefixLength(boolean network) {
+	public Integer getBlockMaskPrefixLength(boolean network) {
 		long val, invertedVal;
 		if(network) {
 			val = getLowerValue();
@@ -132,38 +129,21 @@ public abstract class IPAddressDivision extends AddressDivision {
 		return shifted == 0 ? bitCount - hostLength : null;
 	}
 
-	/** 
-	 * @param lowerValue
-	 * @return whether the range of this segment matches the range of a segment with the given value and the CIDR prefix length of this segment
-	 */
-	public boolean isSamePrefixedRange(long lowerValue) {
-		return isPrefixed() ? isSamePrefixedRange(lowerValue, getDivisionPrefixLength()) : (lowerValue == getLowerValue() && !isMultiple());
-	}
-	
-	/**
-	 * @param lowerValue
-	 * @param divisionPrefixLen
-	 * @return whether the range of this segment matches the range of a segment with the given value and CIDR prefix length
-	 */
-	private boolean isSamePrefixedRange(long lowerValue, int divisionPrefixLen) {
-		long mask = getDivisionNetworkMask(divisionPrefixLen);
-		long expectedValue = lowerValue & mask;
-		return getLowerValue() == expectedValue
-			&&  getUpperValue() == (lowerValue | getDivisionHostMask(divisionPrefixLen));
-	}
-	
 	private static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, long networkMask, long hostMask) {
 		return lowerValue == (lowerValue & networkMask)
 				&& finalUpperValue == (upperValue | hostMask);
 	}
 	
 	/**
-	 * 
-	 * @param segmentValue
-	 * @param divisionPrefixLen
-	 * @return whether the given range remains the same with the given prefix applied 
+	 * Returns whether the division range includes the block of values for its prefix length
 	 */
-	private boolean isRangeUnchanged(long segmentValue, long upperValue, int divisionPrefixLen) {
+	private boolean isPrefixBlock(long segmentValue, long upperValue, Integer divisionPrefixLen) {
+		if(divisionPrefixLen == null) {
+			return false;
+		}
+		if(divisionPrefixLen == 0) {
+			return isFullRange();
+		}
 		return testRange(segmentValue,
 				upperValue,
 				upperValue,
@@ -177,7 +157,10 @@ public abstract class IPAddressDivision extends AddressDivision {
 	 * @param divisionPrefixLen
 	 * @return whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen 
 	 */
-	protected boolean isRangeEquivalent(long segmentValue, long upperValue, int divisionPrefixLen) {
+	private boolean isSinglePrefixBlock(long segmentValue, long upperValue, Integer divisionPrefixLen) {
+		if(divisionPrefixLen == null) {
+			return false;
+		}
 		return testRange(segmentValue,
 				segmentValue,
 				upperValue,
@@ -186,55 +169,65 @@ public abstract class IPAddressDivision extends AddressDivision {
 	}
 	
 	/**
-	 * @param divisionPrefixLen
-	 * @return whether the range of this segment can be specified only using the segment's lower value and the given prefix length
-	 * 	If the prefix is null or equal to the bit length, then this returns true for non-multiple addresses.
-	 */
-	public boolean isRangeEquivalent(Integer divisionPrefixLen) {
-		if(divisionPrefixLen == null) {
-			return !isMultiple();
-		}
-		return divisionPrefixLen == 0 || isRangeEquivalent(getLowerValue(), getUpperValue(), divisionPrefixLen);
-	}
-	
-	/**
+	 * Whether the range of this division matches the range for a single prefix with the given value and the given prefix length.
 	 * 
 	 * @param divisionPrefixLen
-	 * @return whether the given range remains the same with the given prefix applied 
+	 * @return whether the range of this segment matches the block of address divisions for that prefix.
+	 * 	If the prefix is null then this returns false.
 	 */
-	public boolean isRangeUnchanged(Integer divisionPrefixLen) {
-		if(divisionPrefixLen == null) {
-			return true;
-		}
-		if(divisionPrefixLen == 0) {
-			return isFullRange();
-		}
-		return isRangeUnchanged(getLowerValue(), getUpperValue(), divisionPrefixLen);
+	boolean isSinglePrefixBlock(long segmentValue, Integer divisionPrefixLen) {
+		return isSinglePrefixBlock(segmentValue, getUpperValue(), divisionPrefixLen);
 	}
 	
 	/**
-	 * @return whether the range of this segment can be specified only using the segment's lower value and the segment's prefix length
+	 * @return whether the division range includes the block of values for the given prefix length,
+	 *  or false if the given prefix length is null
 	 */
 	@Override
-	public boolean isRangeEquivalentToPrefix() {
-		if(isRangeEquivalentToPrefix == null) {
-			isRangeEquivalentToPrefix = isRangeEquivalent(getDivisionPrefixLength());
-		}
-		return isRangeEquivalentToPrefix;
-	}
-	
-	@Override
-	protected boolean isRangeAdjustedToPrefix() {
-		return !isPrefixed() || divisionNetworkPrefix == getBitCount() || !ADJUST_RANGES_BY_PREFIX;
+	public boolean isPrefixBlock(Integer divisionPrefixLen) {
+		return isPrefixBlock(getLowerValue(), getUpperValue(), divisionPrefixLen);
 	}
 
-	public boolean isBitwiseOrCompatibleWithRange(long maskValue, Integer divisionPrefixLen) {
+	/**
+	 * @return whether the division range includes the block of values for the division prefix length,
+	 *  or false if the division has no prefix length
+	 */
+	public boolean isPrefixBlock() {
+		return isPrefixBlock(getDivisionPrefixLength());
+	}
+
+	/**
+	 * Returns whether the division range matches exactly the block of values for the given prefix length.
+	 * If the given prefix length is null, return false.
+	 * 
+	 * @return whether the range of this division matches the range for a single prefix with a single value and the given prefix length.
+	 * 
+	 * @param divisionPrefixLen
+	 * @return whether the range of this segment matches the block of address divisions for that prefix.
+	 * 	If the prefix is null or equal to the bit length, then this returns true for non-multiple addresses.
+	 */
+	public boolean isSinglePrefixBlock(Integer divisionPrefixLen) {
+		return isSinglePrefixBlock(getLowerValue(), getUpperValue(), divisionPrefixLen);
+	}
+
+	/**
+	 * @return whether the division range matches exactly the block of values for its prefix length.
+	 */
+	@Override
+	public boolean isSinglePrefixBlock() {//since this one is commonly used for string production, it is cached
+		if(isSinglePrefixBlock == null) {
+			isSinglePrefixBlock = isSinglePrefixBlock(getDivisionPrefixLength());
+		}
+		return isSinglePrefixBlock;
+	}
+	
+	protected boolean isBitwiseOrCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
 		boolean hasBits = (divisionPrefixLen != null);
 		int divPrefLen;
 		if(hasBits) {
 			divPrefLen = divisionPrefixLen;
 			if(divPrefLen < 0 || divPrefLen > getBitCount()) {
-				throw new AddressTypeException(this, divisionPrefixLen, "ipaddress.error.prefixSize");
+				throw new PrefixLenException(this, divisionPrefixLen);
 			}
 		} else {
 			divPrefLen = getBitCount();
@@ -242,9 +235,13 @@ public abstract class IPAddressDivision extends AddressDivision {
 		if(!isMultiple() || maskValue == getMaxValue() || maskValue == 0) {
 			return true;
 		}
-		long networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
-		if(hasBits && (networkMask & maskValue) == networkMask) {//any problematic bits will be eliminated by the prefix
-			return true;
+		
+		long networkMask = 0;
+		if(isAutoSubnets) {
+			networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
+			if(hasBits && (networkMask & maskValue) == networkMask) {//any problematic bits will be eliminated by the prefix
+				return true;
+			}
 		}
 		
 		long value = getLowerValue();
@@ -257,7 +254,10 @@ public abstract class IPAddressDivision extends AddressDivision {
 		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
 		//if this latter bit exists, then any bit below it in the mask must be 0 to include the entire range.
 		
-		long differing = (value ^ upperValue) & networkMask;
+		long differing = value ^ upperValue;
+		if(isAutoSubnets) {
+			differing &= networkMask;
+		}
 		boolean foundDiffering = (differing != 0);
 		boolean differingIsLowestBit = (differing == 1);
 		if(foundDiffering && !differingIsLowestBit) {
@@ -270,7 +270,9 @@ public abstract class IPAddressDivision extends AddressDivision {
 				//anything below highestDifferingBitMasked in the mask must be zeros 
 				int highestDifferingBitMasked = Long.numberOfLeadingZeros(~differingMasked & maskMask);
 				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-				maskValue &= getDivisionNetworkMask(divPrefLen);//but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
+				if(isAutoSubnets) {
+					maskValue &= getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
+				}
 				if((maskValue & hostMask) != 0) { //check if all zeros below
 					return false;
 				}
@@ -279,14 +281,13 @@ public abstract class IPAddressDivision extends AddressDivision {
 		return true;
 	}
 	
-	
-	public boolean isMaskCompatibleWithRange(long maskValue, Integer divisionPrefixLen) {
+	protected boolean isMaskCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
 		boolean hasBits = (divisionPrefixLen != null);
 		int divPrefLen;
 		if(hasBits) {
 			divPrefLen = divisionPrefixLen;
 			if(divPrefLen < 0 || divPrefLen > getBitCount()) {
-				throw new AddressTypeException(this, divisionPrefixLen, "ipaddress.error.prefixSize");
+				throw new PrefixLenException(this, divisionPrefixLen);
 			}
 		} else {
 			divPrefLen = getBitCount();
@@ -294,9 +295,12 @@ public abstract class IPAddressDivision extends AddressDivision {
 		if(!isMultiple() || maskValue == getMaxValue() || maskValue == 0) {
 			return true;
 		}
-		long networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
-		if(hasBits && (networkMask & maskValue) == 0) {//any problematic bits will be eliminated by the prefix
-			return true;
+		long networkMask = 0;
+		if(isAutoSubnets) {
+			networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
+			if(hasBits && (networkMask & maskValue) == 0) {//any problematic bits will be eliminated by the prefix
+				return true;
+			}
 		}
 		
 		long value = getLowerValue();
@@ -309,7 +313,10 @@ public abstract class IPAddressDivision extends AddressDivision {
 		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
 		//if this latter bit exists, then any bit below it in the mask must be 1 to include the entire range.
 		
-		long differing = (value ^ upperValue) & networkMask;
+		long differing = value ^ upperValue;
+		if(isAutoSubnets) {
+			differing &= networkMask;
+		}
 		boolean foundDiffering = (differing != 0);
 		boolean differingIsLowestBit = (differing == 1);
 		if(foundDiffering && !differingIsLowestBit) {
@@ -322,7 +329,9 @@ public abstract class IPAddressDivision extends AddressDivision {
 				//anything below highestDifferingBitMasked in the mask must be ones 
 				int highestDifferingBitMasked = Long.numberOfLeadingZeros(differingMasked);
 				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-				maskValue |= getDivisionHostMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
+				if(isAutoSubnets) {
+					maskValue |= getDivisionHostMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
+				}
 				if((maskValue & hostMask) != hostMask) { //check if all ones below
 					return false;
 				}
@@ -344,17 +353,16 @@ public abstract class IPAddressDivision extends AddressDivision {
 			synchronized(this) {
 				result = cachedString;
 				if(result == null) {
-					if(isRangeEquivalentToPrefix()) { //covers the case of !isMultiple, ie single addresses
+					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
 						result = getDefaultString();
 					} else if(isFullRange()) {
 						result = IPAddress.SEGMENT_WILDCARD_STR;
 					} else {
 						long upperValue = getUpperValue();
-						boolean maskUpper = ADJUST_RANGES_BY_PREFIX && isPrefixed();
-						if(maskUpper) {
+						if(isPrefixBlock()) {
 							upperValue &= getDivisionNetworkMask(getDivisionPrefixLength());
 						}
-						result = getDefaultRangeString(getLowerValue(), upperValue, getDefaultTextualRadix(), maskUpper);
+						result = getDefaultRangeString(getLowerValue(), upperValue, getDefaultTextualRadix());
 					}
 					cachedString = result;
 				}
@@ -390,7 +398,7 @@ public abstract class IPAddressDivision extends AddressDivision {
 	}
 	
 	@Override
-	protected void setFullRangeWildcardString() {
+	protected void setDefaultAsFullRangeWildcardString() {
 		if(cachedWildcardString == null) {
 			synchronized(this) {
 				cachedWildcardString = IPAddress.SEGMENT_WILDCARD_STR;
@@ -403,26 +411,11 @@ public abstract class IPAddressDivision extends AddressDivision {
 		long upperValue = getUpperValue();
 		long mask = getDivisionNetworkMask(getDivisionPrefixLength());
 		upperValue &= mask;
-		toUnsignedString(upperValue, radix, 0, uppercase, uppercase ? UPPED_DIGITS : DIGITS, appendable);
+		toUnsignedString(upperValue, radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
-	/**
-	 * Produces a string to represent the segment.
-	 * <p>
-	 * Use this instead of {@link #getString(Wildcards, int, String, int, boolean, boolean, char, boolean, StringBuilder)}
-	 * if you wish to avoid printing wildcards in the host section of the address.
-	 * Instead, this method will rely on the prefix length instead.
-	 * <p>
-	 * Use this instead of getString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
-	 * or you have a string prefix, or you have a non-default radix (for IPv4 default radix is 10, for IPv6 it is 16)
-	 * 
-	 * @return if the supplied appendable is null, returns the length of the string that would have been appended, otherwise returns 0
-	 */
 	@Override
-	public int getConfiguredString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
-		if(params.preferWildcards() || params.isSplitDigits()) {
-			return getStandardString(segmentIndex, params, appendable);
-		}
-		return getPrefixAdjustedString(segmentIndex, params, appendable);
+	public int getPrefixAdjustedRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
+		return super.getPrefixAdjustedRangeString(segmentIndex, params, appendable);
 	}
 }

@@ -18,11 +18,12 @@
 
 package inet.ipaddr.test;
 
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
-import inet.ipaddr.AddressTypeException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.mac.MACAddress;
@@ -82,12 +83,8 @@ public class MACAddressRangeTest extends MACAddressTest {
 		if(origAddr.isMultiple()) {
 			try {
 				origAddr.getBytes();
-				//addFailure(new Failure("wildcard bytes on addr ", origAddr)); now this just gets the lower bytes
-				//failed = true;
-			} catch(AddressTypeException e) {
+			} catch(IncompatibleAddressException e) {
 				failed = true;
-				//pass
-				//wild addresses have no bytes
 			}
 		} else {
 			failed = !super.testBytes(origAddr);
@@ -101,7 +98,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 	}
 	
 	private void testCount(MACAddressString w, int number) {
-		IPAddressRangeTest.testCount(this, w, number);
+		IPAddressRangeTest.testCount(this, w, number, -1);
 	}
 	
 	private void testToOUIPrefixed(String addrString) {
@@ -115,7 +112,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 		}
 		MACAddressSection suffix = new MACAddressSection(suffixSegs);
 		MACAddress suffixed = new MACAddress(suffix);
-		MACAddress prefixed = v.toOUIPrefixed();
+		MACAddress prefixed = v.toOUIPrefixBlock();
 		if(!prefixed.equals(suffixed)) {
 			addFailure(new Failure("failed oui prefixed " + prefixed + " constructed " + suffixed, w));
 		}
@@ -130,20 +127,140 @@ public class MACAddressRangeTest extends MACAddressTest {
 		MACAddressString str = createMACAddress(host);
 		try {
 			MACAddress h1 = str.toAddress();
-			Integer equiv = h1.getEquivalentPrefix();
+			Integer equiv = h1.getPrefixLengthForSingleBlock();
 			if(equiv == null ? (equivPrefix != null) : (!equivPrefix.equals(equiv))) {
 				addFailure(new Failure("failed: prefix expected: " + equivPrefix + " prefix got: " + equiv, h1));
 			} else {
-					int minPref = h1.getMinPrefix();
+					int minPref = h1.getMinPrefixLengthForBlock();
 					if(minPref != minPrefix) {
 						addFailure(new Failure("failed: prefix expected: " + minPrefix + " prefix got: " + minPref, h1));
 					}
 			}
 		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + e, str));
-		} catch(AddressTypeException e) {
+		} catch(IncompatibleAddressException e) {
 			addFailure(new Failure("failed " + e, str));
 		}
+		incrementTestCount();
+	}
+	
+	void testPrefixBlock(String prefixedAddressStr, int expectedPref) {
+		//starting with prefixed address like 1:2:3:*:*:*, get lower (whcih should retain prefix except for allsubnets)
+		//check if prefix block (not), then for all subnets assign prefix, then for all call toPrefixBlock, compare with original and also the prefix
+		
+		MACAddressString prefixedAddressString = createMACAddress(prefixedAddressStr);
+		MACAddress prefixedAddress = prefixedAddressString.getAddress();
+		PrefixConfiguration prefConf = prefixedAddress.getNetwork().getPrefixConfiguration();
+		if(!prefixConfiguration.equals(prefConf)) {
+			addFailure(new Failure("prefix config  " + prefixConfiguration + " mismatch with " + prefConf, prefixedAddress));
+		}
+		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+		
+		//a whole bunch of address manipulations, all of which we will reverse and then convert back to the prefix block
+		MACAddress lower = prefixedAddress.getLower();
+		MACAddress upper = prefixedAddress.getUpper();
+		MACAddress removedPrefix = prefixedAddress.removePrefixLength(); 
+		MACAddress adjustPrefix = prefixedAddress.adjustPrefixLength(1);
+		MACAddress adjustPrefix2 = prefixedAddress.adjustPrefixLength(-1);
+		int hostSeg = (prefixedAddress.getPrefixLength() + (MACAddress.BITS_PER_SEGMENT - 1)) / MACAddress.BITS_PER_SEGMENT;
+		MACAddress replaced = prefixedAddress;
+		MACAddress replacement = createMACAddress("1:1:1:1:1:1").getAddress();
+		for(int i = hostSeg; i < replaced.getSegmentCount(); i++) {
+			replaced = replaced.replace(i, i + 1, replacement, i);
+		}
+		if(lower.equals(upper)) {
+			addFailure(new Failure("lower / upper " + lower + " / " + upper, prefixedAddress));
+		}
+		if(!prefixedAddress.isPrefixBlock()) {
+			addFailure(new Failure("not prefix block", prefixedAddress));
+		}
+		if(!adjustPrefix.isPrefixBlock()) {
+			addFailure(new Failure("adjustPrefix is not prefix block: " + adjustPrefix, prefixedAddress));
+		}
+		if(!adjustPrefix.isPrefixed()) {
+			addFailure(new Failure("adjustPrefix not prefixed: " + adjustPrefix.getPrefixLength(), prefixedAddress));
+		}
+		if(!adjustPrefix2.isPrefixed()) {
+			addFailure(new Failure("adjustPrefix2 not prefixed: " + adjustPrefix2.getPrefixLength(), prefixedAddress));
+		}
+		if(removedPrefix.isPrefixed()) {
+			addFailure(new Failure("removedPrefix prefixed: " + removedPrefix.getPrefixLength(), prefixedAddress));
+		}
+		if(!replaced.isPrefixed()) {
+			addFailure(new Failure("replaced prefixed: " + replaced.getPrefixLength(), prefixedAddress));
+		}
+		if(allPrefixesAreSubnets) {
+			if(!replaced.isPrefixBlock()) {
+				addFailure(new Failure("replaced is prefix block: " + replaced, prefixedAddress));
+			}
+			if(!adjustPrefix2.isPrefixBlock()) {
+				addFailure(new Failure("adjustPrefix2 is not prefix block: " + adjustPrefix2, prefixedAddress));
+			}
+			if(lower.isPrefixed()) {
+				addFailure(new Failure("lower prefixed: " + lower, prefixedAddress));
+			}
+			if(lower.isPrefixBlock()) {
+				addFailure(new Failure("lower is prefix block: " + lower, prefixedAddress));
+			}
+			if(upper.isPrefixed()) {
+				addFailure(new Failure("upper prefixed: " + upper, prefixedAddress));
+			}
+			if(upper.isPrefixBlock()) {
+				addFailure(new Failure("upper is prefix block: " + upper, prefixedAddress));
+			}
+			lower = lower.applyPrefixLength(prefixedAddress.getPrefixLength());
+			upper = upper.applyPrefixLength(prefixedAddress.getPrefixLength());
+		} else {
+			if(hostSeg < replaced.getSegmentCount() && replaced.isPrefixBlock()) {
+				addFailure(new Failure("replaced is prefix block: " + replaced, prefixedAddress));
+			}
+			if(adjustPrefix2.isPrefixBlock()) {
+				addFailure(new Failure("adjustPrefix2 is not prefix block: " + adjustPrefix2, prefixedAddress));
+			}
+			if(!lower.isPrefixed()) {
+				addFailure(new Failure("lower not prefixed: " + lower, prefixedAddress));
+			}
+			if(lower.isPrefixBlock()) {
+				addFailure(new Failure("lower is prefix block: " + lower, prefixedAddress));
+			}
+			if(!upper.isPrefixed()) {
+				addFailure(new Failure("upper not prefixed: " + upper, prefixedAddress));
+			}
+			if(upper.isPrefixBlock()) {
+				addFailure(new Failure("upper is prefix block: " + upper, prefixedAddress));
+			}
+		}
+		MACAddress prefixedBlockAgain = lower.toPrefixBlock();
+		if(!prefixedBlockAgain.isPrefixBlock()) {
+			addFailure(new Failure("reconstituted prefix block not a prefix block: " + prefixedBlockAgain, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.equals(prefixedAddress)) {
+			addFailure(new Failure("reconstituted prefix block mismatch: " + prefixedBlockAgain + " original: " + prefixedAddress, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.getPrefixLength().equals(prefixedAddress.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block prefix mismatch: " + prefixedBlockAgain.getPrefixLength() + " original: " + prefixedAddress.getPrefixLength(), prefixedAddress));
+		}
+
+		//now revert all our operations, convert them all back to prefix blocks, and compare
+		removedPrefix = removedPrefix.applyPrefixLength(prefixedAddress.getPrefixLength());
+		adjustPrefix = adjustPrefix.adjustPrefixLength(-1);
+		adjustPrefix2 = adjustPrefix2.adjustPrefixLength(1);
+		if(!prefixedBlockAgain.equals(removedPrefix.toPrefixBlock()) || !prefixedBlockAgain.getPrefixLength().equals(removedPrefix.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block mismatch with other: " + prefixedBlockAgain + " other: " + removedPrefix, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.equals(adjustPrefix.toPrefixBlock()) || !prefixedBlockAgain.getPrefixLength().equals(adjustPrefix.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block mismatch with other: " + prefixedBlockAgain + " other: " + adjustPrefix, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.getPrefixLength().equals(adjustPrefix2.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block mismatch with other: " + prefixedBlockAgain + " other: " + adjustPrefix2, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.equals(replaced.toPrefixBlock()) || !prefixedBlockAgain.getPrefixLength().equals(replaced.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block mismatch with other: " + prefixedBlockAgain + " other: " + replaced, prefixedAddress));
+		}
+		if(!prefixedBlockAgain.equals(upper.toPrefixBlock()) || !prefixedBlockAgain.getPrefixLength().equals(upper.getPrefixLength())) {
+			addFailure(new Failure("reconstituted prefix block mismatch with other: " + prefixedBlockAgain + " other: " + upper, prefixedAddress));
+		}
+		
 		incrementTestCount();
 	}
 	
@@ -152,7 +269,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 			MACAddressString str = createMACAddress(start, WILDCARD_AND_RANGE_ADDRESS_OPTIONS);
 			MACAddress addr = str.getAddress();
 			//now do the same thing but use the IPAddress objects instead
-			int i = 0;
+			int i = 0, j = 0;
 			Integer pref;
 			do {
 				String label = getLabel(addr.toAddressString());
@@ -161,10 +278,17 @@ public class MACAddressRangeTest extends MACAddressTest {
 					addFailure(new Failure("failed expected: " + expected + " actual: " + label, str));
 					break;
 				}
-				addr = addr.adjustPrefixBySegment(false);
-				i++;
 				pref = addr.getPrefixLength();
+				addr = addr.adjustPrefixBySegment(false);
+				if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+					i++;
+				}
+				j++;
+				
 			} while(pref == null || pref != 0); //when network prefix is 0, Address.toSupernet() returns the same address
+			if(j != parents.length) {
+				addFailure(new Failure("failed: invalid label count " + parents.length + " expected " + j));
+			}
 		} catch(RuntimeException e) {
 			addFailure(new Failure("failed: " + e + " " + start));
 		}
@@ -184,8 +308,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"01:02:00-8f:*:*:*",
 				"01:02:*:*:*:*",
 				"01:*:*:*:*:*",
-				"*:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*"
 		});
 		testTree("a:b:c:d:e:f", new String[] {
 				"0a:0b:0c:0d:0e:0f",
@@ -194,7 +317,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"0a:0b:0c:*:*:*",
 				"0a:0b:*:*:*:*",
 				"0a:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*"
 		});
 		testTree("a:b:c:d:e:f:a:b", new String[] {
 				"0a:0b:0c:0d:0e:0f:0a:0b",
@@ -205,7 +328,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"0a:0b:0c:*:*:*:*:*",
 				"0a:0b:*:*:*:*:*:*",
 				"0a:*:*:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*:*:*"
 		});
 		testTree("a:b:c:d:e:f:a0-bf:*", new String[] {//this one is good now
 				"0a:0b:0c:0d:0e:0f:a0-bf:*",
@@ -215,7 +338,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"0a:0b:0c:*:*:*:*:*",
 				"0a:0b:*:*:*:*:*:*",
 				"0a:*:*:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*:*:*"
 		});
 		testTree("a:b:c:d:e:f:a2-a3:*", new String[] {//this one is good now
 				"0a:0b:0c:0d:0e:0f:a2-a3:*",
@@ -225,7 +348,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"0a:0b:0c:*:*:*:*:*",
 				"0a:0b:*:*:*:*:*:*",
 				"0a:*:*:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*:*:*"
 		});
 		testTree("a:b:c:d:e:f:1f-80:*", new String[] {
 				"0a:0b:0c:0d:0e:0f:1f-80:*",
@@ -235,14 +358,14 @@ public class MACAddressRangeTest extends MACAddressTest {
 				"0a:0b:0c:*:*:*:*:*",
 				"0a:0b:*:*:*:*:*:*",
 				"0a:*:*:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*:*:*"
 		});
 		testTree("a:b:c:11-12:*", new String[] {
 				"0a:0b:0c:11-12:*:*",
 				"0a:0b:0c:*:*:*",
 				"0a:0b:*:*:*:*",
 				"0a:*:*:*:*:*",
-				"*"
+				"*:*:*:*:*:*"
 		});
 	}
 	
@@ -477,29 +600,49 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testReverse("ff:81:c3:42:24:0-fe", false, true);
 		testReverse("ff:1:ff:ff:*:*", false, false);
 		
-		testPrefixes("25:51:27:12:82:55", 
-				16, -5, 
-				"25:51:27:12:82:55",
-				"25:51:27:12:82:*",
-				"25:51:27:12:82:40-5f",
-				"25:51:*:*:*:*",
-				"25:51:*:*:*:*");
+		boolean isAllSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
 		
-		testPrefixes("25:51:27:*:*:*", 
-				16, -5, 
-				"25:51:27:00:*:*",
-				"25:51:*:*:*:*",
-				"25:51:20-3f:*:*:*",
-				"25:51:*:*:*:*",
-				"25:51:*:*:*:*");
-
+		if(isAllSubnets) {
+			testPrefixes("25:51:27:12:82:55", 
+					16, -5, 
+					"25:51:27:12:82:55",
+					"25:51:27:12:82:*",
+					"25:51:27:12:82:40-5f",
+					"25:51:*:*:*:*",
+					"25:51:*:*:*:*");
+			
+			testPrefixes("25:51:27:*:*:*", 
+					16, -5, 
+					"25:51:27:00:*:*",
+					"25:51:*:*:*:*",
+					"25:51:20-3f:*:*:*",
+					"25:51:*:*:*:*",
+					"25:51:*:*:*:*");
+		} else {
+			testPrefixes("25:51:27:12:82:55", 
+					16, -5, 
+					"25:51:27:12:82:55",
+					"25:51:27:12:82:55",
+					"25:51:27:12:82:55",
+					"25:51:27:12:82:55",
+					"25:51:27:12:82:55");
+			
+			testPrefixes("25:51:27:*:*:*", 
+					16, -5, 
+					"25:51:27:00:*:*",
+					"25:51:27:*:*:*",
+					"25:51:27:*:*:*",
+					"25:51:27:*:*:*",
+					"25:51:27:*:*:*");
+		}
+		
 		testPrefixes("*:*:*:*:*:*:0-fe:*", 
 				15, 2, 
 				"*:*:*:*:*:*:0-fe:0",
-				"*:*:*:*:*:*:*:*",
-				"*:*:*:*:*:*:0-fe:0-3f",
-				"*:*:*:*:*:*:*:*",
-				"*:*:*:*:*:*:*:*");
+				isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*",
+				"*:*:*:*:*:*:0-fe:0-3f", 
+				isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*",
+						isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*");
 		
 		testPrefixes("*:*:*:*:*:*:*:*", 
 				15, 2, 
@@ -512,7 +655,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testPrefixes("1:*:*:*:*:*", 
 				15, 2, 
 				"1:0:*:*:*:*",
-				"*:*:*:*:*:*",
+				isAllSubnets ? "*:*:*:*:*:*" : "01:*:*:*:*:*",
 				"1:0-3f:*:*:*:*",
 				"1:0-1:*:*:*:*",
 				"1:*:*:*:*:*");
@@ -520,15 +663,15 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testPrefixes("3.8000-ffff.*.*",
 				15, 2, 
 				"3.8000-80ff.*.*",
-				"3.*.*.*",
+				isAllSubnets ? "3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
 				"3.8000-9fff.*.*",
-				"2-3.*.*.*",
-				"2-3.*.*.*");
+				isAllSubnets ? "2-3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
+						isAllSubnets ? "2-3.*.*.*" : "00:03:80-ff:*:*:*:*:*");
 		
 		testPrefixes("3.8000-ffff.*.*", 
 				31, 2, 
 				"3.8000-80ff.*.*",
-				"3.*.*.*",
+				isAllSubnets ? "3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
 				"3.8000-9fff.*.*",
 				"3.8000-8001.*.*",
 				"3.8000-ffff.*.*");
@@ -557,6 +700,13 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testToOUIPrefixed("123.456.789.abc");
 		testToOUIPrefixed("123.456.789.*");
 
+		testOUIPrefixed("ff:7f:fe:2:7f:fe", "ff:7f:fe:*", 24);
+		testOUIPrefixed("ff:7f:fe:2:7f:*", "ff:7f:fe:*", 24);
+		testOUIPrefixed("ff:7f:fe:*", "ff:7f:fe:*", 24);
+		testOUIPrefixed("ff:*", "ff:*", 8);
+		testOUIPrefixed("ff:7f:fe:2:7f:fe:7f:fe", "ff:7f:fe:*:*:*:*:*", 24);
+		testOUIPrefixed("ff:7f:0-f:*", "ff:7f:0-f:*", 20);
+		
 		testTrees();
 
 		testDelimitedCount("1,2|3,4-3-4,5-6-7-8", 8); //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
@@ -714,9 +864,14 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testSections("00-1:21-ff:*:10");
 		testSections("00-1:21-ff:2f:*:10");
 		testSections("*-A7-94-07-CB-*");
+		testSections("aa-*");
+		testSections("aa-bb-*");
+		testSections("aa-bb-cc-*");
 		testSections("8-9:a0-ae:1-3:20-26:0:1");
 		testSections("fe-ef-39-*-94-07-b|C-D0");
 		testSections("5634-5678.*.7feb.6b40");
+		testSections("ff:0:1:*");
+		testSections("ff:0:1:*:*:*:*:*");
 		
 		
 		testRadices("11:10:*:1-7f:f3:2", "10001:10000:*:1-1111111:11110011:10", 2);
@@ -739,13 +894,14 @@ public class MACAddressRangeTest extends MACAddressTest {
 		
 		
 		testCount("11:22:33:44:55:ff", 1);
-		testCount("11:22:*:0-2:55:ff", 3 * (0xff + 1));
+		testCount("11:22:*:0-2:55:ff", 3 * 0x100);
+		testCount("11:22:2:0-2:55:*", 3 * 0x100);
 		testCount("11:2-4:1:0-2:55:ff", 9);
 		testCount("112-114.1.0-2.55ff", 9);
-		testCount("*.1.0-2.55ff", 3 * (0xffff + 1));
+		testCount("*.1.0-2.55ff", 3 * 0x10000);
 		testCount("1-2.1-2.1-2.2-3", 16);
-		testCount("1-2.1.*.2-3", 4 * (0xffff + 1));
-		testCount("11:*:*:0-2:55:ff", 3 * (0xff + 1) * (0xff + 1));
+		testCount("1-2.1.*.2-3", 4 * 0x10000);
+		testCount("11:*:*:0-2:55:ff", 3 * 0x100 * 0x100);
 		
 		testMatches(true, "1-02.03-4.05-06.07", "1-2.3-4.5-6.7");
 		testMatches(true, "1-002.003-4.005-006.007", "1-2.3-4.5-6.7");
@@ -871,6 +1027,48 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testMatches(true, "*.2.3.4","____.2.3.4");
 		testMatches(true, "1.2.3.*","1.2.3.____");
 	
+		testInsertAndAppend("*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
+		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "*:*:*:*:*:*:*:*", new int[] {0, 8, 16, 24, 32, 40, 48, 56, 64});
+		testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
+		
+		testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:3:4:*:*:*:*", new int[] {32, 32, 32, 32, 32, 32, 32, 32, 32});
+		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*", new int[] {32, 32, 32, 32, 32, 40, 48, 56, 64});
+		testInsertAndAppend("a:b:c:0-1:*:*:*:*", "1:2:3:4:5:6:7:8", new Integer[] {null, null, null, null, 31, 31, 31, 31, 31});
+		testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8", new Integer[] {null, null, null, null, 32, 32, 32, 32, 32});
+		testInsertAndAppend("a:b:c:d:0-7f:*:*:*", "1:2:3:4:5:6:7:8", new Integer[] {null, null, null, null, null, 33, 33, 33, 33});
+
+		testInsertAndAppend("a:b:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", new int[] {32, 32, 16, 16, 16, 16, 16, 16, 16});
+		testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:*:*:*:*:*:*", new int[] {16, 16, 16, 24, 32, 32, 32, 32, 32});
+		testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
+		testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8", new Integer[] {null, null, null, null, 32, 32, 32, 32, 32});
+		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*", new Integer[] {32, 32, 32, 32, 32, 40, 48, 56, null});
+
+		testReplace("*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*");
+		testReplace("a:b:c:d:e:f:aa:bb", "*:*:*:*:*:*:*:*");
+		testReplace("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8");
+		
+		testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:*:*:*:*");
+		testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*");
+		testReplace("a:b:c:0-1:*:*:*:*", "1:2:3:4:5:6:7:8");
+		testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8");
+		testReplace("a:b:c:d:0-7f:*:*:*", "1:2:3:4:5:6:7:8");
+		
+		testReplace("a:b:*:*:*:*:*:*", "1:2:3:4:*:*:*:*");
+		testReplace("a:b:c:d:*:*:*:*", "1:2:*:*:*:*:*:*");
+		testReplace("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*");
+		testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8");
+		testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*");
+
+		testPrefixBlock("ff:*:*:*:*:*", 8);
+		testPrefixBlock("ff:ff:*:*:*:*", 16);
+		testPrefixBlock("ff:fe-ff:*:*:*:*", 15);
+		testPrefixBlock("ff:fc-ff:*:*:*:*", 14);
+		testPrefixBlock("ff:ff:80-ff:*:*:*", 17);
+		testPrefixBlock("ff:ff:0-7f:*:*:*", 17);
+		testPrefixBlock("ff:ff:0-3f:*:*:*", 18);
+		testPrefixBlock("ff:0:0:ff:0:*", 40);
+		testPrefixBlock("ff:0:0:ff:0:fe-ff", 47);
+		
 		super.runTest();
 	}
 	

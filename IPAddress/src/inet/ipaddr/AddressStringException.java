@@ -25,7 +25,7 @@ package inet.ipaddr;
  */
 public class AddressStringException extends HostIdentifierException {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	private static final String errorMessage = getMessage("ipaddress.address.error");
 	

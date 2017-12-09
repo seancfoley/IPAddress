@@ -63,7 +63,9 @@ To do a release
 
 0. If you are doing a major release, in gh-pages branch create a new folder with the old docs and put a link to it from the main page, to preserve them.
 Also link back from the old docs to the new.
-Figure out your branching strategy for the release, if applicable, branch if necessary, and then work off the branch to provide the release.
+Figure out your branching strategy for the release, if applicable, branch if necessary, and then work off the old or new branch to provide the release.
+If your previous release is based on the master branch,
+you will first want to ensure you create a branch for the previous release before you check your new code into master for the new release.
 
 1. Edit the release property in build.xml
 
@@ -71,7 +73,8 @@ Figure out your branching strategy for the release, if applicable, branch if nec
 
 3. Check in and push the changes.
 
-4. Create the release using the github releases button - this creates the tag as well.  Add the dist jar from (2) to the release.  The source code zip and tar files are automatically created by github.
+4. Create the release using the github releases button - this creates the tag as well (but does not create a branch).  
+Add the dist jar from (2) to the release.  The source code zip and tar files are automatically created by github.
 
 5. Edit the release property in pom.xml
 

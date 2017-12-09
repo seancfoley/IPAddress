@@ -41,6 +41,8 @@ import inet.ipaddr.format.AddressItem;
 // | AddressDivisionGrouping (base class for all division groupings, grouping into non-equal length divisions, each division any number of bits)
 // AddressSegmentSeries (segment series - grouping into equal length segments, each a whole number of bytes)
 // |
+// IPAddressSegmentSeries
+// |
 // from here you can reference the component view 
 // for divisions of addresses that use segments (a segment has a whole numbers of bytes that equals the same byte size of all other segments in the same address)
 //
@@ -118,12 +120,12 @@ public interface AddressComponent extends AddressItem {
 	Iterable<? extends AddressComponent> getIterable();
 
 	/**
+	 * Iterates through the individual elements of this address component.
+	 * <p>
 	 * An address component can represent a single segment, address, or section, or it can represent multiple,
 	 * typically a subnet or range of segment, address, or section values.
-	 * 
+	 * <p>
 	 * Call {@link #isMultiple()} to determine if this instance represents multiple.
-	 * 
-	 * This method iterates through the individual elements.
 	 * 
 	 * @return
 	 */
@@ -131,8 +133,10 @@ public interface AddressComponent extends AddressItem {
 
 	/**
 	 * Writes this address component as a single hexadecimal value with always the exact same number of characters, with or without a preceding 0x prefix.
-	 * 
-	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
+	 * <p>
+	 * If this component represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
+	 * <p>
+	 * For instance, for IPv4 addresses there are 8 hex characters, for IPv6 addresses there are 32 hex characters.
 	 */
 	String toHexString(boolean with0xPrefix);
 
@@ -145,14 +149,14 @@ public interface AddressComponent extends AddressItem {
 	/**
 	 * Returns a new AddressComponent with the bits reversed.
 	 * 
-	 * If this component represents a range of values that cannot be reversed, then this throws AddressTypeException.  In a range the most significant bits stay constant
+	 * If this component represents a range of values that cannot be reversed, then this throws {@link IncompatibleAddressException}.  In a range the most significant bits stay constant
 	 * while the least significant bits range over different values, so reversing that scenario results in a series of non-consecutive values, in most cases,
 	 * which cannot be represented with a single AddressComponent object.
-	 * 
+	 * <p>
 	 * In such cases where isMultiple() is true, call iterator(), getLower(), getUpper() or some other methods to break the series down into a series representing a single value.
 	 * 
 	 * @param perByte if true, only the bits in each byte are reversed, if false, then all bits in the component are reversed
-	 * @throw AddressTypeException if isMultiple() returns true, since most ranges when reversed are no longer ranges
+	 * @throws IncompatibleAddressException when subnet addresses cannot be reversed
 	 * @return
 	 */
 	AddressComponent reverseBits(boolean perByte);
@@ -160,13 +164,13 @@ public interface AddressComponent extends AddressItem {
 	/**
 	 * Returns an AddressComponent with the bytes reversed.
 	 * 
-	 * If this component represents a range of values that cannot be reversed, then this throws AddressTypeException.  In a range the most significant bits stay constant
+	 * If this component represents a range of values that cannot be reversed, then this throws {@link IncompatibleAddressException}.  In a range the most significant bits stay constant
 	 * while the least significant bits range over different values, so reversing that scenario results in a series of non-consecutive values, in most cases,
 	 * which cannot be represented with a single AddressComponent object.
-	 * 
+	 * <p>
 	 * In such cases where isMultiple() is true, call iterator(), getLower(), getUpper() or some other methods to break the series down into a series representing a single value.
 	 * 
-	 * @throw AddressTypeException if isMultiple() returns true, since most ranges when reversed are no longer ranges
+	 * @throws IncompatibleAddressException when subnet addresses cannot be reversed
 	 * @return
 	 */
 	AddressComponent reverseBytes();

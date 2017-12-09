@@ -32,9 +32,9 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  */
 public abstract class AddressDivisionBase implements AddressItem, AddressStringDivision {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
-	protected static final String zeros[];
+	private static final String zeros[];
 	
 	static {
 		int zerosLength = 20;
@@ -54,7 +54,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
         'u' , 'v' , 'w' , 'x' , 'y' , 'z'
     };
 
-	protected static final char[] UPPED_DIGITS = {
+	protected static final char[] UPPERCASE_DIGITS = {
         '0' , '1' , '2' , '3' , '4' , '5' ,
         '6' , '7' , '8' , '9' , 'A' , 'B' ,
         'C' , 'D' , 'E' , 'F' , 'G' , 'H' ,
@@ -77,10 +77,10 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	
 	/**
 	 * Gets the bytes for the lowest address in the range represented by this address division.
-	 * 
+	 * <p>
 	 * Since bytes are signed values while addresses are unsigned, values greater than 127 are
 	 * represented as the (negative) two's complement value of the actual value.
-	 * You can get the unsigned integer value i from byte b using i = 0xff & b.
+	 * You can get the unsigned integer value i from byte b using i = 0xff &amp; b.
 	 * 
 	 * @return
 	 */
@@ -95,15 +95,15 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	
 	/**
 	 * Gets the value for the lowest address in the range represented by this address division.
-	 * 
+	 * <p>
 	 * If the value fits in the specified array, the same array is returned with the value.  
 	 * Otherwise, a new array is allocated and returned with the value.
-	 * 
+	 * <p>
 	 * You can use {@link #getBitCount()} to determine the required array length for the bytes.
-	 * 
+	 * <p>
 	 * Since bytes are signed values while addresses are unsigned, values greater than 127 are
 	 * represented as the (negative) two's complement value of the actual value.
-	 * You can get the unsigned integer value i from byte b using i = 0xff & b.
+	 * You can get the unsigned integer value i from byte b using i = 0xff &amp; b.
 	 * 
 	 * @return
 	 */
@@ -286,7 +286,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 
 	private static void getSplitChar(int count, char splitDigitSeparator, String characters, String stringPrefix, StringBuilder builder) {
 		while(count-- > 0) {
-			if(stringPrefix != null) {
+			if(stringPrefix.length() > 0) {
 				builder.append(stringPrefix);
 			}
 			builder.append(characters);
@@ -296,8 +296,9 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	}
 	
 	private static void getSplitChar(int count, char splitDigitSeparator, char character, String stringPrefix, StringBuilder builder) {
+		int prefLen = stringPrefix.length();
 		while(count-- > 0) {
-			if(stringPrefix != null) {
+			if(prefLen > 0) {
 				builder.append(stringPrefix);
 			}
 			builder.append(character);
@@ -332,8 +333,18 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		return getString();
 	}
 
+	/**
+	 * A simple string using just the lower value and the default radix.
+	 * 
+	 * @return
+	 */
 	protected abstract String getDefaultString();
 	
+	/**
+	 * A simple string using just the lower and upper values and the default radix, separated by the default range character.
+	 * 
+	 * @return
+	 */
 	protected abstract String getDefaultRangeString();
 	
 	/**
@@ -377,12 +388,9 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 			synchronized(this) {
 				result = cachedString;
 				if(result == null) {
-					String full;
 					if(!isMultiple()) {
 						result = getDefaultString();
-					} else if(isFullRange() && (full = getDefaultSegmentWildcardString()) != null) {
-						result = full;
-					} else {
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
 						result = getDefaultRangeString();
 					}
 					cachedString = result;
@@ -396,7 +404,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		return getString();
 	}
 	
-	protected String getCachedString() {
+	private String getCachedString() {
 		String result = cachedString;
 		if(result == null) {
 			synchronized(this) {
@@ -409,7 +417,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		return result;
 	}
 	
-	protected void setFullRangeString() {
+	protected void setDefaultAsFullRangeString() {
 		if(cachedString == null) {
 			String result = getDefaultSegmentWildcardString();
 			if(result != null) {
@@ -420,8 +428,8 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		}
 	}
 	
-	protected void setFullRangeWildcardString() {
-		setFullRangeString();
+	protected void setDefaultAsFullRangeWildcardString() {
+		setDefaultAsFullRangeString();
 	}
 
 	protected abstract int getLowerStringLength(int radix);
@@ -449,141 +457,54 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	
 	protected abstract int getRangeDigitCount(int radix);
 	
-	/*
-	 * Returns whether an address string indicating prefix length is enough to describe the range of this address division.
-	 * 
-	 * Typically this applies only to IP address strings with a prefix length indicator.
-	 * 
-	 * For other types of addresses, they are considered prefixed if the address describes all addresses with the same prefix,
-	 * but there is not way to describe this in an address string indicating prefix length.
-	 * 
-	 * In this base case, we assume there is no prefix, so it returns true if not multiple.
-	 */
-	protected boolean isRangeEquivalentToPrefix() {
-		return !isMultiple();
+	protected void appendUppercase(CharSequence str, int radix, StringBuilder appendable) {
+		if(radix > 10) {
+			for(int i = 0; i < str.length(); i++) {
+				char c = str.charAt(i);
+				if(c >= 'a' && c <= 'z') {
+					c += 'A' - 'a';
+				}
+				appendable.append(c);
+			}
+		} else {
+			appendable.append(str);
+		}
 	}
 	
-	/*
-	 * Return whether the range needs no adjustment from the prefix (ie there is no prefix, or no adjustment is required)
-	 */
-	protected boolean isRangeAdjustedToPrefix() {
-		return true;
+	private static int getFullRangeString(String wildcard, StringBuilder appendable) {
+		if(appendable == null) {
+			return wildcard.length();
+		}
+		appendable.append(wildcard);
+		return 0;
 	}
-
-	/**
-	 * Produces a string to represent the segment.
-	 * <p>
-	 * Use this instead of {@link #getString(Wildcards, int, String, int, boolean, boolean, char, boolean, StringBuilder)}
-	 * if you wish to avoid printing wildcards in the host section of the address.
-	 * Instead, this method will rely on the prefix length instead.
-	 * <p>
-	 * Use this instead of getString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
-	 * or you have a string prefix, or you have a non-default radix (for IPv4 default radix is 10, for IPv6 it is 16)
-	 * 
-	 * @return if the supplied appendable is null, returns the length of the string that would have been appended, otherwise returns 0
-	 */
 	
-	public int getPrefixAdjustedString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
-		String stringPrefix = params.getSegmentStrPrefix();
-		int radix = params.getRadix();
-		if(isRangeEquivalentToPrefix()) {
-			int count = 0;
-			if(stringPrefix != null) {
-				if(appendable == null) {
-					count += stringPrefix.length();
-				} else {
-					appendable.append(stringPrefix);
-				}
-			}
-			int leadingZeroCount = params.getLeadingZeros(segmentIndex);//-1 means max leading zeros
-			if(leadingZeroCount != 0) {
-				if(appendable == null) {
-					if(leadingZeroCount < 0) {
-						count += getMaxDigitCount(radix);
-						return count;
-					} else {
-						count += leadingZeroCount;
-					}
-				} else {
-					leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
-					getLeadingZeros(leadingZeroCount, appendable);
-				}
-			}
-			if(radix == getDefaultTextualRadix()) {
-				String str = getCachedString();
-				if(appendable == null) {
-					return count + str.length();
-				} else if(params.isUppercase() && radix > 10) {
-					for(int i = 0; i < str.length(); i++) {
-						char c = str.charAt(i);
-						if(c >= 'a' && c <= 'z') {
-							c += 'A' - 'a';
-						}
-						appendable.append(c);
-					}
-				} else {
-					appendable.append(str);
-				}
-			} else {
-				if(appendable == null) {
-					return count + getLowerStringLength(radix);
-				} else {
-					boolean uppercase = params.isUppercase();
-					getLowerString(radix, uppercase, appendable);
-				}
-			}
-			return 0;
-		}
-		Wildcards wildcards = params.getWildcards();
-		if(isFullRange()) {
-			String wildcard = wildcards.wildcard;
-			if(wildcard != null) {
-				if(appendable == null) {
-					return wildcard.length();
-				} else {
-					if(wildcard.equals(getDefaultSegmentWildcardString())) {
-						setFullRangeString();
-						setFullRangeWildcardString();
-						//appendable.append(cachedString = cachedWildcardString = wildcard);xxx;
-					} //else {
-					appendable.append(wildcard);
-					//}
-					return 0;
-				}
-			}
-		}
-		//This is handling ADJUST_RANGES_BY_PREFIX.  Also, we've handled the cases where no adjustment is required for the prefix, 
-		//the remaining cases account for the prefix, so if we have no prefix, here we should defer to method in superclass
-		if(isRangeAdjustedToPrefix()) {
-			return getRangeString(segmentIndex, params, appendable);
-		}
+	int getPrefixAdjustedRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
 		int leadingZeroCount = params.getLeadingZeros(segmentIndex);
+		int radix = params.getRadix();
 		int lowerLeadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
 		int upperLeadingZeroCount = adjustUpperLeadingZeroCount(leadingZeroCount, radix);
 
 		//if the wildcards match those in use by getString(), and there is no character prefix, let's defer to getString() so that it is cached
+		Wildcards wildcards = params.getWildcards();
 		String rangeSeparator = wildcards.rangeSeparator;
 		int rangeDigitCount = wildcards.singleWildcard == null ? 0 : getRangeDigitCount(radix);
 		
-		//If we can, we reuse the standard string to construct this string (must have some radix and no chopped digits)
+		//If we can, we reuse the standard string to construct this string (must have the same radix and no chopped digits)
 		//We can insert leading zeros, string prefix, and a different separator string if necessary
 		//Also, we cannot in the case of full range (in which case we are only here because we do not want '*')
 		if(rangeDigitCount == 0 && radix == getDefaultTextualRadix() && !isFullRange()) {
 			//we call getString() to cache the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
 			String str = getString();
 			String rangeSep = getDefaultRangeSeparatorString();
-			if(lowerLeadingZeroCount == 0 && upperLeadingZeroCount == 0 && rangeSep.equals(rangeSeparator) && stringPrefix == null) {
+			String stringPrefix = params.getSegmentStrPrefix();
+			int prefLen = stringPrefix.length();
+			if(lowerLeadingZeroCount == 0 && upperLeadingZeroCount == 0 && rangeSep.equals(rangeSeparator) && prefLen == 0) {
 				if(appendable == null) {
 					return str.length();
 				} else {
 					if(params.isUppercase()) {
-						for(int i = 0; i < str.length(); i++) {
-							char c = str.charAt(i);
-							if(c >= 'a' && c <= 'z') {
-								c += 'A' - 'a';
-							}
-							appendable.append(c);
-						}
+						appendUppercase(str, radix, appendable);
 					} else {
 						appendable.append(str);
 					}
@@ -593,13 +514,13 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 				if(appendable == null) {
 					int count = str.length() + (rangeSeparator.length() - rangeSep.length()) +
 							lowerLeadingZeroCount + upperLeadingZeroCount;
-					if(stringPrefix != null) {
-						count += stringPrefix.length() << 1;
+					if(prefLen > 0) {
+						count += prefLen << 1;
 					}
 					return count;
 				} else {
 					int firstEnd = str.indexOf(rangeSep);
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					if(lowerLeadingZeroCount > 0) {
@@ -607,7 +528,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 					}
 					appendable.append(str.substring(0, firstEnd));
 					appendable.append(rangeSeparator);
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					if(upperLeadingZeroCount > 0) {
@@ -618,20 +539,21 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 				}
 			}
 		}
-		
 		rangeDigitCount = adjustRangeDigits(rangeDigitCount);
 		if(leadingZeroCount < 0 && appendable == null) {
 			int charLength = getMaxDigitCount(radix);
+			String stringPrefix = params.getSegmentStrPrefix();
+			int prefLen = stringPrefix.length();
 			if(rangeDigitCount != 0) {
 				int count = charLength;
-				if(stringPrefix != null) {
-					count += stringPrefix.length();
+				if(prefLen > 0) {
+					count += prefLen;
 				}
 				return count;
 			}
 			int count = charLength << 1;
-			if(stringPrefix != null) {
-				count += stringPrefix.length() << 1;
+			if(prefLen > 0) {
+				count += prefLen << 1;
 			}
 			count += rangeSeparator.length();
 			return count;
@@ -643,24 +565,68 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	}
 	
 	@Override
-	public int getConfiguredString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
-		return getStandardString(segmentIndex, params, appendable);
+	public int getLowerStandardString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
+		int count = 0;
+		String stringPrefix = params.getSegmentStrPrefix();
+		int prefLen = stringPrefix.length();
+		if(prefLen > 0) {
+			if(appendable == null) {
+				count += prefLen;
+			} else {
+				appendable.append(stringPrefix);
+			}
+		}
+		int radix = params.getRadix();
+		int leadingZeroCount = params.getLeadingZeros(segmentIndex);
+		leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
+		if(leadingZeroCount != 0) {
+			if(appendable == null) {
+				if(leadingZeroCount < 0) {
+					return count + getMaxDigitCount(radix);
+				} else {
+					count += leadingZeroCount;
+				}
+			} else {
+				leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
+				getLeadingZeros(leadingZeroCount, appendable);
+			}
+		}
+		boolean uppercase = params.isUppercase();
+		if(radix == getDefaultTextualRadix()) {
+			String str = getCachedString();
+			if(appendable == null) {
+				return count + str.length();
+			} else if(uppercase) {
+				appendUppercase(str, radix, appendable);
+			} else {
+				appendable.append(str);
+			}
+		} else {
+			if(appendable == null) {
+				return count + getLowerStringLength(radix);
+			} else {
+				getLowerString(radix, uppercase, appendable);
+			}
+		}
+		return 0;
 	}
-	
+
 	/**
-	 * Produces a string to represent the segment, favouring wildcards and range characters over the network prefix to represent subnets.
+	 * Produces a string to represent the segment, using wildcards and range characters.
 	 * Use this instead of getWildcardString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
-	 * or you have a string prefix, or you have a non-standard radix (for IPv4 standard radix is 10, for IPv6 it is 16)
+	 * or you have a non-standard radix (for IPv4 standard radix is 10, for IPv6 it is 16)
 	 * 
 	 */
+	@Override
 	public int getStandardString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
-		String stringPrefix = params.getSegmentStrPrefix();
-		int radix = params.getRadix();
 		if(!isMultiple()) {
-			int leadingZeroCount = params.getLeadingZeros(segmentIndex);
-			leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
 			boolean splitDigits = params.isSplitDigits();
 			if(splitDigits) {
+				int radix = params.getRadix();
+				int leadingZeroCount = params.getLeadingZeros(segmentIndex);
+				leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
+				String stringPrefix = params.getSegmentStrPrefix();
+				int prefLen = stringPrefix.length();
 				if(appendable == null) {
 					int len;
 					if(leadingZeroCount != 0) {
@@ -673,8 +639,8 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 						len = getLowerStringLength(radix);
 					}
 					int count = (len << 1) - 1;
-					if(stringPrefix != null) {
-						count += len * stringPrefix.length();
+					if(prefLen > 0) {
+						count += len * prefLen;
 					}
 					return count;
 				} else {
@@ -697,75 +663,27 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 					return 0;
 				}
 			}
-			int count = 0;
-			if(stringPrefix != null) {
-				if(appendable == null) {
-					count += stringPrefix.length();
-				} else {
-					appendable.append(stringPrefix);
-				}
-			}
-			if(leadingZeroCount != 0) {
-				if(appendable == null) {
-					if(leadingZeroCount < 0) {
-						return count + getMaxDigitCount(radix);
-					} else {
-						count += leadingZeroCount;
-					}
-				} else {
-					leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
-					getLeadingZeros(leadingZeroCount, appendable);
-				}
-			}
-			boolean uppercase = params.isUppercase();
-			if(radix == getDefaultTextualRadix()) {
-				String str = getCachedString();
-				if(appendable == null) {
-					return count + str.length();
-				} else if(uppercase && radix > 10) {
-					for(int i = 0; i < str.length(); i++) {
-						char c = str.charAt(i);
-						if(c >= 'a' && c <= 'z') {
-							c += 'A' - 'a';
-						}
-						appendable.append(c);
-					}
-				} else {
-					appendable.append(str);
-				}
-			} else {
-				if(appendable == null) {
-					return count + getLowerStringLength(radix);
-				} else {
-					getLowerString(radix, uppercase, appendable);
-				}
-			}
-			return 0;
+			return getLowerStandardString(segmentIndex, params, appendable);
 		}
 		if(isFullRange()) {
-			Wildcards wildcards = params.getWildcards();
-			String wildcard = wildcards.wildcard;
+			String wildcard = params.getWildcards().wildcard;
 			if(wildcard != null) {
+				if(wildcard.equals(getDefaultSegmentWildcardString())) {
+					setDefaultAsFullRangeWildcardString();//cache
+				}
 				boolean splitDigits = params.isSplitDigits();
 				if(splitDigits) {
+					int radix = params.getRadix();
 					if(appendable == null) {
 						int len = getMaxDigitCount(radix);
 						int count = len * (wildcard.length() + 1) - 1;
 						return count;
 					}
 					char splitDigitSeparator = params.getSplitDigitSeparator() == null ? 0 : params.getSplitDigitSeparator();
-					getSplitChar(getMaxDigitCount(radix), splitDigitSeparator, wildcard, null, appendable);
-				} else {
-					if(appendable == null) {
-						return wildcard.length();
-					} else {
-						if(wildcard.equals(getDefaultSegmentWildcardString())) {
-							setFullRangeWildcardString();//cache
-						}
-						appendable.append(wildcard);
-					}
+					getSplitChar(getMaxDigitCount(radix), splitDigitSeparator, wildcard, "", appendable);
+					return 0;
 				}
-				return 0;
+				return getFullRangeString(wildcard, appendable);
 			}
 		}
 		return getRangeString(segmentIndex, params, appendable);
@@ -773,7 +691,6 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	
 	protected int getRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
 		boolean splitDigits = params.isSplitDigits();
-		String stringPrefix = params.getSegmentStrPrefix();
 		int radix = params.getRadix();
 		int leadingZeroCount = params.getLeadingZeros(segmentIndex);
 		Wildcards wildcards = params.getWildcards();
@@ -783,9 +700,9 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		int lowerLeadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
 		int upperLeadingZeroCount = adjustUpperLeadingZeroCount(leadingZeroCount, radix);
 
-		//check the case where we can defer to getWildcardString which is cached:
-		//It must have same radix and no chopped digits, and no splitting or reversal of digits
-		//We can insert leading zeros, string prefix, and a different separator string if necessary
+		//check the case where we can use the result of getWildcardString which is cached.
+		//It must have same radix and no chopped digits, and no splitting or reversal of digits.
+		//We can insert leading zeros, string prefix, and a different separator string if necessary.
 		//Also, we cannot in the case of full range (in which case we are only here because we do not want '*')
 		if(rangeDigitCount == 0 && 
 				radix == getDefaultTextualRadix() && 
@@ -793,8 +710,10 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 				!isFullRange()) {
 			String str = getWildcardString();
 			String rangeSep = getDefaultRangeSeparatorString();
+			String stringPrefix = params.getSegmentStrPrefix();
+			int prefLen = stringPrefix.length();
 			if(lowerLeadingZeroCount == 0 && upperLeadingZeroCount == 0 &&
-					stringPrefix == null &&
+					prefLen == 0 &&
 					rangeSeparator.equals(rangeSep)) {
 				if(appendable == null) {
 					return str.length();
@@ -804,13 +723,13 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 			} else {
 				if(appendable == null) {
 					int count = str.length() + (rangeSeparator.length() - rangeSep.length())  + lowerLeadingZeroCount + upperLeadingZeroCount;
-					if(stringPrefix != null) {
-						count += stringPrefix.length() << 1;
+					if(prefLen > 0) {
+						count += prefLen << 1;
 					}
 					return count;
 				} else {
 					int firstEnd = str.indexOf(rangeSep);
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					if(lowerLeadingZeroCount > 0) {
@@ -818,13 +737,13 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 					}
 					appendable.append(str.substring(0, firstEnd));
 					appendable.append(rangeSeparator);
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					if(upperLeadingZeroCount > 0) {
 						getLeadingZeros(upperLeadingZeroCount, appendable);
 					}
-					appendable.append(str.substring(firstEnd +rangeSep.length()));
+					appendable.append(str.substring(firstEnd + rangeSep.length()));
 					return 0;
 				}
 			}
@@ -838,17 +757,19 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		 eg f10-fff has no range digits but is f.1-f.*
 		 */
 		if(!splitDigits && leadingZeroCount < 0 && appendable == null) {
+			String stringPrefix = params.getSegmentStrPrefix();
+			int prefLen = stringPrefix.length();
 			int charLength = getMaxDigitCount(radix);
 			if(rangeDigitCount != 0) {
 				int count = charLength;
-				if(stringPrefix != null) {
-					count += stringPrefix.length();
+				if(prefLen > 0) {
+					count += prefLen;
 				}
 				return count;
 			}
 			int count = charLength << 1;
-			if(stringPrefix != null) {
-				count += stringPrefix.length() << 1;
+			if(prefLen > 0) {
+				count += prefLen << 1;
 			}
 			count += rangeSeparator.length();
 			return count;
@@ -862,18 +783,9 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 			}
 		}
 		if(splitDigits) {
-			return getSplitRangeString(
-					segmentIndex,
-					params,
-					appendable);
+			return getSplitRangeString(segmentIndex, params, appendable);
 		}
-		return getRangeString(
-				segmentIndex,
-				params,
-				lowerLeadingZeroCount, 
-				upperLeadingZeroCount,
-				false,
-				appendable);
+		return getRangeString(segmentIndex, params, lowerLeadingZeroCount, upperLeadingZeroCount, false, appendable);
 	}
 	
 	protected int getSplitRangeDigitString(
@@ -887,8 +799,9 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		if(appendable == null) {
 			int len = getLowerStringLength(radix) + leadingZerosCount;
 			int count = (len << 1) - 1;
-			if(stringPrefix != null) {
-				count += len * stringPrefix.length();
+			int prefLen = stringPrefix.length();
+			if(prefLen > 0) {
+				count += len * prefLen;
 			}
 			return count;
 		} else {
@@ -926,16 +839,13 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		int leadingZerosCount = params.getLeadingZeros(segmentIndex);
 		leadingZerosCount = adjustLowerLeadingZeroCount(leadingZerosCount, radix);
 		String stringPrefix = params.getSegmentStrPrefix();
+		int prefLen = stringPrefix.length();
 		Wildcards wildcards = params.getWildcards();
 		int rangeDigits = adjustRangeDigits(getRangeDigitCount(radix));
 		if(appendable == null) {
-			int count = getLowerStringLength(radix) + leadingZerosCount;
-			if(stringPrefix != null) {
-				count += stringPrefix.length();
-			}
-			return count;
+			return getLowerStringLength(radix) + leadingZerosCount + prefLen;
 		} else {
-			if(stringPrefix != null) {
+			if(prefLen > 0) {
 				appendable.append(stringPrefix);
 			}
 			if(leadingZerosCount > 0) {
@@ -986,12 +896,13 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 			boolean uppercase,
 			boolean maskUpper,
 			StringBuilder appendable) {
-		boolean hasStringPrefix = stringPrefix != null;
+		int prefLen = stringPrefix.length();
+		boolean hasStringPrefix = prefLen > 0;
 		if(appendable == null) {
 			int count = lowerLeadingZerosCount + upperLeadingZerosCount + 
 					getLowerStringLength(radix) + getUpperStringLength(radix) + rangeSeparator.length();
 			if(hasStringPrefix) {
-				count += stringPrefix.length() << 1;
+				count += prefLen << 1;
 			}
 			return count;
 		} else {

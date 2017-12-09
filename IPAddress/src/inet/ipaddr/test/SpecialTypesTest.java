@@ -19,20 +19,23 @@
 package inet.ipaddr.test;
 
 import java.math.BigInteger;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import inet.ipaddr.AddressStringParameters.RangeParameters;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
-import inet.ipaddr.format.AddressLargeDivision;
+import inet.ipaddr.format.IPAddressLargeDivision;
 import inet.ipaddr.mac.MACAddress;
 
 
@@ -187,70 +190,20 @@ public class SpecialTypesTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testEmptyLoopbackValues(IPVersion version) {
-		HostName hostEmpty = createHost("", HOST_OPTIONS);
-		IPAddressString addressEmptyStr = createAddress("", ADDRESS_OPTIONS);
-		IPAddress addressEmptyValue = addressEmptyStr.getAddress(version);
-		try {
-			InetAddress addr = InetAddress.getByName("");
-			IPAddress addressFromInet = IPAddress.from(addr.getAddress());
-			boolean versionMatchesLoopback = addressFromInet.getIPVersion().equals(version);
-		
-			IPAddress address = IPAddress.getLoopback(version);
-			String address2Str = version.isIPv4() ? "127.0.0.1" : "::1";
-			IPAddress address2 = createAddress(address2Str).getAddress();
-			if(addressEmptyValue == null || !addressEmptyValue.equals(address)) {
-				addFailure(new Failure("no space match " + address, addressEmptyValue));
-			} else if(!addressEmptyValue.equals(address2)) {
-				addFailure(new Failure("no space match " + address2, addressEmptyValue));
-			} else if(addressEmptyValue.compareTo(address) != 0) {
-				addFailure(new Failure("no space match " + address, addressEmptyValue));
-			} else if(addressEmptyValue.compareTo(address2) != 0) {
-				addFailure(new Failure("no space match " + address2, addressEmptyValue));
-			} else if(!addressEmptyValue.getCount().equals(BigInteger.ONE)) {
-				addFailure(new Failure("no space match " + address2, addressEmptyValue));
-			} else {
-				IPAddressString addressEmpty = hostEmpty.asAddressString();
-				if(addressEmpty != null) {
-					addFailure(new Failure("host treated as address " + address, addressEmpty));
-				} else {
-					addressEmpty = createHost("", EMPTY_ADDRESS_OPTIONS).asAddressString();//emptyAddressOptions treats empty hosts as an address
-					if((addressEmpty != null && addressEmpty.getAddress().equals(address)) ? !versionMatchesLoopback : versionMatchesLoopback) {
-						addFailure(new Failure("no space match " + address, addressEmpty));
-					} else if((addressEmpty != null && addressEmpty.getAddress().equals(address2)) ? !versionMatchesLoopback : versionMatchesLoopback) {
-						addFailure(new Failure("no space match " + address2, addressEmpty));
-					} else if(addressEmpty == null || addressEmpty.getAddress() == null) {
-						addFailure(new Failure("no default loopback" + address, addressEmpty));
-					} else {
-						addressEmptyValue = createHost("", EMPTY_ADDRESS_OPTIONS).asAddress(version);//emptyAddressOptions treats empty hosts as an address
-						if(addressEmptyValue == null || !addressEmptyValue.equals(address)) {
-							addFailure(new Failure("no space match " + address, addressEmptyValue));
-						} else if(!addressEmptyValue.equals(address2)) {
-							addFailure(new Failure("no space match " + address2, addressEmptyValue));
-						} else if(addressEmptyValue.compareTo(address) != 0) {
-							addFailure(new Failure("no space match " + address, addressEmptyValue));
-						} else if(addressEmptyValue.compareTo(address2) != 0) {
-							addFailure(new Failure("no space match " + address2, addressEmptyValue));
-						} else if(!addressEmptyValue.getCount().equals(BigInteger.ONE)) {
-							addFailure(new Failure("no space match " + address2, addressEmptyValue));
-						}
-					}
-				}
-			}
-		} catch(UnknownHostException e) {
-			addFailure(new Failure("unexpected unknown host", addressEmptyValue));
-		}	
-		incrementTestCount();
-	}
-	
 	void testEmptyValues() {
 		HostName hostEmpty = createHost("", HOST_OPTIONS);
 		IPAddressString addressEmpty = createAddress("", ADDRESS_OPTIONS);
 		try {
 			InetAddress addr = InetAddress.getByName("");
 			InetAddress addr2 = InetAddress.getByName(null);
-			IPAddress address = IPAddress.from(addr.getAddress());
-			IPAddress address2 = IPAddress.from(addr2.getAddress());
+			
+			IPAddressStringFormatParameters params = addr instanceof Inet6Address ? ADDRESS_OPTIONS.getIPv6Parameters() : ADDRESS_OPTIONS.getIPv4Parameters();
+			IPAddressNetwork<?, ?, ?, ?, ?> network = params.getNetwork();
+			IPAddress address = network.getAddressCreator().createAddress(addr.getAddress());
+			
+			IPAddressStringFormatParameters params2 = addr2 instanceof Inet6Address ? ADDRESS_OPTIONS.getIPv6Parameters() : ADDRESS_OPTIONS.getIPv4Parameters();
+			IPAddressNetwork<?, ?, ?, ?, ?> network2 = params2.getNetwork();
+			IPAddress address2 = network2.getAddressCreator().createAddress(addr2.getAddress());
 			
 			if(!addressEmpty.getAddress().equals(address)) {
 				addFailure(new Failure("no match " + addr, addressEmpty));
@@ -306,7 +259,7 @@ public class SpecialTypesTest extends TestBase {
 		try {
 			addressAll.getAddress();
 			addFailure(new Failure("unexpectedly valid", addressAll));
-		} catch(AddressTypeException e) {
+		} catch(IncompatibleAddressException e) {
 			// valid mask
 			addressAll = createAddress("*/fff0::", ADDRESS_OPTIONS);
 			try {
@@ -326,7 +279,7 @@ public class SpecialTypesTest extends TestBase {
 						//unambiguous similar addresses tested with testStrings()
 					}
 				}
-			} catch(AddressTypeException e2) {
+			} catch(IncompatibleAddressException e2) {
 				addFailure(new Failure("unexpectedly valid", addressAll));
 			}
 		}
@@ -395,7 +348,6 @@ public class SpecialTypesTest extends TestBase {
 				//With empty strings, if we wish to allow them, there are two options, 
 				//we can either treat them as host names and we defer to the validation options for host names, as done above,
 				//or we treat than as addresses and use the address options to control behaviour, as we do here.
-				
 				hostEmpty = createHost("", EMPTY_ADDRESS_OPTIONS);
 				if(!hostEmpty.isValid()) {
 					addFailure(new Failure("unexpectedly invalid", hostEmpty));
@@ -471,34 +423,210 @@ public class SpecialTypesTest extends TestBase {
 		String allSingleHex = "0x00000000-0xffffffff";
 		String allSingleOctal = "000000000000-037777777777";
 
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		
 		testIPv4Strings("*", true, "*.*.*.*", "*.*.*.*", "%.%.%.%", "000-255.000-255.000-255.000-255", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
 		testIPv4Strings("*.*", false, "*.*.*.*", "*.*.*.*", "%.%.%.%", "000-255.000-255.000-255.000-255", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
-		testIPv4Strings("*/16", true, "*.*.0.0/16", "*.*.*.*", "%.%.%.%", "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
-		testIPv4Strings("*/255.255.0.0", false, "*.*.0.0/16", "*.*.*.*", "%.%.%.%", "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
-		testIPv4Strings("*/255.255.0.0", true, "*.*.0.0/16", "*.*.*.*", "%.%.%.%", "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
-		testIPv4Strings("*.*/16", false, "*.*.0.0/16", "*.*.*.*", "%.%.%.%", "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
-		testIPv4Strings("*.*/16", true, "*.*.0.0/16", "*.*.*.*", "%.%.%.%", "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("*/16", true, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("*/255.255.0.0", false, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("*/255.255.0.0", true, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("*.*/16", false, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("*.*/16", true, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
 		testIPv4Strings("", false, "127.0.0.1", "127.0.0.1", "127.0.0.1", "127.000.000.001", "1.0.0.127.in-addr.arpa", "0x7f000001", "017700000001");
 		testIPv4Strings("", true, "127.0.0.1", "127.0.0.1", "127.0.0.1", "127.000.000.001", "1.0.0.127.in-addr.arpa", "0x7f000001", "017700000001");
 		
-		String base85All = "00000000000000000000" + AddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0";
-		String base8516 = base85All + "/16";
-		String base8564 = base85All + "/64";
+		String base85All = "00000000000000000000" + IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0";
+		String base85AllPrefixed = base85All + "/16";
+		String base85AllPrefixed64 = base85All + "/64";
+		String base8516 = "00000000000000000000" + IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "=q{+M|w0(OeO5^EGP660" + "/16";
+		String base8564 = "00000000000000000000" + IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "=r54lj&NUTUTif>jH#O0" + "/64";
 		String allSingleHexIPv6 = "0x00000000000000000000000000000000-0xffffffffffffffffffffffffffffffff";
 		String allSingleOctalIPv6 = "00000000000000000000000000000000000000000000-03777777777777777777777777777777777777777777";
 
 		testIPv6Strings("*", true, "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-*-*-*-*.ipv6-literal.net", base85All, allSingleHexIPv6, allSingleOctalIPv6);
 		testIPv6Strings("*:*", false, "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-*-*-*-*.ipv6-literal.net", base85All, allSingleHexIPv6, allSingleOctalIPv6);
 		testIPv6Strings("*:*", true, "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*:*:*:*:*:*:*.*.*.*", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-*-*-*-*.ipv6-literal.net", base85All, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*/16", true, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*:*/16", false, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*:*/16", true, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*/ffff::", false, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*/ffff::", true, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*/64", false, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*/64", true, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*:*/64", false, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
-		testIPv6Strings("*:*/64", true, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
+		if(isNoAutoSubnets) {
+			testIPv6Strings("*/16", true, 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/16", 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/16", 
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/16", 
+					base85AllPrefixed, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/16", false, 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/16", 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/16", 
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/16", 
+					base85AllPrefixed, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/16", true, 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/16", 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/16", 
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/16", 
+					base85AllPrefixed, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/64", false, 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/64", 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/64", 
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/64", 
+					base85AllPrefixed64, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/64", true, 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/64", 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/64", 
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/64", 
+					base85AllPrefixed64, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/64", false, 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/64", 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/64", 
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/64", 
+					base85AllPrefixed64, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/64", true, 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/64", 
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64",
+					"*:*:*:*:*:*:*:*/64", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/64", 
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*:*:*:*:*:*:*.*.*.*/64",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/64", 
+					base85AllPrefixed64, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/ffff::", false, "*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/16", 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/16", 
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/16", 
+					base85AllPrefixed, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/ffff::", true, "*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*:*", 
+					"%:%:%:%:%:%:%:%", 
+					"0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff/16", 
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16",
+					"*:*:*:*:*:*:*:*/16", 
+					"*:*:*:*:*:*:*:*", 
+					"*:*:*:*:*:*:*.*.*.*/16", 
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*:*:*:*:*:*:*.*.*.*/16",
+					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+					"*-*-*-*-*-*-*-*.ipv6-literal.net/16", 
+					base85AllPrefixed, allSingleHexIPv6, allSingleOctalIPv6);
+		} else {
+			testIPv6Strings("*/16", true, 
+				"*:0:0:0:0:0:0:0/16",
+				"*:*:*:*:*:*:*:*", 
+				"*:*:*:*:*:*:*:*", 
+				"%:%:%:%:%:%:%:%", 
+				"0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", 
+				"*::/16",
+				"*::/16",
+				"*::/16", 
+				"*:*:*:*:*:*:*:*", 
+				"*::0.0.0.0/16",
+				"*::0.0.0.0/16",
+				"*::/16",
+				"*::/16", 
+				"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", 
+				"*-0-0-0-0-0-0-0.ipv6-literal.net/16", 
+				base8516, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/16", false, 
+					"*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/16", true, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/64", false, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/64", true, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/64", false, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*:*/64", true, "*:*:*:*:0:0:0:0/64", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000:0000:0000:0000/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*::/64", "*:*:*:*:*:*:*:*", "*:*:*:*::0.0.0.0/64", "*:*:*:*::0.0.0.0/64", "*:*:*:*::/64", "*:*:*:*::/64", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-*-*-*-0-0-0-0.ipv6-literal.net/64", base8564, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/ffff::", false, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
+			testIPv6Strings("*/ffff::", true, "*:0:0:0:0:0:0:0/16", "*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", "%:%:%:%:%:%:%:%", "0000-ffff:0000:0000:0000:0000:0000:0000:0000/16", "*::/16", "*::/16", "*::/16", "*:*:*:*:*:*:*:*", "*::0.0.0.0/16", "*::0.0.0.0/16", "*::/16", "*::/16", "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.ip6.arpa", "*-0-0-0-0-0-0-0.ipv6-literal.net/16", base8516, allSingleHexIPv6, allSingleOctalIPv6);
+		}
+		
 		testIPv6Strings("", true, "0:0:0:0:0:0:0:1", "0:0:0:0:0:0:0:1", "::1", "0:0:0:0:0:0:0:1", "0000:0000:0000:0000:0000:0000:0000:0001", "::1", "::1", "::1", "::1", "::0.0.0.1", "::0.0.0.1", "::0.0.0.1", "::0.0.0.1", "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", "0-0-0-0-0-0-0-1.ipv6-literal.net", "00000000000000000001", "0x00000000000000000000000000000001", "00000000000000000000000000000000000000000001");
 
 		testInvalidValues();
@@ -506,9 +634,6 @@ public class SpecialTypesTest extends TestBase {
 		testValidity();
 		
 		testEmptyValues();
-		
-		testEmptyLoopbackValues(IPVersion.IPV4);
-		testEmptyLoopbackValues(IPVersion.IPV6);
 		
 		testAllValues();
 		testAllValues(IPVersion.IPV4, getCount(255, 4));

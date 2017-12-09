@@ -20,6 +20,7 @@ package inet.ipaddr.ipv6;
 
 import java.util.Objects;
 
+import inet.ipaddr.Address;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
@@ -33,7 +34,7 @@ import inet.ipaddr.ipv4.IPv4AddressStringParameters;
  */
 public class IPv6AddressStringParameters extends IPAddressStringFormatParameters implements Comparable<IPv6AddressStringParameters> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	public static final boolean DEFAULT_ALLOW_MIXED = true;
 	public static final boolean DEFAULT_ALLOW_ZONE = true;
@@ -54,15 +55,46 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 	public final boolean allowBase85;
 	
 	/**
+	 * The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
+	 */
+	private final IPv6AddressNetwork network;
+	
+	/**
 	 * if you allow mixed, this is the options used for the ipv4 section, 
 	 * in which really only the ipv4 options apply and the ipv6 options are ignored except for the zone allowed setting
 	 */
 	private IPAddressStringParameters embeddedIPv4Options;
 	
+	public IPv6AddressStringParameters(
+			boolean allowLeadingZeros,
+			boolean allowCIDRPrefixLeadingZeros,
+			boolean allowUnlmitedLeadingZeros,
+			boolean allowMixed,
+			IPAddressStringParameters mixedOptions,
+			boolean allowZone,
+			boolean allowBase85,
+			RangeParameters rangeOptions,
+			boolean allowWildcardedSeparator,
+			boolean allowPrefixesBeyondAddressSize,
+			IPv6AddressNetwork network) {
+		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
+		this.allowMixed = allowMixed;
+		this.allowZone = allowZone;
+		this.allowBase85 = allowBase85;
+		this.embeddedIPv4Options = mixedOptions;
+		this.network = network;
+	}
+	
+	public Builder toBuilder() {
+		return toBuilder(false);
+	}
+
 	public Builder toBuilder(boolean isMixed) {
 		Builder builder = new Builder();
 		builder.allowMixed = allowMixed;
 		builder.allowZone = allowZone;
+		builder.allowBase85 = allowBase85;
+		builder.network = network;
 		if(!isMixed) {
 			builder.embeddedIPv4OptionsBuilder = embeddedIPv4Options.toBuilder(true);
 		}
@@ -74,6 +106,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 		private boolean allowZone = DEFAULT_ALLOW_ZONE;
 		private boolean allowBase85 = DEFAULT_ALLOW_BASE85;
 		private IPAddressStringParameters.Builder embeddedIPv4OptionsBuilder;
+		private IPv6AddressNetwork network;
 		
 		//Note we need to have an ipv6 builder here to avoid using the default ipv6 options object which is also 
 		//static and which are reference this static field, so we must avoid the circular dependency
@@ -138,8 +171,18 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 						allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).allowIPv6(false);
 				embeddedIPv4OptionsBuilder.getIPv6AddressParametersBuilder().allowZone = allowZone;
 			}
-			setMixedParent(embeddedIPv4OptionsBuilder, this);
+			embeddedIPv4OptionsBuilder.getIPv4AddressParametersBuilder().setMixedParent(this);
 			return embeddedIPv4OptionsBuilder;
+		}
+		
+		/**
+		 * @see IPv6AddressStringParameters#network
+		 * @param network if null, the default network will be used
+		 * @return the builder
+		 */
+		public Builder setNetwork(IPv6AddressNetwork network) {
+			this.network = network;
+			return this;
 		}
 		
 		@Override
@@ -200,26 +243,17 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 					allowBase85,
 					rangeOptions,
 					allowWildcardedSeparator,
-					allowPrefixesBeyondAddressSize);
+					allowPrefixesBeyondAddressSize,
+					network);
 		}
 	}
-
-	public IPv6AddressStringParameters(
-			boolean allowLeadingZeros,
-			boolean allowCIDRPrefixLeadingZeros,
-			boolean allowUnlmitedLeadingZeros,
-			boolean allowMixed,
-			IPAddressStringParameters mixedOptions,
-			boolean allowZone,
-			boolean allowBase85,
-			RangeParameters rangeOptions,
-			boolean allowWildcardedSeparator,
-			boolean allowPrefixesBeyondAddressSize) {
-		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
-		this.allowMixed = allowMixed;
-		this.allowZone = allowZone;
-		this.allowBase85 = allowBase85;
-		this.embeddedIPv4Options = mixedOptions;
+	
+	@Override
+	public IPv6AddressNetwork getNetwork() {
+		if(network == null) {
+			return Address.defaultIpv6Network();
+		}
+		return network;
 	}
 
 	@Override

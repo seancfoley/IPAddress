@@ -49,13 +49,13 @@ public class HostRangeTest extends HostTest {
 		HostKey key = new HostKey(x, HOST_INET_ATON_WILDCARD_AND_RANGE_OPTIONS);
 		return createHost(key);
 	}
-	
+
 	@Override
 	protected HostName createHost(String x) {
 		HostKey key = new HostKey(x, HOST_WILDCARD_OPTIONS);
 		return createHost(key);
 	}
-	
+
 	@Override
 	void testMatches(boolean matches, String host1, String host2) {
 		testMatches(matches, host1, host2, HOST_WILDCARD_OPTIONS);
@@ -152,7 +152,8 @@ public class HostRangeTest extends HostTest {
 		testResolved("[2001:0000:*:0000:0000:C1C0:ABCD:0876]", "2001:0:*::C1C0:abcd:876");
 		testResolved("2001:0000:*:0000:0000:C1C0:ABCD:0876", "2001:0:*::C1C0:abcd:876");
 		testResolved("1.2.*.04", "1.2.*.4");
-		testResolved("1.*.3", "1.*.*.3");
+		testResolved("1.*.0-255.3", "1.*.*.3");
+		testResolved("1.*.3", "1.*.0.3");
 		testResolved("[1.2.*.4]", "1.2.*.4");
 		
 		testResolved("espn.*.com", null);//no wildcards for hosts, just addresses
@@ -189,10 +190,25 @@ public class HostRangeTest extends HostTest {
 		testAddress("1::2", 8, "[1:0:0:0:0:0:0:2]", "1:0:0:0:0:0:0:2");
 		testAddress("1.2.3.4", 4, "1.2.3.4", "1.2.3.4");
 		
-		testMatches(true, "1.2.3.4/255.0.0.0", "1.*.*.*");
-		testMatches(true, "1.2.3.4/255.0.0.0", "1.*.___.*");
-		testMatches(false, "1.2.3.4/255.0.0.0", "1.0-255.*.*");
-		testMatches(true, "1.2.3.4/255.0.0.0", "1.0-255.*.*", HOST_WILDCARD_AND_RANGE_OPTIONS);
+		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		
+		testMatches(!isNoAutoSubnets, "1.*.*.*/255.0.0.0", "1.0.0.0/255.0.0.0");
+		testMatches(true, "1.0.0.0/8", "1.0.0.0/255.0.0.0");
+
+		if(allPrefixesAreSubnets) {
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.*.*.*");
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.*.___.*");
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.0-255.*.*", HOST_WILDCARD_AND_RANGE_OPTIONS);
+		} else {
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.2.3.4");
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.2.3.4");
+			testMatches(true, "1.2.3.4/255.0.0.0", "1.2.3.4");
+		}
+		testMatches(true, "1.0.0.0/255.0.0.0", isNoAutoSubnets ? "1.0.0.0" : "1.*.*.*");
+		testMatches(true, "1.0.0.0/255.0.0.0", isNoAutoSubnets ? "1.0.0.0" : "1.*.___.*");
+		testMatches(false, "1.0.0.0/255.0.0.0", "1.0-255.*.*");//failing due to the options
+		testMatches(true, "1.0.0.0/255.0.0.0", isNoAutoSubnets ? "1.0.0.0" : "1.0-255.*.*", HOST_WILDCARD_AND_RANGE_OPTIONS);
 		
 		testMatches(true, "1-2.0-0.00-00.00-0", "1-2.0.0.0", HOST_WILDCARD_AND_RANGE_OPTIONS);
 		testMatches(true, "1-2:0-0:00-00:00-0:0-000:0000-0000:0000-00:0000-0", "1-2:0:0:0:0:0:0:0", HOST_WILDCARD_AND_RANGE_OPTIONS);

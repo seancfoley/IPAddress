@@ -191,9 +191,9 @@ public class AddressOrderTest extends TestBase {
 		OrderingSupplier<IPAddressStringOrdering> nullIPAddressSupplier = (s, i) -> null;
 		OrderingSupplier<MACAddressStringOrdering> nullMACAddressSupplier = (s, i) -> null;
 		
-		ValueComparator lowValComparator = new ValueComparator(false);
+		testDefaultOrder(new ArrayList<IPAddressStringOrdering>(), IPAddressStringOrdering::new, nullIPAddressSupplier);//cannot remember if there is a reason why we do this one twice
 		
-		testDefaultOrder(new ArrayList<IPAddressStringOrdering>(), IPAddressStringOrdering::new, nullIPAddressSupplier);
+		ValueComparator lowValComparator = new ValueComparator(false);
 		
 		testLowValueOrder(new ArrayList<IPAddressStringOrdering>(), new IPAddressOrderingComparator(lowValComparator), IPAddressStringOrdering::new, nullIPAddressSupplier);
 		testLowValueOrder(new ArrayList<MACAddressStringOrdering>(), new MACOrderingComparator(lowValComparator), nullMACAddressSupplier, MACAddressStringOrdering::new);
@@ -317,9 +317,6 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(macAddressSupplier.supply("ff:ff:ff:ff:ff:ff:ff:ff", orderNumber));
 		orderNumber++;
 		
-		
-		
-		
 		//empty
 		ordering.add(ipAddressSupplier.supply("", orderNumber));
 		ordering.add(ipAddressSupplier.supply("  ", orderNumber));
@@ -329,8 +326,19 @@ public class AddressOrderTest extends TestBase {
 				
 		//a bunch of address and prefixes
 		
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		
 		ordering.add(ipAddressSupplier.supply("1.0.0.0", orderNumber));
 		orderNumber++;
+		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.002.0.0/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("001.002.000.000/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1.2.000.0/15", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1.002.0.*/17", orderNumber));
+			orderNumber++;
+		}
 		
 		ordering.add(ipAddressSupplier.supply("1.002.3.4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1.2.003.4", orderNumber));
@@ -338,20 +346,22 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("001.002.003.004", orderNumber));
 		orderNumber++;
 		
-		
 		ordering.add(ipAddressSupplier.supply("1.002.3.*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1.002.3.*/31", orderNumber));
 		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/17", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.002.0.*/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1.002.0.0/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("001.002.000.000/16", orderNumber));
+		}
+		ordering.add(ipAddressSupplier.supply("1.002.*.*/16", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1.002.3.4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("001.002.003.004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1.2.003.4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.2.3.4/15", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.2.000.0/15", orderNumber));
+		}
+		ordering.add(ipAddressSupplier.supply("1.2-3.*.*/15", orderNumber));
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("255.254.255.254", orderNumber));
@@ -374,9 +384,21 @@ public class AddressOrderTest extends TestBase {
 		
 		//ipv6
 		
-		
 		ordering.add(ipAddressSupplier.supply("1::", orderNumber));
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::/17", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1::/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("0001:0000::0000:0000:0000/16", orderNumber));
+		}
 		orderNumber++;
+		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::*/31", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1::*/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1::2:2:*/111", orderNumber));
+			orderNumber++;
+		}
 		
 		ordering.add(ipAddressSupplier.supply("1::2:3:4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1::2:003:4", orderNumber));
@@ -384,8 +406,10 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("0001:0000::0002:0003:0004", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/111", orderNumber));
-		orderNumber++;
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::2:2:*/111", orderNumber));
+			orderNumber++;
+		}
 		
 		ordering.add(ipAddressSupplier.supply("1::2:3:*/127", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1::2:3:*", orderNumber));
@@ -394,26 +418,40 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("1::2:1-3:4:*", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/31", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::*/31", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1::/17", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1::*/17", orderNumber));
+		}
+		ordering.add(ipAddressSupplier.supply("1:0:*/17", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:7:8/17", orderNumber));
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1:8000::/17", orderNumber));
+			orderNumber++;
+		} else {
+			ordering.add(ipAddressSupplier.supply("1::/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("0001:0000::0000:0000:0000/16", orderNumber));
+		}
+		
+		ordering.add(ipAddressSupplier.supply("1:*/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1:*/16", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:3:4/15", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1:8000::/17", orderNumber));
+			orderNumber++;
+		}
+		
+		ordering.add(ipAddressSupplier.supply("2::/15", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("2:*/15", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1:f000::2/17", orderNumber));
-		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("a1:f000::2/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("a1:8000::/17", orderNumber));
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("ffff::fffe:ffff:fffe", orderNumber));
@@ -430,20 +468,32 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("ffff::ffff:ffff:ffff", orderNumber));
 		orderNumber++;
 		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("*::*:*:*:*:*/16", orderNumber));
+			orderNumber++;
+		}
 		ordering.add(ipAddressSupplier.supply("*:*:a:*:*:*:*:*", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("*:*:a:*:*:*:*:*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("*:*", orderNumber));
-		ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
-		orderNumber++;
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("*::*:*:*:*:*/16", orderNumber));
 		
+			ordering.add(ipAddressSupplier.supply("*:*", orderNumber));
+			ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
+			orderNumber++;
+		}
+
 		ordering.add(ipAddressSupplier.supply("/33", orderNumber));//interpreted as ipv6
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("/64", orderNumber));//interpreted as ipv6
 		orderNumber++;
 		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("*:*", orderNumber));
+			ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
+			orderNumber++;
+		}
 		ordering.add(ipAddressSupplier.supply("/128", orderNumber));//interpreted as ipv6
 		orderNumber++;
 
@@ -552,24 +602,17 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(macAddressSupplier.supply("ff:0:0:ff:ff:ff", orderNumber));
 		orderNumber++;
 		
-		
-		
-		
 		ordering.add(macAddressSupplier.supply("ff:ff:ff:ff:ff:ff", orderNumber));
 		orderNumber++;
-		
-		
-		
+
 		ordering.add(macAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
 		orderNumber++;
-		
 		
 		ordering.add(macAddressSupplier.supply("0:0:0:0:0:0:0:1", orderNumber));
 		orderNumber++;
 		
 		ordering.add(macAddressSupplier.supply("1:0:0:0:0:0:0:0", orderNumber));
 		orderNumber++;
-		
 		
 		ordering.add(macAddressSupplier.supply("ff:ff:ff:ff:ff:ff:ff:ff", orderNumber));
 		orderNumber++;
@@ -580,6 +623,11 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("     ", orderNumber));
 		ordering.add(ipAddressSupplier.supply("", orderNumber));
 		orderNumber++;
+		
+		
+		
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+
 		
 		//a bunch of address and prefixes
 		
@@ -593,16 +641,22 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("1.0.0.0", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1.000.0.*/17", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1.002.3.4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("001.002.003.004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1.2.003.4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.2.3.4/15", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1.002.0.0/16", orderNumber));
+		ordering.add(ipAddressSupplier.supply("001.002.000.000/16", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.002.*.*/16", orderNumber));
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1.2.000.0/15", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1.002.*.*/16", orderNumber));
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1.2-3.*.*/15", orderNumber));
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("1.002.3.*", orderNumber));
@@ -626,15 +680,15 @@ public class AddressOrderTest extends TestBase {
 		
 		//ipv6
 		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:3:4/15", orderNumber));
-		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("*::*:*:*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("*::*:%*:*", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("*:*:a:*:*:*:*:*/16", orderNumber));
+		ordering.add(ipAddressSupplier.supply("*::*:*:*:*:*/16", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
 		ordering.add(ipAddressSupplier.supply("*:*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
 		orderNumber++;
@@ -643,22 +697,38 @@ public class AddressOrderTest extends TestBase {
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("1::", orderNumber));
+		if(!isNoAutoSubnets) {
+			orderNumber++;
+		}
+		
+		ordering.add(ipAddressSupplier.supply("1::/31", orderNumber));
+		if(!isNoAutoSubnets) {
+			orderNumber++;
+		}
+		
+		ordering.add(ipAddressSupplier.supply("1::/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1:0::/17", orderNumber));
+		if(!isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1::/16", orderNumber));
+		ordering.add(ipAddressSupplier.supply("0001:0000::0000:0000:0000/16", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1:0::*/16", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1:0:*/16", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("1:*/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1:*/16", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:7:8/17", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/111", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1::2:2:*/111", orderNumber));
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("1::2:3:*/127", orderNumber));
@@ -674,9 +744,25 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("1::2:1-3:4:*", orderNumber));
 		orderNumber++;
 
-		ordering.add(ipAddressSupplier.supply("1:f000::2/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1:8000::/17", orderNumber));
 		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("a1:f000::2/17", orderNumber));
+		
+		ordering.add(ipAddressSupplier.supply("2::/15", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("2::0:*/15", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("2:0:*/15", orderNumber));
+		if(isNoAutoSubnets) {
+			orderNumber++;
+		}
+		ordering.add(ipAddressSupplier.supply("2:*/15", orderNumber));
+		orderNumber++;
+		
+		ordering.add(ipAddressSupplier.supply("a1:8000::/17", orderNumber));
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("ffff::fffe:ffff:fffe", orderNumber));
@@ -789,7 +875,11 @@ public class AddressOrderTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	/**
+	 * The default order goes by count first, and then the count of the more significant segment followed the lower value magnitude in the same segment.
+	 */
 	<T extends Ordering<T, ?>> void testDefaultOrder(ArrayList<T> ordering, OrderingSupplier<T> ipAddressSupplier, OrderingSupplier<T> macAddressSupplier) {
+		
 		//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
 		int orderNumber = 0;
 
@@ -839,8 +929,6 @@ public class AddressOrderTest extends TestBase {
 		
 		ordering.add(macAddressSupplier.supply("ff:ff:ff:ff:ff:ff", orderNumber));
 		orderNumber++;
-		
-		
 		
 		
 		ordering.add(macAddressSupplier.supply("1:0:0:2:3:*", orderNumber));
@@ -901,7 +989,7 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(macAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
 		orderNumber++;
 		
-				
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
 
 		//empty
 		ordering.add(ipAddressSupplier.supply("", orderNumber));
@@ -914,6 +1002,15 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("1.0.0.0", orderNumber));
 		orderNumber++;
 		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.002.0.0/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("001.002.000.000/16", orderNumber));
+
+			ordering.add(ipAddressSupplier.supply("1.2.000.0/15", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1.2.0.0/15", orderNumber));
+			orderNumber++;
+		}
+	
 		ordering.add(ipAddressSupplier.supply("1.002.3.4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1.2.003.4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1.2.3.4", orderNumber));
@@ -932,16 +1029,19 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("1.002.3.*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1.002.3.*/31", orderNumber));
 		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/17", orderNumber));
-		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1.002.3.4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.002.3.*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("001.002.003.004/16", orderNumber));
-		orderNumber++;
+		ordering.add(ipAddressSupplier.supply("1.002.*.*/17", orderNumber));
+		ordering.add(ipAddressSupplier.supply("1.002.*.*/16", orderNumber));
 		
-		ordering.add(ipAddressSupplier.supply("1.2.003.4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1.2.3.4/15", orderNumber));
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1.002.0.0/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("001.002.000.000/16", orderNumber));
+		
+			orderNumber++;
+		
+			ordering.add(ipAddressSupplier.supply("1.2.000.0/15", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1.2.0.0/15", orderNumber));
+		}
 		orderNumber++;
 		
 		ordering.add(ipAddressSupplier.supply("*.*.1-3.*", orderNumber));
@@ -954,13 +1054,29 @@ public class AddressOrderTest extends TestBase {
 		//xx ipv6 x;
 		
 		ordering.add(ipAddressSupplier.supply("1::", orderNumber));
-		orderNumber++;
 		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::/17", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1::/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("0001::/16", orderNumber));
+		}
+		orderNumber++;
+			
 		ordering.add(ipAddressSupplier.supply("1::2:3:4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1::2:003:4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1::2:3:4", orderNumber));
 		ordering.add(ipAddressSupplier.supply("0001:0000::0002:0003:0004", orderNumber));
 		orderNumber++;
+		
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1:8000::/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("2::/15", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("a1:8000::/17", orderNumber));
+			orderNumber++;
+		}
+		
 		ordering.add(ipAddressSupplier.supply("ffff::fffe:ffff:fffe", orderNumber));
 		orderNumber++;
 		ordering.add(ipAddressSupplier.supply("ffff::fffe:ffff:ffff", orderNumber));
@@ -970,55 +1086,67 @@ public class AddressOrderTest extends TestBase {
 		ordering.add(ipAddressSupplier.supply("ffff::ffff:ffff:ffff", orderNumber));
 		orderNumber++;
 
+		if(isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("/33", orderNumber));//interpreted as ipv6
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("/64", orderNumber));//interpreted as ipv6
+			orderNumber++;
+		}
+
 		ordering.add(ipAddressSupplier.supply("/128", orderNumber));//interpreted as ipv6
 		orderNumber++;
 
 		ordering.add(ipAddressSupplier.supply("1::2:3:*/127", orderNumber));
 		ordering.add(ipAddressSupplier.supply("1::2:3:*", orderNumber));
-		orderNumber++;
 		ordering.add(ipAddressSupplier.supply("1::2:3:*/111", orderNumber));
 		orderNumber++;
 		ordering.add(ipAddressSupplier.supply("1::2:1-3:4:*", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("/64", orderNumber));//interpreted as ipv6
-		orderNumber++;
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("/64", orderNumber));//interpreted as ipv6
+			orderNumber++;
+		}
 		
 		ordering.add(ipAddressSupplier.supply("*::*:*:*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("*::*:%*:*", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("/33", orderNumber));//interpreted as ipv6
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("/33", orderNumber));//interpreted as ipv6
+			orderNumber++;
+		}
+		
+		ordering.add(ipAddressSupplier.supply("1:0:*/31", orderNumber));
 		orderNumber++;
 		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/31", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("1::2:3:*/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/17", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:7:8/17", orderNumber));
-		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("1:f000::2/17", orderNumber));
-		orderNumber++;
-		ordering.add(ipAddressSupplier.supply("a1:f000::2/17", orderNumber));
-		orderNumber++;
-		
-		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:003:*/16", orderNumber));
-		ordering.add(ipAddressSupplier.supply("0001:0000::0002:0003:0004/16", orderNumber));
-		orderNumber++;
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("1::/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1:8000::/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("a1:8000::/17", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1::/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("0001::/16", orderNumber));
+			ordering.add(ipAddressSupplier.supply("1:*/16", orderNumber));
+			orderNumber++;
+		} else {
+			ordering.add(ipAddressSupplier.supply("*::*:*:*:*:*/16", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("1:*/16", orderNumber));
+			orderNumber++;
+		}
 		
 		ordering.add(ipAddressSupplier.supply("*:*:a:*:*:*:*:*", orderNumber));
 		orderNumber++;
-		
-		
-		
-		ordering.add(ipAddressSupplier.supply("1::2:003:4/15", orderNumber));
-		ordering.add(ipAddressSupplier.supply("1::2:3:4/15", orderNumber));
-		orderNumber++;
-		
-		ordering.add(ipAddressSupplier.supply("*:*:a:*:*:*:*:*/16", orderNumber));
+
+		if(!isNoAutoSubnets) {
+			ordering.add(ipAddressSupplier.supply("2::/15", orderNumber));
+			orderNumber++;
+			ordering.add(ipAddressSupplier.supply("*::*:*:*:*:*/16", orderNumber));
+		}
+		ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*/16", orderNumber));
 		ordering.add(ipAddressSupplier.supply("*:*", orderNumber));
 		ordering.add(ipAddressSupplier.supply("*:*:*:*:*:*:*:*", orderNumber));
 		orderNumber++;
@@ -1043,5 +1171,4 @@ public class AddressOrderTest extends TestBase {
 	void runTest() {
 		testOrder();
 	}
-	
 }

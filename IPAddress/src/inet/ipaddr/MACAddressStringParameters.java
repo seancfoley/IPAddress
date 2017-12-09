@@ -18,6 +18,8 @@
 
 package inet.ipaddr;
 
+import inet.ipaddr.mac.MACAddressNetwork;
+
 /**
  * This class allows you to control the validation performed by the class {@link IPAddressString}.
  * 
@@ -30,7 +32,7 @@ package inet.ipaddr;
  */
 public class MACAddressStringParameters extends AddressStringParameters implements Comparable<MACAddressStringParameters> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	//The defaults are permissive
 	public static final boolean DEFAULT_ALLOW_DASHED = true;
@@ -75,8 +77,33 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 	 * Allows addresses like aa bb cc dd ee ff
 	 */
 	public final boolean allowSpaceDelimited;
+	
+	private final MACAddressNetwork network;
 
 	private MACAddressStringFormatParameters formatOpts;
+	
+	public MACAddressStringParameters(
+			boolean allowEmpty,
+			boolean allowAll,
+			AddressSize allAddresses,
+			boolean allowSingleSegment,
+			boolean allowDashed,
+			boolean allowSingleDashed,
+			boolean allowColonDelimited,
+			boolean allowDotted,
+			boolean allowSpaceDelimited,
+			MACAddressStringFormatParameters formatOpts,
+			MACAddressNetwork network) {
+		super(allowEmpty, allowAll, allowSingleSegment);
+		this.allowDashed = allowDashed;
+		this.allowSingleDashed = allowSingleDashed;
+		this.allowColonDelimited = allowColonDelimited;
+		this.allowDotted = allowDotted;
+		this.allowSpaceDelimited = allowSpaceDelimited;
+		this.formatOpts = formatOpts;
+		this.addressSize = allAddresses;
+		this.network = network;
+	}
 	
 	public static class Builder extends AddressStringParameters.BuilderBase {
 		private boolean allowDashed = DEFAULT_ALLOW_DASHED;
@@ -85,6 +112,7 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 		private boolean allowDotted = DEFAULT_ALLOW_DOTTED;
 		private boolean allowSpaceDelimited = DEFAULT_ALLOW_SPACE_DELIMITED;
 		private AddressSize allAddresses;
+		private MACAddressNetwork network;
 
 		MACAddressStringFormatParameters.Builder formatBuilder;
 		static private MACAddressStringFormatParameters DEFAULT_FORMAT_OPTS = new MACAddressStringFormatParameters.Builder().toParams();
@@ -135,7 +163,22 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 			allAddresses = all;
 			return this;
 		}
+		
+		/**
+		 * @see MACAddressStringParameters#network
+		 * @param network if null, the default network will be used
+		 * @return the builder
+		 */
+		public Builder setNetwork(MACAddressNetwork network) {
+			this.network = network;
+			return this;
+		}
 
+		public Builder allowWildcardedSeparator(boolean allow) {
+			getFormatBuilder().allowWildcardedSeparator(allow);
+			return this;
+		}
+		
 		public Builder setRangeOptions(RangeParameters rangeOptions) {
 			getFormatBuilder().setRangeOptions(rangeOptions);
 			return this;
@@ -160,13 +203,14 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 				formatOpts = formatBuilder.toParams();
 			}
 			return new MACAddressStringParameters(
-					allowEmpty, allowAll, allAddresses, allowSingleSegment, allowDashed, allowSingleDashed, allowColonDelimited, allowDotted, allowSpaceDelimited, formatOpts);
+					allowEmpty, allowAll, allAddresses, allowSingleSegment, allowDashed, allowSingleDashed, allowColonDelimited, allowDotted, allowSpaceDelimited, 
+					formatOpts, network);
 		}
 	}
 
 	public static class MACAddressStringFormatParameters extends AddressStringFormatParameters implements Comparable<MACAddressStringFormatParameters> {
 
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		public static final boolean DEFAULT_ALLOW_SHORT_SEGMENTS = true;
 		
@@ -277,34 +321,21 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 		builder.allowSpaceDelimited = allowSpaceDelimited;
 		builder.formatBuilder = formatOpts.toBuilder();
 		builder.allAddresses = addressSize;
+		builder.network = network;
 		return builder;
 	}
 
-	public MACAddressStringParameters(
-			boolean allowEmpty,
-			boolean allowAll,
-			AddressSize allAddresses,
-			boolean allowSingleSegment,
-			boolean allowDashed,
-			boolean allowSingleDashed,
-			boolean allowColonDelimited,
-			boolean allowDotted,
-			boolean allowSpaceDelimited,
-			MACAddressStringFormatParameters formatOpts) {
-		super(allowEmpty, allowAll, allowSingleSegment);
-		this.allowDashed = allowDashed;
-		this.allowSingleDashed = allowSingleDashed;
-		this.allowColonDelimited = allowColonDelimited;
-		this.allowDotted = allowDotted;
-		this.allowSpaceDelimited = allowSpaceDelimited;
-		this.formatOpts = formatOpts;
-		this.addressSize = allAddresses;
+	public MACAddressNetwork getNetwork() {
+		if(network == null) {
+			return Address.defaultMACNetwork();
+		}
+		return network;
 	}
-	
+
 	public MACAddressStringFormatParameters getFormatParameters() {
 		return formatOpts;
 	}
-	
+
 	@Override
 	public MACAddressStringParameters clone() {
 		MACAddressStringParameters result = (MACAddressStringParameters) super.clone();
@@ -391,4 +422,3 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 		return hash;
 	}
 }
-

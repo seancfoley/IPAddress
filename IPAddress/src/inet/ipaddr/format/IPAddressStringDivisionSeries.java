@@ -18,6 +18,9 @@
 
 package inet.ipaddr.format;
 
+import inet.ipaddr.AddressNetwork;
+import inet.ipaddr.IPAddressNetwork;
+
 /**
  * A generic part of an IP address for the purpose of producing a string for the address.
  * It is divided into a series of combinations of individual address divisions ({@link AddressDivision}).
@@ -27,8 +30,26 @@ package inet.ipaddr.format;
  *
  */
 public interface IPAddressStringDivisionSeries extends AddressStringDivisionSeries {
+	
+	IPAddressNetwork<?, ?, ?, ?, ?> getNetwork();
+	
+	@Override
+	IPAddressStringDivision getDivision(int index);
+	
 	/**
-	 * Whether these exists a prefix.
+	 * Returns whether this address section represents a subnet block of addresses corresponding to the prefix of this series.
+	 * 
+	 * Returns false if it has no prefix length, if it is a single address with a prefix length (ie not a subnet), or if it is a range of addresses that does not include
+	 * the entire subnet block for its prefix length.
+	 * 
+	 * If {@link AddressNetwork#getPrefixConfiguration} is set to consider all prefixes as subnets, this returns true for any section with a non-null prefix length.
+	 * 
+	 * @return
+	 */
+	boolean isPrefixBlock();
+	
+	/**
+	 * Whether there exists a prefix length
 	 */
 	boolean isPrefixed();
 

@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr;
 
-public class AddressStringDivisionGrouping implements AddressStringDivisionSeries {
+import inet.ipaddr.format.AddressItem;
 
-	private static final long serialVersionUID = 4L;
+public class AddressConversionException extends RuntimeException {
 
-	protected final AddressStringDivision divisions[];
+	private static final long serialVersionUID = 1L;
 	
-	public AddressStringDivisionGrouping(AddressStringDivision divisions[]) {
-		this.divisions = divisions;
+	private static String errorMessage = getMessage("ipaddress.address.error");
+	
+	static String getMessage(String key) {
+		return AddressStringException.getMessage(key);
 	}
-
-	@Override
-	public AddressStringDivision getDivision(int index) {
-		return divisions[index];
+	
+	public AddressConversionException(AddressItem one, AddressItem two) {
+		super(one + ", " + two + ", " + errorMessage + " " + getMessage("ipaddress.error.version.mismatch"));
 	}
-
-	@Override
-	public int getDivisionCount() {
-		return divisions.length;
+	
+	public AddressConversionException(AddressItem one, AddressItem two, String key) {
+		super(one + ", " + two + ", " + errorMessage + " " + getMessage(key));
 	}
 }

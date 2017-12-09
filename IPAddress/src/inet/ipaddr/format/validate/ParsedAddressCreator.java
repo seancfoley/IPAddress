@@ -18,6 +18,8 @@
 
 package inet.ipaddr.format.validate;
 
+import java.io.Serializable;
+
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
@@ -33,8 +35,10 @@ import inet.ipaddr.HostIdentifierString;
  * @param <E>
  * @param <S>
  */
-public abstract class ParsedAddressCreator<T extends Address, R extends AddressSection, E extends AddressSection, S extends AddressSegment> {
+public abstract class ParsedAddressCreator<T extends Address, R extends AddressSection, E extends AddressSection, S extends AddressSegment> implements Serializable {
 	
+	private static final long serialVersionUID = 4L;
+
 	public abstract S[] createSegmentArray(int length);
 
 	public abstract S createSegment(int lower, int upper, Integer segmentPrefixLength);
@@ -51,19 +55,27 @@ public abstract class ParsedAddressCreator<T extends Address, R extends AddressS
 
 	protected abstract R createSectionInternal(S segments[]);
 	
+	protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix);
+	
 	protected R createSectionInternal(S segments[], E embeddedSection) {
 		return createSectionInternal(segments);
 	}
+	
+	protected R createSectionInternal(S segments[], E embeddedSection, Integer prefix) {
+		return createPrefixedSectionInternal(segments, prefix);
+	}
+	
+	protected abstract T createAddressInternal(byte bytes[], CharSequence zone);
 	
 	protected abstract T createAddressInternal(R section, HostIdentifierString from);
 	
 	protected abstract T createAddressInternal(R section, CharSequence zone, HostIdentifierString from);
 	
-	protected T createAddressInternal(S segments[], HostIdentifierString from) {
-		return createAddressInternal(createSectionInternal(segments), from);
+	protected T createAddressInternal(S segments[], HostIdentifierString from, Integer prefix) {
+		return createAddressInternal(createPrefixedSectionInternal(segments, prefix), from);
 	}
 	
-	protected T createAddressInternal(S segments[], CharSequence zone, HostIdentifierString from) {
-		return createAddressInternal(createSectionInternal(segments), zone, from);
+	protected T createAddressInternal(S segments[], CharSequence zone, HostIdentifierString from, Integer prefix) {
+		return createAddressInternal(createPrefixedSectionInternal(segments, prefix), zone, from);
 	}
 }

@@ -35,15 +35,20 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 
+import inet.ipaddr.Address;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.HostName;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressNetwork.HostNameCache;
-import inet.ipaddr.IPAddressNetwork.IPAddressStringCache;
+import inet.ipaddr.IPAddressNetwork.HostNameGenerator;
+import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddress;
+import inet.ipaddr.mac.MACAddressNetwork;
 import inet.ipaddr.test.MACAddressTest.MACAddressKey;
 import inet.ipaddr.test.MACAddressTest.MACAddressLongKey;
 import inet.ipaddr.test.MACAddressTest.MACAddressStringKey;
@@ -67,10 +72,7 @@ public class TestRunner extends TestBase implements AddressCreator {
 		}
 		testRunner.runTest();
 	}
-	
-	
-	
-	
+
 	private static interface Creator<K, V> {
 		V create(K k);
 	}
@@ -136,8 +138,8 @@ public class TestRunner extends TestBase implements AddressCreator {
 		}
 	};
 	
-	HostNameCache hostNameCache = new HostNameCache(new ConcurrentHashMap<String, HostName>(), TestBase.HOST_OPTIONS);
-	IPAddressStringCache ipAddressStringCache = new IPAddressStringCache(new ConcurrentHashMap<String, IPAddressString>(), TestBase.ADDRESS_OPTIONS);
+	HostNameGenerator hostNameCache = new HostNameGenerator(new ConcurrentHashMap<String, HostName>(), TestBase.HOST_OPTIONS, false);
+	IPAddressStringGenerator ipAddressStringCache = new IPAddressStringGenerator(new ConcurrentHashMap<String, IPAddressString>(), TestBase.ADDRESS_OPTIONS);
 	
 	@Override
 	public HostName createHost(HostKey key) {
@@ -204,7 +206,7 @@ public class TestRunner extends TestBase implements AddressCreator {
 	
 	private static class Cache implements Serializable {
 
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		ConcurrentHashMap<IPAddressStringKey, IPAddressString> cachingIPStringMap = new ConcurrentHashMap<IPAddressStringKey, IPAddressString>();
 		ConcurrentHashMap<IPAddressKey, IPAddress> cachingIPMap = new ConcurrentHashMap<IPAddressKey, IPAddress>();
@@ -297,7 +299,6 @@ public class TestRunner extends TestBase implements AddressCreator {
 		outputmine.close();
 		List<? extends byte[]> bytesmine = outmine.getBytes();
 		EfficientByteArrayInputStream inmine = new EfficientByteArrayInputStream(bytesmine);
-		//System.out.println("total is " + outmine.getCount());
 		try (ObjectInput inputmine = new ObjectInputStream(inmine)) {
 			return (Cache) inputmine.readObject();
 		}
@@ -437,7 +438,6 @@ public class TestRunner extends TestBase implements AddressCreator {
 	private Cache cache = new Cache();
 	private boolean CACHING; //set to true to share the same address and host objects among all tests
 
-	
 	boolean fullTest = true;//set this to false to exclude slow-running tests
 	boolean limited = false;//set this to true to exclude caching and threading tests
 	boolean performance = false;//set this to true to run performance tests
@@ -448,6 +448,34 @@ public class TestRunner extends TestBase implements AddressCreator {
 	
 	@Override
 	void runTest() {
+		PrefixConfiguration ordering[] = new PrefixConfiguration[] {
+			PrefixConfiguration.ALL_PREFIXED_ADDRESSES_ARE_SUBNETS,
+			PrefixConfiguration.PREFIXED_ZERO_HOSTS_ARE_SUBNETS,
+			PrefixConfiguration.EXPLICIT_SUBNETS,
+		};
+		int count = 0;
+		while(count < ordering.length) {
+			showMessage("");
+			PrefixConfiguration prefConf = ordering[count++];
+			TestBase.prefixConfiguration = prefConf;
+			IPv4AddressNetwork.setDefaultPrefixConfiguration(prefConf);
+			IPv6AddressNetwork.setDefaultPrefixConfiguration(prefConf);
+			MACAddressNetwork.setDefaultPrefixConfiguration(prefConf);
+			showMessage("testing with " + prefConf);
+			showMessage("count of 1.2.0.0/16 is " + new IPAddressString("1.2.0.0/16").getAddress().getCount());
+			showMessage("count of 1.2.3.4/16 is " + new IPAddressString("1.2.3.4/16").getAddress().getCount());
+			runBattery();
+			Address.defaultIpv4Network().clearCaches();
+			Address.defaultIpv6Network().clearCaches();
+			Address.defaultMACNetwork().clearCaches();
+		}
+	}
+	
+	void runBattery() {
+		CACHING = false;
+		failures = new Failures();
+		perf = new Perf();
+		
 		showMessage("Starting " + getClass().getSimpleName());
 		//long startTime = System.currentTimeMillis();
 		long startTime = System.nanoTime();
@@ -508,7 +536,7 @@ public class TestRunner extends TestBase implements AddressCreator {
 				if(!oldCache.equals(cache)) {
 					failures.numTested++;
 					failures.failures.add(new Failure("serialized cache mismatch"));
-					System.out.println(oldCache.equals(cache));
+					System.out.println("cache is same: " + oldCache.equals(cache));
 				}
 				failures.add(testAll());
 			} catch(IOException | ClassNotFoundException e) {
@@ -519,6 +547,8 @@ public class TestRunner extends TestBase implements AddressCreator {
 		}
 		report();
 		showMessage("Done in " + (System.nanoTime() - startTime)/1000000 + " milliseconds");
+		cache.clear();
+		
 	}
 
 	private void runPerf(long startTime) {

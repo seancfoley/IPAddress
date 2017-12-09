@@ -22,27 +22,33 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.function.IntUnaryOperator;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
+import inet.ipaddr.AddressPositionException;
 import inet.ipaddr.AddressSection;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.InconsistentPrefixException;
+import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.SizeMismatchException;
 import inet.ipaddr.format.AddressCreator;
-import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.AddressDivisionGrouping;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
-import inet.ipaddr.format.AddressLargeDivision;
 import inet.ipaddr.format.AddressStringDivision;
 import inet.ipaddr.format.IPAddressBitsDivision;
 import inet.ipaddr.format.IPAddressDivision;
 import inet.ipaddr.format.IPAddressDivisionGrouping;
+import inet.ipaddr.format.IPAddressLargeDivision;
+import inet.ipaddr.format.IPAddressStringDivision;
 import inet.ipaddr.format.IPAddressStringDivisionGrouping;
 import inet.ipaddr.format.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartConfiguredString;
@@ -53,6 +59,7 @@ import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.util.sql.SQLStringMatcher;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4Address.IPv4AddressConverter;
+import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions;
@@ -63,6 +70,7 @@ import inet.ipaddr.ipv6.IPv6AddressSection.CompressOptions.CompressionChoiceOpti
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCollection.IPv6StringBuilder;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCollection.IPv6v4MixedStringBuilder;
 import inet.ipaddr.mac.MACAddress;
+import inet.ipaddr.mac.MACAddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
@@ -74,17 +82,7 @@ import inet.ipaddr.mac.MACAddressSegment;
  */
 public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv6AddressSection> {
 
-	private static final long serialVersionUID = 3L;
-
-	private static IPv6AddressCreator creators[] = new IPv6AddressCreator[IPv6Address.SEGMENT_COUNT + 1];
-
-	public static final IPv6AddressSection LINK_LOCAL_PREFIX = 
-			getAddressCreator(0).createSection(new IPv6AddressSegment[] {
-					getIPv6SegmentCreator().createSegment(0xfe80),
-					IPv6AddressSegment.ZERO_SEGMENT,
-					IPv6AddressSegment.ZERO_SEGMENT,
-					IPv6AddressSegment.ZERO_SEGMENT
-			});
+	private static final long serialVersionUID = 4L;
 	
 	static class IPv6StringCache extends IPStringCache {
 		//a set of pre-defined string types
@@ -113,25 +111,25 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				compressHostPreferred = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.HOST_PREFERRED),
 				compressZeros = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS),
 				compressZerosNoSingles = new CompressOptions(false, CompressOptions.CompressionChoiceOptions.ZEROS);
-			mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressMixed).toParams();
-			fullParams = new IPv6StringOptions.Builder().setExpandedSegments(true).setWildcardOptions(new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR))).toParams();
-			canonicalParams = new IPv6StringOptions.Builder().setCompressOptions(compressAllNoSingles).toParams();
+			mixedParams = new IPv6StringOptions.Builder().setMakeMixed(true).setCompressOptions(compressMixed).toOptions();
+			fullParams = new IPv6StringOptions.Builder().setExpandedSegments(true).setWildcardOptions(new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR))).toOptions();
+			canonicalParams = new IPv6StringOptions.Builder().setCompressOptions(compressAllNoSingles).toOptions();
 			uncParams = new IPv6StringOptions.Builder().setSeparator(IPv6Address.UNC_SEGMENT_SEPARATOR).setZoneSeparator(IPv6Address.UNC_ZONE_SEPARATOR).
 					setAddressSuffix(IPv6Address.UNC_SUFFIX).
-					setWildcardOptions(new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPv6Address.UNC_RANGE_SEPARATOR_STR, IPAddress.SEGMENT_WILDCARD_STR, null))).toParams();
-			compressedParams = new IPv6StringOptions.Builder().setCompressOptions(compressAll).toParams();
-			normalizedParams = new IPv6StringOptions.Builder().toParams();
+					setWildcardOptions(new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPv6Address.UNC_RANGE_SEPARATOR_STR, IPAddress.SEGMENT_WILDCARD_STR, null))).toOptions();
+			compressedParams = new IPv6StringOptions.Builder().setCompressOptions(compressAll).toOptions();
+			normalizedParams = new IPv6StringOptions.Builder().toOptions();
 			WildcardOptions 
 				allWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL),
 				allSQLWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL, new Wildcards(IPAddress.SEGMENT_SQL_WILDCARD_STR, IPAddress.SEGMENT_SQL_SINGLE_WILDCARD_STR));
 
-			wildcardCanonicalParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).setCompressOptions(compressZerosNoSingles).toParams();
-			wildcardNormalizedParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).toParams(); //no compression
-			sqlWildcardParams = new IPv6StringOptions.Builder().setWildcardOptions(allSQLWildcards).toParams(); //no compression
-			wildcardCompressedParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).setCompressOptions(compressZeros).toParams();
-			networkPrefixLengthParams = new IPv6StringOptions.Builder().setCompressOptions(compressHostPreferred).toParams();
-			reverseDNSParams = new IPv6StringOptions.Builder().setReverse(true).setAddressSuffix(IPv6Address.REVERSE_DNS_SUFFIX).setSplitDigits(true).setExpandedSegments(true).setSeparator('.').toParams();
-			base85Params = new IPStringOptions.Builder(85).setExpandedSegments(true).setWildcards(new Wildcards(Address.ALTERNATIVE_RANGE_SEPARATOR_STR)).setZoneSeparator(IPv6Address.ALTERNATIVE_ZONE_SEPARATOR).toParams();
+			wildcardCanonicalParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).setCompressOptions(compressZerosNoSingles).toOptions();
+			wildcardNormalizedParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).toOptions(); //no compression
+			sqlWildcardParams = new IPv6StringOptions.Builder().setWildcardOptions(allSQLWildcards).toOptions(); //no compression
+			wildcardCompressedParams = new IPv6StringOptions.Builder().setWildcardOptions(allWildcards).setCompressOptions(compressZeros).toOptions();
+			networkPrefixLengthParams = new IPv6StringOptions.Builder().setCompressOptions(compressHostPreferred).toOptions();
+			reverseDNSParams = new IPv6StringOptions.Builder().setReverse(true).setAddressSuffix(IPv6Address.REVERSE_DNS_SUFFIX).setSplitDigits(true).setExpandedSegments(true).setSeparator('.').toOptions();
+			base85Params = new IPStringOptions.Builder(85).setExpandedSegments(true).setWildcards(new Wildcards(Address.ALTERNATIVE_RANGE_SEPARATOR_STR)).setZoneSeparator(IPv6Address.ALTERNATIVE_ZONE_SEPARATOR).toOptions();
 		}
 		
 		public String normalizedString;
@@ -158,7 +156,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	/*
 	 * Indicates the index of the first segment where this section would be located in a full IPv6 address.  0 for network sections or full addresses
 	 */
-	public final int startIndex;
+	public final int addressSegmentIndex;
 
 	/* also for caching: index of segments that are zero, and the number of consecutive zeros for each. */
 	private transient RangeList zeroSegments;
@@ -180,14 +178,14 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * 
 	 * @param segment
 	 */
-	public IPv6AddressSection(IPv6AddressSegment segment, int startIndex) {
+	public IPv6AddressSection(IPv6AddressSegment segment, int startIndex) throws IllegalArgumentException {
 		this(new IPv6AddressSegment[] {segment}, startIndex, false);
 	}
 	
 	/**
 	 * Use this constructor for any address section that includes the leading segment of an IPv6 address
 	 */
-	public IPv6AddressSection(IPv6AddressSegment segments[]) {
+	public IPv6AddressSection(IPv6AddressSegment segments[]) throws AddressValueException {
 		this(segments, 0, true);
 	}
 	
@@ -196,7 +194,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param segments an array containing the segments.  Segments that are entirely part of the host section need not be provided, although the array must be the correct length.
 	 * @param networkPrefixLength
 	 */
-	public IPv6AddressSection(IPv6AddressSegment segments[], Integer networkPrefixLength) {
+	public IPv6AddressSection(IPv6AddressSegment segments[], Integer networkPrefixLength) throws AddressValueException {
 		this(segments, 0, networkPrefixLength);
 	}
 	
@@ -205,52 +203,181 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param segments an array containing the segments.  Segments that are entirely part of the host section need not be provided, although the array must be the correct length.
 	 * @param networkPrefixLength
 	 */
-	public IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, Integer networkPrefixLength) {
-		this(toPrefixedSegments(networkPrefixLength, segments, IPv6Address.BITS_PER_SEGMENT, getIPv6SegmentCreator(), IPv6AddressSegment::toNetworkSegment, true), startIndex, false);
-	}
-	
-	IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) {
-		super(segments, null, cloneSegments, false);
-		if(startIndex < 0) {
-			throw new IllegalArgumentException();
-		}
-		if(startIndex + segments.length > IPv6Address.SEGMENT_COUNT) {
-			throw new IllegalArgumentException(getMessage("ipaddress.error.exceeds.size"));
-		}
-		this.startIndex = startIndex;
-	}
-	
-	IPv6AddressSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
-		super(toSegments(lowerValueProvider, upperValueProvider, IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, getIPv6SegmentCreator(), prefix), null, false, false);
-		this.startIndex = 0;
+	public IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, Integer networkPrefixLength) throws IllegalArgumentException, AddressValueException {
+		this(segments, startIndex, true, networkPrefixLength, false);
 	}
 
-	IPv6AddressSection(byte bytes[], Integer prefix, boolean cloneBytes) {
-		super(toSegments(bytes, IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, getIPv6SegmentCreator(), prefix), bytes, false, cloneBytes);
-		if(bytes.length > IPv6Address.BYTE_COUNT) {
-			throw new IllegalArgumentException(getMessage("ipaddress.error.exceeds.size") + ' ' + bytes.length);
+	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, Integer networkPrefixLength, boolean singleOnly) throws IllegalArgumentException, AddressValueException {
+		this(segments, startIndex, cloneSegments, networkPrefixLength == null);
+		if(networkPrefixLength != null) {
+			int max = segments.length << 4;
+			if(networkPrefixLength > max) {
+				if(networkPrefixLength > IPv6Address.BIT_COUNT) {
+					throw new PrefixLenException(networkPrefixLength);
+				}
+				networkPrefixLength = max;
+			}
+			if(segments.length > 0) {
+				if(cachedPrefixLength != NO_PREFIX_LENGTH && cachedPrefixLength < networkPrefixLength) {//if the segments have a shorter prefix length, then use that
+					networkPrefixLength = cachedPrefixLength;
+				}
+				IPv6AddressNetwork network = getNetwork();
+				setPrefixedSegments(
+						network,
+						networkPrefixLength,
+						getSegmentsInternal(),
+						IPv6Address.BITS_PER_SEGMENT,
+						IPv6Address.BYTES_PER_SEGMENT,
+						network.getAddressCreator(), 
+						!singleOnly && isPrefixSubnet(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
+				
+				cachedPrefixLength = networkPrefixLength;
+			}
+		} //else the cached prefix has already been set to the proper value
+	}
+	
+	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) throws IllegalArgumentException, AddressValueException {
+		this(segments, startIndex, cloneSegments, true);
+	}
+	
+	IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, boolean normalizeSegments) throws IllegalArgumentException, AddressValueException {
+		super(segments, cloneSegments, true);
+		if(normalizeSegments && isPrefixed()) {
+			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), IPv6Address.BITS_PER_SEGMENT, IPv6Address.BYTES_PER_SEGMENT, IPv6AddressSegment::toPrefixedSegment);
 		}
-		this.startIndex = 0;
+		this.addressSegmentIndex = startIndex;
+		if(startIndex < 0 || startIndex > IPv6Address.SEGMENT_COUNT) {
+			throw new AddressPositionException(startIndex);
+		} else if(startIndex + segments.length > IPv6Address.SEGMENT_COUNT) {
+			throw new AddressValueException(startIndex + segments.length);
+		}
+	}
+	
+	public IPv6AddressSection(SegmentValueProvider valueProvider, int segmentCount, Integer networkPrefixLength) throws AddressValueException {
+		this(valueProvider, valueProvider, segmentCount, networkPrefixLength);
+	}
+	
+	public IPv6AddressSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer networkPrefixLength) throws AddressValueException {
+		super(new IPv6AddressSegment[segmentCount], false, false);
+		IPv6AddressSegment segs[] = getSegmentsInternal();
+		IPv6AddressNetwork network = getNetwork();
+		createSegments(
+				segs,
+				lowerValueProvider,
+				upperValueProvider,
+				IPv6Address.BYTES_PER_SEGMENT,
+				IPv6Address.BITS_PER_SEGMENT,
+				IPv6Address.MAX_VALUE_PER_SEGMENT,
+				network,
+				networkPrefixLength);
+		if(networkPrefixLength != null) {
+			if(networkPrefixLength > IPv6Address.BIT_COUNT) {
+				throw new PrefixLenException(networkPrefixLength);
+			}
+			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+				setPrefixedSegments(
+					network,
+					networkPrefixLength,
+					getSegmentsInternal(),
+					IPv6Address.BITS_PER_SEGMENT,
+					IPv6Address.BYTES_PER_SEGMENT,
+					network.getAddressCreator(),
+					IPv6AddressSegment::toNetworkSegment);
+			}
+			cachedPrefixLength = networkPrefixLength;
+		} else {
+			cachedPrefixLength = NO_PREFIX_LENGTH;
+		}
+		this.addressSegmentIndex = 0;
+	}
+	
+	public IPv6AddressSection(SegmentValueProvider valueProvider, int segmentCount) throws AddressValueException {
+		this(valueProvider, valueProvider, segmentCount);
+	}
+	
+	public IPv6AddressSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount) {
+		this(lowerValueProvider, upperValueProvider, segmentCount, null);
+	}
+
+	protected IPv6AddressSection(byte bytes[], Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
+		super(new IPv6AddressSegment[(bytes.length + IPv6Address.BYTES_PER_SEGMENT - 1) >> 1], false, false);
+		if(bytes.length > IPv6Address.BYTE_COUNT) {
+			throw new AddressValueException(bytes.length);
+		}
+		IPv6AddressSegment segs[] = getSegmentsInternal();
+		IPv6AddressNetwork network = getNetwork();
+		toSegments(
+			segs,
+			bytes,
+			IPv6Address.BYTES_PER_SEGMENT,
+			IPv6Address.BITS_PER_SEGMENT,
+			IPv6Address.MAX_VALUE_PER_SEGMENT,
+			network,
+			networkPrefixLength);
+		if(networkPrefixLength != null) {
+			int max = segs.length << 4;
+			if(networkPrefixLength > max) {
+				if(networkPrefixLength > IPv6Address.BIT_COUNT) {
+					throw new PrefixLenException(networkPrefixLength);
+				}
+				networkPrefixLength = max;
+			}
+			if(bytes.length > 0) {
+				if(network.getPrefixConfiguration().zeroHostsAreSubnets()) {
+					if(isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+						setPrefixedSegments(
+							network,
+							networkPrefixLength,
+							getSegmentsInternal(),
+							IPv6Address.BITS_PER_SEGMENT,
+							IPv6Address.BYTES_PER_SEGMENT,
+							network.getAddressCreator(),
+							IPv6AddressSegment::toNetworkSegment);
+					} else if(networkPrefixLength >= getBitCount()) {
+						setBytes(cloneBytes ? bytes.clone() : bytes);
+					}
+				} else if(network.getPrefixConfiguration().prefixedSubnetsAreExplicit() || networkPrefixLength >= getBitCount()) {
+					setBytes(cloneBytes ? bytes.clone() : bytes);
+				}
+				cachedPrefixLength = networkPrefixLength;
+			} else {
+				cachedPrefixLength = NO_PREFIX_LENGTH;
+				setBytes(bytes);
+			}
+		} else {
+			cachedPrefixLength = NO_PREFIX_LENGTH;
+			setBytes(cloneBytes ? bytes.clone() : bytes);
+		}
+		this.addressSegmentIndex = 0;
 	}
 	
 	/*
 	 * Use this constructor for any address section that includes the leading segment of an IPv6 address
 	 */
-	public IPv6AddressSection(byte bytes[], Integer prefix) {
+	public IPv6AddressSection(byte bytes[], Integer prefix) throws AddressValueException {
 		this(bytes, prefix, true);
+	}
+	
+	/*
+	 * Use this constructor for any address section that includes the leading segment of an IPv6 address
+	 */
+	public IPv6AddressSection(byte bytes[]) throws AddressValueException {
+		this(bytes, null, true);
 	}
 	
 	/**
 	 * Constructs the corresponding IPv6 address section from a modified EUI-64 (Extended Unique Identifier) address.
-	 * 
+	 * <p>
 	 * If the supplied address is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
 	 * with the ff-fe section in the middle.
 	 * 
 	 * If the supplied address is a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted.
-	 * 
+	 * <p>
 	 * The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
+	 * <p>
+	 * Any prefix length in the MAC address is ignored.
 	 * 
-	 * @throws AddressTypeException when the MAC address is an EUI-64 that cannot be converted to an IPv6 address (ff-fe section in middle)
+	 * @throws IncompatibleAddressException when the MAC address is an EUI-64 that cannot be converted to an IPv6 address (ff-fe section in middle)
 	 * 
 	 * @param eui
 	 */
@@ -260,15 +387,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	/**
 	 * Constructs the corresponding IPv6 address section from a modified EUI-64 (Extended Unique Identifier) address section.
-	 * 
+	 * <p>
 	 * If the supplied address section comes from an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
 	 * with the ff-fe section in the middle.
 	 * 
 	 * If the supplied address section comes from a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted.
-	 * 
+	 * <p>
 	 * The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
-	 * 
-	 * @throws AddressTypeException when the MAC address section is an EUI-64 that cannot be converted to an IPv6 address (ff-fe section in middle)
+	 * <p>
+	 * Any prefix length in the MAC address section is ignored.
+	 * @throws IncompatibleAddressException when the MAC address section is an EUI-64 that cannot be converted to an IPv6 address (ff-fe section in middle)
 	 * 
 	 * @param eui
 	 */
@@ -276,20 +404,21 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		this(eui, getIPv6StartIndex(eui), getIPv6SegmentCount(eui));
 	}
 	
-	private IPv6AddressSection(MACAddressSection eui, int ipv6StartIndex, int ipv6SegmentCount) {
-		super(IPv6Address.toEUI64Segments(getAddressCreator(ipv6StartIndex).createSegmentArray(ipv6SegmentCount), 0, eui, eui.startIndex, eui.isExtended()), 
-				eui.getSegmentCount() == 8 ? AddressDivisionGrouping.getCachedBytes(eui) : null,
-				false, 
-				false);
-		this.startIndex = ipv6StartIndex;
+	private IPv6AddressSection(MACAddressSection eui, int ipv6StartIndex, int ipv6SegmentCount) throws IncompatibleAddressException {
+		super(ipv6SegmentCount <= 0 ? IPv6AddressNetwork.EMPTY_SEGMENTS : new IPv6AddressSegment[ipv6SegmentCount], false, false);
+		cachedPrefixLength = NO_PREFIX_LENGTH;
+		this.addressSegmentIndex = ipv6StartIndex;
+		IPv6AddressSegment segs[] = getSegmentsInternal();
+		IPv6Address.toEUI64Segments(segs, 0, eui, eui.addressSegmentIndex, eui.isExtended(), getNetwork().getAddressCreator(), getMACNetwork().getAddressCreator(), null);
+		checkSegments(segs);
 	}
 	
 	private static int getIPv6SegmentCount(MACAddressSection eui) {
-		int euiStartIndex = eui.startIndex;
+		int euiStartIndex = eui.addressSegmentIndex;
 		int euiEndIndex = euiStartIndex + eui.getSegmentCount();
 		//we must round up both sides of the subtraction
 		int result = (euiEndIndex + 1) >> 1;
-		result -= (euiStartIndex >> 1);
+		result -= euiStartIndex >> 1;
 		if(!eui.isExtended() && euiStartIndex <= 2 && euiEndIndex >= 4) {
 			//if we have a segment 2 but no segment 3, then we just add ff to the end of already counted segment
 			//if we have a segment 3 but no segment 2, the same is true
@@ -300,12 +429,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	private static int getIPv6StartIndex(MACAddressSection eui) {
-		int euiStartIndex = eui.startIndex;
+		int euiStartIndex = eui.addressSegmentIndex;
 		int result =  4 + (euiStartIndex >> 1);
 		if(!eui.isExtended() && euiStartIndex >= 3) {
 			result++;
 		}
 		return result;
+	}
+	
+	protected static byte[] convert(byte bytes[], int requiredByteCount, String key) {
+		return AddressDivisionGrouping.convert(bytes, requiredByteCount, key);
 	}
 	
 	@Override
@@ -330,40 +463,77 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 	@Override
 	public IPv6AddressSection getSection(int index, int endIndex) {
-		return getSection(index, endIndex, this, getAddressCreator(startIndex + index));
+		return getSection(index, endIndex, this, getAddressCreator(addressSegmentIndex + index));
 	}
 	
 	@Override
 	public IPv6AddressSegment[] getSegments() {
-		return (IPv6AddressSegment[]) divisions.clone();
+		return (IPv6AddressSegment[]) getDivisionsInternal().clone();
 	}
 	
-	private IPv6AddressSection getLowestOrHighestSection(boolean lowest) {
-		return getLowestOrHighestSection(
-			this,
-			getAddressCreator(),
-			lowest,
-			i -> lowest ? getSegment(i).getLower() : getSegment(i).getUpper(),
-			() -> getSectionCache(this, () -> sectionCache, () -> sectionCache = new SectionCache<IPv6AddressSection>()));
+	IPv6AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
+		IPv6AddressSection result = getSingleLowestOrHighestSection(this);
+		if(result == null) {
+			SectionCache<IPv6AddressSection> cache = sectionCache;
+			if(cache == null || 
+					(lowest ? (excludeZeroHost ? ((result = cache.lowerNonZeroHost) == null && !cache.lowerNonZeroHostIsNull) : (result = cache.lower) == null) : (result = cache.upper) == null)) {
+				synchronized(this) {
+					cache = sectionCache;
+					boolean create = (cache == null);
+					if(create) {
+						sectionCache = cache = new SectionCache<IPv6AddressSection>();
+					} else {
+						if(lowest) {
+							if(excludeZeroHost) {
+								create = (result = cache.lowerNonZeroHost) == null && !cache.lowerNonZeroHostIsNull;
+							} else {
+								create = (result = cache.lower) == null;
+							}
+						} else {
+							create = (result = cache.upper) == null;
+						}
+					}
+					if(create) {
+						result = getLowestOrHighestSection(
+								this,
+								getAddressCreator(), 
+								this::segmentsNonZeroHostIterator, 
+								i -> lowest ? getSegment(i).getLower() : getSegment(i).getUpper(),
+								lowest,
+								excludeZeroHost);
+						if(result == null) {
+							cache.lowerNonZeroHostIsNull = true;
+						} else if(lowest) {
+							if(excludeZeroHost) {
+								 cache.lowerNonZeroHost = result;
+							} else {
+								cache.lower = result;
+							}
+						} else {
+							cache.upper = result;
+						}
+					}
+				}
+			}
+		} else if(excludeZeroHost && includesZeroHost()) {
+			return null;
+		}
+		return result;
 	}
 	
-	IPv6Address getLowestOrHighest(IPv6AddressCreator creator, IPv6Address addr, boolean lowest) {
-		return getLowestOrHighestAddress(
-			addr,
-			creator,
-			lowest,
-			() -> getLowestOrHighestSection(lowest),
-			() -> getSectionCache(addr, () -> addr.sectionCache, () -> addr.sectionCache = new AddressCache()));
+	@Override
+	public IPv6AddressSection getLowerNonZeroHost() {
+		return getLowestOrHighestSection(true, true);
 	}
 	
 	@Override
 	public IPv6AddressSection getLower() {
-		return getLowestOrHighestSection(true);
+		return getLowestOrHighestSection(true, false);
 	}
 	
 	@Override
 	public IPv6AddressSection getUpper() {
-		return getLowestOrHighestSection(false);
+		return getLowestOrHighestSection(false, false);
 	}
 	
 	@Override
@@ -398,113 +568,197 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return this;
 	}
 	
-	@Override
-	public Iterator<IPv6AddressSection> iterator() {
-		boolean useOriginal = !isMultiple() && !isPrefixed();
+	private Iterator<IPv6AddressSection> iterator(boolean excludeZeroHosts) {
+		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		boolean useOriginal = !isMultiple() && (!isAllSubnets || !isPrefixed());
+		IPv6AddressSection original;
+		if(useOriginal && excludeZeroHosts && includesZeroHost()) {
+			original = null;
+		} else {
+			original = this;
+		}
 		return iterator(
 				useOriginal,
-				this,
+				original,
 				getAddressCreator(),
-				useOriginal ? null : segmentsIterator());
+				useOriginal ? null : segmentsIterator(excludeZeroHosts),
+				isAllSubnets ? null : getPrefixLength());
+	}
+	
+	@Override
+	public Iterator<IPv6AddressSection> nonZeroHostIterator() {
+		return iterator(true);
+	}
+	
+	@Override
+	public Iterator<IPv6AddressSection> iterator() {
+		return iterator(false);
+	}
+
+	private Iterator<IPv6AddressSegment[]> segmentsIterator(boolean excludeZeroHosts) {
+		return super.iterator(getSegmentCreator(), () -> getLower().getSegments(), index -> getSegment(index).iterator(), excludeZeroHosts ? this::isZeroHost : null);
+	}
+	
+	@Override
+	public Iterator<IPv6AddressSegment[]> segmentsNonZeroHostIterator() {
+		return segmentsIterator(true);
 	}
 	
 	@Override
 	public Iterator<IPv6AddressSegment[]> segmentsIterator() {
-		return super.iterator(getSegmentCreator(), () -> getLower().getSegments(), index -> getSegment(index).iterator());
+		return segmentsIterator(false);
 	}
 	
+	@Override
+	protected IPv6AddressSegment[] getSegmentsInternal() {
+		return (IPv6AddressSegment[])  super.getDivisionsInternal();
+	}
+
 	protected Iterator<IPv6Address> iterator(
 			IPv6Address original,
-			AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator) {
-		boolean useOriginal = !isMultiple() && !isPrefixed();
+			AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator,
+			boolean excludeZeroHosts) {
+		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		boolean useOriginal = !isMultiple() && (!isAllSubnets || !isPrefixed());
+		if(useOriginal && excludeZeroHosts && original.includesZeroHost()) {
+			original = null;
+		}
 		return iterator(
 				original, 
 				creator,//using a lambda for this one results in a big performance hit
 				useOriginal,
-				useOriginal ? null : iterator(creator, () -> (IPv6AddressSegment[]) getLower().divisions, index -> getSegment(index).iterator()));
+				useOriginal ? null : iterator(creator, () -> (IPv6AddressSegment[]) getLower().getSegmentsInternal(), index -> getSegment(index).iterator(), excludeZeroHosts ? this::isZeroHost : null),
+				isAllSubnets ? null : getPrefixLength());
 	}
 
-	@Override
-	protected BigInteger getCountImpl() {
-		int segCount = getSegmentCount();
-		if(!isMultiple()) {
-			return BigInteger.ONE;
+	private static BigInteger multiply(long result1, long result2) {
+		if(result1 <= 0xb504f333) {
+			if(result1 == 1) {
+				return BigInteger.valueOf(result2);
+			}
+			if(result2 <= 0xb504f333) {
+				if(result2 == 1) {
+					return BigInteger.valueOf(result1);
+				}
+				return BigInteger.valueOf(result1 * result2);
+			}
+		} else if(result2 == 1) {
+			return BigInteger.valueOf(result1);
 		}
-		long result1 = getSegment(0).getValueCount();
-		BigInteger big1 = null;
+		return BigInteger.valueOf(result1).multiply(BigInteger.valueOf(result2));
+	}
+	
+	private static BigInteger getCount(IntUnaryOperator countProvider, int segCount) {
+		long result1 = countProvider.applyAsInt(0);
 		int limit = Math.min(segCount,  3);
 		for(int i = 1; i < limit; i++) {
-			result1 *= getSegment(i).getValueCount();
+			int nextValue = countProvider.applyAsInt(i);
+			if(result1 == 1) {
+				result1 = nextValue;
+			} else if(nextValue != 1) {
+				result1 *= nextValue;
+			}
 		}
-		if(segCount > 3) {
-			long otherValue = getSegment(3).getValueCount();
-			if(otherValue != 1) {
-				if(result1 <= 0x7fffffffffffL) {
-					result1 *= otherValue;
-				} else {
-					big1 = BigInteger.valueOf(result1).multiply(BigInteger.valueOf(otherValue));
+		if(segCount <= 3) {
+			return BigInteger.valueOf(result1);
+		}
+		long result2 = countProvider.applyAsInt(3);
+		limit = Math.min(segCount,  6);
+		for(int i = 4; i < limit; i++) {
+			int nextValue = countProvider.applyAsInt(i);
+			if(result2 == 1) {
+				result2 = nextValue;
+			} else if(nextValue != 1) {
+				result2 *= nextValue;
+			}
+		}
+		if(segCount <= 6) {
+			return multiply(result1, result2);
+		}
+		long result3 = countProvider.applyAsInt(6);
+		if(segCount > 7) {
+			int nextValue = countProvider.applyAsInt(7);
+			if(result3 == 1) {
+				result3 = nextValue;
+			} else if(nextValue != 1) {
+				result3 *= nextValue;
+			}
+		}
+		if(result3 <= 0xb504f333) {
+			if(result3 == 1) {
+				return multiply(result1, result2);
+			}
+			if(result2 <= 0xb504f333) {
+				result2 *= result3;
+				return multiply(result1, result2);
+			}
+			if(result1 <= 0xb504f333) {
+				result1 *= result3;
+				return multiply(result1, result2);
+			}
+		} else if(result2 <= 0xb504f333) {
+			if(result2 == 1) {
+				return multiply(result1, result3);
+			}
+			if(result1 <= 0xb504f333) {
+				result1 *= result2;
+				return multiply(result1, result3);
+			}
+		} else if(result1 == 1) {
+			return multiply(result2, result3);
+		}
+		return multiply(result1, result2).multiply(BigInteger.valueOf(result3));
+	}
+	
+	@Override
+	protected BigInteger getCountImpl(boolean excludeZeroHosts) {
+		if(!isMultiple()) {
+			if(excludeZeroHosts && includesZeroHost()) {
+				return BigInteger.ZERO;
+			}
+			return BigInteger.ONE;
+		}
+		int segCount = getSegmentCount();
+		BigInteger result = getCount(i -> getSegment(i).getValueCount(), segCount);
+		if(excludeZeroHosts && includesZeroHost()) {
+			int prefixedSegment = getNetworkSegmentIndex(getNetworkPrefixLength(), getBytesPerSegment(), getBitsPerSegment());
+			BigInteger zeroHostCount = getCount(i -> {
+				if(i == prefixedSegment) {
+					IPAddressSegment seg = getSegment(i);
+					int shift = seg.getBitCount() - seg.getSegmentPrefixLength();
+					int count = ((seg.getUpperSegmentValue() >>> shift) - (seg.getLowerSegmentValue() >>> shift)) + 1;
+					return count;
 				}
-			}
+				return getSegment(i).getValueCount();
+			}, prefixedSegment + 1);
+			return result.subtract(zeroHostCount);
 		}
-		if(segCount > 4) {
-			long result2 = getSegment(4).getValueCount();
-			BigInteger big2 = null;
-			limit = Math.min(segCount,  7);
-			for(int i = 5; i < limit; i++) {
-				result2 *= getSegment(i).getValueCount();
-			}
-			if(segCount > 7) {
-				long otherValue = getSegment(7).getValueCount();
-				if(otherValue != 1) {
-					if(result2 <= 0x7fffffffffffL) {
-						result2 *= otherValue;
-					} else {
-						big2 = BigInteger.valueOf(result2).multiply(BigInteger.valueOf(otherValue));
-					}
-				}
-			}
-			if(big1 == null) {
-				if(big2 == null) {
-					if(result1 <= 0xb504f333 && result2 <= 0xb504f333) {
-						return BigInteger.valueOf(result1 * result2);
-					}
-					big2 = BigInteger.valueOf(result2);
-				}
-				big1 = BigInteger.valueOf(result1);
-			} else if(big2 == null) {
-				big2 = BigInteger.valueOf(result2);
-			}
-			return big1.multiply(big2);
-		}
-		if(big1 != null) {
-			return big1;
-		}
-		return BigInteger.valueOf(result1);
+		return result;
 	}
 	
 	private AddressSegmentCreator<IPv6AddressSegment> getSegmentCreator() {
-		return getIPv6SegmentCreator();
+		return getNetwork().getAddressCreator();
 	}
-	
-	private static AddressSegmentCreator<IPv6AddressSegment> getIPv6SegmentCreator() {
-		return IPv6Address.network().getAddressCreator();
-	}
-	
+
 	private IPv6AddressCreator getAddressCreator() {
-		return getAddressCreator(startIndex);
+		return getAddressCreator(addressSegmentIndex);
 	}
-	
-	protected static IPv6AddressCreator getAddressCreator(int startIndex) {
-		IPv6AddressCreator result = creators[startIndex];
-		if(result == null) {
-			creators[startIndex] = result = new IPv6AddressCreator() {
-				@Override
-				protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[]) {
-					return IPv6Address.network().getAddressCreator().createSectionInternal(segments, startIndex); /* address creation */
-				}
-			};
-		}
-		return result;
+
+	protected IPv6AddressCreator getAddressCreator(int startIndex) {
+		return getNetwork().new IPv6AddressCreator() {
+		
+			private static final long serialVersionUID = 4L;
+
+			@Override
+			protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[]) {
+				return getNetwork().getAddressCreator().createSectionInternal(segments, startIndex); /* address creation */
+			}
+			
+			@Override
+			protected IPv6AddressSection createPrefixedSectionInternal(IPv6AddressSegment segments[], Integer prefix, boolean singleOnly) {
+				return new IPv6AddressSection(segments, startIndex, false, prefix, singleOnly);
+			}
+		};
 	}
 	
 	@Override
@@ -541,26 +795,28 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public boolean isEUI64(boolean partial) {
 		int segmentCount = getSegmentCount();
-		int endIndex = startIndex + segmentCount;
-		if(startIndex <= 5) {
+		int endIndex = addressSegmentIndex + segmentCount;
+		if(addressSegmentIndex <= 5) {
 			if(endIndex > 6) {
-				int index3 = 5 - startIndex;
+				int index3 = 5 - addressSegmentIndex;
 				IPv6AddressSegment seg3 = getSegment(index3);
 				IPv6AddressSegment seg4 = getSegment(index3 + 1);
 				return seg4.matchesWithMask(0xfe00, 0xff00) && seg3.matchesWithMask(0xff, 0xff);
 			} else if(partial && endIndex == 6) {
-				IPv6AddressSegment seg3 = getSegment(5 - startIndex);
+				IPv6AddressSegment seg3 = getSegment(5 - addressSegmentIndex);
 				return seg3.matchesWithMask(0xff, 0xff);
 			}
-		} else if(partial && startIndex == 6 && endIndex > 6) {
-			IPv6AddressSegment seg4 = getSegment(6 - startIndex);
+		} else if(partial && addressSegmentIndex == 6 && endIndex > 6) {
+			IPv6AddressSegment seg4 = getSegment(6 - addressSegmentIndex);
 			return seg4.matchesWithMask(0xfe00, 0xff00);
 		}
 		return partial;
 	}
 	
 	/**
-	 * Returns the corresponding mac section, or null if this address section does not correspond to a mac section
+	 * Returns the corresponding mac section, or null if this address section does not correspond to a mac section.
+	 * If this address section has a prefix length it is ignored.
+	 * 
 	 * @param extended
 	 * @return
 	 */
@@ -569,17 +825,18 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(segs == null) {
 			return null;
 		}
-		MACAddressCreator creator = MACAddress.getAddressCreator();
-		return createSectionInternal(creator, segs, Math.max(0, startIndex - 4) << 1, extended);
+		MACAddressCreator creator = getMACNetwork().getAddressCreator();
+		return createSectionInternal(creator, segs, Math.max(0, addressSegmentIndex - 4) << 1, extended);
 	}
 	
 	protected static MACAddressSection createSectionInternal(MACAddressCreator creator, MACAddressSegment[] segments, int startIndex, boolean extended) {
 		return AddressDivisionGrouping.createSectionInternal(creator, segments, startIndex, extended);
 	}
 	
+	//prefix length in this section is ignored when converting to MAC
 	MACAddressSegment[] toEUISegments(boolean extended) {
 		IPv6AddressSegment seg0, seg1, seg2, seg3;
-		int start = startIndex;
+		int start = addressSegmentIndex;
 		int segmentCount = getSegmentCount();
 		int segmentIndex;
 		if(start < 4) {
@@ -601,7 +858,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if((seg1 != null && !seg1.matchesWithMask(0xff, 0xff)) || (seg2 != null && !seg2.matchesWithMask(0xfe00, 0xff00)) || macSegCount == 0) {
 			return null;
 		}
-		MACAddressCreator creator = MACAddress.getAddressCreator();
+		MACAddressCreator creator = getMACNetwork().getAddressCreator();
+		MACAddressSegment ZERO_SEGMENT = creator.createSegment(0);
 		MACAddressSegment newSegs[] = creator.createSegmentArray(macSegCount);
 		int macStartIndex = 0;
 		if(seg0 != null) {
@@ -623,7 +881,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(seg1 != null) {
 			seg1.getSplitSegments(newSegs, macStartIndex, creator);  //a ff fe b
 			if(!extended) {
-				newSegs[macStartIndex + 1] = MACAddressSegment.ZERO_SEGMENT;
+				newSegs[macStartIndex + 1] = ZERO_SEGMENT;
 			}
 			macStartIndex += 2;
 		}
@@ -636,7 +894,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 					newSegs[macStartIndex] = first;
 				} else {
 					seg2.getSplitSegments(newSegs, macStartIndex, creator);
-					newSegs[macStartIndex] = MACAddressSegment.ZERO_SEGMENT;
+					newSegs[macStartIndex] = ZERO_SEGMENT;
 				}
 			} else {
 				seg2.getSplitSegments(newSegs, macStartIndex, creator);
@@ -661,21 +919,23 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @see #getMixedAddressSection()
 	 */
 	public IPv4AddressSection getEmbeddedIPv4AddressSection(int startIndex, int endIndex) {
-		if(startIndex == ((IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - this.startIndex) << 1) && endIndex == (getSegmentCount() << 1)) {
+		if(startIndex == ((IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - this.addressSegmentIndex) << 1) && endIndex == (getSegmentCount() << 1)) {
 			return getEmbeddedIPv4AddressSection();
 		}
-		IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
+		IPv4AddressCreator creator = getIPv4Network().getAddressCreator();
 		IPv4AddressSegment[] segments = creator.createSegmentArray((endIndex - startIndex) >> 1);
 		int i = startIndex, j = 0;
 		if(i % IPv6Address.BYTES_PER_SEGMENT == 1) {
-			IPv6AddressSegment ipv6Segment = getSegment(i++ / IPv6Address.BYTES_PER_SEGMENT);
-			ipv6Segment.getSplitSegments(segments, j++ - 1, creator);
+			IPv6AddressSegment ipv6Segment = getSegment(i >> 1);
+			i++;
+			ipv6Segment.getSplitSegments(segments, j - 1, creator);
+			j++;
 		}
 		for(; i < endIndex; i <<= 1, j <<= 1) {
-			IPv6AddressSegment ipv6Segment = getSegment(i / IPv6Address.BYTES_PER_SEGMENT);
+			IPv6AddressSegment ipv6Segment = getSegment(i >> 1);
 			ipv6Segment.getSplitSegments(segments, j, creator);
 		}
-		return createSection(creator, segments);
+		return createEmbeddedSection(creator, segments, this);
 	}
 	
 	/**
@@ -690,34 +950,43 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(embeddedIPv4Section == null) {
 			synchronized(this) {
 				if(embeddedIPv4Section == null) {
-					int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - startIndex, 0);
+					int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex, 0);
 					int lastIndex = getSegmentCount() - 1;
-					IPv4AddressCreator creator = IPv4Address.network().getAddressCreator();
+					IPv4AddressCreator creator = getIPv4Network().getAddressCreator();
 					IPv4AddressSegment[] mixed;
 					if(mixedCount == 0) {
 						mixed = creator.createSegmentArray(0);
 					} else {
-						mixed = (mixedCount == 1) ? 
-							getSegment(lastIndex).split() : 
-							IPv6AddressSegment.split(getSegment(lastIndex - 1), getSegment(lastIndex));
+						if(mixedCount == 1) {
+							mixed = creator.createSegmentArray(IPv6Address.BYTES_PER_SEGMENT);
+							IPv6AddressSegment last = getSegment(lastIndex);
+							last.getSplitSegments(mixed, 0, creator);
+						} else {
+							mixed = creator.createSegmentArray(IPv6Address.BYTES_PER_SEGMENT << 1);
+							IPv6AddressSegment low = getSegment(lastIndex);
+							IPv6AddressSegment high = getSegment(lastIndex - 1);
+							high.getSplitSegments(mixed, 0, creator);
+							low.getSplitSegments(mixed, IPv6Address.BYTES_PER_SEGMENT, creator);
+						}
+						
 					}
-					embeddedIPv4Section = createSection(creator, mixed);
+					embeddedIPv4Section = createEmbeddedSection(creator, mixed, this);
 				}
 			}
 		}
 		return embeddedIPv4Section;
 	}
-	
+
 	public IPv6AddressSection createNonMixedSection() {
-		int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - startIndex, 0);
+		int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex, 0);
 		if(mixedCount <= 0) {
 			return this;
 		}
 		int nonMixedCount = Math.max(0, getSegmentCount() - mixedCount);
-		IPv6AddressCreator creator = IPv6Address.network().getAddressCreator();
+		IPv6AddressCreator creator = getNetwork().getAddressCreator();
 		IPv6AddressSegment[] nonMixed = creator.createSegmentArray(nonMixedCount);
 		getSegments(0, nonMixedCount, nonMixed, 0);
-		return creator.createSectionInternal(nonMixed, startIndex);
+		return creator.createEmbeddedSectionInternal(this, nonMixed, addressSegmentIndex);
 	}
 	
 	public IPv6v4MixedAddressSection getMixedAddressSection() {
@@ -733,6 +1002,32 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return defaultMixedAddressSection;
 	}
 	
+	public static IPv6AddressSection createSection(IPv6AddressCreator creator, IPv6AddressSegment nonMixedSection[], IPv4Address mixedSection) throws IncompatibleAddressException {
+		IPv4AddressSection ipv4Section = mixedSection.getSection();
+		IPv6AddressSegment newSegs[] = creator.createSegmentArray(nonMixedSection.length + IPv6Address.MIXED_REPLACED_SEGMENT_COUNT);
+		newSegs[0] = nonMixedSection[0];
+		newSegs[1] = nonMixedSection[1];
+		newSegs[2] = nonMixedSection[2];
+		newSegs[3] = nonMixedSection[3];
+		newSegs[4] = nonMixedSection[4];
+		newSegs[5] = nonMixedSection[5];
+		newSegs[6] = ipv4Section.getSegment(0).join(creator, ipv4Section.getSegment(1));
+		newSegs[7] = ipv4Section.getSegment(2).join(creator, ipv4Section.getSegment(3));
+		IPv6AddressSection result = creator.createSectionInternal(newSegs);
+		result.embeddedIPv4Section = ipv4Section;
+		return result;
+	}
+	
+	/**
+	 * Create an IPv6 mixed address using the given address for the embedded IPv4 segments
+	 * 
+	 * @param mixedSection the IPv4 address used to construct the terminating segments of the returned address
+	 * @return
+	 */
+	public IPv6Address getIPv6Address(IPv4Address mixedSection) {
+		return mixedSection.getIPv6Address(getSegmentsInternal());
+	}
+	
 	@Override
 	public int getBitsPerSegment() {
 		return IPv6Address.BITS_PER_SEGMENT;
@@ -744,8 +1039,18 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public int getBitCount() {
+		return getSegmentCount() << 4;
+	}
+	
+	@Override
+	public int getByteCount() {
+		return getSegmentCount() << 1;
+	}
+	
+	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		byte bytes[] = new byte[(getBitCount() + 7) >> 3];
+		byte bytes[] = new byte[getByteCount()];
 		int segmentCount = getSegmentCount();
 		for(int i = 0; i < segmentCount; i++) {
 			IPv6AddressSegment seg = getSegment(i);
@@ -788,59 +1093,139 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return IPVersion.IPV6;
 	}
 	
-	public IPv6AddressSection replace(IPv6AddressSection other, int index) {
-		if(index > 0 && getSegment(index - 1).isPrefixed()) {
-			throw new AddressTypeException(this, "ipaddress.error.index.exceeds.prefix.length");
-		}
-		IPv6AddressSection result = replace(this, other, getAddressCreator(), index, true);
-		return result;
-	}
-	
-	public IPv6AddressSection prepend(IPv6AddressSection other) {
-		int otherSegmentCount = other.getSegmentCount();
-		int newStartIndex = startIndex - otherSegmentCount;
-		if(newStartIndex < 0) {
-			throw new AddressTypeException(this, other, "ipaddress.error.exceeds.size");
-		}
-		if(otherSegmentCount == 0) {
-			return this;
-		}
-		int segmentCount = getSegmentCount();
-		if(startIndex == other.startIndex + otherSegmentCount && segmentCount == 0) {
-			return other;
-		}
-		return append(other, this, getAddressCreator(newStartIndex), true);//will have start index newStartIndex
-	}
-	
 	public IPv6AddressSection append(IPv6AddressSection other) {
-		int segmentCount = getSegmentCount();
-		int otherSegmentCount = other.getSegmentCount();
-		if(startIndex + segmentCount + otherSegmentCount > IPv6Address.SEGMENT_COUNT) {
-			throw new AddressTypeException(this, other, "ipaddress.error.exceeds.size");
-		}
-		if(otherSegmentCount == 0) {
-			return this;
-		}
-		if(startIndex == other.startIndex && segmentCount == 0) {
-			return other;
-		}
-		return append(this, other, getAddressCreator(), true);//will use same start index as this
+		int count = getSegmentCount();
+		return replace(count, count, other, 0, other.getSegmentCount());
 	}
 	
+	public IPv6AddressSection appendToNetwork(IPv6AddressSection other) {
+		Integer prefixLength = getNetworkPrefixLength();
+		if(prefixLength == null) {
+			return append(other);
+		}
+		IPv6AddressSection thizz = this;
+		int bitsPerSegment = getBitsPerSegment();
+		int adjustment = prefixLength % bitsPerSegment;
+		if(adjustment != 0) {
+			prefixLength += bitsPerSegment - adjustment;
+			thizz = setPrefixLength(prefixLength, false);
+		}
+		int index = prefixLength >>> 4;
+		if(other.isPrefixed() && other.getPrefixLength() == 0) {
+			//replacement is all host, cannot make it part of network
+			return insert(index, other); //return append(other);
+		}
+		return thizz.replace(index, index, other, 0, other.getSegmentCount(), true);
+	}
+	
+	public IPv6AddressSection insert(int index, IPv6AddressSection other) {
+		return replace(index, index, other, 0, other.getSegmentCount());
+	}
+	/**
+	 * Replace the segments of this section starting at the given index with the given replacement segments
+	 * 
+	 * @param index
+	 * @param replacement
+	 * @return
+	 */
+	public IPv6AddressSection replace(int index, IPv6AddressSection replacement) {
+		return replace(index, index + replacement.getSegmentCount(), replacement, 0, replacement.getSegmentCount());
+	}
+	
+	/**
+	 * Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and 
+	 * ending before replacementEndIndex from the replacement section
+	 * @param startIndex
+	 * @param endIndex
+	 * @param replacement
+	 * @param replacementStartIndex
+	 * @param replacementEndIndex
+	 * @throws IndexOutOfBoundsException
+	 * @throws AddressValueException if the resulting section would exceed the maximum segment count for this address type and version
+	 * @return
+	 */
+	public IPv6AddressSection replace(int startIndex, int endIndex, IPv6AddressSection replacement, int replacementStartIndex, int replacementEndIndex) {
+		return replace(startIndex, endIndex, replacement, replacementStartIndex, replacementEndIndex, false);
+	}
+	
+	public IPv6AddressSection replace(int startIndex, int endIndex, IPv6AddressSection replacement, int replacementStartIndex, int replacementEndIndex, boolean appendNetwork) {
+		int segmentCount = getSegmentCount();
+		int replacedCount = endIndex - startIndex;
+		int replacementCount = replacementEndIndex - replacementStartIndex;
+		if(replacedCount < 0 || replacementCount < 0 || startIndex < 0 || replacementStartIndex < 0 || replacementEndIndex > replacement.getSegmentCount() || endIndex > segmentCount) {
+			throw new IndexOutOfBoundsException();
+		}
+		IPv6AddressSection thizz = this;
+		if(addressSegmentIndex + segmentCount + replacementCount - replacedCount > IPv6Address.SEGMENT_COUNT) {
+			throw new AddressValueException(this, replacement);
+		} else if(replacementCount == 0 && replacedCount == 0) {//keep in mind for ipvx, empty sections cannot have prefix lengths
+			return this;
+		} else if(addressSegmentIndex == replacement.addressSegmentIndex && segmentCount == replacedCount) {//keep in mind for ipvx, empty sections cannot have prefix lengths
+			return replacement;
+		}  else if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			if(appendNetwork) {
+				thizz = removePrefixLength(false);
+				int replacementEndBits = replacementEndIndex << 4;
+				if(!replacement.isPrefixed() || replacement.getNetworkPrefixLength() > replacementEndBits) {
+					replacement = replacement.setPrefixLength(replacementEndBits, false);
+				}
+			}
+		} else {
+			Integer prefixLength = getPrefixLength();
+			if(appendNetwork) { 
+				int additionalSegs = segmentCount - endIndex;
+				if(additionalSegs > 0) {
+					//we move the non-replaced host segments from the end of this to the end of the replacement segments
+					//and we also remove the prefix length from this
+					thizz = getSection(0, startIndex).removePrefixLength(false);
+					replacement = replacement.insert(replacementEndIndex, getSection(endIndex));
+					replacementEndIndex += additionalSegs;
+					endIndex = startIndex;
+				} else {
+					thizz = removePrefixLength(false);
+					int replacementEndBits = replacementEndIndex << 4;
+					if(!replacement.isPrefixed() || replacement.getNetworkPrefixLength() > replacementEndBits) {
+						replacement = replacement.setPrefixLength(replacementEndBits, false);
+					}
+				}
+			} else if(prefixLength != null && prefixLength <= startIndex << 4) {
+				replacement = replacement.setPrefixLength(0, false);
+			} else if(endIndex < segmentCount) {
+				int replacementEndBits = replacementEndIndex << 4;
+				if(replacement.isPrefixed() && replacement.getNetworkPrefixLength() <= replacementEndBits) {
+					int thisNextIndexBits = endIndex << 4;
+					if(prefixLength == null || prefixLength > thisNextIndexBits) {
+						if(replacedCount > 0 || replacement.getPrefixLength() == 0) {
+							thizz = setPrefixLength(thisNextIndexBits, false);
+						} else {
+							//we move the non-replaced host segments from the end of this to the end of the replacement segments
+							//and we also remove the prefix length from this
+							int additionalSegs = segmentCount - endIndex;
+							thizz = getSection(0, startIndex);
+							replacement = replacement.insert(replacementEndIndex, getSection(endIndex));
+							replacementEndIndex += additionalSegs;
+						}
+					}
+				}
+			}
+		}
+		return replace(thizz, startIndex, endIndex, replacement, replacementStartIndex, replacementEndIndex, getAddressCreator(), appendNetwork, false);
+	}
+
 	@Override
 	public boolean contains(AddressSection other) {
 		return other instanceof IPv6AddressSection &&
-				startIndex == ((IPv6AddressSection) other).startIndex && 
+				addressSegmentIndex == ((IPv6AddressSection) other).addressSegmentIndex && 
 				super.contains((IPAddressSection) other);
 	}
-	
+
 	@Override
 	protected boolean isSameGrouping(AddressDivisionGrouping other) {
 		return other instanceof IPv6AddressSection &&
-				startIndex == ((IPv6AddressSection) other).startIndex &&
+				addressSegmentIndex == ((IPv6AddressSection) other).addressSegmentIndex &&
 				super.isSameGrouping(other);
 	}
-	
+
 	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
@@ -848,41 +1233,56 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		if(o instanceof IPv6AddressSection) {
 			IPv6AddressSection other = (IPv6AddressSection) o;
-			return startIndex == other.startIndex && super.isSameGrouping(other);
+			return addressSegmentIndex == other.addressSegmentIndex && super.isSameGrouping(other);
 		}
 		return false;
 	}
-	
+
+	/**
+	 * Produces the subnet sections whose addresses are found in both this and the given argument.
+	 * <p>
+	 * This is also known as the conjunction of the two sets of address sections.
+	 * <p>
+	 * @param other
+	 * @return the section containing the sections found in both this and the given subnet sections
+	 */
+	public IPv6AddressSection intersect(IPv6AddressSection other) throws SizeMismatchException {
+		return intersect(this, other, getAddressCreator(), this::getSegment, other::getSegment);
+	}
+
 	/**
 	 * Subtract the give subnet from this subnet, returning an array of sections for the result (the subnets will not be contiguous so an array is required).
-	 * 
-	 * Computes the subnet difference, the set of addresses in this address section but not in the provided section.
-	 * 
+	 * <p>
+	 * Computes the subnet difference, the set of addresses in this address section but not in the provided section.  This is also known as the relative complement of the given argument in this subnet.
+	 * <p>
 	 * Keep in mind this is set subtraction, not subtraction of segment values.  We have a subnet of addresses and we are removing some of those addresses.
 	 * 
 	 * @param other
-	 * @throws AddressTypeException if the two sections are not comparable
+	 * @throws SizeMismatchException if the two sections have different sizes
 	 * @return the difference
 	 */
-	public IPv6AddressSection[] subtract(IPv6AddressSection other) {
+	public IPv6AddressSection[] subtract(IPv6AddressSection other) throws SizeMismatchException {
 		return subtract(this, other, getAddressCreator(), this::getSegment, (section, prefix) -> section.applyPrefixLength(prefix));
 	}
-	
-	@Override
-	public int getByteIndex(int networkPrefixLength) {
-		return getByteIndex(networkPrefixLength, IPv6Address.BYTE_COUNT);
-	}
-	
-	@Override
-	public int getSegmentIndex(int networkPrefixLength) {
-		return getSegmentIndex(networkPrefixLength, IPv6Address.BYTE_COUNT, IPv6Address.BYTES_PER_SEGMENT);
-	}
-	
+
 	@Override
 	public IPv6AddressNetwork getNetwork() {
-		return IPv6Address.network();
+		return Address.defaultIpv6Network();
+	}
+	
+	public IPv4AddressNetwork getIPv4Network() {
+		return Address.defaultIpv4Network();
+	}
+	
+	public MACAddressNetwork getMACNetwork() {
+		return Address.defaultMACNetwork();
 	}
 
+	@Override
+	protected int getNetworkPrefixLength(int segmentIndex, int segmentPrefix) {
+		return (segmentIndex << 4) + segmentPrefix;
+	}
+	
 	@Override
 	public IPv6AddressSection adjustPrefixBySegment(boolean nextSegment) {
 		return (IPv6AddressSection) super.adjustPrefixBySegment(nextSegment);
@@ -890,21 +1290,21 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public IPv6AddressSection adjustPrefixLength(int adjustment) {
-		return (IPv6AddressSection) adjustPrefixLength(this, adjustment, getAddressCreator(), getNetwork(), (section, i) -> section.getSegment(i));
+		return (IPv6AddressSection) adjustPrefixLength(this, adjustment, getAddressCreator(), (section, i) -> section.getSegment(i));
 	}
 	
 	@Override
-	public IPv6AddressSection applyPrefixLength(int networkPrefixLength) {
-		return setPrefixLength(networkPrefixLength, false, true);
+	public IPv6AddressSection applyPrefixLength(int networkPrefixLength) throws PrefixLenException {
+		return setPrefixLength(networkPrefixLength, true, true);
 	}
 	
 	@Override
-	public IPv6AddressSection setPrefixLength(int networkPrefixLength) {
+	public IPv6AddressSection setPrefixLength(int networkPrefixLength) throws PrefixLenException {
 		return setPrefixLength(networkPrefixLength, true, false);
 	}
 	
 	@Override
-	public IPv6AddressSection setPrefixLength(int networkPrefixLength, boolean withZeros) {
+	public IPv6AddressSection setPrefixLength(int networkPrefixLength, boolean withZeros) throws PrefixLenException {
 		return setPrefixLength(networkPrefixLength, withZeros, false);
 	}
 	
@@ -915,13 +1315,52 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				networkPrefixLength,
 				withZeros,
 				noShrink,
-				getNetwork(),
 				(section, i) -> section.getSegment(i));
 	}
 
-	public IPv6AddressSection mask(IPv6AddressSection mask) throws AddressTypeException {
-		super.checkSectionCount(mask);
-		return getSubnetSegments(this, null, getAddressCreator(), true, this::getSegment, mask::getSegment);
+	/**
+	 * Does the bitwise disjunction with this address.  Useful when subnetting.  Similar to {@link #maskNetwork(IPv6AddressSection, int)} which does the bitwise conjunction.
+	 * <p>
+	 * Any existing prefix length is dropped for the new prefix length and the mask is applied up to the end the new prefix length.
+	 * 
+	 * @param mask
+	 * @return
+	 * @throws IncompatibleAddressException
+	 */
+	public IPv6AddressSection bitwiseOrNetwork(IPv6AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
+		checkSectionCount(mask);
+		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			return getOredSegments(this, networkPrefixLength, getAddressCreator(), this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+		}
+		IPv6AddressSection networkMask = getNetwork().getNetworkMaskSection(networkPrefixLength);
+		return getOredSegments(this, networkPrefixLength, getAddressCreator(), 
+				this::getSegment, 
+				i -> {
+					int val1 = mask.getSegment(i).getLowerSegmentValue();
+					int val2 = networkMask.getSegment(i).getLowerSegmentValue();
+					return val1 & val2;
+				}
+		);
+	}
+
+	/**
+	 * Equivalent to {@link #bitwiseOr(IPv6AddressSection, boolean)} with the second argument as false.
+	 */
+	public IPv6AddressSection bitwiseOr(IPv6AddressSection mask) throws IncompatibleAddressException {
+		return bitwiseOr(mask, false);
+	}
+	
+	/**
+	 * Does the bitwise disjunction with this address.  Useful when subnetting.  Similar to {@link #mask(IPv6AddressSection)} which does the bitwise conjunction.
+	 * 
+	 * @param mask
+	 * @param retainPrefix whether to drop the prefix
+	 * @return
+	 * @throws IncompatibleAddressException
+	 */
+	public IPv6AddressSection bitwiseOr(IPv6AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
+		checkSectionCount(mask);
+		return getOredSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
 	}
 	
 	@Override
@@ -931,71 +1370,110 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public IPv6AddressSection removePrefixLength(boolean zeroed) {
-		return removePrefixLength(zeroed, true);
+		return removePrefixLength(this, zeroed, getAddressCreator(), IPv6AddressSection::getSegment);
 	}
 	
-	protected IPv6AddressSection removePrefixLength(boolean zeroed, boolean onlyPrefixZeroed) {
-		return removePrefixLength(this, zeroed, onlyPrefixZeroed, getAddressCreator(), getNetwork(), (section, i) -> section.getSegment(i));
+	/**
+	 * Does the bitwise conjuction with this address.  Useful when subnetting.
+	 * 
+	 * @param mask
+	 * @param retainPrefix whether to drop the prefix
+	 * @return
+	 * @throws IncompatibleAddressException
+	 */
+	public IPv6AddressSection mask(IPv6AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
+		checkSectionCount(mask);
+		return getSubnetSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+	}
+	
+	/**
+	 * Equivalent to {@link #mask(IPv6AddressSection, boolean)} with the second argument as false.
+	 */
+	public IPv6AddressSection mask(IPv6AddressSection mask) throws IncompatibleAddressException {
+		return mask(mask, false);
 	}
 	
 	/**
 	 * Applies the given mask to the network section of the address as indicated by the given prefix length.
 	 * Useful for subnetting.  Once you have zeroed a section of the network you can insert bits 
-	 * using {@link #bitwiseOr(IPv6AddressSection)} or {@link #replace(IPv6AddressSection, int)}
+	 * using {@link #bitwiseOr(IPv6AddressSection)} or {@link #replace(int, IPv6AddressSection)}
 	 * 
 	 * @param mask
 	 * @param networkPrefixLength
 	 * @return
-	 * @throws AddressTypeException
+	 * @throws IncompatibleAddressException
 	 */
-	public IPv6AddressSection maskNetwork(IPv6AddressSection mask, int networkPrefixLength) throws AddressTypeException {
-		super.checkSectionCount(mask);
-		return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, this::getSegment, mask::getSegment);
-	}
-	
-	/**
-	 * Does the bitwise disjunction with this address.  Useful when subnetting.
-	 * Any existing prefix is dropped.
-	 * 
-	 * @param mask
-	 * @return
-	 * @throws AddressTypeException
-	 */
-	public IPv6AddressSection bitwiseOr(IPv6AddressSection mask) throws AddressTypeException {
-		super.checkSectionCount(mask);
-		return getOredSegments(this, null, getAddressCreator(), this::getSegment, mask::getSegment);
-	}
-	
-	/**
-	 * Does the bitwise disjunction with this address.  Useful when subnetting.
-	 * 
-	 * Any existing prefix length is dropped for the new prefix length and the mask is applied up to the end the new prefix length.
-	 * 
-	 * @param mask
-	 * @return
-	 * @throws AddressTypeException
-	 */
-	public IPv6AddressSection bitwiseOrNetwork(IPv6AddressSection mask, int networkPrefixLength) throws AddressTypeException {
-		super.checkSectionCount(mask);
-		return getOredSegments(this, networkPrefixLength, getAddressCreator(), this::getSegment, mask::getSegment);
+	public IPv6AddressSection maskNetwork(IPv6AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
+		checkSectionCount(mask);
+		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+		}
+		IPv6AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
+		return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, 
+				this::getSegment, 
+				i -> {
+					int val1 = mask.getSegment(i).getLowerSegmentValue();
+					int val2 = hostMask.getSegment(i).getLowerSegmentValue();
+					return val1 | val2;
+				}
+		);
 	}
 	
 	@Override
-	public IPv6AddressSection getNetworkSection(int networkPrefixLength) {
+	public IPv6AddressSection getNetworkSection() {
+		if(isPrefixed()) {
+			return getNetworkSection(getNetworkPrefixLength());
+		}
+		return getNetworkSection(getBitCount());
+	}
+	
+	@Override
+	public IPv6AddressSection getNetworkSection(int networkPrefixLength) throws PrefixLenException {
 		return getNetworkSection(networkPrefixLength, true);
 	}
 	
 	@Override
-	public IPv6AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) {
-		int cidrSegmentCount = getNetworkSegmentCount(networkPrefixLength);
-		return getNetworkSection(this, networkPrefixLength, cidrSegmentCount, withPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, withPrefixLength));
+	public IPv6AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) throws PrefixLenException {
+		return getNetworkSection(this, networkPrefixLength, withPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, withPrefixLength));
 	}
 	
 	@Override
-	public IPv6AddressSection getHostSection(int networkPrefixLength) {
-		int cidrSegmentCount = getHostSegmentCount(networkPrefixLength);
-		IPv6AddressCreator creator = getAddressCreator(startIndex + (getSegmentCount() - cidrSegmentCount));
-		return getHostSection(this, networkPrefixLength, cidrSegmentCount, creator, (i, prefix) -> getSegment(i).toHostSegment(prefix));
+	public IPv6AddressSection getHostSection() {
+		if(isPrefixed()) {
+			return getHostSection(getNetworkPrefixLength());
+		}
+		return getHostSection(0);
+	}
+	
+	@Override
+	public IPv6AddressSection getHostSection(int networkPrefixLength) throws PrefixLenException {
+		int hostSegmentCount = getHostSegmentCount(networkPrefixLength);
+		IPv6AddressCreator creator = getAddressCreator(addressSegmentIndex + (getSegmentCount() - hostSegmentCount));
+		return getHostSection(this, networkPrefixLength, hostSegmentCount, creator, (i, prefix) -> getSegment(i).toHostSegment(prefix));
+	}
+	
+	@Override
+	public IPv6AddressSection toPrefixBlock() {
+		Integer prefixLength = getNetworkPrefixLength();
+		if(prefixLength == null || getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			return this;
+		}
+		return toPrefixBlock(prefixLength);
+	}
+	
+	@Override
+	public IPv6AddressSection assignPrefixForSingleBlock() {
+		return (IPv6AddressSection) super.assignPrefixForSingleBlock();
+	}
+	
+	@Override
+	public IPv6AddressSection assignMinPrefixForBlock() {
+		return (IPv6AddressSection) super.assignMinPrefixForBlock();
+	}
+	
+	@Override
+	public IPv6AddressSection toPrefixBlock(int networkPrefixLength) throws PrefixLenException {
+		return toPrefixBlock(this, networkPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, true));
 	}
 	
 	////////////////string creation below ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1147,13 +1625,13 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	String toBase85String(String zone) {
 		Integer prefixLength = getNetworkPrefixLength();
-		AddressLargeDivision largeDiv;
+		IPAddressLargeDivision largeDiv;
 		if(isDualString()) {
-			largeDiv = new AddressLargeDivision(getBytes(), getUpperBytes(), getBitCount(), 85, prefixLength);
+			largeDiv = new IPAddressLargeDivision(getBytesInternal(), getUpperBytesInternal(), getBitCount(), 85, getNetwork(), prefixLength);
 		} else {
-			largeDiv = new AddressLargeDivision(getBytes(), getBitCount(), 85, prefixLength);
+			largeDiv = new IPAddressLargeDivision(getBytesInternal(), getBitCount(), 85, getNetwork(), prefixLength);
 		}
-		IPAddressStringDivisionSeries part = new IPAddressStringDivisionGrouping(new AddressDivisionBase[] { largeDiv }, prefixLength);
+		IPAddressStringDivisionSeries part = new IPAddressStringDivisionGrouping(new IPAddressStringDivision[] { largeDiv }, getNetwork(), prefixLength);
 		return toNormalizedString(IPv6StringCache.base85Params, zone, part);
 	}
 
@@ -1202,13 +1680,13 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			IPv6AddressSection lower = getLower();
 			IPv6AddressSection upper = getUpper();
 			IPAddressBitsDivision lowerDivs[] = lower.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-			IPAddressStringDivisionSeries lowerPart = new IPAddressDivisionGrouping(lowerDivs);
+			IPAddressStringDivisionSeries lowerPart = new IPAddressDivisionGrouping(lowerDivs, getNetwork());
 			IPAddressBitsDivision upperDivs[] = upper.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-			IPAddressStringDivisionSeries upperPart = new IPAddressDivisionGrouping(upperDivs);
+			IPAddressStringDivisionSeries upperPart = new IPAddressDivisionGrouping(upperDivs, getNetwork());
 			return toNormalizedStringRange(params, lowerPart, upperPart, zone);
 		}
-		IPAddressBitsDivision divs[] = createNewPrefixedDivisions(3, getNetworkPrefixLength(), IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs);
+		IPAddressBitsDivision divs[] = createNewPrefixedDivisions(3, null, null, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs, getNetwork());
 		return params.toString(part, zone);
 	}
 
@@ -1243,7 +1721,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	public String toNormalizedString(IPv6StringOptions options, CharSequence zone) {
 		IPv6StringParams stringParams;
-		if(options.compressOptions == null) {
+		if(options.isCacheable()) {
 			IPAddressStringWriter<?> cachedParams = (IPAddressStringWriter<?>) getCachedParams(options);
 			if(cachedParams == null) {
 				stringParams = options.from(this);
@@ -1263,7 +1741,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		} else {
 			//no caching is possible due to the compress options
 			stringParams = options.from(this);
-			if(options.makeMixed() && stringParams.nextUncompressedIndex <= IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - startIndex) {//the mixed section is not compressed
+			if(options.makeMixed() && stringParams.nextUncompressedIndex <= IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex) {//the mixed section is not compressed
 				return toNormalizedMixedString(new IPv6v4MixedParams(stringParams, options.ipv4Opts), zone);
 			}
 		}
@@ -1302,7 +1780,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 	IPv6StringCollection toStringCollection(IPv6StringBuilderOptions opts, CharSequence zone) {
 		IPv6StringCollection collection = new IPv6StringCollection();
-		int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - startIndex, 0);
+		int mixedCount = getSegmentCount() - Math.max(IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex, 0);
 		if(mixedCount > 0 && opts.includes(IPv6StringBuilderOptions.MIXED)) {
 			IPv6v4MixedAddressSection mixed = getMixedAddressSection();
 			IPv6v4MixedStringBuilder mixedBuilder = new IPv6v4MixedStringBuilder(mixed, opts, zone);
@@ -1408,7 +1886,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 						return !addressSection.isPrefixed();
 					case COVERED_BY_HOST:
 						if(addressSection.isPrefixed()) {
-							int mixedDistance = IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSection.startIndex;
+							int mixedDistance = IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSection.addressSegmentIndex;
 							int mixedCount = addressSection.getSegmentCount() - Math.max(mixedDistance, 0);
 							if(mixedCount > 0) {
 								return (mixedDistance * addressSection.getBitsPerSegment()) >= addressSection.getNetworkPrefixLength();
@@ -1470,12 +1948,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			if(makeMixed) {
 				if(ipv4Opts == null) {
 					ipv4Opts = new IPv4StringOptions.Builder().
-							setExpandedSegments(expandSegments).setWildcardOption(wildcardOption).setWildcards(wildcards).toParams();
+							setExpandedSegments(expandSegments).setWildcardOption(wildcardOption).setWildcards(wildcards).toOptions();
 				}
 				this.ipv4Opts = ipv4Opts;
 			} else {
 				this.ipv4Opts = null;
 			}
+		}
+		
+		boolean isCacheable() {
+			return compressOptions == null;
 		}
 		
 		boolean makeMixed() {
@@ -1493,8 +1975,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 					result.firstCompressedSegmentIndex = maxIndex;
 					result.nextUncompressedIndex = maxIndex + maxCount;
 					result.hostCompressed = compressOptions.rangeSelection.compressHost() &&
+							addr.isPrefixed() &&
 							(result.nextUncompressedIndex > 
-								getSegmentIndex(addr.getNetworkPrefixLength(), IPv6Address.BYTE_COUNT, IPv6Address.BYTES_PER_SEGMENT));
+								getHostSegmentIndex(addr.getNetworkPrefixLength(), IPv6Address.BYTE_COUNT, IPv6Address.BYTES_PER_SEGMENT));
 				}
 			}
 			result.expandSegments(expandSegments);
@@ -1613,7 +2096,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 			
 			@Override
-			public IPv6StringOptions toParams() {
+			public IPv6StringOptions toOptions() {
 				return new IPv6StringOptions(base, expandSegments, wildcardOption, wildcards, segmentStrPrefix, makeMixed, ipv4Options, compressOptions, separator, zoneSeparator, addrLabel, addrSuffix, reverse, splitDigits, uppercase);
 			}
 		}
@@ -1667,7 +2150,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				int count = range.length;
 				if(createMixed) {
 					//so here we shorten the range to exclude the mixed part if necessary
-					int mixedIndex = IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - startIndex;
+					int mixedIndex = IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex;
 					if(!compressMixed ||
 							index > mixedIndex || index + count < segmentCount) { //range does not include entire mixed part.  We never compress only part of a mixed part.
 						//the compressible range must stop at the mixed part
@@ -1706,7 +2189,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		
 		int firstCompressedSegmentIndex, nextUncompressedIndex; //the start and end of any compressed section
 		
-		boolean hostCompressed; //whether the host was compressed, which means we must print the network prefix
+		boolean hostCompressed; //whether the host was compressed, which with some prefix configurations means we must print the network prefix to indicate that the host is full range
 		
 		IPv6StringParams() {
 			this(-1, 0);
@@ -1762,9 +2245,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		public int getStringLength(IPv6AddressSection addr) {
 			int count = getSegmentsStringLength(addr);
 			if(!isReverse() && (!preferWildcards() || hostCompressed)) {
-				count += getPrefixStringLength(addr);
+				count += getPrefixIndicatorStringLength(addr);
 			}
-			//count += getZoneLength();
 			count += getAddressSuffixLength();
 			count += getAddressLabelLength();
 			return count;
@@ -1803,8 +2285,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			while(true) {
 				int segIndex = reverse ? lastIndex - i : i;
 				if(segIndex < firstCompressedSegmentIndex || segIndex >= nextUncompressedIndex) {
-					AddressStringDivision seg = addr.getDivision(segIndex);
-					appendSegment(segIndex, seg, builder);
+					appendSegment(segIndex, builder, addr);
 					if(++i > lastIndex) {
 						break;
 					}
@@ -1835,8 +2316,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				int i = 0;
 				while(true) {
 					if(i < firstCompressedSegmentIndex || i >= nextUncompressedIndex) {
-						IPAddressDivision seg = part.getDivision(i);
-						count += appendSegment(i, seg, null);
+						count += appendSegment(i, null, part);
 						if(++i >= divCount) {
 							break;
 						}
@@ -1858,16 +2338,33 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 			return count;
 		}
-		
+
 		@Override
 		public IPv6StringParams clone() {
 			return (IPv6StringParams) super.clone();
 		}
 	}
 
+	static class EmbeddedIPv6AddressSection extends IPv6AddressSection {
+
+		private static final long serialVersionUID = 4L;
+		
+		private final IPAddressSection encompassingSection;
+
+		EmbeddedIPv6AddressSection(IPAddressSection encompassingSection, IPv6AddressSegment subSegments[], int startIndex) {
+			super(subSegments, startIndex, false);
+			this.encompassingSection = encompassingSection;
+		}
+		
+		@Override
+		public boolean isPrefixBlock() {
+			return encompassingSection.isPrefixBlock();
+		}
+	}
+	
 	public static class IPv6v4MixedAddressSection extends IPAddressDivisionGrouping {
 
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		private final IPv6AddressSection ipv6Section;
 		private final IPv4AddressSection ipv4Section;
@@ -1876,7 +2373,17 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		private IPv6v4MixedAddressSection(
 				IPv6AddressSection ipv6Section,
 				IPv4AddressSection ipv4Section) {
-			super(createSegments(ipv6Section, ipv4Section));
+			super(createSegments(ipv6Section, ipv4Section), ipv6Section.getNetwork());
+			if(ipv6Section.isPrefixed()) {
+				if(!ipv4Section.isPrefixed() || ipv4Section.getNetworkPrefixLength() != 0) {
+					throw new InconsistentPrefixException(ipv6Section, ipv4Section, ipv4Section.getNetworkPrefixLength());
+				}
+				cachedPrefixLength = ipv6Section.getNetworkPrefixLength();
+			} else if(ipv4Section.isPrefixed()) {
+				cachedPrefixLength = ipv4Section.getNetworkPrefixLength() + ipv6Section.getBitCount();
+			} else {
+				cachedPrefixLength = NO_PREFIX_LENGTH;
+			}
 			this.ipv4Section = ipv4Section;
 			this.ipv6Section = ipv6Section;
 		}
@@ -1884,6 +2391,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		private static IPAddressDivision[] createSegments(IPv6AddressSection ipv6Section, IPv4AddressSection ipv4Section) {
 			int ipv6Len = ipv6Section.getSegmentCount();
 			int ipv4Len = ipv4Section.getSegmentCount();
+			if(ipv6Len + ((ipv4Len + 1) >> 1) + ipv6Section.addressSegmentIndex > IPv6Address.SEGMENT_COUNT) {
+				throw new AddressValueException(ipv6Section, ipv4Section);
+			}
 			IPAddressSegment allSegs[] = new IPAddressSegment[ipv6Len + ipv4Len];
 			ipv6Section.getSegments(0, ipv6Len, allSegs, 0);
 			ipv4Section.getSegments(0, ipv4Len, allSegs, ipv6Len);
@@ -1897,6 +2407,21 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		@Override
 		public int getBitCount() {
 			return ipv6Section.getBitCount() + ipv4Section.getBitCount();
+		}
+
+		@Override
+		public boolean isPrefixBlock() {
+			Integer networkPrefixLength = getNetworkPrefixLength();
+			if(networkPrefixLength == null) {
+				return false;
+			}
+			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				return true;
+			}
+			if(ipv6Section.isPrefixed()) {
+				return ipv6Section.isPrefixBlock() && ipv4Section.isPrefixBlock();
+			}
+			return ipv4Section.isPrefixBlock();
 		}
 		
 		@Override
@@ -2022,7 +2547,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 		protected int getPrefixStringLength(IPv6v4MixedAddressSection addr) {
 			if(requiresPrefixIndicator(addr.ipv6Section) || requiresPrefixIndicator(addr.ipv4Section)) {
-				return IPAddressStringParams.getPrefixStringLength(addr);
+				return IPAddressStringParams.getPrefixIndicatorStringLength(addr);
 			}
 			return 0;
 		}
@@ -2391,7 +2916,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 					ipv4ConverterOptions = new IPv4StringBuilderOptions();
 				}
 				if(ipv4AddressConverter == null) {
-					ipv4AddressConverter = IPAddress.addressConverter;
+					ipv4AddressConverter = IPAddress.DEFAULT_ADDRESS_CONVERTER;
 					if(ipv4AddressConverter == null) {
 						ipv4AddressConverter = new DefaultAddressConverter();
 					}

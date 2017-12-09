@@ -32,7 +32,7 @@ import inet.ipaddr.IPAddress.IPVersion;
  */
 class ParsedHostIdentifierStringQualifier implements Serializable {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	/* if there is a prefix length for the address, this will be its numeric value */
 	private final Integer networkPrefixLength; //non-null for a prefix-only address, sometimes non-null for IPv4, IPv6
@@ -72,7 +72,6 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 	IPAddress getMask() {
 		if(mask != null) {
 			return mask.createAddresses().getAddress();
-			//return mask.createAddress();
 		}
 		return null;
 	}
@@ -91,7 +90,7 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 
 	IPVersion inferVersion(IPAddressStringParameters validationOptions) {
 		if(networkPrefixLength != null) {
-			if(networkPrefixLength > IPAddress.bitCount(IPVersion.IPV4) && 
+			if(networkPrefixLength > IPAddress.getBitCount(IPVersion.IPV4) && 
 					!validationOptions.getIPv4Parameters().allowPrefixesBeyondAddressSize) {
 				return IPVersion.IPV6;
 			}

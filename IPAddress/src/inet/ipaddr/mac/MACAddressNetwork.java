@@ -18,34 +18,60 @@
 
 package inet.ipaddr.mac;
 
+import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
-import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.format.AddressCreator;
 
-public class MACAddressNetwork extends AddressNetwork {
+public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
-	public static class MACAddressCreator extends AddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> implements AddressSegmentCreator<MACAddressSegment> {
-		MACAddressSegment emptySegments[] = {};
-		MACAddressSection emptySection[] = {};
+	private static final long serialVersionUID = 4L;
+
+	private static PrefixConfiguration defaultPrefixConfiguration = AddressNetwork.getDefaultPrefixConfiguration();
+
+	private static final MACAddressSegment EMPTY_SEGMENTS[] = {};
+
+	public class MACAddressCreator extends AddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> implements AddressSegmentCreator<MACAddressSegment> {
+		private static final long serialVersionUID = 4L;
+
+		private transient MACAddressSegment ALL_RANGE_SEGMENT;
 		
-		private static MACAddressSegment segmentCache[] = new MACAddressSegment[MACAddress.MAX_VALUE_PER_SEGMENT + 1];
+		private transient MACAddressSegment segmentCache[];
+		
+		@Override
+		public void clearCaches() {
+			segmentCache = null;
+		}
+		
+		public MACAddressNetwork getNetwork() {
+			return MACAddressNetwork.this;
+		}
 		
 		@Override
 		public MACAddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
-				return emptySegments;
+				return EMPTY_SEGMENTS;
 			}
 			return new MACAddressSegment[length];
 		}
 		
 		@Override
 		public MACAddressSegment createSegment(int value) {
-			MACAddressSegment result = segmentCache[value];
-			if(result == null) {
-				segmentCache[value] = result = new MACAddressSegment(value);
+			if(value >= 0 && value <= MACAddress.MAX_VALUE_PER_SEGMENT) {
+				MACAddressSegment result, cache[] = segmentCache;
+				if(cache == null) {
+					segmentCache = cache = new MACAddressSegment[MACAddress.MAX_VALUE_PER_SEGMENT + 1];
+					cache[value] = result = new MACAddressSegment(value);
+				} else {
+					result = cache[value];
+					if(result == null) {
+						cache[value] = result = new MACAddressSegment(value);
+					}
+				}
+				return result;
 			}
-			return result;
+			return new MACAddressSegment(value);
 		}
 		
 		@Override
@@ -56,22 +82,32 @@ public class MACAddressNetwork extends AddressNetwork {
 			//Here, we do the same, but when the prefix gets to here, we cannot pass to the segment, so we apply the prefix here
 			//But this also gives more caching opportunities
 			if(segmentPrefixLength != null) {
-				if(segmentPrefixLength == 0) {
-					return MACAddressSegment.ALL_RANGE_SEGMENT;
+				if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+					if(segmentPrefixLength == 0) {
+						MACAddressSegment result = ALL_RANGE_SEGMENT;
+						if(result == null) {
+							ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
+						}
+						return result;
+					}
+					int mask = ~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength);
+					int newLower = value & mask;
+					int newUpper = value | ~mask;
+					return createRangeSegment(newLower, newUpper);
 				}
-				int max = MACAddress.MAX_VALUE_PER_SEGMENT;
-				int mask = (~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength)) & max;
-				int newLower = value & mask;
-				int newUpper = value | (~mask & max);
-				return createSegment(newLower, newUpper);
 			}
 			return createSegment(value);
 		}
 		
-		public MACAddressSegment createSegment(int lower, int upper) {
+		//different name to avoid confusion with createSegment(int, Integer)
+		public MACAddressSegment createRangeSegment(int lower, int upper) {
 			if(lower != upper) {
 				if(lower == 0 && upper == MACAddress.MAX_VALUE_PER_SEGMENT) {
-					return MACAddressSegment.ALL_RANGE_SEGMENT;
+					MACAddressSegment result = ALL_RANGE_SEGMENT;
+					if(result == null) {
+						ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, upper);
+					}
+					return result;
 				}
 				return new MACAddressSegment(lower, upper);
 			}
@@ -81,16 +117,23 @@ public class MACAddressNetwork extends AddressNetwork {
 		@Override
 		public MACAddressSegment createSegment(int lower, int upper, Integer segmentPrefixLength) {
 			if(segmentPrefixLength == null) {
-				return createSegment(lower, upper);
+				return createRangeSegment(lower, upper);
 			}
-			if(segmentPrefixLength == 0) {
-				return MACAddressSegment.ALL_RANGE_SEGMENT;
+			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				if(segmentPrefixLength == 0) {
+					MACAddressSegment result = ALL_RANGE_SEGMENT;
+					if(result == null) {
+						ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
+					}
+					return result;
+				}
+				int max = MACAddress.MAX_VALUE_PER_SEGMENT;
+				int mask = (~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength)) & max;
+				int newLower = lower & mask;
+				int newUpper = upper | (~mask  & max);
+				return createRangeSegment(newLower, newUpper);
 			}
-			int max = MACAddress.MAX_VALUE_PER_SEGMENT;
-			int mask = (~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength)) & max;
-			int newLower = lower & mask;
-			int newUpper = upper | (~mask  & max);
-			return createSegment(newLower, newUpper);
+			return createRangeSegment(lower, upper);
 		}
 
 		@Override
@@ -112,20 +155,46 @@ public class MACAddressNetwork extends AddressNetwork {
 		}
 		
 		MACAddressSection createSection(long bytes, int startIndex, boolean extended, Integer prefixLength) {
-			return new MACAddressSection(bytes, startIndex, extended, prefixLength);
+			MACAddressSection result = new MACAddressSection(bytes, startIndex, extended);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
 		}
 		
 		MACAddressSection createSection(byte bytes[], int startIndex, boolean extended, Integer prefixLength) {
-			return new MACAddressSection(bytes, startIndex, extended, prefixLength);
+			MACAddressSection result = new MACAddressSection(bytes, startIndex, extended);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
 		}
 		
 		MACAddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int startIndex, boolean extended, Integer prefixLength) {
-			return new MACAddressSection(lowerValueProvider, upperValueProvider, startIndex, extended, prefixLength);
+			MACAddressSection result = new MACAddressSection(lowerValueProvider, upperValueProvider, startIndex, extended);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
 		}
 		
 		@Override
 		protected MACAddressSection createSectionInternal(MACAddressSegment[] segments) {
 			return new MACAddressSection(false, segments, 0, segments.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT);
+		}
+		
+		@Override
+		protected MACAddressSection createPrefixedSectionInternal(MACAddressSegment[] segments, Integer prefixLength, boolean singleOnly) {
+			return createPrefixedSectionInternal(segments, prefixLength);
+		}
+
+		@Override
+		protected MACAddressSection createPrefixedSectionInternal(MACAddressSegment[] segments, Integer prefixLength) {
+			MACAddressSection result = new MACAddressSection(false, segments, 0, segments.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
 		}
 		
 		protected MACAddressSection createSectionInternal(MACAddressSegment[] segments, boolean extended) {
@@ -138,12 +207,32 @@ public class MACAddressNetwork extends AddressNetwork {
 		}
 		
 		MACAddressSection createSection(MACAddressSegment[] segments, boolean extended, Integer prefixLength) {
-			return new MACAddressSection(segments, 0, extended, prefixLength);
+			MACAddressSection result = new MACAddressSection(segments, 0, extended);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
+		}
+		
+		@Override
+		protected MACAddress createAddressInternal(byte[] bytes, CharSequence zone) {
+			MACAddressSection section = new MACAddressSection(bytes, 0, bytes.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT, false);
+			return createAddress(section);
 		}
 		
 		@Override
 		protected MACAddress createAddressInternal(MACAddressSegment[] segments) {
 			return createAddress(createSectionInternal(segments));
+		}
+		
+		@Override
+		protected MACAddress createAddressInternal(MACAddressSegment segments[], Integer prefix) {
+			return createAddress(createPrefixedSectionInternal(segments, prefix));
+		}
+		
+		@Override
+		protected MACAddress createAddressInternal(MACAddressSegment[] segments, Integer prefix, boolean singleOnly) {
+			return createAddressInternal(segments, prefix);
 		}
 
 		@Override
@@ -170,13 +259,39 @@ public class MACAddressNetwork extends AddressNetwork {
 		return new MACAddressCreator();
 	}
 	
+	@Override
 	public MACAddressNetwork.MACAddressCreator getAddressCreator() {
 		return creator;
 	}
 	
 	private MACAddressNetwork.MACAddressCreator creator;
 	
-	MACAddressNetwork() {
+	public MACAddressNetwork() {
 		this.creator = createAddressCreator();
+	}
+	
+	@Override
+	public PrefixConfiguration getPrefixConfiguration() {
+		return defaultPrefixConfiguration;
+	}
+
+	/**
+	 * Sets the default prefix configuration used by this network.
+	 * 
+	 * @see AddressNetwork#setDefaultPrefixConfiguration(PrefixConfiguration)
+	 * @see PrefixConfiguration
+	 */
+	public static void setDefaultPrefixConfiguration(PrefixConfiguration config) {
+		defaultPrefixConfiguration = config;
+	}
+	
+	/**
+	 * Gets the default prefix configuration used by this network.
+	 * 
+	 * @see AddressNetwork#getDefaultPrefixConfiguration()
+	 * @see PrefixConfiguration
+	 */
+	public static PrefixConfiguration getDefaultPrefixConfiguration() {
+		return defaultPrefixConfiguration;
 	}
 }

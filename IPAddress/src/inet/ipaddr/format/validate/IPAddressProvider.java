@@ -19,6 +19,7 @@
 package inet.ipaddr.format.validate;
 
 import java.io.Serializable;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Objects;
 
@@ -26,10 +27,9 @@ import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
-import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.format.validate.ParsedIPAddress.CachedIPAddresses;
 import inet.ipaddr.format.validate.ParsedIPAddress.IPAddresses;
-import inet.ipaddr.ipv6.IPv6Address;
 
 /**
  * Provides an address corresponding to a parsed string.
@@ -59,7 +59,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 		}
 	}
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	@SuppressWarnings("serial")
 	public static final NullProvider INVALID_PROVIDER = new NullProvider(IPType.INVALID) {
@@ -84,10 +84,6 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 			return true;
 		}
 	};
-	
-	static final IPAddressProvider LOOPBACK_CREATOR = new LoopbackCreator();
-	
-	static final IPAddressProvider ALL_ADDRESSES_CREATOR = new AllCreator(new ParsedHostIdentifierStringQualifier(), null, null);
 	
 	private IPAddressProvider() {}
 	
@@ -207,6 +203,15 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 		return getNetworkPrefixLength() != null;
 	}
 	
+	/**
+	 * If the address was created by parsing, this provides the parameters used when creating the address.
+	 * 
+	 * @return the parameters used to create the address, or null if no such parameters were used.
+	 */
+	public IPAddressStringParameters getParameters() {
+		return null;
+	}
+	
 	@Override
 	public String toString() {
 		return String.valueOf(getAddress());
@@ -214,7 +219,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	
 	//for addresses that cannot produce an ipv4 or ipv6 value and has no prefix either
 	private abstract static class NullProvider extends IPAddressProvider {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private IPType type;
 		
 		public NullProvider(IPAddressProvider.IPType type) {
@@ -253,7 +258,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	
 	//constructor where we already have a value
 	private static class CachedAddressProvider extends IPAddressProvider {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		CachedIPAddresses<?> values;
 		
 		CachedAddressProvider() {}
@@ -313,7 +318,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	}
 	
 	private static abstract class CachedAddressCreator extends CachedAddressProvider {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 
 		@Override
 		public IPAddress getAddress(IPVersion version) {
@@ -354,7 +359,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	}
 	
 	static class ParsedAddressProvider extends CachedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private ParsedIPAddress parseResult;
 		private IPVersion version;
 		boolean isMixedIPv6;
@@ -416,11 +421,26 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 			}
 			return super.isPrefixed();
 		}
+		
+		@Override
+		public IPAddressStringParameters getParameters() {
+			return parseResult.options;
+		}
 	}
 	
 	static abstract class VersionedAddressCreator extends CachedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		IPAddress versionedValues[];
+		protected final IPAddressStringParameters options;
+		
+		VersionedAddressCreator(IPAddressStringParameters options) {
+			this.options = options;
+		}
+		
+		@Override
+		public IPAddressStringParameters getParameters() {
+			return options;
+		}
 		
 		private IPAddress checkResult(IPVersion version, int index) {
 			IPAddress result = versionedValues[index];
@@ -458,15 +478,16 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	}
 	
 	private static abstract class AdjustedAddressCreator extends VersionedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		protected final IPVersion adjustedVersion;
 		protected final ParsedHostIdentifierStringQualifier qualifier;
 		
-		AdjustedAddressCreator(ParsedHostIdentifierStringQualifier qualifier) {
-			this(qualifier, null);
+		AdjustedAddressCreator(ParsedHostIdentifierStringQualifier qualifier, IPAddressStringParameters options) {
+			this(qualifier, null, options);
 		}
 		
-		AdjustedAddressCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion) {
+		AdjustedAddressCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion, IPAddressStringParameters options) {
+			super(options);
 			this.qualifier = qualifier;
 			this.adjustedVersion = adjustedVersion;
 		}
@@ -506,17 +527,25 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 			}
 			return super.getAddress();
 		}
+		
+		@Override
+		public IPAddress getHostAddress()  {
+			if(adjustedVersion == null) {
+				return null;
+			}
+			return super.getHostAddress();
+		}
 	}
 	
 	static class MaskCreator extends AdjustedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
-		MaskCreator(ParsedHostIdentifierStringQualifier qualifier) {
-			super(qualifier);
+		MaskCreator(ParsedHostIdentifierStringQualifier qualifier, IPAddressStringParameters options) {
+			super(qualifier, options);
 		}
 		
-		MaskCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion) {
-			super(qualifier, adjustedVersion);
+		MaskCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion, IPAddressStringParameters options) {
+			super(qualifier, adjustedVersion, options);
 		}
 		
 		@Override
@@ -564,7 +593,7 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 		}
 
 		private IPAddress createVersionedMask(IPVersion version, int bits, boolean withPrefixLength) {
-			IPAddressNetwork network = IPAddress.network(version);
+			IPAddressNetwork<?, ?, ?, ?, ?> network = version.isIPv4() ? options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
 			return network.getNetworkMask(bits, withPrefixLength);
 		}
 		
@@ -600,14 +629,15 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	}
 	
 	static class LoopbackCreator extends VersionedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		private final CharSequence zone;
 		
-		LoopbackCreator() {
-			this(null);
+		LoopbackCreator(IPAddressStringParameters options) {
+			this(null, options);
 		}
 
-		LoopbackCreator(CharSequence zone) {
+		LoopbackCreator(CharSequence zone, IPAddressStringParameters options) {
+			super(options);
 			this.zone = zone;
 		}
 		
@@ -636,9 +666,11 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 			if(values != null && version.equals(values.getAddress().getIPVersion())) {
 				return values.getAddress();
 			}
-			IPAddress address = IPAddress.getLoopback(version);
+			IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network = version.isIPv4() ? options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
+			IPAddress address = network.getLoopback();
 			if(zone != null && zone.length() > 0 && version.isIPv6()) {
-				return IPv6Address.from(address.getBytes(), zone);
+				ParsedAddressCreator<? extends IPAddress, ?, ?, ?> addressCreator = network.getAddressCreator();
+				return addressCreator.createAddressInternal(address.getBytes(), zone);
 			}
 			return address;
 		}
@@ -646,12 +678,15 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 		@Override
 		CachedIPAddresses<IPAddress> createAddresses() {
 			InetAddress loopback = InetAddress.getLoopbackAddress();
-			byte bytes[] = loopback.getAddress();
+			boolean isIPv6 = loopback instanceof Inet6Address;
 			IPAddress result;
-			if(zone != null && zone.length() > 0 && bytes.length == IPv6Address.BYTE_COUNT) {
-				result = IPv6Address.from(bytes, zone);
+			if(zone != null && zone.length() > 0 && isIPv6) {
+				ParsedAddressCreator<? extends IPAddress, ?, ?, ?> addressCreator = options.getIPv6Parameters().getNetwork().getAddressCreator();
+				result = addressCreator.createAddressInternal(loopback.getAddress(), zone);
+			} else if(isIPv6) {
+				result = options.getIPv6Parameters().getNetwork().getLoopback();
 			} else {
-				result = IPAddress.from(bytes);
+				result = options.getIPv4Parameters().getNetwork().getLoopback();
 			}
 			return new CachedIPAddresses<IPAddress>(result);
 		}
@@ -668,22 +703,22 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 	}
 	
 	static class AllCreator extends AdjustedAddressCreator {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		HostIdentifierString originator;
 		
-		AllCreator(ParsedHostIdentifierStringQualifier qualifier, HostIdentifierString originator) {
-			super(qualifier);
+		AllCreator(ParsedHostIdentifierStringQualifier qualifier, HostIdentifierString originator, IPAddressStringParameters options) {
+			super(qualifier, options);
 			this.originator = originator;
 		}
 		
-		AllCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion, HostIdentifierString originator) {
-			super(qualifier, adjustedVersion);
+		AllCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion, HostIdentifierString originator, IPAddressStringParameters options) {
+			super(qualifier, adjustedVersion, options);
 			this.originator = originator;
 		}
 		
 		@Override
 		IPAddress createVersionedAddress(IPVersion version) {
-			return ParsedIPAddress.createAllAddress(version, qualifier, originator);
+			return ParsedIPAddress.createAllAddress(version, qualifier, originator, options);
 		}
 
 		@Override
@@ -702,14 +737,14 @@ public abstract class IPAddressProvider implements Serializable, Comparable<IPAd
 		@Override
 		public int hashCode() {
 			if(adjustedVersion == null) {
-				return IPAddressString.ALL_ADDRESSES.toString().hashCode();
+				return IPAddress.SEGMENT_WILDCARD_STR.hashCode();
 			}
 			return super.hashCode();
 		}
 		
 		@Override
 		CachedIPAddresses<?> createAddresses() {
-			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator));
+			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options));
 		}
 	}
 }

@@ -20,10 +20,14 @@ package inet.ipaddr;
 
 import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.function.Function;
 
 import inet.ipaddr.AddressComparator.CountComparator;
 import inet.ipaddr.format.AddressDivision;
 import inet.ipaddr.format.AddressDivisionSeries;
+import inet.ipaddr.ipv4.IPv4AddressNetwork;
+import inet.ipaddr.ipv6.IPv6AddressNetwork;
+import inet.ipaddr.mac.MACAddressNetwork;
 
 /**
  * @custom.core
@@ -32,12 +36,34 @@ import inet.ipaddr.format.AddressDivisionSeries;
  */
 public abstract class Address implements AddressSegmentSeries, Comparable<Address> {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
-	public static interface SegmentValueProvider {
-		int getValue(int segmentIndex, int segmentByteCount);
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
+	public static interface AddressProvider {
+		int getSegmentCount();
+		
+		SegmentValueProvider getValues();
+		
+		SegmentValueProvider getUpperValues();
+		
+		Integer getPrefixLength();
+		
+		String getZone();
 	}
 	
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
+	public static interface SegmentValueProvider {
+		int getValue(int segmentIndex);
+	}
+
 	public static final String HEX_PREFIX = "0x";
 	public static final String OCTAL_PREFIX = "0";
 	public static final char RANGE_SEPARATOR = '-';
@@ -52,20 +78,68 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public static final char SEGMENT_SQL_SINGLE_WILDCARD = '_';
 	public static final String SEGMENT_SQL_SINGLE_WILDCARD_STR = String.valueOf(SEGMENT_SQL_SINGLE_WILDCARD);
 	
-	public static final AddressComparator addressComparator = new CountComparator();
-	
-	/* the segments.  For IPv4, each element is actually just 1 byte and the array has 4 elements, while for IPv6, each element is 2 bytes and the array has 8 elements. */
+	public static final AddressComparator DEFAULT_ADDRESS_COMPARATOR = new CountComparator();
+
+	private static MACAddressNetwork macNetwork;
+	private static IPv6AddressNetwork ipv6Network;
+	private static IPv4AddressNetwork ipv4Network;
+
+	/* the segments.  For IPv4, each element is actually just 1 byte and the array has 4 elements, 
+	 * while for IPv6, each element is 2 bytes and the array has 8 elements. */
 	final AddressSection addressSection;
 
 	/* an object encapsulating a string representing the address, which is the one used to construct the address if the address was constructed from a string */
 	protected HostIdentifierString fromString;
-
+	
 	/**
 	 * Constructs an address.
 	 * @param section the address segments
 	 */
-	public Address(AddressSection section) {
+	protected Address(AddressSection section) {
 		addressSection = section;
+		if(!getNetwork().equals(addressSection.getNetwork())) {
+			throw new NetworkMismatchException(addressSection);
+		}
+	}
+	
+	protected Address(Function<Address, AddressSection> supplier) {
+		addressSection = supplier.apply(this);
+		if(!getNetwork().equals(addressSection.getNetwork())) {
+			throw new NetworkMismatchException(addressSection);
+		}
+	}
+	
+	public static IPv6AddressNetwork defaultIpv6Network() {
+		if(ipv6Network == null) {
+			synchronized(Address.class) {
+				if(ipv6Network == null) {
+					ipv6Network = new IPv6AddressNetwork();
+				}
+			}
+		}
+		return ipv6Network;
+	}
+
+	public static IPv4AddressNetwork defaultIpv4Network() {
+		if(ipv4Network == null) {
+			synchronized(Address.class) {
+				if(ipv4Network == null) {
+					ipv4Network = new IPv4AddressNetwork();
+				}
+			}
+		}
+		return ipv4Network;
+	}
+	
+	public static MACAddressNetwork defaultMACNetwork() {
+		if(macNetwork == null) {
+			synchronized(Address.class) {
+				if(macNetwork == null) {
+					macNetwork = new MACAddressNetwork();
+				}
+			}
+		}
+		return macNetwork;
 	}
 	
 	protected static String getMessage(String key) {
@@ -74,22 +148,22 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 
 	@Override
 	public int getSegmentCount() {
-		return addressSection.getSegmentCount();
+		return getSection().getSegmentCount();
 	}
 	
 	@Override
 	public int getDivisionCount() {
-		return addressSection.getDivisionCount();
+		return getSection().getDivisionCount();
 	}
 	
 	@Override
 	public int getBitCount() {
-		return addressSection.getBitCount();
+		return getSection().getBitCount();
 	}
 
 	@Override
 	public int getByteCount() {
-		return addressSection.getByteCount();
+		return getSection().getByteCount();
 	}
 
 	public AddressSection getSection() {
@@ -108,27 +182,27 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	@Override
 	public AddressDivision getDivision(int index) {
-		return addressSection.getDivision(index);
+		return getSection().getDivision(index);
 	}
 	
 	@Override
 	public AddressSegment getSegment(int index) {
-		return addressSection.getSegment(index);
+		return getSection().getSegment(index);
 	}
 
 	@Override
 	public AddressSegment[] getSegments() {
-		return addressSection.getSegments();
+		return getSection().getSegments();
 	}
 	
 	@Override
 	public void getSegments(AddressSegment segs[]) {
-		addressSection.getSegments(segs);
+		getSection().getSegments(segs);
 	}
 	
 	@Override
 	public void getSegments(int start, int end, AddressSegment segs[], int index) {
-		addressSection.getSegments(start, end, segs, index);
+		getSection().getSegments(start, end, segs, index);
 	}
 	
 	/**
@@ -154,26 +228,21 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	@Override
 	public abstract Address getUpper();
 	
-	@Override
-	public boolean isMultipleByPrefix() {
-		return addressSection.isMultipleByPrefix();
-	}
-	
 	/**
 	 * @return whether this address represents more than one address.
 	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
 	 */
 	@Override
 	public boolean isMultiple() {
-		return addressSection.isMultiple();
+		return getSection().isMultiple();
 	}
 
 	/**
-	 * @return whether this address represents a network prefix or the set of all addresses with the same network prefix
+	 * @return whether this address has an associated prefix length
 	 */
 	@Override
 	public boolean isPrefixed() {
-		return addressSection.isPrefixed();
+		return getSection().isPrefixed();
 	}
 	
 	/**
@@ -181,35 +250,52 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	 */
 	@Override
 	public Integer getPrefixLength() {
-		return addressSection.getPrefixLength();
+		return getSection().getPrefixLength();
 	}
 	
+	/**
+	 * Returns the smallest prefix length possible such that this includes the block of addresses for that prefix.
+	 * <p>
+	 * If the entire range can be dictated this way, then this method returns the same value as {@link #getPrefixLengthForSingleBlock()}.  
+	 * Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #getPrefixLengthForSingleBlock()} will return null.
+	 *<p>
+	 * In cases where the final bit in this address division series is constant, this returns the bit length of this address division series.
+	 *
+	 * @return the prefix length
+	 */
 	@Override
-	public int getMinPrefix() {
-		return getSection().getMinPrefix();
+	public int getMinPrefixLengthForBlock() {
+		return getSection().getMinPrefixLengthForBlock();
 	}
 
 	/**
-	 * Returns a prefix length for which the range of this address can be specified only using the address lower value and the prefix length
-	 * 
+	 * Returns a prefix length for which the range of this address subnet matches the the block of addresses for that prefix.
+	 * <p>
+	 * If the range can be dictated this way, then this method returns the same value as {@link #getMinPrefixLengthForBlock()}.
+	 * <p>
 	 * If no such prefix exists, returns null.
-	 * 
+	 * <p>
+	 * If this segment grouping represents a single value, returns the bit length of this address division series.
+	 * <p>
 	 * IP address examples:
 	 * 1.2.3.4 returns 32
 	 * 1.2.*.* returns 16
-	 * 1.2.*.0/24 returns 16 
+	 * 1.2.*.0/24 returns 16 in the case of PrefixConfiguration == ALL_PREFIXES_ARE_SUBNETS, 32 otherwise
 	 * 1.2.*.4 returns null
 	 * 1.2.252-255.* returns 22
-	 * 1.2.3.4/x returns x
+	 * 1.2.3.4/x returns x in the case of PrefixConfiguration == ALL_PREFIXES_ARE_SUBNETS, 32 otherwise
+	 * 1.2.0.0/16 returns 16 in the case of PrefixConfiguration == ALL_PREFIXES_ARE_SUBNETS or PREFIXED_ZERO_HOSTS_ARE_SUBNETS, 32 otherwise
 	 * 
 	 * @return the prefix length or null if it does not exist
 	 */
 	@Override
-	public Integer getEquivalentPrefix() {
-		return getSection().getEquivalentPrefix();
+	public Integer getPrefixLengthForSingleBlock() {
+		return getSection().getPrefixLengthForSingleBlock();
 	}
 	
 	/**
+	 * Whether the MAC address or IP address or other form of address is multicast.
+	 * 
 	 * @see java.net.InetAddress#isMulticastAddress()
 	 */
 	public abstract boolean isMulticast();
@@ -217,60 +303,70 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	/**
 	 * Gets the count of addresses that this address may represent.
 	 * 
-	 * If this address is not a CIDR network prefix and it has no range, then there is only one such address.
+	 * If this address is not a subnet block of multiple addresses or has no range of values, then there is only one such address.
 	 * 
 	 * @return
 	 */
 	@Override
 	public BigInteger getCount() {
-		return addressSection.getCount();
+		return getSection().getCount();
 	}
 	
 	@Override
 	public int isMore(AddressDivisionSeries other) {
-		return addressSection.isMore(other);
+		return getSection().isMore(other);
 	}
 
 	@Override
 	public byte[] getBytes() {
-		return addressSection.getBytes();
+		return getSection().getBytes();
 	}
 	
 	@Override
 	public byte[] getBytes(byte bytes[]) {
-		return addressSection.getBytes(bytes);
+		return getSection().getBytes(bytes);
 	}
 	
 	/**
-	 * Gets the bytes for the highest address in the range represented by this address.
+	 * Gets the bytes for the highest address in the range of addresses represented by this address instance.
 	 * 
 	 * @return
 	 */
 	@Override
 	public byte[] getUpperBytes() {
-		return addressSection.getUpperBytes();
+		return getSection().getUpperBytes();
 	}
 	
 	@Override
 	public byte[] getUpperBytes(byte bytes[]) {
-		return addressSection.getUpperBytes(bytes);
+		return getSection().getUpperBytes(bytes);
+	}
+	
+	@Override
+	public BigInteger getValue() {
+		return getSection().getValue();
+	}
+	
+	@Override
+	public BigInteger getUpperValue() {
+		return getSection().getUpperValue();
 	}
 
 	@Override
 	public boolean isZero() {
-		return addressSection.isZero();
+		return getSection().isZero();
 	}
 	
 	@Override
 	public boolean isFullRange() {
-		return addressSection.isFullRange();
+		return getSection().isFullRange();
 	}
 	
 	public abstract boolean isLocal();
 	
 	@Override
 	public int hashCode() {
-		return addressSection.hashCode();
+		return getSection().hashCode();
 	}
 	
 	@Override
@@ -278,7 +374,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		if(this == other) {
 			return 0;
 		}
-		return addressComparator.compare(this, other);
+		return DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
 	}
 
 	protected abstract boolean isFromSameString(HostIdentifierString otherString);
@@ -306,18 +402,30 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	}
 	
 	public abstract boolean contains(Address other);
-	
+
 	/**
-	 * @return whether this address represents more than one address and the set of addresses is determined entirely by the prefix length.
+	 * Returns whether the address range includes the block of values for its prefix length.
 	 */
 	@Override
-	public boolean isRangeEquivalentToPrefix() {
-		return addressSection.isRangeEquivalentToPrefix();
+	public boolean isPrefixBlock() {
+		return getSection().isPrefixBlock();
+	}
+
+	/**
+	 * Returns whether the address range the block of values for a single prefix.
+	 * This is similar to {@link #isPrefixBlock()} except that it returns false when
+	 * the subnet has multiple prefixes.
+	 * 
+	 * For instance, 1.*.*.* /16 return false for this method and returns true for {@link #isPrefixBlock()}
+	 */
+	@Override
+	public boolean isSinglePrefixBlock() {
+		return getSection().isSinglePrefixBlock();
 	}
 	
 	/**
 	 * Returns a host identifier string representation for this address,
-	 * which will be validated already.
+	 * which will be already validated.
 	 * 
 	 * @return
 	 */
@@ -332,7 +440,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	 */
 	@Override
 	public String toHexString(boolean with0xPrefix) {
-		return addressSection.toHexString(with0xPrefix);
+		return getSection().toHexString(with0xPrefix);
 	}
 
 	/**
@@ -342,7 +450,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	 */
 	@Override
 	public String toNormalizedString() {
-		return addressSection.toNormalizedString();
+		return getSection().toNormalizedString();
 	}
 	
 	/**
@@ -356,7 +464,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	 */
 	@Override
 	public String toCanonicalString() {
-		return addressSection.toCanonicalString();
+		return getSection().toCanonicalString();
 	}
 	
 	/**
@@ -367,12 +475,22 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	 */
 	@Override
 	public String toCompressedString() {
-		return addressSection.toCompressedString();
+		return getSection().toCompressedString();
 	}
 	
 	@Override
 	public String toString() {
 		return toNormalizedString();
+	}
+	
+	@Override
+	public String[] getDivisionStrings() {
+		return getSection().getDivisionStrings();
+	}
+	
+	@Override
+	public String[] getSegmentStrings() {
+		return getSection().getSegmentStrings();
 	}
 	
 	@Override
@@ -386,6 +504,9 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	@Override
 	public abstract Address reverseBytesPerSegment();
+	
+	@Override
+	public abstract Address toPrefixBlock();
 	
 	@Override
 	public abstract Address removePrefixLength();

@@ -1,5 +1,8 @@
 package inet.ipaddr.format;
 
+import inet.ipaddr.AddressValueException;
+import inet.ipaddr.IPAddressNetwork;
+
 /*
  * Copyright 2017 Sean C Foley
  *
@@ -20,24 +23,44 @@ package inet.ipaddr.format;
 
 public class IPAddressBitsDivision extends IPAddressDivision {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	private final int bitCount, defaultRadix, maxDigitCount;
 	private final long value, upperValue;
 	private final long bitsMask;
 	
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix) {
-		this(value, upperValue, bitCount, defaultRadix, null);
+		this(value, upperValue, bitCount, defaultRadix, null, null);
 	}
 
-	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, Integer networkPrefixLength) {
-		super(networkPrefixLength);
+	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer networkPrefixLength) {
+		super(networkPrefixLength == null ? null : Math.min(bitCount, networkPrefixLength));
 		this.bitCount = bitCount;
-		this.value = value;
-		this.upperValue = upperValue;
+		if(value < 0 || upperValue < 0) {
+			throw new AddressValueException(value < 0 ? value : upperValue);
+		}
+		if(value > upperValue) {
+			long tmp = value;
+			value = upperValue;
+			upperValue = tmp;
+		}
+		long fullMask = ~0L << bitCount; // 11110000  with bitCount zeros
+		long max = ~fullMask;
+		if(upperValue > max) {
+			throw new AddressValueException(upperValue);
+		}
+		networkPrefixLength = getDivisionPrefixLength();
+		if(networkPrefixLength != null && networkPrefixLength < bitCount && network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			long mask = ~0 << (bitCount - networkPrefixLength);
+			this.value = value & mask;
+			this.upperValue = upperValue | ~mask;
+		} else {
+			this.value = value;
+			this.upperValue = upperValue;
+		}
 		this.defaultRadix = defaultRadix;
-		bitsMask = ~(~0L << bitCount);
-		this.maxDigitCount = getMaxDigitCount(defaultRadix, bitCount, bitsMask);
+		bitsMask = max;
+		maxDigitCount = getMaxDigitCount(defaultRadix, bitCount, max);
 	}
 
 	@Override
@@ -89,5 +112,4 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 	public int getMaxDigitCount() {
 		return maxDigitCount;
 	}
-
 }

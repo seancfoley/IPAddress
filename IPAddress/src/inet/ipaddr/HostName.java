@@ -18,17 +18,19 @@
 
 package inet.ipaddr;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.IPAddressTypeNetwork.IPAddressCreator;
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.format.validate.Validator;
-import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
  * An internet host name.  Can be a fully qualified domain name, a simple host name, or an ip address string.
@@ -48,14 +50,14 @@ import inet.ipaddr.ipv6.IPv6Address;
  */
 public class HostName implements HostIdentifierString, Comparable<HostName> {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	public static final char LABEL_SEPARATOR = '.';
 	public static final char IPV6_START_BRACKET = '[', IPV6_END_BRACKET = ']';
 	public static final char PORT_SEPARATOR = ':';
 	
 	/* Generally permissive, settings are the default constants in HostNameParameters */
-	private static final HostNameParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new HostNameParameters.Builder().toParams();
+	public static final HostNameParameters DEFAULT_VALIDATION_OPTIONS = new HostNameParameters.Builder().toParams();
 	
 	/* the original host in string format */
 	private final String host;
@@ -82,7 +84,13 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	public HostName(InetAddress inetAddr) {
-		this(IPAddress.from(inetAddr));
+		this(inetAddr, IPAddressString.DEFAULT_VALIDATION_OPTIONS);
+	}
+	
+	public HostName(InetAddress inetAddr, IPAddressStringParameters addressOptions) {
+		this(inetAddr instanceof Inet4Address ?
+				addressOptions.getIPv4Parameters().getNetwork().getAddressCreator().createAddress((Inet4Address) inetAddr) :
+				addressOptions.getIPv6Parameters().getNetwork().getAddressCreator().createAddress((Inet6Address) inetAddr));
 	}
 	
 	HostName(String hostStr, ParsedHost parsed) {
@@ -92,14 +100,14 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	public HostName(String host) {
-		this(host, DEFAULT_BASIC_VALIDATION_OPTIONS);
+		this(host, DEFAULT_VALIDATION_OPTIONS);
 	}
 	
 	public HostName(String host, HostNameParameters options) {
 		if(options == null) {
 			throw new NullPointerException();
 		}
-		this.validationOptions = options;
+		validationOptions = options;
 		this.host = (host == null) ? "" : host.trim();;
 	}
 	
@@ -207,9 +215,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				IPAddress addr = asAddress();
 				if(addr.isIPv6()) {
 					if(!wildcard && addr.isPrefixed()) {//prefix needs to be outside the brackets
-						int bits = addr.getNetworkPrefixLength();
-						IPAddress addrNoPrefix = addr.removePrefixLength();
-						builder.append(IPV6_START_BRACKET).append(addrNoPrefix.toNormalizedString()).append(IPV6_END_BRACKET).append(IPAddress.PREFIX_LEN_SEPARATOR).append(bits);
+						String normalized = addr.toNormalizedString();
+						int index = normalized.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
+						builder.append(IPV6_START_BRACKET).append(normalized.substring(0, index)).append(IPV6_END_BRACKET).append(normalized.substring(index));
 					} else {
 						builder.append(IPV6_START_BRACKET).append(addr.toNormalizedWildcardString()).append(IPV6_END_BRACKET);
 					}
@@ -221,7 +229,6 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				builder.append(asAddressString().toNormalizedString()); //IPAddressString.toNormalizedString(parsedHost.getAddressProvider());
 			} else {
 				builder.append(parsedHost.getHost());
-				
 				/*
 				 * If prefix or mask is supplied and there is an address, it is applied directly to the address provider, so 
 				 * we need only check for those things here
@@ -555,14 +562,15 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 									for(int i = 0; i < bytes.length; i++) {
 										bytes[i] &= maskBytes[i];
 									}
-									networkPrefixLength = mask.getMaskPrefixLength(true);
+									networkPrefixLength = mask.getBlockMaskPrefixLength(true);
 								}
 							}
+							IPAddressStringParameters addressParams = validationOptions.addressOptions;
 							if(bytes.length == IPv6Address.BYTE_COUNT) {
-								IPAddressCreator<IPv6Address, ?, ?, ?> creator = IPv6Address.network().getAddressCreator();
+								IPv6AddressCreator creator = addressParams.getIPv6Parameters().getNetwork().getAddressCreator();
 								addr = creator.createAddressInternal(bytes, networkPrefixLength, null, this); /* address creation */
 							} else {
-								IPAddressCreator<IPv4Address, ?, ?, ?> creator = IPv4Address.network().getAddressCreator();
+								IPv4AddressCreator creator = addressParams.getIPv4Parameters().getNetwork().getAddressCreator();
 								addr = creator.createAddressInternal(bytes, networkPrefixLength, this); /* address creation */
 							}
 						}

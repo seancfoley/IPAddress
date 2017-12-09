@@ -25,7 +25,7 @@ import java.util.NoSuchElementException;
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.IPAddress;
 
 /**
@@ -36,7 +36,7 @@ import inet.ipaddr.IPAddress;
  */
 public abstract class AddressDivision extends AddressDivisionBase implements Comparable<AddressDivision> {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	protected AddressDivision() {}
 
@@ -66,7 +66,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return getLowerValue() != getUpperValue();
 	}
 	
-	protected int getMinPrefix() {
+	protected int getMinPrefixLengthForBlock() {
 		int result = getBitCount();
 		int lowerZeros = Long.numberOfTrailingZeros(getLowerValue());
 		if(lowerZeros != 0) {
@@ -95,7 +95,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public boolean isZero() {
-		return !isMultiple() && getLowerValue() == 0;
+		return !isMultiple() && lowerValueIsZero();
 	}
 	
 	public abstract long getLowerValue();
@@ -148,7 +148,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public int compareTo(AddressDivision other) {
-		return IPAddress.addressComparator.compare(this, other);
+		return IPAddress.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
 	}
 	
 	public boolean hasUppercaseVariations(int radix, boolean lowerOnly) {
@@ -240,12 +240,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	protected void getLowerString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getLowerValue(), radix, 0, uppercase, uppercase ? UPPED_DIGITS : DIGITS, appendable);
+		toUnsignedString(getLowerValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
 	@Override
 	protected void getUpperString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getUpperValue(), radix, 0, uppercase, uppercase ? UPPED_DIGITS : DIGITS, appendable);
+		toUnsignedString(getUpperValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
 	@Override
@@ -255,7 +255,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	protected void getLowerString(int radix, int rangeDigits, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getLowerValue(), radix, rangeDigits, uppercase, uppercase ? UPPED_DIGITS : DIGITS, appendable);
+		toUnsignedString(getLowerValue(), radix, rangeDigits, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 
 	@Override
@@ -308,22 +308,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	protected String getDefaultRangeString() {
-		return getDefaultRangeString(getLowerValue(), getUpperValue(), getDefaultTextualRadix(), false);
+		return getDefaultRangeString(getLowerValue(), getUpperValue(), getDefaultTextualRadix());
 	}
 
-	protected String getDefaultRangeString(long val1, long val2, int radix, boolean maskUpper) {
+	protected String getDefaultRangeString(long val1, long val2, int radix) {
 		int len1, len2, value1, value2, quotient, remainder; //we iterate on //value == quotient * radix + remainder
 		if(radix == 10) {
-			if(val1 < 10) {
-				len1 = 1;
-			} else if(val1 < 100) {
-				len1 = 2;
-			} else if(val1 < 1000) {
-				len1 = 3;
-			} else {
-				return buildDefaultRangeString(radix, maskUpper);
-			}
-			value1 = (int) val1;
 			if(val2 < 10) {
 				len2 = 1;
 			} else if(val2 < 100) {
@@ -331,9 +321,20 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			} else if(val2 < 1000) {
 				len2 = 3;
 			} else {
-				return buildDefaultRangeString(radix, maskUpper);
+				return buildDefaultRangeString(radix);
 			}
 			value2 = (int) val2;
+			if(val1 < 10) {
+				len1 = 1;
+			} else if(val1 < 100) {
+				len1 = 2;
+			} else if(val1 < 1000) {
+				len1 = 3;
+			} else {
+				return buildDefaultRangeString(radix);
+			}
+			value1 = (int) val1;
+			
 			len2 += len1 + 1;
 			char chars[] = new char[len2];
 			chars[len1] = IPAddress.RANGE_SEPARATOR;
@@ -354,18 +355,6 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			return new String(chars);
 		}
 		if(radix == 16) {
-			if(val1 < 0x10) {
-				len1 = 1;
-			} else if(val1 < 0x100) {
-				len1 = 2;
-			} else if(val1 < 0x1000) {
-				len1 = 3;
-			} else if(val1 < 0x10000) {
-				len1 = 4;
-			} else {
-				return buildDefaultRangeString(radix, maskUpper);
-			}
-			value1 = (int) val1;
 			if(val2 < 0x10) {
 				len2 = 1;
 			} else if(val2 < 0x100) {
@@ -375,9 +364,21 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			} else if(val2 < 0x10000) {
 				len2 = 4;
 			} else {
-				return buildDefaultRangeString(radix, maskUpper);
+				return buildDefaultRangeString(radix);
 			}
 			value2 = (int) val2;
+			if(val1 < 0x10) {
+				len1 = 1;
+			} else if(val1 < 0x100) {
+				len1 = 2;
+			} else if(val1 < 0x1000) {
+				len1 = 3;
+			} else if(val1 < 0x10000) {
+				len1 = 4;
+			} else {
+				return buildDefaultRangeString(radix);
+			}
+			value1 = (int) val1;
 			len2 += len1 + 1;
 			char chars[] = new char[len2];
 			chars[len1] = IPAddress.RANGE_SEPARATOR;
@@ -396,14 +397,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			} while(value2 != 0);
 			return new String(chars);
 		}
-		return buildDefaultRangeString(radix, maskUpper);
+		return buildDefaultRangeString(radix);
 	}
 	
-	private String buildDefaultRangeString(
-			int radix,
-			boolean maskUpper) {
+	private String buildDefaultRangeString(int radix) {
 		StringBuilder builder = new StringBuilder(20);
-		getRangeString(IPAddress.RANGE_SEPARATOR_STR, 0, 0, null, radix, false, maskUpper, builder);
+		getRangeString(IPAddress.RANGE_SEPARATOR_STR, 0, 0, "", radix, false, false, builder);
 		return builder.toString();
 	}
 	
@@ -601,7 +600,6 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				--digitCount;
 			}
 			appendable.append('1');
-			//char dig[] = digits;
 			while(digitCount > 0) {
 				char c = dig[(value >>> --digitCount) & 1];
 				appendable.append(c);
@@ -630,7 +628,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			boolean reverseSplitDigits,
 			String stringPrefix) {
 		int digitsLength = -1;//we will count one too many split digit separators in here
-		int stringPrefixLength = (stringPrefix == null) ? 0 : stringPrefix.length();
+		int stringPrefixLength = stringPrefix.length();
 		do {
 			int upperDigit = (int) (upper % radix);
 			int lowerDigit = (int) (lower % radix);
@@ -782,20 +780,16 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		appendDigits(value, radix, choppedDigits, uppercase, splitDigitSeparator, stringPrefix, appendable);
 		if(!reverseSplitDigits) {
 			int back = appendable.length() - 1;
-			int stringPrefixLen = 0;
-			if(stringPrefix != null) {
-				front += stringPrefixLen = stringPrefix.length();
-			}
+			int stringPrefixLen = stringPrefix.length();
+			front += stringPrefixLen;
 			while(front < back) {
 				char frontChar = appendable.charAt(front);
 				appendable.setCharAt(front, appendable.charAt(back));
 				appendable.setCharAt(back, frontChar);
 				front += 2;
 				back -= 2;
-				if(stringPrefix != null) {
-					front += stringPrefixLen;
-					back -= stringPrefixLen;
-				}
+				front += stringPrefixLen;
+				back -= stringPrefixLen;
 			}
 		}
 	}
@@ -813,7 +807,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			StringBuilder appendable) {
 		//A split can be invalid.  Consider xxx.456-789.
 		//The number 691, which is in the range 456-789, is not in the range 4-7.5-8.6-9
-		//In such cases we throw AddressTypeException
+		//In such cases we throw IncompatibleAddressException
 		//To avoid such cases, we must have lower digits covering the full range, for example 400-799 in which lower digits are both 0-9 ranges.
 		//If we have 401-799 then 500 will not be included when splitting.
 		//If we have 400-798 then 599 will not be included when splitting.
@@ -879,8 +873,9 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			StringBuilder appendable) {
 		boolean useInts = value <= Integer.MAX_VALUE;
 		int value2 = useInts ? (int) value : radix;
-		char dig[] = uppercase ? UPPED_DIGITS : DIGITS;
+		char dig[] = uppercase ? UPPERCASE_DIGITS : DIGITS;
 		int index;
+		int prefLen = stringPrefix.length();
 		while(value2 >= radix) {
 			if(useInts) {
 				int val = value2;
@@ -903,14 +898,14 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				}
 				index = (int) (val % radix);
 			}
-			if(stringPrefix != null) {
+			if(prefLen > 0) {
 				appendable.append(stringPrefix);
 			}
 			appendable.append(dig[index]);
 			appendable.append(splitDigitSeparator);
 		}
 		if(choppedDigits == 0) {
-			if(stringPrefix != null) {
+			if(prefLen > 0) {
 				appendable.append(stringPrefix);
 			}
 			appendable.append(dig[value2]);
@@ -928,7 +923,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			boolean reverseSplitDigits,
 			String stringPrefix, 
 			StringBuilder appendable) {
-		char dig[] = uppercase ? UPPED_DIGITS : DIGITS;
+		char dig[] = uppercase ? UPPERCASE_DIGITS : DIGITS;
 		boolean previousWasFullRange = true;
 		boolean useInts = upper <= Integer.MAX_VALUE;
 		int upperInt, lowerInt;
@@ -938,6 +933,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		} else {
 			upperInt = lowerInt = radix;
 		}
+		int prefLen = stringPrefix.length();
 		while(true) {
 			int upperDigit, lowerDigit;
 			if(useInts) {
@@ -971,20 +967,20 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			if(lowerDigit == upperDigit) {
 				previousWasFullRange = false;
 				if(reverseSplitDigits) {
-					if(stringPrefix != null) {
+					if(prefLen > 0) {
 						appendable.append(stringPrefix);
 					}
 					appendable.append(dig[lowerDigit]);
 				} else {
 					//in this case, whatever we do here will be completely reversed following this method call
 					appendable.append(dig[lowerDigit]);
-					if(stringPrefix != null) for(int k = stringPrefix.length() - 1; k >= 0; k--) {
+					for(int k = prefLen - 1; k >= 0; k--) {
 						appendable.append(stringPrefix.charAt(k));
 					}
 				}
 			} else {
 				if(!previousWasFullRange) {
-					throw new AddressTypeException(lower, upper, "ipaddress.error.splitMismatch");
+					throw new IncompatibleAddressException(lower, upper, "ipaddress.error.splitMismatch");
 				}
 				previousWasFullRange = (lowerDigit == 0) && (upperDigit == radix - 1);
 				if(previousWasFullRange && wildcard != null) {
@@ -998,7 +994,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 					}
 				} else {
 					if(reverseSplitDigits) {
-						if(stringPrefix != null) {
+						if(prefLen > 0) {
 							appendable.append(stringPrefix);
 						}
 						appendable.append(dig[lowerDigit]);
@@ -1009,7 +1005,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 						appendable.append(dig[upperDigit]);
 						appendable.append(rangeSeparator);
 						appendable.append(dig[lowerDigit]);
-						if(stringPrefix != null) for(int k = stringPrefix.length() - 1; k >= 0; k--) {
+						for(int k = prefLen - 1; k >= 0; k--) {
 							appendable.append(stringPrefix.charAt(k));
 						}
 					}
@@ -1155,21 +1151,22 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		};
 	}
 	
-	protected static <S extends AddressSegment> S toPrefixedSegment(S original, Integer segmentPrefixLength, AddressSegmentCreator<S> creator) {
-		return creator.createSegment(original.getLowerSegmentValue(), original.getUpperSegmentValue(), segmentPrefixLength);
-	}
-	
 	protected static <S extends AddressSegment> S setPrefixedSegment(S original, Integer oldPrefixLength, Integer segmentPrefixLength, AddressSegmentCreator<S> creator) {
 		if(oldPrefixLength == null) {
-			return toPrefixedSegment(original, segmentPrefixLength, creator);
+			return creator.createSegment(original.getLowerSegmentValue(), original.getUpperSegmentValue(), segmentPrefixLength);
 		}
 		if(segmentPrefixLength == null || segmentPrefixLength > oldPrefixLength) {
-			int oldPrefixMask = ~0 << (original.getBitCount() - oldPrefixLength);
-			int newLower = original.getLowerSegmentValue() & oldPrefixMask;
-			int newUpper = original.getUpperSegmentValue() & oldPrefixMask;
+			//zero out the bits between old and new
+			int prefixMask = ~0 << (original.getBitCount() - oldPrefixLength);
+			if(segmentPrefixLength != null) {
+				int newPrefixMask = ~(~0 << (original.getBitCount() - segmentPrefixLength));
+				prefixMask |= newPrefixMask;
+			}
+			int newLower = original.getLowerSegmentValue() & prefixMask;
+			int newUpper = original.getUpperSegmentValue() & prefixMask;
 			return creator.createSegment(newLower, newUpper, segmentPrefixLength);
 		}
-		return toPrefixedSegment(original, segmentPrefixLength, creator);
+		return creator.createSegment(original.getLowerSegmentValue(), original.getUpperSegmentValue(), segmentPrefixLength);
 	}
 	
 	protected static <S extends AddressSegment> boolean isReversibleRange(S segment) {

@@ -21,34 +21,34 @@ package inet.ipaddr;
 import java.io.Serializable;
 
 /**
- * This class allows you to control the validation performed by the class {@link IPAddressString}.
- * 
- * The {@link IPAddressString} class uses a default permissive IPAddressStringParameters instance when you do not specify one.
- * 
- * If you wish to use parameters different from the default, then use this class.  All instances are immutable and must be constructed with the nested Builder class.
+ * This class allows you to control the validation performed by the class {@link IPAddressString} or {@link MACAddressString}.
+ * <p>
+ * Those classes use a default permissive instance when you do not specify one.
+ * <p>
+ * All instances are immutable and must be constructed with the nested Builder class.
  * 
  * @author sfoley
  *
  */
 public class AddressStringParameters implements Cloneable, Serializable {
 	
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	
 	/**
 	 * Controls special characters in addresses like '*', '-', '_'
-	 * @see AddressStringParameters#DEFAULT_RANGE_OPTIONS
+	 * @see AddressStringFormatParameters#DEFAULT_RANGE_OPTIONS
 	 * @author sfoley
 	 *
 	 */
 	public static class RangeParameters implements Comparable<RangeParameters>, Cloneable, Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 
 		private final boolean wildcard, range, singleWildcard;
-		
-		public static RangeParameters NO_RANGE = new RangeParameters(false, false, false);
-		public static RangeParameters WILDCARD_ONLY = new RangeParameters(true, false, true); /* use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3  */
-		public static RangeParameters WILDCARD_AND_RANGE = new RangeParameters(true, true, true);/* use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff:: */
+
+		public static final RangeParameters NO_RANGE = new RangeParameters(false, false, false);
+		public static final RangeParameters WILDCARD_ONLY = new RangeParameters(true, false, true); /* use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3  */
+		public static final RangeParameters WILDCARD_AND_RANGE = new RangeParameters(true, true, true);/* use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff:: */
 		
 		public RangeParameters(boolean wildcard, boolean range, boolean singleWildcard) {
 			this.wildcard = wildcard;
@@ -150,7 +150,6 @@ public class AddressStringParameters implements Cloneable, Serializable {
 	
 	/**
 	 * Allows zero-length IPAddressStrings like ""
-	 * @see #emptyIsLoopback
 	 * @see #DEFAULT_ALLOW_EMPTY
 	 */
 	public final boolean allowEmpty;
@@ -204,7 +203,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 
 	public static class AddressStringFormatParameters implements Cloneable, Serializable {
 
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		public static final boolean DEFAULT_ALLOW_LEADING_ZEROS = true;
 		public static final boolean DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS = true;
@@ -219,7 +218,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		/**
 		 * controls whether the wildcard '*' or '%' can replace the segment separators '.' and ':'.
 		 * If so, then you can write addresses like *.* or *:*
-		 * @see AddressStringParameters#DEFAULT_ALLOW_WILDCARDED_SEPARATOR
+		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_WILDCARDED_SEPARATOR
 		 */
 		public final boolean allowWildcardedSeparator; 
 		
@@ -231,7 +230,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		 * 
 		 * Otherwise, validation defers to {@link inet.ipaddr.ipv4.IPv4AddressStringParameters#inet_aton_octal}
 		 * 
-		 * @see AddressStringParameters#DEFAULT_ALLOW_LEADING_ZEROS
+		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_LEADING_ZEROS
 		 */
 		public final boolean allowLeadingZeros; 
 		
@@ -241,7 +240,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		 * beyond the usual segment length, which is 3 for IPv4 dotted-decimal and 4 for IPv6.  
 		 * For example, this determines whether you allow 0001.0002.0003.0004
 		 * 
-		 * @see AddressStringParameters#DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS
+		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS
 		 */
 		public final boolean allowUnlimitedLeadingZeros;
 		

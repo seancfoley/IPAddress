@@ -18,14 +18,19 @@
 
 package inet.ipaddr.ipv6;
 
+import java.net.Inet6Address;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
+import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.IPAddressTypeNetwork;
+import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSection;
+import inet.ipaddr.ipv6.IPv6AddressSection.EmbeddedIPv6AddressSection;
 import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressSection;
 
@@ -33,48 +38,78 @@ import inet.ipaddr.mac.MACAddressSection;
  * 
  * @author sfoley
  */
-public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6AddressSection, IPv6AddressSegment> {
+public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment, Inet6Address> {
 	
-	private static final IPv6AddressSegment emptySegments[] = {};
-	private static final IPv6AddressSection emptySection[] = {};
+	private static final long serialVersionUID = 4L;
+
+	private static PrefixConfiguration defaultPrefixConfiguration = AddressNetwork.getDefaultPrefixConfiguration();
+
+	static final IPv6AddressSegment EMPTY_SEGMENTS[] = {};
+	private static final IPv6AddressSection EMPTY_SECTION[] = {};
 	
-	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment> {
-		static boolean CACHE_SEGMENTS_BY_PREFIX = true;
-		
+	private static boolean CACHE_SEGMENTS_BY_PREFIX = true;
+	
+	private IPv6AddressSection linkLocalPrefix;
+	
+	public class IPv6AddressCreator extends IPAddressCreator {
+		private static final long serialVersionUID = 4L;
+
+		private transient IPv6AddressSegment ZERO_PREFIX_SEGMENT, ALL_RANGE_SEGMENT;
+
 		//there are 0x10000 (ie 0xffff + 1) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
-		private static IPv6AddressSegment segmentCache[][] = new IPv6AddressSegment[((2 * IPv6Address.MAX_VALUE_PER_SEGMENT) - 1) / 0x100][];
+		private transient IPv6AddressSegment segmentCache[][];
 		
 		//we maintain a similar cache for each potential prefixed segment.  
 		//Note that there are 2 to the n possible values for prefix n
 		//We break up that number into blocks of size 0x100
-		private static IPv6AddressSegment segmentPrefixCache[][][] = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT][][];
-		private static IPv6AddressSegment allPrefixedCache[] = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT];
+		private transient IPv6AddressSegment segmentPrefixCache[][][];
+		private transient IPv6AddressSegment allPrefixedCache[];
 
+		@Override
+		public void clearCaches() {
+			segmentCache = null;
+			allPrefixedCache = null;
+			segmentPrefixCache = null;
+		}
+		
+		@Override
+		public IPv6AddressNetwork getNetwork() {
+			return IPv6AddressNetwork.this;
+		}
+		
 		@Override
 		public IPv6AddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
-				return emptySegments;
+				return EMPTY_SEGMENTS;
 			}
 			return new IPv6AddressSegment[length];
 		}
 		
 		@Override
 		public IPv6AddressSegment createSegment(int value) {
-			IPv6AddressSegment cache[][] = segmentCache;
-			int blockIndex = value >>> 8; // divide by 0x100
-			int resultIndex = value - (blockIndex << 8); // mod 0x100
-			IPv6AddressSegment block[] = cache[blockIndex];
-			IPv6AddressSegment result;
-			if(block == null) {
-				cache[blockIndex] = block = new IPv6AddressSegment[0x100];
-				result = block[resultIndex] = new IPv6AddressSegment(value);
-			} else {
-				result = block[resultIndex];
-				if(result == null) {
+			if(value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT) {
+				IPv6AddressSegment result, block[], cache[][] = segmentCache;
+				int blockIndex = value >>> 8; // divide by 0x100
+				int resultIndex = value - (blockIndex << 8); // mod 0x100
+				if(cache == null) {
+					segmentCache = cache = new IPv6AddressSegment[((2 * IPv6Address.MAX_VALUE_PER_SEGMENT) - 1) / 0x100][];
+					cache[blockIndex] = block = new IPv6AddressSegment[0x100];
 					result = block[resultIndex] = new IPv6AddressSegment(value);
+				} else {
+					block = cache[blockIndex];
+					if(block == null) {
+						cache[blockIndex] = block = new IPv6AddressSegment[0x100];
+						result = block[resultIndex] = new IPv6AddressSegment(value);
+					} else {
+						result = block[resultIndex];
+						if(result == null) {
+							result = block[resultIndex] = new IPv6AddressSegment(value);
+						}
+					}
 				}
+				return result;
 			}
-			return result;
+			return new IPv6AddressSegment(value);
 		}
 		
 		@Override
@@ -82,51 +117,66 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 			if(segmentPrefixLength == null) {
 				return createSegment(value);
 			}
-			if(segmentPrefixLength == 0) {
-				return IPv6AddressSegment.ZERO_PREFIX_SEGMENT;
-			}
-			if(CACHE_SEGMENTS_BY_PREFIX) {
-				int bitsPerSegment = IPv6Address.BITS_PER_SEGMENT;
-				if(segmentPrefixLength > bitsPerSegment) {
-					segmentPrefixLength = bitsPerSegment;
-				}
-				int mask = IPv6Address.network().getSegmentNetworkMask(segmentPrefixLength);
-				value &= mask;
-				int prefixIndex = segmentPrefixLength - 1;
-				int valueIndex = value >>> (bitsPerSegment - segmentPrefixLength);
-				
-				IPv6AddressSegment cache[][][] = segmentPrefixCache;
-				IPv6AddressSegment prefixCache[][] = cache[prefixIndex];
-				IPv6AddressSegment block[] = null;
-				IPv6AddressSegment result = null;
-				int blockIndex = valueIndex >>> 8; // divide by 0x100
-				int resultIndex = valueIndex - (blockIndex << 8); // mod 0x100
-				boolean blockExists = false, resultExists = false;
-				if(prefixCache == null) {
-					int prefixCacheSize = 1 << segmentPrefixLength;//number of possible values for segmentPrefix
-					cache[prefixIndex] = new IPv6AddressSegment[(prefixCacheSize + 0x100 - 1) >>> 8][];
-				} else {
-					block = cache[prefixIndex][blockIndex];
-					blockExists = (block != null);
-					if(blockExists) {
-						result = block[resultIndex];
-						resultExists = (result != null);
+			if(value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv6Address.BIT_COUNT) {
+				if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+					IPv6AddressSegment result = ZERO_PREFIX_SEGMENT;
+					if(result == null) {
+						ZERO_PREFIX_SEGMENT = result = new IPv6AddressSegment(0, 0);
 					}
+					return result;
 				}
-				if(!blockExists) {
-					int prefixCacheSize = 1 << segmentPrefixLength;
-					int highestIndex = prefixCacheSize >>> 8; // divide by 0x100
-					if(valueIndex >>> 8 == highestIndex) { //final block: only use an array as large as we need
-						block = new IPv6AddressSegment[prefixCacheSize - (highestIndex << 8)]; // mod 0x100
-					} else { //all other blocks are size 0x100
-						block = new IPv6AddressSegment[0x100];
+				if(CACHE_SEGMENTS_BY_PREFIX) {
+					int prefixIndex = segmentPrefixLength;
+					int valueIndex;
+					boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+					if(isAllSubnets) {
+						int mask = getSegmentNetworkMask(segmentPrefixLength);
+						value &= mask;
+						valueIndex = value >>> (IPv6Address.BITS_PER_SEGMENT- segmentPrefixLength);
+					} else {
+						valueIndex = value;
 					}
-					cache[prefixIndex][blockIndex] = block;
+					IPv6AddressSegment result, block[], prefixCache[][], cache[][][] = segmentPrefixCache;
+					int blockIndex = valueIndex >>> 8; // divide by 0x100
+					int resultIndex = valueIndex - (blockIndex << 8); // mod 0x100
+					if(cache == null) {
+						segmentPrefixCache = cache = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT + 1][][];
+						prefixCache = null;
+						block = null;
+						result = null;
+					} else {
+						prefixCache = cache[prefixIndex];
+						if(prefixCache != null) {
+							block = cache[prefixIndex][blockIndex];
+							if(block != null) {
+								result = block[resultIndex];
+							} else {
+								result = null;
+							}
+						} else {
+							block = null;
+							result = null;
+						}
+					}
+					if(prefixCache == null) {
+						int prefixCacheSize = isAllSubnets ? 1 << segmentPrefixLength : IPv6Address.MAX_VALUE_PER_SEGMENT + 1;//number of possible values for each segmentPrefix
+						cache[prefixIndex] = prefixCache = new IPv6AddressSegment[(prefixCacheSize + 0x100 - 1) >>> 8][];
+					}
+					if(block == null) {
+						int prefixCacheSize = isAllSubnets ? 1 << segmentPrefixLength : IPv6Address.MAX_VALUE_PER_SEGMENT + 1;//number of possible values for each segmentPrefix
+						int highestIndex = prefixCacheSize >>> 8; // divide by 0x100
+						if(valueIndex >>> 8 == highestIndex) { //final block: only use an array as large as we need
+							block = new IPv6AddressSegment[prefixCacheSize - (highestIndex << 8)]; // mod 0x100
+						} else { //all other blocks are size 0x100
+							block = new IPv6AddressSegment[0x100];
+						}
+						prefixCache[blockIndex] = block;
+					}
+					if(result == null) {
+						block[resultIndex] = result = new IPv6AddressSegment(value, segmentPrefixLength);
+					}
+					return result;
 				}
-				if(!resultExists) {
-					result = block[resultIndex] = new IPv6AddressSegment(value, segmentPrefixLength);
-				}
-				return result;
 			}
 			IPv6AddressSegment result = new IPv6AddressSegment(value, segmentPrefixLength);
 			return result;
@@ -139,27 +189,48 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 					return createSegment(lower);
 				}
 				if(lower == 0 && upper == IPv6Address.MAX_VALUE_PER_SEGMENT) {
-					return IPv6AddressSegment.ALL_RANGE_SEGMENT;
+					IPv6AddressSegment result = ALL_RANGE_SEGMENT;
+					if(result == null) {
+						ALL_RANGE_SEGMENT = result = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, null);
+					}
+					return result;
 				}
 			} else {
-				if(segmentPrefixLength == 0) {
-					return createSegment(0, 0);
-				}
-				if(CACHE_SEGMENTS_BY_PREFIX) {
-					int mask = IPv6Address.network().getSegmentNetworkMask(segmentPrefixLength);
-					lower &= mask;
-					if((upper & mask) == lower) {
-						return createSegment(lower, segmentPrefixLength);
+				if(lower >= 0 && lower <= IPv6Address.MAX_VALUE_PER_SEGMENT && 
+					upper >= 0 && upper <= IPv6Address.MAX_VALUE_PER_SEGMENT && 
+						segmentPrefixLength >= 0 && segmentPrefixLength <= IPv6Address.BIT_COUNT) {
+					if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+						return createSegment(0, 0);
 					}
-					if(lower == 0 && upper == mask) {
-						//cache */26 type segments
-						int prefixIndex = segmentPrefixLength - 1;
-						IPv6AddressSegment cache[] = allPrefixedCache;
-						IPv6AddressSegment result = cache[prefixIndex];
-						if(result == null) {
-							cache[prefixIndex] = result = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+					if(CACHE_SEGMENTS_BY_PREFIX) {
+						int bitsPerSegment = IPv6Address.BITS_PER_SEGMENT;
+						if(segmentPrefixLength > bitsPerSegment) {
+							segmentPrefixLength = bitsPerSegment;
 						}
-						return result;
+						if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+							int mask = getSegmentNetworkMask(segmentPrefixLength);
+							lower &= mask;
+							if((upper & mask) == lower) {
+								return createSegment(lower, segmentPrefixLength);
+							}
+							int hostMask = getSegmentHostMask(segmentPrefixLength);
+							upper |= hostMask;
+						}
+						if(lower == 0 && upper == IPv6Address.MAX_VALUE_PER_SEGMENT) {
+							//cache */26 type segments
+							int prefixIndex = segmentPrefixLength;
+							IPv6AddressSegment result, cache[] = allPrefixedCache;
+							if(cache == null) {
+								allPrefixedCache = cache = new IPv6AddressSegment[IPv6Address.BITS_PER_SEGMENT + 1];
+								cache[prefixIndex] = result = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+							} else {
+								result = cache[prefixIndex];
+								if(result == null) {
+									cache[prefixIndex] = result = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, segmentPrefixLength);
+								}
+							}
+							return result;
+						}
 					}
 				}
 			}
@@ -168,8 +239,8 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		}
 		
 		@Override
-		protected IPv6AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
-			return new IPv6AddressSection(lowerValueProvider, upperValueProvider, prefix);
+		public IPv6AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix) {
+			return new IPv6AddressSection(lowerValueProvider, upperValueProvider, segmentCount, prefix);
 		}
 
 		@Override
@@ -183,10 +254,31 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		}
 		
 		@Override
+		protected IPv6AddressSection createPrefixedSectionInternal(IPv6AddressSegment segments[], Integer prefix, boolean singleOnly) {
+			return new IPv6AddressSection(segments, 0, false, prefix, singleOnly);
+		}
+		
+		@Override
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection embeddedSection) {
 			IPv6AddressSection result = new IPv6AddressSection(segments, 0, false);
 			result.embeddedIPv4Section = embeddedSection;
 			return result;
+		}
+		
+		@Override
+		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection embeddedSection, Integer prefix) {
+			IPv6AddressSection result = new IPv6AddressSection(segments, 0, false, prefix, false);
+			result.embeddedIPv4Section = embeddedSection;
+			return result;
+		}
+		
+		protected IPv6AddressSection createEmbeddedSectionInternal(IPv6AddressSection encompassingSection, IPv6AddressSegment segments[], int startIndex) {
+			return new EmbeddedIPv6AddressSection(encompassingSection, segments, startIndex);
+		}
+		
+		@Override
+		protected IPv6AddressSection createEmbeddedSectionInternal(IPAddressSection encompassingSection, IPv6AddressSegment segments[]) {
+			return new EmbeddedIPv6AddressSection((IPv6AddressSection) encompassingSection, segments, 0);
 		}
 		
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], int startIndex) {
@@ -201,19 +293,22 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		@Override
 		protected IPv6AddressSection[] createSectionArray(int length) {
 			if(length == 0) {
-				return emptySection;
+				return EMPTY_SECTION;
 			}
 			return new IPv6AddressSection[length];
 		}
 		
+		@Override
 		public IPv6AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv6AddressSection(bytes, prefix);
 		}
 		
+		@Override
 		public IPv6AddressSection createSection(IPv6AddressSegment segments[]) {
 			return new IPv6AddressSection(segments);
 		}
 		
+		@Override
 		public IPv6AddressSection createSection(IPv6AddressSegment segments[], Integer networkPrefixLength) {
 			return new IPv6AddressSection(segments, networkPrefixLength);
 		}
@@ -257,15 +352,40 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 		public IPv6Address createAddress(IPv6AddressSection section) {
 			return new IPv6Address(section);
 		}
-		
-		public IPv6Address createAddress(IPv6AddressSection section, MACAddressSection eui) {
-			return new IPv6Address(section, eui);
+
+		@Override
+		public IPv6Address createAddress(Inet6Address addr) {
+			return new IPv6Address(addr);
 		}
-		
 	};
 
-	IPv6AddressNetwork() {
+	public IPv6AddressNetwork() {
 		super(IPv6Address.class);
+	}
+	
+	@Override
+	public PrefixConfiguration getPrefixConfiguration() {
+		return defaultPrefixConfiguration;
+	}
+
+	/**
+	 * Sets the default prefix configuration used by this network.
+	 * 
+	 * @see AddressNetwork#setDefaultPrefixConfiguration(PrefixConfiguration)
+	 * @see PrefixConfiguration
+	 */
+	public static void setDefaultPrefixConfiguration(PrefixConfiguration config) {
+		defaultPrefixConfiguration = config;
+	}
+	
+	/**
+	 * Gets the default prefix configuration used by this network.
+	 * 
+	 * @see AddressNetwork#getDefaultPrefixConfiguration()
+	 * @see PrefixConfiguration
+	 */
+	public static PrefixConfiguration getDefaultPrefixConfiguration() {
+		return defaultPrefixConfiguration;
 	}
 	
 	@Override
@@ -286,11 +406,33 @@ public class IPv6AddressNetwork extends IPAddressTypeNetwork<IPv6Address, IPv6Ad
 	@Override
 	protected IPv6Address createLoopback() {
 		IPv6AddressCreator creator = getAddressCreator();
-		IPv6AddressSegment zero = IPv6AddressSegment.ZERO_SEGMENT;
+		IPv6AddressSegment zero = creator.createSegment(0);
 		IPv6AddressSegment segs[] = creator.createSegmentArray(IPv6Address.SEGMENT_COUNT);
 		segs[0] = segs[1] = segs[2] = segs[3] = segs[4] = segs[5] = segs[6] = zero;
 		segs[7] = creator.createSegment(1);
 		return creator.createAddressInternal(segs); /* address creation */
+	}
+	
+	public IPv6AddressSection getLinkLocalPrefix() {
+		if(linkLocalPrefix == null) {
+			synchronized(this) {
+				if(linkLocalPrefix == null) {
+					linkLocalPrefix = createLinkLocalPrefix();
+				}
+			}
+		}
+		return linkLocalPrefix;
+	}
+	
+	private IPv6AddressSection createLinkLocalPrefix() {
+		IPv6AddressCreator creator = getAddressCreator();
+		IPv6AddressSegment zeroSeg = creator.createSegment(0);
+		IPv6AddressSection linkLocalPrefix = creator.createSectionInternal(new IPv6AddressSegment[] {
+				creator.createSegment(0xfe80),
+				zeroSeg,
+				zeroSeg,
+				zeroSeg});
+		return linkLocalPrefix;
 	}
 	
 	@Override

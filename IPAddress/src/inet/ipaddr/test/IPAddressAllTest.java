@@ -24,9 +24,10 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressNetwork.IPAddressStringCache;
+import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
+import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 
@@ -35,73 +36,72 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 	static String[] ADDRESS_SAMPLING = {
 		"bla",
 		"foo",
-		"",//
+		"",
 		"  ",
 		"     ",
 		"",
-		"1.0.0.0",//
-		"1.002.3.4",//
+		"1.0.0.0",
+		"1.002.3.4",
 		"1.2.003.4",
 		"1.2.3.4",
-		 "000100401404",
-		 "0x01020304",
+		"000100401404",
+		"0x01020304",
 		"001.002.003.004",
-		"1.002.3.*",//
+		"1.002.3.*",
 		"1.002.3.*/31",
-		"1.002.3.*/17",//
-		"1.002.3.4/16",//
+		"1.002.3.*/17",
+		"1.002.3.4/16",
 		"1.002.3.*/16",
 		"001.002.003.004/16",
-		"1.2.003.4/15",//
+		"1.2.003.4/15",
 		"1.2.3.4/15",
-		"255.254.255.254",//
-		"255.254.255.255",//
-		"*.*.1-3.*",//
-		"255.255.255.254",//
-		"*.*.*.*",//
+		"255.254.255.254",
+		"255.254.255.255",
+		"*.*.1-3.*",
+		"255.255.255.254",
+		"*.*.*.*",
 		"*.*.%*.*",
-		"255.255.255.255",//
-		"1::",//
-		"1::2:3:4",//
+		"255.255.255.255",
+		"1::",
+		"1::2:3:4",
 		"1::2:003:4",
 		"1::2:3:4",
 		"0001:0000::0002:0003:0004",
-		"1::2:3:*/111",//
-		"1::2:3:*/127",//
+		"1::2:3:*/111",
+		"1::2:3:*/127",
 		"1::2:3:*",
-		"1::2:1-3:4:*",//
-		"1::2:3:*/31",//
-		"1::2:3:*/17",//
+		"1::2:1-3:4:*",
+		"1::2:3:*/31",
+		"1::2:3:*/17",
 		"1::2:003:4/17",
 		"1::2:7:8/17",
-		"1::2:003:4/15",//
+		"1::2:003:4/15",
 		"1::2:3:4/15",
-		"1::2:003:4/16",//
+		"1::2:003:4/16",
 		"1::2:003:*/16",
 		"0001:0000::0002:0003:0004/16",
-		"1:f000::2/17",//
-		"a1:f000::2/17",//
-		"ffff::fffe:ffff:fffe",//
-		"ffff::fffe:ffff:ffff",//
-		"ffff::ffff:ffff:fffe",//
+		"1:f000::2/17",
+		"a1:f000::2/17",
+		"ffff::fffe:ffff:fffe",
+		"ffff::fffe:ffff:ffff",
+		"ffff::ffff:ffff:fffe",
 		"*::*:*:*",//
 		"*::*:%*:*",
-		"ffff::ffff:ffff:ffff",//
-		"*:*:a:*:*:*:*:*",//
-		"*:*:a:*:*:*:*:*/16",//
+		"ffff::ffff:ffff:ffff",
+		"*:*:a:*:*:*:*:*",
+		"*:*:a:*:*:*:*:*/16",
 		"*:*",
 		"*:*:*:*:*:*:*:*",
-		"/33",//
-		"/64",//
-		"/128",//
-		"/32",//
-		"/24",//
-		"/0",//
-		"*",//
+		"/33",
+		"/64",
+		"/128",
+		"/32",
+		"/24",
+		"/0",
+		"*",
 		"**",
 		" *",
 		"%%",
-
 
 		"1.2.*.*",
 		"1.2.0.0/16",
@@ -170,22 +170,23 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"000162000000-000177777777",
 		"0x01c80000-0x01ffffff",
 		
-
-		
 		"000a:000b:000c:000d:000e:000f:000a:000b",
 		"00|N0s0$ND2DCD&%D3QB",
 		"0x000a000b000c000d000e000f000a000b",
 		"a:b:c:d:e:f:0.10.0.11",
 		"a:b:c:d:e:f:a:b",
 
+		"a:b:c:d:*/64",
+		"a:b:c:d:*:*:*:*/64",
+		
 		"000a:000b:000c:000d:0000:0000:0000:0000/64",
-		"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+		"00|N0s0$ND2BxK96%Chk" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0$ND{&WM}~o9(k/64",
 		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
 		"a:b:c:d:*:*:*:*",
 		"a:b:c:d:0:0:0:0/64",
 		"a:b:c:d::/64",
 
-		"0000001G~Ie?xF;x&)@P›0000001G~JZkWI!qp&GP/64",
+		"0000001G~Ie?xF;x&)@P" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "0000001G~JZkWI!qp&GP/64",
 		"0000:0000:000c:000d:0000:0000:0000:0000/64",
 		"0x00000000000c000d0000000000000000-0x00000000000c000dffffffffffffffff",
 		"0:0:c:d:*:*:*:*",
@@ -207,14 +208,14 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a:b:c:d::",
 
 		"000a:000b:000c:000d:0000:0000:0000:0000/64",
-		"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+		"00|N0s0$ND2BxK96%Chk" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0$ND{&WM}~o9(k/64",
 		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
 		"a:b:c:d:*:*:*:*",
 		"a:b:c:d:0:0:0:0/64",
 		"a:b:c:d::/64",
 
 		"000a:0000:0000:000d:0000-8000:0000:0000:0000/65",
-		"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/65",
+		"00|M>t|tt+WbKhfd5~qN" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|tt-R6^kVV>{?N/65",
 		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
 		"a:0:0:d:*:*:*:*",
 		"a:0:0:d:*:0:0:0/65",
@@ -222,7 +223,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a::d:*:*:*:*",
 
 		"000a:0000:0000:000d:0000-8000:0000:0000:0000/65",
-		"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/65",
+		"00|M>t|tt+WbKhfd5~qN" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|tt-R6^kVV>{?N/65",
 		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
 		"a:0:0:d:*:*:*:*",
 		"a:0:0:d:*:0:0:0/65",
@@ -230,21 +231,21 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a::d:*:*:*:*",
 
 		"000a:000b:000c:0000-ffff:0000:0000:0000:0000/64",
-		"00|N0s0$N0-%*(tF5l-X›00|N0s0;%a&*sUa#KSGX/64",
+		"00|N0s0$N0-%*(tF5l-X" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0;%a&*sUa#KSGX/64",
 		"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
 		"a:b:c:*:*:*:*:*",
 		"a:b:c:*:0:0:0:0/64",
 		"a:b:c:*::/64",
 
 		"000a:000b:000c:000d:0000:0000:0000:0000/64",
-		"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+		"00|N0s0$ND2BxK96%Chk" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0$ND{&WM}~o9(k/64",
 		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
 		"a:b:c:d:*:*:*:*",
 		"a:b:c:d:0:0:0:0/64",
 		"a:b:c:d::/64",
 
 		"000a:0000:0000:0000:0000:0000:0000:0000/64",
-		"00|M>t|ttwH6V62lVY`A›00|M>t|ttxBz48@eGWJA/64",
+		"00|M>t|ttwH6V62lVY`A" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttxBz48@eGWJA/64",
 		"0x000a0000000000000000000000000000-0x000a000000000000ffffffffffffffff",
 		"a:0:0:0:*:*:*:*",
 		"a:0:0:0:0:0:0:0/64",
@@ -252,7 +253,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a::/64",
 
 		"000a:000b:000c:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
-		"00|N0s0$N0-%*(tF5l-X›00|N0s0;%a&*sUa#KSGX",
+		"00|N0s0$N0-%*(tF5l-X" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0;%a&*sUa#KSGX",
 		"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
 		"a:b:c:*:*:*:*.*.*.*",
 		"a:b:c:*:*:*:*:*",
@@ -330,34 +331,34 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a:0:c:d::100/120",
 
 		"000a:000b:000c:000d:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
-		"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k",
+		"00|N0s0$ND2BxK96%Chk" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0$ND{&WM}~o9(k",
 		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
 		"a:b:c:d:*:*:*.*.*.*",
 		"a:b:c:d:*:*:*:*",
 
 		"000a:000b:000c:000d:0000:0000:0000:0000/64",
-		"00|N0s0$ND2BxK96%Chk›00|N0s0$ND{&WM}~o9(k/64",
+		"00|N0s0$ND2BxK96%Chk" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|N0s0$ND{&WM}~o9(k/64",
 		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
 		"a:b:c:d:*:*:*:*",
 		"a:b:c:d:0:0:0:0/64",
 		"a:b:c:d::/64",
 
 		"000a:0000:0000:0000:0000:000c:000d:0000-ffff",
-		"00|M>t|ttwH6V6EEzblZ›00|M>t|ttwH6V6EEzkrZ",
+		"00|M>t|ttwH6V6EEzblZ" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttwH6V6EEzkrZ",
 		"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
 		"a:0:0:0:0:c:d:*",
 		"a::c:0.13.*.*",
 		"a::c:d:*",
 
 		"000a:0000:0000:000d:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
-		"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N",
+		"00|M>t|tt+WbKhfd5~qN" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|tt-R6^kVV>{?N",
 		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
 		"a:0:0:d:*:*:*:*",
 		"a::d:*:*:*.*.*.*",
 		"a::d:*:*:*:*",
 
 		"000a:0000:0000:0000:0000:0000:0000:0000/64",
-		"00|M>t|ttwH6V62lVY`A›00|M>t|ttxBz48@eGWJA/64",
+		"00|M>t|ttwH6V62lVY`A" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttxBz48@eGWJA/64",
 		"0x000a0000000000000000000000000000-0x000a000000000000ffffffffffffffff",
 		"a:0:0:0:*:*:*:*",
 		"a:0:0:0:0:0:0:0/64",
@@ -365,7 +366,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a::/64",
 
 		"000a:0000:0000:000d:0000:0000:0000:0000/64",
-		"00|M>t|tt+WbKhfd5~qN›00|M>t|tt-R6^kVV>{?N/64",
+		"00|M>t|tt+WbKhfd5~qN" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|tt-R6^kVV>{?N/64",
 		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
 		"a:0:0:d:*:*:*:*",
 		"a:0:0:d:0:0:0:0/64",
@@ -373,7 +374,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"a::d:*:*:*:*",
 
 		"0001:0000:0000:0000:0000:0000:0000:0000/32",
-		"008JOm8Mm5*yBppL!sg1›008JPeGE6kXzV|T&xr^1/32",
+		"008JOm8Mm5*yBppL!sg1" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "008JPeGE6kXzV|T&xr^1/32",
 		"0x00010000000000000000000000000000-0x00010000ffffffffffffffffffffffff",
 		"1:0:*:*:*:*:*:*",
 		"1:0:0:0:0:0:0:0/32",
@@ -381,7 +382,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"1::/32",
 
 		"0xff000000000000000000000000000000-0xffffffffffffffffffffffffffffffff",
-		"=SN{mv>Qn+T=L9X}Vo30›=r54lj&NUUO~Hi%c2ym0/8",
+		"=SN{mv>Qn+T=L9X}Vo30" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0/8",
 		"ff00-ffff:*:*:*:*:*:*:*",
 		"ff00:0000:0000:0000:0000:0000:0000:0000/8",
 		"ff00:0:0:0:0:0:0:0/8",
@@ -456,7 +457,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"0x00010002000300040000000000000000%:%:%",
 
 		"0001:0002:0003:0004:0000:0000-ffff:0000-ffff:0000-ffff",
-		"008JQWOV7Skb)C|ve)jA›008JQWOV7Skb?_P3;X#A",
+		"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "008JQWOV7Skb?_P3;X#A",
 		"1:2:3:4:0:*:*:*",
 		"1:2:3:4::*:*.*.*.*",
 		"1:2:3:4::*:*:*",
@@ -538,7 +539,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testMatches(true, "4)+k&C#VzJ4br>0wv%Yp", "1080::8:800:200c:417a");
 		testMatches(true, "=r54lj&NUUO~Hi%c2ym0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 		testMatches(true, "aaaabbbbccccdddd0000000000000000-aaaabbbbcccccdddffffffffffffffff", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*");
-		testMatches(true, "=r54lj&NUUO~Hi%c2yl0›=r54lj&NUUO~Hi%c2ym0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffaa-ffff");
+		testMatches(true, "=r54lj&NUUO~Hi%c2yl0" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffaa-ffff");
 
 		
 		//It is good to have at least one base 85 input test, since we have code that caches base 85 input strings for output
@@ -632,13 +633,13 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		try {
 			String hex = ipAddr.toHexString(true);
 			set.add(hex);
-		} catch(AddressTypeException e) {}
+		} catch(IncompatibleAddressException e) {}
 		
 		if(ipAddr.isIPv4()) {
 			try {
 				String octal = ipAddr.toOctalString(true);
 				set.add(octal);
-			} catch(AddressTypeException e) {}
+			} catch(IncompatibleAddressException e) {}
 		}
 //		System.out.println(c);
 //		System.out.println(canonical);
@@ -666,7 +667,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 	}
 	
 	void testCaches(Map<String, IPAddressString> map, boolean testSize, boolean useBytes) {
-		IPAddressStringCache cache = new IPAddressStringCache(map);
+		IPAddressStringGenerator cache = new IPAddressStringGenerator(map);
 		testCache(ADDRESS_SAMPLING, cache, str -> createAddress(str), testSize, useBytes);
 	}
 	

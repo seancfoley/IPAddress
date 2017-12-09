@@ -65,22 +65,22 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	AddressSection removePrefixLength();
-	
+
 	@Override
 	AddressSection adjustPrefixBySegment(boolean nextSegment);
-	
+
 	@Override
 	AddressSection adjustPrefixLength(int adjustment);
-	
+
 	@Override
 	AddressSection setPrefixLength(int prefixLength);
-	
+
 	@Override
 	AddressSection applyPrefixLength(int networkPrefixLength);
-	
+
 	@Override
 	Iterable<? extends AddressSection> getIterable();
-	
+
 	@Override
 	Iterator<? extends AddressSection> iterator();
 }

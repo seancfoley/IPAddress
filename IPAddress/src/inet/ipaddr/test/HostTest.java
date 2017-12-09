@@ -26,7 +26,7 @@ import inet.ipaddr.IPAddressString;
 
 import java.util.Objects;
 
-import inet.ipaddr.AddressTypeException;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.ipv6.IPv6Address;
 
 
@@ -42,7 +42,7 @@ public class HostTest extends TestBase {
 	}
 	
 	void testResolved(String original, String expectedResolved) {
-		HostName origAddress = createHost(original);
+		HostName origAddress = createHost_inet_aton(original);
 		testResolved(origAddress, original, expectedResolved);
 	}
 	
@@ -67,7 +67,7 @@ public class HostTest extends TestBase {
 					//System.out.println("" + resolvedAddress.toCanonicalHostName());
 				}
 			}
-		} catch(AddressTypeException e) {
+		} catch(IncompatibleAddressException e) {
 			addFailure(new Failure(e.toString(), original));
 		} catch(RuntimeException e) {
 			addFailure(new Failure(e.toString(), original));
@@ -221,7 +221,7 @@ public class HostTest extends TestBase {
 	private void testNormalizedMatches(HostName h1) {
 		String normalized;
 		if(h1.isAddress() && h1.asAddress().isPrefixed() && h1.asAddress().isIPv6()) {
-			normalized = '[' + h1.asAddress().getLower().toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
+			normalized = '[' + h1.asAddress().getLower().removePrefixLength(false).toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
 		} else if(h1.isAddress() && h1.asAddress().isIPv6()) {
 			normalized = '[' + h1.asAddress().toNormalizedWildcardString() + "]";
 		} else {
@@ -286,6 +286,9 @@ public class HostTest extends TestBase {
 		testSelf("[localhost]", false);//square brackets are for ipv6
 		testSelf("-ab-.com", false);
 		
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		boolean isAllSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+		
 		testMatches(true, "a.com", "A.cOm");
 		testMatches(false, "a.comx", "a.com");
 		testMatches(false, "1::", "2::");
@@ -308,11 +311,15 @@ public class HostTest extends TestBase {
 		testMatches(true, "[1:2:3:4:5:6::%y]", "1:2:3:4:5:6::%y");
 		testMatches(true, "[1:2:3:4:5:6::%25y]", "1:2:3:4:5:6::%y");//see rfc 6874 about %25
 		testMatches(true, "[1:2:3:4:5:6::]/32", "1:2:3:4:5:6::/32");
-		testMatches(true, "1.2.3.4/255.0.0.0", "1.0.0.0/255.0.0.0");
+		testMatches(true, "[1:2::]/32", "1:2::/32");
+		testMatches(true, "[1:ff00::]/24", "1:ff00::/24");
+		testMatches(true, "[1:ffff::]/24", "1:ffff::/24");
+		testMatches(isAllSubnets, "1.2.3.4/255.0.0.0", "1.0.0.0/255.0.0.0");
 		
 		testMatches(true, "[IPv6:1:2:3:4:5:6:7:8%y]", "1:2:3:4:5:6:7:8%y");
 		testMatches(true, "[IPv6:1:2:3:4:5:6:7:8]", "1:2:3:4:5:6:7:8");
 		testMatches(true, "[IPv6:1:2:3:4:5:6::]/32", "1:2:3:4:5:6::/32");
+		testMatches(true, "[IPv6:1:2::]/32", "1:2::/32");
 		testMatches(true, "[IPv6:::1]", "::1");
 		testMatches(true, "[IPv6:1::]", "1::");
 		
@@ -576,7 +583,7 @@ public class HostTest extends TestBase {
 		testHost("[::1]", "0:0:0:0:0:0:0:1", null, null);
 		testHost("/16", "/16", null, null);
 		testHost("/32", "/32", null, null);
-		testHost("/64", "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff:0:0:0:0/64", null, null);
+		testHost("/64", isNoAutoSubnets ? "ffff:ffff:ffff:ffff:0:0:0:0" : "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff:0:0:0:0/64", null, null);
 		
 		hostTest(true, "255.22.2.111.3.in-addr.arpa:35");//not a valid address but still a valid host
 		hostTest(false, "[::1]x");

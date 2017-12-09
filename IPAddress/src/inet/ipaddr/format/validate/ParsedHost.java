@@ -25,6 +25,7 @@ import inet.ipaddr.HostName;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressString;
 
 /**
@@ -35,7 +36,7 @@ import inet.ipaddr.IPAddressString;
  */
 public class ParsedHost implements Serializable {
 
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	private static final EmbeddedAddress NO_EMBEDDED_ADDRESS = new EmbeddedAddress();
 	static final ParsedHostIdentifierStringQualifier NO_QUALIFIER = new ParsedHostIdentifierStringQualifier();
@@ -66,7 +67,6 @@ public class ParsedHost implements Serializable {
 	}
 	
 	ParsedHost(String originalStr, int separatorIndices[], boolean normalizedFlags[], ParsedHostIdentifierStringQualifier labelsQualifier, EmbeddedAddress embeddedAddress) {
-		//this.addressProvider = embeddedAddress.addressProvider;
 		this.labelsQualifier = labelsQualifier;
 		this.normalizedFlags = normalizedFlags;
 		this.separatorIndices = separatorIndices;
@@ -76,7 +76,7 @@ public class ParsedHost implements Serializable {
 	
 	static class EmbeddedAddress implements Serializable {
 		
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 4L;
 		
 		boolean isUNCIPv6Literal;
 		boolean isReverseDNS;
@@ -103,7 +103,7 @@ public class ParsedHost implements Serializable {
 		if(pref == null) {
 			IPAddress mask = getMask();
 			if(mask != null) {
-				pref = mask.getMaskPrefixLength(true);
+				pref = mask.getBlockMaskPrefixLength(true);
 			}
 		}
 		return pref;
@@ -143,13 +143,14 @@ public class ParsedHost implements Serializable {
 		if(hasEmbeddedAddress()) {
 			IPAddressProvider addressProvider = getAddressProvider();
 			if(addressProvider.isAllAddresses()) {
-				return IPAddressString.ALL_ADDRESSES;
+				return new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR, addressProvider.getParameters());
 			} else if(addressProvider.isPrefixOnly()) {
-				return IPAddressNetwork.getPrefix(addressProvider.getNetworkPrefixLength());
+				return new IPAddressString(IPAddressNetwork.getPrefixString(addressProvider.getNetworkPrefixLength()), addressProvider.getParameters());
 			} else if(addressProvider.isEmpty()) {
-				return IPAddressString.EMPTY_ADDRESS;
+				return new IPAddressString("", addressProvider.getParameters());
 			} else {
-				return getAddressProvider().getAddress().toAddressString();
+				IPAddress addr = addressProvider.getAddress();
+				return addr.toAddressString();
 			}
 		}
 		return null;
@@ -170,7 +171,8 @@ public class ParsedHost implements Serializable {
 							}
 							return new String[] {asGenericAddressString().toString()};
 						}
-						labels = addr.getSegmentStrings();
+						IPAddressSection section = addr.getSection();
+						labels = section.getSegmentStrings();
 					} else {
 						labels = new String[separatorIndices.length];
 						for(int i = 0, lastSep = -1; i < labels.length; i++) {

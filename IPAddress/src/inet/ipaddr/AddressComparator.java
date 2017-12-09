@@ -325,23 +325,25 @@ abstract class BaseComparator implements AddressComparator {
 	}
 	
 	private static int mapGroupingClass(Class<?> clazz) {
-		if(clazz.equals(AddressDivisionGrouping.class)) {
-			return 1;
+		if(IPv6AddressSection.class.isAssignableFrom(clazz)) {
+			return 6;
 		}
-		if(clazz.equals(MACAddressSection.class)) {
-			return 2;
-		}
-		if(clazz.equals(IPAddressDivisionGrouping.class)) {
-			return 3;
-		}
-		if(clazz.equals(IPv4AddressSection.class)) {
-			return 4;
-		}
-		if(clazz.equals(IPv6v4MixedAddressSection.class)) {
+		if(IPv6v4MixedAddressSection.class.isAssignableFrom(clazz)) {
 			return 5;
 		}
-		if(clazz.equals(IPv6AddressSection.class)) {
-			return 6;
+		if(IPv4AddressSection.class.isAssignableFrom(clazz)) {
+			return 4;
+		}
+		//other IP address groupings
+		if(IPAddressDivisionGrouping.class.isAssignableFrom(clazz)) {
+			return 3;
+		}
+		if(MACAddressSection.class.isAssignableFrom(clazz)) {
+			return 3;
+		}
+		//other address groupings
+		if(AddressDivisionGrouping.class.isAssignableFrom(clazz)) {
+			return 1;
 		}
 		return 0;
 	}
@@ -369,19 +371,22 @@ abstract class BaseComparator implements AddressComparator {
 		Class<? extends AddressSection> oneClass = one.getClass();
 		Class<? extends AddressSection> twoClass = two.getClass();
 		if(!oneClass.equals(twoClass)) {
-			return mapGroupingClass(oneClass) - mapGroupingClass(twoClass);
+			int result = mapGroupingClass(oneClass) - mapGroupingClass(twoClass);
+			if(result != 0) {
+				return result;
+			}
 		}
 		if(one instanceof IPv6AddressSection) {
 			IPv6AddressSection o1 = (IPv6AddressSection) one;
 			IPv6AddressSection o2 = (IPv6AddressSection) two;
-			int result = o2.startIndex - o1.startIndex;
+			int result = o2.addressSegmentIndex - o1.addressSegmentIndex;
 			if(result != 0) {
 				return result;
 			}
 		} else if(one instanceof MACAddressSection) {
 			MACAddressSection o1 = (MACAddressSection) one;
 			MACAddressSection o2 = (MACAddressSection) two;
-			int result = o2.startIndex - o1.startIndex;
+			int result = o2.addressSegmentIndex - o1.addressSegmentIndex;
 			if(result != 0) {
 				return result;
 			}
