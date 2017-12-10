@@ -1,12 +1,12 @@
 Version 4 release:
 
-The main change is version 4 is a change to the way IP addresses with prefix length are handled,
+The main change in version 4 is a change to the way IP addresses with prefix length are handled,
 as well as options for going back to the old behaviour, or using a third option (see PrefixConfiguration class or the docs for details on the options)
 
 -added prefix length handling options
 -changes to network classes and address classes to support prefix handling options
 -runtime exception refactoring - reorganized them and added more error checking
--added new method options to ignore IPv4 network or IPv6 anycase (ie the zero hjost) address when iterating or getting lowest address in a subnet
+-added new method options to ignore IPv4 network or IPv6 anycast (ie the zero host) address when iterating or getting lowest address in a subnet
 -added new conversions to/from BigInteger, int, long
 -added intersect method
 -added toPrefixBlock method
@@ -19,7 +19,7 @@ as well as options for going back to the old behaviour, or using a third option 
 	getMinPrefix renamed to getMinPrefixLengthForBlock
 	toMinPrefixedEquivalent renamed to assignMinPrefixForBlock
 	getMaskPrefixLength renamed to getBlockMaskPrefixLength
-	matchesWithPrefix renamed to matchesWithPrefixNetworkMask
+	matchesWithPrefix renamed to matchesWithPrefixMask
 	isRangeEquivalent renamed to isPrefixBlock
 	isMultipleByNetworkPrefix is replaced by isSinglePrefixBlock
 -moved a few static methods:
@@ -28,6 +28,7 @@ as well as options for going back to the old behaviour, or using a third option 
 	IPAddress.getLocalHost is removed.  Instead use IPAddressNetwork.IPAddressGenerator.from on the result of InetAddress.getLocalHost().getAddress() 
 	Some network object access methods have been changed.  You can address default network object directly from defaultIpv4Network, defaultIpv6Network and defaultMACNetwork in class Address
 
+Version 4 is not backwards compatible with version 3, but migration is straightforward.
 
 
 Version 3 release:
