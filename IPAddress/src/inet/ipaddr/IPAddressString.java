@@ -60,7 +60,7 @@ import inet.ipaddr.mac.MACAddress;
  * <li>IPv6 mixed addresses are supported, which are addresses for which the last two IPv6 segments are represented as IPv4, like ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255</li>
  * <li>IPv6 compressed addresses like ::1</li>
  * <li>A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimiter 0x</li>
- * <li>A base 85 address comprising 20 base 85 digits like 4)+k&C#VzJ4br>0wv%Yp as in rfc 1924 https://tools.ietf.org/html/rfc1924</li>
+ * <li>A base 85 address comprising 20 base 85 digits like 4)+k&amp;C#VzJ4br&gt;0wv%Yp as in rfc 1924 https://tools.ietf.org/html/rfc1924</li>
  * </ul>
  * <p>
  * All of the above subnet variations work for IPv6, whether network prefixes, masks, ranges or wildcards.

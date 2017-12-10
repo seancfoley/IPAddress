@@ -175,8 +175,9 @@ public abstract class AddressNetwork<S extends AddressSegment> implements Serial
 	 * <p>
 	 * The prefix configuration determines whether a prefixed address like 1.2.0.0/16 results in a subnet block (ie 1.2.*.*) or just a single address (1.2.0.0) with a prefix length.
 	 * <p>
-	 * If you wish to change the default behaviour, you can either change {@link #prefixConfiguration} or you can override this method in your own network and use your own network for your addresses.
-	 * @see #prefixConfiguration
+	 * If you wish to change the default behaviour, you can either call {@link inet.ipaddr.ipv4.IPv4AddressNetwork#setDefaultPrefixConfiguration(PrefixConfiguration)},
+	 * or {@link inet.ipaddr.ipv6.IPv6AddressNetwork#setDefaultPrefixConfiguration(PrefixConfiguration)} or you can override this method in your own network and use your own network for your addresses.
+	 * 
 	 * @see PrefixConfiguration
 	 */
 	public abstract PrefixConfiguration getPrefixConfiguration();

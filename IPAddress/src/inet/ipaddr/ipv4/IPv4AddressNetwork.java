@@ -305,6 +305,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 	/**
 	 * Sets the default prefix configuration used by this network.
 	 * 
+	 * @see #getPrefixConfiguration()
 	 * @see #getDefaultPrefixConfiguration()
 	 * @see PrefixConfiguration
 	 */

@@ -371,7 +371,8 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 	/**
 	 * Sets the default prefix configuration used by this network.
 	 * 
-	 * @see AddressNetwork#setDefaultPrefixConfiguration(PrefixConfiguration)
+	 * @see #getDefaultPrefixConfiguration()
+	 * @see #getPrefixConfiguration()
 	 * @see PrefixConfiguration
 	 */
 	public static void setDefaultPrefixConfiguration(PrefixConfiguration config) {
