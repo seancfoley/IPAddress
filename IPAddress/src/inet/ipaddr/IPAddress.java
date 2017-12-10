@@ -385,7 +385,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract boolean isLoopback();
 
 	/**
-	 * Converts the lowest value of this address to an InetAddress.
+	 * Converts the highest value of this address to an InetAddress.
 	 * If this consists of just a single address, this is equivalent to {@link #toInetAddress()}
 	 */
 	public InetAddress toUpperInetAddress() {

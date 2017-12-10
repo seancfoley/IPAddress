@@ -56,7 +56,7 @@ But even then you cannot create new hyperlink anchors that match the existing, t
 <a name="x">Bla</a>
 
 Note 2: When you save, it may create a relative link to the images in the git hub repo, like <img src="../../eclipse/github/IPAddress/IPAddress/address.png">
-So you need to change that to just <img src="address.png">
+So you need to change that to just <img src="address.png">.  Or you should create the filtered html doc in the same directory as the original.
 
 
 
@@ -72,7 +72,7 @@ you will first want to ensure you create a branch for the previous release befor
 
 1. Edit the release "version" property in build.xml
 
-5. Edit the release property in pom.xml
+2. Edit the release property in pom.xml
 
 3. Use build.xml to "create dist jar" and replace IPAddress.jar with the dist jar created.
 
