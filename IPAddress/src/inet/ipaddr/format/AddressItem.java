@@ -27,8 +27,8 @@ import java.math.BigInteger;
  * The basic difference between the AddressComponent hierarchy and the AddressDivision hierarchy is that <br>
  * AddressComponent hierarchy uses<br>
  * <ul><li>standardized/typical arrangement (ie for ipv4, 4 equal segments of 1 byte each, for ipv6, 8 equal segments of 2 bytes each, for mac, 6 or 8 equal segments of 1 byte each)</li>
- * <li>-equal size segments</li>
- * <li>-segments divided along byte boundaries</li></ul>
+ * <li>equal size segments</li>
+ * <li>segments divided along byte boundaries</li></ul>
  * <p>
  * AddressDivision allows alternative arrangements, such as inet_aton style of presenting ipv4 in fewer divisions, 
  * or base 85 for ipv6 which does not even use a base that is a power of 2 (and hence so subdivisions possibly using bit boundaries), 
