@@ -2215,7 +2215,7 @@ public class IPAddressTest extends TestBase {
 				@Override
 				protected IPv6AddressSegment createSegmentInternal(int value, Integer segmentPrefixLength, CharSequence addressStr, int originalVal, 
 						boolean isStandardString, int lowerStringStartIndex, int lowerStringEndIndex) {
-					return new MyIPv6AddressSegment(value, segmentPrefixLength);//yes
+					return new MyIPv6AddressSegment(value, segmentPrefixLength);
 				}
 				
 				@Override
@@ -2225,7 +2225,7 @@ public class IPAddressTest extends TestBase {
 				
 				@Override
 				protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[]) {
-					return new MyIPv6AddressSection(segments, 0, false);//yes
+					return new MyIPv6AddressSection(segments, 0, false);
 				}
 
 				@Override
@@ -2235,7 +2235,7 @@ public class IPAddressTest extends TestBase {
 				
 				@Override
 				protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone, HostIdentifierString from) {
-					return new MyIPv6Address((MyIPv6AddressSection) section, zone);//yes
+					return new MyIPv6Address((MyIPv6AddressSection) section, zone);
 				}
 			};
 		}
@@ -2244,15 +2244,15 @@ public class IPAddressTest extends TestBase {
 	void testCustomNetwork(PrefixConfiguration prefixConfiguration) {
 		byte bytes[] = new byte[16];
 		bytes[0] = bytes[15] = 1;
-		IPv6Address myAddr = new MyIPv6Address(bytes, 64);
-		IPv6Address regAddr = new IPv6Address(bytes, 64);
+		IPv6Address myAddr1 = new MyIPv6Address(bytes, 64);
+		IPv6Address regAddr1 = new IPv6Address(bytes, 64);
 		bytes[15] = 0;
-		IPv6Address regAddrNet = new IPv6Address(bytes, 64);
-		testCustomNetwork(myAddr, regAddr, regAddrNet);
+		IPv6Address regAddrNet1 = new IPv6Address(bytes, 64);
+		testCustomNetwork(myAddr1, regAddr1, regAddrNet1);
 		IPAddressStringParameters params = new IPAddressStringParameters.Builder().getIPv6AddressParametersBuilder().setNetwork(myIPv6Network).getParentBuilder().toParams();
-		myAddr = new IPAddressString("1::1/64", params).getAddress().toIPv6(); 
-		regAddr = new IPAddressString("1::1/64").getAddress().toIPv6();
-		regAddrNet = new IPAddressString("1::/64").getAddress().toIPv6();
+		IPv6Address myAddr = new IPAddressString("1::1/64", params).getAddress().toIPv6(); 
+		IPv6Address regAddr = new IPAddressString("1::1/64").getAddress().toIPv6();
+		IPv6Address regAddrNet = new IPAddressString("1::/64").getAddress().toIPv6();
 		testCustomNetwork(myAddr, regAddr, regAddrNet);
 	}
 	

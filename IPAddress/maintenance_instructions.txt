@@ -6,13 +6,13 @@ These procedures are not difficult if you follow the steps carefully.
 To update the javadoc
 ---------------------
 
-1. You check out into your Eclipse workspace the master branch of the IPAddress Eclipse project in the IPAddress repository which contains this file.
+1. Check out into your Eclipse workspace the master branch of the IPAddress Eclipse project in the IPAddress repository which contains this file.
 https://github.com/seancfoley/IPAddress
 
-2. You check out into your Eclipse workspace the master branch of the "Functional Doclet for Javadoc" Eclipse project in the Functional-Doclet-for-Javadoc repository.
+2. Check out into your Eclipse workspace the master branch of the "Functional Doclet for Javadoc" Eclipse project in the Functional-Doclet-for-Javadoc repository.
 https://github.com/seancfoley/Functional-Doclet-for-Javadoc
 
-3. You run the build.xml ant task to generate the javadoc into the javadoc folder in the IPAddress project
+3. Run the build.xml ant task to generate the javadoc into the javadoc folder in the IPAddress project
 
 4. In eclipse you switch the IPAddress project to the local gh-pages branch.  Do not commit the javadoc files before doing so.  
 Since those files do not belong to any branch, they will remain in your IPAddress project as you switch branches.
@@ -54,6 +54,9 @@ Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save
 But even then you cannot create new hyperlink anchors that match the existing, the underlying issue seems to be anchors in new Word inserted in front of heading, while old anchors surrounded heading:
 <a name="x"></a>Bla 
 <a name="x">Bla</a>
+
+Note 2: When you save, it may create a relative link to the images in the git hub repo, like <img src="../../eclipse/github/IPAddress/IPAddress/address.png">
+So you need to change that to just <img src="address.png">
 
 
 
