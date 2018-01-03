@@ -22,4 +22,4 @@ Versions:
 
 **[Latest Version v4.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v4.0.0)** features new prefix length handling.  The default [prefix behaviour](https://seancfoley.github.io/IPAddress/#_Prefix_Length_Handling) has changed (IPv4 network/IPv6 subnet router anycast/zero-host addresses are the prefix block subnet, other prefixed addresses are individual addresses), although there exists the option to preserve the version 3 behaviour (all prefixed addresses are subnets), and there exists a third option (subnets are 'explicit' only).  Some additional changes to networks, a new intersect method, refactoring of the runtime exceptions, new conversions to/from BigInteger, various other minor changes.  Most of the API has not changed, a few changes are not backwards compatible but migration is straightforward.
 
-No further major releases planned at this time.  Currently working on porting the library to **TypeScript** and **Javascript**.
+No further major releases planned at this time, while minor releases will continue.  Currently working on porting the library to **TypeScript** and **JavaScript**.
