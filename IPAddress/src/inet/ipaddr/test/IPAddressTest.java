@@ -4471,6 +4471,8 @@ public class IPAddressTest extends TestBase {
 			new byte[] {127},
 		});
 		testByteExtension("255.255.255.128", new byte[][] {
+			new byte[] {-1, -1, -1, -1, -1, -128},
+			new byte[] {-1, -1, -1, -1, -128},
 			new byte[] {0, 0, -1, -1, -1, -128},
 			new byte[] {0, -1, -1, -1, -128},
 			new byte[] {-1, -1, -1, -128},
@@ -4480,6 +4482,7 @@ public class IPAddressTest extends TestBase {
 		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80", new byte[][] {
 			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
+			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {-1, -1, -128},
@@ -4487,6 +4490,7 @@ public class IPAddressTest extends TestBase {
 			new byte[] {-128}
 		});
 		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000", new byte[][] {
+			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
 			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
 			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
 			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
@@ -4494,7 +4498,14 @@ public class IPAddressTest extends TestBase {
 			new byte[] {-1, -128, 0},
 			new byte[] {-128, 0}
 		});
-		
+		testByteExtension("1.2.3.4", new byte[][] {
+			new byte[] {1, 2, 3, 4},
+			new byte[] {0, 1, 2, 3, 4},
+		});
+		testByteExtension("102:304:506:708:90a:b0c:d0e:f10", new byte[][] {
+			new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+			new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		});
 		testCustomNetwork(prefixConfiguration);
 	}
 }

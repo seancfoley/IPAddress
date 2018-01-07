@@ -943,15 +943,49 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		AddressSegmentCreator<S> creator = network.getAddressCreator();
 		int segmentCount = segments.length;
 		int expectedByteCount = segmentCount * bytesPerSegment;
-		int len = endIndex - startIndex;
-		if(len > expectedByteCount) {
-			do {
-				if(bytes[startIndex++] != 0) {
-					throw new AddressValueException(len);
+		
+		//We allow two formats of bytes:
+		//1. two's complement: top bit indicates sign.  Ranging over all 16-byte lengths gives all addresses, from both positive and negative numbers
+		//  Also, we allow sign extension to shorter and longer byte lengths.  For example, -1, -1, -2 is the same as just -2.  So if this were IPv4, we allow -1, -1, -1, -1, -2 and we allow -2.
+		//  This is compatible with BigInteger.  If we have a positive number like 2, we allow 0, 0, 0, 0, 2 and we allow just 2.  
+		//  But the top bit must be 0 for 0-sign extension. So if we have 255 as a positive number, we allow 0, 255 but not 255.  
+		//  Just 255 is considered negative and equivalent to -1, and extends to -1, -1, -1, -1 or the address 255.255.255.255, not 0.0.0.255
+		//
+		//2. Unsigned values
+		//  We interpret 0, -1, -1, -1, -1 as 255.255.255.255 even though this is not a sign extension of -1, -1, -1, -1.
+		//  In this case, we also allow any 4 byte value to be considered a positive unsigned number, and thus we always allow leading zeros.
+		//  In the case of extending byte array values that are shorter than the required length, 
+		//  unsigned values must have a leading zero in cases where the top bit is 1, because the two's complement format takes precedence.
+		//  So the single value 255 must have an additional 0 byte in front to be considered unsigned, as previously shown.
+		//  The single value 255 is considered -1 and is extended to become the address 255.255.255.255, 
+		//  but for the unsigned positive value 255 you must use the two bytes 0, 255 which become the address 0.0.0.255.
+		//  Once again, this is compatible with BigInteger.
+		
+		int missingBytes = expectedByteCount + startIndex - endIndex;
+		
+		//First we handle the situation where we have too many bytes.  Extra bytes can be all zero-bits, or they can be the negative sign extension of all one-bits.
+		if(missingBytes < 0) {
+			int expectedStartIndex = endIndex - expectedByteCount;
+			int higherStartIndex = expectedStartIndex - 1;
+			byte expectedExtendedValue = bytes[higherStartIndex];
+			if(expectedExtendedValue != 0) {
+				int mostSignificantBit = bytes[expectedStartIndex] >>> 7;
+				if(mostSignificantBit != 0) {
+					if(expectedExtendedValue != -1) {//0xff
+						throw new AddressValueException(expectedExtendedValue);
+					}
+				} else {
+					throw new AddressValueException(expectedExtendedValue);
 				}
-			} while(--len > expectedByteCount);
+			}
+			while(startIndex < higherStartIndex) {
+				if(bytes[--higherStartIndex] != expectedExtendedValue) {
+					throw new AddressValueException(expectedExtendedValue);
+				}
+			}
+			startIndex = expectedStartIndex;
+			missingBytes = 0;
 		}
-		int missingBytes = expectedByteCount - len;
 		boolean allPrefixedAddressesAreSubnets = network.getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 		for(int i = 0, segmentIndex = 0; i < expectedByteCount; segmentIndex++) {
 			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
