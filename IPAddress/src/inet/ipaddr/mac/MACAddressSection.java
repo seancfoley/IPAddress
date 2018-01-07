@@ -152,32 +152,38 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 
 	protected MACAddressSection(byte bytes[], int startIndex, boolean extended, boolean cloneBytes) {
-		super(new MACAddressSegment[bytes.length], false);
+		this(bytes, 0, bytes.length, -1, startIndex, extended, cloneBytes);
+	}
+
+	protected MACAddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, int startIndex, boolean extended, boolean cloneBytes) {
+		super(new MACAddressSegment[segmentCount >= 0 ? segmentCount : (byteEndIndex - byteStartIndex)], false);
+		MACAddressSegment segs[] = getSegmentsInternal();
 		toSegments(
-				getSegmentsInternal(),
+				segs,
 				bytes,
-				//bytes.length,
+				byteStartIndex,
+				byteEndIndex,
 				MACAddress.BYTES_PER_SEGMENT,
 				MACAddress.BITS_PER_SEGMENT,
 				MACAddress.MAX_VALUE_PER_SEGMENT,
 				getNetwork(),
-				//getSegmentCreator(),
 				null);
 		if(startIndex < 0 || startIndex > (extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT)) {
 			throw new AddressPositionException(startIndex);
-		} else if(startIndex + bytes.length > (extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT)) {
-			throw new AddressValueException(bytes.length);
 		}
 		this.addressSegmentIndex = startIndex;
 		this.extended = extended;
-		setBytes(bytes.clone());
+		if(bytes.length == segs.length) {
+			setBytes(cloneBytes ? bytes.clone() : bytes);
+		}
 	}
+	
 	/*
 	 * Use this constructor for any section that is part of a 64-bit EUI address,
 	 * or for any section that you wish to start in the middle of a MAC address.
 	 */
 	public MACAddressSection(byte bytes[], int startIndex, boolean extended) {
-		this(bytes, startIndex, extended, true);
+		this(bytes, 0, bytes.length, -1, startIndex, extended, true);
 	}
 	
 	/*
@@ -210,10 +216,6 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	 */
 	public MACAddressSection(long value) {
 		this(value, 0, false);
-	}
-	
-	protected static byte[] convert(byte bytes[], int requiredByteCount, String key) {
-		return AddressDivisionGrouping.convert(bytes, requiredByteCount, key);
 	}
 	
 	@Override

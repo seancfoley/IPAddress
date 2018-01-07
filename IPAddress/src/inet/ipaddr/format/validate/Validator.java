@@ -2584,7 +2584,7 @@ public class Validator implements HostIdentifierStringValidator {
 						parseQualifier(builder, DEFAULT_UNC_OPTS, null, ipAddressParseData, builder.length()));
 				emb.addressProvider = provider;
 			}
-			//TODO later? support bitstring labels and support subnets in them
+			//Note: could support bitstring labels and support subnets in them, however they appear to be generally unused in the real world
 			//rfc 2673
 			//arpa: https://www.ibm.com/support/knowledgecenter/SSLTBW_1.13.0/com.ibm.zos.r13.halz002/f1a1b3b1220.htm
 			//Also, support partial dns lookups and map then to the associated subnet with prefix length, which I think we may 

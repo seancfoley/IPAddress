@@ -24,7 +24,6 @@ import java.util.function.Function;
 
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork;
-import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
@@ -253,8 +252,17 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 		
 		@Override
+		public IPv4AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
+			return new IPv4AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+		}
+		
+		@Override
 		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv4AddressSection(bytes, prefix);
+		}
+		
+		protected IPv4AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) {
+			return new IPv4AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix);
 		}
 		
 		@Override

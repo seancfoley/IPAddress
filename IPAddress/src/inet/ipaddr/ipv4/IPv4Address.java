@@ -22,11 +22,12 @@ import java.net.Inet4Address;
 import java.util.Iterator;
 
 import inet.ipaddr.AddressConversionException;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressConverter;
-import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
+import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.IPAddressStringDivisionSeries;
@@ -44,7 +45,7 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
 
 
 /**
- * An IPv4 address, or a subnet of multiple IPv4 addresses.  Each segment can represent a single address or a range of addresses.
+ * An IPv4 address, or a subnet of multiple IPv4 addresses.  Each segment can represent a single value or a range of addresses.
  * 
  * @custom.core
  * @author sfoley
@@ -149,6 +150,18 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	/**
 	 * Constructs an IPv4 address or subnet.
 	 * <p>
+	 * Similar to {@link #IPv4Address(byte[])} except that you can specify the start and end of the address in the given byte array.
+	 * 
+	 * @param bytes
+	 * @throws AddressValueException
+	 */
+	public IPv4Address(byte[] bytes, int byteStartIndex, int byteEndIndex) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, null);
+	}
+	
+	/**
+	 * Constructs an IPv4 address or subnet.
+	 * <p>
 	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
 	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
 	 * <p>
@@ -158,7 +171,24 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @throws AddressValueException if bytes not equivalent to a 4 byte address
 	 */
 	public IPv4Address(byte[] bytes, Integer networkPrefixLength) throws AddressValueException {
-		super(thisAddress -> ((IPv4Address) thisAddress).getAddressCreator().createSection(IPv4AddressSection.convert(bytes, IPv4Address.BYTE_COUNT, "ipaddress.error.ipv4.invalid.byte.count"), networkPrefixLength));
+		this(bytes, 0, bytes.length, networkPrefixLength);
+	}
+
+	/**
+	 * Constructs an IPv4 address or subnet.
+	 * <p>
+	 * Similar to {@link #IPv4Address(byte[],Integer)} except that you can specify the start and end of the address in the given byte array.
+	 * <p>
+	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
+	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
+	 * <p>
+	 * 
+	 * @param bytes the 4 byte IPv4 address - if longer than 4 bytes the additional bytes must be zero, if shorter than 4 bytes then the bytes are sign-extended to 4 bytes.
+	 * @param networkPrefixLength the CIDR network prefix length, which can be null for no prefix
+	 * @throws AddressValueException if bytes not equivalent to a 4 byte address
+	 */
+	public IPv4Address(byte[] bytes, int byteStartIndex, int byteEndIndex, Integer networkPrefixLength) throws AddressValueException {
+		super(thisAddress -> ((IPv4Address) thisAddress).getAddressCreator().createSection(bytes, byteStartIndex, byteEndIndex, IPv4Address.SEGMENT_COUNT, networkPrefixLength));
 	}
 	
 	/**
@@ -330,6 +360,35 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSection().getLowestOrHighest(this, lowest, excludeZeroHost);
 	}
 	
+	public IPv4Address getBroadcastAddress() {
+		return toMaxHost();
+	}
+	
+	public IPv4Address getNetworkAddress() {
+		return toZeroHost();
+	}
+	
+	@Override
+	public IPv4Address toMaxHost() {
+		return (IPv4Address) super.toMaxHost();
+	}
+	
+	@Override
+	public IPv4Address toZeroHost() {
+		if(!isPrefixed()) {
+			PrefixConfiguration config = getNetwork().getPrefixConfiguration();
+			IPv4Address addr = getNetwork().getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			if(config.zeroHostsAreSubnets()) {
+				addr = addr.getLower();
+			}
+			return addr;
+		}
+		if(includesZeroHost() && isSingleNetwork()) {
+			return getLower();//cached
+		}
+		return checkIdentity(getSection().createZeroHost());
+	}
+
 	@Override
 	public IPv4Address getLowerNonZeroHost() {
 		return getLowestOrHighest(true, true);

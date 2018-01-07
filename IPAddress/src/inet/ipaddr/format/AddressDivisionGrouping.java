@@ -608,6 +608,39 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	}
 	
 	@Override
+	public boolean includesZero() {
+		int divCount = getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			if(!getDivision(i).includesZero()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
+	public boolean isMax() {
+		int divCount = getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			if(!getDivision(i).isMax()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
+	public boolean includesMax() {
+		int divCount = getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			if(!getDivision(i).includesMax()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	@Override
 	public boolean isFullRange() {
 		int divCount = getDivisionCount();
 		//if we have calculated prefix already, we use it
@@ -706,31 +739,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			result = Math.max(0, result);
 		}
 		return result;
-	}
-
-	protected static byte[] convert(byte bytes[], int requiredByteCount, String key) {
-		int len = bytes.length;
-		if(len < requiredByteCount) {
-			byte oldBytes[] = bytes;
-			bytes = new byte[requiredByteCount];
-			int diff = bytes.length - oldBytes.length;
-			int mostSignificantBit = 0x80 & oldBytes[0];
-			if(mostSignificantBit != 0) {//sign extension
-				Arrays.fill(bytes, 0, diff, (byte) 0xff);
-			}
-			System.arraycopy(oldBytes, 0, bytes, diff, oldBytes.length);
-		} else {
-			if(len > requiredByteCount) {
-				int i = 0;
-				do {
-					if(bytes[i++] != 0) {
-						throw new AddressValueException(key, len);
-					}
-				} while(--len > requiredByteCount);
-				bytes = Arrays.copyOfRange(bytes, i, bytes.length);
-			}
-		}
-		return bytes;
 	}
 	
 	/**
@@ -925,6 +933,8 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	protected static <S extends AddressSegment> S[] toSegments(
 			S segments[],
 			byte bytes[],
+			int startIndex,
+			int endIndex,
 			int bytesPerSegment,
 			int bitsPerSegment,
 			int maxValuePerSegment,
@@ -933,10 +943,19 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		AddressSegmentCreator<S> creator = network.getAddressCreator();
 		int segmentCount = segments.length;
 		int expectedByteCount = segmentCount * bytesPerSegment;
-		int missingBytes = expectedByteCount - bytes.length;
-		for(int i = 0, segmentIndex = 0; i < expectedByteCount; i += bytesPerSegment, segmentIndex++) {
+		int len = endIndex - startIndex;
+		if(len > expectedByteCount) {
+			do {
+				if(bytes[startIndex++] != 0) {
+					throw new AddressValueException(len);
+				}
+			} while(--len > expectedByteCount);
+		}
+		int missingBytes = expectedByteCount - len;
+		boolean allPrefixedAddressesAreSubnets = network.getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		for(int i = 0, segmentIndex = 0; i < expectedByteCount; segmentIndex++) {
 			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
-			if(segmentPrefixLength != null && segmentPrefixLength == 0 && network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			if(allPrefixedAddressesAreSubnets && segmentPrefixLength != null && segmentPrefixLength == 0) {
 				S allSeg = creator.createSegment(0, maxValuePerSegment, 0);
 				if(!network.equals(allSeg.getNetwork())) {
 					throw new NetworkMismatchException(allSeg);
@@ -946,16 +965,29 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 				} while(++segmentIndex < segmentCount);
 				break;
 			}
+
 			int value = 0;
 			int k = bytesPerSegment + i;
-			for(int j = i; j < k; j++) {
-				int actualIndex = j - missingBytes;
-				if(actualIndex >= 0) {
-					int byteValue = 0xff & bytes[actualIndex];
-					value <<= 8;
-					value |= byteValue;
+			int j = i;
+			if(j < missingBytes) {
+				int mostSignificantBit = bytes[startIndex] >>> 7;
+				if(mostSignificantBit == 0) {//sign extension
+					j = missingBytes;
+				} else {//sign extension
+					int upper = Math.min(missingBytes, k);
+					for(; j < upper; j++) {
+						value <<= 8;
+						value |= 0xff;
+					}
 				}
 			}
+			for(; j < k; j++) {
+				int byteValue = 0xff & bytes[startIndex + j - missingBytes];
+				value <<= 8;
+				value |= byteValue;
+			}
+			i = k;
+			
 			S seg = creator.createSegment(value, segmentPrefixLength);
 			if(!network.equals(seg.getNetwork())) {
 				throw new NetworkMismatchException(seg);
@@ -964,7 +996,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		return segments;
 	}
-	
+
 	protected static <R extends AddressSection, S extends AddressSegment> S[] createSingle(
 			R original,
 			AddressSegmentCreator<S> segmentCreator,

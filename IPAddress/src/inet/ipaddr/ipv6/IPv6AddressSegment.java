@@ -20,14 +20,13 @@ package inet.ipaddr.ipv6;
 
 import java.util.Iterator;
 
-import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.Address;
-import inet.ipaddr.AddressConversionException;
-import inet.ipaddr.AddressValueException;
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
-import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
@@ -156,33 +155,17 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 		}
 		return this;
 	}
-	
-	/* returns a new segment masked by the given mask */
-	public IPv6AddressSegment toMaskedSegment(IPv6AddressSegment maskSegment, Integer segmentPrefixLength) throws IncompatibleAddressException, PrefixLenException {
-		if(isChangedByMask(maskSegment.getLowerSegmentValue(), segmentPrefixLength)) {
-			if(!isMaskCompatibleWithRange(maskSegment, segmentPrefixLength)) {
-				throw new IncompatibleAddressException(this, maskSegment, "ipaddress.error.maskMismatch");
-			}
-			int maskValue = maskSegment.getLowerSegmentValue();
-			return getSegmentCreator().createSegment(getLowerSegmentValue() & maskValue, getUpperSegmentValue() & maskValue, segmentPrefixLength);
-		}
-		return this;
-	}
-	
-	public boolean isMaskCompatibleWithRange(IPv6AddressSegment maskSegment, Integer segmentPrefixLength) throws AddressConversionException, PrefixLenException {
-		return isMaskCompatibleWithRange(maskSegment.getLowerSegmentValue(), segmentPrefixLength); //for mask we only use the lower value
-	}
 
 	@Override
 	public IPv6AddressSegment getLower() {
 		return getLowestOrHighest(this, getSegmentCreator(), true);
 	}
-	
+
 	@Override
 	public IPv6AddressSegment getUpper() {
 		return getLowestOrHighest(this, getSegmentCreator(), false);
 	}
-	
+
 	@Override
 	public IPv6AddressSegment reverseBits(boolean perByte) {
 		if(isMultiple()) {

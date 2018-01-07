@@ -106,6 +106,8 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		protected abstract R createSectionInternal(byte bytes[], Integer prefix);
 		
+		public abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix);
+		
 		public abstract R createSection(byte bytes[], Integer prefix);
 		
 		public abstract R createSection(S segments[], Integer networkPrefixLength);
@@ -328,6 +330,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 				synchronized(cache) {
 					int segmentCount = IPAddress.getSegmentCount(version);
 					int bitsPerSegment = IPAddress.getBitsPerSegment(version);
+					int bytesPerSegment = IPAddress.getBytesPerSegment(version);
 					onesSubnet = cache[onesSubnetIndex];
 					if(onesSubnet == null) {
 						IPAddressCreator creator = getAddressCreator();
@@ -344,7 +347,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 							Arrays.fill(newSegments, segment);
 							onesSubnet = creator.createAddressInternal(newSegments); /* address creation */
 						}
-						initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment);
+						initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
 						cache[onesSubnetIndex] = onesSubnet;
 					}
 					zerosSubnet = cache[zerosSubnetIndex];
@@ -361,7 +364,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 							Arrays.fill(newSegments, seg);
 							zerosSubnet = creator.createAddressInternal(newSegments); /* address creation */
 						}
-						initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment);
+						initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
 						cache[zerosSubnetIndex] = zerosSubnet;
 					}
 				}
@@ -373,6 +376,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 					BiFunction<T, Integer, S> segProducer = getSegmentProducer();				
 					int segmentCount = IPAddress.getSegmentCount(version);
 					int bitsPerSegment = IPAddress.getBitsPerSegment(version);
+					int bytesPerSegment = IPAddress.getBytesPerSegment(version);
 					int prefix = bits;
 					S onesSegment = segProducer.apply(onesSubnet, 1);
 					S zerosSegment = segProducer.apply(zerosSubnet, 1);
@@ -425,7 +429,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 						subnet = creator.createAddressInternal(newSegments); /* address creation */
 					}
 					//initialize the cache fields since we know what they are now - they do not have to be calculated later
-					initMaskCachedValues(subnet.getSection(), network, withPrefixLength, addressBitLength, prefix, segmentCount, bitsPerSegment);
+					initMaskCachedValues(subnet.getSection(), network, withPrefixLength, addressBitLength, prefix, segmentCount, bitsPerSegment, bytesPerSegment);
 					cache[cacheIndex] = subnet; //last thing is to put into the cache - don't put it there before we are done with it
 				} // end subnet from cache is null
 			} //end synchronized
@@ -440,7 +444,8 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 			int addressBitLength, 
 			int networkPrefixLength,
 			int segmentCount, 
-			int bitsPerSegment) {
+			int bitsPerSegment,
+			int bytesPerSegment) {
 		Integer cachedNetworkPrefix, cachedMinPrefix, cachedEquivalentPrefix;
 		BigInteger cachedCount;
 		RangeList zeroSegments, zeroRanges;
@@ -449,15 +454,15 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		if(hasZeroRanges) {
 			int rangeIndex, rangeLen;
 			if(network) {
-				int segmentIndex = (networkPrefixLength + bitsPerSegment - 1) / bitsPerSegment;//for network we round up
+				int segmentIndex = IPAddressSection.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment) + 1;
 				rangeIndex = segmentIndex;
 				rangeLen = segmentCount - segmentIndex;
 			} else {
 				rangeIndex = 0;
-				rangeLen = networkPrefixLength / bitsPerSegment;//for host we round down
+				rangeLen = IPAddressSection.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 			}
 			zeroRanges = IPAddressSection.getSingleRange(rangeIndex, rangeLen);
-			zeroSegments = (network && withPrefixLength) ? noZeros : zeroRanges;
+			zeroSegments = (network && withPrefixLength && !getPrefixConfiguration().prefixedSubnetsAreExplicit()) ? noZeros : zeroRanges;
 		} else {
 			zeroSegments = zeroRanges = noZeros;
 		}
@@ -581,13 +586,10 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		private IPAddress from(byte bytes[], Integer prefixLength, CharSequence zone) {
-			if(bytes.length == IPv4Address.BYTE_COUNT) {
+			if(bytes.length < IPv6Address.BYTE_COUNT) {
 				return getIPv4Creator().createAddressInternal(bytes, prefixLength);
 			}
-			if(bytes.length == IPv6Address.BYTE_COUNT) {
-				return getIPv6Creator().createAddressInternal(bytes, prefixLength, zone);
-			}
-			throw new IllegalArgumentException();
+			return getIPv6Creator().createAddressInternal(bytes, prefixLength, zone);
 		}
 	}
 	

@@ -255,7 +255,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	@Override
 	public boolean isFullRange() {
-		return getLowerSegmentValue() == 0 && getUpperSegmentValue() == getMaxSegmentValue();
+		return includesZero() && includesMax();
 	}
 	
 	@Override
@@ -276,6 +276,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	@Override
 	public boolean matchesWithMask(int value, int mask) {
 		return super.matchesWithMask(value, mask);
+	}
+	
+	@Override
+	public boolean matchesWithMask(int lowerValue, int upperValue, int mask) {
+		return super.matchesWithMask(lowerValue, upperValue, mask);
 	}
 	
 	void setString(

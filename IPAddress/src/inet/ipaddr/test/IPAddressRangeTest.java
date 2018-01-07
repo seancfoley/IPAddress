@@ -4002,7 +4002,55 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testToPrefixBlock("1:3:3:4::/15", "0-1:*/15");
 		testToPrefixBlock("*:3:3:4::/15", isNoAutoSubnets ? "*:*/15" : "0-fffe::/15");
 		testToPrefixBlock("1:3:3:4::/16", "1:*/16");
+
+		testMaxHost("1.*.255.255/16", allPrefixesAreSubnets ? "1.*.255.255" : "1.*.255.255/16");
+		testMaxHost("1.2.*.*/16", allPrefixesAreSubnets ? "1.2.255.255" : "1.2.255.255/16");
+		testMaxHost("1.*.*.*/16", allPrefixesAreSubnets ? "1.*.255.255" : "1.*.255.255/16");
+		testMaxHost("1.2.*.1/16", allPrefixesAreSubnets ? "1.2.255.255" : "1.2.255.255/16");
+		testMaxHost("1.*.*.1/16", allPrefixesAreSubnets ? "1.*.255.255" : "1.*.255.255/16");
 		
+		testZeroHost("1.*.0.0/16", allPrefixesAreSubnets? "1.*.0.0" : "1.*.0.0/16");
+		testZeroHost("1.2.*.*/16", allPrefixesAreSubnets ? "1.2.0.0" : "1.2.0.0/16");
+		testZeroHost("1.*.*.*/16", allPrefixesAreSubnets ? "1.*.0.0" : "1.*.0.0/16");
+		testZeroHost("1.2.*.1/16", allPrefixesAreSubnets ? "1.2.0.0" : "1.2.0.0/16");
+		testZeroHost("1.*.*.1/16", allPrefixesAreSubnets ? "1.*.0.0" : "1.*.0.0/16");
+		
+		testMaxHost("1:*::ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:*::ffff:ffff:ffff:ffff" : "1:*::ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:2::ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:2::ffff:ffff:ffff:ffff" : "1:2::ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:*::*:*:*:*/64", allPrefixesAreSubnets ? "1:*::ffff:ffff:ffff:ffff" : "1:*::ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:2::*:*:*:*/64", allPrefixesAreSubnets ? "1:2::ffff:ffff:ffff:ffff" : "1:2::ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:2::*:*:*:1/64", allPrefixesAreSubnets ? "1:2::ffff:ffff:ffff:ffff" : "1:2::ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:*:1/64", allPrefixesAreSubnets ? "1:*:ffff:ffff:ffff:ffff" : "1:*:ffff:ffff:ffff:ffff/64");
+		testMaxHost("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0", allPrefixesAreSubnets ? "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0");
+		testMaxHost("*:*/0", allPrefixesAreSubnets ? "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0");
+		testMaxHost("::/128", allPrefixesAreSubnets ? "::" : "::/128");
+
+		testZeroHost("1:*::/64", allPrefixesAreSubnets ? "1:*::" : "1:*::/64");
+		testZeroHost("1:2::/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
+		testZeroHost("1:*::*:*:*:*/64", allPrefixesAreSubnets ? "1:*::" : "1:*::/64");
+		testZeroHost("1:2::*:*:*:*/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
+		testZeroHost("1:2::*:*:*:1/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
+		testZeroHost("1:*:1/64", allPrefixesAreSubnets ? "1:*:*:*::" : "1:*:*:*::/64");
+		testZeroHost("::/0", allPrefixesAreSubnets ? "::" : "::/0");
+		testZeroHost("*:*/0", allPrefixesAreSubnets ? "::" : "::/0");
+		testZeroHost("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", allPrefixesAreSubnets ? "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128");
+		
+		testZeroHost("1:2:3:4::/64", allPrefixesAreSubnets? "1:2:3:4::" : "1:2:3:4::/64");
+		testZeroHost("1:2:3:4:*/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
+		testZeroHost("1:2:*/64", allPrefixesAreSubnets ? "1:2:*:*::" : "1:2:*:*::/64");
+		testZeroHost("1:2:3:4:*:1/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
+		testZeroHost("1:*:1/64", allPrefixesAreSubnets ? "1:*:*:*::" : "1:*:*:*::/64");
+		
+		testSplitBytes("1.2.*.4");
+		testSplitBytes("1.2-4.3.4/16");
+		testSplitBytes("1.2.3.4-5/0");
+		testSplitBytes("1.2.*/32");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc-dddd:bbbb");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64");
+		testSplitBytes("ffff:2:3:4:*:dddd:cccc:bbbb/0");
+		testSplitBytes("*:*/128");
+		testSplitBytes("*:*");
+
 		super.runTest();
 	}
 	

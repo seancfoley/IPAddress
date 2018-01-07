@@ -213,11 +213,10 @@ public class ParsedHost implements Serializable {
 								//note that this means prefix only (/16 or /64) is a valid host
 								return asGenericAddressString().toString();
 							}
-							//toNormalizedWildcardString removes prefix
 							//port was stripped out 
 							//mask and prefix removed by toNormalizedWildcardString
 							//getSection() removes zone
-							return addr.getSection().toNormalizedWildcardString();
+							return addr.getSection().toCanonicalWildcardString();
 						} else {
 							StringBuilder builder = new StringBuilder(originalStr.length());
 							String labels[] = getNormalizedLabels();

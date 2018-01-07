@@ -213,7 +213,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return IPAddressSegment.getMaxSegmentValue(getIPVersion());
 	}
 	
-	public static int getMaxSegmentValue(IPVersion version) {
+	static int getMaxSegmentValue(IPVersion version) {
 		return IPAddressSegment.getMaxSegmentValue(version);
 	}
 	
@@ -227,12 +227,16 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return IPAddressSegment.getByteCount(getIPVersion());
 	}
 	
+	static int getBytesPerSegment(IPVersion version) {
+		return IPAddressSegment.getByteCount(version);
+	}
+	
 	@Override
 	public int getBitsPerSegment() {
 		return IPAddressSegment.getBitCount(getIPVersion());
 	}
 	
-	public static int getBitsPerSegment(IPVersion version) {
+	static int getBitsPerSegment(IPVersion version) {
 		return IPAddressSegment.getBitCount(version);
 	}
 	
@@ -386,7 +390,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	/**
 	 * Converts the highest value of this address to an InetAddress.
-	 * If this consists of just a single address, this is equivalent to {@link #toInetAddress()}
+	 * If this consists of just a single address and not a subnet, this is equivalent to {@link #toInetAddress()}
 	 */
 	public InetAddress toUpperInetAddress() {
 		return getSection().toUpperInetAddress(this);
@@ -428,6 +432,17 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	
 	public boolean isSameAddress(IPAddress other) {
 		return other == this || getSection().equals(other.getSection());
+	}
+	
+	/**
+	 * Applies the mask to this address and then compares values with the given address
+	 * 
+	 * @param mask
+	 * @param other
+	 * @return
+	 */
+	public boolean matchesWithMask(IPAddress other, IPAddress mask) {
+		return getSection().matchesWithMask(other.getSection(), mask.getSection());
 	}
 
 	@Override
@@ -872,6 +887,39 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().includesZeroHost();
 	}
 
+	@Override
+	public abstract IPAddress toZeroHost();
+	
+	public boolean includesMaxHost() {
+		return getSection().includesMaxHost();
+	}
+	
+	public IPAddress toMaxHost() {
+		if(!isPrefixed()) {
+			IPAddress resultNoPrefix = getNetwork().getHostMask(0);
+			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				return resultNoPrefix;
+			}
+			return resultNoPrefix.setPrefixLength(0);
+		}
+		int prefixLength = getNetworkPrefixLength();
+		IPAddress hostMask = getNetwork().getHostMask(prefixLength);
+		if(matchesWithMask(hostMask, hostMask)) {
+			if(!getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {//we have a prefix and we should not if allPrefixedAddressesAreSubnets
+				return this;
+			}
+		}
+		if(includesMaxHost() && isSingleNetwork()) {
+			return getUpper();
+		}
+		return bitwiseOr(hostMask, !getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+	}
+	
+	/* Returns true if the network section of the address spans just a single value */
+	public boolean isSingleNetwork() {
+		return getSection().isSingleNetwork();
+	}
+	
 	@Override
 	public abstract IPAddress toPrefixBlock();
 

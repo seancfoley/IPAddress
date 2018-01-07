@@ -95,7 +95,22 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public boolean isZero() {
-		return !isMultiple() && lowerValueIsZero();
+		return !isMultiple() && includesZero();
+	}
+	
+	@Override
+	public boolean includesZero() {
+		return getLowerValue() == 0L;
+	}
+	
+	@Override
+	public boolean isMax() {
+		return !isMultiple() && includesMax();
+	}
+	
+	@Override
+	public boolean includesMax() {
+		return getUpperValue() == getMaxValue();
 	}
 	
 	public abstract long getLowerValue();
@@ -136,19 +151,134 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				return false;
 			} //else we know that the mask zeros out all the bits that can change from value to upperValue, so now we just compare with either one
 		}
-		return (value & mask) == (getLowerValue() & mask);
+		return value == (getLowerValue() & mask);
+	}
+	
+	/**
+	 * returns whether masking with the given mask results in a valid contiguous range for this segment,
+	 * and if it does, if it matches the range obtained when masking the given values with the same mask.
+	 * 
+	 * @param lowerValue
+	 * @param upperValue
+	 * @param mask
+	 * @return
+	 */
+	public boolean matchesWithMask(long lowerValue, long upperValue, long mask) {
+		if(lowerValue == upperValue) {
+			return matchesWithMask(lowerValue, mask);
+		}
+		if(!isMultiple()) {
+			//we know lowerValue and upperValue are not the same, so impossible to match those two values with a single value
+			return false;
+		}
+		long thisValue = getLowerValue();
+		long thisUpperValue = getUpperValue();
+		if(!isMaskCompatibleWithRange(thisValue, thisUpperValue, mask, getMaxValue())) {
+			return false;
+		}
+		return lowerValue == (thisValue & mask) && upperValue == (thisUpperValue & mask);
 	}
 	
 	protected abstract boolean isSameValues(AddressDivision other);
 	
 	@Override
 	public boolean isFullRange() {
-		return getLowerValue() == 0 && getUpperValue() == getMaxValue();
+		return includesZero() && includesMax();
 	}
 	
 	@Override
 	public int compareTo(AddressDivision other) {
 		return IPAddress.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
+	}
+	
+	//when divisionPrefixLen is null, isAutoSubnets has no effect
+	protected static boolean isMaskCompatibleWithRange(long value, long upperValue, long maskValue, long maxValue) {
+		if(value == upperValue || maskValue == maxValue || maskValue == 0) {
+			return true;
+		}
+
+		//algorithm:
+		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
+		//then we find the highest bit in the mask that is 1 that is the same or below highestDifferingBitInRange (if such a bit exists)
+		
+		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
+		//if this latter bit exists, then any bit below it in the mask must be 1 to include the entire range.
+		
+		long differing = value ^ upperValue;
+		boolean foundDiffering = (differing != 0);
+		boolean differingIsLowestBit = (differing == 1);
+		if(foundDiffering && !differingIsLowestBit) {
+			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
+			long maskMask = ~0L >>> highestDifferingBitInRange;
+			long differingMasked = maskValue & maskMask;
+			foundDiffering = (differingMasked != 0);
+			differingIsLowestBit = (differingMasked == 1);
+			if(foundDiffering && !differingIsLowestBit) {
+				//anything below highestDifferingBitMasked in the mask must be ones
+				//Also, if we have masked out any 1 bit in the original, then anything that we do not mask out that follows must be all 1s
+				int highestDifferingBitMasked = Long.numberOfLeadingZeros(differingMasked);
+				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);//for the first mask bit that is 1, all bits that follow must also be 1
+				if((maskValue & hostMask) != hostMask) { //check if all ones below
+					return false;
+				}
+				if(highestDifferingBitMasked > highestDifferingBitInRange) {
+					//We have masked out a 1 bit, so we need to check that all bits in upper value that we do not mask out are also 1 bits, otherwise we end up missing values in the masked range
+					//This check is unnecessary for prefix-length subnets, only non-standard ranges might fail this check.
+					//For instance, if we have range 0000 to 1010
+					//and we mask upper and lower with 0111
+					//we get 0000 to 0010, but 0111 was in original range, and the mask of that value retains that value
+					//so that value needs to be in final range, and it's not.
+					//What went wrong is that we masked out the top bit, and any other bit that is not masked out must be 1.
+					//To work, our original range needed to be 0000 to 1111, with the three 1s following the first masked-out 1
+					long hostMaskUpper = ~0L >>> highestDifferingBitMasked;
+					if((upperValue & hostMaskUpper) != hostMaskUpper) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+	
+	protected static boolean isBitwiseOrCompatibleWithRange(long value, long upperValue, long maskValue, long maxValue) {
+		if(value == upperValue || maskValue == maxValue || maskValue == 0) {
+			return true;
+		}
+		//algorithm:
+		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
+		//then we find the highest bit in the mask that is 0 that is the same or below highestDifferingBitInRange (if such a bit exists)
+		
+		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
+		//if this latter bit exists, then any bit below it in the mask must be 0 to include the entire range.
+		
+		long differing = value ^ upperValue;
+		boolean foundDiffering = (differing != 0);
+		boolean differingIsLowestBit = (differing == 1);
+		if(foundDiffering && !differingIsLowestBit) {
+			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
+			long maskMask = ~0L >>> highestDifferingBitInRange;
+			long differingMasked = maskValue & maskMask;
+			foundDiffering = (differingMasked != maskMask);
+			differingIsLowestBit = ((differingMasked | 1) == maskMask);
+			if(foundDiffering && !differingIsLowestBit) {
+				//anything below highestDifferingBitMasked in the mask must be zeros 
+				//Also, if we or'ed out any 0 bit in the original with a 1 in the mask, then anything that we do not mask out that follows must be all 0s
+				int highestDifferingBitMasked = Long.numberOfLeadingZeros(~differingMasked & maskMask);
+				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
+				if((maskValue & hostMask) != 0) { //check if all zeros below
+					return false;
+				}
+				if(highestDifferingBitMasked > highestDifferingBitInRange) {
+					//we have or-ed out a 0 bit, so we need to check that all bits in lower value that we do not or out are also 0 bits, otherwise we end up missing values in the masked range
+					//this is always true for prefix subnets, only non-standard ranges might fail here
+					long hostMaskLower = ~0L >>> highestDifferingBitMasked;
+					if((value & hostMaskLower) != 0) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 	
 	public boolean hasUppercaseVariations(int radix, boolean lowerOnly) {
@@ -256,11 +386,6 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	@Override
 	protected void getLowerString(int radix, int rangeDigits, boolean uppercase, StringBuilder appendable) {
 		toUnsignedString(getLowerValue(), radix, rangeDigits, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
-	}
-
-	@Override
-	protected boolean lowerValueIsZero() {
-		return getLowerValue() == 0;
 	}
 	
 	@Override
@@ -1067,7 +1192,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		int x = b;
 		x = ((x & 0xaa) >>> 1) | ((x & 0x55) << 1);
 		x = ((x & 0xcc) >>> 2) | ((x & 0x33) << 2);
-		x = (0xff & ((x >> 4) | (x << 4)));
+		x = (0xff & ((x >>> 4) | (x << 4)));
 		return x;
 	}
 	

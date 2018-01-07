@@ -20,14 +20,13 @@ package inet.ipaddr.ipv4;
 
 import java.util.Iterator;
 
-import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.Address;
-import inet.ipaddr.AddressConversionException;
-import inet.ipaddr.AddressValueException;
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
-import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
@@ -154,21 +153,6 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 			return super.toHostSegment(bits, getSegmentCreator());
 		}
 		return this;
-	}
-	
-	/* returns a new segment masked by the given mask */
-	public IPv4AddressSegment toMaskedSegment(IPv4AddressSegment maskSegment, Integer segmentPrefixLength) throws IncompatibleAddressException, PrefixLenException {
-		if(isChangedByMask(maskSegment.getLowerSegmentValue(), segmentPrefixLength)) {
-			if(!isMaskCompatibleWithRange(maskSegment, segmentPrefixLength)) {
-				throw new IncompatibleAddressException(this, maskSegment, "ipaddress.error.maskMismatch");
-			}
-			return getSegmentCreator().createSegment(getLowerSegmentValue() & maskSegment.getLowerSegmentValue(), getUpperSegmentValue() & maskSegment.getLowerSegmentValue(), segmentPrefixLength);
-		}
-		return this;
-	}
-	
-	public boolean isMaskCompatibleWithRange(IPv4AddressSegment maskSegment, Integer segmentPrefixLength) throws AddressConversionException, PrefixLenException {
-		return isMaskCompatibleWithRange(maskSegment.getLowerSegmentValue(), segmentPrefixLength); //for mask we only use the lower value
 	}
 
 	@Override

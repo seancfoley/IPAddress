@@ -18,6 +18,8 @@
 
 package inet.ipaddr.format;
 
+import java.util.Arrays;
+
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressValueException;
@@ -299,7 +301,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 				}
 				for(++i; i < divCount; i++) {
 					div = getDivision(i);
-					if(div.getLowerValue() != 0) {
+					if(!div.includesZero()) {
 						return false;
 					}
 				}
@@ -391,6 +393,9 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 		final Range ranges[];
 		
 		RangeList(Range ranges[]) {
+			if(ranges == null) {
+				throw new NullPointerException();
+			}
 			this.ranges = ranges;
 		}
 
@@ -400,6 +405,11 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 		
 		public Range getRange(int index) {
 			return ranges[index];
+		}
+		
+		@Override
+		public String toString() {
+			return Arrays.asList(ranges).toString();
 		}
 	}
 

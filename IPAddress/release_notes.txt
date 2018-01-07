@@ -6,7 +6,7 @@ as well as options for going back to the old behaviour, or using a third option 
 -added prefix length handling options
 -changes to network classes and address classes to support prefix handling options
 -runtime exception refactoring - reorganized them and added more error checking
--added new method options to ignore IPv4 network or IPv6 anycast (ie the zero host) address when iterating or getting lowest address in a subnet
+-added new method options to ignore IPv4 network or IPv6 subnet router anycast (ie the zero host) address when iterating or getting lowest address in a subnet
 -added new conversions to/from BigInteger, int, long
 -added intersect method
 -added toPrefixBlock method

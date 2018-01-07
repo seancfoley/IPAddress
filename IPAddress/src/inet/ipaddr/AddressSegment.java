@@ -97,6 +97,8 @@ public interface AddressSegment extends AddressComponent, Comparable<AddressDivi
 	
 	boolean matchesWithMask(int value, int mask);
 
+	boolean matchesWithMask(int lowerValue, int upperValue, int mask);
+
 	boolean contains(AddressSegment other);
 	
 	@Override

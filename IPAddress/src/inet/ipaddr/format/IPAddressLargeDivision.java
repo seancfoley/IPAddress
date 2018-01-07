@@ -63,7 +63,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	protected transient String cachedWildcardString;
 	
 	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix) throws AddressValueException {
-		bytes = extend(bytes, bitCount);
 		maxValue = getMaxValue(bitCount);
 		this.bitCount = bitCount;
 		this.defaultRadix = BigInteger.valueOf(defaultRadix);
@@ -87,7 +86,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		if(prefixLength != null && prefixLength < 0) {
 			throw new PrefixLenException(prefixLength);
 		}
-		bytes = extend(bytes, bitCount);
 		maxValue = getMaxValue(bitCount);
 		this.bitCount = bitCount;
 		this.defaultRadix = BigInteger.valueOf(defaultRadix);
@@ -98,6 +96,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			isPrefixBlock = isSinglePrefixBlock = prefixLength != null;
 			upperValueMasked = upperValue = value = new BigInteger(1, bytes);
 		} else {
+			bytes = extend(bytes, bitCount);
 			byte upperBytes[] = bytes.clone();
 			int shift = bitCount - prefixLength;
 			int byteShift = (shift + 7) / 8;
@@ -265,7 +264,32 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 	
 	private static byte[] extend(byte bytes[], int bitCount) {
-		return AddressDivisionGrouping.convert(bytes, (bitCount + 7) / 8, "");
+		return convert(bytes, (bitCount + 7) / 8, "");
+	}
+	
+	private static byte[] convert(byte bytes[], int requiredByteCount, String key) {
+		int len = bytes.length;
+		if(len < requiredByteCount) {
+			byte oldBytes[] = bytes;
+			bytes = new byte[requiredByteCount];
+			int diff = bytes.length - oldBytes.length;
+			int mostSignificantBit = 0x80 & oldBytes[0];
+			if(mostSignificantBit != 0) {//sign extension
+				Arrays.fill(bytes, 0, diff, (byte) 0xff);
+			}
+			System.arraycopy(oldBytes, 0, bytes, diff, oldBytes.length);
+		} else {
+			if(len > requiredByteCount) {
+				int i = 0;
+				do {
+					if(bytes[i++] != 0) {
+						throw new AddressValueException(key, len);
+					}
+				} while(--len > requiredByteCount);
+				bytes = Arrays.copyOfRange(bytes, i, bytes.length);
+			}
+		}
+		return bytes;
 	}
 
 	@Override
@@ -296,20 +320,35 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	public boolean isMultiple() {
 		return !value.equals(upperValue);
 	}
+	
+	@Override
+	public boolean includesZero() {
+		return value.equals(BigInteger.ZERO);
+	}
+	
+	@Override
+	public boolean includesMax() {
+		return upperValue.equals(maxValue);
+	}
 
 	@Override
+	public boolean isMax() {
+		return includesMax() && !isMultiple();
+	}
+	
+	@Override
 	public boolean isZero() {
-		return value.equals(BigInteger.ZERO) && !isMultiple();
+		return includesZero() && !isMultiple();
 	}
 
 	@Override
 	public boolean isFullRange() {
-		return value.equals(BigInteger.ZERO) && upperValue.equals(maxValue);
+		return includesZero() && includesMax();
 	}
 
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		return AddressDivisionGrouping.convert(low ? value.toByteArray() : upperValue.toByteArray(), (bitCount + 7) / 8, "");
+		return convert(low ? value.toByteArray() : upperValue.toByteArray(), (bitCount + 7) / 8, "");
 	}
 
 	@Override
@@ -675,11 +714,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			digitsLength += remainingAfterLoop * (stringPrefixLength + 2);// one for each splitDigitSeparator, 1 for each digit 
 		}
 		return digitsLength;
-	}
-
-	@Override
-	protected boolean lowerValueIsZero() {
-		return value.equals(BigInteger.ZERO);
 	}
 
 	@Override

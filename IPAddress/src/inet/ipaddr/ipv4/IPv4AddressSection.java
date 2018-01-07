@@ -24,9 +24,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.IntUnaryOperator;
 
+import inet.ipaddr.Address;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
-import inet.ipaddr.Address;
 import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
@@ -206,20 +206,24 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	protected IPv4AddressSection(byte bytes[], Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
-		super(new IPv4AddressSegment[bytes.length], false, false);
-		if(bytes.length > IPv4Address.BYTE_COUNT) {
-			throw new AddressValueException(bytes.length);
-		}
+		this(bytes, 0, bytes.length, -1, networkPrefixLength, cloneBytes);
+	}
+
+	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
+		super(new IPv4AddressSegment[segmentCount >= 0 ? segmentCount : (byteEndIndex - byteStartIndex)], false, false);
 		IPv4AddressSegment segs[] = getSegmentsInternal();
 		IPv4AddressNetwork network = getNetwork();
 		toSegments(
 			segs,
 			bytes,
+			byteStartIndex,
+			byteEndIndex,
 			IPv4Address.BYTES_PER_SEGMENT,
 			IPv4Address.BITS_PER_SEGMENT,
 			IPv4Address.MAX_VALUE_PER_SEGMENT,
 			network,
 			networkPrefixLength);
+		boolean byteLengthIsExact = bytes.length == segs.length;
 		if(networkPrefixLength != null) {
 			int max = segs.length << 3;
 			if(networkPrefixLength > max) {
@@ -228,33 +232,38 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				}
 				networkPrefixLength = max;
 			}
-			if(bytes.length > 0) {
+			if(segs.length > 0) {
 				PrefixConfiguration prefConf = network.getPrefixConfiguration();
 				if(prefConf.zeroHostsAreSubnets()) {
 					if(isPrefixSubnet(segs, networkPrefixLength, network, false)) {
 						setPrefixedSegments(
 								network,
 								networkPrefixLength,
-								getSegmentsInternal(),
+								segs,
 								IPv4Address.BITS_PER_SEGMENT,
 								IPv4Address.BYTES_PER_SEGMENT,
 								network.getAddressCreator(),
 								IPv4AddressSegment::toNetworkSegment);
-					} else if(networkPrefixLength >= getBitCount()) {
+					} else if(byteLengthIsExact && networkPrefixLength >= getBitCount()) {
 						setBytes(cloneBytes ? bytes.clone() : bytes);
 					}
-				} else if(prefConf.prefixedSubnetsAreExplicit() || networkPrefixLength >= getBitCount()) {
+				} else if(byteLengthIsExact && (prefConf.prefixedSubnetsAreExplicit() || networkPrefixLength >= getBitCount())) {
 					setBytes(cloneBytes ? bytes.clone() : bytes);
 				}
-				cachedPrefixLength = networkPrefixLength;
-			} else {
-				cachedPrefixLength = NO_PREFIX_LENGTH;
+			} else if(byteLengthIsExact) {
 				setBytes(bytes);
 			}
+			cachedPrefixLength = networkPrefixLength;
 		} else {
 			cachedPrefixLength = NO_PREFIX_LENGTH;
-			setBytes(cloneBytes ? bytes.clone() : bytes);
+			if(byteLengthIsExact) {
+				setBytes(cloneBytes ? bytes.clone() : bytes);
+			}
 		}
+	}
+	
+	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true);
 	}
 	
 	public IPv4AddressSection(byte bytes[], Integer prefix) throws AddressValueException {
@@ -263,6 +272,14 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	public IPv4AddressSection(byte bytes[]) throws AddressValueException {
 		this(bytes, null, true);
+	}
+	
+	public IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+	}
+	
+	public IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, -1, null, true);
 	}
 	
 	public IPv4AddressSection(int value, Integer networkPrefixLength) throws AddressValueException {
@@ -300,10 +317,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		this(value, null);
 	}
 	
-	protected static byte[] convert(byte bytes[], int requiredByteCount, String key) {
-		return AddressDivisionGrouping.convert(bytes, requiredByteCount, key);
-	}
-	
 	@Override
 	public IPv4AddressSegment[] getSegments() {
 		return (IPv4AddressSegment[]) getDivisionsInternal().clone();
@@ -317,6 +330,25 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPv4AddressSection getSection(int index, int endIndex) {
 		return getSection(index, endIndex, this, getAddressCreator());
+	}
+
+	@Override
+	public IPv4AddressSection toZeroHost() {
+		if(!isPrefixed()) {
+			IPAddress networkMask = getNetwork().getNetworkMask(0);
+			return IPAddressSection.getSubnetSegments(this, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : 0,
+					getAddressCreator(), false, this::getSegment, i -> networkMask.getSegment(i).getLowerSegmentValue(), true);
+		}
+		if(includesZeroHost() && isSingleNetwork()) {
+			return getLower();//cached
+		}
+		return createZeroHost();
+	}
+
+	IPv4AddressSection createZeroHost() {
+		int prefixLength = getNetworkPrefixLength();
+		IPAddress networkMask = getNetwork().getNetworkMask(prefixLength);
+		return IPAddressSection.getSubnetSegments(this, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength, getAddressCreator(), false, this::getSegment, i -> networkMask.getSegment(i).getLowerSegmentValue(), true);
 	}
 	
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
@@ -893,7 +925,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv4AddressSection mask(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
 		checkSectionCount(mask);
-		return getSubnetSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+		return getSubnetSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue(), false);
 	}
 
 	/**
@@ -916,7 +948,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv4AddressSection maskNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
 		checkSectionCount(mask);
 		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+			return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue(), false);
 		}
 		IPv4AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
 		return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, 
@@ -925,7 +957,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 					int val1 = mask.getSegment(i).getLowerSegmentValue();
 					int val2 = hostMask.getSegment(i).getLowerSegmentValue();
 					return val1 | val2;
-				}
+				},
+				false
 		);
 	}
 
@@ -1049,6 +1082,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	/**
 	 * This produces a canonical string.
+	 * 
+	 * If this has a prefix length, that will be included in the string.
 	 */
 	@Override
 	public String toCanonicalString() {
@@ -1082,7 +1117,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 
 	/**
 	 * The normalized string returned by this method is consistent with java.net.Inet4Address,
-	 * and is the same as the canonical string.
+	 * and is the same as {@link #toCanonicalString()}.
 	 */
 	@Override
 	public String toNormalizedString() {

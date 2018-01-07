@@ -452,9 +452,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	
 	protected abstract int getSplitRangeStringLength(String rangeSeparator, String wildcard, int leadingZeroCount, int radix, boolean uppercase, 
 			char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix);
-	
-	protected abstract boolean lowerValueIsZero();
-	
+
 	protected abstract int getRangeDigitCount(int radix);
 	
 	protected void appendUppercase(CharSequence str, int radix, StringBuilder appendable) {
@@ -866,7 +864,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 			//This only happens when the lower value is 0 and there is more than 1 range digit
 			//That's because you can then omit any leading zeros.
 			//Ranges like f___ representing f000-ffff are fine.
-			if(!lowerValueIsZero() || rangeDigits == 1) { 
+			if(!includesZero() || rangeDigits == 1) { 
 				return rangeDigits;
 			}
 		}

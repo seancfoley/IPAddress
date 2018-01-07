@@ -385,6 +385,11 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	}
 	
 	@Override
+	public boolean matchesWithMask(int lowerValue, int upperValue, int mask) {
+		return super.matchesWithMask(lowerValue, upperValue, mask);
+	}
+	
+	@Override
 	public int getValueCount() {
 		return getUpperSegmentValue() - getLowerSegmentValue() + 1;
 	}
@@ -520,8 +525,13 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	}
 
 	@Override
-	public boolean isFullRange() {
-		return getLowerSegmentValue() == 0 && getUpperSegmentValue() == getMaxSegmentValue();
+	public boolean includesZero() {
+		return getLowerSegmentValue() == 0;
+	}
+	
+	@Override
+	public boolean includesMax() {
+		return getUpperSegmentValue() == getMaxSegmentValue();
 	}
 
 	@Override

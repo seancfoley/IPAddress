@@ -295,6 +295,14 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
 
+	/**
+	 * Returns the segment series with the same prefix but with a host of zero.  
+	 * If the series has no prefix length, then it returns an all-zero series of the same length with prefix length of 0.
+	 * 
+	 * @return
+	 */
+	IPAddressSegmentSeries toZeroHost();
+
 	@Override
 	IPAddressSegmentSeries reverseSegments();
 	

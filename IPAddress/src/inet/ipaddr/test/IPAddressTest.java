@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -339,21 +340,107 @@ public class IPAddressTest extends TestBase {
 		boolean result = addr.equals(addr2.getAddress());
 		if(!result) {
 			addFailure(new Failure("created was " + addr + " expected was " + addr2, addr));
-		} else if(addr.isIPv4()) {
-			int val = 0;
-			for(int i = 0; i < bytes.length; i++) {
-				val <<= 8;
-				val |= 0xff & bytes[i];
-			}
-			addr = createAddress(val);
-			result = addr.equals(addr2.getAddress());
-			if(!result) {
-				addFailure(new Failure("created was " + addr + " expected was " + addr2, addr));
+		} else {
+			if(addr.isIPv4()) {
+				int val = 0;
+				for(int i = 0; i < bytes.length; i++) {
+					val <<= 8;
+					val |= 0xff & bytes[i];
+				}
+				addr = createAddress(val);
+				result = addr.equals(addr2.getAddress());
+				if(!result) {
+					addFailure(new Failure("created was " + addr + " expected was " + addr2, addr));
+				}
 			}
 		}
 		incrementTestCount();
 	}
 	
+	private byte[][][] createSets(byte bytes[], int segmentByteSize) {
+		//break into two, and three
+		int segmentLength = bytes.length / segmentByteSize;
+		byte sets[][][] = {
+				{
+					new byte[(segmentLength / 2) * segmentByteSize], new byte[(segmentLength - segmentLength / 2) * segmentByteSize]
+				},
+				{
+					new byte[(segmentLength / 3) * segmentByteSize], new byte[(segmentLength / 3) * segmentByteSize], new byte[(segmentLength - 2 * (segmentLength / 3)) * segmentByteSize]
+				}
+		};
+		for(byte set[][] : sets) {
+			for(int i = 0, ind = 0; i < set.length; i++) {
+				byte part[] = set[i];
+				System.arraycopy(bytes, ind, part, 0, part.length);
+				ind += part.length;
+			}
+		}
+		return sets;
+	}
+	
+	void testSplitBytes(String addressStr) {
+		IPAddress addr = createAddress(addressStr).getAddress();
+		testSplitBytes(addr);
+	}
+	
+	void testSplitBytes(IPAddress addr) {
+		byte bytes[] = addr.getBytes();
+		List<IPAddress> addresses = reconstitute(addr, bytes, addr.getBytesPerSegment());
+		if(addr.isMultiple()) {
+			for(IPAddress addrNext : addresses) {
+				if(!addr.getLower().equals(addrNext)) {
+					addFailure(new Failure("lower reconstitute failure: " + addrNext, addr));
+				}
+			}
+			bytes = addr.getUpperBytes();
+			addresses = reconstitute(addr, bytes, addr.getBytesPerSegment());
+			for(IPAddress addrNext : addresses) {
+				if(!addr.getUpper().equals(addrNext)) {
+					addFailure(new Failure("upper reconstitute failure: " + addrNext, addr));
+				}
+			}
+		} else {
+			for(IPAddress addrNext : addresses) {
+				if(!addr.equals(addrNext)) {
+					addFailure(new Failure("reconstitute failure: " + addrNext, addr));
+				}
+			}
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	<S extends IPAddressSegment> List<IPAddress> reconstitute(IPAddress originalAddress, byte bytes[], int segmentByteSize) {
+		IPAddressNetwork<?, ?, ?, S, ?>.IPAddressCreator creator = (IPAddressNetwork<?, ?, ?, S, ?>.IPAddressCreator) originalAddress.getNetwork().getAddressCreator();
+		ArrayList<IPAddress> addresses = new ArrayList<IPAddress>();
+		byte sets[][][] = createSets(bytes, segmentByteSize);
+		for(byte set[][] : sets) {
+			ArrayList<S> segments = new ArrayList<S>();
+			ArrayList<S> segments2 = new ArrayList<S>();
+			for(int i = 0, ind = 0; i < set.length; i++) {
+				byte setBytes[] = set[i];
+				S[] segs = (S[]) creator.createSection(setBytes, null).getSegments();
+				S[] segs2 = (S[]) creator.createSection(bytes, ind, ind + setBytes.length, null).getSegments();
+				S[] one, two;
+				if(i % 2 == 0) {
+					one = segs;
+					two = segs2;
+				} else {
+					one = segs2;
+					two = segs;
+				}
+				ind += setBytes.length;
+				segments.addAll(Arrays.asList(one));
+				segments2.addAll(Arrays.asList(two));
+			}
+			S segs[] = creator.createSegmentArray(segments.size());
+			IPAddress addr1 = creator.createAddress(segments.toArray(segs));
+			IPAddress addr2 = creator.createAddress(segments2.toArray(segs));
+			addresses.add(addr1);
+			addresses.add(addr2);
+		}
+		return addresses;
+	}
+
 	boolean isNotExpected(boolean expectedPass, IPAddressString addr) {
 		return isNotExpected(expectedPass, addr, false, false);
 	}
@@ -2128,6 +2215,111 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	public void testZeroHost(String addrString, String zeroHostString) {
+		IPAddressString string = createAddress(addrString);
+		IPAddressString string2 = createAddress(zeroHostString);
+		IPAddress addr = string.getAddress();
+		IPAddress specialHost = string2.getAddress();
+		IPAddress transformedHost = addr.toZeroHost();
+		if(!prefixConfiguration.zeroHostsAreSubnets() && !specialHost.equals(transformedHost)) {
+			addFailure(new Failure("mismatch " + specialHost + " with host " + transformedHost, addr));
+		}
+		if(!prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+			IPAddressSection hostSection = transformedHost.getHostSection();
+			if(hostSection.getSegmentCount() > 0 && !hostSection.isZero()) {
+				addFailure(new Failure("non-zero host " + hostSection, addr));
+			}
+		}
+		if(!Objects.equals(transformedHost.getNetworkPrefixLength(), specialHost.getNetworkPrefixLength())) {
+			addFailure(new Failure("prefix length mismatch " + transformedHost.getNetworkPrefixLength() + " and " + specialHost.getNetworkPrefixLength(), addr));
+		}
+		incrementTestCount();
+	}
+	
+	public void testMaxHost(String addrString, String maxHostString) {
+		IPAddressString string = createAddress(addrString);
+		IPAddressString string2 = createAddress(maxHostString);
+		IPAddress addr = string.getAddress();
+		IPAddress specialHost = string2.getAddress();
+		IPAddress transformedHost = addr.toMaxHost();
+		if(!specialHost.equals(transformedHost)) {
+			addFailure(new Failure("mismatch " + specialHost + " with host " + transformedHost, addr));
+		} else if(!Objects.equals(transformedHost.getNetworkPrefixLength(), specialHost.getNetworkPrefixLength())) {
+			addFailure(new Failure("prefix length mismatch " + transformedHost.getNetworkPrefixLength() + " and " + specialHost.getNetworkPrefixLength(), addr));
+		}
+		incrementTestCount();
+	}
+
+	private static List<Byte> toList(byte bytes[]) {
+		Byte newBytes[] = new Byte[bytes.length];
+		for(int i = 0; i < bytes.length; i++) {
+			newBytes[i] = bytes[i];
+		}
+		return Arrays.asList(newBytes);
+	}
+	
+	public void testByteExtension(String addrString, byte byteRepresentations[][]) {
+		IPAddress addr = createAddress(addrString).getAddress();
+		ArrayList<IPAddress> all = new ArrayList<IPAddress>();
+		if(addr.isIPv4()) {
+			for(byte byteRepresentation[] : byteRepresentations) {
+				IPv4Address ipv4Addr = new IPv4Address(byteRepresentation);
+				all.add(ipv4Addr);
+			}
+			byte lastBytes[] = null;
+			for(int i = 0; i < all.size(); i++) {
+				byte bytes[] = all.get(i).getBytes();
+				if(lastBytes == null) {
+					lastBytes = bytes;
+					if(bytes.length != IPv4Address.BYTE_COUNT) {
+						addFailure(new Failure("bytes length for " + toList(bytes), addr));
+					}
+					IPv4Address ipv4Addr = new IPv4Address(bytes);
+					all.add(ipv4Addr);
+					ipv4Addr = new IPv4Address(new BigInteger(bytes).intValue());
+					all.add(ipv4Addr);
+				} else if(!Arrays.equals(lastBytes, bytes)) {
+					addFailure(new Failure("generated addr bytes mismatch " + toList(bytes) + " and " + toList(lastBytes), addr));
+				}
+			}
+		} else {
+			for(byte byteRepresentation[] : byteRepresentations) {
+				IPv6Address ipv6Addr = new IPv6Address(byteRepresentation);
+				all.add(ipv6Addr);
+			}
+			byte lastBytes[] = null;
+			for(int i = 0; i < all.size(); i++) {
+				byte bytes[] = all.get(i).getBytes();
+				if(lastBytes == null) {
+					lastBytes = bytes;
+					if(bytes.length != IPv6Address.BYTE_COUNT) {
+						addFailure(new Failure("bytes length for " + toList(bytes), addr));
+					}
+					IPv6Address ipv6Addr = new IPv6Address(bytes);
+					all.add(ipv6Addr);
+					ipv6Addr = new IPv6Address(new BigInteger(bytes));
+					all.add(ipv6Addr);
+				} else if(!Arrays.equals(lastBytes, bytes)) {
+					addFailure(new Failure("addr bytes mismatch " + toList(bytes) + " and " + toList(lastBytes), addr));
+				}
+			}
+		}
+		ArrayList<byte[]> allBytes = new ArrayList<byte[]>();
+		for(int i = 0; i < all.size(); i++) {
+			allBytes.add(all.get(i).getBytes());
+		}
+		for(int i = 0; i < all.size(); i++) {
+			for(int j = i; j < all.size(); j++) {
+				if(!all.get(i).equals(all.get(j))) {
+					addFailure(new Failure("addr mismatch " + all.get(i) + " and " + all.get(j), addr));
+				}
+				if(!Arrays.equals(allBytes.get(i), allBytes.get(j))) {
+					addFailure(new Failure("addr bytes mismatch " + allBytes.get(i) + " and " + allBytes.get(j), addr));
+				}
+			}
+		}
+	}
+	
 	@SuppressWarnings("serial")
 	static class MyIPv6Address extends IPv6Address {
 
@@ -2154,6 +2346,10 @@ public class IPAddressTest extends TestBase {
 
 		public MyIPv6AddressSection(byte[] bytes, Integer prefixLength) {
 			super(bytes, prefixLength);
+		}
+
+		public MyIPv6AddressSection(byte[] bytes, int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefixLength) {
+			super(bytes, byteStartIndex, byteEndIndex, segmentCount, prefixLength, true);
 		}
 		
 		public MyIPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) {
@@ -2200,6 +2396,11 @@ public class IPAddressTest extends TestBase {
 				@Override
 				public IPv6AddressSection createSection(byte bytes[], Integer prefix) {
 					return new MyIPv6AddressSection(bytes, prefix);
+				}
+				
+				@Override
+				public IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) {
+					return new MyIPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix);
 				}
 				
 				@Override
@@ -4193,6 +4394,100 @@ public class IPAddressTest extends TestBase {
 		
 		testToPrefixBlock("1:3::3:4", "1:3::3:4");
 		testToPrefixBlock("1.3.3.4", "1.3.3.4");
+		
+		testMaxHost("1.2.3.4", allPrefixesAreSubnets ? "255.255.255.255" : "255.255.255.255/0");
+		testMaxHost("1.2.255.255/16", allPrefixesAreSubnets ? "1.2.255.255" : "1.2.255.255/16");
+		
+		testMaxHost("1:2:3:4:5:6:7:8", allPrefixesAreSubnets ? "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0");
+		testMaxHost("1:2:ffff:ffff:ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:2:ffff:ffff:ffff:ffff:ffff:ffff" : "1:2:ffff:ffff:ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4:ffff:ffff:ffff:ffff" : "1:2:3:4:ffff:ffff:ffff:ffff/64");
+		testMaxHost("1:2:3:4:5:6:7:8/128", allPrefixesAreSubnets ? "1:2:3:4:5:6:7:8" : "1:2:3:4:5:6:7:8/128");
+		
+		testZeroHost("1.2.3.4", allPrefixesAreSubnets ? "0.0.0.0" : "0.0.0.0/0");
+		testZeroHost("1.2.0.0/16", allPrefixesAreSubnets ? "1.2.0.0" : "1.2.0.0/16");
+		
+		testZeroHost("1:2:3:4:5:6:7:8", allPrefixesAreSubnets ? "::" : "::/0");
+		testZeroHost("1:2::/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
+		testZeroHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
+		testZeroHost("1:2:3:4:5:6:7:8/128", allPrefixesAreSubnets ? "1:2:3:4:5:6:7:8" : "1:2:3:4:5:6:7:8/128");
+		
+		testSplitBytes("1.2.3.4");
+		testSplitBytes("1.2.3.4/16");
+		testSplitBytes("1.2.3.4/0");
+		testSplitBytes("1.2.3.4/32");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/0");
+		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/128");
+		
+		
+		testByteExtension("255.255.255.255", new byte[][] {
+			new byte[] {0, 0, -1, -1, -1, -1},
+			new byte[] {0, -1, -1, -1, -1},
+			new byte[] {-1, -1, -1, -1},
+			new byte[] {-1, -1},
+			new byte[] {-1}
+		});
+		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new byte[][] {
+			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+			new byte[] {-1, -1, -1},
+			new byte[] {-1, -1},
+			new byte[] {-1}
+		});
+		testByteExtension("0.0.0.255", new byte[][] {
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, -1},
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, -1},
+			new byte[] {0, 0, 0, 0, -1},
+			new byte[] {0, 0, 0, -1},
+			new byte[] {0, -1},
+		});
+		testByteExtension("::ff", new byte[][] {
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1},
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1},
+			new byte[] {0, -1},
+		});
+		testByteExtension("0.0.0.127", new byte[][] {
+			new byte[] {0, 0, 0, 0, 0, 127},
+			new byte[] {0, 0, 0, 0, 127},
+			new byte[] {0, 0, 0, 127},
+			new byte[] {0, 127},
+			new byte[] {127},
+		});
+		testByteExtension("::7f", new byte[][] {
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+			new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+			new byte[] {0, 0, 127},
+			new byte[] {0, 127},
+			new byte[] {127},
+		});
+		testByteExtension("128.128.128.128", new byte[][] {
+			new byte[] {0, 0, -1, -1, -1, -128},
+			new byte[] {0, -1, -1, -1, -128},
+			new byte[] {-1, -1, -1, -128},
+			new byte[] {-1, -128},
+			new byte[] {-128}
+		});
+		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new byte[][] {
+			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
+			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
+			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
+			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
+			new byte[] {-1, -1, -128},
+			new byte[] {-1, -128},
+			new byte[] {-128}
+		});
+		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new byte[][] {
+			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
+			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
+			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
+			new byte[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
+			new byte[] {-1, -128, 0},
+			new byte[] {-128, 0}
+		});
 		
 		testCustomNetwork(prefixConfiguration);
 	}

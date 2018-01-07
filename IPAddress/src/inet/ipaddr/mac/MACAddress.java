@@ -18,6 +18,7 @@
 
 package inet.ipaddr.mac;
 
+import java.net.NetworkInterface;
 import java.util.Iterator;
 
 import inet.ipaddr.Address;
@@ -100,7 +101,14 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress(long address) throws AddressValueException {
 		this(address, false);
 	}
-	
+
+	/**
+	 * Constructs a MAC address for a network interface.
+	 */
+	public MACAddress(NetworkInterface ni) throws java.net.SocketException {
+		this(ni.getHardwareAddress());
+	}
+
 	/**
 	 * Constructs a MAC address.
 	 */
@@ -171,8 +179,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		} else {
 			segCount = EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
 		}
-		bytes = MACAddressSection.convert(bytes, segCount, "ipaddress.error.mac.invalid.byte.count");
-		return addr.getAddressCreator().createSection(bytes, 0, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null);
+		return addr.getAddressCreator().createSection(bytes, 0, segCount, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null);
 	}
 	
 	protected static String getMessage(String key) {

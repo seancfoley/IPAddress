@@ -19,7 +19,6 @@
 package inet.ipaddr.mac;
 
 import inet.ipaddr.Address.SegmentValueProvider;
-import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.format.AddressCreator;
@@ -164,6 +163,14 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
 		MACAddressSection createSection(byte bytes[], int startIndex, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(bytes, startIndex, extended);
+			if(prefixLength != null) {
+				result = result.applyPrefixLength(prefixLength);
+			}
+			return result;
+		}
+		
+		MACAddressSection createSection(byte bytes[], int startIndex, int segmentCount, boolean extended, Integer prefixLength) {
+			MACAddressSection result = new MACAddressSection(bytes, 0, bytes.length, segmentCount, startIndex, extended, true);
 			if(prefixLength != null) {
 				result = result.applyPrefixLength(prefixLength);
 			}

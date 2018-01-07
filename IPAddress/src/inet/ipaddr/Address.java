@@ -358,6 +358,21 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	}
 	
 	@Override
+	public boolean includesZero() {
+		return getSection().includesZero();
+	}
+	
+	@Override
+	public boolean isMax() {
+		return getSection().isMax();
+	}
+	
+	@Override
+	public boolean includesMax() {
+		return getSection().includesMax();
+	}
+	
+	@Override
 	public boolean isFullRange() {
 		return getSection().isFullRange();
 	}
@@ -480,7 +495,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	@Override
 	public String toString() {
-		return toNormalizedString();
+		return toCanonicalString();
 	}
 	
 	@Override

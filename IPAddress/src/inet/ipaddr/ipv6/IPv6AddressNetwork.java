@@ -299,6 +299,19 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 		
 		@Override
+		public IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
+			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+		}
+		
+		protected IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) {
+			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true);
+		}
+		
+		protected IPv6AddressSection createSectionInternal(byte bytes[], int segmentCount, Integer prefix) {
+			return new IPv6AddressSection(bytes, 0, bytes.length, segmentCount, prefix, false);
+		}
+		
+		@Override
 		public IPv6AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv6AddressSection(bytes, prefix);
 		}

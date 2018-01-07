@@ -222,124 +222,47 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	}
 	
 	protected boolean isBitwiseOrCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
-		boolean hasBits = (divisionPrefixLen != null);
-		int divPrefLen;
-		if(hasBits) {
-			divPrefLen = divisionPrefixLen;
-			if(divPrefLen < 0 || divPrefLen > getBitCount()) {
-				throw new PrefixLenException(this, divisionPrefixLen);
-			}
-		} else {
-			divPrefLen = getBitCount();
-		}
-		if(!isMultiple() || maskValue == getMaxValue() || maskValue == 0) {
-			return true;
-		}
-		
-		long networkMask = 0;
-		if(isAutoSubnets) {
-			networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
-			if(hasBits && (networkMask & maskValue) == networkMask) {//any problematic bits will be eliminated by the prefix
-				return true;
-			}
-		}
-		
 		long value = getLowerValue();
 		long upperValue = getUpperValue();
-		
-		//algorithm:
-		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-		//then we find the highest bit in the mask that is 0 that is the same or below highestDifferingBitInRange (if such a bit exists)
-		
-		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-		//if this latter bit exists, then any bit below it in the mask must be 0 to include the entire range.
-		
-		long differing = value ^ upperValue;
-		if(isAutoSubnets) {
-			differing &= networkMask;
-		}
-		boolean foundDiffering = (differing != 0);
-		boolean differingIsLowestBit = (differing == 1);
-		if(foundDiffering && !differingIsLowestBit) {
-			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
-			long maskMask = ~0L >>> highestDifferingBitInRange;
-			long differingMasked = maskValue & maskMask;
-			foundDiffering = (differingMasked != maskMask);
-			differingIsLowestBit = ((differingMasked | 1) == maskMask);
-			if(foundDiffering && !differingIsLowestBit) {
-				//anything below highestDifferingBitMasked in the mask must be zeros 
-				int highestDifferingBitMasked = Long.numberOfLeadingZeros(~differingMasked & maskMask);
-				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-				if(isAutoSubnets) {
-					maskValue &= getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
-				}
-				if((maskValue & hostMask) != 0) { //check if all zeros below
-					return false;
-				}
+		long maxValue = getMaxValue();
+		if(divisionPrefixLen != null) {
+			int divPrefLen = divisionPrefixLen;
+			int bitCount = getBitCount();
+			if(divPrefLen < 0 || divPrefLen > bitCount) {
+				throw new PrefixLenException(this, divisionPrefixLen);
+			}
+			if(isAutoSubnets) {
+				int shift = bitCount - divPrefLen;
+				maskValue >>>= shift;
+				value >>>= shift;
+				upperValue >>>= shift;
+				maxValue >>>= shift;
 			}
 		}
-		return true;
+		return isBitwiseOrCompatibleWithRange(value, upperValue, maskValue, maxValue);
 	}
-	
+
 	protected boolean isMaskCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
-		boolean hasBits = (divisionPrefixLen != null);
-		int divPrefLen;
-		if(hasBits) {
-			divPrefLen = divisionPrefixLen;
-			if(divPrefLen < 0 || divPrefLen > getBitCount()) {
-				throw new PrefixLenException(this, divisionPrefixLen);
-			}
-		} else {
-			divPrefLen = getBitCount();
-		}
-		if(!isMultiple() || maskValue == getMaxValue() || maskValue == 0) {
-			return true;
-		}
-		long networkMask = 0;
-		if(isAutoSubnets) {
-			networkMask = getDivisionNetworkMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about certain bits
-			if(hasBits && (networkMask & maskValue) == 0) {//any problematic bits will be eliminated by the prefix
-				return true;
-			}
-		}
-		
 		long value = getLowerValue();
 		long upperValue = getUpperValue();
-		
-		//algorithm:
-		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-		//then we find the highest bit in the mask that is 1 that is the same or below highestDifferingBitInRange (if such a bit exists)
-		
-		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-		//if this latter bit exists, then any bit below it in the mask must be 1 to include the entire range.
-		
-		long differing = value ^ upperValue;
-		if(isAutoSubnets) {
-			differing &= networkMask;
-		}
-		boolean foundDiffering = (differing != 0);
-		boolean differingIsLowestBit = (differing == 1);
-		if(foundDiffering && !differingIsLowestBit) {
-			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
-			long maskMask = ~0L >>> highestDifferingBitInRange;
-			long differingMasked = maskValue & maskMask;
-			foundDiffering = (differingMasked != 0);
-			differingIsLowestBit = (differingMasked == 1);
-			if(foundDiffering && !differingIsLowestBit) {
-				//anything below highestDifferingBitMasked in the mask must be ones 
-				int highestDifferingBitMasked = Long.numberOfLeadingZeros(differingMasked);
-				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-				if(isAutoSubnets) {
-					maskValue |= getDivisionHostMask(divPrefLen); //but only the bits we care about, the applied divisionPrefixLen eliminates our concern about non-prefix bits
-				}
-				if((maskValue & hostMask) != hostMask) { //check if all ones below
-					return false;
-				}
+		long maxValue = getMaxValue();
+		if(divisionPrefixLen != null) {
+			int divPrefLen = divisionPrefixLen;
+			int bitCount = getBitCount();
+			if(divPrefLen < 0 || divPrefLen > bitCount) {
+				throw new PrefixLenException(this, divisionPrefixLen);
+			}
+			if(isAutoSubnets) {
+				int shift = bitCount - divPrefLen;
+				maskValue >>>= shift;
+				value >>>= shift;
+				upperValue >>>= shift;
+				maxValue >>>= shift;
 			}
 		}
-		return true;
+		return isMaskCompatibleWithRange(value, upperValue, maskValue, maxValue);
 	}
-	
+
 	/**
 	 * Produces a normalized string to represent the segment.
 	 * If the segment CIDR prefix length covers the range, then it is assumed to be a CIDR, and the string has only the lower value of the CIDR range.

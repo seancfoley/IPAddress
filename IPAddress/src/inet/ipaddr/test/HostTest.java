@@ -571,19 +571,19 @@ public class HostTest extends TestBase {
 		testHost("255.22.2.111.in-addr.arpa:35", "111.2.22.255", 35, null);
 		testHost("255.22.2.111.3.in-addr.arpa:35", "255.22.2.111.3.in-addr.arpa", 35, null);
 		testHost("1.2.2.1:33", "1.2.2.1", 33, null);
-		testHost("[::1]:33", "0:0:0:0:0:0:0:1", 33, null);
-		testHost("::1:33", "0:0:0:0:0:0:1:33", null, null);
-		testHost("::1%eth0", "0:0:0:0:0:0:0:1", null, "eth0");
-		testHost("[::1%eth0]:33", "0:0:0:0:0:0:0:1", 33, "eth0");
+		testHost("[::1]:33", "::1", 33, null);
+		testHost("::1:33", "::1:33", null, null);
+		testHost("::1%eth0", "::1", null, "eth0");
+		testHost("[::1%eth0]:33", "::1", 33, "eth0");
 		testHost("bla.bla:33", "bla.bla", null, 33, null);
 		testHost("blA:33", "bla", 33, null);
 		testHost("f:33", "f", 33, null);
-		testHost("f::33", "f:0:0:0:0:0:0:33", null, null);
-		testHost("::1", "0:0:0:0:0:0:0:1", null, null);
-		testHost("[::1]", "0:0:0:0:0:0:0:1", null, null);
+		testHost("f::33", "f::33", null, null);
+		testHost("::1", "::1", null, null);
+		testHost("[::1]", "::1", null, null);
 		testHost("/16", "/16", null, null);
 		testHost("/32", "/32", null, null);
-		testHost("/64", isNoAutoSubnets ? "ffff:ffff:ffff:ffff:0:0:0:0" : "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff:0:0:0:0/64", null, null);
+		testHost("/64", isNoAutoSubnets ? "ffff:ffff:ffff:ffff::" : "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff::/64", null, null);
 		
 		hostTest(true, "255.22.2.111.3.in-addr.arpa:35");//not a valid address but still a valid host
 		hostTest(false, "[::1]x");

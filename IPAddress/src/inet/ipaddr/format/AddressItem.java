@@ -53,7 +53,7 @@ public interface AddressItem extends Serializable {
 	BigInteger getCount();
 
 	/**
-	 * @return the number of bits in this item
+	 * @return the number of bits comprising this address item
 	 */
 	int getBitCount();
 	
@@ -95,12 +95,28 @@ public interface AddressItem extends Serializable {
 	byte[] getUpperBytes(byte bytes[]);
 	
 	/**
-	 * @return whether this item has the value of zero
+	 * @return whether this item matches the value of zero
 	 */
 	boolean isZero();
 	
 	/**
-	 * @return whether this address item represents all possible values attainable by an address item of this type.
+	 * @return whether this item includes the value of zero within its range
+	 */
+	boolean includesZero();
+	
+	/**
+	 * @return whether this item matches the maximum possible value
+	 */
+	boolean isMax();
+	
+	/**
+	 * @return whether this item includes the maximum possible value within its range
+	 */
+	boolean includesMax();
+	
+	/**
+	 * @return whether this address item represents all possible values attainable by an address item of this type,
+	 * or in other words, both includesZero() and includesMax() return true
 	 */
 	boolean isFullRange();
 }

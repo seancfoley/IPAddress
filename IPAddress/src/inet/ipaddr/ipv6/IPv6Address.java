@@ -26,6 +26,7 @@ import java.net.UnknownHostException;
 import java.util.Iterator;
 
 import inet.ipaddr.AddressConversionException;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressPositionException;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
@@ -56,7 +57,7 @@ import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
 /**
- * An IPv6 address, or a subnet of multiple IPv6 addresses.  Each segment can represent a single address or a range of addresses.
+ * An IPv6 address, or a subnet of multiple IPv6 addresses.  Each segment can represent a single value or a range of addresses.
  * 
  * @custom.core
  * @author sfoley
@@ -161,7 +162,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * Constructs an IPv6 address or a set of addresses.
 	* @throws AddressValueException if segment count is not 8
 	  * @param segments the address segments
-	 * @param zone the zone
+	 * @param zone the zone or scope id
 	 */
 	public IPv6Address(IPv6AddressSegment[] segments, CharSequence zone) throws AddressValueException {
 		this(segments, null, zone);
@@ -186,6 +187,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Constructs an IPv6 address.
+	 * <p>
+	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
 	 *
 	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
 	 * @param bytes the 16 byte IPv6 address - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
@@ -196,6 +199,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Constructs an IPv6 address.
+	 * <p>
+	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
 	 *
 	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
 	 * @param bytes the 16 byte IPv6 address - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
@@ -206,6 +211,17 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Constructs an IPv6 address or subnet.
+	 * <p>
+	 * Similar to {@link #IPv6Address(byte[])} except that you can specify the start and end of the address in the given byte array.
+	 */
+	public IPv6Address(byte[] bytes, int byteStartIndex, int byteEndIndex) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, null, null);
+	}
+	
+	/**
+	 * Constructs an IPv6 address or subnet.
+	 * <p>
+	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
 	 * <p>
 	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
 	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
@@ -219,26 +235,71 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	/**
+	 * Constructs an IPv6 address or subnet.
+	 * <p>
+	 * Similar to {@link #IPv6Address(byte[], Integer)}except that you can specify the start and end of the address in the given byte array.
+	 */
+	public IPv6Address(byte[] bytes, int byteStartIndex, int byteEndIndex, Integer networkPrefixLength) throws AddressValueException {
+		this(bytes, byteStartIndex, byteEndIndex, networkPrefixLength, null);
+	}
+	
+	/**
 	 * Constructs an IPv6 address.  
 	 * <p>
 	 * The byte representation from {@link BigInteger#toByteArray()} is used, and the byte array follows the rules according to {@link #IPv6Address(byte[])}.
 	 * Either it must be exactly 16 bytes, or if larger then any extra bytes must be significant leading zeros, 
-	 * or if smaller it is sign-extended to the required byte length.
+	 * or if smaller it is sign-extended to the required 16 byte length.
 	 * <p>
 	 * This means that you can end up with the same address from two different values of BigInteger, one positive and one negative.
 	 * For instance, -1 and ffffffffffffffffffffffffffffffff are represented by the two's complement byte arrays [ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff] 
 	 * and [0,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff] respectively.
 	 * Both create the address ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 	 * <p>
-	 * This means that when using positive integers you end up with the results you expect, the magnitude of the big integer becomes the address.
+	 * In fact, the two's complement byte array [ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff,ff] can be shortened to [ff], the former being the sign-extension of the latter.
+	 * So the byte array [ff] also creates the address ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff.
 	 * <p>
-	 * Or, this means when ranging over all 16-byte integers, both positive and negative, you range over all possible addresses.
+	 * When using positive integers you end up with the results you expect, the magnitude of the big integer becomes the address.
 	 * <p>
-	 * @throws AddressValueException if value is negative or too large
-	 * @param val must be a 16 byte or less IPv6 address value.
+	 * When ranging over all 16-byte arrays and constructing BigInteger from those arrays, you range over all possible addresses.
+	 * <p>
+	 * @throws AddressValueException if value is outside the range of potential values
+	 * @param val must be an IPv6 address value.
 	 */
 	public IPv6Address(BigInteger val) throws AddressValueException {
-		this(convert(val), null, null);
+		this(val, null, null);
+	}
+	
+	/**
+	 * Constructs an IPv6 address.  
+	 * <p>
+	 * The byte representation from {@link BigInteger#toByteArray()} is used, and the byte array follows the rules according to {@link #IPv6Address(byte[])}.
+	 * Either it must be exactly 16 bytes, or if larger then any extra bytes must be significant leading zeros, 
+	 * or if smaller it is sign-extended to the required 16 byte length.
+	 * <p>
+	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
+	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
+	 * 
+	 * @param val
+	 * @param networkPrefixLength
+	 * @throws AddressValueException
+	 */
+	public IPv6Address(BigInteger val, Integer networkPrefixLength) throws AddressValueException {
+		this(val, networkPrefixLength, null);
+	}
+	
+	/**
+	 * Constructs an IPv6 address.
+	 * <p>
+	 * The byte representation from {@link BigInteger#toByteArray()} is used, and the byte array follows the rules according to {@link #IPv6Address(byte[])}.
+	 * Either it must be exactly 16 bytes, or if larger then any extra bytes must be significant leading zeros, 
+	 * or if smaller it is sign-extended to the required 16 byte length.
+	 * <p>
+	 * @param val
+	 * @param zone
+	 * @throws AddressValueException
+	 */
+	public IPv6Address(BigInteger val, CharSequence zone) throws AddressValueException {
+		this(val, null, zone);
 	}
 	
 	/**
@@ -248,16 +309,22 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
 	 * <p>
 	 * 
-	 * @param val must be an 16 byte or less IPv6 address value
-	 * @param networkPrefixLength the CIDR prefix, which can be null for no prefix length
-	 * @throws AddressValueException if value is negative or too large
+	 * @param val must be an IPv6 address value
+	 * @param networkPrefixLength the CIDR prefix length, which can be null for no prefix length
+	 * @param zone the zone or scope id
+	 * @throws AddressValueException if value is outside the range of potential values
 	 */
-	public IPv6Address(BigInteger val, Integer networkPrefixLength) throws AddressValueException {
-		this(convert(val), networkPrefixLength, null);
+	public IPv6Address(BigInteger val, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {	
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSectionInternal(val.toByteArray(), IPv6Address.SEGMENT_COUNT, networkPrefixLength));
+		this.zone = (zone == null) ? "" : zone.toString();
 	}
 	
 	private IPv6Address(byte[] bytes, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
-		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(IPv6AddressSection.convert(bytes, IPv6Address.BYTE_COUNT, "ipaddress.error.ipv6.invalid.byte.count"), networkPrefixLength));
+		this(bytes, 0, bytes.length, networkPrefixLength, zone);
+	}
+	
+	private IPv6Address(byte[] bytes, int byteStartIndex, int byteEndIndex, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(bytes, byteStartIndex, byteEndIndex, IPv6Address.SEGMENT_COUNT, networkPrefixLength));
 		this.zone = (zone == null) ? "" : zone.toString();
 	}
 	
@@ -308,7 +375,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address(SegmentValueProvider valueProvider) {
 		this(valueProvider, (Integer) null);
 	}
-	
 	
 	/**
 	 * Constructs an IPv6 address.
@@ -409,11 +475,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		super(thisAddress -> toFullEUI64Section(section, eui, ((IPv6Address) thisAddress).getDefaultCreator(), ((IPv6Address) thisAddress).getMACNetwork().getAddressCreator()));
 		this.zone = (zone == null) ? "" : zone.toString();
 	}
-	
-	private static byte[] convert(BigInteger val) {
-		return IPv6AddressSection.convert(val.toByteArray(), IPv6Address.BYTE_COUNT, "ipaddress.error.ipv6.invalid.byte.count");
-	}
-	
+
 	private IPv6AddressCreator getDefaultCreator() {
 		return getNetwork().getAddressCreator();
 	}
@@ -678,6 +740,27 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public int getBitCount() {
 		return BIT_COUNT;
+	}
+	
+	@Override
+	public IPv6Address toMaxHost() {
+		return (IPv6Address) super.toMaxHost();
+	}
+	
+	@Override
+	public IPv6Address toZeroHost() {
+		if(!isPrefixed()) {
+			PrefixConfiguration config = getNetwork().getPrefixConfiguration();
+			IPv6Address addr = getNetwork().getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			if(config.zeroHostsAreSubnets()) {
+				addr = addr.getLower();
+			}
+			return addr;
+		}
+		if(includesZeroHost() && isSingleNetwork()) {
+			return getLower();//cached
+		}
+		return checkIdentity(getSection().createZeroHost());
 	}
 	
 	private IPv6Address getLowestOrHighest(boolean lowest, boolean excludeZeroHost) {
@@ -1189,6 +1272,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return zone.length() > 0;
 	}
 	
+	/**
+	 * The zone or scope id, which is typically appended to an address with a '%', eg fe80::71a3:2b00:ddd3:753f%16
+	 * @return
+	 */
 	public String getZone() {
 		if(hasZone()) {
 			return zone;
@@ -1347,6 +1434,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * RFC 5952 describes canonical representations.
 	 * http://en.wikipedia.org/wiki/IPv6_address#Recommended_representation_as_text
 	 * http://tools.ietf.org/html/rfc5952
+	 * 
+	 * If this has a prefix length, that will be include in the string.
 	 */
 	@Override
 	public String toCanonicalString() {
@@ -1389,7 +1478,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	/**
 	 * The normalized string returned by this method is consistent with java.net.Inet6address.
-	 * IPs are not compressed nor mixed in this representation.
+	 * 
+	 * IPs are not compressed nor mixed in this representation.  If this has a prefix length, that will be included in the string.
 	 */
 	@Override
 	public String toNormalizedString() {
