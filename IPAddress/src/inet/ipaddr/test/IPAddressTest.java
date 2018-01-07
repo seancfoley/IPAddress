@@ -2266,6 +2266,7 @@ public class IPAddressTest extends TestBase {
 				IPv4Address ipv4Addr = new IPv4Address(byteRepresentation);
 				all.add(ipv4Addr);
 			}
+			all.add(addr);
 			byte lastBytes[] = null;
 			for(int i = 0; i < all.size(); i++) {
 				byte bytes[] = all.get(i).getBytes();
@@ -2287,6 +2288,7 @@ public class IPAddressTest extends TestBase {
 				IPv6Address ipv6Addr = new IPv6Address(byteRepresentation);
 				all.add(ipv6Addr);
 			}
+			all.add(addr);
 			byte lastBytes[] = null;
 			for(int i = 0; i < all.size(); i++) {
 				byte bytes[] = all.get(i).getBytes();
@@ -2297,7 +2299,11 @@ public class IPAddressTest extends TestBase {
 					}
 					IPv6Address ipv6Addr = new IPv6Address(bytes);
 					all.add(ipv6Addr);
-					ipv6Addr = new IPv6Address(new BigInteger(bytes));
+					BigInteger b = new BigInteger(bytes);
+					ipv6Addr = new IPv6Address(b);
+					all.add(ipv6Addr);
+					byte bs[] = b.toByteArray();
+					ipv6Addr = new IPv6Address(bs);
 					all.add(ipv6Addr);
 				} else if(!Arrays.equals(lastBytes, bytes)) {
 					addFailure(new Failure("addr bytes mismatch " + toList(bytes) + " and " + toList(lastBytes), addr));
@@ -4464,14 +4470,14 @@ public class IPAddressTest extends TestBase {
 			new byte[] {0, 127},
 			new byte[] {127},
 		});
-		testByteExtension("128.128.128.128", new byte[][] {
+		testByteExtension("255.255.255.128", new byte[][] {
 			new byte[] {0, 0, -1, -1, -1, -128},
 			new byte[] {0, -1, -1, -1, -128},
 			new byte[] {-1, -1, -1, -128},
 			new byte[] {-1, -128},
 			new byte[] {-128}
 		});
-		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new byte[][] {
+		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80", new byte[][] {
 			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
 			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128},
@@ -4480,7 +4486,7 @@ public class IPAddressTest extends TestBase {
 			new byte[] {-1, -128},
 			new byte[] {-128}
 		});
-		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new byte[][] {
+		testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000", new byte[][] {
 			new byte[] {0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
 			new byte[] {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
 			new byte[] {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -128, 0},
