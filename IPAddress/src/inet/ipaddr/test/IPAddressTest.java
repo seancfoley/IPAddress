@@ -2265,6 +2265,12 @@ public class IPAddressTest extends TestBase {
 			for(byte byteRepresentation[] : byteRepresentations) {
 				IPv4Address ipv4Addr = new IPv4Address(byteRepresentation);
 				all.add(ipv4Addr);
+				
+				byte bytes[] = new byte[48];
+				Arrays.fill(bytes, (byte) 5);
+				System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
+				ipv4Addr = new IPv4Address(bytes, 5, 5 + byteRepresentation.length);
+				all.add(ipv4Addr);
 			}
 			all.add(addr);
 			byte lastBytes[] = null;
@@ -2286,6 +2292,12 @@ public class IPAddressTest extends TestBase {
 		} else {
 			for(byte byteRepresentation[] : byteRepresentations) {
 				IPv6Address ipv6Addr = new IPv6Address(byteRepresentation);
+				all.add(ipv6Addr);
+				
+				byte bytes[] = new byte[48];
+				Arrays.fill(bytes, (byte) 5);
+				System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
+				ipv6Addr = new IPv6Address(bytes, 5, 5 + byteRepresentation.length);
 				all.add(ipv6Addr);
 			}
 			all.add(addr);

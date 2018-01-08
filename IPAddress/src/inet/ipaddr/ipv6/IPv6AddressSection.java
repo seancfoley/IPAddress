@@ -249,6 +249,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(startIndex < 0 || startIndex > IPv6Address.SEGMENT_COUNT) {
 			throw new AddressPositionException(startIndex);
 		} else if(startIndex + segments.length > IPv6Address.SEGMENT_COUNT) {
+			//we throw address value exception because too many segments
 			throw new AddressValueException(startIndex + segments.length);
 		}
 	}
@@ -304,7 +305,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	protected IPv6AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
-		super(new IPv6AddressSegment[segmentCount >= 0 ? segmentCount : ((byteEndIndex - byteStartIndex) + IPv6Address.BYTES_PER_SEGMENT - 1) >> 1], false, false);
+		super(new IPv6AddressSegment[segmentCount >= 0 ? segmentCount : (Math.max(0, byteEndIndex - byteStartIndex) + IPv6Address.BYTES_PER_SEGMENT - 1) >> 1], false, false);
 		IPv6AddressSegment segs[] = getSegmentsInternal();
 		IPv6AddressNetwork network = getNetwork();
 		toSegments(
@@ -319,6 +320,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				networkPrefixLength);
 		boolean byteLengthIsExact = bytes.length == (segs.length << 1);
 		if(networkPrefixLength != null) {
+			if(networkPrefixLength < 0) {
+				throw new PrefixLenException(networkPrefixLength);
+			}
 			int max = segs.length << 4;
 			if(networkPrefixLength > max) {
 				if(networkPrefixLength > IPv6Address.BIT_COUNT) {

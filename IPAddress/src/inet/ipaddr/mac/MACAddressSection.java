@@ -32,6 +32,7 @@ import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressBitsDivision;
 import inet.ipaddr.format.AddressDivision;
 import inet.ipaddr.format.AddressDivisionGrouping;
@@ -156,7 +157,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 
 	protected MACAddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, int startIndex, boolean extended, boolean cloneBytes) {
-		super(new MACAddressSegment[segmentCount >= 0 ? segmentCount : (byteEndIndex - byteStartIndex)], false);
+		super(new MACAddressSegment[segmentCount >= 0 ? segmentCount : Math.max(0, byteEndIndex - byteStartIndex)], false);
 		MACAddressSegment segs[] = getSegmentsInternal();
 		toSegments(
 				segs,
@@ -420,6 +421,17 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		if(prefixLength == null) {
 			cachedPrefixLength = NO_PREFIX_LENGTH;
 			return;
+		}
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		int max = getBitCount();
+		if(prefixLength > max) {
+			int maxPrefixLength = extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_BIT_COUNT;
+			if(prefixLength > maxPrefixLength) {
+				throw new PrefixLenException(prefixLength);
+			}
+			prefixLength = max;
 		}
 		cachedPrefixLength = prefixLength;
 	}
@@ -729,14 +741,14 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			if(!appendNetwork && prefLength <= startBits) {
 				result.assignPrefixLength(prefLength);
 			} else if(replacement.isPrefixed() && replacement.getPrefixLength() <= replacementEndIndex << 3) {
-				result.assignPrefixLength(replacement.getPrefixLength() + startBits);
+				result.assignPrefixLength(Math.max(0, (replacement.getPrefixLength() - (replacementStartIndex << 3))) + startBits);
 			} else if(prefLength <= endIndex << 3) {
 				result.assignPrefixLength(startBits + (replacementCount << 3));
 			} else {
 				result.assignPrefixLength(prefLength + (diff << 3));
 			}
-		} else if(replacement.isPrefixed()) {
-			result.assignPrefixLength(replacement.getPrefixLength() + (startIndex << 3));
+		} else if(replacement.isPrefixed() && replacement.getPrefixLength() <= replacementEndIndex << 3) {
+			result.assignPrefixLength(Math.max(0, (replacement.getPrefixLength() - (replacementStartIndex << 3))) + (startIndex << 3));
 		} else {
 			result.assignPrefixLength(null);
 		}
@@ -929,6 +941,16 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	private MACAddressSection setPrefixLength(int prefixLength, boolean noShrink) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		int max = getBitCount();
+		if(prefixLength > max) {
+			if(prefixLength > (extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_BIT_COUNT)) {
+				throw new PrefixLenException(prefixLength);
+			}
+			prefixLength = max;
+		}
 		Integer oldPrefix = getPrefixLength();
 		boolean prefixShrinking = oldPrefix == null || oldPrefix > prefixLength;
 		boolean prefixGrowing;
@@ -965,6 +987,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 				newSegs = setPrefixedSegments(getNetwork(), prefixLength, oldSegs.clone(), 
 						segmentBitCount, segmentByteCount, creator, MACAddressSegment::toPrefixBlockSegment);
 			} else {
+				//neither growing nor shrinking
 				return toPrefixBlock();
 			}
 		} else {

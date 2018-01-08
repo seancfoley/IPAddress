@@ -210,7 +210,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
-		super(new IPv4AddressSegment[segmentCount >= 0 ? segmentCount : (byteEndIndex - byteStartIndex)], false, false);
+		super(new IPv4AddressSegment[segmentCount >= 0 ? segmentCount : Math.max(0, byteEndIndex - byteStartIndex)], false, false);
 		IPv4AddressSegment segs[] = getSegmentsInternal();
 		IPv4AddressNetwork network = getNetwork();
 		toSegments(
@@ -225,6 +225,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			networkPrefixLength);
 		boolean byteLengthIsExact = bytes.length == segs.length;
 		if(networkPrefixLength != null) {
+			if(networkPrefixLength < 0) {
+				throw new PrefixLenException(networkPrefixLength);
+			}
 			int max = segs.length << 3;
 			if(networkPrefixLength > max) {
 				if(networkPrefixLength > IPv4Address.BIT_COUNT) {

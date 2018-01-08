@@ -54,12 +54,15 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public static final int BITS_PER_SEGMENT = 8;
 	public static final int BYTES_PER_SEGMENT = 1;
 	public static final int MEDIA_ACCESS_CONTROL_SEGMENT_COUNT = 6;
+	public static final int MEDIA_ACCESS_CONTROL_BIT_COUNT = 48;
 	public static final int MEDIA_ACCESS_CONTROL_DOTTED_SEGMENT_COUNT = 3;
 	public static final int MEDIA_ACCESS_CONTROL_DOTTED_64_SEGMENT_COUNT = 4;
 	public static final int MEDIA_ACCESS_CONTROL_DOTTED_BITS_PER_SEGMENT = 16;
 	public static final int MEDIA_ACCESS_CONTROL_SINGLE_DASHED_SEGMENT_COUNT = 2;
 	public static final int EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT = MEDIA_ACCESS_CONTROL_SEGMENT_COUNT;
 	public static final int EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT = 8;
+	public static final int EXTENDED_UNIQUE_IDENTIFIER_48_BIT_COUNT = MEDIA_ACCESS_CONTROL_BIT_COUNT;
+	public static final int EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT = 64;
 	public static final int DEFAULT_TEXTUAL_RADIX = 16;
 	public static final int MAX_VALUE_PER_SEGMENT = 0xff;
 	public static final int MAX_VALUE_PER_DOTTED_SEGMENT = 0xffff;
@@ -382,7 +385,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress setPrefixLength(int prefixLength) {
 		return checkIdentity(getSection().setPrefixLength(prefixLength));
 	}
-	
+
 	@Override
 	public MACAddressSection getSection(int index) {
 		return getSection().getSection(index);
@@ -396,11 +399,11 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddressSection getODISection() {
 		return getSection().getODISection();
 	}
-	
+
 	public MACAddressSection getOUISection() {
 		return getSection().getOUISection();
 	}
-	
+
 	/**
 	 * Returns an address in which the range of values match the block for the OUI (organizationally unique identifier)
 	 * 
@@ -409,12 +412,12 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress toOUIPrefixBlock() {
 		return checkIdentity(getSection().toOUIPrefixBlock());
 	}
-	
+
 	@Override
 	public MACAddress toPrefixBlock() {
 		return checkIdentity(getSection().toPrefixBlock());
 	}
-	
+
 	/**
 	 * Converts to a link-local Ipv6 address.  Any MAC prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
 	 * This will provide the latter 4 segments of an IPv6 address, to be paired with the link-local IPv6 prefix of 4 segments.
@@ -437,7 +440,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public IPv6AddressSection toEUI64IPv6() {
 		return getIPv6Network().getAddressCreator().createSection(this);
 	}
-	
+
 	/**
 	 * Whether this section is consistent with an IPv6 EUI64 section,
 	 * which means it came from an extended 8 byte address,
@@ -479,7 +482,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 			if(prefLength != null) {
 				MACAddressSection resultSection = creator.createSectionInternal(segs, true);
 				if(prefLength >= 24) {
-					prefLength += MACAddress.BITS_PER_SEGMENT << 2; //two segments
+					prefLength += MACAddress.BITS_PER_SEGMENT << 1; //two segments
 				}
 				resultSection.assignPrefixLength(prefLength);
 			}
@@ -494,7 +497,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		}
 		throw new IncompatibleAddressException(this, "ipaddress.mac.error.not.eui.convertible");
 	}
-	
+
 	/**
 	 * Replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
 	 * 
@@ -508,7 +511,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress replace(int startIndex, int endIndex, MACAddress replacement, int replacementIndex) {
 		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
 	}
-	
+
 	public AddressDivisionGrouping getDottedAddress() {
 		return getSection().getDottedGrouping();
 	}

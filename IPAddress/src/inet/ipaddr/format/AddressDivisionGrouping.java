@@ -940,6 +940,12 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			int maxValuePerSegment,
 			AddressNetwork<S> network,
 			Integer prefixLength) {
+		if(endIndex < 0 || endIndex > bytes.length) {
+			throw new AddressValueException(endIndex);
+		}
+		if(startIndex < 0 || startIndex > endIndex) {
+			throw new AddressValueException(startIndex);
+		}
 		AddressSegmentCreator<S> creator = network.getAddressCreator();
 		int segmentCount = segments.length;
 		int expectedByteCount = segmentCount * bytesPerSegment;

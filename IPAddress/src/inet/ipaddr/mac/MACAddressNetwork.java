@@ -21,6 +21,7 @@ package inet.ipaddr.mac;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressCreator;
 
 public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
@@ -81,6 +82,12 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 			//Here, we do the same, but when the prefix gets to here, we cannot pass to the segment, so we apply the prefix here
 			//But this also gives more caching opportunities
 			if(segmentPrefixLength != null) {
+				if(segmentPrefixLength < 0) {
+					throw new PrefixLenException(segmentPrefixLength);
+				}
+				if(segmentPrefixLength > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT) {
+					throw new PrefixLenException(segmentPrefixLength);
+				}
 				if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 					if(segmentPrefixLength == 0) {
 						MACAddressSegment result = ALL_RANGE_SEGMENT;
@@ -117,6 +124,12 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		public MACAddressSegment createSegment(int lower, int upper, Integer segmentPrefixLength) {
 			if(segmentPrefixLength == null) {
 				return createRangeSegment(lower, upper);
+			}
+			if(segmentPrefixLength < 0) {
+				throw new PrefixLenException(segmentPrefixLength);
+			}
+			if(segmentPrefixLength > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT) {
+				throw new PrefixLenException(segmentPrefixLength);
 			}
 			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 				if(segmentPrefixLength == 0) {
