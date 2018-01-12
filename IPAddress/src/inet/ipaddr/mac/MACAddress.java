@@ -551,6 +551,11 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
+	public String toString() {
+		return toNormalizedString();
+	}
+	
+	@Override
 	public boolean isMulticast() {
 		return getSegment(0).matchesWithMask(1, 0x1);
 	}

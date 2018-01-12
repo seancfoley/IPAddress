@@ -48,6 +48,10 @@ You do not delete the style settings for them because the setting also applied t
 
 7. You commit the index.html file in the github repository.
 
+8. Save the odt doc as a pdf.  If you open in MS Word and save as pdf, the links go away.   
+However, if you open in Word and save as filtered html (as in step 2), and then you open in chrome as print to pdf, 
+then the links are preserved.  Also, in chrome, when printing uncheck the "headers and footers".
+
 Done.
 
 Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save as html, edit html yourself, then save as odt again, which helped.
@@ -64,22 +68,29 @@ So you need to change that to just <img src="address.png">.  Or you should creat
 To do a release
 ----------------------
 
+A Branching 
+
 0. If you are doing a major release, in gh-pages branch create a new folder with the old docs and put a link to it from the main page, to preserve them.
 Also link back from the old docs to the new.
 Figure out your branching strategy for the release, if applicable, branch if necessary, and then work off the old or new branch to provide the release.
 If your previous release is based on the master branch,
 you will first want to ensure you create a branch for the previous release before you check your new code into master for the new release.
 
+B Github
+
 1. Edit the release "version" property in build.xml
 
 2. Edit the release property in pom.xml
 
-3. Use build.xml to "create dist jar" and replace IPAddress.jar with the dist jar created.
+3. Use build.xml to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
 
 4. Check in and push the changes.
 
 5. Create the release using the github releases button - this creates the tag as well (but does not create a branch).  
 Add the dist jar from (2) to the release.  The source code zip and tar files are automatically created by github.
+
+
+C Maven
 
 6. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created.
 
