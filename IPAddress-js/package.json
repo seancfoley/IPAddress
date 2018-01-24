@@ -1,7 +1,7 @@
 {
   "name": "inet.ipaddr",
-  "version": "0.0.0",
-  "description": "IPAddress library for handling IP addresses",
+  "version": "0.0.1",
+  "description": "IPAddress library for handling IP addresses, both IPv4 and IPv6",
   "main": "index.js",
   "scripts": {
     "test": "echo 'Error: no test specified' && exit 1"
@@ -29,8 +29,12 @@
     "framework"
   ],
   "author": "Sean C Foley (https://seancfoley.github.io/)",
-  "license": "Apache License 2.0",
+  "license": "Apache-2.0",
   "devDependencies": {
     "open": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/seancfoley/IPAddress.git"
   }
 }
