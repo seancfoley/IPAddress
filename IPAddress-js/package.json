@@ -1,0 +1,36 @@
+{
+  "name": "inet.ipaddr",
+  "version": "0.0.0",
+  "description": "IPAddress library for handling IP addresses",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo 'Error: no test specified' && exit 1"
+  },
+  "keywords": [
+    "IP",
+    "IPv6",
+    "IPv4",
+    "MAC",
+    "host",
+    "CIDR",
+    "subnet",
+    "subnetting",
+    "wildcards",
+    "polymorphism",
+    "node.js",
+    "browser",
+    "parsing",
+    "validation",
+    "prefix",
+    "ports",
+    "section",
+    "segment",
+    "operations",
+    "framework"
+  ],
+  "author": "Sean C Foley (https://seancfoley.github.io/)",
+  "license": "Apache License 2.0",
+  "devDependencies": {
+    "open": "*"
+  }
+}
