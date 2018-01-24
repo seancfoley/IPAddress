@@ -21,7 +21,6 @@ package inet.ipaddr;
 import java.util.Iterator;
 
 /**
- * @custom.core
  * @author sfoley
  *
  */

@@ -140,7 +140,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	/**
 	 * Constructs an IPv4 address.
 	 * 
-	 * @param bytes the 4 byte IPv4 address - if longer than 4 bytes the additional bytes must be zero, if shorter than 4 bytes then then the bytes are sign-extended to 4 bytes.
+	 * @param bytes the 4 byte IPv4 address in network byte order - if longer than 4 bytes the additional bytes must be zero, if shorter than 4 bytes then then the bytes are sign-extended to 4 bytes.
 	 * @throws AddressValueException if bytes not equivalent to a 4 byte address
 	 */
 	public IPv4Address(byte[] bytes) throws AddressValueException {
@@ -166,7 +166,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
 	 * <p>
 	 * 
-	 * @param bytes the 4 byte IPv4 address - if longer than 4 bytes the additional bytes must be zero, if shorter than 4 bytes then the bytes are sign-extended to 4 bytes.
+	 * @param bytes the 4 byte IPv4 address in network byte order - if longer than 4 bytes the additional bytes must be zero, if shorter than 4 bytes then the bytes are sign-extended to 4 bytes.
 	 * @param networkPrefixLength the CIDR network prefix length, which can be null for no prefix
 	 * @throws AddressValueException if bytes not equivalent to a 4 byte address
 	 */

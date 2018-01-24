@@ -191,7 +191,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
 	 *
 	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
-	 * @param bytes the 16 byte IPv6 address - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
+	 * @param bytes the 16 byte IPv6 address in network byte order - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
 	 */
 	public IPv6Address(byte[] bytes, CharSequence zone) throws AddressValueException {
 		this(bytes, null, zone);
@@ -203,7 +203,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
 	 *
 	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
-	 * @param bytes the 16 byte IPv6 address - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
+	 * @param bytes the 16 byte IPv6 address in network byte order - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
 	 */
 	public IPv6Address(byte[] bytes) throws AddressValueException {
 		this(bytes, null, null);
@@ -226,7 +226,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
 	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
 	 * <p>
-	 * @param bytes the 16 byte IPv6 address - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
+	 * @param bytes the 16 byte IPv6 address in network byte order - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
 	 * @param networkPrefixLength the CIDR prefix, which can be null for no prefix length
 	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
 	 */

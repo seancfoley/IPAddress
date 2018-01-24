@@ -44,7 +44,6 @@ import inet.ipaddr.format.AddressDivision;
  * <p>
  * AddressSegment objects are immutable and thus also thread-safe.
  * 
- * @custom.core
  * @author sfoley
  *
  */
