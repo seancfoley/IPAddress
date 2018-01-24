@@ -19,7 +19,6 @@
 package inet.ipaddr.test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -220,15 +219,14 @@ public class AddressOrderTest extends TestBase {
 		int orderNumber = 0;
 		
 		//invalid
-		String strs[] = new String[] {
+		String strs[] = new String[] {//these are already sorted by natural string ordering
+			"/129", //invalid prefix
 			"bla",
-			"foo",
 			"fo",
+			"foo",
 			"four",
-			"xxx",
-			"/129" //invalid prefix
+			"xxx"
 		};
-		Arrays.sort(strs);
 		for(String s : strs) {
 			ordering.add(ipAddressSupplier.supply(s, orderNumber));
 			ordering.add(macAddressSupplier.supply(s, orderNumber));
@@ -519,15 +517,14 @@ public class AddressOrderTest extends TestBase {
 		int orderNumber = 0;
 
 		//invalid
-		String strs[] = new String[] {
+		String strs[] = new String[] {//these are already sorted by natural string ordering
+			"/129", //invalid prefix
 			"bla",
-			"foo",
 			"fo",
+			"foo",
 			"four",
-			"xxx",
-			"/129" //invalid prefix
+			"xxx"
 		};
-		Arrays.sort(strs);
 		for(String s : strs) {
 			ordering.add(ipAddressSupplier.supply(s, orderNumber++));
 			ordering.add(macAddressSupplier.supply(s, orderNumber++));
@@ -880,25 +877,24 @@ public class AddressOrderTest extends TestBase {
 	 */
 	<T extends Ordering<T, ?>> void testDefaultOrder(ArrayList<T> ordering, OrderingSupplier<T> ipAddressSupplier, OrderingSupplier<T> macAddressSupplier) {
 		
+		//invalid
+		String strs[] = new String[] {//these are already sorted by natural string ordering
+			"/129", //invalid prefix
+			"bla",
+			"fo",
+			"foo",
+			"four",
+			"xxx"
+		};
+		
 		//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
 		int orderNumber = 0;
 
-		//invalid
-		String strs[] = new String[] {
-			"bla",
-			"foo",
-			"fo",
-			"four",
-			"xxx",
-			"/129" //invalid prefix
-		};
-		Arrays.sort(strs);
 		for(String s : strs) {
 			ordering.add(ipAddressSupplier.supply(s, orderNumber));
 			ordering.add(macAddressSupplier.supply(s, orderNumber));
 			orderNumber++;
 		}
-		
 		
 		//empty
 		ordering.add(macAddressSupplier.supply("", orderNumber));

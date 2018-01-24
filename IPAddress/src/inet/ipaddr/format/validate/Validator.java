@@ -2560,17 +2560,12 @@ public class Validator implements HostIdentifierStringValidator {
 				StringBuilder builder = new StringBuilder(str.substring(0, suffixStartIndex));
 				for(int i = 0; i < builder.length(); i++) {
 					char c = builder.charAt(i);
-					switch(c) {
-						case IPv6Address.UNC_SEGMENT_SEPARATOR:
-							builder.setCharAt(i, IPv6Address.SEGMENT_SEPARATOR);
-							break;
-						case IPv6Address.UNC_RANGE_SEPARATOR:
-							builder.setCharAt(i, IPv6Address.RANGE_SEPARATOR);
-							break;
-						case IPv6Address.UNC_ZONE_SEPARATOR:
-							builder.setCharAt(i, IPv6Address.ZONE_SEPARATOR);
-							break;
-						default:
+					if(c == IPv6Address.UNC_SEGMENT_SEPARATOR) {
+						builder.setCharAt(i, IPv6Address.SEGMENT_SEPARATOR);
+					} else if(c == IPv6Address.UNC_RANGE_SEPARATOR) {
+						builder.setCharAt(i, IPv6Address.RANGE_SEPARATOR);
+					}  else if(c == IPv6Address.UNC_ZONE_SEPARATOR) {
+						builder.setCharAt(i, IPv6Address.ZONE_SEPARATOR);
 					}
 				}
 				emb = new EmbeddedAddress();

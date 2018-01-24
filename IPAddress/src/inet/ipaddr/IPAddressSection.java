@@ -65,7 +65,10 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
 public abstract class IPAddressSection extends IPAddressDivisionGrouping implements IPAddressSegmentSeries, AddressSection {
 	
 	private static final long serialVersionUID = 4L;
-	private static final IPAddressStringDivisionSeries EMPTY_PARTS[] = new IPAddressStringDivisionSeries[0];
+	private static final IPAddressStringDivisionSeries EMPTY_PARTS[];
+	static {
+		EMPTY_PARTS = new IPAddressStringDivisionSeries[0];
+	}
 	
 	/* caches objects to avoid recomputing them */
 	protected static class PrefixCache {

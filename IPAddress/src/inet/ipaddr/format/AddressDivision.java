@@ -312,7 +312,11 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				if(checkVal >= 0xa) {
 					return true;
 				}
-				value = isPowerOfTwo ? (value >> shift) : (value / radix);
+				if(isPowerOfTwo) {
+					value >>>= shift;
+				} else {
+					value /= radix;
+				}
 			}
 			if(handledUpper || lowerOnly) {
 				break;

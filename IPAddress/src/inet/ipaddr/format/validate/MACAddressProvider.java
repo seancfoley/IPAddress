@@ -36,10 +36,9 @@ public class MACAddressProvider implements Serializable {
 	private ParsedMACAddress parsedAddress;
 	private MACAddress address;
 	
+	@SuppressWarnings("serial")
 	static final MACAddressProvider EMPTY_PROVIDER = new MACAddressProvider() {
 		
-		private static final long serialVersionUID = 4L;
-
 		@Override
 		public MACAddress getAddress() {
 			return null;
