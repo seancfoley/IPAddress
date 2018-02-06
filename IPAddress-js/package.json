@@ -2,7 +2,7 @@
   "name": "inet.ipaddr",
   "version": "0.0.1",
   "description": "IPAddress library for handling IP addresses, both IPv4 and IPv6",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "echo 'Error: no test specified' && exit 1"
   },
@@ -30,8 +30,11 @@
   ],
   "author": "Sean C Foley (https://seancfoley.github.io/)",
   "license": "Apache-2.0",
-  "devDependencies": {
+  "dependencies": {
     "open": "*"
+  },
+  "devDependencies": {
+    "@types/node": "*"
   },
   "repository": {
     "type": "git",

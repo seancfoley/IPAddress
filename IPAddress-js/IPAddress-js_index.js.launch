@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.wst.jsdt.js.node.NodeLaunchConfigurationType">
+<booleanAttribute key="attr_add_network_console_field" value="false"/>
+<stringAttribute key="attr_app_arguments" value=""/>
+<stringAttribute key="attr_app_path" value="${git_work_tree}${project_path}/lib/index.js"/>
+<stringAttribute key="attr_app_project" value="IPAddress-js"/>
+<stringAttribute key="attr_app_project_relative_path" value="index.js"/>
+<booleanAttribute key="attr_break_field" value="true"/>
+<stringAttribute key="attr_host_field" value="localhost"/>
+<stringAttribute key="attr_node_arguments" value=""/>
+<stringAttribute key="attr_port_field" value="5858"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/IPAddress-js"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.debug.core.source_locator_id" value="org.eclipse.wst.jsdt.chromium.debug.core.ChromiumSourceDirector"/>
+<stringAttribute key="org.eclipse.debug.core.source_locator_memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#13;&#10;&lt;sourceLookupDirector&gt;&#13;&#10;&lt;sourceContainers duplicates=&quot;false&quot;&gt;&#13;&#10;&lt;container memento=&quot;42(C:\eclipse\github3\IPAddress\IPAddress-js\)44(org.eclipse.debug.core.containerType.project)115(&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;project name=&amp;quot;IPAddress-js&amp;quot; referencedProjects=&amp;quot;false&amp;quot;/&amp;gt;&amp;#13;&amp;#10;)&quot; typeId=&quot;org.eclipse.wst.jsdt.chromium.debug.core.SourceNameMapperContainer.type&quot;/&gt;&#13;&#10;&lt;container memento=&quot;&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;default/&amp;gt;&amp;#13;&amp;#10;&quot; typeId=&quot;org.eclipse.debug.core.containerType.default&quot;/&gt;&#13;&#10;&lt;container memento=&quot;42(C:\eclipse\github3\IPAddress\IPAddress-js\)44(org.eclipse.debug.core.containerType.project)115(&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;project name=&amp;quot;IPAddress-js&amp;quot; referencedProjects=&amp;quot;false&amp;quot;/&amp;gt;&amp;#13;&amp;#10;)&quot; typeId=&quot;org.eclipse.wst.jsdt.chromium.debug.core.SourceNameMapperContainer.type&quot;/&gt;&#13;&#10;&lt;/sourceContainers&gt;&#13;&#10;&lt;/sourceLookupDirector&gt;&#13;&#10;"/>
+<stringAttribute key="predefined_source_wrapperd_ids" value="94(org.eclipse.wst.jsdt.chromium.debug.core.model.HardcodedSourceWrapProvider$NodeJsStandardEntry)97(org.eclipse.wst.jsdt.chromium.debug.core.model.HardcodedSourceWrapProvider$NodeJsWithDefinedEntry)"/>
+<stringAttribute key="source_lookup_mode" value="EXACT_MATCH"/>
+</launchConfiguration>

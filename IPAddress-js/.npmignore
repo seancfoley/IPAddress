@@ -2,3 +2,9 @@
 
 .project
 .settings/
+
+# typescript
+
+src/
+
+
