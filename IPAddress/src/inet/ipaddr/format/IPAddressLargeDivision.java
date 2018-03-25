@@ -38,8 +38,6 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  */
 public class IPAddressLargeDivision extends AddressDivisionBase implements IPAddressStringDivision {
 
-	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-
 	public static final char EXTENDED_DIGITS_RANGE_SEPARATOR = Address.ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String EXTENDED_DIGITS_RANGE_SEPARATOR_STR = String.valueOf(EXTENDED_DIGITS_RANGE_SEPARATOR);
 	
@@ -142,6 +140,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			BigInteger low, high;
 			if(Arrays.equals(bytes, upperBytes)) {
 				low = high = new BigInteger(1, bytes);
+				isSinglePrefixBlock = prefixLength != null;
 			} else {
 				low = new BigInteger(1, bytes);
 				high = new BigInteger(1, upperBytes);
@@ -150,8 +149,9 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 					high = low;
 					low = tmp;
 				}
+				isSinglePrefixBlock = false;
 			}
-			isSinglePrefixBlock = isPrefixBlock = prefixLength != null;
+			isPrefixBlock = prefixLength != null;
 			value = low;
 			upperValueMasked = upperValue = high;
 		} else {
@@ -400,7 +400,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	private static void toDefaultStringRecursive(BigInteger val, BigInteger radix, boolean uppercase, int choppedDigits, int digitCount, char dig[], boolean highest, StringBuilder builder) {
 		//if we ensure that our recursion always defers to the most significant digits first, then we can simply append to a string builder
-		if(val.compareTo(LONG_MAX) <= 0) {
+		if(val.compareTo(AddressDivisionGrouping.LONG_MAX) <= 0) {
 			long longVal = val.longValue();
 			int intRadix = radix.intValue();
 			if(!highest) {
@@ -753,6 +753,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		return super.getPrefixAdjustedRangeString(segmentIndex, params, appendable);
 	}
 
+	@Override
 	public boolean isPrefixBlock() {
 		return isPrefixBlock;
 	}
@@ -774,11 +775,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		return networkPrefixLength != null;
 	}
 
-	@Override
-	public boolean isPrefixBlock(Integer divisionPrefixLen) {
-		if(divisionPrefixLen == null) {
-			return true;
-		}
+	public boolean isPrefixBlock(int divisionPrefixLen) {
 		if(divisionPrefixLen == 0) {
 			return isFullRange();
 		}

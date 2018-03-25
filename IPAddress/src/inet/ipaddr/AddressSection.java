@@ -37,12 +37,6 @@ public interface AddressSection extends AddressSegmentSeries {
 	 * @return whether this section contains the given address section
 	 */
 	boolean contains(AddressSection other);
-
-	@Override
-	AddressSection getSection(int index);
-
-	@Override
-	AddressSection getSection(int index, int endIndex);
 	
 	@Override
 	AddressSection getLower();
@@ -61,18 +55,33 @@ public interface AddressSection extends AddressSegmentSeries {
 	
 	@Override
 	AddressSection reverseBytesPerSegment();
+	
+	@Override
+	AddressSection toPrefixBlock();
 
 	@Override
 	AddressSection removePrefixLength();
+	
+	@Override
+	AddressSection removePrefixLength(boolean zeroed);
 
 	@Override
 	AddressSection adjustPrefixBySegment(boolean nextSegment);
+	
+	@Override
+	AddressSection adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
 
 	@Override
 	AddressSection adjustPrefixLength(int adjustment);
 
 	@Override
+	AddressSection adjustPrefixLength(int adjustment, boolean zeroed);
+
+	@Override
 	AddressSection setPrefixLength(int prefixLength);
+
+	@Override
+	AddressSection setPrefixLength(int prefixLength, boolean zeroed);
 
 	@Override
 	AddressSection applyPrefixLength(int networkPrefixLength);
@@ -82,4 +91,11 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	Iterator<? extends AddressSection> iterator();
+	
+	@Override
+	Iterator<? extends AddressSection> prefixBlockIterator();
+	
+	@Override
+	public abstract AddressSection add(long increment);
+	
 }

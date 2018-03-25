@@ -181,7 +181,12 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public Iterator<IPv4AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed());
+		return iterator(this, getSegmentCreator(), !isPrefixed(), null);
+	}
+	
+	@Override
+	public Iterator<IPv4AddressSegment> prefixBlockIterator() {
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength());
 	}
 
 	@Override
@@ -246,7 +251,7 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 
 	@Override
 	public boolean contains(AddressSegment other) {
-		return other instanceof IPv4AddressSegment && super.contains(other);
+		return other instanceof IPv4AddressSegment && containsSeg(other);
 	}
 	
 	@Override

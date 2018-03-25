@@ -231,7 +231,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	IPAddressString(IPAddress address, IPAddressStringParameters valOptions) {
 		validationOptions = valOptions; 
-		fullAddr = address.toNormalizedString();
+		fullAddr = address.toCanonicalString();
 		initByAddress(address);
 	}
 

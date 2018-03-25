@@ -67,6 +67,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 
 		private static final long serialVersionUID = 4L;
 
+		@Override
 		public IPAddressNetwork<T, R, E, S, ?> getNetwork() {
 			return IPAddressNetwork.this;
 		}
@@ -104,8 +105,6 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		public abstract R createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix);
 		
-		protected abstract R createSectionInternal(byte bytes[], Integer prefix);
-		
 		public abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix);
 		
 		public abstract R createSection(byte bytes[], Integer prefix);
@@ -114,31 +113,33 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		public abstract R createSection(S segments[]);
 		
+		protected abstract T[] createAddressArray(int length);
+		
 		public T createAddress(S segments[]) {
-			return createAddress(createSection(segments), null);
+			return createAddress(createSection(segments));
 		}
 		
 		public T createAddress(S segments[], Integer prefix) {
-			return createAddress(createSection(segments, prefix), null);
+			return createAddress(createSection(segments, prefix));
 		}
 		
 		@Override
 		protected T createAddressInternal(S segments[]) {
-			return createAddress(createSectionInternal(segments), null);
+			return createAddress(createSectionInternal(segments));
 		}
 		
 		@Override
 		protected T createAddressInternal(S segments[], Integer prefix, boolean singleOnly) {
-			return createAddress(createPrefixedSectionInternal(segments, prefix, singleOnly), null);
+			return createAddress(createPrefixedSectionInternal(segments, prefix, singleOnly));
 		}
 		
 		@Override
 		protected T createAddressInternal(S segments[], Integer prefix) {
-			return createAddress(createPrefixedSectionInternal(segments, prefix), null);
+			return createAddress(createPrefixedSectionInternal(segments, prefix));
 		}
 		
 		protected T createAddressInternal(S segments[], CharSequence zone) {
-			return createAddress(createSectionInternal(segments), zone);
+			return createAddressInternal(createSectionInternal(segments), zone);
 		}
 		
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
@@ -146,7 +147,11 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix, CharSequence zone) {
-			return createAddress(createSection(lowerValueProvider, upperValueProvider, isIPv4() ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT, prefix), zone);
+			return createAddressInternal(createSection(lowerValueProvider, upperValueProvider, isIPv4() ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT, prefix), zone);
+		}
+		
+		protected R createSectionInternal(byte bytes[], Integer prefix) {
+			return createSectionInternal(bytes, bytes.length, prefix, false);
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix) {
@@ -154,12 +159,12 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone) {
-			return createAddress(createSectionInternal(bytes, prefix), zone);
+			return createAddressInternal(createSectionInternal(bytes, prefix), zone);
 		}
 		
 		@Override
 		protected T createAddressInternal(byte bytes[], CharSequence zone) {
-			return createAddress(createSectionInternal(bytes, null), zone);
+			return createAddressInternal(createSectionInternal(bytes, null), zone);
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone, HostName fromHost) {
@@ -180,7 +185,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		@Override
 		protected T createAddressInternal(R section, CharSequence zone, HostIdentifierString from) {
-			T result = createAddress(section, zone);
+			T result = createAddressInternal(section, zone);
 			result.cache(from);
 			return result;
 		}
@@ -194,8 +199,8 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		protected abstract T createAddress(J inetAddress);
 		
-		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it (internally it is always null) */
-		protected abstract T createAddress(R section, CharSequence zone);
+		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it as public (internally it is always null) */
+		protected abstract T createAddressInternal(R section, CharSequence zone);
 		
 		@Override
 		public abstract T createAddress(R section);

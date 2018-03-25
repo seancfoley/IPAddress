@@ -36,7 +36,7 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
  *
  */
 public interface IPAddressSegmentSeries extends AddressSegmentSeries {
-	
+
 	/**
 	 * Returns the version of this segment series
 	 * 
@@ -246,6 +246,9 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	IPAddressNetwork<?,?,?,?,?> getNetwork();
 	
 	@Override
+	IPAddressSection getSection();
+
+	@Override
 	IPAddressSection getSection(int index);
 	
 	@Override
@@ -288,6 +291,9 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> iterator();
 	
+	@Override
+	Iterator<? extends IPAddressSegmentSeries> prefixBlockIterator();
+	
 	Iterator<? extends IPAddressSegmentSeries> nonZeroHostIterator();
 
 	@Override
@@ -295,14 +301,120 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
 
+	@Override
+	IPAddressSegmentSeries add(long increment);
+
 	/**
-	 * Returns the segment series with the same prefix but with a host of zero.  
-	 * If the series has no prefix length, then it returns an all-zero series of the same length with prefix length of 0.
+	 * Returns the segment series with a host of zero.
+	 * If the series has no prefix length, then it returns an all-zero series.
+	 * <p>
+	 * The resultant series will have the same prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is not {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}, 
+	 * otherwise it will no longer have a prefix length.
+	 * <p>
+	 * For instance, you can get the network address for a subnet as follows:
+	 * <code>
+	 * String addrStr = "1.2.3.4/16";
+	 * IPAddress address = new IPAddressString(addrStr).getAddress();
+	 * IPAddress networkAddress = address.toZeroHost(); //1.2.0.0
+	 * </code>
 	 * 
 	 * @return
 	 */
 	IPAddressSegmentSeries toZeroHost();
+	
+	/**
+	 * Produces the series with host values of 0 for the given prefix length.
+	 * <p>
+	 * If this series has the same prefix length, then the resulting series will too, otherwise the resulting series will have no prefix length.
+	 * <p>
+	 * This is nearly equivalent to doing the mask (bitwise conjunction) of this address series with the network mask for the given prefix length,
+	 * but without the possibility of IncompatibleAddressException that can occur when applying a mask to a range of values.
+	 * Instead, in this case, if the resulting series has a range of values, then the resulting series range boundaries will have host values of 0, but not necessarily  the intervening values.
+	 * <p>
+	 * For instance, you can get the network address for a subnet of prefix length 16 as follows:
+	 * <code>
+	 * String addrStr = "1.2.3.4";
+	 * IPAddress address = new IPAddressString(addrStr).getAddress();
+	 * IPAddress networkAddress = address.toZeroHost(16); //1.2.0.0
+	 * </code>
+	 * 
+	 * @param prefixLength
+	 * @return
+	 */
+	IPAddressSegmentSeries toZeroHost(int prefixLength);
 
+	/**
+	 * Returns whether the series has a host of zero.  If the series has no prefix length, or the prefix length matches the bit count, then returns false.
+	 * 
+	 * Otherwise, it checks whether all bits past the prefix are zero.
+	 * 
+	 * @return
+	 */
+	boolean includesZeroHost();
+	
+	/**
+	 * Returns whether all bits past the given prefix length are zero.
+	 * 
+	 * @return
+	 */
+	boolean includesZeroHost(int prefixLength);
+
+	/**
+	 * Produces the series with host values of all one bits for the given prefix length.
+	 * <p>
+	 * If this series has the same prefix length, then the resulting series will too, otherwise the resulting series will have no prefix length.
+	 * <p>
+	 * This is nearly equivalent to doing the bitwise or (bitwise disjunction) of this address series with the network mask for the given prefix length,
+	 * but without the possibility of IncompatibleAddressException that can occur when applying a mask to a range of values.
+	 * Instead, in this case, if the resulting series has a range of values, then the resulting series range boundaries will have host values of all ones, but not necessarily  the intervening values.
+	 * <p>
+	 * For instance, you can get the broadcast address for a subnet of prefix length 16 as follows:
+	 * <code>
+	 * String addrStr = "1.2.3.4";
+	 * IPAddress address = new IPAddressString(addrStr).getAddress();
+	 * IPAddress broadcastAddress = address.toMaxHost(16); //1.2.255.255
+	 * </code>
+	 * 
+	 * @param prefixLength
+	 * @return
+	 */
+	IPAddressSegmentSeries toMaxHost(int prefixLength);
+	
+	/**
+	 * Returns the segment series with a host of all ones.
+	 * If the series has no prefix length, then it returns an all-ones series.
+	 * <p>
+	 * The resultant series will have the same prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is not {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}, 
+	 * otherwise it will no longer have a prefix length.
+	 * <p>
+	 * For instance, you can get the broadcast address for a subnet as follows:
+	 * <code>
+	 * String addrStr = "1.2.3.4/16";
+	 * IPAddress address = new IPAddressString(addrStr).getAddress();
+	 * IPAddress broadcastAddress = address.toMaxHost(); //1.2.255.255
+	 * </code>
+	 * 
+	 * @return
+	 */
+	IPAddressSegmentSeries toMaxHost();
+	
+	
+	/**
+	 * Returns whether the series has a host of all ones.  If the series has no prefix length, or the prefix length matches the bit count, then returns false.
+	 * 
+	 * Otherwise, it checks whether all bits past the prefix are ones.
+	 * 
+	 * @return
+	 */
+	boolean includesMaxHost();
+	
+	/**
+	 * Returns whether all bits past the given prefix length are all ones.
+	 * 
+	 * @return
+	 */
+	boolean includesMaxHost(int prefixLength);
+	
 	@Override
 	IPAddressSegmentSeries reverseSegments();
 	
@@ -329,37 +441,40 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	@Override
 	IPAddressSegmentSeries reverseBytesPerSegment();
 	
+	/**
+	 * Removes the prefix length.  The bits that were host bits become zero.
+	 * 
+	 * @see #removePrefixLength(boolean)
+	 * @return
+	 */
 	@Override
 	IPAddressSegmentSeries removePrefixLength();
 	
 	/**
 	 * Removes the prefix length.  If zeroed is false, the bits that were host bits do not become zero, unlike {@link #removePrefixLength()}
 	 * 
-	 * @param zeroed
+	 * @param zeroed whether the host bits become zero.
 	 * @return
 	 */
+	@Override
 	IPAddressSegmentSeries removePrefixLength(boolean zeroed);
 	
 	@Override
 	IPAddressSegmentSeries adjustPrefixBySegment(boolean nextSegment);
 	
 	@Override
+	IPAddressSegmentSeries adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
+	
+	@Override
 	IPAddressSegmentSeries adjustPrefixLength(int adjustment);
+	
+	@Override
+	IPAddressSegmentSeries adjustPrefixLength(int adjustment, boolean zeroed);
 	
 	@Override
 	IPAddressSegmentSeries setPrefixLength(int prefixLength);
 	
-	/**
-	 * Sets the prefix length.
-	 * <p>
-	 * If zeroed is true, and this series has a prefix length, and the prefix length is increased, the bits moved within the prefix become zero.
-	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
-	 * <p>
-	 * When the prefix is extended beyond the segment series boundary, it is removed.
-	 * <p>
-	 *
-	 * @return
-	 */
+	@Override
 	IPAddressSegmentSeries setPrefixLength(int prefixLength, boolean zeroed);
 
 	@Override

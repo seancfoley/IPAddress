@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.IntUnaryOperator;
 
 import inet.ipaddr.Address;
@@ -35,6 +36,7 @@ import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.SizeMismatchException;
@@ -52,6 +54,7 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4AddressSectionStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4StringBuilder;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
+import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 
 /**
@@ -63,6 +66,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 
 	private static final long serialVersionUID = 4L;
 	
+	private static final long MAX_VALUES[] = new long[] {0, IPv4Address.MAX_VALUE_PER_SEGMENT, 0xffff, 0xffffff, 0xffffffffL};
+
 	static class IPv4StringCache extends IPStringCache {
 		//a set of pre-defined string types
 		static final IPStringOptions fullParams;
@@ -174,7 +179,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				upperValueProvider,
 				IPv4Address.BYTES_PER_SEGMENT,
 				IPv4Address.BITS_PER_SEGMENT,
-				IPv4Address.MAX_VALUE_PER_SEGMENT,
 				network,
 				networkPrefixLength);
 		if(networkPrefixLength != null) {
@@ -205,11 +209,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		this(lowerValueProvider, upperValueProvider, segmentCount, null);
 	}
 
-	protected IPv4AddressSection(byte bytes[], Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
-		this(bytes, 0, bytes.length, -1, networkPrefixLength, cloneBytes);
+	protected IPv4AddressSection(byte bytes[], int segmentCount, Integer networkPrefixLength, boolean cloneBytes, boolean singleOnly) throws AddressValueException {
+		this(bytes, 0, bytes.length, segmentCount, networkPrefixLength, cloneBytes, singleOnly);
 	}
 
-	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer networkPrefixLength, boolean cloneBytes) throws AddressValueException {
+	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer networkPrefixLength, boolean cloneBytes, boolean singleOnly) throws AddressValueException {
 		super(new IPv4AddressSegment[segmentCount >= 0 ? segmentCount : Math.max(0, byteEndIndex - byteStartIndex)], false, false);
 		IPv4AddressSegment segs[] = getSegmentsInternal();
 		IPv4AddressNetwork network = getNetwork();
@@ -220,7 +224,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			byteEndIndex,
 			IPv4Address.BYTES_PER_SEGMENT,
 			IPv4Address.BITS_PER_SEGMENT,
-			IPv4Address.MAX_VALUE_PER_SEGMENT,
 			network,
 			networkPrefixLength);
 		boolean byteLengthIsExact = bytes.length == segs.length;
@@ -238,7 +241,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			if(segs.length > 0) {
 				PrefixConfiguration prefConf = network.getPrefixConfiguration();
 				if(prefConf.zeroHostsAreSubnets()) {
-					if(isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+					if(isPrefixSubnet(segs, networkPrefixLength, network, false) && !singleOnly) {
 						setPrefixedSegments(
 								network,
 								networkPrefixLength,
@@ -266,23 +269,23 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	protected IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) throws AddressValueException {
-		this(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true);
+		this(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true, false);
 	}
 	
 	public IPv4AddressSection(byte bytes[], Integer prefix) throws AddressValueException {
-		this(bytes, prefix, true);
+		this(bytes, bytes.length, prefix, true, false);
 	}
 	
 	public IPv4AddressSection(byte bytes[]) throws AddressValueException {
-		this(bytes, null, true);
+		this(bytes, bytes.length, null, true, false);
 	}
 	
 	public IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) throws AddressValueException {
-		this(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+		this(bytes, byteStartIndex, byteEndIndex, -1, prefix, true, false);
 	}
 	
 	public IPv4AddressSection(byte bytes[], int byteStartIndex, int byteEndIndex) throws AddressValueException {
-		this(bytes, byteStartIndex, byteEndIndex, -1, null, true);
+		this(bytes, byteStartIndex, byteEndIndex, -1, null, true, false);
 	}
 	
 	public IPv4AddressSection(int value, Integer networkPrefixLength) throws AddressValueException {
@@ -291,9 +294,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		IPv4AddressNetwork network = getNetwork();
 		createSegments(
 				segs,
+				0,
 				value,
 				IPv4Address.BITS_PER_SEGMENT,
-				IPv4Address.MAX_VALUE_PER_SEGMENT,
 				network,
 				networkPrefixLength);
 		if(networkPrefixLength != null) {
@@ -326,6 +329,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
+	public IPv4AddressSection getSection() {
+		return this;
+	}
+	
+	@Override
 	public IPv4AddressSection getSection(int index) {
 		return getSection(index, getSegmentCount());
 	}
@@ -333,25 +341,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPv4AddressSection getSection(int index, int endIndex) {
 		return getSection(index, endIndex, this, getAddressCreator());
-	}
-
-	@Override
-	public IPv4AddressSection toZeroHost() {
-		if(!isPrefixed()) {
-			IPAddress networkMask = getNetwork().getNetworkMask(0);
-			return IPAddressSection.getSubnetSegments(this, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : 0,
-					getAddressCreator(), false, this::getSegment, i -> networkMask.getSegment(i).getLowerSegmentValue(), true);
-		}
-		if(includesZeroHost() && isSingleNetwork()) {
-			return getLower();//cached
-		}
-		return createZeroHost();
-	}
-
-	IPv4AddressSection createZeroHost() {
-		int prefixLength = getNetworkPrefixLength();
-		IPAddress networkMask = getNetwork().getNetworkMask(prefixLength);
-		return IPAddressSection.getSubnetSegments(this, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength, getAddressCreator(), false, this::getSegment, i -> networkMask.getSegment(i).getLowerSegmentValue(), true);
 	}
 	
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
@@ -554,6 +543,31 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public Iterator<IPv4AddressSection> iterator() {
 		return iterator(false);
 	}
+	
+	@Override
+	public Iterator<IPv4AddressSection> prefixBlockIterator() {
+		Integer prefLength = getPrefixLength();
+		if(prefLength == null || prefLength > getBitCount()) {
+			return iterator();
+		}
+		IPv4AddressCreator creator = getAddressCreator();
+		boolean useOriginal = isSinglePrefixBlock();
+		return iterator(
+				useOriginal,
+				this,
+				creator,
+				useOriginal ?
+						null :
+						iterator(
+							creator,
+							null,
+							index -> getSegment(index).iterator(),
+							null, 
+							getNetworkSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
+							getHostSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
+							index -> getSegment(index).prefixBlockIterator()),
+				prefLength);
+	}
 
 	private Iterator<IPv4AddressSegment[]> segmentsIterator(boolean excludeZeroHosts) {
 		return iterator(getSegmentCreator(), () -> getLower().getSegments(), index -> getSegment(index).iterator(), excludeZeroHosts ? this::isZeroHost : null);
@@ -584,7 +598,52 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				useOriginal ? null : iterator(creator, () -> getLower().getSegmentsInternal(), index -> getSegment(index).iterator(), excludeZeroHosts ? this::isZeroHost : null),
 				isAllSubnets ? null : getPrefixLength());
 	}
+	
+	protected Iterator<IPv4Address> prefixBlockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator) {
+		Integer prefLength = getPrefixLength();
+		if(prefLength == null || prefLength > getBitCount()) {
+			return iterator(original, creator, false);
+		}
+		boolean useOriginal = isSinglePrefixBlock();
+		return iterator(
+				original, 
+				creator,//using a lambda for this one results in a big performance hit
+				useOriginal,
+				useOriginal ? null :
+					iterator(
+							creator,
+							null,
+							index -> getSegment(index).iterator(),
+							null, 
+							getNetworkSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
+							getHostSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
+							index -> getSegment(index).prefixBlockIterator()),
+				prefLength);
+	}
 
+	private static long getMaxValue(int segmentCount) {
+		return MAX_VALUES[segmentCount];
+	}
+	
+	@Override
+	public IPv4AddressSection add(long increment) {
+		long lowerValue = 0xffffffffL & intValue();
+		long upperValue = 0xffffffffL & upperIntValue();
+		long count = getCount().longValue();
+		checkOverflow(increment, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+		return increment(
+				this,
+				increment,
+				null,
+				getAddressCreator(),
+				count,
+				lowerValue,
+				upperValue,
+				this::getLower,
+				this::getUpper,
+				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
+	}
+	
 	private static long getCount(IntUnaryOperator countProvider, int segCount) {
 		long result = countProvider.applyAsInt(0);
 		for(int i = 1; i < segCount; i++) {
@@ -593,8 +652,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return result;
 	}
 	
+	//This was added so count available as a long and not as BigInteger
 	public long getIPv4Count(boolean excludeZeroHosts) {
 		if(!isMultiple()) {
+			if(excludeZeroHosts && isZero()) {
+				return 0L;
+			}
 			return 1L;
 		}
 		int segCount = getSegmentCount();
@@ -625,7 +688,28 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return BigInteger.valueOf(getIPv4Count(excludeZeroHosts));
 	}
+	
+	public long getIPv4PrefixCount() {
+		Integer prefixLength = getPrefixLength();
+		if(prefixLength == null || prefixLength >= getBitCount() || !isMultiple()) {
+			return getIPv4Count(false);
+		}
+		int networkSegmentIndex = getNetworkSegmentIndex(prefixLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT);
+		int hostSegmentIndex = getHostSegmentIndex(prefixLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT);
+		boolean hasPrefixedSegment = (networkSegmentIndex == hostSegmentIndex);
+		return getCount(i -> {
+			if(hasPrefixedSegment && i == networkSegmentIndex) {
+				return getSegment(i).getPrefixValueCount();
+			}
+			return getSegment(i).getValueCount();
+		}, networkSegmentIndex + 1);
+	}
 
+	@Override
+	public BigInteger getPrefixCount() {
+		return BigInteger.valueOf(getIPv4PrefixCount());
+	}
+	
 	private IPv4AddressCreator getSegmentCreator() {
 		return getIPv4SegmentCreator();
 	}
@@ -636,6 +720,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	private IPv4AddressCreator getIPv4SegmentCreator() {
 		return getNetwork().getAddressCreator();
+	}
+	
+	@Override
+	public IPv4AddressSegment getDivision(int index) {
+		return (IPv4AddressSegment) super.getDivision(index);
 	}
 	
 	@Override
@@ -693,6 +782,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPVersion getIPVersion() {
 		return IPVersion.IPV4;
+	}
+	
+	@Override
+	public boolean matchesWithMask(IPAddressSection other, IPAddressSection mask) {
+		return other instanceof IPv4AddressSection && mask instanceof IPv4AddressSection && super.matchesWithMask(other, mask);
 	}
 	
 	@Override
@@ -855,12 +949,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return the difference
 	 */
 	public IPv4AddressSection[] subtract(IPv4AddressSection other) throws SizeMismatchException {
-		return subtract(this, other, getAddressCreator(), this::getSegment, (section, prefix) -> section.applyPrefixLength(prefix));
+		return subtract(this, other, getAddressCreator(), this::getSegment, (section, prefix) -> section.setPrefixLength(prefix, false, true));
 	}
 
 	@Override
 	public boolean contains(AddressSection other) {
-		return other instanceof IPv4AddressSection && super.contains((IPAddressSection) other);
+		return other instanceof IPv4AddressSection && super.contains(other);
 	}
 	
 	@Override
@@ -875,12 +969,22 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public IPv4AddressSection adjustPrefixBySegment(boolean nextSegment) {
-		return (IPv4AddressSection) super.adjustPrefixBySegment(nextSegment);
+		return adjustPrefixBySegment(nextSegment, true);
+	}
+	
+	@Override
+	public IPv4AddressSection adjustPrefixBySegment(boolean nextSegment, boolean zeroed) {
+		return (IPv4AddressSection) super.adjustPrefixBySegment(nextSegment, zeroed);
+	}
+	
+	@Override
+	public IPv4AddressSection adjustPrefixLength(int adjustment) {
+		return adjustPrefixLength(adjustment, true);
 	}
 
 	@Override
-	public IPv4AddressSection adjustPrefixLength(int adjustment) {
-		return (IPv4AddressSection) adjustPrefixLength(this, adjustment, getAddressCreator(), (section, i) -> section.getSegment(i));
+	public IPv4AddressSection adjustPrefixLength(int adjustment, boolean zeroed) {
+		return (IPv4AddressSection) adjustPrefixLength(this, adjustment, zeroed, getAddressCreator(), (section, i) -> section.getSegment(i));
 	}
 	
 	@Override
@@ -917,7 +1021,92 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv4AddressSection removePrefixLength(boolean zeroed) {
 		return removePrefixLength(this, zeroed, getAddressCreator(), IPv4AddressSection::getSegment);
 	}
+
+	@Override
+	public IPv4AddressSection toZeroHost() throws IncompatibleAddressException {
+		if(!isPrefixed()) {
+			IPv4Address networkMask = getNetwork().getNetworkMask(0, !getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+			return networkMask.getSection(0, getSegmentCount());
+		}
+		if(includesZeroHost() && isSingleNetwork()) {
+			return getLower();//cached
+		}
+		return createZeroHost();
+	}
+
+	IPv4AddressSection createZeroHost() {
+		int prefixLength = getNetworkPrefixLength();//we know it is prefixed here so no NullPointerException
+		IPv4Address mask = getNetwork().getNetworkMask(prefixLength);
+		return getSubnetSegments(
+				this,
+				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue(),
+				true);
+	}
 	
+	@Override
+	public IPv4AddressSection toZeroHost(int prefixLength) {
+		if(isPrefixed() && prefixLength == getNetworkPrefixLength()) {
+			return toZeroHost();
+		}
+		IPv4Address mask = getNetwork().getNetworkMask(prefixLength);
+		return getSubnetSegments(
+				this,
+				null,
+				//getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength, xxx;//hold on, don't you want to avoid this for zero hosts are subnets too?  maybe you don't want prefix at all?  maybe a boolean for it?
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue(),
+				true);
+	}
+	
+	@Override
+	public IPv4AddressSection toMaxHost() throws IncompatibleAddressException {
+		if(!isPrefixed()) {
+			IPv4Address resultNoPrefix = getNetwork().getHostMask(0);
+			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+				return resultNoPrefix.getSection(0, getSegmentCount());
+			}
+			return resultNoPrefix.setPrefixLength(0).getSection(0, getSegmentCount());
+		}
+		if(includesZeroHost() && isSingleNetwork()) {
+			return getLower();//cached
+		}
+		return createMaxHost();
+	}
+	
+	public IPv4AddressSection createMaxHost() {
+		int prefixLength = getNetworkPrefixLength();//we know it is prefixed here so no NullPointerException
+		IPv4Address mask = getNetwork().getHostMask(prefixLength);
+		return getOredSegments(
+				this,
+				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue());
+	}
+	
+	@Override
+	public IPv4AddressSection toMaxHost(int prefixLength) {
+		if(isPrefixed() && prefixLength == getNetworkPrefixLength()) {
+			return toMaxHost();
+		}
+		IPv4Address mask = getNetwork().getHostMask(prefixLength);
+		return getOredSegments(
+				this,
+				null,
+				//getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,xxx;
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue());
+	}
+
 	/**
 	 * Does the bitwise conjunction with this address.  Useful when subnetting.
 	 * 
@@ -927,8 +1116,15 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection mask(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
-		checkSectionCount(mask);
-		return getSubnetSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue(), false);
+		checkMaskSectionCount(mask);
+		return getSubnetSegments(
+				this,
+				retainPrefix ? getPrefixLength() : null,
+				getAddressCreator(),
+				true,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue(),
+				false);
 	}
 
 	/**
@@ -949,12 +1145,23 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection maskNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
-		checkSectionCount(mask);
+		checkMaskSectionCount(mask);
 		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue(), false);
+			return getSubnetSegments(
+					this,
+					networkPrefixLength,
+					getAddressCreator(),
+					true,
+					this::getSegment,
+					i -> mask.getSegment(i).getLowerSegmentValue(),
+					false);
 		}
 		IPv4AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
-		return getSubnetSegments(this, networkPrefixLength, getAddressCreator(), true, 
+		return getSubnetSegments(
+				this,
+				networkPrefixLength,
+				getAddressCreator(),
+				true, 
 				this::getSegment, 
 				i -> {
 					int val1 = mask.getSegment(i).getLowerSegmentValue();
@@ -965,31 +1172,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		);
 	}
 
-	/**
-	 * Does the bitwise disjunction with this address section.  Useful when subnetting.  Similar to {@link #maskNetwork(IPv4AddressSection, int)} which does the bitwise conjunction.
-	 * <p>
-	 * Any existing prefix length is dropped for the new prefix length and the disjunction is applied up to the end the new prefix length.
-	 * 
-	 * @param mask
-	 * @return
-	 * @throws IncompatibleAddressException
-	 */
-	public IPv4AddressSection bitwiseOrNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, SizeMismatchException {
-		checkSectionCount(mask);
-		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			return getOredSegments(this, networkPrefixLength, getAddressCreator(), this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
-		}
-		IPv4AddressSection networkMask = getNetwork().getNetworkMaskSection(networkPrefixLength);
-		return getOredSegments(this, networkPrefixLength, getAddressCreator(), 
-				this::getSegment, 
-				i -> {
-					int val1 = mask.getSegment(i).getLowerSegmentValue();
-					int val2 = networkMask.getSegment(i).getLowerSegmentValue();
-					return val1 & val2;
-				}
-		);
-	}
-	
 	/**
 	 * Equivalent to {@link #bitwiseOr(IPv4AddressSection, boolean)} with the second argument as false.
 	 */
@@ -1005,8 +1187,49 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection bitwiseOr(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
-		checkSectionCount(mask);
-		return getOredSegments(this, retainPrefix ? getPrefixLength() : null, getAddressCreator(), this::getSegment, i -> mask.getSegment(i).getLowerSegmentValue());
+		checkMaskSectionCount(mask);
+		return getOredSegments(
+				this,
+				retainPrefix ? getPrefixLength() : null,
+				getAddressCreator(),
+				true,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue());
+	}
+
+	/**
+	 * Does the bitwise disjunction with this address section.  Useful when subnetting.  Similar to {@link #maskNetwork(IPv4AddressSection, int)} which does the bitwise conjunction.
+	 * <p>
+	 * Any existing prefix length is dropped for the new prefix length and the disjunction is applied up to the end the new prefix length.
+	 * 
+	 * @param mask
+	 * @return
+	 * @throws IncompatibleAddressException
+	 */
+	public IPv4AddressSection bitwiseOrNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, SizeMismatchException {
+		checkMaskSectionCount(mask);
+		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+			return getOredSegments(
+					this,
+					networkPrefixLength,
+					getAddressCreator(),
+					true,
+					this::getSegment,
+					i -> mask.getSegment(i).getLowerSegmentValue());
+		}
+		IPv4AddressSection networkMask = getNetwork().getNetworkMaskSection(networkPrefixLength);
+		return getOredSegments(
+				this,
+				networkPrefixLength,
+				getAddressCreator(),
+				true,
+				this::getSegment, 
+				i -> {
+					int val1 = mask.getSegment(i).getLowerSegmentValue();
+					int val2 = networkMask.getSegment(i).getLowerSegmentValue();
+					return val1 & val2;
+				}
+		);
 	}
 
 	@Override
@@ -1063,6 +1286,38 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPv4AddressSection assignMinPrefixForBlock() {
 		return (IPv4AddressSection) super.assignMinPrefixForBlock();
+	}
+	
+	/**
+	 * Produces the list of prefix block subnets that span from this series to the given series.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public IPv4AddressSection[] getSpanningPrefixBlocks(IPv4AddressSection other) {
+		return IPAddressSection.getSpanningPrefixBlocks(
+				this,
+				other,
+				IPv4AddressSection::getLower,
+				IPv4AddressSection::getUpper,
+				Address.DEFAULT_ADDRESS_COMPARATOR::compare,
+				(section) -> section.removePrefixLength(false),
+				//IPv4AddressSection::removePrefixLength(),xxx;
+				getAddressCreator()::createSectionArray);
+	}
+	
+	/**
+	 * Merges this with the list of sections to produce the smallest array of prefix blocks, going from smallest to largest
+	 * 
+	 * @param sections the sections to merge with this
+	 * @return
+	 */
+	public IPv4AddressSection[] mergeBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
+		if(sections.length == 0) {
+			return new IPv4AddressSection[] { this };
+		}
+		List<IPAddressSegmentSeries> blocks = getMergedBlocks(this, sections, true);
+		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 
 	@Override

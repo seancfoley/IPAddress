@@ -101,6 +101,15 @@ public class MACAddressRangeTest extends MACAddressTest {
 		IPAddressRangeTest.testCount(this, w, number, -1);
 	}
 	
+	private void testPrefixCount(String original, int number) {
+		MACAddressString w = createMACAddress(original);
+		testPrefixCount(w, number);
+	}
+	
+	private void testPrefixCount(MACAddressString w, int number) {
+		IPAddressRangeTest.testPrefixCount(this, w, number);
+	}
+	
 	private void testToOUIPrefixed(String addrString) {
 		MACAddressString w = createMACAddress(addrString);
 		MACAddress v = w.getAddress();
@@ -271,22 +280,24 @@ public class MACAddressRangeTest extends MACAddressTest {
 			//now do the same thing but use the IPAddress objects instead
 			int i = 0, j = 0;
 			Integer pref;
+			boolean brokeEarly = false;
 			do {
 				String label = getLabel(addr.toAddressString());
 				String expected = parents[i];
 				if(!label.equals(expected)) {
 					addFailure(new Failure("failed expected: " + expected + " actual: " + label, str));
+					brokeEarly = true;
 					break;
 				}
 				pref = addr.getPrefixLength();
-				addr = addr.adjustPrefixBySegment(false);
+				addr = addr.adjustPrefixBySegment(false, false);
 				if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
 					i++;
 				}
 				j++;
 				
 			} while(pref == null || pref != 0); //when network prefix is 0, Address.toSupernet() returns the same address
-			if(j != parents.length) {
+			if(!brokeEarly && j != parents.length) {
 				addFailure(new Failure("failed: invalid label count " + parents.length + " expected " + j));
 			}
 		} catch(RuntimeException e) {
@@ -619,62 +630,105 @@ public class MACAddressRangeTest extends MACAddressTest {
 					"25:51:*:*:*:*",
 					"25:51:*:*:*:*");
 		} else {
-			testPrefixes("25:51:27:12:82:55", 
+			testPrefixes("25:51:27:12:82:55",
 					16, -5, 
 					"25:51:27:12:82:55",
-					"25:51:27:12:82:55",
-					"25:51:27:12:82:55",
-					"25:51:27:12:82:55",
-					"25:51:27:12:82:55");
+					"25:51:27:12:82:0",
+					"25:51:27:12:82:40",
+					"25:51:0:0:0:0",
+					"25:51:0:0:0:0");
 			
-			testPrefixes("25:51:27:*:*:*", 
+			testPrefixes("25:51:27:*:*:*",
 					16, -5, 
 					"25:51:27:00:*:*",
-					"25:51:27:*:*:*",
-					"25:51:27:*:*:*",
-					"25:51:27:*:*:*",
-					"25:51:27:*:*:*");
+					"25:51:0:*:*:*",
+					"25:51:20:*:*:*",
+					"25:51:0:*:*:*",
+					"25:51:0:*:*:*");
 		}
 		
-		testPrefixes("*:*:*:*:*:*:0-fe:*", 
-				15, 2, 
-				"*:*:*:*:*:*:0-fe:0",
-				isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*",
-				"*:*:*:*:*:*:0-fe:0-3f", 
-				isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*",
-						isAllSubnets ? "*:*:*:*:*:*:*:*" : "*:*:*:*:*:*:00-fe:*");
 		
-		testPrefixes("*:*:*:*:*:*:*:*", 
-				15, 2, 
-				"0:*:*:*:*:*:*:*",
-				"*:*:*:*:*:*:*:*",
-				"0-3f:*:*:*:*:*:*:*",
-				"0:0-1:*:*:*:*:*:*",
-				"*:*:*:*:*:*:*:*");
-		
-		testPrefixes("1:*:*:*:*:*", 
-				15, 2, 
-				"1:0:*:*:*:*",
-				isAllSubnets ? "*:*:*:*:*:*" : "01:*:*:*:*:*",
-				"1:0-3f:*:*:*:*",
-				"1:0-1:*:*:*:*",
-				"1:*:*:*:*:*");
-		
-		testPrefixes("3.8000-ffff.*.*",
-				15, 2, 
-				"3.8000-80ff.*.*",
-				isAllSubnets ? "3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
-				"3.8000-9fff.*.*",
-				isAllSubnets ? "2-3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
-						isAllSubnets ? "2-3.*.*.*" : "00:03:80-ff:*:*:*:*:*");
-		
-		testPrefixes("3.8000-ffff.*.*", 
-				31, 2, 
-				"3.8000-80ff.*.*",
-				isAllSubnets ? "3.*.*.*" : "00:03:80-ff:*:*:*:*:*",
-				"3.8000-9fff.*.*",
-				"3.8000-8001.*.*",
-				"3.8000-ffff.*.*");
+		if(isAllSubnets) {
+			testPrefixes("*:*:*:*:*:*:0-fe:*", 
+					15, 2, 
+					"*:*:*:*:*:*:0-fe:0",
+					"*:*:*:*:*:*:*:*",//*:*:*:*:*:*:00:*
+					"*:*:*:*:*:*:0-fe:0-3f", 
+					"*:*:*:*:*:*:*:*",
+					"*:*:*:*:*:*:*:*");
+			
+			testPrefixes("*:*:*:*:*:*:*:*", 
+					15, 2, 
+					"0:*:*:*:*:*:*:*",
+					"*:*:*:*:*:*:*:*",
+					"0-3f:*:*:*:*:*:*:*",
+					"0:0-1:*:*:*:*:*:*",
+					"*:*:*:*:*:*:*:*");
+			
+			testPrefixes("1:*:*:*:*:*", 
+					15, 2, 
+					"1:0:*:*:*:*",
+					"*:*:*:*:*:*",
+					"1:0-3f:*:*:*:*",
+					"1:0-1:*:*:*:*",
+					"1:*:*:*:*:*");
+			
+			testPrefixes("3.8000-ffff.*.*",
+					15, 2, 
+					"3.8000-80ff.*.*",
+					"3.*.*.*",
+					"3.8000-9fff.*.*",
+					"2-3.*.*.*",
+					"2-3.*.*.*");
+			
+			testPrefixes("3.8000-ffff.*.*", 
+					31, 2, 
+					"3.8000-80ff.*.*",
+					"3.*.*.*",
+					"3.8000-9fff.*.*",
+					"3.8000-8001.*.*",
+					"3.8000-ffff.*.*");
+		} else {
+			testPrefixes("*:*:*:*:*:*:0-fe:*", 
+					15, 2, 
+					"*:*:*:*:*:*:0-fe:0",
+					"*:*:*:*:*:*:0:*",
+					"*:*:*:*:*:*:0-fe:0-3f", 
+					"*:00-fe:00:00:00:00:00:*",
+					"*:00-fe:00:00:00:00:00:*");
+			
+			testPrefixes("*:*:*:*:*:*:*:*", 
+					15, 2, 
+					"0:*:*:*:*:*:*:*",
+					"*:*:*:*:*:*:*:*",
+					"0-3f:*:*:*:*:*:*:*",
+					"0:0-1:*:*:*:*:*:*",
+					"*:*:*:*:*:*:*:*");
+			
+			testPrefixes("1:*:*:*:*:*", 
+					15, 2, 
+					"1:0:*:*:*:*",
+					"0:*:*:*:*:*",
+					"1:0-3f:*:*:*:*",
+					"1:0-1:*:*:*:*",
+					"1:*:*:*:*:*");
+			
+			testPrefixes("3.8000-ffff.*.*",
+					15, 2, 
+					"3.8000-80ff.*.*",
+					"00:03:00-7f:*:*:*:*:*",
+					"3.8000-9fff.*.*",
+					"00:02:00-7f:*:*:*:*:*",
+					"00:02:00-7f:*:*:*:*:*");
+			
+			testPrefixes("3.8000-ffff.*.*",
+					31, 2,
+					"3.8000-80ff.*.*",
+					"00:03:00-7f:*:*:*:*:*",
+					"3.8000-9fff.*.*",
+					"3.8000-8001.*.*",
+					"3.8000-ffff.*.*");
+		}
 
 		testPrefix("25:51:27:*:*:*", 24, 24);
 		testPrefix("25:50-51:27:*:*:*", 24, null);
@@ -903,6 +957,10 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testCount("1-2.1.*.2-3", 4 * 0x10000);
 		testCount("11:*:*:0-2:55:ff", 3 * 0x100 * 0x100);
 		
+		testPrefixCount("11:22:*:0-2:55:ff", 3 * 0x100);
+		testPrefixCount("11:22:*:0-2:55:*", 3 * 0x100);
+		testPrefixCount("11:22:1:2:55:*", 1);
+		
 		testMatches(true, "1-02.03-4.05-06.07", "1-2.3-4.5-6.7");
 		testMatches(true, "1-002.003-4.005-006.007", "1-2.3-4.5-6.7");
 		testMatches(true, "1-002.003-4.0005-006.0007", "1-2.3-4.5-6.7");
@@ -1068,6 +1126,38 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testPrefixBlock("ff:ff:0-3f:*:*:*", 18);
 		testPrefixBlock("ff:0:0:ff:0:*", 40);
 		testPrefixBlock("ff:0:0:ff:0:fe-ff", 47);
+		
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:ff:ff:1-2:2-3:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 1, "ff:ff:ff:ff:ff:1:2:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:ff:ff:2:2:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:ff:ff:2:3:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 5, "ff:ff:ff:ff:ff:2:4:0");
+		testIncrement("ff:ff:ff:ff:ff:fe-ff:fe-ff:ff", 5, null);
+		
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:1-2:2-3:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 1, "ff:ff:ff:1:2:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:2:2:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:2:3:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 5, "ff:ff:ff:2:4:0");
+		testIncrement("ff:ff:ff:fe-ff:fe-ff:ff", 5, null);
+		
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:ff:ff:0:0:4");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:ff:ff:ff:0:0:3");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10303L, "ff:ff:ff:ff:ff:0:0:0");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10304L, "ff:ff:ff:ff:fe:ff:ff:ff");
+		testIncrement("0:0:0:0:0:1-2:2-3:ff", -0x10304L, null);
+		
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:0:0:4");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:ff:0:0:3");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10303L, "ff:ff:ff:0:0:0");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10304L, "ff:ff:fe:ff:ff:ff");
+		testIncrement("0:0:0:1-2:2-3:ff", -0x10304L, null);
+		
+		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 7, "ff:4:ff:ff:ff:2:2:0");
+		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 9, "ff:4:ff:ff:ff:2:3:1");
+		
+		testIncrement("3-4:ff:ff:1-2:2-3:0", 7, "4:ff:ff:2:2:0");
+		testIncrement("3-4:ff:ff:1-2:2-3:0", 9, "4:ff:ff:2:3:1");
 		
 		super.runTest();
 	}

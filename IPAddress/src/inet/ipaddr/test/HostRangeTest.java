@@ -31,7 +31,7 @@ public class HostRangeTest extends HostTest {
 	
 	private static final HostNameParameters HOST_WILDCARD_OPTIONS = HOST_OPTIONS.toBuilder().getAddressOptionsBuilder().
 			allowAll(true).setRangeOptions(RangeParameters.WILDCARD_ONLY).getParentBuilder().toParams();
-	
+
 	private static final HostNameParameters HOST_WILDCARD_AND_RANGE_OPTIONS = HOST_WILDCARD_OPTIONS.toBuilder().getAddressOptionsBuilder().
 			setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).getParentBuilder().toParams();
 

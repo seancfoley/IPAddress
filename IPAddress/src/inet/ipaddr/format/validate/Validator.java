@@ -118,6 +118,9 @@ public class Validator implements HostIdentifierStringValidator {
 			allowIPv4(false).allowEmpty(false).allowMask(false).allowPrefixOnly(false).allowPrefix(false).
 			getIPv6AddressParametersBuilder().allowMixed(false).allowZone(false).getParentBuilder().toParams();
 	
+	private static final BigInteger BASE_85_POWERS[] = new BigInteger[10];
+	private static final BigInteger LOW_BITS_MASK = BigInteger.valueOf(0xffffffffffffffffL);
+	
 	/**
 	 * Singleton - this class has no state
 	 */
@@ -160,7 +163,7 @@ public class Validator implements HostIdentifierStringValidator {
 		IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 		validateIPAddress(validationOptions, str, 0, str.length(), ipAddressParseData);
 		return createProvider(fromString, str, validationOptions, ipAddressParseData,
-			parseQualifier(str, validationOptions, null, ipAddressParseData, str.length()));
+			parseAddressQualifier(str, validationOptions, null, ipAddressParseData, str.length()));
 	}
 	
 	private static void validateIPAddress(
@@ -1470,7 +1473,7 @@ public class Validator implements HostIdentifierStringValidator {
 				}
 			}
 			//here we check whether values are too large or strings too long
-			long oneSegmentMax = getMaxIPv4Value(0);
+			long oneSegmentMax = getMaxIPv4Value(1);
 			for(int i = 0; i < segCount; i++) {
 				long max;
 				int maxDigits, maxUpperDigits;
@@ -1478,7 +1481,7 @@ public class Validator implements HostIdentifierStringValidator {
 				int lowerRadix = indices[AddressParseData.LOWER_RADIX_INDEX];
 				int upperRadix = indices[AddressParseData.UPPER_RADIX_INDEX];
 				if(i == segCount - 1 && missingCount > 0 && ipv4Options.inet_aton_joinedSegments) {
-					max = getMaxIPv4Value(missingCount);
+					max = getMaxIPv4Value(missingCount + 1);
 					maxDigits = getMaxIPv4StringLength(missingCount, lowerRadix);
 					maxUpperDigits = (upperRadix != lowerRadix) ? getMaxIPv4StringLength(missingCount, upperRadix) : maxDigits;
 				} else {
@@ -1515,48 +1518,215 @@ public class Validator implements HostIdentifierStringValidator {
 	}
 
 	static int validatePrefixImpl(CharSequence fullAddr, IPVersion version) throws AddressStringException {
-		ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, DEFAULT_PREFIX_OPTIONS, 0, fullAddr.length(), version);
+		ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, null, DEFAULT_PREFIX_OPTIONS, null, 0, fullAddr.length(), version);
 		if(qualifier == null) {
 			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.invalidCIDRPrefix");
 		}
 		return qualifier.getNetworkPrefixLength();
 	}
+/* 
+	Here is the call tree for validating qualifiers of either hosts or addresses:
 
-	private static ParsedHostIdentifierStringQualifier validatePort(
+	validateHost
+		-> parseHostQualifier for addresses with [], parsing the part inside the []
+			-> parsePortOrService handles as port
+			-> parsePrefix
+				-> validatePrefix
+					-> parseValidatedPrefix
+					-> parsePortOrService (see above) NEW
+				or handles as mask
+			-> parseZone
+				-> parsePrefix (see above)
+				or handles as zone
+		-> parseHostNameQualifier for (a) domains and string host names and (b) addresses with [], parsing the part following the ]
+			-> parsePortOrService handles as port 
+			-> parsePrefix (see above)
+		-> parseAddressQualifier for address with no [], and also handles splitting off the port for two such calls
+			-> parsePrefix (see above)
+			-> parseZone (see above)
+		-> checkSpecialHosts for domains that map to addresses
+			-> parseAddressQualifier (see above)
+	
+	validateAddressImpl
+		-> parseAddressQualifier for addresses
+	
+	Note: we never allow a mask/port combo.  It would get very hairy if we did, since port looks a lot like an ipv6 segment
+	
+	-----------------------------------------------------------------
+	
+	We merge qualifiers, with calls to mergePrefix, in checkSpecialHosts, and in validateHost handling [] addresses
+	 	
+	-----------------------------------------------------------------
+	
+	no catch and no return null:
+		parseQualifier
+		parseAddressQualifier
+		parseHostQualifier
+		parsePortOrService
+		parseValidatedPrefix
+		parseZone
+	
+	checkSpecialHosts: catches everything, also can return null
+	parsePrefix: evaluates if prefix through validatePrefix, catches and translates mask exceptions, no return null
+		validatePrefix: evaluates if prefix, catches and evaluates if prefix and port, returns null
+
+	Basically, validatePrefix is the only one that does not make a final decision on what it is looking at (ie valid or throw),
+		that is because parsePrefix needs to evaluate as a mask if not a prefix
+*/
+	/*
+	 https://tools.ietf.org/html/rfc5952 has some other possibly ways of denoting port numbers.
+   o  [2001:db8::1]:80
+   o  2001:db8::1:80
+   o  2001:db8::1.80
+   o  2001:db8::1 port 80
+   o  2001:db8::1p80
+   o  2001:db8::1#80
+   Currently we handle the first two.  The 3rd, 5th and 6th could be considered, although I don't think I've seen them anywhere (maybe the 3rd?)
+   Probably could handle those fairly easily though, except for '.'
+   Problem with '.' is if it follows IPv4
+	 */
+	
+	private static ParsedHostIdentifierStringQualifier parsePortOrService(
 			final CharSequence fullAddr,
+			final CharSequence zone,
 			final HostNameParameters validationOptions,
 			final int index,
 			final int endIndex) throws AddressStringException {
-		if(!validationOptions.allowPort) {
-			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.port");
-		}
 		boolean isPort = true;
+		boolean hasLetter = false;
 		int digitCount = 0;
-		for(int i = index; isPort && i < endIndex; i++) {
+		int charCount = 0;
+		int lastHyphen = -1;
+		boolean isAll = false;
+		for(int i = index; i < endIndex; i++) {
 			char c = fullAddr.charAt(i);
 			if(c >= '1' && c <= '9') {
 				++digitCount;
+				++charCount;
 			} else if(c == '0') {
 				if(digitCount > 0) {
 					++digitCount;
 				}
+				++charCount;
 			} else {
+				//http://www.iana.org/assignments/port-numbers
+				//valid service name chars:
+				//https://tools.ietf.org/html/rfc6335#section-5.1
+				//https://tools.ietf.org/html/rfc6335#section-10.1
 				isPort = false;
+				boolean isHyphen = false;
+				if((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (isHyphen = (c == '-')) || (isAll = (c == Address.SEGMENT_WILDCARD))) {
+					if(isHyphen) {
+						if(i == index) {
+							throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalid.service.hyphen.start");
+						} else if(i - 1 == lastHyphen) {
+							throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalid.service.hyphen.consecutive");
+						} else if(i == endIndex - 1) {
+							throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalid.service.hyphen.end");
+						}
+						lastHyphen = i;
+					} else if(isAll) {
+						if(i > index) {
+							throw new AddressStringException(fullAddr.toString(), i, true);
+						} else if(i + 1 < endIndex) {
+							throw new AddressStringException(fullAddr.toString(), i + 1, true);
+						}
+						hasLetter = true;
+						++charCount;
+						break;
+					} else {
+						hasLetter = true;
+					}
+					++charCount;
+				} else {
+					throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalid.port.service", i);
+				}
 			}
 		}
-		if(!isPort || digitCount > 5) {
-			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.invalidPort");
+		if(isPort) {
+			if(!validationOptions.allowPort) {
+				throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.port");
+			} else if(digitCount == 0) {
+				throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidPort.no.digits");
+			} else if(digitCount > 5) {
+				throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidPort.too.large");
+			}
+			int result = parse10(fullAddr, index, endIndex);
+			if(result > 65535) {
+				throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidPort.too.large");
+			}
+			return new ParsedHostIdentifierStringQualifier(zone, result);
+		} else if(!validationOptions.allowService) {
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.service");
+		} else if(charCount == 0) {
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidService.no.chars");
+		} else if(charCount > 15) {
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidService.too.long");
+		} else if(!hasLetter) {
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidService.no.letter");
 		}
-		int result = parse10(fullAddr, index, endIndex);
-		if(result > 65535) {
-			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.invalidPort");
-		}
-		return new ParsedHostIdentifierStringQualifier(null, result);
+		CharSequence service = fullAddr.subSequence(index, endIndex);
+		return new ParsedHostIdentifierStringQualifier(zone, service);
 	}
 	
+	private static ParsedHostIdentifierStringQualifier parseValidatedPrefix(
+			final CharSequence fullAddr,
+			final CharSequence zone,
+			final IPAddressStringParameters validationOptions,
+			final HostNameParameters hostValidationOptions,
+			final int index,
+			final int endIndex,
+			int digitCount,
+			int leadingZeros,
+			final IPVersion ipVersion) throws AddressStringException {
+		boolean asIPv4 = (ipVersion != null && ipVersion.isIPv4());
+		if(digitCount == 0) {
+			//we know leadingZeroCount is > 0 since we have checked already if there were no characters at all
+			leadingZeros--;
+			digitCount++;
+		}
+		if(leadingZeros > 0) {
+			if(asIPv4) {
+				if(!validationOptions.getIPv4Parameters().allowPrefixLengthLeadingZeros) {
+					throw new AddressStringException(fullAddr.toString(), "ipaddress.error.ipv4.prefix.leading.zeros");
+				}
+			} else {
+				if(!validationOptions.getIPv6Parameters().allowPrefixLengthLeadingZeros) {
+					throw new AddressStringException(fullAddr.toString(), "ipaddress.error.ipv6.prefix.leading.zeros");
+				}
+			}
+		}
+		boolean allowPrefixesBeyondAddressSize = 
+				(asIPv4 ? validationOptions.getIPv4Parameters() : validationOptions.getIPv6Parameters()).allowPrefixesBeyondAddressSize;
+		//before we attempt to parse, ensure the string is a reasonable size
+		if(!allowPrefixesBeyondAddressSize && digitCount > (asIPv4 ? 2 : 3)) {
+			if(asIPv4 && validationOptions.allowSingleSegment) {
+				return null; //treat it as single segment ipv4 mask (ie /xxx not a prefix of length xxx but the mask xxx)
+			}
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
+		}
+		int result = parse10(fullAddr, index, endIndex);
+		if(!allowPrefixesBeyondAddressSize && result > (asIPv4 ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT)) {
+			if(asIPv4 && validationOptions.allowSingleSegment) {
+				return null; //treat it as a single segment ipv4 mask
+			}
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
+		}
+		if(zone == null && result < PREFIX_CACHE.length) {
+			ParsedHostIdentifierStringQualifier qual = PREFIX_CACHE[result];
+			if(qual == null) {
+				qual = PREFIX_CACHE[result] = new ParsedHostIdentifierStringQualifier(result, null);
+			}
+			return qual;
+		}
+		return new ParsedHostIdentifierStringQualifier(result, zone);
+	}
+
 	private static ParsedHostIdentifierStringQualifier validatePrefix(
 			final CharSequence fullAddr,
+			final CharSequence zone,
 			final IPAddressStringParameters validationOptions,
+			final HostNameParameters hostValidationOptions,
 			final int index,
 			final int endIndex,
 			final IPVersion ipVersion) throws AddressStringException {
@@ -1564,9 +1734,11 @@ public class Validator implements HostIdentifierStringValidator {
 			return null;
 		}
 		boolean isPrefix = true;
+		int prefixEndIndex = endIndex;
 		int digitCount, leadingZeros;
 		digitCount = leadingZeros = 0;
-		for(int i = index; isPrefix && i < endIndex; i++) {
+		ParsedHostIdentifierStringQualifier portQualifier = null;
+		for(int i = index; i < endIndex; i++) {
 			char c = fullAddr.charAt(i);
 			if(c >= '1' && c <= '9') {
 				++digitCount;
@@ -1576,79 +1748,59 @@ public class Validator implements HostIdentifierStringValidator {
 				} else {
 					++leadingZeros;
 				}
+			} else if(c == HostName.PORT_SEPARATOR && hostValidationOptions != null && 
+					(hostValidationOptions.allowPort || hostValidationOptions.allowService) && i > index) {
+				//check if we have a port or service.  If not, possibly an IPv6 mask.  
+				//Also, parsing for port first (rather than prefix) allows us to call parseValidatedPrefix with the knowledge that whatever is supplied can only be a prefix.
+				try {
+					portQualifier = parsePortOrService(fullAddr, zone, hostValidationOptions, i + 1, endIndex);
+					prefixEndIndex = i;
+					break;
+				} catch(AddressStringException e) {
+					return null;
+				}
 			} else {
 				isPrefix = false;
+				break;
 			}
 		}
 		//we treat as a prefix if all the characters were digits, even if there were too many, unless the mask options allow for inet_aton single segment
 		if(isPrefix) {
-			boolean asIPv4 = (ipVersion != null && ipVersion.isIPv4());
-			if(digitCount == 0) {
-				//we know leadingZeroCount is > 0 since we have checked already if there were no characters at all
-				leadingZeros--;
-				digitCount++;
+			ParsedHostIdentifierStringQualifier prefixQualifier = parseValidatedPrefix(fullAddr, zone, validationOptions, hostValidationOptions, index, prefixEndIndex, digitCount, leadingZeros, ipVersion);
+			if(portQualifier != null) {
+				portQualifier.mergePrefix(prefixQualifier);
+				return portQualifier;
 			}
-			if(leadingZeros > 0) {
-				if(asIPv4) {
-					if(!validationOptions.getIPv4Parameters().allowPrefixLengthLeadingZeros) {
-						throw new AddressStringException(fullAddr.toString(), "ipaddress.error.ipv4.prefix.leading.zeros");
-					}
-				} else {
-					if(!validationOptions.getIPv6Parameters().allowPrefixLengthLeadingZeros) {
-						throw new AddressStringException(fullAddr.toString(), "ipaddress.error.ipv6.prefix.leading.zeros");
-					}
-				}
-			}
-			boolean allowPrefixesBeyondAddressSize = (asIPv4 ? validationOptions.getIPv4Parameters() : validationOptions.getIPv6Parameters()).allowPrefixesBeyondAddressSize;
-			//before we attempt to parse, ensure the string is a reasonable size
-			if(!allowPrefixesBeyondAddressSize && digitCount > (asIPv4 ? 2 : 3)) {
-				if(asIPv4 && validationOptions.allowSingleSegment) {
-					return null; //treat it as single segment ipv4 mask (ie /xxx not a prefix of length xxx but the mask xxx
-				}
-				throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
-			}
-			int result = parse10(fullAddr, index, endIndex);
-			if(!allowPrefixesBeyondAddressSize && result > (asIPv4 ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT)) {
-				if(asIPv4 && validationOptions.allowSingleSegment) {
-					return null; //treat it as a single segment ipv4 mask
-				}
-				throw new AddressStringException(fullAddr.toString(), "ipaddress.error.prefixSize");
-			}
-			if(result < PREFIX_CACHE.length) {
-				ParsedHostIdentifierStringQualifier qual = PREFIX_CACHE[result];
-				if(qual == null) {
-					qual = PREFIX_CACHE[result] = new ParsedHostIdentifierStringQualifier(result, null);
-				}
-				return qual;
-			}
-			return new ParsedHostIdentifierStringQualifier(result, null);
+			return prefixQualifier;
 		}
 		return null;
 	}
 	
-	private static ParsedHostIdentifierStringQualifier parseQualifier(
+	private static ParsedHostIdentifierStringQualifier parseAddressQualifier(
 			CharSequence fullAddr,
 			IPAddressStringParameters validationOptions,
 			final HostNameParameters hostValidationOptions,
 			IPAddressParseData ipAddressParseData,
 			int endIndex) throws AddressStringException {
-		if(ipAddressParseData.isBase85Zoned && !ipAddressParseData.isBase85) {
-			throw new AddressStringException(fullAddr, ipAddressParseData.qualifierIndex - 1);
-		}
-		return parseQualifier(
-				fullAddr,
-				validationOptions,
-				hostValidationOptions,
-				ipAddressParseData.isPrefixed,
-				ipAddressParseData.isZoned,
-				ipAddressParseData.hasPort,
-				ipAddressParseData.addressParseData.isEmpty,
-				ipAddressParseData.qualifierIndex,
-				endIndex,
-				ipAddressParseData.ipVersion);
+		int index = ipAddressParseData.qualifierIndex;
+		boolean addressIsEmpty = ipAddressParseData.addressParseData.isEmpty;
+		IPVersion ipVersion = ipAddressParseData.ipVersion;
+		if(ipAddressParseData.isPrefixed) {
+			return parsePrefix(fullAddr, null, validationOptions, hostValidationOptions,
+					addressIsEmpty, index, endIndex, ipVersion);
+		} else if(ipAddressParseData.isZoned) {
+			if(ipAddressParseData.isBase85Zoned && !ipAddressParseData.isBase85) {
+				throw new AddressStringException(fullAddr, ipAddressParseData.qualifierIndex - 1);
+			}
+			if(addressIsEmpty) {
+				throw new AddressStringException(fullAddr, "ipaddress.error.only.zone");
+			}
+			return parseZone(fullAddr, validationOptions, addressIsEmpty, index, endIndex, ipVersion);
+		} 
+		return ParsedHost.NO_QUALIFIER;
 	}
 	
-	private static ParsedHostIdentifierStringQualifier parseQualifier(
+	private static ParsedHostIdentifierStringQualifier parseHostAddressQualifier(
 			CharSequence fullAddr,
 			IPAddressStringParameters validationOptions,
 			HostNameParameters hostValidationOptions,
@@ -1657,87 +1809,186 @@ public class Validator implements HostIdentifierStringValidator {
 			IPAddressParseData ipAddressParseData,
 			int qualifierIndex,
 			int endIndex) throws AddressStringException {
-		return parseQualifier(
-				fullAddr,
-				validationOptions,
-				hostValidationOptions,
-				isPrefixed,
-				ipAddressParseData.isZoned,
-				hasPort,
-				ipAddressParseData.addressParseData.isEmpty,
-				qualifierIndex,
-				endIndex,
-				ipAddressParseData.ipVersion);
+		boolean addressIsEmpty = ipAddressParseData.addressParseData.isEmpty;
+		IPVersion ipVersion = ipAddressParseData.ipVersion;
+		if(isPrefixed) {
+			return parsePrefix(fullAddr, null, validationOptions, hostValidationOptions,
+					addressIsEmpty, qualifierIndex, endIndex, ipVersion);
+		} else if(ipAddressParseData.isZoned) {
+			if(addressIsEmpty) {
+				throw new AddressStringException(fullAddr, "ipaddress.error.only.zone");
+			}
+			return parseEncodedZone(fullAddr, validationOptions, addressIsEmpty, qualifierIndex, endIndex, ipVersion);
+		} else if(hasPort) {//isPort is always false when validating an address
+			return parsePortOrService(fullAddr, null, hostValidationOptions, qualifierIndex, endIndex);
+		}
+		return ParsedHost.NO_QUALIFIER;
 	}
-			
 	
-	private static ParsedHostIdentifierStringQualifier parseQualifier(
+	private static ParsedHostIdentifierStringQualifier parsePrefix(
+			final CharSequence fullAddr,
+			final CharSequence zone,
+			final IPAddressStringParameters validationOptions,
+			final HostNameParameters hostValidationOptions,
+			final boolean addressIsEmpty,
+			final int index,
+			final int endIndex,
+			final IPVersion ipVersion) throws AddressStringException {
+		if(validationOptions.allowPrefix) {
+			ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, zone, validationOptions, hostValidationOptions,
+					index, endIndex, ipVersion);
+			if(qualifier != null) {
+				return qualifier;
+			}
+		}
+		if(addressIsEmpty) {
+			//PREFIX_ONLY must have a prefix and not a mask - we don't allow /255.255.0.0
+			throw new AddressStringException(fullAddr, "ipaddress.error.invalid.mask.address.empty");
+		} else if(validationOptions.allowMask) {
+			try {
+				//check for a mask
+				//check if we need a new validation options for the mask
+				IPAddressStringParameters maskOptions = toMaskOptions(validationOptions, ipVersion);
+				IPAddressParseData ipAddressParseData = new IPAddressParseData(fullAddr);
+				validateIPAddress(maskOptions, fullAddr, index, endIndex, ipAddressParseData);
+				AddressParseData maskParseData = ipAddressParseData.addressParseData;
+				if(maskParseData.isEmpty) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.mask.empty");
+				} else if(maskParseData.isAll) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.mask.wildcard");
+				}
+				ParsedIPAddress maskAddress = createIPAddressProvider(null, fullAddr, maskOptions, ipAddressParseData, ParsedHost.NO_QUALIFIER);
+				if(maskParseData.addressEndIndex != endIndex) { // 1.2.3.4/ or 1.2.3.4// or 1.2.3.4/%
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.mask.extra.chars", maskParseData.addressEndIndex + 1);
+				}
+				IPVersion maskVersion = ipAddressParseData.ipVersion;
+				if(maskVersion.isIPv4() && maskParseData.segmentCount == 1 && !maskParseData.anyWildcard && !validationOptions.getIPv4Parameters().inet_aton_single_segment_mask) {//1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
+					throw new AddressStringException(fullAddr, "ipaddress.error.mask.single.segment");
+				} else if(ipVersion != null && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6())) {
+					//note that this also covers the cases of non-standard addresses in the mask, ie mask neither ipv4 or ipv6
+					throw new AddressStringException(fullAddr, "ipaddress.error.ipMismatch");
+				}
+				return new ParsedHostIdentifierStringQualifier(maskAddress, zone);
+			} catch(AddressStringException e) {
+				throw new AddressStringException(fullAddr, "ipaddress.error.invalidCIDRPrefixOrMask", e);
+			}
+		}
+		throw new AddressStringException(fullAddr, 
+				validationOptions.allowPrefix ? "ipaddress.error.invalidCIDRPrefixOrMask" : "ipaddress.error.CIDRNotAllowed");
+	}
+
+	private static ParsedHostIdentifierStringQualifier parseHostNameQualifier(
 			final CharSequence fullAddr,
 			final IPAddressStringParameters validationOptions,
 			final HostNameParameters hostValidationOptions,
 			final boolean isPrefixed,
-			final boolean isZoned,
-			final boolean isPort,
+			final boolean isPort,//always false for address
 			final boolean addressIsEmpty,
 			final int index,
 			final int endIndex,
 			final IPVersion ipVersion) throws AddressStringException {
 		if(isPrefixed) {
-			if(validationOptions.allowPrefix) {
-				ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, validationOptions, index, fullAddr.length(), ipVersion);
-				if(qualifier != null) {
-					return qualifier;
-				}
-			}
-			if(addressIsEmpty) {
-				//PREFIX_ONLY must have a prefix and not a mask - we don't allow /255.255.0.0
-				throw new AddressStringException(fullAddr, "ipaddress.error.invalidCIDRPrefix");
-			}
-			if(validationOptions.allowMask) {
-				try {
-					//check for a mask
-					//check if we need a new validation options for the mask
-					IPAddressStringParameters maskOptions = toMaskOptions(validationOptions, ipVersion);
-					IPAddressParseData ipAddressParseData = new IPAddressParseData(fullAddr);
-					validateIPAddress(maskOptions, fullAddr, index, endIndex, ipAddressParseData);
-					AddressParseData maskParseData = ipAddressParseData.addressParseData;
-					if(maskParseData.isEmpty || maskParseData.isAll) {
-						throw new AddressStringException(fullAddr, "ipaddress.error.invalidCIDRPrefixOrMask");
-					}
-					ParsedIPAddress maskAddress = createIPAddressProvider(null, fullAddr, maskOptions, ipAddressParseData, ParsedHost.NO_QUALIFIER);
-					//ParsedAddress maskAddress = createAddressProvider(null, null, fullAddr, maskOptions, maskParseData, NO_QUALIFIER);
-					if(maskParseData.addressEndIndex != fullAddr.length()) { // 1.2.3.4/ or 1.2.3.4// or 1.2.3.4/%
-						throw new AddressStringException(fullAddr, "ipaddress.error.invalidCIDRPrefixOrMask");
-					}
-					IPVersion maskVersion = ipAddressParseData.ipVersion;
-					if(maskVersion.isIPv4() && maskParseData.segmentCount == 1 && !maskParseData.anyWildcard && !validationOptions.getIPv4Parameters().inet_aton_single_segment_mask) {//1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
-						throw new AddressStringException(fullAddr, "ipaddress.error.mask.single.segment");
-					}
-					if(ipVersion != null && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6())) {
-						//note that this also covers the cases of non-standard addresses in the mask, ie mask neither ipv4 or ipv6
-						throw new AddressStringException(fullAddr, "ipaddress.error.ipMismatch");
-					}
-					return new ParsedHostIdentifierStringQualifier(maskAddress);
-				} catch(AddressStringException e) {
-					throw new AddressStringException(fullAddr, "ipaddress.error.invalidCIDRPrefixOrMask", e);
-				}
-			}
-			throw new AddressStringException(fullAddr, "ipaddress.error.CIDRNotAllowed");
-		} else if(isZoned) {
-			if(addressIsEmpty) {
-				throw new AddressStringException(fullAddr, "ipaddress.error.only.zone");
-			}
-			CharSequence zone = fullAddr.subSequence(index, endIndex);
-			return new ParsedHostIdentifierStringQualifier(zone);
-		} else if(isPort) {
-			ParsedHostIdentifierStringQualifier qualifier = validatePort(fullAddr, hostValidationOptions, index, fullAddr.length());
-			if(qualifier != null) {
-				return qualifier;
-			}
-			throw new AddressStringException(fullAddr, "ipaddress.error.invalidPort");
-		} else {
-			return ParsedHost.NO_QUALIFIER;
+			return parsePrefix(fullAddr, null, validationOptions, hostValidationOptions,
+					addressIsEmpty, index, endIndex, ipVersion);
+		} else if(isPort) {//isPort is always false when validating an address
+			return parsePortOrService(fullAddr, null, hostValidationOptions, index, endIndex);
 		}
+		return ParsedHost.NO_QUALIFIER;
+	}
+	
+	
+	
+	/**
+	 * Returns the index of the first invalid character of the zone, or -1 if the zone is valid
+	 * 
+	 * @param sequence
+	 * @return
+	 */
+	public static int validateZone(CharSequence zone) {
+		for(int i = 0; i < zone.length(); i++) {
+			char c = zone.charAt(i);
+			if (c == IPAddress.PREFIX_LEN_SEPARATOR) {
+				return i;
+			}
+			if (c == IPv6Address.SEGMENT_SEPARATOR) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	public static boolean isReserved(char c) {
+		boolean isUnreserved = 
+				(c >= '0' && c <= '9') ||
+				(c >= 'A' && c <= 'Z') ||
+				(c >= 'a' && c <= 'z') ||
+				c == Address.RANGE_SEPARATOR ||
+				c == HostName.LABEL_SEPARATOR ||
+				c == '_' ||
+				c == '~';
+		return !isUnreserved;
+	}
+	
+	private static ParsedHostIdentifierStringQualifier parseZone(
+			final CharSequence fullAddr, 
+			final IPAddressStringParameters validationOptions,
+			final boolean addressIsEmpty,
+			final int index,
+			final int endIndex,
+			final IPVersion ipVersion) throws AddressStringException {
+		for(int i = index; i < endIndex; i++) {
+			char c = fullAddr.charAt(i);
+			if(c == IPAddress.PREFIX_LEN_SEPARATOR) {
+				CharSequence zone = fullAddr.subSequence(index, i);
+				return parsePrefix(fullAddr, zone, validationOptions, null, addressIsEmpty, i + 1, endIndex, ipVersion);
+			} else if(c == IPv6Address.SEGMENT_SEPARATOR) {
+				throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", i);
+			}
+		}
+		return new ParsedHostIdentifierStringQualifier(fullAddr.subSequence(index, endIndex));
+	}
+	
+	private static ParsedHostIdentifierStringQualifier parseEncodedZone(
+			final CharSequence fullAddr, 
+			final IPAddressStringParameters validationOptions,
+			final boolean addressIsEmpty,
+			final int index,
+			final int endIndex,
+			final IPVersion ipVersion) throws AddressStringException {
+		StringBuilder result = null;
+		for(int i = index; i < endIndex; i++) {
+			char c = fullAddr.charAt(i);
+			//we are in here when we have a square bracketed host like [::1]
+			//not if we have a HostName with no brackets
+			
+			//https://tools.ietf.org/html/rfc6874
+			//https://tools.ietf.org/html/rfc4007#section-11.7
+			if(c == IPv6Address.ZONE_SEPARATOR) {
+				if(i + 2 >= endIndex) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone.encoding", i);
+				}
+				//percent encoded
+				if(result == null) {
+					result = new StringBuilder(endIndex - index);
+					result.append(fullAddr, index, i);
+				}
+				int charArray[] = chars;
+				c = (char) (charArray[fullAddr.charAt(++i)] << 4);
+				c |= charArray[fullAddr.charAt(++i)];
+			} else if(c == IPAddress.PREFIX_LEN_SEPARATOR) {
+				CharSequence zone = result != null ? result : fullAddr.subSequence(index, i);
+				return parsePrefix(fullAddr, zone, validationOptions, null, addressIsEmpty, i + 1, endIndex, ipVersion);
+			} else if(isReserved(c)) {
+				throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", i);
+			}
+			if(result != null) {
+				result.append(c);
+			}
+		}
+		if(result == null) {
+			return new ParsedHostIdentifierStringQualifier(fullAddr.subSequence(index, endIndex));
+		}
+		return new ParsedHostIdentifierStringQualifier(result);
 	}
 
 	/**
@@ -1922,15 +2173,10 @@ public class Validator implements HostIdentifierStringValidator {
 		vals[AddressParseData.EXTENDED_UPPER_INDEX] = extendedUpper;
 	}
 	
-	private static long getMaxIPv4Value(int additionalSegmentsCovered) {
-		if(additionalSegmentsCovered == 0) {
-			return IPv4Address.MAX_VALUE_PER_SEGMENT;
-		} else if(additionalSegmentsCovered == 1) {
-			return 0xffff;
-		} else if(additionalSegmentsCovered == 2) {
-			return 0xffffff;
-		}
-		return 0xffffffffL;
+	private static final long MAX_VALUES[] = new long[] {0, IPv4Address.MAX_VALUE_PER_SEGMENT, 0xffff, 0xffffff, 0xffffffffL};
+	
+	private static long getMaxIPv4Value(int segmentCount) {
+		return MAX_VALUES[segmentCount];
 	}
 	
 	private static int getStringPrefixCharCount(int radix) {
@@ -1941,36 +2187,22 @@ public class Validator implements HostIdentifierStringValidator {
 		}
 		return 1;
 	}
+
+	private static final int MAX_IPv4_STRING_LEN[][] = new int[][] { //indices are [radix / 2][additionalSegments], and we handle radices 8, 10, 16
+		{3, 6, 8, 11}, //no radix supplied we treat as octal, the longest
+		{}, {}, {},
+		{3, 6, 8, 11},//octal: 0377, 0177777, 077777777, 037777777777
+		{IPv4AddressSegment.MAX_CHARS, 5, 8, 10},//decimal: 255, 65535, 16777215, 4294967295
+		{}, {},
+		{2, 4, 6, 8}//hex: 0xff, 0xffff, 0xffffff, 0xffffffff
+	};
 	
 	private static int getMaxIPv4StringLength(int additionalSegmentsCovered, int radix) {
-		if(radix == 10) {
-			if(additionalSegmentsCovered == 0) {
-				return IPv4AddressSegment.MAX_CHARS;//255
-			} else if(additionalSegmentsCovered == 1) {
-				return 5;//65535
-			} else if(additionalSegmentsCovered == 2) {
-				return 8;//16777215
-			}
-			return 10;//4294967295
-		} else if(radix == 16) {
-			if(additionalSegmentsCovered == 0) {
-				return 2;//0xff
-			} else if(additionalSegmentsCovered == 1) {
-				return 4;//0xffff
-			} else if(additionalSegmentsCovered == 2) {
-				return 6;//0xffffff
-			}
-			return 8;//0xffffffffL
+		try {
+			return MAX_IPv4_STRING_LEN[radix >>> 1][additionalSegmentsCovered];
+		} catch(ArrayIndexOutOfBoundsException e) {
+			return 0;
 		}
-		//radix is octal
-		if(additionalSegmentsCovered == 0) {
-			return 3;//0377
-		} else if(additionalSegmentsCovered == 1) {
-			return 6;//0177777
-		} else if(additionalSegmentsCovered == 2) {
-			return 8;//077777777
-		}
-		return 11;//037777777777
 	}
 	
 	private static int parse8(CharSequence s, int start, int end) {
@@ -2036,9 +2268,6 @@ public class Validator implements HostIdentifierStringValidator {
 		return result;
 	}
 	
-	private static final BigInteger BASE_85_POWERS[] = new BigInteger[10];
-	private static final BigInteger LOW_BITS_MASK = BigInteger.valueOf(0xffffffffffffffffL);
-	
 	static {
 		BigInteger eightyFive = BigInteger.valueOf(85);
 		BASE_85_POWERS[0] = BigInteger.ONE;
@@ -2093,7 +2322,6 @@ public class Validator implements HostIdentifierStringValidator {
 	
 	//So we will follow rfc 1035 and in addition allow the underscore.
 	
-	
 	static ParsedHost validateHostImpl(HostName fromHost) throws HostNameException {
 		final String str = fromHost.toString();
 		HostNameParameters validationOptions = fromHost.getValidationOptions();
@@ -2106,7 +2334,7 @@ public class Validator implements HostIdentifierStringValidator {
 			throw new HostNameException(str, "ipaddress.host.error.invalid.length");
 		}
 		int index, lastSeparatorIndex, qualifierIndex, isSpecialOnlyIndex;
-		boolean segmentUppercase, isNotNormalized, squareBracketed, isAllDigits, isPossiblyIPv6, isPossiblyIPv4, tryIPv6, tryIPv4, isPrefixed, hasPort, addressIsEmpty;
+		boolean segmentUppercase, isNotNormalized, squareBracketed, isAllDigits, isPossiblyIPv6, isPossiblyIPv4, tryIPv6, tryIPv4, isPrefixed, hasPortOrService, addressIsEmpty;
 		isSpecialOnlyIndex = qualifierIndex = index = lastSeparatorIndex = -1;
 		int labelCount = 0;
 		int maxLocalLabels = 6;//should be at least 4 to avoid the array for ipv4 addresses
@@ -2115,7 +2343,7 @@ public class Validator implements HostIdentifierStringValidator {
 		int sep0, sep1, sep2, sep3, sep4, sep5;
 		boolean upper0, upper1, upper2, upper3, upper4, upper5;
 		
-		segmentUppercase = isNotNormalized = squareBracketed = tryIPv6 = tryIPv4 = isPrefixed = hasPort = addressIsEmpty = false;
+		segmentUppercase = isNotNormalized = squareBracketed = tryIPv6 = tryIPv4 = isPrefixed = hasPortOrService = addressIsEmpty = false;
 		isAllDigits = isPossiblyIPv6 = isPossiblyIPv4 = true;
 		sep0 = sep1 = sep2 = sep3 = sep4 = sep5 = -1;
 		upper0 = upper1 = upper2 = upper3 = upper4 = upper5 = false;
@@ -2141,7 +2369,7 @@ public class Validator implements HostIdentifierStringValidator {
 						break;
 					}
 					isPossiblyIPv4 = false;
-					if(hasPort && isPossiblyIPv6) {//isPossiblyIPv6 is already false if labelCount > 0
+					if(hasPortOrService && isPossiblyIPv6) {//isPossiblyIPv6 is already false if labelCount > 0
 						//since it is all digits, it cannot be host, so we set tryIPv6 rather than just isPossiblyIPv6
 						tryIPv6 = true;
 						break;
@@ -2274,17 +2502,18 @@ public class Validator implements HostIdentifierStringValidator {
 							}
 						} else {
 							if(!isPossiblyIPv4) {
+								//needs to be either ipv4 or ipv6
 								throw new HostNameException(str, index);
 							}
 							isPossiblyIPv6 = false;
 						}
 					}
 					isAllDigits = false;
-				} else if(currentChar == IPv6Address.SEGMENT_SEPARATOR) {
-					if(validationOptions.allowPort) {
-						hasPort = true;
+				} else if(currentChar == IPv6Address.SEGMENT_SEPARATOR) {//also might denote a port
+					if(validationOptions.allowPort || validationOptions.allowService) {
+						hasPortOrService = true;
 						qualifierIndex = index + 1;
-						addrLen = index;
+						addrLen = index;//causes loop to terminate, but only after handling the last segment
 						isNotNormalized = true;
 						index--;
 					} else {
@@ -2323,7 +2552,7 @@ public class Validator implements HostIdentifierStringValidator {
 			} else if(isIPAddress || isPossiblyIPv4 || isPossiblyIPv6) {
 				try {
 					IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
-					ParsedHostIdentifierStringQualifier addrQualifier;
+					ParsedHostIdentifierStringQualifier addrQualifier = null;
 					ParsedHostIdentifierStringQualifier hostQualifier = ParsedHost.NO_QUALIFIER;
 					if(squareBracketed) {
 						//Note: 
@@ -2344,15 +2573,13 @@ public class Validator implements HostIdentifierStringValidator {
 							//SMTP rfc 2821 allows [IPv6:ipv6address]
 							startIndex = 6;
 						} else {
-							/*
-							 RFC 3986 section 3.2.2
+							/* RFC 3986 section 3.2.2
 							  	host = IP-literal / IPv4address / reg-name
 	      						IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
 	      						IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
 	      					If a URI containing an IP-literal that starts with "v" (case-insensitive),
-	   						indicating that the version flag is present, is dereferenced by an application 
-	   						that does not know the meaning of that version flag, then
-	   						the application should return an appropriate error for "address mechanism not supported".
+	   						indicating that the version flag is present, is dereferenced by an application that does not know the meaning of that version flag,
+	   						then the application should return an appropriate error for "address mechanism not supported".
 							 */
 							char firstChar = str.charAt(1);
 							if(firstChar == IPvFUTURE || firstChar == IPvFUTURE_UPPERCASE) {
@@ -2366,89 +2593,172 @@ public class Validator implements HostIdentifierStringValidator {
 							int prefixIndex = endIndex + 1;
 							char prefixChar = str.charAt(prefixIndex);
 							if(prefixChar == IPAddress.PREFIX_LEN_SEPARATOR) {
-								if(ipAddressParseData.isZoned) {
-									throw new HostNameException(str, "ipaddress.error.zoneAndCIDRPrefix");
-								}
 								isPrefixed = true;
+							} else if(prefixChar == HostName.PORT_SEPARATOR) {
+								hasPortOrService = true;
 							} else {
-								if(prefixChar == HostName.PORT_SEPARATOR) {
-									hasPort = true;
-								} else {
-									throw new HostNameException(str, prefixIndex);
-								}
+								throw new HostNameException(str, prefixIndex);
 							}
 							qualifierIndex = prefixIndex + 1;//skip the ']/'
 							endIndex = str.length();
-							ParsedHostIdentifierStringQualifier parsedQualifier = parseQualifier(str, addressOptions, validationOptions, isPrefixed, false, hasPort, ipAddressParseData.addressParseData.isEmpty, qualifierIndex, endIndex, ipAddressParseData.ipVersion);
+							ParsedHostIdentifierStringQualifier parsedHostQualifier = 
+									parseHostNameQualifier(
+											str,
+											addressOptions,
+											validationOptions,
+											isPrefixed,
+											hasPortOrService,
+											ipAddressParseData.addressParseData.isEmpty,
+											qualifierIndex,
+											endIndex,
+											ipAddressParseData.ipVersion);
+							int insideBracketsQualifierIndex = ipAddressParseData.qualifierIndex;
+							if(ipAddressParseData.isZoned && str.charAt(insideBracketsQualifierIndex) == '2' && 
+									str.charAt(insideBracketsQualifierIndex + 1) == '5') {
+								//handle %25 from rfc 6874
+								insideBracketsQualifierIndex += 2;
+							}
+							addrQualifier = parseHostAddressQualifier(str, addressOptions, null, ipAddressParseData.isPrefixed, false, ipAddressParseData, insideBracketsQualifierIndex, prefixIndex - 1);
 							if(isPrefixed) {
-								addrQualifier = parsedQualifier;
+								//since we have an address, we apply the prefix to the address rather than to the host
+								//rather than use the prefix as a host qualifier, we treat it as an address qualifier and leave the host qualifier as NO_QUALIFIER
+								//also, keep in mind you can combine prefix with zone like fe80::%2/64, see https://tools.ietf.org/html/rfc4007#section-11.7 
+								if(addrQualifier == ParsedHost.NO_QUALIFIER) {
+									addrQualifier = parsedHostQualifier;
+								} else {
+									Integer addPrefLength = addrQualifier.getEquivalentPrefixLength();
+									if(addPrefLength != null) {
+										Integer hostPrefLength = parsedHostQualifier.getEquivalentPrefixLength();
+										if(hostPrefLength != null && addPrefLength.intValue() != hostPrefLength.intValue()) {
+											throw new HostNameException(str, "ipaddress.host.error.bracketed.conflicting.prefix.length");
+										}
+									}
+									IPAddress one = addrQualifier.getMask();
+									if(one != null) {
+										IPAddress two = parsedHostQualifier.getMask();
+										if(two != null && !one.equals(two)) {
+											throw new HostNameException(str, "ipaddress.host.error.bracketed.conflicting.mask");
+										}
+									}
+									addrQualifier.mergePrefix(parsedHostQualifier);
+								}
 							} else {
-								hostQualifier = parsedQualifier;
-								//there could be a zone, so get it
-								addrQualifier = parseQualifier(str, addressOptions, null, false, false, ipAddressParseData, ipAddressParseData.qualifierIndex, prefixIndex - 1);
+								hostQualifier = parsedHostQualifier;
 							}
 						} else {
 							qualifierIndex = ipAddressParseData.qualifierIndex;
 							isPrefixed = ipAddressParseData.isPrefixed;
-							hasPort = ipAddressParseData.hasPort;
+							hasPortOrService = false;
 							if(ipAddressParseData.isZoned && str.charAt(ipAddressParseData.qualifierIndex) == '2' && 
 									str.charAt(ipAddressParseData.qualifierIndex + 1) == '5') {
 								//handle %25 from rfc 6874
 								qualifierIndex += 2;
 							}
-							addrQualifier = parseQualifier(str, addressOptions, validationOptions, isPrefixed, hasPort, ipAddressParseData, qualifierIndex, endIndex);
+							addrQualifier = parseHostAddressQualifier(str, addressOptions, validationOptions, isPrefixed, hasPortOrService, ipAddressParseData, qualifierIndex, endIndex);
 						}
 						//SMTP rfc 2821 allows [ipv4address]
 						IPVersion version = ipAddressParseData.ipVersion;
 						if(version != IPVersion.IPV6 && !validationOptions.allowBracketedIPv4) {
 							throw new HostNameException(str, "ipaddress.host.error.bracketed.not.ipv6");
 						}
-					} else {
+					} else { //not square-bracketed
 						/*
-						there are cases where it can be ipv4 or ipv6, but they are rare
+						there are cases where it can be ipv4 or ipv6, but not many
 						any address with a '.' in it cannot be ipv6 at this point (if we hit a ':' first we would have jumped out of the loop)
 						any address with a ':' has gone through tests to see if up until that point it could match an ipv4 address or an ipv6 address
 						it can only be ipv4 if it has right number of segments, and only decimal digits.
 						it can only be ipv6 if it has only hex digits.
 						so when can it be both?  if it looks like *: at the start, so that it has the right number of segments for ipv4 but does not have a '.' invalidating ipv6
 						so in that case we might have either something like *:1 for it to be ipv4 (ambiguous is treated as ipv4) or *:f:: to be ipv6
-						So we validate the potential port to determine which one and then go from there
+						So we validate the potential port (or ipv6 segment) to determine which one and then go from there
+						Also, if it is single segment address that is all decimal digits.
 						 */
-						boolean isPotentiallyIPv4 = isPossiblyIPv4 || tryIPv4; //tryIPv4 is typically something like 1.2.3.4 or with '*'
-						boolean isPotentiallyIPv6 = isPossiblyIPv6 || tryIPv6; //tryIPv6 is typically something with ':' or '*'
-						int endIndex;
-						if(isPotentiallyIPv4) {
-							//validate the port
-							if(!hasPort) {
-								for(int j = index; j < addrLen; j++) {
+								
+						//We start by checking if there is potentially a port or service
+						//if IPv6, we may need to try a :x as a port or service and as a trailing segment
+						boolean firstTrySucceeded = false;
+						boolean hasAddressPortOrService = false;
+						int addressQualifierIndex = -1;
+						boolean isPotentiallyIPv6 = isPossiblyIPv6 || tryIPv6;
+						if(isPotentiallyIPv6) {
+							//find the last port separator, currently we point to the first one with qualifierIndex
+							//note that the service we find here could be the ipv4 part of either an ipv6 address or ipv6 mask like this 1:2:3:4:5:6:1.2.3.4 or 1:2:3:4:5:6:1.2.3.4/1:2:3:4:5:6:1.2.3.4
+							if(!isPrefixed && (validationOptions.allowPort || validationOptions.allowService)) {
+								for(int j = str.length() - 1; j >= 0; j--) {
 									char c = str.charAt(j);
 									if(c == IPv6Address.SEGMENT_SEPARATOR) {
-										qualifierIndex = j + 1;
-										hasPort = true;
-									} 
+										hasAddressPortOrService = true;
+										addressQualifierIndex = j + 1;
+									} else if((c >= '0' && c <= '9') ||
+											(c >= 'A' && c <= 'Z') ||
+											(c >= 'a' && c <= 'z') ||
+											(c == '-') ||
+											(c == Address.SEGMENT_WILDCARD)) {
+										//see validateHostNamePort for more details on valid ports and service names
+										continue;
+									}
+									break;
 								}
 							}
-							if(hasPort) {
-								try {
-									hostQualifier = validatePort(str, validationOptions, qualifierIndex, str.length());
-									//validates as port, we have ipv4
-									endIndex = qualifierIndex - 1;
-								} catch(AddressStringException e) {
-									if(isPotentiallyIPv6) {
-										hostQualifier = ParsedHost.NO_QUALIFIER;
-										endIndex = str.length();
-									} else {
-										throw e;
+						} else {
+							hasAddressPortOrService = hasPortOrService;
+							addressQualifierIndex = qualifierIndex;
+						}
+						int endIndex;
+						if(hasAddressPortOrService) {
+							try {
+								//validate the port
+								ParsedHostIdentifierStringQualifier hostPortQualifier = hostQualifier = parsePortOrService(str, null, validationOptions, addressQualifierIndex, str.length());
+								if(isPotentiallyIPv6) {
+									//here it can be either a port or part of an IPv6 address, like this: fe80::6a05:caff:fe3:123
+									boolean expectPort = validationOptions.expectPort;
+									try {
+										if(expectPort) {
+											//try with port first, then try as IPv6 no port
+											endIndex = addressQualifierIndex - 1;
+										} else {
+											//try as IPv6 with no port first, try with port second
+											endIndex = str.length();
+											hostQualifier = ParsedHost.NO_QUALIFIER;
+										}
+										//first try
+										validateIPAddress(addressOptions, str, 0, endIndex, ipAddressParseData);
+										//since no square brackets, we parse as an address (this can affect how zones are parsed).
+										//Also, an address cannot end with a single ':' like a port, so we cannot take a shortcut here and parse for port, we must strip it off first (hence no host parameters passed)
+										addrQualifier = parseAddressQualifier(str, addressOptions, null, ipAddressParseData, endIndex);
+										firstTrySucceeded = true;
+									} catch(AddressStringException e) {
+										//whatever we tried first has failed, try the second option below
+										ipAddressParseData = new IPAddressParseData(str);
+										if(expectPort) {
+											hostQualifier = ParsedHost.NO_QUALIFIER;
+											endIndex = str.length();
+										} else {
+											hostQualifier = hostPortQualifier;
+											endIndex = addressQualifierIndex - 1;
+										}
 									}
+								} else {
+									endIndex = addressQualifierIndex - 1;
 								}
-							} else {
+							} catch(AddressStringException e) {
+								//certainly not IPv4 since it doesn't qualify as port
+								if(!isPotentiallyIPv6) {
+									//not IPv6 either, so throw (caught below)
+									throw e;
+								}
+								hostQualifier = ParsedHost.NO_QUALIFIER;
 								endIndex = str.length();
 							}
 						} else {
 							endIndex = str.length();
 						}
-						validateIPAddress(addressOptions, str, 0, endIndex, ipAddressParseData);
-						addrQualifier = parseQualifier(str, addressOptions, validationOptions, ipAddressParseData, endIndex);
+						if(!firstTrySucceeded) {
+							validateIPAddress(addressOptions, str, 0, endIndex, ipAddressParseData);
+							//since no square brackets, we parse as an address (this can affect how zones are parsed)
+							//Also, an address cannot end with a single ':' like a port, so we cannot take a shortcut here and parse for port, we must strip it off first (hence no host parameters passed)
+							addrQualifier = parseAddressQualifier(str, addressOptions, null, ipAddressParseData, endIndex);
+						}
 					}
 					IPAddressProvider provider = createProvider(fromHost, str, addressOptions, ipAddressParseData, addrQualifier);
 					return new ParsedHost(str, provider, hostQualifier);
@@ -2458,7 +2768,17 @@ public class Validator implements HostIdentifierStringValidator {
 					} //else fall though and evaluate as a host
 				}
 			}
-			ParsedHostIdentifierStringQualifier qualifier = parseQualifier(str, addressOptions, validationOptions, isPrefixed, false, hasPort, addressIsEmpty, qualifierIndex, str.length(), null);
+			ParsedHostIdentifierStringQualifier qualifier = 
+					parseHostNameQualifier(
+							str,
+							addressOptions,
+							validationOptions,
+							isPrefixed,
+							hasPortOrService,
+							addressIsEmpty,
+							qualifierIndex,
+							str.length(),
+							null);
 			ParsedHost parsedHost;
 			if(addressIsEmpty) {
 				if(!validationOptions.allowEmpty) {
@@ -2517,10 +2837,14 @@ public class Validator implements HostIdentifierStringValidator {
 						isNotNormalized |= isUpper;
 					}
 				}
+				//We support a.b.com/24:80 (prefix and port combo)
+				//or just port, or a service where-ever a port can appear
+				//A prefix with port can mean a subnet of addresses using the same port everywhere (the subnet being the prefix block of the resolved address), 
+				//or just denote the prefix length of the resolved address along with a port
 				
 				//here we check what is in the qualifier that follows the bracket: prefix/mask or port?
 				//if prefix/mask, we supply the qualifier to the address, otherwise we supply it to the host
-				//int the case of port, it is possible the address has a zone
+				//also, it is possible the address has a zone
 				ParsedHostIdentifierStringQualifier addrQualifier, hostQualifier;
 				if(isPrefixed) {
 					addrQualifier = qualifier;
@@ -2529,7 +2853,6 @@ public class Validator implements HostIdentifierStringValidator {
 					hostQualifier = qualifier;
 					addrQualifier = ParsedHost.NO_QUALIFIER;
 				}
-				
 				EmbeddedAddress addr = checkSpecialHosts(str, addrLen, addrQualifier);
 				AddressStringException embeddedException = null;
 				if(isSpecialOnlyIndex >= 0 && (addr == null || (embeddedException = addr.addressStringException) != null)) {
@@ -2573,10 +2896,19 @@ public class Validator implements HostIdentifierStringValidator {
 				IPAddressParseData ipAddressParseData = new IPAddressParseData(str);
 				IPAddressStringParameters params = DEFAULT_UNC_OPTS;
 				validateIPAddress(params, builder, 0, builder.length(), ipAddressParseData);
-				IPAddressProvider provider = createProvider(null, builder, params, ipAddressParseData,
-					//this is the qualifier for the address, which is not the same as the qualifier for the host name
-					(hostQualifier != null && hostQualifier != ParsedHost.NO_QUALIFIER) ? hostQualifier :
-						parseQualifier(builder, DEFAULT_UNC_OPTS, null, ipAddressParseData, builder.length()));
+				ParsedHostIdentifierStringQualifier qual;
+				ParsedHostIdentifierStringQualifier addrQualifier = parseAddressQualifier(builder, DEFAULT_UNC_OPTS, null, ipAddressParseData, builder.length());
+				if(addrQualifier == ParsedHost.NO_QUALIFIER) {
+					qual = hostQualifier;
+				} else if(hostQualifier == ParsedHost.NO_QUALIFIER) {
+					qual = addrQualifier;
+				} else {
+					//only prefix qualifiers and the NO_QUALIFIER are cached, so merging is OK
+					//in the case we can have only a zone qualifier
+					addrQualifier.mergePrefix(hostQualifier);
+					qual = addrQualifier;
+				}
+				IPAddressProvider provider = createProvider(null, builder, params, ipAddressParseData, qual);
 				emb.addressProvider = provider;
 			}
 			//Note: could support bitstring labels and support subnets in them, however they appear to be generally unused in the real world

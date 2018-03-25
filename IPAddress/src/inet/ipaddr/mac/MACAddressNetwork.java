@@ -44,6 +44,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 			segmentCache = null;
 		}
 		
+		@Override
 		public MACAddressNetwork getNetwork() {
 			return MACAddressNetwork.this;
 		}
@@ -71,7 +72,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 				}
 				return result;
 			}
-			return new MACAddressSegment(value);
+			return new MACAddressSegment(value);//this will throw, but call it to throw the correct exception
 		}
 		
 		@Override
@@ -168,34 +169,42 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
 		MACAddressSection createSection(long bytes, int startIndex, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(bytes, startIndex, extended);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
 			return result;
+		}
+		
+		MACAddressSection createSection(long bytes, int startIndex, boolean extended) {
+			return new MACAddressSection(bytes, startIndex, extended);
 		}
 		
 		MACAddressSection createSection(byte bytes[], int startIndex, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(bytes, startIndex, extended);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
 			return result;
+		}
+		
+		MACAddressSection createSection(byte bytes[], int startIndex, boolean extended) {
+			return new MACAddressSection(bytes, startIndex, extended);
 		}
 		
 		MACAddressSection createSection(byte bytes[], int startIndex, int segmentCount, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(bytes, 0, bytes.length, segmentCount, startIndex, extended, true);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
 			return result;
+		}
+		
+		MACAddressSection createSection(byte bytes[], int startIndex, int segmentCount, boolean extended) {
+			return new MACAddressSection(bytes, 0, bytes.length, segmentCount, startIndex, extended, true);
 		}
 		
 		MACAddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int startIndex, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(lowerValueProvider, upperValueProvider, startIndex, extended);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
 			return result;
+		}
+		
+		MACAddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int startIndex, boolean extended) {
+			return new MACAddressSection(lowerValueProvider, upperValueProvider, startIndex, extended);
 		}
 		
 		@Override
@@ -211,9 +220,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		@Override
 		protected MACAddressSection createPrefixedSectionInternal(MACAddressSegment[] segments, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(false, segments, 0, segments.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
 			return result;
 		}
 		
@@ -226,17 +233,26 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 			return new MACAddressSection(false, segments, startIndex, extended);
 		}
 		
+		MACAddressSection createSection(MACAddressSegment[] segments, boolean extended) {
+			return new MACAddressSection(segments, 0, extended);
+		}
+		
 		MACAddressSection createSection(MACAddressSegment[] segments, boolean extended, Integer prefixLength) {
 			MACAddressSection result = new MACAddressSection(segments, 0, extended);
-			if(prefixLength != null) {
-				result = result.applyPrefixLength(prefixLength);
-			}
+			result.assignPrefixLength(prefixLength);
+			return result;
+		}
+		
+		@Override
+		protected MACAddressSection createSectionInternal(byte bytes[], int segmentCount, Integer prefixLength, boolean singleOnly) {
+			MACAddressSection result = new MACAddressSection(bytes, segmentCount, 0, segmentCount > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT, false);
+			result.assignPrefixLength(prefixLength);
 			return result;
 		}
 		
 		@Override
 		protected MACAddress createAddressInternal(byte[] bytes, CharSequence zone) {
-			MACAddressSection section = new MACAddressSection(bytes, 0, bytes.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT, false);
+			MACAddressSection section = new MACAddressSection(bytes, bytes.length, 0, bytes.length > MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT, false);
 			return createAddress(section);
 		}
 		

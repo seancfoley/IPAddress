@@ -21,9 +21,14 @@ package inet.ipaddr;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.UnaryOperator;
 
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
@@ -149,7 +154,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	protected IPAddressProvider getProvider() {
 		if(isPrefixed()) {
-			return IPAddressProvider.getProviderFor(this, removePrefixLength(true));
+			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
+				return IPAddressProvider.getProviderFor(this, removePrefixLength(false)); 
+			}
+			return IPAddressProvider.getProviderFor(this, toZeroHost());
 		}
 		return IPAddressProvider.getProviderFor(this, this);
 	}
@@ -256,16 +264,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public static int getBitCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT;
 	}
-	
-	@Override
-	public IPAddressSegment getSegment(int index) {
-		return (IPAddressSegment) super.getSegment(index);
-	}
-	
-	@Override
-	public IPAddressSegment[] getSegments() {
-		return getSection().getSegments();
-	}
 
 	@Override
 	public abstract IPAddress getLowerNonZeroHost();
@@ -295,10 +293,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract Iterator<? extends IPAddress> nonZeroHostIterator();
 	
 	@Override
-	public abstract Iterator<? extends IPAddressSegment[]> segmentsIterator();
-	
-	@Override
-	public abstract Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
+	public abstract Iterator<? extends IPAddress> prefixBlockIterator();
 
 	/**
 	 * @return an object to iterate over the individual addresses represented by this object.
@@ -306,6 +301,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	@Override
 	public abstract Iterable<? extends IPAddress> getIterable();
 
+	@Override
+	public abstract IPAddress add(long increment);
+	
 	public boolean isIPv4() {
 		return getSection().isIPv4();
 	}
@@ -332,6 +330,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * 
 	 * @return If this address is IPv6, or can be converted to IPv6, returns that {@link IPv6Address}.  Otherwise, returns null.
+	 * 
+	 * @see #isIPv6Convertible()
+	 * @return the address
 	 */
 	public IPv6Address toIPv6() {
 		return null;
@@ -339,7 +340,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	/**
 	 * Determines whether this address can be converted to IPv4, if not IPv4 already.  
-	 * Override this method to convert in your own way.
+	 * Override this method to convert in your own way.  If IPv6, the default behaviour
+	 * is to convert by IPv4 mapping, see {@link IPv6Address#isIPv4Mapped()}
 	 * 
 	 * You should also override {@link #toIPv4()} to match the conversion.
 	 * 
@@ -351,7 +353,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	/**
 	 * Determines whether an address can be converted to IPv6, if not IPv6 already. 
-	 * Override this method to convert in your own way.
+	 * Override this method to convert in your own way.  The default behaviour
+	 * is to convert by IPv4 mapping, see {@link IPv4Address#getIPv4MappedAddress()}
 	 * 
 	 * You should also override {@link #toIPv6()} to match the conversion.
 	 * 
@@ -362,21 +365,32 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract boolean isIPv6Convertible();
 	
 	/**
+	 * Returns whether the address is link local, whether unicast or multicast.
+	 * 
 	 * @see java.net.InetAddress#isLinkLocalAddress()
 	 */
 	public abstract boolean isLinkLocal();
+
+	/**
+	 * Returns true if the address is link local, site local, organization local, administered locally, or unspecified.
+	 * This includes both unicast and multicast.
+	 */
+	@Override
+	public abstract boolean isLocal();
 	
 	/**
-	 * @see java.net.InetAddress#isSiteLocalAddress()
+	 * The unspecified address is the address that is all zeros.
+	 * 
+	 * @return
 	 */
-	public abstract boolean isSiteLocal();
-
-	@Override
-	public boolean isLocal() {
-		return isLinkLocal() || isSiteLocal() || isAnyLocal();
+	public boolean isUnspecified() {
+		return isZero();
 	}
 	
 	/**
+	 * Returns whether this address is the address which binds to any address on the local host.
+	 * This is the address that has the value of 0, aka the unspecfied address.
+	 * 
 	 * @see java.net.InetAddress#isAnyLocalAddress()
 	 */
 	public boolean isAnyLocal() {
@@ -447,18 +461,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	@Override
 	public boolean contains(Address other) {
-		if(other instanceof IPAddress) {
-			return contains((IPAddress) other);
-		}
-		return false;
-	}
-	
-	/**
-	 * 
-	 * @param other
-	 * @return whether this subnet contains the given address
-	 */
-	public boolean contains(IPAddress other) {
 		if(other == this) {
 			return true;
 		}
@@ -560,7 +562,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 				}
 				if(lowerValueProvider == null || upperValueProvider == null) {
 					if(isPrefixSubnet && segmentPrefixLength != null) {
-						value &= ~0 << (segmentPrefixLength - bitsPerSegment);
+						value &= ~0 << (bitsPerSegment - segmentPrefixLength);
 					}
 					if(builder == null) {
 						count += IPAddressSegment.toUnsignedStringLength(value, radix);
@@ -569,9 +571,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 					}
 				} else {
 					if(isPrefixSubnet && segmentPrefixLength != null) {
-						int mask = ~0 << (segmentPrefixLength - bitsPerSegment);
+						int mask = ~0 << (bitsPerSegment - segmentPrefixLength);
 						value &= mask;
-						value2 &= mask;
+						value2 &= mask;//255, mask is -2147483648, segmentPrefixLength is 7, bitsPer
 					}
 					if(value == value2) {
 						if(builder == null) {
@@ -883,43 +885,84 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().getNetworkPrefixLength();
 	}
 
+	@Override
 	public boolean includesZeroHost() {
 		return getSection().includesZeroHost();
 	}
+	
+	@Override
+	public boolean includesZeroHost(int networkPrefixLength) {
+		return getSection().includesZeroHost(networkPrefixLength);
+	}
+	
+	@Override
+	public abstract IPAddress toZeroHost(int prefixLength);
 
 	@Override
 	public abstract IPAddress toZeroHost();
 	
+	@Override
+	public abstract IPAddress toMaxHost(int prefixLength);
+	
+	@Override
+	public abstract IPAddress toMaxHost();
+	
+	@Override
 	public boolean includesMaxHost() {
 		return getSection().includesMaxHost();
 	}
 	
-	public IPAddress toMaxHost() {
-		if(!isPrefixed()) {
-			IPAddress resultNoPrefix = getNetwork().getHostMask(0);
-			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-				return resultNoPrefix;
-			}
-			return resultNoPrefix.setPrefixLength(0);
-		}
-		int prefixLength = getNetworkPrefixLength();
-		IPAddress hostMask = getNetwork().getHostMask(prefixLength);
-		if(matchesWithMask(hostMask, hostMask)) {
-			if(!getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {//we have a prefix and we should not if allPrefixedAddressesAreSubnets
-				return this;
-			}
-		}
-		if(includesMaxHost() && isSingleNetwork()) {
-			return getUpper();
-		}
-		return bitwiseOr(hostMask, !getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+	@Override
+	public boolean includesMaxHost(int networkPrefixLength) {
+		return getSection().includesMaxHost(networkPrefixLength);
 	}
 	
-	/* Returns true if the network section of the address spans just a single value */
+	/** 
+	 * Returns true if the network section of the address spans just a single value 
+	 * <p>
+	 * For example, return true for 1.2.3.4/16 and false for 1.2-3.3.4/16
+	 */
 	public boolean isSingleNetwork() {
 		return getSection().isSingleNetwork();
 	}
+
+	/**
+	 * Returns the smallest set of prefix blocks that spans both this and the supplied address or subnet.
+	 * @param other
+	 * @return
+	 */
+	protected static <T extends IPAddress> T[] getSpanningPrefixBlocks(
+			T first,
+			T other,
+			UnaryOperator<T> getLower,
+			UnaryOperator<T> getUpper,
+			Comparator<T> comparator,
+			Function<T, T> prefixRemover,
+			IntFunction<T[]> arrayProducer) {
+		boolean f;
+		if((f = first.contains(other)) || other.contains(first)) {
+			if(!f) {
+				T tmp = first;
+				first = other;
+				other = tmp;
+			}
+			if(first.isPrefixed() && first.getPrefixLength() == first.getBitCount()) {
+				first = prefixRemover.apply(first);
+			}
+			T result[] = arrayProducer.apply(1);
+			result[0] = first;
+			return result;
+		}
+		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
+		IPAddressSection.getSpanningSeriesPrefixBlocks(first, other, getLower, getUpper, comparator, prefixRemover, blocks);
+		return blocks.toArray(arrayProducer.apply(blocks.size()));
+	}
 	
+	/**
+	 * Returns the subnet associated with the prefix length of this address.  If this address has no prefix length, this address is returned.
+	 * <p>
+	 * For example, if the address is 1.2.3.4/16 it returns the subnet 1.2.*.* /16
+	 */
 	@Override
 	public abstract IPAddress toPrefixBlock();
 
@@ -977,6 +1020,36 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public Integer getBlockMaskPrefixLength(boolean network) {
 		return getSection().getBlockMaskPrefixLength(network);
 	}
+
+	/**
+	 * Produces the list of prefix block subnets that span from this series to the given series.
+	 * <p>
+	 * If the other address is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public abstract IPAddress[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException;
+	
+	/**
+	 * Merges this with the list of addresses to produce the smallest list of prefix blocks
+	 * <p>
+	 * If any other address in the list is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()},
+	 * which can result in AddressConversionException
+	 * <p>
+	 * The result is sorted from single address to smallest blocks to largest blocks.
+	 * 
+	 * @throws AddressConversionException
+	 * @param sections the sections to merge with this
+	 * @return
+	 */
+	public abstract IPAddress[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
+	
+	protected static List<IPAddressSegmentSeries> getMergedBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
+		return IPAddressSection.getMergedBlocks(first, sections, false);
+	}
 	
 	/**
 	 * Produces the subnet whose addresses are found in both this and the given subnet argument.
@@ -989,7 +1062,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @throws AddressConversionException if the address argument could not be converted to the same address version as this
 	 * @return the subnet containing the addresses found in both this and the given subnet
 	 */
-	public abstract IPAddress intersect(IPAddress other);
+	public abstract IPAddress intersect(IPAddress other) throws AddressConversionException;
 	
 	/**
 	 * Subtract the given subnet from this subnet, returning an array of subnets for the result (the subnets will not be contiguous so an array is required).
@@ -1002,7 +1075,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @throws AddressConversionException if the address argument could not be converted to the same address version as this
 	 * @return the difference
 	 */
-	public abstract IPAddress[] subtract(IPAddress other);
+	public abstract IPAddress[] subtract(IPAddress other) throws AddressConversionException;
 
 	/**
 	 * Equivalent to calling {@link #mask(IPAddress, boolean)} with the second argument as false.
@@ -1019,7 +1092,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Applies the given mask to all addresses represented by this IPAddress.
 	 * The mask is applied to all individual addresses.
-	 * If the retainPrefix argument is true, then any existing prefix length is removed beforehand.
+	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
 	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
@@ -1059,12 +1132,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @throws IncompatibleAddressException if this is a range of addresses and applying the mask results in an address that cannot be represented as a contiguous range within each segment
 	 */
 	public abstract IPAddress bitwiseOr(IPAddress mask) throws AddressConversionException, IncompatibleAddressException;
-	
+
 	/**
 	 * Does the bitwise disjunction with this address.  Useful when subnetting.
 	 * <p>
-	 * The mask is applied to all individual addresses, similar to how the {@link #mask(IPAddress)} method which does the bitwise conjunction.
-	 * If the retainPrefix argument is true, then any existing prefix length is removed beforehand.
+	 * The mask is applied to all individual addresses, similar to how the method {@link #mask(IPAddress, boolean)} applies the bitwise conjunction.
+	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
 	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
@@ -1112,7 +1185,28 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress adjustPrefixBySegment(boolean nextSegment);
 
 	@Override
+	public abstract IPAddress adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
+
+	/**
+	 * Increases or decreases prefix length by the given increment.
+	 * <p>
+	 * When prefix length is increased, the bits moved within the prefix become zero.
+	 * When the prefix is extended beyond the segment series boundary, it is removed.
+	 * When a prefix length is decreased, the bits moved outside the prefix become zero,
+	 * and if the entire host address contains the zero address, 
+	 * then the resulting address is determined {@link IPAddressNetwork#getPrefixConfiguration()}.
+	 * <p>
+	 * For example, 1.2.0.0/16 adjusted by -8 becomes 1.0.0.0/8.<br>
+	 * 1.2.0.0/16 adjusted by 8 becomes 1.2.0.0/24
+	 * 
+	 * @param adjustment
+	 * @return
+	 */
+	@Override
 	public abstract IPAddress adjustPrefixLength(int adjustment);
+
+	@Override
+	public abstract IPAddress adjustPrefixLength(int adjustment, boolean zeroed);
 
 	@Override
 	public abstract IPAddress setPrefixLength(int prefixLength);

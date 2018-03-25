@@ -103,8 +103,8 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		return this;
 	}
 	
-	protected MACAddressSegment setPrefixedSegment(Integer oldPrefixLength, Integer segmentPrefixLength) {
-		return setPrefixedSegment(this, oldPrefixLength, segmentPrefixLength, getSegmentCreator());
+	protected MACAddressSegment setPrefixedSegment(Integer oldPrefixLength, Integer segmentPrefixLength, boolean zeroed) {
+		return setPrefixedSegment(this, oldPrefixLength, segmentPrefixLength, zeroed, getSegmentCreator());
 	}
 
 	private MACAddressCreator getSegmentCreator() {
@@ -118,7 +118,12 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	@Override
 	public int getValueCount() {
-		return upperValue - value + 1;
+		return getUpperSegmentValue() - getLowerSegmentValue() + 1;
+	}
+	
+	int getPrefixValueCount(int segmentPrefixLength) {
+		int shiftAdjustment = MACAddress.BITS_PER_SEGMENT - segmentPrefixLength;
+		return (getUpperSegmentValue() >>> shiftAdjustment) - (getLowerSegmentValue() >>> shiftAdjustment) + 1;
 	}
 	
 	@Override
@@ -316,7 +321,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 
 	@Override
 	public Iterator<MACAddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), true);
+		return iterator(this, getSegmentCreator(), true, null);
+	}
+	
+	Iterator<MACAddressSegment> prefixBlockIterator(Integer segmentPrefixLength) {
+		return iterator(this, getSegmentCreator(), true, segmentPrefixLength);
 	}
 
 	@Override

@@ -76,6 +76,21 @@ public interface AddressComparator extends Comparator<Address> {
 			this.compareHighValue = compareHighValue;
 		}
 
+		protected int compareSegmentLowValues(AddressSegmentSeries one, AddressSegmentSeries two) {
+			int segCount = one.getSegmentCount();
+			for(int i = 0; i < segCount; i++) {
+				AddressSegment segOne = one.getSegment(i);
+				AddressSegment segTwo = two.getSegment(i);
+				int oneValue = segOne.getLowerSegmentValue();
+				int twoValue = segTwo.getLowerSegmentValue();
+				int result = oneValue - twoValue;
+				if(result != 0) {
+					return result;
+				}
+			}
+			return 0;
+		}
+		
 		@Override
 		protected int compareParts(AddressSection one, AddressSection two) {
 			int sizeResult = one.getByteCount() - two.getByteCount();
@@ -84,15 +99,22 @@ public interface AddressComparator extends Comparator<Address> {
 			}
 			boolean compareHigh = compareHighValue;
 			do {
-				int segCount = one.getSegmentCount();
-				for(int i = 0; i < segCount; i++) {
-					AddressSegment segOne = one.getSegment(i);
-					AddressSegment segTwo = two.getSegment(i);
-					int oneValue = compareHigh ? segOne.getUpperSegmentValue() : segOne.getLowerSegmentValue();
-					int twoValue = compareHigh ? segTwo.getUpperSegmentValue() : segTwo.getLowerSegmentValue();
-					int result = oneValue - twoValue;
+				if(!compareHigh) {
+					int result = compareSegmentLowValues(one, two);
 					if(result != 0) {
 						return result;
+					}
+				} else {
+					int segCount = one.getSegmentCount();
+					for(int i = 0; i < segCount; i++) {
+						AddressSegment segOne = one.getSegment(i);
+						AddressSegment segTwo = two.getSegment(i);
+						int oneValue = segOne.getUpperSegmentValue();
+						int twoValue = segTwo.getUpperSegmentValue();
+						int result = oneValue - twoValue;
+						if(result != 0) {
+							return result;
+						}
 					}
 				}
 				compareHigh = !compareHigh;
@@ -398,6 +420,9 @@ abstract class BaseComparator implements AddressComparator {
 	public int compare(AddressDivisionSeries one, AddressDivisionSeries two) {
 		if(one instanceof AddressSection && two instanceof AddressSection) {
 			return compare((AddressSection) one, (AddressSection) two);
+		}
+		if(one instanceof Address && two instanceof Address) {
+			return compare((Address) one, (Address) two);
 		}
 		if(one == two) {
 			return 0;

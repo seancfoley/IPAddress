@@ -67,7 +67,7 @@ public class IPAddressStringDivisionGrouping extends AddressStringDivisionGroupi
 			IPAddressStringDivision div = getDivision(i);
 			Integer segmentPrefixLength = div.getDivisionPrefixLength();
 			if(segmentPrefixLength != null) {
-				if(!div.isPrefixBlock(segmentPrefixLength)) {
+				if(!div.isPrefixBlock()) {
 					return false;
 				}
 				for(++i; i < divCount; i++) {

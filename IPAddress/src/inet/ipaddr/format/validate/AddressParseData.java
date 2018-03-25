@@ -512,7 +512,7 @@ class ParsedIPAddress implements Serializable {
 		
 		int qualifierIndex = -1;
 		
-		boolean isPrefixed, isZoned, hasPort;
+		boolean isPrefixed, isZoned;
 		
 		IPVersion ipVersion;
 		
@@ -531,7 +531,7 @@ class ParsedIPAddress implements Serializable {
 		
 		void clearQualifier() {
 			qualifierIndex = -1;
-			isBase85Zoned = isPrefixed = isZoned = hasPort = false;
+			isBase85Zoned = isPrefixed = isZoned = false;
 		}
 
 		void reverseSegments() {
@@ -603,11 +603,6 @@ class ParsedIPAddress implements Serializable {
 				if(is_inet_aton_joined) {
 					builder.append(", with joined segments");
 				}
-				builder.append('\n');
-			}
-			if(hasPort) {
-				builder.append(", with port ");
-				printQualifier(builder);
 				builder.append('\n');
 			}
 			return builder.toString();

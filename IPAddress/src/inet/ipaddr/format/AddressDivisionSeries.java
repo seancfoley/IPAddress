@@ -21,6 +21,7 @@ package inet.ipaddr.format;
 import java.math.BigInteger;
 
 import inet.ipaddr.AddressNetwork;
+import inet.ipaddr.PrefixLenException;
 
 /**
  * Represents a series of groups of address segments.  Each group may have a different bit size.
@@ -81,11 +82,52 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	boolean isPrefixBlock();
 	
 	/**
+	 * Returns whether the values of this series contains the prefix block for the given prefix length.
+	 * An important distinction of this method with {@link #isPrefixBlock()} is that {@link #isPrefixBlock()} returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists one or more prefix lengths for which {@link #containsPrefixBlock(int)}
+	 * returns true.  This method simply returns whether it contains all the values for the given prefix length block
+	 * regardless of whether that prefix length has been assigned to this series.
+	 * <p>
+	 * Use {@link #getMinPrefixLengthForBlock()} to determine the smallest prefix length for which this method returns true.
+	 * 
+	 * @param prefixLength
+	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
+	 * @return
+	 */
+	boolean containsPrefixBlock(int prefixLength) throws PrefixLenException;
+	
+	/**
 	 * Returns whether the range of values matches a single subnet block for the prefix length
 	 * 
 	 * @return
 	 */
 	boolean isSinglePrefixBlock();
+	
+	/**
+	 * Returns whether the values of this series contains a single prefix block for the given prefix length.
+	 * An important distinction of this method with {@link #isSinglePrefixBlock()} is that {@link #isSinglePrefixBlock()} returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists a prefix length for which {@link #containsSinglePrefixBlock(int)}
+	 * returns true.  This method simply returns whether it contains exactly the values for the given prefix length block
+	 * regardless of whether that prefix length has been assigned to this series.
+	 * <p>
+	 * Use {@link #getPrefixLengthForSingleBlock()} to determine whether there is a prefix length for which this method returns true.
+	 * 
+	 * @param prefixLength
+	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
+	 * @return
+	 */
+	boolean containsSinglePrefixBlock(int prefixLength) throws PrefixLenException;
+	
+	/**
+	 * If this has a prefix length, the count of the range of values in the prefix.
+	 * <p>
+	 * If this has no prefix length, returns the same value as {@link #getCount()}
+	 * 
+	 * @return
+	 */
+	BigInteger getPrefixCount();
 
 	/**
 	 * Returns the smallest prefix length possible such that this address division series includes the block of addresses for that prefix.

@@ -192,7 +192,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 			//this call differs from the host side.  On the host side, we check that the network portion is 0
 			//on the network side, we check that the host side is the full range, not 0.  
 			//This means that any resulting network section is the same regardless of whether a prefix is used: we don't need a prefix.
-			!isPrefixBlock(bits); 
+			!hasBits || !isPrefixBlock(bits);
 	}
 	
 	/**
@@ -315,6 +315,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	 * @throws PrefixLenException
 	 */
 	public boolean isMaskCompatibleWithRange(int maskValue, Integer segmentPrefixLength) throws PrefixLenException {
+		if(!isMultiple()) {
+			return true;
+		}
 		return super.isMaskCompatibleWithRange(maskValue, segmentPrefixLength, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
 	}
 	
@@ -357,6 +360,13 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 
 	@Override
 	public abstract Iterator<? extends IPAddressSegment> iterator();
+	
+	/**
+	 * Iterates through the individual prefix blocks.
+	 * 
+	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
+	 */
+	public abstract Iterator<? extends IPAddressSegment> prefixBlockIterator();
 
 	public static int getBitCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BITS_PER_SEGMENT : IPv6Address.BITS_PER_SEGMENT;
@@ -392,6 +402,22 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	@Override
 	public int getValueCount() {
 		return getUpperSegmentValue() - getLowerSegmentValue() + 1;
+	}
+	
+	/**
+	 * Counts the number of prefixes in this address segment.
+	 * <p>
+	 * If this segment has no prefix length, this is equivalent to {@link #getValueCount()}
+	 * 
+	 * @return
+	 */
+	public int getPrefixValueCount() {
+		Integer prefixLength = getSegmentPrefixLength();
+		if(prefixLength == null) {
+			return getValueCount();
+		}
+		int shiftAdjustment = getBitCount() - prefixLength;
+		return (getUpperSegmentValue() >>> shiftAdjustment) - (getLowerSegmentValue() >>> shiftAdjustment) + 1;
 	}
 	
 	@Override
@@ -519,9 +545,8 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	 * @param other
 	 * @return whether this subnet segment contains the given address segment
 	 */
-	@Override
-	public boolean contains(AddressSegment other) {
-		return other instanceof IPAddressSegment && other.getLowerSegmentValue() >= getLowerSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue();
+	protected boolean containsSeg(AddressSegment other) {
+		return other.getLowerSegmentValue() >= getLowerSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue();
 	}
 
 	@Override

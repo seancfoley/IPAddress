@@ -58,6 +58,13 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	int getBytesPerSegment();
 	
 	/**
+	 * Gets the subsection from the series that comprises all segments
+	 * 
+	 * @return
+	 */
+	AddressSection getSection();
+	
+	/**
 	 * Gets the subsection from the series starting from the given index
 	 * 
 	 * @throws IndexOutOfBoundsException if index is negative
@@ -102,7 +109,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * get the segments from start to end and insert into the segs array at the the given index
 	 * @param start the first segment index from this series to be included
-	 * @param end the segment index after first to be excluded
+	 * @param end the first segment index to be excluded
 	 * @param segs the target array
 	 * @param index where to insert the segments in the segs array
 	 */
@@ -145,9 +152,40 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	Iterator<? extends AddressSegmentSeries> iterator();
 	
 	/**
+	 * Iterates through the individual prefix blocks.
+	 * 
+	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
+	 */
+	Iterator<? extends AddressSegmentSeries> prefixBlockIterator();
+	
+	/**
 	 * Iterates through the individual segments.
 	 */
 	Iterator<? extends AddressSegment[]> segmentsIterator();
+	
+	/**
+	 * Returns the series from the subnet that is the given increment upwards into the subnet range,
+	 * or if the given increment is negative the given increment downwards into the subnet range, 
+	 * or if the subnet is just a single series, it adds the increment to the address to produce a new series.
+	 * If the increment is 0, then this series is returned.
+	 * <p>
+	 * If the subnet has multiple values and the increment exceeds the subnet size, then the amount by which is exceeds the size is added to the upper series of the range (the final iterator value)  
+	 * or is subtracted from the lower series of the range (the first iterator value) if negative.  
+	 * <p>
+	 * If the subnet is just a single address values, the series is simply incremented by the given value, positive or negative.
+	 * <p>
+	 * If a subnet has multiple values, a positive increment value is equivalent to the same number of values from the iterator.
+	 * For instance, a increment of 1 is value 1 from the iterator, an increment of 2 is the second value from the iterator, and so on. 
+	 * A negative increment is equivalent to the same number of values preceding the upper bound of the iterator.
+	 * For instance, an increment of -1 is the last value from the iterator, and increment of -2 is the second last value, and so on.
+	 * <p>
+	 * Therefore, to get the series just above the highest series of the subnet, use an increment of size:<code>count > 1 ? count + 1 : 1</code> where count is the subnet size.
+	 * To get the series just below the lowest series of the subnet, use an increment of size:<code>-(count > 1 ? count + 1 : 1)</code> where count is the subnet size.
+	 * 
+	 * @param increment
+	 * @return
+	 */
+	AddressSegmentSeries add(long increment);
 
 	/**
 	 * Produces the canonical representation of the address
@@ -203,45 +241,72 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @return
 	 */
 	AddressSegmentSeries reverseBytesPerSegment();
-	
+
 	/**
 	 * If this series has a prefix length, returns the block for that prefix. Otherwise, this address series is returned.
 	 * 
 	 * @return the block of address series for the prefix length
 	 */
 	AddressSegmentSeries toPrefixBlock();
-	
+
 	/**
 	 * Removes the prefix length.  
 	 * <p>
-	 * If the series already has a prefix length, the bits previously not within the prefix become zero.
+	 * If the series already has a prefix length, the bits outside the prefix become zero.
 	 * 
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength();
-	
+
+	/**
+	 * Removes the prefix length.
+	 * 
+	 * @param zeroed whether the bits outside the prefix become zero
+	 * @return
+	 */
+	AddressSegmentSeries removePrefixLength(boolean zeroed);
+
 	/**
 	 * Increases or decreases prefix length to the next segment boundary.
 	 * <p>
+	 * Follows the same rules as {@link #adjustPrefixLength(int)}:<br>
 	 * When prefix length is increased, the bits moved within the prefix become zero.
-	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
+	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
-	 * @param nextSegment
+	 * @param nextSegment whether to move prefix to previous or following segment coundary
 	 * @return
 	 */
 	AddressSegmentSeries adjustPrefixBySegment(boolean nextSegment);
+	
+	/**
+	 * Increases or decreases prefix length to the next segment boundary.
+	 * 
+	 * @param nextSegment whether to move prefix to previous or following segment coundary
+	 * @param zeroed whether the bits that move from one side of the prefix to the other become zero or retain their original values
+	 * @return
+	 */
+	AddressSegmentSeries adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
 	
 	/**
 	 * Increases or decreases prefix length by the given increment.
 	 * <p>
 	 * When prefix length is increased, the bits moved within the prefix become zero.
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
-	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
+	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
 	 * @param adjustment
 	 * @return
 	 */
 	AddressSegmentSeries adjustPrefixLength(int adjustment);
+	
+	/**
+	 * Increases or decreases prefix length by the given increment.
+	 * 
+	 * @param zeroed whether the bits that move from one side of the prefix to the other become zero or retain their original values
+	 * @param adjustment the increment
+	 * @return
+	 */
+	AddressSegmentSeries adjustPrefixLength(int adjustment, boolean zeroed);
 	
 	/**
 	 * Sets the prefix length.
@@ -250,14 +315,25 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * <p>
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
 	 * <p>
-	 * When a prefix length is decreased, whether the bits moved outside the prefix become zero is dependent on the address type.
+	 * The bits that move from one side of the prefix length to the other (ie bits moved into the prefix or outside the prefix) are zeroed.
 	 *
 	 * @see #applyPrefixLength(int)
 	 * @param prefixLength
 	 * @return
 	 */
 	AddressSegmentSeries setPrefixLength(int prefixLength);
+	
 
+	/**
+	 * Sets the prefix length.
+	 * <p>
+	 * When the prefix is extended beyond the segment series boundary, it is removed.
+	 * <p>
+	 * @param zeroed whether the bits that move from one side of the prefix length to the other (ie bits moved into the prefix or outside the prefix) are zeroed.
+	 * @return
+	 */
+	AddressSegmentSeries setPrefixLength(int prefixLength, boolean zeroed);
+	
 	/**
 	 * Applies the given prefix length to create a new segment series.
 	 * <p>
@@ -266,7 +342,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * <p>
 	 * Otherwise the returned series has the given prefix length.
 	 * <p>
-	 * With some address types, the bits moved outside the prefix will become zero in the returned series.
+	 * The bits moved outside the prefix will become zero in the returned series.
 	 *
 	 * @see #setPrefixLength(int)
 	 * @param prefixLength

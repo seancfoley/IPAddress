@@ -46,6 +46,7 @@ public class ParsedHost implements Serializable {
 	private boolean normalizedFlags[];
 	
 	private final ParsedHostIdentifierStringQualifier labelsQualifier;
+	private String service;
 	
 	private EmbeddedAddress embeddedAddress;
 	
@@ -94,19 +95,23 @@ public class ParsedHost implements Serializable {
 		return labelsQualifier.getPort();
 	}
 	
+	public String getService() {
+		String serv = service;
+		if(serv == null) {	
+			CharSequence sv = labelsQualifier.getService();
+			if(sv != null) {
+				service = serv = sv.toString();
+			}
+		}
+		return serv;
+	}
+	
 	public Integer getNetworkPrefixLength() {
 		return labelsQualifier.getNetworkPrefixLength();
 	}
 	
 	public Integer getEquivalentPrefixLength() {
-		Integer pref = labelsQualifier.getNetworkPrefixLength();
-		if(pref == null) {
-			IPAddress mask = getMask();
-			if(mask != null) {
-				pref = mask.getBlockMaskPrefixLength(true);
-			}
-		}
-		return pref;
+		return labelsQualifier.getEquivalentPrefixLength();
 	}
 	
 	public IPAddress getMask() {

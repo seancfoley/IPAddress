@@ -35,38 +35,60 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 	private static final long serialVersionUID = 4L;
 
 	/* if there is a prefix length for the address, this will be its numeric value */
-	private final Integer networkPrefixLength; //non-null for a prefix-only address, sometimes non-null for IPv4, IPv6
+	private Integer networkPrefixLength; //non-null for a prefix-only address, sometimes non-null for IPv4, IPv6
 
 	/* if there is a port for the host, this will be its numeric value */
 	private final Integer port; //non-null for a host with port
+	private final CharSequence service; //non-null for host with a service instead of a port
 
 	/* if instead of a prefix a mask was provided, this is the mask */
-	private final ParsedIPAddress mask;
+	private ParsedIPAddress mask;
 
 	/* this is the IPv6 scope id or network interface name */
 	private final CharSequence zone;
 
 	ParsedHostIdentifierStringQualifier() {
-		this(null, null, null, null);
+		this(null, null, null, null, null);
 	}
-
-	ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, Integer port) {
-		this(networkPrefixLength, null, null, port);
-	}
-
-	ParsedHostIdentifierStringQualifier(ParsedIPAddress mask) {
-		this(null, mask, null, null);
-	}
-
+	
 	ParsedHostIdentifierStringQualifier(CharSequence zone) {
-		this(null, null, zone, null);
+		this(null, null, zone, null, null);
+	}
+	
+	ParsedHostIdentifierStringQualifier(CharSequence zone, Integer port) {
+		this(null, null, zone, port, null);
+	}
+	
+	ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, CharSequence zone) {
+		this(networkPrefixLength, null, zone, null, null);
+	}
+	
+	ParsedHostIdentifierStringQualifier(ParsedIPAddress mask, CharSequence zone) {
+		this(null, mask, zone, null, null);
 	}
 
-	private ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, ParsedIPAddress mask, CharSequence zone, Integer port) {
+	ParsedHostIdentifierStringQualifier(CharSequence zone, CharSequence service) {
+		this(null, null, zone, null, service);
+		if(zone != null && service != null) {
+			throw new IllegalArgumentException();
+		}
+	}
+
+	private ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, ParsedIPAddress mask, CharSequence zone, Integer port, CharSequence service) {
 		this.networkPrefixLength = networkPrefixLength;
 		this.mask = mask;
 		this.zone = zone;
 		this.port = port;
+		this.service = service;
+	}
+	
+	void mergePrefix(ParsedHostIdentifierStringQualifier other) {
+		if(other.mask != null) {
+			this.mask = other.mask;
+		}
+		if(other.networkPrefixLength != null) {
+			this.networkPrefixLength = other.networkPrefixLength;
+		}
 	}
 
 	IPAddress getMask() {
@@ -74,6 +96,17 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 			return mask.createAddresses().getAddress();
 		}
 		return null;
+	}
+	
+	Integer getEquivalentPrefixLength() {
+		Integer pref = getNetworkPrefixLength();
+		if(pref == null) {
+			IPAddress mask = getMask();
+			if(mask != null) {
+				pref = mask.getBlockMaskPrefixLength(true);
+			}
+		}
+		return pref;
 	}
 
 	CharSequence getZone() {
@@ -87,7 +120,11 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 	Integer getPort() {
 		return port;
 	}
-
+	
+	CharSequence getService() {
+		return service;
+	}
+	
 	IPVersion inferVersion(IPAddressStringParameters validationOptions) {
 		if(networkPrefixLength != null) {
 			if(networkPrefixLength > IPAddress.getBitCount(IPVersion.IPV4) && 
@@ -111,6 +148,7 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 		return "network prefix length: " + networkPrefixLength +
 				" mask: " + mask +
 				" zone: " + zone + 
-				" port: " + port;			
+				" port: " + port + 
+				" service: " + service;			
 	}
 }

@@ -37,6 +37,14 @@ import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.AddressCache;
 
 /**
+ * A MAC address, or a collection of multiple MAC addresses.  Each segment can represent a single value or a range of values.
+ * <p>
+ * You can construct a MAC address from a byte array, from a long, from a {@link inet.ipaddr.Address.SegmentValueProvider}, 
+ * from a {@link java.net.NetworkInterface}, from a {@link MACAddressSection} of 6 or 8 segments, or from an array of 6 or 8 {@link MACAddressSegment} objects.
+ * <p>
+ * To construct one from a {@link java.lang.String} use 
+ * {@link inet.ipaddr.MACAddressString#toAddress()} or  {@link inet.ipaddr.MACAddressString#getAddress()}
+ * 
  * @custom.core
  * @author sfoley
  *
@@ -76,7 +84,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 * @param segments the address segments
 	 */
 	public MACAddress(MACAddressSegment[] segments) throws AddressValueException {
-		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(segments, segments.length == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null));
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(segments, segments.length == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT));
 		int segCount = segments.length;
 		if(segCount != MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && segCount != EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
 			throw new AddressValueException("ipaddress.error.mac.invalid.segment.count", segCount);
@@ -116,7 +124,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 * Constructs a MAC address.
 	 */
 	public MACAddress(long address, boolean extended) throws AddressValueException {
-		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(address, 0, extended, null));
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(address, 0, extended));
 	}
 
 	/**
@@ -133,7 +141,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 * @param upperValueProvider supplies the 1 byte upper values for each segment
 	 */
 	public MACAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, boolean extended) {
-		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, extended, null));
+		super(thisAddress -> ((MACAddress) thisAddress).getAddressCreator().createSection(lowerValueProvider, upperValueProvider, 0, extended));
 	}
 	
 	/**
@@ -182,7 +190,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		} else {
 			segCount = EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
 		}
-		return addr.getAddressCreator().createSection(bytes, 0, segCount, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT, null);
+		return addr.getAddressCreator().createSection(bytes, 0, segCount, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
 	}
 	
 	protected static String getMessage(String key) {
@@ -214,10 +222,15 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddressSection getSection() {
 		return (MACAddressSection) super.getSection();
 	}
+	
+	@Override
+	public MACAddressSegment getDivision(int index) {
+		return getSegment(index);
+	}
 
 	@Override
 	public MACAddressSegment getSegment(int index) {
-		return (MACAddressSegment) super.getSegment(index);
+		return getSection().getSegment(index);
 	}
 	
 	@Override
@@ -268,22 +281,10 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	
 	@Override
 	public boolean contains(Address other) {
-		if(other instanceof MACAddress) {
-			return contains((MACAddress) other);
-		}
-		return false;
-	}
-	
-	/**
-	 * 
-	 * @param other
-	 * @return whether this address contains the given address
-	 */
-	public boolean contains(MACAddress other) {
 		if(other == this) {
 			return true;
 		}
-		return getSection().contains(other.getSection());
+		return other instanceof MACAddress && getSection().contains(other.getSection());
 	}
 	
 	@Override
@@ -297,8 +298,18 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
+	public Iterator<MACAddress> prefixBlockIterator() {
+		return getSection().prefixBlockIterator(this);
+	}
+	
+	@Override
 	public Iterator<MACAddressSegment[]> segmentsIterator() {
 		return getSection().segmentsIterator();
+	}
+	
+	@Override
+	public MACAddress add(long increment) {
+		return checkIdentity(getSection().add(increment));
 	}
 	
 	@Override
@@ -367,6 +378,11 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
+	public MACAddress removePrefixLength(boolean zeroed) {
+		return checkIdentity(getSection().removePrefixLength(zeroed));
+	}
+	
+	@Override
 	public MACAddress applyPrefixLength(int prefixLength) {
 		return checkIdentity(getSection().applyPrefixLength(prefixLength));
 	}
@@ -375,15 +391,30 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress adjustPrefixBySegment(boolean nextSegment) {
 		return checkIdentity(getSection().adjustPrefixBySegment(nextSegment));
 	}
+	
+	@Override
+	public MACAddress adjustPrefixBySegment(boolean nextSegment, boolean zeroed) {
+		return checkIdentity(getSection().adjustPrefixBySegment(nextSegment, zeroed));
+	}
 
 	@Override
 	public MACAddress adjustPrefixLength(int adjustment) {
 		return checkIdentity(getSection().adjustPrefixLength(adjustment));
 	}
+	
+	@Override
+	public MACAddress adjustPrefixLength(int adjustment, boolean zeroed) {
+		return checkIdentity(getSection().adjustPrefixLength(adjustment, zeroed));
+	}
 
 	@Override
 	public MACAddress setPrefixLength(int prefixLength) {
 		return checkIdentity(getSection().setPrefixLength(prefixLength));
+	}
+
+	@Override
+	public MACAddress setPrefixLength(int prefixLength, boolean zeroed) {
+		return checkIdentity(getSection().setPrefixLength(prefixLength, zeroed));
 	}
 
 	@Override
@@ -555,17 +586,30 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return toNormalizedString();
 	}
 	
+	public boolean isUnicast() {
+		return !isMulticast();
+	}
+
+	/**
+	 * Multicast MAC addresses have the least significant bit of the first octet set to 1.
+	 */
 	@Override
 	public boolean isMulticast() {
 		return getSegment(0).matchesWithMask(1, 0x1);
 	}
 	
+	/**
+	 * Universal MAC addresses have second the least significant bit of the first octet set to 0.
+	 */
 	public boolean isUniversal() {
-		return getSegment(0).matchesWithMask(0, 0x2);
+		return !isLocal();
 	}
 	
+	/**
+	 * Local MAC addresses have the second least significant bit of the first octet set to 1.
+	 */
 	@Override
 	public boolean isLocal() {
-		return getSegment(0).matchesWithMask(1, 0x2);
+		return getSegment(0).matchesWithMask(2, 0x2);
 	}
 }

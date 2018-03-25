@@ -19,6 +19,7 @@
 package inet.ipaddr.format;
 
 import inet.ipaddr.Address;
+import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
@@ -40,11 +41,15 @@ public abstract class AddressCreator<T extends Address, R extends AddressSection
 
 	public abstract void clearCaches();
 	
+	public abstract AddressNetwork<S> getNetwork();
+	
 	protected abstract T createAddressInternal(S segments[]);
 
 	protected abstract T createAddressInternal(S segments[], Integer prefix);
 	
 	protected abstract T createAddressInternal(S segments[], Integer prefix, boolean singleOnly);
+	
+	protected abstract R createSectionInternal(byte bytes[], int segmentCount, Integer prefix, boolean singleOnly);
 	
 	@Override
 	protected abstract R createSectionInternal(S segments[]);

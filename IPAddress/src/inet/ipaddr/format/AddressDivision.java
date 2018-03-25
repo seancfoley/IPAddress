@@ -21,6 +21,7 @@ package inet.ipaddr.format;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
@@ -121,9 +122,55 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return getUpperValue() - getLowerValue() + 1;
 	}
 	
+	public long getDivisionPrefixCount(int divisionPrefixLength) {
+		int shiftAdjustment = getBitCount() - divisionPrefixLength;
+		return (getUpperValue() >>> shiftAdjustment) - (getLowerValue() >>> shiftAdjustment) + 1;
+	}
+	
 	@Override
 	public BigInteger getCount() {
 		return BigInteger.valueOf(getDivisionValueCount());
+	}
+	
+	static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, long networkMask, long hostMask) {
+		return lowerValue == (lowerValue & networkMask)
+				&& finalUpperValue == (upperValue | hostMask);
+	}
+	
+	/**
+	 * Returns whether the division range includes the block of values for its prefix length
+	 */
+	boolean isPrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
+		if(divisionPrefixLen == 0) {
+			return isFullRange();
+		}
+		long ones = ~0L;
+		long divisionBitMask = ~(ones << getBitCount());
+		long divisionPrefixMask = ones << (getBitCount() - divisionPrefixLen);
+		long divisionNonPrefixMask = ~divisionPrefixMask;
+		return testRange(divisionValue,
+				upperValue,
+				upperValue,
+				divisionPrefixMask & divisionBitMask,
+				divisionNonPrefixMask);
+	}
+
+	/**
+	 * 
+	 * @param divisionValue
+	 * @param divisionPrefixLen
+	 * @return whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen 
+	 */
+	boolean isSinglePrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
+		long ones = ~0L;
+		long divisionBitMask = ~(ones << getBitCount());
+		long divisionPrefixMask = ones << (getBitCount() - divisionPrefixLen);
+		long divisionNonPrefixMask = ~divisionPrefixMask;
+		return testRange(divisionValue,
+				divisionValue,
+				upperValue,
+				divisionPrefixMask & divisionBitMask,
+				divisionNonPrefixMask);
 	}
 	
 	/**
@@ -188,7 +235,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public int compareTo(AddressDivision other) {
-		return IPAddress.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
+		return Address.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
 	}
 	
 	//when divisionPrefixLen is null, isAutoSubnets has no effect
@@ -1217,7 +1264,34 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return (x >>> 16) | (x << 16);
 	}
 	
-	protected static <S extends AddressSegment> Iterator<S> iterator(S original, AddressSegmentCreator<S> creator, boolean returnThisSegment) {
+	protected static <S extends AddressSegment> Iterator<S> iterator(
+			S original,
+			AddressSegmentCreator<S> creator,
+			boolean returnThisSegment,
+			Integer networkIteratorSegmentPrefixLength) {
+		boolean useShiftAdjustment = networkIteratorSegmentPrefixLength != null;
+		int shiftAdjustment, shiftMask, upperShiftMask;
+		int lower = original.getLowerSegmentValue();
+		int upper = original.getUpperSegmentValue();
+		if(useShiftAdjustment) {
+			shiftAdjustment = original.getBitCount() - networkIteratorSegmentPrefixLength;
+			shiftMask = ~0 << shiftAdjustment;
+			upperShiftMask = ~shiftMask;
+			if(returnThisSegment) {
+				int newLow = shiftMask & lower;
+				int newUp = upper | upperShiftMask;
+				if(lower != newLow || upper != newUp) {
+					returnThisSegment = false;
+					lower = newLow;
+					upper = newUp;
+				}
+			}
+		} else {
+			shiftAdjustment = shiftMask = upperShiftMask = 0;
+		}
+		boolean returnThis = returnThisSegment;
+		int lowerValue = lower;
+		int upperValue = upper;
 		if(!original.isMultiple()) {
 			return new Iterator<S>() {
 				boolean done;
@@ -1233,7 +1307,6 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			    		throw new NoSuchElementException();
 			    	}
 			    	done = true;
-			    	S thisSegment = original;
 			    	
 			    	//Even though a segment represents a single value, it still might have a prefix extending to the end of the segment
 			    	//Iterators must return non-prefixed segments.
@@ -1241,11 +1314,11 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			    	//If the segments at the end with prefixes of 0 iterate through all values with no prefix, 
 			    	//then so must the preceding segment with a non-zero prefix,
 			    	//even if that non-zero prefix extends to the end of the segment.
-		    		if(!returnThisSegment) {
-			    		S result = creator.createSegment(thisSegment.getLowerSegmentValue());
+		    		if(!returnThis) {
+			    		S result = creator.createSegment(lowerValue, upperValue, networkIteratorSegmentPrefixLength);
 			    		return result;
 			    	}
-			    	return thisSegment;
+			    	return original;
 			    }
 		
 			    @Override
@@ -1256,7 +1329,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		}
 		return new Iterator<S>() {
 			boolean done;
-			int current = original.getLowerSegmentValue();
+			int current = lowerValue, last = upperValue; {
+				if(useShiftAdjustment) {
+					current >>>= shiftAdjustment;
+					last >>>= shiftAdjustment;
+				}
+			}
 			
 			@Override
 			public boolean hasNext() {
@@ -1268,8 +1346,14 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		    	if(done) {
 		    		throw new NoSuchElementException();
 		    	}
-		    	S result = creator.createSegment(current);
-		    	done = ++current > original.getUpperSegmentValue();
+		    	S result;
+		    	if(useShiftAdjustment) {
+		    		int low = current << shiftAdjustment;
+		    		result = creator.createSegment(low, low | upperShiftMask, networkIteratorSegmentPrefixLength);
+		    	} else {
+		    		result = creator.createSegment(current);
+		    	}
+		    	done = ++current > last;
 		    	return result;
 		    }
 		
@@ -1280,22 +1364,41 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		};
 	}
 	
-	protected static <S extends AddressSegment> S setPrefixedSegment(S original, Integer oldPrefixLength, Integer segmentPrefixLength, AddressSegmentCreator<S> creator) {
-		if(oldPrefixLength == null) {
-			return creator.createSegment(original.getLowerSegmentValue(), original.getUpperSegmentValue(), segmentPrefixLength);
+	protected static <S extends AddressSegment> S setPrefixedSegment(
+			S original,
+			Integer oldSegmentPrefixLength,
+			Integer newSegmentPrefixLength,
+			boolean zeroed,
+			AddressSegmentCreator<S> creator) {
+		if(Objects.equals(oldSegmentPrefixLength, newSegmentPrefixLength)) {
+			return original;
 		}
-		if(segmentPrefixLength == null || segmentPrefixLength > oldPrefixLength) {
-			//zero out the bits between old and new
-			int prefixMask = ~0 << (original.getBitCount() - oldPrefixLength);
-			if(segmentPrefixLength != null) {
-				int newPrefixMask = ~(~0 << (original.getBitCount() - segmentPrefixLength));
-				prefixMask |= newPrefixMask;
+		int newLower, newUpper;
+		if(zeroed) {
+			int prefixMask;
+			int bitCount = original.getBitCount();
+			int allOnes = ~0;
+			if(oldSegmentPrefixLength != null) {
+				if(newSegmentPrefixLength == null) {
+					prefixMask = allOnes << (bitCount - oldSegmentPrefixLength);
+				} else if(oldSegmentPrefixLength > newSegmentPrefixLength) {
+					prefixMask = allOnes << (bitCount - newSegmentPrefixLength);
+					prefixMask |= ~(allOnes << (bitCount - oldSegmentPrefixLength));
+				} else {
+					prefixMask = allOnes << (bitCount - oldSegmentPrefixLength);
+					prefixMask |= ~(allOnes << (bitCount - newSegmentPrefixLength));
+				}
+			} else {
+				//we know newSegmentPrefixLength != null
+				prefixMask = allOnes << (bitCount - newSegmentPrefixLength);
 			}
-			int newLower = original.getLowerSegmentValue() & prefixMask;
-			int newUpper = original.getUpperSegmentValue() & prefixMask;
-			return creator.createSegment(newLower, newUpper, segmentPrefixLength);
+			newLower = original.getLowerSegmentValue() & prefixMask;
+			newUpper = original.getUpperSegmentValue() & prefixMask;
+		} else {
+			newLower = original.getLowerSegmentValue();
+			newUpper = original.getUpperSegmentValue();
 		}
-		return creator.createSegment(original.getLowerSegmentValue(), original.getUpperSegmentValue(), segmentPrefixLength);
+		return creator.createSegment(newLower, newUpper, newSegmentPrefixLength);
 	}
 	
 	protected static <S extends AddressSegment> boolean isReversibleRange(S segment) {

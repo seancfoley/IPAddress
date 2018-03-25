@@ -18,15 +18,15 @@
 
 package inet.ipaddr.test;
 
+import java.util.Objects;
+
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
-
-import java.util.Objects;
-
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv6.IPv6Address;
 
 
@@ -104,7 +104,7 @@ public class HostTest extends TestBase {
 	}
 	
 	static int i;
-	
+
 	void hostTestDouble(boolean pass, HostName addr, boolean doubleTest) {
 		hostTest(pass, addr);
 		//do it a second time to test the caching
@@ -113,7 +113,7 @@ public class HostTest extends TestBase {
 			try {
 				//here we call getHost twice, once after calling getNormalizedLabels and once without calling getNormalizedLabels,
 				//this is because getHost will use the labels but only if they exist already
-				HostName two = createHost(addr.toString());
+				HostName two = createHost(addr.toString(), addr.getValidationOptions());
 				String twoString, oneString;
 				if(i++ % 2 == 0) {
 					two.getNormalizedLabels();
@@ -217,13 +217,34 @@ public class HostTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	private static CharSequence translateReserved(IPv6Address addr, String str) {
+		//This is particularly targeted towards the zone
+		if(!addr.hasZone()) {
+			return str;
+		}
+		int index = str.indexOf(IPv6Address.ZONE_SEPARATOR);
+		StringBuilder translated = new StringBuilder(((str.length() - index) * 3) + index);
+		translated.append(str, 0, index);
+		translated.append("%25");
+		for(int i = index + 1; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if(Validator.isReserved(c)) {
+				translated.append('%').append(Integer.toHexString(c));
+			} else {
+				translated.append(c);
+			}
+		}
+		return translated;
+	}
 	
 	private void testNormalizedMatches(HostName h1) {
 		String normalized;
 		if(h1.isAddress() && h1.asAddress().isPrefixed() && h1.asAddress().isIPv6()) {
-			normalized = '[' + h1.asAddress().getLower().removePrefixLength(false).toNormalizedString() + "]/" + h1.asAddress().getNetworkPrefixLength();
+			IPv6Address addr = h1.asAddress().getLower().removePrefixLength(false).toIPv6();
+			normalized = '[' + translateReserved(addr, addr.toNormalizedString()).toString() + "]/" + h1.asAddress().getNetworkPrefixLength();
 		} else if(h1.isAddress() && h1.asAddress().isIPv6()) {
-			normalized = '[' + h1.asAddress().toNormalizedWildcardString() + "]";
+			IPv6Address addr = h1.asAddress().toIPv6();
+			normalized = '[' + translateReserved(addr, addr.toNormalizedWildcardString()).toString() + "]";
 		} else {
 			normalized = h1.toNormalizedString();
 		}
@@ -234,12 +255,44 @@ public class HostTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testHost(String host, String addrExpected, Integer portExpected, String expectedZone) {
-		testHost(host, addrExpected, addrExpected, portExpected, expectedZone);
+	void testHostAddressWithService(String host, String hostExpected, String serviceExpected, String expectedZone) {
+		testHost(host, hostExpected, hostExpected, null, serviceExpected, expectedZone, null);
 	}
 	
-	void testHost(String host, String hostExpected, String addrExpected, Integer portExpected, String expectedZone) {
+	void testHostWithService(String host, String hostExpected, String serviceExpected, String expectedZone) {
+		testHost(host, hostExpected, null, null, serviceExpected, expectedZone, null);
+	}
+
+	void testHostAddress(String host, String hostExpected, Integer portExpected, String expectedZone) {
+		testHostAddress(host, hostExpected, hostExpected, portExpected, expectedZone);
+	}
+	
+	void testHostAddress(String host, String hostExpected, Integer portExpected, String expectedZone, Integer prefixLength) {
+		testHostAddress(host, hostExpected, hostExpected, portExpected, expectedZone, prefixLength);
+	}
+
+	void testHost(String host, String hostExpected, Integer portExpected, String expectedZone) {
+		testHost(host, hostExpected, null, portExpected, null, expectedZone, null);
+	}
+
+	void testHostAddress(String host, String hostExpected, String addrExpected, Integer portExpected, String expectedZone) {
+		testHost(host, hostExpected, addrExpected, portExpected, null, expectedZone, null);
+	}
+	
+	void testHostAddress(String host, String hostExpected, String addrExpected, Integer portExpected, String expectedZone, Integer prefixLengthExpected) {
+		testHost(host, hostExpected, addrExpected, portExpected, null, expectedZone, prefixLengthExpected);
+	}
+
+	void testHost(String host, String hostExpected, String addrExpected, Integer portExpected, String serviceExpected, String expectedZone, Integer prefixLengthExpected) {
 		HostName hostName = createHost(host);
+		testHost(hostName, hostExpected, addrExpected, portExpected, serviceExpected, expectedZone, prefixLengthExpected);
+	}
+
+	void testHost(HostName hostName, String hostExpected, String addrExpected, Integer portExpected, String serviceExpected, String expectedZone) {
+		testHost(hostName, hostExpected, addrExpected, portExpected, serviceExpected, expectedZone, null);
+	}
+	
+	void testHost(HostName hostName, String hostExpected, String addrExpected, Integer portExpected, String serviceExpected, String expectedZone, Integer prefixLengthExpected) {
 		try {
 			String h = hostName.getHost();
 			IPAddress addressExpected = addrExpected == null ? null : createAddress(addrExpected).getAddress();
@@ -249,6 +302,7 @@ public class HostTest extends TestBase {
 			if(addrHost != null && addrHost.isIPv6()) {
 				zone = addrHost.toIPv6().getZone();
 			}
+			Integer prefLength = hostName.getNetworkPrefixLength();
 			if(!h.equals(hostExpected)) {
 				addFailure(new Failure("failed: host is " + h, hostName));
 			} else if(!Objects.equals(port, portExpected)) {
@@ -257,6 +311,8 @@ public class HostTest extends TestBase {
 				addFailure(new Failure("failed:  zone is " + zone, hostName));
 			} else if(!Objects.equals(addrHost, addressExpected)) {
 				addFailure(new Failure("failed: address is " + addrHost, hostName));
+			} else if(!Objects.equals(prefLength, prefixLengthExpected)) {
+				addFailure(new Failure("failed: prefix is " + prefLength, hostName));
 			}
 		} catch(RuntimeException e) {
 			addFailure(new Failure(e.getMessage(), hostName));
@@ -267,7 +323,7 @@ public class HostTest extends TestBase {
 	boolean isLenient() {
 		return false;
 	}
-
+	
 	public static boolean runDNS = true;
 	
 	@Override
@@ -303,7 +359,11 @@ public class HostTest extends TestBase {
 		testMatches(true, "1.2.3.4", "::ffff:1.2.3.4");//ipv4 mapped
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4%a", "1:2:3:4:5:6:102:304%a");
 		testMatches(false, "1:2:3:4:5:6:1.2.3.4%", "1:2:3:4:5:6:102:304%");
-		testMatches(true, "1:2:3:4:5:6:1.2.3.4%%", "1:2:3:4:5:6:102:304%%"); //we don't validate the zone itself, so the % reappearing as the zone itself is ok
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%%", "1:2:3:4:5:6:102:304%%");
+		testMatches(true, "[1:2:3:4:5:6:1.2.3.4%25%31]", "1:2:3:4:5:6:102:304%1");
+		testMatches(true, "[1:2:3:4:5:6:102:304%25%31]", "1:2:3:4:5:6:102:304%1");
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%-", "1:2:3:4:5:6:102:304%-");
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%-/64", "1:2:3:4:5:6:102:304%-/64");
 		
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4/1:2:3:4:5:6:1.2.3.4", "1:2:3:4:5:6:1.2.3.4");
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4/1:2:3:4:5:6:0.0.0.0", "1:2:3:4:5:6::");
@@ -379,7 +439,15 @@ public class HostTest extends TestBase {
 		hostTest(true, "abc.com/255.0.0.0");
 		hostTest(true, "abc.com/::");
 		hostTest(true, "abc.com/::1");
-		hostTest(true, "abc.com/1::1");
+		
+		//Since service names cannot have ':' and can be at most 15 chars, and since all IPv6 must have a ':' or must be at least 32 digits otherwise, there is no ambiguity below
+		//of course, none of the forms below can appear in a URL
+		hostTest(true, "abc.com/1::1");//this is abc.com with mask 1::1
+		hostTest(true, "abc.com/1:1");//this one is abc.com with prefix 1 and port 1 
+		hostTest(true, "abc.com/1:abc");//this one is abc.com with prefix 1 and service abc
+		hostTest(true, "abc.com/1.2.3.4");//this is abc.com with mask 1.2.3.4
+		hostTest(true, "abc.com:a1-2-3-4");//this is abc.com with service a1-2-3-4 (note service must have at least one letter)
+		
 		hostTest(true, "abc.com/1::");
 		hostTest(true, "abc.com/32");
 		
@@ -393,6 +461,12 @@ public class HostTest extends TestBase {
 		hostTest(true, "2001:0000:1234:0000:0000:C1C0:ABCD:0876%x");//ipv6 must be enclosed in []
 		hostTest(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876%x]");//zones not allowed when using []
 		
+		hostTest(true, "1:2:3:4:5:6:1.2.3.4%%"); //the % is the zone itself, when treated as an address
+		hostTest(false, "[1:2:3:4:5:6:1.2.3.4%%]"); //the % is an encoding, when treated as a host
+		hostTest(true, "1:2:3:4:5:6:1.2.3.4%%"); //the % is allowed in zone, when treated as a address
+		hostTest(true, "[1:2:3:4:5:6:1.2.3.4%25%31]"); //the % is an encoding, when treated as a host, so this is in fact the zone of 1 (%25 is zone char, %31 is 1)
+		hostTest(true, "1:2:3:4:5:6:1.2.3.4%25%31"); //this is in fact the zone 25%31
+
 		hostTest(true, "1.2.3.4");
 		hostTest_inet_aton(true, "1.2.3");
 		hostTest(true,"0x1.0x2.0x3.04");
@@ -556,34 +630,34 @@ public class HostTest extends TestBase {
 		hostTest(false, "as.b.com..");//ends with dots	
 		
 		
-		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, null);
-		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbbbseth0.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, "eth0");
-		testHost("aa-bb-cc-dd-ee-ff.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments
-		testHost("aa-Bb-cc-dd-ee-FF.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments
-		testHost("aa-bb-cc-dd-ee-ff-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
-		testHost("aa-Bb-cc-dd-ee-FF-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
-		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.arpa", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
-		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
-		testHost("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
-		testHost("F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
-		testHost("f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "f.f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", 45, null);//not a valid address
-		testHost("255.22.2.111.in-addr.arpa", "111.2.22.255", null, null);
-		testHost("255.22.2.111.in-addr.arpa:35", "111.2.22.255", 35, null);
+		testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, null);
+		testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbbbseth0.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", "aa:bb:cc:dd:ee:ff:aaaa:bbbb%eth0", null, "eth0");
+		testHost("aa-bb-cc-dd-ee-ff.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments, but a valid host
+		testHost("aa-Bb-cc-dd-ee-FF.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", null, null);//not a valid address, too few segments, but a valid host
+		testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
+		testHostAddress("aa-Bb-cc-dd-ee-FF-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", null, null);
+		testHostAddress("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.arpa", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
+		testHostAddress("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", null, null);
+		testHostAddress("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
+		testHostAddress("F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", 45, null);
+		testHost("f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "f.f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", 45, null);//not a valid address, but a valid host
+		testHostAddress("255.22.2.111.in-addr.arpa", "111.2.22.255", null, null);
+		testHostAddress("255.22.2.111.in-addr.arpa:35", "111.2.22.255", 35, null);
 		testHost("255.22.2.111.3.in-addr.arpa:35", "255.22.2.111.3.in-addr.arpa", 35, null);
-		testHost("1.2.2.1:33", "1.2.2.1", 33, null);
-		testHost("[::1]:33", "::1", 33, null);
-		testHost("::1:33", "::1:33", null, null);
-		testHost("::1%eth0", "::1", null, "eth0");
-		testHost("[::1%eth0]:33", "::1", 33, "eth0");
-		testHost("bla.bla:33", "bla.bla", null, 33, null);
+		testHostAddress("1.2.2.1:33", "1.2.2.1", 33, null);
+		testHostAddress("[::1]:33", "::1", 33, null);
+		testHostAddress("::1:33", "::1:33", null, null);
+		testHostAddress("::1%eth0", "::1", "::1%eth0", null, "eth0");
+		testHostAddress("[::1%eth0]:33", "::1", "::1%eth0", 33, "eth0");
+		testHost("bla.bla:33", "bla.bla", 33, null);
 		testHost("blA:33", "bla", 33, null);
 		testHost("f:33", "f", 33, null);
-		testHost("f::33", "f::33", null, null);
-		testHost("::1", "::1", null, null);
-		testHost("[::1]", "::1", null, null);
-		testHost("/16", "/16", null, null);
-		testHost("/32", "/32", null, null);
-		testHost("/64", isNoAutoSubnets ? "ffff:ffff:ffff:ffff::" : "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff::/64", null, null);
+		testHostAddress("f::33", "f::33", null, null);
+		testHostAddress("::1", "::1", null, null);
+		testHostAddress("[::1]", "::1", null, null);
+		testHostAddress("/16", "/16", null, null, 16);
+		testHostAddress("/32", "/32", null, null, 32);
+		testHostAddress("/64", isNoAutoSubnets ? "ffff:ffff:ffff:ffff::" : "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff::/64", null, null, 64);
 		
 		hostTest(true, "255.22.2.111.3.in-addr.arpa:35");//not a valid address but still a valid host
 		hostTest(false, "[::1]x");
@@ -597,5 +671,124 @@ public class HostTest extends TestBase {
 		hostTest(true, "f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int");//not an address, but a valid host
 		hostTest(false, "aa-bb-cc-dd-ee-ff-.ipv6-literal.net");
 		hostTest(true, "aa-bb-cc-dd-ge-ff.ipv6-literal.net"); //not an address but a valid host
+
+		testHostAddressWithService("1.2.3.4:nfs", "1.2.3.4", "nfs", null);
+		testHost("[::1%eth0]:nfs", "::1", "::1%eth0", null, "nfs", "eth0", null);
+		testHostAddressWithService("1.2.3.4:12345678901234a", "1.2.3.4", "12345678901234a", null);
+		hostTest(false, "1.2.3.4:123456789012345a");
+		hostTest(false, "1.2.3.4:");
+		testHostAddressWithService("[::1]:12345678901234a", "::1", "12345678901234a", null);
+		testHostAddressWithService("[::1]:12345678901234x", "::1", "12345678901234x", null);
+		testHostAddressWithService("1.2.3.4:a", "1.2.3.4", "a", null);
+		testHostAddressWithService("1.2.3.4:a-b-c", "1.2.3.4", "a-b-c", null);
+		testHostAddressWithService("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:a-b-c", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "a-b-c", null);
+		hostTest(false, "1.2.3.4:a-");
+		hostTest(false, "1.2.3.4:-a");
+		hostTest(false, "1.2.3.4:a--b");
+		hostTest(false, "1.2.3.4:x-");
+		hostTest(false, "1.2.3.4:-x");
+		hostTest(false, "1.2.3.4:x--x");
+		
+		testHost("a.b.c/16:nfs", "a.b.c", null, null, "nfs", null, 16);
+		testHost("a.b.c/16:80", "a.b.c", null, 80, null, null, 16);
+		testHostWithService("a.b.c:nfs", "a.b.c", "nfs", null);
+		hostTest(false, "[a.b.com]:nfs");//non-Ipv6 inside brackets
+		hostTest(true, "[::]:nfs");
+		testHostWithService("a.b.com:12345678901234a", "a.b.com", "12345678901234a", null);
+		testHostWithService("a.b.com:12345678901234x", "a.b.com", "12345678901234x", null);
+		testHostWithService("a.b.com:x12345678901234", "a.b.com", "x12345678901234", null);
+		testHostWithService("a.b.com:12345x789012345", "a.b.com", "12345x789012345", null);
+		testHostWithService("a.b.com:a", "a.b.com", "a", null);
+		testHostWithService("a.b.com:a-b-c", "a.b.com", "a-b-c", null);
+		testHostWithService("a.b.c:a-b-c", "a.b.c", "a-b-c", null);
+		testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:a-b-c", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "a-b-c", null);
+		testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:12345x789012345", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "12345x789012345", null);
+	
+		HostNameParameters expectPortParams = HOST_OPTIONS.toBuilder().expectPort(true).toParams();
+		testHostAddressWithService("fe80::6a05:caff:fe3:nfs", "fe80::6a05:caff:fe3", "nfs", null);
+		testHostAddress("fe80::6a05:caff:fe3:123", "fe80::6a05:caff:fe3:123", null, null);
+		HostName hostName = createHost("fe80::6a05:caff:fe3:123", expectPortParams);
+		testHost(hostName, "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3", 123, null, null);
+		
+		testHostAddress("[1::%25%241]", "1::", "1::%$1", null, "$1");
+		testHostAddress("[1::%%241]", "1::", "1::%$1", null, "$1");//when zone marker not %25 we are forgiving
+		testHostAddress("[1::%25%241]:123", "1::", "1::%$1", 123, "$1");
+		testHostAddress("[1::%%241]:123", "1::", "1::%$1", 123, "$1");
+		testHostAddress("1::%25%241:123", "1::", "1::%25%241", 123, "25%241");//%hexhex encoding only when inside '[]' since '[]' is the proper URL format
+		testHostAddress("1::%%241:123", "1::", "1::%%241", 123, "%241");
+		
+		testHostAddress("1::%%1/16", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%%1/16", null, "%1", 16);
+		testHostAddress("[1::%251]/16", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", null, "1", 16);
+		
+		testHostAddress("[1::%251/16]:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", 3, "1", 16);
+		testHostAddress("1::%1/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", 3, "1", 16);
+		testHostAddress("1::%%1/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%%1/16", 3, "%1", 16);//that's right, zone, prefix and port!
+		testHostAddress("[1::/16]:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", 3, null, 16);
+		hostTest(false, "[1::/16]/32");//conflicting prefix length
+		hostTest(true, "[1::/16]/16");
+		hostTest(false, "[1.2.3.4/16]/32");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/16]/16");
+		hostTest(false, "[1.2.3.4/16]/255.255.255.0");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/16]/255.255.0.0");
+		hostTest(false, "[1.2.3.4/255.255.255.0]/16");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/255.255.0.0]/16");
+		hostTest(true, "[1.2.3.4/255.255.255.0]/255.255.255.0");
+		hostTest(false, "[1.2.3.4/255.255.0.0]/255.255.255.0");//conflicting mask
+		hostTest(false, "[1.2.3.4/255.255.255.0]/255.255.0.0");//conflicting mask
+		testHostAddress("1::/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", 3, null, 16);
+		testHostAddress("[1::%251/16]", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", null, "1", 16);
+		testHostAddress("[1::%25%241/16]", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%$1/16", null, "$1", 16);
+
+		testHostAddress("1::%1/16", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", null, "1", 16);
+		testHostAddress("1::%1%1/16", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1%1/16", null, "1%1", 16);
+		testHostAddress("1.2.3.4/16", !isAllSubnets ? "1.2.3.4" : "1.2.*.*", "1.2.3.4/16", null, null, 16);
+		testHostAddress("1.2.0.0/16", isNoAutoSubnets ? "1.2.0.0" : "1.2.*.*", "1.2.0.0/16", null, null, 16);
+		testHost("a.b.com/24", "a.b.com", null, null, null, null, 24);
+
+		testHostAddress("[fe80::%2]/64", isNoAutoSubnets ? "fe80::" : "fe80::*:*:*:*", "fe80::%2/64", null, "2", 64);//prefix outside the host (can be either inside or outside)
+		testHostAddress("fe80::%2/64", isNoAutoSubnets ? "fe80::" : "fe80::*:*:*:*", "fe80::%2/64", null, "2", 64);
+
+		testHostAddress("[::123%25%25%25aaa%25]", "::123", "::123%%%aaa%", null, "%%aaa%");
+		testHostAddress("[::123%25%25%25%24aa%25]", "::123", "::123%%%$aa%", null, "%%$aa%");
+		testHostAddress("[::123%25%24%25%24aa%25]", "::123", "::123%$%$aa%", null, "$%$aa%");
+		testHostAddress("::123%%%", "::123", "::123%%%", null, "%%");
+
+		testHostAddress("fe80:0:0:0:0:6a05:caff:fe3%x:123", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", 123, "x");
+		
+		testHost("fe80:0:0:0:0:6a05:caff:fe3%x:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", null, "abc", "x", null);
+		testHost("fe80:0:0:0:0:6a05:caff:fe3%x/64:abc", isAllSubnets ?  "fe80::*:*:*:*" : "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x/64", null, "abc", "x", 64);//that's right, zone, prefix and service
+		testHost("[fe80:0:0:0:0:6a05:caff:fe3%x/64]:abc", isAllSubnets ?  "fe80::*:*:*:*" : "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x/64", null, "abc", "x", 64);//that's right, zone, prefix and service 
+		testHostAddress("fe80::6a05:caff:fe3%x:123", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", 123, "x");
+		testHost("fe80::6a05:caff:fe3%x:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", null, "abc", "x", null);
+
+		testHostAddress("fe80:0:0:0:0:6a05:caff:fe3", "fe80::6a05:caff:fe3", null, null);
+		testHostAddressWithService("fe80:0:0:0:0:0:6a05:caff:fe3", "fe80::6a05:caff", "fe3", null);
+		testHostAddress("fe80:0:0:0:0:6a05:caff:fe3:123", "fe80::6a05:caff:fe3", 123, null);
+		testHostAddressWithService("fe80:0:0:0:0:6a05:caff:fe3:*", "fe80::6a05:caff:fe3", "*", null);
+		testHostAddress("::1:8888", "::1:8888", null, null);
+		testHostAddressWithService("::1:88g8", "::1", "88g8", null);
+		testHostAddressWithService("::1:88a8", "::1:88a8", null, null);
+		hostName = createHost("::1:88a8", expectPortParams);
+		testHost(hostName, "::1", "::1", null, "88a8", null);
+		testHostAddress("::1:48888", "::1", 48888, null);
+		testHostAddressWithService("::1:nfs", "::1", "nfs", null);
+		testHostAddressWithService(":::*", "::", "*", null);
+		testHostAddress(":::1", "::", 1, null);
+		testHostAddress(":::123", "::", 123, null);
+		testHostAddress("[::]:123", "::", 123, null);
+		
+		hostTest(false, "::1:88888");//port too large, also too large to be ipv6 segment
+		hostTest(false, "::1:88-8");//invalid because no letter in service name, nor is it a port
+		hostTest(true, "::1:8888");
+		hostTest(true, "::1:58888");
+		hostTest(true, "::1:8a-8");
+		hostTest(isLenient(), "::1:-8a88");//this passes if the second segment considered a range
+		hostTest(false, "1.2.3.4:-8a8");//-8a8 can only be a port or service, but leading hyphen not allowed for a service
+		hostTest(true, "1.2.3.4:8-a8");
+		
+		hostTest(isLenient(), "::1:8a8-:2");
+		hostTest(isLenient(), "::1:-8a8:2");
+		hostTest(isLenient(), "::1:8a8-");//this passes if the second segment considered a range, cannot be a service due to trailing hyphen
+		hostTest(isLenient(), "::1:-8a8");//this passes if the second segment considered a range, cannot be a service due to leading hyphen
 	}
 }

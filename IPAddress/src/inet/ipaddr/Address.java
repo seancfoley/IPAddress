@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import inet.ipaddr.AddressComparator.CountComparator;
-import inet.ipaddr.format.AddressDivision;
 import inet.ipaddr.format.AddressDivisionSeries;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
@@ -166,61 +165,38 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		return getSection().getByteCount();
 	}
 
+	@Override
 	public AddressSection getSection() {
 		return addressSection;
 	}
 
 	@Override
-	public AddressSection getSection(int index) {
-		return getSection().getSection(index);
-	}
-
-	@Override
-	public AddressSection getSection(int index, int endIndex) {
-		return getSection().getSection(index, endIndex);
-	}
-	
-	@Override
-	public AddressDivision getDivision(int index) {
-		return getSection().getDivision(index);
-	}
-	
-	@Override
-	public AddressSegment getSegment(int index) {
-		return getSection().getSegment(index);
-	}
-
-	@Override
-	public AddressSegment[] getSegments() {
-		return getSection().getSegments();
-	}
-	
-	@Override
 	public void getSegments(AddressSegment segs[]) {
 		getSection().getSegments(segs);
 	}
-	
+
 	@Override
 	public void getSegments(int start, int end, AddressSegment segs[], int index) {
 		getSection().getSegments(start, end, segs, index);
 	}
-	
+
 	/**
 	 * @return the maximum possible segment value for this type of address.  
 	 * Note this is not the maximum value of the segments in this specific address.
 	 */
 	public abstract int getMaxSegmentValue();
-	
+
 	@Override
 	public abstract Iterable<? extends Address> getIterable();
-	
+
 	@Override
 	public abstract Iterator<? extends Address> iterator();
 	
 	@Override
-	public Iterator<? extends AddressSegment[]> segmentsIterator() {
-		return getSection().segmentsIterator();
-	}
+	public abstract Iterator<? extends Address> prefixBlockIterator();
+	
+	@Override
+	public abstract Address add(long increment);
 	
 	@Override
 	public abstract Address getLower();
@@ -312,6 +288,18 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		return getSection().getCount();
 	}
 	
+	/**
+	 * If this has a prefix length, the count of the range of values in the prefix.
+	 * 
+	 * If this has no prefix, returns the same value as {@link #getCount()}
+	 * 
+	 * @return
+	 */
+	@Override
+	public BigInteger getPrefixCount() {
+		return getSection().getPrefixCount();
+	}
+	
 	@Override
 	public int isMore(AddressDivisionSeries other) {
 		return getSection().isMore(other);
@@ -377,6 +365,10 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		return getSection().isFullRange();
 	}
 	
+	/**
+	 * Whether the address can be considered a local address (as opposed to a global one)
+	 * @return
+	 */
 	public abstract boolean isLocal();
 	
 	@Override
@@ -418,26 +410,6 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	public abstract boolean contains(Address other);
 
-	/**
-	 * Returns whether the address range includes the block of values for its prefix length.
-	 */
-	@Override
-	public boolean isPrefixBlock() {
-		return getSection().isPrefixBlock();
-	}
-
-	/**
-	 * Returns whether the address range the block of values for a single prefix.
-	 * This is similar to {@link #isPrefixBlock()} except that it returns false when
-	 * the subnet has multiple prefixes.
-	 * 
-	 * For instance, 1.*.*.* /16 return false for this method and returns true for {@link #isPrefixBlock()}
-	 */
-	@Override
-	public boolean isSinglePrefixBlock() {
-		return getSection().isSinglePrefixBlock();
-	}
-	
 	/**
 	 * Returns a host identifier string representation for this address,
 	 * which will be already validated.
@@ -520,6 +492,36 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	@Override
 	public abstract Address reverseBytesPerSegment();
 	
+	/**
+	 * Returns whether the address range has a prefix length and includes the block of values for its prefix length.
+	 */
+	@Override
+	public boolean isPrefixBlock() {
+		return getSection().isPrefixBlock();
+	}
+
+	@Override
+	public boolean containsPrefixBlock(int prefixLength) {
+		return getSection().containsPrefixBlock(prefixLength);
+	}
+	
+	/**
+	 * Returns whether the address range the block of values for a single prefix identified by its prefix length.
+	 * This is similar to {@link #isPrefixBlock()} except that it returns false when
+	 * the subnet has multiple prefixes.
+	 * 
+	 * For instance, 1.*.*.* /16 return false for this method and returns true for {@link #isPrefixBlock()}
+	 */
+	@Override
+	public boolean isSinglePrefixBlock() {
+		return getSection().isSinglePrefixBlock();
+	}
+	
+	@Override
+	public boolean containsSinglePrefixBlock(int prefixLength) {
+		return getSection().containsSinglePrefixBlock(prefixLength);
+	}
+
 	@Override
 	public abstract Address toPrefixBlock();
 	
@@ -527,13 +529,25 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public abstract Address removePrefixLength();
 	
 	@Override
+	public abstract Address removePrefixLength(boolean zeroed);
+	
+	@Override
 	public abstract Address adjustPrefixBySegment(boolean nextSegment);
+
+	@Override
+	public abstract Address adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
 
 	@Override
 	public abstract Address adjustPrefixLength(int adjustment);
 
 	@Override
+	public abstract Address adjustPrefixLength(int adjustment, boolean zeroed);
+
+	@Override
 	public abstract Address setPrefixLength(int prefixLength);
+	
+	@Override
+	public abstract Address setPrefixLength(int prefixLength, boolean zeroed);
 	
 	@Override
 	public abstract Address applyPrefixLength(int networkPrefixLength);

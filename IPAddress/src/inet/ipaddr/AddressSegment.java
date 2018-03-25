@@ -52,7 +52,7 @@ public interface AddressSegment extends AddressComponent, Comparable<AddressDivi
 	AddressNetwork<?> getNetwork();
 	
 	/**
-	 * @return the same value as {@link #getCount()}
+	 * @return the same value as {@link #getCount()} as an integer
 	 */
 	int getValueCount();
 

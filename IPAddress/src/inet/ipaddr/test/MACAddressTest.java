@@ -963,6 +963,10 @@ public class MACAddressTest extends TestBase {
 		}
 	}
 	
+	void testIncrement(String originalStr, long increment, String resultStr) {
+		testIncrement(createMACAddress(originalStr).getAddress(), increment, resultStr == null ? null : createMACAddress(resultStr).getAddress());
+	}
+	
 	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	boolean isLenient() {
 		return false;
@@ -1449,5 +1453,87 @@ public class MACAddressTest extends TestBase {
 		BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
 		BigInteger sixty4 = thirtyTwo.shiftLeft(32).or(thirtyTwo);
 		testMACValues(new int[] {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, sixty4.toString(), String.valueOf(-1));
+		
+		testIncrement("ff:ff:ff:ff:f0:0:0:0", 1, "ff:ff:ff:ff:f0:0:0:1");
+		testIncrement("ff:ff:ff:ff:f0:0:0:0", -1, "ff:ff:ff:ff:ef:ff:ff:ff");
+		testIncrement("ff:ff:f0:0:0:0", 1, "ff:ff:f0:0:0:1");
+		testIncrement("ff:ff:f0:0:0:0", -1, "ff:ff:ef:ff:ff:ff");
+	    
+		testIncrement("80:0:0:0:0:0:0:0", Long.MIN_VALUE, "0:0:0:0:0:0:0:0");
+		testIncrement("7f:ff:ff:ff:ff:ff:ff:ff", Long.MIN_VALUE, null);
+		testIncrement("7f:ff:ff:ff:ff:ff:ff:fe", Long.MIN_VALUE, null);
+		testIncrement("0:0:0:0:80:0:0:0", Long.MIN_VALUE, null);
+		testIncrement("80:0:0:0:0:0:0:0", Long.MAX_VALUE, "ff:ff:ff:ff:ff:ff:ff:ff");
+		testIncrement("80:0:0:0:0:0:0:1", Long.MAX_VALUE, null);
+
+		testIncrement("ff:ff:ff:ff:80:0:0:0",-0x80000000L, "ff:ff:ff:ff:0:0:0:0");
+		testIncrement("ff:ff:ff:ff:7f:ff:ff:ff", -0x80000000L, "ff:ff:ff:fe:ff:ff:ff:ff");
+		testIncrement("ff:ff:ff:ff:7f:ff:ff:fe", -0x80000000L, "ff:ff:ff:fe:ff:ff:ff:fe");
+		testIncrement("0:0:0:0:80:0:0:0", -0x80000000L, "0:0:0:0:0:0:0:0");
+		testIncrement("0:0:0:0:7f:ff:ff:ff", -0x80000000L, null);
+		testIncrement("0:0:0:0:7f:ff:ff:ff", -0x80000000L, null);
+		testIncrement("0:0:0:0:7f:ff:ff:fe", -0x80000000L, null);
+		testIncrement("ff:ff:ff:ff:80:0:0:0", 0x7fffffffL, "ff:ff:ff:ff:ff:ff:ff:ff");
+		testIncrement("ff:ff:ff:ff:80:0:0:1", 0x7fffffffL, null);
+
+		testIncrement("ff:ff:80:0:0:0",-0x80000000L, "ff:ff:0:0:0:0");
+		testIncrement("ff:ff:7f:ff:ff:ff", -0x80000000L, "ff:fe:ff:ff:ff:ff");
+		testIncrement("ff:ff:7f:ff:ff:fe", -0x80000000L, "ff:fe:ff:ff:ff:fe");
+		testIncrement("0:0:80:0:0:0", -0x80000000L, "0:0:0:0:0:0");
+		testIncrement("0:0:7f:ff:ff:ff", -0x80000000L, null);
+		testIncrement("0:0:7f:ff:ff:ff", -0x80000000L, null);
+		testIncrement("0:0:7f:ff:ff:fe", -0x80000000L, null);
+		testIncrement("ff:ff:80:0:0:0", 0x7fffffffL, "ff:ff:ff:ff:ff:ff");
+		testIncrement("ff:ff:80:0:0:1", 0x7fffffffL, null);
+
+		testIncrement("0:0:0:0:0:0:0:1", 1, "0:0:0:0:0:0:0:2");
+		testIncrement("0:0:0:0:0:0:0:1", 0, "0:0:0:0:0:0:0:1");
+		testIncrement("0:0:0:0:0:0:0:1", -1, "0:0:0:0:0:0:0:0");
+		testIncrement("0:0:0:0:0:0:0:1", -2, null);
+		testIncrement("0:0:0:0:0:0:0:2", 1, "0:0:0:0:0:0:0:3");
+		testIncrement("0:0:0:0:0:0:0:2", -1, "0:0:0:0:0:0:0:1");
+		testIncrement("0:0:0:0:0:0:0:2", -2, "0:0:0:0:0:0:0:0");
+		testIncrement("0:0:0:0:0:0:0:2", -3, null);
+		
+		testIncrement("0:0:0:0:0:1", 1, "0:0:0:0:0:2");
+		testIncrement("0:0:0:0:0:1", 0, "0:0:0:0:0:1");
+		testIncrement("0:0:0:0:0:1", -1, "0:0:0:0:0:0");
+		testIncrement("0:0:0:0:0:1", -2, null);
+		testIncrement("0:0:0:0:0:2", 1, "0:0:0:0:0:3");
+		testIncrement("0:0:0:0:0:2", -1, "0:0:0:0:0:1");
+		testIncrement("0:0:0:0:0:2", -2, "0:0:0:0:0:0");
+		testIncrement("0:0:0:0:0:2", -3, null);
+
+		testIncrement("1:0:0:0:0:0:0:1", 0, "1:0:0:0:0:0:0:1");
+		testIncrement("1:0:0:0:0:0:0:1", 1, "1:0:0:0:0:0:0:2");
+		testIncrement("1:0:0:0:0:0:0:1", -1, "1:0:0:0:0:0:0:0");
+		testIncrement("1:0:0:0:0:0:0:1", -2, "0:ff:ff:ff:ff:ff:ff:ff");
+		testIncrement("1:0:0:0:0:0:0:2", 1, "1:0:0:0:0:0:0:3");
+		testIncrement("1:0:0:0:0:0:0:2", -1, "1:0:0:0:0:0:0:1");
+		testIncrement("1:0:0:0:0:0:0:2", -2, "1:0:0:0:0:0:0:0");
+		testIncrement("1:0:0:0:0:0:0:2", -3, "0:ff:ff:ff:ff:ff:ff:ff");
+		
+		testIncrement("1:0:0:0:0:1", 0, "1:0:0:0:0:1");
+		testIncrement("1:0:0:0:0:1", 1, "1:0:0:0:0:2");
+		testIncrement("1:0:0:0:0:1", -1, "1:0:0:0:0:0");
+		testIncrement("1:0:0:0:0:1", -2, "0:ff:ff:ff:ff:ff");
+		testIncrement("1:0:0:0:0:2", 1, "1:0:0:0:0:3");
+		testIncrement("1:0:0:0:0:2", -1, "1:0:0:0:0:1");
+		testIncrement("1:0:0:0:0:2", -2, "1:0:0:0:0:0");
+		testIncrement("1:0:0:0:0:2", -3, "0:ff:ff:ff:ff:ff");
+		
+		testIncrement("0:0:0:0:0:0:0:fe", 2, "0:0:0:0:0:0:1:0");
+		testIncrement("0:0:0:0:0:0:0:ff", 2, "0:0:0:0:0:0:1:1");
+		testIncrement("0:0:0:0:0:0:1:ff", 2, "0:0:0:0:0:0:2:1");
+		testIncrement("0:0:0:0:0:0:1:ff", -2, "0:0:0:0:0:0:1:fd");
+		testIncrement("0:0:0:0:0:0:1:ff", -0x100, "0:0:0:0:0:0:0:ff");
+		testIncrement("0:0:0:0:0:0:1:ff", -0x101, "0:0:0:0:0:0:0:fe");
+		
+		testIncrement("0:0:0:0:0:fe", 2, "0:0:0:0:1:0");
+		testIncrement("0:0:0:0:0:ff", 2, "0:0:0:0:1:1");
+		testIncrement("0:0:0:0:1:ff", 2, "0:0:0:0:2:1");
+		testIncrement("0:0:0:0:1:ff", -2, "0:0:0:0:1:fd");
+		testIncrement("0:0:0:0:1:ff", -0x100, "0:0:0:0:0:ff");
+		testIncrement("0:0:0:0:1:ff", -0x101, "0:0:0:0:0:fe");
 	}
 }

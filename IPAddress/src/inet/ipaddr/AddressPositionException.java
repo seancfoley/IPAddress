@@ -48,4 +48,8 @@ public class AddressPositionException extends AddressValueException {
 	public AddressPositionException(AddressItem item, int position) {
 		super(item + ", " + position + ", " + errorMessage + " " + getMessage("ipaddress.error.invalid.position"));
 	}
+	
+	public AddressPositionException(AddressItem item, int position, int otherPosition) {
+		super(item + ", " + position + ", " + otherPosition + ", " + errorMessage + " " + getMessage("ipaddress.error.invalid.position"));
+	}
 }

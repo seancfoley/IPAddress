@@ -129,18 +129,8 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 		return shifted == 0 ? bitCount - hostLength : null;
 	}
 
-	private static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, long networkMask, long hostMask) {
-		return lowerValue == (lowerValue & networkMask)
-				&& finalUpperValue == (upperValue | hostMask);
-	}
-	
-	/**
-	 * Returns whether the division range includes the block of values for its prefix length
-	 */
-	private boolean isPrefixBlock(long segmentValue, long upperValue, Integer divisionPrefixLen) {
-		if(divisionPrefixLen == null) {
-			return false;
-		}
+	@Override
+	boolean isPrefixBlock(long segmentValue, long upperValue, int divisionPrefixLen) {
 		if(divisionPrefixLen == 0) {
 			return isFullRange();
 		}
@@ -150,17 +140,9 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 				getDivisionNetworkMask(divisionPrefixLen),
 				getDivisionHostMask(divisionPrefixLen));
 	}
-	
-	/**
-	 * 
-	 * @param segmentValue
-	 * @param divisionPrefixLen
-	 * @return whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen 
-	 */
-	private boolean isSinglePrefixBlock(long segmentValue, long upperValue, Integer divisionPrefixLen) {
-		if(divisionPrefixLen == null) {
-			return false;
-		}
+
+	@Override
+	boolean isSinglePrefixBlock(long segmentValue, long upperValue, int divisionPrefixLen) {
 		return testRange(segmentValue,
 				segmentValue,
 				upperValue,
@@ -173,18 +155,15 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * 
 	 * @param divisionPrefixLen
 	 * @return whether the range of this segment matches the block of address divisions for that prefix.
-	 * 	If the prefix is null then this returns false.
 	 */
-	boolean isSinglePrefixBlock(long segmentValue, Integer divisionPrefixLen) {
+	boolean isSinglePrefixBlock(long segmentValue, int divisionPrefixLen) {
 		return isSinglePrefixBlock(segmentValue, getUpperValue(), divisionPrefixLen);
 	}
 	
 	/**
-	 * @return whether the division range includes the block of values for the given prefix length,
-	 *  or false if the given prefix length is null
+	 * @return whether the division range includes the block of values for the given prefix length
 	 */
-	@Override
-	public boolean isPrefixBlock(Integer divisionPrefixLen) {
+	public boolean isPrefixBlock(int divisionPrefixLen) {
 		return isPrefixBlock(getLowerValue(), getUpperValue(), divisionPrefixLen);
 	}
 
@@ -192,8 +171,9 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * @return whether the division range includes the block of values for the division prefix length,
 	 *  or false if the division has no prefix length
 	 */
+	@Override
 	public boolean isPrefixBlock() {
-		return isPrefixBlock(getDivisionPrefixLength());
+		return isPrefixed() && isPrefixBlock(getDivisionPrefixLength());
 	}
 
 	/**
@@ -206,7 +186,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * @return whether the range of this segment matches the block of address divisions for that prefix.
 	 * 	If the prefix is null or equal to the bit length, then this returns true for non-multiple addresses.
 	 */
-	public boolean isSinglePrefixBlock(Integer divisionPrefixLen) {
+	public boolean isSinglePrefixBlock(int divisionPrefixLen) {
 		return isSinglePrefixBlock(getLowerValue(), getUpperValue(), divisionPrefixLen);
 	}
 
@@ -216,7 +196,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	@Override
 	public boolean isSinglePrefixBlock() {//since this one is commonly used for string production, it is cached
 		if(isSinglePrefixBlock == null) {
-			isSinglePrefixBlock = isSinglePrefixBlock(getDivisionPrefixLength());
+			isSinglePrefixBlock = isPrefixed() && isSinglePrefixBlock(getDivisionPrefixLength());
 		}
 		return isSinglePrefixBlock;
 	}

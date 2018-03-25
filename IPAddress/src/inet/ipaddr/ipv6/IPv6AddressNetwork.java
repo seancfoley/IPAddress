@@ -23,7 +23,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import inet.ipaddr.Address.SegmentValueProvider;
-import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress.IPVersion;
@@ -46,6 +45,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 
 	static final IPv6AddressSegment EMPTY_SEGMENTS[] = {};
 	private static final IPv6AddressSection EMPTY_SECTION[] = {};
+	private static final IPv6Address EMPTY_ADDRESS[] = {};
 	
 	private static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 	
@@ -56,7 +56,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 
 		private transient IPv6AddressSegment ZERO_PREFIX_SEGMENT, ALL_RANGE_SEGMENT;
 
-		//there are 0x10000 (ie 0xffff + 1) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
+		//there are 0x10000 (ie 0xffff + 1 or 64k) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
 		private transient IPv6AddressSegment segmentCache[][];
 		
 		//we maintain a similar cache for each potential prefixed segment.  
@@ -244,10 +244,10 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 
 		@Override
-		protected IPv6AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
-			return new IPv6AddressSection(bytes, prefix, false);
+		protected IPv6AddressSection createSectionInternal(byte[] bytes, int segmentCount, Integer prefix, boolean singleOnly) {
+			return new IPv6AddressSection(bytes, segmentCount, prefix, false, singleOnly);
 		}
-		
+
 		@Override
 		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[]) {
 			return new IPv6AddressSection(segments, 0, false);
@@ -300,15 +300,15 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		
 		@Override
 		public IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
-			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true, false);
 		}
 		
 		protected IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) {
-			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true);
+			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true, false);
 		}
 		
 		protected IPv6AddressSection createSectionInternal(byte bytes[], int segmentCount, Integer prefix) {
-			return new IPv6AddressSection(bytes, 0, bytes.length, segmentCount, prefix, false);
+			return new IPv6AddressSection(bytes, 0, bytes.length, segmentCount, prefix, false, false);
 		}
 		
 		@Override
@@ -335,8 +335,16 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 		
 		@Override
+		protected IPv6Address[] createAddressArray(int length) {
+			if(length == 0) {
+				return EMPTY_ADDRESS;
+			}
+			return new IPv6Address[length];
+		}
+		
+		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[], CharSequence zone) {
-			return createAddress(createSectionInternal(segments), zone);
+			return createAddressInternal(createSectionInternal(segments), zone);
 		}
 		
 		@Override
@@ -357,10 +365,14 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 
 		@Override
+		protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone) {
+			return new IPv6Address(section, zone, false);
+		}
+		
 		public IPv6Address createAddress(IPv6AddressSection section, CharSequence zone) {
 			return new IPv6Address(section, zone);
 		}
-		
+
 		@Override
 		public IPv6Address createAddress(IPv6AddressSection section) {
 			return new IPv6Address(section);

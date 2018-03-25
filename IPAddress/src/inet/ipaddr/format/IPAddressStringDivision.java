@@ -31,7 +31,7 @@ public interface IPAddressStringDivision extends AddressStringDivision {
 	/**
 	 * Returns whether the division range includes the block of values for its prefix length
 	 */
-	boolean isPrefixBlock(Integer divisionPrefixLen);
+	boolean isPrefixBlock();
 
 	/**
 	 * Returns whether the division range matches the block of values for its prefix length

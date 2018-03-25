@@ -426,6 +426,7 @@ public class SpecialTypesTest extends TestBase {
 		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
 		
 		testIPv4Strings("*", true, "*.*.*.*", "*.*.*.*", "%.%.%.%", "000-255.000-255.000-255.000-255", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
+		testIPv4Strings("***.***.***.***", true, "*.*.*.*", "*.*.*.*", "%.%.%.%", "000-255.000-255.000-255.000-255", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
 		testIPv4Strings("*.*", false, "*.*.*.*", "*.*.*.*", "%.%.%.%", "000-255.000-255.000-255.000-255", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
 		testIPv4Strings("*/16", true, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);
 		testIPv4Strings("*/255.255.0.0", false, isNoAutoSubnets ? "*.*.*.*/16" : "*.*.0.0/16", "*.*.*.*", "%.%.%.%", isNoAutoSubnets ? "000-255.000-255.000-255.000-255/16" : "000-255.000-255.000.000/16", "*.*.*.*.in-addr.arpa", allSingleHex, allSingleOctal);

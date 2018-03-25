@@ -102,15 +102,15 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public HostName(String host) {
 		this(host, DEFAULT_VALIDATION_OPTIONS);
 	}
-	
+
 	public HostName(String host, HostNameParameters options) {
 		if(options == null) {
 			throw new NullPointerException();
 		}
 		validationOptions = options;
-		this.host = (host == null) ? "" : host.trim();;
+		this.host = (host == null) ? "" : host.trim();
 	}
-	
+
 	void cacheAddress(IPAddress addr) {
 		if(parsedHost == null) {
 			parsedHost = new ParsedHost(host, addr.getProvider());
@@ -119,7 +119,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 			normalizedString = addr.toNormalizedString();
 		}
 	}
-	
+
 	public HostNameParameters getValidationOptions() {
 		return validationOptions;
 	}
@@ -208,6 +208,27 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return result;
 	}
 	
+	private static CharSequence translateReserved(IPv6Address addr, String str) {
+		//This is particularly targeted towards the zone
+		if(!addr.hasZone()) {
+			return str;
+		}
+		int index = str.indexOf(IPv6Address.ZONE_SEPARATOR);
+		StringBuilder translated = new StringBuilder(((str.length() - index) * 3) + index);
+		translated.append(str, 0, index);
+		translated.append("%25");
+		for(int i = index + 1; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if(Validator.isReserved(c)) {
+				translated.append('%');
+				IPAddressSegment.toUnsignedString(c, 16, translated);
+			} else {
+				translated.append(c);
+			}
+		}
+		return translated;
+	}
+	
 	private String toNormalizedString(boolean wildcard) {
 		if(isValid()) {
 			StringBuilder builder = new StringBuilder();
@@ -217,23 +238,26 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 					if(!wildcard && addr.isPrefixed()) {//prefix needs to be outside the brackets
 						String normalized = addr.toNormalizedString();
 						int index = normalized.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
-						builder.append(IPV6_START_BRACKET).append(normalized.substring(0, index)).append(IPV6_END_BRACKET).append(normalized.substring(index));
+						CharSequence translated = translateReserved(addr.toIPv6(), normalized.substring(0, index));
+						builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET).append(normalized.substring(index));
 					} else {
-						builder.append(IPV6_START_BRACKET).append(addr.toNormalizedWildcardString()).append(IPV6_END_BRACKET);
+						String normalized = addr.toNormalizedWildcardString();
+						CharSequence translated = translateReserved(addr.toIPv6(), normalized);
+						builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET);
 					}
 				} else {
 					builder.append(wildcard ? addr.toNormalizedWildcardString() : addr.toNormalizedString());
 				}
 
 			} else if(isAddressString()) {
-				builder.append(asAddressString().toNormalizedString()); //IPAddressString.toNormalizedString(parsedHost.getAddressProvider());
+				builder.append(asAddressString().toNormalizedString());
 			} else {
 				builder.append(parsedHost.getHost());
 				/*
 				 * If prefix or mask is supplied and there is an address, it is applied directly to the address provider, so 
 				 * we need only check for those things here
 				 * 
-				 * Also note that ports and prefix/mask cannot appear at the same time, so this does not interfer with the port code below.
+				 * Also note that ports and prefix/mask cannot appear at the same time, so this does not interfere with the port code below.
 				 */
 				Integer networkPrefixLength = parsedHost.getEquivalentPrefixLength();
 				if(networkPrefixLength != null) {
@@ -245,9 +269,14 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 					}
 				}
 			}
-			Integer port = getPort();
+			Integer port = parsedHost.getPort();
 			if(port != null) {
 				builder.append(PORT_SEPARATOR).append(port);
+			} else {
+				String service = parsedHost.getService();
+				if(service != null) {
+					builder.append(PORT_SEPARATOR).append(service);
+				}
 			}
 			return builder.toString();
 		}
@@ -275,9 +304,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	/**
-	 * Returns the host string normalized but without port, prefix or mask.
+	 * Returns the host string normalized but without port, service, prefix or mask.
 	 * 
-	 * If an address, returns the address string normalized, but without port, prefix, mask, or brackets for IPv6.
+	 * If an address, returns the address string normalized, but without port, service, prefix, mask, or brackets for IPv6.
 	 * 
 	 * To get a normalized string encompassing all details, use toNormalizedString()
 	 * 
@@ -301,7 +330,8 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				if(isAddressString()) {
 					return host.isAddressString()
 							&& asAddressString().equals(host.asAddressString())
-							&& Objects.equals(getPort(), host.getPort());
+							&& Objects.equals(getPort(), host.getPort())
+							&& Objects.equals(getService(), host.getService());
 				}
 				if(host.isAddressString()) {
 					return false;
@@ -313,7 +343,8 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				}
 				return Objects.equals(parsedHost.getEquivalentPrefixLength(), host.parsedHost.getEquivalentPrefixLength()) &&
 						Objects.equals(parsedHost.getMask(), host.parsedHost.getMask()) &&
-						Objects.equals(parsedHost.getPort(), host.parsedHost.getPort());
+						Objects.equals(parsedHost.getPort(), host.parsedHost.getPort()) &&
+						Objects.equals(parsedHost.getService(), host.parsedHost.getService());
 			}
 			return false;
 		}
@@ -390,14 +421,34 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 						}
 					}//end non-address host compare
 				}
-				//two equivalent address strings or two equivalent hosts
-				if(parsedHost.getPort() != null) {
-					if(other.parsedHost.getPort() != null) {
-						return parsedHost.getPort() - other.parsedHost.getPort();
+				
+				//two equivalent address strings or two equivalent hosts, now check port and service names
+				Integer portOne = parsedHost.getPort();
+				Integer portTwo = other.parsedHost.getPort();
+				if(portOne != null) {
+					if(portTwo != null) {
+						int ret = portOne - portTwo;
+						if(ret != 0) {
+							return ret;
+						}
 					} else {
 						return 1;
 					}
-				} else if(other.getPort() != null) {
+				} else if(portTwo != null) {
+					return -1;
+				}
+				String serviceOne = parsedHost.getService();
+				String serviceTwo = other.parsedHost.getService();
+				if(serviceOne != null) {
+					if(serviceTwo != null) {
+						int ret = serviceOne.compareTo(serviceTwo);
+						if(ret != 0) {
+							return ret;
+						}
+					} else {
+						return 1;
+					}
+				} else if(serviceTwo != null) {
 					return -1;
 				}
 				return 0;
@@ -428,14 +479,14 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isAllAddresses() {
 		return isAddressString() && parsedHost.getAddressProvider().isAllAddresses();
 	}
-	
+
 	/**
 	 * @return whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
 	 */
 	public boolean isPrefixOnly() {
 		return isAddressString() && parsedHost.getAddressProvider().isPrefixOnly();
 	}
-	
+
 	/**
 	 * Returns true if the address is empty (zero-length).
 	 * @return
@@ -443,7 +494,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isEmpty() {
 		return isAddressString() && parsedHost.getAddressProvider().isEmpty();
 	}
-	
+
 	/**
 	 * If a port was supplied, returns the port, otherwise returns null
 	 * 
@@ -452,7 +503,16 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public Integer getPort() {
 		return isValid() ? parsedHost.getPort() : null;
 	}
-	
+
+	/**
+	 * If a service name was supplied, returns the service name, otherwise returns null
+	 * 
+	 * @return
+	 */
+	public String getService() {
+		return isValid() ? parsedHost.getService() : null;
+	}
+
 	/**
 	 * Returns the exception thrown for invalid ipv6 literal or invalid reverse DNS hosts.
 	 * 
@@ -518,6 +578,19 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return null;
 	}
 	
+	/**
+	 * If a prefix was supplied, either as part of an address or as part of a domain (in which case the prefix applies to any resolved address), 
+	 * then returns that prefix length.  Otherwise, returns null.
+	 */
+	public Integer getNetworkPrefixLength() {
+		if(isAddress()) {
+			return parsedHost.asAddress().getNetworkPrefixLength();
+		} else if(isAddressString()) {
+			return parsedHost.asGenericAddressString().getNetworkPrefixLength();
+		}
+		return isValid() ? parsedHost.getNetworkPrefixLength() : null;
+	}
+
 	/**
 	 * If this represents an ip address, returns that address.
 	 * If this represents a host, returns the resolved ip address of that host.

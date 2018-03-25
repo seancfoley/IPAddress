@@ -1776,6 +1776,33 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	void testPrefixBlocks(
+			String orig, 
+			boolean isPrefixBlock,
+			boolean isSinglePrefixBlock) {
+		IPAddress original = createAddress(orig).getAddress();
+		if(isPrefixBlock != original.isPrefixBlock()) {
+			addFailure(new Failure("is prefix block: " + original.isPrefixBlock() + " expected: " + isPrefixBlock, original));
+		} else if(isSinglePrefixBlock != original.isSinglePrefixBlock()) {
+			addFailure(new Failure("is single prefix block: " + original.isSinglePrefixBlock() + " expected: " + isSinglePrefixBlock, original));
+		}
+		incrementTestCount();
+	}
+	
+	void testPrefixBlocks(
+			String orig, 
+			int prefix,
+			boolean containsPrefixBlock,
+			boolean containsSinglePrefixBlock) {
+		IPAddress original = createAddress(orig).getAddress();
+		if(containsPrefixBlock != original.containsPrefixBlock(prefix)) {
+			addFailure(new Failure("contains prefix block: " + original.containsPrefixBlock(prefix) + " expected: " + containsPrefixBlock, original));
+		} else if(containsSinglePrefixBlock != original.containsSinglePrefixBlock(prefix)) {
+			addFailure(new Failure("contains single prefix block: " + original.containsSinglePrefixBlock(prefix) + " expected: " + containsPrefixBlock, original));
+		}
+		incrementTestCount();
+	}
+	
 	void testBitwiseOr(String orig, Integer prefixAdjustment, String or, String expectedResult) {
 		IPAddress original = createAddress(orig).getAddress();
 		IPAddress orAddr = createAddress(or).getAddress();
@@ -2145,32 +2172,36 @@ public class IPAddressTest extends TestBase {
 		IPAddressString sub = createAddress(two);
 		IPAddress addr = string.getAddress();
 		IPAddress subAddr = sub.getAddress();
-		IPAddress res[] = addr.subtract(subAddr);
-		if(resultStrings == null) {
-			if(res != null ) {	
-				addFailure(new Failure("non-null subtraction with " + addr, subAddr));
-			}
-		} else {
-			if(resultStrings.length != res.length) {
-				addFailure(new Failure("length mismatch " + Arrays.toString(res) + " with " + Arrays.toString(resultStrings)));
-			} else {
-				IPAddress results[] = new IPAddress[resultStrings.length];
-				for(int i = 0; i < resultStrings.length; i++) {
-					results[i] = createAddress(resultStrings[i]).getAddress();
+		try {
+			IPAddress res[] = addr.subtract(subAddr);
+			if(resultStrings == null) {
+				if(res != null ) {	
+					addFailure(new Failure("non-null subtraction with " + addr, subAddr));
 				}
-				for(IPAddress r : res) {
-					boolean found = false;
-					for(IPAddress result : results) {
-						if(r.equals(result) && Objects.equals(r.getNetworkPrefixLength(), result.getNetworkPrefixLength())) {
-							found = true; 
-							break;
+			} else {
+				if(resultStrings.length != res.length) {
+					addFailure(new Failure("length mismatch " + Arrays.toString(res) + " with " + Arrays.toString(resultStrings)));
+				} else {
+					IPAddress results[] = new IPAddress[resultStrings.length];
+					for(int i = 0; i < resultStrings.length; i++) {
+						results[i] = createAddress(resultStrings[i]).getAddress();
+					}
+					for(IPAddress r : res) {
+						boolean found = false;
+						for(IPAddress result : results) {
+							if(r.equals(result) && Objects.equals(r.getNetworkPrefixLength(), result.getNetworkPrefixLength())) {
+								found = true; 
+								break;
+							}
+						}
+						if(!found) {
+							addFailure(new Failure("mismatch with " + Arrays.toString(resultStrings), r));
 						}
 					}
-					if(!found) {
-						addFailure(new Failure("mismatch with " + Arrays.toString(resultStrings), r));
-					}
 				}
 			}
+		} catch(IncompatibleAddressException e) {
+			addFailure(new Failure("threw " + e + " when subtracting " + subAddr, addr));
 		}
 		incrementTestCount();
 	}
@@ -2336,6 +2367,67 @@ public class IPAddressTest extends TestBase {
 				}
 			}
 		}
+		incrementTestCount();
+	}
+	
+	void testSpanAndMerge(String address1, String address2, int count) {
+		IPAddressString string1 = createAddress(address1);
+		IPAddressString string2 = createAddress(address2);
+		IPAddress addr1 = string1.getAddress();
+		IPAddress addr2 = string2.getAddress();
+		IPAddress result[] = addr1.spanWithPrefixBlocks(addr2);
+		if(count != result.length) {
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " expected count of " + count, addr1));
+		}
+		IPAddress backAgain[] = result[0].mergePrefixBlocks(result);
+		boolean matches = Arrays.deepEquals(result, backAgain);
+		if(!matches) {
+			Arrays.deepEquals(result, backAgain);
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
+		}
+		incrementTestCount();
+	}
+	
+	void testMerge(String result, String ... addresses) {
+		IPAddressString resultStr = createAddress(result);
+		IPAddressString string2 = createAddress(addresses[0]);
+		IPAddress resultAddr = resultStr.getAddress();
+		IPAddress addr2 = string2.getAddress();
+		IPAddress mergers[] = new IPAddress[addresses.length - 1];
+		for(int i = 0; i < mergers.length; i++) {
+			mergers[i] = createAddress(addresses[i + 1]).getAddress();
+		}
+		IPAddress merged[] = addr2.mergePrefixBlocks(mergers);
+		if(!resultAddr.equals(merged[0])) {
+			addFailure(new Failure("merge mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
+		}
+		incrementTestCount();
+	}
+	
+	void testMerge2(String result, String result2, String ... addresses) {
+		IPAddressString resultStr = createAddress(result);
+		IPAddressString resultStr2 = createAddress(result2);
+		IPAddressString string2 = createAddress(addresses[0]);
+		IPAddress resultAddr = resultStr.getAddress();
+		IPAddress resultAddr2 = resultStr2.getAddress();
+		IPAddress addr2 = string2.getAddress();
+		IPAddress mergers[] = new IPAddress[addresses.length - 1];
+		for(int i = 0; i < mergers.length; i++) {
+			mergers[i] = createAddress(addresses[i + 1]).getAddress();
+		}
+		IPAddress merged[] = addr2.mergePrefixBlocks(mergers);
+		HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
+		HashSet<IPAddress> expected = new HashSet<IPAddress>();
+		expected.add(resultAddr);
+		expected.add(resultAddr2);
+		if(!all.equals(expected)) {
+			addFailure(new Failure("merge mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + all, resultAddr));
+		}
+		incrementTestCount();
+	}
+	
+	void testIncrement(String originalStr, long increment, String resultStr) {
+		testIncrement(createAddress(originalStr).getAddress(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 	
 	@SuppressWarnings("serial")
@@ -2367,7 +2459,7 @@ public class IPAddressTest extends TestBase {
 		}
 
 		public MyIPv6AddressSection(byte[] bytes, int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefixLength) {
-			super(bytes, byteStartIndex, byteEndIndex, segmentCount, prefixLength, true);
+			super(bytes, byteStartIndex, byteEndIndex, segmentCount, prefixLength, true, false);
 		}
 		
 		public MyIPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) {
@@ -2877,8 +2969,22 @@ public class IPAddressTest extends TestBase {
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4%12", "1:2:3:4:5:6:102:304%12");
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4%a", "1:2:3:4:5:6:102:304%a");
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4%", "1:2:3:4:5:6:102:304%");
-		testMatches(true, "1:2:3:4:5:6:1.2.3.4%%", "1:2:3:4:5:6:102:304%%"); //we don't validate the zone itself, so the % reappearing as the zone itself is ok
-				
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%%", "1:2:3:4:5:6:102:304%%"); //the % reappearing as the zone itself is ok
+		
+		testMatches(false, "1:2:3:4:5:6:1.2.3.4%a", "1:2:3:4:5:6:102:304");
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%", "1:2:3:4:5:6:102:304%");
+		testMatches(true, "1:2:3:4:5:6:1.2.3.4%-a-", "1:2:3:4:5:6:102:304%-a-"); //we don't validate the zone itself, so the % reappearing as the zone itself is ok
+		
+		if(isNoAutoSubnets) {
+			testMatches(true, "1::%-.1/16", "1::%-.1");//first one is prefixed and zone, second one just zone
+			testMatches(false, "1::/16", "1::%-.1");//first one has no zone, second one has zone
+			testMatches(true, "1::%-1/16", "1::%-1");//first one is prefixed and zone, second one just zone
+			testMatches(false, "1::/16", "1::%-1");//first one has no zone, second one has zone
+		}
+		testMatches(true, "1::0.0.0.0%-1", "1::%-1");
+		testMatches(false, "1::0.0.0.0", "1::%-1");//zones do not match
+		testMatches(false, "1::0.0.0.0%-1", "1::");//zones do not match
+		
 		if(allPrefixesAreSubnets) {
 			testMatches(true, "1:2:3:4:5:6:1.2.3.4/64", "1:2:3:4::/64");
 			
@@ -4428,6 +4534,84 @@ public class IPAddressTest extends TestBase {
 		testZeroHost("1:2::/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
 		testZeroHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
 		testZeroHost("1:2:3:4:5:6:7:8/128", allPrefixesAreSubnets ? "1:2:3:4:5:6:7:8" : "1:2:3:4:5:6:7:8/128");
+
+		testPrefixBlocks("1.2.3.4", false, false);
+		testPrefixBlocks("1.2.3.4/16", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("1.2.0.0/16", isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("1.2.3.4/0", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("1.2.3.3/31", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("1.2.3.4/31", isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("1.2.3.4/32", true, true);
+		
+		testPrefixBlocks("1.2.3.4", 8, false, false);
+		testPrefixBlocks("1.2.3.4/16", 8, false, false);
+		testPrefixBlocks("1.2.0.0/16", 8, false, false);
+		testPrefixBlocks("1.2.3.4/0", 8, allPrefixesAreSubnets, false);
+		testPrefixBlocks("1.2.3.4/8", 8, allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("1.2.3.4/31", 8, false, false);
+		testPrefixBlocks("1.2.3.4/32", 8, false, false);
+		
+		testPrefixBlocks("1.2.3.4", 24, false, false);
+		testPrefixBlocks("1.2.3.4/16", 24, allPrefixesAreSubnets, false);
+		testPrefixBlocks("1.2.0.0/16", 24, isAutoSubnets, false);
+		testPrefixBlocks("1.2.3.4/0", 24, allPrefixesAreSubnets, false);
+		testPrefixBlocks("1.2.3.4/24", 24, allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("1.2.3.4/31", 24, false, false);
+		testPrefixBlocks("1.2.3.4/32", 24, false, false);
+
+		testPrefixBlocks("a:b:c:d:e:f:a:b", false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d::/64", isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e::/64", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c::/64", isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", true, true);
+		
+		testPrefixBlocks("a:b:c:d:e:f:a:b", 0, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 0, false, false);
+		testPrefixBlocks("a:b:c:d::/64", 0, false, false);
+		testPrefixBlocks("a:b:c:d:e::/64", 0, false, false);
+		testPrefixBlocks("a:b:c::/64", 0, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 0, allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 0, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 0, false, false);
+		
+		testPrefixBlocks("a:b:c:d:e:f:a:b", 63, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 63, false, false);
+		testPrefixBlocks("a:b:c:d::/64", 63, false, false);
+		testPrefixBlocks("a:b:c:d:e::/64", 63, false, false);
+		testPrefixBlocks("a:b:c::/64", 63, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 63, allPrefixesAreSubnets, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 63, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 63, false, false);
+		
+		testPrefixBlocks("a:b:c:d:e:f:a:b", 64, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 64, allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d::/64", 64, isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e::/64", 64, allPrefixesAreSubnets, allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c::/64", 64, isAutoSubnets, isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 64, allPrefixesAreSubnets, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 64, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 64, false, false);
+		
+		testPrefixBlocks("a:b:c:d:e:f:a:b", 65, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 65, allPrefixesAreSubnets, false);
+		testPrefixBlocks("a:b:c:d::/64", 65, isAutoSubnets, false);
+		testPrefixBlocks("a:b:c:d:e::/64", 65, allPrefixesAreSubnets, false);
+		testPrefixBlocks("a:b:c::/64", 65, isAutoSubnets, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 65, allPrefixesAreSubnets, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 65, false, false);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 65, false, false);
+
+		testPrefixBlocks("a:b:c:d:e:f:a:b", 128, true, true);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 128, true, !allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d::/64", 128, true, !isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e::/64", 128, true, !allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c::/64", 128, true, !isAutoSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 128, true, !allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 128, true, !allPrefixesAreSubnets);
+		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 128, true, true);
 		
 		testSplitBytes("1.2.3.4");
 		testSplitBytes("1.2.3.4/16");
@@ -4518,6 +4702,70 @@ public class IPAddressTest extends TestBase {
 			new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
 			new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
 		});
+
+		testIncrement("1.2.3.4", 0, "1.2.3.4");
+		testIncrement("1.2.3.4", 1, "1.2.3.5");
+		testIncrement("1.2.3.4", -1, "1.2.3.3");
+		testIncrement("1.2.3.4", -4, "1.2.3.0");
+		testIncrement("1.2.3.4", -5, "1.2.2.255");
+		testIncrement("0.0.0.4", -5, null);
+		testIncrement("1.2.3.4", 251, "1.2.3.255");
+		testIncrement("1.2.3.4", 252, "1.2.4.0");
+		testIncrement("1.2.3.4", 256, "1.2.4.4");
+		testIncrement("1.2.3.4", 256, "1.2.4.4");
+		testIncrement("1.2.3.4", 65536, "1.3.3.4");
+		testIncrement("1.2.3.4", 16777216, "2.2.3.4");
+		testIncrement("1.2.3.4", 4261412864L, "255.2.3.4");
+		testIncrement("1.2.3.4", 4278190080L, null);
+		testIncrement("1.2.3.4", 4278058236L, null);
+		testIncrement("255.0.0.4", -4278190084L, "0.0.0.0");
+		testIncrement("255.0.0.4", -4278190085L, null);
+		
+		testIncrement("ffff:ffff:ffff:ffff:f000::0", 1, "ffff:ffff:ffff:ffff:f000::1");
+		testIncrement("ffff:ffff:ffff:ffff:f000::0", -1, "ffff:ffff:ffff:ffff:efff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE, "ffff:ffff:ffff:ffff::");
+		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe");
+		testIncrement("::8000:0:0:0", Long.MIN_VALUE, "::");
+		testIncrement("::7fff:ffff:ffff:ffff", Long.MIN_VALUE, null);
+		testIncrement("::7fff:ffff:ffff:ffff", Long.MIN_VALUE, null);
+		testIncrement("::7fff:ffff:ffff:fffe", Long.MIN_VALUE, null);
+		testIncrement("ffff:ffff:ffff:ffff:8000::0", Long.MAX_VALUE, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:8000::1", Long.MAX_VALUE, null);
+		testIncrement("::1", 1, "::2");
+		testIncrement("::1", 0, "::1");
+		testIncrement("::1", -1, "::");
+		testIncrement("::1", -2, null);
+		testIncrement("::2", 1, "::3");
+		testIncrement("::2", -1, "::1");
+		testIncrement("::2", -2, "::");
+		testIncrement("::2", -3, null);
+		
+		testIncrement("1::1", 0, "1::1");
+		testIncrement("1::1", 1, "1::2");
+		testIncrement("1::1", -1, "1::");
+		testIncrement("1::1", -2, "::ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncrement("1::2", 1, "1::3");
+		testIncrement("1::2", -1, "1::1");
+		testIncrement("1::2", -2, "1::");
+		testIncrement("1::2", -3, "::ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		
+		testIncrement("::fffe", 2, "::1:0");
+		testIncrement("::ffff", 2, "::1:1");
+		testIncrement("::1:ffff", 2, "::2:1");
+		testIncrement("::1:ffff", -2, "::1:fffd");
+		testIncrement("::1:ffff", -0x10000, "::ffff");
+		testIncrement("::1:ffff", -0x10001, "::fffe");
+		
+		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1);
+		testSpanAndMerge("1.2.3.4", "1.2.5.8", 9);
+		
+		testSpanAndMerge("a:b:c:d:1::", "a:b:c:d:10::", 5);//[a:b:c:d:1::/80, a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::]
+		testSpanAndMerge("a:b:c:d:1::/80", "a:b:c:d:10::", 5);
+		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::", 4);
+		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::/76", 4);
+		testSpanAndMerge("a:b:c:d:2::/79", "a:b:c:d:10::/76", 4);//[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
+
 		testCustomNetwork(prefixConfiguration);
 	}
 }

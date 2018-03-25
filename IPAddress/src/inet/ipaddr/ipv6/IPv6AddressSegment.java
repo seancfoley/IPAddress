@@ -233,9 +233,14 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 			
 	@Override
 	public Iterator<IPv6AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed());
+		return iterator(this, getSegmentCreator(), !isPrefixed(), null);
 	}
-
+	
+	@Override
+	public Iterator<IPv6AddressSegment> prefixBlockIterator() {
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength());
+	}
+	
 	@Override
 	public int getBitCount() {
 		return IPv6Address.BITS_PER_SEGMENT;
@@ -310,7 +315,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public boolean contains(AddressSegment other) {
-		return other instanceof IPv6AddressSegment && super.contains(other);
+		return other instanceof IPv6AddressSegment && containsSeg(other);
 	}
 	
 	@Override

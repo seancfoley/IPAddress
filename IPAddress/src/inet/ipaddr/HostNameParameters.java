@@ -41,6 +41,8 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 	public static final boolean DEFAULT_NORMALIZE_TO_LOWER_CASE = true;
 	public static final boolean DEFAULT_ALLOW_IP_ADDRESS = true;
 	public static final boolean DEFAULT_ALLOW_PORT = true;
+	public static final boolean DEFAULT_EXPECT_PORT = false; //in cases where an IP address port combination is ambiguous (eg fe80::6a05:caff:fe3:123), assume there is a port (note that square brackets [] can and should be used to resolve the ambiguity)
+	public static final boolean DEFAULT_ALLOW_SERVICE = true;
 
 	public final boolean allowEmpty;
 	public final boolean emptyIsLoopback;
@@ -49,6 +51,8 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 	public final boolean normalizeToLowercase;
 	public final boolean allowIPAddress;
 	public final boolean allowPort;
+	public final boolean allowService;
+	public final boolean expectPort;
 	public final IPAddressStringParameters addressOptions;
 	
 	public HostNameParameters(
@@ -59,7 +63,9 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 			boolean allowBracketedIPv4,
 			boolean normalizeToLowercase,
 			boolean allowIPAddress,
-			boolean allowPort) {
+			boolean allowPort,
+			boolean expectPort,
+			boolean allowService) {
 		this.allowEmpty = allowEmpty;
 		this.emptyIsLoopback = emptyIsLoopback;
 		this.allowBracketedIPv6 = allowBracketedIPv6;
@@ -67,6 +73,8 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		this.normalizeToLowercase = normalizeToLowercase;
 		this.allowIPAddress = allowIPAddress;
 		this.allowPort = allowPort;
+		this.expectPort = expectPort;
+		this.allowService = allowService;
 		this.addressOptions = addressOptions;
 	}
 	
@@ -79,6 +87,7 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		builder.normalizeToLowercase = normalizeToLowercase;
 		builder.allowIPAddress = allowIPAddress;
 		builder.allowPort = allowPort;
+		builder.allowService = allowService;
 		builder.addressOptionsBuilder = toAddressOptionsBuilder();
 		return builder;
 	}
@@ -95,31 +104,43 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 		private boolean normalizeToLowercase = DEFAULT_NORMALIZE_TO_LOWER_CASE;
 		private boolean allowIPAddress = DEFAULT_ALLOW_IP_ADDRESS;
 		private boolean allowPort = DEFAULT_ALLOW_PORT;
+		private boolean expectPort = DEFAULT_EXPECT_PORT;
+		private boolean allowService = DEFAULT_ALLOW_SERVICE;
 		
 		private IPAddressStringParameters.Builder addressOptionsBuilder;
-		
+
 		public Builder() {}
-		
+
 		public Builder allowPort(boolean allow) {
 			allowPort = allow;
 			return this;
 		}
-		
+
+		public Builder expectPort(boolean expect) {
+			expectPort = expect;
+			return this;
+		}
+
+		public Builder allowService(boolean allow) {
+			allowService = allow;
+			return this;
+		}
+
 		public Builder allowIPAddress(boolean allow) {
 			allowIPAddress = allow;
 			return this;
 		}
-		
+
 		public Builder allowEmpty(boolean allow) {
 			allowEmpty = allow;
 			return this;
 		}
-		
+
 		public Builder setEmptyAsLoopback(boolean bool) {
 			emptyIsLoopback = bool;
 			return this;
 		}
-		
+
 		public Builder allowBracketedIPv6(boolean allow) {
 			allowBracketedIPv6 = allow;
 			return this;
@@ -150,7 +171,17 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 			} else {
 				addressOpts = addressOptionsBuilder.toParams();
 			}
-			return new HostNameParameters(addressOpts, allowEmpty, emptyIsLoopback, allowIPAddress && allowBracketedIPv6, allowIPAddress && allowBracketedIPv4, normalizeToLowercase, allowIPAddress, allowPort);
+			return new HostNameParameters(
+					addressOpts,
+					allowEmpty,
+					emptyIsLoopback,
+					allowIPAddress && allowBracketedIPv6,
+					allowIPAddress && allowBracketedIPv4,
+					normalizeToLowercase,
+					allowIPAddress,
+					allowPort,
+					expectPort,
+					allowService);
 		}
 	}
 	
@@ -176,7 +207,13 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 						if(result == 0) {
 							result = Boolean.compare(allowPort, o.allowPort);
 							if(result == 0) {
-								result = addressOptions.compareTo(o.addressOptions);
+								result = Boolean.compare(expectPort, o.expectPort);
+								if(result == 0) {
+									result = Boolean.compare(allowService, o.allowService);
+									if(result == 0) {
+										result = addressOptions.compareTo(o.addressOptions);
+									}
+								}
 							}
 						}
 					}
@@ -196,6 +233,8 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 					normalizeToLowercase == other.normalizeToLowercase &&
 					allowIPAddress == other.allowIPAddress &&
 					allowPort == other.allowPort &&
+					expectPort == other.expectPort &&
+					allowService == other.allowService &&
 					addressOptions.equals(other.addressOptions);
 		}
 		return false;
@@ -217,7 +256,7 @@ public class HostNameParameters implements Cloneable, Comparable<HostNameParamet
 				hash |= 0x80000000;
 			}
 		}
-		if(allowPort) {
+		if(allowPort || allowService || expectPort) {
 			hash |= 0x40000000;
 		}
 		return hash;

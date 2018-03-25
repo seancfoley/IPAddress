@@ -343,6 +343,8 @@ public abstract class TestBase {
 			allowEmpty(false).
 			setEmptyAsLoopback(false).
 			setNormalizeToLowercase(true).
+			allowPort(true).
+			allowService(true).
 			allowBracketedIPv6(true).
 			allowBracketedIPv4(true).getAddressOptionsBuilder().
 				allowPrefix(true).
@@ -370,7 +372,7 @@ public abstract class TestBase {
 						allowMixed(true).
 						allowZone(true).
 						getParentBuilder().getParentBuilder().toParams();
-	
+
 	protected static final IPAddressStringParameters ADDRESS_OPTIONS = HOST_OPTIONS.toAddressOptionsBuilder().toParams();
 	
 	protected static final MACAddressStringParameters MAC_ADDRESS_OPTIONS = new MACAddressStringParameters.Builder().
@@ -811,10 +813,14 @@ public abstract class TestBase {
 		return true;
 	}
 	
-	boolean confirmHostStrings(IPAddress ipAddr, String ...strs) {
+	boolean confirmHostStrings(IPAddress ipAddr, boolean omitZone, String ...strs) {
 		for(String str : strs) {
 			HostName hostName = new HostName(str);
 			IPAddress a = hostName.getAddress();
+			if(omitZone) {
+				IPv6Address ipv6Addr = ipAddr.toIPv6();
+				ipAddr = new IPv6Address(ipv6Addr.getSection());
+			}
 			if(!ipAddr.equals(a)) {
 				addFailure(new Failure("failed produced string: " + str, ipAddr));
 				return false;
@@ -1066,15 +1072,17 @@ public abstract class TestBase {
 			confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
 			if(ipAddr.isIPv6()) {
 				confirmAddrStrings(ipAddr, full);
+				confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses
+				confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
 			} else {
 				IPAddressStringParameters params = new IPAddressStringParameters.Builder().allow_inet_aton(false).toParams();
 				IPAddressString fullAddrString = new IPAddressString(full, params);
 				confirmAddrStrings(ipAddr, fullAddrString);
+				confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses
 			}
-			confirmHostStrings(ipAddr, rDNS, unc);//these two are valid hosts with embedded addresses
-			confirmHostStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
+			confirmHostStrings(ipAddr, false, c, canonical, s, cidr, n, nw, caw, cw);
 			if(ipAddr.isIPv6()) {
-				confirmHostStrings(ipAddr, full);
+				confirmHostStrings(ipAddr, false, full);
 			} else {
 				HostNameParameters params = new HostNameParameters.Builder().getAddressOptionsBuilder().allow_inet_aton(false).getParentBuilder().toParams();
 				HostName fullAddrString = new HostName(full, params);
@@ -1240,7 +1248,7 @@ public abstract class TestBase {
 		int bitsPerSegment = front.getBitsPerSegment();
 		int segmentCount = front.getSegmentCount();
 		boolean isIpv4 = !isMac && segmentCount == IPv4Address.SEGMENT_COUNT;
-		StringBuilder prefixes = new StringBuilder("[\n");
+		StringBuilder prefixes = new StringBuilder("[\n");//currently unused
 		for(int replaceTargetIndex = 0; replaceTargetIndex < fronts.length; replaceTargetIndex++) {
 			if(replaceTargetIndex > 0) {
 				prefixes.append(",\n");
@@ -1300,7 +1308,7 @@ public abstract class TestBase {
 						HostIdentifierString hostIdStr = createMACAddress(str.toString());
 						new2 = hostIdStr.getAddress();
 						if(prefix != null) {
-							new2 = new2.setPrefixLength(prefix);
+							new2 = new2.setPrefixLength(prefix, false);
 						}
 					} else {
 						if(prefix != null) {
@@ -1318,9 +1326,10 @@ public abstract class TestBase {
 						String failStr = "Replacement was " + new1 + " expected was " + new2 + " " + replaceStr;
 						addFailure(new Failure(failStr, front));
 						
-						IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
-						IPv6AddressSection backSection = ((IPv6Address) back).getSection();
-						frontSection.replace(replaceTargetIndex, replaceTargetIndex + replaceCount, backSection, replaceSourceIndex, replaceSourceIndex + replaceCount);
+						//this was debug
+						//IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
+						//IPv6AddressSection backSection = ((IPv6Address) back).getSection();
+						//frontSection.replace(replaceTargetIndex, replaceTargetIndex + replaceCount, backSection, replaceSourceIndex, replaceSourceIndex + replaceCount);
 					}
 					if(lowest.length() > 0) {
 						lowest.append(',');
@@ -1395,9 +1404,9 @@ public abstract class TestBase {
 					hostIdStr = createMACAddress(str.toString());
 					mixed = hostIdStr.getAddress();
 					if(front.isPrefixed() && front.getPrefixLength() <= i * bitsPerSegment) {
-						mixed = mixed.setPrefixLength(front.getPrefixLength());
+						mixed = mixed.setPrefixLength(front.getPrefixLength(), false);
 					} else if(back.isPrefixed()) {
-						mixed = mixed.setPrefixLength(Math.max(i * bitsPerSegment, back.getPrefixLength()));
+						mixed = mixed.setPrefixLength(Math.max(i * bitsPerSegment, back.getPrefixLength()), false);
 					}
 					MACAddressSection sec = ((MACAddressSection) frontSection).append((MACAddressSection) backSection);
 					mixed2 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
@@ -1533,6 +1542,31 @@ public abstract class TestBase {
 				if(expectedPref[i] == null || expectedPref[i] >= 0) {
 					addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
 				}
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testIncrement(Address orig, long increment, Address expectedResult) {
+		testIncrement(orig, increment, expectedResult, true);
+	}
+	
+	void testIncrement(Address orig, long increment, Address expectedResult, boolean first) {
+		try {
+			Address result = orig.add(increment);
+			if(expectedResult == null) {
+				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
+			} else {
+				if(!result.equals(expectedResult)) {
+					addFailure(new Failure("increment mismatch result " +  result + " vs expected " + expectedResult, orig));
+				}
+				if(first && !orig.isMultiple() && increment > Long.MIN_VALUE) {//negating Long.MIN_VALUE results in same address
+					testIncrement(expectedResult, -increment, orig, false);
+				}
+			}
+		} catch(AddressValueException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("increment mismatch exception " +  e + ", expected " + expectedResult, orig));
 			}
 		}
 		incrementTestCount();

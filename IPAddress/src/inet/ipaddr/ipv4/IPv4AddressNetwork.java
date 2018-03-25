@@ -43,6 +43,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 	
 	private static final IPv4AddressSegment EMPTY_SEGMENTS[] = {};
 	private static final IPv4AddressSection EMPTY_SECTION[] = {};
+	private static final IPv4Address EMPTY_ADDRESS[] = {};
 	
 	public class IPv4AddressCreator extends IPAddressCreator {
 		
@@ -118,12 +119,12 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 					IPv4AddressSegment result, block[], cache[][] = segmentPrefixCache;
 					if(cache == null) {
 						segmentPrefixCache = cache = new IPv4AddressSegment[IPv4Address.BITS_PER_SEGMENT + 1][];
-						cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? 1 << prefixIndex : 256];
+						cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? (1 << prefixIndex) : 256];
 						block[valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
 					} else {
 						block = cache[prefixIndex];
 						if(block == null) {
-							cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? 1 << prefixIndex : 256];
+							cache[prefixIndex] = block = new IPv4AddressSegment[isAllSubnets ? (1 << prefixIndex) : 256];
 							block[valueIndex] = result = new IPv4AddressSegment(value, segmentPrefixLength);
 						} else {
 							result = block[valueIndex];
@@ -242,8 +243,8 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 
 		@Override
-		protected IPv4AddressSection createSectionInternal(byte[] bytes, Integer prefix) {
-			return new IPv4AddressSection(bytes, prefix, false);
+		protected IPv4AddressSection createSectionInternal(byte[] bytes, int segmentCount, Integer prefix, boolean singleOnly) {
+			return new IPv4AddressSection(bytes, segmentCount, prefix, false, singleOnly);
 		}
 		
 		@Override
@@ -253,7 +254,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		
 		@Override
 		public IPv4AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
-			return new IPv4AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true);
+			return new IPv4AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true, false);
 		}
 		
 		@Override
@@ -281,12 +282,20 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 
 		@Override
+		protected IPv4Address[] createAddressArray(int length) {
+			if(length == 0) {
+				return EMPTY_ADDRESS;
+			}
+			return new IPv4Address[length];
+		}
+		
+		@Override
 		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
 			return createAddress(createSectionInternal(segments));
 		}
 		
 		@Override
-		protected IPv4Address createAddress(IPv4AddressSection section, CharSequence zone) {
+		protected IPv4Address createAddressInternal(IPv4AddressSection section, CharSequence zone) {
 			return createAddress(section);
 		}
 		
