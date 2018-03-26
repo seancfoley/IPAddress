@@ -179,8 +179,8 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * A negative increment is equivalent to the same number of values preceding the upper bound of the iterator.
 	 * For instance, an increment of -1 is the last value from the iterator, and increment of -2 is the second last value, and so on.
 	 * <p>
-	 * Therefore, to get the series just above the highest series of the subnet, use an increment of size:<code>count > 1 ? count + 1 : 1</code> where count is the subnet size.
-	 * To get the series just below the lowest series of the subnet, use an increment of size:<code>-(count > 1 ? count + 1 : 1)</code> where count is the subnet size.
+	 * Therefore, to get the series just above the highest series of the subnet, use an increment of size:<code>count &gt; 1 ? count + 1 : 1</code> where count is the subnet size.
+	 * To get the series just below the lowest series of the subnet, use an increment of size:<code>-(count &gt; 1 ? count + 1 : 1)</code> where count is the subnet size.
 	 * 
 	 * @param increment
 	 * @return
