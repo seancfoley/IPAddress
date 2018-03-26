@@ -592,7 +592,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 
 	/**
 	 * If this address string was constructed from a host address with prefix, 
-	 * then this provides just the host address, rather than the subnet block of addresses
+	 * then this provides just the host address, rather than the address with the prefix
 	 * provided by {@link #toAddress()} that incorporates the prefix.
 	 * 
 	 *  Otherwise this returns the same object as {@link #toAddress()}
@@ -645,7 +645,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * An equivalent method that does not throw exception for invalid formats is {@link #getAddress()}
 	 * <p>
-	 * If you have a prefixed address and you wish to get only the host rather the the subnet block of addresses with the same prefix, use {@link #toHostAddress()}
+	 * If you have a prefixed address and you wish to get only the host rather than the address with the prefix, use {@link #toHostAddress()}
 	 * <p>
 	 * 
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
