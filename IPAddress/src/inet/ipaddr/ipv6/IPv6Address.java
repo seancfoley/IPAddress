@@ -1595,7 +1595,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * http://en.wikipedia.org/wiki/IPv6_address#Recommended_representation_as_text
 	 * http://tools.ietf.org/html/rfc5952
 	 * 
-	 * If this has a prefix length, that will be include in the string.
+	 * If this has a prefix length, that will be included in the string.
 	 */
 	@Override
 	public String toCanonicalString() {
