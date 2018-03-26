@@ -1042,7 +1042,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The result is sorted from single address to smallest blocks to largest blocks.
 	 * 
 	 * @throws AddressConversionException
-	 * @param sections the sections to merge with this
+	 * @param addresses the addresses to merge with this
 	 * @return
 	 */
 	public abstract IPAddress[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
