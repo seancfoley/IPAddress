@@ -539,7 +539,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	
 	/**
 	 * If this address string was constructed from a host address with prefix length, 
-	 * then this provides just the host address, rather than the address or subnet block of addresses
+	 * then this provides just the host address, rather than the address 
 	 * provided by {@link #getAddress()} that incorporates the prefix.
 	 * <p>
 	 * Otherwise this returns the same object as {@link #getAddress()}.
@@ -558,6 +558,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return null;
 	}
 	
+	/**
+	 * Similar to {@link #toAddress(IPVersion)}, but returns null rather than throwing an exception with the address is invalid or does not match the supplied version.
+	 * 
+	 */
 	public IPAddress getAddress(IPVersion version) {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
@@ -568,13 +572,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
-	 * If this represents an ip address, returns that address.
-	 * Otherwise, returns null, but only for strings that are considered valid address strings but cannot be converted to address objects,
-	 * or are invalid address strings.
-	 * 
+	 * If this represents an ip address, returns that address.  Otherwise, returns null.
+	 * <p>
 	 * This method will return null for invalid formats.  Use {@link #toAddress()} for an equivalent method that throws exceptions for invalid formats.
-	 * 
-	 * If you have a prefix address and you wish to get only the host rather the the subnet block of addresses with the same prefix, use {@link #getHostAddress()}
+	 * <p>
+	 * If you have a prefix address and you wish to get only the host without the prefix, use {@link #getHostAddress()}
 	 * 
 	 * @return the address
 	 */
@@ -621,7 +623,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * When this object represents an ipv4 or ipv6 address, it returns that address if and only if that address matches the provided version.
 	 * <p>
 	 * If the string used to construct this object is an invalid format, 
-	 * or a format that does not match the provided version, then this method throws IPAddressException.
+	 * or a format that does not match the provided version, then this method throws {@link AddressStringException}.
 	 * <p>
 	 * @param version the address version that this address should represent.
 	 * @return
