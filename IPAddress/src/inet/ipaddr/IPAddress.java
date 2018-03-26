@@ -1024,7 +1024,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Produces the list of prefix block subnets that span from this series to the given series.
 	 * <p>
-	 * If the other address is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * 
@@ -1036,7 +1036,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Merges this with the list of addresses to produce the smallest list of prefix blocks
 	 * <p>
-	 * If any other address in the list is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()},
+	 * If any other address in the list is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
 	 * The result is sorted from single address to smallest blocks to largest blocks.
@@ -1056,7 +1056,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * This is also known as the conjunction of the two sets of addresses.
 	 * <p>
-	 * If the address is not the same version, the default conversion will be applied using ({@link #toIPv4()} or {@link #toIPv6()}, and it that fails, {@link AddressConversionException} will be thrown.
+	 * If the address is not the same version, the default conversion will be applied using {@link #toIPv4()} or {@link #toIPv6()}, and it that fails, {@link AddressConversionException} will be thrown.
 	 * <p>
 	 * @param other
 	 * @throws AddressConversionException if the address argument could not be converted to the same address version as this
@@ -1069,7 +1069,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * Computes the subnet difference, the set of addresses in this address subnet but not in the provided subnet.  This is also known as the relative complement of the given argument in this subnet.
 	 * <p>
-	 * If the address is not the same version, the default conversion will be applied using ({@link #toIPv4()} or {@link #toIPv6()}, and it that fails, {@link AddressConversionException} will be thrown.
+	 * If the address is not the same version, the default conversion will be applied using {@link #toIPv4()} or {@link #toIPv6()}, and it that fails, {@link AddressConversionException} will be thrown.
 	 * <p>
 	 * @param other
 	 * @throws AddressConversionException if the address argument could not be converted to the same address version as this
@@ -1080,7 +1080,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Equivalent to calling {@link #mask(IPAddress, boolean)} with the second argument as false.
 	 *<p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * @param mask
 	 * @return
@@ -1094,7 +1094,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The mask is applied to all individual addresses.
 	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 	 * that cannot be represented as a contiguous range within each segment, then {@link IncompatibleAddressException} is thrown.
@@ -1111,7 +1111,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * Any existing prefix length is removed as the mask and new prefix length is applied to all individual addresses.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 	 * that cannot be represented as a contiguous range within each segment, then {@link IncompatibleAddressException} is thrown.
@@ -1124,7 +1124,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Equivalent to calling {@link #bitwiseOr(IPAddress, boolean)} with the second argument as false.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 @param mask
 	 * @return
@@ -1139,7 +1139,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The mask is applied to all individual addresses, similar to how the method {@link #mask(IPAddress, boolean)} applies the bitwise conjunction.
 	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If you wish to mask a portion of the network, use {@link #bitwiseOrNetwork(IPAddress, int)}
 	 * <p>
@@ -1162,7 +1162,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Does the bitwise disjunction with this address.  Useful when subnetting.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using ({@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * Any existing prefix length is dropped for the new prefix length and the mask is applied up to the end the new prefix length.
 	 * It is similar to how the {@link #maskNetwork(IPAddress, int)} method does the bitwise conjunction.
