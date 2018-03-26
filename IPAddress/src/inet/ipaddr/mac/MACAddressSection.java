@@ -1191,7 +1191,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	@Override
-	public MACAddressSection add(long increment) {
+	public MACAddressSection increment(long increment) {
 		if(!isExtended() || getSegmentCount() < 8) {
 			long lowerValue = longValue();
 			long upperValue = upperLongValue();

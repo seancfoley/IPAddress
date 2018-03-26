@@ -308,8 +308,8 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
-	public MACAddress add(long increment) {
-		return checkIdentity(getSection().add(increment));
+	public MACAddress increment(long increment) {
+		return checkIdentity(getSection().increment(increment));
 	}
 	
 	@Override

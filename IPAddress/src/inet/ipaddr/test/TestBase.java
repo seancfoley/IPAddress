@@ -1553,7 +1553,7 @@ public abstract class TestBase {
 	
 	void testIncrement(Address orig, long increment, Address expectedResult, boolean first) {
 		try {
-			Address result = orig.add(increment);
+			Address result = orig.increment(increment);
 			if(expectedResult == null) {
 				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
 			} else {

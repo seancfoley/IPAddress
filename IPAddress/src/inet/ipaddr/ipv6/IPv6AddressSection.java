@@ -787,7 +787,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	public IPv6AddressSection add(long increment) {
+	public IPv6AddressSection increment(long increment) {
 		if(increment == 0) {
 			return this;
 		}

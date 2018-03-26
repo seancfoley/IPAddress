@@ -166,7 +166,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Returns the series from the subnet that is the given increment upwards into the subnet range,
 	 * or if the given increment is negative the given increment downwards into the subnet range, 
-	 * or if the subnet is just a single series, it adds the increment to the address to produce a new series.
+	 * or if this is just an individual series, it simply adds the increment to this.
 	 * If the increment is 0, then this series is returned.
 	 * <p>
 	 * If the subnet has multiple values and the increment exceeds the subnet size, then the amount by which is exceeds the size is added to the upper series of the range (the final iterator value)  
@@ -185,7 +185,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @param increment
 	 * @return
 	 */
-	AddressSegmentSeries add(long increment);
+	AddressSegmentSeries increment(long increment);
 
 	/**
 	 * Produces the canonical representation of the address

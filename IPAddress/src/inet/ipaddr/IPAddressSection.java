@@ -1071,7 +1071,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		//upper bottom becomes 01111111...
 		//so in each new range, the differing bit is at least one further to the right (or more)
 		IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
-		IPAddressSegmentSeries upperBottom = lowerTop.add(-1);
+		IPAddressSegmentSeries upperBottom = lowerTop.increment(-1);
 		//IPAddressSegmentSeries upperBottom = lower.toMaxHost(differingBitPrefixLen + 1);//gives same result as lowerTop.add(-1)
 		if(differingIsLowestBit) {
 			previousSegmentBits += bitsPerSegment;
@@ -1826,7 +1826,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract Iterator<? extends IPAddressSection> prefixBlockIterator();
 	
 	@Override
-	public abstract IPAddressSection add(long increment);
+	public abstract IPAddressSection increment(long increment);
 	
 	public boolean isEntireAddress() {
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());

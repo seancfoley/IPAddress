@@ -626,7 +626,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	public IPv4AddressSection add(long increment) {
+	public IPv4AddressSection increment(long increment) {
 		long lowerValue = 0xffffffffL & intValue();
 		long upperValue = 0xffffffffL & upperIntValue();
 		long count = getCount().longValue();

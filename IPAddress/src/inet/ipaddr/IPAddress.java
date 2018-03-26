@@ -302,7 +302,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract Iterable<? extends IPAddress> getIterable();
 
 	@Override
-	public abstract IPAddress add(long increment);
+	public abstract IPAddress increment(long increment);
 	
 	public boolean isIPv4() {
 		return getSection().isIPv4();

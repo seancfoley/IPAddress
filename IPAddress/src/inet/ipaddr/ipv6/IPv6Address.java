@@ -911,8 +911,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	@Override
-	public IPv6Address add(long increment) {
-		return checkIdentity(getSection().add(increment));
+	public IPv6Address increment(long increment) {
+		return checkIdentity(getSection().increment(increment));
 	}
 	
 	/**

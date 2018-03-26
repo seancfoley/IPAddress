@@ -544,8 +544,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 
 	@Override
-	public IPv4Address add(long increment) {
-		return checkIdentity(getSection().add(increment));
+	public IPv4Address increment(long increment) {
+		return checkIdentity(getSection().increment(increment));
 	}
 	
 	private IPv4AddressCreator getAddressCreator() {

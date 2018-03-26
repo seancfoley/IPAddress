@@ -196,7 +196,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public abstract Iterator<? extends Address> prefixBlockIterator();
 	
 	@Override
-	public abstract Address add(long increment);
+	public abstract Address increment(long increment);
 	
 	@Override
 	public abstract Address getLower();

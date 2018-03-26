@@ -302,7 +302,7 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
 
 	@Override
-	IPAddressSegmentSeries add(long increment);
+	IPAddressSegmentSeries increment(long increment);
 
 	/**
 	 * Returns the segment series with a host of zero.
