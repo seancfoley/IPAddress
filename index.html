@@ -263,13 +263,6 @@ ul
 
 
 
-
-
-
-
-
-
-
 <div class=WordSection1>
 
 <p class=MsoNormal>&nbsp;</p>
@@ -284,8 +277,8 @@ ul
 
 <p class=MsoToc2><a href="#_Toc456708504">Core classes</a></p>
 
-<p class=MsoToc2><a href="#_Toc456708505">Parse String Representation of IP
-Address or Host Name</a></p>
+<p class=MsoToc2><a href="#_Toc456708505">Parse String Representations of IP
+Address or Host Name</a><a name="_Hlt485579912"></a><a name="_Hlt485579913"></a></p>
 
 <p class=MsoToc2><a href="#_IP_Address_and">IP Address and Numeric Values</a></p>
 
@@ -298,7 +291,7 @@ Address or Host Name</a></p>
 <p class=MsoToc2><a href="#_Toc456708507">IP Address Operations</a></p>
 
 <p class=MsoToc2><a href="#_Parse_String_Representation">Parse String
-Representation of MAC Address</a></p>
+Representations of MAC Address</a></p>
 
 <p class=MsoToc2><a href="#_MAC_Address_Manipulations">MAC Address Operations</a></p>
 
@@ -309,16 +302,18 @@ Representation of MAC Address</a></p>
 <p class=MsoToc2><a href="#_Toc456708508">Conversion to String Represention of
 Address</a></p>
 
-<p class=MsoToc2><a href="#_Toc456708509">Searching Text of Databases for all
-Addresses in a Given Subnet</a></p>
+<p class=MsoToc2><a href="#_Toc456708509">Searching Text of Databases for all Addresses
+in a Given Subnet</a></p>
 
 <p class=MsoToc2><a href="#_Toc456708511">Containment and Subnet Membership</a></p>
 
 <p class=MsoToc2><a href="#_Toc456708512">DNS Resolution and URLs</a></p>
 
-<p class=MsoToc2><a href="#_Toc456708513">Sorting and Comparisons</a></p>
+<p class=MsoToc2><a href="#_Toc456708513">Sorting and Comparisons</a><a
+name="_Hlt456708514"></a><a name="_Hlt456708515"></a></p>
 
-<p class=MsoToc2><a href="#_Cache_Classes">Cache Classes</a></p>
+<p class=MsoToc2><a href="#_Cache_Classes">Cache Classes</a><a
+name="_Hlt486283740"></a></p>
 
 <p class=MsoNormal>&nbsp;</p>
 
@@ -390,6 +385,18 @@ style='font-family:"Arial",sans-serif'>IPv4 mapped IPv6: </span><span
 style='font-family:Consolas'>::ffff:1.2.0.0/112</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.75in;text-indent:-.25in'><span style='font-family:OpenSymbol'>◦<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span><span
+style='font-family:"Arial",sans-serif'>Hexadecimal values:</span> <span
+style='font-family:Consolas;color:black'>0x01020000-0x0102ffff</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.75in;text-indent:-.25in'><span style='font-family:OpenSymbol'>◦<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span><span
+style='font-family:"Arial",sans-serif'>Octal values:</span> <span
+style='font-family:Consolas;color:black'>000100400000-000100577777</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
 style='font-family:"Arial",sans-serif'>Allow the separation of address parsing
@@ -414,13 +421,13 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
 style='font-family:"Arial",sans-serif'>Produce all common address strings of
 different formats for a given IPv4 or IPv6 address and produce collections of
 such strings</span></b><span style='font-family:"Arial",sans-serif'><br>
-Some addresses can have hundreds of thousands of potential string
-representations (when you consider hex capitalization, ipv6 compression, and leading
-zeros, the various IPv4 and IPv6 formats, and combinations of all the above),
-although there are generally a handful of commonly used formats.  Generating
-these strings, whether the handful of commonly used strings or whether the
-exhaustive lists of all possible strings, can help when searching or matching
-addresses in databases or text.</span></p>
+Some addresses can have hundreds of thousands of potential string representations
+(when you consider hex capitalization, ipv6 compression, and leading zeros, the
+various IPv4 and IPv6 formats, and combinations of all the above), although
+there are generally a handful of commonly used formats.  Generating these
+strings, whether the handful of commonly used strings or whether the exhaustive
+lists of all possible strings, can help when searching or matching addresses in
+databases or text.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -437,7 +444,14 @@ of different formats</span></b></p>
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
-style='font-family:"Arial",sans-serif'>Integration of MAC Address with IPv6</span></b></p>
+style='font-family:"Arial",sans-serif'>Integration of MAC Address with IPv6
+with standard conversions</span></b></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
+style='font-family:"Arial",sans-serif'>Integration of IPv4 Address with IPv6
+through common address conversions</span></b></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -445,8 +459,9 @@ style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
 style='font-family:"Arial",sans-serif'>Polymorphism</span></b><span
 style='font-family:"Arial",sans-serif'> in the code for IPv4 and IPv6 for
 applications which must support both transparently.  You can write generic
-non-version-specific code to validate addresses, connect to addresses, print
-addresses, mask addresses, etc.  You can make use of the address framework.</span></p>
+non-version-specific code to validate addresses, connect to addresses, produce
+address strings, mask addresses, etc.  You can make use of the address
+framework which is agnostic towards address version.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -466,9 +481,8 @@ style='font-family:"Arial",sans-serif'>Manipulation of addresses with prefixes,
 masks, sections, segments and subnetting</span></b><span style='font-family:
 "Arial",sans-serif'>: applying network prefixes, masking, splitting addresses
 into sections, joining address segments into larger segments, generating new
-subnets and supernets from existing addresses and subnets, iterating through
-subnets, checking containment within subnets, ipv4-ipv6 conversion, ipv6-mac
-conversion</span></p>
+subnets and supernets from existing addresses and subnets, iterating through subnets,
+checking containment within subnets</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -522,7 +536,7 @@ prefixed, masked, wildcards, ranges</span></p>
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
 style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><span
 style='font-family:"Arial",sans-serif'>IPv6 canonical, compressed (1::1), mixed
-(1:2:3:4:5:6:1.2.3.4), [bracketed]:port, and so on</span></p>
+(1:2:3:4:5:6:1.2.3.4), [bracketed]:port, ::1:service, and so on</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
@@ -639,10 +653,10 @@ color:#222222'>, </span><span style='font-family:Consolas;color:#222222'>IPV6Add
 style='font-family:"Arial",sans-serif;color:#222222'> or </span><span
 style='font-family:Consolas;color:#222222'>MACAddress.  </span><span
 style='font-family:"Arial",sans-serif;color:#222222'>Note that address
-instances can represent either a single address or a subnet.  If you have an
-address or host name with a port, then use </span><span style='font-family:
-Consolas;color:#222222'>HostName</span><span style='font-family:"Arial",sans-serif;
-color:#222222'>.</span></p>
+instances can represent either a single address or a subnet.  If you have
+either an address or host name, or you have something with a port or service
+name, then use </span><span style='font-family:Consolas;color:#222222'>HostName</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'>&nbsp;</p>
@@ -1471,7 +1485,7 @@ style='font-family:"Arial",sans-serif;color:#222222'> in </span><span
 style='font-family:Consolas;color:#222222'>IPAddressString</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>. The method </span><span
 style='font-family:Consolas;color:#222222'>parseDelimitedSegments</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>  will provide an iterator
+style='font-family:"Arial",sans-serif;color:#222222'> will provide an iterator
 to traverse through the individual addresses.</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
@@ -1499,9 +1513,9 @@ color:#222222'>Address or Host Name Validation Options</span></b></p>
 color:#222222'>&nbsp;</span></b></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>Validation options allow you to restrict the allowed formats,
-whether you wish to support just IPv4 or IPv6, or whether you wish to support
-just single addresses, or whether you wish to allow different variants.</span></p>
+color:#222222'>Validation options allow you to restrict the allowed formats, whether
+you wish to support just IPv4 or IPv6, or whether you wish to support just
+single addresses, or whether you wish to allow different variants.</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>&nbsp;</span></p>
@@ -1637,15 +1651,18 @@ font-family:Consolas;color:black'>&nbsp;</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>Host
-Name or Address with Port</span></b></p>
+Name or Address with Port or Service Name</span></b></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>For
-an address or host with port, use </span><span style='font-family:Consolas;
-color:#222222'>HostName</span><span style='font-family:"Arial",sans-serif;
-color:#222222'>.  IPv6 addresses with ports must appear as [ipv6Address]:port
-to resolve the ambiguity of the colon separator, consistent with RFC 2732,
-3986, 4038 and other RFCs.</span></p>
+an address or host with port or service name, use </span><span
+style='font-family:Consolas;color:#222222'>HostName</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>.  IPv6 addresses with
+ports should appear as [ipv6Address]:port to resolve the ambiguity of the colon
+separator, consistent with RFC 2732, 3986, 4038 and other RFCs.  However, this
+library will parse IPv6 addresses without the brackets.  You can use the
+“expectPort” setting of HostNameParameters to resolve ambiguities when the
+brackets are absent.</span></p>
 
 <p class=MsoNormal style='text-indent:35.45pt;text-autospace:none'><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>HostName </span><span
@@ -1725,8 +1742,7 @@ margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbs
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Output:</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas;color:black'>host: ::1 address:
-::1 port: 80</span></p>
+font-family:Consolas;color:black'>host: ::1 address: ::1 port: 80</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>host: localhost port: 80<br>
@@ -1864,30 +1880,16 @@ color:#222222'>Prefixed Addresses and toHostAddress()</span></b></p>
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>This library will parse CIDR prefix IP addresses such as
-10.1.2.3/24. </span></p>
+10.1.2.3/24. Network addresses like 10.1.2.0/24 and a:b:c:d::/64 are parsed as
+the prefix block of addresses for the indicated prefix length (alternative
+options for parsing prefix lengths are described in the section on prefix
+length handling).</span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>When you have a prefixed address, like </span><span
-style='font-family:"Arial",sans-serif;color:#24292E'>10.1.2.3/24 which has the
-prefix length of 24, this notation may typically denote the single, distinct
-interface address 10.1.2.3 with the first 24 bits indicating the IPv4 block, or
-it may denote the the IPv4 block of 255 addresses which includes 10.1.2.3
-(although typically the block would be denoted 10.1.2.0/24, with all host bits
-as zero).</span></p>
-
-<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#24292E'>As explained further below, you can configure the library to
-handle prefixed addresses in three different ways, to control whether prefixed
-addresses are considered addresses or subnets.    </span></p>
-
-<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#24292E'>Regardless of the prefix configuration, if you have an
-individual address or a subnet with prefix length and you want to get the
-address instance representing the entire block for that prefix, you can call </span><span
-style='font-family:Consolas;color:#24292E'>toPrefixBlock()</span><span
+color:#24292E'>If you have an individual address or a subnet with prefix length
+and you want to get the address instance representing the entire block for that
+prefix, you can call </span><span style='font-family:Consolas;color:#24292E'>toPrefixBlock()</span><span
 style='font-family:"Arial",sans-serif;color:#24292E'>.  In the reverse
 direction, given an entire block for a prefix, you can get the IPv4 network
 address or the IPv6 anycast address by calling </span><span style='font-family:
@@ -1901,9 +1903,9 @@ without the prefix length attached.  For that there are the methods </span><spa
 style='font-family:Consolas;color:#24292E'>getHostAddress()</span><span
 style='font-family:"Arial",sans-serif;color:#24292E'> or </span><span
 style='font-family:Consolas;color:#24292E'>toHostAddress()</span><span
-style='font-family:"Arial",sans-serif;color:#24292E'> which will provide the
-original host address 10.1.2.3 when parsing 10.1.2.3/24.  You can also get the
-prefix length by calling </span><span style='font-family:Consolas;color:#24292E'>getNetworkPrefixLength()</span><span
+style='font-family:"Arial",sans-serif;color:#24292E'> which will provide the original
+host address 10.1.2.3 when parsing 10.1.2.3/24.  You can also get the prefix
+length by calling </span><span style='font-family:Consolas;color:#24292E'>getNetworkPrefixLength()</span><span
 style='font-family:"Arial",sans-serif;color:#24292E'> on the </span><span
 style='font-family:Consolas;color:#24292E'>IPAddressString</span><span
 style='font-family:"Arial",sans-serif;color:#24292E'> or </span><span
@@ -1912,8 +1914,8 @@ style='font-family:"Arial",sans-serif;color:#24292E'>instance.</span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#24292E'>The example code below shows these methods and the default
-prefix length handling behavior.</span></p>
+color:#24292E'>The example code below shows some of these methods and the
+default prefix length handling behavior.</span></p>
 
 <p class=MsoNormal style='text-indent:35.45pt;text-autospace:none'><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>&nbsp;</span></p>
@@ -2088,9 +2090,9 @@ color:#222222'>Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85</span>
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
 style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>Typically,
-the segments or other punctuation identify a string as a host name an IPv4
-address or an IPv6 address.  The parser will also parse single segment values
-or a range of single segment values.  </span></span></p>
+the segments or other punctuation identify a string as a host name, as an IPv4
+address, or as an IPv6 address.  The parser will also parse single segment
+values or a range of single segment values.  </span></span></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
@@ -2309,6 +2311,8 @@ style='font-family:Consolas;color:#222222;font-weight:normal'>HostName</span></s
 class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
 font-weight:normal'> are available as well:</span></span></p>
 
+<p class=MsoNormal style='text-autospace:none'>&nbsp;</p>
+
 <p class=MsoNormal style='text-autospace:none'><b><span style='font-size:10.0pt;
 font-family:Consolas;color:#7F0055'>public</span></b><span style='font-size:
 10.0pt;font-family:Consolas;color:black'> </span><b><span style='font-size:
@@ -2426,12 +2430,12 @@ style='font-size:18.0pt;font-style:normal'>Networks</span></a></h2>
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Each
 of the different address types (IPv6, IPv4, MAC) has an associated singleton
 network object.  The network objects are used for caching, for configuration,
-and have methods for obtaining masks and loopbacks.  The network objects have
-singleton creator objects that are used to create addresses, sections, and segments,
-and those creator objects perform caching of these address components for
-efficient memory usage and performance.  All internally created address
-components are created by the creator object, whether by the string parsing
-engine or by address object manipulation.</span></p>
+and have methods for obtaining masks and loopbacks.  Each of the network
+objects have singleton creator objects that are used to create addresses,
+sections, and segments, and those creator objects perform caching of these
+address components for efficient memory usage and performance.  All internally
+created address components and addresses are created by the creator object,
+whether by the string parsing engine or by address object manipulation.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
@@ -2487,9 +2491,10 @@ style='font-family:Consolas;color:#222222'>getIPv4Network()</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, and </span><span
 style='font-family:Consolas;color:#222222'>getMACNetwork()</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, if any of those methods
-exist in the class you are subclassing.  These methods may exists because
-address components sometimes create components of other address versions or
-types (eg embedding IPv4 in IPv6, or MAC integration with IPv6).</span></p>
+exist in the class you are subclassing.  Several of those methods may exist in
+the same class because address components sometimes create components of other
+address versions or types (eg embedding IPv4 in IPv6, or MAC integration with
+IPv6).</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Once
@@ -2497,12 +2502,21 @@ you have done so, your new address classes are using your own network classes
 as well.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>When
+using your own network classes, you can override the method </span><span
+style='font-family:Consolas;color:#222222'>createAddressCreator() </span><span
+style='font-family:"Arial",sans-serif;color:#222222'>or the method</span><span
+style='font-family:Consolas;color:#222222'> getAddressCreator() </span><span
+style='font-family:"Arial",sans-serif;color:#222222'>in </span><span
+style='font-family:Consolas;color:#222222'>AddressNetwork</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>, and in so doing provide
+your own creator objects, in which you can override any or all of the creation
+methods to use your own classes.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>You
-can make the string parsing engines use your own address or network classes.  To
-do this, your code will create your own string validation objects using the
+can make the string parsing engine use your own address or network classes.  To
+do this, your code should create your own string validation objects using the
 builder classes </span><span style='font-family:Consolas;color:black'>MACAddressStringParameters.Builder</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, </span><span
 style='font-family:Consolas;color:black'>IPAddressStringParameters.Builder</span><span
@@ -2516,8 +2530,8 @@ style='font-family:"Arial",sans-serif;color:#222222'> sub-builder by calling </s
 style='font-family:Consolas;color:black'>getAddressOptionsBuilder()</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>.  With </span><span
 style='font-family:Consolas;color:black'>IPAddressStringParameters.Builder</span><span
-style='font-family:"Arial",sans-serif;color:#222222'> you must get the IPv4 or
-IPv6 sub-builder by calling one of </span><span style='font-family:Consolas;
+style='font-family:"Arial",sans-serif;color:#222222'> you must get the IPv4 or IPv6
+sub-builder by calling one of </span><span style='font-family:Consolas;
 color:black'>getIPv6Parameters()</span><span style='font-size:10.0pt;
 font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
 color:#222222'>or </span><span style='font-family:Consolas;color:black'>getIPv4Parameters()</span><span
@@ -2532,26 +2546,8 @@ color:#222222'>.  Those validation objects can be supplied to the appropriate
 constructor of </span><span style='font-family:Consolas;color:#222222'>IPAddressString</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> or </span><span
 style='font-family:Consolas;color:#222222'>MACAddressString</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>.  If you have supplied
-new networks to those validation objects, then subsequent string parsing with
-those </span><span style='font-family:Consolas;color:#222222'>IPAddressString</span><span
-style='font-family:"Arial",sans-serif;color:#222222'> or </span><span
-style='font-family:Consolas;color:#222222'>MACAddressString</span><span
-style='font-family:"Arial",sans-serif;color:#222222'> instances will use the
-supplied networks.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>When
-using your own network classes, you can override the method </span><span
-style='font-family:Consolas;color:#222222'>createAddressCreator() </span><span
-style='font-family:"Arial",sans-serif;color:#222222'>or the method</span><span
-style='font-family:Consolas;color:#222222'> getAddressCreator() </span><span
-style='font-family:"Arial",sans-serif;color:#222222'>in </span><span
-style='font-family:Consolas;color:#222222'>AddressNetwork</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>, and in so doing provide
-your own creator objects, in which you may have overridden any or all of the
-creation methods.  At this point your code controls the types being
-instantiated by the library’s string parsing engine.</span></p>
+style='font-family:"Arial",sans-serif;color:#222222'>, and the subsequent
+string parsing with those instances will use the supplied networks.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif'>&nbsp;</span></p>
@@ -2559,31 +2555,92 @@ margin-left:0in'><span style='font-family:"Arial",sans-serif'>&nbsp;</span></p>
 <h2><a name="_Prefix_Length_Handling"><span style='font-size:18.0pt;
 font-style:normal'>Prefix Length Handling</span></a></h2>
 
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
+color:#222222'>Prefix lengths are supported both in parsing, as indicated in
+the section above on parsing, as well as when directly constructing addresses
+or sections.  Addresses and sections store their prefix lengths and the prefix
+is incorporated in numerous address operations as well as when producing strings. 
+<span class=StrongEmphasis><span style='font-weight:normal'>For instance, an
+address will provide the network section upon calls to </span></span></span><span
+class=StrongEmphasis><span style='font-family:Consolas;color:#222222;
+font-weight:normal'>getNetworkSection()</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'> in </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>IPAddress</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'>, and will supply the prefix length when calling </span></span><span
+class=StrongEmphasis><span style='font-family:Consolas;color:#222222;
+font-weight:normal'>getNetworkPrefixLength().</span></span></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
+style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>Given
+an address with no prefix length, you can convert to an address with prefix
+length using the methods </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>assignPrefixForSingleBlock()</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'> or </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>assignMinPrefixForBlock()</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'> in </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>IPAddress</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'>, or any of the methods that allow you to set any given
+prefix length directly such as </span></span><span class=StrongEmphasis><span
+style='font-family:Consolas;color:#222222;font-weight:normal'>setPrefixLength(int)</span></span><span
+class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
+font-weight:normal'>.</span></span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in;text-autospace:none'><b><span style='font-family:"Arial",sans-serif;
+color:#222222'>Prefix Length and Equality</span></b></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
+style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>In this
+library, the subnet with prefix length 10.1.2.*/24 is equivalent the
+non-prefixed address 10.1.2.* as they both contain the same set of addresses.  
+When it comes to equality or comparison, the prefix length has no effect.  </span></span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in;text-autospace:none'><b><span style='font-family:"Arial",sans-serif;
+color:#222222'>Alternative Options for Prefix Length Handling </span></b></p>
+
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>As
 indicated in the section on parsing, when constructing an IP address with
-prefix length, you can end up with subnets or individual addresses.  This is
-also true for address and address sections constructed directly.</span></p>
+prefix length, you can end up with an individual address or a subnet if you
+provide a network address.  This is also true for address and address sections
+constructed from numeric values rather than strings.  When you specify the
+network address of a subnet with its corresponding prefix length, then the
+resulting object will be the subnet, and not an individual address.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>In
 version 3 and earlier, prefixed addresses and sections were always converted to
-the subnet block of addresses for that prefix.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'> </span></p>
+the subnet block of addresses for that prefix, regardless of whether you
+specified the network address or any other address.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>In
-the current version, there are three options available:</span></p>
+the current version, there are three options available, the version 3 legacy
+behavior, the new default behavior, and a third option:</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'>1.<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </span><b><span style='font-family:Consolas;color:black'>ALL_PREFIXED_ADDRESSES_ARE_SUBNETS</span></b><span
 style='font-family:"Arial",sans-serif;color:#222222'>: An address with a prefix
-length is the subnet block for that prefix.  This is the legacy behavior, the
-behaviour for versions 3 and under of this library.  An address like 1.2.3.4/16
-is equivalent to 1.2.*.*/16, and a:b:c:d::/64 is equivalent to a:b:c:d:*:*:*:*/64<br>
+length is always the subnet block for that prefix.  This is the legacy
+behavior, the behaviour for versions 3 and under of this library.  An address
+like 1.2.3.4/16 is equivalent to 1.2.*.*/16, and a:b:c:d::/64 is equivalent to
+a:b:c:d:*:*:*:*/64<br>
 <br>
 </span></p>
 
@@ -2605,9 +2662,9 @@ and many applications.  With IPv4, an address with a host value of zero is
 known as the network address.  It often represents the subnet of all addresses
 with that same prefix.  It is often used for routing.  The all-zero address
 0.0.0.0 is conventionally known as INADDR_ANY (any address on the local
-machine), it is the address that returns true for
-java.net.Inet4Address.isAnyLocalAddress(), and when paired with prefix zero it
-is known as the default route (the route for all addresses).</span><br>
+machine), it is the address that returns true for java.net.Inet4Address.isAnyLocalAddress(),
+and when paired with prefix zero it is known as the default route (the route
+for all addresses).</span><br>
 <br>
 <span style='font-family:"Arial",sans-serif;color:#222222'>With IPv6, the
 convention is similar and this option results in the same behaviour.  It is a
@@ -2634,24 +2691,26 @@ explicitly defined, like 1.2.*.*/16, while 1.2.0.0/16 is just a single address.<
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Version
 3 and earlier versions of the library provided only the first behavior.  All
 three options are available starting with version 4 of this library, while the
-default behavior is the second.</span></p>
+default behavior is the second options listed and is most consistent with
+common conventions used widely for IP addresses.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
 options above are generally geared towards IP addresses.  With MAC Addresses
-prefix lengths are implicit for the most part, particularly when it comes to
-strings.  With MAC there is no difference between options 2 and 3 since there
-is no analog to the zero-host/network/anycast address.  With MAC, when using an
-operation that allows you to supply a prefix, the first option above results in
-addresses that span all values beyond the prefix, while the other two options do
-not.</span></p>
+prefix lengths are implicit for the most part (and cannot be specified as part
+of an address string explicitly).  MAC address prefix lengths are discussed in
+more detail in the section below “MAC Address Prefix Lengths”   With MAC there
+is no difference between options 2 and 3 since there is no analog to the
+zero-host/network/anycast address.  With MAC, when using an operation that
+allows you to supply a prefix, the first option above results in addresses that
+span all values beyond the prefix, while options 2 and 3 do not.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>Configuring
-Non-Default Prefix Length Handling</span></b></p>
+Alternative Prefix Length Handling</span></b></p>
 
 <p class=Textbody><span class=StrongEmphasis><span style='font-family:"Arial",sans-serif;
 color:#222222;font-weight:normal'>To choose one of the non-default prefix
@@ -2917,14 +2976,15 @@ font-family:Consolas;color:black'>              </span></p>
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>       </span><b><span style='font-size:10.0pt;
 font-family:Consolas;color:#7F0055'>public</span></b><span style='font-size:
-10.0pt;font-family:Consolas;color:black'> MyIPv6AddressSection(IPv6AddressSegment[]
-</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>segments</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>, </span><b><span
-style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>int</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>startIndex</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>, </span><b><span
-style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>boolean</span></b><span
+10.0pt;font-family:Consolas;color:black'>
+MyIPv6AddressSection(IPv6AddressSegment[] </span><span style='font-size:10.0pt;
+font-family:Consolas;color:#6A3E3E'>segments</span><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>, </span><b><span style='font-size:10.0pt;
+font-family:Consolas;color:#7F0055'>int</span></b><span style='font-size:10.0pt;
+font-family:Consolas;color:black'> </span><span style='font-size:10.0pt;
+font-family:Consolas;color:#6A3E3E'>startIndex</span><span style='font-size:
+10.0pt;font-family:Consolas;color:black'>, </span><b><span style='font-size:
+10.0pt;font-family:Consolas;color:#7F0055'>boolean</span></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>cloneSegments</span><span
 style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
@@ -3184,13 +3244,14 @@ style='font-size:10.0pt;font-family:Consolas;color:#646464'>@Override</span></p>
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>                    </span><b><span
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>public</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> IPv6AddressSegment createSegment(</span><b><span
-style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>int</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>value</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>, Integer </span><span
-style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>segmentPrefixLength</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'> IPv6AddressSegment
+createSegment(</span><b><span style='font-size:10.0pt;font-family:Consolas;
+color:#7F0055'>int</span></b><span style='font-size:10.0pt;font-family:Consolas;
+color:black'> </span><span style='font-size:10.0pt;font-family:Consolas;
+color:#6A3E3E'>value</span><span style='font-size:10.0pt;font-family:Consolas;
+color:black'>, Integer </span><span style='font-size:10.0pt;font-family:Consolas;
+color:#6A3E3E'>segmentPrefixLength</span><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>) {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>                           </span><b><span
@@ -3323,12 +3384,11 @@ font-family:Consolas;color:black'>                       
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>return</span></b><span
 style='font-size:10.0pt;font-family:Consolas;color:black'> </span><b><span
 style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>new</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>
-MyIPv6AddressSection(</span><span style='font-size:10.0pt;font-family:Consolas;
-color:#6A3E3E'>segments</span><span style='font-size:10.0pt;font-family:Consolas;
-color:black'>, </span><span style='font-size:10.0pt;font-family:Consolas;
-color:#6A3E3E'>prefix</span><span style='font-size:10.0pt;font-family:Consolas;
-color:black'>);</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'> MyIPv6AddressSection(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>segments</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>, </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>prefix</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>                    }</span></p>
@@ -3467,49 +3527,6 @@ font-family:Consolas;color:black'>).getAddress().toIPv6();</span></p>
 
 <p class=Textbody>&nbsp;</p>
 
-<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in;text-autospace:none'><b><span style='font-family:"Arial",sans-serif;
-color:#222222'>Prefix length and Equality</span></b></p>
-
-<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
-style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>In this
-library, the subnet with prefix length 10.1.2.*/24 is equivalent the
-non-prefixed address 10.1.2.* as they both contain the same set of addresses.  
-When it comes to equality or comparison, the prefix length has no effect. 
-However, the prefix length is stored in the address, so an address or subnet
-with prefix length will be aware that it is &quot;prefixed&quot;, printing
-strings that incorporate the prefix, or providing the network section upon
-calls to </span></span><span class=StrongEmphasis><span style='font-family:
-Consolas;color:#222222;font-weight:normal'>getNetworkSection()</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'> in </span></span><span class=StrongEmphasis><span
-style='font-family:Consolas;color:#222222;font-weight:normal'>IPAddress</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'>.  </span></span></p>
-
-<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in;text-autospace:none'><span class=StrongEmphasis><span
-style='font-family:"Arial",sans-serif;color:#222222;font-weight:normal'>Given
-an address with no prefix length, you can convert to an address with prefix
-length using the methods </span></span><span class=StrongEmphasis><span
-style='font-family:Consolas;color:#222222;font-weight:normal'>assignPrefixForSingleBlock()</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'> or </span></span><span class=StrongEmphasis><span
-style='font-family:Consolas;color:#222222;font-weight:normal'>assignMinPrefixForBlock()</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'> in </span></span><span class=StrongEmphasis><span
-style='font-family:Consolas;color:#222222;font-weight:normal'>IPAddress</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'>, or any of the methods that allow you to set any given
-prefix length directly such as </span></span><span class=StrongEmphasis><span
-style='font-family:Consolas;color:#222222;font-weight:normal'>setPrefixLength(int)</span></span><span
-class=StrongEmphasis><span style='font-family:"Arial",sans-serif;color:#222222;
-font-weight:normal'>.</span></span></p>
-
-<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
-font-family:Consolas'>&nbsp;</span></p>
-
 <p class=Textbody>&nbsp;</p>
 
 <h2><a name="_Address_Sections"><span style='font-size:18.0pt;font-style:
@@ -3623,7 +3640,288 @@ Address Operations</span></a></h2>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>There
-are various methods for obtaining masking, subnets, and so on.</span></p>
+are various methods for masking, obtaining subnets, and so on.</span></p>
+
+<p class=Standard style='text-autospace:none'><span style='font-family:Consolas'>&nbsp;</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span class=StrongEmphasis><span style='font-family:"Arial",sans-serif'>Summary
+of IP Address Operations</span></span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Here
+is a summary, a non-exhaustive list, in no specific order, of operations for
+transforming addresses and subnets:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>toPrefixBlock</span></b>: <span
+style='font-family:"Arial",sans-serif;color:#222222'>Provides the subnet for
+the entire prefix block using the existing or a supplied prefix length (</span><span
+style='font-family:Consolas;color:#222222'>toPrefixBlock</span><span
+style='font-family:"Arial",sans-serif;color:#222222'> is redundant when using
+prefix configuration </span><span style='font-family:Consolas;color:black'>ALL_PREFIXED_ADDRESSES_ARE_SUBNETS
+</span><span style='font-family:"Arial",sans-serif;color:#222222'>because
+prefixed addresses are always a prefix block with that configuration).  You can
+use </span><span style='font-family:Consolas;color:#222222'>isPrefixBlock</span><span
+style='font-family:"Arial",sans-serif;color:#222222'> to determine if the
+operation would have no effect on the address because it is already a prefix
+block.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>assignPrefixForSingleBlock</span></b><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>toPrefixedEquivalent</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>): Converts a subnet
+address with no prefix length to an equivalent address with a prefix length. 
+The resulting address will span the same range of values as the original.  You
+can use </span><span style='font-family:Consolas;color:black'>getPrefixLengthForSingleBlock
+</span><span style='font-family:"Arial",sans-serif;color:#222222'>(formerly </span><span
+style='font-family:Consolas;color:black'>getEquivalentPrefix</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>to get the resultant prefix prior to the operation, or </span><span
+style='font-family:Consolas;color:black'>isSinglePrefixBlock </span><span
+style='font-family:"Arial",sans-serif;color:#222222'>(formerly </span><span
+style='font-family:Consolas;color:black'>isRangeEquivalentToPrefix</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>to determine if the operation would have no effect on the address
+because it is already a single prefix block.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>assignMinPrefixForBlock</span></b><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>toMinPrefixedEquivalent</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>): Converts an address to
+an equivalent address with the smallest possible prefix length.  The resulting
+address will span the same range of values as the original.  You can use </span><span
+style='font-family:Consolas;color:black'>getMinPrefixLengthForBlock </span><span
+style='font-family:"Arial",sans-serif;color:#222222'>(formerly </span><span
+style='font-family:Consolas;color:black'>getMinPrefix</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>to get the resultant prefix prior to the operation.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>mergePrefixBlocks</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Given a list of addresses
+or subnets, merges them into the minimal list of prefix block subnets </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>spanWithPrefixBlocks</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Given a pair of addresses
+or subnets, finds the minimal list of prefix block subnets that span all
+addresses between the pair </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>append</span></b><span
+style='font-family:"Arial",sans-serif;color:#222222'>,</span><span
+style='font-family:Consolas'> <b>prepend</b></span><span style='font-family:
+"Arial",sans-serif;color:#222222'>,</span><span style='font-family:Consolas'> <b>replace</b></span><span
+style='font-family:"Arial",sans-serif'>: Add or replace segments in sections
+and addresses.  </span><span style='font-family:"Arial",sans-serif;color:black'>On
+addresses you must always maintain the correct number of segments, so only the
+replace operation is provided.  You can obtain a section by either constructing
+one directly or by calling a variant of </span><span style='font-family:Consolas'>getSection</span><span
+style='font-family:"Arial",sans-serif;color:black'> on an address.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>adjustPrefixBySegment</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Will create a larger
+network or smaller subnet address by increasing or decreasing the prefix length
+to the next segment boundary. If prefix length is increased, the additional
+prefix bits can be either zero or the full range of possible values. </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>removePrefixLength</span></b><span
+style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>adjustPrefixLength</span></b><span
+style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>applyPrefixLength</span></b><span
+style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>setPrefixLength</span></b><span
+style='font-family:"Arial",sans-serif'>:  Add, remove or adjust prefix lengths
+by the indicated values.  There are variants with a boolean argument to control
+whether extended prefix lengths have zeros for the added bits, or whether the
+bits retain their values from when they were on the other side of the prefix
+boundary.  The default behavior when extending a prefix length is to insert
+zeros in the bits added to the prefix.  The difference between </span><span
+style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
+"Courier New"'> </span><span style='font-family:"Arial",sans-serif'>and </span><span
+style='font-family:Consolas'>setPrefixLength</span><span style='font-family:
+"Arial",sans-serif'> is that the former does not shorten a prefix length. </span><span
+style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
+"Arial",sans-serif'> will not decrease the size of a subnet.  </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>mask</span></b><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>maskNetwork</b></span><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>bitwiseOr</b></span><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>bitwiseOrNetwork</b></span><span
+style='font-family:"Arial",sans-serif'>: apply masks to subnets and addresses. 
+The “network” variants allow you to mask just the network portion and apply a
+prefix length, while the others remove any existing prefix length.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>reverseBits</span></b><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseBytes</b></span><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseBytesPerSegment</b></span><span
+style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseSegments</b></span><span
+style='font-family:"Arial",sans-serif'>: useful for handling endianness
+(network byte order sometimes requires bytes be reversed), or DNS lookup, or
+other reasons for reversing bits and bytes.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>subtract</span></b><span
+style='font-family:"Arial",sans-serif'>: Computes the subnet difference, the
+set of addresses in the subnet but not in the argument subnet. Subtracts a
+given subnet from the receiver subnet, returning an array of subnets for the
+result.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>intersect</span></b><span
+style='font-family:"Arial",sans-serif'>: Computes the subnet conjunction, the
+set of addresses in both the receiver subnet and the argument subnet.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>increment</span></b><span
+style='font-family:"Arial",sans-serif'>: Given a positive or negative integer
+increment value, if the address is a subnet, provides the address that is the
+given increment into the list of subnet addresses.  Any increment exceeding the
+count of addresses in the subnet is simply added to the final address in the
+subnet.  If the address is an individual address, adds the given increment to
+the address value to produce a new address.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>toIPv4, toIPv6, toEUI</span></b>:
+<span style='font-family:"Arial",sans-serif'>Use either standard or customized
+address conversions to go from one address version/type to another</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>iterator</span></b><span
+style='font-family:"Arial",sans-serif'>: iterates through the individual
+addresses of a subnet</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas'>prefixBlockIterator</span></b>:
+<span style='font-family:"Arial",sans-serif'>iterates through the individual
+prefix block subnets of a larger subnet</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'>&nbsp;</p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>Queries
+for Prefix Lengths and Prefix Blocks</span></b></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>In
+some cases you may need to know if you have a prefix block subnet, such as the
+/64 block a:b:c:d::/64 or the /16 block 1.2.0.0/16, in which the subnet
+contains all the addresses with the same prefix of a given length.  The
+following methods allow you to query for prefix blocks and lengths of blocks.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>containsPrefixBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Answers whether the subnet
+contains the prefix block of addresses for a given prefix length (regardless of
+whether the address is assigned a different prefix length or has none
+assigned).</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>containsSinglePrefixBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Like </span><span
+style='font-family:Consolas;color:black'>containsPrefixBlock</span><span
+style='font-family:"Arial",sans-serif;color:black'>, but queries if the subnet
+contains <i>only</i> the prefix block of addresses for a given prefix length. 
+In other words, it answers whether the subnet contains the full block of
+address for just a single prefix </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>isPrefixBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Like </span><span
+style='font-family:Consolas;color:black'>containsPrefixBlock</span><span
+style='font-family:"Arial",sans-serif;color:black'> but using the prefix length
+assigned to the address.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>isSinglePrefixBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Like </span><span
+style='font-family:Consolas;color:black'>containsSinglePrefixBlock</span><span
+style='font-family:"Arial",sans-serif;color:black'> but using the prefix length
+assigned to the address</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>getBlockMaskPrefixLength</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>:</span><span
+style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
+color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>getMaskPrefixLength</span><span
+style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
+style='font-family:"Arial",sans-serif;color:black'>: Will return the prefix
+length for a network or host mask, if it is one</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>getPrefixLengthForSingleBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Returns a prefix length
+for which the range of this segment grouping matches exactly the block of
+addresses for that prefix, if such a prefix length exists, and if it does, it
+will match the result of </span><span style='font-family:Consolas;color:black'>getMinPrefixLengthForBlock</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>getMinPrefixLengthForBlock</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Returns the smallest
+prefix length such that this address division series includes the block of
+addresses for that prefix, which is the bit count for individual addresses.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'>&nbsp;</p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>Mask
+and Prefix Length Operations</span></b></p>
 
 <p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
@@ -3645,10 +3943,13 @@ style='font-family:Consolas;color:#222222'> applyPrefixLength</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>, and </span><span
 style='font-family:Consolas;color:#222222'>setPrefixLength</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> allow you to apply and
-adjust prefix lengths and masks to addresses and subnets.  When applying an
-operation to a subnet, the operation is applied to every member of the subnet,
-so the result must something be representable with contiguous ranges, or you
-will get </span><span style='font-family:Consolas;color:black'>IncompatibleAddressException</span><span
+adjust prefix lengths, and to apply masks, to addresses and subnets.  </span></p>
+
+<p class=Standard style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>When
+applying an operation to a subnet, the operation is applied to every member of
+the subnet, so the result must be something representable with contiguous
+ranges, or you will get </span><span style='font-family:Consolas;color:black'>IncompatibleAddressException</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> (formerly </span><span
 style='font-family:Consolas;color:#222222'>AddressTypeException</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>).  For instance, masking
@@ -3656,6 +3957,9 @@ the subnet block of 255 addresses 0.0.0.0/24 with 0.0.0.128 results in the two
 addresses 0.0.0.0 and 0.0.0.128 which is not contiguous.  However, this will
 not happen when using standard masking and subnetting techniques typical with
 IPv4 and IPv6 routing.  </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>The
@@ -3760,7 +4064,9 @@ style='font-size:10.0pt;font-family:Consolas;color:black'> + </span><span
 style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot; masked
 &quot;</span><span style='font-size:10.0pt;font-family:Consolas;color:black'> +
 </span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>maskedAddress</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>); </span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
+
+<p class=MsoNormal style='text-autospace:none'>&nbsp;</p>
 
 <p class=Standard style='text-indent:35.45pt;text-autospace:none'><span
 style='font-size:10.0pt;font-family:Consolas;color:#3F7F5F'>//create the subnet</span></p>
@@ -3935,183 +4241,35 @@ color:#222222'>&nbsp;</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>Output:<br>
-</span><span style='font-size:10.0pt;font-family:Consolas;color:black'>mask
-with prefix length ffff::/16<br>
-mask ffff::<br>
-address a:ffff:b:c:d::f masked a::<br>
-subnet a::/16 masked a::<br>
-true<br>
-lowest in subnet a::/16<br>
-lowest in subnet no prefix a::<br>
-true<br>
-prefix removed a::</span></p>
+color:#222222'>Output:</span></p>
 
-<p class=Standard style='text-autospace:none'><span style='font-family:Consolas'>&nbsp;</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>mask with prefix length ffff::/16</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span class=StrongEmphasis><span style='font-family:"Arial",sans-serif'>Summary
-of IP Address Operations</span></span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>mask ffff::</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>There
-are various additional methods for managing networks not listed above, as well
-as some additional operations that are available, such as:</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>address a:ffff:b:c:d::f masked a::</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas;color:black'>assignPrefixForSingleBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>toPrefixedEquivalent</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>): Converts an address
-with wildcards to an equivalent address with a prefix length.  The resulting
-address will span the same range of values as the original.  You can use </span><b><span
-style='font-family:Consolas;color:black'>getPrefixLengthForSingleBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>getEquivalentPrefix</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>to get the resultant prefix prior to the operation, or </span><b><span
-style='font-family:Consolas;color:black'>isSinglePrefixBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>isRangeEquivalentToPrefix</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>):</span><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>to determine if the operation would have no effect on the
-address because it is already a single prefix block.</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>subnet a::/16 masked a::</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas;color:black'>assignMinPrefixForBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>toMinPrefixedEquivalent</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>): Converts an address to
-an equivalent address with the smallest possible prefix length.  The resulting
-address will span the same range of values as the original.  You can use </span><b><span
-style='font-family:Consolas;color:black'>getMinPrefixLengthForBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>getMinPrefix</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>to get the resultant prefix prior to the operation.</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>true</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in'><span style='font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>toPrefixBlock</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>isRangeEquivalent
-</span><span style='font-family:"Arial",sans-serif;color:#222222'>and </span><span
-style='font-family:Consolas;color:black'>isRangeUnchanged</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>)</span>: <span
-style='font-family:"Arial",sans-serif;color:#222222'>Provides the subnet for
-the entire prefix block using the existing or a supplied prefix length (</span><span
-style='font-family:Consolas;color:#222222'>toPrefixBlock</span><span
-style='font-family:"Arial",sans-serif;color:#222222'> with the existing prefix
-has no effect when using prefix configuration </span><span style='font-family:
-Consolas;color:black'>ALL_PREFIXED_ADDRESSES_ARE_SUBNETS </span><span
-style='font-family:"Arial",sans-serif;color:#222222'>because prefixed addresses
-are always already a prefix block).  You can use </span><b><span
-style='font-family:Consolas;color:#222222'>isPrefixBlock</span></b><span
-style='font-family:"Arial",sans-serif;color:#222222'> to determine if the
-operation would have no effect on the address because it is already a prefix
-block.</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>lowest in subnet a::/16</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas;color:black'>getBlockMaskPrefixLength</span></b><span
-style='font-family:Consolas;color:black'> </span><span style='font-family:"Arial",sans-serif;
-color:#222222'>(formerly </span><span style='font-family:Consolas;color:black'>getMaskPrefixLength</span><span
-style='font-family:"Arial",sans-serif;color:#222222'>)</span><span
-style='font-family:"Arial",sans-serif;color:black'>: Will return the prefix
-length for a network or host mask, or null otherwise</span></p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>lowest in subnet no prefix a::</span></p>
 
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>append</span></b><span
-style='font-family:"Arial",sans-serif;color:#222222'>,</span><span
-style='font-family:Consolas'> <b>prepend</b></span><span style='font-family:
-"Arial",sans-serif;color:#222222'>,</span><span style='font-family:Consolas'> <b>replace</b></span><span
-style='font-family:"Arial",sans-serif'>: Add or replace segments in sections
-and addresses.  </span><span style='font-family:"Arial",sans-serif;color:black'>On
-addresses you must always maintain the correct number of segments, so only the
-replace operation is provided.  You can obtain a section by either constructing
-one directly or by calling a variant of </span><b><span style='font-family:
-Consolas'>getSection</span></b><span style='font-family:"Arial",sans-serif;
-color:black'> on an address.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas;color:black'>adjustPrefixBySegment</span></b><span
-style='font-family:"Arial",sans-serif;color:black'>: Will create a larger
-network or smaller subnet address by increasing or decreasing the prefix length
-to the next segment boundary. If prefix length is increased, the additional
-prefix bits can be either zero or the full range of possible values. </span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>removePrefixLength</span></b><span
-style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>adjustPrefixLength</span></b><span
-style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>applyPrefixLength</span></b><span
-style='font-family:"Courier New"'>, </span><b><span style='font-family:Consolas'>setPrefixLength</span></b><span
-style='font-family:"Arial",sans-serif'>:  Add, remove or adjust prefix lengths
-by the indicated values.  There are variants to control whether extended prefix
-lengths have zeros for the added bits, or whether the bits remain full range. 
-The default behavior when extending a prefix length is to insert zeros in the
-bits added to the prefix.  The difference between </span><span
-style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
-"Courier New"'> </span><span style='font-family:"Arial",sans-serif'>and </span><span
-style='font-family:Consolas'>setPrefixLength</span><span style='font-family:
-"Arial",sans-serif'> is that the former does not shorten a prefix length; </span><span
-style='font-family:Consolas'>applyPrefixLength</span><span style='font-family:
-"Arial",sans-serif'> will not decrease the size of a subnet.  </span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>mask</span></b><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>maskNetwork</b></span><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>bitwiseOr</b></span><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>bitwiseOrNetwork</b></span><span
-style='font-family:"Arial",sans-serif'>: apply masks to subnets and addresses. 
-The network variants allow you to mask just the network portion and apply a
-prefix length, while the others remove any existing prefix length.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>reverseBits</span></b><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseBytes</b></span><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseBytesPerSegment</b></span><span
-style='font-family:"Courier New"'>,</span><span style='font-family:Consolas'> <b>reverseSegments</b></span><span
-style='font-family:"Arial",sans-serif'>: useful for handling endianness
-(network byte order sometimes requires bytes be reversed), or DNS lookup, or
-other reasons for reversing bits and bytes.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>subtract</span></b><span
-style='font-family:"Arial",sans-serif'>: Computes the subnet difference, the
-set of addresses in the subnet but not in the argument subnet. Subtracts a
-given subnet from the receiver subnet, returning an array of subnets for the
-result.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
-style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><b><span style='font-family:Consolas'>intersect</span></b><span
-style='font-family:"Arial",sans-serif'>: Computes the subnet conjunction, the
-set of addresses in both the receiver subnet and the argument subnet.</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'>&nbsp;</p>
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>true<br>
+prefix removed a::</span><span style='font-family:"Arial",sans-serif;
+color:#222222'><br>
+<br>
+</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span class=StrongEmphasis><span style='font-family:"Arial",sans-serif'>Subnetting
@@ -4269,11 +4427,103 @@ color:black'><br>
 <p class=MsoNormal style='margin-left:35.45pt;text-autospace:none'><span
 style='font-size:10.0pt;font-family:Consolas'>&nbsp;</span></p>
 
-<p class=MsoNormal style='margin-left:35.45pt;text-autospace:none'><span
-style='font-size:10.0pt;font-family:Consolas'>&nbsp;</span></p>
+<p class=MsoNormal style='text-autospace:none'>&nbsp;</p>
+
+<p class=MsoNormal style='text-autospace:none'><span class=StrongEmphasis><span
+style='font-family:"Arial",sans-serif;font-weight:normal'>Alternatively, you
+can make use of the prefixBlockIterator() method to get a list of subnets when
+adjusting the prefix:</span></span></p>
+
+<p class=MsoNormal style='text-autospace:none'>&nbsp;</p>
+
+<p class=MsoNormal style='text-indent:35.45pt;text-autospace:none'><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>IPAddress </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><b><span
+style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>new</span></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> IPAddressString(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#2A00FF'>&quot;192.168.0.0/28&quot;</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>).getAddress();</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       IPAddress </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>newSubnets</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.setPrefixLength(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.getPrefixLength() +
+2, </span><b><span style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>false</span></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       System.</span><b><i><span
+style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>newSubnets</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       TreeSet&lt;IPAddress&gt; </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnetSet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><b><span
+style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>new</span></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>
+TreeSet&lt;IPAddress&gt;();</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       Iterator&lt;? </span><b><span
+style='font-size:10.0pt;font-family:Consolas;color:#7F0055'>extends</span></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> IPAddress&gt; </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>iterator</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'> = </span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>newSubnets</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.prefixBlockIterator();</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       </span><b><span style='font-size:10.0pt;
+font-family:Consolas;color:#7F0055'>while</span></b><span style='font-size:
+10.0pt;font-family:Consolas;color:black'> (</span><span style='font-size:10.0pt;
+font-family:Consolas;color:#6A3E3E'>iterator</span><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>.hasNext()) {</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>           </span><span style='font-size:
+10.0pt;font-family:Consolas;color:#6A3E3E'>subnetSet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.add(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>iterator</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.next());</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       }</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>       System.</span><b><i><span
+style='font-size:10.0pt;font-family:Consolas;color:#0000C0'>out</span></i></b><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>.println(</span><span
+style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>subnetSet</span><span
+style='font-size:10.0pt;font-family:Consolas;color:black'>);</span></p>
+
+<p class=MsoNormal style='text-autospace:none'>&nbsp;</p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
+color:#222222'>Output:</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>192.168.0.0-12/30</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>[192.168.0.0/30, 192.168.0.4/30,
+192.168.0.8/30, 192.168.0.12/30]</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas'>&nbsp;</span></p>
+
+<p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
+font-family:Consolas'>&nbsp;</span></p>
 
 <h2><a name="_Parse_String_Representation"><span style='font-size:18.0pt;
-font-style:normal'>Parse String Representation of MAC Address</span></a></h2>
+font-style:normal'>Parse String Representations of MAC Address</span></a></h2>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Conversion
@@ -4978,10 +5228,10 @@ bits are reversed in each byte of a MAC address.  </span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif'>There
-is a standardized procedure for converting MAC addresses to IPv6 given a IPv6
-64 bit prefix, as described in </span><a
-href="https://tools.ietf.org/html/rfc2464"><span style='font-family:"Arial",sans-serif'>IETF
-RFC 2464</span></a><span style='font-family:"Arial",sans-serif'>, </span><a
+is a standardized procedure for converting MAC addresses to IPv6 given a IPv6 64
+bit prefix, as described in </span><a href="https://tools.ietf.org/html/rfc2464"><span
+style='font-family:"Arial",sans-serif'>IETF RFC 2464</span></a><span
+style='font-family:"Arial",sans-serif'>, </span><a
 href="https://tools.ietf.org/html/rfc3513"><span style='font-family:"Arial",sans-serif'>RFC
 3513</span></a><span style='font-family:"Arial",sans-serif'>, and </span><a
 href="https://tools.ietf.org/html/rfc4944"><span style='font-family:"Arial",sans-serif'>RFC
@@ -5214,8 +5464,8 @@ instance, if the IPV6 address section is the 8 bytes corresponding to the
 network prefix of an IPV6 address section, then the resulting MAC address
 section will be 0 bytes.  If the IPV6 address section is the 8 bytes
 corresponding to the interface identifier, and that identifier has the required
-0xfffe values in the 5<sup>th</sup> and 6<sup>th</sup> bytes, then the MAC address
-section will be the full 8 bytes of an EUI-64 MAC address.</span></p>
+0xfffe values in the 5<sup>th</sup> and 6<sup>th</sup> bytes, then the MAC
+address section will be the full 8 bytes of an EUI-64 MAC address.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in;text-autospace:none'><span style='font-family:"Arial",sans-serif'>&nbsp;</span></p>
@@ -5403,6 +5653,255 @@ name="_Toc456708508"><span style='font-size:18.0pt;font-style:normal'>Conversion
 to String Representation of Address</span></a></h2>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>Here is a list of string methods, in no specific order.  <br>
+Note that, for a given address or host, the string produced by one of these methods might match those of other methods.  They are not necessarily distinct from each other for all addresses.
+</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>All
+address types, HostName and IPAddressString:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toNormalizedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: Produces a consistent
+string.  For addresses, a string that is somewhat similar and consistent for
+all address components of the same type.  Uses no segment compression in IPv6. 
+Uses xx:xx:xx:xx:xx:xx for MAC address.  Prints HostName instances in standard
+formats as expected by URLs and as dictated by RFCs, including port or service
+name and using square brackets for IPV6 addresses.  Prints a standardized
+format for IPAddressString instances that cannot be converted to addresses
+(such as ‘*’). For HostName and IPAddressString instances constructed from
+invalid strings, prints the original string used to construct.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: same as </span><b><span
+style='font-family:Consolas;color:black'>toCanonicalString </span></b><span
+style='font-family:"Arial",sans-serif;color:black'>for addresses.  For HostName
+and IPAddressString instances, prints the original string used to construct.<br>
+<br>
+</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>All
+address types:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toCanonicalString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: the string recommended by
+one or more RFCs or other common standard.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toCompressedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: a short representation of
+the address while remaining within the confines of standard representation(s)
+of the address.  For IPv6 compresses all compressible segments.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toHexString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: base 64<br>
+<br>
+</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>IP
+addresses and HostName:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toNormalizedWildcardString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: similar to </span><b><span
+style='font-family:Consolas;color:black'>toNormalizedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, but uses wildcards and
+does not print prefix length for addresses that have prefix lengths</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>IP
+addresses only:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toFullString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: a string which maintains a
+common length</span>, <span style='font-family:"Arial",sans-serif;color:black'>a
+string with no compressed segments and all segments of full length, which is 4
+characters for IPv6 segments and 3 characters for IPv4 segments</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toCanonicalWildcardString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: similar to </span><b><span
+style='font-family:Consolas;color:black'>toCanonicalString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, but uses wildcards and
+does not print prefix length for addresses that have prefix lengths</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toCompressedWildcardString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: similar to </span><b><span
+style='font-family:Consolas;color:black'>toCompressedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, but uses wildcards and
+does not print prefix length for addresses that have prefix lengths</span><b><span
+style='font-family:Consolas;color:black'> </span></b></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toSQLWildcardString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: similar to </span><b><span
+style='font-family:Consolas;color:black'>toNormalizedWildcardString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, but uses SQL wildcards</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toPrefixLengthString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: a string with CIDR prefix
+length if it has one, and compresses the host for IPv6.  For IPv4 it is the
+same as </span><b><span style='font-family:Consolas;color:black'>toCanonicalString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>. </span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toSubnetString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: uses </span><b><span
+style='font-family:Consolas;color:black'>toNormalizedWildcardString </span></b><span
+style='font-family:"Arial",sans-serif;color:black'>for IPv4 and </span><b><span
+style='font-family:Consolas;color:black'>toPrefixLengthString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'> for IPv6</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toReverseDNSLookupString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: a string for reverse DNS
+lookup</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toOctalString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: base 8, optionally with a
+‘0’ prefix to indicate octal</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toBinaryString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: all ones and zeros</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toConvertedString</span></b>:
+<span style='font-family:"Arial",sans-serif;color:black'>if an IPv6 address can
+be converted to IPv4 as determined by </span><span style='font-family:Consolas;
+color:black'>isIPv4Convertible()</span><span style='font-family:"Arial",sans-serif;
+color:black'>, produces the result of </span><b><span style='font-family:Consolas;
+color:black'>toMixedString</span></b><span style='font-family:"Arial",sans-serif;
+color:black'>.  For IPv4 same as </span><b><span style='font-family:Consolas;
+color:black'>toCanonicalString</span></b><span style='font-family:"Arial",sans-serif;
+color:black'>.</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toUNCHostName</span></b>:
+<span style='font-family:"Arial",sans-serif'>Microsoft UNC path component</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toNormalizedString(IPStringOptions)</span></b><span
+style='font-family:"Arial",sans-serif;color:black'> : your own customized
+string</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-autospace:none'>&nbsp;</p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>IPv6
+only:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toMixedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: mixed IPv6/IPv4 string
+format like a:b:c:d:e:f:255.0.255.255</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toBase85String</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: RFC 1924</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>MAC
+address only:</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toColonDelimitedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: same as </span><b><span
+style='font-family:Consolas;color:black'>toNormalizedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, xx:xx:xx:xx:xx:xx</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toDashedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: same as </span><b><span
+style='font-family:Consolas;color:black'>toCanonicalString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>, xx-xx-xx-xx-xx-xx</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toDottedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: xxxx.xxxx.xxxx</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in;text-autospace:none'><span
+style='font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><b><span style='font-family:Consolas;color:black'>toSpaceDelimitedString</span></b><span
+style='font-family:"Arial",sans-serif;color:black'>: xx xx xx xx xx xx<br>
+<br>
+</span></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>&nbsp;</span></b></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:0in'><b><span style='font-family:"Arial",sans-serif;color:#222222'>More
+Details and Examples</span></b></p>
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-family:"Arial",sans-serif;color:#222222'>AddressSegmentSeries
 objects (such as Address and AddressSection) have methods that produce strings
 in various formats: </span><span style='font-family:Consolas;color:#222222'>toCanonicalString</span><span
@@ -5477,9 +5976,10 @@ font-family:Consolas;color:black'>       </span><b><span style='font-size:
 font-family:Consolas;color:#7F0055'>static</span></b><span style='font-size:
 10.0pt;font-family:Consolas;color:black'> </span><b><span style='font-size:
 10.0pt;font-family:Consolas;color:#7F0055'>void</span></b><span
-style='font-size:10.0pt;font-family:Consolas;color:black'> printStrings(AddressSegmentSeries
-</span><span style='font-size:10.0pt;font-family:Consolas;color:#6A3E3E'>series</span><span
-style='font-size:10.0pt;font-family:Consolas;color:black'>) {</span></p>
+style='font-size:10.0pt;font-family:Consolas;color:black'>
+printStrings(AddressSegmentSeries </span><span style='font-size:10.0pt;
+font-family:Consolas;color:#6A3E3E'>series</span><span style='font-size:10.0pt;
+font-family:Consolas;color:black'>) {</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>              System.</span><b><i><span
@@ -5686,12 +6186,9 @@ font-family:Consolas;color:black'>0x000a00bb000c0000000000dd000e00ff</span></p>
 
 <p class=MsoNormal style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas;color:black'>lower: a:bb:c:0:0:dd:e:ff bytes:[0, 10, 0,
--69, 0, 12, 0, 0, 0, 0, 0, -35, 0, 14, 0, -1]</span></p>
-
-<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
-margin-left:0in'><span style='font-size:10.0pt;font-family:Consolas;color:black'>upper:
-a:bb:c:0:0:dd:e:ff bytes:[0, 10, 0, -69, 0, 12, 0, 0, 0, 0, 0, -35, 0, 14, 0,
--1]</span></p>
+-69, 0, 12, 0, 0, 0, 0, 0, -35, 0, 14, 0, -1]<br>
+upper: a:bb:c:0:0:dd:e:ff bytes:[0, 10, 0, -69, 0, 12, 0, 0, 0, 0, 0, -35, 0,
+14, 0, -1]</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'><span style='font-size:10.0pt;font-family:Consolas;color:black'>&nbsp;</span></p>
@@ -5971,21 +6468,6 @@ font-family:Consolas;color:black'>a:b:c:*::</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas'>&nbsp;</span></p>
-
-<p class=Standard style='text-autospace:none'><b><span style='font-family:"Arial",sans-serif;
-color:#222222'>IPv6 string methods</span></b></p>
-
-<p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>&nbsp;</span></p>
-
-<p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>There are additional methods for Ipv6, the methods </span><span
-style='font-family:Consolas;color:#222222'>toMixedString()</span><span
-style='font-family:"Arial",sans-serif;color:#222222'> and </span><span
-style='font-family:Consolas;color:#222222'>toBase85String()</span></p>
-
-<p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>&nbsp;</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>&nbsp;</span></p>
@@ -6272,7 +6754,7 @@ color:#222222'>The methods </span><span style='font-family:Consolas;color:#22222
 style='font-family:"Arial",sans-serif;color:#222222'> and </span><span
 style='font-family:Consolas;color:#222222'>toNormalizedString</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> are available for any
-address component.</span></p>
+address component, including segments and sections.</span></p>
 
 <p class=Standard style='text-autospace:none'>&nbsp;</p>
 
@@ -6280,14 +6762,15 @@ address component.</span></p>
 color:#222222'>&nbsp;</span></p>
 
 <p class=Standard style='text-autospace:none'><b><span style='font-family:"Arial",sans-serif;
-color:#222222'>Avoiding Prefix Length Indicator in Strings</span></b></p>
+color:#222222'>Prefix Length Indicator in Strings</span></b></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
 color:#222222'>&nbsp;</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-family:"Arial",sans-serif;
-color:#222222'>To choose to print wildcards '*' and range characters '-' as opposed
-to using prefix length, there are additional methods:</span></p>
+color:#222222'>Typically prefix lengths will be added to IP strings.  To choose
+to print wildcards '*' and range characters '-' as opposed to using prefix
+length, there are additional methods:</span></p>
 
 <p class=Standard style='text-autospace:none'><span style='font-size:10.0pt;
 font-family:Consolas'>&nbsp;</span></p>
@@ -7084,13 +7567,13 @@ style='font-family:Consolas;color:#222222'>IPAddressStringCache</span><span
 style='font-family:"Arial",sans-serif;color:#222222'> and </span><span
 style='font-family:Consolas;color:#222222'>HostNameCache</span><span
 style='font-family:"Arial",sans-serif;color:#222222'>.  These cache classes
-allow you to cache identifier strings.  Note that identifier strings will cache
-their associated addresses, whether parsed or resolved.  Also note that
-addresses cache their associated strings and various other objects.  Therefore,
-these cache classes go a long way towards allowing you to avoid creating the
-same objects and running the same code frequently.  These caches do quick
-lookups using either bytes or strings, which might be ideal for some
-applications that handle many addresses or host names.</span></p>
+allow you to cache identifier strings (hosts and/or addresses).  Note that the
+identifier strings themselves will also cache their associated addresses,
+whether parsed or resolved.  Also note that addresses cache their associated
+strings and various other objects.  Therefore, these cache classes go a long
+way towards allowing you to avoid creating the same objects frequently.  These
+caches do quick lookups using either bytes or strings, which can be ideal for
+some applications that handle many addresses or host names.</span></p>
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:0in'>&nbsp;</p>
@@ -7141,5 +7624,7 @@ margin-left:0in'>&nbsp;</p>
 		
   </body>
 </html>
+
+
 
 
