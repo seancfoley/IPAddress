@@ -233,6 +233,10 @@ ul
 
         <ul>
           <li class="download"><a class="buttons" href="https://github.com/seancfoley/IPAddress/raw/master/IPAddress/dist/IPAddress.jar">Download JAR</a></li>
+
+<li class="download"><a class="buttons" href="https://search.maven.org/#artifactdetails%7Ccom.github.seancfoley%7Cipaddress%7C4.2.0%7Cjar
+">In Maven Central</a></li>
+
           <li><a class="buttons github" href="https://github.com/seancfoley/IPAddress">View On GitHub</a></li>
           <li><a class="buttons github" href="https://seancfoley.github.io/IPAddress/IPAddress/apidocs/">Browse Javadoc</a></li>
           <li class="download"><a class="buttons" href="https://github.com/seancfoley/IPAddress/zipball/master">ZIP repository</a></li>
@@ -249,7 +253,6 @@ ul
       <section>
       	
       	
-
 
 
 
@@ -472,17 +475,35 @@ strings, addresses, address sections, address segments) are all immutable (like
 </span><span style='font-family:Consolas'>java.lang.String</span><span
 style='font-family:"Arial",sans-serif'> or </span><span style='font-family:
 Consolas'>java.lang.Integer</span><span style='font-family:"Arial",sans-serif'>
-instances).  They do not change their underlying value.</span></p>
+instances).  They do not change their underlying value.  For multi-threaded apps this makes development easier.</span></p>
+
+
+
+
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b><span
-style='font-family:"Arial",sans-serif'>Manipulation of addresses with prefixes,
-masks, sections, segments and subnetting</span></b><span style='font-family:
-"Arial",sans-serif'>: applying network prefixes, masking, splitting addresses
-into sections, joining address segments into larger segments, generating new
-subnets and supernets from existing addresses and subnets, iterating through subnets,
-checking containment within subnets</span></p>
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b>
+<span
+style='font-family:"Arial",sans-serif'>Address modifications</span></b><span style='font-family:
+"Arial",sans-serif'>, such as altering prefix lengths, masking, splitting into sections and segments, splitting into network and host sections, reconstituting from sections and segments</span></p>
+
+
+
+
+
+<p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
+margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp; </span></span><b>
+<span
+style='font-family:"Arial",sans-serif'>Address Operations</span></b><span style='font-family:
+"Arial",sans-serif'>, such as getting the prefix block subnet for a prefixed address, iterating through subnets, iterating through prefix blocks, incrementing and decrementing addresses by integral values, reversing address bits for endianness or DNS lookup, subtracting subnets from other subnets, intersection of subnets, merging subnets, checking containment of addresses in subnets, listing subnets covering a span of addresses</span></p>
+
+
+
+
+
+
 
 <p class=Textbody style='margin-top:3.75pt;margin-right:0in;margin-bottom:3.75pt;
 margin-left:.5in;text-indent:-.25in'><span style='font-family:OpenSymbol'>•<span
