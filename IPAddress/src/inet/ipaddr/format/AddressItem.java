@@ -79,6 +79,16 @@ public interface AddressItem extends Serializable {
 	byte[] getBytes(byte bytes[]);
 	
 	/**
+	 * Copies the bytes of the smallest address item represented by this address item into the supplied array starting at the given index,
+	 * and returns that array.
+	 * 
+	 * If the supplied array is null or of insufficient size, a new array is created and returned, with the rest of the array contents the same as the original.
+	 * 
+	 * @return the bytes of the smallest address represented by this address item.
+	 */
+	byte[] getBytes(byte bytes[], int index);
+	
+	/**
 	 * 
 	 * @return the bytes of the largest address item represented by this address item
 	 */
@@ -88,11 +98,21 @@ public interface AddressItem extends Serializable {
 	 * Copies the bytes of the largest address item represented by this address item into the supplied array,
 	 * and returns that array.
 	 * 
-	 * If the supplied array is null or of insufficient size, a new array is created and returned.
+	 * If the supplied array is null or of insufficient size, a new array is created and returned, with the rest of the array contents the same as the original.
 	 * 
 	 * @return the bytes of the largest address represented by this address item.
 	 */
 	byte[] getUpperBytes(byte bytes[]);
+	
+	/**
+	 * Copies the bytes of the largest address item represented by this address item into the supplied array at the given index,
+	 * and returns that array.
+	 * 
+	 * If the supplied array is null or of insufficient size, a new array is created and returned.
+	 * 
+	 * @return the bytes of the largest address represented by this address item.
+	 */
+	byte[] getUpperBytes(byte bytes[], int index);
 	
 	/**
 	 * @return whether this item matches the value of zero

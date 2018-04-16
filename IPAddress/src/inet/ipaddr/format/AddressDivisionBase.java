@@ -96,8 +96,8 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	/**
 	 * Gets the value for the lowest address in the range represented by this address division.
 	 * <p>
-	 * If the value fits in the specified array, the same array is returned with the value.  
-	 * Otherwise, a new array is allocated and returned with the value.
+	 * If the value fits in the specified array at the specified index, the same array is returned with the value copied at the specified index.  
+	 * Otherwise, a new array is allocated and returned with the value copied at the specified index, and the rest of the array contents the same as the original.
 	 * <p>
 	 * You can use {@link #getBitCount()} to determine the required array length for the bytes.
 	 * <p>
@@ -108,20 +108,36 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	 * @return
 	 */
 	@Override
-	public byte[] getBytes(byte bytes[]) {
+	public byte[] getBytes(byte bytes[], int index) {
 		byte cached[] = lowerBytes;
 		if(cached == null) {
 			lowerBytes = cached = getBytesImpl(true);
 		}
-		return getBytes(bytes, cached);
+		return getBytes(bytes, index, cached);
 	}
 
-	private byte[] getBytes(byte[] provided, byte[] cached) {
+	/**
+	 * Equivalent to {@link #getBytes(byte[], int)} with index of 0.
+	 */
+	@Override
+	public byte[] getBytes(byte bytes[]) {
+		return getBytes(bytes, 0);
+	}
+
+	private byte[] getBytes(byte[] provided, int startIndex, byte[] cached) {
 		int byteCount = (getBitCount() + 7) >> 3;
-		if(provided == null || provided.length < byteCount) {
+		if(provided == null || provided.length < byteCount + startIndex) {
+			if(startIndex > 0) {
+				byte bytes2[] = new byte[byteCount + startIndex];
+				if(provided != null) {
+					System.arraycopy(provided, 0, bytes2, 0, Math.min(startIndex, provided.length));
+				}
+				System.arraycopy(cached, 0, bytes2, startIndex, cached.length);
+				return bytes2;
+			}
 			return cached.clone();
 		} 
-		System.arraycopy(cached, 0, provided, 0, byteCount);
+		System.arraycopy(cached, 0, provided, startIndex, byteCount);
 		return provided;
 	}
 	
@@ -138,15 +154,20 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	}
 	
 	@Override
-	public byte[] getUpperBytes(byte bytes[]) {
+	public byte[] getUpperBytes(byte bytes[], int index) {
 		if(!isMultiple()) {
-			return getBytes(bytes);
+			return getBytes(bytes, index);
 		}
 		byte cached[] = upperBytes;
 		if(cached == null) {
 			upperBytes = cached = getBytesImpl(false);
 		}
-		return getBytes(bytes, cached);
+		return getBytes(bytes, index, cached);
+	}
+	
+	@Override
+	public byte[] getUpperBytes(byte bytes[]) {
+		return getUpperBytes(bytes, 0);
 	}
 	
 	protected abstract byte[] getBytesImpl(boolean low);

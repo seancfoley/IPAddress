@@ -207,16 +207,32 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 * @return
 	 */
 	@Override
+	public byte[] getBytes(byte bytes[], int index) {
+		return getBytes(bytes, index, getBytesInternal(), getBitCount());
+	}
+	
+	/**
+	 * Equivalent to {@link #getBytes(byte[], int)} with index of 0.
+	 */
+	@Override
 	public byte[] getBytes(byte bytes[]) {
-		return getBytes(bytes, getBytesInternal(), getBitCount());
+		return getBytes(bytes, 0);
 	}
 
-	private static byte[] getBytes(byte[] bytes, byte[] cached, int bitCount) {
+	private static byte[] getBytes(byte[] bytes, int startIndex, byte[] cached, int bitCount) {
 		int byteCount = (bitCount + 7) >> 3;
-		if(bytes == null || bytes.length < byteCount) {
+		if(bytes == null || bytes.length < byteCount + startIndex) {
+			if(startIndex > 0) {
+				byte bytes2[] = new byte[byteCount + startIndex];
+				if(bytes != null) {
+					System.arraycopy(bytes, 0, bytes2, 0, Math.min(startIndex, bytes.length));
+				}
+				System.arraycopy(cached, 0, bytes2, startIndex, cached.length);
+				return bytes2;
+			}
 			return cached.clone();
-		} 
-		System.arraycopy(cached, 0, bytes, 0, byteCount);
+		}
+		System.arraycopy(cached, 0, bytes, startIndex, byteCount);
 		return bytes;
 	}
 	
@@ -260,9 +276,21 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return cached;
 	}
 
+	/**
+	 * Similar to {@link #getBytes(byte[], int)}, but for obtaining the upper value of the range.
+	 * If this division represents a single value, equivalent to {@link #getBytes(byte[], int)}
+	 */
+	@Override
+	public byte[] getUpperBytes(byte bytes[], int index) {
+		return getBytes(bytes, index, getUpperBytesInternal(), getBitCount());
+	}
+	
+	/**
+	 * Equivalent to {@link #getBytes(byte[], int)} with index of 0.
+	 */
 	@Override
 	public byte[] getUpperBytes(byte bytes[]) {
-		return getBytes(bytes, getUpperBytesInternal(), getBitCount());
+		return getBytes(bytes, 0);
 	}
 	
 	protected byte[] getBytesImpl(boolean low) {
