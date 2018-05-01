@@ -299,8 +299,23 @@ public class TestRunner extends TestBase implements AddressCreator {
 		outputmine.close();
 		List<? extends byte[]> bytesmine = outmine.getBytes();
 		EfficientByteArrayInputStream inmine = new EfficientByteArrayInputStream(bytesmine);
-		try (ObjectInput inputmine = new ObjectInputStream(inmine)) {
-			return (Cache) inputmine.readObject();
+		ObjectInput inputmine = null;
+		Cache result = null;
+		try {
+			inputmine = new ObjectInputStream(inmine);
+			result = (Cache) inputmine.readObject();
+			return result;
+		} finally {
+			if(inputmine != null) {
+				try {
+					inputmine.close();
+				} catch(IOException e) {
+					if(result != null) {
+						throw e;
+					}
+					//else throw the original exception instead
+				}
+			}
 		}
 	}
 	

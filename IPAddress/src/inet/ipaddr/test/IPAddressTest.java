@@ -1626,17 +1626,53 @@ public class IPAddressTest extends TestBase {
 	private IPAddress makePrefixSubnet(IPAddress directAddress) {
 		IPAddressSegment segs[] = directAddress.getSegments();
 		int pref = directAddress.getPrefixLength();
-		int prefSeg = pref / directAddress.getBitsPerSegment();
+		final int prefSeg = pref / directAddress.getBitsPerSegment();
 		if(prefSeg < segs.length) {
 			IPAddressNetwork<?, ?, ?, ?, ?> network = directAddress.getNetwork();
 			IPAddressNetwork<?, ?, ?, ?, ?>.IPAddressCreator creator = network.getAddressCreator();
-			IPAddressSegment origSeg = segs[prefSeg];
-			int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
-			segs[prefSeg] = creator.createSegment(origSeg.getLowerSegmentValue() & mask, origSeg.getUpperSegmentValue() & mask, origSeg.getSegmentPrefixLength());
-			for(prefSeg++; prefSeg < segs.length; prefSeg++) {
-				segs[prefSeg] = creator.createSegment(0, 0);
+			if(directAddress.getPrefixCount().equals(BigInteger.ONE)) {
+				IPAddressSegment origSeg = segs[prefSeg];
+				int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
+				segs[prefSeg] = creator.createSegment(origSeg.getLowerSegmentValue() & mask, origSeg.getUpperSegmentValue() & mask, origSeg.getSegmentPrefixLength());
+				for(int ps = prefSeg + 1; ps < segs.length; ps++) {
+					segs[ps] = creator.createSegment(0, 0);
+				}
+				byte bytes[] = new byte[directAddress.getByteCount()];
+				int bytesPerSegment = directAddress.getBytesPerSegment();
+				for(int i = 0, j = 0; i < segs.length; i++, j += bytesPerSegment) {
+					segs[i].getBytes(bytes, j);
+				}
+				directAddress = creator.createAddress(bytes, pref);
+			} else {
+				//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
+				IPAddressSegment origSeg = segs[prefSeg];
+				int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
+				int maxValue = directAddress.getMaxSegmentValue();
+				directAddress = creator.createAddress(
+						new SegmentValueProvider() {
+							public int getValue(int segmentIndex) {
+								if(segmentIndex < prefSeg) {
+									return segs[segmentIndex].getLowerSegmentValue();
+								} else if(segmentIndex == prefSeg) {
+									return origSeg.getLowerSegmentValue() & mask;
+								} else {
+									return 0;
+								}
+							}
+						},
+						new SegmentValueProvider() {
+							public int getValue(int segmentIndex) {
+								if(segmentIndex < prefSeg) {
+									return segs[segmentIndex].getUpperSegmentValue();
+								} else if(segmentIndex == prefSeg) {
+									return origSeg.getUpperSegmentValue() & mask;
+								} else {
+									return maxValue;
+								}
+							}
+						}, 
+						pref);
 			}
-			directAddress = creator.createAddress(segs, pref);
 		}
 		return directAddress;
 	}

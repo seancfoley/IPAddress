@@ -309,12 +309,17 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public byte[] getBytes() {
 		return getSection().getBytes();
 	}
-	
+
 	@Override
 	public byte[] getBytes(byte bytes[]) {
 		return getSection().getBytes(bytes);
 	}
-	
+
+	@Override
+	public byte[] getBytes(byte bytes[], int index) {
+		return getSection().getBytes(bytes, index);
+	}
+
 	/**
 	 * Gets the bytes for the highest address in the range of addresses represented by this address instance.
 	 * 
@@ -324,12 +329,17 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public byte[] getUpperBytes() {
 		return getSection().getUpperBytes();
 	}
-	
+
 	@Override
 	public byte[] getUpperBytes(byte bytes[]) {
 		return getSection().getUpperBytes(bytes);
 	}
-	
+
+	@Override
+	public byte[] getUpperBytes(byte bytes[], int index) {
+		return getSection().getUpperBytes(bytes, index);
+	}
+
 	@Override
 	public BigInteger getValue() {
 		return getSection().getValue();
