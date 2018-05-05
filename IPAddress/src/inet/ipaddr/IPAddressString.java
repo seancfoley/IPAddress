@@ -86,7 +86,8 @@ import inet.ipaddr.mac.MACAddress;
  * Some additional formats:
  * <ul>
  * <li>null or empty strings are interpreted as the loopback, in the same way as InetAddress.getByName interprets null or empty strings</li>
- * <li>the single wildcard address "*" which represents all addresses both ipv4 and ipv6, although you need to give it some help when converting to IPAddress</li>
+ * <li>the single wildcard address "*" which represents all addresses both ipv4 and ipv6, 
+ * although you need to give it some help when converting to IPAddress by specifying the IP version in {@link #getAddress(IPVersion)} or {@link #toAddress(IPVersion)}</li>
  * <li>specifying CIDR prefix lengths with no corresponding addresses are interpreted as the corresponding network mask.  For instance,
  *  /64 is interpreted as the 64 bit network mask (ie 64 ones followed by 64 zeros)</li>
  * </ul>
@@ -634,7 +635,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getAddress(version);
 	}
-	
+
 	/**
 	 * Produces the {@link IPAddress} corresponding to this IPAddressString.  
 	 * <p>
