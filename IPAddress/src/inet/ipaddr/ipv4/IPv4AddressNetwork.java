@@ -45,7 +45,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 	private static final IPv4AddressSection EMPTY_SECTION[] = {};
 	private static final IPv4Address EMPTY_ADDRESS[] = {};
 	
-	public class IPv4AddressCreator extends IPAddressCreator {
+	public class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment, Inet4Address> {
 		
 		private static final long serialVersionUID = 4L;
 
@@ -53,6 +53,10 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		private transient IPv4AddressSegment segmentCache[];
 		private transient IPv4AddressSegment segmentPrefixCache[][]; 
 		private transient IPv4AddressSegment allPrefixedCache[];
+		
+		public IPv4AddressCreator() {
+			super(IPv4AddressNetwork.this);
+		}
 		
 		@Override
 		public void clearCaches() {
@@ -236,27 +240,27 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		protected IPv4AddressSection createSectionInternal(int value, Integer prefix) {
 			return new IPv4AddressSection(value, prefix);
 		}
-		
+
 		@Override
-		public IPv4AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix) {
-			return new IPv4AddressSection(lowerValueProvider, upperValueProvider, segmentCount, prefix);
+		public IPv4AddressSection createFullSectionInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
+			return new IPv4AddressSection(lowerValueProvider, upperValueProvider, IPv4Address.SEGMENT_COUNT, prefix);
 		}
 
 		@Override
 		protected IPv4AddressSection createSectionInternal(byte[] bytes, int segmentCount, Integer prefix, boolean singleOnly) {
 			return new IPv4AddressSection(bytes, segmentCount, prefix, false, singleOnly);
 		}
-		
+
 		@Override
 		protected IPv4AddressSection createSectionInternal(IPv4AddressSegment[] segments, int startIndex, boolean extended) {
 			return new IPv4AddressSection(segments);
 		}
-		
+
 		@Override
 		public IPv4AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
 			return new IPv4AddressSection(bytes, byteStartIndex, byteEndIndex, -1, prefix, true, false);
 		}
-		
+
 		@Override
 		public IPv4AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv4AddressSection(bytes, prefix);

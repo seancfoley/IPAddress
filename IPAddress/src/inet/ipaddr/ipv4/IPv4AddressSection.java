@@ -626,7 +626,21 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public IPv4AddressSection incrementBoundary(long increment) {
+		if(increment <= 0) {
+			if(increment == 0) {
+				return this;
+			}
+			return getLower().increment(increment);
+		}
+		return getUpper().increment(increment);
+	}
+
+	@Override
 	public IPv4AddressSection increment(long increment) {
+		if(increment == 0 && !isMultiple()) {
+			return this;
+		}
 		long lowerValue = 0xffffffffL & intValue();
 		long upperValue = 0xffffffffL & upperIntValue();
 		long count = getCount().longValue();
@@ -634,7 +648,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return increment(
 				this,
 				increment,
-				null,
 				getAddressCreator(),
 				count,
 				lowerValue,
@@ -643,7 +656,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				this::getUpper,
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
 	}
-	
+
 	private static long getCount(IntUnaryOperator countProvider, int segCount) {
 		long result = countProvider.applyAsInt(0);
 		for(int i = 1; i < segCount; i++) {

@@ -414,7 +414,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	private IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
-		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(lowerValueProvider, upperValueProvider, SEGMENT_COUNT, networkPrefixLength));
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createFullSectionInternal(lowerValueProvider, upperValueProvider, networkPrefixLength));
 		this.zone = checkZone(zone);
 	}
 	
@@ -522,7 +522,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(!hasZone()) {
 			return getDefaultCreator();
 		}
-		return getNetwork().new IPv6AddressCreator() {//using a lambda for this one results in a big performance hit, so we use anonymous class
+		return new IPv6AddressCreator(getNetwork()) {//using a lambda for this one results in a big performance hit, so we use anonymous class
 
 			private static final long serialVersionUID = 4L;
 
@@ -915,6 +915,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return checkIdentity(getSection().increment(increment));
 	}
 	
+	@Override
+	public IPv6Address incrementBoundary(long increment) {
+		return checkIdentity(getSection().incrementBoundary(increment));
+	}
+
 	/**
 	 * If this address is IPv4 convertible, returns that address.
 	 * Otherwise, returns null.

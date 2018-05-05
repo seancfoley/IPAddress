@@ -145,13 +145,15 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		//we piggy-back on the section cache for strings that are full address only
 		public String uncString;
 	}
-	
+
 	static class AddressCache extends SectionCache<IPv6Address> {}
+	
+	private static IPv6AddressCreator creators[] = new IPv6AddressCreator[IPv6Address.SEGMENT_COUNT];
 
 	private transient IPv6StringCache stringCache;
-	
+
 	private transient SectionCache<IPv6AddressSection> sectionCache;
-	
+
 	transient IPv4AddressSection embeddedIPv4Section;//the lowest 4 bytes as IPv4
 	transient IPv6v4MixedAddressSection defaultMixedAddressSection;
 
@@ -162,10 +164,10 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 	/* also for caching: index of segments that are zero, and the number of consecutive zeros for each. */
 	private transient RangeList zeroSegments;
-	
+
 	/* also for caching: index of segments that are zero or any value due to CIDR prefix, and the number of consecutive segments for each. */
 	private transient RangeList zeroRanges;
-	
+
 	/**
 	 * Constructs a single segment section, the segment being the leading segment.
 	 * 
@@ -174,7 +176,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv6AddressSection(IPv6AddressSegment segment) {
 		this(new IPv6AddressSegment[] {segment}, 0, false);
 	}
-	
+
 	/**
 	 * Constructs a single segment section with the segment at the given index in the address.
 	 * 
@@ -183,14 +185,14 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv6AddressSection(IPv6AddressSegment segment, int startIndex) throws IllegalArgumentException {
 		this(new IPv6AddressSegment[] {segment}, startIndex, false);
 	}
-	
+
 	/**
 	 * Use this constructor for any address section that includes the leading segment of an IPv6 address
 	 */
 	public IPv6AddressSection(IPv6AddressSegment segments[]) throws AddressValueException {
 		this(segments, 0, true);
 	}
-	
+
 	/**
 	 * Use this constructor for any address section that includes the leading segment of an IPv6 address
 	 * @param segments an array containing the segments.  Segments that are entirely part of the host section need not be provided, although the array must be the correct length.
@@ -787,14 +789,26 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public IPv6AddressSection incrementBoundary(long increment) {
+		if(increment <= 0) {
+			if(increment == 0) {
+				return this;
+			}
+			return getLower().increment(increment);
+		}
+		return getUpper().increment(increment);
+	}
+
+	@Override
 	public IPv6AddressSection increment(long increment) {
-		if(increment == 0) {
+		if(increment == 0 && !isMultiple()) {
 			return this;
 		}
 		BigInteger lowerValue = getValue();
 		BigInteger upperValue = getUpperValue();
 		BigInteger count = getCount();
-		checkOverflow(increment, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+		BigInteger bigIncrement = BigInteger.valueOf(increment);
+		checkOverflow(increment, bigIncrement, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
 		Integer prefixLength = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength();
 		IPv6AddressSection result = fastIncrement(
 				this,
@@ -809,6 +823,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return increment(
 				this,
 				increment,
+				bigIncrement,
 				getAddressCreator(), 
 				this::getLower,
 				this::getUpper,
@@ -952,8 +967,19 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	protected IPv6AddressCreator getAddressCreator(int startIndex) {
-		return getNetwork().new IPv6AddressCreator() {
-		
+		IPv6AddressCreator creator = null;
+		boolean useCached = startIndex < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
+		if(useCached) {
+			creator = creators[startIndex];
+		}
+		if(creator != null) {
+			useCached |= creator.getNetwork().equals(getNetwork());
+			if(useCached) {
+				return creator;
+			}
+		}
+		creator = new IPv6AddressCreator(getNetwork()) {
+
 			private static final long serialVersionUID = 4L;
 
 			@Override
@@ -966,6 +992,10 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				return new IPv6AddressSection(segments, startIndex, false, prefix, singleOnly);
 			}
 		};
+		if(useCached) {
+			creators[startIndex] = creator;
+		}
+		return creator;
 	}
 	
 	@Override

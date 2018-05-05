@@ -41,6 +41,7 @@ import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressComparator.ValueComparator;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.format.AddressDivisionGrouping;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
@@ -474,7 +475,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					R original,
 					int networkPrefixLength,
 					boolean withPrefixLength,
-					IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator creator,
+					IPAddressCreator<T, R, ?, S, ?> creator,
 					BiFunction<Integer, Integer, S> segProducer) {
 		if(networkPrefixLength < 0 || networkPrefixLength > original.getBitCount()) {
 			throw new PrefixLenException(original, networkPrefixLength);
@@ -504,7 +505,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> 
-			R getHostSection(R original, int networkPrefixLength, int hostSegmentCount, IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator creator,
+			R getHostSection(R original, int networkPrefixLength, int hostSegmentCount, IPAddressCreator<T, R, ?, S, ?> creator,
 					BiFunction<Integer, Integer, S> segProducer) {
 		if(networkPrefixLength < 0 || networkPrefixLength > original.getBitCount()) {
 			throw new PrefixLenException(original, networkPrefixLength);
@@ -553,7 +554,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R setPrefixLength(
 			R original,
-			IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator,
+			IPAddressCreator<?, R, ?, S, ?> creator,
 			int networkPrefixLength,
 			boolean withZeros,
 			boolean noShrink,
@@ -631,7 +632,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R getSubnetSegments(
 			R original,
 			Integer networkPrefixLength,
-			IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator,
+			IPAddressCreator<?, R, ?, S, ?> creator,
 			boolean verifyMask,
 			IntFunction<S> segProducer,
 			IntUnaryOperator segmentMaskProducer,
@@ -687,7 +688,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R getOredSegments(
 			R original,
 			Integer networkPrefixLength,
-			IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator,
+			IPAddressCreator<?, R, ?, S, ?> creator,
 			boolean verifyMask,
 			IntFunction<S> segProducer,
 			IntUnaryOperator segmentMaskProducer) {
@@ -707,9 +708,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				S newSegments[] = creator.createSegmentArray(original.getSegmentCount());
 				original.getSegments(0, i, newSegments, 0);
 				newSegments[i] = creator.createSegment(seg.getLowerSegmentValue() | maskValue, seg.getUpperSegmentValue() | maskValue, segmentPrefixLength);
-				
-				
-				
 				boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 				if(isAllSubnets && segmentPrefixLength != null) {
 					if(++i < count) {
@@ -770,7 +768,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R getLowestOrHighestSection(
 			R section,
-			IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator,
+			IPAddressCreator<?, R, ?, S, ?> creator,
 			Supplier<Iterator<S[]>> nonZeroHostIteratorSupplier,
 			IntFunction<S> segProducer,
 			boolean lowest,
@@ -897,7 +895,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R intersect(
 			R first,
 			R other,
-			IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator addrCreator,
+			IPAddressCreator<T, R, ?, S, ?> addrCreator,
 			IntFunction<S> segProducer,
 			IntFunction<S> otherSegProducer) {
 		//check if they are comparable first.  We only check segment count, we do not care about start index.
@@ -1259,7 +1257,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R[] subtract(
 			R first,
 			R other,
-			IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator addrCreator,
+			IPAddressCreator<T, R, ?, S, ?> addrCreator,
 			IntFunction<S> segProducer,
 			BiFunction<R, Integer, R> prefixApplier) {
 		//check if they are comparable first
@@ -1380,7 +1378,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			int lower,
 			int upper,
 			int diffIndex,
-			IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator addrCreator,
+			IPAddressCreator<T, R, ?, S, ?> addrCreator,
 			IntFunction<S> segProducer,
 			S intersectingValues[]) {
 		int segCount = original.getSegmentCount();
@@ -1597,7 +1595,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			R toPrefixBlock(
 					R original,
 					int networkPrefixLength,
-					IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator creator,
+					IPAddressCreator<T, R, ?, S, ?> creator,
 					BiFunction<Integer, Integer, S> segProducer) {
 		if(networkPrefixLength < 0 || networkPrefixLength > original.getBitCount()) {
 			throw new PrefixLenException(original, networkPrefixLength);
@@ -1638,7 +1636,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R removePrefixLength(
-			R original, boolean zeroed, IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator, SegFunction<R, S> segProducer) throws IncompatibleAddressException {
+			R original, boolean zeroed, IPAddressCreator<?, R, ?, S, ?> creator, SegFunction<R, S> segProducer) throws IncompatibleAddressException {
 		if(!original.isPrefixed()) {
 			return original;
 		}
@@ -1679,7 +1677,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract IPAddressSection adjustPrefixLength(int adjustment, boolean zeroed);
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> IPAddressSection adjustPrefixLength(
-			R original, int adjustment, boolean withZeros, IPAddressNetwork<?, R, ?, S, ?>.IPAddressCreator creator, SegFunction<R, S> segProducer) throws IncompatibleAddressException {
+			R original, int adjustment, boolean withZeros, IPAddressCreator<?, R, ?, S, ?> creator, SegFunction<R, S> segProducer) throws IncompatibleAddressException {
 		if(adjustment == 0) {
 			return original;
 		}
@@ -1809,7 +1807,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R createEmbeddedSection(
-			IPAddressNetwork<T, R, ?, S, ?>.IPAddressCreator creator, S segs[], IPAddressSection encompassingSection) {
+			IPAddressCreator<T, R, ?, S, ?> creator, S segs[], IPAddressSection encompassingSection) {
 		return creator.createEmbeddedSectionInternal(encompassingSection, segs);
 	}
 	
@@ -1827,6 +1825,15 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	@Override
 	public abstract IPAddressSection increment(long increment);
+	
+//	@Override
+//	public abstract IPAddressSection incrementSubnet(long increment);
+//	
+//	@Override
+//	public abstract IPAddressSection incrementNonZeroHostSubnet(long increment);
+	
+	@Override
+	public abstract IPAddressSection incrementBoundary(long increment);
 	
 	public boolean isEntireAddress() {
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());

@@ -43,6 +43,7 @@ import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
@@ -410,7 +411,7 @@ public class IPAddressTest extends TestBase {
 	
 	@SuppressWarnings("unchecked")
 	<S extends IPAddressSegment> List<IPAddress> reconstitute(IPAddress originalAddress, byte bytes[], int segmentByteSize) {
-		IPAddressNetwork<?, ?, ?, S, ?>.IPAddressCreator creator = (IPAddressNetwork<?, ?, ?, S, ?>.IPAddressCreator) originalAddress.getNetwork().getAddressCreator();
+		IPAddressCreator<?, ?, ?, S, ?> creator = (IPAddressCreator<?, ?, ?, S, ?>) originalAddress.getNetwork().getAddressCreator();
 		ArrayList<IPAddress> addresses = new ArrayList<IPAddress>();
 		byte sets[][][] = createSets(bytes, segmentByteSize);
 		for(byte set[][] : sets) {
@@ -834,7 +835,7 @@ public class IPAddressTest extends TestBase {
 			byte bytes[] = address.getBytes();
 			IPAddressStringFormatParameters params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
 			IPAddressNetwork<?, ?, ?, ?, ?> addressNetwork = params.getNetwork();
-			IPAddressNetwork<?, ?, ?, ?, ?>.IPAddressCreator creator = addressNetwork.getAddressCreator();
+			IPAddressCreator<?, ?, ?, ?, ?> creator = addressNetwork.getAddressCreator();
 			IPAddress another = network ? creator.createAddress(bytes, prefixBits) : creator.createAddress(bytes);
 			
 			boolean result = checkMask(another, prefixBits, network);
@@ -1629,7 +1630,7 @@ public class IPAddressTest extends TestBase {
 		final int prefSeg = pref / directAddress.getBitsPerSegment();
 		if(prefSeg < segs.length) {
 			IPAddressNetwork<?, ?, ?, ?, ?> network = directAddress.getNetwork();
-			IPAddressNetwork<?, ?, ?, ?, ?>.IPAddressCreator creator = network.getAddressCreator();
+			IPAddressCreator<?, ?, ?, ?, ?> creator = network.getAddressCreator();
 			if(directAddress.getPrefixCount().equals(BigInteger.ONE)) {
 				IPAddressSegment origSeg = segs[prefSeg];
 				int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
@@ -2538,7 +2539,7 @@ public class IPAddressTest extends TestBase {
 		
 		@Override
 		protected IPv6AddressCreator createAddressCreator() {
-			return new IPv6AddressCreator() {
+			return new IPv6AddressCreator(this) {
 				@Override
 				public IPv6AddressSection createSection(byte bytes[], Integer prefix) {
 					return new MyIPv6AddressSection(bytes, prefix);

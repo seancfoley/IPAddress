@@ -313,6 +313,11 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 	
 	@Override
+	public MACAddress incrementBoundary(long increment) {
+		return checkIdentity(getSection().incrementBoundary(increment));
+	}
+
+	@Override
 	public MACAddress getLower() {
 		return getLowestOrHighest(true);
 	}

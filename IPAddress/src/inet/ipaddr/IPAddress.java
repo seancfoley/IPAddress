@@ -303,6 +303,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	@Override
 	public abstract IPAddress increment(long increment);
+
+	@Override
+	public abstract IPAddress incrementBoundary(long increment);
 	
 	public boolean isIPv4() {
 		return getSection().isIPv4();

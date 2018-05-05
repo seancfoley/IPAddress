@@ -96,6 +96,8 @@ public interface AddressSection extends AddressSegmentSeries {
 	Iterator<? extends AddressSection> prefixBlockIterator();
 	
 	@Override
-	public abstract AddressSection increment(long increment);
-	
+	AddressSection increment(long increment);
+
+	@Override
+	AddressSection incrementBoundary(long increment);
 }

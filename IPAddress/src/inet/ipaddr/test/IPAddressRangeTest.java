@@ -4389,29 +4389,30 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMerge2("1.2.3.*/24", "1.2.7.*/24", "1.2.3.*/24", "1.2.7.*/24");
 		testMerge2("1.2.3.128-255/25", "1.2.2.0-127/25", "1.2.3.128-255/25", "1.2.2.0-127/25");
 
-		testIncrement("1.2.*.*/16", 0, "1.2.*.*/16");
-		testIncrement("1.2.*.*/16", 1, "1.2.0.0");
-		testIncrement("1.2.*.*/16", 65536, "1.2.255.255");
-		testIncrement("1.2.*.*/16", 65537, "1.3.0.0");
-		testIncrement("1.2.*.*/16", -1, "1.2.255.255");
-		testIncrement("1.2.*.*/16", -65536, "1.2.0.0");
-		testIncrement("1.2.*.*/16", -65537, "1.1.255.255");
+		testIncrement("1.2.*.*/16", 0, "1.2.0.0");
+		testIncrement("1.2.*.*/16", 1, "1.2.0.1");
+		testIncrement("1.2.*.*/16", 65535, "1.2.255.255");
+		testIncrement("1.2.*.*/16", 65536, "1.3.0.0");
+		testIncrement("1.2.*.*/16", -1, "1.1.255.255");
+		testIncrement("1.2.*.*/16", -65536, "1.1.0.0");
+		testIncrement("1.2.*.*/16", -65537, "1.0.255.255");
 		
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 0, "ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 1, "ffff:ffff:ffff:ffff:ffff:1:2:ffff");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 3, "ffff:ffff:ffff:ffff:ffff:2:2:ffff");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 4, "ffff:ffff:ffff:ffff:ffff:2:3:ffff");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 5, "ffff:ffff:ffff:ffff:ffff:2:4::");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 0, "ffff:ffff:ffff:ffff:ffff:1:2:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 1, "ffff:ffff:ffff:ffff:ffff:1:3:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 3, "ffff:ffff:ffff:ffff:ffff:2:3:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 4, "ffff:ffff:ffff:ffff:ffff:2:4::");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 5, "ffff:ffff:ffff:ffff:ffff:2:4:1");
 		testIncrement("ffff:ffff:ffff:ffff:ffff:fffe-ffff:fffe-ffff:ffff", 5, null);
 		
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x10002ffffL, "ffff:ffff:ffff:ffff:ffff::4");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030000L, "ffff:ffff:ffff:ffff:ffff::3");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030003L, "ffff:ffff:ffff:ffff:ffff::");
-		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030004L, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:ffff");
-		testIncrement("::1-2:2-3:ffff", -0x100030004L, null);
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x10002ffffL, "ffff:ffff:ffff:ffff:ffff::");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030000L, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030003L, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:fffc");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030004L, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:fffb");
 		
-		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:2::");
-		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:1");
+		testIncrement("::1-2:2-3:ffff", -0x100030000L, null);
+		
+		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::");
+		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2");
 		
 
 		super.runTest();

@@ -150,42 +150,58 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 */
 	@Override
 	Iterator<? extends AddressSegmentSeries> iterator();
-	
+
 	/**
 	 * Iterates through the individual prefix blocks.
 	 * 
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
 	 */
 	Iterator<? extends AddressSegmentSeries> prefixBlockIterator();
-	
+
 	/**
 	 * Iterates through the individual segments.
 	 */
 	Iterator<? extends AddressSegment[]> segmentsIterator();
-	
+
 	/**
-	 * Returns the series from the subnet that is the given increment upwards into the subnet range,
-	 * or if the given increment is negative the given increment downwards into the subnet range, 
-	 * or if this is just an individual series, it simply adds the increment to this.
-	 * If the increment is 0, then this series is returned.
+	 * Returns the series from the subnet that is the given increment upwards into the subnet range, with the increment of 0
+	 * returning the first address in the range.
+	 * 
 	 * <p>
-	 * If the subnet has multiple values and the increment exceeds the subnet size, then the amount by which is exceeds the size is added to the upper series of the range (the final iterator value)  
-	 * or is subtracted from the lower series of the range (the first iterator value) if negative.  
+	 * If the subnet has multiple values and the increment exceeds the subnet size, then the 
+	 * amount by which it exceeds the size - 1 is added to the upper series of the range (the final iterator value).
+	 * <p>
+	 * If the increment is negative, it is added to the lower series of the range (the first iterator value).  
+	 * <p>
+	 * This method is equivalent to the combination of {@link #incrementSubnet(long)} with {@link #incrementBoundary(long)}
 	 * <p>
 	 * If the subnet is just a single address values, the series is simply incremented by the given value, positive or negative.
 	 * <p>
-	 * If a subnet has multiple values, a positive increment value is equivalent to the same number of values from the iterator.
-	 * For instance, a increment of 1 is value 1 from the iterator, an increment of 2 is the second value from the iterator, and so on. 
-	 * A negative increment is equivalent to the same number of values preceding the upper bound of the iterator.
-	 * For instance, an increment of -1 is the last value from the iterator, and increment of -2 is the second last value, and so on.
+	 * If a subnet has multiple values, a positive increment value is equivalent to the same number of values from the {@link #iterator()}
+	 * For instance, a increment of 0 is the first value from the iterator, an increment of 1 is the second value from the iterator, and so on. 
+	 * A negative increment added to the subnet count is equivalent to the same number of values preceding the upper bound of the iterator.
+	 * For instance, an increment of count - 1 is the last value from the iterator, an increment of count - 2 is the second last value, and so on.
 	 * <p>
-	 * Therefore, to get the series just above the highest series of the subnet, use an increment of size:<code>count &gt; 1 ? count + 1 : 1</code> where count is the subnet size.
-	 * To get the series just below the lowest series of the subnet, use an increment of size:<code>-(count &gt; 1 ? count + 1 : 1)</code> where count is the subnet size.
+	 * An increment of size count gives you the series just above the highest series of the subnet.
+	 * To get the series just below the lowest series of the subnet, use the increment -1.
 	 * 
 	 * @param increment
 	 * @return
 	 */
 	AddressSegmentSeries increment(long increment);
+
+	/**
+	 * If the given increment is positive, adds the value to the upper series ({@link #getUpper()} in the subnet range to produce a new series.
+	 * If the given increment is negative, adds the value to the lower series ({@link #getLower()} in the subnet range to produce a new series.
+	 * If the increment is zero, returns this.
+	 * <p>
+	 * In the case where the series is a single value, this simply returns the address produced by adding the given increment to this address series.
+	 * <p>
+	 * 
+	 * @param increment
+	 * @return
+	 */
+	AddressSegmentSeries incrementBoundary(long increment);
 
 	/**
 	 * Produces the canonical representation of the address

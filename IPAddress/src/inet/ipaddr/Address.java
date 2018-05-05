@@ -199,6 +199,9 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public abstract Address increment(long increment);
 	
 	@Override
+	public abstract Address incrementBoundary(long increment);
+	
+	@Override
 	public abstract Address getLower();
 	
 	@Override

@@ -213,7 +213,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @param networkPrefixLength the CIDR network prefix length, which can be null for no prefix
 	 */
 	public IPv4Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength) throws AddressValueException {
-		super(thisAddress -> ((IPv4Address) thisAddress).getAddressCreator().createSection(lowerValueProvider, upperValueProvider, SEGMENT_COUNT, networkPrefixLength));
+		super(thisAddress -> ((IPv4Address) thisAddress).getAddressCreator().createFullSectionInternal(lowerValueProvider, upperValueProvider, networkPrefixLength));
 	}
 	
 	/**
@@ -546,6 +546,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public IPv4Address increment(long increment) {
 		return checkIdentity(getSection().increment(increment));
+	}
+	
+	@Override
+	public IPv4Address incrementBoundary(long increment) {
+		return checkIdentity(getSection().incrementBoundary(increment));
 	}
 	
 	private IPv4AddressCreator getAddressCreator() {

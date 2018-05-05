@@ -37,16 +37,16 @@ import inet.ipaddr.Address;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
-import inet.ipaddr.AddressValueException;
 import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressSegmentSeries;
-import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
@@ -208,7 +208,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 */
 	@Override
 	public byte[] getBytes(byte bytes[], int index) {
-		return getBytes(bytes, index, getBytesInternal(), getBitCount());
+		return getBytesCopy(bytes, index, getBytesInternal(), getBitCount());
 	}
 	
 	/**
@@ -219,7 +219,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return getBytes(bytes, 0);
 	}
 
-	private static byte[] getBytes(byte[] bytes, int startIndex, byte[] cached, int bitCount) {
+	private static byte[] getBytesCopy(byte[] bytes, int startIndex, byte[] cached, int bitCount) {
 		int byteCount = (bitCount + 7) >> 3;
 		if(bytes == null || bytes.length < byteCount + startIndex) {
 			if(startIndex > 0) {
@@ -282,7 +282,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 */
 	@Override
 	public byte[] getUpperBytes(byte bytes[], int index) {
-		return getBytes(bytes, index, getUpperBytesInternal(), getBitCount());
+		return getBytesCopy(bytes, index, getUpperBytesInternal(), getBitCount());
 	}
 	
 	/**
@@ -1590,17 +1590,20 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		};
 	}
 	
-	protected static void checkOverflow(long increment, long lowerValue, long upperValue, long count, LongSupplier maxValue) {
+	protected static void checkOverflow(
+			long increment,
+			long lowerValue,
+			long upperValue,
+			long count,
+			LongSupplier maxValue
+			) {
 		if(increment < 0) {
-			if(count > 1) {
-				increment += count;
-			}
 			if(lowerValue < -increment) {
 				throw new AddressValueException(increment);
 			}
 		} else {
 			if(count > 1) {
-				increment -= count;
+				increment -= count - 1;
 			}
 			if(increment > maxValue.getAsLong() - upperValue) {
 				throw new AddressValueException(increment);
@@ -1609,19 +1612,21 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	}
 	
 	protected static void checkOverflow(
-			long increment, BigInteger lowerValue, BigInteger upperValue, BigInteger count, Supplier<BigInteger> maxValue) {
-		BigInteger bigIncrement = BigInteger.valueOf(increment);
+			long increment,
+			BigInteger bigIncrement,
+			BigInteger lowerValue,
+			BigInteger upperValue,
+			BigInteger count,
+			Supplier<BigInteger> maxValue
+			) {
 		boolean isMultiple = count.compareTo(BigInteger.ONE) > 0;
 		if(increment < 0) {
-			if(isMultiple) {
-				bigIncrement = bigIncrement.add(count);
-			}
 			if(lowerValue.compareTo(bigIncrement.negate()) < 0) {
 				throw new AddressValueException(increment);
 			}
 		} else {
 			if(isMultiple) {
-				bigIncrement = bigIncrement.subtract(count);
+				bigIncrement = bigIncrement.subtract(count.subtract(BigInteger.ONE));
 			}
 			if(bigIncrement.compareTo(maxValue.get().subtract(upperValue)) > 0) {
 				throw new AddressValueException(increment);
@@ -1629,6 +1634,17 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 	}
 	
+	/**
+	 * Handles the cases in which we can use longs rather than BigInteger
+	 * 
+	 * @param section
+	 * @param increment
+	 * @param addrCreator
+	 * @param lowerProducer
+	 * @param upperProducer
+	 * @param prefixLength
+	 * @return
+	 */
 	protected static <R extends AddressSection, S extends AddressSegment> R fastIncrement(
 			R section,
 			long increment,
@@ -1636,42 +1652,35 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			Supplier<R> lowerProducer,
 			Supplier<R> upperProducer,
 			Integer prefixLength) {
-		BigInteger count = section.getCount();
-		if(count.compareTo(LONG_MAX) <= 0) {
-			BigInteger incrementBig = BigInteger.valueOf(increment);
-			BigInteger absValueIncrement;
-			if(increment < 0) {
-				absValueIncrement = incrementBig.negate();
-			} else {
-				absValueIncrement = incrementBig;
+		if(increment >= 0) {
+			BigInteger count = section.getCount();
+			if(count.compareTo(LONG_MAX) <= 0) {
+				long longCount = count.longValue();
+				if(longCount > increment) {
+					if(longCount == increment + 1) {
+						return upperProducer.get();
+					}
+					return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
+				}
+				BigInteger value = section.getValue();
+				BigInteger upperValue;
+				if(value.compareTo(LONG_MAX) <= 0 && (upperValue = section.getUpperValue()).compareTo(LONG_MAX) <= 0) {
+					return increment(
+							section,
+							increment,
+							addrCreator,
+							count.longValue(),
+							value.longValue(),
+							upperValue.longValue(),
+							lowerProducer,
+							upperProducer,
+							prefixLength);
+				}
 			}
-			if(count.compareTo(absValueIncrement) > 0) {
-				return increment(//this ends up calling incrementRange
-						section,
-						increment,
-						incrementBig,
-						addrCreator,
-						count.longValue(),
-						0,
-						0,
-						lowerProducer,
-						upperProducer,
-						prefixLength);
-			}
+		} else {
 			BigInteger value = section.getValue();
-			BigInteger upperValue;
-			if(value.compareTo(LONG_MAX) <= 0 && (upperValue = section.getUpperValue()).compareTo(LONG_MAX) <= 0) {
-				return increment(
-						section,
-						increment,
-						incrementBig,
-						addrCreator,
-						count.longValue(),
-						value.longValue(),
-						upperValue.longValue(),
-						lowerProducer,
-						upperProducer,
-						prefixLength);
+			if(value.compareTo(LONG_MAX) <= 0) {
+				return add(lowerProducer.get(), value.longValue(), increment, addrCreator, prefixLength);
 			}
 		}
 		return null;
@@ -1681,7 +1690,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	protected static <R extends AddressSection, S extends AddressSegment> R increment(
 			R section,
 			long increment,
-			BigInteger incrementBig,
 			AddressCreator<?, R, ?, S> addrCreator, 
 			long count,
 			long lowerValue,
@@ -1689,93 +1697,52 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			Supplier<R> lowerProducer,
 			Supplier<R> upperProducer,
 			Integer prefixLength) {
-		if(increment == 0) {
-			return section;
-		}
-		boolean isDecrement = increment < 0;
-		if(count == 1) {
-			if(isDecrement ? increment < -lowerValue : increment > Long.MAX_VALUE - upperValue) {
-				if(incrementBig == null) {
-					incrementBig = BigInteger.valueOf(increment);
-				}
-				return add(section, incrementBig, addrCreator, prefixLength);
-			}
+		if(!section.isMultiple()) {
 			return add(section, lowerValue, increment, addrCreator, prefixLength);
 		}
-		
-		if(increment < 0) {
-			if(-count < increment) {
-				return incrementRange(section, increment, addrCreator, -(increment + 1), isDecrement, lowerProducer, upperProducer, prefixLength);
-			} else if(-count == increment) {
-				if(isDecrement) {
-					return lowerProducer.get();
-				}
-				return upperProducer.get();
-			}
-		} else {
-			if(count > increment) {
-				return incrementRange(section, increment, addrCreator, increment - 1, isDecrement, lowerProducer, upperProducer, prefixLength);
-			} else if(count == increment) {
-				if(isDecrement) {
-					return lowerProducer.get();
-				}
-				return upperProducer.get();
-			}
-		}
-		//we only care about two things: not going negative, and not exceeding largest long
-		//if we go negative, the way we handle bytes could mean we in fact do not throw with BigInteger
+		boolean isDecrement = increment <= 0;
 		if(isDecrement) {
-			if(increment < -lowerValue) {
-				if(incrementBig == null) {
-					incrementBig = BigInteger.valueOf(increment);
-				}
-				return add(lowerProducer.get(), incrementBig.add(BigInteger.valueOf(count)), addrCreator, prefixLength);
+			//we know lowerValue + increment >= 0 because we already did an overflow check
+			return add(lowerProducer.get(), lowerValue, increment, addrCreator, prefixLength);
+		} 
+		if(count > increment) {
+			if(count == increment + 1) {
+				return upperProducer.get();
 			}
-			return add(lowerProducer.get(), lowerValue, increment + count, addrCreator, prefixLength);
+			return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
 		}
 		if(increment <= Long.MAX_VALUE - upperValue) {
-			return add(upperProducer.get(), upperValue, increment - count, addrCreator, prefixLength);
+			return add(upperProducer.get(), upperValue, increment - (count - 1), addrCreator, prefixLength);
 		}
-		if(incrementBig == null) {
-			incrementBig = BigInteger.valueOf(increment);
-		}
-		return add(upperProducer.get(), incrementBig.subtract(BigInteger.valueOf(count)), addrCreator, prefixLength);
+		return add(upperProducer.get(), BigInteger.valueOf(increment - (count - 1)), addrCreator, prefixLength);
 	}
 
 	//this does not handle overflow, overflow should be checked before calling this
 	protected static <R extends AddressSection, S extends AddressSegment> R increment(
 			R section,
 			long increment,
+			BigInteger bigIncrement,
 			AddressCreator<?, R, ?, S> addrCreator, 
 			Supplier<R> lowerProducer,
 			Supplier<R> upperProducer,
 			Integer prefixLength) {
-		if(increment == 0) {
-			return section;
-		}
-		boolean isDecrement = increment < 0;
-		BigInteger count = section.getCount();
 		if(!section.isMultiple()) {
-			return add(section, BigInteger.valueOf(increment), addrCreator, prefixLength);
+			return add(section, bigIncrement, addrCreator, prefixLength);
 		}
-		BigInteger incrementBig = BigInteger.valueOf(increment);
+		boolean isDecrement = increment <= 0;
 		if(isDecrement) {
-			BigInteger negCount = count.negate();
-			int countCompare = negCount.compareTo(incrementBig);
-			if(countCompare > 0) {
-				return add(lowerProducer.get(), incrementBig.add(count), addrCreator, prefixLength);
-			} else if (countCompare < 0) {
-				return incrementRange(section, increment, addrCreator, increment + 1, isDecrement, lowerProducer, upperProducer, prefixLength);
+			return add(lowerProducer.get(), bigIncrement, addrCreator, prefixLength);
+		}
+		BigInteger count = section.getCount();
+		BigInteger incrementPlus1 = bigIncrement.add(BigInteger.ONE);
+		int countCompare = count.compareTo(incrementPlus1);
+		if(countCompare <= 0) {
+			if(countCompare == 0) {
+				return upperProducer.get();
 			}
-			return lowerProducer.get();
+			return add(upperProducer.get(), incrementPlus1.subtract(count), addrCreator, prefixLength);
 		}
-		int countCompare = count.compareTo(incrementBig);
-		if(countCompare < 0) {
-			return add(upperProducer.get(), incrementBig.subtract(count), addrCreator, prefixLength);
-		} else if (countCompare > 0) {
-			return incrementRange(section, increment, addrCreator, increment - 1, isDecrement, lowerProducer, upperProducer, prefixLength);
-		}
-		return upperProducer.get();
+		return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
 	}
 	
 	/**
@@ -1794,16 +1761,9 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			R section,
 			long increment,
 			AddressCreator<?, R, ?, S> addrCreator, 
-			long rangeIncrement,//always positive
-			boolean isDecrement, 
 			Supplier<R> lowerProducer,
-			Supplier<R> upperProducer,
 			Integer prefixLength) {
-		//if increment is 1 or -1 special case 
-		if(rangeIncrement == 0) {
-			if(isDecrement) {
-				return upperProducer.get();
-			}
+		if(increment == 0) {
 			return lowerProducer.get();
 		}
 		int segCount = section.getSegmentCount();
@@ -1811,16 +1771,18 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		for(int i = segCount - 1; i >= 0; i--) {
 			AddressSegment seg = section.getSegment(i);
 			int segRange = seg.getValueCount();
-			long revolutions = rangeIncrement / segRange;
-			int remainder = (int) (rangeIncrement % segRange);
-			S newSegment = addrCreator.createSegment(
-					isDecrement ? seg.getUpperSegmentValue() - remainder :
-						seg.getLowerSegmentValue() + remainder);
+			long revolutions = increment / segRange;
+			int remainder = (int) (increment % segRange);
+			S newSegment = addrCreator.createSegment(seg.getLowerSegmentValue() + remainder);
 			newSegments[i] = newSegment;
 			if(revolutions == 0) {
-				section.getSegments(0, i, newSegments, 0);
+				for(i--; i >= 0; i--) {
+					AddressSegment original = section.getSegment(i);
+					newSegments[i] = addrCreator.createSegment(original.getLowerSegmentValue());
+				}
+				break;
 			} else {
-				rangeIncrement = revolutions;
+				increment = revolutions;
 			}
 		}
 		return createIteratedSection(newSegments, addrCreator, prefixLength);
@@ -1833,18 +1795,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			throw new IllegalArgumentException();
 		}
 		int segCount = section.getSegmentCount();
-		AddressSegment lastSegment = section.getSegment(segCount - 1);
-		boolean isDecrement = increment.signum() == -1;
-		int value = lastSegment.getLowerSegmentValue();
-		if(isDecrement ? 
-				increment.compareTo(BigInteger.valueOf(-value)) >= 0 :
-					increment.compareTo(BigInteger.valueOf(lastSegment.getMaxSegmentValue() - value)) <= 0) {
-			//just adjust the last segment
-			S newSegs[] = addrCreator.createSegmentArray(segCount);
-			section.getSegments(0, segCount - 1, newSegs, 0);
-			newSegs[segCount - 1] = addrCreator.createSegment(value + increment.intValue());
-			return createIteratedSection(newSegs, addrCreator, prefixLength);
-		}
 		BigInteger fullValue = section.getValue();
 		fullValue = fullValue.add(increment);
 		byte bytes[] = fullValue.toByteArray();
@@ -1858,23 +1808,13 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		int segCount = section.getSegmentCount();
 		S newSegs[] = addrCreator.createSegmentArray(segCount);
-		AddressSegment lastSegment = section.getSegment(segCount - 1);
-		boolean isDecrement = increment < 0;
-		int value = lastSegment.getLowerSegmentValue();
-		if(isDecrement ? increment >= -value : increment <= lastSegment.getMaxSegmentValue() - value) {
-			//just adjust the last segment
-			section.getSegments(0, segCount - 1, newSegs, 0);
-			newSegs[segCount - 1] = addrCreator.createSegment((int) (value + increment));
-		} else {
-			fullValue += increment;
-			createSegments(
-						newSegs,
-						0,
-						fullValue,
-						section.getBitsPerSegment(),
-						addrCreator.getNetwork(),
-						prefixLength);
-		}
+		createSegments(
+					newSegs,
+					0,
+					fullValue + increment,
+					section.getBitsPerSegment(),
+					addrCreator.getNetwork(),
+					prefixLength);
 		return createIteratedSection(newSegs, addrCreator, prefixLength);
 	}
 	

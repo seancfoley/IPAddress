@@ -63,13 +63,19 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 	private transient T loopback;
 	private transient String loopbackStrings[];
 
-	public abstract class IPAddressCreator extends AddressCreator<T, R, E, S> {
+	public static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, E extends IPAddressSection, S extends IPAddressSegment, J extends InetAddress> extends AddressCreator<T, R, E, S> {
 
 		private static final long serialVersionUID = 4L;
+		
+		private IPAddressNetwork<T, R, E, S, J> owner;
+
+		protected IPAddressCreator(IPAddressNetwork<T, R, E, S, J> owner) {
+			this.owner = owner;
+		}
 
 		@Override
-		public IPAddressNetwork<T, R, E, S, ?> getNetwork() {
-			return IPAddressNetwork.this;
+		public IPAddressNetwork<T, R, E, S, J> getNetwork() {
+			return owner;
 		}
 		
 		@Override
@@ -103,7 +109,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		@Override
 		protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix, boolean singleOnly);
 		
-		public abstract R createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix);
+		public abstract R createFullSectionInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix);
 		
 		public abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix);
 		
@@ -143,11 +149,11 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
-			return createAddress(createSection(lowerValueProvider, upperValueProvider, isIPv4() ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT, prefix));
+			return createAddress(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix));
 		}
 		
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix, CharSequence zone) {
-			return createAddressInternal(createSection(lowerValueProvider, upperValueProvider, isIPv4() ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT, prefix), zone);
+			return createAddressInternal(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix), zone);
 		}
 		
 		protected R createSectionInternal(byte bytes[], Integer prefix) {
@@ -206,7 +212,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		public abstract T createAddress(R section);
 	}
 
-	private IPAddressCreator creator;
+	private IPAddressCreator<T, R, E, S, J> creator;
 
 	@SuppressWarnings("unchecked")
 	protected IPAddressNetwork(Class<T> addressType) {
@@ -250,10 +256,10 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 	
 	protected abstract Function<T, R> getSectionProducer();
 	
-	protected abstract IPAddressCreator createAddressCreator();
+	protected abstract IPAddressCreator<T, R, E, S, J> createAddressCreator();
 
 	@Override
-	public IPAddressCreator getAddressCreator() {
+	public IPAddressCreator<T, R, E, S, J> getAddressCreator() {
 		return creator;
 	}
 
@@ -338,7 +344,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 					int bytesPerSegment = IPAddress.getBytesPerSegment(version);
 					onesSubnet = cache[onesSubnetIndex];
 					if(onesSubnet == null) {
-						IPAddressCreator creator = getAddressCreator();
+						IPAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
 						S newSegments[] = creator.createSegmentArray(segmentCount);
 						int maxSegmentValue = IPAddress.getMaxSegmentValue(version);
 						if(network && withPrefixLength) {
@@ -357,7 +363,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 					}
 					zerosSubnet = cache[zerosSubnetIndex];
 					if(zerosSubnet == null) {
-						IPAddressCreator creator = getAddressCreator();
+						IPAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
 						S newSegments[] = creator.createSegmentArray(segmentCount);
 						S seg;
 						if(network && withPrefixLength) {
@@ -385,7 +391,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 					int prefix = bits;
 					S onesSegment = segProducer.apply(onesSubnet, 1);
 					S zerosSegment = segProducer.apply(zerosSubnet, 1);
-					IPAddressCreator creator = getAddressCreator();
+					IPAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
 					
 					ArrayList<S> segmentList = new ArrayList<S>(segmentCount);
 					int i = 0;

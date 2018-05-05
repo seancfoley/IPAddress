@@ -1127,37 +1127,35 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testPrefixBlock("ff:0:0:ff:0:*", 40);
 		testPrefixBlock("ff:0:0:ff:0:fe-ff", 47);
 		
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:ff:ff:1-2:2-3:ff");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 1, "ff:ff:ff:ff:ff:1:2:ff");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:ff:ff:2:2:ff");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:ff:ff:2:3:ff");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 5, "ff:ff:ff:ff:ff:2:4:0");
-		testIncrement("ff:ff:ff:ff:ff:fe-ff:fe-ff:ff", 5, null);
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:ff:ff:1:2:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 2, "ff:ff:ff:ff:ff:2:2:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:ff:ff:2:3:ff");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:ff:ff:2:4:0");
+		testIncrement("ff:ff:ff:ff:ff:fe-ff:fe-ff:ff", 4, null);
 		
-		testIncrement("ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:1-2:2-3:ff");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", 1, "ff:ff:ff:1:2:ff");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:2:2:ff");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:2:3:ff");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", 5, "ff:ff:ff:2:4:0");
-		testIncrement("ff:ff:ff:fe-ff:fe-ff:ff", 5, null);
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:1:2:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 2, "ff:ff:ff:2:2:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:2:3:ff");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:2:4:0");
+		testIncrement("ff:ff:ff:fe-ff:fe-ff:ff", 4, null);
 		
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:ff:ff:0:0:4");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:ff:ff:ff:0:0:3");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10303L, "ff:ff:ff:ff:ff:0:0:0");
-		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10304L, "ff:ff:ff:ff:fe:ff:ff:ff");
-		testIncrement("0:0:0:0:0:1-2:2-3:ff", -0x10304L, null);
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102fbL, "ff:ff:ff:ff:ff:0:0:4");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102fcL, "ff:ff:ff:ff:ff:0:0:3");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:ff:ff:0:0:0");
+		testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:ff:ff:fe:ff:ff:ff");
+		testIncrement("0:0:0:0:0:1-2:2-3:ff", -0x10300L, null);
 		
-		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:0:0:4");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:ff:0:0:3");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10303L, "ff:ff:ff:0:0:0");
-		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10304L, "ff:ff:fe:ff:ff:ff");
-		testIncrement("0:0:0:1-2:2-3:ff", -0x10304L, null);
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102fbL, "ff:ff:ff:0:0:4");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102fcL, "ff:ff:ff:0:0:3");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102ffL, "ff:ff:ff:0:0:0");
+		testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10300L, "ff:ff:fe:ff:ff:ff");
+		testIncrement("0:0:0:1-2:2-3:ff", -0x10300L, null);
 		
-		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 7, "ff:4:ff:ff:ff:2:2:0");
-		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 9, "ff:4:ff:ff:ff:2:3:1");
+		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 6, "ff:4:ff:ff:ff:2:2:0");
+		testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 8, "ff:4:ff:ff:ff:2:3:1");
 		
-		testIncrement("3-4:ff:ff:1-2:2-3:0", 7, "4:ff:ff:2:2:0");
-		testIncrement("3-4:ff:ff:1-2:2-3:0", 9, "4:ff:ff:2:3:1");
+		testIncrement("3-4:ff:ff:1-2:2-3:0", 6, "4:ff:ff:2:2:0");
+		testIncrement("3-4:ff:ff:1-2:2-3:0", 8, "4:ff:ff:2:3:1");
 		
 		super.runTest();
 	}

@@ -96,6 +96,8 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	
 	static class AddressCache extends SectionCache<MACAddress> {}
 	
+	private static MACAddressCreator creators[][] = new MACAddressCreator[2][MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT];
+	
 	private transient MACStringCache stringCache;
 	
 	private transient SectionCache<MACAddressSection> sectionCache;
@@ -252,15 +254,35 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		return MACAddress.defaultIpv6Network();
 	}
 	
-	private MACAddressCreator getAddressCreator(int startIndex, boolean extended) {
-		return getNetwork().new MACAddressCreator() {
+	protected MACAddressCreator getAddressCreator(int startIndex, boolean extended) {
+		MACAddressCreator creator = null;
+		boolean useCached = startIndex < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT;
+		int ext = 0;
+		if(useCached) {
+			if(extended) {
+				ext = 1;
+			}
+			creator = creators[ext][startIndex];
+		}
+		if(creator != null) {
+			useCached |= creator.getNetwork().equals(getNetwork());
+			if(useCached) {
+				return creator;
+			}
+		}
+		creator = new MACAddressCreator(getNetwork()) {
 			private static final long serialVersionUID = 4L;
 
 			@Override
 			protected MACAddressSection createSectionInternal(MACAddressSegment segments[]) {
 				return getNetwork().getAddressCreator().createSectionInternal(segments, startIndex, extended);
 			}
+			
 		};
+		if(useCached) {
+			creators[ext][startIndex] = creator;
+		}
+		return creator;
 	}
 	
 	MACAddressCreator getAddressCreator() {
@@ -1191,7 +1213,21 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	@Override
+	public MACAddressSection incrementBoundary(long increment) {
+		if(increment <= 0) {
+			if(increment == 0) {
+				return this;
+			}
+			return getLower().increment(increment);
+		}
+		return getUpper().increment(increment);
+	}
+	
+	@Override
 	public MACAddressSection increment(long increment) {
+		if(increment == 0 && !isMultiple()) {
+			return this;
+		}
 		if(!isExtended() || getSegmentCount() < 8) {
 			long lowerValue = longValue();
 			long upperValue = upperLongValue();
@@ -1200,7 +1236,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			return increment(
 					this,
 					increment,
-					null,
+					//null,
 					getAddressCreator(),
 					getCount().longValue(),
 					longValue(),
@@ -1209,13 +1245,11 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 					this::getUpper,
 					getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
 		}
-		if(increment == 0) {
-			return this;
-		}
 		BigInteger lowerValue = getValue();
 		BigInteger upperValue = getUpperValue();
 		BigInteger count = getCount();
-		checkOverflow(increment, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+		BigInteger bigIncrement = BigInteger.valueOf(increment);
+		checkOverflow(increment, bigIncrement, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
 		Integer prefixLength = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength();
 		MACAddressSection result = fastIncrement(
 				this,
@@ -1230,6 +1264,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		return increment(
 				this,
 				increment,
+				bigIncrement,
 				getAddressCreator(), 
 				this::getLower,
 				this::getUpper,

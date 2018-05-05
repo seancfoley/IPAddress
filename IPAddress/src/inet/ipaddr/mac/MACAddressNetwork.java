@@ -32,23 +32,29 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 
 	private static final MACAddressSegment EMPTY_SEGMENTS[] = {};
 
-	public class MACAddressCreator extends AddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> implements AddressSegmentCreator<MACAddressSegment> {
+	public static class MACAddressCreator extends AddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> implements AddressSegmentCreator<MACAddressSegment> {
 		private static final long serialVersionUID = 4L;
 
 		private transient MACAddressSegment ALL_RANGE_SEGMENT;
-		
+
 		private transient MACAddressSegment segmentCache[];
+
+		private final MACAddressNetwork owner;
+		
+		MACAddressCreator(MACAddressNetwork owner) {
+			this.owner = owner;
+		}
 		
 		@Override
 		public void clearCaches() {
 			segmentCache = null;
 		}
-		
+
 		@Override
 		public MACAddressNetwork getNetwork() {
-			return MACAddressNetwork.this;
+			return owner;
 		}
-		
+
 		@Override
 		public MACAddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
@@ -292,7 +298,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 	}
 	
 	protected MACAddressNetwork.MACAddressCreator createAddressCreator() {
-		return new MACAddressCreator();
+		return new MACAddressCreator(this);
 	}
 	
 	@Override

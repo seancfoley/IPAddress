@@ -51,7 +51,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 	
 	private IPv6AddressSection linkLocalPrefix;
 	
-	public class IPv6AddressCreator extends IPAddressCreator {
+	public static class IPv6AddressCreator extends IPAddressCreator<IPv6Address, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment, Inet6Address> {
 		private static final long serialVersionUID = 4L;
 
 		private transient IPv6AddressSegment ZERO_PREFIX_SEGMENT, ALL_RANGE_SEGMENT;
@@ -65,6 +65,10 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		private transient IPv6AddressSegment segmentPrefixCache[][][];
 		private transient IPv6AddressSegment allPrefixedCache[];
 
+		public IPv6AddressCreator(IPv6AddressNetwork network) {
+			super(network);
+		}
+
 		@Override
 		public void clearCaches() {
 			segmentCache = null;
@@ -74,7 +78,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		
 		@Override
 		public IPv6AddressNetwork getNetwork() {
-			return IPv6AddressNetwork.this;
+			return (IPv6AddressNetwork) super.getNetwork();
 		}
 		
 		@Override
@@ -130,7 +134,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 					int valueIndex;
 					boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 					if(isAllSubnets) {
-						int mask = getSegmentNetworkMask(segmentPrefixLength);
+						int mask = getNetwork().getSegmentNetworkMask(segmentPrefixLength);
 						value &= mask;
 						valueIndex = value >>> (IPv6Address.BITS_PER_SEGMENT- segmentPrefixLength);
 					} else {
@@ -208,12 +212,12 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 							segmentPrefixLength = bitsPerSegment;
 						}
 						if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-							int mask = getSegmentNetworkMask(segmentPrefixLength);
+							int mask = getNetwork().getSegmentNetworkMask(segmentPrefixLength);
 							lower &= mask;
 							if((upper & mask) == lower) {
 								return createSegment(lower, segmentPrefixLength);
 							}
-							int hostMask = getSegmentHostMask(segmentPrefixLength);
+							int hostMask = getNetwork().getSegmentHostMask(segmentPrefixLength);
 							upper |= hostMask;
 						}
 						if(lower == 0 && upper == IPv6Address.MAX_VALUE_PER_SEGMENT) {
@@ -237,10 +241,10 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			IPv6AddressSegment result = new IPv6AddressSegment(lower, upper, segmentPrefixLength);
 			return result;
 		}
-		
+
 		@Override
-		public IPv6AddressSection createSection(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, int segmentCount, Integer prefix) {
-			return new IPv6AddressSection(lowerValueProvider, upperValueProvider, segmentCount, prefix);
+		public IPv6AddressSection createFullSectionInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
+			return new IPv6AddressSection(lowerValueProvider, upperValueProvider, IPv6Address.SEGMENT_COUNT, prefix);
 		}
 
 		@Override
@@ -426,7 +430,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 	
 	@Override
 	protected IPv6AddressCreator createAddressCreator() {
-		return new IPv6AddressCreator();
+		return new IPv6AddressCreator(this);
 	}
 	
 	@Override

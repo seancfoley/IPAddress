@@ -304,6 +304,9 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	@Override
 	IPAddressSegmentSeries increment(long increment);
 
+	@Override
+	IPAddressSegmentSeries incrementBoundary(long increment);
+
 	/**
 	 * Returns the segment series with a host of zero.
 	 * If the series has no prefix length, then it returns an all-zero series.
