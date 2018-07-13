@@ -60,6 +60,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		
 		@Override
 		public void clearCaches() {
+			super.clearCaches();
 			segmentCache = null;
 			allPrefixedCache = null;
 			segmentPrefixCache = null;
@@ -154,6 +155,19 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 					IPv4AddressSegment result = ALL_RANGE_SEGMENT;
 					if(result == null) {
 						ALL_RANGE_SEGMENT = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, null);
+							//could optimize:
+							//contains
+							//getValueCount
+							//includesMax
+							//includesZero
+							//isBoundedBy
+							//getSegmentPrefixLength, getDivisionPrefixLength
+							//removePrefixLength, removePrefixLength(boolean)
+							//isMultiple
+							//isPrefixBlock
+							//matches(int)
+							//toNormalizedString()
+							//getPrefixValueCount
 					}
 					return result;
 				}

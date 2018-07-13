@@ -352,7 +352,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 							Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
 							S lastSegment = creator.createSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bitsPerSegment) /* bitsPerSegment */ );
 							newSegments[newSegments.length - 1] = lastSegment;
-							onesSubnet = creator.createAddressInternal(newSegments, addressBitLength); /* address creation */
+							onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
 						} else {
 							S segment = creator.createSegment(maxSegmentValue);
 							Arrays.fill(newSegments, segment);
@@ -369,7 +369,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 						if(network && withPrefixLength) {
 							seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
 							Arrays.fill(newSegments, seg);
-							zerosSubnet = creator.createAddressInternal(newSegments, 0); /* address creation */
+							zerosSubnet = creator.createAddressInternal(newSegments, cacheBits(0)); /* address creation */
 						} else {
 							seg = creator.createSegment(0);
 							Arrays.fill(newSegments, seg);
@@ -435,7 +435,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 					S newSegments[] = creator.createSegmentArray(segmentList.size());
 					segmentList.toArray(newSegments);
 					if(network && withPrefixLength) {
-						subnet = creator.createAddressInternal(newSegments, prefix); /* address creation */
+						subnet = creator.createAddressInternal(newSegments, cacheBits(prefix)); /* address creation */
 					} else {
 						subnet = creator.createAddressInternal(newSegments); /* address creation */
 					}
@@ -477,21 +477,26 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		} else {
 			zeroSegments = zeroRanges = noZeros;
 		}
+		Integer npl = cacheBits(networkPrefixLength);
 		if(network && withPrefixLength) {
 			if(getPrefixConfiguration().prefixedSubnetsAreExplicit()) {
-				cachedEquivalentPrefix = cachedMinPrefix = addressBitLength;
-				cachedNetworkPrefix = networkPrefixLength;
+				cachedEquivalentPrefix = cachedMinPrefix = cacheBits(addressBitLength);
+				cachedNetworkPrefix = npl;
 				cachedCount = BigInteger.ONE;
 			} else {
-				cachedEquivalentPrefix = cachedMinPrefix = cachedNetworkPrefix = networkPrefixLength;
+				cachedEquivalentPrefix = cachedMinPrefix = cachedNetworkPrefix = npl;
 				cachedCount = BigInteger.valueOf(2).pow(addressBitLength - networkPrefixLength);
 			}
 		} else {
-			cachedEquivalentPrefix = cachedMinPrefix = addressBitLength;
+			cachedEquivalentPrefix = cachedMinPrefix = cacheBits(addressBitLength);
 			cachedNetworkPrefix = null;
 			cachedCount = BigInteger.ONE;
 		}
-		section.initCachedValues(networkPrefixLength, network, cachedNetworkPrefix, cachedMinPrefix, cachedEquivalentPrefix, cachedCount, zeroSegments, zeroRanges);
+		section.initCachedValues(npl, network, cachedNetworkPrefix, cachedMinPrefix, cachedEquivalentPrefix, cachedCount, zeroSegments, zeroRanges);
+	}
+	
+	protected static Integer cacheBits(int i) {
+		return IPAddressSection.cacheBits(i);
 	}
 
 	public static String getPrefixString(int networkPrefixLength) {

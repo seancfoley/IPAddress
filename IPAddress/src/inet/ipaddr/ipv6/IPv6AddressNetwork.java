@@ -71,6 +71,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 
 		@Override
 		public void clearCaches() {
+			super.clearCaches();
 			segmentCache = null;
 			allPrefixedCache = null;
 			segmentPrefixCache = null;

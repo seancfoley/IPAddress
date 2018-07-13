@@ -47,6 +47,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
 		@Override
 		public void clearCaches() {
+			super.clearCaches();
 			segmentCache = null;
 		}
 

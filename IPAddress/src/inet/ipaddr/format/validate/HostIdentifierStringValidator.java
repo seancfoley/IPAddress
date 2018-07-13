@@ -41,6 +41,13 @@ public interface HostIdentifierStringValidator {
 	
 	ParsedHost validateHost(HostName fromHost) throws HostNameException;
 	
+	/**
+	 * 
+	 * @param fromString
+	 * @param stringChars optional, the characters to be parsed.  If null, fromString.toString() is used.
+	 * @return
+	 * @throws AddressStringException
+	 */
 	IPAddressProvider validateAddress(IPAddressString fromString) throws AddressStringException;
 	
 	MACAddressProvider validateAddress(MACAddressString fromString) throws AddressStringException;

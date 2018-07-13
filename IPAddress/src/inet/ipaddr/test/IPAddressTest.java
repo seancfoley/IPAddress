@@ -952,23 +952,70 @@ public class IPAddressTest extends TestBase {
 	
 	void testContains(String cidr1, String cidr2, boolean result, boolean equal) {
 		try {
-			IPAddress w = createAddress(cidr1).toAddress();
-			IPAddress w2 = createAddress(cidr2).toAddress();
-			if(!w.contains(w2) && !conversionContains(w, w2)) {
+			IPAddressString wstr = createAddress(cidr1);
+			IPAddressString w2str = createAddress(cidr2);
+			IPAddress w = wstr.toAddress();
+			IPAddress w2 = w2str.toAddress();
+			boolean firstContains;
+			boolean convCont = false;
+			if(!(firstContains = w.contains(w2)) && !(convCont = conversionContains(w, w2))) {
 				if(result) {
 					addFailure(new Failure("containment failed " + w2, w));
 				}
 			} else {
-				if(!result) {
+				if(!result && firstContains) {
 					addFailure(new Failure("containment passed " + w2, w));
+				} else if(!result) {
+					addFailure(new Failure("conv containment passed " + w2, w));
 				} else if(equal ? !(w2.contains(w) || conversionContains(w2, w)) : (w2.contains(w) || conversionContains(w2, w))) {
 					addFailure(new Failure("failed " + w, w2));
+				}
+			}
+			if(!convCont) {
+				testStringContains(result, equal, wstr, w2str);
+				//compare again, this tests the string-based optimization (which is skipped is we validated already)
+				testStringContains(result, equal, createAddress(cidr1), createAddress(cidr2));
+				
+			}
+			boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+			if(allPrefixesAreSubnets) {
+				wstr = createAddress(cidr1);
+				w2str = createAddress(cidr2);
+				boolean prefixMatches = wstr.prefixEquals(w2str);
+				if(prefixMatches && !result) {
+					addFailure(new Failure("expected containment due to same prefix 1" + w2, w));
+				}
+				wstr.isValid();
+				w2str.isValid();
+				prefixMatches = wstr.prefixEquals(w2str);
+				if(prefixMatches && !result) {
+					addFailure(new Failure("expected containment due to same prefix 2" + w2, w));
+				}
+				w = wstr.toAddress();
+				w2 = w2str.toAddress();
+				prefixMatches = wstr.prefixEquals(w2str);
+				if(prefixMatches && !result) {
+					addFailure(new Failure("expected containment due to same prefix 3 " + w2, w));
 				}
 			}
 		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + e));
 		}
 		incrementTestCount();
+	}
+
+	protected void testStringContains(boolean result, boolean equal, IPAddressString wstr, IPAddressString w2str) {
+		if(!wstr.contains(w2str)) {
+			if(result) {
+				addFailure(new Failure("containment failed " + w2str, wstr));
+			}
+		} else {
+			if(!result) {
+				addFailure(new Failure("containment passed " + w2str, wstr));
+			} else if(equal ? !w2str.contains(wstr) : w2str.contains(wstr)) {
+				addFailure(new Failure("failed " + wstr, w2str));
+			}
+		}
 	}
 	
 	void testNotContains(String cidr1, String cidr2) {
@@ -1203,7 +1250,8 @@ public class IPAddressTest extends TestBase {
 	void testMatches(boolean matches, String host1Str, String host2Str, boolean inet_aton) {
 		IPAddressString h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
 		IPAddressString h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
-		if(matches != h1.equals(h2) && matches != conversionMatches(h1, h2)) {
+		boolean straightMatch = h1.equals(h2);
+		if(matches != straightMatch && matches != conversionMatches(h1, h2)) {
 			addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h2, h1));
 		} else {
 			if(matches != h2.equals(h1) && matches != conversionMatches(h2, h1)) {
@@ -1214,7 +1262,68 @@ public class IPAddressTest extends TestBase {
 				} else {
 					if(matches ? (h2.compareTo(h1) != 0 && conversionCompare(h2, h1) != 0) : (h2.compareTo(h1) == 0)) {
 						addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h2, h1));
-					} 
+					} else if(straightMatch) {
+						if(h1.getNetworkPrefixLength() != null) {
+							if(h1.isPrefixOnly() && h1.getNetworkPrefixLength() <= IPv4Address.BIT_COUNT) {
+								if(h1.prefixEquals(h2)) {
+									addFailure(new Failure("failed: prefix only match fail with " + h1, h2));
+								} else {
+									//this three step test is done so we try it before validation, and then try again before address creation, due to optimizations in IPAddressString
+									h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
+									h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
+									if(h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: prefix only match fail with " + h1, h2));
+									}
+									h1.isValid();
+									h2.isValid();
+									if(h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: 2 prefix only match fail with " + h1, h2));
+									}
+									h1.getAddress();
+									h2.getAddress();
+									if(h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: 3 prefix only match fail with " + h1, h2));
+									}
+								}
+							} else {
+								if(!h1.prefixEquals(h2)) {
+									addFailure(new Failure("failed: prefix match fail with " + h1, h2));
+								} else {
+									//this three step test is done so we try it before validation, and then try again before address creation, due to optimizations in IPAddressString
+									h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
+									h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
+									if(!h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: prefix match fail with " + h1, h2));
+									}
+									h1.isValid();
+									h2.isValid();
+									if(!h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: 2 prefix match fail with " + h1, h2));
+									}
+									h1.getAddress();
+									h2.getAddress();
+									if(!h1.prefixEquals(h2)) {
+										addFailure(new Failure("failed: 3 prefix match fail with " + h1, h2));
+									}
+								}
+							}
+						}
+					} else {
+						boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+						//if two are not equal, they can still have equal prefix.  Only if host the same can we conclude otherwise.
+						//So here we first check that host is the same (ie full range host)
+						if(allPrefixesAreSubnets && h2.getNetworkPrefixLength() != null && h1.getNetworkPrefixLength() != null && h1.getNetworkPrefixLength() >= h2.getNetworkPrefixLength()) {
+							if(h1.prefixEquals(h2)) {
+								addFailure(new Failure("failed: prefix match succeeds with " + h1, h2));
+							} else {
+								h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
+								h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
+								if(h1.prefixEquals(h2)) {
+									addFailure(new Failure("failed: prefix match succeeds with " + h1, h2));
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1651,6 +1760,7 @@ public class IPAddressTest extends TestBase {
 				int maxValue = directAddress.getMaxSegmentValue();
 				directAddress = creator.createAddress(
 						new SegmentValueProvider() {
+							@Override
 							public int getValue(int segmentIndex) {
 								if(segmentIndex < prefSeg) {
 									return segs[segmentIndex].getLowerSegmentValue();
@@ -1662,6 +1772,7 @@ public class IPAddressTest extends TestBase {
 							}
 						},
 						new SegmentValueProvider() {
+							@Override
 							public int getValue(int segmentIndex) {
 								if(segmentIndex < prefSeg) {
 									return segs[segmentIndex].getUpperSegmentValue();
@@ -2961,6 +3072,19 @@ public class IPAddressTest extends TestBase {
 		testMatches(true, "11.0.0.11/16", "184549387/16", true);
 		testMatches(true, "11.0.0.11/16", "0xb00000b/16", true);
 		testMatches(true, "11.0.0.11/16", "01300000013/16", true);
+		
+		testMatches(true, "/16", "/16");//no prefix to speak of, since not known to be ipv4 or ipv6
+		testMatches(false, "/16", "/15");
+		testMatches(true, "/15", "/15");
+		testMatches(true, "/0", "/0");
+		testMatches(false, "/1", "/0");
+		testMatches(false, "/0", "/1");
+		testMatches(true, "/128", "/128");
+		testMatches(false, "/127", "/128");
+		testMatches(false, "/128", "/127");
+		
+		testMatches(true, "11::1.2.3.4/112", "11::102:304/112");
+		testMatches(true, "11:0:0:0:0:0:1.2.3.4/112", "11:0:0:0:0:0:102:304/112");
 		
 		testMatches(true, "1:2::/32", "1:2::/ffff:ffff::");
 		testMatches(true, "1:2::/1", "1:2::/8000::");
@@ -4793,7 +4917,7 @@ public class IPAddressTest extends TestBase {
 		testIncrement("::1:ffff", -2, "::1:fffd");
 		testIncrement("::1:ffff", -0x10000, "::ffff");
 		testIncrement("::1:ffff", -0x10001, "::fffe");
-		
+
 		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1);
 		testSpanAndMerge("1.2.3.4", "1.2.5.8", 9);
 		

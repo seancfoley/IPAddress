@@ -38,6 +38,12 @@ import inet.ipaddr.HostIdentifierString;
 public abstract class ParsedAddressCreator<T extends Address, R extends AddressSection, E extends AddressSection, S extends AddressSegment> implements Serializable {
 	
 	private static final long serialVersionUID = 4L;
+	
+	public void clearCaches() {
+		for(int i = 0; i < Validator.MASK_CACHE.length; i++) {
+			Validator.MASK_CACHE[i] = null;
+		}
+	}
 
 	public abstract S[] createSegmentArray(int length);
 

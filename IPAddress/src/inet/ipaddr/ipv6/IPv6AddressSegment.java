@@ -43,6 +43,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	private static final long serialVersionUID = 4L;
 
 	public static final int MAX_CHARS = 4;
+	public static final int BITS_PER_CHAR = 4;
 
 	/**
 	 * Constructs a segment of an IPv6 address with the given value.
@@ -315,15 +316,12 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public boolean contains(AddressSegment other) {
-		return other instanceof IPv6AddressSegment && containsSeg(other);
+		return this == other || (other instanceof IPv6AddressSegment && containsSeg(other));
 	}
 	
 	@Override
 	public boolean equals(Object other) {
-		if(this == other) {
-			return true;
-		}
-		return (other instanceof IPv6AddressSegment) && isSameValues((IPv6AddressSegment) other);
+		return this == other || ((other instanceof IPv6AddressSegment) && isSameValues((IPv6AddressSegment) other));
 	}
 	
 	@Override

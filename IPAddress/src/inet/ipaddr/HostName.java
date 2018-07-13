@@ -477,14 +477,14 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * @return whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
 	 */
 	public boolean isAllAddresses() {
-		return isAddressString() && parsedHost.getAddressProvider().isAllAddresses();
+		return isAddressString() && parsedHost.getAddressProvider().isProvidingAllAddresses();
 	}
 
 	/**
 	 * @return whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
 	 */
 	public boolean isPrefixOnly() {
-		return isAddressString() && parsedHost.getAddressProvider().isPrefixOnly();
+		return isAddressString() && parsedHost.getAddressProvider().isProvidingPrefixOnly();
 	}
 
 	/**
@@ -492,7 +492,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * @return
 	 */
 	public boolean isEmpty() {
-		return isAddressString() && parsedHost.getAddressProvider().isEmpty();
+		return isAddressString() && parsedHost.getAddressProvider().isProvidingEmpty();
 	}
 
 	/**
@@ -579,7 +579,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	/**
-	 * If a prefix was supplied, either as part of an address or as part of a domain (in which case the prefix applies to any resolved address), 
+	 * If a prefix length was supplied, either as part of an address or as part of a domain (in which case the prefix applies to any resolved address), 
 	 * then returns that prefix length.  Otherwise, returns null.
 	 */
 	public Integer getNetworkPrefixLength() {

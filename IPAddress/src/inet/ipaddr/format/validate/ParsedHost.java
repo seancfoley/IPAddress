@@ -88,7 +88,7 @@ public class ParsedHost implements Serializable {
 	}
 	
 	public boolean isIPv6Address() {
-		return hasEmbeddedAddress() && getAddressProvider().isIPv6();
+		return hasEmbeddedAddress() && getAddressProvider().isProvidingIPv6();
 	}
 	
 	public Integer getPort() {
@@ -132,14 +132,14 @@ public class ParsedHost implements Serializable {
 	
 	public IPAddress asAddress(IPVersion version) {
 		if(hasEmbeddedAddress()) {
-			return getAddressProvider().getAddress(version);
+			return getAddressProvider().getProviderAddress(version);
 		}
 		return null;
 	}
 	
 	public IPAddress asAddress() {
 		if(hasEmbeddedAddress()) {
-			return getAddressProvider().getAddress();
+			return getAddressProvider().getProviderAddress();
 		}
 		return null;
 	}
@@ -147,14 +147,14 @@ public class ParsedHost implements Serializable {
 	public IPAddressString asGenericAddressString() {
 		if(hasEmbeddedAddress()) {
 			IPAddressProvider addressProvider = getAddressProvider();
-			if(addressProvider.isAllAddresses()) {
+			if(addressProvider.isProvidingAllAddresses()) {
 				return new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR, addressProvider.getParameters());
-			} else if(addressProvider.isPrefixOnly()) {
-				return new IPAddressString(IPAddressNetwork.getPrefixString(addressProvider.getNetworkPrefixLength()), addressProvider.getParameters());
-			} else if(addressProvider.isEmpty()) {
+			} else if(addressProvider.isProvidingPrefixOnly()) {
+				return new IPAddressString(IPAddressNetwork.getPrefixString(addressProvider.getProviderNetworkPrefixLength()), addressProvider.getParameters());
+			} else if(addressProvider.isProvidingEmpty()) {
 				return new IPAddressString("", addressProvider.getParameters());
 			} else {
-				IPAddress addr = addressProvider.getAddress();
+				IPAddress addr = addressProvider.getProviderAddress();
 				return addr.toAddressString();
 			}
 		}
@@ -169,9 +169,9 @@ public class ParsedHost implements Serializable {
 				if(labels == null) {
 					if(hasEmbeddedAddress()) {
 						IPAddressProvider addressProvider = getAddressProvider();
-						IPAddress addr = addressProvider.getAddress();
+						IPAddress addr = addressProvider.getProviderAddress();
 						if(addr == null) {
-							if(addressProvider.isEmpty()) {
+							if(addressProvider.isProvidingEmpty()) {
 								return new String[0];
 							}
 							return new String[] {asGenericAddressString().toString()};
@@ -213,7 +213,7 @@ public class ParsedHost implements Serializable {
 					if(str == null) {
 						if(hasEmbeddedAddress()) {
 							IPAddressProvider addressProvider = getAddressProvider();
-							IPAddress addr = addressProvider.getAddress();
+							IPAddress addr = addressProvider.getProviderAddress();
 							if(addr == null) {
 								//note that this means prefix only (/16 or /64) is a valid host
 								return asGenericAddressString().toString();

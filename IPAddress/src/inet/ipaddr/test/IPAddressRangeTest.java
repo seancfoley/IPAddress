@@ -2493,11 +2493,11 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::%x%x%",
 				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 				"1-2-3-4-0-0-0-0sxsxs.ipv6-literal.net",
-				"008JQWOV7Skb)C|ve)jA§x%x%",
+				"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "x%x%",
 				"0x00010002000300040000000000000000%x%x%",
 				"00000020000200001400010000000000000000000000%x%x%");//mixed
 		if(allPrefixesAreSubnets) {
-			testIPv6Strings("1:2:3:4:5:6:7:8%a/64", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
+			testIPv6Strings("1:2:3:4:5:6:7:8%a/64", //Note: % is the zone character (not sql wildcard)
 					"1:2:3:4:0:0:0:0%a/64", //normalized
 					"1:2:3:4:*:*:*:*%a", //normalizedWildcards
 					"1:2:3:4:*:*:*:*%a", //canonicalWildcards
@@ -2513,7 +2513,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"1:2:3:4::%a/64",
 					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 					"1-2-3-4-0-0-0-0sa.ipv6-literal.net/64",
-					"008JQWOV7Skb)C|ve)jA§a/64",
+					"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "a/64",
 					"0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff%a",
 					"00000020000200001400010000000000000000000000-00000020000200001400011777777777777777777777%a");
 		} else {
@@ -2533,7 +2533,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"1:2:3:4:5:6:0.7.0.8%a/64",
 					"8.0.0.0.7.0.0.0.6.0.0.0.5.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 					"1-2-3-4-5-6-7-8sa.ipv6-literal.net/64",
-					"008JQWOV7SkcR4tS1R_a§a/64",
+					"008JQWOV7SkcR4tS1R_a" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "a/64",
 					"0x00010002000300040005000600070008%a",
 					"00000020000200001400010000050000300001600010%a");
 		}
@@ -2554,7 +2554,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"1:2:3:4::%a/64",
 					"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 					"1-2-3-4-0-0-0-0sa.ipv6-literal.net/64",
-					"008JQWOV7Skb)C|ve)jA§a/64",
+					"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "a/64",
 					"0x00010002000300040000000000000000%a",
 					"00000020000200001400010000000000000000000000%a");
 		} else {
@@ -2574,7 +2574,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"1:2:3:4::%a/64",
 					"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 					"1-2-3-4-0-0-0-0sa.ipv6-literal.net/64",
-					"008JQWOV7Skb)C|ve)jA§a/64",
+					"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "a/64",
 					"0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff%a",
 					"00000020000200001400010000000000000000000000-00000020000200001400011777777777777777777777%a");
 		}
@@ -2595,7 +2595,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"1:2:3:4::%.a.a",
 				"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
 				"1-2-3-4-0-0-0-0s.a.a.ipv6-literal.net",
-				"008JQWOV7Skb)C|ve)jA§.a.a",
+				"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + ".a.a",
 				"0x00010002000300040000000000000000%.a.a",
 				"00000020000200001400010000000000000000000000%.a.a");//mixed
 		testIPv6Strings("1:2:3:4::*:*:*",

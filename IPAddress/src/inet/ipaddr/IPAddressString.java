@@ -168,8 +168,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	
 	private static final long serialVersionUID = 4L;
 
-	/* Generally permissive, settings are the default constants in IPAddressStringParameters.  % denotes a zone, not an SQL wildcard (allowZone is true), and leading zeros are considered decimal, not octal (allow_inet_aton_octal is false). */
-	static final IPAddressStringParameters DEFAULT_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
+	/* 
+	 * Generally permissive, settings are the default constants in IPAddressStringParameters.  
+	 * % denotes a zone, not an SQL wildcard (allowZone is true), 
+	 * and leading zeros are considered decimal, not octal (allow_inet_aton_octal is false).
+	 */
+	public static final IPAddressStringParameters DEFAULT_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 	
 	private static final AddressStringException IS_IPV6_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv6");
 	private static final AddressStringException IS_IPV4_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv4");
@@ -244,72 +248,55 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	
 	void initByAddress(IPAddress address) {
 		IPAddressProvider provider = address.getProvider();
-		if(provider.isIPv4()) {
+		if(provider.isProvidingIPv4()) {
 			ipv6Exception = IS_IPV4_EXCEPTION;
-		} else if(provider.isIPv6()) {
+		} else if(provider.isProvidingIPv6()) {
 			ipv4Exception = IS_IPV6_EXCEPTION;
 		}
 		addressProvider = provider;
 	}
-	
+
 	public IPAddressStringParameters getValidationOptions() {
 		return validationOptions;
 	}
-	
+
 	/**
 	 * @return whether this address has an associated prefix length
 	 */
 	public boolean isPrefixed() {
-		return isValid() && addressProvider.isPrefixed();
+		return getNetworkPrefixLength() != null;
 	}
-	
+
 	/**
 	 * @return if this address is a valid address with a network prefix then this returns that prefix, otherwise returns null
 	 */
 	public Integer getNetworkPrefixLength() {
 		if(isValid()) {
-			return addressProvider.getNetworkPrefixLength();
+			return addressProvider.getProviderNetworkPrefixLength();
 		}
 		return null;
 	}
-	 
-	/**
-	 * @return whether the address represents one of the accepted IP address types, which are:
-	 * an IPv4 address, an IPv6 address, a network prefix, the address representing all addresses of all types, or an empty string.
-	 * If it does not, and you want more details, call validate() and examine the thrown exception.
-	 */
-	public boolean isValid() {
-		if(addressProvider.isUninitialized()) {
-			try {
-				validate();
-				return true;
-			} catch(AddressStringException e) {
-				return false;
-			}
-		}
-		return !addressProvider.isInvalid();
-	}
-	
+
 	/**
 	 * @return whether the address represents a valid specific IP address, 
 	 * as opposed to an empty string, the address representing all addresses of all types, a prefix length, or an invalid format.
 	 */
 	public boolean isIPAddress() {
-		return isValid() && addressProvider.isIPAddress();
+		return isValid() && addressProvider.isProvidingIPAddress();
 	}
-	
+
 	/**
 	 * @return whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
 	 */
 	public boolean isAllAddresses() {
-		return isValid() && addressProvider.isAllAddresses();
+		return isValid() && addressProvider.isProvidingAllAddresses();
 	}
 	
 	/**
 	 * @return whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
 	 */
 	public boolean isPrefixOnly() {
-		return isValid() && addressProvider.isPrefixOnly();
+		return isValid() && addressProvider.isProvidingPrefixOnly();
 	}
 	
 	/**
@@ -317,7 +304,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public boolean isEmpty() {
-		return isValid() && addressProvider.isEmpty();
+		return isValid() && addressProvider.isProvidingEmpty();
 	}
 	
 	/**
@@ -325,7 +312,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public boolean isIPv4() {
-		return isValid() && addressProvider.isIPv4();
+		return isValid() && addressProvider.isProvidingIPv4();
 	}
 
 	/**
@@ -333,7 +320,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public boolean isIPv6() {
-		return isValid() && addressProvider.isIPv6();
+		return isValid() && addressProvider.isProvidingIPv6();
 	}
 	
 	/**
@@ -341,7 +328,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public boolean isMixedIPv6() {
-		return isIPv6() && addressProvider.isMixedIPv6();
+		return isIPv6() && addressProvider.isProvidingMixedIPv6();
 	}
 	
 	/**
@@ -349,12 +336,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public boolean isBase85IPv6() {
-		return isIPv6() && addressProvider.isBase85IPv6();
+		return isIPv6() && addressProvider.isProvidingBase85IPv6();
 	}
 	
 	public IPVersion getIPVersion() {
 		if(isValid()) {
-			return addressProvider.getIPVersion();
+			return addressProvider.getProviderIPVersion();
 		}
 		return null;
 	}
@@ -370,6 +357,23 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	public boolean isZero() {
 		IPAddress value = getAddress();
 		return value != null && value.isZero();
+	}
+
+	/**
+	 * @return whether the address represents one of the accepted IP address types, which are:
+	 * an IPv4 address, an IPv6 address, a network prefix, the address representing all addresses of all types, or an empty string.
+	 * If it does not, and you want more details, call validate() and examine the thrown exception.
+	 */
+	public boolean isValid() {
+		if(addressProvider.isUninitialized()) {
+			try {
+				validate();
+				return true;
+			} catch(AddressStringException e) {
+				return false;
+			}
+		}
+		return !addressProvider.isInvalid();
 	}
 
 	/**
@@ -402,7 +406,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	private void checkIPv4Exception() throws AddressStringException {
 		if(ipv4Exception != null) {
 			if(ipv4Exception == IS_IPV6_EXCEPTION) {
-				ipv4Exception = new AddressStringException("ipaddress.error.address.is.ipv6");
+				ipv4Exception = new AddressStringException("ipaddress.error.address.is.ipv6"); // uses proper stack trace rather than IS_IPV6_EXCEPTION
 			}
 			throw ipv4Exception;
 		}
@@ -411,7 +415,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	private void checkIPv6Exception() throws AddressStringException {
 		if(ipv6Exception != null) {
 			if(ipv6Exception == IS_IPV4_EXCEPTION) {
-				ipv6Exception = new AddressStringException("ipaddress.error.address.is.ipv4");
+				ipv6Exception = new AddressStringException("ipaddress.error.address.is.ipv4"); // uses proper stack trace rather than IS_IPV4_EXCEPTION
 			}
 			throw ipv6Exception;
 		}
@@ -421,7 +425,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(addressProvider != IPAddressProvider.NO_TYPE_PROVIDER) {
 			if(version == null) {
 				if(ipv6Exception != null && ipv4Exception != null) {
-					throw ipv4Exception;//the two exceptions are the same, so no need to choose
+					throw ipv4Exception; // the two exceptions are the same, so no need to choose
 				}
 			} else if(version.isIPv4()) {
 				checkIPv4Exception();
@@ -448,9 +452,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			//we know nothing about this address.  See what it is.
 			try {
 				IPAddressProvider valueCreator = getValidator().validateAddress(this);
-
+				
 				//either the address is ipv4, ipv6, or indeterminate, and we set the cached validation exception appropriately
-				IPVersion createdVersion = valueCreator.getIPVersion();
+				IPVersion createdVersion = valueCreator.getProviderIPVersion();
 				if(createdVersion != null) {
 					if(createdVersion.isIPv4()) {
 						ipv6Exception = IS_IPV4_EXCEPTION;
@@ -458,14 +462,15 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 						ipv4Exception = IS_IPV6_EXCEPTION;
 					}
 				}
-				this.addressProvider = valueCreator;
+				addressProvider = valueCreator;
 			} catch(AddressStringException e) {
 				ipv6Exception = ipv4Exception = e;
-				this.addressProvider = IPAddressProvider.INVALID_PROVIDER;
+				addressProvider = IPAddressProvider.INVALID_PROVIDER;
 				throw e;
-			}
+			} 
 		}
 	}
+
 
 	/**
 	 * Validates that the string has the format "/x" for a valid prefix length x.
@@ -507,9 +512,56 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(!isValid && !otherIsValid) {
 			return toString().compareTo(other.toString());
 		}
-		return addressProvider.compareTo(other.addressProvider);
+		return addressProvider.providerCompare(other.addressProvider);
 	}
 	
+	/**
+	 * Similar to {@link #equals(Object)}, but instead returns whether the prefix of this address matches the same of the given address,
+	 * using the prefix length of this address.
+	 * <p>
+	 * In other words, determines if the other address is in the same prefix subnet using the prefix length of this address.
+	 * <p>
+	 * It this address has no prefix length, returns false.  The other address need not have an associated prefix length for this method to return true.
+	 * <p>
+	 * If this address string or the given address string is invalid, returns false.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean prefixEquals(IPAddressString other) {
+		// getting the prefix 
+		Integer prefixLength = getNetworkPrefixLength();
+		if(prefixLength == null) {
+			return false;
+		}
+		if(other == this) {
+			return true;
+		}
+		if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
+			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
+			Boolean directResult = addressProvider.prefixEquals(other.fullAddr);
+			if(directResult != null) {
+				return directResult.booleanValue();
+			}
+		}
+		if(other.isValid()) {
+			Boolean directResult = addressProvider.prefixEquals(other.addressProvider); 
+			if(directResult != null) {
+				return directResult.booleanValue();
+			}
+			IPAddress thisAddress = getAddress();
+			IPAddress otherAddress = other.getAddress();
+			if(thisAddress != null) {
+				return otherAddress != null && prefixLength <= otherAddress.getBitCount() &&
+						thisAddress.toPrefixBlock().equals(otherAddress.toPrefixBlock(prefixLength));
+			} else if(otherAddress != null) {
+				return false;
+			}
+			// both addresses are null, so there is no prefix to speak of
+		}
+		return false;
+	}
+
 	/**
 	 * Two IPAddressString objects are equal if they represent the same set of addresses.
 	 * Whether one or the other has an associated network prefix length is not considered.
@@ -532,12 +584,56 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 				return true;
 			}
 			if(isValid() && other.isValid()) {
-				return addressProvider.equals(other.addressProvider);
-			} //else we have already compared strings.  Two invalid addresses are not equal unless strings match
+				Boolean directResult = addressProvider.parsedEquals(other.addressProvider);
+				if(directResult != null) {
+					return directResult.booleanValue();
+				}
+				// When a value provider produces no value, equality and comparison are based on the enum IPType,
+				// which can be null.
+				return addressProvider.equalsProvider(other.addressProvider);
+			} // else we have already compared strings.  Two invalid addresses are not equal unless strings match
 		}
 		return false;
 	}
 	
+	/**
+	 * Returns whether the address subnet identified by this address string contains the address identified by the given string.
+	 * <p>
+	 * If this address string or the given address string is invalid then returns false.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean contains(IPAddressString other) {
+		if(isValid()) {
+			if(other == this) {
+				return true;
+			}
+			if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
+				//do the quick check that uses only the String of the other
+				Boolean directResult = addressProvider.contains(other.fullAddr);
+				if(directResult != null) {
+					return directResult.booleanValue();
+				}
+			}
+			if(other.isValid()) {
+				// note the quick result also handles the case of "all addresses"
+				Boolean directResult = addressProvider.contains(other.addressProvider);
+				if(directResult != null) {
+					return directResult.booleanValue();
+				}
+				IPAddress addr = getAddress();
+				if(addr != null) {
+					IPAddress otherAddress = other.getAddress();
+					if(otherAddress != null) {
+						return addr.contains(otherAddress);
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * If this address string was constructed from a host address with prefix length, 
 	 * then this provides just the host address, rather than the address 
@@ -547,7 +643,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * This method returns null for invalid formats, the equivalent method {@link #toHostAddress()} throws exceptions for invalid formats.
 	 * 
-	 * @see AddressNetwork#getPrefixConfiguration()
 	 * @return
 	 */
 	public IPAddress getHostAddress() {
@@ -604,7 +699,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public IPAddress toHostAddress() throws AddressStringException, IncompatibleAddressException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
-		return addressProvider.getHostAddress();
+		return addressProvider.getProviderHostAddress();
 	}
 	
 	/**
@@ -633,7 +728,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public IPAddress toAddress(IPVersion version) throws AddressStringException, IncompatibleAddressException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
-		return addressProvider.getAddress(version);
+		return addressProvider.getProviderAddress(version);
 	}
 
 	/**
@@ -659,7 +754,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	@Override
 	public IPAddress toAddress() throws AddressStringException, IncompatibleAddressException {
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
-		return addressProvider.getAddress();
+		return addressProvider.getProviderAddress();
 	}
 	
 	public IPAddressString adjustPrefixBySegment(boolean nextSegment) {
@@ -910,14 +1005,14 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 
 	private static String toNormalizedString(IPAddressProvider addressProvider) {
 		String result;
-		if(addressProvider.isAllAddresses()) {
+		if(addressProvider.isProvidingAllAddresses()) {
 			result = IPAddress.SEGMENT_WILDCARD_STR;
-		} else if(addressProvider.isEmpty()) {
+		} else if(addressProvider.isProvidingEmpty()) {
 			result = "";
-		} else if(addressProvider.isPrefixOnly()) {
-			result = IPAddressNetwork.getPrefixString(addressProvider.getNetworkPrefixLength());
-		} else if(addressProvider.isIPAddress()) {
-			result = addressProvider.getAddress().toNormalizedString();
+		} else if(addressProvider.isProvidingPrefixOnly()) {
+			result = IPAddressNetwork.getPrefixString(addressProvider.getProviderNetworkPrefixLength());
+		} else if(addressProvider.isProvidingIPAddress()) {
+			result = addressProvider.getProviderAddress().toNormalizedString();
 		} else {
 			result = null;
 		}

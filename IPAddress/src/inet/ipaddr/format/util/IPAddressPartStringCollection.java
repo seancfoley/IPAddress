@@ -73,7 +73,7 @@ public class IPAddressPartStringCollection extends IPAddressPartStringCollection
 	
 	public IPAddressPartStringSubCollection<?,?,?> getSubCollection(IPAddressStringDivisionSeries part) {
 		for(IPAddressPartStringSubCollection<?,?,?> sub : collections) {
-			if(sub.params.equals(part)) {
+			if(sub.part.equals(part)) {
 				return sub;
 			}
 		}

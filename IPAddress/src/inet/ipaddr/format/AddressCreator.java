@@ -39,8 +39,6 @@ public abstract class AddressCreator<T extends Address, R extends AddressSection
 
 	private static final long serialVersionUID = 4L;
 
-	public abstract void clearCaches();
-	
 	public abstract AddressNetwork<S> getNetwork();
 	
 	protected abstract T createAddressInternal(S segments[]);

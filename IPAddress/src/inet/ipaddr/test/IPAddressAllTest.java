@@ -24,12 +24,12 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
-import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
-import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.ipv6.IPv6Address;
 
 public class IPAddressAllTest extends IPAddressRangeTest {
 	
@@ -451,7 +451,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		"o6)n`s#^$cP5&p^H}p=a/107",
 
 		"0001:0002:0003:0004:0000:0000:0000:0000%:%:%",
-		"008JQWOV7Skb)C|ve)jA§:%:%",
+		"008JQWOV7Skb)C|ve)jA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + ":%:%",
 		"1:2:3:4:0:0:0:0%:%:%",
 		"1:2:3:4::%:%:%",
 		"0x00010002000300040000000000000000%:%:%",
@@ -671,6 +671,19 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testCache(ADDRESS_SAMPLING, cache, str -> createAddress(str), testSize, useBytes);
 	}
 	
+	void testAllContains(String cidr1, String cidr2, boolean result) {
+		testAllContains(cidr1, cidr2, result, false);
+	}
+
+	void testAllContains(String cidr1, String cidr2, boolean result, boolean equal) {
+		IPAddressString wstr = createAddress(cidr1);
+		IPAddressString w2str = createAddress(cidr2);
+		
+		testStringContains(result, equal, wstr, w2str);
+
+		incrementTestCount();
+	}
+	
 	@Override
 	void runTest() {
 		super.runTest();
@@ -687,5 +700,14 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 				testCaches(map, false, false);
 			}
 		});
+		testAllContains("*", "1:2:3:4:1:2:3:4", true);
+		testAllContains("*", "1.2.3.4.5", false);
+		testAllContains("*", "1.2.3.4", true);
+		testAllContains("*/64", "1.2.3.4", false);
+		testAllContains("*.*", "1::", false);
+		testAllContains("*:*", "1::", true);
+		testAllContains("*:*", "1.2.3.4", false);
+		testAllContains("*.*", "1.2.3.4", true);
+		testAllContains("*/64", "::", true);
 	}
 }

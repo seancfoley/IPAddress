@@ -38,6 +38,7 @@ import inet.ipaddr.format.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.validate.IPAddressProvider;
+import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -164,6 +165,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	
 	/**
 	 * Does a reverse name lookup to get the canonical host name.
+	 * Note that the canonical host name may differ on different systems, as it aligns with {@link InetAddress#getCanonicalHostName()}
+	 * In particular, on some systems the loopback address has canonical host localhost and on others the canonical host is the same loopback address.
 	 */
 	public HostName toCanonicalHostName() {
 		HostName host = canonicalHost;
@@ -535,7 +538,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			StringBuilder builder) {
 		int segmentIndex, count;
 		segmentIndex = count = 0;
-		boolean isPrefixSubnet = IPAddressSection.isPrefixSubnet(
+		boolean isPrefixSubnet = ParsedAddressGrouping.isPrefixSubnet(
 				lowerValueProvider,
 				upperValueProvider,
 				segmentCount,

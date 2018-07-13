@@ -42,9 +42,11 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <p>
  * IPAddressDivisionGrouping objects are immutable.  Some of the derived state is created upon demand and cached.  This also makes them thread-safe.
  * <p>
- * IPAddressDivisionGrouping objects  may be associated with a prefix length, in which case that number of bits in the upper-most
+ * IPAddressDivisionGrouping objects may be associated with a prefix length, in which case that number of bits in the upper-most
  * portion of the object represent a prefix, while the remaining bits assume all possible values.
- * 
+ * <p>
+ * IPAddressDivision objects use long to represent their values, so this places a cap on the size of the divisions in IPAddressDivisionGrouping.
+ * <p>
  *  @author sfoley
  */
 public class IPAddressDivisionGrouping extends AddressDivisionGrouping implements IPAddressStringDivisionSeries {
@@ -83,7 +85,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 			 */
 			Integer divPrefix = division.getDivisionPrefixLength();
 			if(divPrefix != null) {
-				cachedPrefixLength = totalPrefixBits + divPrefix;
+				cachedPrefixLength = cacheBits(totalPrefixBits + divPrefix);
 				for(++i; i < divisions.length; i++) {
 					division = divisions[i];
 					divPrefix = division.getDivisionPrefixLength();
@@ -312,7 +314,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 					return null;
 				}
 				if(div.isPrefixed()) {
-					return totalPrefix + segPrefix;
+					return cacheBits(totalPrefix + segPrefix);
 				}
 				if(segPrefix < div.getBitCount()) {
 					//remaining segments must be full range or we return null
@@ -325,11 +327,11 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 							break;
 						}
 					}
-					return totalPrefix + segPrefix;
+					return cacheBits(totalPrefix + segPrefix);
 				}
 				totalPrefix += segPrefix;
 			}
-			return totalPrefix;
+			return cacheBits(totalPrefix);
 		}
 		return super.getPrefixLengthForSingleBlock();
 	}

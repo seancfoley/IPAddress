@@ -29,13 +29,8 @@ import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
-public class MACAddressProvider implements Serializable {
+public interface MACAddressProvider extends Serializable {
 
-	private static final long serialVersionUID = 4L;
-	
-	private ParsedMACAddress parsedAddress;
-	private MACAddress address;
-	
 	@SuppressWarnings("serial")
 	static final MACAddressProvider EMPTY_PROVIDER = new MACAddressProvider() {
 		
@@ -43,29 +38,45 @@ public class MACAddressProvider implements Serializable {
 		public MACAddress getAddress() {
 			return null;
 		}
+		
+		@Override
+		public String toString() {
+			return "null";
+		}
 	};
 	
-	private MACAddressProvider() {}
-	
-	public MACAddressProvider(ParsedMACAddress parsedAddress) {
-		this.parsedAddress = parsedAddress;
-	}
-	
-	public MACAddressProvider(MACAddress address) {
-		this.address = address;
-	}
+	static final class ParsedMACAddressProvider implements MACAddressProvider {
+		
+		private static final long serialVersionUID = 4L;
+		
+		private ParsedMACAddress parsedAddress;
+		private MACAddress address;
+		
+		public ParsedMACAddressProvider(MACAddress address) {
+			this.address = address;
+		}
 
-	public MACAddress getAddress() {
-		if(parsedAddress != null) {
-			synchronized(this) {
-				if(parsedAddress != null) {
-					address = parsedAddress.createAddress();
-					parsedAddress = null;
+		@Override
+		public MACAddress getAddress() {
+			if(parsedAddress != null) {
+				synchronized(this) {
+					if(parsedAddress != null) {
+						address = parsedAddress.createAddress();
+						parsedAddress = null;
+					}
 				}
 			}
+			return address;
 		}
-		return address;
+		
+		@Override
+		public String toString() {
+			return String.valueOf(getAddress());
+		}
+		
 	}
+	
+	MACAddress getAddress();
 	
 	public static MACAddressProvider getAllProvider(MACAddressStringParameters validationOptions) {
 		MACAddressNetwork network = validationOptions.getNetwork();
@@ -86,12 +97,11 @@ public class MACAddressProvider implements Serializable {
 				MACAddressSection section = parsedCreator.createSectionInternal(segments);
 				return creator.createAddress(section);
 			}
+			
+			@Override
+			public String toString() {
+				return String.valueOf(getAddress());
+			}
 		};
-	}
-	
-	
-	@Override
-	public String toString() {
-		return String.valueOf(getAddress());
 	}
 }

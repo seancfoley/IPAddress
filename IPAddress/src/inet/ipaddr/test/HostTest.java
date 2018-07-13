@@ -61,7 +61,7 @@ public class HostTest extends TestBase {
 				addFailure(new Failure("resolved was " + resolvedAddress + " original was " + originalStr, original));
 			} else if (resolvedAddress != null && !(resolvedAddress.isIPv6() && ((IPv6Address) resolvedAddress).hasZone())) {
 				HostName host = resolvedAddress.toHostName();
-				if(!original.equals(host)) {
+				if(!original.equals(host) && !original.isSelf() && !host.isSelf()) {
 					addFailure(new Failure("reverse was " + host + " original was " + original, original));
 				} else if(!original.isAddress()) {
 					//System.out.println("" + resolvedAddress.toCanonicalHostName());

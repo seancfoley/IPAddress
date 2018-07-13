@@ -251,15 +251,12 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 
 	@Override
 	public boolean contains(AddressSegment other) {
-		return other instanceof IPv4AddressSegment && containsSeg(other);
+		return this == other || (containsSeg(other) && other instanceof IPv4AddressSegment);
 	}
 	
 	@Override
 	public boolean equals(Object other) {
-		if(this == other) {
-			return true;
-		}
-		return other instanceof IPv4AddressSegment && isSameValues((IPv4AddressSegment) other);
+		return this == other || (other instanceof IPv4AddressSegment && isSameValues((IPv4AddressSegment) other));
 	}
 	
 	/**

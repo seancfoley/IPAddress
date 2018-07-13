@@ -85,21 +85,21 @@ import inet.ipaddr.mac.MACAddressSegment;
 public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	private static final long serialVersionUID = 4L;
-	
+
 	public static final char SEGMENT_SEPARATOR = ':';
 	public static final char ZONE_SEPARATOR = '%';
-	public static final char ALTERNATIVE_ZONE_SEPARATOR = 'ง';
-	
+	public static final char ALTERNATIVE_ZONE_SEPARATOR = 'ยง';
+
 	public static final char UNC_SEGMENT_SEPARATOR = '-';
 	public static final char UNC_ZONE_SEPARATOR = 's';
 	public static final char UNC_RANGE_SEPARATOR = ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String UNC_RANGE_SEPARATOR_STR = String.valueOf(UNC_RANGE_SEPARATOR);
-	
+
 	public static final String UNC_SUFFIX = ".ipv6-literal.net";
-	
+
 	public static final String REVERSE_DNS_SUFFIX = ".ip6.arpa";
 	public static final String REVERSE_DNS_SUFFIX_DEPRECATED = ".ip6.int";
-	
+
 	public static final int BITS_PER_SEGMENT = 16;
 	public static final int BYTES_PER_SEGMENT = 2;
 	public static final int SEGMENT_COUNT = 8;
@@ -109,7 +109,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public static final int BIT_COUNT = 128;
 	public static final int DEFAULT_TEXTUAL_RADIX = 16;
 	public static final int MAX_VALUE_PER_SEGMENT = 0xffff;
-	
+
 	/* 
 	 * An IPv6 zone distinguishes two IPv6 addresses that are the same.
 	 * They are used with link-local addresses fe80::/10 and distinguishes two interfaces to the link-local network, this is known as the zone id.

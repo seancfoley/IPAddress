@@ -44,7 +44,6 @@ import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork;
-import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.NetworkMismatchException;
@@ -52,12 +51,15 @@ import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.util.AddressDivisionWriter;
 import inet.ipaddr.format.util.AddressSegmentParams;
+import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
  * AddressDivisionGrouping objects consist of a series of AddressDivision objects, each division containing one or more segments.
  * <p>
  * AddressDivisionGrouping objects are immutable.  This also makes them thread-safe.
- * 
+ * <p>
+ * AddressDivision objects use long to represent their values, so this places a cap on the size of the divisions in AddressDivisionGrouping.
+ * <p>
  *  @author sfoley
  */
 public class AddressDivisionGrouping implements AddressDivisionSeries, Comparable<AddressDivisionGrouping> {
@@ -66,7 +68,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	
 	static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 
-	protected static final int NO_PREFIX_LENGTH = -1;
+	protected static final Integer NO_PREFIX_LENGTH = -1;
 	
 	static ResourceBundle bundle;
 	
@@ -444,11 +446,15 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 						return null;
 					}
 				}
-				return totalPrefix + divPrefix;
+				return cacheBits(totalPrefix + divPrefix);
 			}
 			totalPrefix += divPrefix;
 		}
-		return totalPrefix;
+		return cacheBits(totalPrefix);
+	}
+     
+	protected static Integer cacheBits(int i) {
+		return ParsedAddressGrouping.cache(i);
 	}
 	
 	/**
@@ -751,35 +757,24 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return true;
 	}
 
-	/**
-	 * Across the address prefixes are:
-	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
-	 * or IPv4: ...(null).(1 to 8).(0)...
-	 */
-	protected static Integer getSegmentPrefixLength(int bitsPerSegment, Integer prefixLength, int segmentIndex) {
-		if(prefixLength != null) {
-			return getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
-		}
-		return null;
-	}
-	
 	protected static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
-		int decrement = (bitsPerSegment == 8) ? segmentIndex << 3 : ((bitsPerSegment == 16) ? segmentIndex << 4 :  segmentIndex * bitsPerSegment);
-		return getSegmentPrefixLength(bitsPerSegment, prefixLength - decrement);
+		return ParsedAddressGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 	}
 	
-	/**
-	 * Across the address prefixes are:
-	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
-	 * or IPv4: ...(null).(1 to 8).(0)...
-	 */
+	protected static int getNetworkSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
+		return ParsedAddressGrouping.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
+	}
+
+	protected static int getHostSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
+		return ParsedAddressGrouping.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
+	}
+	
+	protected static Integer getSegmentPrefixLength(int bitsPerSegment, Integer prefixLength, int segmentIndex) {
+		return ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
+	}
+	
 	protected static Integer getSegmentPrefixLength(int segmentBits, int segmentPrefixedBits) {
-		if(segmentPrefixedBits <= 0) {
-			return 0; //none of the bits in this segment matter
-		} else if(segmentPrefixedBits <= segmentBits) {
-			return segmentPrefixedBits;//some of the bits in this segment matter
-		}
-		return null; //all the bits in this segment matter
+		return ParsedAddressGrouping.getSegmentPrefixLength(segmentBits, segmentPrefixedBits);
 	}
 
 	protected int getAdjustedPrefix(boolean nextSegment, int bitsPerSegment, boolean skipBitCountPrefix) {
@@ -821,9 +816,9 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		Integer prefix = getPrefixLength();
 		if(prefix == null) {
 			if(getMinPrefixLengthForBlock() == 0) {
-				prefix = 0;
+				prefix = cacheBits(0);
 			} else {
-				prefix = getBitCount();
+				prefix = cacheBits(getBitCount());
 			}
 		}
 		int result = prefix + adjustment;
@@ -902,42 +897,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return segments;
 	}
 
-	/**
-	 * Returns the index of the segment containing the last byte within the network prefix
-	 * When networkPrefixLength is zero (so there are no segments containing bytes within the network prefix), returns -1
-	 * 
-	 * @param networkPrefixLength
-	 * @param byteLength
-	 * @return
-	 */
-	protected static int getNetworkSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
-		if(bytesPerSegment > 1) {
-			if(bytesPerSegment == 2) {
-				return (networkPrefixLength - 1) >> 4;//note this is intentionally a signed shift and not >>> so that networkPrefixLength of 0 returns -1
-			}
-			return (networkPrefixLength - 1) / bitsPerSegment;
-		}
-		return (networkPrefixLength - 1) >> 3;
-	}
-	
-	/**
-	 * Returns the index of the segment containing the first byte outside the network prefix.
-	 * When networkPrefixLength is null, or it matches or exceeds the bit length, returns the segment count.
-	 * 
-	 * @param networkPrefixLength
-	 * @param byteLength
-	 * @return
-	 */
-	protected static int getHostSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
-		if(bytesPerSegment > 1) {
-			if(bytesPerSegment == 2) {
-				return networkPrefixLength >> 4;
-			}
-			return networkPrefixLength / bitsPerSegment;
-		}
-		return networkPrefixLength >> 3;
-	}
-	
 	protected interface SegFunction<T, U, V, R> {
 	    R apply(T t, U u, V v);
 	}
@@ -973,7 +932,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		long bytes = lowBytes;
 		while(true) {
 			while(true) {
-				Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
+				Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 				int value = segmentMask & (int) bytes;
 				S seg = creator.createSegment(value, segmentPrefixLength);
 				if(!network.equals(seg.getNetwork())) {
@@ -1005,7 +964,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		AddressSegmentCreator<S> creator = network.getAddressCreator();
 		int segmentCount = segments.length;
 		for(int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
+			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 			if(segmentPrefixLength != null && segmentPrefixLength == 0 && network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 				S allSeg = creator.createSegment(0, 0);
 				if(!network.equals(allSeg.getNetwork())) {
@@ -1098,7 +1057,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		boolean allPrefixedAddressesAreSubnets = network.getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 		for(int i = 0, segmentIndex = 0; i < expectedByteCount; segmentIndex++) {
-			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
+			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 			if(allPrefixedAddressesAreSubnets && segmentPrefixLength != null && segmentPrefixLength == 0) {
 				S allSeg = creator.createSegment(0, 0);
 				if(!network.equals(allSeg.getNetwork())) {

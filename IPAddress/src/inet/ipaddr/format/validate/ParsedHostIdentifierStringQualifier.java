@@ -132,9 +132,9 @@ class ParsedHostIdentifierStringQualifier implements Serializable {
 				return IPVersion.IPV6;
 			}
 		} else if(mask != null) {
-			if(mask.isIPv6()) {
+			if(mask.isProvidingIPv6()) {
 				return IPVersion.IPV6;
-			} else if(mask.isIPv4()) {
+			} else if(mask.isProvidingIPv4()) {
 				return IPVersion.IPV4;
 			}
 		} else if (zone != null) {

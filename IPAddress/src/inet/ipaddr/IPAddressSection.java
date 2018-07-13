@@ -37,14 +37,12 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressComparator.ValueComparator;
-import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
-import inet.ipaddr.format.AddressDivisionGrouping;
 import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.AddressDivisionGrouping;
 import inet.ipaddr.format.IPAddressBitsDivision;
 import inet.ipaddr.format.IPAddressDivision;
 import inet.ipaddr.format.IPAddressDivisionGrouping;
@@ -54,6 +52,7 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
 import inet.ipaddr.format.util.sql.SQLStringMatcher;
+import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
 
@@ -110,7 +109,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				Integer segPrefix = segment.getSegmentPrefixLength();
 				if(previousSegmentPrefix == null) {
 					if(segPrefix != null) {
-						cachedPrefixLength = getNetworkPrefixLength(i, segPrefix);
+						cachedPrefixLength = cacheBits(getNetworkPrefixLength(i, segPrefix));
 					}
 				} else if(segPrefix == null || segPrefix != 0) {
 					throw new InconsistentPrefixException(segments[i - 1], segment, segPrefix);
@@ -226,101 +225,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return false;
 	}
 
-	protected static boolean isPrefixSubnet(
-			SegmentValueProvider lowerValueProvider,
-			SegmentValueProvider upperValueProvider,
-			int segmentCount,
-			int bytesPerSegment,
-			int bitsPerSegment,
-			int segmentMaxValue,
-			Integer networkPrefixLength,
-			PrefixConfiguration prefixConfiguration,
-			boolean fullRangeOnly) {
-		if(networkPrefixLength == null || prefixConfiguration.prefixedSubnetsAreExplicit()) {
-			return false;
-		}
-		if(networkPrefixLength < 0) {
-			networkPrefixLength = 0;
-		} else {
-			int totalBitCount = (bitsPerSegment == 8) ? segmentCount << 3 : ((bitsPerSegment == 16) ? segmentCount << 4 : segmentCount * bitsPerSegment);
-			if(networkPrefixLength >= totalBitCount) {
-				return false;
-			}
-		}
-		if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
-			return true;
-		}
-		int prefixedSegment = getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
-		int i = prefixedSegment;
-		if(i < segmentCount) {
-			int segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
-			do {
-				//we want to see if there is a sequence of zeros followed by a sequence of full-range bits from the prefix onwards
-				//once we start seeing full range bits, the remained of the section must be full range
-				//for instance:
-				//segment 1 segment 2
-				//upper: 10101010  10100111 11111111 11111111
-				//lower: 00111010  00100000 00000000 00000000
-				//                    x y
-				//upper: 10101010  10100000 00000000 00111111
-				//lower: 00111010  00100000 10000000 00000000
-				//                           x         y
-				//
-				//the bit marked x in each set of 4 segment of 8 bits is a sequence of zeros, followed by full range bits starting at bit y
-				int lower = lowerValueProvider.getValue(i);
-				if(segmentPrefixLength == 0) {
-					if(lower != 0) {
-						return false;
-					}
-					int upper = upperValueProvider.getValue(i);
-					if(fullRangeOnly) {
-						if(upper != segmentMaxValue) {
-							return false;
-						}
-					} else {
-						int upperOnes = Integer.numberOfTrailingZeros(~upper);
-						if(upperOnes > 0) {
-							if((upper >>> upperOnes) != 0) {
-								return false;
-							}
-							fullRangeOnly = true;
-						} else if(upper != 0) {
-							return false;
-						}
-					}
-				} else {
-					int segHostBits = bitsPerSegment - segmentPrefixLength;
-					if(fullRangeOnly) {
-						int hostMask = ~(~0 << segHostBits);
-						if((hostMask & lower) != 0) {
-							return false;
-						}
-						int upper = upperValueProvider.getValue(i);
-						if((hostMask & upper) != hostMask) {
-							return false;
-						}
-					} else {
-						int lowerZeros = Integer.numberOfTrailingZeros(lower);
-						if(lowerZeros < segHostBits) {
-							return false;
-						}
-						int upper = upperValueProvider.getValue(i);
-						int upperOnes = Integer.numberOfTrailingZeros(~upper);
-						int upperZeros = Integer.numberOfTrailingZeros((upper | (~0 << bitsPerSegment)) >>> upperOnes);
-						if(upperOnes + upperZeros < segHostBits) {
-							return false;
-						}
-						if(upperOnes > 0) {
-							fullRangeOnly = true;
-						}
-					}
-				}
-				segmentPrefixLength = 0;
-			} while(++i < segmentCount);
-		}
-		return true;
-	}
-
 	/*
 	 * Starting from the first host bit according to the prefix, if the section is a sequence of zeros in both low and high values, 
 	 * followed by a sequence where low values are zero and high values are 1, then the section is a subnet prefix.
@@ -335,7 +239,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return false;
 		}
 		IPAddressSegment seg = sectionSegments[0];
-		return isPrefixSubnet(
+		return ParsedAddressGrouping.isPrefixSubnet(
 				(segmentIndex) -> sectionSegments[segmentIndex].getLowerSegmentValue(),
 				(segmentIndex) -> sectionSegments[segmentIndex].getUpperSegmentValue(),
 				segmentCount,
@@ -375,11 +279,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	protected static int getNetworkSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
-		return AddressDivisionGrouping.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
+		return ParsedAddressGrouping.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
 	
 	protected static int getHostSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
-		return AddressDivisionGrouping.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
+		return ParsedAddressGrouping.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
 	
 	private Integer checkForPrefixMask(boolean network) {
@@ -413,7 +317,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			}
 		}
 		//note that when segments.length == 0, we return 0 as well, since both the host mask and prefix mask are empty (length of 0 bits)
-		return prefixLen;
+		return cacheBits(prefixLen);
 	}
 	
 	/**
@@ -487,17 +391,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		int networkSegmentCount = original.getNetworkSegmentCount(networkPrefixLength);
 		S result[] = creator.createSegmentArray(networkSegmentCount);
 		for(int i = 0; i < networkSegmentCount; i++) {
-			Integer prefix = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
+			Integer prefix = getSegmentPrefixLength(bitsPerSegment, cacheBits(networkPrefixLength), i);
 			result[i] = segProducer.apply(i, prefix);
 		}
 		return creator.createSectionInternal(result);
-	}
-	
-	public Integer getNetworkSegmentCount() {
-		if(isPrefixed()) {
-			return getNetworkSegmentCount(getNetworkPrefixLength());
-		}
-		return null;
 	}
 
 	protected int getNetworkSegmentCount(int networkPrefixLength) {
@@ -528,25 +425,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected int getHostSegmentCount(int networkPrefixLength) {
 		return getSegmentCount() - getHostSegmentIndex(networkPrefixLength, getBytesPerSegment(), getBitsPerSegment());
 	}
+	
+	protected static Integer cacheBits(int i) {
+		return AddressDivisionGrouping.cacheBits(i);
+	}
 
-	public Integer getHostSegmentCount() {
-		if(isPrefixed()) {
-			return getHostSegmentCount(getNetworkPrefixLength());
-		}
-		return null;
-	}
-	
-	public Integer getHostBitCount() {
-		if(isPrefixed()) {
-			return getHostBitCount(getNetworkPrefixLength());
-		}
-		return null;
-	}
-	
-	private int getHostBitCount(int networkPrefixLength) {
-		return getBitCount() - networkPrefixLength;
-	}
-	
 	@FunctionalInterface
 	public interface SegFunction<R, S> {
 	    S apply(R section, int value);
@@ -561,9 +444,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			SegFunction<R, S> segProducer) throws IncompatibleAddressException {
 		Integer existingPrefixLength = original.getNetworkPrefixLength();
 		if(existingPrefixLength != null) {
-			if(networkPrefixLength == existingPrefixLength) {
+			if(networkPrefixLength == existingPrefixLength.intValue()) {
 				return original;
-			} else if(noShrink && networkPrefixLength > existingPrefixLength) {
+			} else if(noShrink && networkPrefixLength > existingPrefixLength.intValue()) {
 				original.checkSubnet(networkPrefixLength);
 				return original;
 			}
@@ -573,13 +456,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		int maskBits;	
 		if(network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 			if(existingPrefixLength != null) {
-				if(networkPrefixLength > existingPrefixLength) {
+				if(networkPrefixLength > existingPrefixLength.intValue()) {
 					if(withZeros) {
 						maskBits = existingPrefixLength;
 					} else {
 						maskBits = networkPrefixLength;
 					}
-				} else if(networkPrefixLength < existingPrefixLength) {
+				} else if(networkPrefixLength < existingPrefixLength.intValue()) {
 					maskBits = networkPrefixLength;
 				} else {
 					return original;
@@ -589,12 +472,12 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			}
 		} else {
 			if(existingPrefixLength != null) {
-				if(networkPrefixLength == existingPrefixLength) {
+				if(networkPrefixLength == existingPrefixLength.intValue()) {
 					return original;
 				}
 				if(withZeros) {
 					R leftMask, rightMask;
-					if(networkPrefixLength > existingPrefixLength) {
+					if(networkPrefixLength > existingPrefixLength.intValue()) {
 						leftMask = network.getNetworkMaskSection(existingPrefixLength);
 						rightMask = network.getHostMaskSection(networkPrefixLength);
 					} else {
@@ -603,7 +486,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					}
 					return getSubnetSegments(
 							original,
-							networkPrefixLength,
+							cacheBits(networkPrefixLength),
 							creator,
 							true,
 							i -> segProducer.apply(original, i), 
@@ -621,7 +504,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		R mask = network.getNetworkMaskSection(maskBits);
 		return getSubnetSegments(
 				original,
-				networkPrefixLength,
+				cacheBits(networkPrefixLength),
 				creator,
 				true,
 				i -> segProducer.apply(original, i),
@@ -739,31 +622,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return original;
 	}
-	
-	//call this instead of the method below if you already know the networkPrefixLength doesn't extend to the end of the last segment of the section or address
-	static Integer getSplitSegmentPrefixLength(int bitsPerSegment, Integer networkPrefixLength, int segmentIndex) {
-		if(networkPrefixLength != null) {
-			return getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, segmentIndex);
-		}
-		return null;
+
+	protected static Integer getSegmentPrefixLength(int bitsPerSegment, Integer prefixLength, int segmentIndex) {
+		return ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 	}
 
-	/**
-	 * Across the address prefixes are:
-	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
-	 * or IPv4: ...(null).(1 to 8).(0)...
-	 */
-	public static Integer getSegmentPrefixLength(int bitsPerSegment, Integer prefixLength, int segmentIndex) {
-		return AddressDivisionGrouping.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
-	}
-	
-	/**
-	 * Across the address prefixes are:
-	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
-	 * or IPv4: ...(null).(1 to 8).(0)...
-	 */
 	protected static Integer getSegmentPrefixLength(int bitsPerSegment, int segmentPrefixedBits) {
-		return AddressDivisionGrouping.getSegmentPrefixLength(bitsPerSegment, segmentPrefixedBits);
+		return ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, segmentPrefixedBits);
 	}
 
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R getLowestOrHighestSection(
@@ -850,18 +715,18 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	@Override
 	public boolean contains(AddressSection other) {
 		//check if they are comparable first
-		if(getSegmentCount() != other.getSegmentCount()) {
+		int count = getSegmentCount();
+		if(count != other.getSegmentCount()) {
 			return false;
 		}
 		boolean prefixIsSubnet = isPrefixed() && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
-		for(int i=0; i < getSegmentCount(); i++) {
+		int endIndex = prefixIsSubnet ? 
+				getNetworkSegmentIndex(getNetworkPrefixLength(), getBytesPerSegment(), getBitsPerSegment()) :
+					count - 1;
+		for(int i = endIndex; i >= 0; i--) {
 			IPAddressSegment seg = getSegment(i);
 			if(!seg.contains(other.getSegment(i))) {
 				return false;
-			}
-			if(prefixIsSubnet && seg.isPrefixed()) {
-				//no need to check host section which contains all possible hosts
-				break;
 			}
 		}
 		return true;
@@ -1065,7 +930,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		//neither a prefix block nor a single address
 		//we split into two new ranges to continue  
-		//starting from the differing bit, lower top becomes 1000000...
+		//starting from the differing bit,
+		//lower top becomes 1000000...
 		//upper bottom becomes 01111111...
 		//so in each new range, the differing bit is at least one further to the right (or more)
 		IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
@@ -1621,6 +1487,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		int bitsPerSegment = getBitsPerSegment();
 		int prefixedSegmentIndex = getHostSegmentIndex(networkPrefixLength, getBytesPerSegment(), bitsPerSegment);
+		if(prefixedSegmentIndex >= segmentCount) {
+			return true;
+		}
 		int segPrefLength = getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, prefixedSegmentIndex);
 		if(getSegment(prefixedSegmentIndex).isNetworkChangedByPrefix(segPrefLength, true)) {
 			return false;
@@ -1732,7 +1601,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public int getMinPrefixLengthForBlock() {
 		Integer result;
 		if(hasNoPrefixCache() || (result = prefixCache.cachedMinPrefix) == null) {
-			prefixCache.cachedMinPrefix = result = super.getMinPrefixLengthForBlock();
+			prefixCache.cachedMinPrefix = result = cacheBits(super.getMinPrefixLengthForBlock());
 		}
 		return result;
 	}

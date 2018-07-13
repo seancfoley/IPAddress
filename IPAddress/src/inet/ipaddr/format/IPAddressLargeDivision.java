@@ -29,9 +29,11 @@ import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
- * This class supports a segment of an arbitrary number of bits.
- * 
- * For a bit count less than or equal to 63 bits, AddressDivision is a more efficient choice.
+ * This class supports a segment or division of an arbitrary number of bits.
+ * <p>
+ * For a bit count less than or equal to 63 bits, {@link AddressDivision} or {@link IPAddressDivision} is a more efficient choice,
+ * which are based on arithmetic using longs and can be grouped with {@link AddressDivisionGrouping} and {@link IPAddressDivisionGrouping} respectively.
+ * IPAddressLargeDivision can only be grouped together in {@link IPAddressStringDivisionGrouping}, which is intended for producing strings.
  * 
  * @author sfoley
  *

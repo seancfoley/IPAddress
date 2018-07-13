@@ -43,9 +43,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	
 	private static final long serialVersionUID = 4L;
 	
-	//These two values define the uniqueness of a segment with respect to equality and comparison, while the prefix is ignored as these values encapsulate the range of addresses created by the prefix.
-	private final int value; //the lower value of the segment
-	private final int upperValue; //the upper value of a CIDR or other type of range, if not a range it is the same as value
+	// These two values define the uniqueness of a segment with respect to equality and comparison, while the prefix is ignored as these values encapsulate the range of addresses created by the prefix.
+	private final int value; // the lower value of the segment
+	private final int upperValue; // the upper value of a CIDR or other type of range, if not a range it is the same as value
 	
 	/**
 	 * Constructs a segment of an IPv4 or IPv6 address with the given value.
@@ -110,9 +110,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	}
 	
 	public abstract IPVersion getIPVersion();
-	
+
 	protected static Integer getSplitSegmentPrefix(int bitsPerSegment, Integer networkPrefixLength, int segmentIndex) {
-		return IPAddressSection.getSplitSegmentPrefixLength(bitsPerSegment, networkPrefixLength, segmentIndex);
+		return IPAddressSection.getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, segmentIndex);
 	}
 	
 	@Override
@@ -186,6 +186,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		withPrefixLength &= hasBits;
 		boolean thisHasPrefix = isPrefixed();
 		if(withPrefixLength != thisHasPrefix) {
+			return true;
+		}
+		if(hasBits && bits != getDivisionPrefixLength()) {
 			return true;
 		}
 		return

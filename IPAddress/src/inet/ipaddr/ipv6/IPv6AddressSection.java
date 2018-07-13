@@ -926,7 +926,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		int segCount = getSegmentCount();
 		BigInteger result = getCount(i -> getSegment(i).getValueCount(), segCount);
 		if(excludeZeroHosts && includesZeroHost()) {
-			int prefixedSegment = getNetworkSegmentIndex(getNetworkPrefixLength(), getBytesPerSegment(), getBitsPerSegment());
+			int prefixedSegment = getNetworkSegmentIndex(getNetworkPrefixLength(), IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT);
 			BigInteger zeroHostCount = getCount(i -> {
 				if(i == prefixedSegment) {
 					IPAddressSegment seg = getSegment(i);
@@ -1663,7 +1663,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		IPv6Address mask = getNetwork().getNetworkMask(prefixLength);
 		return getSubnetSegments(
 				this,
-				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,
+				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getNetworkPrefixLength(),
 				getAddressCreator(),
 				false,
 				this::getSegment,
@@ -1680,7 +1680,6 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return getSubnetSegments(
 				this,
 				null,
-				//getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,  xxx adds prefix;
 				getAddressCreator(),
 				false,
 				this::getSegment,
@@ -1773,7 +1772,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 			return getSubnetSegments(
 					this,
-					networkPrefixLength,
+					cacheBits(networkPrefixLength),
 					getAddressCreator(),
 					true,
 					this::getSegment,
@@ -1781,8 +1780,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 					false);
 		}
 		IPv6AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
-		return getSubnetSegments(this,
-				networkPrefixLength,
+		return getSubnetSegments(
+				this,
+				cacheBits(networkPrefixLength),
 				getAddressCreator(),
 				true, 
 				this::getSegment, 
@@ -2791,7 +2791,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				}
 				cachedPrefixLength = ipv6Section.getNetworkPrefixLength();
 			} else if(ipv4Section.isPrefixed()) {
-				cachedPrefixLength = ipv4Section.getNetworkPrefixLength() + ipv6Section.getBitCount();
+				cachedPrefixLength = cacheBits(ipv4Section.getNetworkPrefixLength() + ipv6Section.getBitCount());
 			} else {
 				cachedPrefixLength = NO_PREFIX_LENGTH;
 			}

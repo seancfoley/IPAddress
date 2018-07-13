@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.MACAddressProvider;
+import inet.ipaddr.format.validate.MACAddressProvider.ParsedMACAddressProvider;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.mac.MACAddress;
 
@@ -161,7 +162,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	void initByAddress(MACAddress address) {
-		this.parsedAddress = new MACAddressProvider(address);
+		this.parsedAddress = new ParsedMACAddressProvider(address);
 		isValid = true;
 	}
 	
