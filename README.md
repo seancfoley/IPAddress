@@ -8,7 +8,7 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 [In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/)
 - group id: com.github.seancfoley
 - artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
-- versions: [2.0.2](https://search.maven.org/#artifactdetails%7Ccom.github.seancfoley%7Cipaddress%7C2.0.2%7Cjar), [3.0.0](https://search.maven.org/#artifactdetails%7Ccom.github.seancfoley%7Cipaddress%7C3.0.0%7Cjar), [4.2.0](https://search.maven.org/#artifactdetails%7Ccom.github.seancfoley%7Cipaddress%7C4.2.0%7Cjar)
+- versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.2.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.2.0/jar)
 
 Developed as an Eclipse project, the project files are checked in so it can be easily be imported into an Eclipse workspace.
 
