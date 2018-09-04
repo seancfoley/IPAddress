@@ -488,7 +488,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			}
 			return cachedPrefixLength = prefix;
 		}
-		if(ret == NO_PREFIX_LENGTH) {
+		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
 			return null;
 		}
 		return ret;

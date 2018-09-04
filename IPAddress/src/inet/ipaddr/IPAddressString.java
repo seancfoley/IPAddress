@@ -534,7 +534,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(prefixLength == null) {
 			return false;
 		}
-		if(other == this) {
+		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
 		if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
@@ -554,8 +554,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			if(thisAddress != null) {
 				return otherAddress != null && prefixLength <= otherAddress.getBitCount() &&
 						thisAddress.toPrefixBlock().equals(otherAddress.toPrefixBlock(prefixLength));
-			} else if(otherAddress != null) {
-				return false;
 			}
 			// both addresses are null, so there is no prefix to speak of
 		}

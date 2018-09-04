@@ -183,7 +183,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 			cachedPrefixLength = NO_PREFIX_LENGTH;
 			return null;
 		}
-		if(ret == NO_PREFIX_LENGTH) {
+		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
 			return null;
 		}
 		return ret;
