@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import java.math.BigInteger;
 import java.util.Iterator;
@@ -26,8 +26,10 @@ import java.util.Objects;
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
-import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.AddressDivisionBase;
 
 /**
  * A division of an address.
@@ -35,7 +37,7 @@ import inet.ipaddr.IPAddress;
  * @author sfoley
  *
  */
-public abstract class AddressDivision extends AddressDivisionBase implements Comparable<AddressDivision> {
+public abstract class AddressDivision extends AddressDivisionBase {
 
 	private static final long serialVersionUID = 4L;
 
@@ -46,7 +48,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		int bitCount = getBitCount();
 		byte bytes[] = new byte[(bitCount + 7) >> 3];
 		int byteIndex = bytes.length - 1, bitIndex = 8;
-		long segmentValue = low ? getLowerValue() : getUpperValue();
+		long segmentValue = low ? getDivisionValue() : getUpperDivisionValue();
 		while(true) {
 			bytes[byteIndex] |= segmentValue << (8 - bitIndex);
 			segmentValue >>= bitIndex;
@@ -64,20 +66,40 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	 */
 	@Override
 	public boolean isMultiple() {
-		return getLowerValue() != getUpperValue();
+		return getDivisionValue() != getUpperDivisionValue();
 	}
-	
-	protected int getMinPrefixLengthForBlock() {
+
+	@Override
+	public int getMinPrefixLengthForBlock() {
 		int result = getBitCount();
-		int lowerZeros = Long.numberOfTrailingZeros(getLowerValue());
+		int lowerZeros = Long.numberOfTrailingZeros(getDivisionValue());
 		if(lowerZeros != 0) {
-			int upperOnes = Long.numberOfTrailingZeros(~getUpperValue());
+			int upperOnes = Long.numberOfTrailingZeros(~getUpperDivisionValue());
 			if(upperOnes != 0) {
 				int prefixedBitCount = Math.min(lowerZeros, upperOnes);
 				result -= prefixedBitCount;
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public Integer getPrefixLengthForSingleBlock() {
+		int divPrefix = getMinPrefixLengthForBlock();
+		long lowerValue = getDivisionValue();
+		long upperValue = getUpperDivisionValue();
+		int bitCount = getBitCount();
+		if(divPrefix == bitCount) {
+			if(lowerValue == upperValue) {
+				return AddressDivisionGrouping.cacheBits(divPrefix);
+			}
+		} else {
+			int shift = bitCount - divPrefix;
+			if(lowerValue >>> shift == upperValue >>> shift) {
+				return AddressDivisionGrouping.cacheBits(divPrefix);
+			}
+		}
+		return null;
 	}
 
 	@Override
@@ -101,7 +123,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public boolean includesZero() {
-		return getLowerValue() == 0L;
+		return getDivisionValue() == 0L;
 	}
 	
 	@Override
@@ -111,20 +133,51 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	public boolean includesMax() {
-		return getUpperValue() == getMaxValue();
+		return getUpperDivisionValue() == getMaxValue();
 	}
 	
-	public abstract long getLowerValue();
+	public abstract long getDivisionValue();
 	
-	public abstract long getUpperValue();
+	public abstract long getUpperDivisionValue();
+	
+	@Override
+	public int hashCode() {
+		int res = hashCode;
+		if(res == 0) {
+			hashCode = res = createHashCode(getDivisionValue(), getUpperDivisionValue());
+		}
+		return res;
+	}
+	
+	@Override
+	public BigInteger getValue() {
+		return BigInteger.valueOf(getDivisionValue());
+	}
+	
+	@Override
+	public BigInteger getUpperValue() {
+		return BigInteger.valueOf(getUpperDivisionValue());
+	}
 	
 	public long getDivisionValueCount() {
-		return getUpperValue() - getLowerValue() + 1;
+		return getUpperDivisionValue() - getDivisionValue() + 1;
+	}
+	
+	@Override
+	public BigInteger getPrefixCount(int divisionPrefixLength) {
+		return BigInteger.valueOf(getDivisionPrefixCount(divisionPrefixLength));
 	}
 	
 	public long getDivisionPrefixCount(int divisionPrefixLength) {
-		int shiftAdjustment = getBitCount() - divisionPrefixLength;
-		return (getUpperValue() >>> shiftAdjustment) - (getLowerValue() >>> shiftAdjustment) + 1;
+		if(divisionPrefixLength < 0) {
+			throw new PrefixLenException(this, divisionPrefixLength);
+		}
+		int bitCount = getBitCount();
+		if(bitCount <= divisionPrefixLength) {
+			return getDivisionValueCount();
+		}
+		int shiftAdjustment = bitCount - divisionPrefixLength;
+		return (getUpperDivisionValue() >>> shiftAdjustment) - (getDivisionValue() >>> shiftAdjustment) + 1;
 	}
 	
 	@Override
@@ -140,9 +193,9 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	/**
 	 * Returns whether the division range includes the block of values for its prefix length
 	 */
-	boolean isPrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
+	protected boolean isPrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
 		if(divisionPrefixLen == 0) {
-			return isFullRange();
+			return divisionValue == 0 && upperValue == getMaxValue();
 		}
 		long ones = ~0L;
 		long divisionBitMask = ~(ones << getBitCount());
@@ -161,7 +214,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	 * @param divisionPrefixLen
 	 * @return whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen 
 	 */
-	boolean isSinglePrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
+	protected boolean isSinglePrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
 		long ones = ~0L;
 		long divisionBitMask = ~(ones << getBitCount());
 		long divisionPrefixMask = ones << (getBitCount() - divisionPrefixLen);
@@ -178,18 +231,18 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	 */
 	@Override
 	public boolean isBoundedBy(int value) {
-		return getUpperValue() < value;
+		return getUpperDivisionValue() < value;
 	}
 	
 	public boolean matches(long value) {
-		return !isMultiple() && value == getLowerValue();
+		return !isMultiple() && value == getDivisionValue();
 	}
 	
 	public boolean matchesWithMask(long value, long mask) {
 		if(isMultiple()) {
 			//we want to ensure that any of the bits that can change from value to upperValue is masked out (zeroed) by the mask.
 			//In other words, when masked we need all values represented by this segment to become just a single value
-			long diffBits = getLowerValue() ^ getUpperValue();
+			long diffBits = getDivisionValue() ^ getUpperDivisionValue();
 			int leadingZeros = Long.numberOfLeadingZeros(diffBits);
 			//the bits that can change are all bits following the first leadingZero bits
 			//all the bits that follow must be zeroed out by the mask
@@ -198,7 +251,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				return false;
 			} //else we know that the mask zeros out all the bits that can change from value to upperValue, so now we just compare with either one
 		}
-		return value == (getLowerValue() & mask);
+		return value == (getDivisionValue() & mask);
 	}
 	
 	/**
@@ -218,24 +271,38 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			//we know lowerValue and upperValue are not the same, so impossible to match those two values with a single value
 			return false;
 		}
-		long thisValue = getLowerValue();
-		long thisUpperValue = getUpperValue();
+		long thisValue = getDivisionValue();
+		long thisUpperValue = getUpperDivisionValue();
 		if(!isMaskCompatibleWithRange(thisValue, thisUpperValue, mask, getMaxValue())) {
 			return false;
 		}
 		return lowerValue == (thisValue & mask) && upperValue == (thisUpperValue & mask);
 	}
 	
-	protected abstract boolean isSameValues(AddressDivision other);
-	
 	@Override
-	public boolean isFullRange() {
-		return includesZero() && includesMax();
+	protected boolean isSameValues(AddressDivisionBase other) {
+		if(other instanceof AddressDivision) {
+			AddressDivision otherDivision = (AddressDivision) other;
+			return getDivisionValue() == otherDivision.getDivisionValue() &&
+					getUpperDivisionValue() == otherDivision.getUpperDivisionValue();
+		}
+		return false;
 	}
 	
 	@Override
-	public int compareTo(AddressDivision other) {
-		return Address.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
+	public boolean equals(Object o) {
+		if(o == this) {
+			return true;
+		}
+		if(o instanceof AddressDivision) {
+			// we call isSameValues on the other object to defer to subclasses overriding that method in object o
+			// in particular, if the other is IPv4/6/MAC/AddressSection, then we call the overridden isSameGrouping
+			// in those classes which check for IPv4/6/MAC type/version.
+			// Also, those other classes override equals to ensure flip doesn't go the other way
+			AddressDivision other = (AddressDivision) o;
+			return getBitCount() == other.getBitCount() && other.isSameValues(this);
+		}
+		return false;
 	}
 	
 	//when divisionPrefixLen is null, isAutoSubnets has no effect
@@ -352,7 +419,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				}
 		}
 		boolean handledUpper = false;
-		long value = getLowerValue();
+		long value = getDivisionValue();
 		do {
 			while(value > 0) {
 				long checkVal = isPowerOfTwo ? (mask & value) : (value % radix);
@@ -368,7 +435,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			if(handledUpper || lowerOnly) {
 				break;
 			}
-			value = getUpperValue();
+			value = getUpperDivisionValue();
 			handledUpper = true;
 		} while(true);
 		return false;
@@ -379,7 +446,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		if(!isMultiple() && radix == getDefaultTextualRadix()) {//optimization - just get the string, which is cached, which speeds up further calls to this or getString()
 			return getWildcardString().length();
 		}
-		return getDigitCount(getUpperValue(), radix);
+		return getDigitCount(getUpperDivisionValue(), radix);
 	}
 
 	@Override
@@ -393,12 +460,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	protected int adjustLowerLeadingZeroCount(int leadingZeroCount, int radix) {
-		return adjustLeadingZeroCount(leadingZeroCount, getLowerValue(), radix);
+		return adjustLeadingZeroCount(leadingZeroCount, getDivisionValue(), radix);
 	}
 	
 	@Override
 	protected int adjustUpperLeadingZeroCount(int leadingZeroCount, int radix) {
-		return adjustLeadingZeroCount(leadingZeroCount, getUpperValue(), radix);
+		return adjustLeadingZeroCount(leadingZeroCount, getUpperDivisionValue(), radix);
 	}
 	
 	private int adjustLeadingZeroCount(int leadingZeroCount, long value, int radix) {
@@ -410,23 +477,28 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	}
 
 	@Override
+	protected String getWildcardString() {
+		return super.getWildcardString();
+	}
+	
+	@Override
 	protected int getLowerStringLength(int radix) {
-		return toUnsignedStringLength(getLowerValue(), radix);
+		return toUnsignedStringLength(getDivisionValue(), radix);
 	}
 	
 	@Override
 	protected int getUpperStringLength(int radix) {
-		return toUnsignedStringLength(getUpperValue(), radix);
+		return toUnsignedStringLength(getUpperDivisionValue(), radix);
 	}
 	
 	@Override
 	protected void getLowerString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getLowerValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedString(getDivisionValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
 	@Override
 	protected void getUpperString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getUpperValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedString(getUpperDivisionValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
 	@Override
@@ -436,21 +508,21 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	
 	@Override
 	protected void getLowerString(int radix, int rangeDigits, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getLowerValue(), radix, rangeDigits, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedString(getDivisionValue(), radix, rangeDigits, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
 	}
 	
 	@Override
 	protected void getSplitLowerString(int radix, int choppedDigits, boolean uppercase, 
 			char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix, StringBuilder appendable) {
-		toSplitUnsignedString(getLowerValue(), radix, choppedDigits, uppercase, splitDigitSeparator, reverseSplitDigits, stringPrefix, appendable);
+		toSplitUnsignedString(getDivisionValue(), radix, choppedDigits, uppercase, splitDigitSeparator, reverseSplitDigits, stringPrefix, appendable);
 	}
 	
 	@Override
 	protected void getSplitRangeString(String rangeSeparator, String wildcard, int radix, boolean uppercase, 
 			char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix, StringBuilder appendable) {
 		toUnsignedSplitRangeString(
-			getLowerValue(),
-			getUpperValue(),
+			getDivisionValue(),
+			getUpperDivisionValue(),
 			rangeSeparator,
 			wildcard,
 			radix,
@@ -465,8 +537,8 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 	protected int getSplitRangeStringLength(String rangeSeparator, String wildcard, int leadingZeroCount, int radix, boolean uppercase, 
 			char splitDigitSeparator, boolean reverseSplitDigits, String stringPrefix) {
 		return toUnsignedSplitRangeStringLength(
-			getLowerValue(),
-			getUpperValue(),
+			getDivisionValue(),
+			getUpperDivisionValue(),
 			rangeSeparator,
 			wildcard,
 			leadingZeroCount,
@@ -479,12 +551,12 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 
 	@Override
 	protected String getDefaultString() {
-		return toDefaultString(getLowerValue(), getDefaultTextualRadix());
+		return toDefaultString(getDivisionValue(), getDefaultTextualRadix());
 	}
 	
 	@Override
 	protected String getDefaultRangeString() {
-		return getDefaultRangeString(getLowerValue(), getUpperValue(), getDefaultTextualRadix());
+		return getDefaultRangeString(getDivisionValue(), getUpperDivisionValue(), getDefaultTextualRadix());
 	}
 
 	protected String getDefaultRangeString(long val1, long val2, int radix) {
@@ -646,151 +718,9 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return Long.toString(val, radix);
 	}
 	
-	private static boolean toUnsignedStringFast(int value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
-		if(toUnsignedStringFast(value, radix, uppercase, dig, appendable)) {
-			if(choppedDigits > 0) {
-				appendable.setLength(appendable.length() - choppedDigits);
-			}
-			return true;
-		}
-		return false;
+	protected static int toUnsignedStringLengthFast(int value, int radix) {
+		return AddressDivisionBase.toUnsignedStringLength(value, radix);
 	}
-
-	private static boolean toUnsignedStringFast(int value, int radix, boolean uppercase, char dig[], StringBuilder appendable) {
-		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
-			if(value == 0) {
-				appendable.append('0');
-			} else {
-				appendable.append('1');
-			}
-			return true;
-		}
-		int quotient, remainder; //we iterate on //value == quotient * radix + remainder
-		if(radix == 10) {
-			//this needs value2 <= 0xffff (ie 16 bits or less)
-			if(value < 10) {
-				appendable.append(dig[value]);
-				return true;
-			} else if(value < 100) {
-				appendable.append("  ");
-			} else if(value < 1000) {
-				if(value == 127) {
-					appendable.append("127");
-					return true;
-				}
-				if(value == 255) {
-					appendable.append("255");
-					return true;
-				}
-				appendable.append("   ");
-			} else if(value < 10000) {
-				appendable.append("    ");
-			} else {
-				appendable.append("     ");
-			}
-			int index = appendable.length();
-			do {
-				//value == quotient * 10 + remainder
-				quotient = (value * 0xcccd) >>> 19; //floor of n/10 is floor of ((0xcccd * n / 2 ^ 16) / 2 ^ 3)
-				remainder = value - ((quotient << 3) + (quotient << 1)); //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
-				appendable.setCharAt(--index, dig[remainder]);
-				value = quotient;
-	        } while(value != 0);
-			return true;
-	    }
-		if(radix == 16) {
-			if(value < 0xa) {
-				appendable.append(dig[value]);
-				return true;
-			} else if(value < 0x10) {
-				appendable.append(dig[value]);
-				return true;
-			} else if(value < 0x100) {
-				appendable.append("  ");
-			} else if(value < 0x1000) {
-				appendable.append("   ");
-			} else {
-				if(value == 0xffff) {
-					appendable.append(uppercase ? "FFFF" : "ffff");
-					return true;
-				}
-				appendable.append("    ");
-			}
-			int index = appendable.length();
-			do {//value2 == quotient * 16 + remainder
-				quotient = value >>> 4;
-				remainder = value - (quotient << 4);
-				appendable.setCharAt(--index, dig[remainder]);
-				value = quotient;
-			} while(value != 0);
-			return true;
-		}
-		if(radix == 8) {
-			if(value < 010) {
-				appendable.append(dig[value]);
-				return true;
-			} else if(value < 0100) {
-				appendable.append("  ");
-			} else if(value < 01000) {
-				appendable.append("   ");
-			} else if(value < 010000) {
-				appendable.append("    ");
-			} else if(value < 0100000) { 
-				appendable.append("     ");
-			} else {
-				appendable.append("      ");
-			}
-			int index = appendable.length();
-			do {//value2 == quotient * 16 + remainder
-				quotient = value >>> 3;
-				remainder = value - (quotient << 3);
-				appendable.setCharAt(--index, dig[remainder]);
-				value = quotient;
-			} while(value != 0);
-			return true;
-		}
-		if(radix == 2) {
-			//count the number of digits
-			//note that we already know value != 0 and that value <= 0xffff
-			//and we use both of those facts
-			int digitCount = 15;
-			int val = value;
-			if (val >>> 8 == 0) { 
-				digitCount -=  8;
-			} else {
-				val >>>= 8;
-			}
-			if (val >>> 4 == 0) {
-				digitCount -=  4;
-			} else {
-				val >>>= 4;
-			}
-			if (val >>> 2 == 0) {
-				digitCount -= 2;
-			} else {
-				val >>>= 2;
-			}
-			//at this point, if (val & 2) != 0 we have undercounted the digit count by 1
-			//either way, we start with the first digit '1' and adjust the digit count accordingly
-			if((val & 2) == 0) {
-				--digitCount;
-			}
-			appendable.append('1');
-			while(digitCount > 0) {
-				char c = dig[(value >>> --digitCount) & 1];
-				appendable.append(c);
-			}
-			return true;
-		}
-		return false;
-	}
-
-	protected static StringBuilder toUnsignedString(long value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
-		if(value > 0xffff || !toUnsignedStringFast((int) value, radix, choppedDigits, uppercase, dig, appendable)) {
-			toUnsignedString(value, radix, choppedDigits, dig, appendable);
-		}
-		return appendable;
-	}	
 
 	private static int toUnsignedSplitRangeStringLength(
 			long lower,
@@ -827,121 +757,13 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return digitsLength;
 	}
 
-	protected static int toUnsignedStringLength(long value, int radix) {
-		int result;
-		if(value > 0xffff || (result = toUnsignedStringLengthFast((int) value, radix)) < 0) {
-			result = toUnsignedStringLengthSlow(value, radix);
-		}
-		return result;
+	protected static BigInteger getRadixPower(BigInteger radix, int power) {
+		return AddressDivisionBase.getRadixPower(radix, power);
 	}
 	
-	private static int toUnsignedStringLengthSlow(long value, int radix) {
-		int count = 1;
-		boolean useInts = value <= Integer.MAX_VALUE;
-		int value2 = useInts ? (int) value : radix;
-		while(value2 >= radix) {
-			if(useInts) {
-				value2 /= radix;
-			} else {
-				value /= radix;
-				if(value <= Integer.MAX_VALUE) {
-					useInts = true;
-					value2 = (int) value;
-				}
-			}
-			++count;
-		}
-		return count;
-	}
 	
-	protected static int toUnsignedStringLengthFast(int value, int radix) {
-		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
-			return 1;
-		}
-		if(radix == 10) {
-			//this needs value <= 0xffff (ie 16 bits or less) which is a prereq to calling this method
-			if(value < 10) {
-				return 1;
-			} else if(value < 100) {
-				return 2;
-			} else if(value < 1000) {
-				return 3;
-			} else if(value < 10000) {
-				return 4;
-			}
-			return 5;
-	    }
-		if(radix == 16) {
-			//this needs value <= 0xffff (ie 16 bits or less)
-			if(value < 0x10) {
-				return 1;
-			} else if(value < 0x100) {
-				return 2;
-			} else if(value < 0x1000) {
-				return 3;
-			}
-			return 4;
-		}
-		if(radix == 8) {
-			//this needs value <= 0xffff (ie 16 bits or less)
-			if(value < 010) {
-				return 1;
-			} else if(value < 0100) {
-				return 2;
-			} else if(value < 01000) {
-				return 3;
-			} else if(value < 010000) {
-				return 4;
-			} else if(value < 0100000) {
-				return 5;
-			}
-			return 6;
-		}
-		if(radix == 2) {
-			//count the number of digits
-			//note that we already know value != 0 and that value <= 0xffff
-			//and we use both of those facts
-			int digitCount = 15;
-			int val = value;
-			if (val >>> 8 == 0) { 
-				digitCount -=  8;
-			} else {
-				val >>>= 8;
-			}
-			if (val >>> 4 == 0) {
-				digitCount -=  4;
-			} else {
-				val >>>= 4;
-			}
-			if (val >>> 2 == 0) {
-				digitCount -= 2;
-			} else {
-				val >>>= 2;
-			}
-			//at this point, if (val & 2) != 0 we have undercounted the digit count by 1
-			if((val & 2) != 0) {
-				++digitCount;
-			}
-			return digitCount;
-		}
-		return -1;
-	}
 	
-	private static void toUnsignedString(
-			long value,
-			int radix,
-			int choppedDigits,
-			char dig[],
-			StringBuilder appendable) {
-		int front = appendable.length();
-		appendDigits(value, radix, choppedDigits, dig, appendable);
-		int back = appendable.length() - 1;
-		while(front < back) {
-			char frontChar = appendable.charAt(front);
-			appendable.setCharAt(front++, appendable.charAt(back));
-			appendable.setCharAt(back--, frontChar);
-		}
-	}
+	
 
 	private static void toSplitUnsignedString(
 			long value,
@@ -1000,45 +822,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			}
 		}
 	}
-	
-	private static void appendDigits(
-			long value,
-			int radix,
-			int choppedDigits,
-			char dig[],
-			StringBuilder appendable) {
-		boolean useInts = value <= Integer.MAX_VALUE;
-		int value2 = useInts ? (int) value : radix;
-		int index;
-		while(value2 >= radix) {
-			if(useInts) {
-				int val2 = value2;
-				value2 /= radix;
-				if(choppedDigits > 0) {
-					choppedDigits--;
-					continue;
-				}
-				index = val2 % radix;
-			} else {
-				long val = value;
-				value /= radix;
-				if(value <= Integer.MAX_VALUE) {
-					useInts = true;
-					value2 = (int) value;
-				}
-				if(choppedDigits > 0) {
-					choppedDigits--;
-					continue;
-				}
-				index = (int) (val % radix);
-			}
-			appendable.append(dig[index]);
-		}
-		if(choppedDigits == 0) {
-			appendable.append(dig[value2]);
-		}
-	}
-	
+
 	private static void appendDigits(
 			long value,
 			int radix,
@@ -1202,11 +986,11 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		if(radix == getDefaultTextualRadix()) {
 			return getRangeDigitCountImpl();
 		}
-		return calculateRangeDigitCount(radix, getLowerValue(), getUpperValue(), getMaxValue());
+		return calculateRangeDigitCount(radix, getDivisionValue(), getUpperDivisionValue(), getMaxValue());
 	}
 	
 	protected int getRangeDigitCountImpl() {
-		return calculateRangeDigitCount(getDefaultTextualRadix(), getLowerValue(), getUpperValue(), getMaxValue());
+		return calculateRangeDigitCount(getDefaultTextualRadix(), getDivisionValue(), getUpperDivisionValue(), getMaxValue());
 	}
 
 	private static int calculateRangeDigitCount(int radix, long value, long upperValue, long maxValue) {
@@ -1264,24 +1048,51 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return (x >>> 16) | (x << 16);
 	}
 	
+	protected static <S extends AddressSegment> Iterator<S> identityIterator(S original) {
+		return new Iterator<S>() {
+			boolean done;
+			
+			@Override
+			public boolean hasNext() {
+				return !done;
+			}
+	
+		   @Override
+			public S next() {
+		    	if(!hasNext()) {
+		    		throw new NoSuchElementException();
+		    	}
+		    	done = true;
+		    	return original;
+	    	}
+	
+		    @Override
+			public void remove() {
+		    	throw new UnsupportedOperationException();
+		    }
+		};
+	}
+		
 	protected static <S extends AddressSegment> Iterator<S> iterator(
 			S original,
 			AddressSegmentCreator<S> creator,
-			boolean returnThisSegment,
-			Integer networkIteratorSegmentPrefixLength) {
-		boolean useShiftAdjustment = networkIteratorSegmentPrefixLength != null;
+			//Even though a segment represents a single value, it still might have a prefix extending to the end of the segment
+	    	//Iterators may or may not return prefixed segments matching the original prefix of the segment
+			boolean prefixMatchesIteratorPrefix,
+			Integer segmentPrefixLength,
+			boolean isPrefixSubnet) {
 		int shiftAdjustment, shiftMask, upperShiftMask;
-		int lower = original.getLowerSegmentValue();
+		int lower = original.getSegmentValue();
 		int upper = original.getUpperSegmentValue();
-		if(useShiftAdjustment) {
-			shiftAdjustment = original.getBitCount() - networkIteratorSegmentPrefixLength;
+		if(isPrefixSubnet) {
+			shiftAdjustment = original.getBitCount() - segmentPrefixLength;
 			shiftMask = ~0 << shiftAdjustment;
 			upperShiftMask = ~shiftMask;
-			if(returnThisSegment) {
+			if(prefixMatchesIteratorPrefix) {
 				int newLow = shiftMask & lower;
 				int newUp = upper | upperShiftMask;
 				if(lower != newLow || upper != newUp) {
-					returnThisSegment = false;
+					prefixMatchesIteratorPrefix = false;
 					lower = newLow;
 					upper = newUp;
 				}
@@ -1289,7 +1100,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		} else {
 			shiftAdjustment = shiftMask = upperShiftMask = 0;
 		}
-		boolean returnThis = returnThisSegment;
+		boolean returnThis = prefixMatchesIteratorPrefix;
 		int lowerValue = lower;
 		int upperValue = upper;
 		if(!original.isMultiple()) {
@@ -1307,18 +1118,18 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 			    		throw new NoSuchElementException();
 			    	}
 			    	done = true;
-			    	
-			    	//Even though a segment represents a single value, it still might have a prefix extending to the end of the segment
-			    	//Iterators must return non-prefixed segments.
-			    	//This is required by the IPAddressSection iterator which uses an array of segment iterators.
-			    	//If the segments at the end with prefixes of 0 iterate through all values with no prefix, 
-			    	//then so must the preceding segment with a non-zero prefix,
-			    	//even if that non-zero prefix extends to the end of the segment.
-		    		if(!returnThis) {
-			    		S result = creator.createSegment(lowerValue, upperValue, networkIteratorSegmentPrefixLength);
-			    		return result;
+			    	int newLower, newUpper;
+			    	if(shiftAdjustment > 0) {
+			    		newUpper = lowerValue | upperShiftMask;
+			    		newLower = lowerValue & shiftMask;
+			    	} else if(returnThis) {
+			    		return original;
+			    	}  else {
+			    		newLower = lowerValue;
+			    		newUpper = upperValue;
 			    	}
-			    	return original;
+			    	S result = creator.createSegment(newLower, newUpper, segmentPrefixLength);
+		    		return result;
 			    }
 		
 			    @Override
@@ -1330,7 +1141,7 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		return new Iterator<S>() {
 			boolean done;
 			int current = lowerValue, last = upperValue; {
-				if(useShiftAdjustment) {
+				if(isPrefixSubnet) {
 					current >>>= shiftAdjustment;
 					last >>>= shiftAdjustment;
 				}
@@ -1347,11 +1158,11 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		    		throw new NoSuchElementException();
 		    	}
 		    	S result;
-		    	if(useShiftAdjustment) {
+		    	if(isPrefixSubnet) {
 		    		int low = current << shiftAdjustment;
-		    		result = creator.createSegment(low, low | upperShiftMask, networkIteratorSegmentPrefixLength);
+		    		result = creator.createSegment(low, low | upperShiftMask, segmentPrefixLength);
 		    	} else {
-		    		result = creator.createSegment(current);
+		    		result = creator.createSegment(current, segmentPrefixLength);
 		    	}
 		    	done = ++current > last;
 		    	return result;
@@ -1392,10 +1203,10 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 				//we know newSegmentPrefixLength != null
 				prefixMask = allOnes << (bitCount - newSegmentPrefixLength);
 			}
-			newLower = original.getLowerSegmentValue() & prefixMask;
+			newLower = original.getSegmentValue() & prefixMask;
 			newUpper = original.getUpperSegmentValue() & prefixMask;
 		} else {
-			newLower = original.getLowerSegmentValue();
+			newLower = original.getSegmentValue();
 			newUpper = original.getUpperSegmentValue();
 		}
 		return creator.createSegment(newLower, newUpper, newSegmentPrefixLength);
@@ -1425,6 +1236,6 @@ public abstract class AddressDivision extends AddressDivisionBase implements Com
 		//So the original must have 000001.  
 		//What if it does not have 111110?  Then the reversed cannot have 110111.  But we know it ranges from 000100 to 111011.  So the original must have 111110.
 		//But once again, the two remaining values are optional, so we have the same potential ranges: 0-111111, 0-111110, 1-111110, and 1-111111
-		return segment.getLowerSegmentValue() <= 1 && segment.getUpperSegmentValue() >= segment.getMaxSegmentValue() - 1;
+		return segment.getSegmentValue() <= 1 && segment.getUpperSegmentValue() >= segment.getMaxSegmentValue() - 1;
 	}
 }

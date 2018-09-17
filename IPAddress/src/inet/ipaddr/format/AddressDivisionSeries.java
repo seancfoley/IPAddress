@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import java.math.BigInteger;
 
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.string.AddressStringDivisionSeries;
 
 /**
- * Represents a series of groups of address segments.  Each group may have a different bit size.
+ * Represents a series of groups of address divisions or segments.  Each group may have a different bit size.
  * 
  * This interface is the super interface of all interfaces and classes representing a series of divisions or segments.
  * 
@@ -32,6 +33,7 @@ import inet.ipaddr.PrefixLenException;
  *
  */
 public interface AddressDivisionSeries extends AddressItem, AddressStringDivisionSeries {
+	
 	/**
 	 * Use this method to compare the counts of two address series.
 	 * 
@@ -39,18 +41,28 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	 * 
 	 * @return a positive integer if this AddressDivisionSeries has a larger count than the provided, 0 if they are the same, a negative integer if the other has a larger count.
 	 */
-	int isMore(AddressDivisionSeries other);
+	default int isMore(AddressDivisionSeries other) {
+		if(!isMultiple()) {
+			return other.isMultiple() ? -1 : 0;
+		}
+		if(!other.isMultiple()) {
+			return 1;
+		}
+		return getCount().compareTo(other.getCount());
+	}
 	
 	/**
 	 * @return the given division in this series.  The first is at index 0.
 	 */
 	@Override
-	AddressDivision getDivision(int index);
+	AddressGenericDivision getDivision(int index);
 	
 	/**
-	 * Whether there exists a prefix.
+	 * Get standard-format strings for each of the divisions in the series.
+	 * 
+	 * @return
 	 */
-	boolean isPrefixed();
+	String[] getDivisionStrings();
 
 	/**
 	 * The bit-length of the portion of the address that is not specific to an individual address but common amongst a group of addresses.
@@ -70,6 +82,11 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	Integer getPrefixLength();
 
 	/**
+	 * Whether there exists a prefix length associated with this series.
+	 */
+	boolean isPrefixed();
+
+	/**
 	 * Returns whether this address segment series represents a block of addresses associated with its prefix length.
 	 * <p>
 	 * This returns false if it has no prefix length or if it is a range of addresses that does not include
@@ -82,44 +99,12 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	boolean isPrefixBlock();
 	
 	/**
-	 * Returns whether the values of this series contains the prefix block for the given prefix length.
-	 * An important distinction of this method with {@link #isPrefixBlock()} is that {@link #isPrefixBlock()} returns
-	 * false if the series does not have a prefix length assigned to it, 
-	 * even if there exists one or more prefix lengths for which {@link #containsPrefixBlock(int)}
-	 * returns true.  This method simply returns whether it contains all the values for the given prefix length block
-	 * regardless of whether that prefix length has been assigned to this series.
-	 * <p>
-	 * Use {@link #getMinPrefixLengthForBlock()} to determine the smallest prefix length for which this method returns true.
-	 * 
-	 * @param prefixLength
-	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
-	 * @return
-	 */
-	boolean containsPrefixBlock(int prefixLength) throws PrefixLenException;
-	
-	/**
 	 * Returns whether the range of values matches a single subnet block for the prefix length
 	 * 
 	 * @return
 	 */
 	boolean isSinglePrefixBlock();
-	
-	/**
-	 * Returns whether the values of this series contains a single prefix block for the given prefix length.
-	 * An important distinction of this method with {@link #isSinglePrefixBlock()} is that {@link #isSinglePrefixBlock()} returns
-	 * false if the series does not have a prefix length assigned to it, 
-	 * even if there exists a prefix length for which {@link #containsSinglePrefixBlock(int)}
-	 * returns true.  This method simply returns whether it contains exactly the values for the given prefix length block
-	 * regardless of whether that prefix length has been assigned to this series.
-	 * <p>
-	 * Use {@link #getPrefixLengthForSingleBlock()} to determine whether there is a prefix length for which this method returns true.
-	 * 
-	 * @param prefixLength
-	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
-	 * @return
-	 */
-	boolean containsSinglePrefixBlock(int prefixLength) throws PrefixLenException;
-	
+
 	/**
 	 * If this has a prefix length, the count of the range of values in the prefix.
 	 * <p>
@@ -127,47 +112,64 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	 * 
 	 * @return
 	 */
-	BigInteger getPrefixCount();
-
-	/**
-	 * Returns the smallest prefix length possible such that this address division series includes the block of addresses for that prefix.
-	 * <p>
-	 * If the entire range can be dictated this way, then this method returns the same value as {@link #getPrefixLengthForSingleBlock()}.  
-	 * Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #getPrefixLengthForSingleBlock()} will return null.
-	 * <p>
-	 * In cases where the final bit in this address division series is constant, this returns the bit length of this address division series.
-	 *
-	 * @return the prefix length
-	 */
-	int getMinPrefixLengthForBlock();
+	default BigInteger getPrefixCount() {
+		Integer prefixLength = getPrefixLength();
+		if(prefixLength == null || prefixLength >= getBitCount()) {
+			return getCount();
+		}
+		return getPrefixCount(prefixLength);
+	}
 	
-	/**
-	 * Returns a prefix length for which the range of this division series matches the the block of addresses for that prefix.
-	 * <p>
-	 * If the range can be dictated this way, then this method returns the same value as {@link #getMinPrefixLengthForBlock()}.
-	 * <p>
-	 * If no such prefix exists, returns null.
-	 * <p>
-	 * If this segment grouping represents a single value, returns the bit length of this address division series.
-	 * 
-	 * @return the prefix length or null
-	 */
-	Integer getPrefixLengthForSingleBlock();
+	@Override
+	default BigInteger getPrefixCount(int prefixLength) {
+		if(prefixLength < 0 || prefixLength > getBitCount()) {
+			throw new PrefixLenException(this, prefixLength);
+		}
+		BigInteger result = BigInteger.ONE;
+		if(isMultiple()) {
+			int divisionCount = getDivisionCount();
+			int divPrefixLength = prefixLength;
+			for(int i = 0; i < divisionCount; i++) {
+				AddressGenericDivision division = getDivision(i);
+				int divBitCount = division.getBitCount();
+				if(division.isMultiple()) {
+					BigInteger divCount = (divPrefixLength < divBitCount) ? division.getPrefixCount(divPrefixLength) : division.getCount();
+					result = result.multiply(divCount);
+				}
+				if(divPrefixLength <= divBitCount) {
+					break;
+				}
+				divPrefixLength -= divBitCount;
+			}
+		}
+		return result;
+	}
 	
-	/**
-	 * Get standard-format strings for each of the divisions in the series.
-	 * 
-	 * @return
-	 */
-	String[] getDivisionStrings();
+	@Override
+	default BigInteger getCount() {
+		BigInteger result = BigInteger.ONE;
+		int count = getDivisionCount();
+		if(count > 0) {
+			if(isMultiple()) {
+				for(int i = 0; i < count; i++) {
+					AddressGenericDivision div = getDivision(i);
+					if(div.isMultiple()) {
+						BigInteger divCount = getDivision(i).getCount();
+						result = result.multiply(divCount);
+					}
+				}
+			}
+		}
+		return result;
+	}
 	
-	/**
-	 * @return the value of the lowest address item represented by this address division series
-	 */
-	BigInteger getValue();
-	
-	/**
-	 * @return the value of the highest address item represented by this address division series
-	 */
-	BigInteger getUpperValue();
+	@Override
+	default int getBitCount() {
+		int count = getDivisionCount();
+		int bitCount = 0;
+		for(int i = 0; i < count; i++) {
+			bitCount += getDivision(i).getBitCount();
+		}
+		return bitCount;
+	}
 }

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2018 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package inet.ipaddr.format.validate;
 
 import java.io.Serializable;
@@ -950,7 +967,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							useStringIndicators = false;
 						}
 					}
-					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 					if(segmentMask != null || currentPrefix != null) {
 						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
 						hostSegments[normalizedSegmentIndex] = createSegment(
@@ -981,7 +998,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				}
 				break;
 			} //end handle inet_aton joined segments
-			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
 			if(segmentMask != null || segmentPrefixLength != null) {
 				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
@@ -1023,7 +1040,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					int count = missingCount;
 					while(count-- > 0) { //add the missing segments
 						++normalizedSegmentIndex;
-						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
 						if(segmentMask != null || segmentPrefixLength != null) {
 							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
@@ -1183,7 +1200,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							}
 						}
 					}
-					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 					if(segmentMask != null || currentPrefix != null) {
 						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 						hostSegments[normalizedSegmentIndex] = createSegment(
@@ -1215,7 +1232,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				break;
 			} //end handle joined segments
 			
-			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 			if(segmentMask != null || segmentPrefixLength != null) {
 				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
@@ -1269,7 +1286,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					expandedSegments = true;
 					int count = missingSegmentCount;
 					while(count-- > 0) { //add the missing segments
-						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 						if(segmentMask != null || segmentPrefixLength != null) {
 							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
@@ -1310,15 +1327,15 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				int m = n << 1;
 				IPv4AddressSegment one = ipv4AddressSection.getSegment(m);
 				IPv4AddressSegment two = ipv4AddressSection.getSegment(m + 1);
-				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getLowerSegmentValue()) : null;
+				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 				IPv6AddressSegment newSegment;
 				Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 				boolean doHostSegment = segmentMask != null || segmentPrefixLength != null;
 				if(doHostSegment) {
 					hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 				}
-				int oneLower = one.getLowerSegmentValue();
-				int twoLower = two.getLowerSegmentValue();
+				int oneLower = one.getSegmentValue();
+				int twoLower = two.getSegmentValue();
 				if(!one.isMultiple() && !two.isMultiple()) {
 					if(doHostSegment) {
 						hostSegments[normalizedSegmentIndex] = createSegment(oneLower, twoLower, null, null, creator);
@@ -1348,7 +1365,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							creator);
 				}
 				embeddedSectionIsChanged |= newSegment.isPrefixed() || /* note that parseData.mixedParsedAddress is never prefixed */ 
-						newSegment.getLowerSegmentValue() != ((one.getLowerSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getLowerSegmentValue()) ||
+						newSegment.getSegmentValue() != ((one.getSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getSegmentValue()) ||
 						newSegment.getUpperSegmentValue() != ((one.getUpperSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getUpperSegmentValue());
 				normalizedSegmentIndex++;
 			}
@@ -1554,7 +1571,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getAddressCreator();
 			IPv4AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 			for(int i = 0; i < segmentCount; i++) {
-				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getLowerSegmentValue()) : null;
+				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
 				segments[i] = createRangeSegment(
 						null,
 						version,
@@ -1572,7 +1589,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getAddressCreator();
 			IPv6AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 			for(int i = 0; i < segmentCount; i++) {
-				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getLowerSegmentValue()) : null;
+				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
 				segments[i] = createRangeSegment(
 						null,
 						version,

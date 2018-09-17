@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -572,7 +572,7 @@ public interface IPAddressProvider extends Serializable {
 			}
 			if(adjustedVersion == null) {
 				if(valueProvider.getType() == IPType.PREFIX_ONLY) {//both are PREFIX_ONLY
-					return valueProvider.getProviderNetworkPrefixLength() == getProviderNetworkPrefixLength();
+					return valueProvider.getProviderNetworkPrefixLength().intValue() == getProviderNetworkPrefixLength().intValue();
 				}
 				return false;
 			}
@@ -586,7 +586,7 @@ public interface IPAddressProvider extends Serializable {
 			}
 			if(adjustedVersion == null) {
 				if(other.getType() == IPType.PREFIX_ONLY) {//both are PREFIX_ONLY
-					return other.getProviderNetworkPrefixLength() - getProviderNetworkPrefixLength();
+					return other.getProviderNetworkPrefixLength().intValue() - getProviderNetworkPrefixLength().intValue();
 				}
 				return IPType.PREFIX_ONLY.ordinal() - other.getType().ordinal();
 			}

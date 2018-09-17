@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
+import inet.ipaddr.format.large.IPAddressLargeDivision;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
-import inet.ipaddr.format.IPAddressLargeDivision;
 import inet.ipaddr.mac.MACAddress;
 
 

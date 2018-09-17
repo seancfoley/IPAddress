@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import inet.ipaddr.Address;
-import inet.ipaddr.Address.AddressProvider;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.HostIdentifierStringGenerator;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
@@ -40,7 +39,10 @@ import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddress.IPAddressValueProvider;
+import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
+import inet.ipaddr.IPAddressRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
@@ -66,6 +68,7 @@ public abstract class TestBase {
 		HostIdentifierString addr;
 		Address addrValue;
 		AddressSegmentSeries series;
+		IPAddressRange range;
 		String str;
 		StackTraceElement[] stack;
 		Class<? extends TestBase> testClass;
@@ -87,6 +90,11 @@ public abstract class TestBase {
 			this.addrValue = addr;
 		}
 		
+		Failure(String str, IPAddressRange range) {
+			this.str = str;
+			this.range = range;
+		}
+		
 		Failure(String str, HostIdentifierString addr) {
 			this.str = str;
 			this.addr = addr;
@@ -106,6 +114,9 @@ public abstract class TestBase {
 			}
 			if(series != null) {
 				return series.toString();
+			}
+			if(range != null) {
+				return range.toString();
 			}
 			return "<unknown>";
 		}
@@ -572,7 +583,7 @@ public abstract class TestBase {
 				} else {
 					int segPrefix = prefLength - prevBitsSoFar;
 					int mask = ~0 << (seg.getBitCount() - segPrefix);
-					int lower = seg.getLowerSegmentValue();
+					int lower = seg.getSegmentValue();
 					int upper = seg.getUpperSegmentValue();
 					if((lower & mask) != lower || (upper & mask) != upper) {
 						removed = original.removePrefixLength();
@@ -1181,12 +1192,7 @@ public abstract class TestBase {
 				if(firstAddr == null) {
 					cache.get(str);
 				} else {
-					cache.get(new AddressProvider() {
-
-						@Override
-						public int getSegmentCount() {
-							return firstAddr.isIPv6() ? IPv6Address.SEGMENT_COUNT : IPv4Address.SEGMENT_COUNT;
-						}
+					cache.get(new IPAddressValueProvider() {
 
 						@Override
 						public SegmentValueProvider getValues() {
@@ -1206,6 +1212,16 @@ public abstract class TestBase {
 						@Override
 						public String getZone() {
 							return firstAddr.isIPv6() ? firstAddr.toIPv6().getZone() : null;
+						}
+
+						@Override
+						public IPVersion getIPVersion() {
+							return firstAddr.getIPVersion();
+						}
+
+						@Override
+						public int getSegmentCount() {
+							return firstAddr.getSegmentCount();
 						}
 						
 					});
@@ -1239,6 +1255,7 @@ public abstract class TestBase {
 			if(!string.equals(second)) {
 				synchronized(this) {
 					addFailure(new Failure("failed cache mismatch: " + string + " and " + second, string));
+					//string.equals(second);
 				}
 			}
 		}

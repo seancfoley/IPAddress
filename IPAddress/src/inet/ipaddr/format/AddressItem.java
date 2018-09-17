@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,11 @@ package inet.ipaddr.format;
 import java.io.Serializable;
 import java.math.BigInteger;
 
+import inet.ipaddr.Address;
+import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.standard.AddressDivisionGrouping;
+import inet.ipaddr.format.string.AddressStringDivisionSeries;
+
 /**
  * Represents any part of an address, whether divided into the standard arrangement of AddressComponent objects, or whether an alternative arrangement using AddressDivision objects.
  * <p>
@@ -39,7 +44,12 @@ import java.math.BigInteger;
  * @author sfoley
  *
  */
-public interface AddressItem extends Serializable {
+public interface AddressItem extends Comparable<AddressItem>, Serializable {
+
+	@Override
+	default int compareTo(AddressItem other) {
+		return Address.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
+	}
 
 	/**
 	 * The count of possible distinct values for this AddressComponent.  If not multiple, this is 1.
@@ -50,17 +60,47 @@ public interface AddressItem extends Serializable {
 	 * 
 	 * @return
 	 */
-	BigInteger getCount();
+	default BigInteger getCount() {
+		return getUpperValue().subtract(getValue()).add(BigInteger.ONE);
+	}
 
+	/**
+	 * The count of the number of distinct values within the prefix part of the address item, the bits that appear within the prefix length.
+	 * 
+	 * @param prefixLength
+	 * @return
+	 */
+	default BigInteger getPrefixCount(int prefixLength) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(this, prefixLength);
+		}
+		int bitCount = getBitCount();
+		if(bitCount <= prefixLength) {
+			return getCount();
+		}
+		int shiftAdjustment = bitCount - prefixLength;
+		BigInteger lower = getValue(), upper = getUpperValue();
+		return upper.shiftRight(shiftAdjustment).subtract(lower.shiftRight(shiftAdjustment)).add(BigInteger.ONE);
+	}
+	
 	/**
 	 * @return the number of bits comprising this address item
 	 */
 	int getBitCount();
 	
 	/**
+	 * @return the number of bytes required for this address item, rounding up if the bit count is not a multiple of 8
+	 */
+	default int getByteCount() {
+		return (getBitCount() + (Byte.SIZE - 1)) / Byte.SIZE;
+	}
+	
+	/**
 	 * Whether this represents multiple potential values (eg a prefixed address or a segment representing a range of values)
 	 */
-	boolean isMultiple();
+	default boolean isMultiple() {
+		return !getCount().equals(BigInteger.ONE);
+	}
 	
 	/**
 	 * 
@@ -115,6 +155,16 @@ public interface AddressItem extends Serializable {
 	byte[] getUpperBytes(byte bytes[], int index);
 	
 	/**
+	 * @return the value of the lowest item represented by this address item
+	 */
+	BigInteger getValue();
+	
+	/**
+	 * @return the value of the highest item represented by this address item
+	 */
+	BigInteger getUpperValue();
+		
+	/**
 	 * @return whether this item matches the value of zero
 	 */
 	boolean isZero();
@@ -138,5 +188,125 @@ public interface AddressItem extends Serializable {
 	 * @return whether this address item represents all possible values attainable by an address item of this type,
 	 * or in other words, both includesZero() and includesMax() return true
 	 */
-	boolean isFullRange();
+	default boolean isFullRange() {
+		return includesZero() && includesMax();
+	}
+	
+	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, BigInteger networkMask, BigInteger hostMask) {
+		return lowerValue.equals(lowerValue.and(networkMask)) && finalUpperValue.equals(upperValue.or(hostMask));
+	}
+	
+	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, int bitCount, int divisionPrefixLen) {
+		BigInteger networkMask = AddressDivisionGroupingBase.ALL_ONES.shiftLeft(bitCount - divisionPrefixLen);
+		BigInteger hostMask = networkMask.not();
+		return testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask);
+	}
+
+	/**
+	 * Returns whether the values of this series contains the prefix block for the given prefix length.
+	 * An important distinction of this method with {@link #isPrefixBlock()} is that {@link #isPrefixBlock()} returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists one or more prefix lengths for which {@link #containsPrefixBlock(int)}
+	 * returns true.  This method simply returns whether it contains all the values for the given prefix length block
+	 * regardless of whether that prefix length has been assigned to this series.
+	 * <p>
+	 * Use {@link #getMinPrefixLengthForBlock()} to determine the smallest prefix length for which this method returns true.
+	 * 
+	 * @param prefixLength
+	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
+	 * @return
+	 */
+	default boolean containsPrefixBlock(int divisionPrefixLen) {
+		if(divisionPrefixLen == 0) {
+			return isFullRange();
+		}
+		BigInteger upper = getUpperValue();
+		return testRange(getValue(), upper, upper, getBitCount(), divisionPrefixLen);
+	}
+	
+	/**
+	 * Returns whether the values of this series contains a single prefix block for the given prefix length.
+	 * An important distinction of this method with {@link #isSinglePrefixBlock()} is that {@link #isSinglePrefixBlock()} returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists a prefix length for which {@link #containsSinglePrefixBlock(int)}
+	 * returns true.  This method simply returns whether it contains exactly the values for the given prefix length block
+	 * regardless of whether that prefix length has been assigned to this series.
+	 * <p>
+	 * Use {@link #getPrefixLengthForSingleBlock()} to determine whether there is a prefix length for which this method returns true.
+	 * 
+	 * @param prefixLength
+	 * @throws PrefixLenException if prefixLength exceeds the bit count or is negative
+	 * @return
+	 */
+	default boolean containsSinglePrefixBlock(int divisionPrefixLen) {
+		if(divisionPrefixLen == 0) {
+			return isFullRange();
+		}
+		BigInteger lower = getValue(), upper = getUpperValue();
+		return testRange(lower, lower, upper, getBitCount(), divisionPrefixLen);
+	}
+	
+	/**
+	 * Returns the smallest prefix length possible such that this item includes the block of all values for that prefix length.
+	 * <p>
+	 * If the entire range can be dictated this way, then this method returns the same value as {@link #getPrefixLengthForSingleBlock()}.  
+	 * Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #getPrefixLengthForSingleBlock()} will return null.
+	 * <p>
+	 * In cases where the final bit is constant so there is no such block, this returns the bit count.
+	 *
+	 * @return the prefix length
+	 */
+	default int getMinPrefixLengthForBlock() {
+		int result = getBitCount();
+		BigInteger lower = getValue(), upper = getUpperValue();
+		int longBits = Long.SIZE;
+		do {
+			long low = lower.longValue();
+			int lowerZeros = Long.numberOfTrailingZeros(low);
+			if(lowerZeros == 0) {
+				break;
+			}
+			long up = upper.longValue();
+			int upperOnes = Long.numberOfTrailingZeros(~up);
+			if(upperOnes == 0) {
+				break;
+			}
+			int prefixedBitCount = Math.min(lowerZeros, upperOnes);
+			result -= prefixedBitCount;
+			if(prefixedBitCount < longBits) {
+				break;
+			}
+			lower = lower.shiftRight(longBits);
+			upper = upper.shiftRight(longBits);
+		} while(!upper.equals(BigInteger.ZERO));
+		return result;
+	}
+	
+	/**
+	 * Returns a prefix length for which the range of this item matches the block of all values for that prefix length.
+	 * <p>
+	 * If the range can be dictated this way, then this method returns the same value as {@link #getMinPrefixLengthForBlock()}.
+	 * <p>
+	 * If no such prefix length exists, returns null.
+	 * <p>
+	 * If this item represents a single value, this returns the bit count.
+	 * 
+	 * @return the prefix length or null
+	 */
+	default Integer getPrefixLengthForSingleBlock() {
+		int divPrefix = getMinPrefixLengthForBlock();
+		BigInteger lower = getValue(), upper = getUpperValue();
+		int bitCount = getBitCount();
+		if(divPrefix == bitCount) {
+			if(lower.equals(upper)) {
+				return AddressDivisionGroupingBase.cacheBits(divPrefix);
+			}
+		} else {
+			int shift = bitCount - divPrefix;
+			if(lower.shiftRight(shift).equals(upper.shiftRight(shift))) {
+				return AddressDivisionGroupingBase.cacheBits(divPrefix);
+			}
+		}
+		return null;
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
-import inet.ipaddr.format.AddressDivisionGrouping;
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions;
+import inet.ipaddr.format.standard.AddressDivisionGrouping;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
@@ -273,18 +273,12 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 			MACAddressString fromString = (MACAddressString) this.fromString;
 			MACAddressString otherString = (MACAddressString) other;
 			return (fromString == otherString || 
-					(fromString.toString().equals(otherString.toString())) &&
-					fromString.getValidationOptions().equals(otherString.getValidationOptions()));
+					(fromString.toString().equals(otherString.toString()) &&
+					// We do not call equals() on the validation options, this is intended as an optimization,
+					// and probably better to avoid going through all the validation options here
+					fromString.getValidationOptions() == otherString.getValidationOptions()));
 		}
 		return false;
-	}
-	
-	@Override
-	public boolean contains(Address other) {
-		if(other == this) {
-			return true;
-		}
-		return other instanceof MACAddress && getSection().contains(other.getSection());
 	}
 	
 	@Override
@@ -379,7 +373,12 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	
 	@Override
 	public MACAddress removePrefixLength() {
-		return checkIdentity(getSection().removePrefixLength());
+		return removePrefixLength(true);
+	}
+	
+	@Override
+	public MACAddress withoutPrefixLength() {
+		return removePrefixLength(false);
 	}
 	
 	@Override

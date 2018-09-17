@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
+import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.mac.MACAddress;
 
 
@@ -40,9 +41,9 @@ public class AddressOrderTest extends TestBase {
 	private static final IPAddressStringParameters WILDCARD_AND_RANGE_ADDRESS_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).toParams();
 	private static final IPAddressStringParameters WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().getIPv6AddressParametersBuilder().allowZone(false).getParentBuilder().toParams();
 	private static final IPAddressStringParameters ORDERING_OPTS = WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS.toBuilder().allowEmpty(true).setEmptyAsLoopback(false).toParams();
-	
+
 	private static final MACAddressStringParameters MAC_ORDERING_OPTS = MAC_ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).allowEmpty(true).toParams();
-	
+
 	AddressOrderTest(AddressCreator creator) {
 		super(creator);
 	}
@@ -83,7 +84,6 @@ public class AddressOrderTest extends TestBase {
 		public String getDescription() {
 			return toString();
 		}
-		
 	}
 	
 	class IPAddressStringOrdering extends Ordering<IPAddressStringOrdering, IPAddressString> {
@@ -96,7 +96,6 @@ public class AddressOrderTest extends TestBase {
 		public String getDescription() {
 			return nestedType.getAddress() == null ? "" : "\t\t\t (" + nestedType.getAddress().toNormalizedWildcardString() + ")";
 		}
-		
 	}
 	
 	class MACAddressStringOrdering extends Ordering<MACAddressStringOrdering, MACAddressString> {
@@ -111,7 +110,7 @@ public class AddressOrderTest extends TestBase {
 		}
 	}
 	
-	class AddressOrdering extends Ordering<AddressOrdering, Address> {
+	class AddressOrdering extends Ordering<AddressOrdering, AddressItem> {
 		
 		AddressOrdering(Address address, int order) {
 			super(address, order);
@@ -119,9 +118,8 @@ public class AddressOrderTest extends TestBase {
 		
 		@Override
 		public String getDescription() {
-			return "\t\t\t (" + nestedType.toNormalizedString() + ")";
+			return "\t\t\t (" + nestedType.toString() + ")";
 		}
-		
 	}
 	
 	void testOrder() {
@@ -135,9 +133,7 @@ public class AddressOrderTest extends TestBase {
 			
 			@Override
 			public int compare(AddressOrdering o1, AddressOrdering o2) {
-				Address one = o1.nestedType;
-				Address two = o2.nestedType;
-				return comp.compare(one, two);
+				return comp.compare(o1.nestedType, o2.nestedType);
 			}
 		}
 		
@@ -192,13 +188,13 @@ public class AddressOrderTest extends TestBase {
 		
 		testDefaultOrder(new ArrayList<IPAddressStringOrdering>(), IPAddressStringOrdering::new, nullIPAddressSupplier);//cannot remember if there is a reason why we do this one twice
 		
-		ValueComparator lowValComparator = new ValueComparator(false);
+		ValueComparator lowValComparator = new ValueComparator(true, false);
 		
 		testLowValueOrder(new ArrayList<IPAddressStringOrdering>(), new IPAddressOrderingComparator(lowValComparator), IPAddressStringOrdering::new, nullIPAddressSupplier);
 		testLowValueOrder(new ArrayList<MACAddressStringOrdering>(), new MACOrderingComparator(lowValComparator), nullMACAddressSupplier, MACAddressStringOrdering::new);
 		testLowValueOrder(new ArrayList<AddressOrdering>(), new AddressOrderingComparator(lowValComparator), ipAddressSupplier, macAddressSupplier);
 		
-		ValueComparator highValComparator = new ValueComparator(true);
+		ValueComparator highValComparator = new ValueComparator(true, true);
 		
 		testHighValueOrder(new ArrayList<IPAddressStringOrdering>(), new IPAddressOrderingComparator(highValComparator), IPAddressStringOrdering::new, nullIPAddressSupplier);
 		testHighValueOrder(new ArrayList<MACAddressStringOrdering>(), new MACOrderingComparator(highValComparator), nullMACAddressSupplier, MACAddressStringOrdering::new);

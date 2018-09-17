@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,12 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import inet.ipaddr.Address.AddressProvider;
+import inet.ipaddr.Address.AddressValueProvider;
 import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.IPAddress.IPAddressValueProvider;
 import inet.ipaddr.IPAddress.IPVersion;
-import inet.ipaddr.format.AddressCreator;
-import inet.ipaddr.format.IPAddressDivisionGrouping.RangeList;
+import inet.ipaddr.format.standard.AddressCreator;
+import inet.ipaddr.format.standard.IPAddressDivisionGrouping.RangeList;
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
@@ -676,19 +677,27 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 			int segmentByteCount = version.isIPv4() ? IPv4Address.BYTES_PER_SEGMENT : IPv6Address.BYTES_PER_SEGMENT;
 			return get(version, getValueProvider(bytes, segmentByteCount), null, null, null);
 		}
-		
-		public T get(AddressProvider addressProvider) {
-			return get(addressProvider.getSegmentCount() == IPv4Address.SEGMENT_COUNT ? IPVersion.IPV4 : IPVersion.IPV6, addressProvider.getValues(), addressProvider.getUpperValues(), addressProvider.getPrefixLength(), addressProvider.getZone());
+
+		public T get(AddressValueProvider addressProvider) {
+			if(addressProvider instanceof IPAddressValueProvider) {
+				return get((IPAddressValueProvider) addressProvider);
+			}
+			return get(addressProvider.getSegmentCount() == IPv4Address.SEGMENT_COUNT ? IPVersion.IPV4 : IPVersion.IPV6, 
+					addressProvider.getValues(), addressProvider.getUpperValues(), null, null);	
 		}
-		
+
+		public T get(IPAddressValueProvider addressProvider) {
+			return get(addressProvider.getIPVersion(), addressProvider.getValues(), addressProvider.getUpperValues(), addressProvider.getPrefixLength(), addressProvider.getZone());
+		}
+
 		public T get(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
 			return get(version, lowerValueProvider, upperValueProvider, prefixLength, null);
 		}
-		
+
 		public T get(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
 			return get(IPVersion.IPV6, lowerValueProvider, upperValueProvider, prefixLength, zone);
 		}
-		
+
 		private T get(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
 			if(backingMap == null) {
 				IPAddress addr = addressGenerator.from(version, lowerValueProvider, upperValueProvider, prefixLength, zone);
@@ -790,8 +799,12 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 			return addressGenerator.get(bytes);
 		}
 		
+		public IPAddressString get(IPAddressValueProvider addressProvider) {
+			return addressGenerator.get(addressProvider);
+		}
+		
 		@Override
-		public IPAddressString get(AddressProvider addressProvider) {
+		public IPAddressString get(AddressValueProvider addressProvider) {
 			return addressGenerator.get(addressProvider);
 		}
 		
@@ -876,7 +889,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		@Override
-		public HostName get(AddressProvider addressProvider) {
+		public HostName get(AddressValueProvider addressProvider) {
 			return addressGenerator.get(addressProvider);
 		}
 		

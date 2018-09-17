@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ package inet.ipaddr.ipv4;
 
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.IPAddressJoinedSegments;
+import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.standard.IPAddressJoinedSegments;
 
 /**
  * 
@@ -57,7 +58,7 @@ public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 		} else if(segmentPrefixLength != null && segmentPrefixLength > IPv4Address.BIT_COUNT) {
 			throw new PrefixLenException(segmentPrefixLength);
 		}  else {
-			checkMax(getUpperValue());
+			checkMax(getUpperDivisionValue());
 		}
 	}
 	
@@ -114,5 +115,24 @@ public class IPv4JoinedSegments extends IPAddressJoinedSegments {
 	@Override
 	public int getDefaultTextualRadix() {
 		return IPv4Address.DEFAULT_TEXTUAL_RADIX;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if(this == o) {
+			return true;
+		}
+		if(o instanceof IPv4JoinedSegments) {
+			// keep in mind, we do not allow this class to represent a single segment, so no need to worry about matching IPv4AddressSegment
+			IPv4JoinedSegments other = (IPv4JoinedSegments) o;
+			return joinedCount == other.joinedCount && other.isSameValues(this);
+		}
+		return false;
+	}
+
+	@Override
+	protected boolean isSameValues(AddressDivisionBase other) {
+		// keep in mind, we do not allow this class to represent a single segment, so no need to worry about matching IPv4AddressSegment
+		return other instanceof IPv4JoinedSegments && super.isSameValues(other);
 	}
 }

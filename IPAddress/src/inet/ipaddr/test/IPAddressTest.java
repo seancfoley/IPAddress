@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
+import inet.ipaddr.IPAddressRange;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
@@ -53,7 +54,9 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.format.large.IPAddressLargeDivisionGrouping;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
 import inet.ipaddr.ipv4.IPv4Address;
@@ -86,8 +89,6 @@ public class IPAddressTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
-	
 	
 	void testNormalized(String original, String expected) {
 		testNormalized(original, expected, false, true);
@@ -1743,7 +1744,7 @@ public class IPAddressTest extends TestBase {
 			if(directAddress.getPrefixCount().equals(BigInteger.ONE)) {
 				IPAddressSegment origSeg = segs[prefSeg];
 				int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
-				segs[prefSeg] = creator.createSegment(origSeg.getLowerSegmentValue() & mask, origSeg.getUpperSegmentValue() & mask, origSeg.getSegmentPrefixLength());
+				segs[prefSeg] = creator.createSegment(origSeg.getSegmentValue() & mask, origSeg.getUpperSegmentValue() & mask, origSeg.getSegmentPrefixLength());
 				for(int ps = prefSeg + 1; ps < segs.length; ps++) {
 					segs[ps] = creator.createSegment(0, 0);
 				}
@@ -1763,9 +1764,9 @@ public class IPAddressTest extends TestBase {
 							@Override
 							public int getValue(int segmentIndex) {
 								if(segmentIndex < prefSeg) {
-									return segs[segmentIndex].getLowerSegmentValue();
+									return segs[segmentIndex].getSegmentValue();
 								} else if(segmentIndex == prefSeg) {
-									return origSeg.getLowerSegmentValue() & mask;
+									return origSeg.getSegmentValue() & mask;
 								} else {
 									return 0;
 								}
@@ -1906,7 +1907,7 @@ public class IPAddressTest extends TestBase {
 			String prefixApplied) {
 		IPAddress original = createAddress(orig).getAddress();
 		if(original.isPrefixed()) {
-			AddressSegmentSeries removed = original.removePrefixLength(false);
+			AddressSegmentSeries removed = original.withoutPrefixLength();
 			for(int i = 0; i < removed.getSegmentCount(); i++) {
 				if(!removed.getSegment(i).equals(original.getSegment(i))) {
 					addFailure(new Failure("removed prefix: " + removed, original));
@@ -2429,6 +2430,146 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 
+	void testLargeDivs(byte bytes[][]) {
+		List<IPAddressLargeDivision> divList = new ArrayList<>();
+		int byteTotal = 0;
+		for(byte b[] : bytes) {
+			byteTotal += b.length;
+			divList.add(new IPAddressLargeDivision(b, b.length << 3, 16));
+		}
+		IPAddressNetwork<?, ?, ?, ?, ?> network = 
+				byteTotal > 4 ? IPv6Address.defaultIpv6Network() : IPv4Address.defaultIpv4Network();
+		IPAddressLargeDivisionGrouping grouping = new IPAddressLargeDivisionGrouping(divList.toArray(new IPAddressLargeDivision[divList.size()]), network);
+		byte bytes1[] = new byte[byteTotal], bytes2[], bytes3[], bytes4[], bytes5[], bytes6[], bytes7[];
+		byteTotal = 0;
+		for(byte b[] : bytes) {
+			System.arraycopy(b, 0,  bytes1, byteTotal, b.length);
+			byteTotal += b.length;
+		}
+		bytes2 = grouping.getBytes();
+		bytes3 = new byte[byteTotal];
+		bytes3 = grouping.getBytes(bytes3);
+		bytes4 = grouping.getUpperBytes();
+		bytes5 = new byte[byteTotal];
+		bytes5 = grouping.getUpperBytes(bytes5);
+		IPAddressLargeDivisionGrouping grouping2 = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] { new IPAddressLargeDivision(bytes5, bytes5.length << 3, 16) }, network);
+		bytes6 = grouping2.getBytes();
+		bytes6 = grouping2.getUpperBytes();
+		bytes7 = grouping.getBytes();
+		if(!Arrays.equals(bytes1, bytes2)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes2 " + Arrays.asList(bytes2)));
+		} else if(!Arrays.equals(bytes1, bytes3)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes3 " + Arrays.asList(bytes3)));
+		} else if(!Arrays.equals(bytes1, bytes4)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes4 " + Arrays.asList(bytes4)));
+		} else if(!Arrays.equals(bytes1, bytes5)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes5 " + Arrays.asList(bytes5)));
+		} else if(!Arrays.equals(bytes1, bytes6)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes6 " + Arrays.asList(bytes6)));
+		} else if(!Arrays.equals(bytes1, bytes7)) {
+			addFailure(new Failure("mismatch bytes1 " + Arrays.asList(bytes1) + " with bytes7 " + Arrays.asList(bytes7)));
+		}
+		if(bytes.length == 1 ? !grouping.equals(grouping2) : grouping.equals(grouping2)) {
+			addFailure(new Failure("match grouping" + grouping + " with " + grouping2));
+		}
+		incrementTestCount();
+	}
+	
+	void testRangeJoin(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
+		testRangeJoinImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
+	}
+	
+	void testRangeJoinImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		IPAddress addr = createAddress(lower1).getAddress();
+		IPAddress addr2 = createAddress(higher1).getAddress();
+		IPAddressRange range = addr.spanWithRange(addr2);
+		
+		addr = createAddress(lower2).getAddress();
+		addr2 = createAddress(higher2).getAddress();
+		IPAddressRange range2 = addr.spanWithRange(addr2);
+		
+		IPAddressRange result = range.join(range2);
+		if(resultLower == null) {
+			if(result != null) {
+				addFailure(new Failure("mismatch result " + result + " expected null joining '" + addr + "' with '" + addr2 + "'", addr));
+			}
+		} else {
+			addr = createAddress(resultLower).getAddress();
+			addr2 = createAddress(resultHigher).getAddress();
+			IPAddressRange expectedResult = addr.spanWithRange(addr2);
+			if(!result.equals(expectedResult)) {
+				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' joining '" + addr + "' with '" + addr2 + "'", addr));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testRangeIntersect(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		testRangeIntersectImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
+		testRangeIntersectImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
+	}
+	
+	void testRangeIntersectImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		IPAddress addr = createAddress(lower1).getAddress();
+		IPAddress addr2 = createAddress(higher1).getAddress();
+		IPAddressRange range = addr.spanWithRange(addr2);
+		
+		addr = createAddress(lower2).getAddress();
+		addr2 = createAddress(higher2).getAddress();
+		IPAddressRange range2 = addr.spanWithRange(addr2);
+		
+		IPAddressRange result = range.intersect(range2);
+		if(resultLower == null) {
+			if(result != null) {
+				addFailure(new Failure("mismatch result " + result + " expected null intersecting '" + addr + "' with '" + addr2 + "'", addr));
+			}
+		} else {
+			addr = createAddress(resultLower).getAddress();
+			addr2 = createAddress(resultHigher).getAddress();
+			IPAddressRange expectedResult = addr.spanWithRange(addr2);
+			if(!result.equals(expectedResult)) {
+				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' intersecting '" + addr + "' with '" + addr2 + "'", addr));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testRangeSubtract(String lower1, String higher1, String lower2, String higher2, 
+			String ...resultPairs) {
+		IPAddress addr = createAddress(lower1).getAddress();
+		IPAddress addr2 = createAddress(higher1).getAddress();
+		IPAddressRange range = addr.spanWithRange(addr2);
+		
+		addr = createAddress(lower2).getAddress();
+		addr2 = createAddress(higher2).getAddress();
+		IPAddressRange range2 = addr.spanWithRange(addr2);
+		
+		IPAddressRange result[] = range.subtract(range2);
+		if(resultPairs.length == 0) {
+			if(result.length != 0) {
+				addFailure(new Failure("mismatch result " + result + " expected zero length result subtracting '" + addr2 + "' from '" + addr + "'", addr));
+			}
+		} else { //resultPairs.length >= 2
+			addr = createAddress(resultPairs[0]).getAddress();
+			addr2 = createAddress(resultPairs[1]).getAddress();
+			IPAddressRange expectedResult = addr.spanWithRange(addr2);
+			if(result.length == 0 || !result[0].equals(expectedResult)) {
+				addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected '" + expectedResult + "' subtracting '" + addr2 + "' from '" + addr + "'", addr));
+			} else if (resultPairs.length == 4){
+				addr = createAddress(resultPairs[2]).getAddress();
+				addr2 = createAddress(resultPairs[3]).getAddress();
+				expectedResult = addr.spanWithRange(addr2);
+				if(result.length == 1 || !result[1].equals(expectedResult)) {
+					addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected '" + expectedResult + "' subtracting '" + addr2 + "' from '" + addr + "'", addr));
+				}
+			} else if(result.length > 1) {
+				addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected " + (resultPairs.length / 2) + " ranges subtracting '" + addr2 + "' from '" + addr + "'", addr));
+			}
+		}
+		incrementTestCount();
+	}
+	
 	private static List<Byte> toList(byte bytes[]) {
 		Byte newBytes[] = new Byte[bytes.length];
 		for(int i = 0; i < bytes.length; i++) {
@@ -2518,25 +2659,78 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	void testSpanAndMerge(String address1, String address2, int count) {
+	void testSpanAndMerge(String address1, String address2, int count, String expected[], int rangeCount, String rangeExpected[]) {
 		IPAddressString string1 = createAddress(address1);
 		IPAddressString string2 = createAddress(address2);
 		IPAddress addr1 = string1.getAddress();
 		IPAddress addr2 = string2.getAddress();
 		IPAddress result[] = addr1.spanWithPrefixBlocks(addr2);
+		List<IPAddress> resultList = Arrays.asList(result);
+		List<IPAddress> expectedList = new ArrayList<>();
+		for(String s : expected) {
+			expectedList.add(createAddress(s).getAddress());
+		}
+		if(!resultList.equals(expectedList)) {
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected " + expectedList, addr1));
+		}
 		if(count != result.length) {
-			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " expected count of " + count, addr1));
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected count of " + count, addr1));
+		}
+		IPAddress result2[] = addr1.spanWithRangedSegments(addr2);
+		resultList = Arrays.asList(result2);
+		expectedList.clear();
+		for(String s : rangeExpected) {
+			expectedList.add(createAddress(s).getAddress());
+		}
+		if(!resultList.equals(expectedList)) {
+			addFailure(new Failure("range merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected " + expectedList, addr1));
+		}
+		if(rangeCount != result2.length) {
+			addFailure(new Failure("range merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected count of " + rangeCount, addr1));
 		}
 		IPAddress backAgain[] = result[0].mergePrefixBlocks(result);
 		boolean matches = Arrays.deepEquals(result, backAgain);
 		if(!matches) {
-			Arrays.deepEquals(result, backAgain);
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
+		}
+		List<IPAddressRange> rangeList = new ArrayList<>();
+		for(IPAddress a : result) {
+			IPAddressRange range = a.toRange();
+			rangeList.add(range);
+		}
+		IPAddressRange joined[] = IPAddressRange.join(rangeList.toArray(new IPAddressRange[rangeList.size()]));
+		if(joined.length == 0 || joined.length > 1 || !joined[0].getLower().equals(addr1.getLower()) || !joined[0].getUpper().equals(addr2.getUpper())) {
+			addFailure(new Failure("joined range " + Arrays.asList(joined) + " did not match "+ addr1 + " and " + addr2, addr1));
+		}
+		rangeList.clear();
+		for(IPAddress a : result2) {
+			IPAddressRange range = a.toRange();
+			rangeList.add(range);
+		}
+		joined = IPAddressRange.join(rangeList.toArray(new IPAddressRange[rangeList.size()]));
+		if(joined.length == 0 || joined.length > 1 || !joined[0].getLower().equals(addr1.getLower()) || !joined[0].getUpper().equals(addr2.getUpper())) {
+			addFailure(new Failure("joined range " + Arrays.asList(joined) + " did not match "+ addr1 + " and " + addr2, addr1));
 		}
 		incrementTestCount();
 	}
 	
+	void testMergeRange(String result, String ... addresses) {
+		testMerge(result, false, addresses);
+	}
+	
+	void testMergeRange2(String result, String result2, String ... addresses) {
+		testMerge2(result, result2, false, addresses);
+	}
+	
 	void testMerge(String result, String ... addresses) {
+		testMerge(result, true, addresses);
+	}
+	
+	void testMerge2(String result, String result2, String ... addresses) {
+		testMerge2(result, result2, true, addresses);
+	}
+	
+	void testMerge(String result, boolean prefix, String ... addresses) {
 		IPAddressString resultStr = createAddress(result);
 		IPAddressString string2 = createAddress(addresses[0]);
 		IPAddress resultAddr = resultStr.getAddress();
@@ -2545,14 +2739,15 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = addr2.mergePrefixBlocks(mergers);
-		if(!resultAddr.equals(merged[0])) {
-			addFailure(new Failure("merge mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
+		IPAddress merged[] = prefix ? addr2.mergePrefixBlocks(mergers) : addr2.mergeRangeBlocks(mergers);
+		if(merged.length != 1 || !resultAddr.equals(merged[0])) {
+			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
 		}
 		incrementTestCount();
 	}
 	
-	void testMerge2(String result, String result2, String ... addresses) {
+	//like testMerge but the merge results in two addresses
+	void testMerge2(String result, String result2, boolean prefix, String ... addresses) {
 		IPAddressString resultStr = createAddress(result);
 		IPAddressString resultStr2 = createAddress(result2);
 		IPAddressString string2 = createAddress(addresses[0]);
@@ -2563,13 +2758,13 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = addr2.mergePrefixBlocks(mergers);
+		IPAddress merged[] = prefix ? addr2.mergePrefixBlocks(mergers) : addr2.mergeRangeBlocks(mergers);
 		HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
 		HashSet<IPAddress> expected = new HashSet<IPAddress>();
 		expected.add(resultAddr);
 		expected.add(resultAddr2);
 		if(!all.equals(expected)) {
-			addFailure(new Failure("merge mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + all, resultAddr));
+			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + all, resultAddr));
 		}
 		incrementTestCount();
 	}
@@ -4864,6 +5059,32 @@ public class IPAddressTest extends TestBase {
 			new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
 		});
 
+		testLargeDivs(new byte[][] {
+			new byte[] {1, 2, 3, 4, 5}, 
+			new byte[] {6, 7, 8, 9, 10, 11, 12}, 
+			new byte[] {13, 14, 15, 16}
+		});
+		testLargeDivs(new byte[][] {
+			new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+		});
+		testLargeDivs(new byte[][] {
+			new byte[] {1, 2, 3, 4, 5}, 
+			//new byte[] {},
+			new byte[] {6, 7, 8, 9, 10, 11, 12}, 
+			new byte[] {13, 14, 15, 16}
+		});
+		testLargeDivs(new byte[][] {
+			new byte[] {1}, new byte[] {2}, new byte[] {3}, new byte[] {4}, new byte[] {5}, 
+			new byte[] {6, 7}, new byte[] {8}, new byte[] {9}, new byte[] {10}, new byte[] {11}, new byte[] {12}, 
+			new byte[] {13}, new byte[] {14}, new byte[] {15}, new byte[] {16}
+		});
+		testLargeDivs(new byte[][] {
+			new byte[] {1}, 
+			new byte[] {2, 3}, 
+			new byte[] {4}
+		});
+		
+			
 		testIncrement("1.2.3.4", 0, "1.2.3.4");
 		testIncrement("1.2.3.4", 1, "1.2.3.5");
 		testIncrement("1.2.3.4", -1, "1.2.3.3");
@@ -4917,15 +5138,37 @@ public class IPAddressTest extends TestBase {
 		testIncrement("::1:ffff", -2, "::1:fffd");
 		testIncrement("::1:ffff", -0x10000, "::ffff");
 		testIncrement("::1:ffff", -0x10001, "::fffe");
-
-		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1);
-		testSpanAndMerge("1.2.3.4", "1.2.5.8", 9);
 		
-		testSpanAndMerge("a:b:c:d:1::", "a:b:c:d:10::", 5);//[a:b:c:d:1::/80, a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::]
-		testSpanAndMerge("a:b:c:d:1::/80", "a:b:c:d:10::", 5);
-		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::", 4);
-		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::/76", 4);
-		testSpanAndMerge("a:b:c:d:2::/79", "a:b:c:d:10::/76", 4);//[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
+		//a b x y
+		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
+		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
+		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3");
+		
+		
+		//a x b y
+		testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeIntersect("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.4.3", "1.2.4.5");
+		testRangeSubtract("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.2");
+		
+		//a x y b
+		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
+		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.4.3", "1.2.4.5");
+		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.2", "1.2.4.6", "1.2.5.6");
+		
+		//a b x y
+		testRangeJoin("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
+		testRangeIntersect("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
+		testRangeSubtract("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::");
+		
+		//a x b y
+		testRangeJoin("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
+		testRangeIntersect("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::");
+		testRangeSubtract("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff");
+		
+		//a x y b
+		testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
+		testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:4:3::", "1:2:4:5::");
+		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::");	
 
 		testCustomNetwork(prefixConfiguration);
 	}

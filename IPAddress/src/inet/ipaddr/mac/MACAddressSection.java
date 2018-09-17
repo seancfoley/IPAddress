@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,12 @@ import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.AddressBitsDivision;
-import inet.ipaddr.format.AddressDivision;
-import inet.ipaddr.format.AddressDivisionGrouping;
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
-import inet.ipaddr.format.AddressStringDivisionSeries;
+import inet.ipaddr.format.AddressDivisionGroupingBase;
+import inet.ipaddr.format.standard.AddressBitsDivision;
+import inet.ipaddr.format.standard.AddressDivision;
+import inet.ipaddr.format.standard.AddressDivisionGrouping;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.string.AddressStringDivisionSeries;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
@@ -294,6 +295,11 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	@Override
+	protected boolean isSameGrouping(AddressDivisionGroupingBase other) {
+		return other instanceof MACAddressSection && super.isSameGrouping(other);
+	}
+
+	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
 			return true;
@@ -307,11 +313,6 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	
 	protected MACStringCache getStringCache() {
 		return (MACStringCache) stringCache;
-	}
-
-	@Override
-	protected boolean isSameGrouping(AddressDivisionGrouping other) {
-		return other instanceof MACAddressSection && super.isSameGrouping(other);
 	}
 
 	@Override
@@ -370,6 +371,11 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 
 	@Override
+	public int getMaxSegmentValue() {
+		return MACAddress.MAX_VALUE_PER_SEGMENT;
+	}
+	
+	@Override
 	public int getBitsPerSegment() {
 		return MACAddress.BITS_PER_SEGMENT;
 	}
@@ -395,7 +401,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		byte bytes[] = new byte[segmentCount];
 		for(int i = 0; i < segmentCount; i++) {
 			MACAddressSegment seg = getSegment(i);
-			int val = low ? seg.getLowerSegmentValue() : seg.getUpperSegmentValue();
+			int val = low ? seg.getSegmentValue() : seg.getUpperSegmentValue();
 			bytes[i] = (byte) val;
 		}
 		return bytes;
@@ -426,29 +432,38 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	@Override
-	public BigInteger getPrefixCount() {
-		Integer prefixLength = getPrefixLength();
-		if(prefixLength == null || prefixLength >= getBitCount() || !isMultiple()) {
-			return getCount();
-		}
-		long result = 1;
-		int networkSegmentIndex = getNetworkSegmentIndex(prefixLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT);
-		int hostSegmentIndex = getHostSegmentIndex(prefixLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT);
-		int i = 0;
-		for(; i < hostSegmentIndex; i++) {//note we know there is at least one host segment as we checked prefix length above
-			result *= getSegment(i).getValueCount();
-		}
-		if(i == networkSegmentIndex) {
-			long lastValue = getSegment(i).getPrefixValueCount(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefixLength, i));
-			if(lastValue != 1) {
-				if(result <= 0x7fffffffffffffL) {
-					result *= lastValue;
-				} else {
-					return BigInteger.valueOf(result).multiply(BigInteger.valueOf(lastValue));
+	public BigInteger getPrefixCount(int prefixLength) {
+		checkSubnet(this, prefixLength);
+		if(isMultiple()) {
+			long result = 1;
+			int networkSegmentIndex = getNetworkSegmentIndex(prefixLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT);
+			int hostSegmentIndex = getHostSegmentIndex(prefixLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT);
+			int i = 0;
+			for(; i < hostSegmentIndex; i++) {//note we know there is at least one host segment as we checked prefix length above
+				result *= getSegment(i).getValueCount();
+			}
+			if(i == networkSegmentIndex) {
+				long lastValue = getSegment(i).getPrefixValueCount(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefixLength, i));
+				if(lastValue != 1) {
+					if(result <= 0x7fffffffffffffL) {
+						result *= lastValue;
+					} else {
+						return BigInteger.valueOf(result).multiply(BigInteger.valueOf(lastValue));
+					}
 				}
 			}
+			return BigInteger.valueOf(result);
 		}
-		return BigInteger.valueOf(result);
+		return BigInteger.ONE;
+	}
+	
+	@Override
+	public BigInteger getPrefixCount() {
+		Integer prefixLength = getPrefixLength();
+		if(prefixLength == null || prefixLength >= getBitCount()) {
+			return getCount();
+		}
+		return getPrefixCount(prefixLength);
 	}
 	
 	/**
@@ -488,7 +503,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			}
 			return cachedPrefixLength = prefix;
 		}
-		if(ret == NO_PREFIX_LENGTH) {
+		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
 			return null;
 		}
 		return ret;
@@ -836,23 +851,6 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		return result;
 	}
 
-	/**
-	 * @param other
-	 * @return whether this section contains the given address section
-	 */
-	public boolean contains(MACAddressSection other) {
-		//check if they are comparable first
-		if(addressSegmentIndex != other.addressSegmentIndex || isExtended() != other.isExtended() || getSegmentCount() != other.getSegmentCount()) {
-			return false;
-		}
-		for(int i=0; i < getSegmentCount(); i++) {
-			if(!getSegment(i).contains(other.getSegment(i))) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	private MACAddressSection getLowestOrHighestSection(boolean lowest) {
 		MACAddressSection result = getSingleLowestOrHighestSection(this);
 		if(result == null) {
@@ -944,7 +942,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		long result = 0;
 		for(int i = 0; i < segCount; i++) {
 			MACAddressSegment seg = getSegment(i);
-			result = (result << MACAddress.BITS_PER_SEGMENT) | (lower ? seg.getLowerSegmentValue() : seg.getUpperSegmentValue());
+			result = (result << MACAddress.BITS_PER_SEGMENT) | (lower ? seg.getSegmentValue() : seg.getUpperSegmentValue());
 		}
 		return result;
 	}
@@ -979,6 +977,11 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	@Override
 	public MACAddressSection removePrefixLength() {
 		return removePrefixLength(true);
+	}
+	
+	@Override
+	public MACAddressSection withoutPrefixLength() {
+		return removePrefixLength(false);
 	}
 	
 	@Override
@@ -1154,8 +1157,9 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 				useOriginal ?
 						null :
 						iterator(
+							getSegmentCount(),
 							creator,
-							null,
+							null, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
 							index -> getSegment(index).iterator(),
 							null, 
 							getNetworkSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
@@ -1166,7 +1170,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	
 	@Override
 	public Iterator<MACAddressSegment[]> segmentsIterator() {
-		return iterator(getSegmentCreator(), () -> getLower().getSegments(), index -> getSegment(index).iterator(), null);
+		return iterator(getSegmentCount(), getSegmentCreator(), isMultiple() ? null : () -> getLower().getSegments(), index -> getSegment(index).iterator(), null);
 	}
 	
 	//these are the iterators used by MACAddress
@@ -1174,9 +1178,8 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		MACAddressCreator creator = getAddressCreator();
 		boolean isSingle = !isMultiple();
 		return iterator(
-				original, 
+				isSingle ? original : null, 
 				creator,//using a lambda for this one results in a big performance hit
-				isSingle,
 				isSingle ? null : segmentsIterator(),
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
 	}
@@ -1189,13 +1192,13 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		MACAddressCreator creator = getAddressCreator();
 		boolean useOriginal = isSinglePrefixBlock();
 		return iterator(
-				original, 
+				useOriginal ? original : null,
 				creator,//using a lambda for this one results in a big performance hit
-				useOriginal,
 				useOriginal ? null :
 					iterator(
+							getSegmentCount(),
 							creator,
-							null,
+							null, //when no prefix we defer to other iterator, when there is one we use the whole original address in the encompassing iterator and not just the original segments
 							index -> getSegment(index).iterator(),
 							null, 
 							getNetworkSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
@@ -1411,7 +1414,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			int newSegmentCount = (segmentCount >>> 1) + 1;
 			newSegs = new AddressDivision[newSegmentCount];
 			MACAddressSegment segment = getSegment(0);
-			newSegs[0] = new AddressBitsDivision(segment.getLowerSegmentValue(), segment.getUpperSegmentValue(), newSegmentBitCount, MACAddress.DEFAULT_TEXTUAL_RADIX);
+			newSegs[0] = new AddressBitsDivision(segment.getSegmentValue(), segment.getUpperSegmentValue(), newSegmentBitCount, MACAddress.DEFAULT_TEXTUAL_RADIX);
 			newSegIndex = segIndex = 1;
 		}
 		while(segIndex + 1 < segmentCount) {
@@ -1421,7 +1424,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 				throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 			}
 			AddressDivision newSeg = new AddressBitsDivision(
-					(segment1.getLowerSegmentValue() << MACAddress.BITS_PER_SEGMENT) | segment2.getLowerSegmentValue(), 
+					(segment1.getSegmentValue() << MACAddress.BITS_PER_SEGMENT) | segment2.getSegmentValue(), 
 					(segment1.getUpperSegmentValue() << MACAddress.BITS_PER_SEGMENT) | segment2.getUpperSegmentValue(), 
 					newSegmentBitCount,
 					MACAddress.DEFAULT_TEXTUAL_RADIX);
@@ -1430,7 +1433,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		if(segIndex < segmentCount) {
 			MACAddressSegment segment = getSegment(segIndex);
 			newSegs[newSegIndex] = new AddressBitsDivision(
-					segment.getLowerSegmentValue() << MACAddress.BITS_PER_SEGMENT,
+					segment.getSegmentValue() << MACAddress.BITS_PER_SEGMENT,
 					segment.getUpperSegmentValue() << MACAddress.BITS_PER_SEGMENT,
 					newSegmentBitCount,
 					MACAddress.DEFAULT_TEXTUAL_RADIX);
@@ -1454,6 +1457,34 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	@Override
 	public boolean contains(AddressSection other) {
 		return other instanceof MACAddressSection && contains((MACAddressSection) other);
+	}
+	
+	/**
+	 * @param other
+	 * @return whether this section contains the given address section
+	 */
+	public boolean contains(MACAddressSection other) {
+		//check if they are comparable first
+		if(addressSegmentIndex != other.addressSegmentIndex || isExtended() != other.isExtended() || getSegmentCount() != other.getSegmentCount()) {
+			return false;
+		}
+		for(int i = 0; i < getSegmentCount(); i++) {
+			if(!getSegment(i).contains(other.getSegment(i))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean prefixEquals(AddressSection o) {
+		if(o instanceof MACAddressSection) {
+			MACAddressSection other = (MACAddressSection) o;
+			if(addressSegmentIndex >= other.addressSegmentIndex) {
+				return prefixEquals(this, other, addressSegmentIndex - other.addressSegmentIndex);
+			}
+		}
+		return false;
 	}
 	
 	protected static AddressStringParams<AddressStringDivisionSeries> toParams(StringOptions opts) {

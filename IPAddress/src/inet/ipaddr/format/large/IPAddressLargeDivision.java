@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.large;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -26,6 +26,12 @@ import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.IPAddressGenericDivision;
+import inet.ipaddr.format.standard.AddressDivision;
+import inet.ipaddr.format.standard.AddressDivisionGrouping;
+import inet.ipaddr.format.standard.IPAddressDivision;
+import inet.ipaddr.format.standard.IPAddressDivisionGrouping;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -33,13 +39,14 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  * <p>
  * For a bit count less than or equal to 63 bits, {@link AddressDivision} or {@link IPAddressDivision} is a more efficient choice,
  * which are based on arithmetic using longs and can be grouped with {@link AddressDivisionGrouping} and {@link IPAddressDivisionGrouping} respectively.
- * IPAddressLargeDivision can only be grouped together in {@link IPAddressStringDivisionGrouping}, which is intended for producing strings.
  * 
  * @author sfoley
  *
  */
-public class IPAddressLargeDivision extends AddressDivisionBase implements IPAddressStringDivision {
+public class IPAddressLargeDivision extends AddressDivisionBase implements IPAddressGenericDivision {
 
+	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+	
 	public static final char EXTENDED_DIGITS_RANGE_SEPARATOR = Address.ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String EXTENDED_DIGITS_RANGE_SEPARATOR_STR = String.valueOf(EXTENDED_DIGITS_RANGE_SEPARATOR);
 	
@@ -56,13 +63,16 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	private static final long serialVersionUID = 4L;
 	
 	private final BigInteger value, upperValue, maxValue, upperValueMasked;
-	private final BigInteger defaultRadix;//we keep radix as a big integer because some operations required it, but we only support integer radices so it can be converted via BigInteger.intValue() at any time
+	private final BigInteger defaultRadix; // we keep radix as a big integer because some operations required it, but we only support integer radices so it can be converted via BigInteger.intValue() at any time
 	private final int bitCount;
 	private final Integer networkPrefixLength;
 	private final boolean isSinglePrefixBlock, isPrefixBlock;
 	protected transient String cachedWildcardString;
 	
 	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix) throws AddressValueException {
+		if(bytes.length == 0 || bitCount == 0) {
+			throw new IllegalArgumentException();
+		}
 		maxValue = getMaxValue(bitCount);
 		this.bitCount = bitCount;
 		this.defaultRadix = BigInteger.valueOf(defaultRadix);
@@ -227,6 +237,16 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		networkPrefixLength = prefixLength;
 	}
 	
+	@Override
+	public BigInteger getValue() {
+		return value;
+	}
+	
+	@Override
+	public BigInteger getUpperValue() {
+		return upperValue;
+	}
+	
 	private static boolean isPrefixSubnetBlock(byte bytes[], byte upperBytes[], int bitCount, Integer prefix, boolean front, boolean back) {
 		if(prefix == null) {
 			return false;
@@ -297,7 +317,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	@Override
 	public boolean isBoundedBy(int val) {
 		BigInteger bigVal = BigInteger.valueOf(val);
-		return upperValue.compareTo(bigVal) < 0;
+		return getUpperValue().compareTo(bigVal) < 0;
 	}
 
 	@Override
@@ -305,12 +325,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		if(!isMultiple() && radix == getDefaultTextualRadix()) {//optimization - just get the string, which is cached, which speeds up further calls to this method or getString()
 			return getString().length();
 		}
-		return getDigitCountStatic(upperValue, radix);
-	}
-
-	@Override
-	public BigInteger getCount() {
-		return upperValue.subtract(value).add(BigInteger.ONE);
+		return getDigitCountStatic(getUpperValue(), radix);
 	}
 
 	@Override
@@ -320,17 +335,17 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	public boolean isMultiple() {
-		return !value.equals(upperValue);
+		return !getValue().equals(getUpperValue());
 	}
 	
 	@Override
 	public boolean includesZero() {
-		return value.equals(BigInteger.ZERO);
+		return getValue().equals(BigInteger.ZERO);
 	}
 	
 	@Override
 	public boolean includesMax() {
-		return upperValue.equals(maxValue);
+		return getUpperValue().equals(maxValue);
 	}
 
 	@Override
@@ -344,13 +359,8 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 
 	@Override
-	public boolean isFullRange() {
-		return includesZero() && includesMax();
-	}
-
-	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		return convert(low ? value.toByteArray() : upperValue.toByteArray(), (bitCount + 7) / 8, "");
+		return convert(low ? getValue().toByteArray() : getUpperValue().toByteArray(), (bitCount + 7) / 8, "");
 	}
 
 	@Override
@@ -370,12 +380,12 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected int adjustLowerLeadingZeroCount(int leadingZeroCount, int radix) {
-		return adjustLeadingZeroCount(leadingZeroCount, value, radix);
+		return adjustLeadingZeroCount(leadingZeroCount, getValue(), radix);
 	}
 
 	@Override
 	protected int adjustUpperLeadingZeroCount(int leadingZeroCount, int radix) {
-		return adjustLeadingZeroCount(leadingZeroCount, upperValue, radix);
+		return adjustLeadingZeroCount(leadingZeroCount, getUpperValue(), radix);
 	}
 	
 	private int adjustLeadingZeroCount(int leadingZeroCount, BigInteger value, int radix) {
@@ -402,13 +412,13 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	private static void toDefaultStringRecursive(BigInteger val, BigInteger radix, boolean uppercase, int choppedDigits, int digitCount, char dig[], boolean highest, StringBuilder builder) {
 		//if we ensure that our recursion always defers to the most significant digits first, then we can simply append to a string builder
-		if(val.compareTo(AddressDivisionGrouping.LONG_MAX) <= 0) {
+		if(val.compareTo(LONG_MAX) <= 0) {
 			long longVal = val.longValue();
 			int intRadix = radix.intValue();
 			if(!highest) {
-				getLeadingZeros(digitCount - AddressDivision.toUnsignedStringLength(longVal, intRadix), builder);
+				getLeadingZeros(digitCount - toUnsignedStringLength(longVal, intRadix), builder);
 			}
-			AddressDivision.toUnsignedString(longVal, intRadix, choppedDigits, uppercase, dig, builder);
+			toUnsignedString(longVal, intRadix, choppedDigits, uppercase, dig, builder);
 		} else {
 			int halfCount = digitCount >>> 1;
 			if(halfCount > choppedDigits) {
@@ -466,12 +476,15 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			return "1";
 		}
 		char dig[] = getDigits(radix.intValue(), uppercase);
-		StringBuilder builder = new StringBuilder();
+		StringBuilder builder;
 		if(maxDigits > 0) {//maxDigits is 0 or less if the max digits is unknown
-			if(maxDigits > choppedDigits) {
-				toDefaultStringRecursive(val, radix, uppercase, choppedDigits, maxDigits, dig, true, builder);
+			if(maxDigits <= choppedDigits) {
+				return "";
 			}
+			builder = new StringBuilder();
+			toDefaultStringRecursive(val, radix, uppercase, choppedDigits, maxDigits, dig, true, builder);
 		} else {
+			builder = null;
 			do {//value2 == quotient * 16 + remainder
 				BigInteger divisorRemainder[] = val.divideAndRemainder(radix);
 				BigInteger quotient = divisorRemainder[0];
@@ -480,9 +493,15 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 					--choppedDigits;
 					continue;
 				}
+				if(builder == null) {
+					builder = new StringBuilder();
+				}
 				builder.append(dig[remainder.intValue()]);
 				val = quotient;
 			} while(!val.equals(BigInteger.ZERO));
+			if(builder == null) {
+				return "";
+			}
 			builder.reverse();
 		}
 		return builder.toString();
@@ -504,7 +523,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
 						result = getDefaultString();
 					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
-						if(isPrefixed() && isPrefixBlock(getDivisionPrefixLength())) {
+						if(isPrefixBlock()) {
 							result = getDefaultMaskedRangeString();
 						} else {
 							result = getDefaultRangeString();
@@ -543,20 +562,20 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected String getDefaultString() {
-		return toDefaultString(value, defaultRadix, false, 0, getMaxDigitCount());
+		return toDefaultString(getValue(), defaultRadix, false, 0, getMaxDigitCount());
 	}
 
 	@Override
 	protected String getDefaultRangeString() {
 		int maxDigitCount = getMaxDigitCount();
-		return toDefaultString(value, defaultRadix, false, 0, maxDigitCount) + 
+		return toDefaultString(getValue(), defaultRadix, false, 0, maxDigitCount) + 
 				getDefaultRangeSeparatorString() + 
-				toDefaultString(upperValue, defaultRadix, false, 0, maxDigitCount);
+				toDefaultString(getUpperValue(), defaultRadix, false, 0, maxDigitCount);
 	}
 	
 	protected String getDefaultMaskedRangeString() {
 		int maxDigitCount = getMaxDigitCount();
-		return toDefaultString(value, defaultRadix, false, 0, maxDigitCount) + 
+		return toDefaultString(getValue(), defaultRadix, false, 0, maxDigitCount) + 
 				getDefaultRangeSeparatorString() + 
 				toDefaultString(upperValueMasked, defaultRadix, false, 0, maxDigitCount);
 	}
@@ -573,27 +592,27 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected int getLowerStringLength(int radix) {
-		return getDigitCount(value, defaultRadix);
+		return getDigitCount(getValue(), defaultRadix);
 	}
 
 	@Override
 	protected int getUpperStringLength(int radix) {
-		return getDigitCount(upperValue, defaultRadix);
+		return getDigitCount(getUpperValue(), defaultRadix);
 	}
 
 	@Override
 	protected void getLowerString(int radix, boolean uppercase, StringBuilder appendable) {
-		appendable.append(toDefaultString(value, radix, uppercase, 0));
+		appendable.append(toDefaultString(getValue(), radix, uppercase, 0));
 	}
 
 	@Override
 	protected void getLowerString(int radix, int choppedDigits, boolean uppercase, StringBuilder appendable) {
-		appendable.append(toDefaultString(value, radix, uppercase, choppedDigits));
+		appendable.append(toDefaultString(getValue(), radix, uppercase, choppedDigits));
 	}
 
 	@Override
 	protected void getUpperString(int radix, boolean uppercase, StringBuilder appendable) {
-		appendable.append(toDefaultString(upperValue, radix, uppercase, 0));
+		appendable.append(toDefaultString(getUpperValue(), radix, uppercase, 0));
 	}
 
 	@Override
@@ -723,7 +742,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		if(!isMultiple()) {
 			return 0;
 		}
-		BigInteger val = value, upperVal = upperValue;
+		BigInteger val = getValue(), upperVal = getUpperValue();
 		int count = 1;
 		BigInteger bigRadix = BigInteger.valueOf(radix);
 		BigInteger bigUpper = BigInteger.valueOf(radix - 1);
@@ -773,43 +792,25 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 		return networkPrefixLength;
 	}
 	
+	@Override
 	public boolean isPrefixed() {
 		return networkPrefixLength != null;
 	}
 
-	public boolean isPrefixBlock(int divisionPrefixLen) {
-		if(divisionPrefixLen == 0) {
-			return isFullRange();
+	@Override
+	protected boolean isSameValues(AddressDivisionBase otherSegment) {
+		return otherSegment instanceof IPAddressLargeDivision && super.isSameValues(otherSegment);
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if(other == this) {
+			return true;
 		}
-		int prefixLen = divisionPrefixLen;
-		BigInteger lower = value, upper = upperValue;
-		int hostBits = bitCount - prefixLen;
-		long fullMask = ~0L;
-		do {
-			long low = lower.longValue(); //returns lower % 2^64
-			long up = upper.longValue();
-			if(hostBits <= 64) {
-				long networkMask, hostMask;
-				if(hostBits == 64) {
-					networkMask = 0;
-					hostMask = fullMask;
-				} else {
-					networkMask = fullMask << hostBits;//prefixLen must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
-					hostMask = ~networkMask; 
-				}
-				long maskedLow = low & networkMask;
-				long maskedUp = up | hostMask;
-				return low == maskedLow
-						&& up == maskedUp;
-			} else {
-				if(low != 0 || up != fullMask) {
-					return false;
-				}
-			}
-			lower = lower.shiftRight(64);
-			upper = upper.shiftRight(64);
-			hostBits -= 64;
-		} while(!upper.equals(BigInteger.ZERO));
+		if(other instanceof IPAddressLargeDivision) {
+			IPAddressLargeDivision otherSegments = (IPAddressLargeDivision) other;
+			return getBitCount() == otherSegments.getBitCount() && otherSegments.isSameValues(this);
+		}
 		return false;
 	}
 }

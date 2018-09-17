@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@
 package inet.ipaddr.mac;
 
 import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.AddressCreator;
 
 public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		

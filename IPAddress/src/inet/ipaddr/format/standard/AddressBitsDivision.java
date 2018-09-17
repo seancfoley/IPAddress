@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import inet.ipaddr.AddressValueException;
+import inet.ipaddr.format.AddressDivisionBase;
 
 /**
  * An address division for mac
@@ -60,12 +61,12 @@ public class AddressBitsDivision extends AddressDivision {
 	}
 
 	@Override
-	public long getLowerValue() {
+	public long getDivisionValue() {
 		return value;
 	}
 
 	@Override
-	public long getUpperValue() {
+	public long getUpperDivisionValue() {
 		return upperValue;
 	}
 	
@@ -90,7 +91,7 @@ public class AddressBitsDivision extends AddressDivision {
 	}
 
 	@Override
-	protected boolean isSameValues(AddressDivision other) {
+	protected boolean isSameValues(AddressDivisionBase other) {
 		if(other instanceof AddressBitsDivision) {
 			return isSameValues((AddressBitsDivision) other);
 		}
@@ -109,11 +110,11 @@ public class AddressBitsDivision extends AddressDivision {
 		}
 		if(other instanceof AddressBitsDivision) {
 			AddressBitsDivision otherSegments = (AddressBitsDivision) other;
-			return isSameValues(otherSegments);
+			return getBitCount() == otherSegments.getBitCount() && otherSegments.isSameValues(this);
 		}
 		return false;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return (int) (value | (upperValue << getBitCount()));

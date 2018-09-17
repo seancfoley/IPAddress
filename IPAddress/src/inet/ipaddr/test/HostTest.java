@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -240,7 +240,7 @@ public class HostTest extends TestBase {
 	private void testNormalizedMatches(HostName h1) {
 		String normalized;
 		if(h1.isAddress() && h1.asAddress().isPrefixed() && h1.asAddress().isIPv6()) {
-			IPv6Address addr = h1.asAddress().getLower().removePrefixLength(false).toIPv6();
+			IPv6Address addr = h1.asAddress().getLower().withoutPrefixLength().toIPv6();
 			normalized = '[' + translateReserved(addr, addr.toNormalizedString()).toString() + "]/" + h1.asAddress().getNetworkPrefixLength();
 		} else if(h1.isAddress() && h1.asAddress().isIPv6()) {
 			IPv6Address addr = h1.asAddress().toIPv6();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork;

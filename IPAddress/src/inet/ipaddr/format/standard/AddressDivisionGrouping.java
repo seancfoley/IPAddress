@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import java.math.BigInteger;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.MissingResourceException;
 import java.util.NoSuchElementException;
-import java.util.ResourceBundle;
 import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 import java.util.function.LongSupplier;
@@ -41,14 +38,15 @@ import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressSegmentSeries;
 import inet.ipaddr.AddressValueException;
-import inet.ipaddr.HostIdentifierException;
-import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.NetworkMismatchException;
-import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.AddressDivisionGroupingBase;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.string.AddressStringDivision;
+import inet.ipaddr.format.string.AddressStringDivisionSeries;
 import inet.ipaddr.format.util.AddressDivisionWriter;
 import inet.ipaddr.format.util.AddressSegmentParams;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
@@ -62,26 +60,11 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * <p>
  *  @author sfoley
  */
-public class AddressDivisionGrouping implements AddressDivisionSeries, Comparable<AddressDivisionGrouping> {
+public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*implements AddressDivisionSeries , Comparable<AddressDivisionGrouping>*/ {
 
 	private static final long serialVersionUID = 4L;
 	
-	static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-
-	protected static final Integer NO_PREFIX_LENGTH = -1;
-	
-	static ResourceBundle bundle;
-	
-	static {
-		//reuse the same properties file
-		String propertyFileName = "IPAddressResources";
-		String name = HostIdentifierException.class.getPackage().getName() + '.' + propertyFileName;
-		try {
-			bundle = ResourceBundle.getBundle(name);
-		} catch (MissingResourceException e) {
-			System.err.println("bundle " + name + " is missing");
-		}
-	}
+	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 	
 	/* caches objects to avoid recomputing them */
 	protected static class SectionCache<R extends AddressSegmentSeries> {
@@ -100,213 +83,33 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		public String hexString;
 		public String hexStringPrefixed;
 	}
-	
-	protected static class ValueCache {
-		/* the address grouping bytes */
-		public byte[] lowerBytes, upperBytes;
-		public BigInteger value, upperValue;
-		
-		/* only used when address section is full section owned by an address */
-		public InetAddress inetAddress, upperInetAddress;
-	}
-	
-	protected transient ValueCache valueCache;
-	
-	private final AddressDivision divisions[];
-	protected Integer cachedPrefixLength; //null indicates this field not initialized, NO_PREFIX indicates the prefix len is null
-	
-	/* for addresses not multiple, we must check each segment, so we cache */
-	private transient Boolean isMultiple;
-	private transient BigInteger cachedCount;
-	
-	protected int hashCode;
-
-	static String getMessage(String key) {
-		if(bundle != null) {
-			try {
-				return bundle.getString(key);
-				
-			} catch (MissingResourceException e1) {}
-		}
-		return key;
-	}
 
 	public AddressDivisionGrouping(AddressDivision divisions[]) {
-		this(divisions, true);
+		super(divisions);
 	}
 	
 	public AddressDivisionGrouping(AddressDivision divisions[], boolean checkDivisions) {
-		this.divisions = divisions;
-		if(checkDivisions) {
-			for(int i = 0; i < divisions.length; i++) {
-				if(divisions[i] == null) {
-					throw new NullPointerException(getMessage("ipaddress.error.null.segment"));
-				}
-			}
-		}
-	}
-	
-	protected void initCachedValues(Integer cachedNetworkPrefixLength, BigInteger cachedCount) {
-		this.cachedPrefixLength = cachedNetworkPrefixLength == null ? NO_PREFIX_LENGTH : cachedNetworkPrefixLength;
-		this.cachedCount = cachedCount;
+		super(divisions, checkDivisions);
 	}
 	
 	@Override
 	public AddressDivision getDivision(int index) {
-		return getDivisionsInternal()[index];
+		return (AddressDivision) super.getDivision(index);
 	}
 
 	@Override
-	public int getDivisionCount() {
-		return getDivisionsInternal().length;
-	}
-	
-	@Override
-	public int getBitCount() {
-		int count = getDivisionCount();
-		int bitCount = 0;
-		for(int i = 0; i < count; i++) {
-			bitCount += getDivision(i).getBitCount();
-		}
-		return bitCount;
-	}
-	
-	/**
-	 * Gets the bytes for the lowest address in the range represented by this address.
-	 * <p>
-	 * Since bytes are signed values while addresses are unsigned, values greater than 127 are
-	 * represented as the (negative) two's complement value of the actual value.
-	 * You can get the unsigned integer value i from byte b using i = 0xff &amp; b.
-	 * 
-	 * @return
-	 */
-	@Override
-	public byte[] getBytes() {
-		return getBytesInternal().clone();
-	}
-	
-	//gets the bytes, sharing the cached array and does not clone it
-	protected byte[] getBytesInternal() {
-		byte cached[];
-		if(hasNoValueCache() || (cached = valueCache.lowerBytes) == null) {
-			valueCache.lowerBytes = cached = getBytesImpl(true);
-		}
-		return cached;
-	}
-	
-	/**
-	 * Gets the value for the lowest address in the range represented by this address division.
-	 * <p>
-	 * If the value fits in the specified array, the same array is returned with the value.  
-	 * Otherwise, a new array is allocated and returned with the value.
-	 * <p>
-	 * You can use {@link #getBitCount()} to determine the required array length for the bytes.
-	 * <p>
-	 * Since bytes are signed values while addresses are unsigned, values greater than 127 are
-	 * represented as the (negative) two's complement value of the actual value.
-	 * You can get the unsigned integer value i from byte b using i = 0xff &amp; b.
-	 * 
-	 * @return
-	 */
-	@Override
-	public byte[] getBytes(byte bytes[], int index) {
-		return getBytesCopy(bytes, index, getBytesInternal(), getBitCount());
-	}
-	
-	/**
-	 * Equivalent to {@link #getBytes(byte[], int)} with index of 0.
-	 */
-	@Override
-	public byte[] getBytes(byte bytes[]) {
-		return getBytes(bytes, 0);
-	}
-
-	private static byte[] getBytesCopy(byte[] bytes, int startIndex, byte[] cached, int bitCount) {
-		int byteCount = (bitCount + 7) >> 3;
-		if(bytes == null || bytes.length < byteCount + startIndex) {
-			if(startIndex > 0) {
-				byte bytes2[] = new byte[byteCount + startIndex];
-				if(bytes != null) {
-					System.arraycopy(bytes, 0, bytes2, 0, Math.min(startIndex, bytes.length));
-				}
-				System.arraycopy(cached, 0, bytes2, startIndex, cached.length);
-				return bytes2;
-			}
-			return cached.clone();
-		}
-		System.arraycopy(cached, 0, bytes, startIndex, byteCount);
-		return bytes;
-	}
-	
-	/**
-	 * Gets the bytes for the highest address in the range represented by this address.
-	 * 
-	 * @return
-	 */
-	@Override
-	public byte[] getUpperBytes() {
-		return getUpperBytesInternal().clone();
-	}
-	
-	/**
-	 * Gets the bytes for the highest address in the range represented by this address.
-	 * 
-	 * @return
-	 */
-	protected byte[] getUpperBytesInternal() {
-		byte cached[];
-		if(hasNoValueCache()) {
-			ValueCache cache = valueCache;
-			cache.upperBytes = cached = getBytesImpl(false);
-			if(!isMultiple()) {
-				cache.lowerBytes = cached;
-			}
-		} else {
-			ValueCache cache = valueCache;
-			if((cached = cache.upperBytes) == null) {
-				if(!isMultiple()) {
-					if((cached = cache.lowerBytes) != null) {
-						cache.upperBytes = cached;
-					} else {
-						cache.lowerBytes = cache.upperBytes = cached = getBytesImpl(false);
-					}
-				} else {
-					cache.upperBytes = cached = getBytesImpl(false);
-				}
-			}
-		}
-		return cached;
-	}
-
-	/**
-	 * Similar to {@link #getBytes(byte[], int)}, but for obtaining the upper value of the range.
-	 * If this division represents a single value, equivalent to {@link #getBytes(byte[], int)}
-	 */
-	@Override
-	public byte[] getUpperBytes(byte bytes[], int index) {
-		return getBytesCopy(bytes, index, getUpperBytesInternal(), getBitCount());
-	}
-	
-	/**
-	 * Equivalent to {@link #getBytes(byte[], int)} with index of 0.
-	 */
-	@Override
-	public byte[] getUpperBytes(byte bytes[]) {
-		return getBytes(bytes, 0);
-	}
-	
 	protected byte[] getBytesImpl(boolean low) {
 		byte bytes[] = new byte[(getBitCount() + 7) >> 3];
 		int byteCount = bytes.length;
 		int divCount = getDivisionCount();
 		for(int k = divCount - 1, byteIndex = byteCount - 1, bitIndex = 8; k >= 0; k--) {
 			AddressDivision div = getDivision(k);
-			long segmentValue = low ? div.getLowerValue() : div.getUpperValue();
+			long segmentValue = low ? div.getDivisionValue() : div.getUpperDivisionValue();
 			int divBits = div.getBitCount();
 			//write out this entire segment
 			while(divBits > 0) {
 				bytes[byteIndex] |= segmentValue << (8 - bitIndex);
-				segmentValue >>= bitIndex;
+				segmentValue >>>= bitIndex;
 				if(divBits < bitIndex) {
 					bitIndex -= divBits;
 					break;
@@ -319,244 +122,11 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		return bytes;
 	}
-	
-	//only called in constructors
-	protected void setBytes(byte bytes[]) {
-		if(valueCache == null) {
-			valueCache = new ValueCache();
-		}
-		valueCache.lowerBytes = bytes;
-	}
-	
-	//only called in constructors
-	protected void setUpperBytes(byte bytes[]) {
-		if(valueCache == null) {
-			valueCache = new ValueCache();
-		}
-		valueCache.upperBytes = bytes;
-	}
-	
-	@Override
-	public BigInteger getValue() {
-		BigInteger cached;
-		if(hasNoValueCache() || (cached = valueCache.value) == null) {
-			valueCache.value = cached = new BigInteger(1, getBytesInternal());
-		}
-		return cached;
-	}
-	
-	@Override
-	public BigInteger getUpperValue() {
-		BigInteger cached;
-		if(hasNoValueCache()) {
-			ValueCache cache = valueCache;
-			cache.upperValue = cached = new BigInteger(1, getUpperBytesInternal());
-			if(!isMultiple()) {
-				cache.value = cached;
-			}
-		} else {
-			ValueCache cache = valueCache;
-			if((cached = cache.upperValue) == null) {
-				if(!isMultiple()) {
-					if((cached = cache.value) != null) {
-						cache.upperValue = cached;
-					} else {
-						cache.value = cache.upperValue = cached = new BigInteger(1, getUpperBytesInternal());
-					}
-				} else {
-					cache.upperValue = cached = new BigInteger(1, getUpperBytesInternal());
-				}
-			}
-		}
-		return cached;
-	}
-	
-	protected boolean hasNoValueCache() {
-		if(valueCache == null) {
-			synchronized(this) {
-				if(valueCache == null) {
-					valueCache = new ValueCache();
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	@Override
-	public boolean isPrefixed() {
-		return getPrefixLength() != null;
-	}
-	
-	@Override
-	public Integer getPrefixLength() {
-		return cachedPrefixLength;
-	}
-	
-	/**
-	 * Returns the smallest prefix length possible such that this address division grouping includes the block of addresses for that prefix.
-	 *
-	 * @return the prefix length
-	 */
-	@Override
-	public int getMinPrefixLengthForBlock() {
-		int count = getDivisionCount();
-		int totalPrefix = getBitCount();
-		for(int i = count - 1; i >= 0 ; i--) {
-			AddressDivision div = getDivision(i);
-			int segBitCount = div.getBitCount();
-			int segPrefix = div.getMinPrefixLengthForBlock();
-			if(segPrefix == segBitCount) {
-				break;
-			} else {
-				totalPrefix -= segBitCount;
-				if(segPrefix != 0) {
-					totalPrefix += segPrefix;
-					break;
-				}
-			}
-		}
-		return totalPrefix;
-	}
 
-	/**
-	 * Returns a prefix length for which the range of this segment grouping matches the the block of addresses for that prefix.
-	 * 
-	 * If no such prefix exists, returns null
-	 * 
-	 * If this segment grouping represents a single value, returns the bit length
-	 * 
-	 * @return the prefix length or null
-	 */
-	@Override
-	public Integer getPrefixLengthForSingleBlock() {
-		int count = getDivisionCount();
-		int totalPrefix = 0;
-		for(int i = 0; i < count; i++) {
-			AddressDivision div = getDivision(i);
-			int divPrefix = div.getMinPrefixLengthForBlock();
-			if(!div.matchesWithMask(div.getLowerValue(), ~0 << (div.getBitCount() - divPrefix))) {
-				return null;
-			}
-			if(divPrefix < div.getBitCount()) {
-				//remaining segments must be full range or we return null
-				for(i++; i < count; i++) {
-					AddressDivision laterDiv = getDivision(i);
-					if(!laterDiv.isFullRange()) {
-						return null;
-					}
-				}
-				return cacheBits(totalPrefix + divPrefix);
-			}
-			totalPrefix += divPrefix;
-		}
-		return cacheBits(totalPrefix);
-	}
-     
 	protected static Integer cacheBits(int i) {
 		return ParsedAddressGrouping.cache(i);
 	}
-	
-	/**
-	 * gets the count of addresses that this address may represent
-	 * 
-	 * If this address division grouping is not a subnet block of multiple addresses or has no range of values, then there is only one such address.
-	 * 
-	 * @return
-	 */
-	@Override
-	public BigInteger getCount() {
-		BigInteger cached = cachedCount;
-		if(cached == null) {
-			cachedCount = cached = getCountImpl();
-		}
-		return cached;
-	}
 
-	protected BigInteger getCountImpl() {
-		BigInteger result = BigInteger.ONE;
-		int count = getDivisionCount();
-		if(count > 0) {
-			if(isMultiple()) {
-				for(int i = 0; i < count; i++) {
-					long segCount = getDivision(i).getDivisionValueCount();
-					result = result.multiply(BigInteger.valueOf(segCount));
-				}
-			}
-		}
-		return result;
-	}
-	
-	@Override
-	public BigInteger getPrefixCount() {
-		Integer prefixLength = getPrefixLength();
-		if(prefixLength == null || prefixLength >= getBitCount() || !isMultiple()) {
-			return getCount();
-		}
-		BigInteger result = BigInteger.ONE;
-		int divisionCount = getDivisionCount();
-		int divPrefixLength = prefixLength;
-		for(int i = 0; i < divisionCount; i++) {
-			AddressDivision division = getDivision(i);
-			int divBitCount = division.getBitCount();
-			long segCount = (divPrefixLength < divBitCount) ? 
-					division.getDivisionPrefixCount(divPrefixLength) :
-					division.getDivisionValueCount();
-			result = result.multiply(BigInteger.valueOf(segCount));
-			if(divPrefixLength <= divBitCount) {
-				break;
-			}
-			divPrefixLength -= divBitCount;
-		}
-		return result;
-	}
-	
-	@Override
-	public int isMore(AddressDivisionSeries other) {
-		if(!isMultiple()) {
-			return other.isMultiple() ? -1 : 0;
-		}
-		if(!other.isMultiple()) {
-			return 1;
-		}
-		return getCount().compareTo(other.getCount());
-	}
-	
-	/**
-	 * @return whether this address represents more than one address.
-	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
-	 */
-	@Override
-	public boolean isMultiple() {
-		Boolean result = isMultiple;
-		if(result == null) {
-			for(int i = getDivisionCount() - 1; i >= 0; i--) {//go in reverse order, with prefixes multiple more likely to show up in last segment
-				AddressDivision seg = getDivision(i);
-				if(seg.isMultiple()) {
-					return isMultiple = true;
-				}
-			}
-			return isMultiple = false;
-		}
-		return result;
-	}
-
-	@Override
-	public boolean isSinglePrefixBlock() {//Note for any given prefix length you can compare with getPrefixLengthForSingleBlock
-		return isPrefixed() && containsSinglePrefixBlock(getPrefixLength());
-	}
-
-	@Override
-	public boolean isPrefixBlock() { //Note for any given prefix length you can compare with getMinPrefixLengthForBlock
-		return isPrefixed() && containsPrefixBlock(getPrefixLength());
-	}
-
-	protected void checkSubnet(int prefixLength) throws PrefixLenException {
-		if(prefixLength < 0 || prefixLength > getBitCount()) {
-			throw new PrefixLenException(this, prefixLength);
-		}
-	}
-	
 	/**
 	 * Returns whether the values of this division grouping contain the prefix block for the given prefix length
 	 * 
@@ -565,7 +135,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 */
 	@Override
 	public boolean containsPrefixBlock(int prefixLength) {
-		checkSubnet(prefixLength);
+		checkSubnet(this, prefixLength);
 		int divisionCount = getDivisionCount();
 		int prevBitCount = 0;
 		for(int i = 0; i < divisionCount; i++) {
@@ -574,7 +144,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			int totalBitCount = bitCount + prevBitCount;
 			if(prefixLength < totalBitCount) {
 				int divPrefixLen = Math.max(0, prefixLength - prevBitCount);
-				if(!division.isPrefixBlock(division.getLowerValue(), division.getUpperValue(), divPrefixLen)) {
+				if(!division.isPrefixBlock(division.getDivisionValue(), division.getUpperDivisionValue(), divPrefixLen)) {
 					return false;
 				}
 				for(++i; i < divisionCount; i++) {
@@ -597,7 +167,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 */
 	@Override
 	public boolean containsSinglePrefixBlock(int prefixLength) {
-		checkSubnet(prefixLength);
+		checkSubnet(this, prefixLength);
 		int divisionCount = getDivisionCount();
 		int prevBitCount = 0;
 		for(int i = 0; i < divisionCount; i++) {
@@ -610,7 +180,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 				}
 			} else {
 				int divPrefixLen = Math.max(0, prefixLength - prevBitCount);
-				if(!division.isSinglePrefixBlock(division.getLowerValue(), division.getUpperValue(), divPrefixLen)) {
+				if(!division.isSinglePrefixBlock(division.getDivisionValue(), division.getUpperDivisionValue(), divPrefixLen)) {
 					return false;
 				}
 				for(++i; i < divisionCount; i++) {
@@ -625,43 +195,25 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		return true;
 	}
-
+	
 	@Override
 	public int hashCode() {
 		int res = hashCode;
 		if(res == 0) {
-			int fullResult = 1;
+			res = 1;
 			int count = getDivisionCount();
 			for(int i = 0; i < count; i++) {
 				AddressDivision combo = getDivision(i);
-				long value = combo.getLowerValue();
-				long shifted = value >>> 32;
-				int adjusted = (int) ((shifted == 0) ? value : (value ^ shifted));
-				fullResult = 31 * fullResult + adjusted;
-				long upperValue = combo.getUpperValue();
-				if(upperValue != value) {
-					shifted = upperValue >>> 32;
-					adjusted = (int) ((shifted == 0) ? upperValue : (upperValue ^ shifted));
-					fullResult = 31 * fullResult + adjusted;
-				}
+				res = adjustHashCode(res, combo.getDivisionValue(), combo.getUpperDivisionValue());
 			}
-			hashCode = res = fullResult;
+			hashCode = res;
 		}
 		return res;
 	}
 
-	protected boolean isSameGrouping(AddressDivisionGrouping other) {
-		if(getDivisionCount() != other.getDivisionCount()) {
-			return false;
-		}
-		for(int i = 0; i < getDivisionCount(); i++) {
-			AddressDivision one = getDivision(i);
-			AddressDivision two = other.getDivision(i);
-			if(!one.isSameValues(two)) {
-				return false;
-			}
-		}
-		return true;
+	@Override
+	protected boolean isSameGrouping(AddressDivisionGroupingBase other) {
+		return other instanceof AddressDivisionGrouping && super.isSameGrouping(other);
 	}
 
 	@Override
@@ -671,90 +223,10 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		if(o instanceof AddressDivisionGrouping) {
 			AddressDivisionGrouping other = (AddressDivisionGrouping) o;
-			return other.isSameGrouping(this); //we call isSameGrouping on the other object to defer to subclasses
+			// we call isSameGrouping on the other object to defer to subclasses IPv4 and IPv6 which check for type IPv4AddressSection and IPv6AddressSection
+			return other.isSameGrouping(this);
 		}
 		return false;
-	}
-
-	@Override
-	public int compareTo(AddressDivisionGrouping other) {
-		return IPAddress.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
-	}
-
-	protected AddressDivision[] getDivisionsInternal() {
-		return divisions;
-	}
-	
-	@Override
-	public String toString() {
-		return Arrays.asList(getDivisionsInternal()).toString();
-	}
-	
-	@Override
-	public String[] getDivisionStrings() {
-		String result[] = new String[getDivisionCount()];
-		Arrays.setAll(result, i -> getDivision(i).getWildcardString());
-		return result;
-	}
-	
-	@Override
-	public boolean isZero() {
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			if(!getDivision(i).isZero()) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	@Override
-	public boolean includesZero() {
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			if(!getDivision(i).includesZero()) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	@Override
-	public boolean isMax() {
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			if(!getDivision(i).isMax()) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	@Override
-	public boolean includesMax() {
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			if(!getDivision(i).includesMax()) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	@Override
-	public boolean isFullRange() {
-		int divCount = getDivisionCount();
-		//if we have calculated prefix already, we use it
-		//otherwise we do not, considering that calculating the prefix
-		//may also require checking each division
-		//in cases where calculating prefix is quicker, we override this method
-		for(int i = 0; i < divCount; i++) {
-			AddressDivision div = getDivision(i);
-			if(!div.isFullRange()) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	protected static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
@@ -775,6 +247,10 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	
 	protected static Integer getSegmentPrefixLength(int segmentBits, int segmentPrefixedBits) {
 		return ParsedAddressGrouping.getSegmentPrefixLength(segmentBits, segmentPrefixedBits);
+	}
+	
+	protected static int getNetworkPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
+		return ParsedAddressGrouping.getNetworkPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 	}
 
 	protected int getAdjustedPrefix(boolean nextSegment, int bitsPerSegment, boolean skipBitCountPrefix) {
@@ -897,15 +373,16 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return segments;
 	}
 
-	protected interface SegFunction<T, U, V, R> {
-	    R apply(T t, U u, V v);
+	@FunctionalInterface
+	protected interface SegPrefFunction<S> {
+	    S apply(S s, Integer u, Integer v);
 	}
 	
 	protected static <R extends AddressSection, S extends AddressSegment> S[] removePrefix(
 			R original,
 			S segments[],
 			int segmentBitCount,
-			SegFunction<S, Integer, Integer, S> prefixSetter //this one takes both new and old prefix and both zeros out old pref and applies new one
+			SegPrefFunction<S> prefixSetter //this one takes both new and old prefix and both zeros out old pref and applies new one
 			) {
 		Integer oldPrefix = original.getPrefixLength();
 		if(oldPrefix != null) {
@@ -918,6 +395,31 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return segments;
 	}
 
+	protected static boolean prefixEquals(AddressSection first, AddressSection other, int otherIndex) {
+		Integer prefixLength = first.getPrefixLength();
+		int prefixedSection;
+		if(prefixLength == null) {
+			prefixedSection = first.getSegmentCount();
+		} else {
+			prefixedSection = getNetworkSegmentIndex(prefixLength, first.getBytesPerSegment(), first.getBitsPerSegment());
+			if(prefixedSection >= 0) {
+				AddressSegment one = first.getSegment(prefixedSection);
+				AddressSegment two = other.getSegment(prefixedSection + otherIndex);
+				if(!one.prefixEquals(two, prefixLength)) {
+					return false;
+				}
+			}
+		}
+		while(--prefixedSection >= 0) {
+			AddressSegment one = first.getSegment(prefixedSection);
+			AddressSegment two = other.getSegment(prefixedSection + otherIndex);
+			if(!one.equals(two)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	protected static <S extends AddressSegment> S[] createSegments(
 			S segments[],
 			long highBytes,
@@ -1109,22 +611,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		}
 		return segs;
 	}
-	
-	protected static <R extends AddressSegmentSeries> SectionCache<R> getSectionCache(
-			R section,
-			Supplier<SectionCache<R>> sectionCacheGetter,
-			Supplier<SectionCache<R>> sectionCacheCreator) {
-		SectionCache<R> result = sectionCacheGetter.get();
-		if(result == null) {
-			synchronized(section) {
-				result = sectionCacheGetter.get();
-				if(result == null) {
-					result = sectionCacheCreator.get();
-				}
-			}
-		}
-		return result;
-	}
 
 	protected static <R extends AddressSegmentSeries> R getSingleLowestOrHighestSection(R section) {
 		if(!section.isMultiple() && !(section.isPrefixed() && section.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets())) {
@@ -1212,9 +698,6 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		S createDivision(long value, long upperValue, int bitCount, int radix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength);
 	}
 	
-	protected static BigInteger getRadixPower(BigInteger radix, int power) {
-		return AddressDivisionBase.getRadixPower(radix, power);
-	}
 	/**
 	 * 
 	 * @param bitsPerDigit
@@ -1260,11 +743,11 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		S divs[] = groupingArrayCreator.apply(bitDivSize);
 		int currentSegmentIndex = 0;
 		AddressDivision seg = getDivision(currentSegmentIndex);
-		long segLowerVal = seg.getLowerValue();
-		long segUpperVal = seg.getUpperValue();
+		long segLowerVal = seg.getDivisionValue();
+		long segUpperVal = seg.getUpperDivisionValue();
 		int segBits = seg.getBitCount();
 		int bitsSoFar = 0;
-		int radix = getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
+		int radix = AddressDivision.getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
 		//fill up our new divisions, one by one
 		for(int i = bitDivSize - 1; i >= 0; i--) {
 			int originalDivBitSize, divBitSize;
@@ -1286,8 +769,8 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 					if(segBits == 0 && i > 0) {
 						//get next seg
 						seg = getDivision(++currentSegmentIndex);
-						segLowerVal = seg.getLowerValue();
-						segUpperVal = seg.getUpperValue();
+						segLowerVal = seg.getDivisionValue();
+						segUpperVal = seg.getUpperDivisionValue();
 						segBits = seg.getBitCount();
 					}
 					break;
@@ -1299,8 +782,8 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 					
 					//get next seg
 					seg = getDivision(++currentSegmentIndex);
-					segLowerVal = seg.getLowerValue();
-					segUpperVal = seg.getUpperValue();
+					segLowerVal = seg.getDivisionValue();
+					segUpperVal = seg.getUpperDivisionValue();
 					segBits = seg.getBitCount();
 				}
 			}
@@ -1369,12 +852,13 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		return creator.createPrefixedSectionInternal(next, prefixLength, true);
 	}
 	
-	protected <S extends AddressSegment> Iterator<S[]> iterator(
+	protected static <S extends AddressSegment> Iterator<S[]> iterator(
+			int divCount,
 			AddressSegmentCreator<S> segmentCreator,
 			Supplier<S[]> segSupplier,
 			IntFunction<Iterator<S>> segIteratorProducer,
 			Predicate<S[]> excludeFunc) {
-		return iterator(segmentCreator, segSupplier, segIteratorProducer, excludeFunc, getDivisionCount() - 1, getDivisionCount(), null);
+		return iterator(divCount, segmentCreator, segSupplier, segIteratorProducer, excludeFunc, divCount - 1, divCount, null);
 	}
 	
 	/**
@@ -1388,16 +872,16 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	 * @param prefixedSegIteratorProducer
 	 * @return
 	 */
-	protected <S extends AddressSegment> Iterator<S[]> iterator(
+	protected static <S extends AddressSegment> Iterator<S[]> iterator(
+			int divCount,
 			AddressSegmentCreator<S> segmentCreator,
-			Supplier<S[]> segSupplier,
+			Supplier<S[]> segSupplier,//provides the original segments in an array for a single valued iterator
 			IntFunction<Iterator<S>> segIteratorProducer,
 			Predicate<S[]> excludeFunc,
 			int networkSegmentIndex,
 			int hostSegmentIndex,
 			IntFunction<Iterator<S>> prefixedSegIteratorProducer) {
-		final int segmentCount = getDivisionCount();
-		if(!isMultiple() && (prefixedSegIteratorProducer == null || hostSegmentIndex >= segmentCount)) {
+		if(segSupplier != null) {
 			return new Iterator<S[]>() {
 				S result[] = segSupplier.get(); {
 					if(excludeFunc != null && excludeFunc.test(result)) {
@@ -1431,11 +915,11 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			private boolean done;
 				
 			@SuppressWarnings("unchecked")
-			private final Iterator<S> variations[] = new Iterator[segmentCount];
+			private final Iterator<S> variations[] = new Iterator[divCount];
 			
-			private S nextSet[] = segmentCreator.createSegmentArray(segmentCount);  {
+			private S nextSet[] = segmentCreator.createSegmentArray(divCount);  {
 				updateVariations(0);
-				for(int i = networkSegmentIndex + 1; i < segmentCount; i++) {
+				for(int i = networkSegmentIndex + 1; i < divCount; i++) {//for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1)
 					variations[i] = prefixedSegIteratorProducer.apply(i);
 					nextSet[i] = variations[i].next();
 				}
@@ -1471,7 +955,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		    
 		    private S[] increment() {
 		    	S previousSegs[] = null;
-		    	for(int j = networkSegmentIndex; j >= 0; j--) {
+		    	for(int j = networkSegmentIndex; j >= 0; j--) {//for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1)
 		    		while(variations[j].hasNext()) {
 		    			if(previousSegs == null) {
 		    				previousSegs = nextSet.clone();
@@ -1499,10 +983,9 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 	protected static <T extends Address, S extends AddressSegment> Iterator<T> iterator(
 			T original,
 			AddressCreator<T, ?, ?, S> creator,
-			boolean useOriginal,
-			Iterator<S[]> iterator,
-			Integer prefixLength) {
-		if(useOriginal) {
+			Iterator<S[]> iterator, /* unused if original not null */
+			Integer prefixLength /* if the segments themselves do not have associated prefix length, one can be supplied here */) {
+		if(original != null) {
 			return new Iterator<T>() {
 				T orig = original;
 
@@ -1732,12 +1215,12 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 			int segRange = seg.getValueCount();
 			long revolutions = increment / segRange;
 			int remainder = (int) (increment % segRange);
-			S newSegment = addrCreator.createSegment(seg.getLowerSegmentValue() + remainder);
+			S newSegment = addrCreator.createSegment(seg.getSegmentValue() + remainder);
 			newSegments[i] = newSegment;
 			if(revolutions == 0) {
 				for(i--; i >= 0; i--) {
 					AddressSegment original = section.getSegment(i);
-					newSegments[i] = addrCreator.createSegment(original.getLowerSegmentValue());
+					newSegments[i] = addrCreator.createSegment(original.getSegmentValue());
 				}
 				break;
 			} else {
@@ -2050,7 +1533,7 @@ public class AddressDivisionGrouping implements AddressDivisionSeries, Comparabl
 		
 		public StringBuilder appendLabel(StringBuilder builder) {
 			String str = getAddressLabel();
-			if(str != null) {
+			if(str != null && str.length() > 0) {
 				builder.append(str);
 			}
 			return builder;

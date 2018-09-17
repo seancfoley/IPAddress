@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.mac.MACAddress;
 
 /* 
- * 
  * Some MAC address resources:
  * https://supportforums.cisco.com/document/100566/understanding-ipv6-eui-64-bit-address
  * http://aruljohn.com/mac.pl
@@ -114,13 +113,13 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	
 	/* the full original string address  */
 	final String fullAddr;
-	
+
 	// fields for validation state
-	
+
 	/* exceptions and booleans for validation - for type INVALID it is non-null */
 	private AddressStringException cachedException;
 	
-	//an object created by parsing that will provide the associated IPAddress(es)
+	// an object created by parsing that will provide the associated IPAddress(es)
 	private MACAddressProvider parsedAddress;
 	
 	private Boolean isValid;
@@ -152,7 +151,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	}
 	
 	public MACAddressString(MACAddress address) {
-		validationOptions = null; //no validation required, already validated
+		validationOptions = null; // no validation required, already validated
 		fullAddr = address.toNormalizedString();
 		initByAddress(address);
 	}
@@ -160,16 +159,16 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	void cacheAddress(MACAddress address) {
 		initByAddress(address);
 	}
-	
+
 	void initByAddress(MACAddress address) {
 		this.parsedAddress = new ParsedMACAddressProvider(address);
 		isValid = true;
 	}
-	
+
 	public MACAddressStringParameters getValidationOptions() {
 		return validationOptions;
 	}
-	
+
 	/**
 	 * @return whether this address represents the set of all addresses with the same prefix
 	 */
@@ -265,7 +264,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	protected HostIdentifierStringValidator getValidator() {
 		return Validator.VALIDATOR;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		if(isValid() && !isEmpty()) {
@@ -313,18 +312,24 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		if(o instanceof MACAddressString) {
 			MACAddressString other = (MACAddressString) o;	
 			//if they have the same string, they must be the same,
-			//but the converse is not true, if they have different strings, they can
-			//still be the same because IPv6 addresses have many representations
-			//and additional things like leading zeros can have an effect for IPv4
-			if(toString().equals(other.toString())) {
+			//but the converse is not true, if they have different strings, they can still be the same
+
+			// Also note that we do not call equals() on the validation options, this is intended as an optimization,
+			// and probably better to avoid going through all the validation objects here
+			boolean stringsMatch = toString().equals(other.toString());
+			if(stringsMatch && validationOptions == other.validationOptions) {
 				return true;
 			}
 			if(isEmpty()) {
 				return other.isEmpty();
 			}
-			if(isValid() && other.isValid()) {
-				return getAddress().equals(other.getAddress());
-			} //else we have already compared strings.  Two invalid addresses are not equal unless strings match
+			if(isValid()) {
+				if(other.isValid()) {
+					return getAddress().equals(other.getAddress());
+				}
+			} else if(!other.isValid()) {
+				return stringsMatch; // Two invalid addresses are not equal unless strings match, regardless of validation options
+			}
 		}
 		return false;
 	}
@@ -345,7 +350,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Produces the {@link MACAddress} corresponding to this MACAddressString.  If this object does not represent a specific MACAddress or a ranged MACAddress, null is returned,
 	 * which may be the case if this object represents the empty address string.
@@ -363,7 +368,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return parsedAddress.getAddress();
 	}
-	
+
 	@Override
 	public String toNormalizedString() {
 		MACAddress addr = getAddress();
@@ -372,7 +377,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		}
 		return toString();
 	}
-	
+
 	/**
 	 * Gives us the original string provided to the constructor.  For variations, call {@link #getAddress()}/{@link #toAddress()} and then use string methods on the address object.
 	 */
@@ -380,7 +385,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	public String toString() {
 		return fullAddr;
 	}
-	
+
 	/**
 	 * Given a string with comma delimiters to denote segment elements, this method will count the possible combinations.
 	 * 
@@ -392,7 +397,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	public static int countDelimitedAddresses(String str) {
 		return IPAddressString.countDelimitedAddresses(str);
 	}
-	
+
 	/**
 	 * Given a string with comma delimiters to denote segment elements, this method will provide an iterator to iterate through the possible combinations.
 	 * 

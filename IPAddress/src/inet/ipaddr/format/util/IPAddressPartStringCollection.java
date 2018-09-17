@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
-import inet.ipaddr.format.AddressStringDivision;
-import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.string.AddressStringDivision;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 
 /**
  * 

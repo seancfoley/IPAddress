@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import inet.ipaddr.AddressComparator.CountComparator;
+import inet.ipaddr.AddressComparator.ValueComparator;
 import inet.ipaddr.format.AddressDivisionSeries;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
@@ -33,25 +34,19 @@ import inet.ipaddr.mac.MACAddressNetwork;
  * @author sfoley
  *
  */
-public abstract class Address implements AddressSegmentSeries, Comparable<Address> {
+public abstract class Address implements AddressSegmentSeries {
 	
 	private static final long serialVersionUID = 4L;
-
-	/**
-	 * @custom.core
-	 * @author sfoley
-	 *
-	 */
-	public static interface AddressProvider {
-		int getSegmentCount();
+	
+	public static interface AddressValueProvider {
 		
+		int getSegmentCount();
+
 		SegmentValueProvider getValues();
 		
-		SegmentValueProvider getUpperValues();
-		
-		Integer getPrefixLength();
-		
-		String getZone();
+		default SegmentValueProvider getUpperValues() {
+			return getValues();
+		}
 	}
 	
 	/**
@@ -77,7 +72,8 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public static final char SEGMENT_SQL_SINGLE_WILDCARD = '_';
 	public static final String SEGMENT_SQL_SINGLE_WILDCARD_STR = String.valueOf(SEGMENT_SQL_SINGLE_WILDCARD);
 	
-	public static final AddressComparator DEFAULT_ADDRESS_COMPARATOR = new CountComparator();
+	public static final AddressComparator DEFAULT_ADDRESS_COMPARATOR = new CountComparator(true);
+	public static final AddressComparator ADDRESS_LOW_VALUE_COMPARATOR = new ValueComparator(true, false);
 
 	private static MACAddressNetwork macNetwork;
 	private static IPv6AddressNetwork ipv6Network;
@@ -180,12 +176,6 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		getSection().getSegments(start, end, segs, index);
 	}
 
-	/**
-	 * @return the maximum possible segment value for this type of address.  
-	 * Note this is not the maximum value of the segments in this specific address.
-	 */
-	public abstract int getMaxSegmentValue();
-
 	@Override
 	public abstract Iterable<? extends Address> getIterable();
 
@@ -196,10 +186,10 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	public abstract Iterator<? extends Address> prefixBlockIterator();
 	
 	@Override
-	public abstract Address increment(long increment);
+	public abstract Address increment(long increment) throws AddressValueException;
 	
 	@Override
-	public abstract Address incrementBoundary(long increment);
+	public abstract Address incrementBoundary(long increment) throws AddressValueException;
 	
 	@Override
 	public abstract Address getLower();
@@ -289,6 +279,18 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	@Override
 	public BigInteger getCount() {
 		return getSection().getCount();
+	}
+	
+	/**
+	 * Gets the count of prefixes in this address for the given prefix length.
+	 * 
+	 * If this address is not a subnet block of multiple addresses or has no range of values, then there is only one.
+	 * 
+	 * @return
+	 */
+	@Override
+	public BigInteger getPrefixCount(int prefixLength) {
+		return getSection().getPrefixCount(prefixLength);
 	}
 	
 	/**
@@ -389,13 +391,13 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		return getSection().hashCode();
 	}
 	
-	@Override
-	public int compareTo(Address other) {
-		if(this == other) {
-			return 0;
-		}
-		return DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
-	}
+//	@Override
+//	public int compareTo(Address other) {
+//		if(this == other) {
+//			return 0;
+//		}
+//		return DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
+//	}
 
 	protected abstract boolean isFromSameString(HostIdentifierString otherString);
 	
@@ -421,8 +423,20 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 		return false;
 	}
 	
-	public abstract boolean contains(Address other);
-
+	public boolean prefixEquals(Address other) {
+		if(other == this) {
+			return true;
+		}
+		return getSection().prefixEquals(other.getSection());
+	}
+	
+	public boolean contains(Address other) {
+		if(other == this) {
+			return true;
+		}
+		return getSection().contains(other.getSection());
+	}
+	
 	/**
 	 * Returns a host identifier string representation for this address,
 	 * which will be already validated.
@@ -445,7 +459,7 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 
 	/**
 	 * The normalized string returned by this method is a common and consistent representation of the address.
-	 * 
+	 * <p>
 	 * The string returned by this method is unique for each address.
 	 */
 	@Override
@@ -455,12 +469,12 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	/**
 	 * This produces a canonical string.
-	 * 
+	 * <p>
 	 * RFC 5952 describes canonical representations for Ipv6
 	 * http://en.wikipedia.org/wiki/IPv6_address#Recommended_representation_as_text
 	 * http://tools.ietf.org/html/rfc5952
-	 * 
-	 * Each address has a unique canonical string, not counting the prefix, which can give two equal addresses different strings.
+	 * <p>
+	 * Each address has a unique canonical string, not counting the prefix.  The prefix can cause two equal addresses to have different strings.
 	 */
 	@Override
 	public String toCanonicalString() {
@@ -540,6 +554,9 @@ public abstract class Address implements AddressSegmentSeries, Comparable<Addres
 	
 	@Override
 	public abstract Address removePrefixLength();
+	
+	@Override
+	public abstract Address withoutPrefixLength();
 	
 	@Override
 	public abstract Address removePrefixLength(boolean zeroed);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,10 @@ public class AddressConversionException extends RuntimeException {
 	
 	static String getMessage(String key) {
 		return AddressStringException.getMessage(key);
+	}
+	
+	public AddressConversionException(AddressItem one) {
+		super(one + ", " + errorMessage + " " + getMessage("ipaddress.error.version.mismatch"));
 	}
 	
 	public AddressConversionException(AddressItem one, AddressItem two) {

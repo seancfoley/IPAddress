@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import java.util.Arrays;
 
@@ -28,6 +28,11 @@ import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.InconsistentPrefixException;
+import inet.ipaddr.format.AddressDivisionGroupingBase;
+import inet.ipaddr.format.AddressDivisionSeries;
+import inet.ipaddr.format.IPAddressDivisionSeries;
+import inet.ipaddr.format.string.IPAddressStringDivision;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -49,7 +54,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <p>
  *  @author sfoley
  */
-public class IPAddressDivisionGrouping extends AddressDivisionGrouping implements IPAddressStringDivisionSeries {
+public class IPAddressDivisionGrouping extends AddressDivisionGrouping implements IPAddressDivisionSeries {
 
 	private static final long serialVersionUID = 4L;
 	
@@ -139,51 +144,23 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 		return getCount().compareTo(other.getCount());
 	}
 	
-	/**
-	 * @return whether this address represents a network prefix or the set of all addresses with the same network prefix
-	 */
-	@Override
-	public boolean isPrefixed() {
-		return getNetworkPrefixLength() != null;
-	}
-	
 	@Override
 	public Integer getPrefixLength() {
 		return getNetworkPrefixLength();
 	}
-	
-	protected Integer calculatePrefix() {
-		int result = 0;
-		int count = getDivisionCount();
-		for(int i = 0; i < count; i++) { 
-			IPAddressDivision div = getDivision(i);
-			Integer prefix = div.getDivisionPrefixLength();
-			if(prefix != null) {
-				result += prefix;
-				return result;
-			} else {
-				result += div.getBitCount();
-			}
-		}
-		return null;
-	}
-	
+
+	@Override
 	public Integer getNetworkPrefixLength() {
 		Integer ret = cachedPrefixLength;
 		if(ret == null) {
-			int count = getDivisionCount();
-			if(count > 0) {
-				if(!getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() || getDivision(count - 1).isPrefixed()) {
-					Integer result = calculatePrefix();
-					if(result != null) {
-						return cachedPrefixLength = result;
-					}
-				}
+			Integer result = calculatePrefix(this);
+			if(result != null) {
+				return cachedPrefixLength = result;
 			}
 			cachedPrefixLength = NO_PREFIX_LENGTH;
 			return null;
 		}
-		if(ret == NO_PREFIX_LENGTH) {
+		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
 			return null;
 		}
 		return ret;
@@ -210,83 +187,15 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 		}
 		return containsPrefixBlock(networkPrefixLength);
 	}
-
-	@Override
-	public boolean containsPrefixBlock(int prefixLength) {
-		checkSubnet(prefixLength);
-		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
-		if(isAllSubnets && isPrefixed() && getNetworkPrefixLength() <= prefixLength) {
-			return true;
-		}
-		int prevBitCount = 0;
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			IPAddressDivision div = getDivision(i);
-			int bitCount = div.getBitCount();
-			int totalBitCount = bitCount + prevBitCount;
-			if(prefixLength < totalBitCount) {
-				int divPrefixLen = Math.max(0, prefixLength - prevBitCount);
-				if(!div.isPrefixBlock(divPrefixLen)) {
-					return false;
-				}
-				if(isAllSubnets && div.isPrefixed()) {
-					return true;
-				}
-				for(++i; i < divCount; i++) {
-					div = getDivision(i);
-					if(!div.isFullRange()) {
-						return false;
-					}
-					if(isAllSubnets && div.isPrefixed()) {
-						return true;
-					}
-				}
-				return true;
-			}
-			prevBitCount = totalBitCount;
-		}
-		return true;
-	}
 	
 	@Override
+	public boolean containsPrefixBlock(int prefixLength) {
+		return containsPrefixBlock(this, prefixLength);
+	}
+
+	@Override
 	public boolean containsSinglePrefixBlock(int prefixLength) {
-		checkSubnet(prefixLength);
-		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
-		if(isAllSubnets && isPrefixed() && getNetworkPrefixLength() < prefixLength) {
-			return false;
-		}
-		int prevBitCount = 0;
-		int divCount = getDivisionCount();
-		for(int i = 0; i < divCount; i++) {
-			IPAddressDivision div = getDivision(i);
-			int bitCount = div.getBitCount();
-			int totalBitCount = bitCount + prevBitCount;
-			if(prefixLength >= totalBitCount) {
-				if(div.isMultiple()) {
-					return false;
-				}
-			} else  {
-				int divPrefixLen = Math.max(0, prefixLength - prevBitCount);
-				if(!div.isSinglePrefixBlock(divPrefixLen)) {
-					return false;
-				}
-				if(isAllSubnets && div.isPrefixed()) {
-					return true;
-				}
-				for(++i; i < divCount; i++) {
-					div = getDivision(i);
-					if(!div.isFullRange()) {
-						return false;
-					}
-					if(isAllSubnets && div.isPrefixed()) {
-						return true;
-					}
-				}
-				return true;
-			}
-			prevBitCount = totalBitCount;
-		}
-		return true;
+		return containsSinglePrefixBlock(this, prefixLength);
 	}
 
 	/**
@@ -304,38 +213,9 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	
 	@Override
 	public Integer getPrefixLengthForSingleBlock() {
-		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			int totalPrefix = 0;
-			int divCount = getDivisionCount();
-			for(int i = 0; i < divCount; i++) {
-				IPAddressDivision div = getDivision(i);
-				int segPrefix = div.getMinPrefixLengthForBlock();
-				if(!div.isSinglePrefixBlock(segPrefix)) {
-					return null;
-				}
-				if(div.isPrefixed()) {
-					return cacheBits(totalPrefix + segPrefix);
-				}
-				if(segPrefix < div.getBitCount()) {
-					//remaining segments must be full range or we return null
-					for(i++; i < divCount; i++) {
-						IPAddressDivision laterDiv = getDivision(i);
-						if(!laterDiv.isFullRange()) {
-							return null;
-						}
-						if(laterDiv.isPrefixed()) {
-							break;
-						}
-					}
-					return cacheBits(totalPrefix + segPrefix);
-				}
-				totalPrefix += segPrefix;
-			}
-			return cacheBits(totalPrefix);
-		}
-		return super.getPrefixLengthForSingleBlock();
+		return getPrefixLengthForSingleBlock(this);
 	}
-	
+
 	public boolean includesZeroHost() {
 		Integer networkPrefixLength = getNetworkPrefixLength();
 		if(networkPrefixLength == null || networkPrefixLength >= getBitCount()) {
@@ -350,7 +230,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 			Integer segmentPrefixLength = div.getDivisionPrefixLength();
 			if(segmentPrefixLength != null) {
 				long mask = ~(~0 << (div.getBitCount() - segmentPrefixLength));
-				if((mask & div.getLowerValue()) != 0) {
+				if((mask & div.getDivisionValue()) != 0) {
 					return false;
 				}
 				for(++i; i < divCount; i++) {
@@ -365,13 +245,19 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	}
 
 	@Override
+	protected boolean isSameGrouping(AddressDivisionGroupingBase other) {
+		return other instanceof IPAddressDivisionGrouping && super.isSameGrouping(other);
+	}
+	
+	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
 			return true;
 		}
 		if(o instanceof IPAddressDivisionGrouping) {
 			IPAddressDivisionGrouping other = (IPAddressDivisionGrouping) o;
-			return other.isSameGrouping(this); //we call isSameGrouping on the other object to defer to subclasses
+			// we call isSameGrouping on the other object to defer to subclasses IPv4 and IPv6 which check for type IPv4AddressSection and IPv6AddressSection
+			return other.isSameGrouping(this); 
 		}
 		return false;
 	}

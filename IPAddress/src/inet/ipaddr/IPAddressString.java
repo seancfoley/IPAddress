@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,10 +162,9 @@ import inet.ipaddr.mac.MACAddress;
  * 
  * Some parsing code for various languages: https://rosettacode.org/wiki/Parse_an_IP_Address
  * http://www.cisco.com/c/en/us/support/docs/ip/routing-information-protocol-rip/13788-3.html
- * 
  */
 public class IPAddressString implements HostIdentifierString, Comparable<IPAddressString> {
-	
+
 	private static final long serialVersionUID = 4L;
 
 	/* 
@@ -174,7 +173,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * and leading zeros are considered decimal, not octal (allow_inet_aton_octal is false).
 	 */
 	public static final IPAddressStringParameters DEFAULT_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
-	
+
 	private static final AddressStringException IS_IPV6_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv6");
 	private static final AddressStringException IS_IPV4_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv4");
 
@@ -188,7 +187,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	/* exceptions and booleans for validation - for type INVALID both of ipv6Exception and ipv4Exception are non-null */
 	private AddressStringException ipv6Exception, ipv4Exception;
 	
-	//an object created by parsing that will provide the associated IPAddress(es)
+	// an object created by parsing that will provide the associated IPAddress(es)
 	private IPAddressProvider addressProvider = IPAddressProvider.NO_TYPE_PROVIDER;
 	
 	/**
@@ -497,7 +496,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	@Override
 	public int hashCode() {
 		if(isValid()) {
-			return addressProvider.hashCode();
+			return addressProvider.providerHashCode();
 		}
 		return toString().hashCode();
 	}
@@ -534,7 +533,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(prefixLength == null) {
 			return false;
 		}
-		if(other == this) {
+		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
 		if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
@@ -553,11 +552,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			IPAddress otherAddress = other.getAddress();
 			if(thisAddress != null) {
 				return otherAddress != null && prefixLength <= otherAddress.getBitCount() &&
-						thisAddress.toPrefixBlock().equals(otherAddress.toPrefixBlock(prefixLength));
-			} else if(otherAddress != null) {
-				return false;
+						thisAddress.prefixEquals(otherAddress);
 			}
-			// both addresses are null, so there is no prefix to speak of
+			// one or both addresses are null, so there is no prefix to speak of
 		}
 		return false;
 	}
@@ -576,22 +573,34 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		}
 		if(o instanceof IPAddressString) {
 			IPAddressString other = (IPAddressString) o;	
-			//if they have the same string, they must be the same,
-			//but the converse is not true, if they have different strings, they can
-			//still be the same because IPv6 addresses have many representations
-			//and additional things like leading zeros can have an effect for IPv4
-			if(toString().equals(other.toString())) {
+			// if they have the same string, they must be the same,
+			// but the converse is not true, if they have different strings, they can
+			// still be the same because IPv6 addresses have many representations
+			// and additional things like leading zeros can have an effect for IPv4
+			
+			// Also note that we do not call equals() on the validation options, this is intended as an optimization,
+			// and probably better to avoid going through all the validation objects here
+			boolean stringsMatch = toString().equals(other.toString());
+			if(stringsMatch && validationOptions == other.validationOptions) {
 				return true;
 			}
-			if(isValid() && other.isValid()) {
-				Boolean directResult = addressProvider.parsedEquals(other.addressProvider);
-				if(directResult != null) {
-					return directResult.booleanValue();
+			if(isValid()) {
+				if(other.isValid()) {
+					Boolean directResult = addressProvider.parsedEquals(other.addressProvider);
+					if(directResult != null) {
+						return directResult.booleanValue();
+					}
+					try {
+						// When a value provider produces no value, equality and comparison are based on the enum IPType,
+						// which can be null.
+						return addressProvider.equalsProvider(other.addressProvider);
+					} catch(IncompatibleAddressException e) {
+						return stringsMatch;
+					}
 				}
-				// When a value provider produces no value, equality and comparison are based on the enum IPType,
-				// which can be null.
-				return addressProvider.equalsProvider(other.addressProvider);
-			} // else we have already compared strings.  Two invalid addresses are not equal unless strings match
+			} else if(!other.isValid()) {
+				return stringsMatch; // Two invalid addresses are not equal unless strings match, regardless of validation options
+			}
 		}
 		return false;
 	}
@@ -645,7 +654,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * 
 	 * @return
 	 */
-	public IPAddress getHostAddress() {
+	public IPAddress getHostAddress() throws IncompatibleAddressException {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
 				return toHostAddress();
@@ -658,7 +667,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * Similar to {@link #toAddress(IPVersion)}, but returns null rather than throwing an exception with the address is invalid or does not match the supplied version.
 	 * 
 	 */
-	public IPAddress getAddress(IPVersion version) {
+	public IPAddress getAddress(IPVersion version) throws IncompatibleAddressException {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
 				return toAddress(version);
@@ -677,7 +686,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return the address
 	 */
 	@Override
-	public IPAddress getAddress() {
+	public IPAddress getAddress() throws IncompatibleAddressException {
 		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
 			try {
 				return toAddress();

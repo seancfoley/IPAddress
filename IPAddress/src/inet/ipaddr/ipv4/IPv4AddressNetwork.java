@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,7 +162,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 							//includesZero
 							//isBoundedBy
 							//getSegmentPrefixLength, getDivisionPrefixLength
-							//removePrefixLength, removePrefixLength(boolean)
+							//removePrefixLength, withoutPrefixLength, removePrefixLength(boolean)
 							//isMultiple
 							//isPrefixBlock
 							//matches(int)

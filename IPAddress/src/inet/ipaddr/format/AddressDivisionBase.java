@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ package inet.ipaddr.format;
 import java.math.BigInteger;
 import java.util.TreeMap;
 
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -30,8 +30,8 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  * @author sfoley
  *
  */
-public abstract class AddressDivisionBase implements AddressItem, AddressStringDivision {
-
+public abstract class AddressDivisionBase implements AddressGenericDivision {
+	
 	private static final long serialVersionUID = 4L;
 	
 	private static final String zeros[];
@@ -73,7 +73,72 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	/* the cached address bytes */
 	private transient byte[] lowerBytes, upperBytes;
 	
+	protected transient int hashCode;
+	
 	protected AddressDivisionBase() {}
+	
+	protected boolean isSameValues(AddressDivisionBase other) {
+		return getValue().equals(other.getValue()) && getUpperValue().equals(other.getUpperValue());
+	}
+
+	/**
+	 * Two divisions are equal if they:
+	 * - they match type/version (ipv4, ipv6, mac, or a specific division class)
+	 * - match bit counts
+	 * - match values
+	 * Prefix lengths, for those divisions that have them, are ignored.
+	 */
+	@Override
+	public boolean equals(Object o) {
+		if(o == this) {
+			return true;
+		}
+		if(o instanceof AddressDivisionBase) {
+			// we call isSameValues on the other object to defer to subclasses overriding that method in object o.
+			// For instance, if we are a grouping class like AddressDivision, 
+			// and if the other is IPv4/6/MAC/AddressSection, then we call the overridden isSameGrouping in the other class,
+			// which matches type.
+			// Also, those other classes override equals to ensure flip doesn't go the other way
+			AddressDivisionBase other = (AddressDivisionBase) o;
+			return getBitCount() == other.getBitCount() && other.isSameValues(this);
+		}
+		return false;
+	}
+	
+	protected static int createHashCode(long value, long upperValue) {
+		return adjustHashCode(1, value, upperValue);
+	}
+		
+	static int adjustHashCode(int currentHash, long value, long upperValue) {
+		long shifted = value >>> 32;
+		int adjusted = (int) ((shifted == 0) ? value : (value ^ shifted));
+		currentHash = 31 * currentHash + adjusted;
+		if(upperValue != value) {
+			shifted = upperValue >>> 32;
+			adjusted = (int) ((shifted == 0) ? upperValue : (upperValue ^ shifted));
+			currentHash = 31 * currentHash + adjusted;
+		}
+		return currentHash;
+	}
+	
+	@Override
+	public int hashCode() {
+		int res = hashCode;
+		if(res == 0) {
+			res = 1;
+			BigInteger lower = getValue(), upper = getUpperValue();
+			int longBits = Long.SIZE;
+			do {
+				long low = lower.longValue();
+				long up = upper.longValue();
+				lower = lower.shiftRight(longBits);
+				upper = upper.shiftRight(longBits);
+				res = adjustHashCode(res, low, up);
+			} while(!upper.equals(BigInteger.ZERO));
+			hashCode = res;
+		}
+		return res;
+	}
 	
 	/**
 	 * Gets the bytes for the lowest address in the range represented by this address division.
@@ -175,12 +240,12 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	/**
 	 * @return the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
 	 */
-	public abstract int getDefaultTextualRadix();
+	protected abstract int getDefaultTextualRadix();
 	
 	/**
 	 * @return the number of digits for the maximum possible value of the division when using the default radix
 	 */
-	public abstract int getMaxDigitCount();
+	protected abstract int getMaxDigitCount();
 
 	protected static int getMaxDigitCount(int radix, int bitCount, BigInteger maxValue) {
 		long key = (((long) radix) << 32) | bitCount;
@@ -224,7 +289,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		return result;
 	}
 	
-	static int getMaxDigitCount(int radix, int bitCount, long maxValue) {
+	protected static int getMaxDigitCount(int radix, int bitCount, long maxValue) {
 		long key = (((long) radix) << 32) | bitCount;
 		Integer digs = maxDigitMap.get(key);
 		if(digs == null) {
@@ -403,7 +468,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 	 * Otherwise, the explicit range will be printed.
 	 * @return
 	 */
-	public String getString() {
+	protected String getString() {
 		String result = cachedString;
 		if(result == null) {
 			synchronized(this) {
@@ -476,6 +541,306 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 
 	protected abstract int getRangeDigitCount(int radix);
 	
+	protected static int toUnsignedStringLength(long value, int radix) {
+		int result;
+		if(value > 0xffff || (result = toUnsignedStringLengthFast((int) value, radix)) < 0) {
+			result = toUnsignedStringLengthSlow(value, radix);
+		}
+		return result;
+	}
+	
+	private static int toUnsignedStringLengthSlow(long value, int radix) {
+		int count = 1;
+		boolean useInts = value <= Integer.MAX_VALUE;
+		int value2 = useInts ? (int) value : radix;
+		while(value2 >= radix) {
+			if(useInts) {
+				value2 /= radix;
+			} else {
+				value /= radix;
+				if(value <= Integer.MAX_VALUE) {
+					useInts = true;
+					value2 = (int) value;
+				}
+			}
+			++count;
+		}
+		return count;
+	}
+	
+	protected static int toUnsignedStringLengthFast(int value, int radix) {
+		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
+			return 1;
+		}
+		if(radix == 10) {
+			//this needs value <= 0xffff (ie 16 bits or less) which is a prereq to calling this method
+			if(value < 10) {
+				return 1;
+			} else if(value < 100) {
+				return 2;
+			} else if(value < 1000) {
+				return 3;
+			} else if(value < 10000) {
+				return 4;
+			}
+			return 5;
+	    }
+		if(radix == 16) {
+			//this needs value <= 0xffff (ie 16 bits or less)
+			if(value < 0x10) {
+				return 1;
+			} else if(value < 0x100) {
+				return 2;
+			} else if(value < 0x1000) {
+				return 3;
+			}
+			return 4;
+		}
+		if(radix == 8) {
+			//this needs value <= 0xffff (ie 16 bits or less)
+			if(value < 010) {
+				return 1;
+			} else if(value < 0100) {
+				return 2;
+			} else if(value < 01000) {
+				return 3;
+			} else if(value < 010000) {
+				return 4;
+			} else if(value < 0100000) {
+				return 5;
+			}
+			return 6;
+		}
+		if(radix == 2) {
+			//count the number of digits
+			//note that we already know value != 0 and that value <= 0xffff
+			//and we use both of those facts
+			int digitCount = 15;
+			int val = value;
+			if (val >>> 8 == 0) { 
+				digitCount -=  8;
+			} else {
+				val >>>= 8;
+			}
+			if (val >>> 4 == 0) {
+				digitCount -=  4;
+			} else {
+				val >>>= 4;
+			}
+			if (val >>> 2 == 0) {
+				digitCount -= 2;
+			} else {
+				val >>>= 2;
+			}
+			//at this point, if (val & 2) != 0 we have undercounted the digit count by 1
+			if((val & 2) != 0) {
+				++digitCount;
+			}
+			return digitCount;
+		}
+		return -1;
+	}
+	
+	protected static StringBuilder toUnsignedString(long value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
+		if(value > 0xffff || !toUnsignedStringFast((int) value, radix, choppedDigits, uppercase, dig, appendable)) {
+			toUnsignedString(value, radix, choppedDigits, dig, appendable);
+		}
+		return appendable;
+	}
+	
+	private static boolean toUnsignedStringFast(int value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
+		if(toUnsignedStringFast(value, radix, uppercase, dig, appendable)) {
+			if(choppedDigits > 0) {
+				appendable.setLength(appendable.length() - choppedDigits);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean toUnsignedStringFast(int value, int radix, boolean uppercase, char dig[], StringBuilder appendable) {
+		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
+			if(value == 0) {
+				appendable.append('0');
+			} else {
+				appendable.append('1');
+			}
+			return true;
+		}
+		int quotient, remainder; //we iterate on //value == quotient * radix + remainder
+		if(radix == 10) {
+			//this needs value2 <= 0xffff (ie 16 bits or less)
+			if(value < 10) {
+				appendable.append(dig[value]);
+				return true;
+			} else if(value < 100) {
+				appendable.append("  ");
+			} else if(value < 1000) {
+				if(value == 127) {
+					appendable.append("127");
+					return true;
+				}
+				if(value == 255) {
+					appendable.append("255");
+					return true;
+				}
+				appendable.append("   ");
+			} else if(value < 10000) {
+				appendable.append("    ");
+			} else {
+				appendable.append("     ");
+			}
+			int index = appendable.length();
+			do {
+				//value == quotient * 10 + remainder
+				quotient = (value * 0xcccd) >>> 19; //floor of n/10 is floor of ((0xcccd * n / 2 ^ 16) / 2 ^ 3)
+				remainder = value - ((quotient << 3) + (quotient << 1)); //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
+				appendable.setCharAt(--index, dig[remainder]);
+				value = quotient;
+	        } while(value != 0);
+			return true;
+	    }
+		if(radix == 16) {
+			if(value < 0xa) {
+				appendable.append(dig[value]);
+				return true;
+			} else if(value < 0x10) {
+				appendable.append(dig[value]);
+				return true;
+			} else if(value < 0x100) {
+				appendable.append("  ");
+			} else if(value < 0x1000) {
+				appendable.append("   ");
+			} else {
+				if(value == 0xffff) {
+					appendable.append(uppercase ? "FFFF" : "ffff");
+					return true;
+				}
+				appendable.append("    ");
+			}
+			int index = appendable.length();
+			do {//value2 == quotient * 16 + remainder
+				quotient = value >>> 4;
+				remainder = value - (quotient << 4);
+				appendable.setCharAt(--index, dig[remainder]);
+				value = quotient;
+			} while(value != 0);
+			return true;
+		}
+		if(radix == 8) {
+			if(value < 010) {
+				appendable.append(dig[value]);
+				return true;
+			} else if(value < 0100) {
+				appendable.append("  ");
+			} else if(value < 01000) {
+				appendable.append("   ");
+			} else if(value < 010000) {
+				appendable.append("    ");
+			} else if(value < 0100000) { 
+				appendable.append("     ");
+			} else {
+				appendable.append("      ");
+			}
+			int index = appendable.length();
+			do {//value2 == quotient * 16 + remainder
+				quotient = value >>> 3;
+				remainder = value - (quotient << 3);
+				appendable.setCharAt(--index, dig[remainder]);
+				value = quotient;
+			} while(value != 0);
+			return true;
+		}
+		if(radix == 2) {
+			//count the number of digits
+			//note that we already know value != 0 and that value <= 0xffff
+			//and we use both of those facts
+			int digitCount = 15;
+			int val = value;
+			if (val >>> 8 == 0) { 
+				digitCount -=  8;
+			} else {
+				val >>>= 8;
+			}
+			if (val >>> 4 == 0) {
+				digitCount -=  4;
+			} else {
+				val >>>= 4;
+			}
+			if (val >>> 2 == 0) {
+				digitCount -= 2;
+			} else {
+				val >>>= 2;
+			}
+			//at this point, if (val & 2) != 0 we have undercounted the digit count by 1
+			//either way, we start with the first digit '1' and adjust the digit count accordingly
+			if((val & 2) == 0) {
+				--digitCount;
+			}
+			appendable.append('1');
+			while(digitCount > 0) {
+				char c = dig[(value >>> --digitCount) & 1];
+				appendable.append(c);
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	private static void toUnsignedString(
+			long value,
+			int radix,
+			int choppedDigits,
+			char dig[],
+			StringBuilder appendable) {
+		int front = appendable.length();
+		appendDigits(value, radix, choppedDigits, dig, appendable);
+		int back = appendable.length() - 1;
+		while(front < back) {
+			char frontChar = appendable.charAt(front);
+			appendable.setCharAt(front++, appendable.charAt(back));
+			appendable.setCharAt(back--, frontChar);
+		}
+	}
+	
+	private static void appendDigits(
+			long value,
+			int radix,
+			int choppedDigits,
+			char dig[],
+			StringBuilder appendable) {
+		boolean useInts = value <= Integer.MAX_VALUE;
+		int value2 = useInts ? (int) value : radix;
+		int index;
+		while(value2 >= radix) {
+			if(useInts) {
+				int val2 = value2;
+				value2 /= radix;
+				if(choppedDigits > 0) {
+					choppedDigits--;
+					continue;
+				}
+				index = val2 % radix;
+			} else {
+				long val = value;
+				value /= radix;
+				if(value <= Integer.MAX_VALUE) {
+					useInts = true;
+					value2 = (int) value;
+				}
+				if(choppedDigits > 0) {
+					choppedDigits--;
+					continue;
+				}
+				index = (int) (val % radix);
+			}
+			appendable.append(dig[index]);
+		}
+		if(choppedDigits == 0) {
+			appendable.append(dig[value2]);
+		}
+	}
+	
 	protected void appendUppercase(CharSequence str, int radix, StringBuilder appendable) {
 		if(radix > 10) {
 			for(int i = 0; i < str.length(); i++) {
@@ -498,7 +863,7 @@ public abstract class AddressDivisionBase implements AddressItem, AddressStringD
 		return 0;
 	}
 	
-	int getPrefixAdjustedRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
+	protected int getPrefixAdjustedRangeString(int segmentIndex, AddressSegmentParams params, StringBuilder appendable) {
 		int leadingZeroCount = params.getLeadingZeros(segmentIndex);
 		int radix = params.getRadix();
 		int lowerLeadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);

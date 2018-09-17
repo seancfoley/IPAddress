@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.string;
 
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.format.standard.AddressDivision;
 
 /**
  * A generic part of an IP address for the purpose of producing a string for the address.

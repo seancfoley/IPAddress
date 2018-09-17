@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4Address;
@@ -514,7 +514,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return zone.toString();
 	}
 
-	private IPv6AddressCreator getDefaultCreator() {
+	IPv6AddressCreator getDefaultCreator() {
 		return getNetwork().getAddressCreator();
 	}
 	
@@ -522,7 +522,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(!hasZone()) {
 			return getDefaultCreator();
 		}
-		return new IPv6AddressCreator(getNetwork()) {//using a lambda for this one results in a big performance hit, so we use anonymous class
+		return new IPv6AddressCreator(getNetwork()) {// using a lambda for this one results in a big performance hit, so we use anonymous class
 
 			private static final long serialVersionUID = 4L;
 
@@ -680,7 +680,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	private static IPv6AddressSegment join(IPv6AddressCreator creator, MACAddressSegment macSegment0, MACAddressSegment macSegment1, boolean flip, Integer prefixLength) {
-		int lower0 = macSegment0.getLowerSegmentValue();
+		int lower0 = macSegment0.getSegmentValue();
 		int upper0 = macSegment0.getUpperSegmentValue();
 		if(flip) {
 			int mask2ndBit = 0x2;
@@ -691,7 +691,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			upper0 ^= mask2ndBit;
 		}
 		return creator.createSegment(
-				(lower0 << 8) | macSegment1.getLowerSegmentValue(), 
+				(lower0 << 8) | macSegment1.getSegmentValue(), 
 				(upper0 << 8) | macSegment1.getUpperSegmentValue(),
 				prefixLength);
 	}
@@ -894,7 +894,12 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public Iterator<IPv6Address> prefixBlockIterator() {
 		return getSection().prefixBlockIterator(this, getCreator());
 	}
-	
+
+	@Override
+	public Iterator<IPv6Address> rangeBlockIterator(int segmentCount) {
+		return getSection().rangeBlockIterator(this, getCreator(), segmentCount);
+	}
+
 	@Override
 	public Iterator<IPv6Address> iterator() {
 		return getSection().iterator(this, getCreator(), false);
@@ -1032,7 +1037,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				return true;
 			}
 			if(firstSeg.getValueCount() <= 5 && 
-					(firstSeg.getLowerSegmentValue() & 0xf) >= 1 && (firstSeg.getUpperSegmentValue() & 0xf) <= 5) {
+					(firstSeg.getSegmentValue() & 0xf) >= 1 && (firstSeg.getUpperSegmentValue() & 0xf) <= 5) {
 				//all values fall within the range from interface local to site local
 				return true;
 			}
@@ -1263,6 +1268,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
+	public IPv6Address withoutPrefixLength() {
+		return removePrefixLength(false);
+	}
+	
+	@Override
 	public IPv6Address removePrefixLength(boolean zeroed) {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}
@@ -1408,9 +1418,26 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				convertArg(other),
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
-				Address.DEFAULT_ADDRESS_COMPARATOR::compare,
-				IPv6Address::removePrefixLength,
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
+				(section) -> section.withoutPrefixLength(),
 				getCreator()::createAddressArray);
+	}
+	
+	@Override
+	public IPv6Address[] spanWithRangedSegments(IPAddress other) throws AddressConversionException {
+		return IPAddress.getSpanningRangeBlocks(
+				this,
+				convertArg(other),
+				IPv6Address::getLower,
+				IPv6Address::getUpper,
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
+				(section) -> section.withoutPrefixLength(),
+				getDefaultCreator());
+	}
+	
+	@Override
+	public IPv6AddressRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv6AddressRange(this, convertArg(other));
 	}
 	
 	@Override
@@ -1424,6 +1451,20 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		List<IPAddressSegmentSeries> blocks = getMergedBlocks(this, addresses);
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
+	
+	@Override
+	public IPv6Address[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException {
+		if(addresses.length == 0) {
+			return new IPv6Address[] { this };
+		}
+		for(int i = 0; i < addresses.length; i++) {
+			addresses[i] = convertArg(addresses[i]);
+		}
+		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, addresses, getDefaultCreator());
+		return blocks.toArray(new IPv6Address[blocks.size()]);
+	}
+
+	
 
 	public boolean hasZone() {
 		return zone != null;
@@ -1506,6 +1547,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
+	public IPv6AddressRange toRange() {
+		return new IPv6AddressRange(getLower(), getUpper());
+	}
+	
+	@Override
 	public int hashCode() {
 		int result = super.hashCode();
 		if(hasZone()) {
@@ -1516,14 +1562,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public boolean isSameAddress(Address other) {
-		return other instanceof IPAddress && isSameAddress((IPAddress) other);
-	}
-	
-	@Override
-	public boolean isSameAddress(IPAddress other) {
-		if(super.isSameAddress(other)) {
+		if(other instanceof IPv6Address && super.isSameAddress(other)) {
 			//must check the zone too
-			IPv6Address otherIPv6Address = other.toIPv6();
+			IPv6Address otherIPv6Address = (IPv6Address) other;
 			String otherZone = otherIPv6Address.zone;
 			return Objects.equals(zone, otherZone);
 		}
@@ -1553,7 +1594,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	//////////////// string creation below ///////////////////////////////////////////////////////////////////////////////////////////
-	
+
 	@Override
 	protected IPAddressStringParameters createFromStringParams() {
 		return new IPAddressStringParameters.Builder().
@@ -1627,7 +1668,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Creates the normalized string for an address without having to create the address objects first.
 	 * 
@@ -1635,6 +1676,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param upperValueProvider
 	 * @param prefixLength
 	 * @param zone
+	 * @param network use {@link #defaultIpv6Network()} if there is no custom network in use
 	 * @return
 	 */
 	public static String toNormalizedString(IPv6AddressNetwork network, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,24 +21,24 @@ package inet.ipaddr;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
 
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
+import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
-import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.IPAddressSection.SeriesCreator;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.validate.IPAddressProvider;
-import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -105,7 +105,25 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return this == IPV6;
 		}
 	}
-	
+
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
+	public static interface IPAddressValueProvider extends AddressValueProvider {
+
+		IPVersion getIPVersion();
+		
+		default Integer getPrefixLength() {
+			return null;
+		}
+		
+		default String getZone() {
+			return null;
+		}
+	}
+
 	public static final char PREFIX_LEN_SEPARATOR = '/';
 	
 	/**
@@ -156,7 +174,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	protected IPAddressProvider getProvider() {
 		if(isPrefixed()) {
 			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
-				return IPAddressProvider.getProviderFor(this, removePrefixLength(false)); 
+				return IPAddressProvider.getProviderFor(this, withoutPrefixLength()); 
 			}
 			return IPAddressProvider.getProviderFor(this, toZeroHost());
 		}
@@ -294,10 +312,13 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	
 	@Override
 	public abstract Iterator<? extends IPAddress> nonZeroHostIterator();
-	
+
 	@Override
 	public abstract Iterator<? extends IPAddress> prefixBlockIterator();
 
+	@Override
+	public abstract Iterator<? extends IPAddress> rangeBlockIterator(int segmentCount);
+	
 	/**
 	 * @return an object to iterate over the individual addresses represented by this object.
 	 */
@@ -305,10 +326,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract Iterable<? extends IPAddress> getIterable();
 
 	@Override
-	public abstract IPAddress increment(long increment);
+	public abstract IPAddress increment(long increment) throws AddressValueException;
 
 	@Override
-	public abstract IPAddress incrementBoundary(long increment);
+	public abstract IPAddress incrementBoundary(long increment) throws AddressValueException;
 	
 	public boolean isIPv4() {
 		return getSection().isIPv4();
@@ -428,6 +449,13 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return InetAddress.getByAddress(bytes);
 		} catch(UnknownHostException e) { /* will never reach here */ return null; }
 	}
+	
+	/**
+	 * Creates a range instance from the lowest and highest addresses in this subnet
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressRange toRange();
 
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
@@ -437,22 +465,24 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		IPAddress otherAddr = otherString.getAddress();
 		return otherAddr != null && isSameAddress(otherAddr);
 	}
-	
+
 	@Override
 	protected boolean isFromSameString(HostIdentifierString other) {
 		if(fromString != null && other instanceof IPAddressString) {
 			IPAddressString fromString = (IPAddressString) this.fromString;
 			IPAddressString otherString = (IPAddressString) other;
 			return (fromString == otherString || 
-					(fromString.fullAddr.equals(otherString.fullAddr)) &&
-					Objects.equals(fromString.validationOptions, otherString.validationOptions));
+					(fromString.fullAddr.equals(otherString.fullAddr) &&
+					// We do not call equals() on the validation options, this is intended as an optimization,
+					// and probably better to avoid going through all the validation options here
+					fromString.validationOptions == otherString.validationOptions));
 		}
 		return false;
 	}
-	
-	public boolean isSameAddress(IPAddress other) {
-		return other == this || getSection().equals(other.getSection());
-	}
+
+//	public boolean isSameAddress(IPAddress other) {
+//		return other == this || getSection().equals(other.getSection());
+//	}
 	
 	/**
 	 * Applies the mask to this address and then compares values with the given address
@@ -465,20 +495,45 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().matchesWithMask(other.getSection(), mask.getSection());
 	}
 
-	@Override
-	public boolean contains(Address other) {
-		if(other == this) {
-			return true;
-		}
-		return getSection().contains(other.getSection());
-	}
-	
-	
 	//////////////// string creation below ///////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * Allows for the creation of a normalized string without creating a full IP address object first.
+	 * Instead you can implement the {@link IPAddressValueProvider} interface in whatever way is most efficient.
+	 * The string is appended to the provided {@link StringBuilder} instance.
+	 * 
+	 * @param provider
+	 * @param builder
+	 */
+	public static void toNormalizedString(IPAddressValueProvider provider, StringBuilder builder) {
+		IPVersion version = provider.getIPVersion();
+		if(version.isIPv4()) {
+			toNormalizedString(IPv4Address.defaultIpv4Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv4Address.SEGMENT_COUNT,  IPv4Address.BYTES_PER_SEGMENT,  IPv4Address.BITS_PER_SEGMENT,  IPv4Address.MAX_VALUE_PER_SEGMENT,  IPv4Address.SEGMENT_SEPARATOR,  IPv4Address.DEFAULT_TEXTUAL_RADIX, null, builder);
+		} else if(version.isIPv6()) {
+			toNormalizedString(IPv4Address.defaultIpv6Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.DEFAULT_TEXTUAL_RADIX, provider.getZone(), builder);
+		} else {
+			throw new IllegalArgumentException();
+		}
+	}
+
+	/**
+	 * Allows for the creation of a normalized string without creating a full IP address object first.
+	 * Instead you can implement the {@link IPAddressValueProvider} interface in whatever way is most efficient.
+	 * 
+	 * @param provider
+	 */
+	public static String toNormalizedString(IPAddressValueProvider provider) {
+		IPVersion version = provider.getIPVersion();
+		if(version.isIPv4()) {
+			return IPv4Address.toNormalizedString(IPv4Address.defaultIpv4Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength());
+		} else if(version.isIPv6()) {
+			return IPv6Address.toNormalizedString(IPv6Address.defaultIpv6Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), provider.getZone());
+		}
+		throw new IllegalArgumentException();
+	}
+
+	/**
 	 * Creates the normalized string for an address without having to create the address objects first.
-	 *
 	 */
 	protected static String toNormalizedString(
 			PrefixConfiguration prefixConfiguration,
@@ -522,8 +577,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		IPAddressSection.checkLengths(length, builder);
 		return builder.toString();
 	}
-	
-	private static int toNormalizedString(
+
+	protected static int toNormalizedString(
 			PrefixConfiguration prefixConfiguration,
 			SegmentValueProvider lowerValueProvider,
 			SegmentValueProvider upperValueProvider,
@@ -538,19 +593,20 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			StringBuilder builder) {
 		int segmentIndex, count;
 		segmentIndex = count = 0;
-		boolean isPrefixSubnet = ParsedAddressGrouping.isPrefixSubnet(
-				lowerValueProvider,
-				upperValueProvider,
-				segmentCount,
-				bytesPerSegment,
-				bitsPerSegment,
-				segmentMaxValue,
-				prefixLength,
-				prefixConfiguration,
-				false);
+		boolean adjustByPrefixLength;
+		if(prefixLength != null && prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+			if(prefixLength <= 0) {
+				adjustByPrefixLength = true;
+			} else {
+				int totalBitCount = (bitsPerSegment == 8) ? segmentCount << 3 : ((bitsPerSegment == 16) ? segmentCount << 4 : segmentCount * bitsPerSegment);
+				adjustByPrefixLength = prefixLength < totalBitCount;
+			}
+		} else {
+			adjustByPrefixLength = false;
+		}
 		while(true) {
 			Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
-			if(isPrefixSubnet && segmentPrefixLength != null && segmentPrefixLength == 0) {
+			if(adjustByPrefixLength && segmentPrefixLength != null && segmentPrefixLength == 0) {
 				if(builder == null) {
 					count++;
 				} else {
@@ -567,7 +623,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 					}
 				}
 				if(lowerValueProvider == null || upperValueProvider == null) {
-					if(isPrefixSubnet && segmentPrefixLength != null) {
+					if(adjustByPrefixLength && segmentPrefixLength != null) {
 						value &= ~0 << (bitsPerSegment - segmentPrefixLength);
 					}
 					if(builder == null) {
@@ -576,7 +632,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 						IPAddressSegment.toUnsignedString(value, radix, builder);
 					}
 				} else {
-					if(isPrefixSubnet && segmentPrefixLength != null) {
+					if(adjustByPrefixLength && segmentPrefixLength != null) {
 						int mask = ~0 << (bitsPerSegment - segmentPrefixLength);
 						value &= mask;
 						value2 &= mask;//255, mask is -2147483648, segmentPrefixLength is 7, bitsPer
@@ -616,10 +672,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			}
 			if(builder != null) {
 				builder.append(separator);
-			}
+			} // else counting the separators happens just once outside the loop, just below
 		}
 		if(builder == null) {
-			count += segmentCount - 1;//separators
+			count += segmentCount; // separators
+			--count; // no ending separator
 		}
 		if(zone != null && zone.length() > 0) {
 			if(builder == null) {
@@ -943,7 +1000,21 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			UnaryOperator<T> getLower,
 			UnaryOperator<T> getUpper,
 			Comparator<T> comparator,
-			Function<T, T> prefixRemover,
+			UnaryOperator<T> prefixRemover,
+			IntFunction<T[]> arrayProducer) {
+		T[] result = checkContainment(first, other, prefixRemover, arrayProducer);
+		if(result != null) {
+			return result;
+		}
+		List<IPAddressSegmentSeries> blocks = 
+				IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitRangeBlocks);
+		return blocks.toArray(arrayProducer.apply(blocks.size()));
+	}
+	
+	private static <T extends IPAddress> T[] checkContainment(
+			T first,
+			T other,
+			UnaryOperator<T> prefixRemover,
 			IntFunction<T[]> arrayProducer) {
 		boolean f;
 		if((f = first.contains(other)) || other.contains(first)) {
@@ -959,9 +1030,39 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			result[0] = first;
 			return result;
 		}
-		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
-		IPAddressSection.getSpanningSeriesPrefixBlocks(first, other, getLower, getUpper, comparator, prefixRemover, blocks);
-		return blocks.toArray(arrayProducer.apply(blocks.size()));
+		return null;
+	}
+	
+	private static <T extends IPAddress, S extends IPAddressSegment> SeriesCreator createSeriesCreator(IPAddressCreator<T, ?, ?, S, ?> creator, int maxSegmentValue) {
+		S allRangeSegment = creator.createSegment(0, maxSegmentValue, null);
+		SeriesCreator seriesCreator = (series, index, lowerVal, upperVal) -> {
+			S segments[] = creator.createSegmentArray(series.getSegmentCount());
+			series.getSegments(0, index, segments, 0);
+			segments[index] = creator.createSegment(lowerVal, upperVal, null);
+			while(++index < segments.length) {
+				segments[index] = allRangeSegment;
+			}
+			return creator.createAddressInternal(segments);
+		};
+		return seriesCreator;
+	}
+	
+	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningRangeBlocks(
+			T first,
+			T other,
+			UnaryOperator<T> getLower,
+			UnaryOperator<T> getUpper,
+			Comparator<T> comparator,
+			UnaryOperator<T> prefixRemover,
+			IPAddressCreator<T, ?, ?, S, ?> creator) {
+		T[] result = checkContainment(first, other, prefixRemover, creator::createAddressArray);
+		if(result != null) {
+			return result;
+		}
+		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
+		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitRange(one, two, seriesCreator);
+		List<IPAddressSegmentSeries> blocks = IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
+		return blocks.toArray(creator.createAddressArray(blocks.size()));
 	}
 	
 	/**
@@ -1028,11 +1129,14 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	/**
-	 * Produces the list of prefix block subnets that span from this series to the given series.
+	 * Produces the list of prefix block subnets that span from this subnet to the given subnet.
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * <p>
+	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toRange()}
+	 * and them joining them into a single range with {@link IPAddressRange#join(IPAddressRange...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1040,7 +1144,36 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException;
 	
 	/**
+	 * Produces a list of sequential range subnets that span from this subnet to the given subnet.
+	 * An example of a ranged subnet is 1-3.1-4.5.6-8, however that ranged subnet is not sequential since address 1.1.5.8 is in the subnet,
+	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
+	 * <p>
+	 * If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * <p>
+	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toRange()}
+	 * and them joining them into a single range with {@link IPAddressRange#join(IPAddressRange...)}
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public abstract IPAddress[] spanWithRangedSegments(IPAddress other) throws AddressConversionException;
+	
+	/**
+	* Produces an IPAddressRange instance that spans this subnet to the given subnet.
+	* <p>
+	* If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	* 
+	* @param other
+	* @return
+	*/
+	public abstract IPAddressRange spanWithRange(IPAddress other) throws AddressConversionException;
+	
+	/**
 	 * Merges this with the list of addresses to produce the smallest list of prefix blocks
+	 * <p>
+	 * For the smallest list of subnets use {@link #mergeRangeBlocks(IPAddress...)}.
 	 * <p>
 	 * If any other address in the list is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
@@ -1054,7 +1187,30 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
 	protected static List<IPAddressSegmentSeries> getMergedBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
-		return IPAddressSection.getMergedBlocks(first, sections, false);
+		return IPAddressSection.getMergedPrefixBlocks(first, sections, false);
+	}
+	
+	/**
+	 * Merges this with the list of addresses to produce the smallest list of segment range block subnets that are sequential.
+	 * <p>
+	 * An example of a ranged subnet is 1-3.1-4.5.6-8, however that ranged subnet is not sequential since address 1.1.5.8 is in the subnet,
+	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
+	 * <p>
+	 * This list will eliminate overlaps to produce the smallest list, which can be smaller than the list of prefix blocks produced by {@link #mergePrefixBlocks(IPAddress...)}
+	 * <p>
+	 * If any other address in the list is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()},
+	 * which can result in AddressConversionException
+	 * <p>
+	 * The result is sorted from single address to smallest blocks to largest blocks.
+	 * 
+	 * @throws AddressConversionException
+	 * @param addresses the addresses to merge with this
+	 * @return
+	 */
+	public abstract IPAddress[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException;
+	
+	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedRangeBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
+		return IPAddressSection.getMergedRangeBlocks(first, sections, false, createSeriesCreator(creator, first.getMaxSegmentValue()));
 	}
 	
 	/**
@@ -1186,6 +1342,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	
 	@Override
 	public abstract IPAddress removePrefixLength(boolean zeroed);
+	
+	@Override
+	public abstract IPAddress withoutPrefixLength();
 	
 	@Override
 	public abstract IPAddress adjustPrefixBySegment(boolean nextSegment);

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2018 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package inet.ipaddr.format.validate;
 
 import inet.ipaddr.Address.SegmentValueProvider;
@@ -53,7 +70,7 @@ public class ParsedAddressGrouping {
 		}
 		return null;
 	}
-	
+
 	public static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
 		int decrement = (bitsPerSegment == 8) ? segmentIndex << 3 : ((bitsPerSegment == 16) ? segmentIndex << 4 :  segmentIndex * bitsPerSegment);
 		return getSegmentPrefixLength(bitsPerSegment, prefixLength - decrement);
@@ -73,6 +90,19 @@ public class ParsedAddressGrouping {
 		return null; //all the bits in this segment matter
 	}
 	
+	/**
+	 * Translates a non-null segment prefix length into an address prefix length.  
+	 * When calling this for the first segment with a non-null prefix length, this gives the overall prefix length.
+	 * <p>
+	 * Across an address prefixes are:
+	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+	 * or IPv4: ...(null).(1 to 8).(0)...
+	 */
+	public static Integer getNetworkPrefixLength(int bitsPerSegment, int segmentPrefixLength, int segmentIndex) {
+		int increment = (bitsPerSegment == 8) ? segmentIndex << 3 : ((bitsPerSegment == 16) ? segmentIndex << 4 :  segmentIndex * bitsPerSegment);
+		return increment + segmentPrefixLength;
+	}
+
 	public static boolean isPrefixSubnet(
 			SegmentValueProvider lowerValueProvider,
 			SegmentValueProvider upperValueProvider,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.Iterator;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
+import inet.ipaddr.format.IPAddressDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 
 /**
@@ -35,7 +36,7 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
  * @author sfoley
  *
  */
-public interface IPAddressSegmentSeries extends AddressSegmentSeries {
+public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, AddressSegmentSeries {
 
 	/**
 	 * Returns the version of this segment series
@@ -43,24 +44,6 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	 * @return
 	 */
 	IPVersion getIPVersion();
-		
-	/**
-	 * Returns the CIDR network prefix length of the series, or null if the series has no associated prefix length.
-	 * <p>
-	 * Equivalent to {@link inet.ipaddr.format.AddressDivisionSeries#getPrefixLength()}, 
-	 * which is the more general concept of set of address series that share the same set of leading bits.
-	 * For IP addresses and sections the prefix length and the CIDR network prefix length are the same thing.
-	 * <p>
-	 * For IP addresses and sections each individual segment has an associated prefix length which is determine by the network prefix length.
-	 * The segment prefix lengths follow the pattern:
-	 *  null, null, ...., null, x, 0, 0, ..., 0
-	 * <p>
-	 * For instance, an IPv4 address 1.2.3.4/16 has the network prefix length 16.  The segment prefix lengths are [null, 8, 0, 0]
-	 * The segment prefix lengths of 1.2.3.4/22 are [null, null, 6, 0]
-	 * 
-	 * @return
-	 */
-	Integer getNetworkPrefixLength();
 	
 	/**
 	 * Returns the equivalent address series with the smallest CIDR prefix possible (largest network),
@@ -261,10 +244,11 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	IPAddressSegment[] getSegments();
 
 	/**
-	 * Gets the count of single value series that this series may represent.  If excludeZeroHosts is true, the count excludes series whose host is zero.
-	 * 
-	 * If this address series has no range of values, then there is only one such address.
-	 * 
+	 * Gets the count of single value series that this series may represent, but excluding series whose host is zero.
+	 * The host is determined by the CIDR prefix length, if there is one.
+	 * <p>
+	 * If this address series has no range of values, then there is only one such address, or none if it has a zero host.
+	 * <p>
 	 * If this has no CIDR network prefix length, then it is equivalent to {@link #getCount()}.
 	 * 
 	 * @return
@@ -294,11 +278,31 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> prefixBlockIterator();
 	
+	/**
+	 * Similar to the prefix block iterator, but series with a host of zero are skipped.
+	 * @return
+	 */
 	Iterator<? extends IPAddressSegmentSeries> nonZeroHostIterator();
 
+	/**
+	 * Iterates through series that can be obtained by iterating all the segments up to the given segment count.
+	 * Segments following the index remain the same in all iterated series.
+	 * <p>
+	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7, it will iterate through 1.3.5-6.7, 1.4.5-6.7, 2.3.5-6.7, 2.4.5-6.7 given the index argument 1.
+	 * 
+	 * @param finalIteratingIndex
+	 * @return
+	 */
+	Iterator<? extends IPAddressSegmentSeries> rangeBlockIterator(int segmentCount);
+	
 	@Override
 	Iterator<? extends IPAddressSegment[]> segmentsIterator();
 	
+	/**
+	 * Similar to the segments iterator, but series with a host of zero are skipped.
+	 * 
+	 * @return
+	 */
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
 
 	@Override
@@ -452,6 +456,9 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 	 */
 	@Override
 	IPAddressSegmentSeries removePrefixLength();
+	
+	@Override
+	IPAddressSegmentSeries withoutPrefixLength();
 	
 	/**
 	 * Removes the prefix length.  If zeroed is false, the bits that were host bits do not become zero, unlike {@link #removePrefixLength()}

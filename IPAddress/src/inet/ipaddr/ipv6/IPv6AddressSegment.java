@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
@@ -105,7 +106,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		int val = low ? getLowerSegmentValue() : getUpperSegmentValue();
+		int val = low ? getSegmentValue() : getUpperSegmentValue();
 		return new byte[] {(byte) (val >> 8), (byte) (0xff & val)};
 	}
 	
@@ -173,14 +174,14 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 			if(isReversibleRange(this)) {
 				if(isPrefixed()) {
 					AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
-					return creator.createSegment(getLowerSegmentValue(), getUpperSegmentValue(), null);
+					return creator.createSegment(getSegmentValue(), getUpperSegmentValue(), null);
 				}
 				return this;
 			}
 			throw new IncompatibleAddressException(this, "ipaddress.error.reverseRange");
 		}
 		AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
-		int oldVal = getLowerSegmentValue();
+		int oldVal = getSegmentValue();
 		int newVal = reverseBits((short) oldVal);
 		if(perByte) {
 			newVal = ((newVal & 0xff) << 8) | (newVal >>> 8);
@@ -198,14 +199,14 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 				//reversible ranges end up being the same as the original
 				if(isPrefixed()) {
 					AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
-					return creator.createSegment(getLowerSegmentValue(), getUpperSegmentValue(), null);
+					return creator.createSegment(getSegmentValue(), getUpperSegmentValue(), null);
 				}
 				return this;
 			}
 			throw new IncompatibleAddressException(this, "ipaddress.error.reverseRange");
 		}
 		AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
-		int value = getLowerSegmentValue();
+		int value = getSegmentValue();
 		int newValue = ((value & 0xff) << 8) | (value >>> 8);
 		if(value == newValue && !isPrefixed()) {
 			return this;
@@ -222,6 +223,11 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	public IPv6AddressSegment removePrefixLength() {
 		return removePrefixLength(true);
 	}
+	
+	@Override
+	public IPv6AddressSegment withoutPrefixLength() {
+		return removePrefixLength(false);
+	}
 
 	protected IPv6AddressCreator getSegmentCreator() {
 		return getNetwork().getAddressCreator();
@@ -231,15 +237,32 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	public Iterable<IPv6AddressSegment> getIterable() {
 		return this;
 	}
-			
+	
+	Iterator<IPv6AddressSegment> iterator(boolean withPrefix) {
+		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false);
+	}
+	
 	@Override
 	public Iterator<IPv6AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), null);
+		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false);
+		//	return iterator(this, getSegmentCreator(), !isPrefixed(), null, false);
 	}
 	
 	@Override
 	public Iterator<IPv6AddressSegment> prefixBlockIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength());
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true);
+	}
+	
+	Iterator<IPv6AddressSegment> identityIterator() {
+		return identityIterator(this);
+	}
+	
+	/* (non-Javadoc)
+	 * @see inet.ipaddr.IPAddressSegment#prefixBlockIterator(int)
+	 */
+	@Override
+	public Iterator<IPv6AddressSegment> prefixBlockIterator(int prefixLength) {
+		return iterator(this, getSegmentCreator(), false, IPv6AddressSection.cacheBits(prefixLength), true);
 	}
 	
 	@Override
@@ -293,7 +316,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 		Integer myPrefix = getSegmentPrefixLength();
 		int bitSizeSplit = IPv6Address.BITS_PER_SEGMENT >>> 1;
 		if(index >= 0 && index < segs.length) {
-			int highLower = highByte(getLowerSegmentValue());
+			int highLower = highByte(getSegmentValue());
 			int highUpper = highByte(getUpperSegmentValue());
 			Integer highPrefixBits = getSplitSegmentPrefix(bitSizeSplit, myPrefix, 0);
 			if(highLower == highUpper) {
@@ -303,7 +326,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 			}
 		}
 		if(++index >= 0 && index < segs.length) {
-			int lowLower = lowByte(getLowerSegmentValue());
+			int lowLower = lowByte(getSegmentValue());
 			int lowUpper = lowByte(getUpperSegmentValue());
 			Integer lowPrefixBits = getSplitSegmentPrefix(bitSizeSplit, myPrefix, 1);
 			if(lowLower == lowUpper) {
@@ -315,20 +338,39 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	@Override
+	public boolean prefixEquals(IPAddressSegment other) {
+		Integer prefLength = getSegmentPrefixLength();
+		if(prefLength == null) {
+			return equals(other);
+		}
+		return prefixEquals(other, prefLength);
+	}
+	
+	@Override
+	public boolean prefixEquals(AddressSegment other, int segmentPrefixLength) {
+		return super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv6AddressSegment;
+	}
+	
+	@Override
 	public boolean contains(AddressSegment other) {
-		return this == other || (other instanceof IPv6AddressSegment && containsSeg(other));
+		return containsSeg(other) && other instanceof IPv6AddressSegment;
 	}
 	
 	@Override
 	public boolean equals(Object other) {
-		return this == other || ((other instanceof IPv6AddressSegment) && isSameValues((IPv6AddressSegment) other));
+		return this == other || (other instanceof IPv6AddressSegment && ((IPv6AddressSegment) other).isSameValues((AddressSegment) this));
+	}
+	
+	@Override
+	protected boolean isSameValues(AddressDivisionBase other) {
+		return other instanceof IPv6AddressSegment && isSameValues((AddressSegment) other);
 	}
 	
 	@Override
 	protected int getRangeDigitCountImpl() {
 		int prefix = getMinPrefixLengthForBlock();
 		int bitCount = getBitCount();
-		if(prefix < bitCount && isSinglePrefixBlock(prefix)) {
+		if(prefix < bitCount && containsSinglePrefixBlock(prefix)) {
 			int bitsPerCharacter = IPv6Address.BITS_PER_SEGMENT / MAX_CHARS;
 			if(prefix % bitsPerCharacter == 0) {
 				return (bitCount - prefix) / bitsPerCharacter;

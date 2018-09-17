@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ package inet.ipaddr;
 import java.util.Iterator;
 
 import inet.ipaddr.format.AddressItem;
+import inet.ipaddr.format.AddressItemRange;
 
 
 // The hierarchy is shown in various views
@@ -90,47 +91,7 @@ import inet.ipaddr.format.AddressItem;
 // | IPAddressStringDivisionGrouping (for the large division)
 // IPAddressDivisionGrouping (most ip address division groupings)
 //
-public interface AddressComponent extends AddressItem {
-	
-	/**
-	 * If this instance represents multiple address components, returns the one with the lowest numeric value.
-	 * 
-	 * @return
-	 */
-	AddressComponent getLower();
-	
-	/**
-	 * If this instance represents multiple address components, returns the one with the highest numeric value.
-	 * 
-	 * @return
-	 */
-	AddressComponent getUpper();
-
-	/**
-	 * returns the number of bytes in each of the address components represented by this instance
-	 * 
-	 * @return
-	 */
-	int getByteCount();
-	
-	/**
-	 * Useful for using an instance in a "for-each loop".  Otherwise just call {@link #iterator()} directly.
-	 * @return
-	 */
-	Iterable<? extends AddressComponent> getIterable();
-
-	/**
-	 * Iterates through the individual elements of this address component.
-	 * <p>
-	 * An address component can represent a single segment, address, or section, or it can represent multiple,
-	 * typically a subnet or range of segment, address, or section values.
-	 * <p>
-	 * Call {@link #isMultiple()} to determine if this instance represents multiple.
-	 * 
-	 * @return
-	 */
-	Iterator<? extends AddressComponent> iterator();
-
+public interface AddressComponent extends AddressItem, AddressItemRange {
 	/**
 	 * Writes this address component as a single hexadecimal value with always the exact same number of characters, with or without a preceding 0x prefix.
 	 * <p>
@@ -174,4 +135,26 @@ public interface AddressComponent extends AddressItem {
 	 * @return
 	 */
 	AddressComponent reverseBytes();
+	
+	@Override
+	AddressComponent getLower();
+
+	@Override
+	AddressComponent getUpper();
+	
+	@Override
+	Iterable<? extends AddressComponent> getIterable();
+
+	/**
+	 * Iterates through the individual elements of this address component.
+	 * <p>
+	 * An address component can represent a single segment, address, or section, or it can represent multiple,
+	 * typically a subnet of addresses or a range of segment or section values.
+	 * <p>
+	 * Call {@link #isMultiple()} to determine if this instance represents multiple.
+	 * 
+	 * @return
+	 */
+	@Override
+	Iterator<? extends AddressComponent> iterator();
 }

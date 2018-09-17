@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,16 @@ import java.util.Objects;
 import java.util.Set;
 
 import inet.ipaddr.Address;
+import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
-import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressRange;
+import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -314,7 +317,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		testBase.incrementTestCount();
 	}
-	
+
 	void testCount(String original, long number, long excludeZerosNumber, RangeParameters rangeOptions) {
 		IPAddressString w = createAddress(original, rangeOptions);
 		testCount(this, w, number, excludeZerosNumber);
@@ -412,6 +415,196 @@ public class IPAddressRangeTest extends IPAddressTest {
 				} else {
 					testBase.addFailure(new Failure("unexpected zero count ", val));
 				}
+			}
+		}
+		testBase.incrementTestCount();
+	}
+	
+	void testRangeCount(String low, String high, long number) {
+		IPAddressString w = createAddress(low);
+		IPAddressString w2 = createAddress(high);
+		testRangeCount(this, w, w2, number);
+	}
+	
+	void testRangeCount(String low, String high, BigInteger number) {
+		IPAddressString w = createAddress(low);
+		IPAddressString w2 = createAddress(high);
+		testRangeCount(this, w, w2, number);
+	}
+	
+	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, BigInteger number) {
+		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		BigInteger count = val.getCount();
+		if(!count.equals(number)) {
+			testBase.addFailure(new Failure("big count was " + count, w));
+		}
+		testBase.incrementTestCount();
+	}
+	
+	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
+		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		BigInteger count = val.getCount();
+		if(!count.equals(BigInteger.valueOf(number))) {
+			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
+		} else {
+			Iterator<? extends Address> addrIterator = val.iterator();
+			long counter = 0;
+			Set<Address> set = new HashSet<Address>();
+			Address next = null;
+			while(addrIterator.hasNext()) {
+				next = addrIterator.next();
+				if(counter == 0) {
+					Address lower = val.getLower();
+					if(!next.equals(lower)) {
+						testBase.addFailure(new Failure("lowest: " + lower + " next: " + next, next));
+					}
+				}
+				set.add(next);
+				counter++;
+			}
+			if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+			} else if (number > 0){
+				if(!next.equals(val.getUpper())) {
+					testBase.addFailure(new Failure("highest: " + val.getUpper(), next));
+				} else {
+					Address lower = val.getLower();
+					if(counter == 1 && !val.getUpper().equals(lower)) {
+						testBase.addFailure(new Failure("highest: " + val.getUpper() + " lowest: " + val.getLower(), next));
+					}
+				}
+			} else {
+				testBase.addFailure(new Failure("unexpected zero count ", val));
+			}
+		}
+		testBase.incrementTestCount();
+	}
+	
+	void testRangePrefixCount(String low, String high, int prefixLength, long number) {
+		IPAddressString w = createAddress(low);
+		IPAddressString w2 = createAddress(high);
+		testRangePrefixCount(this, w, w2, prefixLength, number);
+	}
+	
+	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
+		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		BigInteger count = val.getPrefixCount(prefixLength);
+		if(!count.equals(BigInteger.valueOf(number))) {
+			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
+		} else {
+			Iterator<? extends Address> addrIterator = val.prefixBlockIterator(prefixLength);
+			long counter = 0;
+			Set<Address> set = new HashSet<Address>();
+			Address next = null;
+			while(addrIterator.hasNext()) {
+				next = addrIterator.next();
+				if(!next.isPrefixBlock()) {
+					testBase.addFailure(new Failure("not prefix block next: " + next, next));
+					break;
+				}
+				if(!next.isSinglePrefixBlock()) {
+					testBase.addFailure(new Failure("not single prefix block next: " + next, next));
+					break;
+				}
+				set.add(next);
+				//System.out.println(next);
+				counter++;
+			}
+			if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+			} else if (number < 0) {
+				testBase.addFailure(new Failure("unexpected zero count ", val));
+			}
+		}
+		testBase.incrementTestCount();
+	}
+	
+	void testRangeBlocks(String original, int segmentCount, long number) {
+		IPAddressString w = createAddress(original);
+		testRangeBlocks(this, w, segmentCount, number);
+	}
+
+	static void testRangeBlocks(TestBase testBase, IPAddressString w, int segmentCount, long number) {
+		IPAddress val = w.getAddress();
+		int associatedPrefixLength =segmentCount * val.getBitsPerSegment();
+		BigInteger count = val.getPrefixCount(associatedPrefixLength);
+		if(!count.equals(BigInteger.valueOf(number))) {
+			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
+		} else {
+			Iterator<? extends IPAddress> addrIterator = val.rangeBlockIterator(segmentCount);
+			long counter = 0, sectionCounter = 0;
+			IPAddressSection valSection = val.getSection(0, segmentCount);
+			Iterator<? extends IPAddressSection> sectionIterator = valSection.iterator();
+			Set<Address> set = new HashSet<Address>();
+			Address next = null;
+			AddressSection nextSection = null;
+			while(addrIterator.hasNext()) {
+				next = addrIterator.next();
+				nextSection = sectionIterator.next();
+				if(counter == 0) {
+					Address lower = val.getLower();
+					AddressSection lowerSection = lower.getSection(0, segmentCount);
+					AddressSection nextAddrSection = next.getSection(0, segmentCount);
+					if(!nextAddrSection.equals(lowerSection) || !lowerSection.equals(nextAddrSection)) {
+						testBase.addFailure(new Failure("lowest: " + lower + " next addr: " + nextAddrSection, nextAddrSection));
+					}
+					if(!nextSection.equals(lowerSection) || !lowerSection.equals(nextSection)) {
+						testBase.addFailure(new Failure("lowest: " + lower + " next sectiob: " + nextSection, nextSection));
+					}
+					if(!nextSection.equals(nextAddrSection) || !nextAddrSection.equals(nextSection)) {
+						testBase.addFailure(new Failure("nextAddrSection: " + nextAddrSection + " next section: " + nextSection, nextSection));
+					}
+					if(!lower.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+						if(!Objects.equals(next.getPrefixLength(), val.getPrefixLength())) {
+							testBase.addFailure(new Failure("val prefix length: " + val.getPrefixLength() + " lowest prefix length: " + next.getPrefixLength(), next));
+						}
+						if(!Objects.equals(lower.getPrefixLength(), val.getPrefixLength())) {
+							testBase.addFailure(new Failure("val prefix length: " + val.getPrefixLength() + " lowest prefix length: " + lower.getPrefixLength(), lower));
+						}
+					}
+				} else if(counter == 1) {
+					if(!next.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+						if(!Objects.equals(next.getPrefixLength(), val.getPrefixLength())) {
+							testBase.addFailure(new Failure("val prefix length: " + val.getPrefixLength() + " next prefix length: " + next.getPrefixLength(), next));
+						}
+					}
+				}
+				set.add(next);
+				counter++;
+				sectionCounter++;
+			}
+			if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+			} else if(sectionIterator.hasNext()) {
+				do {
+					sectionCounter++;
+				} while(sectionIterator.hasNext());
+				testBase.addFailure(new Failure("counter mismatch, count was " + counter + " section count " + sectionCounter, w));
+			} else if (number > 0) {
+				AddressSection upperSection = val.getUpper().getSection(0, segmentCount);
+				AddressSection nextAddrSection = next.getSection(0, segmentCount);
+				if(!nextAddrSection.equals(upperSection) || !upperSection.equals(nextAddrSection)) {
+					testBase.addFailure(new Failure("highest: " + upperSection + " next addr: " + nextAddrSection, nextAddrSection));
+				}
+				if(!nextSection.equals(upperSection) || !upperSection.equals(nextSection)) {
+					testBase.addFailure(new Failure("highest: " + upperSection + " next section: " + nextSection, nextSection));
+				} else {
+					Address lower = val.getLower();
+					AddressSection lowerSection = lower.getSection(0, segmentCount);
+					if(counter == 1 && !upperSection.equals(lowerSection)) {
+						testBase.addFailure(new Failure("highest: " + val.getUpper() + " lowest: " + val.getLower(), next));
+					}
+					if(!val.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+						if(!Objects.equals(next.getPrefixLength(), val.getPrefixLength())) {
+							testBase.addFailure(new Failure("val prefix length: " + val.getPrefixLength() + " upper prefix length: " + next.getPrefixLength(), next));
+						}
+						if(!Objects.equals(val.getUpper().getPrefixLength(), val.getPrefixLength())) {
+							testBase.addFailure(new Failure("val prefix length: " + val.getPrefixLength() + " upper prefix length: " + val.getUpper().getPrefixLength(), next));
+						}
+					}
+				}
+			} else {
+				testBase.addFailure(new Failure("unexpected zero count ", val));
 			}
 		}
 		testBase.incrementTestCount();
@@ -3372,6 +3565,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("2-3.3-4.3.*/32", 256 * 2 * 2);
 		testPrefixCount("192.168.0.0-8/29", 2);
 		testPrefixCount("192.168.0.0-15/29", 2);
+		testPrefixCount("1.2.3.*/0", 1);
+		testPrefixCount("1.2.3.4/0", 1);
 		
 		testCount("1.2.3.4", 1, 1);
 		testCount("1.2.3.4/32", 1, 1);
@@ -3384,6 +3579,120 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testCount("1.2.252.0/22", isNoAutoSubnets ? 1 : 4 * 256, isNoAutoSubnets ? 0 : (4 * 256) - 1);
 		testCount("1-2.2.252.0/22", isNoAutoSubnets ? 2 : 2 * 4 * 256, isNoAutoSubnets ? 0 : 2 * ((4 * 256) - 1));
 		
+		testRangeBlocks("1.1-3.*.*", 2, 3);
+		testRangeBlocks("5-9.1-3.*.*", 2, 15);
+		testRangeBlocks("1.1-3.*.1", 2, 3);
+		testRangeBlocks("5-9.1-3.1.*", 2, 15);
+		if(isAutoSubnets) {
+			testRangeBlocks("5-9.0.0.0/9", 2, 5 * 128);
+			testRangeBlocks("4-8.0.0.0/7", 2, 6 * 256);
+			testRangeBlocks("1.128.0.0/12", 2, 16);
+		} else {
+			testRangeBlocks("5-9.0.0.0/9", 2, 5);
+			testRangeBlocks("4-8.0.0.0/7", 2, 5);
+			testRangeBlocks("1.128.0.0/12", 2, 1);
+		}
+		testRangeBlocks("1.128.0.0/20", 2, 1);
+		if(allPrefixesAreSubnets) {
+			testRangeBlocks("5-9.1-3.1.0/9", 2, 5 * 128);
+			testRangeBlocks("5-9.1-3.1.0/7", 2, 6 * 256);
+			testRangeBlocks("5-9.0.0.0/7", 2, 6 * 256);
+			testRangeBlocks("1.128.0.0/4", 2, 16 * 256);
+		} else {
+			testRangeBlocks("5-9.1-3.1.0/9", 2, 15);
+			testRangeBlocks("5-9.1-3.1.0/7", 2, 15);
+			testRangeBlocks("5-9.0.0.0/7", 2, 5);
+			testRangeBlocks("1.128.0.0/4", 2, 1);
+		}
+		testRangeBlocks("1-3.1-3.1-3.1-3", 1, 3);
+		testRangeBlocks("1-3.1-3.1-3.1-3", 2, 9);
+		testRangeBlocks("1-3.1-3.1-3.1-3", 3, 27);
+		testRangeBlocks("1-3.1-3.1-3.1-3", 4, 81);
+		
+		testRangeBlocks("1-3:1-3:1-3:1-3::", 1, 3);
+		testRangeBlocks("1-3:1-3:1-3:1-3::", 2, 9);
+		testRangeBlocks("1-3:1-3:1-3:1-3::", 3, 27);
+		testRangeBlocks("1-3:1-3:1-3:1-3::", 4, 81);
+		testRangeBlocks("1-3:1-3:1-3:1-3:*", 1, 3);
+		testRangeBlocks("1-3:1-3:1-3:1-3:*", 2, 9);
+		testRangeBlocks("1-3:1-3:1-3:1-3:*", 3, 27);
+		testRangeBlocks("1-3:1-3:1-3:1-3:*", 4, 81);
+		
+		testRangeBlocks("::1-3:1-3:1-3:1-3", 5, 3);
+		testRangeBlocks("::1-3:1-3:1-3:1-3", 6, 9);
+		testRangeBlocks("::1-3:1-3:1-3:1-3", 7, 27);
+		testRangeBlocks("::1-3:1-3:1-3:1-3", 8, 81);
+		
+		testRangeBlocks("1-3:1-3:1-3:1-3:1-3:1-3:1-3:1-3", 8, 81 * 81);
+		
+		if(isAutoSubnets) {
+			testRangeBlocks("5-9:0:0:0::/17", 2, 5 * 0x8000);
+			testRangeBlocks("4-8:0:0:0::/15", 2, 6 * 0x10000);
+			testRangeBlocks("1:100:0:0::/24", 2, 256);
+		} else {
+			testRangeBlocks("5-9:0:0:0::/17", 2, 5);
+			testRangeBlocks("4-8:0:0:0::/15", 2, 5);
+			testRangeBlocks("1:100:0:0::/24", 2, 1);
+		}
+		testRangeBlocks("1:128:0:0::/36", 2, 1);
+		if(allPrefixesAreSubnets) {
+			testRangeBlocks("5-9:1-3:1:0::/17", 2, 5 * 0x8000);
+			testRangeBlocks("5-9:1-3:1:0::/15", 2, 6 * 0x10000);
+			testRangeBlocks("5-9:0:0:0::/15", 2, 6 * 0x10000);
+			testRangeBlocks("1:128:0:0::/24", 2, 256);
+		} else {
+			testRangeBlocks("5-9:1-3:1:0::/17", 2, 15);
+			testRangeBlocks("5-9:1-3:1:0::/15", 2, 15);
+			testRangeBlocks("5-9:0:0:0::/15", 2, 5);
+			testRangeBlocks("1:128:0:0::/12", 2, 1);
+			testRangeBlocks("1:128:0:0::/24", 2, 1);
+		}
+
+		testRangeCount("1.2.3.4", "1.2.3.4", 1);
+		testRangeCount("1.2.3.4", "1.2.3.6", 3);
+		testRangeCount("1.2.3.255", "1.2.4.1", 3);
+		testRangeCount("1.2.3.254", "1.2.4.0", 3);
+		if(fullTest) {
+			testRangeCount("1.2.3.254", "1.3.4.0", 3 + 256 * 256);//on the slow side, generating 180k+ addresses
+		}
+		testRangeCount("0.0.0.0", "255.255.255.255", BigInteger.valueOf(256L * 256L * 256L * 256L));
+		testRangeCount("0.0.0.0", "255.253.255.255", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 255L + 1));
+		testRangeCount("2.0.1.0", "255.253.255.252", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 252L).subtract(BigInteger.valueOf(2 * 16777216L + 256L)).add(BigInteger.ONE));
+		
+		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
+		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
+		testRangeCount("::1:2:3:ffff", "::1:2:4:1", 3);
+		testRangeCount("::1:2:3:fffe", "::1:2:4:0", 3);
+		
+		if(fullTest) {
+			testRangeCount("::1:2:3:fffe", "::1:2:5:0", 3L + 0x10000L);
+			testRangeCount("::1:2:3:fffe", "::1:2:6:0", 3L + 0x20000L);
+		}
+		
+		testRangePrefixCount("1.2.3.4", "1.2.3.4", 24, 1);
+		testRangePrefixCount("1.2.3.4", "1.2.3.6", 24, 1);
+		testRangePrefixCount("1.2.3.4", "1.2.3.6", 23, 1);
+		testRangePrefixCount("1.2.3.4", "1.2.3.6", 25, 1);
+		
+		testRangePrefixCount("2.3.4.5", "2.3.6.5", 24, 3);
+		testRangePrefixCount("2.3.4.5", "2.3.6.5", 22, 1);
+		testRangePrefixCount("2.3.4.5", "2.3.6.5", 23, 2);
+		
+		testRangePrefixCount("2.3.255.5", "2.4.1.5", 25, 5);
+		testRangePrefixCount("2.3.255.5", "2.4.0.5", 24, 2);
+		testRangePrefixCount("2.3.255.5", "2.4.1.5", 24, 3);
+		
+		
+		
+		if(fullTest) {
+			testRangePrefixCount("::1:2:3:fffe", "::1:2:5:0", 128, 3L + 0x10000L);
+			testRangePrefixCount("::1:2:3:fffe", "::1:2:6:0", 128, 3L + 0x20000L);
+		}
+		
+		testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 49, 5);
+		testRangePrefixCount("2:3:ffff:5::", "2:4:0:5::", 48, 2);
+		testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 48, 3);
+		
 		if(fullTest) {
 			//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
 			testCount("1.*.11-200.4", 190 * 256, 190 * 256, RangeParameters.WILDCARD_AND_RANGE);
@@ -3394,6 +3703,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testCount("11-13.*.0.0/23", !isNoAutoSubnets ? 3 * 256 * 2 * 256 : 3 * 256, 
 					!isNoAutoSubnets ? ((3 * 256) * (2 * 256)) - (3 * 256) : 0, RangeParameters.WILDCARD_AND_RANGE);
 		}
+		
+		
 		
 		ipv4test(true, "1.1.*.100-101", RangeParameters.WILDCARD_AND_RANGE);
 		ipv4test(false, "1.2.*.101-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range
@@ -3539,11 +3850,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testCount("1::2:3/128", 1, 1);
 		testCount("1::2:3/127", allPrefixesAreSubnets ? 2 : 1, 1);
 		
+		testPrefixCount("1::2/128", 1);
 		testPrefixCount("1::2:*/127", 0x8000);
 		testPrefixCount("1::2:*/113", 2);
 		testPrefixCount("1::2:*/112", 1);
 		testPrefixCount("*::2:*/112", 0x10000);
 		testPrefixCount("*:1-3::2:*/112", 0x10000 * 3);
+		testPrefixCount("*:1-3::2:*/0", 1);
 		
 		if(fullTest) {
 			testCount("1:2::fffc:0/110", isNoAutoSubnets ? 1 : 4 * 0x10000, isNoAutoSubnets ? 0 : (4 * 0x10000) - 1);
@@ -4339,7 +4652,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 			
 			testMerge("1:2:3:4::/63", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:5:4000::/66", "1:2:3:5::/66", "1:2:3:5:8000::/65");
 			
-			testMerge("1:2:3:4::/63", "1:2:3:4-5::/66", "1:2:3:4-5:8000::/65", "1:2:3:4-5:4000::/66");
+			testMerge("1:2:3:4::/63", "1:2:3:4-5::/66", "1:2:3:4-5:8000::/65", "1:2:3:4-5:4000::/66"); //[1:2:3:5::/65]
 			
 			testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
 		}
@@ -4389,6 +4702,30 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMerge2("1.2.3.*/24", "1.2.7.*/24", "1.2.3.*/24", "1.2.7.*/24");
 		testMerge2("1.2.3.128-255/25", "1.2.2.0-127/25", "1.2.3.128-255/25", "1.2.2.0-127/25");
 
+		testMergeRange("1.2.3-4.*", "1.2.3.*", "1.2.4.*");
+		testMergeRange("1.2.3-4.*", "1.2.3-4.*", "1.2.4.*");
+		testMergeRange2("1.2.3-4.*", "2.2.3.*", "1-2.2.3.*", "1.2.4.*");
+		testMergeRange2("1.2.3-4.*", "2.2.3.*", "1.2.3-4.*", "2.2.3.*");
+		
+		//the following 4 are an example where prefix blocks require more addresses
+		if(!isNoAutoSubnets) {
+			testMerge2("1.2.3.0/24", "1.2.4.0/23", "1.2.3.0/24", "1.2.4.0/24", "1.2.5.0/24");
+			testMergeRange("1.2.3-5.*", "1.2.3.0/24", "1.2.4.0/24", "1.2.5.0/24");
+		}
+		testMerge2("1.2.3.*", "1.2.4-5.*", "1.2.3.*", "1.2.4.*", "1.2.5.*");
+		testMergeRange("1.2.3-5.*", "1.2.3.*", "1.2.4.*", "1.2.5.*");
+		
+		testMergeRange("1.2.3-5.*", "1.2.3.*", "1.2.4.*", "1.2.4.1-255", "1.2.5.*");
+		testMergeRange2("1.2.3-5.*", "8.2.3-5.*", "1.2.3.*", "8.2.3.*", "1.2.4.*", "8.2.4.*", "8.2.5.*", "1.2.5.*");
+		testMergeRange2("1.2.3-5.*", "1.7.4.1-255", "1.2.3.*", "1.2.4.*", "1.7.4.1-255", "1.2.5.*");
+		
+		testMergeRange2("1.2.3-5.*", "1.2.7.*", "1.2.3.*", "1.2.4.*", "1.2.7.*", "1.2.5.*");
+		
+		testMergeRange2("1::2:3-5:*", "8::2:3-5:*", "1::2:3:*", "8::2:3:*", "1::2:4:*", "8::2:4:*", "8::2:5:*", "1::2:5:*");
+		testMergeRange2("1::2:3-5:*", "1::7:4:1-255", "1::2:3:*", "1::2:4:*", "1::7:4:1-255", "1::2:5:*");
+		testMergeRange2("1:2:3-5:*", "8:2:3-5:*", "1:2:3:*", "8:2:3:*", "1:2:4:*", "8:2:4:*", "8:2:5:*", "1:2:5:*");
+		testMergeRange2("1:2:3-5:*", "1:7:4:1-255:*", "1:2:3:*", "1:2:4:*", "1:7:4:1-255:*", "1:2:5:*");
+		
 		testIncrement("1.2.*.*/16", 0, "1.2.0.0");
 		testIncrement("1.2.*.*/16", 1, "1.2.0.1");
 		testIncrement("1.2.*.*/16", 65535, "1.2.255.255");
@@ -4414,7 +4751,24 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::");
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2");
 		
+		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1, isNoAutoSubnets ? new String[] {"1.2.3.0-1/31"} : new String[] {"1.2.3.0/31"}, 1, new String[] {"1.2.3.0-1"});//rangeCount
+		testSpanAndMerge("1.2.3.4", "1.2.5.8", 9, new String[] {"1.2.3.4-7/30", "1.2.3.8-15/29", "1.2.3.16-31/28", "1.2.3.32-63/27", "1.2.3.64-127/26", "1.2.3.128-255/25", "1.2.4.0-255/24", "1.2.5.0-7/29", "1.2.5.8"}, 3, new String[] {"1.2.3.4-255", "1.2.4.*", "1.2.5.0-8"});
+		
+		testSpanAndMerge("a:b:c:d:1::", "a:b:c:d:10::", 5, 
+				isNoAutoSubnets ? new String[] {"a:b:c:d:1:*:*:*/80", "a:b:c:d:2-3:*:*:*/79", "a:b:c:d:4-7:*:*:*/78", "a:b:c:d:8-f:*:*:*/77", "a:b:c:d:10::"} : new String[] {"a:b:c:d:1::/80", "a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, new String[] {"a:b:c:d:1-f:*:*:*", "a:b:c:d:10::"});//[a:b:c:d:1::/80, a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::]
+		testSpanAndMerge("a:b:c:d:1::/80", "a:b:c:d:10::", 5, 
+				isNoAutoSubnets ? new String[] {"a:b:c:d:1:*:*:*/80", "a:b:c:d:2-3:*:*:*/79", "a:b:c:d:4-7:*:*:*/78", "a:b:c:d:8-f:*:*:*/77", "a:b:c:d:10::"} : new String[] {"a:b:c:d:1::/80", "a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, new String[] {"a:b:c:d:1-f:*:*:*", "a:b:c:d:10::"});
+		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::", 4,
+				isNoAutoSubnets ? new String[] {"a:b:c:d:2-3:*:*:*/79", "a:b:c:d:4-7:*:*:*/78", "a:b:c:d:8-f:*:*:*/77", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, new String[] {"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"});
+		testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::/76", 4, 
+				isNoAutoSubnets ? new String[] {"a:b:c:d:2-3:*:*:*/79", "a:b:c:d:4-7:*:*:*/78", "a:b:c:d:8-f:*:*:*/77", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::/76"}, 
+				isNoAutoSubnets ? 2 : 1, isNoAutoSubnets ? new String[] {"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2-1f:*:*:*"});
+		testSpanAndMerge("a:b:c:d:2::/79", "a:b:c:d:10::/76", 4, 
+				isNoAutoSubnets ? new String[] {"a:b:c:d:2-3:*:*:*/79", "a:b:c:d:4-7:*:*:*/78", "a:b:c:d:8-f:*:*:*/77", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::/76"},
+				isNoAutoSubnets ? 2 : 1, isNoAutoSubnets ? new String[] {"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2-1f:*:*:*"});//[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
 
+		testSpanAndMerge("1.2.3.0", "1.2.3.*", 1, new String[] {"1.2.3.*/24"}, 1, new String[] {"1.2.3.*/24"});//rangeCount
+		
 		super.runTest();
 	}
 	

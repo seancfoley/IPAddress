@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ package inet.ipaddr;
 import java.io.Serializable;
 import java.util.Map;
 
-import inet.ipaddr.Address.AddressProvider;
-import inet.ipaddr.format.AddressCreator;
+import inet.ipaddr.Address.AddressValueProvider;
+import inet.ipaddr.format.standard.AddressCreator;
 
 /**
  * An object representing a collection of addresses.
@@ -262,7 +262,7 @@ public abstract class AddressNetwork<S extends AddressSegment> implements Serial
 		
 		public abstract T get(byte bytes[]);
 		
-		public abstract T get(AddressProvider provider);
+		public abstract T get(AddressValueProvider addressProvider);
 		
 		protected abstract T create(String key);
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,15 +28,29 @@ public interface AddressSection extends AddressSegmentSeries {
 	
 	/**
 	 * Determines if one section contains another.
-	 * 
+	 * <p>
 	 * Sections must have the same number of segments to be comparable.
-	 * 
+	 * <p>
 	 * For sections which are aware of their position in an address (IPv6 and MAC), their respective positions must match to be comparable.
 	 * 
 	 * @param other
 	 * @return whether this section contains the given address section
 	 */
 	boolean contains(AddressSection other);
+	
+	/**
+	 * Determines if the argument section matches this section up to the prefix length of this section.
+	 * <p>
+	 * The entire prefix of this section must be present in the other section to be comparable.  
+	 * <p>
+	 * For sections which are aware of their position in an address (IPv6 and MAC), 
+	 * the argument section must have the same or an earlier position in the address to match all prefix segments of this section,
+	 * and the matching is lined up relative to the position.
+	 * 
+	 * @param other
+	 * @return whether thie argument section has the same address section prefix as this
+	 */
+	boolean prefixEquals(AddressSection other);
 	
 	@Override
 	AddressSection getLower();
@@ -61,6 +75,9 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	AddressSection removePrefixLength();
+	
+	@Override
+	AddressSection withoutPrefixLength();
 	
 	@Override
 	AddressSection removePrefixLength(boolean zeroed);

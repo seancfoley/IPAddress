@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ package inet.ipaddr;
 
 import java.util.Iterator;
 
-import inet.ipaddr.format.AddressDivision;
+import inet.ipaddr.format.AddressGenericDivision;
 
 /**
  * Represents a single segment of an address.
@@ -38,16 +38,16 @@ import inet.ipaddr.format.AddressDivision;
  * The general rules are that segments have a whole number of bytes, and in a given address all segments have the same length.
  * <p>
  * When alternatives forms do not follow the general rules for segments,
- * you can use the {@link inet.ipaddr.format.AddressDivision} interface instead.  
+ * you can use the {@link inet.ipaddr.format.standard.AddressDivision} interface instead.  
  * Divisions do not have the restriction that divisions of an address are equal length and a whole number of bytes.
- * Divisions can be grouped using {@link inet.ipaddr.format.AddressDivisionGrouping}.
+ * Divisions can be grouped using {@link inet.ipaddr.format.standard.AddressDivisionGrouping}.
  * <p>
  * AddressSegment objects are immutable and thus also thread-safe.
  * 
  * @author sfoley
  *
  */
-public interface AddressSegment extends AddressComponent, Comparable<AddressDivision> {
+public interface AddressSegment extends AddressComponent, AddressGenericDivision {
 
 	AddressNetwork<?> getNetwork();
 	
@@ -59,7 +59,7 @@ public interface AddressSegment extends AddressComponent, Comparable<AddressDivi
 	/**
 	 * returns the lower value
 	 */
-	int getLowerSegmentValue();
+	int getSegmentValue();
 	
 	/**
 	 * returns the upper value
@@ -102,6 +102,8 @@ public interface AddressSegment extends AddressComponent, Comparable<AddressDivi
 	
 	@Override
 	boolean equals(Object other);
+	
+	boolean prefixEquals(AddressSegment other, int prefixLength);
 	
 	/**
 	 * Gets the maximum possible value for this type of segment (for the highest range value of this particular segment, use {@link #getUpper()}

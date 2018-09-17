@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@ import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IncompatibleAddressException;
-import inet.ipaddr.format.AddressDivision;
-import inet.ipaddr.format.AddressDivisionGrouping.StringOptions;
+import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.standard.AddressDivision;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
 import inet.ipaddr.format.util.AddressDivisionWriter;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.MACStringCache;
@@ -74,13 +76,13 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		return new byte[] { (byte) (low ? getLowerSegmentValue() : getUpperSegmentValue())};
+		return new byte[] { (byte) (low ? getSegmentValue() : getUpperSegmentValue())};
 	}
 	
 	protected boolean isPrefixBlock(int segmentPrefixLength) {
 		if(segmentPrefixLength < MACAddress.BITS_PER_SEGMENT) {
 			int mask = ~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength);
-			int lower = getLowerSegmentValue();
+			int lower = getSegmentValue();
 			int newLower = lower & mask;
 			if(lower != newLower) {
 				return false;
@@ -93,7 +95,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	protected MACAddressSegment toPrefixBlockSegment(int segmentPrefixLength) {
 		if(segmentPrefixLength < MACAddress.BITS_PER_SEGMENT && !isPrefixBlock(segmentPrefixLength)) {
-			int lower = getLowerSegmentValue();
+			int lower = getSegmentValue();
 			int upper = getUpperSegmentValue();
 			int mask = ~0 << (MACAddress.BITS_PER_SEGMENT - segmentPrefixLength);
 			lower &= mask;
@@ -118,12 +120,12 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	@Override
 	public int getValueCount() {
-		return getUpperSegmentValue() - getLowerSegmentValue() + 1;
+		return getUpperSegmentValue() - getSegmentValue() + 1;
 	}
 	
 	int getPrefixValueCount(int segmentPrefixLength) {
 		int shiftAdjustment = MACAddress.BITS_PER_SEGMENT - segmentPrefixLength;
-		return (getUpperSegmentValue() >>> shiftAdjustment) - (getLowerSegmentValue() >>> shiftAdjustment) + 1;
+		return (getUpperSegmentValue() >>> shiftAdjustment) - (getSegmentValue() >>> shiftAdjustment) + 1;
 	}
 	
 	@Override
@@ -147,12 +149,12 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	}
 
 	@Override
-	public long getLowerValue() {
-		return getLowerSegmentValue();
+	public long getDivisionValue() {
+		return getSegmentValue();
 	}
 
 	@Override
-	public long getUpperValue() {
+	public long getUpperDivisionValue() {
 		return getUpperSegmentValue();
 	}
 	
@@ -160,7 +162,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	 * returns the lower value
 	 */
 	@Override
-	public int getLowerSegmentValue() {
+	public int getSegmentValue() {
 		return value;
 	}
 	
@@ -176,7 +178,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		if(!isMultiple()) {
 			return this;
 		}
-		return getSegmentCreator().createSegment(lowest ? getLowerSegmentValue() : getUpperSegmentValue());
+		return getSegmentCreator().createSegment(lowest ? getSegmentValue() : getUpperSegmentValue());
 	}
 	
 	@Override
@@ -221,13 +223,10 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	}
 	
 	@Override
-	protected boolean isSameValues(AddressDivision other) {
-		if(other instanceof MACAddressSegment) {
-			return isSameValues((MACAddressSegment) other);
-		}
-		return false;
+	protected boolean isSameValues(AddressDivisionBase other) {
+		return other instanceof MACAddressSegment && isSameValues((MACAddressSegment) other);
 	}
-	
+
 	protected boolean isSameValues(MACAddressSegment otherSegment) {
 		return value == otherSegment.value && upperValue == otherSegment.upperValue;
 	}
@@ -243,10 +242,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	
 	@Override
 	public boolean equals(Object other) {
-		if(this == other) {
-			return true;
-		}
-		return other instanceof MACAddressSegment && isSameValues((MACAddressSegment) other);
+		return this == other || (other instanceof MACAddressSegment && ((MACAddressSegment) other).isSameValues(this));
 	}
 
 	/**
@@ -256,11 +252,6 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	 */
 	public boolean contains(MACAddressSegment other) {
 		return other.value >= value && other.upperValue <= upperValue;
-	}
-	
-	@Override
-	public boolean isFullRange() {
-		return includesZero() && includesMax();
 	}
 	
 	@Override
@@ -294,7 +285,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 			int lowerStringStartIndex,
 			int lowerStringEndIndex,
 			int originalLowerValue) {
-		if(cachedString == null && isStandardString && originalLowerValue == getLowerValue()) {
+		if(cachedString == null && isStandardString && originalLowerValue == getDivisionValue()) {
 			cachedString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
 		}
 	}
@@ -308,7 +299,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		if(cachedString == null) {
 			if(isFullRange()) {
 				cachedString = MACAddress.SEGMENT_WILDCARD_STR;
-			} else if(isStandardRangeString && rangeLower == getLowerValue() && rangeUpper == getUpperValue()) {
+			} else if(isStandardRangeString && rangeLower == getDivisionValue() && rangeUpper == getUpperDivisionValue()) {
 				cachedString = addressStr.subSequence(lowerStringStartIndex, upperStringEndIndex).toString();
 			}
 		}
@@ -321,11 +312,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 
 	@Override
 	public Iterator<MACAddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), true, null);
+		return iterator(this, getSegmentCreator(), true, null, false);
 	}
 	
 	Iterator<MACAddressSegment> prefixBlockIterator(Integer segmentPrefixLength) {
-		return iterator(this, getSegmentCreator(), true, segmentPrefixLength);
+		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true);
 	}
 
 	@Override
@@ -334,8 +325,25 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	}
 
 	@Override
+	public boolean prefixEquals(AddressSegment o, int segmentPrefixLength) {
+		if(segmentPrefixLength < 0) {
+			throw new PrefixLenException(segmentPrefixLength);
+		}
+		if(o instanceof MACAddressSegment) {
+			MACAddressSegment other = (MACAddressSegment) o;
+			int shift = getBitCount() - segmentPrefixLength;
+			if(shift <= 0) {
+				return isSameValues(other);
+			}
+			return (other.getSegmentValue() >>> shift) == (getSegmentValue() >>> shift) && 
+					(other.getUpperSegmentValue() >>> shift) <= (getUpperSegmentValue() >>> shift);
+		}
+		return false;
+	}
+	
+	@Override
 	public boolean contains(AddressSegment other) {
-		return other instanceof MACAddressSegment && other.getLowerSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
+		return other instanceof MACAddressSegment && other.getSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
 	}
 	
 	@Override
@@ -353,4 +361,27 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		StringBuilder builder = new StringBuilder(params.getDivisionStringLength(this));
 		return params.appendDivision(builder, this).toString();
 	}
+	
+	/**
+	 * @return whether the division range includes the block of values for the given prefix length
+	 */
+	@Override
+	public boolean containsPrefixBlock(int divisionPrefixLen) {
+		return isPrefixBlock(getDivisionValue(), getUpperDivisionValue(), divisionPrefixLen);
+	}
+
+
+	/**
+	 * Returns whether the division range matches exactly the block of values for the given prefix length.
+	 * 
+	 * @return whether the range of this division matches the range for a single prefix with a single value and the given prefix length.
+	 * 
+	 * @param divisionPrefixLen
+	 * @return whether the range of this segment matches the block of address divisions for that prefix.
+	 */
+	@Override
+	public boolean containsSinglePrefixBlock(int divisionPrefixLen) {
+		return isSinglePrefixBlock(getDivisionValue(), getUpperDivisionValue(), divisionPrefixLen);
+	}
+	
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package inet.ipaddr.format;
+package inet.ipaddr.format.standard;
 
 import inet.ipaddr.AddressValueException;
+import inet.ipaddr.format.AddressDivisionBase;
 
 /**
  * A combination of two or more IP address segments.
@@ -70,12 +71,12 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 	}
 
 	@Override
-	public long getLowerValue() {
+	public long getDivisionValue() {
 		return value;
 	}
 
 	@Override
-	public long getUpperValue() {
+	public long getUpperDivisionValue() {
 		return upperValue;
 	}
 	
@@ -92,20 +93,28 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 	}
 
 	@Override
-	protected boolean isSameValues(AddressDivision other) {
-		return (other instanceof IPAddressJoinedSegments) && 
-				isSameValues((IPAddressJoinedSegments) other);
+	protected boolean isSameValues(AddressDivisionBase other) {
+		if(other instanceof IPAddressJoinedSegments) {
+			return isSameValues((IPAddressJoinedSegments) other);
+		}
+		return false;
 	}
 	
 	protected boolean isSameValues(IPAddressJoinedSegments otherSegment) {
 		//note that it is the range of values that matters, the prefix bits do not
-		return  otherSegment.joinedCount == joinedCount && value == otherSegment.value && upperValue == otherSegment.upperValue;
+		return  value == otherSegment.value && upperValue == otherSegment.upperValue;
 	}
-	
+
 	@Override
 	public boolean equals(Object other) {
-		return other == this || 
-				(other instanceof IPAddressJoinedSegments && isSameValues((IPAddressJoinedSegments) other));
+		if(other == this) {
+			return true;
+		}
+		if(other instanceof IPAddressJoinedSegments) {
+			IPAddressJoinedSegments otherSegments = (IPAddressJoinedSegments) other;
+			return getBitCount() == otherSegments.getBitCount() && otherSegments.isSameValues(this);
+		}
+		return false;
 	}
 	
 	@Override

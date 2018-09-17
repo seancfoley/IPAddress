@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
-import inet.ipaddr.format.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.AddressCache;
@@ -507,6 +507,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address removePrefixLength(boolean zeroed) {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}
+	
+	@Override
+	public IPv4Address withoutPrefixLength() {
+		return removePrefixLength(false);
+	}
 
 	@Override
 	public IPv4Address removePrefixLength() {
@@ -539,6 +544,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 
 	@Override
+	public Iterator<IPv4Address> rangeBlockIterator(int segmentCount) {
+		return getSection().rangeBlockIterator(this, getAddressCreator(), segmentCount);
+	}
+
+	@Override
 	public Iterable<IPv4Address> getIterable() {
 		return this;
 	}
@@ -553,7 +563,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return checkIdentity(getSection().incrementBoundary(increment));
 	}
 	
-	private IPv4AddressCreator getAddressCreator() {
+	IPv4AddressCreator getAddressCreator() {
 		return getNetwork().getAddressCreator();
 	}
 
@@ -566,7 +576,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return defaultIpv6Network();
 	}
 
-	private IPv4Address convertArg(IPAddress arg) throws AddressConversionException {
+	IPv4Address convertArg(IPAddress arg) throws AddressConversionException {
 		IPv4Address converted = arg.toIPv4();
 		if(converted == null) {
 			throw new AddressConversionException(this, arg);
@@ -734,9 +744,26 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				convertArg(other),
 				IPv4Address::getLower,
 				IPv4Address::getUpper,
-				Address.DEFAULT_ADDRESS_COMPARATOR::compare,
-				IPv4Address::removePrefixLength,
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
+				(section) -> section.withoutPrefixLength(),
 				getAddressCreator()::createAddressArray);
+	}
+	
+	@Override
+	public IPv4Address[] spanWithRangedSegments(IPAddress other) throws AddressConversionException {
+		return IPAddress.getSpanningRangeBlocks(
+				this,
+				convertArg(other),
+				IPv4Address::getLower,
+				IPv4Address::getUpper,
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
+				(section) -> section.withoutPrefixLength(),
+				getAddressCreator());
+	}
+	
+	@Override
+	public IPv4AddressRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv4AddressRange(this, convertArg(other));
 	}
 
 	@Override
@@ -750,6 +777,18 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		List<IPAddressSegmentSeries> blocks = getMergedBlocks(this, addresses);
 		return blocks.toArray(new IPv4Address[blocks.size()]);
 	}
+	
+	@Override
+	public IPv4Address[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException {
+		if(addresses.length == 0) {
+			return new IPv4Address[] { this };
+		}
+		for(int i = 0; i < addresses.length; i++) {
+			addresses[i] = convertArg(addresses[i]);
+		}
+		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, addresses, getAddressCreator());
+		return blocks.toArray(new IPv4Address[blocks.size()]);
+	}
 
 	@Override
 	public Inet4Address toUpperInetAddress() {
@@ -759,6 +798,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public Inet4Address toInetAddress() {
 		return (Inet4Address) super.toInetAddress();
+	}
+	
+	@Override
+	public IPv4AddressRange toRange() {
+		return new IPv4AddressRange(getLower(), getUpper());
 	}
 
 	@Override
@@ -859,17 +903,20 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @param lowerValueProvider
 	 * @param upperValueProvider
 	 * @param prefixLength
+	 * @param network use {@link #defaultIpv4Network()} if there is no custom network in use
 	 * @return
 	 */
 	public static String toNormalizedString(IPv4AddressNetwork network, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
 		return toNormalizedString(network.getPrefixConfiguration(), lowerValueProvider, upperValueProvider, prefixLength, SEGMENT_COUNT, BYTES_PER_SEGMENT, BITS_PER_SEGMENT, MAX_VALUE_PER_SEGMENT, SEGMENT_SEPARATOR, DEFAULT_TEXTUAL_RADIX, null);
 	}
-	
+
 	/**
 	 * @author sfoley
 	 *
 	 */
-	public static enum inet_aton_radix { OCTAL, HEX, DECIMAL;
+	public static enum inet_aton_radix {
+		OCTAL, HEX, DECIMAL;
+		
 		int getRadix() {
 			if(this == OCTAL) {
 				return 8;

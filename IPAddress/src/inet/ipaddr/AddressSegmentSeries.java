@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,14 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @return
 	 */
 	int getBytesPerSegment();
+	
+	/**
+	 * @return the maximum possible segment value for this type of address.  
+	 * Note this is not the maximum value of the range of segment values in this specific address,
+	 * this is the maximum value of any segment for this address type, and is usually determined by the number of bits per segment.
+	 */
+	int getMaxSegmentValue();
+
 	
 	/**
 	 * Gets the subsection from the series that comprises all segments
@@ -186,9 +194,10 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * To get the series just below the lowest series of the subnet, use the increment -1.
 	 * 
 	 * @param increment
+	 * @throws AddressValueException in case of underflow or overflow
 	 * @return
 	 */
-	AddressSegmentSeries increment(long increment);
+	AddressSegmentSeries increment(long increment) throws AddressValueException;
 
 	/**
 	 * If the given increment is positive, adds the value to the upper series ({@link #getUpper()} in the subnet range to produce a new series.
@@ -199,9 +208,10 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * <p>
 	 * 
 	 * @param increment
+	 * @throws AddressValueException in case of underflow or overflow
 	 * @return
 	 */
-	AddressSegmentSeries incrementBoundary(long increment);
+	AddressSegmentSeries incrementBoundary(long increment) throws AddressValueException;
 
 	/**
 	 * Produces the canonical representation of the address
@@ -266,18 +276,28 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries toPrefixBlock();
 
 	/**
-	 * Removes the prefix length.  
+	 * Removes the prefix length while zeroing out the existing host.
 	 * <p>
 	 * If the series already has a prefix length, the bits outside the prefix become zero.
+	 * <p>
+	 * Equivalent to calling removePrefixLength(true)
 	 * 
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength();
 
 	/**
+	 * Provides the same address with no prefix.
+	 * 
+	 * Equivalent to calling withoutPrefixLength()
+	 */
+	AddressSegmentSeries withoutPrefixLength();
+	
+	/**
 	 * Removes the prefix length.
 	 * 
 	 * @param zeroed whether the bits outside the prefix become zero
+	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength(boolean zeroed);
