@@ -1023,7 +1023,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	public BigInteger getPrefixCount() {
+	protected BigInteger getPrefixCountImpl() {
 		Integer prefixLength = getPrefixLength();
 		if(prefixLength == null || prefixLength >= getBitCount()) {
 			return getCount();

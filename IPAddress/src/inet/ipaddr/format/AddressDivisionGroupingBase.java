@@ -74,13 +74,14 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	/* for addresses not multiple, we must check each segment, so we cache */
 	private transient Boolean isMultiple;
 	private transient BigInteger cachedCount;
-	
+	private transient BigInteger cachedPrefixCount;
+
 	protected transient int hashCode;
-	
+
 	public AddressDivisionGroupingBase(AddressDivisionBase divisions[]) {
 		this(divisions, true);
 	}
-	
+
 	public AddressDivisionGroupingBase(AddressDivisionBase divisions[], boolean checkDivisions) {
 		this.divisions = divisions;
 		if(checkDivisions) {
@@ -91,7 +92,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 			}
 		}
 	}
-	
+
 	protected static String getMessage(String key) {
 		if(bundle != null) {
 			try {
@@ -432,7 +433,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	}
 
 	/**
-	 * gets the count of addresses that this address may represent
+	 * gets the count of addresses that this address division grouping may represent
 	 * 
 	 * If this address division grouping is not a subnet block of multiple addresses or has no range of values, then there is only one such address.
 	 * 
@@ -449,6 +450,24 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	
 	protected BigInteger getCountImpl() {
 		return AddressDivisionSeries.super.getCount();
+	}
+	
+	@Override
+	public BigInteger getPrefixCount() {
+		BigInteger cached = cachedPrefixCount;
+		if(cached == null) {
+			Integer prefixLength = getPrefixLength();
+			if(prefixLength == null || prefixLength >= getBitCount()) {
+				cachedPrefixCount = cached = getCount();
+			} else {
+				cachedPrefixCount = cached = getPrefixCountImpl();
+			}
+		}
+		return cached;
+	}
+	
+	protected BigInteger getPrefixCountImpl() {
+		return AddressDivisionSeries.super.getPrefixCount();
 	}
 
 	/**

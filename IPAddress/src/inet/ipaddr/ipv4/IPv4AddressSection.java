@@ -824,7 +824,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
-	public BigInteger getPrefixCount() {
+	protected BigInteger getPrefixCountImpl() {
 		return BigInteger.valueOf(getIPv4PrefixCount());
 	}
 	

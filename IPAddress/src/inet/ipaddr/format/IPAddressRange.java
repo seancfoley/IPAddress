@@ -41,32 +41,34 @@ public interface IPAddressRange extends AddressItemRange {
 	 * @return
 	 */
 	boolean contains(IPAddress other);
-	
+
 	/**
-	 * If this instance represents multiple address items, returns the one with the lowest numeric value.
+	 * If this instance represents multiple individual addresses, returns the one with the lowest numeric value.
 	 * 
 	 * @return
 	 */
 	@Override
 	IPAddress getLower();
-	
+
 	/**
-	 * If this instance represents multiple address items, returns the one with the highest numeric value.
+	 * If this instance represents multiple individual addresses, returns the one with the highest numeric value.
 	 * 
 	 * @return
 	 */
 	@Override
 	IPAddress getUpper();
-	
+
 	/**
-	 * Useful for using an instance in a "for-each loop".  Otherwise just call {@link #iterator()} directly.
+	 * Useful for using an instance in a "for-each loop", as in <code>for(addr : address.getIterable()) { ... }</code>
+	 * <p>
+	 * Otherwise just call {@link #iterator()} directly.
 	 * @return
 	 */
 	@Override
 	Iterable<? extends IPAddress> getIterable();
 
 	/**
-	 * Iterates through the individual elements of this address.
+	 * Iterates through the individual addresses of this address or subnet.
 	 * <p>
 	 * Call {@link #isMultiple()} to determine if this instance represents multiple, or {@link #getCount()} for the count.
 	 * 
@@ -82,7 +84,7 @@ public interface IPAddressRange extends AddressItemRange {
 	 * @return
 	 */
 	Iterator<? extends IPAddress> prefixBlockIterator(int prefLength);
-	
+
 	/**
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
 	 * 
@@ -90,18 +92,18 @@ public interface IPAddressRange extends AddressItemRange {
 	 * @return
 	 */
 	Iterator<? extends IPAddressRange> prefixIterator(int prefixLength);
-	
+
 	/**
 	 * Produces an array of prefix blocks that cover the same set of addresses.
 	 */
 	IPAddress[] spanWithPrefixBlocks();
-	
+
 	/**
 	 * Produces an array of blocks that are sequential that cover the same set of addresses.
 	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
 	 */
 	IPAddress[] spanWithSequentialBlocks();
-	
+
 	/**
 	 * Produces a string that is unique for all instances.
 	 * @return

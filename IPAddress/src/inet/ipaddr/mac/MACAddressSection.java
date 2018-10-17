@@ -458,7 +458,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 	
 	@Override
-	public BigInteger getPrefixCount() {
+	protected BigInteger getPrefixCountImpl() {
 		Integer prefixLength = getPrefixLength();
 		if(prefixLength == null || prefixLength >= getBitCount()) {
 			return getCount();
