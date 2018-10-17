@@ -110,6 +110,9 @@ public interface AddressSection extends AddressSegmentSeries {
 	Iterator<? extends AddressSection> iterator();
 	
 	@Override
+	Iterator<? extends AddressSection> prefixIterator();
+	
+	@Override
 	Iterator<? extends AddressSection> prefixBlockIterator();
 	
 	@Override

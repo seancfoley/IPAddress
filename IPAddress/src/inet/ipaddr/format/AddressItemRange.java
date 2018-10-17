@@ -23,7 +23,7 @@ import java.util.Iterator;
 import inet.ipaddr.format.AddressItem;
 
 
-public interface AddressItemRange {
+public interface AddressItemRange extends AddressItem {
 	/**
 	 * If this instance represents multiple address items, returns the one with the lowest numeric value.
 	 * 
@@ -45,7 +45,7 @@ public interface AddressItemRange {
 	Iterable<? extends AddressItem> getIterable();
 
 	/**
-	 * Iterates through the individual elements of this address items.
+	 * Iterates through the individual elements of this address item.
 	 * <p>
 	 * Call {@link #isMultiple()} to determine if this instance represents multiple, or {@link #getCount()} for the count.
 	 * 

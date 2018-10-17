@@ -372,6 +372,13 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	public abstract Iterator<? extends IPAddressSegment> prefixBlockIterator();
 	
 	/**
+	 * Iterates through the individual prefixes.
+	 * <p>
+	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
+	 */
+	public abstract Iterator<? extends IPAddressSegment> prefixIterator();
+	
+	/**
 	 * Iterates through the individual prefix blocks according to the given segment prefix length.
 	 * Any existing prefix length is disregarded.
 	 */

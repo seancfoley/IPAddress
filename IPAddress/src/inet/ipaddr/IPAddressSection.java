@@ -170,16 +170,16 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public int getBitCount() {
 		return getSegmentCount() * getBitsPerSegment();
 	}
-	
+
 	@Override
 	public int getByteCount() {
 		return getSegmentCount() * getBytesPerSegment();
 	}
-	
+
 	public static int bitsPerSegment(IPVersion version) {
 		return IPAddressSegment.getBitCount(version);
 	}
-	
+
 	public static int bytesPerSegment(IPVersion version) {
 		return IPAddressSegment.getBitCount(version);
 	}
@@ -935,7 +935,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return seriesCreator;
 	}
 	
-	protected static <R extends IPAddressSection, S extends IPAddressSegment> R[] getSpanningRangeBlocks(
+	protected static <R extends IPAddressSection, S extends IPAddressSegment> R[] getSpanningSequentialBlocks(
 			R first,
 			R other,
 			UnaryOperator<R> getLower,
@@ -962,14 +962,21 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			Function<R, R> prefixRemover,
 			BiFunction<R, R, List<IPAddressSegmentSeries>> operatorFunctor) {
 		//check if they are comparable first.  We only check segment count, we do not care about start index.
-		R firstLower = getLower.apply(first);
-		R otherLower = getLower.apply(other);
-		R firstUpper = getUpper.apply(first);
-		R otherUpper = getUpper.apply(other);
-		R lower = comparator.compare(firstLower, otherLower) > 0 ? otherLower : firstLower;
-		R upper = comparator.compare(firstUpper, otherUpper) < 0 ? otherUpper : firstUpper;
-		lower = prefixRemover.apply(lower);
-		upper = prefixRemover.apply(upper);
+		R lower, upper;
+		if(first == other) {
+			lower = prefixRemover.apply(first);
+			upper = getUpper.apply(lower);
+			lower = getLower.apply(lower);
+		} else {
+			R firstLower = getLower.apply(first);
+			R otherLower = getLower.apply(other);
+			R firstUpper = getUpper.apply(first);
+			R otherUpper = getUpper.apply(other);
+			lower = comparator.compare(firstLower, otherLower) > 0 ? otherLower : firstLower;
+			upper = comparator.compare(firstUpper, otherUpper) < 0 ? otherUpper : firstUpper;
+			lower = prefixRemover.apply(lower);
+			upper = prefixRemover.apply(upper);
+		}
 		return operatorFunctor.apply(lower, upper);
 	}
 	
@@ -1229,7 +1236,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return false;
 	}
 	
-	protected static List<IPAddressSegmentSeries> getMergedRangeBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize, SeriesCreator seriesCreator) {
+	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize, SeriesCreator seriesCreator) {
 		List<IPAddressSegmentSeries> list = new ArrayList<>();
 		int bitsPerSegment = first.getBitsPerSegment();
 		int bytesPerSegment = first.getBytesPerSegment();
@@ -1238,12 +1245,12 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		
 //		iterator must get the segment to iterate on based on prefix Length
 //		it is the segment preceding the prefix length, the segment preceding the first non-full-range
-//		you get that segment index, then you call rangeBlockIterator
+//		you get that segment index, then you get the iterator for that segment index
 		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, listComparator, series -> {
 			Integer prefixLength = series.getPrefixLength();
 			int segs = (prefixLength == null) ? series.getSegmentCount() - 1 : 
 				getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
-			return series.rangeBlockIterator(segs);
+			return series.blockIterator(segs);
 		});
 		if(singleElement) {
 			list.get(0).withoutPrefixLength();
@@ -2036,10 +2043,34 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract Iterator<? extends IPAddressSection> iterator();
 	
 	@Override
+	public abstract Iterator<? extends IPAddressSection> prefixIterator();
+
+	@Override
 	public abstract Iterator<? extends IPAddressSection> prefixBlockIterator();
 
 	@Override
-	public abstract Iterator<? extends IPAddressSection> rangeBlockIterator(int segmentCount);
+	public abstract Iterator<? extends IPAddressSection> blockIterator(int segmentCount);
+
+	@Override
+	public Iterator<? extends IPAddressSection> sequentialBlockIterator() {
+		int sequentialSegCount = getSequentialSegmentCount();
+		return blockIterator(sequentialSegCount);
+	}
+
+	@Override
+	public BigInteger getSequentialBlockCount() {
+		int sequentialSegCount = getSequentialSegmentCount();
+		return getPrefixCount(sequentialSegCount * getBitsPerSegment());
+	}
+
+	int getSequentialSegmentCount() {
+		int segCount = getSegmentCount();
+		if(segCount == 0) {
+			return 0;
+		}
+		for(segCount--; segCount > 0 && getSegment(segCount).isFullRange(); segCount--);
+		return segCount;
+	}
 
 	static <S extends AddressSegment> Iterator<S[]> iterator(
 			int divCount,

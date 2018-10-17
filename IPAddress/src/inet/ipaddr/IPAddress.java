@@ -21,6 +21,8 @@ package inet.ipaddr;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +37,7 @@ import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSection.SeriesCreator;
+import inet.ipaddr.format.IPAddressRange;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
@@ -85,7 +88,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * IPv6StringBuilder/IPv4StringBuilder/IPAddressStringBuilder, used to create collections of strings, are not public either
  *
  */
-public abstract class IPAddress extends Address implements IPAddressSegmentSeries {
+public abstract class IPAddress extends Address implements IPAddressSegmentSeries, IPAddressRange {
 	
 	private static final long serialVersionUID = 4L;
 
@@ -314,10 +317,24 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract Iterator<? extends IPAddress> nonZeroHostIterator();
 
 	@Override
+	public abstract Iterator<? extends IPAddress> prefixIterator();
+
+	@Override
 	public abstract Iterator<? extends IPAddress> prefixBlockIterator();
 
 	@Override
-	public abstract Iterator<? extends IPAddress> rangeBlockIterator(int segmentCount);
+	public abstract Iterator<? extends IPAddress> blockIterator(int segmentCount);
+	
+	@Override
+	public Iterator<? extends IPAddress> sequentialBlockIterator() {
+		int sequentialSegCount = getSection().getSequentialSegmentCount();
+		return blockIterator(sequentialSegCount);
+	}
+	
+	@Override
+	public BigInteger getSequentialBlockCount() {
+		return getSection().getSequentialBlockCount();
+	}
 	
 	/**
 	 * @return an object to iterate over the individual addresses represented by this object.
@@ -451,12 +468,26 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	 * Creates a range instance from the lowest and highest addresses in this subnet
+	 * Creates a sequential range instance from the lowest and highest addresses in this subnet
+	 * <p>
+	 * The two will represent the same set of addresses if and only if {@link #isSequential()} is true
+	 * <p>
+	 * If this represents just a single address then the returned instance covers just that single address as well.
 	 * 
 	 * @return
 	 */
-	public abstract IPAddressRange toRange();
+	public abstract IPAddressSequentialRange toSequentialRange();
 
+	/**
+	 * Creates a sequential range instance from this and the given address, 
+	 * spanning from the lowest to the highest addresses in the two subnets
+	 * 
+	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * 
+	 * @return
+	 */
+	public abstract IPAddressSequentialRange toRange(IPAddress other);
+	
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
 		if(isFromSameString(otherString)) {
@@ -480,9 +511,39 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return false;
 	}
 
-//	public boolean isSameAddress(IPAddress other) {
-//		return other == this || getSection().equals(other.getSection());
-//	}
+	@Override
+	public boolean contains(IPAddressSequentialRange other) {
+		IPAddressSequentialRange otherRange = (IPAddressSequentialRange) other;
+		if(compareLowValues(otherRange.getLower(), getLower()) >= 0 && 
+				compareLowValues(otherRange.getUpper(), getUpper()) <= 0) {
+			if(isSequential()) {
+				return true;
+			}
+			Iterator<? extends IPAddress> iterator = sequentialBlockIterator();
+			while(iterator.hasNext()) {
+				IPAddress sequential = iterator.next();
+				if(sequential.contains(other)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	static int compareLowValues(IPAddress one, IPAddress two) {
+		return Address.ADDRESS_LOW_VALUE_COMPARATOR.compare(one, two);
+	}
+
+	/**
+	 * Returns whether this contains all values of the given address
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean contains(IPAddress other) {
+		return super.contains(other);
+	}
 	
 	/**
 	 * Applies the mask to this address and then compares values with the given address
@@ -1047,7 +1108,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return seriesCreator;
 	}
 	
-	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningRangeBlocks(
+	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningSequentialBlocks(
 			T first,
 			T other,
 			UnaryOperator<T> getLower,
@@ -1131,12 +1192,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Produces the list of prefix block subnets that span from this subnet to the given subnet.
 	 * <p>
-	 * If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toRange()}
-	 * and them joining them into a single range with {@link IPAddressRange#join(IPAddressRange...)}
+	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
+	 * and them joining them into a single range with {@link IPAddressSequentialRange#join(IPAddressSequentialRange...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1144,38 +1205,51 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException;
 	
 	/**
-	 * Produces a list of sequential range subnets that span from this subnet to the given subnet.
-	 * An example of a ranged subnet is 1-3.1-4.5.6-8, however that ranged subnet is not sequential since address 1.1.5.8 is in the subnet,
-	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
+	 * Produces a list of sequential block subnets that span all values from this subnet to the given subnet.
+	 * The span will cover the sequence of all addresses from the lowest address in both subnets to the highest address in both subnets.
 	 * <p>
-	 * If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * Individual block subnets come in the form 1-3.1-4.5.6-8, however that particular subnet is not sequential since address 1.1.5.8 is in the subnet,
+	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
+	 * Blocks are sequential when the first segment with a range of values is followed by segments that span all values.
+	 * <p>
+	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toRange()}
-	 * and them joining them into a single range with {@link IPAddressRange#join(IPAddressRange...)}
+	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
+	 * and them joining them into a single range with {@link IPAddressSequentialRange#join(IPAddressSequentialRange...)}
 	 * 
 	 * @param other
 	 * @return
 	 */
-	public abstract IPAddress[] spanWithRangedSegments(IPAddress other) throws AddressConversionException;
+	public abstract IPAddress[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException;
+	
+	protected List<? extends IPAddress> spanWithBlocks(boolean prefixBlocks) {
+		ArrayList<IPAddress> list = new ArrayList<IPAddress>();
+		Iterator<? extends IPAddress> iterator = sequentialBlockIterator();
+		while(iterator.hasNext()) {
+			IPAddress sequential = iterator.next();
+			Collections.addAll(list, prefixBlocks ? sequential.spanWithPrefixBlocks(sequential) : sequential.spanWithPrefixBlocks(sequential));
+		}
+		return list;
+	}
 	
 	/**
 	* Produces an IPAddressRange instance that spans this subnet to the given subnet.
 	* <p>
-	* If the other address is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	* If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	* 
 	* @param other
 	* @return
 	*/
-	public abstract IPAddressRange spanWithRange(IPAddress other) throws AddressConversionException;
+	public abstract IPAddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException;
 	
 	/**
 	 * Merges this with the list of addresses to produce the smallest list of prefix blocks
 	 * <p>
-	 * For the smallest list of subnets use {@link #mergeRangeBlocks(IPAddress...)}.
+	 * For the smallest list of subnets use {@link #mergeToSequentialBlocks(IPAddress...)}.
 	 * <p>
-	 * If any other address in the list is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()},
+	 * If any other address in the list is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
 	 * The result is sorted from single address to smallest blocks to largest blocks.
@@ -1191,30 +1265,33 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	 * Merges this with the list of addresses to produce the smallest list of segment range block subnets that are sequential.
+	 * Merges this with the list of subnets to produce the smallest list of block subnets that are sequential.
 	 * <p>
-	 * An example of a ranged subnet is 1-3.1-4.5.6-8, however that ranged subnet is not sequential since address 1.1.5.8 is in the subnet,
+	 * Block subnets come in the form 1-3.1-4.5.6-8, however that subnet is not sequential since address 1.1.5.8 is in the subnet,
 	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
+	 * Blocks are sequential when the first segment with a range of values is followed by segments that span all values.
 	 * <p>
-	 * This list will eliminate overlaps to produce the smallest list, which can be smaller than the list of prefix blocks produced by {@link #mergePrefixBlocks(IPAddress...)}
+	 * This list will eliminate overlaps to produce the smallest list of sequential block subnets, which is the same size or smaller than the list of prefix blocks produced by {@link #mergePrefixBlocks(IPAddress...)}
 	 * <p>
-	 * If any other address in the list is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()},
+	 * If the incoming blocks are not sequential, the result could be a longer list, since the list is divided into sequential blocks before merging.
+	 * <p>
+	 * If any other address in the list is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
-	 * The result is sorted from single address to smallest blocks to largest blocks.
+	 * The result is sorted from smallest blocks (possibly single address) to largest blocks.
 	 * 
 	 * @throws AddressConversionException
 	 * @param addresses the addresses to merge with this
 	 * @return
 	 */
-	public abstract IPAddress[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException;
+	public abstract IPAddress[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
 	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedRangeBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
-		return IPAddressSection.getMergedRangeBlocks(first, sections, false, createSeriesCreator(creator, first.getMaxSegmentValue()));
+		return IPAddressSection.getMergedSequentialBlocks(first, sections, false, createSeriesCreator(creator, first.getMaxSegmentValue()));
 	}
 	
 	/**
-	 * Produces the subnet whose addresses are found in both this and the given subnet argument.
+	 * Produces the subnet whose addresses are found in both this and the given subnet argument, or null if no such addresses.
 	 * <p>
 	 * This is also known as the conjunction of the two sets of addresses.
 	 * <p>
@@ -1242,7 +1319,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Equivalent to calling {@link #mask(IPAddress, boolean)} with the second argument as false.
 	 *<p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * @param mask
 	 * @return
@@ -1256,7 +1333,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The mask is applied to all individual addresses.
 	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 	 * that cannot be represented as a contiguous range within each segment, then {@link IncompatibleAddressException} is thrown.
@@ -1273,7 +1350,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * Any existing prefix length is removed as the mask and new prefix length is applied to all individual addresses.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 	 * that cannot be represented as a contiguous range within each segment, then {@link IncompatibleAddressException} is thrown.
@@ -1286,7 +1363,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Equivalent to calling {@link #bitwiseOr(IPAddress, boolean)} with the second argument as false.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 @param mask
 	 * @return
@@ -1301,7 +1378,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The mask is applied to all individual addresses, similar to how the method {@link #mask(IPAddress, boolean)} applies the bitwise conjunction.
 	 * Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * If you wish to mask a portion of the network, use {@link #bitwiseOrNetwork(IPAddress, int)}
 	 * <p>
@@ -1324,7 +1401,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Does the bitwise disjunction with this address.  Useful when subnetting.
 	 * <p>
-	 * If the mask is a different version than this, then the default conversion is applied first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * Any existing prefix length is dropped for the new prefix length and the mask is applied up to the end the new prefix length.
 	 * It is similar to how the {@link #maskNetwork(IPAddress, int)} method does the bitwise conjunction.

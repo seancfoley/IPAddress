@@ -683,15 +683,24 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	public Iterator<IPv6AddressSection> iterator() {
 		return iterator(false);
 	}
+
+	@Override
+	public Iterator<IPv6AddressSection> prefixIterator() {
+		return prefixIterator(false);
+	}
 	
 	@Override
 	public Iterator<IPv6AddressSection> prefixBlockIterator() {
+		return prefixIterator(true);
+	}
+	
+	private Iterator<IPv6AddressSection> prefixIterator(boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator();
 		}
 		IPv6AddressCreator creator = getAddressCreator();
-		boolean useOriginal = isSinglePrefixBlock();
+		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getPrefixCount().equals(BigInteger.ONE);
 		return iterator(
 				useOriginal,
 				this,
@@ -706,12 +715,12 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 							null, 
 							getNetworkSegmentIndex(prefLength, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator()),
+							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
 				prefLength);
 	}
 	
 	@Override
-	public Iterator<IPv6AddressSection> rangeBlockIterator(int segmentCount) {
+	public Iterator<IPv6AddressSection> blockIterator(int segmentCount) {
 		if(segmentCount >= getSegmentCount()) {
 			return iterator();
 		}
@@ -740,6 +749,12 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 							segmentCount, 
 							index -> getSegment(index).identityIterator()),
 				isAllSubnets ? null : getPrefixLength());
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv6AddressSection> sequentialBlockIterator() {
+		return (Iterator<IPv6AddressSection>) super.sequentialBlockIterator();
 	}
 
 	private Iterator<IPv6AddressSegment[]> segmentsIterator(boolean excludeZeroHosts) {
@@ -781,12 +796,19 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				isAllSubnets ? null : getPrefixLength());
 	}
 
-	protected Iterator<IPv6Address> prefixBlockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator) {
+	Iterator<IPv6Address> prefixBlockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator, boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator(original, creator, false);
 		}
-		boolean useOriginal = isSinglePrefixBlock();
+		return prefixBlockIterator(original, creator, isBlockIterator, prefLength);
+	}
+	
+	Iterator<IPv6Address> prefixBlockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator, boolean isBlockIterator, int prefLength) {
+		if(prefLength > getBitCount() || prefLength < 0) {
+			throw new PrefixLenException(original, prefLength);
+		}
+		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getPrefixCount().equals(BigInteger.ONE);
 		return iterator(
 				useOriginal ? original : null, 
 				creator,//using a lambda for this one results in a big performance hit
@@ -799,11 +821,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 							null, 
 							getNetworkSegmentIndex(prefLength, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator()),
+							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
 				prefLength);
 	}
 	
-	protected Iterator<IPv6Address> rangeBlockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator, int segmentCount) {
+	Iterator<IPv6Address> blockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator, int segmentCount) {
 		if(segmentCount > getSegmentCount()) {
 			return iterator(original, creator, false);
 		}
@@ -1964,7 +1986,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(other.addressSegmentIndex != addressSegmentIndex) {
 			throw new AddressPositionException(other, other.addressSegmentIndex, addressSegmentIndex);
 		}
-		return getSpanningRangeBlocks(
+		return getSpanningSequentialBlocks(
 				this,
 				other,
 				IPv6AddressSection::getLower,
@@ -2000,11 +2022,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
-	public IPv6AddressSection[] mergeRangeBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
+	public IPv6AddressSection[] mergeToSequentialBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
 		if(sections.length == 0) {
 			return new IPv6AddressSection[] { this };
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 

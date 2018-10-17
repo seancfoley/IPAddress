@@ -181,22 +181,27 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	Iterator<IPv4AddressSegment> iterator(boolean withPrefix) {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false);
+		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false, false);
 	}
 
 	@Override
 	public Iterator<IPv4AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false);
+		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false, false);
 	}
 	
 	@Override
 	public Iterator<IPv4AddressSegment> prefixBlockIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true);
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, true);
+	}
+	
+	@Override
+	public Iterator<IPv4AddressSegment> prefixIterator() {
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, false);
 	}
 
 	@Override
 	public Iterator<IPv4AddressSegment> prefixBlockIterator(int prefixLength) {
-		return iterator(this, getSegmentCreator(), false, IPv4AddressSection.cacheBits(prefixLength), true);
+		return iterator(this, getSegmentCreator(), false, IPv4AddressSection.cacheBits(prefixLength), true, true);
 	}
 	
 	Iterator<IPv4AddressSegment> identityIterator() {

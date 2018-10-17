@@ -172,4 +172,27 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 		}
 		return bitCount;
 	}
+	
+	/**
+	 * If the series represents a range of values that are sequential.
+	 * 
+	 * Generally, this means that any division covering a range of values must be followed by divisions that are full range, covering all values.
+	 * 
+	 * @return
+	 */
+	default boolean isSequential() {
+		int count = getDivisionCount();
+		if(count > 1) {
+			for(int i = 0; i < count; i++) {
+				if(getDivision(i).isMultiple()) {
+					for(++i; i < count; i++) {
+						if(!getDivision(i).isFullRange()) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
 }

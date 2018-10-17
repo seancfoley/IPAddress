@@ -30,7 +30,7 @@ import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressRange;
+import inet.ipaddr.IPAddressSequentialRange;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
@@ -286,33 +286,52 @@ public class IPAddressRangeTest extends IPAddressTest {
 	
 	static void testPrefixCount(TestBase testBase, HostIdentifierString w, long number) {
 		Address val = w.getAddress();
+		boolean isIp = val instanceof IPAddress;
 		boolean isPrefixed = val.isPrefixed();
 		BigInteger count = val.getPrefixCount();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
-			Iterator<? extends Address> addrIterator = val.prefixBlockIterator();
-			long counter = 0;
-			Set<Address> set = new HashSet<Address>();
-			Address next = null;
-			while(addrIterator.hasNext()) {
-				next = addrIterator.next();
-				if(isPrefixed ? !next.isPrefixBlock() : next.isPrefixBlock()) {
-					testBase.addFailure(new Failure("not prefix block next: " + next, next));
-					break;
+			int loopCount = 0;
+			BigInteger totalCount = val.getCount();
+			BigInteger countedCount = BigInteger.ZERO;
+			while(++loopCount < 2) {
+				boolean isBlock = loopCount == 1;
+				Iterator<? extends Address> addrIterator = isBlock ? val.prefixBlockIterator() : val.prefixIterator();
+				long counter = 0;
+				Set<Address> set = new HashSet<Address>();
+				Address previous = null;
+				Address next = null;
+				while(addrIterator.hasNext()) {
+					next = addrIterator.next();
+					if(isBlock || (previous != null && addrIterator.hasNext())) {
+						if(isPrefixed ? !next.isPrefixBlock() : next.isPrefixBlock()) {
+							testBase.addFailure(new Failure("not prefix block next: " + next, next));
+							break;
+						}
+						if(isPrefixed ? !next.isSinglePrefixBlock() : next.isPrefixBlock()) {
+							testBase.addFailure(new Failure("not single prefix block next: " + next, next));
+							break;
+						}
+					} else if(!isBlock) {
+						countedCount = countedCount.add(next.getCount());
+					}
+					if(isIp && previous != null && ((IPAddress) next).intersect((IPAddress) previous) != null) {
+						testBase.addFailure(new Failure("intersection of " + previous + " when iterating: " + ((IPAddress) next).intersect((IPAddress) previous), next));
+						break;
+					}
+					set.add(next);
+					//System.out.println(next);
+					counter++;
+					previous = next;
 				}
-				if(isPrefixed ? !next.isSinglePrefixBlock() : next.isPrefixBlock()) {
-					testBase.addFailure(new Failure("not single prefix block next: " + next, next));
-					break;
+				if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+					testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+				} else if (number < 0) {
+					testBase.addFailure(new Failure("unexpected zero count ", val));
+				} else if (!isBlock && !countedCount.equals(totalCount)){
+					testBase.addFailure(new Failure("count mismatch, expected " + totalCount + " got " + countedCount, val));
 				}
-				set.add(next);
-				//System.out.println(next);
-				counter++;
-			}
-			if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
-				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
-			} else if (number < 0) {
-				testBase.addFailure(new Failure("unexpected zero count ", val));
 			}
 		}
 		testBase.incrementTestCount();
@@ -433,7 +452,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, BigInteger number) {
-		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
 		if(!count.equals(number)) {
 			testBase.addFailure(new Failure("big count was " + count, w));
@@ -442,7 +461,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
-		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
@@ -487,15 +506,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
-		IPAddressRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getPrefixCount(prefixLength);
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
-			Iterator<? extends Address> addrIterator = val.prefixBlockIterator(prefixLength);
+			Iterator<? extends IPAddress> addrIterator = val.prefixBlockIterator(prefixLength);
 			long counter = 0;
-			Set<Address> set = new HashSet<Address>();
-			Address next = null;
+			Set<IPAddress> set = new HashSet<IPAddress>();
+			IPAddress next = null, previous = null;
 			while(addrIterator.hasNext()) {
 				next = addrIterator.next();
 				if(!next.isPrefixBlock()) {
@@ -506,7 +525,12 @@ public class IPAddressRangeTest extends IPAddressTest {
 					testBase.addFailure(new Failure("not single prefix block next: " + next, next));
 					break;
 				}
+				if(previous != null && next.intersect(previous) != null) {
+					testBase.addFailure(new Failure("intersection of " + previous + " when iterating: " + next.intersect(previous), next));
+					break;
+				}
 				set.add(next);
+				previous = next;
 				//System.out.println(next);
 				counter++;
 			}
@@ -515,6 +539,44 @@ public class IPAddressRangeTest extends IPAddressTest {
 			} else if (number < 0) {
 				testBase.addFailure(new Failure("unexpected zero count ", val));
 			}
+
+			BigInteger totalCount = val.getCount();
+			BigInteger countedCount = BigInteger.ZERO;
+			Iterator<? extends IPAddressSequentialRange> rangeIterator = val.prefixIterator(prefixLength);
+			counter = 0;
+			Set<IPAddressSequentialRange> rangeSet = new HashSet<IPAddressSequentialRange>();
+			IPAddressSequentialRange nextRange = null, previousRange = null;
+			while(rangeIterator.hasNext()) {
+				nextRange = rangeIterator.next();
+				IPAddress blocks[] = nextRange.spanWithPrefixBlocks();
+				if(previous != null && addrIterator.hasNext()) {
+					if(blocks.length != 1) {
+						testBase.addFailure(new Failure("not prefix next: " + nextRange, nextRange));
+						break;
+					}
+					if(!blocks[0].isSinglePrefixBlock()) {
+						testBase.addFailure(new Failure("not single prefix next: " + nextRange, nextRange));
+						break;
+					}
+				}
+				countedCount = countedCount.add(nextRange.getCount());
+				if(previousRange != null && nextRange.intersect(previousRange) != null) {
+					testBase.addFailure(new Failure("intersection of " + previousRange + " when iterating: " + nextRange.intersect(previousRange), nextRange));
+					break;
+				}
+				rangeSet.add(nextRange);
+				previousRange = nextRange;
+				//System.out.println(next);
+				counter++;
+			}
+			if((number < Integer.MAX_VALUE && rangeSet.size() != number) || counter != number) {
+				testBase.addFailure(new Failure("set count was " + rangeSet.size() + " instead of expected " + number, w));
+			} else if (number < 0) {
+				testBase.addFailure(new Failure("unexpected zero count ", val));
+			} else if(!countedCount.equals(totalCount)){
+				testBase.addFailure(new Failure("count mismatch, expected " + totalCount + " got " + countedCount, val));
+			}
+
 		}
 		testBase.incrementTestCount();
 	}
@@ -531,7 +593,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
-			Iterator<? extends IPAddress> addrIterator = val.rangeBlockIterator(segmentCount);
+			Iterator<? extends IPAddress> addrIterator = val.blockIterator(segmentCount);
 			long counter = 0, sectionCounter = 0;
 			IPAddressSection valSection = val.getSection(0, segmentCount);
 			Iterator<? extends IPAddressSection> sectionIterator = valSection.iterator();
@@ -3649,6 +3711,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 
 		testRangeCount("1.2.3.4", "1.2.3.4", 1);
+		testRangeCount("1.2.3.4", "1.2.3.5", 2);
 		testRangeCount("1.2.3.4", "1.2.3.6", 3);
 		testRangeCount("1.2.3.255", "1.2.4.1", 3);
 		testRangeCount("1.2.3.254", "1.2.4.0", 3);
@@ -3660,9 +3723,18 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangeCount("2.0.1.0", "255.253.255.252", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 252L).subtract(BigInteger.valueOf(2 * 16777216L + 256L)).add(BigInteger.ONE));
 		
 		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
+		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
 		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
 		testRangeCount("::1:2:3:ffff", "::1:2:4:1", 3);
 		testRangeCount("::1:2:3:fffe", "::1:2:4:0", 3);
+		
+		testRangeCount("::1:2:3:4:1", "::1:2:3:4:1", 1);
+		testRangeCount("::1:2:3:4:1", "::1:2:3:5:1", 0x10000L + 1);
+		testRangeCount("::1:2:3:4:1", "::1:2:3:6:1", 2 * 0x10000L + 1);
+		testRangeCount("::1:2:3:4:0", "::1:2:3:5:1", 0x10000L + 2);
+		testRangeCount("::1:2:3:4:0", "::1:2:3:6:1", 2 * 0x10000L + 2);
+		testRangeCount("::1:2:3:4:1", "::1:2:3:5:3", 0x10000L + 3);
+		testRangeCount("::1:2:3:4:1", "::1:2:3:6:3", 2 * 0x10000L + 3);
 		
 		if(fullTest) {
 			testRangeCount("::1:2:3:fffe", "::1:2:5:0", 3L + 0x10000L);

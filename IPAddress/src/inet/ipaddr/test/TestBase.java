@@ -42,7 +42,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPAddressValueProvider;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
-import inet.ipaddr.IPAddressRange;
+import inet.ipaddr.IPAddressSequentialRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
@@ -68,7 +68,7 @@ public abstract class TestBase {
 		HostIdentifierString addr;
 		Address addrValue;
 		AddressSegmentSeries series;
-		IPAddressRange range;
+		IPAddressSequentialRange range;
 		String str;
 		StackTraceElement[] stack;
 		Class<? extends TestBase> testClass;
@@ -90,7 +90,7 @@ public abstract class TestBase {
 			this.addrValue = addr;
 		}
 		
-		Failure(String str, IPAddressRange range) {
+		Failure(String str, IPAddressSequentialRange range) {
 			this.str = str;
 			this.range = range;
 		}

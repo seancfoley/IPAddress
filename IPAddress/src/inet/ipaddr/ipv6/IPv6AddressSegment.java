@@ -239,30 +239,31 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	Iterator<IPv6AddressSegment> iterator(boolean withPrefix) {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false);
+		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false, false);
 	}
 	
 	@Override
 	public Iterator<IPv6AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false);
-		//	return iterator(this, getSegmentCreator(), !isPrefixed(), null, false);
+		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false, false);
 	}
 	
 	@Override
 	public Iterator<IPv6AddressSegment> prefixBlockIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true);
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, true);
 	}
 	
 	Iterator<IPv6AddressSegment> identityIterator() {
 		return identityIterator(this);
 	}
 	
-	/* (non-Javadoc)
-	 * @see inet.ipaddr.IPAddressSegment#prefixBlockIterator(int)
-	 */
 	@Override
 	public Iterator<IPv6AddressSegment> prefixBlockIterator(int prefixLength) {
-		return iterator(this, getSegmentCreator(), false, IPv6AddressSection.cacheBits(prefixLength), true);
+		return iterator(this, getSegmentCreator(), false, IPv6AddressSection.cacheBits(prefixLength), true, true);
+	}
+	
+	@Override
+	public Iterator<IPv6AddressSegment> prefixIterator() {
+		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, false);
 	}
 	
 	@Override

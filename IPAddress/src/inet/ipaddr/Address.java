@@ -183,6 +183,9 @@ public abstract class Address implements AddressSegmentSeries {
 	public abstract Iterator<? extends Address> iterator();
 	
 	@Override
+	public abstract Iterator<? extends Address> prefixIterator();
+	
+	@Override
 	public abstract Iterator<? extends Address> prefixBlockIterator();
 	
 	@Override
@@ -390,14 +393,6 @@ public abstract class Address implements AddressSegmentSeries {
 	public int hashCode() {
 		return getSection().hashCode();
 	}
-	
-//	@Override
-//	public int compareTo(Address other) {
-//		if(this == other) {
-//			return 0;
-//		}
-//		return DEFAULT_ADDRESS_COMPARATOR.compare(this, other);
-//	}
 
 	protected abstract boolean isFromSameString(HostIdentifierString otherString);
 	
@@ -430,13 +425,24 @@ public abstract class Address implements AddressSegmentSeries {
 		return getSection().prefixEquals(other.getSection());
 	}
 	
+	/**
+	 * Returns whether this is same type and version of the given address and whether it contains all values in the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
 	public boolean contains(Address other) {
 		if(other == this) {
 			return true;
 		}
 		return getSection().contains(other.getSection());
 	}
-	
+
+	@Override
+	public boolean isSequential() {
+		return getSection().isSequential();
+	}
+
 	/**
 	 * Returns a host identifier string representation for this address,
 	 * which will be already validated.

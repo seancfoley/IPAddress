@@ -293,19 +293,24 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	
 	@Override
 	public Iterator<MACAddress> prefixBlockIterator() {
-		return getSection().prefixBlockIterator(this);
+		return getSection().prefixIterator(this, true);
 	}
 	
+	@Override
+	public Iterator<MACAddress> prefixIterator() {
+		return getSection().prefixIterator(this, false);
+	}
+
 	@Override
 	public Iterator<MACAddressSegment[]> segmentsIterator() {
 		return getSection().segmentsIterator();
 	}
-	
+
 	@Override
 	public MACAddress increment(long increment) {
 		return checkIdentity(getSection().increment(increment));
 	}
-	
+
 	@Override
 	public MACAddress incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));

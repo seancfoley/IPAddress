@@ -1143,13 +1143,22 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 
 	@Override
+	public Iterator<MACAddressSection> prefixIterator() {
+		return prefixIterator(false);
+	}
+	
+	@Override
 	public Iterator<MACAddressSection> prefixBlockIterator() {
+		return prefixIterator(true);
+	}
+	
+	private Iterator<MACAddressSection> prefixIterator(boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator();
 		}
 		MACAddressCreator creator = getAddressCreator();
-		boolean useOriginal = isSinglePrefixBlock();
+		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getPrefixCount().equals(BigInteger.ONE);
 		return iterator(
 				useOriginal,
 				this,
@@ -1164,7 +1173,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 							null, 
 							getNetworkSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index))),
+							isBlockIterator ? 
+									index -> getSegment(index).prefixBlockIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index)) :
+									index -> getSegment(index).prefixIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index))
+						),
 				prefLength);
 	}
 	
@@ -1184,7 +1196,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
 	}
 	
-	protected Iterator<MACAddress> prefixBlockIterator(MACAddress original) {
+	Iterator<MACAddress> prefixIterator(MACAddress original, boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator(original);
@@ -1203,7 +1215,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 							null, 
 							getNetworkSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, MACAddress.BYTES_PER_SEGMENT, MACAddress.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index))),
+							isBlockIterator ? 
+									index -> getSegment(index).prefixBlockIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index)) :
+									index -> getSegment(index).prefixIterator(getSegmentPrefixLength(MACAddress.BITS_PER_SEGMENT, prefLength, index))
+							),
 				prefLength);
 	}
 

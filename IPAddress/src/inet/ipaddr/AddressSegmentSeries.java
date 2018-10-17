@@ -160,6 +160,13 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	Iterator<? extends AddressSegmentSeries> iterator();
 
 	/**
+	 * Iterates through the individual prefixes.
+	 * 
+	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
+	 */
+	Iterator<? extends AddressSegmentSeries> prefixIterator();
+
+	/**
 	 * Iterates through the individual prefix blocks.
 	 * 
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}

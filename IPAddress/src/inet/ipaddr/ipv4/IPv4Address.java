@@ -19,6 +19,7 @@
 package inet.ipaddr.ipv4;
 
 import java.net.Inet4Address;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,8 +29,8 @@ import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressConverter;
-import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
+import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
@@ -540,12 +541,33 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public Iterator<IPv4Address> prefixBlockIterator() {
-		return getSection().prefixBlockIterator(this, getAddressCreator());
+		return getSection().prefixBlockIterator(this, getAddressCreator(), true);
+	}
+	
+	@Override
+	public Iterator<IPv4Address> prefixBlockIterator(int prefixLength) {
+		return getSection().prefixIterator(this, getAddressCreator(), true, prefixLength);
+	}
+	
+	@Override
+	public Iterator<IPv4Address> prefixIterator() {
+		return getSection().prefixBlockIterator(this, getAddressCreator(), false);
+	}
+	
+	@Override
+	public Iterator<IPv4Address> prefixIterator(int prefixLength) {
+		return getSection().prefixIterator(this, getAddressCreator(), false, prefixLength);
 	}
 
 	@Override
-	public Iterator<IPv4Address> rangeBlockIterator(int segmentCount) {
-		return getSection().rangeBlockIterator(this, getAddressCreator(), segmentCount);
+	public Iterator<IPv4Address> blockIterator(int segmentCount) {
+		return getSection().blockIterator(this, getAddressCreator(), segmentCount);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv4Address> sequentialBlockIterator() {
+		return (Iterator<IPv4Address>) super.sequentialBlockIterator();
 	}
 
 	@Override
@@ -737,6 +759,22 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return (IPv4Address) super.assignMinPrefixForBlock();
 	}
 
+	/**
+	 * Produces an array of prefix blocks that cover the same set of addresses as this.
+	 * <p>
+	 * Unlike {@link #spanWithPrefixBlocks(IPAddress)} this method only includes addresses that are a part of this subnet.
+	 */
+	@Override
+	public IPv4Address[] spanWithPrefixBlocks() {
+		if(isSequential()) {
+			return spanWithPrefixBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv4Address> list = (ArrayList<IPv4Address>) spanWithBlocks(true);
+		return list.toArray(new IPv4Address[list.size()]);
+	}
+	
+	
 	@Override
 	public IPv4Address[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningPrefixBlocks(
@@ -749,9 +787,26 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				getAddressCreator()::createAddressArray);
 	}
 	
+	/**
+	 * Produces an array of blocks that are sequential that cover the same set of addresses as this.
+	 * <p>
+	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
+	 * <p>
+	 * Unlike {@link #spanWithSequentialBlocks(IPAddress)} this method only includes addresses that are a part of this subnet.
+	 */
 	@Override
-	public IPv4Address[] spanWithRangedSegments(IPAddress other) throws AddressConversionException {
-		return IPAddress.getSpanningRangeBlocks(
+	public IPv4Address[] spanWithSequentialBlocks() throws AddressConversionException {
+		if(isSequential()) {
+			return spanWithSequentialBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv4Address> list = (ArrayList<IPv4Address>) spanWithBlocks(true);
+		return list.toArray(new IPv4Address[list.size()]);
+	}
+	
+	@Override
+	public IPv4Address[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException {
+		return IPAddress.getSpanningSequentialBlocks(
 				this,
 				convertArg(other),
 				IPv4Address::getLower,
@@ -762,8 +817,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4AddressRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv4AddressRange(this, convertArg(other));
+	public IPv4AddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv4AddressSequentialRange(this, convertArg(other));
 	}
 
 	@Override
@@ -779,7 +834,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4Address[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException {
+	public IPv4Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {
 			return new IPv4Address[] { this };
 		}
@@ -801,8 +856,13 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4AddressRange toRange() {
-		return new IPv4AddressRange(getLower(), getUpper());
+	public IPv4AddressSequentialRange toRange(IPAddress other) {
+		return new IPv4AddressSequentialRange(this, convertArg(other));
+	}
+	
+	@Override
+	public IPv4AddressSequentialRange toSequentialRange() {
+		return new IPv4AddressSequentialRange(getLower(), getUpper());
 	}
 
 	@Override

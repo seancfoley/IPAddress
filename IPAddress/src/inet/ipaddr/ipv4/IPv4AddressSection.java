@@ -544,13 +544,22 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public Iterator<IPv4AddressSection> prefixIterator() {
+		return prefixIterator(false);
+	}
+	
+	@Override
 	public Iterator<IPv4AddressSection> prefixBlockIterator() {
+		return prefixIterator(true);
+	}
+	
+	private Iterator<IPv4AddressSection> prefixIterator(boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator();
 		}
 		IPv4AddressCreator creator = getAddressCreator();
-		boolean useOriginal = isSinglePrefixBlock();
+		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getIPv4PrefixCount() == 1;
 		return iterator(
 				useOriginal,
 				this,
@@ -565,12 +574,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 							null, 
 							getNetworkSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator()),
+							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
 				prefLength);
 	}
 	
 	@Override
-	public Iterator<IPv4AddressSection> rangeBlockIterator(int segmentCount) {
+	public Iterator<IPv4AddressSection> blockIterator(int segmentCount) {
 		if(segmentCount >= getSegmentCount()) {
 			return iterator();
 		}
@@ -599,6 +608,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 							segmentCount, 
 							index -> getSegment(index).identityIterator()),
 				isAllSubnets ? null : getPrefixLength());
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv4AddressSection> sequentialBlockIterator() {
+		return (Iterator<IPv4AddressSection>) super.sequentialBlockIterator();
 	}
 
 	private Iterator<IPv4AddressSegment[]> segmentsIterator(boolean excludeZeroHosts) {
@@ -635,15 +650,22 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				isAllSubnets ? null : getPrefixLength());
 	}
 	
-	protected Iterator<IPv4Address> prefixBlockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator) {
+	Iterator<IPv4Address> prefixBlockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator, boolean isBlockIterator) {
 		Integer prefLength = getPrefixLength();
 		if(prefLength == null || prefLength > getBitCount()) {
 			return iterator(original, creator, false);
 		}
-		boolean useOriginal = isSinglePrefixBlock();
+		return prefixIterator(original, creator, isBlockIterator, prefLength);
+	}
+	
+	Iterator<IPv4Address> prefixIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator, boolean isBlockIterator, int prefLength) {
+		if(prefLength > getBitCount() || prefLength < 0) {
+			throw new PrefixLenException(original, prefLength);
+		}
+		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getIPv4PrefixCount() == 1;
 		return iterator(
 				useOriginal ? original : null, 
-				creator,// using a lambda for this one results in a big performance hit
+				creator, // using a lambda for this one results in a big performance hit
 				useOriginal ? null :
 					iterator(
 							getSegmentCount(),
@@ -653,11 +675,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 							null,
 							getNetworkSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
 							getHostSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT), 
-							index -> getSegment(index).prefixBlockIterator()),
+							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
 				prefLength);
 	}
 	
-	protected Iterator<IPv4Address> rangeBlockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator, int segmentCount) {
+	Iterator<IPv4Address> blockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator, int segmentCount) {
 		if(segmentCount > getSegmentCount()) {
 			return iterator(original, creator, false);
 		}
@@ -1410,7 +1432,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv4AddressSection[] spanWithRangedSegments(IPv4AddressSection other) {
-		return getSpanningRangeBlocks(
+		return getSpanningSequentialBlocks(
 				this,
 				other,
 				IPv4AddressSection::getLower,
@@ -1440,11 +1462,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
-	public IPv4AddressSection[] mergeRangeBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
+	public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
 		if(sections.length == 0) {
 			return new IPv4AddressSection[] { this };
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 

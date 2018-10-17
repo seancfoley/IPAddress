@@ -1080,29 +1080,24 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	    	//Iterators may or may not return prefixed segments matching the original prefix of the segment
 			boolean prefixMatchesIteratorPrefix,
 			Integer segmentPrefixLength,
-			boolean isPrefixSubnet) {
+			boolean isPrefixIterator,
+			boolean isBlockIterator) {
 		int shiftAdjustment, shiftMask, upperShiftMask;
-		int lower = original.getSegmentValue();
-		int upper = original.getUpperSegmentValue();
-		if(isPrefixSubnet) {
+		int originalLower = original.getSegmentValue();
+		int originalUpper = original.getUpperSegmentValue();
+		if(isPrefixIterator) {
 			shiftAdjustment = original.getBitCount() - segmentPrefixLength;
-			shiftMask = ~0 << shiftAdjustment;
-			upperShiftMask = ~shiftMask;
-			if(prefixMatchesIteratorPrefix) {
-				int newLow = shiftMask & lower;
-				int newUp = upper | upperShiftMask;
-				if(lower != newLow || upper != newUp) {
-					prefixMatchesIteratorPrefix = false;
-					lower = newLow;
-					upper = newUp;
-				}
+			if(shiftAdjustment > 0) {
+				shiftMask = ~0 << shiftAdjustment;
+				upperShiftMask = ~shiftMask;
+			} else {
+				isPrefixIterator = false;
+				shiftMask = upperShiftMask = 0;
 			}
 		} else {
 			shiftAdjustment = shiftMask = upperShiftMask = 0;
 		}
-		boolean returnThis = prefixMatchesIteratorPrefix;
-		int lowerValue = lower;
-		int upperValue = upper;
+		boolean isPrefixI = isPrefixIterator;
 		if(!original.isMultiple()) {
 			return new Iterator<S>() {
 				boolean done;
@@ -1118,18 +1113,15 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			    		throw new NoSuchElementException();
 			    	}
 			    	done = true;
-			    	int newLower, newUpper;
-			    	if(shiftAdjustment > 0) {
-			    		newUpper = lowerValue | upperShiftMask;
-			    		newLower = lowerValue & shiftMask;
-			    	} else if(returnThis) {
+			    	S result;
+			    	if(isPrefixI) {
+			    		result = creator.createSegment(originalLower & shiftMask, originalLower | upperShiftMask, segmentPrefixLength);
+			    	} else if(prefixMatchesIteratorPrefix) {
 			    		return original;
-			    	}  else {
-			    		newLower = lowerValue;
-			    		newUpper = upperValue;
+			    	} else {
+			    		result = creator.createSegment(originalLower, originalUpper, segmentPrefixLength);
 			    	}
-			    	S result = creator.createSegment(newLower, newUpper, segmentPrefixLength);
-		    		return result;
+			    	return result;
 			    }
 		
 			    @Override
@@ -1139,9 +1131,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			};
 		}
 		return new Iterator<S>() {
-			boolean done;
-			int current = lowerValue, last = upperValue; {
-				if(isPrefixSubnet) {
+			private boolean notDone = true, notFirst;
+			private int current = originalLower, last = originalUpper; {
+				if(isPrefixI) {
 					current >>>= shiftAdjustment;
 					last >>>= shiftAdjustment;
 				}
@@ -1149,22 +1141,43 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			
 			@Override
 			public boolean hasNext() {
-				return !done;
+				return notDone;
 			}
 		
 		    @Override
 			public S next() {
-		    	if(done) {
+		    	if(!notDone) {
 		    		throw new NoSuchElementException();
 		    	}
 		    	S result;
-		    	if(isPrefixSubnet) {
-		    		int low = current << shiftAdjustment;
-		    		result = creator.createSegment(low, low | upperShiftMask, segmentPrefixLength);
+		    	if(isPrefixI) {
+		    		int cur = current;
+		    		int blockLow = cur << shiftAdjustment;
+		    		int blockHigh = blockLow | upperShiftMask;
+		    		current = ++cur;
+		    		boolean notD = cur <= last;
+		    		if(isBlockIterator) {
+		    			result = creator.createSegment(blockLow, blockHigh, segmentPrefixLength);
+		    			if(!notD) {
+		    				notDone = false;
+		    			}
+		    		} else if(notD && notFirst) {
+		    			result = creator.createSegment(blockLow, blockHigh, segmentPrefixLength);
+		    		} else if (notD) {
+		    			result = creator.createSegment(originalLower, blockHigh, segmentPrefixLength);
+		    			notFirst = true;
+		    		} else {
+		    			notDone = false;
+		    			if (notFirst) {
+			    			result = creator.createSegment(blockLow, originalUpper, segmentPrefixLength);
+			    		} else {
+			    			result = creator.createSegment(originalLower, originalUpper, segmentPrefixLength);
+			    		}
+		    		}
 		    	} else {
 		    		result = creator.createSegment(current, segmentPrefixLength);
+		    		notDone = ++current <= last;
 		    	}
-		    	done = ++current > last;
 		    	return result;
 		    }
 		

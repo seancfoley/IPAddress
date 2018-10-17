@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressRange;
+import inet.ipaddr.IPAddressSequentialRange;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
@@ -31,13 +31,13 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
  * @author sfoley
  *
  */
-public class IPv6AddressRange extends IPAddressRange implements Iterable<IPv6Address> {
+public class IPv6AddressSequentialRange extends IPAddressSequentialRange implements Iterable<IPv6Address> {
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final IPv6AddressRange EMPTY[] = {};
+	private static final IPv6AddressSequentialRange EMPTY[] = {};
 	
-	protected IPv6AddressRange(IPv6Address first, IPv6Address second) {
+	public IPv6AddressSequentialRange(IPv6Address first, IPv6Address second) {
 		super(
 			first,
 			second,
@@ -49,14 +49,18 @@ public class IPv6AddressRange extends IPAddressRange implements Iterable<IPv6Add
 		}
 	}
 	
+	private IPv6AddressSequentialRange(IPAddress first, IPAddress second) {
+		super(first, second);
+	}
+	
 	@Override
 	public IPv6Address getLower() {
-		return (IPv6Address) lower;
+		return (IPv6Address) super.getLower();
 	}
 	
 	@Override
 	public IPv6Address getUpper() {
-		return (IPv6Address) upper;
+		return (IPv6Address) super.getUpper();
 	}
 	
 	private IPv6AddressCreator getAddressCreator() {
@@ -95,39 +99,39 @@ public class IPv6AddressRange extends IPAddressRange implements Iterable<IPv6Add
 	}
 
 	@Override
-	public IPv6Address[] spanWithRanges() {
-		return getLower().spanWithRangedSegments(upper);
+	public IPv6Address[] spanWithSequentialBlocks() {
+		return getLower().spanWithSequentialBlocks(upper);
 	}
 
 	@Override
-	protected IPv6AddressRange create(IPAddress lower, IPAddress upper) {
-		return new IPv6AddressRange((IPv6Address) lower, (IPv6Address) upper);
+	protected IPv6AddressSequentialRange create(IPAddress lower, IPAddress upper) {
+		return new IPv6AddressSequentialRange(lower, upper);
 	}
 
 	/* (non-Javadoc)
 	 * @see inet.ipaddr.IPAddressRange#createPair(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
 	 */
 	@Override
-	protected IPv6AddressRange[] createPair(IPAddress lower1, IPAddress upper1,
+	protected IPv6AddressSequentialRange[] createPair(IPAddress lower1, IPAddress upper1,
 			IPAddress lower2, IPAddress upper2) {
-		return new IPv6AddressRange[] { create(lower1, upper1), create(lower2, upper2) };
+		return new IPv6AddressSequentialRange[] { create(lower1, upper1), create(lower2, upper2) };
 	}
 
 	/* (non-Javadoc)
 	 * @see inet.ipaddr.IPAddressRange#createSingle(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
 	 */
 	@Override
-	protected IPv6AddressRange[] createSingle(IPAddress lower, IPAddress upper) {
-		return new IPv6AddressRange[] { create(lower, upper) };
+	protected IPv6AddressSequentialRange[] createSingle(IPAddress lower, IPAddress upper) {
+		return new IPv6AddressSequentialRange[] { create(lower, upper) };
 	}
 	
 	@Override
-	protected IPv6AddressRange[] createSingle() {
-		return new IPv6AddressRange[] { this };
+	protected IPv6AddressSequentialRange[] createSingle() {
+		return new IPv6AddressSequentialRange[] { this };
 	}
 	
 	@Override
-	protected IPv6AddressRange[] createEmpty() {
+	protected IPv6AddressSequentialRange[] createEmpty() {
 		return EMPTY;
 	}
 
@@ -164,22 +168,28 @@ public class IPv6AddressRange extends IPAddressRange implements Iterable<IPv6Add
 				});
 	}
 	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv6AddressSequentialRange> prefixIterator(int prefixLength) {
+		return (Iterator<IPv6AddressSequentialRange>) super.prefixIterator(prefixLength);
+	}
+	
 	public String toIPv6String(Function<IPv6Address, String> lowerStringer, String separator, Function<IPv6Address, String> upperStringer) {
 		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
 	}
 	
 	@Override
-	public IPv6AddressRange intersect(IPAddressRange other) {
-		return (IPv6AddressRange) super.intersect(other);
+	public IPv6AddressSequentialRange intersect(IPAddressSequentialRange other) {
+		return (IPv6AddressSequentialRange) super.intersect(other);
 	}
 	
 	@Override
-	public IPv6AddressRange join(IPAddressRange other) {
-		return (IPv6AddressRange) super.join(other);
+	public IPv6AddressSequentialRange join(IPAddressSequentialRange other) {
+		return (IPv6AddressSequentialRange) super.join(other);
 	}
 	
 	@Override
-	public IPv6AddressRange[] subtract(IPAddressRange other) {
-		return (IPv6AddressRange[]) super.subtract(other);
+	public IPv6AddressSequentialRange[] subtract(IPAddressSequentialRange other) {
+		return (IPv6AddressSequentialRange[]) super.subtract(other);
 	}
 }

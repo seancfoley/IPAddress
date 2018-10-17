@@ -23,6 +23,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -892,12 +893,33 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public Iterator<IPv6Address> prefixBlockIterator() {
-		return getSection().prefixBlockIterator(this, getCreator());
+		return getSection().prefixBlockIterator(this, getCreator(), true);
 	}
 
 	@Override
-	public Iterator<IPv6Address> rangeBlockIterator(int segmentCount) {
-		return getSection().rangeBlockIterator(this, getCreator(), segmentCount);
+	public Iterator<IPv6Address> prefixBlockIterator(int prefixLength) {
+		return getSection().prefixBlockIterator(this, getCreator(), true, prefixLength);
+	}
+	
+	@Override
+	public Iterator<IPv6Address> prefixIterator() {
+		return getSection().prefixBlockIterator(this, getCreator(), false);
+	}
+
+	@Override
+	public Iterator<IPv6Address> prefixIterator(int prefixLength) {
+		return getSection().prefixBlockIterator(this, getCreator(), false, prefixLength);
+	}
+
+	@Override
+	public Iterator<IPv6Address> blockIterator(int segmentCount) {
+		return getSection().blockIterator(this, getCreator(), segmentCount);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv6Address> sequentialBlockIterator() {
+		return (Iterator<IPv6Address>) super.sequentialBlockIterator();
 	}
 
 	@Override
@@ -1411,6 +1433,21 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return (IPv6Address) super.assignMinPrefixForBlock();
 	}
 
+	/**
+	 * Produces an array of prefix blocks that cover the same set of addresses as this.
+	 * <p>
+	 * Unlike {@link #spanWithPrefixBlocks(IPAddress)} this method only includes addresses that are a part of this subnet.
+	 */
+	@Override
+	public IPv6Address[] spanWithPrefixBlocks() {
+		if(isSequential()) {
+			return spanWithPrefixBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(true);
+		return list.toArray(new IPv6Address[list.size()]);
+	}
+	
 	@Override
 	public IPv6Address[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningPrefixBlocks(
@@ -1423,9 +1460,26 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				getCreator()::createAddressArray);
 	}
 	
+	/**
+	 * Produces an array of blocks that are sequential that cover the same set of addresses as this.
+	 * <p>
+	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
+	 * <p>
+	 * Unlike {@link #spanWithSequentialBlocks(IPAddress)} this method only includes addresses that are a part of this subnet.
+	 */
 	@Override
-	public IPv6Address[] spanWithRangedSegments(IPAddress other) throws AddressConversionException {
-		return IPAddress.getSpanningRangeBlocks(
+	public IPv6Address[] spanWithSequentialBlocks() throws AddressConversionException {
+		if(isSequential()) {
+			return spanWithSequentialBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(true);
+		return list.toArray(new IPv6Address[list.size()]);
+	}
+	
+	@Override
+	public IPv6Address[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException {
+		return IPAddress.getSpanningSequentialBlocks(
 				this,
 				convertArg(other),
 				IPv6Address::getLower,
@@ -1436,8 +1490,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv6AddressRange(this, convertArg(other));
+	public IPv6AddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv6AddressSequentialRange(this, convertArg(other));
 	}
 	
 	@Override
@@ -1453,7 +1507,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6Address[] mergeRangeBlocks(IPAddress ...addresses) throws AddressConversionException {
+	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {
 			return new IPv6Address[] { this };
 		}
@@ -1547,8 +1601,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressRange toRange() {
-		return new IPv6AddressRange(getLower(), getUpper());
+	public IPv6AddressSequentialRange toRange(IPAddress other) {
+		return new IPv6AddressSequentialRange(this, convertArg(other));
+	}
+
+	@Override
+	public IPv6AddressSequentialRange toSequentialRange() {
+		return new IPv6AddressSequentialRange(getLower(), getUpper());
 	}
 	
 	@Override

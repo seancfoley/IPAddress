@@ -312,11 +312,15 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 
 	@Override
 	public Iterator<MACAddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), true, null, false);
+		return iterator(this, getSegmentCreator(), true, null, false, false);
 	}
 	
-	Iterator<MACAddressSegment> prefixBlockIterator(Integer segmentPrefixLength) {
-		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true);
+	Iterator<MACAddressSegment> prefixBlockIterator(int segmentPrefixLength) {
+		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true, true);
+	}
+	
+	Iterator<MACAddressSegment> prefixIterator(int segmentPrefixLength) {
+		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true, false);
 	}
 
 	@Override

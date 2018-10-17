@@ -276,6 +276,9 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	Iterator<? extends IPAddressSegmentSeries> iterator();
 	
 	@Override
+	Iterator<? extends IPAddressSegmentSeries> prefixIterator();
+	
+	@Override
 	Iterator<? extends IPAddressSegmentSeries> prefixBlockIterator();
 	
 	/**
@@ -285,15 +288,32 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	Iterator<? extends IPAddressSegmentSeries> nonZeroHostIterator();
 
 	/**
-	 * Iterates through series that can be obtained by iterating all the segments up to the given segment count.
-	 * Segments following the index remain the same in all iterated series.
+	 * Iterates through series that can be obtained by iterating through all the upper segments up to the given segment count.
+	 * Segments following remain the same in all iterated series.
 	 * <p>
-	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7, it will iterate through 1.3.5-6.7, 1.4.5-6.7, 2.3.5-6.7, 2.4.5-6.7 given the index argument 1.
+	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7, given the count argument 2, 
+	 * it will iterate through 1.3.5-6.7, 1.4.5-6.7, 2.3.5-6.7, 2.4.5-6.7
 	 * 
 	 * @param finalIteratingIndex
 	 * @return
 	 */
-	Iterator<? extends IPAddressSegmentSeries> rangeBlockIterator(int segmentCount);
+	Iterator<? extends IPAddressSegmentSeries> blockIterator(int segmentCount);
+	
+	/**
+	 * Iterates through the sequential series that make up this series.
+	 * Generally this means finding the count of segments for which the segments that follow are not full range, and the using {@link #blockIterator(int)} with that segment count.
+	 * <p>
+	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7-8, it will iterate through 1.3.5.7-8, 1.3.6.7-8, 1.4.5.7-8, 1.4.6.7-8, 2.3.5.7-8, 2.3.6.7-8, 2.4.6.7-8, 2.4.6.7-8
+	 * 
+	 * @return
+	 */
+	Iterator<? extends IPAddressSegmentSeries> sequentialBlockIterator();
+	
+	/**
+	 * provides the count of elements from the {@link #sequentialBlockIterator()}, the minimal number of sequential subseries that comprise this series
+	 * @return
+	 */
+	BigInteger getSequentialBlockCount();
 	
 	@Override
 	Iterator<? extends IPAddressSegment[]> segmentsIterator();

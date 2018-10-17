@@ -20,7 +20,6 @@ package inet.ipaddr;
 
 import java.util.Iterator;
 
-import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.format.AddressItemRange;
 
 
@@ -91,7 +90,7 @@ import inet.ipaddr.format.AddressItemRange;
 // | IPAddressStringDivisionGrouping (for the large division)
 // IPAddressDivisionGrouping (most ip address division groupings)
 //
-public interface AddressComponent extends AddressItem, AddressItemRange {
+public interface AddressComponent extends AddressItemRange {
 	/**
 	 * Writes this address component as a single hexadecimal value with always the exact same number of characters, with or without a preceding 0x prefix.
 	 * <p>
@@ -102,7 +101,7 @@ public interface AddressComponent extends AddressItem, AddressItemRange {
 	String toHexString(boolean with0xPrefix);
 
 	/**
-	 * Produces a string that is somewhat similar for all address components of the same type.
+	 * Produces a string that is consistent for all address components of the same type and version.
 	 * @return
 	 */
 	String toNormalizedString();

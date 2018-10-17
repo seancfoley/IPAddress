@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressRange;
+import inet.ipaddr.IPAddressSequentialRange;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.standard.AddressCreator;
@@ -33,13 +33,13 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
  * @author sfoley
  *
  */
-public class IPv4AddressRange extends IPAddressRange implements Iterable<IPv4Address> {
+public class IPv4AddressSequentialRange extends IPAddressSequentialRange implements Iterable<IPv4Address> {
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final IPv4AddressRange EMPTY[] = {};
+	private static final IPv4AddressSequentialRange EMPTY[] = {};
 				
-	public IPv4AddressRange(IPv4Address first, IPv4Address second) {
+	public IPv4AddressSequentialRange(IPv4Address first, IPv4Address second) {
 		super(
 			first,
 			second,
@@ -51,14 +51,18 @@ public class IPv4AddressRange extends IPAddressRange implements Iterable<IPv4Add
 		}
 	}
 	
+	private IPv4AddressSequentialRange(IPAddress first, IPAddress second) {
+		super(first, second);
+	}
+	
 	@Override
 	public IPv4Address getLower() {
-		return (IPv4Address) lower;
+		return (IPv4Address) super.getLower();
 	}
 	
 	@Override
 	public IPv4Address getUpper() {
-		return (IPv4Address) upper;
+		return (IPv4Address) super.getUpper();
 	}
 	
 	private IPv4AddressCreator getAddressCreator() {
@@ -149,14 +153,20 @@ public class IPv4AddressRange extends IPAddressRange implements Iterable<IPv4Add
 				});
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public Iterator<IPv4AddressSequentialRange> prefixIterator(int prefixLength) {
+		return (Iterator<IPv4AddressSequentialRange>) super.prefixIterator(prefixLength);
+	}
+
 	@Override
 	public IPv4Address[] spanWithPrefixBlocks() {
 		return getLower().spanWithPrefixBlocks(upper);
 	}
 
 	@Override
-	public IPv4Address[] spanWithRanges() {
-		return getLower().spanWithRangedSegments(upper);
+	public IPv4Address[] spanWithSequentialBlocks() {
+		return getLower().spanWithSequentialBlocks(upper);
 	}
 	
 	@Override
@@ -193,36 +203,36 @@ public class IPv4AddressRange extends IPAddressRange implements Iterable<IPv4Add
 	}
 
 	@Override
-	protected IPv4AddressRange create(IPAddress lower, IPAddress upper) {
-		return new IPv4AddressRange((IPv4Address) lower, (IPv4Address) upper);
+	protected IPv4AddressSequentialRange create(IPAddress lower, IPAddress upper) {
+		return new IPv4AddressSequentialRange(lower, upper);
 	}
 
 	/* (non-Javadoc)
 	 * @see inet.ipaddr.IPAddressRange#createPair(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
 	 */
 	@Override
-	protected IPv4AddressRange[] createPair(IPAddress lower1, IPAddress upper1,
+	protected IPv4AddressSequentialRange[] createPair(IPAddress lower1, IPAddress upper1,
 			IPAddress lower2, IPAddress upper2) {
-		return new IPv4AddressRange[] {create(lower1, upper1), create(lower2, upper2)};
+		return new IPv4AddressSequentialRange[] {create(lower1, upper1), create(lower2, upper2)};
 	}
 
 	/* (non-Javadoc)
 	 * @see inet.ipaddr.IPAddressRange#createSingle(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
 	 */
 	@Override
-	protected IPv4AddressRange[] createSingle(IPAddress lower, IPAddress upper) {
-		return new IPv4AddressRange[] {
+	protected IPv4AddressSequentialRange[] createSingle(IPAddress lower, IPAddress upper) {
+		return new IPv4AddressSequentialRange[] {
 			create(lower, upper)
 		};
 	}
 	
 	@Override
-	protected IPv4AddressRange[] createSingle() {
-		return new IPv4AddressRange[] { this };
+	protected IPv4AddressSequentialRange[] createSingle() {
+		return new IPv4AddressSequentialRange[] { this };
 	}
 	
 	@Override
-	protected IPv4AddressRange[] createEmpty() {
+	protected IPv4AddressSequentialRange[] createEmpty() {
 		return EMPTY;
 	}
 	
@@ -231,17 +241,17 @@ public class IPv4AddressRange extends IPAddressRange implements Iterable<IPv4Add
 	}
 	
 	@Override
-	public IPv4AddressRange intersect(IPAddressRange other) {
-		return (IPv4AddressRange) super.intersect(other);
+	public IPv4AddressSequentialRange intersect(IPAddressSequentialRange other) {
+		return (IPv4AddressSequentialRange) super.intersect(other);
 	}
 	
 	@Override
-	public IPv4AddressRange join(IPAddressRange other) {
-		return (IPv4AddressRange) super.join(other);
+	public IPv4AddressSequentialRange join(IPAddressSequentialRange other) {
+		return (IPv4AddressSequentialRange) super.join(other);
 	}
 	
 	@Override
-	public IPv4AddressRange[] subtract(IPAddressRange other) {
-		return (IPv4AddressRange[]) super.subtract(other);
+	public IPv4AddressSequentialRange[] subtract(IPAddressSequentialRange other) {
+		return (IPv4AddressSequentialRange[]) super.subtract(other);
 	}
 }
