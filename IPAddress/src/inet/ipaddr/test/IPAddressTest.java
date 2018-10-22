@@ -2688,7 +2688,7 @@ public class IPAddressTest extends TestBase {
 		if(rangeCount != result2.length) {
 			addFailure(new Failure("range merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected count of " + rangeCount, addr1));
 		}
-		IPAddress backAgain[] = result[0].mergePrefixBlocks(result);
+		IPAddress backAgain[] = result[0].mergeToPrefixBlocks(result);
 		boolean matches = Arrays.deepEquals(result, backAgain);
 		if(!matches) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
@@ -2741,7 +2741,7 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = prefix ? addr2.mergePrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
+		IPAddress merged[] = prefix ? addr2.mergeToPrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
 		if(merged.length != 1 || !resultAddr.equals(merged[0])) {
 			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
 		}
@@ -2760,7 +2760,7 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = prefix ? addr2.mergePrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
+		IPAddress merged[] = prefix ? addr2.mergeToPrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
 		HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
 		HashSet<IPAddress> expected = new HashSet<IPAddress>();
 		expected.add(resultAddr);

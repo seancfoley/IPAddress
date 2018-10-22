@@ -295,7 +295,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public BigInteger getPrefixCount(int prefixLength) {
 		return getSection().getPrefixCount(prefixLength);
 	}
-	
+
 	/**
 	 * If this has a prefix length, the count of the range of values in the prefix.
 	 * 
@@ -307,7 +307,12 @@ public abstract class Address implements AddressSegmentSeries {
 	public BigInteger getPrefixCount() {
 		return getSection().getPrefixCount();
 	}
-	
+
+	@Override
+	public BigInteger getBlockCount(int segmentCount) {
+		return getSection().getBlockCount(segmentCount);
+	}
+
 	@Override
 	public int isMore(AddressDivisionSeries other) {
 		return getSection().isMore(other);

@@ -588,8 +588,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 
 	static void testRangeBlocks(TestBase testBase, IPAddressString w, int segmentCount, long number) {
 		IPAddress val = w.getAddress();
-		int associatedPrefixLength =segmentCount * val.getBitsPerSegment();
-		BigInteger count = val.getPrefixCount(associatedPrefixLength);
+		BigInteger count = val.getBlockCount(segmentCount);
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {

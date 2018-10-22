@@ -105,8 +105,14 @@ public interface IPAddressRange extends AddressItemRange {
 	IPAddress[] spanWithSequentialBlocks();
 
 	/**
-	 * Produces a string that is unique for all instances.
+	 * Produces a string that is unique and consistent for all instances.
 	 * @return
 	 */
 	String toNormalizedString();
+	
+	/**
+	 * Produces a string that is unique and uses the canonical representation for all instances.
+	 * @return
+	 */
+	String toCanonicalString();
 }

@@ -258,6 +258,9 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public Iterator<IPv6AddressSegment> prefixBlockIterator(int prefixLength) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
 		return iterator(this, getSegmentCreator(), false, IPv6AddressSection.cacheBits(prefixLength), true, true);
 	}
 	

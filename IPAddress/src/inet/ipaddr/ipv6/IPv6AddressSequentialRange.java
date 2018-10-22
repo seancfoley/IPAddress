@@ -23,11 +23,13 @@ import java.util.function.Function;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSequentialRange;
 import inet.ipaddr.NetworkMismatchException;
+import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
+ * @custom.core
  * @author sfoley
  *
  */
@@ -95,12 +97,12 @@ public class IPv6AddressSequentialRange extends IPAddressSequentialRange impleme
 	
 	@Override
 	public IPv6Address[] spanWithPrefixBlocks() {
-		return getLower().spanWithPrefixBlocks(upper);
+		return getLower().spanWithPrefixBlocks(getUpper());
 	}
 
 	@Override
 	public IPv6Address[] spanWithSequentialBlocks() {
-		return getLower().spanWithSequentialBlocks(upper);
+		return getLower().spanWithSequentialBlocks(getUpper());
 	}
 
 	@Override
@@ -140,6 +142,9 @@ public class IPv6AddressSequentialRange extends IPAddressSequentialRange impleme
 	 */
 	@Override
 	public Iterator<? extends IPAddress> prefixBlockIterator(int prefLength) {
+		if(prefLength < 0) {
+			throw new PrefixLenException(prefLength);
+		}
 		IPv6Address lower = getLower();
 		IPv6Address upper = getUpper();
 		AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator = getAddressCreator();

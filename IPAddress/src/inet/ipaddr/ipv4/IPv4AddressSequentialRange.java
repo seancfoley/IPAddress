@@ -30,6 +30,7 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 
 /**
+ * @custom.core
  * @author sfoley
  *
  */
@@ -96,7 +97,7 @@ public class IPv4AddressSequentialRange extends IPAddressSequentialRange impleme
 	public BigInteger getPrefixCount(int prefixLength) {
 		return BigInteger.valueOf(getIPv4PrefixCount(prefixLength));
 	}
-
+	
 	@Override
 	public Iterable<IPv4Address> getIterable() {
 		return this;
@@ -125,6 +126,9 @@ public class IPv4AddressSequentialRange extends IPAddressSequentialRange impleme
 	
 	@Override
 	public Iterator<IPv4Address> prefixBlockIterator(int prefLength) {
+		if(prefLength < 0) {
+			throw new PrefixLenException(prefLength);
+		}
 		IPv4Address lower = getLower();
 		IPv4Address upper = getUpper();
 		AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator = getAddressCreator();
@@ -161,12 +165,12 @@ public class IPv4AddressSequentialRange extends IPAddressSequentialRange impleme
 
 	@Override
 	public IPv4Address[] spanWithPrefixBlocks() {
-		return getLower().spanWithPrefixBlocks(upper);
+		return getLower().spanWithPrefixBlocks(getUpper());
 	}
 
 	@Override
 	public IPv4Address[] spanWithSequentialBlocks() {
-		return getLower().spanWithSequentialBlocks(upper);
+		return getLower().spanWithSequentialBlocks(getUpper());
 	}
 	
 	@Override

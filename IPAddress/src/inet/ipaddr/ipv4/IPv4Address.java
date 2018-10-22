@@ -714,17 +714,17 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4AddressSection getNetworkSection() {
 		return getSection().getNetworkSection();
 	}
-	
+
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength) throws PrefixLenException {
 		return getSection().getNetworkSection(networkPrefixLength);
 	}
-	
+
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) throws PrefixLenException {
 		return getSection().getNetworkSection(networkPrefixLength, withPrefixLength);
 	}
-	
+
 	@Override
 	public IPv4AddressSection getHostSection() {
 		return getSection().getHostSection();
@@ -734,7 +734,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4AddressSection getHostSection(int networkPrefixLength) throws PrefixLenException {
 		return getSection().getHostSection(networkPrefixLength);
 	}
-	
+
 	@Override
 	public IPv4Address toPrefixBlock() {
 		Integer prefixLength = getNetworkPrefixLength();
@@ -743,7 +743,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		}
 		return toPrefixBlock(prefixLength);
 	}
-	
+
 	@Override
 	public IPv4Address toPrefixBlock(int networkPrefixLength) throws PrefixLenException {
 		return checkIdentity(getSection().toPrefixBlock(networkPrefixLength));
@@ -822,7 +822,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 
 	@Override
-	public IPv4Address[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
+	public IPv4Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {
 			return new IPv4Address[] { this };
 		}
@@ -841,7 +841,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, addresses, getAddressCreator());
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, addresses, getAddressCreator());
 		return blocks.toArray(new IPv4Address[blocks.size()]);
 	}
 
@@ -856,7 +856,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4AddressSequentialRange toRange(IPAddress other) {
+	public IPv4AddressSequentialRange toSequentialRange(IPAddress other) {
 		return new IPv4AddressSequentialRange(this, convertArg(other));
 	}
 	

@@ -409,7 +409,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	
 	@Override
 	protected BigInteger getCountImpl() {
-		int segCount = getSegmentCount();
+		return getCountImpl(getSegmentCount());
+	}
+	
+	private BigInteger getCountImpl(int segCount) {
 		if(!isMultiple()) {
 			return BigInteger.ONE;
 		}
@@ -429,6 +432,18 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			}
 		}
 		return BigInteger.valueOf(result);
+	}
+	
+	@Override
+	public BigInteger getBlockCount(int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
+		int segCount = getSegmentCount();
+		if(segmentCount > segCount) {
+			segmentCount = segCount;
+		}
+		return getCountImpl(segmentCount);
 	}
 	
 	@Override

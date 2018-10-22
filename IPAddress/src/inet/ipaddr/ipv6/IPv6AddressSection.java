@@ -182,7 +182,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * 
 	 * @param segment
 	 */
-	public IPv6AddressSection(IPv6AddressSegment segment, int startIndex) throws IllegalArgumentException {
+	public IPv6AddressSection(IPv6AddressSegment segment, int startIndex) throws AddressValueException {
 		this(new IPv6AddressSegment[] {segment}, startIndex, false);
 	}
 
@@ -207,11 +207,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param segments an array containing the segments.  Segments that are entirely part of the host section need not be provided, although the array must be the correct length.
 	 * @param networkPrefixLength
 	 */
-	public IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, Integer networkPrefixLength) throws IllegalArgumentException, AddressValueException {
+	public IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, Integer networkPrefixLength) throws AddressValueException {
 		this(segments, startIndex, true, networkPrefixLength, false);
 	}
 
-	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, Integer networkPrefixLength, boolean singleOnly) throws IllegalArgumentException, AddressValueException {
+	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, Integer networkPrefixLength, boolean singleOnly) throws AddressValueException {
 		this(segments, startIndex, cloneSegments, networkPrefixLength == null);
 		if(networkPrefixLength != null) {
 			if(networkPrefixLength < 0) {
@@ -243,11 +243,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		} //else the cached prefix has already been set to the proper value
 	}
 	
-	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) throws IllegalArgumentException, AddressValueException {
+	protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments) throws AddressValueException {
 		this(segments, startIndex, cloneSegments, true);
 	}
 	
-	IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, boolean normalizeSegments) throws IllegalArgumentException, AddressValueException {
+	IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, boolean normalizeSegments) throws AddressValueException {
 		super(segments, cloneSegments, true);
 		if(normalizeSegments && isPrefixed()) {
 			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), IPv6Address.BITS_PER_SEGMENT, IPv6Address.BYTES_PER_SEGMENT, IPv6AddressSegment::toPrefixedSegment);
@@ -721,6 +721,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public Iterator<IPv6AddressSection> blockIterator(int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
 		if(segmentCount >= getSegmentCount()) {
 			return iterator();
 		}
@@ -826,6 +829,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	Iterator<IPv6Address> blockIterator(IPv6Address original, AddressCreator<IPv6Address, ?, ?, IPv6AddressSegment> creator, int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
 		if(segmentCount > getSegmentCount()) {
 			return iterator(original, creator, false);
 		}
@@ -997,14 +1003,13 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	protected BigInteger getCountImpl(boolean excludeZeroHosts) {
+	protected BigInteger getCountImpl(boolean excludeZeroHosts, int segCount) {
 		if(!isMultiple()) {
 			if(excludeZeroHosts && includesZeroHost()) {
 				return BigInteger.ZERO;
 			}
 			return BigInteger.ONE;
 		}
-		int segCount = getSegmentCount();
 		BigInteger result = getCount(i -> getSegment(i).getValueCount(), segCount);
 		if(excludeZeroHosts && includesZeroHost()) {
 			int prefixedSegment = getNetworkSegmentIndex(getNetworkPrefixLength(), IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT);
@@ -2017,7 +2022,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	/**
-	 * Merges this with the list of sections to produce the smallest array of segment range block subnets that are sequential, going from smallest to largest
+	 * Merges this with the list of sections to produce the smallest array of sequential block subnets, going from smallest to largest
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return

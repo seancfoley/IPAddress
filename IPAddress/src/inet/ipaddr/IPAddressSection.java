@@ -189,18 +189,30 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(isPrefixed() && getNetworkPrefixLength() < getBitCount()) {
 			BigInteger cached = cachedIPAddressCount;
 			if(cached == null) {
-				cachedIPAddressCount = cached = getCountImpl(true);
+				cachedIPAddressCount = cached = getCountImpl(true, getSegmentCount());
 			}
 			return cached;
 		}
 		return getCount();
 	}
 
-	protected abstract BigInteger getCountImpl(boolean excludeZeroHosts);
+	protected abstract BigInteger getCountImpl(boolean excludeZeroHosts, int segCount);
 
 	@Override
 	public BigInteger getCountImpl() {
-		return getCountImpl(false);
+		return getCountImpl(false, getSegmentCount());
+	}
+
+	@Override
+	public BigInteger getBlockCount(int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
+		int segCount = getSegmentCount();
+		if(segmentCount > segCount) {
+			segmentCount = segCount;
+		}
+		return getCountImpl(false, segmentCount);
 	}
 
 	public boolean isIPv4() {
@@ -916,7 +928,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(result != null) {
 			return result;
 		}
-		List<IPAddressSegmentSeries> blocks = getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitRangeBlocks);
+		List<IPAddressSegmentSeries> blocks = getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitIntoPrefixBlocks);
 		result = blocks.toArray(arrayProducer.apply(blocks.size()));
 		return result;
 	}
@@ -948,7 +960,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return result;
 		}
 		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
-		BiFunction<R, R, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitRange(one, two, seriesCreator);
+		BiFunction<R, R, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
 		List<IPAddressSegmentSeries> blocks = getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
 		return blocks.toArray(creator.createSectionArray(blocks.size()));
 	}
@@ -985,16 +997,16 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		IPAddressSegmentSeries apply(IPAddressSegmentSeries segmentSeries, int index, int lowerVal, int upperVal);
 	}
 	
-	static List<IPAddressSegmentSeries> splitRange(
+	static List<IPAddressSegmentSeries> splitIntoSequentialBlocks(
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper,
 			SeriesCreator seriesCreator) {
 		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
-		splitRangeRecursive(lower, upper, 0, 0, seriesCreator, blocks);
+		splitIntoSequentialBlocksRecursive(lower, upper, 0, 0, seriesCreator, blocks);
 		return blocks;
 	}
 	
-	private static void splitRangeRecursive(
+	private static void splitIntoSequentialBlocksRecursive(
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper,
 			int previousSegmentBits,
@@ -1032,35 +1044,38 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				IPAddressSegmentSeries middleUpper = topLower.increment(-1);
 				IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
 				blocks.add(series);
-				splitRangeRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+				splitIntoSequentialBlocksRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
 			}
 		} else if(higherIsHighest) {
 			IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
 			IPAddressSegmentSeries topLower = bottomUpper.increment(1);
-			splitRangeRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
-			IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
+			splitIntoSequentialBlocksRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+			IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
 			blocks.add(series);
-		} else {	
-			IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);
-			IPAddressSegmentSeries middleUpper = topLower.increment(-1);
-			IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
-			IPAddressSegmentSeries middleLower = bottomUpper.increment(1);
-			splitRangeRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
-			IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
-			blocks.add(series);
-			splitRangeRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+		} else {	//lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
+			//from top to bottom we have: top - topLower - middleUpper - middleLower - bottomUpper - lower
+			IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);//2:4::
+			IPAddressSegmentSeries middleUpper = topLower.increment(-1);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+			IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+			IPAddressSegmentSeries middleLower = bottomUpper.increment(1);//2:4::
+			splitIntoSequentialBlocksRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+			if(middleLower.compareTo(middleUpper) <= 0) {
+				IPAddressSegmentSeries series = seriesCreator.apply(middleLower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
+				blocks.add(series);
+			}
+			splitIntoSequentialBlocksRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
 		}
 	}
 	
-	static List<IPAddressSegmentSeries> splitRangeBlocks(
+	static List<IPAddressSegmentSeries> splitIntoPrefixBlocks(
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper) {
 		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
-		splitRangeBlocksRecursive(lower, upper, 0, 0, blocks);
+		splitIntoPrefixBlocksRecursive(lower, upper, 0, 0, blocks);
 		return blocks;
 	}
 	
-	private static void splitRangeBlocksRecursive(
+	private static void splitIntoPrefixBlocksRecursive(
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper,
 			int previousSegmentBits,
@@ -1112,8 +1127,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			previousSegmentBits += bitsPerSegment;
 			currentSegment++;
 		} 
-		splitRangeBlocksRecursive(lower, upperBottom, previousSegmentBits, currentSegment, blocks);
-		splitRangeBlocksRecursive(lowerTop, upper, previousSegmentBits, currentSegment, blocks);
+		splitIntoPrefixBlocksRecursive(lower, upperBottom, previousSegmentBits, currentSegment, blocks);
+		splitIntoPrefixBlocksRecursive(lowerTop, upper, previousSegmentBits, currentSegment, blocks);
 	}
 	
 	//sort by prefix length, smallest blocks coming first

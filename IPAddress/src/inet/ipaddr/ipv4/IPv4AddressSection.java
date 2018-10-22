@@ -580,6 +580,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public Iterator<IPv4AddressSection> blockIterator(int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
 		if(segmentCount >= getSegmentCount()) {
 			return iterator();
 		}
@@ -680,6 +683,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	Iterator<IPv4Address> blockIterator(IPv4Address original, AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator, int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
 		if(segmentCount > getSegmentCount()) {
 			return iterator(original, creator, false);
 		}
@@ -754,17 +760,18 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return result;
 	}
 	
-	
-	
-	//This was added so count available as a long and not as BigInteger
 	public long getIPv4Count(boolean excludeZeroHosts) {
+		return getIPv4Count(excludeZeroHosts, getSegmentCount());
+	}
+
+	//This was added so count available as a long and not as BigInteger
+	private long getIPv4Count(boolean excludeZeroHosts, int segCount) {
 		if(!isMultiple()) {
 			if(excludeZeroHosts && isZero()) {
 				return 0L;
 			}
 			return 1L;
 		}
-		int segCount = getSegmentCount();
 		long result = getCount(i -> getSegment(i).getValueCount(), segCount);
 		if(excludeZeroHosts && includesZeroHost()) {
 			int prefixedSegment = getNetworkSegmentIndex(getNetworkPrefixLength(), IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT);
@@ -783,16 +790,16 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	protected BigInteger getCountImpl(boolean excludeZeroHosts) {
+	protected BigInteger getCountImpl(boolean excludeZeroHosts, int segCount) {
 		if(!isMultiple()) {
 			if(excludeZeroHosts && includesZeroHost()) {
 				return BigInteger.ZERO;
 			}
 			return BigInteger.ONE;
 		}
-		return BigInteger.valueOf(getIPv4Count(excludeZeroHosts));
+		return BigInteger.valueOf(getIPv4Count(excludeZeroHosts, segCount));
 	}
-	
+
 	//This was added so count available as a long and not as BigInteger
 	public long getIPv4PrefixCount(int prefixLength) {
 		checkSubnet(this, prefixLength);
@@ -1457,7 +1464,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	/**
-	 * Merges this with the list of sections to produce the smallest array of segment range block subnets that are sequential, going from smallest to largest
+	 * Merges this with the list of sections to produce the smallest array of sequential block subnets, going from smallest to largest
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return

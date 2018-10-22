@@ -201,6 +201,9 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 
 	@Override
 	public Iterator<IPv4AddressSegment> prefixBlockIterator(int prefixLength) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
 		return iterator(this, getSegmentCreator(), false, IPv4AddressSection.cacheBits(prefixLength), true, true);
 	}
 	

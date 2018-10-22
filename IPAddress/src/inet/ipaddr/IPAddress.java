@@ -486,7 +486,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * 
 	 * @return
 	 */
-	public abstract IPAddressSequentialRange toRange(IPAddress other);
+	public abstract IPAddressSequentialRange toSequentialRange(IPAddress other);
 	
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
@@ -1068,7 +1068,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return result;
 		}
 		List<IPAddressSegmentSeries> blocks = 
-				IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitRangeBlocks);
+				IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitIntoPrefixBlocks);
 		return blocks.toArray(arrayProducer.apply(blocks.size()));
 	}
 	
@@ -1121,7 +1121,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return result;
 		}
 		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
-		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitRange(one, two, seriesCreator);
+		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
 		List<IPAddressSegmentSeries> blocks = IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
 		return blocks.toArray(creator.createAddressArray(blocks.size()));
 	}
@@ -1258,7 +1258,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @param addresses the addresses to merge with this
 	 * @return
 	 */
-	public abstract IPAddress[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
+	public abstract IPAddress[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
 	protected static List<IPAddressSegmentSeries> getMergedBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
 		return IPAddressSection.getMergedPrefixBlocks(first, sections, false);
@@ -1271,7 +1271,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
 	 * Blocks are sequential when the first segment with a range of values is followed by segments that span all values.
 	 * <p>
-	 * This list will eliminate overlaps to produce the smallest list of sequential block subnets, which is the same size or smaller than the list of prefix blocks produced by {@link #mergePrefixBlocks(IPAddress...)}
+	 * This list will eliminate overlaps to produce the smallest list of sequential block subnets, which is the same size or smaller than the list of prefix blocks produced by {@link #mergeToPrefixBlocks(IPAddress...)}
 	 * <p>
 	 * If the incoming blocks are not sequential, the result could be a longer list, since the list is divided into sequential blocks before merging.
 	 * <p>
@@ -1286,7 +1286,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public abstract IPAddress[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
-	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedRangeBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
+	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
 		return IPAddressSection.getMergedSequentialBlocks(first, sections, false, createSeriesCreator(creator, first.getMaxSegmentValue()));
 	}
 	

@@ -150,14 +150,35 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 		BigInteger result = BigInteger.ONE;
 		int count = getDivisionCount();
 		if(count > 0) {
-			if(isMultiple()) {
-				for(int i = 0; i < count; i++) {
-					AddressGenericDivision div = getDivision(i);
-					if(div.isMultiple()) {
-						BigInteger divCount = getDivision(i).getCount();
-						result = result.multiply(divCount);
-					}
+			for(int i = 0; i < count; i++) {
+				AddressGenericDivision div = getDivision(i);
+				if(div.isMultiple()) {
+					BigInteger divCount = getDivision(i).getCount();
+					result = result.multiply(divCount);
 				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Returns the count of values in the initial (higher) count of segments.
+	 * 
+	 * @return
+	 */
+	default BigInteger getBlockCount(int segmentCount) {
+		if(segmentCount < 0) {
+			throw new IllegalArgumentException();
+		}
+		BigInteger result = BigInteger.ONE;
+		int divisionCount = getDivisionCount();
+		if(segmentCount < divisionCount) {
+			divisionCount = segmentCount;
+		}
+		for(int i = 0; i < divisionCount; i++) {
+			AddressGenericDivision division = getDivision(i);
+			if(division.isMultiple()) {
+				result = result.multiply(division.getCount());
 			}
 		}
 		return result;

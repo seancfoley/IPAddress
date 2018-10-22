@@ -1495,7 +1495,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6Address[] mergePrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
+	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {
 			return new IPv6Address[] { this };
 		}
@@ -1514,7 +1514,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedRangeBlocks(this, addresses, getDefaultCreator());
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, addresses, getDefaultCreator());
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 
@@ -1601,7 +1601,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressSequentialRange toRange(IPAddress other) {
+	public IPv6AddressSequentialRange toSequentialRange(IPAddress other) {
 		return new IPv6AddressSequentialRange(this, convertArg(other));
 	}
 

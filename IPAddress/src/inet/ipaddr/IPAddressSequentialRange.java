@@ -51,7 +51,7 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * <p>
  * String representations include the full address for both the lower and upper bounds of the range.
  *  
- * 
+ * @custom.core
  * @author sfoley
  *
  */
@@ -421,13 +421,23 @@ public abstract class IPAddressSequentialRange implements IPAddressRange, Serial
 		return toNormalizedString(" -> ");
 	}
 	
+	public String toCanonicalString(String separator) {
+		Function<IPAddress, String> stringer = IPAddress::toCanonicalString;
+		return toString(stringer, separator, stringer);
+	}
+	
+	@Override
+	public String toCanonicalString() {
+		return toCanonicalString(" -> ");
+	}
+	
 	public String toString(Function<IPAddress, String> lowerStringer, String separator, Function<IPAddress, String> upperStringer) {
 		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
 	}
 	
 	@Override
 	public String toString() {
-		return toNormalizedString();
+		return toCanonicalString();
 	}
 
 	@Override
