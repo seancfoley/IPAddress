@@ -304,7 +304,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * Removes the prefix length.
 	 * 
 	 * @param zeroed whether the bits outside the prefix become zero
-	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
+	 * @Deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength(boolean zeroed);
