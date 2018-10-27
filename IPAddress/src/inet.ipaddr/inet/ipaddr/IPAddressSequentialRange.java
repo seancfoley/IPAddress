@@ -17,7 +17,6 @@
  */
 package inet.ipaddr;
 
-import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,7 +54,7 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * @author sfoley
  *
  */
-public abstract class IPAddressSequentialRange implements IPAddressRange, Serializable {
+public abstract class IPAddressSequentialRange implements IPAddressRange {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -152,7 +151,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange, Serial
 	/**
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
 	 * 
-	 * @param prefLength
+	 * @param prefixLength
 	 * @return
 	 */
 	@Override

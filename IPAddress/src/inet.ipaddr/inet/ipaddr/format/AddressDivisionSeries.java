@@ -93,13 +93,22 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	 * the entire subnet block for the prefix length.
 	 * <p>
 	 * If {@link AddressNetwork#getPrefixConfiguration} is set to consider all prefixes as subnets, this returns true for any series with a prefix length.
-	 * 
+	 * <p>
+	 * An important distinction of {@link #containsPrefixBlock(int)} with this method is that this method returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists one or more prefix lengths for which {@link #containsPrefixBlock(int)} returns true.
 	 * @return
 	 */
 	boolean isPrefixBlock();
 	
 	/**
 	 * Returns whether the range of values matches a single subnet block for the prefix length
+	 * <p>
+	 * An important distinction of this method with {@link #containsSinglePrefixBlock(int)} is that this method returns
+	 * false if the series does not have a prefix length assigned to it, 
+	 * even if there exists a prefix length for which {@link #containsSinglePrefixBlock(int)}
+	 * returns true.
+	 * 
 	 * 
 	 * @return
 	 */

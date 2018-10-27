@@ -188,8 +188,6 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * <p>
 	 * If the increment is negative, it is added to the lower series of the range (the first iterator value).  
 	 * <p>
-	 * This method is equivalent to the combination of {@link #incrementSubnet(long)} with {@link #incrementBoundary(long)}
-	 * <p>
 	 * If the subnet is just a single address values, the series is simply incremented by the given value, positive or negative.
 	 * <p>
 	 * If a subnet has multiple values, a positive increment value is equivalent to the same number of values from the {@link #iterator()}
@@ -304,7 +302,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * Removes the prefix length.
 	 * 
 	 * @param zeroed whether the bits outside the prefix become zero
-	 * @Deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
+	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength(boolean zeroed);

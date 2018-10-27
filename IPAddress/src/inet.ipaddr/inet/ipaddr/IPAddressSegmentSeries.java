@@ -294,7 +294,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7, given the count argument 2, 
 	 * it will iterate through 1.3.5-6.7, 1.4.5-6.7, 2.3.5-6.7, 2.4.5-6.7
 	 * 
-	 * @param finalIteratingIndex
+	 * @param segmentCount
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegmentSeries> blockIterator(int segmentCount);

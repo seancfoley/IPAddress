@@ -88,7 +88,7 @@ public interface IPAddressRange extends AddressItemRange {
 	/**
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
 	 * 
-	 * @param prefLength
+	 * @param prefixLength
 	 * @return
 	 */
 	Iterator<? extends IPAddressRange> prefixIterator(int prefixLength);
