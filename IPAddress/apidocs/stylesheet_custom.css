@@ -486,7 +486,7 @@ th.colFirst, th.colLast, th.colOne, .constantsSummary th {
 }
 td.colFirst, th.colFirst {
 	border-left:1px solid #9eadc0; /* added sean */
-    white-space:nowrap;
+    /* white-space:nowrap; removed sean */
     font-size:13px;
 }
 td.colLast, th.colLast {
