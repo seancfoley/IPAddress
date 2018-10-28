@@ -476,7 +476,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * 
 	 * @return
 	 */
-	public abstract IPAddressSequentialRange toSequentialRange();
+	public abstract IPAddressSeqRange toSequentialRange();
 
 	/**
 	 * Creates a sequential range instance from this and the given address, 
@@ -486,7 +486,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * 
 	 * @return
 	 */
-	public abstract IPAddressSequentialRange toSequentialRange(IPAddress other);
+	public abstract IPAddressSeqRange toSequentialRange(IPAddress other);
 	
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
@@ -512,8 +512,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	@Override
-	public boolean contains(IPAddressSequentialRange other) {
-		IPAddressSequentialRange otherRange = (IPAddressSequentialRange) other;
+	public boolean contains(IPAddressSeqRange other) {
+		IPAddressSeqRange otherRange = (IPAddressSeqRange) other;
 		if(compareLowValues(otherRange.getLower(), getLower()) >= 0 && 
 				compareLowValues(otherRange.getUpper(), getUpper()) <= 0) {
 			if(isSequential()) {
@@ -1197,7 +1197,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
 	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
-	 * and them joining them into a single range with {@link IPAddressSequentialRange#join(IPAddressSequentialRange...)}
+	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1217,7 +1217,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
 	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
-	 * and them joining them into a single range with {@link IPAddressSequentialRange#join(IPAddressSequentialRange...)}
+	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1242,7 +1242,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	* @param other
 	* @return
 	*/
-	public abstract IPAddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException;
+	public abstract IPAddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException;
 	
 	/**
 	 * Merges this with the list of addresses to produce the smallest list of prefix blocks

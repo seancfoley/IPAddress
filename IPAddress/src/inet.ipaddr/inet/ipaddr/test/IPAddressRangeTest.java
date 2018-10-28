@@ -30,7 +30,7 @@ import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressSequentialRange;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
@@ -452,7 +452,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, BigInteger number) {
-		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
 		if(!count.equals(number)) {
 			testBase.addFailure(new Failure("big count was " + count, w));
@@ -461,7 +461,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
-		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
@@ -506,7 +506,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
-		IPAddressSequentialRange val = w.getAddress().spanWithRange(high.getAddress());
+		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getPrefixCount(prefixLength);
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
@@ -542,10 +542,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 
 			BigInteger totalCount = val.getCount();
 			BigInteger countedCount = BigInteger.ZERO;
-			Iterator<? extends IPAddressSequentialRange> rangeIterator = val.prefixIterator(prefixLength);
+			Iterator<? extends IPAddressSeqRange> rangeIterator = val.prefixIterator(prefixLength);
 			counter = 0;
-			Set<IPAddressSequentialRange> rangeSet = new HashSet<IPAddressSequentialRange>();
-			IPAddressSequentialRange nextRange = null, previousRange = null;
+			Set<IPAddressSeqRange> rangeSet = new HashSet<IPAddressSeqRange>();
+			IPAddressSeqRange nextRange = null, previousRange = null;
 			while(rangeIterator.hasNext()) {
 				nextRange = rangeIterator.next();
 				IPAddress blocks[] = nextRange.spanWithPrefixBlocks();

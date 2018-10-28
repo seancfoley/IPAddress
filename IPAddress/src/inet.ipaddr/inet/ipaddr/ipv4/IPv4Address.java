@@ -817,8 +817,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4AddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv4AddressSequentialRange(this, convertArg(other));
+	public IPv4AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv4AddressSeqRange(this, convertArg(other));
 	}
 
 	@Override
@@ -856,13 +856,13 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public IPv4AddressSequentialRange toSequentialRange(IPAddress other) {
-		return new IPv4AddressSequentialRange(this, convertArg(other));
+	public IPv4AddressSeqRange toSequentialRange(IPAddress other) {
+		return new IPv4AddressSeqRange(this, convertArg(other));
 	}
 	
 	@Override
-	public IPv4AddressSequentialRange toSequentialRange() {
-		return new IPv4AddressSequentialRange(getLower(), getUpper());
+	public IPv4AddressSeqRange toSequentialRange() {
+		return new IPv4AddressSeqRange(getLower(), getUpper());
 	}
 
 	@Override

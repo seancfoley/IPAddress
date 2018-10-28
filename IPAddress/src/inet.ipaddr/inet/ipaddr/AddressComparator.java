@@ -35,12 +35,12 @@ import inet.ipaddr.format.standard.IPAddressDivisionGrouping;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSegment;
 import inet.ipaddr.ipv4.IPv4JoinedSegments;
-import inet.ipaddr.ipv4.IPv4AddressSequentialRange;
+import inet.ipaddr.ipv4.IPv4AddressSeqRange;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6v4MixedAddressSection;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
-import inet.ipaddr.ipv6.IPv6AddressSequentialRange;
+import inet.ipaddr.ipv6.IPv6AddressSeqRange;
 import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
@@ -112,10 +112,10 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 		return 0;
 	}
 	
-	private static int mapRange(IPAddressSequentialRange range) {
-		if(range instanceof IPv4AddressSequentialRange) {
+	private static int mapRange(IPAddressSeqRange range) {
+		if(range instanceof IPv4AddressSeqRange) {
 			return 1;
-		} else if(range instanceof IPv6AddressSequentialRange) {
+		} else if(range instanceof IPv6AddressSeqRange) {
 			return 2;
 		} 
 		return 0;
@@ -170,9 +170,9 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			} else if (equalsConsistent) {
 				return -1;
 			}
-		} else if(one instanceof IPAddressSequentialRange) {
-			if(two instanceof IPAddressSequentialRange) {
-				return compare((IPAddressSequentialRange) one, (IPAddressSequentialRange) two);
+		} else if(one instanceof IPAddressSeqRange) {
+			if(two instanceof IPAddressSeqRange) {
+				return compare((IPAddressSeqRange) one, (IPAddressSeqRange) two);
 			} else if (equalsConsistent) {
 				if(two instanceof AddressDivisionSeries) {
 					return -1;
@@ -265,7 +265,7 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 		return compareValues(one.getUpperSegmentValue(), one.getSegmentValue(), two.getUpperSegmentValue(), two.getSegmentValue());
 	}
 	
-	public int compare(IPAddressSequentialRange one, IPAddressSequentialRange two) {
+	public int compare(IPAddressSeqRange one, IPAddressSeqRange two) {
 		if(one == two) {
 			return 0;
 		}
@@ -275,9 +275,9 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 				return result;
 			}
 		}
-		if(one instanceof IPv4AddressSequentialRange && two instanceof IPv4AddressSequentialRange) {
-			IPv4AddressSequentialRange gOne = (IPv4AddressSequentialRange) one;
-			IPv4AddressSequentialRange gTwo = (IPv4AddressSequentialRange) two;
+		if(one instanceof IPv4AddressSeqRange && two instanceof IPv4AddressSeqRange) {
+			IPv4AddressSeqRange gOne = (IPv4AddressSeqRange) one;
+			IPv4AddressSeqRange gTwo = (IPv4AddressSeqRange) two;
 			return compareValues(gOne.getUpper().longValue(), gOne.getLower().longValue(), gTwo.getUpper().longValue(), gTwo.getLower().longValue());
 		}
 		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());

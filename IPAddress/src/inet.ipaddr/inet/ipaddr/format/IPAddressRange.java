@@ -21,7 +21,7 @@ package inet.ipaddr.format;
 import java.util.Iterator;
 
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressSequentialRange;
+import inet.ipaddr.IPAddressSeqRange;
 
 
 public interface IPAddressRange extends AddressItemRange {
@@ -32,7 +32,7 @@ public interface IPAddressRange extends AddressItemRange {
 	 * @param other
 	 * @return
 	 */
-	boolean contains(IPAddressSequentialRange other);
+	boolean contains(IPAddressSeqRange other);
 
 	/**
 	 * Returns whether this range contains all addresses in the given address or subnet

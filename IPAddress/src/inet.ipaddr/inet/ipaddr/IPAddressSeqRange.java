@@ -29,7 +29,6 @@ import java.util.function.UnaryOperator;
 
 import inet.ipaddr.IPAddressSection.SegFunction;
 import inet.ipaddr.format.IPAddressRange;
-import inet.ipaddr.format.large.IPAddressLargeDivisionGrouping;
 import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
@@ -40,13 +39,9 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * That allows you to represent single addresses, any address prefix subnet (eg 1.2.0.0/16 or 1:2:3:4::/64) or any subnet that can be represented with segment ranges (1.2.0-255.* or 1:2:3:4:*), see
  * {@link IPAddressString} for details.
  * <p>
- * IPAddress and IPAddressString cover all potential subnets and addresses that can be represented by a single address string of 4 or less segments for IPv4, and 8 or less segments for IPv6.
+ * IPAddressString and IPAddress cover all potential subnets and addresses that can be represented by a single address string of 4 or less segments for IPv4, and 8 or less segments for IPv6.
  * <p>
- * This class allows the representation of any address range that is sequential.
- * <p>
- * In some cases an arbitrary sequential range cannot be represented by IPAddress or IPAddressString.
- * In such cases you can represent the range with a single segment, such as with an instance of {@link IPAddressLargeDivisionGrouping} that contains a single segment, 
- * or you can use this class, which provides different operations than the usual segmented address architecture.
+ * This class allows the representation of any sequential address range, including those that cannot be represented by IPAddress.
  * <p>
  * String representations include the full address for both the lower and upper bounds of the range.
  *  
@@ -54,7 +49,7 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * @author sfoley
  *
  */
-public abstract class IPAddressSequentialRange implements IPAddressRange {
+public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -63,7 +58,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	private transient BigInteger count;
 	private transient int hashCode;
 
-	protected <T extends IPAddress> IPAddressSequentialRange(
+	protected <T extends IPAddress> IPAddressSeqRange(
 			T first, 
 			T other,
 			UnaryOperator<T> getLower,
@@ -86,7 +81,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 		}
 	}
 	
-	protected <T extends IPAddress> IPAddressSequentialRange(
+	protected <T extends IPAddress> IPAddressSeqRange(
 			T first, 
 			T second) {
 		lower = first;
@@ -120,7 +115,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @param other the range to compare, which does not need to range across the same address space
 	 * @return whether this range spans more addresses than the provided range.
 	 */
-	public boolean isMore(IPAddressSequentialRange other) {
+	public boolean isMore(IPAddressSeqRange other) {
 		return getCount().compareTo(other.getCount()) > 0;
 	}
 	
@@ -155,10 +150,10 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @return
 	 */
 	@Override
-	public Iterator<? extends IPAddressSequentialRange> prefixIterator(int prefixLength) {
+	public Iterator<? extends IPAddressSeqRange> prefixIterator(int prefixLength) {
 		if(!isMultiple()) {
-			return new Iterator<IPAddressSequentialRange>() {
-				IPAddressSequentialRange orig = IPAddressSequentialRange.this;
+			return new Iterator<IPAddressSeqRange>() {
+				IPAddressSeqRange orig = IPAddressSeqRange.this;
 
 				@Override
 				public boolean hasNext() {
@@ -166,11 +161,11 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 				}
 
 			    @Override
-				public IPAddressSequentialRange next() {
+				public IPAddressSeqRange next() {
 			    	if(orig == null) {
 			    		throw new NoSuchElementException();
 			    	}
-			    	IPAddressSequentialRange result = orig;
+			    	IPAddressSeqRange result = orig;
 			    	orig = null;
 			    	return result;
 			    }
@@ -181,7 +176,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 			    }
 			};
 		}
-		return new Iterator<IPAddressSequentialRange>() {
+		return new Iterator<IPAddressSeqRange>() {
 			Iterator<? extends IPAddress> prefixBlockIterator = prefixBlockIterator(prefixLength);
 			private boolean first = true;
 
@@ -191,7 +186,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 			}
 
 		    @Override
-			public IPAddressSequentialRange next() {
+			public IPAddressSeqRange next() {
 		    	IPAddress next = prefixBlockIterator.next();
 		    	if(first) {
 		    		first = false;
@@ -452,16 +447,16 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @param ranges
 	 * @return
 	 */
-	public static IPAddressSequentialRange[] join(IPAddressSequentialRange... ranges) {
+	public static IPAddressSeqRange[] join(IPAddressSeqRange... ranges) {
 		int joinedCount = 0;
 		Arrays.sort(ranges, Address.ADDRESS_LOW_VALUE_COMPARATOR);
 		for(int i = 0; i < ranges.length; i++) {
-			IPAddressSequentialRange range = ranges[i];
+			IPAddressSeqRange range = ranges[i];
 			if(range == null) {
 				continue;
 			}
 			for(int j = i + 1; j < ranges.length; j++) {
-				IPAddressSequentialRange range2 = ranges[j];
+				IPAddressSeqRange range2 = ranges[j];
 				if(range2 == null) {
 					continue;
 				}
@@ -479,9 +474,9 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 		if(joinedCount == 0) {
 			return ranges;
 		}
-		IPAddressSequentialRange joined[] = new IPAddressSequentialRange[ranges.length - joinedCount];
+		IPAddressSeqRange joined[] = new IPAddressSeqRange[ranges.length - joinedCount];
 		for(int i = 0, j = 0; i < ranges.length; i++) {
-			IPAddressSequentialRange range = ranges[i];
+			IPAddressSeqRange range = ranges[i];
 			if(range == null) {
 				continue;
 			}
@@ -493,7 +488,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 		return joined;
 	}
 	
-	public boolean overlaps(IPAddressSequentialRange other) {
+	public boolean overlaps(IPAddressSeqRange other) {
 		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
 	
@@ -507,7 +502,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	}
 	
 	@Override
-	public boolean contains(IPAddressSequentialRange other) {
+	public boolean contains(IPAddressSeqRange other) {
 		return containsRange(other);
 	}
 	
@@ -523,8 +518,8 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	
 	@Override
 	public boolean equals(Object o) {
-		if(o instanceof IPAddressSequentialRange) {
-			IPAddressSequentialRange otherRange = (IPAddressSequentialRange) o;
+		if(o instanceof IPAddressSeqRange) {
+			IPAddressSeqRange otherRange = (IPAddressSeqRange) o;
 				return getLower().equals(otherRange.getLower()) && getUpper().equals(otherRange.getUpper());
 			}
 			return false;
@@ -535,7 +530,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @param other
 	 * @return
 	 */
-	public IPAddressSequentialRange intersect(IPAddressSequentialRange other) {
+	public IPAddressSeqRange intersect(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = this.getLower();
@@ -565,7 +560,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @param other
 	 * @return
 	 */
-	public IPAddressSequentialRange join(IPAddressSequentialRange other) {
+	public IPAddressSeqRange join(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = this.getLower();
@@ -604,7 +599,7 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 	 * @param other
 	 * @return
 	 */
-	public IPAddressSequentialRange[] subtract(IPAddressSequentialRange other) {
+	public IPAddressSeqRange[] subtract(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = this.getLower();
@@ -634,15 +629,15 @@ public abstract class IPAddressSequentialRange implements IPAddressRange {
 		}
 	}
 	
-	protected abstract IPAddressSequentialRange create(IPAddress lower, IPAddress upper);
+	protected abstract IPAddressSeqRange create(IPAddress lower, IPAddress upper);
 	
-	protected abstract IPAddressSequentialRange[] createPair(IPAddress lower1, IPAddress upper1, IPAddress lower2, IPAddress upper2);
+	protected abstract IPAddressSeqRange[] createPair(IPAddress lower1, IPAddress upper1, IPAddress lower2, IPAddress upper2);
 	
-	protected abstract IPAddressSequentialRange[] createSingle(IPAddress lower, IPAddress upper);
+	protected abstract IPAddressSeqRange[] createSingle(IPAddress lower, IPAddress upper);
 	
-	protected abstract IPAddressSequentialRange[] createSingle();
+	protected abstract IPAddressSeqRange[] createSingle();
 	
-	protected abstract IPAddressSequentialRange[] createEmpty();
+	protected abstract IPAddressSeqRange[] createEmpty();
 
 	@Override
 	public boolean containsPrefixBlock(int prefixLen) {

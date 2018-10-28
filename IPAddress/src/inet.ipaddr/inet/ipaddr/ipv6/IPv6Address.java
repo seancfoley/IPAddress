@@ -1490,8 +1490,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressSequentialRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv6AddressSequentialRange(this, convertArg(other));
+	public IPv6AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
+		return new IPv6AddressSeqRange(this, convertArg(other));
 	}
 	
 	@Override
@@ -1601,13 +1601,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public IPv6AddressSequentialRange toSequentialRange(IPAddress other) {
-		return new IPv6AddressSequentialRange(this, convertArg(other));
+	public IPv6AddressSeqRange toSequentialRange(IPAddress other) {
+		return new IPv6AddressSeqRange(this, convertArg(other));
 	}
 
 	@Override
-	public IPv6AddressSequentialRange toSequentialRange() {
-		return new IPv6AddressSequentialRange(getLower(), getUpper());
+	public IPv6AddressSeqRange toSequentialRange() {
+		return new IPv6AddressSeqRange(getLower(), getUpper());
 	}
 	
 	@Override

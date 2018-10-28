@@ -44,7 +44,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
-import inet.ipaddr.IPAddressSequentialRange;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
@@ -2483,13 +2483,13 @@ public class IPAddressTest extends TestBase {
 	void testRangeJoinImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
-		IPAddressSequentialRange range = addr.spanWithRange(addr2);
+		IPAddressSeqRange range = addr.spanWithRange(addr2);
 		
 		addr = createAddress(lower2).getAddress();
 		addr2 = createAddress(higher2).getAddress();
-		IPAddressSequentialRange range2 = addr.spanWithRange(addr2);
+		IPAddressSeqRange range2 = addr.spanWithRange(addr2);
 		
-		IPAddressSequentialRange result = range.join(range2);
+		IPAddressSeqRange result = range.join(range2);
 		if(resultLower == null) {
 			if(result != null) {
 				addFailure(new Failure("mismatch result " + result + " expected null joining '" + addr + "' with '" + addr2 + "'", addr));
@@ -2497,7 +2497,7 @@ public class IPAddressTest extends TestBase {
 		} else {
 			addr = createAddress(resultLower).getAddress();
 			addr2 = createAddress(resultHigher).getAddress();
-			IPAddressSequentialRange expectedResult = addr.spanWithRange(addr2);
+			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
 			if(!result.equals(expectedResult)) {
 				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' joining '" + addr + "' with '" + addr2 + "'", addr));
 			}
@@ -2513,13 +2513,13 @@ public class IPAddressTest extends TestBase {
 	void testRangeIntersectImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
-		IPAddressSequentialRange range = addr.spanWithRange(addr2);
+		IPAddressSeqRange range = addr.spanWithRange(addr2);
 		
 		addr = createAddress(lower2).getAddress();
 		addr2 = createAddress(higher2).getAddress();
-		IPAddressSequentialRange range2 = addr.spanWithRange(addr2);
+		IPAddressSeqRange range2 = addr.spanWithRange(addr2);
 		
-		IPAddressSequentialRange result = range.intersect(range2);
+		IPAddressSeqRange result = range.intersect(range2);
 		if(resultLower == null) {
 			if(result != null) {
 				addFailure(new Failure("mismatch result " + result + " expected null intersecting '" + addr + "' with '" + addr2 + "'", addr));
@@ -2527,7 +2527,7 @@ public class IPAddressTest extends TestBase {
 		} else {
 			addr = createAddress(resultLower).getAddress();
 			addr2 = createAddress(resultHigher).getAddress();
-			IPAddressSequentialRange expectedResult = addr.spanWithRange(addr2);
+			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
 			if(!result.equals(expectedResult)) {
 				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' intersecting '" + addr + "' with '" + addr2 + "'", addr));
 			}
@@ -2539,13 +2539,13 @@ public class IPAddressTest extends TestBase {
 			String ...resultPairs) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
-		IPAddressSequentialRange range = addr.spanWithRange(addr2);
+		IPAddressSeqRange range = addr.spanWithRange(addr2);
 		
 		addr = createAddress(lower2).getAddress();
 		addr2 = createAddress(higher2).getAddress();
-		IPAddressSequentialRange range2 = addr.spanWithRange(addr2);
+		IPAddressSeqRange range2 = addr.spanWithRange(addr2);
 		
-		IPAddressSequentialRange result[] = range.subtract(range2);
+		IPAddressSeqRange result[] = range.subtract(range2);
 		if(resultPairs.length == 0) {
 			if(result.length != 0) {
 				addFailure(new Failure("mismatch result " + result + " expected zero length result subtracting '" + addr2 + "' from '" + addr + "'", addr));
@@ -2553,7 +2553,7 @@ public class IPAddressTest extends TestBase {
 		} else { //resultPairs.length >= 2
 			addr = createAddress(resultPairs[0]).getAddress();
 			addr2 = createAddress(resultPairs[1]).getAddress();
-			IPAddressSequentialRange expectedResult = addr.spanWithRange(addr2);
+			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
 			if(result.length == 0 || !result[0].equals(expectedResult)) {
 				addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected '" + expectedResult + "' subtracting '" + addr2 + "' from '" + addr + "'", addr));
 			} else if (resultPairs.length == 4){
@@ -2693,12 +2693,12 @@ public class IPAddressTest extends TestBase {
 		if(!matches) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
 		}
-		List<IPAddressSequentialRange> rangeList = new ArrayList<>();
+		List<IPAddressSeqRange> rangeList = new ArrayList<>();
 		for(IPAddress a : result) {
-			IPAddressSequentialRange range = a.toSequentialRange();
+			IPAddressSeqRange range = a.toSequentialRange();
 			rangeList.add(range);
 		}
-		IPAddressSequentialRange joined[] = IPAddressSequentialRange.join(rangeList.toArray(new IPAddressSequentialRange[rangeList.size()]));
+		IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
 		
 		
 		if(joined.length == 0 || joined.length > 1 || !joined[0].getLower().equals(addr1.getLower()) || !joined[0].getUpper().equals(addr2.getUpper())) {
@@ -2706,10 +2706,10 @@ public class IPAddressTest extends TestBase {
 		}
 		rangeList.clear();
 		for(IPAddress a : result2) {
-			IPAddressSequentialRange range = a.toSequentialRange();
+			IPAddressSeqRange range = a.toSequentialRange();
 			rangeList.add(range);
 		}
-		joined = IPAddressSequentialRange.join(rangeList.toArray(new IPAddressSequentialRange[rangeList.size()]));
+		joined = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
 		if(joined.length == 0 || joined.length > 1 || !joined[0].getLower().equals(addr1.getLower()) || !joined[0].getUpper().equals(addr2.getUpper())) {
 			addFailure(new Failure("joined range " + Arrays.asList(joined) + " did not match "+ addr1 + " and " + addr2, addr1));
 		}
