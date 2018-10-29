@@ -6,7 +6,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 
   <groupId>com.github.seancfoley</groupId>
   <artifactId>ipaddress</artifactId>
-  <version>4.2.0</version>
+  <version>4.3.0</version>
   <packaging>jar</packaging>
 
   <name>IPAddress</name>

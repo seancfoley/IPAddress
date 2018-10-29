@@ -1,7 +1,7 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
 		
-	<property name="version" value="4.2.0"/>
+	<property name="version" value="4.3.0"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -53,7 +53,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	</target>
 
 	<target name="create javadoc">
-		<echo>${functional_doclet_dir}</echo>
+		<echo>Looking for doclet in ${functional_doclet_dir}/dist/FunctionalDoclet.jar</echo>
 		<mkdir dir="${rootjavadocdir}"/>
 		<delete includeemptydirs="true" verbose="true">
 		    <fileset dir="${rootjavadocdir}" includes="**/*"/>
@@ -144,13 +144,13 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	</target>
 	
 	<!-- define Maven coordinates -->
-			<property name="groupId" value="com.github.seancfoley" />
-			<property name="artifactId" value="ipaddress" />
-			
-			<!-- define artifacts' name, which follows the convention of Maven -->
-			<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
-			<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
-			<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />
+	<property name="groupId" value="com.github.seancfoley" />
+	<property name="artifactId" value="ipaddress" />
+	
+	<!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
+	<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
+	<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />
 			
 			
 	<target name="create maven artifacts" depends="create dist jar">
