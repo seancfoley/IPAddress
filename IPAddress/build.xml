@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="4.2.0"/>
+	<property name="version" value="5.0.0"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -110,6 +110,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	
 	<target name="create file sets">
 		<fileset id="ipaddress.src" dir="${src_location}">
+			<include name="module-info.java" />
 			<include name="${rootPackagePath}/*.java" />
 			<include name="${rootPackagePath}/format/**/*.java" />
 			<include name="${rootPackagePath}/ipv4/**/*.java" />
@@ -126,6 +127,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			<include name="${rootPackagePath}/**/*.properties" />
 		</fileset>
 		<fileset id="ipaddress.jar.contents" dir="${bin_location}">
+			<include name="module-info.class" />
 			<include name="${rootPackagePath}/*.class" />
 			<include name="${rootPackagePath}/format/**/*.class" />
 			<include name="${rootPackagePath}/ipv4/*.class" />
@@ -157,7 +159,8 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
-	<target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name">	
+	<!-- target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name" -->	
+	<target name="create dist jar" depends="compile, create file sets, create dist name">	
 		<property name="archiveloc" location="${rootdistdir}/${archivename}" />
 		<jar destfile="${archiveloc}" filesonly="true">
 			<manifest>

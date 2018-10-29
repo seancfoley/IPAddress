@@ -17,7 +17,7 @@
  */
 
 /**
- * Classes for validating address strings and for creating address representations from the validated strings.
+ * Validation of address strings and creation of address representations from the validated strings.
  *
  * @author sfoley
  */

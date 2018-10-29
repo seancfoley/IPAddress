@@ -305,6 +305,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
 	 * @return
 	 */
+	@Deprecated
 	AddressSegmentSeries removePrefixLength(boolean zeroed);
 
 	/**

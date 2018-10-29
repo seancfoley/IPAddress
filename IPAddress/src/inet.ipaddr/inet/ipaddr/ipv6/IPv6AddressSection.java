@@ -1685,7 +1685,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return removePrefixLength(false);
 	}
 	
-	@Override
+	@Override @Deprecated
 	public IPv6AddressSection removePrefixLength(boolean zeroed) {
 		return removePrefixLength(this, zeroed, getAddressCreator(), IPv6AddressSection::getSegment);
 	}

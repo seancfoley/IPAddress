@@ -30,7 +30,7 @@ import inet.ipaddr.IPAddress.IPVersion;
  * @author sfoley
  *
  */
-class ParsedHostIdentifierStringQualifier implements Serializable {
+public class ParsedHostIdentifierStringQualifier implements Serializable {
 
 	private static final long serialVersionUID = 4L;
 

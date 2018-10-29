@@ -504,7 +504,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return checkIdentity(getSection().applyPrefixLength(networkPrefixLength));
 	}
 
-	@Override
+	@Override @Deprecated
 	public IPv4Address removePrefixLength(boolean zeroed) {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}

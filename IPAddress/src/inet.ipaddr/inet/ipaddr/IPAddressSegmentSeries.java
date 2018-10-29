@@ -483,10 +483,11 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	/**
 	 * Removes the prefix length.  If zeroed is false, the bits that were host bits do not become zero, unlike {@link #removePrefixLength()}
 	 * 
+	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
 	 * @param zeroed whether the host bits become zero.
 	 * @return
 	 */
-	@Override
+	@Override  @Deprecated
 	IPAddressSegmentSeries removePrefixLength(boolean zeroed);
 	
 	@Override

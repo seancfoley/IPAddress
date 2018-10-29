@@ -1141,7 +1141,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return removePrefixLength(false);
 	}
 	
-	@Override
+	@Override @Deprecated
 	public IPv4AddressSection removePrefixLength(boolean zeroed) {
 		return removePrefixLength(this, zeroed, getAddressCreator(), IPv4AddressSection::getSegment);
 	}

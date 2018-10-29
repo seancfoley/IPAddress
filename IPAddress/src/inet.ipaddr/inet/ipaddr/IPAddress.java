@@ -1417,7 +1417,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	@Override
 	public abstract IPAddress removePrefixLength();
 	
-	@Override
+	@Override @Deprecated
 	public abstract IPAddress removePrefixLength(boolean zeroed);
 	
 	@Override

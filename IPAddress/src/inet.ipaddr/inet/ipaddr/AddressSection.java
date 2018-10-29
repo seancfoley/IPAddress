@@ -79,7 +79,7 @@ public interface AddressSection extends AddressSegmentSeries {
 	@Override
 	AddressSection withoutPrefixLength();
 	
-	@Override
+	@Override @Deprecated
 	AddressSection removePrefixLength(boolean zeroed);
 
 	@Override

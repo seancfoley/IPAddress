@@ -1294,7 +1294,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return removePrefixLength(false);
 	}
 	
-	@Override
+	@Override @Deprecated
 	public IPv6Address removePrefixLength(boolean zeroed) {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}

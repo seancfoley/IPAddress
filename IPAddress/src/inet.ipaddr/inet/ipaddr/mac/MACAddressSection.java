@@ -999,7 +999,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		return removePrefixLength(false);
 	}
 	
-	@Override
+	@Override  @Deprecated
 	public MACAddressSection removePrefixLength(boolean zeroed) {
 		if(getPrefixLength() == null) {
 			return this;

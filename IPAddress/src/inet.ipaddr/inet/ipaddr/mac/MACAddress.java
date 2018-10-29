@@ -386,7 +386,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return removePrefixLength(false);
 	}
 	
-	@Override
+	@Override @Deprecated
 	public MACAddress removePrefixLength(boolean zeroed) {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}

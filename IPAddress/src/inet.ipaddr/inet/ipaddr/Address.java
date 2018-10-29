@@ -569,7 +569,7 @@ public abstract class Address implements AddressSegmentSeries {
 	@Override
 	public abstract Address withoutPrefixLength();
 	
-	@Override
+	@Override @Deprecated
 	public abstract Address removePrefixLength(boolean zeroed);
 	
 	@Override

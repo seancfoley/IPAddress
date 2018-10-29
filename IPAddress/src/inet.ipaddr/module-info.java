@@ -19,17 +19,18 @@
  * @author seancfoley
  *
  */
-module inet.ipaddr {
-	exports inet.ipaddr;
+open module inet.ipaddr {
 	exports inet.ipaddr.format;
 	exports inet.ipaddr.format.standard;
-	exports inet.ipaddr.format.string;
 	exports inet.ipaddr.format.large;
+	exports inet.ipaddr.format.string;
+	exports inet.ipaddr.format.util;
+	exports inet.ipaddr.format.util.sql;
+	exports inet.ipaddr.format.validate;
+	exports inet.ipaddr;
 	exports inet.ipaddr.mac;
 	exports inet.ipaddr.ipv4;
 	exports inet.ipaddr.ipv6;
-	exports inet.ipaddr.format.util;
-	exports inet.ipaddr.format.util.sql;
-	
+
 	requires java.base;
 }
