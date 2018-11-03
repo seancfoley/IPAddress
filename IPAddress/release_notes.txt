@@ -1,3 +1,22 @@
+Version 5 release:
+
+This version introduces new address range classes and reorganizes classes and code in the inet.ipaddr.format package.
+
+-parsing performance improvements
+-prefixEquals and contains methods to IPAddressString for optimized containment checks
+-added increment(long) and incrementBoundary(long) methods
+-added address range functionality with the new IPAddressSeqRange class and the IPv4 and IPv6 subclasses
+-added IPAddressRange interface for commonality between IPAddress and IPAddressSeqRange ranges
+-reorganization of classes and interfaces in inet.ipaddr.format package to standard, large, and string subpackages
+-expansion of the large division functionality, which uses BigInteger for address division values, to match the standard functionality which uses longs for address divisions
+-new static toNormalizedString string production methods to produce strings directly without intervening objects
+-new iterators: blockIterator(int), sequentialBlockIterator(), prefixIterator(), prefixBlockIterator(int), and their associated count methods, namely getSequentialBlockCount to go with sequentialBlockIterator() and prefixCount to go with iterator(), nonZeroHostIterator() and prefixBlockIterator(). Also added the isSequential() method.
+-added mergeToSequentialBlocks to match mergeToPrefixBlocks
+-works with Java 8, 9, 10, 11 and upwards, comprises the inet.ipaddr module for Java 9 and upwards
+-distributed jars are compiled with java 8, but those jars also include the module-info class for the Java Platform Module System (JPMS) 
+introduced with Java 9
+-fully compatible with Android using Android API level 24 or higher.
+
 Version 4 release:
 
 The main change in version 4 is a change to the way IP addresses with prefix length are handled,
