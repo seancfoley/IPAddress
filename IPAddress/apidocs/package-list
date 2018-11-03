@@ -1,5 +1,8 @@
 inet.ipaddr
 inet.ipaddr.format
+inet.ipaddr.format.large
+inet.ipaddr.format.standard
+inet.ipaddr.format.string
 inet.ipaddr.format.util
 inet.ipaddr.format.util.sql
 inet.ipaddr.ipv4
