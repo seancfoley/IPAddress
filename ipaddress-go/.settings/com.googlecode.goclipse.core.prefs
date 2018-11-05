@@ -1,6 +1,6 @@
 append_projloc_gopath=false
-build_targets=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\n<build_targets xmlns\="com.googlecode.goclipse.core">\n    <target auto_enabled\="false" config\="build" n_enabled\="true" version2\="true">\n        <command_invocation append_env\="true" command_arguments\="${GO_TOOL_PATH} install -v -gcflags &quot;-N -l&quot; ./ipaddress/ipaddress-go/...">\n            <env_vars/>\n        </command_invocation>\n    </target>\n    <target auto_enabled\="false" config\="build-tests" n_enabled\="false" version2\="true"/>\n    <target auto_enabled\="false" config\="lint" n_enabled\="false" version2\="true"/>\n    <target auto_enabled\="false" config\="[run-tests]" n_enabled\="false" version2\="true"/>\n</build_targets>\n
-com.googlecode.goclipse.gopath=\:/Users/scfoley@us.ibm.com/gitrepo
+build_targets=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\n<build_targets xmlns\="com.googlecode.goclipse.core">\n    <target auto_enabled\="false" config\="build" n_enabled\="true" version2\="true">\n        <command_invocation append_env\="true" command_arguments\="${GO_TOOL_PATH} install -v -gcflags &quot;-N -l&quot; ./github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/...">\n            <env_vars/>\n        </command_invocation>\n    </target>\n    <target auto_enabled\="false" config\="build-tests" n_enabled\="false" version2\="true"/>\n    <target auto_enabled\="false" config\="lint" n_enabled\="false" version2\="true"/>\n    <target auto_enabled\="false" config\="[run-tests]" n_enabled\="false" version2\="true"/>\n</build_targets>\n
+com.googlecode.goclipse.gopath=
 com.googlecode.goclipse.goroot=/usr/local/go
 eclipse.preferences.version=1
-toolchain_prefs.use_project_settings=true
+toolchain_prefs.use_project_settings=false
