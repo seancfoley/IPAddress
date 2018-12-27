@@ -1045,7 +1045,7 @@ public abstract class IPAddressSection extends IPAddressSegmentGrouping {
 		return iterator(getSegmentCreator(), false);
 	}
 	
-	protected <S extends IPAddressSegment> Iterator<S[]> iterator(final IPAddressSegmentCreator<S> segmentCreator, boolean skipThis) {
+	protected <S extends IPAddressSegment> Iterator<S[]> iterator(final IPAddressSegmentCreator<S> segmentCreator, final boolean skipThis) {
 		if(!isMultiple()) {
 			return new Iterator<S[]>() {
 				boolean done = skipThis;
