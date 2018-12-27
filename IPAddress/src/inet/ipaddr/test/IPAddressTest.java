@@ -563,7 +563,9 @@ public class IPAddressTest extends TestBase {
 				return expectedPass;
 			}
 			return !expectedPass;
-		} catch(IPAddressStringException | IPAddressTypeException e) {
+		} catch(IPAddressStringException e) {
+			return expectedPass;
+		} catch(IPAddressTypeException e) {
 			return expectedPass;
 		}
 	}
@@ -882,7 +884,10 @@ public class IPAddressTest extends TestBase {
 						return false;
 					}
 				}
-			} catch(IPAddressStringException | RuntimeException e) {
+			} catch(IPAddressStringException e) {
+				addFailure(new Failure("failed conversion: " + e.getMessage(), address));
+				return false;
+			} catch(RuntimeException e) {
 				addFailure(new Failure("failed conversion: " + e.getMessage(), address));
 				return false;
 			}
@@ -1148,7 +1153,9 @@ public class IPAddressTest extends TestBase {
 										addFailure(new Failure("failed " + addr4, w));
 									}
 								}
-							} catch(IPAddressStringException | IPAddressTypeException e) {
+							} catch(IPAddressStringException e) {
+								addFailure(new Failure("failed prefix val", w));
+							} catch(IPAddressTypeException e) {
 								addFailure(new Failure("failed prefix val", w));
 							}
 						} else { //prefix > IPv4Address.BIT_COUNT
@@ -1167,7 +1174,9 @@ public class IPAddressTest extends TestBase {
 						addFailure(new Failure("failed " + addr6, w2));
 					}
 				}
-			} catch(IPAddressStringException | IPAddressTypeException e) {
+			} catch(IPAddressStringException e) {
+				addFailure(new Failure("failed prefix val", w2));
+			} catch(IPAddressTypeException e) {
 				addFailure(new Failure("failed prefix val", w2));
 			}
 		} else {

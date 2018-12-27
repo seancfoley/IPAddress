@@ -153,8 +153,14 @@ public class TestRunner extends TestBase implements AddressCreator {
 		List<? extends byte[]> bytesmine = outmine.getBytes();
 		EfficientByteArrayInputStream inmine = new EfficientByteArrayInputStream(bytesmine);
 		//System.out.println("total is " + outmine.getCount());
-		try (ObjectInput inputmine = new ObjectInputStream(inmine)) {
+		ObjectInput inputmine = null;
+		try {
+			inputmine = new ObjectInputStream(inmine);
 			return (Cache) inputmine.readObject();
+		} finally {
+			if(inputmine != null) {
+				inputmine.close();
+			}
 		}
 	}
 	
@@ -365,7 +371,10 @@ public class TestRunner extends TestBase implements AddressCreator {
 					System.out.println(oldCache.equals(cache));
 				}
 				failures.add(testAll());
-			} catch(IOException | ClassNotFoundException e) {
+			} catch(IOException e) {
+				failures.numTested++;
+				failures.failures.add(new Failure(e.toString()));
+			} catch(ClassNotFoundException e) {
 				failures.numTested++;
 				failures.failures.add(new Failure(e.toString()));
 			}
@@ -399,7 +408,9 @@ public class TestRunner extends TestBase implements AddressCreator {
 					try {
 						barrier.await();
 						runnable.run();
-					} catch (InterruptedException | BrokenBarrierException e) {
+					} catch (BrokenBarrierException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 				}

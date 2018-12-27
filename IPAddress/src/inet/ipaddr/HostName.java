@@ -367,7 +367,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName>, Ser
 	public IPAddress resolve() {
 		try {
 			return toResolvedAddress();
-		} catch(HostNameException | UnknownHostException e) {
+		} catch(HostNameException e) {
+			//call toResolvedAddress if you wish to see this exception
+		}  catch(UnknownHostException e) {
 			//call toResolvedAddress if you wish to see this exception
 		}
 		return null;

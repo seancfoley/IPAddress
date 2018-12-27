@@ -484,7 +484,7 @@ public class IPv4AddressSection extends IPAddressSection {
 		if(!options.includesAny(IPv4StringBuilderOptions.ALL_JOINS)) {
 			return super.getParts(options);
 		}
-		ArrayList<IPAddressPart> parts = new ArrayList<>(IPv4Address.SEGMENT_COUNT);
+		ArrayList<IPAddressPart> parts = new ArrayList<IPAddressPart>(IPv4Address.SEGMENT_COUNT);
 		if(options.includes(IPStringBuilderOptions.BASIC)) {
 			parts.add(this);
 		}
