@@ -125,7 +125,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
-	<target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name">	
+	<target name="create dist jar" depends="compile, create file sets, create dist name">	
 		<property name="archiveloc" location="${rootdistdir}/${archivename}" />
 		<jar destfile="${archiveloc}" filesonly="true">
 			<manifest>
