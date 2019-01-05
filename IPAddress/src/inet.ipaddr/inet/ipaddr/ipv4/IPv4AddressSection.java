@@ -1438,6 +1438,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @deprecated use {@link #spanWithSequentialBlocks(IPv4AddressSection)}
 	 * @return
 	 */
+	@Deprecated
 	public IPv4AddressSection[] spanWithRangedSegments(IPv4AddressSection other) {
 		return spanWithSequentialBlocks(other);
 	}
@@ -1466,6 +1467,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 * @throws SizeMismatchException
 	 */
+	@Deprecated
 	public IPv4AddressSection[] mergePrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
 		return mergeToPrefixBlocks(sections);
 	}

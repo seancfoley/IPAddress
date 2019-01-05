@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.0.0"/>
+	<property name="version" value="5.0.1"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -64,6 +64,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<!-- Java 9 modules - we use the maven trick of https://maven.apache.org/plugins/maven-compiler-plugin/examples/module-info.html
 					We compile everything java 9, then we will recompile java 8 but not the module-info.java -->
 		<!-- first compile entirely as java 9 to ensure compliance with module configuration -->
+		<echo message="compiling as Java 9"/>
 		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
 				source="9" target="9" failonerror="false" verbose="false" createMissingPackageInfoClass="false">
 			<include name="${rootPackagePath}/**/*.java"/>
@@ -75,7 +76,8 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
     			<exclude name="**/module-info.class"/><!-- leave the java 9 module-info.class -->
     		</fileset>
     	</delete>
-		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
+		<echo message="compiling as Java 8"/>
+			<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
 				source="1.8" target="1.8" failonerror="false" verbose="false" createMissingPackageInfoClass="false"
 				deprecation="true">
 			<include name="${rootPackagePath}/**/*.java"/>

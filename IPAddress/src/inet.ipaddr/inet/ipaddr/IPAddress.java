@@ -1544,4 +1544,15 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public void getMatchesSQLClause(StringBuilder builder, String sqlExpression, IPAddressSQLTranslator translator) {
 		getSection().getStartsWithSQLClause(builder, sqlExpression, translator);
 	}
+	
+	/**
+	 * Removes the prefix length from addresses with a prefix length extending to the end of the address.
+	 * @return
+	 */
+	public IPAddress removeBitCountPrefixLength() {
+		if(isPrefixed() && getNetworkPrefixLength() == getBitCount()) {
+			return this.withoutPrefixLength();
+		}
+		return this;
+	}
 }

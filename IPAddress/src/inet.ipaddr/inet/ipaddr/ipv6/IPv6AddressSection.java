@@ -1988,6 +1988,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @deprecated use {@link #spanWithSequentialBlocks(IPv6AddressSection)}
 	 * @return
 	 */
+	@Deprecated
 	public IPv6AddressSection[] spanWithRangedSegments(IPv6AddressSection other) {
 		return spanWithSequentialBlocks(other);
 	}
@@ -2019,6 +2020,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 * @throws SizeMismatchException
 	 */
+	@Deprecated
 	public IPv6AddressSection[] mergePrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
 		return mergeToPrefixBlocks(sections);
 	}
