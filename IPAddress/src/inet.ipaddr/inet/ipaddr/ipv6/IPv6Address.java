@@ -1456,7 +1456,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv6Address::assignPrefixForSingleBlock,
+				IPv6Address::withoutPrefixLength,
 				getCreator()::createAddressArray);
 	}
 	
@@ -1470,10 +1471,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address[] spanWithSequentialBlocks() throws AddressConversionException {
 		if(isSequential()) {
-			return spanWithSequentialBlocks(this);
+			return new IPv6Address[] { withoutPrefixLength() };
 		}
 		@SuppressWarnings("unchecked")
-		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(true);
+		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(false);
 		return list.toArray(new IPv6Address[list.size()]);
 	}
 	
@@ -1485,7 +1486,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv6Address::withoutPrefixLength,
 				getDefaultCreator());
 	}
 	
@@ -1496,21 +1497,15 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
-		if(addresses.length == 0) {
-			return new IPv6Address[] { this };
-		}
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedBlocks(this, addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, addresses);
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 	
 	@Override
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
-		if(addresses.length == 0) {
-			return new IPv6Address[] { this };
-		}
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}

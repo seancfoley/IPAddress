@@ -67,7 +67,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	private final int bitCount;
 	private final Integer networkPrefixLength;
 	private final boolean isSinglePrefixBlock, isPrefixBlock;
-	protected transient String cachedWildcardString;
+	protected transient String cachedString;
 	
 	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix) throws AddressValueException {
 		if(bytes.length == 0 || bitCount == 0) {
@@ -521,7 +521,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 				result = cachedString;
 				if(result == null) {
 					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
-						result = getDefaultString();
+						result = getDefaultLowerString();
 					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
 						if(isPrefixBlock()) {
 							result = getDefaultMaskedRangeString();
@@ -530,6 +530,20 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 						}
 					}
 					cachedString = result;
+				}
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	protected String getCachedDefaultLowerString() {
+		String result = cachedString;
+		if(result == null) {
+			synchronized(this) {
+				result = cachedString;
+				if(result == null) {
+					cachedString = result = getDefaultLowerString();
 				}
 			}
 		}
@@ -561,7 +575,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 
 	@Override
-	protected String getDefaultString() {
+	protected String getDefaultLowerString() {
 		return toDefaultString(getValue(), defaultRadix, false, 0, getMaxDigitCount());
 	}
 

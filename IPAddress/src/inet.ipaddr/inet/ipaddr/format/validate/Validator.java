@@ -442,6 +442,7 @@ public class Validator implements HostIdentifierStringValidator {
 												AddressParseData.KEY_EXTENDED_LOWER, extendedValue,
 												AddressParseData.KEY_EXTENDED_UPPER, extendedValue2);
 										ipAddressParseData.setBase85(true);
+										parseData.setFlag(0, AddressParseData.KEY_RANGE_WILDCARD, true);
 										break;
 									}
 								}
@@ -792,6 +793,7 @@ public class Validator implements HostIdentifierStringValidator {
 										AddressParseData.KEY_LOWER, front,
 										AddressParseData.KEY_UPPER, value);
 							}
+							parseData.setFlag(segCount, AddressParseData.KEY_RANGE_WILDCARD, true);
 							frontDigitCount = frontLeadingZeroCount = frontWildcardCount = frontSingleWildcardCount = 0;
 							frontNotOctal = frontNotDecimal = frontUppercase = false;
 							frontHexDelimiterIndex = -1;
@@ -1163,7 +1165,7 @@ public class Validator implements HostIdentifierStringValidator {
 									}
 									long front, extendedFront;
 									boolean frontEmpty;
-									if(isSingleIPv6Hex) {//We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
+									if(isSingleIPv6Hex) {//We need this special block here because single ipv6 hex is 128 bits and cannot fit into a long
 										frontEmpty = false;
 										int frontMidIndex = frontEndIndex - 16;
 										extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
@@ -1204,6 +1206,7 @@ public class Validator implements HostIdentifierStringValidator {
 													AddressParseData.KEY_UPPER, value);
 										}
 									}
+									parseData.setFlag(segCount, AddressParseData.KEY_RANGE_WILDCARD, true);
 									frontDigitCount = frontLeadingZeroCount = frontWildcardCount = frontSingleWildcardCount = 0;
 									frontNotOctal = frontNotDecimal = frontUppercase = false;
 									frontHexDelimiterIndex = -1;

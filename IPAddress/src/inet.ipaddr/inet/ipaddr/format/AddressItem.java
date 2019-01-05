@@ -92,7 +92,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * @return the number of bytes required for this address item, rounding up if the bit count is not a multiple of 8
 	 */
 	default int getByteCount() {
-		return (getBitCount() + (Byte.SIZE - 1)) / Byte.SIZE;
+		return (getBitCount() + (Byte.SIZE - 1)) >>> 3;
 	}
 	
 	/**

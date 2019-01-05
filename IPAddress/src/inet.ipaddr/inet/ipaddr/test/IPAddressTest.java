@@ -974,7 +974,7 @@ public class IPAddressTest extends TestBase {
 			}
 			if(!convCont) {
 				testStringContains(result, equal, wstr, w2str);
-				//compare again, this tests the string-based optimization (which is skipped is we validated already)
+				//compare again, this tests the string-based optimization (which is skipped if we validated already)
 				testStringContains(result, equal, createAddress(cidr1), createAddress(cidr2));
 				
 			}
@@ -1020,17 +1020,22 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	void testNotContains(String cidr1, String cidr2) {
+		testNotContains(cidr1, cidr2, false);
+	}
+	
+	void testNotContains(String cidr1, String cidr2, boolean skipReverse) {
 		try {
 			IPAddress w = createAddress(cidr1).toAddress();
 			IPAddress w2 = createAddress(cidr2).toAddress();
 			if(w.contains(w2)) {
 				addFailure(new Failure("failed " + w2, w));
-			} else if(w2.contains(w)) {
+			} else if(!skipReverse && w2.contains(w)) {
 				addFailure(new Failure("failed " + w, w2));
 			}
 		} catch(AddressStringException e) {
 			addFailure(new Failure("failed " + e));
 		}
+		testContains(cidr1, cidr2, false, false);
 		incrementTestCount();
 	}
 	
@@ -2676,6 +2681,11 @@ public class IPAddressTest extends TestBase {
 		if(count != result.length) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected count of " + count, addr1));
 		}
+		for(IPAddress addr : result) {
+			if(!addr.isPrefixed() || !addr.isPrefixBlock()) {
+				addFailure(new Failure("merged addr " + addr + " is not prefix block", addr));
+			}
+		}
 		IPAddress result2[] = addr1.spanWithSequentialBlocks(addr2);
 		resultList = Arrays.asList(result2);
 		expectedList.clear();
@@ -2688,6 +2698,11 @@ public class IPAddressTest extends TestBase {
 		if(rangeCount != result2.length) {
 			addFailure(new Failure("range merge mismatch merging " + addr1 + " and " + addr2 + " into " + resultList + " expected count of " + rangeCount, addr1));
 		}
+		for(IPAddress addr : result2) {
+			if(addr.isPrefixed()) {
+				addFailure(new Failure("merged addr " + addr + " is prefixed", addr));
+			}
+		}
 		IPAddress backAgain[] = result[0].mergeToPrefixBlocks(result);
 		boolean matches = Arrays.deepEquals(result, backAgain);
 		if(!matches) {
@@ -2699,8 +2714,6 @@ public class IPAddressTest extends TestBase {
 			rangeList.add(range);
 		}
 		IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-		
-		
 		if(joined.length == 0 || joined.length > 1 || !joined[0].getLower().equals(addr1.getLower()) || !joined[0].getUpper().equals(addr2.getUpper())) {
 			addFailure(new Failure("joined range " + Arrays.asList(joined) + " did not match "+ addr1 + " and " + addr2, addr1));
 		}
@@ -2745,6 +2758,17 @@ public class IPAddressTest extends TestBase {
 		if(merged.length != 1 || !resultAddr.equals(merged[0])) {
 			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
 		}
+		for(IPAddress m : merged) {
+			if(prefix) {
+				if(!m.isPrefixed() || !m.isPrefixBlock()) {
+					addFailure(new Failure("merged addr " + m + " is not prefix block", m));
+				}
+			} else {
+				if(m.isPrefixed()) {
+					addFailure(new Failure("merged addr " + m + " is prefixed", m));
+				}
+			}
+		}
 		incrementTestCount();
 	}
 	
@@ -2767,6 +2791,17 @@ public class IPAddressTest extends TestBase {
 		expected.add(resultAddr2);
 		if(!all.equals(expected)) {
 			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + all, resultAddr));
+		}
+		for(IPAddress m : merged) {
+			if(prefix) {
+				if(!m.isPrefixed() || !m.isPrefixBlock()) {
+					addFailure(new Failure("merged addr " + m + " is not prefix block", m));
+				}
+			} else {
+				if(m.isPrefixed()) {
+					addFailure(new Failure("merged addr " + m + " is prefixed", m));
+				}
+			}
 		}
 		incrementTestCount();
 	}
@@ -3410,7 +3445,6 @@ public class IPAddressTest extends TestBase {
 			testContains("9.129.237.26/30", "9.129.237.27/31", false);
 		}
 		
-		
 		testContains("0.0.0.0/0", "1.2.3.4", isAutoSubnets, false);
 		testContains("0.0.0.0/1", "127.2.3.4", isAutoSubnets, false);
 		testNotContains("0.0.0.0/1", "128.2.3.4");
@@ -3431,7 +3465,7 @@ public class IPAddressTest extends TestBase {
 		testNotContains("9.129.237.26/32", "9.128.237.26");
 
 		
-		if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+		if(allPrefixesAreSubnets) {
 			testContains("9.129.237.26/0", "0.0.0.0/0", true);
 			testContains("9.129.237.26/1", "0.0.0.0/1", true);
 			testContains("9.129.237.26/4", "0.0.0.0/4", true);
@@ -3458,13 +3492,19 @@ public class IPAddressTest extends TestBase {
 		
 		testContains("::ffff:1.2.3.4", "1.2.3.4", true);//ipv4 mapped
 		
-		if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+		if(allPrefixesAreSubnets) {
 			testContains("::ffff:1.2.3.4/112", "1.2.3.4", false);
 			testContains("::ffff:1.2.3.4/112", "1.2.3.4/16", true);
 			testContains("ffff::ffff/0", "a:b:c:d:e:f:a:b", false);
 			testContains("ffff::ffff/1", "8aaa:b:c:d:e:f:a:b", false);
+			testNotContains("ffff::ffff/30", "ffff:4:c:d:e:f:a:b");
 			testContains("ffff::ffff/30", "ffff:3:c:d:e:f:a:b", false);
+			testContains("ffff::ffff/30", "ffff:0:c:d:e:f:a:b", false);
+			testContains("ffff::ffff/32", "ffff:0:c:d:e:f:a:b", false);
+			testContains("ffff:0::ffff/32", "ffff::c:d:e:f:a:b", false);
+			testNotContains("ffff:1::ffff/32", "ffff::c:d:e:f:a:b");
 			testContains("ffff::ffff/32", "ffff:0:ffff:d:e:f:a:b", false);
+			testNotContains("ffff::ffff/32", "ffff:1:ffff:d:e:f:a:b");
 			testContains("ffff::ffff/126", "ffff:0:0:0:0:0:0:ffff", false);
 			testContains("ffff::ffff/128", "ffff:0:0:0:0:0:0:ffff", true);
 		}
@@ -3481,7 +3521,7 @@ public class IPAddressTest extends TestBase {
 		testContains("ffff:0:0:0:0:0:0:fffc/126", "ffff:0:0:0:0:0:0:ffff", isAutoSubnets, false);
 		testContains("ffff:0:0:0:0:0:0:ffff/128", "ffff:0:0:0:0:0:0:ffff", true);
 		
-		if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+		if(allPrefixesAreSubnets) {
 			testContains("ffff::ffff/0", "0:0:0:0:0:0:0:0/0", true);
 			testContains("ffff::ffff/1", "8000:0:0:0:0:0:0:0/1", true);
 			testContains("ffff::ffff/30", "ffff:0:0:0:0:0:0:0/30", true);
@@ -3495,6 +3535,88 @@ public class IPAddressTest extends TestBase {
 		testContains("ffff::/32", "ffff:0:0:0:0:0:0:0/32", true);
 		testContains("ffff::fffc/126", "ffff:0:0:0:0:0:0:fffc/126", true);
 		testContains("ffff::ffff/128", "ffff:0:0:0:0:0:0:ffff/128", true);
+		
+		if(isAutoSubnets) {
+			testContains("2001:db8::/120", "2001:db8::1", false);
+		} else {
+			testNotContains("2001:db8::/120", "2001:db8::1");
+		}
+		testContains("2001:db8::1/120", "2001:db8::1", !allPrefixesAreSubnets);
+		if(allPrefixesAreSubnets) {
+			testContains("2001:db8::1/120", "2001:db8::", false);
+		} else {
+			testNotContains("2001:db8::1/120", "2001:db8::");
+		}
+		testContains("2001:db8::/112", "2001:db8::", !isAutoSubnets);
+		testContains("2001:db8::/111", "2001:db8::", !isAutoSubnets);
+		testContains("2001:db8::/113", "2001:db8::", !isAutoSubnets);
+		testNotContains("2001:db80::/113", "2001:db8::");
+		testNotContains("2001:db0::/113", "2001:db8::");
+		testNotContains("2001:db7::/113", "2001:db8::");
+		
+		testContains("2001:0db8:85a3:0000:0000:8a2e:0370:7334/120", "2001:0db8:85a3:0000:0000:8a2e:0370:7334/128", !allPrefixesAreSubnets);
+		testContains("2001:0db8:85a3::8a2e:0370:7334/120", "2001:0db8:85a3:0000:0000:8a2e:0370:7334/128", !allPrefixesAreSubnets);
+		testContains("2001:0db8:85a3:0000:0000:8a2e:0370:7334/120", "2001:0db8:85a3::8a2e:0370:7334/128", !allPrefixesAreSubnets);
+		testContains("2001:0db8:85a3::8a2e:0370:7334/120", "2001:0db8:85a3::8a2e:0370:7334/128", !allPrefixesAreSubnets);
+		
+		testContains("2001:0db8:85a3:0000:0000:8a2e:0370::/120", "2001:0db8:85a3:0000:0000:8a2e:0370::/128", !isAutoSubnets);
+		testContains("2001:0db8:85a3:0000:0000:8a2e:0370::/120", "2001:0db8:85a3::8a2e:0370:0/128", !isAutoSubnets);
+		testContains("2001:0db8:85a3::8a2e:0370:0/120", "2001:0db8:85a3:0000:0000:8a2e:0370::/128", !isAutoSubnets);
+		testContains("2001:0db8:85a3::8a2e:0370:0/120", "2001:0db8:85a3::8a2e:0370:0/128", !isAutoSubnets);
+		
+		if(allPrefixesAreSubnets) {
+			testContains("12::/4", "123::", false);
+		} else {
+			testNotContains("12::/4", "123::");
+		}
+		testNotContains("12::/4", "1234::");
+		testNotContains("12::/8", "123::");
+		testNotContains("123::/8", "1234::");
+		testNotContains("12::/12", "123::");
+		testNotContains("12::/16", "123::");
+		testNotContains("12::/24", "123::");
+		
+		if(allPrefixesAreSubnets) {
+			testContains("1:12::/20", "1:123::", false);
+		} else {
+			testNotContains("1:12::/20", "1:123::");
+		}
+		testNotContains("1:12::/20", "1:1234::");
+		testNotContains("1:12::/24", "1:123::");
+		testNotContains("1:123::/24", "1:1234::");
+		testNotContains("1:12::/28", "1:123::");
+		testNotContains("1:12::/32", "1:123::");
+		testNotContains("1:12::/40", "1:123::");
+		
+		
+		if(isAutoSubnets) {
+			testNotContains("1.0.0.0/16", "1.0.0.0/8", true);
+			testContains("::/4", "123::", false);
+		} else {
+			testContains("1.0.0.0/16", "1.0.0.0/8", true);
+			testNotContains("::/4", "123::");
+		}
+		testNotContains("::/4", "1234::");
+		testNotContains("::/8", "123::");
+		testNotContains("100::/8", "1234::");
+		testNotContains("10::/12", "123::");
+		testNotContains("10::/16", "123::");
+		testNotContains("10::/24", "123::");
+		
+		if(allPrefixesAreSubnets) {
+			testContains("1:12::/20", "1:123::", false);
+		} else {
+			testNotContains("1:12::/20", "1:123::");
+		}
+		testNotContains("1::/20", "1:1234::");
+		testNotContains("1::/24", "1:123::");
+		testNotContains("1:100::/24", "1:1234::");
+		testNotContains("1:10::/28", "1:123::");
+		testNotContains("1:10::/32", "1:123::");
+		testNotContains("1:10::/40", "1:123::");
+		
+		
+		testContains("1.0.0.0/16", "1.0.0.0/24", !isAutoSubnets);
 		
 		prefixtest(true, "/24");
 		

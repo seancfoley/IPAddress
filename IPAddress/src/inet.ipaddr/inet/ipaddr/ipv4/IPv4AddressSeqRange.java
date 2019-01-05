@@ -46,7 +46,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 			second,
 			IPv4Address::getLower,
 			IPv4Address::getUpper,
-			a -> a.withoutPrefixLength());
+			IPv4Address::withoutPrefixLength);
 		if(!first.getNetwork().equals(second.getNetwork())) {
 			throw new NetworkMismatchException(first, second);
 		}

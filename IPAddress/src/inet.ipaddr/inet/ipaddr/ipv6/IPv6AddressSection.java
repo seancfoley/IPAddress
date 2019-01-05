@@ -1977,8 +1977,19 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				IPv6AddressSection::getLower,
 				IPv6AddressSection::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv6AddressSection::assignPrefixForSingleBlock,
+				IPv6AddressSection::withoutPrefixLength,
 				getAddressCreator()::createSectionArray);
+	}
+	
+	/**
+	 * 
+	 * @param other
+	 * @deprecated use {@link #spanWithSequentialBlocks(IPv6AddressSection)}
+	 * @return
+	 */
+	public IPv6AddressSection[] spanWithRangedSegments(IPv6AddressSection other) {
+		return spanWithSequentialBlocks(other);
 	}
 	
 	/**
@@ -1987,7 +1998,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param other
 	 * @return
 	 */
-	public IPv6AddressSection[] spanWithRangedSegments(IPv6AddressSection other) throws AddressPositionException {
+	public IPv6AddressSection[] spanWithSequentialBlocks(IPv6AddressSection other) throws AddressPositionException {
 		if(other.addressSegmentIndex != addressSegmentIndex) {
 			throw new AddressPositionException(other, other.addressSegmentIndex, addressSegmentIndex);
 		}
@@ -1997,8 +2008,19 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				IPv6AddressSection::getLower,
 				IPv6AddressSection::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv6AddressSection::withoutPrefixLength,
 				getAddressCreator());
+	}
+	
+	/**
+	 * 
+	 * @param sections
+	 * @deprecated use {@link #mergeToPrefixBlocks(IPv6AddressSection...)}
+	 * @return
+	 * @throws SizeMismatchException
+	 */
+	public IPv6AddressSection[] mergePrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
+		return mergeToPrefixBlocks(sections);
 	}
 	
 	/**
@@ -2007,10 +2029,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
-	public IPv6AddressSection[] mergePrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException, AddressPositionException {
-		if(sections.length == 0) {
-			return new IPv6AddressSection[] { this };
-		}
+	public IPv6AddressSection[] mergeToPrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException, AddressPositionException {
 		for(int i = 0; i < sections.length; i++) {
 			IPv6AddressSection section = sections[i];
 			if(section.addressSegmentIndex != addressSegmentIndex) {
@@ -2028,9 +2047,6 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv6AddressSection[] mergeToSequentialBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
-		if(sections.length == 0) {
-			return new IPv6AddressSection[] { this };
-		}
 		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}

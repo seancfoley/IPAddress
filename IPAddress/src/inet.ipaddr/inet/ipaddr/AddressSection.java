@@ -48,7 +48,7 @@ public interface AddressSection extends AddressSegmentSeries {
 	 * and the matching is lined up relative to the position.
 	 * 
 	 * @param other
-	 * @return whether thie argument section has the same address section prefix as this
+	 * @return whether the argument section has the same address section prefix as this
 	 */
 	boolean prefixEquals(AddressSection other);
 	

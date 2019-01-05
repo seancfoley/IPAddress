@@ -278,15 +278,15 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	public boolean matchesWithMask(int lowerValue, int upperValue, int mask) {
 		return super.matchesWithMask(lowerValue, upperValue, mask);
 	}
-	
+
 	void setString(
 			CharSequence addressStr, 
 			boolean isStandardString,
 			int lowerStringStartIndex,
 			int lowerStringEndIndex,
 			int originalLowerValue) {
-		if(cachedString == null && isStandardString && originalLowerValue == getDivisionValue()) {
-			cachedString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
+		if(cachedWildcardString == null && isStandardString && originalLowerValue == getDivisionValue()) {
+			cachedWildcardString = addressStr.subSequence(lowerStringStartIndex, lowerStringEndIndex).toString();
 		}
 	}
 	
@@ -296,11 +296,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 			int upperStringEndIndex,
 			int rangeLower,
 			int rangeUpper) {
-		if(cachedString == null) {
+		if(cachedWildcardString == null) {
 			if(isFullRange()) {
-				cachedString = MACAddress.SEGMENT_WILDCARD_STR;
+				cachedWildcardString = MACAddress.SEGMENT_WILDCARD_STR;
 			} else if(isStandardRangeString && rangeLower == getDivisionValue() && rangeUpper == getUpperDivisionValue()) {
-				cachedString = addressStr.subSequence(lowerStringStartIndex, upperStringEndIndex).toString();
+				cachedWildcardString = addressStr.subSequence(lowerStringStartIndex, upperStringEndIndex).toString();
 			}
 		}
 	}

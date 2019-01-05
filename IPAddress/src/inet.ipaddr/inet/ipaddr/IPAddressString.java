@@ -46,8 +46,9 @@ import inet.ipaddr.mac.MACAddress;
  * Subnets are supported:
  * <ul>
  * <li>wildcards '*' and ranges '-' (for example 1.*.2-3.4), useful for working with subnets</li>
+ * <li>the wildcard '*' can span multiple segments, so you can represent all addresses with '*', all IPv4 with '*.*', or all IPv6 with '*:*'</li>
  * <li>SQL wildcards '%' and '_', although '%' is considered an SQL wildcard only when it is not considered an IPv6 zone indicator</li>
- * <li>CIDR network prefix length addresses, like 1.2.3.4/16, which is equivalent to 1.2.*.*</li>
+ * <li>CIDR network prefix length addresses, like 1.2.0.0/16, which is equivalent to 1.2.*.* (all-zero hosts are the full subnet, non-zero hosts are single addresses)</li>
  * <li>address/mask pairs, in which the mask is applied to the address, like 1.2.3.4/255.255.0.0, which is also equivalent to 1.2.*.*</li>
  * </ul>
  * <p>
@@ -56,14 +57,14 @@ import inet.ipaddr.mac.MACAddress;
  * IPv6 is fully supported:
  * <ul>
  * <li>IPv6 addresses like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff</li>
- * <li>IPv6 zones or scope ids, like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%zone</li>
+ * <li>IPv6 zones or scope identifiers, like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%zone</li>
  * <li>IPv6 mixed addresses are supported, which are addresses for which the last two IPv6 segments are represented as IPv4, like ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255</li>
  * <li>IPv6 compressed addresses like ::1</li>
  * <li>A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimiter 0x</li>
  * <li>A base 85 address comprising 20 base 85 digits like 4)+k&amp;C#VzJ4br&gt;0wv%Yp as in rfc 1924 https://tools.ietf.org/html/rfc1924</li>
  * </ul>
  * <p>
- * All of the above subnet variations work for IPv6, whether network prefixes, masks, ranges or wildcards.
+ * All of the above subnet variations work for IPv6, whether network prefix lengths, masks, ranges or wildcards.
  * Similarly, all the the above subnet variations work for any supported IPv4 format, such as the standard dotted-decimal IPv4 format as well as the inet_aton formats listed below.
  * <p>
  * This class support all address formats of the C routine inet_pton and the Java method java.net.InetAddress.getByName.
@@ -86,7 +87,7 @@ import inet.ipaddr.mac.MACAddress;
  * Some additional formats:
  * <ul>
  * <li>null or empty strings are interpreted as the loopback, in the same way as InetAddress.getByName interprets null or empty strings</li>
- * <li>the single wildcard address "*" which represents all addresses both ipv4 and ipv6, 
+ * <li>as noted previously, the single wildcard address "*" represents all addresses both ipv4 and ipv6, 
  * although you need to give it some help when converting to IPAddress by specifying the IP version in {@link #getAddress(IPVersion)} or {@link #toAddress(IPVersion)}</li>
  * <li>specifying CIDR prefix lengths with no corresponding addresses are interpreted as the corresponding network mask.  For instance,
  *  /64 is interpreted as the 64 bit network mask (ie 64 ones followed by 64 zeros)</li>
@@ -131,7 +132,7 @@ import inet.ipaddr.mac.MACAddress;
  * <li>using wildcards or range characters in the IPv4 section of an IPv6 mixed address causing non-sequential segments such as the last IPv6 segment of ::ffff:0.0.*.0, 
  * this example translating to the addresses ::ffff:0:100, ::ffff:0:200, , ::ffff:0:300, ..., so the last IPv6 segment cannot be represented as a sequential range of values.</li>
  * </ul>
- * These exceptions do not occur with non-subnets, nor can they occur with standard CIDR prefix-based subnets.
+ * These exceptions do not occur with non-subnets (ie individual addresses), nor can they occur with standard CIDR prefix-based subnets.
  * <p>
  * This class is thread-safe.  In fact, IPAddressString objects are immutable.  
  * An IPAddressString object represents a single IP address representation that cannot be changed after construction.
@@ -285,6 +286,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
+	 * Returns true if the string represents all IP addresses, such as the string "*"
+	 * You can denote all IPv4 addresses with *.*, or all IPv6 addresses with *:*
+	 * 
 	 * @return whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
 	 */
 	public boolean isAllAddresses() {
@@ -664,7 +668,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
-	 * Similar to {@link #toAddress(IPVersion)}, but returns null rather than throwing an exception with the address is invalid or does not match the supplied version.
+	 * Similar to {@link #toAddress(inet.ipaddr.IPAddress.IPVersion)}, but returns null rather than throwing an exception with the address is invalid or does not match the supplied version.
 	 * 
 	 */
 	public IPAddress getAddress(IPVersion version) throws IncompatibleAddressException {
@@ -756,7 +760,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * As long as this object represents a valid address (but not necessarily a specific address), this method does not throw.
 	 * <p>
 	 * @throws AddressStringException if the address format is invalid
-	 * @throws IncompatibleAddressException if a valid address string representing multiple addresses cannot be represented
+	 * @throws IncompatibleAddressException if a valid address string representing multiple addresses cannot be represented<br>
 	 * 	This happens only for masks inconsistent with the associated address ranges, or ranges in ipv4 mixed segments that cannot be joined into ipv6 segments
 	 * 
 	 */

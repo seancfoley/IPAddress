@@ -42,12 +42,12 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<echo message="created ${runScriptPath}.sh"/>
 	</target>
 	
-	<!-- as it is now, you need to run the ant compile with jqvq 9 or higher.
-	Turns out to do tht it must be run in the same jvm as eclipse, otherwise ant don't work -->
+	<!-- as it is now, you need to run the ant compile with java 9 or higher.
+	Turns out to do that it must be run in the same jvm as eclipse, otherwise ant don't work -->
 	<!-- But javadoc can only be done with a java 8 env.  For one thing, the classes were moved over in java 9,
 	although the old ones still there in 9, but trying to port proved troublesome and would require more debugging -->
-	<!-- So, to create dist jar, or maven artifacts, you need to split up javadoc task from the other stuff -->
-	<!-- once you've done that and created all the jars as necessary, you need to run the ant javadoc in java 1.8 execution environment -->
+	<!-- So, to create dist jar, or maven artifacts, you need to split off javadoc task from the other stuff -->
+	<!-- you need to run the ant javadoc in java 1.8 execution environment, then create the other stuff  -->
 	<!-- it strikes me that this PITA can only be fixed if you port the doclet to java 9 or 10, 
 	and for that it seems the only way is to fork the jdk.javadoc module for your own modifications, 
 	there seems to be no way to run with java 9 vm and access their unreachable javadoc code from my own code,
@@ -61,16 +61,18 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
     			<include name="**/*.class" />
     		</fileset>
     	</delete>
+		<!-- Java 9 modules - we use the maven trick of https://maven.apache.org/plugins/maven-compiler-plugin/examples/module-info.html
+					We compile everything java 9, then we will recompile java 8 but not the module-info.java -->
 		<!-- first compile entirely as java 9 to ensure compliance with module configuration -->
 		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
 				source="9" target="9" failonerror="false" verbose="false" createMissingPackageInfoClass="false">
 			<include name="${rootPackagePath}/**/*.java"/>
 		</javac>
-		<!-- compile as java 8, excluding module-info.java, and leave the existing java 10 module-info -->
+		<!-- compile as java 8, excluding module-info.java, and leave the existing java 9 module-info -->
 		<delete verbose="false" includeemptydirs="true">
     		<fileset dir="${bin_location}">
     			<include name="**/*.class" />
-    			<exclude name="**/module-info.class"/><!-- leave the java 10 module-info.class -->
+    			<exclude name="**/module-info.class"/><!-- leave the java 9 module-info.class -->
     		</fileset>
     	</delete>
 		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
@@ -161,6 +163,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
+	<!-- javadoc is needed but was split off to be done separately, see comments above for the reason -->
 	<!-- target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name" -->	
 	<target name="create dist jar" depends="compile, create file sets, create dist name">	
 		<property name="archiveloc" location="${rootdistdir}/${archivename}" />

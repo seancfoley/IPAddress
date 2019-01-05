@@ -65,7 +65,7 @@ So you need to change that to just <img src="address.png">.  Or you should creat
 
 
 
-To do a release
+To do a release (see build.xml for additional complexities with Java 8 vs 9)
 ----------------------
 
 A Branching 
@@ -83,11 +83,15 @@ B Github
 2. Edit the release property in pom.xml
 
 3. Use build.xml to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
+NOTE: Currently we have had to separate javadoc creation from the creation of dist jar or maven, see notes in build.xml for the reason.
 
 4. Check in and push the changes.
 
-5. Create the release using the github releases button - this creates the tag as well (but does not create a branch).  
-Add the dist jar from (2) to the release.  The source code zip and tar files are automatically created by github.
+5. Create the release using the github releases button on the releases page, 
+which allows you to select the branch.
+This creates the tag as well (but does not create a branch).  The tags have the format vx.x.x
+Add the dist jar from (2) to the release.  
+The source code zip and tar files are automatically created by github.
 
 
 C Maven

@@ -888,24 +888,28 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return result;
 	}
 
-	private static <R extends IPAddressSection> R[] checkContainment(
+	private static <R extends IPAddressSection> R[] checkSequentialBlockContainment(
 			R first,
 			R other,
 			UnaryOperator<R> prefixRemover,
 			IntFunction<R[]> arrayProducer) {
-		boolean f;
-		if((f = first.contains(other)) || other.contains(first)) {
-			if(!f) {
-				R tmp = first;
-				first = other;
-				other = tmp;
-			}
-			if(first.isPrefixed() && first.getPrefixLength() == first.getBitCount()) {
-				first = prefixRemover.apply(first);
-			}
-			R result[] = arrayProducer.apply(1);
-			result[0] = first;
-			return result;
+		if(first.contains(other)) {
+			return IPAddress.checkSequentialBlockFormat(first, other, true, prefixRemover, arrayProducer);
+		} else if(other.contains(first)) {
+			return IPAddress.checkSequentialBlockFormat(other, first, false, prefixRemover, arrayProducer);
+		}
+		return null;
+	}
+	
+	private static <R extends IPAddressSection> R[] checkPrefixBlockContainment(
+			R first,
+			R other,
+			UnaryOperator<R> prefixAdder,
+			IntFunction<R[]> arrayProducer) {
+		if(first.contains(other)) {
+			return IPAddress.checkPrefixBlockFormat(first, other, true, prefixAdder, arrayProducer);
+		} else if(other.contains(first)) {
+			return IPAddress.checkPrefixBlockFormat(other, first, false, prefixAdder, arrayProducer);
 		}
 		return null;
 	}
@@ -921,10 +925,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			UnaryOperator<R> getLower,
 			UnaryOperator<R> getUpper,
 			Comparator<R> comparator,
+			UnaryOperator<R> prefixAdder,
 			UnaryOperator<R> prefixRemover,
 			IntFunction<R[]> arrayProducer) {
 		first.checkSectionCount(other);
-		R[] result = checkContainment(first, other, prefixRemover, arrayProducer);
+		R[] result = checkPrefixBlockContainment(first, other, prefixAdder, arrayProducer);
 		if(result != null) {
 			return result;
 		}
@@ -955,7 +960,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			Comparator<R> comparator,
 			UnaryOperator<R> prefixRemover,
 			IPAddressCreator<?, R, ?, S, ?> creator) {
-		R[] result = checkContainment(first, other, prefixRemover, creator::createSectionArray);
+		R[] result = checkSequentialBlockContainment(first, other, prefixRemover, creator::createSectionArray);
 		if(result != null) {
 			return result;
 		}
@@ -975,10 +980,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			BiFunction<R, R, List<IPAddressSegmentSeries>> operatorFunctor) {
 		//check if they are comparable first.  We only check segment count, we do not care about start index.
 		R lower, upper;
-		if(first == other) {
+		if(first.equals(other)) {
 			lower = prefixRemover.apply(first);
-			upper = getUpper.apply(lower);
-			lower = getLower.apply(lower);
+			upper = getUpper.apply(first);
+			lower = getLower.apply(first);
 		} else {
 			R firstLower = getLower.apply(first);
 			R otherLower = getLower.apply(other);
@@ -1098,7 +1103,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		if(differing == 0) {
 			//all bits match, it's just a single address
-			blocks.add(lower);
+			blocks.add(lower.toPrefixBlock(lower.getBitCount()));
 			return;
 		}
 		boolean differingIsLowestBit = (differing == 1);
@@ -1171,42 +1176,38 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IPAddressSegmentSeries sections[],
 			List<IPAddressSegmentSeries> list,
 			boolean checkSize,
+			boolean useBitCountPrefixLengths,
 			Comparator<? super IPAddressSegmentSeries> listOrdering,
 			Function<IPAddressSegmentSeries, Iterator<? extends IPAddressSegmentSeries>> blockIteratorFunc) {
 		int bitCount = first.getBitCount();
-		if(first.isMultiple()) {
-			IPAddressSegmentSeries block = first.assignMinPrefixForBlock();
-			int prefLength = block.getPrefixLength();
-			if(prefLength < bitCount) {
-				first = block;
-				if(prefLength == 0) {
-					list.add(first);
-				}
-			}
-		} else {
-			first = first.withoutPrefixLength();
-		}
-		int firstSectionCount = first.getSegmentCount();
-		for(int i = 0; i < sections.length; i++) {
-			IPAddressSegmentSeries section = sections[i];
-			if(checkSize && section.getSegmentCount() != firstSectionCount) {
-				throw new SizeMismatchException(first, section);
-			}
-			if(section.isMultiple()) {
-				IPAddressSegmentSeries block = section.assignMinPrefixForBlock();
-				int prefLength = block.getPrefixLength();
-				if(prefLength < bitCount) {
-					sections[i] = block;
-					if(prefLength == 0 && list.isEmpty()) {
-						list.add(block);
-					}
-				}
-			} else {
-				sections[i] = section.withoutPrefixLength();
+		IPAddressSegmentSeries block = first.assignMinPrefixForBlock();
+		int prefLength = block.getPrefixLength();
+		if(useBitCountPrefixLengths || prefLength < bitCount) {
+			first = block;
+			if(prefLength == 0) {
+				list.add(first);
 			}
 		}
 		if(bitCount == 0) {
 			list.add(first);
+		}
+		if(!list.isEmpty()) {
+			return true;
+		}
+		int firstSegmentCount = first.getSegmentCount();
+		for(int i = 0; i < sections.length; i++) {
+			IPAddressSegmentSeries section = sections[i];
+			if(checkSize && section.getSegmentCount() != firstSegmentCount) {
+				throw new SizeMismatchException(first, section);
+			}
+			block = section.assignMinPrefixForBlock();
+			prefLength = block.getPrefixLength();
+			if(useBitCountPrefixLengths || prefLength < bitCount) {
+				sections[i] = block;
+				if(prefLength == 0 && list.isEmpty()) {
+					list.add(block);
+				}
+			}
 		}
 		if(!list.isEmpty()) {
 			return true;
@@ -1217,22 +1218,17 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		//now we split up the prefix blocks into individual prefix blocks
 		Integer firstPrefixLength = first.getPrefixLength();
 		boolean addedFirst;
-		if(firstPrefixLength == null) {
+		if(firstPrefixLength == null || firstPrefixLength >= bitCount) {
 			addedFirst = true;
 			list.add(first);
-		} else if(firstPrefixLength >= bitCount) {
-			addedFirst = true;
-			list.add(first.removePrefixLength());
 		} else {
 			addedFirst = false;
 		}
 		for(int i = 0; i < sections.length; i++) {
 			IPAddressSegmentSeries section = sections[i];
 			Integer sectionPrefixLength = section.getNetworkPrefixLength();
-			if(sectionPrefixLength == null) {
+			if(sectionPrefixLength == null || sectionPrefixLength >= bitCount) {
 				list.add(section);
-			} else if(sectionPrefixLength >= bitCount) {
-				list.add(section.removePrefixLength());
 			} else {
 				if(!addedFirst && firstPrefixLength > sectionPrefixLength) {
 					addedFirst = true;
@@ -1247,8 +1243,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(first);
 			iterator.forEachRemaining(list::add);
 		}
-		
-		return false;
+		return list.size() == 1;
 	}
 	
 	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize, SeriesCreator seriesCreator) {
@@ -1261,18 +1256,17 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 //		iterator must get the segment to iterate on based on prefix Length
 //		it is the segment preceding the prefix length, the segment preceding the first non-full-range
 //		you get that segment index, then you get the iterator for that segment index
-		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, listComparator, series -> {
+		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, false, listComparator, series -> {
 			Integer prefixLength = series.getPrefixLength();
 			int segs = (prefixLength == null) ? series.getSegmentCount() - 1 : 
 				getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
 			return series.blockIterator(segs);
 		});
 		if(singleElement) {
-			list.get(0).withoutPrefixLength();
+			list.set(0, list.get(0).withoutPrefixLength());
 			return list;
 		}
-		
-		
+
 		//Now we see if we can match blocks or join them into larger blocks
 		for(int i = 0; i < list.size(); ) {
 			IPAddressSegmentSeries item = list.get(i);
@@ -1379,7 +1373,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize) {
 		List<IPAddressSegmentSeries> list = new ArrayList<>();
 		Comparator<? super IPAddressSegmentSeries> listComparator = mergeListComparator;
-		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, listComparator, IPAddressSegmentSeries::prefixBlockIterator);
+		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, true, listComparator, IPAddressSegmentSeries::prefixBlockIterator);
 		if(singleElement) {
 			return list;
 		}
@@ -1847,7 +1841,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return creator.createSectionInternal(result);
 	}
 	
-	//this method is basically checking whether we can return "this" for getNetworkSection
 	protected boolean isNetworkSubnet(int networkPrefixLength) {
 		int segmentCount = getSegmentCount();
 		if(segmentCount == 0) {
@@ -1856,6 +1849,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		int bitsPerSegment = getBitsPerSegment();
 		int prefixedSegmentIndex = getHostSegmentIndex(networkPrefixLength, getBytesPerSegment(), bitsPerSegment);
 		if(prefixedSegmentIndex >= segmentCount) {
+			if(networkPrefixLength == getBitCount()) {
+				IPAddressSegment last = getSegment(segmentCount - 1);
+				return !last.isNetworkChangedByPrefix(last.getBitCount(), true);
+			}
 			return true;
 		}
 		int segPrefLength = getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, prefixedSegmentIndex);

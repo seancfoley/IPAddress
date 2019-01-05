@@ -3473,6 +3473,53 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testContains("ffff:*::fffc/126", "ffff:*:0:0:0:0:0:fffc-ffff/126", isAutoSubnets, true);
 		testContains("ffff:1-2::fffc/126", "ffff:1-2:0:0:0:0:0:fffc-ffff/126", isAutoSubnets, true);
 		
+		testContains("10.162.155.1-255", "10.162.155.1-51", false);
+		testContains("10.162.155.1-51", "10.162.155.1-51", true);
+		testContains("10.162.1-51.155", "10.162.1-51.155", true);
+		testContains("10.162.1-255.155", "10.162.1-51.155", false);
+		testContains("1-255.10.162.155", "1-51.10.162.155", false);
+		
+		testContains("10.162.155.0-255", "10.162.155.0-51", false);
+		testContains("10.162.155.0-51", "10.162.155.0-51", true);
+		testContains("10.162.0-51.155", "10.162.0-51.155", true);
+		testContains("10.162.0-255.155", "10.162.0-51.155", false);
+		testContains("0-255.10.162.155", "0-51.10.162.155", false);
+		
+		testNotContains("192.13.1.0/25", "192.13.1.1-255");
+		testNotContains("192.13.1.1-255", "192.13.1.0/25");
+		
+		if(isAutoSubnets) {
+			testContains("192.13.1.0/25", "192.13.1.1-127", false);
+			testContains("192.13.1.0/25", "192.13.1.0-127", true);
+		} else {
+			testNotContains("192.13.1.0/25", "192.13.1.1-127");
+		}
+		testContains("192.13.1.0-127", "192.13.1.0/25", isAutoSubnets);
+		
+		testContains("ffff:1-3::/32", "ffff:2::", false);
+		testContains("ffff:2-3::/32", "ffff:2::", false);
+		testContains("ffff:1-3::/32", "ffff:3::", false);
+		
+		testNotContains("ffff:1-3::/32", "ffff:4::");
+		
+		testContains("ffff:1000-3000::/20", "ffff:2000::", false);
+		testContains("ffff:2000-3000::/20", "ffff:2000::", false);
+		testContains("ffff:1000-3000::/20", "ffff:3000::", false);
+		
+		testNotContains("ffff:1000-3000::/20", "ffff:4000::");
+		testNotContains("ffff:2000-3000::/20", "ffff:4000::");
+		
+		if(isAutoSubnets) {
+			testContains("ffff:1000::/20", "ffff:1111-1222::", false);
+			testNotContains("ffff:1000::/20", "ffff:1-::");
+		} else {
+			testContains("ffff:1-::", "ffff:1000::/20", false);
+		}
+		testContains("ffff:1-:*", "ffff:1000::/20", false);
+		testNotContains("ffff:1000::/20", "ffff:1111-2222::");
+		testNotContains("ffff:1000::/20", "ffff:1-10::");
+		testNotContains("ffff:1000::/20", "ffff:1-1::");
+		
 		testPrefix("25:51:27:*:*:*:*:*", null, 48, 48);
 		testPrefix("25:51:27:*:*:*:*:*/48", 48, 48, 48);
 		testPrefix("25:50-51:27::/48", 48, isAutoSubnets ? 48 : 128, null);
@@ -4728,6 +4775,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
 		}
 
+		testMerge("1.2.3.4/32", "1.2.3.4");
+		testMergeRange("1.2.3.4", "1.2.3.4");
+		
 		testMerge(isNoAutoSubnets ? "192.168.0.0-15/28" : "192.168.0.0/28", "192.168.0.0", "192.168.0.1", "192.168.0.2",
                 "192.168.0.3", "192.168.0.4", "192.168.0.5",
                 "192.168.0.6", "192.168.0.7", "192.168.0.8",

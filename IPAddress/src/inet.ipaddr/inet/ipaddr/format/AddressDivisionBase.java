@@ -68,7 +68,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	private static TreeMap<Long, BigInteger> radixPowerMap = new TreeMap<Long, BigInteger>();
 
 	//cached for performance reasons - especially valuable since segments can be shared amongst different addresses as we do with the masks
-	protected transient String cachedString;
+	protected transient String cachedWildcardString;
 	
 	/* the cached address bytes */
 	private transient byte[] lowerBytes, upperBytes;
@@ -424,7 +424,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * 
 	 * @return
 	 */
-	protected abstract String getDefaultString();
+	protected abstract String getDefaultLowerString();
 	
 	/**
 	 * A simple string using just the lower and upper values and the default radix, separated by the default range character.
@@ -469,53 +469,50 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * @return
 	 */
 	protected String getString() {
-		String result = cachedString;
+		String result = cachedWildcardString;
 		if(result == null) {
 			synchronized(this) {
-				result = cachedString;
+				result = cachedWildcardString;
 				if(result == null) {
 					if(!isMultiple()) {
-						result = getDefaultString();
+						result = getDefaultLowerString();
 					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
 						result = getDefaultRangeString();
 					}
-					cachedString = result;
+					cachedWildcardString = result;
 				}
 			}
 		}
 		return result;
 	}
 
-	protected String getWildcardString() {
-		return getString();
-	}
-	
-	private String getCachedString() {
-		String result = cachedString;
+	// this is like a shortcut to getDefaultString() when you already know !isMultiple() or you know isSinglePrefixBlock()
+	protected String getCachedDefaultLowerString() {
+		String result = cachedWildcardString;
 		if(result == null) {
 			synchronized(this) {
-				result = cachedString;
+				result = cachedWildcardString;
 				if(result == null) {
-					cachedString = result = getDefaultString();
+					cachedWildcardString = result = getDefaultLowerString();
 				}
 			}
 		}
 		return result;
 	}
 	
-	protected void setDefaultAsFullRangeString() {
-		if(cachedString == null) {
-			String result = getDefaultSegmentWildcardString();
-			if(result != null) {
-				synchronized(this) {
-					cachedString = result;
-				}
-			}
-		}
+	protected String getWildcardString() {
+		return getString();
 	}
 	
 	protected void setDefaultAsFullRangeWildcardString() {
-		setDefaultAsFullRangeString();
+		if(cachedWildcardString == null) {
+			String result = getDefaultSegmentWildcardString(); 
+			if(result != null) {
+				synchronized(this) {
+					cachedWildcardString = result;
+				}
+			}
+		}
 	}
 
 	protected abstract int getLowerStringLength(int radix);
@@ -977,7 +974,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		}
 		boolean uppercase = params.isUppercase();
 		if(radix == getDefaultTextualRadix()) {
-			String str = getCachedString();
+			String str = getCachedDefaultLowerString();
 			if(appendable == null) {
 				return count + str.length();
 			} else if(uppercase) {

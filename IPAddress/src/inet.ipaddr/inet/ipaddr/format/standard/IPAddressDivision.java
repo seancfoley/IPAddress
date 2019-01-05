@@ -39,7 +39,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 
 	private final Integer divisionNetworkPrefix;//the prefix length for this division, or null if there is none
 	
-	protected transient String cachedWildcardString;
+	protected transient String cachedString;
 	private transient Boolean isSinglePrefixBlock;
 	
 	protected IPAddressDivision() {
@@ -260,7 +260,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 				result = cachedString;
 				if(result == null) {
 					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
-						result = getDefaultString();
+						result = getDefaultLowerString();
 					} else if(isFullRange()) {
 						result = IPAddress.SEGMENT_WILDCARD_STR;
 					} else {
@@ -304,12 +304,17 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	}
 	
 	@Override
-	protected void setDefaultAsFullRangeWildcardString() {
-		if(cachedWildcardString == null) {
+	protected String getCachedDefaultLowerString() {
+		String result = cachedString;
+		if(result == null) {
 			synchronized(this) {
-				cachedWildcardString = IPAddress.SEGMENT_WILDCARD_STR;
+				result = cachedString;
+				if(result == null) {
+					cachedString = result = getDefaultLowerString();
+				}
 			}
 		}
+		return result;
 	}
 
 	@Override

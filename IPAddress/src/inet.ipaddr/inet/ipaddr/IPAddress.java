@@ -1061,9 +1061,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			UnaryOperator<T> getLower,
 			UnaryOperator<T> getUpper,
 			Comparator<T> comparator,
+			UnaryOperator<T> prefixAdder,
 			UnaryOperator<T> prefixRemover,
 			IntFunction<T[]> arrayProducer) {
-		T[] result = checkContainment(first, other, prefixRemover, arrayProducer);
+		T[] result = checkPrefixBlockContainment(first, other, prefixAdder, arrayProducer);
 		if(result != null) {
 			return result;
 		}
@@ -1072,24 +1073,96 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return blocks.toArray(arrayProducer.apply(blocks.size()));
 	}
 	
-	private static <T extends IPAddress> T[] checkContainment(
+	private static <T extends IPAddress> T[] checkPrefixBlockContainment(
+			T first,
+			T other,
+			UnaryOperator<T> prefixAdder,
+			IntFunction<T[]> arrayProducer) {
+		if(first.contains(other)) {
+			return checkPrefixBlockFormat(first, other, true, prefixAdder, arrayProducer);
+		} else if(other.contains(first)) {
+			return checkPrefixBlockFormat(other, first, false, prefixAdder, arrayProducer);
+		}
+		return null;
+	}
+	
+	static <T extends IPAddressSegmentSeries> T[] checkPrefixBlockFormat(
+			T container,
+			T contained,
+			boolean checkEqual,
+			UnaryOperator<T> prefixAdder,
+			IntFunction<T[]> arrayProducer) {
+		T result = null;
+		if(container.isPrefixed()) {
+			if(container.isPrefixBlock()) {
+				result = container;
+			}
+		} else if(checkEqual && contained.isPrefixed() && container.equals(contained) && contained.isPrefixBlock()) {
+			result = contained;
+		} else {
+			result = prefixAdder.apply(container);//returns null if cannot be a prefix block
+		}
+		if(result != null) {
+			T resultArray[] = arrayProducer.apply(1);
+			resultArray[0] = result;
+			return resultArray;
+		}
+		return null;
+	}
+	
+	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningSequentialBlocks(
+			T first,
+			T other,
+			UnaryOperator<T> getLower,
+			UnaryOperator<T> getUpper,
+			Comparator<T> comparator,
+			UnaryOperator<T> prefixRemover,
+			IPAddressCreator<T, ?, ?, S, ?> creator) {
+		T[] result = checkSequentialBlockContainment(first, other, prefixRemover, creator::createAddressArray);
+		if(result != null) {
+			return result;
+		}
+		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
+		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
+		List<IPAddressSegmentSeries> blocks = IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
+		return blocks.toArray(creator.createAddressArray(blocks.size()));
+	}
+	
+	private static <T extends IPAddress> T[] checkSequentialBlockContainment(
 			T first,
 			T other,
 			UnaryOperator<T> prefixRemover,
 			IntFunction<T[]> arrayProducer) {
-		boolean f;
-		if((f = first.contains(other)) || other.contains(first)) {
-			if(!f) {
-				T tmp = first;
-				first = other;
-				other = tmp;
+		if(first.contains(other)) {
+			return checkSequentialBlockFormat(first, other, true, prefixRemover, arrayProducer);
+		} else if(other.contains(first)) {
+			return checkSequentialBlockFormat(other, first, false, prefixRemover, arrayProducer);
+		}
+		return null;
+	}
+	
+	static <T extends IPAddressSegmentSeries> T[] checkSequentialBlockFormat(
+			T container,
+			T contained,
+			boolean checkEqual,
+			UnaryOperator<T> prefixRemover,
+			IntFunction<T[]> arrayProducer) {
+		T result = null;
+		if(!container.isPrefixed()) {
+			if(container.isSequential()) {
+				result = container;
 			}
-			if(first.isPrefixed() && first.getPrefixLength() == first.getBitCount()) {
-				first = prefixRemover.apply(first);
+		} else if(checkEqual && !contained.isPrefixed() && container.equals(contained)) {
+			if(contained.isSequential()) {
+				result = contained;
 			}
-			T result[] = arrayProducer.apply(1);
-			result[0] = first;
-			return result;
+		} else if(container.isSequential()) {
+			result = prefixRemover.apply(container);
+		}
+		if(result != null) {
+			T resultArray[] = arrayProducer.apply(1);
+			resultArray[0] = result;
+			return resultArray;
 		}
 		return null;
 	}
@@ -1108,23 +1181,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return seriesCreator;
 	}
 	
-	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningSequentialBlocks(
-			T first,
-			T other,
-			UnaryOperator<T> getLower,
-			UnaryOperator<T> getUpper,
-			Comparator<T> comparator,
-			UnaryOperator<T> prefixRemover,
-			IPAddressCreator<T, ?, ?, S, ?> creator) {
-		T[] result = checkContainment(first, other, prefixRemover, creator::createAddressArray);
-		if(result != null) {
-			return result;
-		}
-		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
-		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
-		List<IPAddressSegmentSeries> blocks = IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
-		return blocks.toArray(creator.createAddressArray(blocks.size()));
-	}
 	
 	/**
 	 * Returns the subnet associated with the prefix length of this address.  If this address has no prefix length, this address is returned.
@@ -1229,7 +1285,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		Iterator<? extends IPAddress> iterator = sequentialBlockIterator();
 		while(iterator.hasNext()) {
 			IPAddress sequential = iterator.next();
-			Collections.addAll(list, prefixBlocks ? sequential.spanWithPrefixBlocks(sequential) : sequential.spanWithPrefixBlocks(sequential));
+			if(prefixBlocks) {
+				Collections.addAll(list, sequential.spanWithPrefixBlocks(sequential));	
+			} else {
+				Collections.addAll(list, sequential);
+			}
 		}
 		return list;
 	}
@@ -1260,7 +1320,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public abstract IPAddress[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
-	protected static List<IPAddressSegmentSeries> getMergedBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
+	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
 		return IPAddressSection.getMergedPrefixBlocks(first, sections, false);
 	}
 	

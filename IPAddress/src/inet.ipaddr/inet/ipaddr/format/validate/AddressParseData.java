@@ -37,7 +37,7 @@ class AddressParseData implements Serializable {
 	private static final long serialVersionUID = 4L;
 
 	// these are for the flags
-	public static final int KEY_WILDCARD = 0x1, KEY_SINGLE_WILDCARD = 0x2, KEY_STANDARD_STR = 0x4, KEY_STANDARD_RANGE_STR = 0x8;
+	public static final int KEY_WILDCARD = 0x1, KEY_SINGLE_WILDCARD = 0x2, KEY_STANDARD_STR = 0x4, KEY_STANDARD_RANGE_STR = 0x8, KEY_RANGE_WILDCARD = 0x10;
 		
 	// these are for the segment values
 	public static final int KEY_LOWER = 2, KEY_UPPER = 4, KEY_EXTENDED_LOWER = 6, KEY_EXTENDED_UPPER = 8;
@@ -183,6 +183,16 @@ class AddressParseData implements Serializable {
 		return (segmentData[(segmentIndex << 4) | FLAGS_INDEX] & flagIndicator) != 0;
 	}
 	
+	static boolean hasEitherFlag(int segmentIndex, int flagIndicator1, int flagIndicator2, int segmentData[]) {
+		int flags = segmentData[(segmentIndex << 4) | FLAGS_INDEX];
+		return ((flags & flagIndicator1) | (flags & flagIndicator2)) != 0;
+	}
+	
+	boolean hasEitherFlag(int segmentIndex, int flagIndicator1, int flagIndicator2) {
+		int segmentData[] = getSegmentData();
+		return hasEitherFlag(segmentIndex, flagIndicator1, flagIndicator2, segmentData);
+	}
+	
 	void setRadix(int segmentIndex, int indexIndicator, int value) {
 		int segmentData[] = getSegmentData();
 		int radixData = segmentData[(segmentIndex << 4) | RADIX_INDEX];
@@ -293,6 +303,14 @@ class AddressParseData implements Serializable {
 	
 	boolean isWildcard(int index) {
 		return getFlag(index, KEY_WILDCARD);
+	}
+	
+	boolean hasRange(int index) {
+		return hasEitherFlag(index, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD);
+	}
+	
+	static boolean hasRange(int index, int segmentData[]) {
+		return hasEitherFlag(index, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD, segmentData);
 	}
 
 	@Override

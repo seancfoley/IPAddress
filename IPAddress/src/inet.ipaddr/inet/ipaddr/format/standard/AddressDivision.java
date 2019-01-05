@@ -550,7 +550,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	}
 
 	@Override
-	protected String getDefaultString() {
+	protected String getDefaultLowerString() {
 		return toDefaultString(getDivisionValue(), getDefaultTextualRadix());
 	}
 	

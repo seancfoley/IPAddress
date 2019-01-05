@@ -1223,7 +1223,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return getOredSegments(
 				this,
 				null,
-				//getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,xxx;
 				getAddressCreator(),
 				false,
 				this::getSegment,
@@ -1428,8 +1427,19 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				IPv4AddressSection::getLower,
 				IPv4AddressSection::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv4AddressSection::assignPrefixForSingleBlock,
+				IPv4AddressSection::withoutPrefixLength,
 				getAddressCreator()::createSectionArray);
+	}
+	
+	/**
+	 * 
+	 * @param other
+	 * @deprecated use {@link #spanWithSequentialBlocks(IPv4AddressSection)}
+	 * @return
+	 */
+	public IPv4AddressSection[] spanWithRangedSegments(IPv4AddressSection other) {
+		return spanWithSequentialBlocks(other);
 	}
 	
 	/**
@@ -1438,27 +1448,35 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @param other
 	 * @return
 	 */
-	public IPv4AddressSection[] spanWithRangedSegments(IPv4AddressSection other) {
+	public IPv4AddressSection[] spanWithSequentialBlocks(IPv4AddressSection other) {
 		return getSpanningSequentialBlocks(
 				this,
 				other,
 				IPv4AddressSection::getLower,
 				IPv4AddressSection::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
-				(section) -> section.withoutPrefixLength(),
+				IPv4AddressSection::withoutPrefixLength,
 				getAddressCreator());
 	}
 	
+	/**
+	 * 
+	 * @param sections
+	 * @deprecated use {@link #mergeToPrefixBlocks(IPv4AddressSection...)}
+	 * @return
+	 * @throws SizeMismatchException
+	 */
+	public IPv4AddressSection[] mergePrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
+		return mergeToPrefixBlocks(sections);
+	}
+
 	/**
 	 * Merges this with the list of sections to produce the smallest array of prefix blocks, going from smallest to largest
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
-	public IPv4AddressSection[] mergePrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-		if(sections.length == 0) {
-			return new IPv4AddressSection[] { this };
-		}
+	public IPv4AddressSection[] mergeToPrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
 		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections, true);
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
@@ -1470,9 +1488,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-		if(sections.length == 0) {
-			return new IPv4AddressSection[] { this };
-		}
 		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
