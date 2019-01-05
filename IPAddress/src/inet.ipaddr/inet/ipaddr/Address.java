@@ -201,8 +201,11 @@ public abstract class Address implements AddressSegmentSeries {
 	public abstract Address getUpper();
 	
 	/**
+	 * Returns whether this address represents more than a single individual address, whether it is a subnet.
+	 * 
+	 * Such addresses include CIDR/IP addresses (eg 1.2.3.0/25) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
+	 * 
 	 * @return whether this address represents more than one address.
-	 * Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
 	 */
 	@Override
 	public boolean isMultiple() {
@@ -210,6 +213,8 @@ public abstract class Address implements AddressSegmentSeries {
 	}
 
 	/**
+	 * Returns whether this address has an associated prefix length
+	 * 
 	 * @return whether this address has an associated prefix length
 	 */
 	@Override

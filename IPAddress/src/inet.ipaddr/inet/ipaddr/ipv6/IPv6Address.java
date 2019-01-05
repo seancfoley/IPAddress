@@ -1513,8 +1513,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 
-	
-
+	/**
+	 * Returns whether {@link #getZone()} returns a non-null value
+	 * 
+	 * @return
+	 */
 	public boolean hasZone() {
 		return zone != null;
 	}
@@ -1530,8 +1533,16 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return zone;
 	}
 	
+	/**
+	 * Returns the equivalent address but with no zone.
+	 * 
+	 * @return
+	 */
 	public IPv6Address removeZone() {
-		return getDefaultCreator().createAddress(getSection()); /* address creation */
+		if(hasZone()) {
+			return getDefaultCreator().createAddress(getSection()); /* address creation */
+		}
+		return this;
 	}
 
 	protected boolean hasNoValueCache() {
@@ -1676,6 +1687,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return false;
 	}
 	
+	/**
+	 * Produces a string in which the lower 4 bytes are expressed as an IPv4 address and the remaining upper bytes are expressed in IPv6 format.
+	 * 
+	 * This the mixed IPv6/IPv4 format described in RFC 1884 https://tools.ietf.org/html/rfc1884
+	 * 
+	 * @return
+	 */
 	public String toMixedString() {
 		String result;
 		if(hasNoStringCache() || (result = stringCache.mixedString) == null) {

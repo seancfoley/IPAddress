@@ -400,28 +400,32 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	/**
-	 * @return the address (or lowest value of the address if a subnet) as a signed integer
+	 * Returns the address (or lowest value of the address if a subnet) as a signed integer
+	 * @return the signed integer lower address value
 	 */
 	public int intValue() {
 		return getSection().intValue();
 	}
 	
 	/**
-	 * @return the address (or highest value of the address if a subnet) as a signed integer
+	 * Returns the address (or highest value of the address if a subnet) as a signed integer
+	 * @return the signed integer upper address value
 	 */
 	public int upperIntValue() {
 		return getSection().upperIntValue();
 	}
 	
 	/**
-	 * @return the address (or lowest value of the address if a subnet) as a positive integer
+	 * Returns the address (or lowest value of the address if a subnet) as a positive integer
+	 * @return the positive integer lower address value
 	 */
 	public long longValue() {
 		return getSection().longValue();
 	}
 	
 	/**
-	 * @return the address (or highest value of the address if a subnet) as a positive integer
+	 * Returns the address (or highest value of the address if a subnet) as a positive integer
+	 * @return the positive integer upper address value
 	 */
 	public long upperLongValue() {
 		return getSection().upperLongValue();

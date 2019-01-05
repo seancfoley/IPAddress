@@ -32,6 +32,8 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
+//TODO this class needs javadoc
+
 /**
  * An internet host name.  Can be a fully qualified domain name, a simple host name, or an ip address string.
  * <p>

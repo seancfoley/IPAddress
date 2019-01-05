@@ -84,12 +84,16 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	}
 	
 	/**
-	 * @return the number of bits comprising this address item
+	 * Provides the number of bits comprising this address item
+	 * 
+	 * @return the number of bits
 	 */
 	int getBitCount();
 	
 	/**
-	 * @return the number of bytes required for this address item, rounding up if the bit count is not a multiple of 8
+	 * Provides the number of bytes required for this address item, rounding up if the bit count is not a multiple of 8
+	 * 
+	 * @return the number of bytes
 	 */
 	default int getByteCount() {
 		return (getBitCount() + (Byte.SIZE - 1)) >>> 3;
@@ -155,31 +159,43 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	byte[] getUpperBytes(byte bytes[], int index);
 	
 	/**
-	 * @return the value of the lowest item represented by this address item
+	 * Returns the lowest value represented by this address item, the lowest value included in the range of values
+	 * 
+	 * @return the lowest value represented by this address item
 	 */
 	BigInteger getValue();
 	
 	/**
-	 * @return the value of the highest item represented by this address item
+	 * Returns the highest value represented by this address item, the highest value included in the range of values
+	 * 
+	 * @return the highest value represented by this address item
 	 */
 	BigInteger getUpperValue();
 		
 	/**
+	 * Returns whether this item matches the value of zero
+	 * 
 	 * @return whether this item matches the value of zero
 	 */
 	boolean isZero();
 	
 	/**
+	 * Returns whether this item includes the value of zero within its range
+	 * 
 	 * @return whether this item includes the value of zero within its range
 	 */
 	boolean includesZero();
 	
 	/**
+	 * Returns whether this item matches the maximum possible value for the address type or version
+	 * 
 	 * @return whether this item matches the maximum possible value
 	 */
 	boolean isMax();
 	
 	/**
+	 * Returns whether this item includes the maximum possible value for the address type or version within its range
+	 * 
 	 * @return whether this item includes the maximum possible value within its range
 	 */
 	boolean includesMax();

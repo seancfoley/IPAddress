@@ -70,10 +70,20 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		return getLower().getNetwork().getAddressCreator();
 	}
 	
+	/**
+	 * Equivalent to {@link #getCount()} but returns a long
+	 * 
+	 * @return
+	 */
 	public long getIPv4Count() {
 		return getUpper().longValue() - getLower().longValue() + 1;
 	}
 	
+	/**
+	 * Equivalent to {@link #getPrefixCount(int)} but returns a long
+	 * 
+	 * @return
+	 */
 	public long getIPv4PrefixCount(int prefixLength) {
 		if(prefixLength < 0) {
 			throw new PrefixLenException(this, prefixLength);
@@ -89,7 +99,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	}
 	
 	@Override
-	public BigInteger getCountImpl() {
+	protected BigInteger getCountImpl() {
 		return BigInteger.valueOf(getIPv4Count());
 	}
 	

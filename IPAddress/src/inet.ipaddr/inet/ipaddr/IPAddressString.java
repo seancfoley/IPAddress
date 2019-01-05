@@ -268,7 +268,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * @return if this address is a valid address with a network prefix then this returns that prefix, otherwise returns null
+	 * if this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null
+	 * 
+	 * @return the prefix length or null
 	 */
 	public Integer getNetworkPrefixLength() {
 		if(isValid()) {
@@ -278,8 +280,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * @return whether the address represents a valid specific IP address, 
+	 * Returns whether the address represents a valid specific IP address, either IPv4 or IPv6, 
 	 * as opposed to an empty string, the address representing all addresses of all types, a prefix length, or an invalid format.
+	 * 
+	 * @return whether the address represents a valid specific IP address.
 	 */
 	public boolean isIPAddress() {
 		return isValid() && addressProvider.isProvidingIPAddress();
@@ -296,14 +300,17 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
-	 * @return whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
+	 * Returns whether this address string represents only a prefix length with no associated address value,
+	 * as opposed to an empty string, an address with or without a prefix length, or an invalid format.
+	 * 
+	 * @return whether the address represents a valid IP address network prefix length
 	 */
 	public boolean isPrefixOnly() {
 		return isValid() && addressProvider.isProvidingPrefixOnly();
 	}
 	
 	/**
-	 * Returns true if the address is empty (zero-length).
+	 * Returns true if the address string is empty (zero-length).
 	 * @return
 	 */
 	public boolean isEmpty() {
@@ -342,6 +349,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return isIPv6() && addressProvider.isProvidingBase85IPv6();
 	}
 	
+	/**
+	 * Returns the IP address version if {@link #isIPAddress()} returns true, otherwise returns null
+	 * 
+	 * @return the version
+	 */
 	public IPVersion getIPVersion() {
 		if(isValid()) {
 			return addressProvider.getProviderIPVersion();
@@ -350,6 +362,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
+	 * Returns whether this string represents a loopback IP address.
+	 * 
 	 * @see java.net.InetAddress#isLoopbackAddress()
 	 */
 	public boolean isLoopback() {
@@ -357,15 +371,23 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return val != null && val.isLoopback();
 	}
 
+	/**
+	 * Returns whether this string represents an IP address whose value is zero.
+	 * 
+	 */
 	public boolean isZero() {
 		IPAddress value = getAddress();
 		return value != null && value.isZero();
 	}
 
 	/**
-	 * @return whether the address represents one of the accepted IP address types, which are:
-	 * an IPv4 address, an IPv6 address, a network prefix, the address representing all addresses of all types, or an empty string.
-	 * If it does not, and you want more details, call validate() and examine the thrown exception.
+	 * Returns whether this is a valid address string format.
+	 * 
+	 * The accepted IP address formats are:
+	 * an IPv4 address, an IPv6 address, a network prefix alone, the address representing all addresses of all types, or an empty string.
+	 * If this method returns false, and you want more details, call validate() and examine the thrown exception.
+	 * 
+	 * @return whether this is a valid address string format
 	 */
 	public boolean isValid() {
 		if(addressProvider.isUninitialized()) {
@@ -770,6 +792,23 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return addressProvider.getProviderAddress();
 	}
 	
+	/**
+	 * Increases or decreases prefix length to the next segment boundary of the given address version's standard segment boundaries.
+	 * <p>
+	 * This acts on address strings with an associated prefix length, whether or not there is also an associated address value, see {@link IPAddressString#isPrefixOnly()}.
+	 * If there is no associated address value then the segment boundaries are considered to be at each byte, much like IPv4.
+	 * <p>
+	 * If the address string has prefix length 0 and represents all addresses of the same version,
+	 * and the prefix length is being decreased, then the address representing all addresses of any version is returned.
+	 * <p>
+	 * Follows the same rules as {@link #adjustPrefixLength(int)} when there is an associated address value:<br>
+	 * When prefix length is increased, the bits moved within the prefix become zero.
+	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
+	 * 
+	 * @see {@link IPAddress#adjustPrefixBySegment(boolean)}
+	 * @param nextSegment whether to move prefix to previous or following segment boundary
+	 * @return
+	 */
 	public IPAddressString adjustPrefixBySegment(boolean nextSegment) {
 		if(isPrefixOnly()) {
 			//Use IPv4 segment boundaries
@@ -796,6 +835,24 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return address.adjustPrefixBySegment(nextSegment).toAddressString();
 	}
 
+	
+	/**
+	 * Increases or decreases prefix length by the given increment.
+	 * <p>
+	 * This acts on address strings with an associated prefix length, whether or not there is also an associated address value.
+	 * <p>
+	 * If the address string has prefix length 0 and represents all addresses of the same version,
+	 * and the prefix length is being decreased, then the address representing all addresses of any version is returned.
+	 * <p>
+	 * When there is an associated address value and the prefix length is increased, the bits moved within the prefix become zero, 
+	 * and if prefix lengthis extended beyond the segment series boundary, it is removed.
+	 * When there is an associated address value 
+	 * and the prefix length is decreased, the bits moved outside the prefix become zero.
+	 * 
+	 * @see {@link IPAddress#adjustPrefixLength(int)}
+	 * @param adjustment
+	 * @return
+	 */
 	public IPAddressString adjustPrefixLength(int adjustment) {
 		if(isPrefixOnly()) {
 			int newBits = adjustment > 0 ? Math.min(IPv6Address.BIT_COUNT, getNetworkPrefixLength() + adjustment) : Math.max(0, getNetworkPrefixLength() + adjustment);

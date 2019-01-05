@@ -58,31 +58,37 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	int getBytesPerSegment();
 	
 	/**
-	 * @return the maximum possible segment value for this type of address.  
+	 * Returns the the maximum possible segment value for this type of address.
+	 * 
 	 * Note this is not the maximum value of the range of segment values in this specific address,
 	 * this is the maximum value of any segment for this address type, and is usually determined by the number of bits per segment.
+	 * 
+	 * @return  the maximum possible segment value for a series of the same type
 	 */
 	int getMaxSegmentValue();
 
-	
 	/**
 	 * Gets the subsection from the series that comprises all segments
 	 * 
 	 * @return
 	 */
 	AddressSection getSection();
-	
+
 	/**
 	 * Gets the subsection from the series starting from the given index
+	 * 
+	 * The first segment is at index 0.
 	 * 
 	 * @throws IndexOutOfBoundsException if index is negative
 	 * @param index
 	 * @return
 	 */
 	AddressSection getSection(int index);
-	
+
 	/**
 	 * Gets the subsection from the series starting from the given index and ending just before the give endIndex
+	 * 
+	 * The first segment is at index 0.
 	 * 
 	 * @throws IndexOutOfBoundsException if index is negative or endIndex extends beyond the end of the series
 	 * @param index
@@ -93,6 +99,9 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 
 	/**
 	 * Returns the segment from this series at the given index.
+	 * 
+	 * The first segment is at index 0.  
+	 * A segment is an address division, see {@link AddressDivisionSeries#getDivision(int)}, the difference being that all segments in a given series are the same bit count, while divisions can have variable length.
 	 * 
 	 * @throws IndexOutOfBoundsException if the index is negative or as large as the segment count
 	 * 
@@ -205,8 +214,8 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries increment(long increment) throws AddressValueException;
 
 	/**
-	 * If the given increment is positive, adds the value to the upper series ({@link #getUpper()} in the subnet range to produce a new series.
-	 * If the given increment is negative, adds the value to the lower series ({@link #getLower()} in the subnet range to produce a new series.
+	 * If the given increment is positive, adds the value to the upper series ({@link #getUpper()}) in the subnet range to produce a new series.
+	 * If the given increment is negative, adds the value to the lower series ({@link #getLower()}) in the subnet range to produce a new series.
 	 * If the increment is zero, returns this.
 	 * <p>
 	 * In the case where the series is a single value, this simply returns the address produced by adding the given increment to this address series.
@@ -286,6 +295,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * If the series already has a prefix length, the bits outside the prefix become zero.
 	 * <p>
 	 * Equivalent to calling removePrefixLength(true)
+	 * @see #withoutPrefixLength() for an alternative which never changes the address value
 	 * 
 	 * @return
 	 */
@@ -293,8 +303,6 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 
 	/**
 	 * Provides the same address with no prefix.
-	 * 
-	 * Equivalent to calling withoutPrefixLength()
 	 */
 	AddressSegmentSeries withoutPrefixLength();
 	
@@ -315,7 +323,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * When prefix length is increased, the bits moved within the prefix become zero.
 	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
-	 * @param nextSegment whether to move prefix to previous or following segment coundary
+	 * @param nextSegment whether to move prefix to previous or following segment boundary
 	 * @return
 	 */
 	AddressSegmentSeries adjustPrefixBySegment(boolean nextSegment);
@@ -323,7 +331,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	/**
 	 * Increases or decreases prefix length to the next segment boundary.
 	 * 
-	 * @param nextSegment whether to move prefix to previous or following segment coundary
+	 * @param nextSegment whether to move prefix to previous or following segment boundary
 	 * @param zeroed whether the bits that move from one side of the prefix to the other become zero or retain their original values
 	 * @return
 	 */
