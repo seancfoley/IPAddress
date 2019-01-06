@@ -326,23 +326,25 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 	}
 	
 	/**
-	 * This is similar to the default comparator CountComparator in the way they treat addresses representing a single address.
-	 * 
+	 * ValueComparator is similar to the default comparator CountComparator in the way they treat addresses representing a single address.
+	 * <p>
 	 * For individual addresses, it simply compares segment to segment from high to low, so 1.2.3.4 &lt; 1.2.3.5 and 2.2.3.4 &gt; 1.2.3.5.
-	 * 
-	 * The difference is how they treat addresses representing multiple addresses (ie subnets) like 1::/8 or 1.*.*.*
-	 * 
+	 * <p>
+	 * The difference is how they treat addresses representing multiple addresses (ie subnets) like 1::/64 or 1.*.*.*
+	 * <p>
 	 * The count comparator considers addresses which represent more individual addresses to be larger.
-	 * 
+	 * <p>
 	 * The value comparator goes by either the highest value or the lowest value in the range of represented addresses.
 	 * <p>
 	 * So, for instance, consider 1.2.3.4 and 1.0.0.*
-	 * 
+	 * <br>
 	 * With count comparator, 1.2.3.4 &lt; 1.2.3.* since the second represents more addresses (ie 1 &lt; 255)
-	 * 
+	 * <br>
 	 * With value comparator using the high value, 1.2.3.4 &lt; 1.2.3.* since 1.2.3.4 &lt; 1.2.3.255
-	 * 
+	 * <br>
 	 * With value comparator using the low value, 1.2.3.4 &gt; 1.2.3.* since 1.2.3.4 &gt; 1.2.3.0
+	 * 
+	 * Also see {@link CountComparator}
 	 * 
 	 * @author sfoley
 	 *
@@ -566,6 +568,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 		}
 	}
 
+	/**
+	 * CountComparator first compares two address items by count, first by bit count for dissimilar items, {@link AddressItem#getBitCount()}, then by count of values for similar items, ({@link AddressItem#getCount()}) and if both match,
+	 * defers to the address item values for comparison.
+	 * 
+	 * Also see {@link ValueComparator}
+	 * 
+	 * @author sfoley
+	 *
+	 */
 	public static class CountComparator extends AddressComparator {
 		
 		public CountComparator() {

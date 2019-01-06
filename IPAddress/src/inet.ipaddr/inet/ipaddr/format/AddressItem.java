@@ -46,6 +46,9 @@ import inet.ipaddr.format.string.AddressStringDivisionSeries;
  */
 public interface AddressItem extends Comparable<AddressItem>, Serializable {
 
+	/**
+	 * Uses {@link Address#DEFAULT_ADDRESS_COMPARATOR}, an instance of {@link inet.ipaddr.AddressComparator.CountComparator}, to compare any two address items.
+	 */
 	@Override
 	default int compareTo(AddressItem other) {
 		return Address.DEFAULT_ADDRESS_COMPARATOR.compare(this, other);

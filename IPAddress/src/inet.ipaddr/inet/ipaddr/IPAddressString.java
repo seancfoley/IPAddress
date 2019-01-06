@@ -261,7 +261,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * @return whether this address has an associated prefix length
+	 * Returns whether this address string has an associated prefix length.
+	 * If so, the prefix length is given by {@link #getNetworkPrefixLength()}
+	 * 
+	 * @return whether this address string has an associated prefix length
 	 */
 	public boolean isPrefixed() {
 		return getNetworkPrefixLength() != null;
@@ -527,6 +530,14 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		return toString().hashCode();
 	}
 
+	/**
+	 * All address strings are comparable.  If two address strings are invalid, their strings are compared.
+	 * Otherwise, address strings are compared according to which type or version of string, and then within each type or version
+	 * they are compared using the comparison rules for addresses.
+	 * 
+	 * @param other
+	 * @return
+	 */
 	@Override
 	public int compareTo(IPAddressString other) {
 		if(this == other) {
@@ -805,7 +816,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * When prefix length is increased, the bits moved within the prefix become zero.
 	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
-	 * @see {@link IPAddress#adjustPrefixBySegment(boolean)}
+	 * Also see {@link IPAddress#adjustPrefixBySegment(boolean)}
 	 * @param nextSegment whether to move prefix to previous or following segment boundary
 	 * @return
 	 */
@@ -849,7 +860,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * When there is an associated address value 
 	 * and the prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
-	 * @see {@link IPAddress#adjustPrefixLength(int)}
+	 * Also see {@link IPAddress#adjustPrefixLength(int)}
 	 * @param adjustment
 	 * @return
 	 */
