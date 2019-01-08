@@ -1466,7 +1466,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			}
 			return result;
 		}
-		return (Inet6Address) super.toUpperInetAddress();
+		return (Inet6Address) super.toInetAddress();
 	}
 	
 	@Override
@@ -1478,7 +1478,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			}
 			return result;
 		}
-		return (Inet6Address) super.toInetAddress();
+		return (Inet6Address) super.toUpperInetAddress();
 	}
 	
 	@Override

@@ -753,7 +753,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 
 	@Override
 	public Inet4Address toUpperInetAddress() {
-		return (Inet4Address) super.toInetAddress();
+		return (Inet4Address) super.toUpperInetAddress();
 	}
 	
 	@Override
