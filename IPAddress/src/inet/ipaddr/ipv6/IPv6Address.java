@@ -1169,7 +1169,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public boolean isMulticast() {
 		// 11111111...
-		return getSegment(0).matchesWithPrefixMask(0xff, 8);
+		return getSegment(0).matchesWithPrefixMask(0xff00, 8);
 	}
 
 	/**
