@@ -64,7 +64,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	public static final char UNC_SEGMENT_SEPARATOR = '-';
 	public static final char UNC_ZONE_SEPARATOR = 's';
-	public static final char UNC_RANGE_SEPARATOR = '›';
+	public static final char UNC_RANGE_SEPARATOR = 'ï¿½';
 	public static final String UNC_RANGE_SEPARATOR_STR = String.valueOf(UNC_RANGE_SEPARATOR);
 	
 	public static final int BITS_PER_SEGMENT = 16;
@@ -522,7 +522,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public boolean isMulticast() {
 		// 11111111...
-		return getSegment(0).matchesWithPrefix(0xff, 8);
+		return getSegment(0).matchesWithPrefix(0xff00, 8);
 	}
 
 	/**
