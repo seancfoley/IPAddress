@@ -382,7 +382,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public boolean isMulticast() {
 		// 1110...
-		return getSegment(0).matchesWithPrefix(0xff, 4);
+		return getSegment(0).matchesWithPrefix(0xe0, 4);
 	}
 	
 	/**
