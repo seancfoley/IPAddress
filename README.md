@@ -24,10 +24,12 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
 
 ## Getting Started
 
-    String str = "::/64";
+    String ipv6Str = "::/64";
+    String ipv4Str = "1.2.255.4/255.255.0.0";
     try {
-        IPAddress address = new IPAddressString(str).toAddress();
-        //use address      
+        IPAddress ipv6Address = new IPAddressString(ipv6Str).toAddress();
+        IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
+        // use address      
     } catch (AddressStringException e) {
         String msg = e.getMessage();//detailed message indicating improper format in address string
         // handle improperly formatted address string
@@ -38,7 +40,7 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
         HostName host = new HostName(hostName);
         host.validate();
         InetSocketAddress address = host.asInetSocketAddress();
-        //use socket address      
+        // use socket address      
     } catch (HostNameException e) {
         String msg = e.getMessage();
         // handle improperly formatted host name or address string
