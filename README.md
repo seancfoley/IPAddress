@@ -40,7 +40,7 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
         InetSocketAddress address = host.asInetSocketAddress();
         //use socket address      
     } catch (HostNameException e) {
-	        String msg = e.getMessage();
-          // handle improperly formatted host name or address string
+        String msg = e.getMessage();
+        // handle improperly formatted host name or address string
     }
-    
+
