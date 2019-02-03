@@ -47,7 +47,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	<!-- But javadoc can only be done with a java 8 env.  For one thing, the classes were moved over in java 9,
 	although the old ones still there in 9, but trying to port proved troublesome and would require more debugging -->
 	<!-- So, to create dist jar, or maven artifacts, you need to split off javadoc task from the other stuff -->
-	<!-- you need to run the ant javadoc in java 1.8 execution environment, then create the other stuff  -->
+	<!-- you need to first run the ant javadoc in java 1.8 execution environment, then create the other stuff  -->
 	<!-- it strikes me that this PITA can only be fixed if you port the doclet to java 9 or 10, 
 	and for that it seems the only way is to fork the jdk.javadoc module for your own modifications, 
 	there seems to be no way to run with java 9 vm and access their unreachable javadoc code from my own code,
@@ -186,14 +186,13 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	</target>
 	
 	<!-- define Maven coordinates -->
-			<property name="groupId" value="com.github.seancfoley" />
-			<property name="artifactId" value="ipaddress" />
+	<property name="groupId" value="com.github.seancfoley" />
+	<property name="artifactId" value="ipaddress" />
 			
-			<!-- define artifacts' name, which follows the convention of Maven -->
-			<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
-			<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
-			<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />
-			
+	<!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
+	<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
+	<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />	
 			
 	<target name="create maven artifacts" depends="create dist jar">
 		

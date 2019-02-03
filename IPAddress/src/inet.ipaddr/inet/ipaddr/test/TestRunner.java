@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
@@ -216,6 +217,11 @@ public class TestRunner extends TestBase implements AddressCreator {
 		ConcurrentHashMap<MACAddressLongKey, MACAddress> cachingMACLongMap = new ConcurrentHashMap<MACAddressLongKey, MACAddress>();
 		ConcurrentHashMap<HostKey, HostName> cachingHostMap = new ConcurrentHashMap<HostKey, HostName>();
 		
+		public int size() {
+			return cachingIPStringMap.size() + cachingIPMap.size() + cachingIPIntMap.size() + cachingMACStringMap.size() +
+					cachingMACMap.size() + cachingMACLongMap.size() + cachingHostMap.size();
+		}
+		
 		private static <K, V> V getFromMap(Map<K, V> map, K key, Creator<K, V> creator) {
 			V result = map.get(key);
 			if(result == null) {
@@ -269,8 +275,10 @@ public class TestRunner extends TestBase implements AddressCreator {
 		void clear() {
 			cachingIPStringMap.clear();
 			cachingIPMap.clear();
+			cachingIPIntMap.clear();
 			cachingHostMap.clear();
 			cachingMACMap.clear();
+			cachingMACLongMap.clear();
 			cachingMACStringMap.clear();
 		}
 		
@@ -278,17 +286,65 @@ public class TestRunner extends TestBase implements AddressCreator {
 		public boolean equals(Object o) {
 			if(o instanceof Cache) {
 				Cache other = (Cache) o;
-				return cachingIPStringMap.equals(other.cachingIPStringMap) &&
+				boolean result = cachingIPStringMap.equals(other.cachingIPStringMap) &&
 						cachingIPMap.equals(other.cachingIPMap) && 
-						cachingHostMap.equals(other.cachingHostMap);
+						cachingIPIntMap.equals(other.cachingIPIntMap) && 
+						
+						cachingHostMap.equals(other.cachingHostMap) &&
+						
+						cachingMACMap.equals(other.cachingMACMap) &&
+						cachingMACLongMap.equals(other.cachingMACLongMap) && 
+						cachingMACStringMap.equals(other.cachingMACStringMap);
+				if(!result) {
+					boolean singleResult;
+					System.out.println("ip strings equal: " + (singleResult = cachingIPStringMap.equals(other.cachingIPStringMap)));
+					if(!singleResult) checkMapEquals(cachingIPStringMap, other.cachingIPStringMap);
+					System.out.println("ips equal: " + (singleResult = cachingIPMap.equals(other.cachingIPMap)));
+					if(!singleResult) checkMapEquals(cachingIPMap, other.cachingIPMap);
+					System.out.println("int ips equal: " + (singleResult = cachingIPIntMap.equals(other.cachingIPIntMap)));
+					if(!singleResult) checkMapEquals(cachingIPIntMap, other.cachingIPIntMap);
+					System.out.println("hosts equal: " + (singleResult = cachingHostMap.equals(other.cachingHostMap)));
+					if(!singleResult) checkMapEquals(cachingHostMap, other.cachingHostMap);
+					System.out.println("macs equal: " + (singleResult = cachingMACMap.equals(other.cachingMACMap)));
+					if(!singleResult) checkMapEquals(cachingMACMap, other.cachingMACMap);
+					System.out.println("int macs equal: " + (singleResult = cachingMACLongMap.equals(other.cachingMACLongMap)));
+					if(!singleResult) checkMapEquals(cachingMACLongMap, other.cachingMACLongMap);
+					System.out.println("mac strings equal: " + (singleResult = cachingMACStringMap.equals(other.cachingMACStringMap)));
+					if(!singleResult) checkMapEquals(cachingMACStringMap, other.cachingMACStringMap);
+				}
+				return result;
 			}
 			return false;
 		}
 		
 		@Override
 		public String toString() {
-			return "IPAddressString count: " + cachingIPStringMap.size() + "; IPAddress count: " + cachingIPMap.size() + "; Host count: " + cachingHostMap.size() + "; "
-					+ "; MACAddressString count: " + cachingMACStringMap.size() + "; MACAddress count: " + cachingMACMap.size();
+			return "IPAddressString count: " + cachingIPStringMap.size() + 
+					"; IPAddress count: " + (cachingIPMap.size() + cachingIPIntMap.size()) +
+					"; Host count: " + cachingHostMap.size() + 
+					"; MACAddressString count: " + cachingMACStringMap.size() + 
+					"; MACAddress count: " + (cachingMACMap.size() + cachingMACLongMap.size());
+		}
+		
+		static <K,V> boolean checkMapEquals(Map<K,V> n, Map<?,?> m) {
+			for (Entry<K, V> e : n.entrySet()) {
+                K key = e.getKey();
+                V value = e.getValue();
+                if (value == null) {
+                    if (!(m.get(key) == null && m.containsKey(key))) {
+                    	System.out.println("Other is missing " + key);
+                        return false;
+                    }
+                } else {
+                	Object otherValue = m.get(key);
+                    if (!value.equals(otherValue)) {
+                    	System.out.println("Value mismatch, value 1: " + value +  " value 2: " + otherValue);
+                    	value.equals(otherValue);
+                        return false;
+                    }
+                }
+            }
+			return true;
 		}
 	}
 	
@@ -550,7 +606,7 @@ public class TestRunner extends TestBase implements AddressCreator {
 				//DEBUG_CACHE = true;
 				if(!oldCache.equals(cache)) {
 					failures.numTested++;
-					failures.failures.add(new Failure("serialized cache mismatch"));
+					failures.failures.add(new Failure("serialized cache mismatch, old size: " + oldCache.size() + " new size: " + cache.size() + " old: " + oldCache + " new: " + cache));
 					System.out.println("cache is same: " + oldCache.equals(cache));
 				}
 				failures.add(testAll());

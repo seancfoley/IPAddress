@@ -284,7 +284,12 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount(this, w, number);
 	}
 	
+	static int COUNT_LIMIT = 1024;
+	
 	static void testPrefixCount(TestBase testBase, HostIdentifierString w, long number) {
+		if(!testBase.fullTest && number > COUNT_LIMIT) {
+			return;
+		}
 		Address val = w.getAddress();
 		boolean isIp = val instanceof IPAddress;
 		boolean isPrefixed = val.isPrefixed();
@@ -372,6 +377,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testCount(TestBase testBase, HostIdentifierString w, long number, boolean excludeZeroHosts) {
+		if(!testBase.fullTest && number > COUNT_LIMIT) {
+			return;
+		}
 		Address val = w.getAddress();
 		BigInteger count = excludeZeroHosts ? ((IPAddress)val).getNonZeroHostCount() : val.getCount();
 		if(!count.equals(BigInteger.valueOf(number))) {
@@ -461,6 +469,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
+		if(!testBase.fullTest && number > COUNT_LIMIT) {
+			return;
+		}
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
 		if(!count.equals(BigInteger.valueOf(number))) {
@@ -506,6 +517,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 	
 	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
+		if(!testBase.fullTest && number > COUNT_LIMIT) {
+			return;
+		}
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getPrefixCount(prefixLength);
 		if(!count.equals(BigInteger.valueOf(number))) {
@@ -587,6 +601,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 	}
 
 	static void testRangeBlocks(TestBase testBase, IPAddressString w, int segmentCount, long number) {
+		if(!testBase.fullTest && number > COUNT_LIMIT) {
+			return;
+		}
 		IPAddress val = w.getAddress();
 		BigInteger count = val.getBlockCount(segmentCount);
 		if(!count.equals(BigInteger.valueOf(number))) {
@@ -3796,9 +3813,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangeCount("1.2.3.4", "1.2.3.6", 3);
 		testRangeCount("1.2.3.255", "1.2.4.1", 3);
 		testRangeCount("1.2.3.254", "1.2.4.0", 3);
-		if(fullTest) {
-			testRangeCount("1.2.3.254", "1.3.4.0", 3 + 256 * 256);//on the slow side, generating 180k+ addresses
-		}
+		testRangeCount("1.2.3.254", "1.3.4.0", 3 + 256 * 256);//on the slow side, generating 180k+ addresses
 		testRangeCount("0.0.0.0", "255.255.255.255", BigInteger.valueOf(256L * 256L * 256L * 256L));
 		testRangeCount("0.0.0.0", "255.253.255.255", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 255L + 1));
 		testRangeCount("2.0.1.0", "255.253.255.252", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 252L).subtract(BigInteger.valueOf(2 * 16777216L + 256L)).add(BigInteger.ONE));
@@ -3817,10 +3832,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangeCount("::1:2:3:4:1", "::1:2:3:5:3", 0x10000L + 3);
 		testRangeCount("::1:2:3:4:1", "::1:2:3:6:3", 2 * 0x10000L + 3);
 		
-		if(fullTest) {
-			testRangeCount("::1:2:3:fffe", "::1:2:5:0", 3L + 0x10000L);
-			testRangeCount("::1:2:3:fffe", "::1:2:6:0", 3L + 0x20000L);
-		}
+		testRangeCount("::1:2:3:fffe", "::1:2:5:0", 3L + 0x10000L);
+		testRangeCount("::1:2:3:fffe", "::1:2:6:0", 3L + 0x20000L);
 		
 		testRangePrefixCount("1.2.3.4", "1.2.3.4", 24, 1);
 		testRangePrefixCount("1.2.3.4", "1.2.3.6", 24, 1);
@@ -3846,16 +3859,14 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangePrefixCount("2:3:ffff:5::", "2:4:0:5::", 48, 2);
 		testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 48, 3);
 		
-		if(fullTest) {
-			//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
-			testCount("1.*.11-200.4", 190 * 256, 190 * 256, RangeParameters.WILDCARD_AND_RANGE);
-			testCount("1.3.*.4/16", allPrefixesAreSubnets ? 256 * 256 : 256, allPrefixesAreSubnets ? (256 * 256) - 1 : 256);
-			testCount("1.2.*.1-3/25", allPrefixesAreSubnets ? 256 * 128 : 256 * 3, allPrefixesAreSubnets ? (256 * 128) - 256 : 256 * 3, RangeParameters.WILDCARD_AND_RANGE);
-			testCount("1.2.*.0-2/25", allPrefixesAreSubnets ? 256 * 128 : 256 * 3, allPrefixesAreSubnets ? (256 * 128) - 256 : (256 * 3) - 256, RangeParameters.WILDCARD_AND_RANGE);
+		//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
+		testCount("1.*.11-200.4", 190 * 256, 190 * 256, RangeParameters.WILDCARD_AND_RANGE);
+		testCount("1.3.*.4/16", allPrefixesAreSubnets ? 256 * 256 : 256, allPrefixesAreSubnets ? (256 * 256) - 1 : 256);
+		testCount("1.2.*.1-3/25", allPrefixesAreSubnets ? 256 * 128 : 256 * 3, allPrefixesAreSubnets ? (256 * 128) - 256 : 256 * 3, RangeParameters.WILDCARD_AND_RANGE);
+		testCount("1.2.*.0-2/25", allPrefixesAreSubnets ? 256 * 128 : 256 * 3, allPrefixesAreSubnets ? (256 * 128) - 256 : (256 * 3) - 256, RangeParameters.WILDCARD_AND_RANGE);
 			
-			testCount("11-13.*.0.0/23", !isNoAutoSubnets ? 3 * 256 * 2 * 256 : 3 * 256, 
+		testCount("11-13.*.0.0/23", !isNoAutoSubnets ? 3 * 256 * 2 * 256 : 3 * 256, 
 					!isNoAutoSubnets ? ((3 * 256) * (2 * 256)) - (3 * 256) : 0, RangeParameters.WILDCARD_AND_RANGE);
-		}
 		
 		
 		
@@ -3990,13 +4001,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(1,"*::1");// loopback, compressed, non-routable
 		
 		//this one test can take a while, since it generates (0xffff + 1) = 65536 addresses
-		if(fullTest) testCount("*::1", 0xffff + 1, 0xffff + 1);
+		testCount("*::1", 0xffff + 1, 0xffff + 1);
 		
 		testCount("1-3::1", 3, 3, RangeParameters.WILDCARD_AND_RANGE);
 		testCount("0-299::1", 0x299 + 1, 0x299 + 1, RangeParameters.WILDCARD_AND_RANGE);
 		
 		//this one test can take a while, since it generates 3 * (0xffff + 1) = 196606 addresses
-		if(fullTest) testCount("1:2:4:*:0-2::1", 3 * (0xffff + 1), 3 * (0xffff + 1), RangeParameters.WILDCARD_AND_RANGE);
+		testCount("1:2:4:*:0-2::1", 3 * (0xffff + 1), 3 * (0xffff + 1), RangeParameters.WILDCARD_AND_RANGE);
 		
 		testCount("1:2:4:0-2:0-2::1", 3 * 3, 3 * 3, RangeParameters.WILDCARD_AND_RANGE);
 		testCount("1::2:3", 1, 1);
@@ -4011,19 +4022,18 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("*:1-3::2:*/112", 0x10000 * 3);
 		testPrefixCount("*:1-3::2:*/0", 1);
 		
-		if(fullTest) {
-			testCount("1:2::fffc:0/110", isNoAutoSubnets ? 1 : 4 * 0x10000, isNoAutoSubnets ? 0 : (4 * 0x10000) - 1);
-			testCount("1-2:2::fffc:0/110", isNoAutoSubnets ? 2 : 2 * 4 * 0x10000, isNoAutoSubnets ? 0 : 2 * ((4 * 0x10000) - 1));
-			testCount("*::", 0xffff + 1, 0xffff + 1);
-			testCount("::*", 0xffff + 1, 0xffff + 1);
-			testCount("0-199::0-199", (0x19a) * (0x19a), (0x19a) * (0x19a));
-			testCount("*:*", new BigInteger("ffffffffffffffffffffffffffffffff", 16).add(BigInteger.ONE), new BigInteger("ffffffffffffffffffffffffffffffff", 16).add(BigInteger.ONE));
+		testCount("1:2::fffc:0/110", isNoAutoSubnets ? 1 : 4 * 0x10000, isNoAutoSubnets ? 0 : (4 * 0x10000) - 1);
+		testCount("1-2:2::fffc:0/110", isNoAutoSubnets ? 2 : 2 * 4 * 0x10000, isNoAutoSubnets ? 0 : 2 * ((4 * 0x10000) - 1));
+		testCount("*::", 0xffff + 1, 0xffff + 1);
+		testCount("::*", 0xffff + 1, 0xffff + 1);
+		testCount("0-199::0-199", (0x19a) * (0x19a), (0x19a) * (0x19a));
+		testCount("*:*", new BigInteger("ffffffffffffffffffffffffffffffff", 16).add(BigInteger.ONE), new BigInteger("ffffffffffffffffffffffffffffffff", 16).add(BigInteger.ONE));
 			
-			BigInteger full = new BigInteger("10000", 16).pow(8);
-			BigInteger half = new BigInteger("10000", 16).pow(4);
+		BigInteger full = new BigInteger("10000", 16).pow(8);
+		BigInteger half = new BigInteger("10000", 16).pow(4);
 			 
-			testCount("*:*/64", full, full.subtract(half));
-		}
+		testCount("*:*/64", full, full.subtract(half));
+
 		ipv4test(true, "1.0-0.3.0");
 		ipv4test(true, "1.0-3.3.0");
 		ipv4test(true, "1.1-3.3.0");

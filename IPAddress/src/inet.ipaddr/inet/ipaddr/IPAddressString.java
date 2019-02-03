@@ -241,7 +241,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	void cacheAddress(IPAddress address) {
-		if(addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) {
+		if(addressProvider.isUninitialized()) {
 			initByAddress(address);
 		}
 	}
@@ -450,7 +450,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	private boolean isValidated(IPVersion version) throws AddressStringException {
-		if(addressProvider != IPAddressProvider.NO_TYPE_PROVIDER) {
+		if(!addressProvider.isUninitialized()) {
 			if(version == null) {
 				if(ipv6Exception != null && ipv4Exception != null) {
 					throw ipv4Exception; // the two exceptions are the same, so no need to choose
@@ -573,7 +573,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
-		if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
+		if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
 			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
 			Boolean directResult = addressProvider.prefixEquals(other.fullAddr);
 			if(directResult != null) {
@@ -655,7 +655,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			if(other == this) {
 				return true;
 			}
-			if(other.addressProvider == IPAddressProvider.NO_TYPE_PROVIDER) { // other not yet validated - if other is validated no need for this quick contains
+			if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
 				//do the quick check that uses only the String of the other
 				Boolean directResult = addressProvider.contains(other.fullAddr);
 				if(directResult != null) {
