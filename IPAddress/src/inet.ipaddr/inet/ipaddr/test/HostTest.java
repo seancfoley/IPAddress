@@ -356,12 +356,10 @@ public class HostTest extends TestBase {
 					if(portExpected != null) {
 						HostName h2 = new HostName(addrHost, portExpected);
 						if(!h2.equals(hostName)) {
-							h2.equals(hostName);
 							addFailure(new Failure("failed: host is " + h2, hostName));
 						}
 						HostName h3 = new HostName(addressExpected, portExpected);
 						if(!h3.equals(hostName)) {
-							h3.equals(hostName);
 							addFailure(new Failure("failed: host is " + h3, hostName));
 						}
 					} else if(expectedZone == null){ // when converting to InetAddress, the zone must exist or the InetAddress cannot be created
