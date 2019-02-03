@@ -208,6 +208,15 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address(Inet6Address inet6Address) {
 		this(inet6Address.getAddress(), getZone(inet6Address));
 	}
+	
+	/**
+	 * Constructs an IPv6 address.
+	 *
+	 * @param inet6Address the java.net address object
+	 */
+	public IPv6Address(Inet6Address inet6Address, Integer networkPrefixLength) {
+		this(inet6Address.getAddress(), networkPrefixLength, getZone(inet6Address));
+	}
 
 	/**
 	 * Constructs an IPv6 address.
@@ -1196,7 +1205,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public boolean isMulticast() {
 		// 11111111...
-		return getSegment(0).matchesWithPrefixMask(0xff, 8);
+		return getSegment(0).matchesWithPrefixMask(0xff00, 8);
 	}
 
 	/**
@@ -1567,7 +1576,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			}
 			return result;
 		}
-		return (Inet6Address) super.toUpperInetAddress();
+		return (Inet6Address) super.toInetAddress();
 	}
 	
 	@Override
@@ -1579,7 +1588,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			}
 			return result;
 		}
-		return (Inet6Address) super.toInetAddress();
+		return (Inet6Address) super.toUpperInetAddress();
 	}
 	
 	@Override

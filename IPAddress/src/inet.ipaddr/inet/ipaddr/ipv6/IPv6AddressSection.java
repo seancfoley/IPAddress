@@ -1384,7 +1384,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	public int getByteCount() {
 		return getSegmentCount() << 1;
 	}
-	
+
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
 		byte bytes[] = new byte[getByteCount()];
@@ -1398,7 +1398,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return bytes;
 	}
-	
+
 	/**
 	 * Returns whether this subnet or address has alphabetic digits when printed.
 	 * 
@@ -1419,7 +1419,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean isIPv6() {
 		return true;
@@ -1554,6 +1554,22 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return other instanceof IPv6AddressSection &&
 				addressSegmentIndex == ((IPv6AddressSection) other).addressSegmentIndex && 
 				super.contains(other);
+	}
+	
+	@Override
+	protected boolean containsNonZeroHostsImpl(IPAddressSection other, int otherPrefixLength) {
+		if(other instanceof IPv6AddressSection) {
+			IPv6AddressSection remaining[] = ((IPv6AddressSection) other).subtract(this);
+			if(remaining != null) {
+				for(int i = 0; i < remaining.length; i++) {
+					if(!remaining[i].isZeroHost(otherPrefixLength)) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 	
 	@Override

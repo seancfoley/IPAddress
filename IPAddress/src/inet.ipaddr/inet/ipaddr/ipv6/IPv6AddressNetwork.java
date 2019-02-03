@@ -384,6 +384,11 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 
 		@Override
+		public IPv6Address createAddress(Inet6Address addr, Integer networkPrefixLength) {
+			return new IPv6Address(addr, networkPrefixLength);
+		}
+		
+		@Override
 		public IPv6Address createAddress(Inet6Address addr) {
 			return new IPv6Address(addr);
 		}

@@ -283,7 +283,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * Returns whether the address represents a valid specific IP address, either IPv4 or IPv6, 
+	 * Returns whether the address represents a valid specific IP address or subnet, either IPv4 or IPv6, 
 	 * as opposed to an empty string, the address representing all addresses of all types, a prefix length, or an invalid format.
 	 * 
 	 * @return whether the address represents a valid specific IP address.

@@ -206,6 +206,8 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		protected abstract T createAddress(J inetAddress);
 		
+		protected abstract T createAddress(J inetAddress, Integer networkPrefixLength);
+		
 		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it as public (internally it is always null) */
 		protected abstract T createAddressInternal(R section, CharSequence zone);
 		
@@ -717,7 +719,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 				} else {
 					result = existing;
 					//Since we have the address, we can make the existing host identifier string entry wrap the address
-					cache(result, addr);
+					//cache(result, addr);
 				}
 			}
 			return result;

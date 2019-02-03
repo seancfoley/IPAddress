@@ -323,6 +323,11 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 		
 		@Override
+		public IPv4Address createAddress(Inet4Address addr, Integer networkPrefixLength) {
+			return new IPv4Address(addr, networkPrefixLength);
+		}
+		
+		@Override
 		public IPv4Address createAddress(Inet4Address addr) {
 			return new IPv4Address(addr);
 		}

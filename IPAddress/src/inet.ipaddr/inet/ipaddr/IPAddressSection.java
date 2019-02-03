@@ -88,7 +88,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	private transient PrefixCache prefixCache;
-	private transient BigInteger cachedIPAddressCount;
+	private transient BigInteger cachedNonzeroHostCount;
 	
 	protected IPAddressSection(IPAddressSegment segments[], boolean cloneSegments, boolean checkSegs) {
 		super(cloneSegments ? segments.clone() : segments, checkSegs);
@@ -187,9 +187,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	@Override
 	public BigInteger getNonZeroHostCount() {
 		if(isPrefixed() && getNetworkPrefixLength() < getBitCount()) {
-			BigInteger cached = cachedIPAddressCount;
+			BigInteger cached = cachedNonzeroHostCount;
 			if(cached == null) {
-				cachedIPAddressCount = cached = getCountImpl(true, getSegmentCount());
+				cachedNonzeroHostCount = cached = getCountImpl(true, getSegmentCount());
 			}
 			return cached;
 		}
@@ -290,16 +290,20 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	private Integer checkForPrefixMask(boolean network) {
+		int count = getSegmentCount();
+		if(count == 0) {
+			return null;
+		}
 		int front, back;
+		int maxval = getSegment(0).getMaxSegmentValue();
 		if(network) {
-			front = getSegment(0).getMaxSegmentValue();
+			front = maxval;
 			back = 0;
 		} else {
-			back = getSegment(0).getMaxSegmentValue();
+			back = maxval;
 			front = 0;
 		}
 		int prefixLen = 0;
-		int count = getSegmentCount();
 		for(int i=0; i < count; i++) {
 			IPAddressSegment seg = getSegment(i);
 			int value = seg.getSegmentValue();
@@ -331,9 +335,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * The prefix length is the length of the network section.
 	 * 
 	 * Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length used to construct this object.
-	 * The prefix length used to construct indicates the network and host portion of this address.  
+	 * The prefix length used to construct indicates the network and host section of this address.  
 	 * The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host
-	 * portion of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
+	 * section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
 	 * 
 	 * This method applies only to the lower value of the range if this section represents multiple values.
 	 * 
@@ -790,6 +794,24 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return true;
 	}
+	
+	/**
+	 * Returns whether this address contains the non-zero host addresses in other.
+	 * @param other
+	 * @return
+	 */
+	public boolean containsNonZeroHosts(IPAddressSection other) {
+		if(!other.isPrefixed()) {
+			return contains(other);
+		}
+		int otherPrefixLength = other.getNetworkPrefixLength();
+		if(otherPrefixLength  == other.getBitCount()) {
+			return contains(other);
+		}
+		return containsNonZeroHostsImpl(other, otherPrefixLength);
+	}
+	
+	protected abstract boolean containsNonZeroHostsImpl(IPAddressSection other, int otherPrefixLength);
 
 	@Override
 	public boolean isFullRange() {
@@ -1558,6 +1580,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				}
 			}
 		}
+		if(sections.size() == 0) {
+			return null;
+		}
 		
 		//apply the prefix to the sections
 		//for each section, we figure out what each prefix length should be
@@ -1590,9 +1615,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				}
 			}
 		}
-		if(sections.size() == 0) {
-			return null;
-		}
+		
 		R result[] = addrCreator.createSectionArray(sections.size());
 		sections.toArray(result);
 		return result;
@@ -1693,6 +1716,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	@Override
 	public boolean includesZeroHost(int networkPrefixLength) {
+		if(networkPrefixLength < 0 || networkPrefixLength > getBitCount()) {
+			throw new PrefixLenException(this, networkPrefixLength);
+		}
 		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() && isPrefixed() && getNetworkPrefixLength() <= networkPrefixLength) { 
 			return true;
 		}
@@ -1730,6 +1756,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	@Override
 	public boolean includesMaxHost(int networkPrefixLength) {
+		if(networkPrefixLength < 0 || networkPrefixLength > getBitCount()) {
+			throw new PrefixLenException(this, networkPrefixLength);
+		}
 		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() && isPrefixed() && getNetworkPrefixLength() <= networkPrefixLength) { 
 			return true;
 		}
@@ -1758,7 +1787,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	/**
 	 * 
-	 * @return whether the network portion of the address, the prefix, consists of a single value
+	 * @return whether the network section of the address, the prefix, consists of a single value
 	 */
 	public boolean isSingleNetwork() {
 		Integer networkPrefixLength = getNetworkPrefixLength();
@@ -2115,28 +2144,61 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());
 	}
 	
+	/**
+	 * Returns whether this section has a prefix length and if so, 
+	 * whether the host section is zero for this section or all sections in this set of address sections.
+	 * If the host section is zero length (there are no host bits at all), returns false.
+	 * 
+	 * @return
+	 */
+	public boolean isZeroHost() {
+		if(!isPrefixed()) {
+			return false;
+		}
+		return isZeroHost(getNetworkPrefixLength());
+	}
+	
+	/**
+	 * Returns whether the host is zero for the given prefix length for this section or all sections in this set of address sections.
+	 * If this section already has a prefix length, then that prefix length is ignored.
+	 * If the host section is zero length (there are no host bits at all), returns false.
+	 * 
+	 * @return
+	 */
+	public boolean isZeroHost(int prefixLength) {
+		if(prefixLength < 0 || prefixLength > getBitCount()) {
+			throw new PrefixLenException(this, prefixLength);
+		}
+		return isZeroHost(prefixLength, getSegments(), getBytesPerSegment(), getBitsPerSegment(), getBitCount());
+	}
+	
 	protected <S extends IPAddressSegment> boolean isZeroHost(S segments[]) {
-		if(segments.length == 0 || !isPrefixed()) {
+		if(!isPrefixed()) {
 			return false;
 		}
-		int prefLen = getNetworkPrefixLength();
-		if(prefLen >= getBitCount()) {
+		return isZeroHost(getNetworkPrefixLength(), segments, getBytesPerSegment(), getBitsPerSegment(), getBitCount());
+	}
+	
+	protected static <S extends IPAddressSegment> boolean isZeroHost(int prefLen, S segments[], int bytesPerSegment, int bitsPerSegment, int bitCount) {
+		if(segments.length == 0 ) {
 			return false;
 		}
-		int bitsPerSegment = getBitsPerSegment();
-		int prefixedSegmentIndex = getHostSegmentIndex(prefLen, getBytesPerSegment(), bitsPerSegment);
+		if(prefLen >= bitCount) {
+			return false;
+		}
 		int divCount = segments.length;
+		int prefixedSegmentIndex = getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment);
 		for(int i = prefixedSegmentIndex; i < divCount; i++) {
 			Integer segmentPrefixLength = getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen, prefixedSegmentIndex);
 			S div = segments[i];
 			if(segmentPrefixLength != null) {
 				int mask = div.getSegmentHostMask(segmentPrefixLength);
-				if((mask & div.getSegmentValue()) != 0) {
+				if(div.isMultiple() || (mask & div.getSegmentValue()) != 0) {
 					return false;
 				}
 				for(++i; i < divCount; i++) {
 					div = segments[i];
-					if(div.getSegmentValue() != 0) {
+					if(!div.isZero()) {
 						return false;
 					}
 				}

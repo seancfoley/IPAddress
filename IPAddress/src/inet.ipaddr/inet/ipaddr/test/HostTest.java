@@ -18,7 +18,9 @@
 
 package inet.ipaddr.test;
 
+import java.net.InetSocketAddress;
 import java.util.Objects;
+import java.util.function.Function;
 
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameException;
@@ -251,6 +253,35 @@ public class HostTest extends TestBase {
 		String h1Bracketed = h1.toNormalizedString();
 		if(!h1Bracketed.equals(normalized)) {
 			addFailure(new Failure("failed: bracketed is " + normalized, h1));
+		}
+		incrementTestCount();
+	}
+	
+	InetSocketAddress toExpected(String expected, int expectedPort) {
+		HostName h = createHost(expected);
+		if(h.isAddress()) {
+			return new InetSocketAddress(h.asInetAddress(), expectedPort);
+		}
+		return new InetSocketAddress(h.getHost(), expectedPort);
+	}
+	
+	void testNotHostInetSocketAddress(String host) {
+		testHostInetSocketAddress(host, null, null);
+	}
+	
+	void testHostInetSocketAddress(String host, String expected, int expectedPort) {
+		testHostInetSocketAddress(host, null, expected, expectedPort);
+	}
+	
+	void testHostInetSocketAddress(String host, Function<String, Integer> serviceMapper, String expected, int expectedPort) {
+		testHostInetSocketAddress(host, serviceMapper, toExpected(expected, expectedPort));
+	}
+	
+	void testHostInetSocketAddress(String host, Function<String, Integer> serviceMapper, InetSocketAddress expected) {
+		HostName h = createHost(host);
+		InetSocketAddress addr = h.asInetSocketAddress(serviceMapper);
+		if(!Objects.equals(addr, expected)) {
+			addFailure(new Failure("socket address mismatch, expected: " + expected + " result: " + addr, h));
 		}
 		incrementTestCount();
 	}
@@ -790,5 +821,18 @@ public class HostTest extends TestBase {
 		hostTest(isLenient(), "::1:-8a8:2");
 		hostTest(isLenient(), "::1:8a8-");//this passes if the second segment considered a range, cannot be a service due to trailing hyphen
 		hostTest(isLenient(), "::1:-8a8");//this passes if the second segment considered a range, cannot be a service due to leading hyphen
+	
+		testHostInetSocketAddress("1.2.3.4:80", "1.2.3.4", 80);
+		testHostInetSocketAddress("1.2.3.4:http", (s) -> s.equals("http") ? 80 : null, "1.2.3.4", 80);
+		testHostInetSocketAddress(":::123", "::", 123);
+		testHostInetSocketAddress("[::]:123", "::", 123);
+		testHostInetSocketAddress("a.com:123", "a.com", 123);
+		testHostInetSocketAddress("foo:123", "foo", 123);
+		testNotHostInetSocketAddress("1.2.3.4");
+		testNotHostInetSocketAddress("::");
+		testNotHostInetSocketAddress("a.com");
+		testNotHostInetSocketAddress("foo");
+		testHostInetSocketAddress("1.2.3.4:http", (s) -> s.equals("htt") ? 80 : null, null);
+		testHostInetSocketAddress("1.2.3.4:http", null, null);
 	}
 }

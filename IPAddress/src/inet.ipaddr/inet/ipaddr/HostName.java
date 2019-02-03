@@ -21,27 +21,31 @@ package inet.ipaddr;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.InterfaceAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
+import java.util.function.Function;
 
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.ParsedHost;
+import inet.ipaddr.format.validate.ParsedHostIdentifierStringQualifier;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
-//TODO this class needs javadoc
-
 /**
  * An internet host name.  Can be a fully qualified domain name, a simple host name, or an ip address string.
+ * Can also include a port number or service name (which maps to a port).
+ * Can include a prefix length or mask for either an ipaddress or host name string.  An IPv6 address can have an IPv6 zone.
  * <p>
  * <h2>Supported formats</h2>
  * You can use all host or address formats supported by nmap and all address formats supported by {@link IPAddressString}.
- * All manners of domain names are supported. You can add a prefix length to denote the subnet of the resolved address.
+ * All manners of domain names are supported. When adding a prefix length or mask to a host name string, it is to denote the subnet of the resolved address.
  * <p>
- * Validation is done separately from DNS resolution to avoid unnecessary lookups.
+ * Validation is done separately from DNS resolution to avoid unnecessary DNS lookups.
  * <p>
  * See rfc 3513, 2181, 952, 1035, 1034, 1123, 5890 or the list of rfcs for IPAddress.  For IPv6 addresses in host, see rfc 2732 specifying [] notation
  * and 3986 and 4038 (combining IPv6 [] with prefix or zone) and SMTP rfc 2821 for alternative uses of [] for both IPv4 and IPv6
@@ -79,20 +83,95 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	/* validation options */
 	private final HostNameParameters validationOptions;
 
+	/**
+	 * Constructs a host name from an IP address.
+	 * 
+	 * @param addr
+	 */
 	public HostName(IPAddress addr) {
-		normalizedString = host = addr.toNormalizedString();
+		host = addr.toNormalizedString();
 		parsedHost = new ParsedHost(host, addr.getProvider());
 		validationOptions = null;
 	}
 	
+	/**
+	 * Constructs a host name from an IP address and a port.
+	 * 
+	 * @param addr
+	 */
+	public HostName(IPAddress addr, int port) {
+		ParsedHostIdentifierStringQualifier qualifier = new ParsedHostIdentifierStringQualifier(null, port);
+		host = toNormalizedString(addr, port);
+		parsedHost = new ParsedHost(host, addr.getProvider(), qualifier);
+		validationOptions = null;
+	}
+	
+	/**
+	 * Constructs a host name from an InetSocketAddress.
+	 * 
+	 * @param inetAddr
+	 */
+	public HostName(InetSocketAddress inetSocketAddr) {
+		InetAddress inetAddr = inetSocketAddr.getAddress();
+		if(inetAddr != null) {
+			IPAddress addr = toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS);
+			ParsedHostIdentifierStringQualifier qualifier = new ParsedHostIdentifierStringQualifier(null, inetSocketAddr.getPort());
+			host = toNormalizedString(addr, inetSocketAddr.getPort());
+			parsedHost = new ParsedHost(host, addr.getProvider(), qualifier);
+			validationOptions = null;
+		} else {
+			//for host name strings we will parse and normalize as usual
+			host = inetSocketAddr.getHostName().trim() + PORT_SEPARATOR + inetSocketAddr.getPort();
+			validationOptions = DEFAULT_VALIDATION_OPTIONS;
+		}
+	}
+
+	/**
+	 * Constructs a host name from an address with prefix length, which can be null.
+	 * 
+	 * @param inetAddr
+	 */
+	public HostName(InetAddress inetAddr, Integer prefixLength) {
+		this(toIPAddress(inetAddr, IPAddressString.DEFAULT_VALIDATION_OPTIONS, prefixLength));
+	}
+	
+	/**
+	 * Constructs a host name from an InterfaceAddress.
+	 * 
+	 * @param inetAddr
+	 */
+	public HostName(InterfaceAddress interfaceAddr) {
+		this(interfaceAddr.getAddress(), (int) interfaceAddr.getNetworkPrefixLength());
+	}
+	
+	/**
+	 * Constructs a host name from an IP address.
+	 * 
+	 * @param inetAddr
+	 */
 	public HostName(InetAddress inetAddr) {
 		this(inetAddr, IPAddressString.DEFAULT_VALIDATION_OPTIONS);
 	}
 	
+	/**
+	 * Constructs a host name from an IP address, allowing control over conversion to an IPAddress instance.
+	 * 
+	 * @param inetAddr
+	 */
 	public HostName(InetAddress inetAddr, IPAddressStringParameters addressOptions) {
-		this(inetAddr instanceof Inet4Address ?
+		this(toIPAddress(inetAddr, addressOptions));
+	}
+	
+	private static IPAddress toIPAddress(InetAddress inetAddr, IPAddressStringParameters addressOptions) {
+		return inetAddr instanceof Inet4Address ?
 				addressOptions.getIPv4Parameters().getNetwork().getAddressCreator().createAddress((Inet4Address) inetAddr) :
-				addressOptions.getIPv6Parameters().getNetwork().getAddressCreator().createAddress((Inet6Address) inetAddr));
+				addressOptions.getIPv6Parameters().getNetwork().getAddressCreator().createAddress((Inet6Address) inetAddr);
+	}
+	
+	private static IPAddress toIPAddress(InetAddress inetAddr, IPAddressStringParameters addressOptions, Integer prefixLength) {
+		return inetAddr instanceof Inet4Address ?
+				addressOptions.getIPv4Parameters().getNetwork().getAddressCreator().createAddress((Inet4Address) inetAddr, prefixLength) :
+				addressOptions.getIPv6Parameters().getNetwork().getAddressCreator().createAddress((Inet6Address) inetAddr, prefixLength);
 	}
 	
 	HostName(String hostStr, ParsedHost parsed) {
@@ -101,10 +180,23 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		validationOptions = null;
 	}
 	
+	/**
+	 * Constructs a host name instance from the given string.  
+	 * Supports string host names and ip addresses.  
+	 * Also allows masks, ports, service name strings, and prefix lengths, both with addresses and host name strings.
+	 * Any {@link IPAddressString} format is supported.
+	 * @param host
+	 */
 	public HostName(String host) {
 		this(host, DEFAULT_VALIDATION_OPTIONS);
 	}
 
+	/**
+	 * Similar to {@link #HostName(String)}, but allows you to control which elements are allowed and which are not, 
+	 * using the given options.  The default options used by {@link #HostName(String)} are permissive.
+	 * @param host
+	 * @param options
+	 */
 	public HostName(String host, HostNameParameters options) {
 		if(options == null) {
 			throw new NullPointerException();
@@ -116,16 +208,22 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	void cacheAddress(IPAddress addr) {
 		if(parsedHost == null) {
 			parsedHost = new ParsedHost(host, addr.getProvider());
-			normalizedString = addr.toNormalizedString();
-		} else if(normalizedString == null) {
-			normalizedString = addr.toNormalizedString();
 		}
 	}
 
+	/**
+	 * Supplies the validation options used to validate this host name, whether the default or the one supplied with {@link #HostName(String, HostNameParameters)}
+	 * 
+	 * @return
+	 */
 	public HostNameParameters getValidationOptions() {
 		return validationOptions;
 	}
 
+	/**
+	 * Validates that this string is a valid host name or IP address, and if not, throws an exception with a descriptive message indicating why it is not.
+	 * @throws HostNameException
+	 */
 	@Override
 	public void validate() throws HostNameException {
 		if(parsedHost != null) {
@@ -154,6 +252,10 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return Validator.VALIDATOR;
 	}
 
+	/**
+	 * Returns whether this represents a valid host name or address format.
+	 * @return
+	 */
 	public boolean isValid() {
 		if(parsedHost != null) {
 			return true;
@@ -169,30 +271,60 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 	}
 	
+	/**
+	 * Returns whether this represents, or resolves to, 
+	 * a host or address representing the same host.
+	 * 
+	 * @return whether this represents or resolves to the localhost host or a loopback address
+	 */
 	public boolean resolvesToSelf() {
 		return isSelf() || (getAddress() != null && resolvedAddress.isLoopback());
 	}
 	
+	/**
+	 * Returns whether this represents a host or address representing the same host.
+	 * Also see {@link #isLocalHost()} and {@link #isLoopback()}
+	 * 
+	 * @return whether this is the localhost host or a loopback address
+	 */
 	public boolean isSelf() {
 		return isLocalHost() || isLoopback();
 	}
 	
+	/**
+	 * Returns whether this host is "localhost"
+	 * @return
+	 */
 	public boolean isLocalHost() {
 		return isValid() && host.equalsIgnoreCase("localhost");
 	}
 	
-	/*
+	/**
+	 * Returns whether this host has the loopback address, such as
 	 * [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
+	 * 
+	 * Also see {@link #isSelf()}
 	 */
 	public boolean isLoopback() {
 		return isAddress() && asAddress().isLoopback();
 	}
 	
+	/**
+	 * Returns the InetAddress associated with this host.  This will attempt to resolve a host name string if the string is not already an IP address.
+	 * 
+	 * @return
+	 * @throws HostNameException when validation fails
+	 * @throws UnknownHostException when resolve fails
+	 */
 	public InetAddress toInetAddress() throws HostNameException, UnknownHostException {
 		validate();
 		return toAddress().toInetAddress();
 	}
 	
+	/**
+	 * Provides a normalized string which is lowercase for host strings, and which is a normalized string for addresses.
+	 * @return
+	 */
 	@Override
 	public String toNormalizedString() {
 		String result = normalizedString;
@@ -231,26 +363,18 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return translated;
 	}
 	
+	private static String toNormalizedString(IPAddress addr, int port) {
+		StringBuilder builder = new StringBuilder();
+		toNormalizedString(addr, false, builder);
+		toNormalizedString(port, builder);
+		return builder.toString();
+	}
+	
 	private String toNormalizedString(boolean wildcard) {
 		if(isValid()) {
 			StringBuilder builder = new StringBuilder();
 			if(isAddress()) {
-				IPAddress addr = asAddress();
-				if(addr.isIPv6()) {
-					if(!wildcard && addr.isPrefixed()) {//prefix needs to be outside the brackets
-						String normalized = addr.toNormalizedString();
-						int index = normalized.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
-						CharSequence translated = translateReserved(addr.toIPv6(), normalized.substring(0, index));
-						builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET).append(normalized.substring(index));
-					} else {
-						String normalized = addr.toNormalizedWildcardString();
-						CharSequence translated = translateReserved(addr.toIPv6(), normalized);
-						builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET);
-					}
-				} else {
-					builder.append(wildcard ? addr.toNormalizedWildcardString() : addr.toNormalizedString());
-				}
-
+				toNormalizedString(asAddress(), wildcard, builder);
 			} else if(isAddressString()) {
 				builder.append(asAddressString().toNormalizedString());
 			} else {
@@ -273,7 +397,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 			}
 			Integer port = parsedHost.getPort();
 			if(port != null) {
-				builder.append(PORT_SEPARATOR).append(port);
+				toNormalizedString(port, builder);
 			} else {
 				String service = parsedHost.getService();
 				if(service != null) {
@@ -285,6 +409,30 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return host;
 	}
 	
+	private static void toNormalizedString(int port, StringBuilder builder) {
+		builder.append(PORT_SEPARATOR).append(port);
+	}
+	
+	private static void toNormalizedString(IPAddress addr, boolean wildcard, StringBuilder builder) {
+		if(addr.isIPv6()) {
+			if(!wildcard && addr.isPrefixed()) {//prefix needs to be outside the brackets
+				String normalized = addr.toNormalizedString();
+				int index = normalized.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
+				CharSequence translated = translateReserved(addr.toIPv6(), normalized.substring(0, index));
+				builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET).append(normalized.substring(index));
+			} else {
+				String normalized = addr.toNormalizedWildcardString();
+				CharSequence translated = translateReserved(addr.toIPv6(), normalized);
+				builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET);
+			}
+		} else {
+			builder.append(wildcard ? addr.toNormalizedWildcardString() : addr.toNormalizedString());
+		}
+	}
+	
+	/**
+	 * Returns true if the given object is a host name and {@link #matches(HostName)} this one.
+	 */
 	@Override
 	public boolean equals(Object o) {
 		return o instanceof HostName && matches((HostName) o);
@@ -295,6 +443,19 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return toNormalizedWildcardString().hashCode();
 	}
 	
+	/**
+	 * Returns an array of normalized strings for this host name instance.
+	 * 
+	 * If this represents an IP address, the address segments are separated into the returned array.
+	 * If this represents a host name string, the domain name segments are separated into the returned array,
+	 * with the top-level domain name (right-most segment) as the last array element.
+	 * 
+	 * The individual segment strings are normalized in the same way as {@link #toNormalizedString()}
+	 * 
+	 * Ports, service name strings, prefix lengths, and masks are all omitted from the returned array.
+	 * 
+	 * @return
+	 */
 	public String[] getNormalizedLabels() {
 		if(isValid()) {
 			return parsedHost.getNormalizedLabels();
@@ -323,6 +484,14 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return null;
 	}
 	
+	/**
+	 * Returns whether the given host matches this one.  For hosts to match, they must represent the same addresses or have the same host names.
+	 * Hosts are not resolved when matching.  Also, hosts must have the same port and service.  They must have the same masks if they are host names.
+	 * Even if two hosts are invalid, they match if they have the same invalid string.
+	 * 
+	 * @param host
+	 * @return
+	 */
 	public boolean matches(HostName host) {
 		if(this == host) {
 			return true;
@@ -467,23 +636,37 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return isValid() && parsedHost.isAddressString() && parsedHost.asAddress(version) != null;
 	}
 	
+	/**
+	 * Returns whether this host name is a string representing an valid specific IP address or subnet.
+	 * 
+	 * @return
+	 */
 	public boolean isAddress() {
 		return isAddressString() && parsedHost.asAddress() != null; 
 	}
 	
+	/**
+	 * Returns whether this host name is a string representing an IP address or subnet.
+	 * 
+	 * @return
+	 */
 	public boolean isAddressString() {
 		return isValid() && parsedHost.isAddressString();
 	}
 	
 	/**
-	 * @return whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
+	 * Whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
+	 * 
+	 * @return whether the address represents the set all all valid IP addresses
 	 */
 	public boolean isAllAddresses() {
 		return isAddressString() && parsedHost.getAddressProvider().isProvidingAllAddresses();
 	}
 
 	/**
-	 * @return whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
+	 * Whether the address represents a valid IP address network prefix (as opposed to an empty string, an address with or without a prefix, or an invalid format).
+	 * 
+	 * @return whether the address represents a valid IP address network prefix
 	 */
 	public boolean isPrefixOnly() {
 		return isAddressString() && parsedHost.getAddressProvider().isProvidingPrefixOnly();
@@ -530,17 +713,28 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return null;
 	}
 	
+	/**
+	 * Returns whether this host name is an Uniform Naming Convention IPv6 literal host name.
+	 * 
+	 * @return
+	 */
 	public boolean isUNCIPv6Literal() {
 		return isValid() && parsedHost.isUNCIPv6Literal();
 	}
 	
+	/**
+	 * Returns whether this host name is a reverse DNS string host name.
+	 * 
+	 * @return
+	 */
 	public boolean isReverseDNS() {
 		return isValid() && parsedHost.isReverseDNS();
 	}
 	
 	/**
-	 * If this represents an ip address or represents a valid IPAddressString, returns the corresponding address string.
-	 * Otherwise, returns null.  Call toResolvedAddress or resolve to get the resolved address.
+	 * If this represents an ip address or represents any valid IPAddressString, returns the corresponding address string.
+	 * Otherwise, returns null.  Note that translation includes prefix lengths and IPv6 zones.  
+	 * This does not resolve addresses.  Call {@link #toAddress()} or {@link #getAddress()} to get the resolved address.
 	 * @return
 	 */
 	public IPAddressString asAddressString() {
@@ -551,9 +745,11 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	/**
-	 * If this represents an ip address, returns that address.
-	 * Otherwise, returns null.  Call toResolvedAddress or resolve to get the resolved address, which is different.
-	 * 
+	 * If this represents an ip address, returns that address.  Otherwise, returns null.  
+	 * Note that translation includes prefix lengths and IPv6 zones.
+	 * This does not resolve addresses.
+	 * Call {@link #toAddress()} or {@link #getAddress()} to get the resolved address.
+	 * <p>
 	 * In cases such as IPv6 literals and reverse DNS hosts, you can check the relevant methods isIpv6Literal or isReverseDNS,
 	 * in which case this method should return the associated address.  If this method returns null then an exception occurred
 	 * when producing the associated address, and that exception is available from getAddressStringException.
@@ -591,6 +787,70 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 			return parsedHost.asGenericAddressString().getNetworkPrefixLength();
 		}
 		return isValid() ? parsedHost.getNetworkPrefixLength() : null;
+	}
+
+	/**
+	 * Similar to {@link #toInetAddress()} but does not throw, instead returns null whenever not a valid address.
+	 * This method does not resolve hosts.  For that, call {@link #toAddress()} and then {@link IPAddress#toInetAddress()}
+	 * 
+	 * @return
+	 */
+	public InetAddress asInetAddress() {
+		if(isValid() && isAddressString()) {
+			IPAddress ipAddr = asAddress();
+            if(ipAddr != null) {
+            	return ipAddr.toInetAddress();
+            }
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns the InetSocketAddress for this host.  A host must have an associated port,
+	 * or a service name string that is mapped to a port using the provided service mapper, 
+	 * to have a corresponding InetSocketAddress.
+	 * <p>
+	 * If there is on associated port, then this returns null.
+	 * <p>
+	 * Note that host name strings are not resolved when using this method.
+	 * 
+	 * @param serviceMapper maps service name strings to ports.  
+	 * 	Returns null when a service string has no mapping, otherwise returns the port for a given service.
+	 * 	You can use a project like netdb to provide a service mapper lambda, https://github.com/jnr/jnr-netdb
+	 * @return the socket address, or null if no such address.
+	 */
+	public InetSocketAddress asInetSocketAddress(Function<String, Integer> serviceMapper) {
+		if(isValid()) {
+			Integer port = getPort();
+			if(port == null && serviceMapper != null) {
+				String service = getService();
+				if(service != null) {
+					port = serviceMapper.apply(service);
+				}
+			}
+			if(port != null) {
+				IPAddress ipAddr;
+				if(isAddressString() && (ipAddr = asAddress()) != null) {
+					return new InetSocketAddress(ipAddr.toInetAddress(), port);
+				} else {
+					return new InetSocketAddress(getHost(), port);
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns the InetSocketAddress for this host.  A host must have an associated port to have a corresponding InetSocketAddress.
+	 * <p>
+	 * If there is on associated port, then this returns null.
+	 * <p>
+	 * Note that host name strings are not resolved when using this method.
+	 * 
+	 * @return the socket address, or null if no such address.
+	 */
+	public InetSocketAddress asInetSocketAddress() {
+		return asInetSocketAddress(null);
 	}
 
 	/**
@@ -677,6 +937,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return null;
 	}
 	
+	/**
+	 * Returns the string used to construct the object.
+	 */
 	@Override
 	public String toString() {
 		return host;

@@ -929,6 +929,27 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return other instanceof IPv4AddressSection && super.contains(other);
 	}
 	
+	/**
+	 * Returns whether this address contains the non-zero host addresses in other.
+	 * @param other
+	 * @return
+	 */
+	@Override
+	protected boolean containsNonZeroHostsImpl(IPAddressSection other, int otherPrefixLength) {
+		if(other instanceof IPv4AddressSection) {
+			IPv4AddressSection remaining[] = ((IPv4AddressSection) other).subtract(this);
+			if(remaining != null) {
+				for(int i = 0; i < remaining.length; i++) {
+					if(!remaining[i].isZeroHost(otherPrefixLength)) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public boolean prefixEquals(AddressSection other) {
 		return other == this || (other instanceof IPv4AddressSection && prefixEquals(this, other, 0));
@@ -1075,7 +1096,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * 
 	 * @param other
 	 * @throws SizeMismatchException if the two sections are different sizes
-	 * @return the difference
+	 * @return the difference, or null if there are no remaining sections
 	 */
 	public IPv4AddressSection[] subtract(IPv4AddressSection other) throws SizeMismatchException {
 		return subtract(this, other, getAddressCreator(), this::getSegment, (section, prefix) -> section.setPrefixLength(prefix, false, true));

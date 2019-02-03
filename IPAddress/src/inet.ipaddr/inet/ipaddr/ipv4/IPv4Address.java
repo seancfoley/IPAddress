@@ -144,6 +144,15 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 *
 	 * @param inet4Address the java.net address object
 	 */
+	public IPv4Address(Inet4Address inet4Address, Integer networkPrefixLength) {
+		this(inet4Address.getAddress(), networkPrefixLength);
+	}
+	
+	/**
+	 * Constructs an IPv4 address.
+	 *
+	 * @param inet4Address the java.net address object
+	 */
 	public IPv4Address(Inet4Address inet4Address) {
 		this(inet4Address.getAddress());
 	}
@@ -845,7 +854,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 
 	@Override
 	public Inet4Address toUpperInetAddress() {
-		return (Inet4Address) super.toInetAddress();
+		return (Inet4Address) super.toUpperInetAddress();
 	}
 	
 	@Override
@@ -910,7 +919,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public boolean isPrivate() {
 		// refer to RFC 1918
         // 10/8 prefix
-        // 172.16/12 prefix
+        // 172.16/12 prefix (172.16.0.0 – 172.31.255.255)
         // 192.168/16 prefix
 		IPv4AddressSegment seg0 = getSegment(0);
 		IPv4AddressSegment seg1 = getSegment(1);

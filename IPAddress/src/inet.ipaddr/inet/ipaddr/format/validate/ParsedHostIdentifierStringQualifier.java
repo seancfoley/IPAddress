@@ -55,11 +55,11 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 		this(null, null, zone, null, null);
 	}
 	
-	ParsedHostIdentifierStringQualifier(CharSequence zone, Integer port) {
+	public ParsedHostIdentifierStringQualifier(CharSequence zone, Integer port) {
 		this(null, null, zone, port, null);
 	}
 	
-	ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, CharSequence zone) {
+	public ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, CharSequence zone) {
 		this(networkPrefixLength, null, zone, null, null);
 	}
 	

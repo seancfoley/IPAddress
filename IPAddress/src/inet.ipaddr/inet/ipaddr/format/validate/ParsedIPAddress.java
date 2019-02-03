@@ -271,16 +271,33 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	private Boolean matchesPrefix(String other, int segmentData[]) {
+		int otherLen = other.length();
+		// If other has a prefix length, then we end up returning false when we look at the end of the other string to ensure the other string is valid
+		// Checking for prefix subnets in here is too expensive
+		// Also, we don't want to start validating prefix strings as well, too expensive
+		// A prefix can only change a "true" result to "false", so all the places we return false below are still fine
+		// However, we only give up at the very end, so here we do a quick check first
+		boolean isIPv4 = isProvidingIPv4();
+		if(otherLen >= 4)	{
+			char prefixLenSep = IPAddress.PREFIX_LEN_SEPARATOR;
+			if(other.charAt(otherLen - 2) == prefixLenSep || other.charAt(otherLen - 3) == prefixLenSep) {
+				return null;
+			}
+			if(!isIPv4) {
+				if(other.charAt(otherLen - 4) == prefixLenSep) {
+					return null;
+				}
+			}
+		}
 		AddressParseData parseData = getAddressParseData();
 		Integer pref = getProviderNetworkPrefixLength();
 		int expectedCount;
 		boolean compressedAlready = false;
 		boolean networkSegIsCompressed = false;
-		boolean isIPv4 = isProvidingIPv4();
 		boolean prefixIsMidSegment;
 		int prefixEndCharIndex, remainingSegsCharIndex, networkSegIndex, networkSegCharIndex, networkSegsCount, adjustment; // prefixEndCharIndex points to separator following prefixed seg if whole seg is prefixed, remainingSegsCharIndex points to next digit
 		remainingSegsCharIndex = networkSegCharIndex = networkSegIndex = networkSegsCount = adjustment = 0;
-		int otherLen = other.length();
+		
 		if(pref == null) {
 			expectedCount = isIPv4 ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT;
 			networkSegIndex = expectedCount - 1;
@@ -294,35 +311,18 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			expectedCount = isIPv4 ? IPv4Address.SEGMENT_COUNT : IPv6Address.SEGMENT_COUNT;
 			prefixEndCharIndex = 0;
 		} else {
-			// If other has a prefix, then we end up returning false when we look at the end of the other string to ensure the other string his valid
 			if(isIPv4) {
 				expectedCount = IPv4Address.SEGMENT_COUNT;
 				int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
 				int bytesPerSegment = IPv4Address.BYTES_PER_SEGMENT;
 				networkSegIndex = ParsedAddressGrouping.getNetworkSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
 				prefixEndCharIndex = getIndex(networkSegIndex, AddressParseData.KEY_UPPER_STR_END_INDEX, segmentData);
-				
-				// changing the lowest bit:
-				// can only change the lowest decimal digit too (even odd never crosses boundary 9 to 10
-				// changing second lowest bit:
-				// can change the second lowest decimal, an example is 0x60-0x64 is 96-100
-				// in fact, that examples shows you can change all three decimal digits by changing the two lowest bits
-				// so this means you can only make an adjustment if the seg prefix is 7, anything less and the whole segment can change
 				Integer segPrefLength = ParsedAddressGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, pref, networkSegIndex);
-				if(segPrefLength == IPv4Address.BITS_PER_SEGMENT - 1) {
-					prefixIsMidSegment = true;
-					adjustment = 1;
-					remainingSegsCharIndex = getIndex(networkSegIndex, AddressParseData.KEY_UPPER_STR_START_INDEX, segmentData);
-					prefixEndCharIndex--;
-					networkSegsCount = networkSegIndex;
+				prefixIsMidSegment = segPrefLength != bitsPerSegment;
+				networkSegsCount = networkSegIndex + 1;
+				remainingSegsCharIndex = prefixEndCharIndex + 1;
+				if(prefixIsMidSegment) {
 					networkSegCharIndex = getIndex(networkSegIndex, AddressParseData.KEY_LOWER_STR_START_INDEX, segmentData);
-				} else {
-					prefixIsMidSegment = segPrefLength != bitsPerSegment;
-					networkSegsCount = networkSegIndex + 1;
-					remainingSegsCharIndex = prefixEndCharIndex + 1;
-					if(prefixIsMidSegment) {
-						networkSegCharIndex = getIndex(networkSegIndex, AddressParseData.KEY_LOWER_STR_START_INDEX, segmentData);
-					}
 				}
 			} else {
 				expectedCount = IPv6Address.SEGMENT_COUNT;
@@ -405,13 +405,13 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					}
 				} 
 				
-				if(prefixIsMidSegment && (i >= networkSegCharIndex || networkSegCharIndex == 1)) {
+				if(prefixIsMidSegment && (i >= networkSegCharIndex || networkSegCharIndex == 1)) { //networkSegCharIndex == 1 accounts for :: start to address
 					// when prefix is not on seg boundary, we can have the same prefix without matching digits
-					// the host part can change the digits of the network part, particulqrly for ipv4
+					// the host part can change the digits of the network part, particularly for ipv4
 					// this is true for ipv6 too when you consider host and network part of each digit
 					// this is also true when the digit count in the segments do not match,
 					// also note that f: and fabc: match prefix of 4 by string chars, but prefix does not match due to difference in digits in each segment
-					// So, in general, when mismatch of prefix chars we cannot conclude mistmatch of prefix unless we are comparing entire segments (ie prefix is on seg boundary)
+					// So, in general, when mismatch of prefix chars we cannot conclude mismatch of prefix unless we are comparing entire segments (ie prefix is on seg boundary)
 					return null;
 				}
 				

@@ -2943,9 +2943,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 		return true;
 	}
 
-	
-	
-	
 	@Override
 	void runTest() {
 		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
@@ -3520,6 +3517,41 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testNotContains("ffff:1000::/20", "ffff:1-10::");
 		testNotContains("ffff:1000::/20", "ffff:1-1::");
 		
+		testContains("::/64", "::", !isAutoSubnets);
+		testNotContains("1:2::/64", "::");
+		testContains("1:2::/64", "1:2::", !isAutoSubnets);
+		
+		testNotContains("5.62.62-63.*", "5.62.64.1");
+		testNotContains("5.62.62-63.*", "5.62.68.1");
+		testNotContains("5.62.62-63.*", "5.62.78.1");
+		
+		if(isAutoSubnets) {
+			testContains("192.13.1.0/25", "192.13.1.1-127", false);
+		} else {
+			testNotContains("192.13.1.0/25", "192.13.1.1-127");
+		}
+		testNotContains("192.13.1.0/25", "192.13.1.1-255");
+		testContainsNonZeroHosts("192.13.1.1-127", "192.13.1.0/25");
+		testContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/24");
+		testNotContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/23");
+		if(isAllSubnets) {
+			testNotContainsNonZeroHosts("192.13.1.0-255", "192.13.1.0/23");//does not contain 192.13.0.0/24
+		} else {
+			testContainsNonZeroHosts("192.13.1.0-255", "192.13.1.0/23");
+		}
+		if(isAllSubnets) {
+			testNotContains("192.13.1.0-255", "192.13.1.0/23", true);
+		} else {
+			testContains("192.13.1.0-255", "192.13.1.0/23", false);
+		}
+		
+		testContains("192.13.0-1.0-255", "192.13.1.0/23", isAllSubnets);
+		testContains("192.13.0-1.0-255", "192.13.0.0/23", isAutoSubnets);
+				
+		testContainsNonZeroHosts("::192:13:1:1-7fff", "::192:13:1:0/113");
+		testContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/112");
+		testNotContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/111");
+
 		testPrefix("25:51:27:*:*:*:*:*", null, 48, 48);
 		testPrefix("25:51:27:*:*:*:*:*/48", 48, 48, 48);
 		testPrefix("25:50-51:27::/48", 48, isAutoSubnets ? 48 : 128, null);
@@ -3677,6 +3709,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("1.2.3.4/0", 1);
 		
 		testCount("1.2.3.4", 1, 1);
+		if(!allPrefixesAreSubnets) {
+			testCount("1.2.3.4/0", 1, 1);
+		}
 		testCount("1.2.3.4/32", 1, 1);
 		testCount("1.2.3.5/31", allPrefixesAreSubnets ? 2 : 1, 1);
 		testCount("1.2.3.4/31", isNoAutoSubnets ? 1 : 2, isNoAutoSubnets ? 0 : 1);

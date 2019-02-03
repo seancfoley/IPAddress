@@ -103,12 +103,12 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * A CIDR network mask is an address with all 1s in the network section (the upper bits) and then all 0s in the host section.
 	 * A CIDR host mask is an address with all 0s in the network section (the lower bits) and then all 1s in the host section.
 	 * The prefix length is the length of the network section.
-	 * 
+	 * <p>
 	 * Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length used to construct this object.
 	 * The prefix length used to construct indicates the network and host portion of this address.  
 	 * The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host of an address with that prefix length.
 	 * Therefore the two values can be different values, or one can be null while the other is not.
-	 * 
+	 * <p>
 	 * This method applies only to the lower value of the range if this segment represents multiple values.
 	 * 
 	 * @see IPAddressSection#getPrefixLengthForSingleBlock()
@@ -117,18 +117,52 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * @return the prefix length corresponding to this mask, or null if there is no such prefix length
 	 */
 	public Integer getBlockMaskPrefixLength(boolean network) {
-		long val, invertedVal;
+		int hostLength = getTrailingBitCount(network);
+		long shifted;
 		if(network) {
-			val = getDivisionValue();
-			invertedVal = ~val & getMaxValue();
+			shifted = (~getDivisionValue() & getMaxValue())  >>> hostLength;
 		} else {
-			invertedVal = getDivisionValue();
-			val = ~invertedVal & getMaxValue();
+			shifted = getDivisionValue() >>> hostLength;
 		}
-		int bitCount = getBitCount();
-		int hostLength  = Math.min(Long.numberOfTrailingZeros(val), bitCount);
-		long shifted = invertedVal >>> hostLength;
-		return shifted == 0 ? bitCount - hostLength : null;
+		return shifted == 0 ? getBitCount() - hostLength : null;
+	}
+
+	/**
+	 * Returns the number of consecutive trailing one or zero bits.
+	 * If network is true, returns the number of consecutive trailing zero bits.
+	 * Otherwise, returns the number of consecutive trailing one bits.
+	 * <p>
+	 * This method applies only to the lower value of the range if this segment represents multiple values.
+	 
+	 * @param network
+	 * @return
+	 */
+	public int getTrailingBitCount(boolean network) {
+		if(network) {
+			//trailing zeros
+			return Long.numberOfTrailingZeros(getDivisionValue() | (~0L << getBitCount()));
+		}
+		// trailing ones
+		return Long.numberOfTrailingZeros(~getDivisionValue());  
+	}
+	
+	/**
+	 * Returns the number of consecutive leading one or zero bits.
+	 * If network is true, returns the number of consecutive leading one bits.
+	 * Otherwise, returns the number of consecutive leading zero bits.
+	 * <p>
+	 * This method applies only to the lower value of the range if this segment represents multiple values.
+	 * @param network
+	 * @return
+	 */
+	public int getLeadingBitCount(boolean network) {
+		int extraLeading = Long.SIZE - getBitCount();
+		if(network) {
+			//leading ones
+			return Long.numberOfLeadingZeros(~getDivisionValue() & getMaxValue()) - extraLeading;
+		}
+		// leading zeros
+		return Long.numberOfLeadingZeros(getDivisionValue()) - extraLeading;
 	}
 
 	@Override

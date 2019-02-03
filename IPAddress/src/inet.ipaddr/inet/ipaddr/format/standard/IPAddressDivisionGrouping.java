@@ -165,7 +165,59 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 		}
 		return ret;
 	}
-
+	
+	/**
+	 * Returns the number of consecutive trailing one or zero bits.
+	 * If network is true, returns the number of consecutive trailing zero bits.
+	 * Otherwise, returns the number of consecutive trailing one bits.
+	 * 
+	 * @param network
+	 * @return
+	 */
+	public int getTrailingBitCount(boolean network) {
+		int count = getDivisionCount();
+		if(count == 0) {
+			return 0;
+		}
+		long back = network ? 0 : getDivision(0).getMaxValue();
+		int bitLen = 0;
+		for(int i = count - 1; i >= 0; i--) {
+			IPAddressDivision seg = getDivision(i);
+			long value = seg.getDivisionValue();
+			if(value != back) {
+				return bitLen + seg.getTrailingBitCount(network);
+			}
+			bitLen += seg.getBitCount();
+		}
+		return bitLen;
+	}
+	
+	/**
+	 * Returns the number of consecutive leading one or zero bits.
+	 * If network is true, returns the number of consecutive leading one bits.
+	 * Otherwise, returns the number of consecutive leading zero bits.
+	 * 
+	 * @param network
+	 * @return
+	 */
+	public int getLeadingBitCount(boolean network) {
+		int count = getDivisionCount();
+		if(count == 0) {
+			return 0;
+		}
+		long front = network ? getDivision(0).getMaxValue() : 0;
+		int prefixLen = 0;
+		for(int i = 0; i < count; i++) {
+			IPAddressDivision seg = getDivision(i);
+			long value = seg.getDivisionValue();
+			if(value != front) {
+				return prefixLen + seg.getLeadingBitCount(network);
+			}
+			prefixLen += seg.getBitCount();
+		}
+		return prefixLen;
+	}
+	
 	/**
 	 * Returns whether this address section represents a subnet block of addresses associated its prefix length.
 	 * 

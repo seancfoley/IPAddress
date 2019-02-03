@@ -52,16 +52,19 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <p>
  * IPAddress objects are immutable and cannot change values.  This also makes them thread-safe.
  * <p>
- *
- * String creation:
+ * String creation:<br>
+ * There are various methods used to construct standard address string such as {@link #toCanonicalString()} or {@link #toNormalizedString()}
  * <p>
- * There are several public classes used to customize IP address strings.
+ * There are also several public classes used to create customized IP address strings.
  * For single strings from an address or address section, you use {@link IPStringOptions} or {@link inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions} along with {@link #toNormalizedString(IPAddressSection.IPStringOptions)}.
  * Or you use one of the methods like {@link #toCanonicalString()} which does the same.
  * <p>
  * For string collections from an address or address section, use {@link inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions}, {@link inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions}, {@link IPStringBuilderOptions} along with {@link #toStringCollection(IPAddressSection.IPStringBuilderOptions)} or {@link #toStrings(IPAddressSection.IPStringBuilderOptions)}.
  * Or you use one of the methods {@link #toStandardStringCollection()}, {@link #toAllStringCollection()}, {@link #toStandardStrings()}, {@link #toAllStrings()} which does the same.
  * <p>
+ * To construct one from a {@link java.lang.String} use 
+ * {@link inet.ipaddr.IPAddressString#toAddress()} or  {@link inet.ipaddr.IPAddressString#getAddress()}, {@link inet.ipaddr.IPAddressString#toHostAddress()} or {@link inet.ipaddr.IPAddressString#getHostAddress()}
+ * 
  * @custom.core
  * @author sfoley
  * 
@@ -253,7 +256,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public BigInteger getNonZeroHostCount() {
 		return getSection().getNonZeroHostCount();
 	}
-	
+
 	@Override
 	public int getBytesPerSegment() {
 		return IPAddressSegment.getByteCount(getIPVersion());
@@ -510,6 +513,51 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		}
 		return false;
 	}
+	
+	/**
+	 * Returns whether this contains all values of the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean contains(IPAddress other) {
+		return super.contains(other);
+	}
+
+	/**
+	 * Returns whether this address contains the non-zero host addresses in the other address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean containsNonZeroHosts(IPAddress other) {
+		if(other == this) {
+			return true;
+		}
+		return getSection().containsNonZeroHosts(other.getSection());
+	}
+	
+	/**
+	 * Returns whether this address has a prefix length and if so, whether the host section is zero for this address or all addresses in this subnet.
+	 * If the host section is zero length (there are no host bits at all), returns false.
+	 * 
+	 * @return
+	 */
+	public boolean isZeroHost() {
+		return getSection().isZeroHost();
+	}
+	
+	/**
+	 * Returns whether the host is zero for the given prefix length for this address or all addresses in this subnet.
+	 * If this address already has a prefix length, then that prefix length is ignored.
+	 * If the host section is zero length (there are no host bits at all), returns false.
+	 * 
+	 * @return
+	 */
+	public boolean isZeroHost(int networkPrefixLength) {
+		return getSection().isZeroHost(networkPrefixLength);
+	}
 
 	@Override
 	public boolean contains(IPAddressSeqRange other) {
@@ -534,17 +582,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return Address.ADDRESS_LOW_VALUE_COMPARATOR.compare(one, two);
 	}
 
-	/**
-	 * Returns whether this contains all values of the given address
-	 * 
-	 * @param other
-	 * @return
-	 */
-	@Override
-	public boolean contains(IPAddress other) {
-		return super.contains(other);
-	}
-	
 	/**
 	 * Applies the mask to this address and then compares values with the given address
 	 * 
@@ -1018,7 +1055,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public boolean includesZeroHost(int networkPrefixLength) {
 		return getSection().includesZeroHost(networkPrefixLength);
 	}
-	
+
 	@Override
 	public abstract IPAddress toZeroHost(int prefixLength);
 
@@ -1234,15 +1271,39 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The prefix is the length of the network section.
 	 * 
 	 * Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length used to construct this object.
-	 * The prefix length used to construct indicates the network and host portion of this address.  
+	 * The prefix length used to construct indicates the network and host section of this address.  
 	 * The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host
-	 * portion of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
+	 * section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
 	 *
 	 * @param network whether to check if we are a network mask or a host mask
 	 * @return the prefix length corresponding to this mask, or null if there is no such prefix length
 	 */
 	public Integer getBlockMaskPrefixLength(boolean network) {
 		return getSection().getBlockMaskPrefixLength(network);
+	}
+	
+	/**
+	 * Returns the number of consecutive trailing one or zero bits.
+	 * If network is true, returns the number of consecutive trailing zero bits.
+	 * Otherwise, returns the number of consecutive trailing one bits.
+	 * 
+	 * @param network
+	 * @return
+	 */
+	public int getTrailingBitCount(boolean network) {
+		return getSection().getTrailingBitCount(network);
+	}
+	
+	/**
+	 * Returns the number of consecutive leading one or zero bits.
+	 * If network is true, returns the number of consecutive leading one bits.
+	 * Otherwise, returns the number of consecutive leading zero bits.
+	 * 
+	 * @param network
+	 * @return
+	 */
+	public int getLeadingBitCount(boolean network) {
+		return getSection().getLeadingBitCount(network);
 	}
 
 	/**
@@ -1440,7 +1501,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * If the mask is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
-	 * If you wish to mask a portion of the network, use {@link #bitwiseOrNetwork(IPAddress, int)}
+	 * If you wish to mask a section of the network, use {@link #bitwiseOrNetwork(IPAddress, int)}
 	 * <p>
 	 * For instance, you can get the broadcast address for a subnet as follows:
 	 * <code>

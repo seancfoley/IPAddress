@@ -794,6 +794,49 @@ public class IPAddressTest extends TestBase {
 			return false;
 		}
 		if(network) {
+			IPAddress addr = address.isPrefixBlock() ? address.getLower() : address;
+			if(prefixBits == address.getBitCount()) {
+				if(addr.isZeroHost(prefixBits) || (addr.isPrefixed() && addr.isZeroHost())) {
+					addFailure(new Failure("is false zero host failure " + addr.isZeroHost(prefixBits), address));
+					return false;
+				}
+			} else if(!addr.isZeroHost(prefixBits) || (addr.isPrefixed() && !addr.isZeroHost())) {
+				addFailure(new Failure("is zero host failure " + addr.isZeroHost(prefixBits), address));
+				return false;
+			}
+			if(prefixBits < address.getBitCount() - 1 && !addr.isZeroHost(prefixBits + 1)) {
+				addFailure(new Failure("is zero host failure " + addr.isZeroHost(prefixBits + 1), address));
+				return false;
+			}
+			if(prefixBits > 0 && addr.isZeroHost(prefixBits - 1)) {
+				addFailure(new Failure("is zero host failure " + addr.isZeroHost(prefixBits - 1), address));
+				return false;
+			}
+		} else {
+			if(!address.includesMaxHost(prefixBits) || (address.isPrefixed() && !address.includesMaxHost())) {
+				addFailure(new Failure("is zero host failure " + address.includesMaxHost(prefixBits), address));
+				return false;
+			}
+			if(prefixBits < address.getBitCount() - 1 && !address.includesMaxHost(prefixBits + 1)) {
+				addFailure(new Failure("is max host failure " + address.includesMaxHost(prefixBits + 1), address));
+				return false;
+			}
+			if(prefixBits > 0 && address.includesMaxHost(prefixBits - 1)) {
+				addFailure(new Failure("is max host failure " + address.includesMaxHost(prefixBits - 1), address));
+				return false;
+			}
+		}
+		int leadingBits = address.getLeadingBitCount(network);
+		int trailingBits = network && address.isPrefixBlock() ? address.getLower().getTrailingBitCount(network) : address.getTrailingBitCount(network);
+		if(leadingBits != prefixBits) {
+			addFailure(new Failure("leading bits failure, bit counts are leading: " + leadingBits + " trailing: " + trailingBits, address));
+			return false;
+		}
+		if(leadingBits + trailingBits != address.getBitCount()) {
+			addFailure(new Failure("bit counts are leading: " + leadingBits + " trailing: " + trailingBits, address));
+			return false;
+		}
+		if(network) {
 			try {
 				String originalPrefixStr = "/" + prefixBits;
 				String originalChoppedStr = prefixBits <= address.getBitCount() ? originalPrefixStr : "/" + address.getBitCount();
@@ -945,6 +988,26 @@ public class IPAddressTest extends TestBase {
 			}
 		}
 		return false;
+	}
+
+	void testContainsNonZeroHosts(String str, String strContained) {
+		IPAddressString addrStr = new IPAddressString(str);
+		IPAddressString addrStrContained = new IPAddressString(strContained);
+		IPAddress addr = addrStr.getAddress();
+		IPAddress addrContained = addrStrContained.getAddress();
+		if(!addr.containsNonZeroHosts(addrContained)) {
+			addFailure(new Failure("non-zero host containment failed " + addr, addrContained));
+		} 
+	}
+
+	void testNotContainsNonZeroHosts(String str, String strContained) {
+		IPAddressString addrStr = new IPAddressString(str);
+		IPAddressString addrStrContained = new IPAddressString(strContained);
+		IPAddress addr = addrStr.getAddress();
+		IPAddress addrContained = addrStrContained.getAddress();
+		if(addr.containsNonZeroHosts(addrContained)) {
+			addFailure(new Failure("non-zero host containment failed " + addr, addrContained));
+		} 
 	}
 	
 	void testContains(String cidr1, String cidr2, boolean equal) {
@@ -3602,7 +3665,7 @@ public class IPAddressTest extends TestBase {
 		testNotContains("10::/12", "123::");
 		testNotContains("10::/16", "123::");
 		testNotContains("10::/24", "123::");
-		
+	
 		if(allPrefixesAreSubnets) {
 			testContains("1:12::/20", "1:123::", false);
 		} else {
@@ -3614,9 +3677,17 @@ public class IPAddressTest extends TestBase {
 		testNotContains("1:10::/28", "1:123::");
 		testNotContains("1:10::/32", "1:123::");
 		testNotContains("1:10::/40", "1:123::");
-		
-		
+
 		testContains("1.0.0.0/16", "1.0.0.0/24", !isAutoSubnets);
+		
+		if(isAutoSubnets) {
+		testContains("5.62.62.0/23", "5.62.63.1", false);
+		} else {
+			testNotContains("5.62.62.0/23", "5.62.63.1");
+		}
+		testNotContains("5.62.62.0/23", "5.62.64.1");
+		testNotContains("5.62.62.0/23", "5.62.68.1");
+		testNotContains("5.62.62.0/23", "5.62.78.1");
 		
 		prefixtest(true, "/24");
 		
