@@ -1604,6 +1604,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					//public static Inet6Address getByAddress(String host, byte[] addr, NetworkInterface nif) 
 				
 					//so we must go back to a string, even though we have the bytes available to us.  There appears to be no other alternative.
+					// when interface name is not known as an interface on the current host, this throws UnknownHostException
 					result = InetAddress.getByName(toNormalizedString());
 				}
 			} else {

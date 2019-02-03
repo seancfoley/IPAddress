@@ -283,6 +283,12 @@ public class HostTest extends TestBase {
 		if(!Objects.equals(addr, expected)) {
 			addFailure(new Failure("socket address mismatch, expected: " + expected + " result: " + addr, h));
 		}
+		if(addr != null && h.getService() == null) {
+			HostName h2 = new HostName(addr);
+			if(!h.equals(h2)) {
+				addFailure(new Failure("socket address mismatch, expected: " + h + " result: " + h2, h));
+			}
+		}
 		incrementTestCount();
 	}
 	
@@ -344,6 +350,34 @@ public class HostTest extends TestBase {
 				addFailure(new Failure("failed: address is " + addrHost, hostName));
 			} else if(!Objects.equals(prefLength, prefixLengthExpected)) {
 				addFailure(new Failure("failed: prefix is " + prefLength, hostName));
+			}
+			if(addressExpected != null) {
+				if(serviceExpected == null) {
+					if(portExpected != null) {
+						HostName h2 = new HostName(addrHost, portExpected);
+						if(!h2.equals(hostName)) {
+							h2.equals(hostName);
+							addFailure(new Failure("failed: host is " + h2, hostName));
+						}
+						HostName h3 = new HostName(addressExpected, portExpected);
+						if(!h3.equals(hostName)) {
+							h3.equals(hostName);
+							addFailure(new Failure("failed: host is " + h3, hostName));
+						}
+					} else if(expectedZone == null){ // when converting to InetAddress, the zone must exist or the InetAddress cannot be created
+						if(prefixLengthExpected == null) {
+							HostName h2 = new HostName(addrHost.toInetAddress());
+							if(!h2.equals(hostName)) {
+								addFailure(new Failure("failed: host is " + h2, hostName));
+							}
+						} else {
+							HostName h2 = new HostName(addrHost.toInetAddress(), prefixLengthExpected);
+							if(!h2.equals(hostName)) {
+								addFailure(new Failure("failed: host is " + h2, hostName));
+							}
+						}
+					}
+				}
 			}
 		} catch(RuntimeException e) {
 			addFailure(new Failure(e.getMessage(), hostName));
