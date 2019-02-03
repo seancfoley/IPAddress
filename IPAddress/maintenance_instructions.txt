@@ -84,6 +84,7 @@ B Github
 
 3. Use build.xml to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
 NOTE: Currently we have had to separate javadoc creation from the creation of dist jar or maven, see notes in build.xml for the reason.
+So, create the javadoc first using Java 8.  Then switch over to creating the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
 4. Check in and push the changes.
 
