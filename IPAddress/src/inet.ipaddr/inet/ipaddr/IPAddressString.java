@@ -175,9 +175,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public static final IPAddressStringParameters DEFAULT_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 
-	private static final AddressStringException IS_IPV6_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv6");
-	private static final AddressStringException IS_IPV4_EXCEPTION = new AddressStringException("ipaddress.error.address.is.ipv4");
-
 	final IPAddressStringParameters validationOptions;
 	
 	/* the full original string address */
@@ -186,8 +183,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	// fields for validation state
 	
 	/* exceptions and booleans for validation - for type INVALID both of ipv6Exception and ipv4Exception are non-null */
-	private AddressStringException ipv6Exception, ipv4Exception;
-	
+	private AddressStringException validateException;
+
 	// an object created by parsing that will provide the associated IPAddress(es)
 	private IPAddressProvider addressProvider = IPAddressProvider.NO_TYPE_PROVIDER;
 	
@@ -237,23 +234,13 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	IPAddressString(IPAddress address, IPAddressStringParameters valOptions) {
 		validationOptions = valOptions; 
 		fullAddr = address.toCanonicalString();
-		initByAddress(address);
+		addressProvider = address.getProvider();
 	}
 
 	void cacheAddress(IPAddress address) {
 		if(addressProvider.isUninitialized()) {
-			initByAddress(address);
+			addressProvider = address.getProvider();
 		}
-	}
-	
-	void initByAddress(IPAddress address) {
-		IPAddressProvider provider = address.getProvider();
-		if(provider.isProvidingIPv4()) {
-			ipv6Exception = IS_IPV4_EXCEPTION;
-		} else if(provider.isProvidingIPv6()) {
-			ipv4Exception = IS_IPV6_EXCEPTION;
-		}
-		addressProvider = provider;
 	}
 
 	public IPAddressStringParameters getValidationOptions() {
@@ -359,7 +346,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public IPVersion getIPVersion() {
 		if(isValid()) {
-			return addressProvider.getProviderIPVersion();
+			return addressProvider.getProviderIPVersion();// this can also be null
 		}
 		return null;
 	}
@@ -432,28 +419,28 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	private void checkIPv4Exception() throws AddressStringException {
-		if(ipv4Exception != null) {
-			if(ipv4Exception == IS_IPV6_EXCEPTION) {
-				ipv4Exception = new AddressStringException("ipaddress.error.address.is.ipv6"); // uses proper stack trace rather than IS_IPV6_EXCEPTION
-			}
-			throw ipv4Exception;
+		IPVersion version = addressProvider.getProviderIPVersion();
+		if(version != null && version.isIPv6()) {
+			throw new AddressStringException("ipaddress.error.address.is.ipv6");
+		} else if(validateException != null) {
+			throw validateException;
 		}
 	}
 	
 	private void checkIPv6Exception() throws AddressStringException {
-		if(ipv6Exception != null) {
-			if(ipv6Exception == IS_IPV4_EXCEPTION) {
-				ipv6Exception = new AddressStringException("ipaddress.error.address.is.ipv4"); // uses proper stack trace rather than IS_IPV4_EXCEPTION
-			}
-			throw ipv6Exception;
+		IPVersion version = addressProvider.getProviderIPVersion();
+		if(version != null && version.isIPv4()) {
+			throw new AddressStringException("ipaddress.error.address.is.ipv4");
+		} else if(validateException != null) {
+			throw validateException;
 		}
 	}
 	
 	private boolean isValidated(IPVersion version) throws AddressStringException {
 		if(!addressProvider.isUninitialized()) {
 			if(version == null) {
-				if(ipv6Exception != null && ipv4Exception != null) {
-					throw ipv4Exception; // the two exceptions are the same, so no need to choose
+				if(validateException != null) {
+					throw validateException; // the two exceptions are the same, so we can choose either one
 				}
 			} else if(version.isIPv4()) {
 				checkIPv4Exception();
@@ -479,20 +466,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			}
 			//we know nothing about this address.  See what it is.
 			try {
-				IPAddressProvider valueCreator = getValidator().validateAddress(this);
-				
-				//either the address is ipv4, ipv6, or indeterminate, and we set the cached validation exception appropriately
-				IPVersion createdVersion = valueCreator.getProviderIPVersion();
-				if(createdVersion != null) {
-					if(createdVersion.isIPv4()) {
-						ipv6Exception = IS_IPV4_EXCEPTION;
-					} else if(createdVersion.isIPv6()) {
-						ipv4Exception = IS_IPV6_EXCEPTION;
-					}
-				}
-				addressProvider = valueCreator;
+				addressProvider = getValidator().validateAddress(this);
 			} catch(AddressStringException e) {
-				ipv6Exception = ipv4Exception = e;
+				validateException = e;
 				addressProvider = IPAddressProvider.INVALID_PROVIDER;
 				throw e;
 			} 
@@ -692,7 +668,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public IPAddress getHostAddress() throws IncompatibleAddressException {
-		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
+		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toHostAddress();
 			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
@@ -705,7 +681,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * 
 	 */
 	public IPAddress getAddress(IPVersion version) throws IncompatibleAddressException {
-		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
+		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toAddress(version);
 			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
@@ -724,7 +700,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	@Override
 	public IPAddress getAddress() throws IncompatibleAddressException {
-		if(!addressProvider.isInvalid()) { //Avoid the exception the second time with this check
+		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toAddress();
 			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
@@ -744,7 +720,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return
 	 */
 	public IPAddress toHostAddress() throws AddressStringException, IncompatibleAddressException {
-		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
+		validate(); // call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getProviderHostAddress();
 	}
 	
@@ -773,7 +749,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @throws IncompatibleAddressException address in proper format cannot be converted to an address: for masks inconsistent with associated address range, or ipv4 mixed segments that cannot be joined into ipv6 segments
 	 */
 	public IPAddress toAddress(IPVersion version) throws AddressStringException, IncompatibleAddressException {
-		validate(); //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
+		validate(); // call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
 		return addressProvider.getProviderAddress(version);
 	}
 
@@ -822,7 +798,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public IPAddressString adjustPrefixBySegment(boolean nextSegment) {
 		if(isPrefixOnly()) {
-			//Use IPv4 segment boundaries
+			// Use IPv4 segment boundaries
 			int bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
 			int existingPrefixLength = getNetworkPrefixLength();
 			int newBits;
