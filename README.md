@@ -49,7 +49,7 @@ starting with host name strings
 	    // use socket address
 	        
 	    host = new HostName(hostServiceStr);
-	    socketAddress = host.asInetSocketAddress(x -> x.equals("service") ? 100 : null );
+	    socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null );
 	    // use socket address
 	        
 	    host = new HostName(hostAddressStr);
