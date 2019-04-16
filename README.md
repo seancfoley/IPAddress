@@ -31,7 +31,7 @@ starting with address or subnet strings
     try {
         IPAddress ipv6Address = new IPAddressString(ipv6Str).toAddress();
         IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
-        // use address      
+        // use addresses
     } catch (AddressStringException e) {
         String msg = e.getMessage();//detailed message indicating improper format in address string
         // handle improperly formatted address string
@@ -49,7 +49,7 @@ starting with host name strings
 	    // use socket address
 	        
 	    host = new HostName(hostServiceStr);
-	    socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null );
+	    socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null);
 	    // use socket address
 	        
 	    host = new HostName(hostAddressStr);
