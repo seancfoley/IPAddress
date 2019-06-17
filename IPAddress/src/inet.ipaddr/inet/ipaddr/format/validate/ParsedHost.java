@@ -27,6 +27,7 @@ import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IncompatibleAddressException;
 
 /**
  * The result of parsing a valid host name.
@@ -130,18 +131,29 @@ public class ParsedHost implements Serializable {
 		return getAddressProvider() != null;
 	}
 	
-	public IPAddress asAddress(IPVersion version) {
+	public IPAddress asAddress(IPVersion version) throws IncompatibleAddressException {
 		if(hasEmbeddedAddress()) {
 			return getAddressProvider().getProviderAddress(version);
 		}
 		return null;
 	}
 	
-	public IPAddress asAddress() {
+	public IPAddress asAddress() throws IncompatibleAddressException {
 		if(hasEmbeddedAddress()) {
 			return getAddressProvider().getProviderAddress();
 		}
 		return null;
+	}
+	
+	private String mapString(IPAddressProvider addressProvider) {
+		if(addressProvider.isProvidingAllAddresses()) {
+			return IPAddress.SEGMENT_WILDCARD_STR;
+		} else if(addressProvider.isProvidingPrefixOnly()) {
+			return IPAddressNetwork.getPrefixString(addressProvider.getProviderNetworkPrefixLength());
+		} else if(addressProvider.isProvidingEmpty()) {
+			return "";
+		}
+		return originalStr;
 	}
 	
 	public IPAddressString asGenericAddressString() {
@@ -154,8 +166,12 @@ public class ParsedHost implements Serializable {
 			} else if(addressProvider.isProvidingEmpty()) {
 				return new IPAddressString("", addressProvider.getParameters());
 			} else {
-				IPAddress addr = addressProvider.getProviderAddress();
-				return addr.toAddressString();
+				try {
+					IPAddress addr = addressProvider.getProviderAddress();
+					return addr.toAddressString();
+				} catch(IncompatibleAddressException e) {
+					return new IPAddressString(originalStr, addressProvider.getParameters());
+				}
 			}
 		}
 		return null;
@@ -169,15 +185,18 @@ public class ParsedHost implements Serializable {
 				if(labels == null) {
 					if(hasEmbeddedAddress()) {
 						IPAddressProvider addressProvider = getAddressProvider();
-						IPAddress addr = addressProvider.getProviderAddress();
-						if(addr == null) {
-							if(addressProvider.isProvidingEmpty()) {
-								return new String[0];
+						try {
+							IPAddress addr = addressProvider.getProviderAddress();
+							if(addr != null) {
+								IPAddressSection section = addr.getSection();
+								return normalizedLabels = section.getSegmentStrings();
 							}
-							return new String[] {asGenericAddressString().toString()};
+						} catch(IncompatibleAddressException e) {}
+						if(addressProvider.isProvidingEmpty()) {
+							labels = new String[0];
+						} else {
+							labels = new String[] {mapString(addressProvider)};
 						}
-						IPAddressSection section = addr.getSection();
-						labels = section.getSegmentStrings();
 					} else {
 						labels = new String[separatorIndices.length];
 						for(int i = 0, lastSep = -1; i < labels.length; i++) {
@@ -213,15 +232,16 @@ public class ParsedHost implements Serializable {
 					if(str == null) {
 						if(hasEmbeddedAddress()) {
 							IPAddressProvider addressProvider = getAddressProvider();
-							IPAddress addr = addressProvider.getProviderAddress();
-							if(addr == null) {
-								//note that this means prefix only (/16 or /64) is a valid host
-								return asGenericAddressString().toString();
-							}
-							//port was stripped out 
-							//mask and prefix removed by toNormalizedWildcardString
-							//getSection() removes zone
-							return addr.getSection().toCanonicalWildcardString();
+							try {
+								IPAddress addr = addressProvider.getProviderAddress();
+								if(addr != null) {
+									//port was stripped out 
+									//mask and prefix removed by toNormalizedWildcardString
+									//getSection() removes zone
+									return host = addr.getSection().toCanonicalWildcardString();
+								}
+							} catch(IncompatibleAddressException e) {}
+							return host = mapString(addressProvider);
 						} else {
 							StringBuilder builder = new StringBuilder(originalStr.length());
 							String labels[] = getNormalizedLabels();
@@ -229,14 +249,13 @@ public class ParsedHost implements Serializable {
 							for(int i = 1; i < labels.length; i++) {
 								builder.append(HostName.LABEL_SEPARATOR).append(labels[i]);
 							}
-							str = builder.toString();
+							return host = builder.toString();
 						}
 					}
 				}
 			} else {
-				str = originalStr;
+				str = host = originalStr;
 			}
-			host = str;
 		}
 		return str;
 	}

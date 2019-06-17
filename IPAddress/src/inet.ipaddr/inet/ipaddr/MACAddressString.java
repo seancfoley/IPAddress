@@ -288,7 +288,13 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 				} else if(other.isEmpty()) {
 					return 1;
 				}
-				return getAddress().compareTo(other.getAddress());
+				MACAddress addr = getAddress();
+				if(addr != null) {
+					MACAddress otherAddr = other.getAddress();
+					if(otherAddr != null) {
+						return addr.compareTo(otherAddr);
+					}
+				}
 			}
 			return 1;
 		}
@@ -346,7 +352,9 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	@Override
 	public MACAddress getAddress() {
 		if(isValid()) { //Avoid the exception the second time with this check
-			return parsedAddress.getAddress();
+			try {
+				return parsedAddress.getAddress();
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
 		}
 		return null;
 	}

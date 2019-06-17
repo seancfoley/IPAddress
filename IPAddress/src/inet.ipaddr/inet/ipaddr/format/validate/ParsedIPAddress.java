@@ -167,17 +167,17 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	@Override
-	public IPAddress getProviderHostAddress()  {
+	public IPAddress getProviderHostAddress() throws IncompatibleAddressException {
 		return getCachedAddresses().getHostAddress();
 	}
 	
 	@Override
-	public IPAddress getProviderAddress()  {
+	public IPAddress getProviderAddress() throws IncompatibleAddressException {
 		return getCachedAddresses().getAddress();
 	}
 	
 	@Override
-	public IPAddress getProviderAddress(IPVersion version) {
+	public IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException {
 		IPVersion thisVersion = getProviderIPVersion();
 		if(!version.equals(thisVersion)) {
 			return null;
@@ -214,15 +214,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 		skipContains = Boolean.FALSE;
 		return false;
-	}
-
-	@Override
-	public int providerHashCode() {
-		IPAddress value = getProviderAddress();
-		if(value != null) {
-			return value.hashCode();
-		}
-		return Objects.hashCode(getType());
 	}
 
 	@Override
@@ -761,7 +752,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(segmentData == null || otherSegmentData == null) {
 			return null;
 		}
-		if(skipContains() || other.skipContains()) {
+		if(skipContains() || other.skipContains()) { // this excludes mixed addresses, amongst others
 			return null;
 		}
 		IPVersion ipVersion = getProviderIPVersion();
@@ -949,7 +940,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return getQualifier().getEquivalentPrefixLength();
 	}
 	
-	IPAddresses<?, ?> createAddresses()  {
+	IPAddresses<?, ?> createAddresses() throws IncompatibleAddressException {
 		IPVersion version = getProviderIPVersion();
 		if(version == IPVersion.IPV4) {
 			return createIPv4Addresses();
@@ -973,7 +964,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	@SuppressWarnings("serial")
-	private IPAddresses<IPv4Address, IPv4AddressSection> createIPv4Addresses() {
+	private IPAddresses<IPv4Address, IPv4AddressSection> createIPv4Addresses() throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
@@ -1015,7 +1006,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.  
 						if(count == 0 && newLower == lower) {
 							if(newUpper != upper) {
-								addrParseData.setFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR, false);
+								addrParseData.unsetFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR);
 							}
 						} else {
 							useStringIndicators = false;
@@ -1182,7 +1173,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	@SuppressWarnings("serial")
-	private IPAddresses<IPv6Address, IPv6AddressSection> createIPv6Addresses()  {
+	private IPAddresses<IPv6Address, IPv6AddressSection> createIPv6Addresses() throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
@@ -1243,7 +1234,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.  
 						if(count == 0 && newLower == lower && lowerHighBytes == 0) {
 							if(newUpper != upper || upperHighBytes != 0) {
-								addressParseData.setFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR, false);
+								addressParseData.unsetFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR);
 							}
 						} else {
 							useStringIndicators = false;
@@ -1675,8 +1666,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	 * or IPv4: ...(null).(1 to 8).(0)...
 	 * 
 	 * @param segmentIndex
-	 * @param segmentCount
-	 * @param version
 	 * @return
 	 */
 	private static Integer getSegmentPrefixLength(int segmentIndex, int bitsPerSegment, ParsedHostIdentifierStringQualifier qualifier) {
@@ -1690,7 +1679,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	 * or IPv4: ...(null).(1 to 8).(0)...
 	 * 
 	 * @param segmentIndex
-	 * @param segmentCount
 	 * @param version
 	 * @return
 	 */

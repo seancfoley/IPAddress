@@ -43,4 +43,11 @@ public interface HostIdentifierString extends Serializable {
 	Address getAddress();
 	
 	Address toAddress() throws IOException, HostIdentifierException;
+	
+	/**
+	 * Returns the original non-normalized string used to construct this HostIdentifierString
+	 * @return
+	 */
+	@Override
+	String toString();
 }

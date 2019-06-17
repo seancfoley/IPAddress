@@ -114,8 +114,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		private boolean allowPrefixOnly = DEFAULT_ALLOW_PREFIX_ONLY;
 		private boolean allowIPv4 = DEFAULT_ALLOW_IPV4;
 		private boolean allowIPv6 = DEFAULT_ALLOW_IPV6;
-		//private boolean noIpv4Params, noIpv6Params;
-		
+
 		IPv4AddressStringParameters.Builder ipv4Builder;
 		static private IPv4AddressStringParameters DEFAULT_IPV4_OPTS = new IPv4AddressStringParameters.Builder().toParams();
 		IPv6AddressStringParameters.Builder ipv6Builder;
@@ -438,11 +437,14 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 					if(result == 0) {
 						result = Boolean.compare(allowPrefix, o.allowPrefix);
 						if(result == 0) {
-							result = Boolean.compare(allowMask, o.allowMask);
+							result = Boolean.compare(allowPrefixOnly, o.allowPrefixOnly);
 							if(result == 0) {
-								result = Boolean.compare(allowIPv6, o.allowIPv6);
+								result = Boolean.compare(allowMask, o.allowMask);
 								if(result == 0) {
-									result = Boolean.compare(allowIPv4, o.allowIPv4);
+									result = Boolean.compare(allowIPv6, o.allowIPv6);
+									if(result == 0) {
+										result = Boolean.compare(allowIPv4, o.allowIPv4);
+									}
 								}
 							}
 						}
@@ -462,6 +464,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 					&& ipv6Options.equals(other.ipv6Options) 
 					&& emptyIsLoopback == other.emptyIsLoopback 
 					&& allowPrefix == other.allowPrefix 
+					&& allowPrefixOnly == other.allowPrefixOnly 
 					&& allowMask == other.allowMask
 					&& allowIPv6 == other.allowIPv6
 					&& allowIPv4 == other.allowIPv4;

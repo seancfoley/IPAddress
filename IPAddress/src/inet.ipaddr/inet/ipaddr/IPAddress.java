@@ -159,6 +159,43 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	/**
+	 * Generates an IPAddressString object for this IPAddress object.
+	 * <p>
+	 * This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
+	 * <p>
+	 * In general, users are intended to create IPAddress objects from IPAddressString objects, 
+	 * while the reverse direction is generally not all that useful.
+	 * <p>
+	 * However, the reverse direction can be useful under certain circumstances.
+	 * <p>
+	 * Not all IPAddressString objects can be converted to IPAddress objects, 
+	 * as is the case with IPAddressString objects corresponding to the types IPType.INVALID and IPType.EMPTY.
+	 * <p>
+	 * Not all IPAddressString objects can be converted to IPAddress objects without specifying the IP version, 
+	 * as is the case with IPAddressString objects corresponding to the types IPType.PREFIX and  IPType.ALL.
+	 * <p>
+	 * So in the event you wish to store a collection of IPAddress objects with a collection of IPAddressString objects,
+	 * and not all the IPAddressString objects can be converted to IPAddress objects, then you may wish to use a collection
+	 * of only IPAddressString objects, in which case this method is useful.
+	 * 
+	 * @return an IPAddressString object for this IPAddress.
+	 */
+	@Override
+	public IPAddressString toAddressString() {
+		if(fromString == null) {
+			IPAddressStringParameters params = createFromStringParams();
+			fromString = new IPAddressString(toCanonicalString(), this, params); /* address string creation */
+		}
+		return getAddressfromString();
+	}
+	
+	protected abstract IPAddressStringParameters createFromStringParams();
+	
+	protected IPAddressString getAddressfromString() {
+		return (IPAddressString) fromString;
+	}
+
+	/**
 	 * If this address was resolved from a host, returns that host.  Otherwise, does a reverse name lookup.
 	 */
 	public HostName toHostName() {
@@ -168,10 +205,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		}
 		return host;
 	}
-	
+
 	void cache(HostIdentifierString string) {
 		if(string instanceof HostName) {
 			fromHost = (HostName) string;
+			fromString = new IPAddressString(fromHost.toString(), this, fromHost.validationOptions.addressOptions);
 		} else if(string instanceof IPAddressString) {
 			fromString = (IPAddressString) string;
 		}
@@ -991,43 +1029,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().toStringCollection(options);
 	}
 	
-	/**
-	 * Generates an IPAddressString object for this IPAddress object.
-	 * <p>
-	 * This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
-	 * <p>
-	 * In general, users are intended to create IPAddress objects from IPAddressString objects, 
-	 * while the reverse direction is generally not all that useful.
-	 * <p>
-	 * However, the reverse direction can be useful under certain circumstances.
-	 * <p>
-	 * Not all IPAddressString objects can be converted to IPAddress objects, 
-	 * as is the case with IPAddressString objects corresponding to the types IPType.INVALID and IPType.EMPTY.
-	 * <p>
-	 * Not all IPAddressString objects can be converted to IPAddress objects without specifying the IP version, 
-	 * as is the case with IPAddressString objects corresponding to the types IPType.PREFIX and  IPType.ALL.
-	 * <p>
-	 * So in the event you wish to store a collection of IPAddress objects with a collection of IPAddressString objects,
-	 * and not all the IPAddressString objects can be converted to IPAddress objects, then you may wish to use a collection
-	 * of only IPAddressString objects, in which case this method is useful.
-	 * 
-	 * @return an IPAddressString object for this IPAddress.
-	 */
-	@Override
-	public IPAddressString toAddressString() {
-		if(fromString == null) {
-			IPAddressStringParameters params = createFromStringParams();
-			fromString = new IPAddressString(this, params); /* address string creation */
-		}
-		return getAddressfromString();
-	}
-	
-	protected abstract IPAddressStringParameters createFromStringParams();
-	
-	protected IPAddressString getAddressfromString() {
-		return (IPAddressString) fromString;
-	}
-	
 	public static String toDelimitedSQLStrs(String strs[]) {
 		if(strs.length == 0) {
 			return "";
@@ -1266,8 +1267,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * If this address is equivalent to the mask for a CIDR prefix block, it returns that prefix length.
 	 * Otherwise, it returns null.
-	 * A CIDR network mask is all 1s in the network section and then all 0s in the host section.
-	 * A CIDR host mask is all 0s in the network section and then all 1s in the host section.
+	 * A CIDR network mask is all 1 bits in the network section and then all 0 bits in the host section.
+	 * A CIDR host mask is all 0 bits in the network section and then all 1 bits in the host section.
 	 * The prefix is the length of the network section.
 	 * 
 	 * Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length used to construct this object.

@@ -841,7 +841,8 @@ public class HostTest extends TestBase {
 		testHostAddress("[::]:123", "::", 123, null);
 		
 		hostTest(false, "::1:88888");//port too large, also too large to be ipv6 segment
-		hostTest(false, "::1:88-8");//invalid because no letter in service name, nor is it a port
+		hostTest(false, "::1:88_8");//invalid because no letter in service name, nor is it a port
+		hostTest(isLenient(), "::1:88-8"); //valid because address with ranged segment, but it is not a service because no letter, nor a port
 		hostTest(true, "::1:8888");
 		hostTest(true, "::1:58888");
 		hostTest(true, "::1:8a-8");

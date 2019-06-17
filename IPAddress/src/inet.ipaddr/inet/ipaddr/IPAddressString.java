@@ -222,7 +222,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * Provides an address string instance for an existing address.  Not all valid address strings can be converted to address objects,
+	 * Provides an address string instance for an existing address.
+	 * <p> 
+	 * Not all valid address strings can be converted to address objects,
 	 * such as the all address"*", or empty strings "", or prefix only addresses like "/32",
 	 * so it can be useful to maintain a set of address strings instances.
 	 * <p>
@@ -231,9 +233,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @param address
 	 * @param network
 	 */
-	IPAddressString(IPAddress address, IPAddressStringParameters valOptions) {
+	IPAddressString(String addrString, IPAddress address, IPAddressStringParameters valOptions) {
 		validationOptions = valOptions; 
-		fullAddr = address.toCanonicalString();
+		fullAddr = addrString;
 		addressProvider = address.getProvider();
 	}
 
@@ -501,7 +503,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	@Override
 	public int hashCode() {
 		if(isValid()) {
-			return addressProvider.providerHashCode();
+			try {
+				return addressProvider.providerHashCode();
+			} catch(IncompatibleAddressException e) {}
 		}
 		return toString().hashCode();
 	}
@@ -521,10 +525,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		}
 		boolean isValid = isValid();
 		boolean otherIsValid = other.isValid();
-		if(!isValid && !otherIsValid) {
-			return toString().compareTo(other.toString());
+		if(isValid || otherIsValid) {
+			try {
+				return addressProvider.providerCompare(other.addressProvider);
+			} catch(IncompatibleAddressException e) {}
 		}
-		return addressProvider.providerCompare(other.addressProvider);
+		return toString().compareTo(other.toString());
 	}
 	
 	/**
@@ -542,7 +548,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public boolean prefixEquals(IPAddressString other) {
 		// getting the prefix 
-		Integer prefixLength = getNetworkPrefixLength();
+		Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
 		if(prefixLength == null) {
 			return false;
 		}
@@ -562,10 +568,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 				return directResult.booleanValue();
 			}
 			IPAddress thisAddress = getAddress();
-			IPAddress otherAddress = other.getAddress();
 			if(thisAddress != null) {
-				return otherAddress != null && prefixLength <= otherAddress.getBitCount() &&
-						thisAddress.prefixEquals(otherAddress);
+				IPAddress otherAddress = other.getAddress();
+				if(otherAddress != null) {
+					return prefixLength <= otherAddress.getBitCount() && thisAddress.prefixEquals(otherAddress);
+				}
 			}
 			// one or both addresses are null, so there is no prefix to speak of
 		}
@@ -606,7 +613,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 					try {
 						// When a value provider produces no value, equality and comparison are based on the enum IPType,
 						// which can be null.
-						return addressProvider.equalsProvider(other.addressProvider);
+						return addressProvider.providerEquals(other.addressProvider);
 					} catch(IncompatibleAddressException e) {
 						return stringsMatch;
 					}
@@ -667,11 +674,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * 
 	 * @return
 	 */
-	public IPAddress getHostAddress() throws IncompatibleAddressException {
+	public IPAddress getHostAddress() {
 		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toHostAddress();
-			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
 		}
 		return null;
 	}
@@ -680,11 +688,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * Similar to {@link #toAddress(inet.ipaddr.IPAddress.IPVersion)}, but returns null rather than throwing an exception with the address is invalid or does not match the supplied version.
 	 * 
 	 */
-	public IPAddress getAddress(IPVersion version) throws IncompatibleAddressException {
+	public IPAddress getAddress(IPVersion version) {
 		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toAddress(version);
-			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
 		}
 		return null;
 	}
@@ -699,11 +708,12 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @return the address
 	 */
 	@Override
-	public IPAddress getAddress() throws IncompatibleAddressException {
+	public IPAddress getAddress() {
 		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				return toAddress();
-			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
 		}
 		return null;
 	}
@@ -1042,12 +1052,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * @throws AddressStringException if the address is invalid
 	 */
 	public String convertToPrefixLength() throws AddressStringException {
-		IPAddress address = toAddress();
+		IPAddress address = getAddress();
 		Integer prefix;
 		if(address == null) {
-			if(isPrefixOnly()) {
-				prefix = getNetworkPrefixLength();
-			} else {
+			prefix = getNetworkPrefixLength(); // handles prefix-only, but also handles cases of IncompatibleAddressException in which there is a prefix length
+			if(prefix == null) {
 				return null;
 			}
 		} else {
@@ -1060,7 +1069,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 				new StringBuilder(IPAddressSegment.toUnsignedStringLength(prefix, 10) + 1).append(IPAddress.PREFIX_LEN_SEPARATOR)).toString();
 	}
 
-	private static String toNormalizedString(IPAddressProvider addressProvider) {
+	private static String toNormalizedString(IPAddressProvider addressProvider) throws IncompatibleAddressException {
 		String result;
 		if(addressProvider.isProvidingAllAddresses()) {
 			result = IPAddress.SEGMENT_WILDCARD_STR;
@@ -1078,17 +1087,17 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	
 	@Override
 	public String toNormalizedString() {
-		String result;
 		if(isValid()) {
-			result = toNormalizedString(addressProvider);
-		} else {
-			result = toString();
+			try {
+				return toNormalizedString(addressProvider);
+			} catch(IncompatibleAddressException e) {}
 		}
-		return result;
+		return toString();
 	}
-	
+
 	/**
-	 * Gives us the original string provided to the constructor.  For variations, call {@link #getAddress()}/{@link #toAddress()} and then use string methods on the address object.
+	 * Gives us the original string provided to the constructor.  
+	 * For variations on this string, call {@link #getAddress()}/{@link #toAddress()} and then use string methods on the address object.
 	 */
 	@Override
 	public String toString() {

@@ -44,11 +44,11 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
-import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
@@ -594,7 +594,8 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	void ipv6test(boolean pass, String x, boolean isZero) {
-		iptest(pass, createAddress(x), isZero, false, false);
+		IPAddressString s = createAddress(x);
+		iptest(pass, s, isZero, false, false);
 	}
 	
 	void ipv6test(boolean pass, String x, boolean isZero, boolean notBothTheSame) {
@@ -2383,6 +2384,113 @@ public class IPAddressTest extends TestBase {
 			addFailure(new Failure("unexpected exception " + e));
 		}
 	}
+	
+	public void testInetAtonLeadingZeroAddr(String addrStr, boolean hasLeadingZeros, boolean hasInetAtonLeadingZeros, boolean isInetAtonOctal) {
+		try {
+			IPAddressString string = createInetAtonAddress(addrStr);
+			IPAddress addr = string.toAddress();
+			BigInteger value = addr.getValue();
+			
+			IPAddressStringParameters params = new IPAddressStringParameters.Builder().
+					getIPv4AddressParametersBuilder().allowLeadingZeros(false).getParentBuilder().toParams();
+			try {
+				string = new IPAddressString(addrStr, params);
+				string.toAddress();
+				if(hasLeadingZeros) {
+					addFailure(new Failure("leading zeros allowed when forbidden", string));
+				}
+			} catch(AddressStringException e) {
+				if(!hasLeadingZeros) {
+					addFailure(new Failure("leading zeros not there", string));
+				}
+			}
+			
+			params = params.toBuilder().getIPv4AddressParametersBuilder().allowLeadingZeros(true).allow_inet_aton(true).allow_inet_aton_leading_zeros(false).getParentBuilder().toParams();
+			try {
+				string = new IPAddressString(addrStr, params);
+				string.toAddress();
+				if(hasInetAtonLeadingZeros) {
+					addFailure(new Failure("inet aton leading zeros allowed when forbidden", string));
+				}
+			} catch(AddressStringException e) {
+				if(!hasInetAtonLeadingZeros) {
+					addFailure(new Failure("inet aton leading zeros not there", string));
+				}
+			}
+			
+			params = params.toBuilder().allow_inet_aton(false).toParams();
+			string = new IPAddressString(addrStr, params);
+			if(isInetAtonOctal) {
+				try {
+					addr = string.toAddress();
+					BigInteger value2 = addr.getValue();
+					boolean octalDiffers = false;
+					for(int i = 0; i < addr.getSegmentCount(); i++) {
+						octalDiffers |= addr.getSegment(i).getSegmentValue() >= 7;
+					}
+					if(octalDiffers ? value.equals(value2) : !value.equals(value2)) {
+						addFailure(new Failure("inet aton octal should be unequal", string));
+					}
+				} catch(AddressStringException e) {
+					addFailure(new Failure("inet aton octal should be decimal", string));
+				}
+			} else if(hasLeadingZeros) { // if not octal but has leading zeros, then must be hex
+				try {
+					string.toAddress();
+					addFailure(new Failure("inet aton hex should be forbidden", string));
+				} catch(AddressStringException e) {
+					// pass
+				}
+			} else { // neither octal nor hex
+				try {
+					addr = string.toAddress();
+					BigInteger value2 = addr.getValue();
+					if(!value.equals(value2)) {
+						addFailure(new Failure("should be same value", string));
+					}
+				} catch(AddressStringException e) {
+					addFailure(new Failure("inet aton should have no effect", string));
+				}
+			}
+		} catch(AddressStringException e) {
+			addFailure(new Failure(e.toString()));
+		} catch(IncompatibleAddressException e) {
+			addFailure(new Failure(e.toString()));
+		} catch(RuntimeException e) {
+			addFailure(new Failure(e.toString()));
+		}
+		incrementTestCount();
+	}
+	
+	
+	
+	public void testLeadingZeroAddr(String addrStr, boolean hasLeadingZeros) {
+		try {
+			IPAddressString string = createAddress(addrStr);
+			string.toAddress();
+			try {
+				IPAddressStringParameters params = new IPAddressStringParameters.Builder().
+						getIPv4AddressParametersBuilder().allowLeadingZeros(false).getParentBuilder().
+						getIPv6AddressParametersBuilder().allowLeadingZeros(false).getParentBuilder().toParams();
+				string = new IPAddressString(addrStr, params);
+				string.toAddress();
+				if(hasLeadingZeros) {
+					addFailure(new Failure("leading zeros allowed when forbidden", string));
+				}
+			} catch(AddressStringException e) {
+				if(!hasLeadingZeros) {
+					addFailure(new Failure("leading zeros not there", string));
+				}
+			} 
+		} catch(AddressStringException e) {
+			addFailure(new Failure(e.toString()));
+		} catch(IncompatibleAddressException e) {
+			addFailure(new Failure(e.toString()));
+		} catch(RuntimeException e) {
+			addFailure(new Failure(e.toString()));
+		}
+		incrementTestCount();
+	}
 
 	public void testSub(String one, String two, String resultStrings[]) {
 		IPAddressString string = createAddress(one);
@@ -3344,6 +3452,8 @@ public class IPAddressTest extends TestBase {
 		testMatches(true, "1::", "1:0::");
 		testMatches(true, "f::", "F:0::");
 		testMatches(false, "1::", "1:0:1::");
+		testMatches(false, "f::1.2.3.4", "F:0::1.1.1.1");
+		testMatches(true, "f::1.2.3.4", "F:0::1.2.3.4");
 		testMatches(true, "1.2.3.4", "1.2.3.4");
 		testMatches(true, "1.2.3.4", "001.2.3.04");
 		testMatches(true, "1.2.3.4", "::ffff:1.2.3.4");//ipv4 mapped
@@ -4035,7 +4145,7 @@ public class IPAddressTest extends TestBase {
 		testVariantCounts("::1", 2, 2, 10, 1298);
 		//testVariantCounts("::1", 2, 2, IPv6Address.network().getStandardLoopbackStrings().length, 1298);//this confirms that IPv6Address.getStandardLoopbackStrings() is being initialized properly
 		testVariantCounts("::ffff:1.2.3.4", 6, 4, 20, 1410, 1320);//ipv4 mapped
-		testVariantCounts("::fffe:1.2.3.4", 2, 4, 20, 1320, 1320);//almost identical but not ipv4 mapped
+		testVariantCounts("::fffe:1.2.3.4", 2, 4, 20, 1320, 1320);//almost identical but not ipv4 mapped 
 		testVariantCounts("::ffff:0:0", 6, 4, 24, 1474, 1384);//ipv4 mapped
 		testVariantCounts("::fffe:0:0", 2, 4, 24, 1384, 1384);//almost identical but not ipv4 mapped
 		testVariantCounts("2:2:2:2:2:2:2:2", 2, 1, 6, 1280);
@@ -4259,7 +4369,36 @@ public class IPAddressTest extends TestBase {
 		ipv4test(isLenient(), "0.0.0333.0", false);
 		ipv4test(isLenient(), "0.0.0.0333", false);
 		
+		ipv4test(false, "1.2.3:4");
+		ipv4test(false, "1.2:3.4");
+		ipv6test(false, "1.2.3:4");
+		ipv6test(false, "1.2:3.4");
 		
+		ipv4test(false, "1.2.3.4:1.2.3.4");
+		ipv4test(false, "1.2.3.4.1:2.3.4");
+		ipv4test(false, "1.2.3.4.1.2:3.4");
+		ipv4test(false, "1.2.3.4.1.2.3:4");
+		ipv6test(false, "1.2.3.4:1.2.3.4");
+		ipv6test(false, "1.2.3.4.1:2.3.4");
+		ipv6test(false, "1.2.3.4.1.2:3.4");
+		ipv6test(false, "1.2.3.4.1.2.3:4");
+		
+		ipv4test(false, "1:2.3.4");
+		ipv4test(false, "1:2:3.4");
+		ipv4test(false, "1:2:3:4");
+		ipv6test(false, "1:2.3.4");
+		ipv6test(false, "1:2:3.4");
+		ipv6test(false, "1:2:3:4");
+		
+		ipv6test(false, "1.2.3.4.1.2.3.4");
+		ipv6test(false, "1:2.3.4.1.2.3.4");
+		ipv6test(false, "1:2:3.4.1.2.3.4");
+		ipv6test(false, "1:2:3:4.1.2.3.4");
+		ipv6test(false, "1:2:3:4:1.2.3.4");
+		ipv6test(false, "1:2:3:4:1:2.3.4");
+		ipv6test(true, "1:2:3:4:1:2:1.2.3.4");
+		ipv6test(isLenient(), "1:2:3:4:1:2:3.4"); // if inet_aton allowed, this is equivalent to 1:2:3:4:1:2:0.0.3.4 or 1:2:3:4:1:2:0:304
+		ipv6test(true, "1:2:3:4:1:2:3:4");
 		
 		ipv6test(true, "0:0:0:0:0:0:0:0", true);
 		ipv6test(true, "00:0:0:0:0:0:0:0", true);
@@ -4366,6 +4505,8 @@ public class IPAddressTest extends TestBase {
 		ipv4_inet_aton_test(false, "040000000000");
 		
 		ipv4_inet_aton_test(false, "1.00x.1.1");
+		ipv4_inet_aton_test(false, "00x1.1.1.1");
+		ipv4_inet_aton_test(false, "1.00x0.1.1");
 		ipv4_inet_aton_test(false, "1.0xx.1.1");
 		ipv4_inet_aton_test(false, "1.xx.1.1");
 		ipv4_inet_aton_test(false, "1.0x4x.1.1");
@@ -4761,6 +4902,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"0:0:0::", true);
 		ipv6test(1,"0:0::", true);
 		ipv6test(1,"0::", true);
+		
+		
 		
 		// New invalid from Aeron
 		// Invalid data
@@ -5334,11 +5477,68 @@ public class IPAddressTest extends TestBase {
 		testIncrement("::1:ffff", -0x10000, "::ffff");
 		testIncrement("::1:ffff", -0x10001, "::fffe");
 		
+		testLeadingZeroAddr("00.1.2.3", true);
+		testLeadingZeroAddr("1.00.2.3", true);
+		testLeadingZeroAddr("1.2.00.3", true);
+		testLeadingZeroAddr("1.2.3.00", true);
+		testLeadingZeroAddr("01.1.2.3", true);
+		testLeadingZeroAddr("1.01.2.3", true);
+		testLeadingZeroAddr("1.2.01.3", true);
+		testLeadingZeroAddr("1.2.3.01", true);
+		testLeadingZeroAddr("0.1.2.3", false);
+		testLeadingZeroAddr("1.0.2.3", false);
+		testLeadingZeroAddr("1.2.0.3", false);
+		testLeadingZeroAddr("1.2.3.0", false);
+		
+		// octal and hex addresses are not allowed when we disallow leading zeros.
+		// if we allow leading zeros, the inet aton settings determine if hex is allowed, 
+		// or whether leading zeros are interpreted as octal.
+		// We can also disallow octal leading zeros, which are extra zeros after the 0x for hex or the 0 for octal.
+		// We never allow 00x regardless of the settings.
+		// Note that having a flag to disallow leading zeros and then seeing 1.02.3.4 being allowed, that would be annoying, so we do not do that anymore.
+		testInetAtonLeadingZeroAddr("11.1.2.3", false, false, false); // boolean are (a) has a leading zero (b) has a leading zero following 0x or 0 and (c) the leading zeros are octal (not hex)
+		testInetAtonLeadingZeroAddr("0.1.2.3", false, false, false);
+		testInetAtonLeadingZeroAddr("1.0.2.3", false, false, false);
+		testInetAtonLeadingZeroAddr("1.2.0.3", false, false, false);
+		testInetAtonLeadingZeroAddr("1.2.3.0", false, false, false);
+		testInetAtonLeadingZeroAddr("0x1.1.2.3", true, false, false);
+		testInetAtonLeadingZeroAddr("1.0x1.2.3", true, false, false);
+		testInetAtonLeadingZeroAddr("1.2.0x1.3", true, false, false);
+		testInetAtonLeadingZeroAddr("1.2.3.0x1", true, false, false);
+		testInetAtonLeadingZeroAddr("0x01.1.2.3", true, true, false);
+		testInetAtonLeadingZeroAddr("1.0x01.2.3", true, true, false);
+		testInetAtonLeadingZeroAddr("1.2.0x01.3", true, true, false);
+		testInetAtonLeadingZeroAddr("1.2.3.0x01", true, true, false);
+		testInetAtonLeadingZeroAddr("01.1.2.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.01.2.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.2.01.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.2.3.01", true, false, true);
+		testInetAtonLeadingZeroAddr("010.1.2.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.010.2.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.2.010.3", true, false, true);
+		testInetAtonLeadingZeroAddr("1.2.3.010", true, false, true);
+		testInetAtonLeadingZeroAddr("001.1.2.3", true, true, true);
+		testInetAtonLeadingZeroAddr("1.001.2.3", true, true, true);
+		testInetAtonLeadingZeroAddr("1.2.001.3", true, true, true);
+		testInetAtonLeadingZeroAddr("1.2.3.001", true, true, true);
+		
+		testLeadingZeroAddr("00:1:2:3::", true);
+		testLeadingZeroAddr("1:00:2:3::", true);
+		testLeadingZeroAddr("1:2:00:3::", true);
+		testLeadingZeroAddr("1:2:3:00::", true);
+		testLeadingZeroAddr("01:1:2:3::", true);
+		testLeadingZeroAddr("1:01:2:3::", true);
+		testLeadingZeroAddr("1:2:01:3::", true);
+		testLeadingZeroAddr("1:2:3:01::", true);
+		testLeadingZeroAddr("0:1:2:3::", false);
+		testLeadingZeroAddr("1:0:2:3::", false);
+		testLeadingZeroAddr("1:2:0:3::", false);
+		testLeadingZeroAddr("1:2:3:0::", false);
+		
 		//a b x y
 		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3");
-		
 		
 		//a x b y
 		testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");

@@ -36,24 +36,28 @@ class AddressParseData implements Serializable {
 	
 	private static final long serialVersionUID = 4L;
 
+	private static final int UPPER_ADJUSTMENT = 8;
+	
 	// these are for the flags
-	public static final int KEY_WILDCARD = 0x1, KEY_SINGLE_WILDCARD = 0x2, KEY_STANDARD_STR = 0x4, KEY_STANDARD_RANGE_STR = 0x8, KEY_RANGE_WILDCARD = 0x10;
+	// a standard string is a string showing only the lower value of a segment.  A standard range string shows both values, low to high, with the standard separator.
+	public static final int KEY_WILDCARD = 0x100, KEY_SINGLE_WILDCARD = 0x200, KEY_STANDARD_STR = 0x400, KEY_STANDARD_RANGE_STR = 0x800, KEY_RANGE_WILDCARD = 0x1000;
+	private static final int KEY_RADIX = 0xff;
+	
+	
+	public static final int KEY_LOWER_RADIX_INDEX = 0, FLAGS_INDEX = KEY_LOWER_RADIX_INDEX; // the flags and the radix are stored in the same int, the radix takes the low byte, the remaining 24 bits are available for flags.
+	
+	public static final int KEY_UPPER_RADIX_INDEX = KEY_LOWER_RADIX_INDEX + UPPER_ADJUSTMENT;
+	
+	// these are for the segment values - they must be even-numbered 
+	public static final int KEY_LOWER = 2, KEY_EXTENDED_LOWER = 4;
+	public static final int KEY_UPPER = KEY_LOWER + UPPER_ADJUSTMENT, KEY_EXTENDED_UPPER = KEY_EXTENDED_LOWER + UPPER_ADJUSTMENT;
 		
-	// these are for the segment values
-	public static final int KEY_LOWER = 2, KEY_UPPER = 4, KEY_EXTENDED_LOWER = 6, KEY_EXTENDED_UPPER = 8;
-
-	// for the radices
-	public static final int KEY_LOWER_RADIX = 0, KEY_UPPER_RADIX = 16;
-
 	// these are for the indices
-	public static final int KEY_LOWER_STR_DIGITS_INDEX = 10, KEY_LOWER_STR_START_INDEX = 11, KEY_LOWER_STR_END_INDEX = 12,
-				KEY_UPPER_STR_DIGITS_INDEX = 13, KEY_UPPER_STR_START_INDEX = 14, KEY_UPPER_STR_END_INDEX = 15;
-		
-	private static final int FLAGS_INDEX = 0;
-	private static final int RADIX_INDEX = 1;
+	public static final int KEY_LOWER_STR_DIGITS_INDEX = 1, KEY_LOWER_STR_START_INDEX = 6, KEY_LOWER_STR_END_INDEX = 7,
+			KEY_UPPER_STR_DIGITS_INDEX = KEY_LOWER_STR_DIGITS_INDEX + UPPER_ADJUSTMENT, KEY_UPPER_STR_START_INDEX = KEY_LOWER_STR_START_INDEX + UPPER_ADJUSTMENT, KEY_UPPER_STR_END_INDEX = KEY_LOWER_STR_END_INDEX + UPPER_ADJUSTMENT;
 	
-	private static final int SEGMENT_DATA_SIZE = KEY_UPPER_STR_END_INDEX + 1;
-	
+	private static final int SEGMENT_DATA_SIZE = 16, SEGMENT_INDEX_SHIFT = 4;
+
 	private static final int IPV4_SEGMENT_DATA_SIZE = SEGMENT_DATA_SIZE * 4, IPV6_SEGMENT_DATA_SIZE = SEGMENT_DATA_SIZE * 8;
 	
 	private int segmentData[];
@@ -92,9 +96,6 @@ class AddressParseData implements Serializable {
 		}
 		segmentData = new int[dataSize];
 	}
-	
-	static int totalCount;
-	public static long averageT;
 	
 	void releaseSegmentData() {
 		segmentData = null;
@@ -168,55 +169,30 @@ class AddressParseData implements Serializable {
 		return anyWildcard;
 	}
 	
-	void setFlag(int segmentIndex, int flagIndicator, boolean value) {
-		int index = (segmentIndex << 4) | FLAGS_INDEX;
+	void unsetFlag(int segmentIndex, int flagIndicator) {
+		int index = (segmentIndex << SEGMENT_INDEX_SHIFT) | FLAGS_INDEX;
 		int segmentData[] = getSegmentData();
-		if(value) {
-			segmentData[index] |= flagIndicator;
-		} else {
-			segmentData[index] &= ~flagIndicator;
-		}
+		segmentData[index] &= ~flagIndicator;
 	}
 	
 	boolean getFlag(int segmentIndex, int flagIndicator) {
 		int segmentData[] = getSegmentData();
-		return (segmentData[(segmentIndex << 4) | FLAGS_INDEX] & flagIndicator) != 0;
-	}
-	
-	static boolean hasEitherFlag(int segmentIndex, int flagIndicator1, int flagIndicator2, int segmentData[]) {
-		int flags = segmentData[(segmentIndex << 4) | FLAGS_INDEX];
-		return ((flags & flagIndicator1) | (flags & flagIndicator2)) != 0;
+		return (segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | FLAGS_INDEX] & flagIndicator) != 0;
 	}
 	
 	boolean hasEitherFlag(int segmentIndex, int flagIndicator1, int flagIndicator2) {
-		int segmentData[] = getSegmentData();
-		return hasEitherFlag(segmentIndex, flagIndicator1, flagIndicator2, segmentData);
-	}
-	
-	void setRadix(int segmentIndex, int indexIndicator, int value) {
-		int segmentData[] = getSegmentData();
-		int radixData = segmentData[(segmentIndex << 4) | RADIX_INDEX];
-		radixData = (radixData & ~(0xffff << indexIndicator)) | ((0xffff & value) << indexIndicator);
-		segmentData[(segmentIndex << 4) + RADIX_INDEX] = radixData;
-	}
-	
-	void setRadix(int segmentIndex, int indexIndicator0, int value0, int indexIndicator1, int value1) {
-		int radixData = ((0xffff & value0) << indexIndicator0) | ((0xffff & value1) << indexIndicator1);
-		int segmentData[] = getSegmentData();
-		segmentData[(segmentIndex << 4) + RADIX_INDEX] = radixData;
+		return getFlag(segmentIndex, flagIndicator1 | flagIndicator2);
 	}
 	
 	int getRadix(int segmentIndex, int indexIndicator) {
 		int segmentData[] = getSegmentData();
-		int radixData = segmentData[(segmentIndex << 4) | RADIX_INDEX];
-		return 0xffff & (radixData >>> indexIndicator);
+		int radix = (segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator] & KEY_RADIX);
+		if(radix == 0) {
+			return IPv6Address.DEFAULT_TEXTUAL_RADIX; // 16 is the default, we only set the radix if not 16
+		}
+		return radix;
 	}
 
-	void setIndex(int segmentIndex, int indexIndicator, int value) {
-		int segmentData[] = getSegmentData();
-		segmentData[(segmentIndex << 4) | indexIndicator] = value;
-	}
-	
 	void setIndex(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
@@ -224,7 +200,7 @@ class AddressParseData implements Serializable {
 			int indexIndicator3, int value3,
 			int indexIndicator4, int value4,
 			int indexIndicator5, int value5) {
-		int baseIndex = segmentIndex << 4;
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
 		int segmentData[] = getSegmentData();
 		segmentData[baseIndex | indexIndicator0] = value0;
 		segmentData[baseIndex | indexIndicator1] = value1;
@@ -239,54 +215,185 @@ class AddressParseData implements Serializable {
 	}
 	
 	static int getIndex(int segmentIndex, int indexIndicator, int segmentData[]) {
-		return segmentData[(segmentIndex << 4) | indexIndicator];
+		return segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator];
 	}
 	
-	void setValue(int segmentIndex, int indexIndicator0, long value0, int indexIndicator1, long value1) {
-		int baseIndex = segmentIndex << 4;
-		
-		int index = baseIndex | indexIndicator0;
+	void setIndexFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6,
+			int indexIndicator7, int value7) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
 		int segmentData[] = getSegmentData();
-		segmentData[index] = (int) (value0 >>> 32);
-		segmentData[index + 1] = (int) (value0 & 0xffffffff);
-		
-		index = baseIndex | indexIndicator1;
-		segmentData[index] = (int) (value1 >>> 32);
-		segmentData[index + 1] = (int) (value1 & 0xffffffff);
+		segmentData[baseIndex | indexIndicator0] = value0;
+		segmentData[baseIndex | indexIndicator1] = value1;
+		segmentData[baseIndex | indexIndicator2] = value2;
+		segmentData[baseIndex | indexIndicator3] = value3;
+		segmentData[baseIndex | indexIndicator4] = value4;
+		segmentData[baseIndex | indexIndicator5] = value5;
+		segmentData[baseIndex | indexIndicator6] = value6;
+		segmentData[baseIndex | indexIndicator7] = value7;
 	}
 	
-	void setValue(int segmentIndex, 
-			int indexIndicator0, long value0, 
-			int indexIndicator1, long value1, 
-			int indexIndicator2, long value2, 
-			int indexIndicator3, long value3) {
-		int baseIndex = segmentIndex << 4;
-		
+	void setIndexValuesFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6, 
+			int indexIndicator7, int value7, 
+			int indexIndicator8, long value8, 
+			int indexIndicator9, long value9, 
+			int indexIndicator10, long value10,
+			int indexIndicator11, long value11) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
 		int segmentData[] = getSegmentData();
-		int index = baseIndex | indexIndicator0;
-		segmentData[index] = (int) (value0 >>> 32);
-		segmentData[index + 1] = (int) (value0 & 0xffffffff);
+		setIndexValuesFlags(baseIndex, segmentData, 
+				indexIndicator0, value0,
+				indexIndicator1, value1,
+				indexIndicator2, value2,
+				indexIndicator3, value3,
+				indexIndicator4, value4,
+				indexIndicator5, value5,
+				indexIndicator6, value6, 
+				indexIndicator8, value8,
+				indexIndicator9, value9);
+		segmentData[baseIndex | indexIndicator7] = value7;
 		
-		index = baseIndex | indexIndicator1;
-		segmentData[index] = (int) (value1 >>> 32);
-		segmentData[index + 1] = (int) (value1 & 0xffffffff);
+		int index = baseIndex | indexIndicator10;
+		segmentData[index] = (int) (value10 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value10 & 0xffffffff);
 		
-		index = baseIndex | indexIndicator2;
-		segmentData[index] = (int) (value2 >>> 32);
-		segmentData[index + 1] = (int) (value2 & 0xffffffff);
+		index = baseIndex | indexIndicator11;
+		segmentData[index] = (int) (value11 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value11 & 0xffffffff);
+	}
+	
+	void setIndexValuesFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6,
+			int indexIndicator7, long value7, 
+			int indexIndicator8, long value8, 
+			int indexIndicator9, long value9, 
+			int indexIndicator10, long value10) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
+		int segmentData[] = getSegmentData();
+		setIndexValuesFlags(baseIndex, segmentData, 
+				indexIndicator0, value0,
+				indexIndicator1, value1,
+				indexIndicator2, value2,
+				indexIndicator3, value3,
+				indexIndicator4, value4,
+				indexIndicator5, value5,
+				indexIndicator6, value6,
+				indexIndicator7, value7,
+				indexIndicator8, value8);
+		int index = baseIndex | indexIndicator9;
+		segmentData[index] = (int) (value9 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value9 & 0xffffffff);
 		
-		index = baseIndex | indexIndicator3;
-		segmentData[index] = (int) (value3 >>> 32);
-		segmentData[index + 1] = (int) (value3 & 0xffffffff);
+		index = baseIndex | indexIndicator10;
+		segmentData[index] = (int) (value10 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value10 & 0xffffffff);
+	}
+	
+	void setIndexValuesFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6,
+			int indexIndicator7, int value7, 
+			int indexIndicator8, long value8,
+			int indexIndicator9, long value9) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
+		int segmentData[] = getSegmentData();
+		setIndexValuesFlags(baseIndex, segmentData, 
+				indexIndicator0, value0,
+				indexIndicator1, value1,
+				indexIndicator2, value2,
+				indexIndicator3, value3,
+				indexIndicator4, value4,
+				indexIndicator5, value5,
+				indexIndicator6, value6,
+				indexIndicator8, value8, 
+				indexIndicator9, value9);
+		segmentData[baseIndex | indexIndicator7] = value7;
+	}
+	
+	void setIndexValuesFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6,
+			int indexIndicator7, long value7, 
+			int indexIndicator8, long value8) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
+		int segmentData[] = getSegmentData();
+		setIndexValuesFlags(baseIndex, segmentData, 
+				indexIndicator0, value0,
+				indexIndicator1, value1,
+				indexIndicator2, value2,
+				indexIndicator3, value3,
+				indexIndicator4, value4,
+				indexIndicator5, value5,
+				indexIndicator6, value6,
+				indexIndicator7, value7, 
+				indexIndicator8, value8);
+	}
+	
+	private static void setIndexValuesFlags(
+			int baseIndex, 
+			int segmentData[],
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
+			int indexIndicator6, int value6,
+			int indexIndicator7, long value7, 
+			int indexIndicator8, long value8) {
+		segmentData[baseIndex | indexIndicator0] = value0;
+		segmentData[baseIndex | indexIndicator1] = value1;
+		segmentData[baseIndex | indexIndicator2] = value2;
+		segmentData[baseIndex | indexIndicator3] = value3;
+		segmentData[baseIndex | indexIndicator4] = value4;
+		segmentData[baseIndex | indexIndicator5] = value5;
+		segmentData[baseIndex | indexIndicator6] = value6;
+		
+		int index = baseIndex | indexIndicator7;
+		segmentData[index] = (int) (value7 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value7 & 0xffffffff);
+		
+		index = baseIndex | indexIndicator8;
+		segmentData[index] = (int) (value8 >>> Integer.SIZE);
+		segmentData[index | 1] = (int) (value8 & 0xffffffff);
 	}
 
 	void setValue(int segmentIndex, int indexIndicator, long value) {
-		int index = (segmentIndex << 4) | indexIndicator;
-		int upperValue = (int) (value >>> 32);
+		int index = (segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator;
+		int upperValue = (int) (value >>> Integer.SIZE);
 		int lowerValue = (int) (value & 0xffffffff);
 		int segmentData[] = getSegmentData();
 		segmentData[index] = upperValue;
-		segmentData[index + 1] = lowerValue;
+		segmentData[index | 1] = lowerValue;
 	}
 	
 	long getValue(int segmentIndex, int indexIndicator) {
@@ -294,9 +401,9 @@ class AddressParseData implements Serializable {
 	}
 	
 	protected static long getValue(int segmentIndex, int indexIndicator, int segmentData[]) {
-		int index = (segmentIndex << 4) | indexIndicator;
+		int index = (segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator;
 		long upperValue = (long) segmentData[index];
-		long lowerValue = 0xffffffffL & (long) (segmentData[index + 1]);
+		long lowerValue = 0xffffffffL & (long) (segmentData[index | 1]);
 		long value = (upperValue << 32) | lowerValue;
 		return value;
 	}
@@ -307,10 +414,6 @@ class AddressParseData implements Serializable {
 	
 	boolean hasRange(int index) {
 		return hasEitherFlag(index, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD);
-	}
-	
-	static boolean hasRange(int index, int segmentData[]) {
-		return hasEitherFlag(index, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD, segmentData);
 	}
 
 	@Override
@@ -348,9 +451,8 @@ class AddressParseData implements Serializable {
 						builder.append("\tvalue in hex: ").append(Long.toHexString(lower)).append('\n');
 						lowerResult = null;
 					}
-					//int indices[] = this.indices[i];
 					builder.append("\tstring: ").append(str.subSequence(getIndex(i, KEY_LOWER_STR_START_INDEX), getIndex(i, KEY_LOWER_STR_END_INDEX))).append('\n');
-					builder.append("\tradix: ").append(getIndex(i, KEY_LOWER_RADIX)).append('\n');
+					builder.append("\tradix: ").append(getRadix(i, KEY_LOWER_RADIX_INDEX)).append('\n');
 					builder.append("\tis standard: ").append(getFlag(i, KEY_STANDARD_STR)).append('\n');
 					if(extendedUpper != 0) {
 						BigInteger extended = BigInteger.valueOf(extendedUpper);
@@ -361,7 +463,7 @@ class AddressParseData implements Serializable {
 							builder.append("\tupper value: ").append(result).append('\n');
 							builder.append("\tupper value in hex: ").append(result.toString(16)).append('\n');
 							builder.append("\tupper string: ").append(str.subSequence(getIndex(i, KEY_UPPER_STR_START_INDEX), getIndex(i, KEY_UPPER_STR_END_INDEX))).append('\n');
-							builder.append("\tupper radix: ").append(getIndex(i, KEY_UPPER_RADIX)).append('\n');
+							builder.append("\tupper radix: ").append(getRadix(i, KEY_UPPER_RADIX_INDEX)).append('\n');
 							builder.append("\tis standard range: ").append(getFlag(i, KEY_STANDARD_RANGE_STR)).append('\n');
 						}
 					} else {
@@ -369,7 +471,7 @@ class AddressParseData implements Serializable {
 							builder.append("\tupper value: ").append(upper).append('\n');
 							builder.append("\tupper value in hex: ").append(Long.toHexString(upper)).append('\n');
 							builder.append("\tupper string: ").append(str.subSequence(getIndex(i, KEY_UPPER_STR_START_INDEX),getIndex(i, KEY_UPPER_STR_END_INDEX))).append('\n');
-							builder.append("\tupper radix: ").append(getIndex(i, KEY_UPPER_RADIX)).append('\n');
+							builder.append("\tupper radix: ").append(getRadix(i, KEY_UPPER_RADIX_INDEX)).append('\n');
 							builder.append("\tis standard range: ").append(getFlag(i, KEY_STANDARD_RANGE_STR)).append('\n');
 						}
 					}

@@ -44,15 +44,16 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		
 		private static final long serialVersionUID = 4L;
 
-		private final boolean wildcard, range, singleWildcard;
+		private final boolean wildcard, range, allowReverse, singleWildcard;
 
-		public static final RangeParameters NO_RANGE = new RangeParameters(false, false, false);
-		public static final RangeParameters WILDCARD_ONLY = new RangeParameters(true, false, true); /* use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3  */
-		public static final RangeParameters WILDCARD_AND_RANGE = new RangeParameters(true, true, true);/* use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff:: */
+		public static final RangeParameters NO_RANGE = new RangeParameters(false, false, false, false);
+		public static final RangeParameters WILDCARD_ONLY = new RangeParameters(true, false, false, true); /* use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3  */
+		public static final RangeParameters WILDCARD_AND_RANGE = new RangeParameters(true, true, true, true);/* use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff:: */
 		
-		public RangeParameters(boolean wildcard, boolean range, boolean singleWildcard) {
+		public RangeParameters(boolean wildcard, boolean range, boolean reverseAllowed, boolean singleWildcard) {
 			this.wildcard = wildcard;
 			this.range = range;
+			this.allowReverse = reverseAllowed;
 			this.singleWildcard = singleWildcard;
 		}
 		
@@ -80,6 +81,14 @@ public class AddressStringParameters implements Cloneable, Serializable {
 			return range;
 		}
 		
+		/**
+		 * 
+		 * @return whether '-' (or the expected range separator for the address) is allowed to denote a range from higher to lower, like 10-1
+		 */
+		public boolean allowsReverseRange() {
+			return range;
+		}
+
 		/**
 		 * 
 		 * @return whether to allow a segment terminating with '_' characters, which represent any digit
@@ -118,7 +127,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 			}
 			if(o instanceof RangeParameters) {
 				RangeParameters other = (RangeParameters) o;
-				return wildcard == other.wildcard && range == other.range && singleWildcard == other.singleWildcard;
+				return wildcard == other.wildcard && range == other.range && allowReverse == other.allowReverse && singleWildcard == other.singleWildcard;
 			}
 			return false;
 		}
@@ -130,6 +139,9 @@ public class AddressStringParameters implements Cloneable, Serializable {
 				val = Boolean.compare(range, o.range);
 				if(val == 0) {
 					val = Boolean.compare(singleWildcard, o.singleWildcard);
+					if(val == 0) {
+						val = Boolean.compare(allowReverse, o.allowReverse);
+					}
 				}
 			}
 			return val;

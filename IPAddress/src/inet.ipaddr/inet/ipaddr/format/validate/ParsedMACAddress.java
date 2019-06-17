@@ -152,7 +152,7 @@ class ParsedMACAddress extends MACAddressParseData implements MACAddressProvider
 							//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.  
 							if(count == 0 && newLower == lower) {
 								if(newUpper != upper) {
-									addressParseData.setFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR, false);
+									addressParseData.unsetFlag(i, AddressParseData.KEY_STANDARD_RANGE_STR);
 									//segFlags[AddressParseData.STANDARD_RANGE_STR_INDEX] = false;
 								}
 							} else {

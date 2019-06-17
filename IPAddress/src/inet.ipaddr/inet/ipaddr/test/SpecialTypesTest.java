@@ -23,8 +23,8 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
-import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.HostName;
 import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
@@ -33,9 +33,10 @@ import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
-import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
+import inet.ipaddr.format.large.IPAddressLargeDivision;
 import inet.ipaddr.mac.MACAddress;
 
 
@@ -257,7 +258,7 @@ public class SpecialTypesTest extends TestBase {
 		// invalid mask
 		IPAddressString addressAll = createAddress("*/f0ff::", ADDRESS_OPTIONS);
 		try {
-			addressAll.getAddress();
+			addressAll.toAddress();
 			addFailure(new Failure("unexpectedly valid", addressAll));
 		} catch(IncompatibleAddressException e) {
 			// valid mask
@@ -282,6 +283,8 @@ public class SpecialTypesTest extends TestBase {
 			} catch(IncompatibleAddressException e2) {
 				addFailure(new Failure("unexpectedly valid", addressAll));
 			}
+		} catch(AddressStringException e) {
+			addFailure(new Failure("unexpected exception: " + e, addressAll));
 		}
 	}
 	

@@ -39,7 +39,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK = false; //When not allowing prefixes beyond address size, whether 1.2.3.4/33 has a mask of ipv4 address 33 rather than treating it like a prefix
 	
 	/**
-	 * Allows ipv4 inet_aton hexadecimal format 0xa.0xb.0xc.0cd
+	 * Allows ipv4 inet_aton hexadecimal format 0xa.0xb.0xc.0xd
 	 */
 	public final boolean inet_aton_hex;
 	
@@ -48,6 +48,13 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	 * Can be overridden by {@link IPAddressStringFormatParameters#allowLeadingZeros}
 	 */
 	public final boolean inet_aton_octal;
+	
+	/**
+	 * Allows ipv4 inet_aton hexadecimal or octal to have leading zeros, such as in the first two segments of 0x0a.00b.c.d
+	 * The first 0 is not considered a leading zero, it either denotes octal or hex depending on whether it is followed by an 'x'.
+	 * Zeros that appear afterwards are inet_aton leading zeros.
+	 */
+	public final boolean inet_aton_leading_zeros;
 	
 	/**
 	 * Allows ipv4 joined segments like 1.2.3, 1.2, or just 1
@@ -75,12 +82,14 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			boolean allowPrefixesBeyondAddressSize,
 			boolean inet_aton_hex,
 			boolean inet_aton_octal,
+			boolean inet_aton_leading_zeros,
 			boolean inet_aton_joinedSegments,
 			boolean inet_aton_single_segment_mask,
 			IPv4AddressNetwork network) {
 		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.inet_aton_hex = inet_aton_hex;
 		this.inet_aton_octal = inet_aton_octal;
+		this.inet_aton_leading_zeros = inet_aton_leading_zeros;
 		this.inet_aton_joinedSegments = inet_aton_joinedSegments;
 		this.inet_aton_single_segment_mask = inet_aton_single_segment_mask;
 		this.network = network;
@@ -99,6 +108,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	public static class Builder extends IPAddressStringFormatParameters.BuilderBase {
 		private boolean inet_aton_hex = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_octal = DEFAULT_ALLOW_IPV4_INET_ATON;
+		private boolean inet_aton_leading_zeros = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_joinedSegments = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_single_segment_mask = DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK;
 		private IPv4AddressNetwork network;
@@ -136,6 +146,16 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		 */
 		public Builder allow_inet_aton_octal(boolean allow) {
 			inet_aton_octal = allow;
+			return this;
+		}
+		
+		/**
+		 * @see IPv4AddressStringParameters#inet_aton_leading_zeros
+		 * @param allow
+		 * @return the builder
+		 */
+		public Builder allow_inet_aton_leading_zeros(boolean allow) {
+			inet_aton_leading_zeros = allow;
 			return this;
 		}
 		
@@ -215,6 +235,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 					allowPrefixesBeyondAddressSize,
 					inet_aton_hex,
 					inet_aton_octal,
+					inet_aton_leading_zeros,
 					inet_aton_joinedSegments,
 					inet_aton_single_segment_mask,
 					network);
@@ -246,6 +267,12 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 				result = Boolean.compare(inet_aton_octal, o.inet_aton_octal);
 				if(result == 0) {
 					result = Boolean.compare(inet_aton_joinedSegments, o.inet_aton_joinedSegments);
+					if(result == 0) {
+						result = Boolean.compare(inet_aton_leading_zeros, o.inet_aton_leading_zeros);
+						if(result == 0) {
+							result = Boolean.compare(inet_aton_single_segment_mask, o.inet_aton_single_segment_mask);
+						}
+					}
 				}
 			}
 		}
@@ -259,9 +286,12 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 				IPv4AddressStringParameters other = (IPv4AddressStringParameters) o;
 				return inet_aton_hex == other.inet_aton_hex
 						&& inet_aton_octal == other.inet_aton_octal
-						&& inet_aton_joinedSegments == other.inet_aton_joinedSegments;
-			}
+						&& inet_aton_joinedSegments == other.inet_aton_joinedSegments
+						&& inet_aton_leading_zeros == other.inet_aton_leading_zeros
+						&& inet_aton_single_segment_mask == other.inet_aton_single_segment_mask;
+				}
 		}
+
 		return false;
 	}
 	

@@ -109,6 +109,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public static final int BYTE_COUNT = 16;
 	public static final int BIT_COUNT = 128;
 	public static final int DEFAULT_TEXTUAL_RADIX = 16;
+	public static final int BASE_85_RADIX = 85;
 	public static final int MAX_VALUE_PER_SEGMENT = 0xffff;
 
 	/* 

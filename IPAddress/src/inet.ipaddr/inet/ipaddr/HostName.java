@@ -81,7 +81,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	private boolean resolvedIsNull;
 	
 	/* validation options */
-	private final HostNameParameters validationOptions;
+	final HostNameParameters validationOptions;
 
 	/**
 	 * Constructs a host name from an IP address.
@@ -739,7 +739,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 */
 	public IPAddressString asAddressString() {
 		if(isAddressString()) {
-			return parsedHost.asGenericAddressString();//xxx;//this is for address string not convertible to address
+			return parsedHost.asGenericAddressString(); // this is for address string not convertible to address
 		}
 		return null;
 	}

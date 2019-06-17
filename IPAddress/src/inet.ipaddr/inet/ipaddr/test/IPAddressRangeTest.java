@@ -1098,7 +1098,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testIPv4Strings("1.*.5.5/12", "1.*.5.5/12", "1.*.5.5", "1.%.5.5", "001.000-255.005.005/12", "01.*.05.05/12", "0x1.*.0x5.0x5/12", "5.5.*.1.in-addr.arpa", null, null);
 			//OK we are testing 01.*.02405/12 and our bounds check for inet_aton does not work because later when creating address it is not treated as inet_aton due to the *
 			//so when we do the bounds checking for inet_aton we need to check for * and only test with single segment boundaries
-			//also check for that setting where * extends beyong single segment
+			//also check for that setting where * extends beyond single segment
 		}
 
 		testIPv6Strings("::",
@@ -3131,10 +3131,25 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "250-25f:200-2ff::0-fff:20-2f", "25_:2__::___:2_");
 		testMatches(true, "150-15f:100-1ff::0-ff:10-1f", "15_:1__::__:1_");
 		
-		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:102:4-5"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0.*", "1:2:3:4:5:6:102:0-ff"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0._", "1:2:3:4:5:6:102:0-9"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0.1_", "1:2:3:4:5:6:102:a-13"); //mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1-2.*.0.4", "1:2:3:4:5:6:100-2ff:4"); // mixed starting with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:102:4-5"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.*", "1:2:3:4:5:6:102:0-ff"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0._", "1:2:3:4:5:6:102:0-9"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.1_", "1:2:3:4:5:6:102:a-13"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:102:5-4"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:1.2.0.5-4"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2-255.0.4-5", "1:2:3:4:5:6:1.255-2.0.5-4"); // mixed ending with range
+		testMatches(false, "1:2:3:4:5:6:1-3.2.0.4-5", "1:2:3:4:5:6:3-1.2.0.5-4"); // inet.ipaddr.IncompatibleAddressException: 1-3, 2, IP Address error: IPv4 segment ranges cannot be converted to IPv6 segment ranges
+		testMatches(true, "1:2:3:4:5:6:1-3.*.0.4-5", "1:2:3:4:5:6:3-1.*.0.5-4"); 
+		testMatches(true, "1:2:3:4:5:6:1-3.*.0.4-5", "1:2:3:4:5:6:3ff-100:5-4");
+		
+		testMatches(true, "1.2.2-3.4", "1.2.3-2.4");
+		testMatches(true, "1.255-2.2-3.4", "1.2-255.3-2.4");
+		testMatches(true, "1:2:3:4:5:6:7:7-8", "1:2:3:4:5:6:7:8-7");
+		testMatches(true, "1-ffff:2:3:4:5:6:7:7-8", "ffff-1:2:3:4:5:6:7:8-7");
+		testMatches(true, "1-ffff:2:3:4:aa-5:6:7:7-8", "ffff-1:2:3:4:5-aa:6:7:8-7");
+		testMatches(true, "1.2.*.4", "1.2.255-0.4");
+		testMatches(true, "1:2:3:4:5:*:7:7-8", "1:2:3:4:5:ffff-0:7:8-7");
 		
 		testMatches(true, "1.2.3", "1.2.0.3", true);
 		testMatches(true, "1.2.2-3.4", "0x1.0x2.2-0x3.0x4", true);
@@ -3150,7 +3165,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "1.2.0x10-0x1f.4", "01.02.0x1_.04", true);
 		testMatches(true, "1.2.*.4", "01.02.0x__.04", true);
 		testMatches(true, "1.2.0-077.4", "01.02.0__.04", true);
-		
+				
 		testMatches(true, "1.2.2-3.4", "01.02.0x2-0x3.04", true);
 		
 		testMatches(true, "0.0.0-1.4", "00.0x0.0x00-0x000001.04", true);
@@ -3218,6 +3233,20 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "22.33.4.1-", "22.33.4.1-255");
 		testMatches(true, "aa:-1:cc::d:ee:f", "aa:0-1:cc::d:ee:f");
 		testMatches(true, "aa:dd-:cc::d:ee:f", "aa:dd-ffff:cc::d:ee:f");
+		testMatches(true, "aa:dd-:cc::d:ee:f-", "aa:dd-ffff:cc::d:ee:f-ffff");
+		testMatches(true, "-:0:0:0:0:0:0:0", "0-ffff:0:0:0:0:0:0:0");
+		testMatches(true, "0-:0:0:0:0:0:0:0", "-ffff:0:0:0:0:0:0:0");
+		testMatches(true, "ffff:0:0:0:0:0:0:0", "ffff-:0:0:0:0:0:0:0");
+		testMatches(true, "-0:0:0:0:0:0:0:0", "::");
+		testMatches(true, "0:0:-:0:0:0:0:0", "0:0:0-ffff:0:0:0:0:0");
+		testMatches(true, "0:0:0-:0:0:0:0:0", "0:0:-ffff:0:0:0:0:0");
+		testMatches(true, "0:0:ffff:0:0:0:0:0", "0:0:ffff-:0:0:0:0:0");
+		testMatches(true, "0:0:-0:0:0:0:0:0", "::");
+		testMatches(true, "0:-:0:0:0:0:0:0", "0:0-ffff:0:0:0:0:0:0");
+		testMatches(true, "0:0-:0:0:0:0:0:0", "0:-ffff:0:0:0:0:0:0");
+		testMatches(true, "0:ffff:0:0:0:0:0:0", "0:ffff-:0:0:0:0:0:0");
+		testMatches(true, "0:-0:0:0:0:0:0:0", "::");
+		
 		testMatches(true, "::1:0:0:0.0.0.0", "0:0:0:1::0.0.0.0");
 		
 		testMatches(true, "1::-1:16", "1::0-1:16");
@@ -3871,11 +3900,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 		
 		
 		ipv4test(true, "1.1.*.100-101", RangeParameters.WILDCARD_AND_RANGE);
-		ipv4test(false, "1.2.*.101-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range
+		ipv4test(true, "1.2.*.101-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range 
+		ipv4test(false, "1.2.*.1010-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range 
 		ipv4test(true, "1.2.*.101-101", RangeParameters.WILDCARD_AND_RANGE);
-		ipv6test(true, "1:2:4:a-ff:0-2::1", RangeParameters.WILDCARD_AND_RANGE);
-		ipv6test(false, "1:2:4:ff-a:0-2::1", RangeParameters.WILDCARD_AND_RANGE);//downwards range
-		ipv4test(false, "1.2.*.101-100/24", RangeParameters.WILDCARD_AND_RANGE);//downwards range but ignored due to CIDR
+		ipv6test(true, "1:2:f4:a-ff:0-2::1", RangeParameters.WILDCARD_AND_RANGE);
+		ipv6test(true, "1:2:4:ff-a:0-2::1", RangeParameters.WILDCARD_AND_RANGE);//downwards range
+		ipv6test(false, "1:2:4:ff1ff-a:0-2::1", RangeParameters.WILDCARD_AND_RANGE);//downwards range
+		ipv4test(true, "1.2.*.101-100/24", RangeParameters.WILDCARD_AND_RANGE);//downwards range but covered CIDR
 		
 		//these tests create strings that validate ipv4 and ipv6 differently, allowing ranges for one and not the other
 		ipv4test(true, "1.*.3.4", RangeParameters.WILDCARD_AND_RANGE, RangeParameters.NO_RANGE);
@@ -4037,9 +4068,47 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(true, "1.0-0.3.0");
 		ipv4test(true, "1.0-3.3.0");
 		ipv4test(true, "1.1-3.3.0");
+		ipv4test(true, "1-8.1-3.2-4.0-5");
+		
 		ipv6test(true, "1:0-0:2:0::");
 		ipv6test(true, "1:0-3:2:0::");
 		ipv6test(true, "1:1-3:2:0::");
+		ipv6test(true, "1-fff:1-3:2-4:0-5::");
+
+		ipv6test(0,"-:0:0:0:0:0:0:0:0");
+		ipv6test(1,"-:0:0:0:0:0:0:0"); // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+		ipv6test(0,"-:0:0:0:0:0:0");
+		ipv6test(0,"-:0:0:0:0:0");
+		ipv6test(0,"-:0:0:0:0");
+		ipv6test(0,"-:0:0:0");
+		ipv6test(0,"-:0:0");
+		ipv6test(0,"-:0");
+		
+		ipv6test(0,":-0:0:0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0");
+		ipv6test(0,":-0:0:0");
+		ipv6test(0,":-0:0");
+		ipv6test(0,":-0");
+		
+		ipv6test(0,"-:1:1:1:1:1:1:1:1");
+		ipv6test(1,"-:1:1:1:1:1:1:1"); // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+		ipv6test(0,"-:1:1:1:1:1:1");
+		ipv6test(0,"-:1:1:1:1:1");
+		ipv6test(0,"-:1:1:1:1");
+		ipv6test(0,"-:1:1:1");
+		ipv6test(0,"-:1:1");
+		ipv6test(0,"-:1");
+		
+		ipv6test(0,":-1:1:1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1");
+		ipv6test(0,":-1:1:1");
+		ipv6test(0,":-1:1");
+		ipv6test(0,":-1");
+	
 		
 		ipv6test(1,"::*", false);// unspecified, compressed, non-routable
 		ipv6test(1,"0:0:*:0:0:0:0:1");// loopback, full
@@ -4342,6 +4411,14 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(false, "1.1_2_.1.1");
 		ipv4test(false, "1.1_2.1.1");
 		ipv4test(true, "1.1_.1.1");
+		ipv4test(false, "1.1_-2.1.1");
+		ipv4test(false, "1.1-2_.1.1");
+		ipv4test(false, "1.1*-2.1.1");
+		ipv4test(false, "1.1-2*.1.1");
+		ipv4test(false, "1.*1-2.1.1");
+		ipv4test(false, "1.1-*2.1.1");
+		ipv4test(false, "1.*-2.1.1");
+		ipv4test(false, "1.1-*.1.1");
 		
 		ipv6test(false, "1:1--2:1:1::");
 		ipv6test(false, "1:1-2-3:1:1::");
@@ -4351,6 +4428,16 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(false, "1:1_2_:1.1::");
 		ipv6test(false, "1:1_2:1:1::");
 		ipv6test(true, "1:1_:1:1::");
+		
+		ipv6test(false, "1:1_-2:1:1::");
+		ipv6test(false, "1:1-2_:1:1::");
+		ipv6test(false, "1:1-_2:1:1::");
+		ipv6test(false, "1:1*-2:1:1::");
+		ipv6test(false, "1:1-2*:1:1::");
+		ipv6test(false, "1:*-2:1:1::");
+		ipv6test(false, "1:1-*:1:1::");
+		ipv6test(false, "1:*1-2:1:1::");
+		ipv6test(false, "1:1-*2:1:1::");
 		
 		//double -
 		// _4_ single char wildcards not in trailing position
@@ -4934,6 +5021,32 @@ public class IPAddressRangeTest extends IPAddressTest {
 				isNoAutoSubnets ? 2 : 1, isNoAutoSubnets ? new String[] {"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2-1f:*:*:*"});//[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
 
 		testSpanAndMerge("1.2.3.0", "1.2.3.*", 1, new String[] {"1.2.3.*/24"}, 1, new String[] {"1.2.3.*/24"});//rangeCount
+		
+		testLeadingZeroAddr("00-1.1.2.3", true);
+		testLeadingZeroAddr("1.00-1.2.3", true);
+		testLeadingZeroAddr("1.2.00-1.3", true);
+		testLeadingZeroAddr("1.2.3.00-1", true);
+		testLeadingZeroAddr("1-01.1.2.3", true);
+		testLeadingZeroAddr("1.01-1.2.3", true);
+		testLeadingZeroAddr("1.2.1-01.3", true);
+		testLeadingZeroAddr("1.2.3.01-1", true);
+		testLeadingZeroAddr("0-1.1.2.3", false);
+		testLeadingZeroAddr("1.0-1.2.3", false);
+		testLeadingZeroAddr("1.2.0-1.3", false);
+		testLeadingZeroAddr("1.2.3.0-1", false);
+		
+		testLeadingZeroAddr("00-1:1:2:3::", true);
+		testLeadingZeroAddr("1:00-1:2:3::", true);
+		testLeadingZeroAddr("1:2:00-1:3::", true);
+		testLeadingZeroAddr("1:2:3:00-1::", true);
+		testLeadingZeroAddr("1-01:1:2:3::", true);
+		testLeadingZeroAddr("1:1-01:2:3::", true);
+		testLeadingZeroAddr("1:2:1-01:3::", true);
+		testLeadingZeroAddr("1:2:3:1-01::", true);
+		testLeadingZeroAddr("0-1:1:2:3::", false);
+		testLeadingZeroAddr("1:0-1:2:3::", false);
+		testLeadingZeroAddr("1:2:0-1:3::", false);
+		testLeadingZeroAddr("1:2:3:0-1::", false);
 		
 		super.runTest();
 	}

@@ -28,6 +28,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.format.validate.ParsedIPAddress.CachedIPAddresses;
 
 /**
@@ -84,13 +85,13 @@ public interface IPAddressProvider extends Serializable {
 	
 	IPAddressProvider.IPType getType();
 	
-	IPAddress getProviderHostAddress();
+	IPAddress getProviderHostAddress() throws IncompatibleAddressException;
 	
-	IPAddress getProviderAddress();
+	IPAddress getProviderAddress() throws IncompatibleAddressException;
 	
-	IPAddress getProviderAddress(IPVersion version);
+	IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException;
 	
-	default int providerCompare(IPAddressProvider other) {
+	default int providerCompare(IPAddressProvider other) throws IncompatibleAddressException {
 		if(this == other) {
 			return 0;
 		}
@@ -116,7 +117,7 @@ public interface IPAddressProvider extends Serializable {
 	 * @param o
 	 * @return
 	 */
-	default boolean equalsProvider(IPAddressProvider other) {
+	default boolean providerEquals(IPAddressProvider other) throws IncompatibleAddressException {
 		if(this == other) {
 			return true;
 		}
@@ -125,13 +126,15 @@ public interface IPAddressProvider extends Serializable {
 			IPAddress otherValue = other.getProviderAddress();
 			if(otherValue != null) {
 				return value.equals(otherValue);
+			} else {
+				return false;
 			}
 		}
 		//this works with both null and also non-null since the type is an enum
 		return getType() == other.getType();
 	}
 	
-	default int providerHashCode() {
+	default int providerHashCode() throws IncompatibleAddressException {
 		IPAddress value = getProviderAddress();
 		if(value != null) {
 			return value.hashCode();
@@ -306,7 +309,7 @@ public interface IPAddressProvider extends Serializable {
 		 * @return
 		 */
 		@Override
-		public boolean equalsProvider(IPAddressProvider o) {
+		public boolean providerEquals(IPAddressProvider o) {
 			if(this == o) {
 				return true;
 			}
@@ -566,7 +569,7 @@ public interface IPAddressProvider extends Serializable {
 		}
 		
 		@Override
-		public boolean equalsProvider(IPAddressProvider valueProvider) {
+		public boolean providerEquals(IPAddressProvider valueProvider) {
 			if(valueProvider == this) {
 				return true;
 			}
@@ -576,11 +579,11 @@ public interface IPAddressProvider extends Serializable {
 				}
 				return false;
 			}
-			return super.equalsProvider(valueProvider);
+			return super.providerEquals(valueProvider);
 		}
 		
 		@Override
-		public int providerCompare(IPAddressProvider other) {
+		public int providerCompare(IPAddressProvider other) throws IncompatibleAddressException {
 			if(this == other) {
 				return 0;
 			}

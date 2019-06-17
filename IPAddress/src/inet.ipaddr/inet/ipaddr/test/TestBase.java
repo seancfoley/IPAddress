@@ -805,6 +805,8 @@ public abstract class TestBase {
 			IPAddress addr = addrString.getAddress();
 			if(!ipAddr.equals(addr)) {
 				addFailure(new Failure("failed produced string: " + str, ipAddr));
+				addrString = createAddress(str, DEFAULT_BASIC_VALIDATION_OPTIONS);
+				addrString.getAddress();
 				return false;
 			}
 		}
@@ -1175,7 +1177,8 @@ public abstract class TestBase {
 			addFailure(new Failure("normalization length " + host.getNormalizedLabels().length, host));
 		} else {
 			for(int i = 0; i < labels.length; i++) {
-				if(!labels[i].equals(host.getNormalizedLabels()[i])) {
+				String normalizedLabels[]  = host.getNormalizedLabels();
+				if(!labels[i].equals(normalizedLabels[i])) {
 					addFailure(new Failure("normalization label " + host.getNormalizedLabels()[i] + " not expected label " + labels[i], host));
 					break;
 				}
