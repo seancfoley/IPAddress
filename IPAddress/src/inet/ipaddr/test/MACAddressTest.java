@@ -206,6 +206,7 @@ public class MACAddressTest extends TestBase {
 		//notBoth means we validate as IPv4 or as IPv6, we don't validate as either one
 		try {
 			if(isNotExpected(pass, addr)) {
+				System.out.println(addr.getAddress());
 				failed = true;
 				addFailure(new Failure(pass, addr));
 			} else {
@@ -1100,6 +1101,13 @@ public class MACAddressTest extends TestBase {
 		mactest(false, "aa:bb:cc:ddd:ee:ff");
 		mactest(false, "aa:bb:cc:dd:eee:ff");
 		mactest(false, "aa:bb:cc:dd:ee:fff");
+		
+		mactest(1,"f-a-b-c-d-e");
+		mactest(0,"-a-b-c-d-e");
+		mactest(0,"f--b-c-d-e");
+		mactest(0,"f-b-c-d-e");
+		mactest(0,"f-a-b-c-d-");
+		mactest(0,"f-a-b-c--e");
 		
 		testNormalized("A:B:C:D:E:F:A:B", "0a:0b:0c:0d:0e:0f:0a:0b");
 		testNormalized("AB:AB:CC:Dd:Ee:fF:aA:Bb", "ab:ab:cc:dd:ee:ff:aa:bb");

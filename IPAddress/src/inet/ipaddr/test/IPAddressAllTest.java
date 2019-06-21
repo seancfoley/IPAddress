@@ -709,5 +709,31 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testAllContains("*:*", "1.2.3.4", false);
 		testAllContains("*.*", "1.2.3.4", true);
 		testAllContains("*/64", "::", true);
+		
+		ipv6test(1, "0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff");
+		ipv6test(1, "0x0001000200030004ffffffffffffffff-0x00010002000300040000000000000000");
+		ipv6test(1, "0x00010002000300040000000000000000");
+
+		ipv6test(1, "00010002000300040000000000000000-0001000200030004ffffffffffffffff");
+		ipv6test(1, "0001000200030004ffffffffffffffff-00010002000300040000000000000000");
+		ipv6test(1, "00010002000300040000000000000000");
+
+		ipv6test(1, "00|M>t|ttwH6V6EEzblZ" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttwH6V6EEzkrZ"); 
+		ipv6test(0, "00|M>t|ttwH6V6EEzkr" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttwH6V6EEzblZ");
+		ipv6test(0, "00|M>t|ttwH6V6EEzkrZ" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "0|M>t|ttwH6V6EEzblZ");
+		ipv6test(0, "00|M>t|ttwH6V6EEzkrZx" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttwH6V6EEzblZ");
+		ipv6test(0, "00|M>t|ttwH6V6EEzkrZ" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "x00|M>t|ttwH6V6EEzblZ");
+
+		ipv6test(1, "=q{+M|w0(OeO5^F85=Cb");
+		ipv6test(0, "=q{+M|w0.OeO5^F85=Cb"); // .
+		ipv6test(0, "=q{+:|w0(OeO5^F85=Cb"); // :
+		ipv6test(0, "=q{+M|w0(OeO5^F85=C/"); // / in middle
+		ipv6test(0, "=q{+M|w0(OeO5^F85=/b"); // / in middle
+		ipv6test(1, "=q{+M|w0(OeO5^F85=Cb/127"); // ok
+		ipv6test(1, "=q{+-|w0(OeO5^-85=Cb"); // two '-'
+		ipv6test(1, "=q{+M|w0(OeO5^F85=Cb" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "eth0"); // ok
+		ipv6test(0, "=q{+M|w0(OeO5^F85=C" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "eth0"); // too soon
+		
+		testMatches(true, "-", "0.0.0.*");
 	}
 }

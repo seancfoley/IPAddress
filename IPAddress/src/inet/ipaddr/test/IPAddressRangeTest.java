@@ -2863,10 +2863,11 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "250-25f:200-2ff::0-fff:20-2f", "25_:2__::___:2_");
 		testMatches(true, "150-15f:100-1ff::0-ff:10-1f", "15_:1__::__:1_");
 		
-		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:102:4-5"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0.*", "1:2:3:4:5:6:102:0-ff"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0._", "1:2:3:4:5:6:102:0-9"); //mixed ending with range
-		testMatches(true, "1:2:3:4:5:6:1.2.0.1_", "1:2:3:4:5:6:102:a-13"); //mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1-2.*.0.4", "1:2:3:4:5:6:100-2ff:4"); // mixed starting with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.4-5", "1:2:3:4:5:6:102:4-5"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.*", "1:2:3:4:5:6:102:0-ff"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0._", "1:2:3:4:5:6:102:0-9"); // mixed ending with range
+		testMatches(true, "1:2:3:4:5:6:1.2.0.1_", "1:2:3:4:5:6:102:a-13"); // mixed ending with range
 		
 		testMatches(true, "1.2.3", "1.2.0.3", true);
 		testMatches(true, "1.2.2-3.4", "0x1.0x2.2-0x3.0x4", true);
@@ -2950,6 +2951,20 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMatches(true, "22.33.4.1-", "22.33.4.1-255");
 		testMatches(true, "aa:-1:cc::d:ee:f", "aa:0-1:cc::d:ee:f");
 		testMatches(true, "aa:dd-:cc::d:ee:f", "aa:dd-ffff:cc::d:ee:f");
+		testMatches(true, "aa:dd-:cc::d:ee:f-", "aa:dd-ffff:cc::d:ee:f-ffff");
+		testMatches(true, "-:0:0:0:0:0:0:0", "0-ffff:0:0:0:0:0:0:0");
+		testMatches(true, "0-:0:0:0:0:0:0:0", "-ffff:0:0:0:0:0:0:0");
+		testMatches(true, "ffff:0:0:0:0:0:0:0", "ffff-:0:0:0:0:0:0:0");
+		testMatches(true, "-0:0:0:0:0:0:0:0", "::");
+		testMatches(true, "0:0:-:0:0:0:0:0", "0:0:0-ffff:0:0:0:0:0");
+		testMatches(true, "0:0:0-:0:0:0:0:0", "0:0:-ffff:0:0:0:0:0");
+		testMatches(true, "0:0:ffff:0:0:0:0:0", "0:0:ffff-:0:0:0:0:0");
+		testMatches(true, "0:0:-0:0:0:0:0:0", "::");
+		testMatches(true, "0:-:0:0:0:0:0:0", "0:0-ffff:0:0:0:0:0:0");
+		testMatches(true, "0:0-:0:0:0:0:0:0", "0:-ffff:0:0:0:0:0:0");
+		testMatches(true, "0:ffff:0:0:0:0:0:0", "0:ffff-:0:0:0:0:0:0");
+		testMatches(true, "0:-0:0:0:0:0:0:0", "::");
+		
 		testMatches(true, "::1:0:0:0.0.0.0", "0:0:0:1::0.0.0.0");
 		
 		testMatches(true, "1::-1:16", "1::0-1:16");
@@ -2965,6 +2980,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMatches(true, "1:-1::16/32", "1:0-1::16");
 			testMatches(true, "1:-1::16", "1:0-1::16/32");
 		}
+		
 		if(allPrefixesAreSubnets) {
 			testCIDRSubnets("9.*.237.26/0", "0.0.0.0/0");
 			testCIDRSubnets("9.*.237.26/1", "0.0.0.0/1");
@@ -3565,6 +3581,42 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(true, "1:0-3:2:0::");
 		ipv6test(true, "1:1-3:2:0::");
 		
+		ipv6test(true, "1-fff:1-3:2-4:0-5::");
+
+		ipv6test(0,"-:0:0:0:0:0:0:0:0");
+		ipv6test(1,"-:0:0:0:0:0:0:0"); // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+		ipv6test(0,"-:0:0:0:0:0:0");
+		ipv6test(0,"-:0:0:0:0:0");
+		ipv6test(0,"-:0:0:0:0");
+		ipv6test(0,"-:0:0:0");
+		ipv6test(0,"-:0:0");
+		ipv6test(0,"-:0");
+
+		ipv6test(0,":-0:0:0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0:0");
+		ipv6test(0,":-0:0:0:0");
+		ipv6test(0,":-0:0:0");
+		ipv6test(0,":-0:0");
+		ipv6test(0,":-0");
+
+		ipv6test(0,"-:1:1:1:1:1:1:1:1");
+		ipv6test(1,"-:1:1:1:1:1:1:1"); // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+		ipv6test(0,"-:1:1:1:1:1:1");
+		ipv6test(0,"-:1:1:1:1:1");
+		ipv6test(0,"-:1:1:1:1");
+		ipv6test(0,"-:1:1:1");
+		ipv6test(0,"-:1:1");
+		ipv6test(0,"-:1");
+
+		ipv6test(0,":-1:1:1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1:1");
+		ipv6test(0,":-1:1:1:1");
+		ipv6test(0,":-1:1:1");
+		ipv6test(0,":-1:1");
+		ipv6test(0,":-1");
+		
 		ipv6test(1,"::*", false);// unspecified, compressed, non-routable
 		ipv6test(1,"0:0:*:0:0:0:0:1");// loopback, full
 		ipv6test(1,"0:0:*:0:0:0:0:0", false);// unspecified, full
@@ -3867,6 +3919,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4test(false, "1.1_2.1.1");
 		ipv4test(true, "1.1_.1.1");
 		
+		ipv4test(false, "1.1_-2.1.1");
+		ipv4test(false, "1.1-2_.1.1");
+		ipv4test(false, "1.1*-2.1.1");
+		ipv4test(false, "1.1-2*.1.1");
+		ipv4test(false, "1.*1-2.1.1");
+		ipv4test(false, "1.1-*2.1.1");
+		ipv4test(false, "1.*-2.1.1");
+		ipv4test(false, "1.1-*.1.1");
+		
 		ipv6test(false, "1:1--2:1:1::");
 		ipv6test(false, "1:1-2-3:1:1::");
 		ipv6test(false, "1:1-2-:1:1::");
@@ -3875,6 +3936,16 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(false, "1:1_2_:1.1::");
 		ipv6test(false, "1:1_2:1:1::");
 		ipv6test(true, "1:1_:1:1::");
+		
+		ipv6test(false, "1:1_-2:1:1::");
+		ipv6test(false, "1:1-2_:1:1::");
+		ipv6test(false, "1:1-_2:1:1::");
+		ipv6test(false, "1:1*-2:1:1::");
+		ipv6test(false, "1:1-2*:1:1::");
+		ipv6test(false, "1:*-2:1:1::");
+		ipv6test(false, "1:1-*:1:1::");
+		ipv6test(false, "1:*1-2:1:1::");
+		ipv6test(false, "1:1-*2:1:1::");
 		
 		//double -
 		// _4_ single char wildcards not in trailing position
@@ -4056,6 +4127,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(0, "1:1:1.2__.1.1");
 		ipv6test(0, "1:1:_.*");
 		ipv6test(0, "1:1:1._");
+		
+		ipv6test(1,"a-f:b:c:d:e:f:a:bb");
+		ipv6test(1,"-f:b:c:d:e:f:a:bb");
 		
 		testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
 		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0", new int[] {0, 16, 32, 48, 64, 80, 96, 112, 128});
@@ -4414,7 +4488,32 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::");
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2");
 		
+		testLeadingZeroAddr("00-1.1.2.3", true);
+		testLeadingZeroAddr("1.00-1.2.3", true);
+		testLeadingZeroAddr("1.2.00-1.3", true);
+		testLeadingZeroAddr("1.2.3.00-1", true);
+		testLeadingZeroAddr("1-01.1.2.3", true);
+		testLeadingZeroAddr("1.01-1.2.3", true);
+		testLeadingZeroAddr("1.2.1-01.3", true);
+		testLeadingZeroAddr("1.2.3.01-1", true);
+		testLeadingZeroAddr("0-1.1.2.3", false);
+		testLeadingZeroAddr("1.0-1.2.3", false);
+		testLeadingZeroAddr("1.2.0-1.3", false);
+		testLeadingZeroAddr("1.2.3.0-1", false);
 
+		testLeadingZeroAddr("00-1:1:2:3::", true);
+		testLeadingZeroAddr("1:00-1:2:3::", true);
+		testLeadingZeroAddr("1:2:00-1:3::", true);
+		testLeadingZeroAddr("1:2:3:00-1::", true);
+		testLeadingZeroAddr("1-01:1:2:3::", true);
+		testLeadingZeroAddr("1:1-01:2:3::", true);
+		testLeadingZeroAddr("1:2:1-01:3::", true);
+		testLeadingZeroAddr("1:2:3:1-01::", true);
+		testLeadingZeroAddr("0-1:1:2:3::", false);
+		testLeadingZeroAddr("1:0-1:2:3::", false);
+		testLeadingZeroAddr("1:2:0-1:3::", false);
+		testLeadingZeroAddr("1:2:3:0-1::", false);
+		
 		super.runTest();
 	}
 	

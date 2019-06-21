@@ -438,11 +438,14 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 					if(result == 0) {
 						result = Boolean.compare(allowPrefix, o.allowPrefix);
 						if(result == 0) {
-							result = Boolean.compare(allowMask, o.allowMask);
+							result = Boolean.compare(allowPrefixOnly, o.allowPrefixOnly);
 							if(result == 0) {
-								result = Boolean.compare(allowIPv6, o.allowIPv6);
+								result = Boolean.compare(allowMask, o.allowMask);
 								if(result == 0) {
-									result = Boolean.compare(allowIPv4, o.allowIPv4);
+									result = Boolean.compare(allowIPv6, o.allowIPv6);
+									if(result == 0) {
+										result = Boolean.compare(allowIPv4, o.allowIPv4);
+									}
 								}
 							}
 						}
@@ -462,6 +465,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 					&& ipv6Options.equals(other.ipv6Options) 
 					&& emptyIsLoopback == other.emptyIsLoopback 
 					&& allowPrefix == other.allowPrefix 
+					&& allowPrefixOnly == other.allowPrefixOnly 
 					&& allowMask == other.allowMask
 					&& allowIPv6 == other.allowIPv6
 					&& allowIPv4 == other.allowIPv4;

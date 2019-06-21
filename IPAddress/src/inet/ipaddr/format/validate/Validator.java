@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Sean C Foley
+ * Copyright 2016-2018 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -582,63 +582,73 @@ public class Validator implements HostIdentifierStringValidator {
 						int radix;
 						int startIndex = index - digitCount;
 						int leadingZeroStartIndex = startIndex - leadingZeroCount;
+						boolean noLeadingZeros = leadingZeroCount == 0;
 						if(digitCount == 0) {
-							boolean noLeadingZeros = leadingZeroCount == 0;
-							if(noLeadingZeros && rangeWildcardIndex >= 0 && hexDelimiterIndex < 0) { // we allow an empty range boundary to denote the max value
-								if(isMac) {
-									value = MACAddress.MAX_VALUE_PER_DOTTED_SEGMENT;
-									radix = 16;
-								} else {
-									value = IPv4Address.MAX_VALUE_PER_SEGMENT;
-									radix = 10;
+							if(noLeadingZeros) {
+								if(rangeWildcardIndex >= 0 && hexDelimiterIndex < 0) {
+									// we allow an empty range boundary to denote the max value
+									if(isMac) {
+										value = MACAddress.MAX_VALUE_PER_DOTTED_SEGMENT;
+										radix = 16;
+									} else {
+										value = IPv4Address.MAX_VALUE_PER_SEGMENT;
+										radix = 10;
+									}
+								} else  {
+									// starts with '.', or has two consecutive '.'
+									throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
 								}
-							} else if(noLeadingZeros) {
-								// starts with '.', or has two consecutive '.'
-								throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
 							} else {
 								value = 0;
 								isJustZero = true;
 								startIndex--;
+								leadingZeroCount--;
+								noLeadingZeros = leadingZeroCount == 0;
+								boolean hasLeadingZeros = !noLeadingZeros;
 								if(hexDelimiterIndex >= 0) {
 									if(isMac) {
 										throw new AddressStringException(str, hexDelimiterIndex);
-									}
-									if(!ipv4SpecificOptions.inet_aton_hex) {
+									} else if(!stringFormatParams.allowLeadingZeros) {
+										// the '0' preceding the 'x' is not allowed
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+									} else if(!ipv4SpecificOptions.inet_aton_hex) {
 										throw new AddressStringException(str, "ipaddress.error.ipv4.segment.hex");
+									} else if(hasLeadingZeros && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+										// the '0' following the 'x' is not allowed
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 									}
 									radix = 16;
 									hexDelimiterIndex = -1;
+								} else if(hasLeadingZeros && !stringFormatParams.allowLeadingZeros) {
+									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								} else if(isMac) {
-									if(leadingZeroCount > 0 && !stringFormatParams.allowLeadingZeros) {
-										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-									} else if(!stringFormatParams.allowUnlimitedLeadingZeros && leadingZeroCount > maxChars) {
+									if(!stringFormatParams.allowUnlimitedLeadingZeros && leadingZeroCount >= maxChars) {
 										throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", leadingZeroStartIndex);
 									} else if(!macSpecificOptions.allowShortSegments && leadingZeroCount < 2) {
 										throw new AddressStringException(str, "ipaddress.error.segment.too.short.at.index", leadingZeroStartIndex);
 									}
 									radix = 16;
-								} else if(leadingZeroCount > 0 && ipv4SpecificOptions.inet_aton_octal) {
+								} else if(hasLeadingZeros && ipv4SpecificOptions.inet_aton_octal) {
 									radix = 8;
+									if(leadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+									}
 								} else {
-									if(leadingZeroCount > 0) {
-										if(!stringFormatParams.allowLeadingZeros) {
-											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-										}
+									if(hasLeadingZeros) {
 										ipAddressParseData.setHasIPv4LeadingZeros(true);
 									}
 									radix = 10;
 								}
-								leadingZeroCount--;
 								parseData.setFlag(segCount, AddressParseData.KEY_STANDARD_STR, true);
 								assignAttributes(startIndex, index, parseData, segCount, radix, leadingZeroStartIndex);
 							}
-							
 						} else { // digitCount > 0
 							//Note: we cannot do max value check on ipv4 until after all segments have been read due to inet_aton joined segments, 
 							//although we can do a preliminary check here that is in fact needed to prevent overflow when calculating values later
 							if(digitCount > maxChars) {
 								throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", leadingZeroStartIndex);
 							}
+							boolean hasLeadingZeros = !noLeadingZeros;
 							isSingleWildcard = singleWildcardCount > 0;
 							if(isMac || hexDelimiterIndex >= 0) {
 								if(isMac) {
@@ -649,11 +659,17 @@ public class Validator implements HostIdentifierStringValidator {
 										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 									} else if(!stringFormatParams.allowUnlimitedLeadingZeros && totalDigits > maxChars) {
 										throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", leadingZeroStartIndex);
-									} else if(!macSpecificOptions.allowShortSegments && totalDigits < 2) {
+									} else if(!macSpecificOptions.allowShortSegments && totalDigits < 3) {
 										throw new AddressStringException(str, "ipaddress.error.segment.too.short.at.index", leadingZeroStartIndex);
 									}
+								} else if(!stringFormatParams.allowLeadingZeros) {
+									// the '0' preceding the 'x' is not allowed
+									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								} else if(!ipv4SpecificOptions.inet_aton_hex) {
 									throw new AddressStringException(str, "ipaddress.error.ipv4.segment.hex");
+								} else if(hasLeadingZeros && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+									// the '0' following the 'x' is not allowed
+									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								} else {
 									ipAddressParseData.set_has_inet_aton_value(true);
 								}
@@ -670,11 +686,15 @@ public class Validator implements HostIdentifierStringValidator {
 								hexDelimiterIndex = -1;
 								notDecimal = false;
 								notOctal = false;
+							} else if(hasLeadingZeros && !stringFormatParams.allowLeadingZeros) {
+								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 							} else {
-								boolean isOctal = leadingZeroCount > 0 && ipv4SpecificOptions.inet_aton_octal;
+								boolean isOctal = hasLeadingZeros && ipv4SpecificOptions.inet_aton_octal;
 								if(isOctal) {
 									if(notOctal) {
 										throw new AddressStringException(str, "ipaddress.error.ipv4.invalid.octal.digit");
+									} else if(leadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 									}
 									ipAddressParseData.set_has_inet_aton_value(true);
 									radix = 8;
@@ -690,11 +710,7 @@ public class Validator implements HostIdentifierStringValidator {
 								} else {
 									if(notDecimal) {
 										throw new AddressStringException(str, "ipaddress.error.ipv4.invalid.decimal.digit");
-									}
-									if(leadingZeroCount > 0) {
-										if(!stringFormatParams.allowLeadingZeros) {
-											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-										}
+									} else if(hasLeadingZeros) {
 										ipAddressParseData.setHasIPv4LeadingZeros(true);
 									}
 									radix = 10;
@@ -720,17 +736,22 @@ public class Validator implements HostIdentifierStringValidator {
 							int frontLeadingZeroStartIndex = frontStartIndex - frontLeadingZeroCount;
 							if(!stringFormatParams.rangeOptions.allowsRangeSeparator()) {
 								throw new AddressStringException(str, "ipaddress.error.no.range");
-							} else if(!stringFormatParams.allowLeadingZeros && frontLeadingZeroCount > 0) {
-								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+							} else if(frontSingleWildcardCount > 0 || frontWildcardCount > 0) {//no wildcards in ranges
+								throw new AddressStringException(str, rangeWildcardIndex, true);
 							} else if(frontDigitCount > maxChars) {
 								throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", frontLeadingZeroStartIndex);
 							}
 							boolean frontEmpty = frontStartIndex == frontEndIndex;
 							if(isMac || frontHexDelimiterIndex >= 0) {
 								if(isMac) {
+									int totalFrontDigits = frontDigitCount + frontLeadingZeroCount;
 									if(frontHexDelimiterIndex >= 0) {
 										throw new AddressStringException(str, frontHexDelimiterIndex);
-									} else if(!macSpecificOptions.allowShortSegments && (frontDigitCount + frontLeadingZeroCount) < 2) {
+									} else if(frontLeadingZeroCount > 0 && !stringFormatParams.allowLeadingZeros) {
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+									} else if(!stringFormatParams.allowUnlimitedLeadingZeros && totalFrontDigits > maxChars) {
+										throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", frontLeadingZeroStartIndex);
+									} else if(!macSpecificOptions.allowShortSegments && totalFrontDigits < 3) {
 										throw new AddressStringException(str, "ipaddress.error.segment.too.short.at.index", frontLeadingZeroStartIndex);
 									}
 									if(!frontEmpty) {//we allow the front of a range to be empty in which case it is 0
@@ -738,8 +759,14 @@ public class Validator implements HostIdentifierStringValidator {
 									} else {
 										front = 0;
 									}
+								} else if(!stringFormatParams.allowLeadingZeros) {
+									// the '0' preceding the 'x' is not allowed
+									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								} else if(!ipv4SpecificOptions.inet_aton_hex) {
 									throw new AddressStringException(str, "ipaddress.error.ipv4.segment.hex");
+								} else if(frontLeadingZeroCount > 0 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+									// the '0' following the 'x' is not allowed
+									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								} else {
 									ipAddressParseData.set_has_inet_aton_value(true);
 									//Note that here we allow 0x-0x3 or even 0x-3
@@ -750,11 +777,15 @@ public class Validator implements HostIdentifierStringValidator {
 									}
 								}
 								frontRadix = 16;
+							} else if(frontLeadingZeroCount > 0 && !stringFormatParams.allowLeadingZeros) {
+								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 							} else { 
 								boolean frontIsOctal = frontLeadingZeroCount > 0 && frontHexDelimiterIndex < 0 && ipv4SpecificOptions.inet_aton_octal;
 								if(frontIsOctal) {
 									if(frontNotOctal) {
 										throw new AddressStringException(str, "ipaddress.error.ipv4.invalid.octal.digit");
+									} else if(frontLeadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 									}
 									ipAddressParseData.set_has_inet_aton_value(true);
 									front = switchValue8(currentFrontValueHex, frontEndIndex - frontStartIndex);
@@ -792,10 +823,6 @@ public class Validator implements HostIdentifierStringValidator {
 										AddressParseData.KEY_LOWER, front,
 										AddressParseData.KEY_UPPER, value);
 							}
-							frontDigitCount = frontLeadingZeroCount = frontWildcardCount = frontSingleWildcardCount = 0;
-							frontNotOctal = frontNotDecimal = frontUppercase = false;
-							frontHexDelimiterIndex = -1;
-							currentFrontValueHex = 0;
 							isStandard = false;
 							isSingleWildcard = false;
 							singleWildcardCount = 0;
@@ -820,7 +847,7 @@ public class Validator implements HostIdentifierStringValidator {
 					parseData.incrementSegmentCount();
 					lastSeparatorIndex = index;
 					++index;
-				}
+				} // end of IPv4 segments and mac segments with '.' separators
 			} else {
 				//this is the case for all IPv6 and MAC segments, as well as the front range of all segments IPv4, IPv6, and MAC
 				//they are in the same case because the range character - is the same as one of the separators - for MAC, 
@@ -899,33 +926,31 @@ public class Validator implements HostIdentifierStringValidator {
 										}
 										int startIndex = rangeWildcardIndex - frontWildcardCount;
 										assignAttributes(startIndex, rangeWildcardIndex, parseData, 0, startIndex);
-										frontWildcardCount = 0;
-										rangeWildcardIndex = -1;
 									} else {
 										if(!stringFormatParams.allowLeadingZeros && frontLeadingZeroCount > 0) {
 											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 										}
-										long value = 0;
 										int startIndex = rangeWildcardIndex - frontDigitCount;
 										int leadingZeroStartIndex = startIndex - frontLeadingZeroCount;
 										int endIndex = rangeWildcardIndex;
 										if(frontSingleWildcardCount > 0) {
 											assignSingleWildcard16(currentFrontValueHex, str, startIndex, endIndex, singleWildcardCount, parseData, 0, leadingZeroStartIndex, stringFormatParams);
 										} else {
-											value = currentFrontValueHex;
-											if(!uppercase) {
+											if(!frontUppercase) {
+												if(frontDigitCount == 0) {
+													throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", startIndex);
+												}
 												parseData.setFlag(0, AddressParseData.KEY_STANDARD_STR, true);
 											}
 											assignAttributes(startIndex, endIndex, parseData, 0, MACAddress.DEFAULT_TEXTUAL_RADIX, leadingZeroStartIndex);
 											parseData.setValue(0, 
-													AddressParseData.KEY_LOWER, value,
-													AddressParseData.KEY_UPPER, value);
+													AddressParseData.KEY_LOWER, currentFrontValueHex,
+													AddressParseData.KEY_UPPER, currentFrontValueHex);
 										}
-										frontDigitCount = frontLeadingZeroCount = frontWildcardCount = frontSingleWildcardCount = 0;
-										frontNotOctal = frontNotDecimal = frontUppercase = false;
-										frontHexDelimiterIndex = rangeWildcardIndex = -1;
 										currentFrontValueHex = 0;
 									}
+									lastSeparatorIndex = rangeWildcardIndex;
+									rangeWildcardIndex = -1;
 									parseData.incrementSegmentCount();
 									//end of handling the first segment a- in a-b-
 									//below we handle b- by setting endOfSegment here
@@ -1088,9 +1113,6 @@ public class Validator implements HostIdentifierStringValidator {
 								assignAttributes(index, index, parseData, segCount, index);
 								parseData.incrementSegmentCount();
 							} else {
-								if(!stringFormatParams.allowLeadingZeros && leadingZeroCount > 0) {
-									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-								}
 								long value;
 								int startIndex = index - digitCount;
 								int leadingZeroStartIndex = startIndex - leadingZeroCount;
@@ -1106,6 +1128,9 @@ public class Validator implements HostIdentifierStringValidator {
 										//note we know there is a zero as we have already checked for empty segments so here we know leadingZeroCount is non-zero
 										startIndex--;
 										leadingZeroCount--;
+										if(!stringFormatParams.allowLeadingZeros && leadingZeroCount > 0) {
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										}
 										isJustZero = true;
 										parseData.setFlag(segCount, AddressParseData.KEY_STANDARD_STR, true);
 										assignAttributes(startIndex, index, parseData, segCount, leadingZeroStartIndex);
@@ -1114,11 +1139,12 @@ public class Validator implements HostIdentifierStringValidator {
 								} else if(checkCharCounts && digitCount > maxChars) {
 									throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", leadingZeroStartIndex);
 								} else { // digitCount > 0
-									if(isSingleWildcard = (singleWildcardCount > 0)) {
+									if(!stringFormatParams.allowLeadingZeros && leadingZeroCount > 0) {
+										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+									} else if(isSingleWildcard = (singleWildcardCount > 0)) {
 										if(rangeWildcardIndex >= 0) {
 											throw new AddressStringException(str, index, true);
-										}
-										if(isSingleIPv6Hex) {//We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
+										} else if(isSingleIPv6Hex) {//We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
 											parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, leadingZeroStartIndex, stringFormatParams);
 										} else {
 											assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, leadingZeroStartIndex, stringFormatParams);
@@ -1150,6 +1176,8 @@ public class Validator implements HostIdentifierStringValidator {
 										throw new AddressStringException(str, "ipaddress.error.no.range");
 									} else if(frontHexDelimiterIndex >= 0 && !isSingleSegment) {
 										throw new AddressStringException(str, frontHexDelimiterIndex);
+									} else if(frontSingleWildcardCount > 0 || frontWildcardCount > 0) {// no wildcards in ranges
+										throw new AddressStringException(str, rangeWildcardIndex, true);
 									} else if(!stringFormatParams.allowLeadingZeros && frontLeadingZeroCount > 0) {
 										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 									} else if(isMac && !macSpecificOptions.allowShortSegments && frontTotalDigitCount < 2) {
@@ -1163,7 +1191,7 @@ public class Validator implements HostIdentifierStringValidator {
 									}
 									long front, extendedFront;
 									boolean frontEmpty;
-									if(isSingleIPv6Hex) {//We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
+									if(isSingleIPv6Hex) {//We need this special block here because single ipv6 hex is 128 bits and cannot fit into a long
 										frontEmpty = false;
 										int frontMidIndex = frontEndIndex - 16;
 										extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
@@ -1204,9 +1232,6 @@ public class Validator implements HostIdentifierStringValidator {
 													AddressParseData.KEY_UPPER, value);
 										}
 									}
-									frontDigitCount = frontLeadingZeroCount = frontWildcardCount = frontSingleWildcardCount = 0;
-									frontNotOctal = frontNotDecimal = frontUppercase = false;
-									frontHexDelimiterIndex = -1;
 									currentFrontValueHex = 0;
 									isStandard = false;
 									isSingleWildcard = false;
@@ -1244,7 +1269,8 @@ public class Validator implements HostIdentifierStringValidator {
 						++index;
 					}
 					isRangeChar = false;
-				} else if(currentChar >= 'A' && currentChar <= 'F') {
+				} // end of IPv6 and MAC segments
+				else if(currentChar >= 'A' && currentChar <= 'F') {
 					++digitCount;
 					++index;
 					currentValueHex = (currentValueHex << 4) | charArray[currentChar];
@@ -2300,7 +2326,7 @@ public class Validator implements HostIdentifierStringValidator {
 	}
 	
 	/**
-	 * The digits were stored as a hex value, thix switches them to an octal value.
+	 * The digits were stored as a hex value, this switches them to an octal value.
 	 * 
 	 * @param currentHexValue
 	 * @param digitCount
