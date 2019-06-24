@@ -810,6 +810,13 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testMatches(true, "*-*", "*:*:*");
 		testMatches(true, "bbaacc0dee0f", "bb:aa:cc:d:ee:f");
 		testMatches(true, "bbaacc0dee0faab0", "bb:aa:cc:d:ee:f:aa:b0");
+		//testMatches(false, "*-abcdef|fffffe", "0|ffffff-abcdef|fffffe"); test does not catch IncompatibleAddressException.  Also, we do not catch IncompatibleAddressException inside getAddress like in v5.
+		testMatches(true, "*-ab0000|ffffff", "0|ffffff-ab0000|ffffff");
+		testMatches(true, "*-ab|fe-aa-aa-aa-aa", "0|ff-ab|fe-aa-aa-aa-aa");
+		mactest(true, "*-abcdef|fffffe");//IncompatibleAddressException
+		mactest(true, "0|ffffff-abcdef|fffffe");//IncompatibleAddressException
+		mactest(true, "*-ab0000|ffffff");
+		mactest(true, "0|ffffff-ab0000|ffffff");
 		
 		mactest(false, "*|1");
 		mactest(false, "1|*");

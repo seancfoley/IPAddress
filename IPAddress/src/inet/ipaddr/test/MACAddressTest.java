@@ -206,24 +206,26 @@ public class MACAddressTest extends TestBase {
 		//notBoth means we validate as IPv4 or as IPv6, we don't validate as either one
 		try {
 			if(isNotExpected(pass, addr)) {
-				System.out.println(addr.getAddress());
 				failed = true;
 				addFailure(new Failure(pass, addr));
 			} else {
-				boolean zeroPass = pass && !isZero;
-				if(isNotExpectedNonZero(zeroPass, addr)) {
-					failed = true;
-					addFailure(new Failure(zeroPass, addr));
-				} else {
-					//test the bytes
-					if(pass && addr.toString().length() > 0 && addr.getAddress() != null) {
-						failed = !testBytes(addr.getAddress());
+				try {
+					boolean zeroPass = pass && !isZero;
+					if(isNotExpectedNonZero(zeroPass, addr)) {
+						failed = true;
+						addFailure(new Failure(zeroPass, addr));
+					} else {
+						//test the bytes
+						if(pass && addr.toString().length() > 0 && addr.getAddress() != null) {
+							failed = !testBytes(addr.getAddress());
+						}
+					}
+				} catch(IncompatibleAddressException e) {
+					if(isZero) {
+						addFailure(new Failure("incompatible addresses cannot be zero", addr));
 					}
 				}
 			} 
-		} catch(IncompatibleAddressException e) {
-			failed = true;
-			addFailure(new Failure(e.toString(), addr));
 		} catch(RuntimeException e) {
 			failed = true;
 			addFailure(new Failure(e.toString(), addr));
