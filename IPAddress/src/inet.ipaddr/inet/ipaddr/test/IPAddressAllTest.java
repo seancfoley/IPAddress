@@ -734,5 +734,40 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		ipv6test(1, "=q{+-|w0(OeO5^-85=Cb"); // two '-'
 		ipv6test(1, "=q{+M|w0(OeO5^F85=Cb" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "eth0"); // ok
 		ipv6test(0, "=q{+M|w0(OeO5^F85=C" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "eth0"); // too soon
+	
+		testMatches(true, "-", "*.*");
+		testMatches(true, "-", "*.*.*.*");
+		
+		testMatches(true, "-0000000000000000efabffffffffffff", "00000000000000000000000000000000-0000000000000000efabffffffffffff");
+		testMatches(true, "00000000000000000000000000000000-", "00000000000000000000000000000000-ffffffffffffffffffffffffffffffff");
+		testMatches(true, "abfe0000000000000000000000000000-", "abfe0000000000000000000000000000-ffffffffffffffffffffffffffffffff");
+		
+		testMatches(true, "-0x0000000000000000efabffffffffffff", "00000000000000000000000000000000-0000000000000000efabffffffffffff");
+		testMatches(true, "0x00000000000000000000000000000000-", "00000000000000000000000000000000-ffffffffffffffffffffffffffffffff");
+		testMatches(true, "0xabcd0000000000000000000000000000-", "abcd0000000000000000000000000000-ffffffffffffffffffffffffffffffff");
+		
+		// these are the same addresses as the above tests in hex, but here in base 85
+		testMatches(true, IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "0000000000=l?k|EPzi+", "00000000000000000000" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "0000000000=l?k|EPzi+");
+		testMatches(true, "00000000000000000000" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR, "00000000000000000000" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0");
+		testMatches(true, "oBky9Vh_d)e!eUd#8280" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR, "oBky9Vh_d)e!eUd#8280" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "=r54lj&NUUO~Hi%c2ym0");
+		
+		
+		testMatches(true, "*.*.*.*", "-4294967295"); // ok on all tests
+		testMatches(true, "*.*.*.*", "-0xffffffff"); // ok on all tests
+		testMatches(true, "*.*.*.*", "-037777777777"); // ok on all tests
+		
+		testMatches(true, "*.*.*.*", "0-");
+		testMatches(true, "*.*.*.*", "-");
+		
+		testMatches(true, "0.-", "0.*.*.*");
+		testMatches(true, "0.-", "0.*");
+		testMatches(true, "0.0.-", "0.0.*.*");
+		testMatches(true, "0.0.-", "0.0.*");
+		testMatches(true, "0.-.0", "0.*.0.0");//ok
+		testMatches(true, "-.0.-", "*.0.*.*"); // more than one inferred range
+		testMatches(true, "-.0.-", "*.0.*");
+		testMatches(true, "1-.0.256-", "1-255.0.256-65535"); // 1-.0.256- becomes 1-255.0.*.255 // more than one inferred range
+		testMatches(true, "0.1-.256-", "0.1-255.256-65535"); // more than one inferred range
+		testMatches(true, "1-.65536-", "1-255.65536-16777215"); // test more than one inferred range
 	}
 }

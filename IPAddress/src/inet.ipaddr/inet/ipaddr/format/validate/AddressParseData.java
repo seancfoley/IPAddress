@@ -40,7 +40,8 @@ class AddressParseData implements Serializable {
 	
 	// these are for the flags
 	// a standard string is a string showing only the lower value of a segment.  A standard range string shows both values, low to high, with the standard separator.
-	public static final int KEY_WILDCARD = 0x100, KEY_SINGLE_WILDCARD = 0x200, KEY_STANDARD_STR = 0x400, KEY_STANDARD_RANGE_STR = 0x800, KEY_RANGE_WILDCARD = 0x1000;
+	public static final int KEY_WILDCARD = 0x100, KEY_SINGLE_WILDCARD = 0x200, KEY_STANDARD_STR = 0x400,
+			KEY_STANDARD_RANGE_STR = 0x800, KEY_RANGE_WILDCARD = 0x1000, KEY_INFERRED_LOWER_BOUNDARY = 0x2000, KEY_INFERRED_UPPER_BOUNDARY = 0x4000;
 	private static final int KEY_RADIX = 0xff;
 	
 	
@@ -414,6 +415,10 @@ class AddressParseData implements Serializable {
 	
 	boolean hasRange(int index) {
 		return hasEitherFlag(index, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD);
+	}
+	
+	boolean isInferredUpperBoundary(int index) {
+		return getFlag(index, KEY_INFERRED_UPPER_BOUNDARY);
 	}
 
 	@Override

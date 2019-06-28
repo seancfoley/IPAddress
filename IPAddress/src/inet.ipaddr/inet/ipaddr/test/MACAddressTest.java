@@ -1101,6 +1101,13 @@ public class MACAddressTest extends TestBase {
 		mactest(false, "aa:bb:cc:dd:eee:ff");
 		mactest(false, "aa:bb:cc:dd:ee:fff");
 		
+		mactest(1,"f-a-b-c-d-e");
+		mactest(0,"-a-b-c-d-e");
+		mactest(0,"f--b-c-d-e");
+		mactest(0,"f-b-c-d-e");
+		mactest(0,"f-a-b-c-d-");
+		mactest(0,"f-a-b-c--e");
+		
 		testNormalized("A:B:C:D:E:F:A:B", "0a:0b:0c:0d:0e:0f:0a:0b");
 		testNormalized("AB:AB:CC:Dd:Ee:fF:aA:Bb", "ab:ab:cc:dd:ee:ff:aa:bb");
 		
@@ -1112,8 +1119,6 @@ public class MACAddressTest extends TestBase {
 		
 		testNormalized("0:1:0:2:0:3:0:0", "00:01:00:02:00:03:00:00");
 		testNormalized("0:1:0:2:0:3", "00:01:00:02:00:03");
-		
-		
 		
 		testNormalized("A-B-C-D-E-F-A-B", "0a:0b:0c:0d:0e:0f:0a:0b");
 		testNormalized("AB-AB-CC-Dd-Ee-fF-aA-Bb", "ab:ab:cc:dd:ee:ff:aa:bb");

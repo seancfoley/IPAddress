@@ -201,7 +201,12 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 	 * @return
 	 */
 	public boolean isEmpty() {
-		return isValid() && getAddress() == null;
+		if(isValid()) { //Avoid the exception the second time with this check
+			try {
+				return parsedAddress.getAddress() == null;
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
+		}
+		return false;
 	}
 
 	public boolean isZero() {
@@ -280,14 +285,6 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 		}
 		if(isValid()) {
 			if(other.isValid()) {
-				if(isEmpty()) {
-					if(other.isEmpty()) {
-						return 0;
-					}
-					return -1;
-				} else if(other.isEmpty()) {
-					return 1;
-				}
 				MACAddress addr = getAddress();
 				if(addr != null) {
 					MACAddress otherAddr = other.getAddress();
@@ -295,10 +292,11 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 						return addr.compareTo(otherAddr);
 					}
 				}
+				// one or the other is null, either empty or IncompatibleAddressException
+				return toString().compareTo(other.toString());
 			}
 			return 1;
-		}
-		if(other.isValid()) {
+		} else if(other.isValid()) {
 			return -1;
 		}
 		return toString().compareTo(other.toString());
@@ -326,14 +324,23 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 			if(stringsMatch && validationOptions == other.validationOptions) {
 				return true;
 			}
-			if(isEmpty()) {
-				return other.isEmpty();
-			}
 			if(isValid()) {
 				if(other.isValid()) {
-					return getAddress().equals(other.getAddress());
+					MACAddress value = getAddress();
+					if(value != null) {
+						MACAddress otherValue = other.getAddress();
+						if(otherValue != null) {
+							return value.equals(otherValue);
+						} else {
+							return false;
+						}
+					} else if(other.getAddress() != null) {
+						return false;
+					}
+					// both are null, either empty or IncompatibleAddressException
+					return stringsMatch;
 				}
-			} else if(!other.isValid()) {
+			} else if(!other.isValid()) {// both are invalid
 				return stringsMatch; // Two invalid addresses are not equal unless strings match, regardless of validation options
 			}
 		}

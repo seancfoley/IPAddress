@@ -3262,6 +3262,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMatches(true, "1:-1::16/32", "1:0-1::16");
 			testMatches(true, "1:-1::16", "1:0-1::16/32");
 		}
+		testMatches(true, "0.0.0.-", "0.0.0.*");//ok
+		testMatches(true, "1-.0.0.1-", "1-255.0.0.1-255"); // ok // more than one inferred range
+		
+		
 		if(allPrefixesAreSubnets) {
 			testCIDRSubnets("9.*.237.26/0", "0.0.0.0/0");
 			testCIDRSubnets("9.*.237.26/1", "0.0.0.0/1");
@@ -4619,6 +4623,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv6test(0, "1:1:1.2__.1.1");
 		ipv6test(0, "1:1:_.*");
 		ipv6test(0, "1:1:1._");
+		
+		ipv6test(1,"a-f:b:c:d:e:f:a:bb");
+		ipv6test(1,"-f:b:c:d:e:f:a:bb");
 		
 		testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0", new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
 		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0", new int[] {0, 16, 32, 48, 64, 80, 96, 112, 128});

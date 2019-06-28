@@ -242,7 +242,7 @@ public class Validator implements HostIdentifierStringValidator {
 		boolean hasDigits, leadingWithZero;
 		int frontDigitCount, frontLeadingZeroCount, frontWildcardCount, frontSingleWildcardCount, frontHexDelimiterIndex;
 		boolean uppercase, isSingleIPv6Hex, isSingleSegment, isDoubleSegment;
-		boolean frontNotOctal, frontNotDecimal, frontUppercase, frontIsStandardRangeChar;
+		boolean frontUppercase, frontIsStandardRangeChar;
 		boolean firstSegmentDashedRange, checkCharCounts;
 		int extendedCharacterIndex, extendedRangeWildcardIndex;
 		boolean atEnd, isSegmented;
@@ -251,7 +251,7 @@ public class Validator implements HostIdentifierStringValidator {
 		
 		frontDigitCount = frontLeadingZeroCount = frontSingleWildcardCount = leadingZeroCount = singleWildcardCount = wildcardCount = frontWildcardCount = 0;
 		extendedCharacterIndex = extendedRangeWildcardIndex = rangeWildcardIndex = hexDelimiterIndex = frontHexDelimiterIndex = -1;
-		isSegmented = leadingWithZero = hasDigits = frontIsStandardRangeChar = atEnd = firstSegmentDashedRange = frontNotOctal = frontNotDecimal = frontUppercase = uppercase = isSingleIPv6Hex = isSingleSegment = isDoubleSegment = false;
+		isSegmented = leadingWithZero = hasDigits = frontIsStandardRangeChar = atEnd = firstSegmentDashedRange = frontUppercase = uppercase = isSingleIPv6Hex = isSingleSegment = isDoubleSegment = false;
 		currentValueHex = currentFrontValueHex = 0;
 		checkCharCounts = true;
 		
@@ -281,7 +281,7 @@ public class Validator implements HostIdentifierStringValidator {
 							currentChar = IPv4Address.SEGMENT_SEPARATOR;
 						} else { //ipv6
 							if(index == segmentStartIndex) {
-									if(index == parseData.getConsecutiveSeparatorIndex() + 2) {
+								if(index == parseData.getConsecutiveSeparatorIndex() + 2) {
 									//ends with ::, we've already parsed the last segment
 									break;
 								}
@@ -318,9 +318,9 @@ public class Validator implements HostIdentifierStringValidator {
 						break;
 					}
 					int totalDigits = index - segmentValueStartIndex;
+					int frontTotalDigits = frontLeadingZeroCount + frontDigitCount;
 					if(isMac) {
 						//we handle the double segment format abcdef-abcdef here
-						int frontTotalDigits = frontLeadingZeroCount + frontDigitCount;
 						if(		(	((totalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT || totalDigits == MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT) && (frontTotalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT || frontWildcardCount > 0)) || 
 									(frontTotalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT && wildcardCount > 0) ||
 									(frontWildcardCount > 0 && wildcardCount > 0)
@@ -340,7 +340,7 @@ public class Validator implements HostIdentifierStringValidator {
 							macAddressParseData.setExtended(totalDigits == MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT);//we have aaaaaa-bbbbbbbbbb
 							currentChar = MACAddress.DASH_SEGMENT_SEPARATOR;
 							checkCharCounts = false; //counted chars already
-						} else if((frontWildcardCount > 0) || (wildcardCount > 0)) {
+						} else if(frontWildcardCount > 0 || wildcardCount > 0) {
 							//either x-* or *-x, we treat these as if they can be expanded to x-*-*-*-*-* or *-*-*-*-*-x
 							if(!macOptions.allowSingleDashed) {
 								throw new AddressStringException(str, "ipaddress.mac.error.format");
@@ -353,14 +353,34 @@ public class Validator implements HostIdentifierStringValidator {
 								throw new AddressStringException(str, "ipaddress.error.single.segment");
 							}
 							boolean is12Digits = totalDigits == MAC_SINGLE_SEGMENT_DIGIT_COUNT;
-							if(is12Digits || totalDigits == MAC_EXTENDED_SINGLE_SEGMENT_DIGIT_COUNT) {
+							boolean is16Digits = totalDigits == MAC_EXTENDED_SINGLE_SEGMENT_DIGIT_COUNT;
+							boolean isNoDigits = totalDigits == 0;
+							if(is12Digits || is16Digits || isNoDigits) {
+								boolean frontIs12Digits, frontIs16Digits, frontIsNoDigits;
 								if(rangeWildcardIndex >= 0) {
-									if(frontTotalDigits != (is12Digits ? MAC_SINGLE_SEGMENT_DIGIT_COUNT : MAC_EXTENDED_SINGLE_SEGMENT_DIGIT_COUNT)) {
-										throw new AddressStringException("ipaddress.error.front.digit.count");
+									frontIs12Digits = frontTotalDigits == MAC_SINGLE_SEGMENT_DIGIT_COUNT;
+									frontIs16Digits = frontTotalDigits == MAC_EXTENDED_SINGLE_SEGMENT_DIGIT_COUNT;
+									frontIsNoDigits = frontTotalDigits == 0;
+									if(is12Digits) {
+										if(!frontIs12Digits && !frontIsNoDigits) {
+											throw new AddressStringException("ipaddress.error.front.digit.count");
+										}
+									} else if(is16Digits) {
+										if(!frontIs16Digits && !frontIsNoDigits) {
+											throw new AddressStringException("ipaddress.error.front.digit.count");
+										}
+									} else if(isNoDigits) {
+										if(!frontIs12Digits && !frontIs16Digits) {
+											throw new AddressStringException("ipaddress.error.front.digit.count");
+										}
 									}
+								} else if(isNoDigits) {
+									throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
+								} else {
+									frontIs12Digits = frontIs16Digits = frontIsNoDigits = false;
 								}
 								parseData.setSingleSegment(isSingleSegment = true);
-								macAddressParseData.setExtended(!is12Digits);
+								macAddressParseData.setExtended(is16Digits || frontIs16Digits);
 								currentChar = MACAddress.COLON_SEGMENT_SEPARATOR;
 								checkCharCounts = false;//counted chars already
 							} else {
@@ -372,16 +392,22 @@ public class Validator implements HostIdentifierStringValidator {
 						if(!baseOptions.allowSingleSegment) {
 							throw new AddressStringException(str, "ipaddress.error.single.segment");
 						}
-						if(totalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT) {
+						boolean backIsIpv6 = totalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT;
+						if(backIsIpv6 || frontTotalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT) {
 							// we are not base 85, so throw if necessary
 							if(extendedCharacterIndex >= 0) {
 								throw new AddressStringException(str, extendedCharacterIndex);
 							}
 							if(rangeWildcardIndex >= 0) {
-								int frontTotalDigits = frontLeadingZeroCount + frontDigitCount;
-								if(frontTotalDigits != IPV6_SINGLE_SEGMENT_DIGIT_COUNT) {
+								if(backIsIpv6) {
+									if(frontTotalDigits != IPV6_SINGLE_SEGMENT_DIGIT_COUNT && frontTotalDigits != 0) {
+										throw new AddressStringException("ipaddress.error.front.digit.count");
+									}
+								} else if(totalDigits != 0) {
 									throw new AddressStringException("ipaddress.error.front.digit.count");
 								}
+							} else if(!backIsIpv6) {
+								throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 							}
 							parseData.setSingleSegment(isSingleSegment = isSingleIPv6Hex = true);
 							currentChar = IPv6Address.SEGMENT_SEPARATOR;
@@ -410,7 +436,9 @@ public class Validator implements HostIdentifierStringValidator {
 										break;
 									}
 								} else {
-									if(totalCharacterCount == (IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT << 1) + 1) {/* note that we already check that extendedRangeWildcardIndex is at index 20 */
+									if(totalCharacterCount == (IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT << 1) + 1 /* two base 85 addresses */ ||
+											(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT + 1 &&
+											(extendedRangeWildcardIndex == 0 || extendedRangeWildcardIndex + 1 == strEndIndex)) /* inferred boundary */) {/* note that we already check that extendedRangeWildcardIndex is at index 20 */
 										if(!validationOptions.allowIPv6) {
 											throw new AddressStringException(str, "ipaddress.error.ipv6");
 										}
@@ -419,38 +447,77 @@ public class Validator implements HostIdentifierStringValidator {
 											throw new AddressStringException(str, "ipaddress.error.no.range");
 										}
 										ipAddressParseData.setVersion(IPVersion.IPV6);
-										int frontEndIndex = strStartIndex + IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT;
-										BigInteger val = parseBig85(str, strStartIndex, frontEndIndex);
-										BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
-										long value = val.and(LOW_BITS_MASK).longValue();
-										BigInteger shift64 = val.shiftRight(Long.SIZE);
-										extendedValue = shift64.longValue();
-										BigInteger shiftMore = shift64.shiftRight(Long.SIZE);
-										long value2 = val2.and(LOW_BITS_MASK).longValue();
-										shift64 = val2.shiftRight(Long.SIZE);
-										long extendedValue2 = shift64.longValue();
-										shiftMore = shift64.shiftRight(Long.SIZE);
+										int frontEndIndex = extendedRangeWildcardIndex, flags = 0;
+										long value, value2, extendedValue2;
 										int lowerStart, lowerEnd, upperStart, upperEnd;
-										if(!shiftMore.equals(BigInteger.ZERO)) {
-											throw new AddressStringException(str, "ipaddress.error.address.too.large");
-										} else if(val.compareTo(val2) > 0) {
-											if(!stringFormatParams.rangeOptions.allowsReverseRange()) {
-												throw new AddressStringException(str, "ipaddress.error.invalidRange");
+										
+										if(frontEndIndex == strStartIndex + IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
+											BigInteger val = parseBig85(str, strStartIndex, frontEndIndex);
+											value = val.and(LOW_BITS_MASK).longValue();
+											BigInteger shift64 = val.shiftRight(Long.SIZE);
+											extendedValue = shift64.longValue();
+											if(frontEndIndex + 1 < strEndIndex) {
+												BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
+												value2 = val2.and(LOW_BITS_MASK).longValue();
+												shift64 = val2.shiftRight(Long.SIZE);
+												extendedValue2 = shift64.longValue();
+												BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
+												
+												if(val.compareTo(val2) > 0) {
+													BigInteger shiftMoreVal = shift64.shiftRight(Long.SIZE);
+													if(!stringFormatParams.rangeOptions.allowsReverseRange()) {
+														throw new AddressStringException(str, "ipaddress.error.invalidRange");
+													} else if(!shiftMoreVal.equals(BigInteger.ZERO)) {
+														throw new AddressStringException(str, "ipaddress.error.address.too.large");
+													}
+													lowerStart = frontEndIndex + 1;
+													lowerEnd = strEndIndex;
+													upperStart = strStartIndex;
+													upperEnd = frontEndIndex;
+												} else {
+													if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+														throw new AddressStringException(str, "ipaddress.error.address.too.large");
+													}
+													lowerStart = strStartIndex;
+													lowerEnd = frontEndIndex;
+													upperStart = frontEndIndex + 1;
+													upperEnd = strEndIndex;
+												}
+											} else {
+												if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
+													throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+												}
+												lowerStart = strStartIndex;
+												lowerEnd = frontEndIndex;
+												upperStart = upperEnd = strEndIndex;
+												value2 = extendedValue2 = -1;
+												flags = AddressParseData.KEY_INFERRED_UPPER_BOUNDARY;
 											}
-											lowerStart = frontEndIndex + 1;
-											lowerEnd = strEndIndex;
-											upperStart = strStartIndex;
-											upperEnd = frontEndIndex;
-										} else {
-											lowerStart = strStartIndex;
-											lowerEnd = frontEndIndex;
-											upperStart = frontEndIndex + 1;
+										} else if(frontEndIndex == 0) {
+											if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
+												throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+											}
+											lowerStart = lowerEnd = 0;
+											value = extendedValue = 0;
+											flags = AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
+											BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
+											value2 = val2.and(LOW_BITS_MASK).longValue();
+											BigInteger shift64 = val2.shiftRight(Long.SIZE);
+											extendedValue2 = shift64.longValue();
+											BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
+											if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+												throw new AddressStringException(str, "ipaddress.error.address.too.large");
+											}
+											upperStart = 1;
 											upperEnd = strEndIndex;
+										} else {
+											throw new AddressStringException(str, extendedRangeWildcardIndex);
 										}
 										parseData.incrementSegmentCount();
 										parseData.initSegmentData(1);
 										assignAttributesValuesFlags(lowerStart, lowerEnd, lowerStart, upperStart, upperEnd, upperStart,
-												parseData, 0, value, extendedValue, value2, extendedValue2, AddressParseData.KEY_RANGE_WILDCARD | IPv6Address.BASE_85_RADIX, IPv6Address.BASE_85_RADIX);
+												parseData, 0, value, extendedValue, value2, extendedValue2,
+												AddressParseData.KEY_RANGE_WILDCARD | IPv6Address.BASE_85_RADIX | flags, IPv6Address.BASE_85_RADIX);
 										ipAddressParseData.setBase85(true);
 										break;
 									}
@@ -567,8 +634,8 @@ public class Validator implements HostIdentifierStringValidator {
 						continue;
 					} else if(segCount >= IPv4Address.SEGMENT_COUNT) {
 						throw new AddressStringException(str, "ipaddress.error.ipv4.too.many.segments");
-					} 
-					maxChars = getMaxIPv4StringLength(3, 8);
+					}
+					maxChars = 11; // octal 037777777777
 				}
 				if(wildcardCount > 0) {
 					if(!stringFormatParams.rangeOptions.allowsWildcard()) {
@@ -585,7 +652,7 @@ public class Validator implements HostIdentifierStringValidator {
 							parseData, segCount, 0, isMac ? MACAddress.MAX_VALUE_PER_DOTTED_SEGMENT : IPv4Address.MAX_VALUE_PER_SEGMENT, AddressParseData.KEY_WILDCARD);
 					wildcardCount = 0;
 				} else {
-					int flags = 0;
+					int flags = 0, rangeFlags = 0;
 					long value;
 					int radix, startIndex = segmentValueStartIndex + leadingZeroCount, digitCount = index - startIndex;
 					if(leadingWithZero) {
@@ -603,23 +670,22 @@ public class Validator implements HostIdentifierStringValidator {
 							startIndex++;
 							digitCount--;
 						}
-						leadingWithZero = false;
+						leadingWithZero = false; // reset this flag now that we've used it
 					}
 					boolean noValuesToSet = false;
 					if(digitCount == 0) {
-						if(rangeWildcardIndex >= 0 && hexDelimiterIndex < 0) { 
-							// we allow an empty range boundary to denote the max value
-							if(isMac) {
-								value = MACAddress.MAX_VALUE_PER_DOTTED_SEGMENT;
-								radix = 16;
-							} else {
-								value = IPv4Address.MAX_VALUE_PER_SEGMENT;
-								radix = 10;
-							}
-						} else  {
+						// we allow an empty range boundary to denote the max value
+						if(rangeWildcardIndex < 0 || hexDelimiterIndex >= 0 || !stringFormatParams.rangeOptions.allowsInferredBoundary()) { 
 							// starts with '.', or has two consecutive '.'
 							throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+						} else if(isMac) {
+							value = MACAddress.MAX_VALUE_PER_DOTTED_SEGMENT;
+							radix = 16;
+						} else {
+							value = IPv4Address.MAX_VALUE_PER_SEGMENT; // for inet-aton multi-segment, this will be adjusted later
+							radix = 10;
 						}
+						rangeFlags = AddressParseData.KEY_INFERRED_UPPER_BOUNDARY;
 					} else { // digitCount > 0
 						//Note: we cannot do max value check on ipv4 until after all segments have been read due to inet_aton joined segments, 
 						//although we can do a preliminary check here that is in fact needed to prevent overflow when calculating values later
@@ -667,8 +733,7 @@ public class Validator implements HostIdentifierStringValidator {
 						} else if(hasLeadingZeros && ipv4SpecificOptions.inet_aton_octal) {
 							if(!stringFormatParams.allowLeadingZeros) {
 								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-							} else 
-								if(leadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+							} else if(leadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
 								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 							}
 							ipAddressParseData.set_has_inet_aton_value(true);
@@ -722,7 +787,6 @@ public class Validator implements HostIdentifierStringValidator {
 						}
 						boolean frontEmpty = frontStartIndex == frontEndIndex;
 						boolean isReversed;
-						int rangeFlags = AddressParseData.KEY_RANGE_WILDCARD;
 						boolean hasFrontLeadingZeros = frontLeadingZeroCount > 0;
 						if(isMac || frontHexDelimiterIndex >= 0) {
 							if(isMac) {
@@ -735,13 +799,16 @@ public class Validator implements HostIdentifierStringValidator {
 									throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", frontLeadingZeroStartIndex);
 								} else if(!macSpecificOptions.allowShortSegments && totalFrontDigits < 3) {
 									throw new AddressStringException(str, "ipaddress.error.segment.too.short.at.index", frontLeadingZeroStartIndex);
-								}
-								if(!frontEmpty) {//we allow the front of a range to be empty in which case it is 0
-									front = currentFrontValueHex;
-									isReversed = front > value;
-								} else {
+								} else if(frontEmpty) {//we allow the front of a range to be empty in which case it is 0
+									if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
+										throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+									}
+									rangeFlags |= AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
 									front = 0;
 									isReversed = false;
+								} else {
+									front = currentFrontValueHex;
+									isReversed = front > value && digitCount != 0;
 								}
 							} else if(!stringFormatParams.allowLeadingZeros) {
 								// the '0' preceding the 'x' is not allowed
@@ -751,16 +818,12 @@ public class Validator implements HostIdentifierStringValidator {
 							} else if(hasFrontLeadingZeros && !ipv4SpecificOptions.inet_aton_leading_zeros) {
 								// the '0' following the 'x' is not allowed
 								throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+							} else if(frontEmpty) {
+								throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
 							} else {
 								ipAddressParseData.set_has_inet_aton_value(true);
-								//Note that here we allow 0x-0x3 or even 0x-3
-								if(!frontEmpty) {//we allow the front of a range to be empty in which case it is 0
-									front = currentFrontValueHex;
-									isReversed = front > value;
-								} else {
-									front = 0;
-									isReversed = false;
-								}
+								front = currentFrontValueHex;
+								isReversed = front > value && digitCount != 0;
 							}
 							frontRadix = 16;
 						} else { 
@@ -768,36 +831,36 @@ public class Validator implements HostIdentifierStringValidator {
 							if(frontIsOctal) {
 								if(!stringFormatParams.allowLeadingZeros) {
 									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-								} else if(frontNotOctal) {
-									throw new AddressStringException(str, "ipaddress.error.ipv4.invalid.octal.digit");
 								} else if(frontLeadingZeroCount > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
 									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
 								}
 								ipAddressParseData.set_has_inet_aton_value(true);
 								front = switchValue8(currentFrontValueHex, str, frontEndIndex - frontStartIndex);
 								frontRadix = 8;
-								isReversed = front > value;
+								isReversed = front > value && digitCount != 0;
 							} else {
-								if(hasFrontLeadingZeros && !stringFormatParams.allowLeadingZeros) {
-									throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
-								} else if(frontNotDecimal) {
-									throw new AddressStringException(str, "ipaddress.error.ipv4.invalid.decimal.digit");
-								}
-								if(!frontEmpty) {//we allow the front of a range to be empty in which case it is 0
-									front = switchValue10(currentFrontValueHex, str, frontEndIndex - frontStartIndex);
-									isReversed = front > value;
-								} else {
+								if(frontEmpty) {//we allow the front of a range to be empty in which case it is 0
+									if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
+										throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+									}
+									rangeFlags |= AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
 									front = 0;
 									isReversed = false;
-								}
-								if(hasFrontLeadingZeros) {
-									ipAddressParseData.setHasIPv4LeadingZeros(true);
-								}
-								if(!frontEmpty && !isReversed) { 
-									if(leadingZeroCount == 0 && (flags & AddressParseData.KEY_STANDARD_STR) != 0) {
-										rangeFlags |= AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR;
-									} else {
-										rangeFlags |= AddressParseData.KEY_STANDARD_STR;
+								} else {
+									front = switchValue10(currentFrontValueHex, str, frontEndIndex - frontStartIndex);
+									if(hasFrontLeadingZeros) {
+										if(!stringFormatParams.allowLeadingZeros) {
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										}
+										ipAddressParseData.setHasIPv4LeadingZeros(true);
+									}
+									isReversed = front > value && digitCount != 0;
+									if(!isReversed) {
+										if(leadingZeroCount == 0 && (flags & AddressParseData.KEY_STANDARD_STR) != 0) {
+											rangeFlags |= AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR;
+										} else {
+											rangeFlags |= AddressParseData.KEY_STANDARD_STR;
+										}
 									}
 								}
 								frontRadix = 10;
@@ -808,8 +871,6 @@ public class Validator implements HostIdentifierStringValidator {
 							if(!stringFormatParams.rangeOptions.allowsReverseRange()) {
 								throw new AddressStringException(str, "ipaddress.error.invalidRange");
 							}
-							noValuesToSet = false;
-							
 							// switcheroo
 							int tmp = frontStartIndex;
 							frontStartIndex = startIndex;
@@ -831,12 +892,8 @@ public class Validator implements HostIdentifierStringValidator {
 							front = value;
 							value = tmpl;
 						}
-						if(noValuesToSet) {
-							assignAttributesValuesFlags(startIndex, index, segmentValueStartIndex, parseData, segCount, 0, radix | AddressParseData.KEY_RANGE_WILDCARD);
-						} else {
-							assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
-									parseData, segCount, front, value, rangeFlags | frontRadix, radix);
-						}
+						assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
+								parseData, segCount, front, value, rangeFlags | AddressParseData.KEY_RANGE_WILDCARD | frontRadix, radix);
 						rangeWildcardIndex = -1;
 					} else if(!noValuesToSet) {
 						assignAttributesValuesFlags(startIndex, index, segmentValueStartIndex, parseData, segCount, value, flags | radix);
@@ -899,7 +956,6 @@ public class Validator implements HostIdentifierStringValidator {
 								}
 								macAddressParseData.setFormat(macFormat = MACFormat.DASHED);
 								checkCharCounts = false;//counting chars later
-								segmentStartIndex = segmentValueStartIndex = rangeWildcardIndex + 1;	
 								parseData.initSegmentData(MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
 								isSegmented = true;
 								if(frontWildcardCount > 0) {
@@ -909,10 +965,9 @@ public class Validator implements HostIdentifierStringValidator {
 										throw new AddressStringException(str, rangeWildcardIndex, true);
 									}
 									parseData.setHasWildcard(true);
-									int totalDigits = index - segmentValueStartIndex;
-									int startIndex = rangeWildcardIndex - frontWildcardCount;
+									int backDigits = index - segmentValueStartIndex;
 									long upperValue;
-									if(isDoubleSegment || totalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT) {
+									if(isDoubleSegment || backDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT) {
 										//even when not already identified as a double segment address, which is something we can see
 										//only when we reach the end of the address, we may have a-b| where a is * and b is a 6 digit value.
 										//Here we are considering the max value of a.
@@ -925,9 +980,9 @@ public class Validator implements HostIdentifierStringValidator {
 									} else {
 										upperValue = MACAddress.MAX_VALUE_PER_SEGMENT;
 									}
+									int startIndex = rangeWildcardIndex - frontWildcardCount;
 									assignAttributesValuesFlags(startIndex, rangeWildcardIndex, startIndex, startIndex, rangeWildcardIndex, startIndex,
 											parseData, 0, 0, upperValue, AddressParseData.KEY_WILDCARD);
-									rangeWildcardIndex = -1;
 								} else {
 									if(!stringFormatParams.allowLeadingZeros && frontLeadingZeroCount > 0) {
 										throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
@@ -941,12 +996,16 @@ public class Validator implements HostIdentifierStringValidator {
 										if(frontUppercase) {
 											flags = 0;
 										} else {
+											if(frontDigitCount == 0) {
+												throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", startIndex);
+											}
 											flags = AddressParseData.KEY_STANDARD_STR;
 										}
 										assignAttributesValuesFlags(startIndex, rangeWildcardIndex, leadingZeroStartIndex, parseData, 0, currentFrontValueHex, flags);
 									}
-									rangeWildcardIndex = -1;
 								}
+								segmentStartIndex = segmentValueStartIndex = rangeWildcardIndex + 1;
+								rangeWildcardIndex = -1;
 								parseData.incrementSegmentCount();
 								//end of handling the first segment a- in a-b-
 								//below we handle b- by setting endOfSegment here
@@ -1022,7 +1081,7 @@ public class Validator implements HostIdentifierStringValidator {
 					} else if(currentChar >= 'A' && currentChar <= 'F') { // this is not paired with 'a' to 'f' because these are not canonical and hence not part of the fast path
 						++index;
 						currentValueHex = (currentValueHex << 4) | charArray[currentChar];
-						hasDigits = /* notOctal = notDecimal = OCTX */ uppercase = true;
+						hasDigits = uppercase = true;
 					} else {
 						boolean isSegWildcard;
 						if(isSegWildcard = (currentChar == Address.SEGMENT_WILDCARD)) {
@@ -1051,7 +1110,7 @@ public class Validator implements HostIdentifierStringValidator {
 											// DG		(leadingZeroCount + digitCount == 32 && (rangeWildcardIndex < 0 || frontLeadingZeroCount + frontDigitCount == 32) /* at end of ipv6 single segment */) || 
 											wildcardCount == index /* all wildcards so far */)
 									) {
-								//we are not base 85, so throw if necessary
+								//we are not base 85
 								isBase85 = false;
 								strEndIndex = index;
 								ipAddressParseData.setZoned(true);
@@ -1091,13 +1150,10 @@ public class Validator implements HostIdentifierStringValidator {
 							if(isBase85) {
 								if(extendedCharacterIndex < 0) {
 									extendedCharacterIndex = index;
+								} else if (extendedRangeWildcardIndex >= 0) {
+									throw new AddressStringException(str, index, true);
 								}
-								int base85TotalDigits = index - strStartIndex;
-								if(base85TotalDigits == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
-									extendedRangeWildcardIndex = index;
-								} else {
-									throw new AddressStringException(str, extendedCharacterIndex);
-								}
+								extendedRangeWildcardIndex = index;
 							} else {
 								throw new AddressStringException(str, index);
 							}
@@ -1250,12 +1306,26 @@ public class Validator implements HostIdentifierStringValidator {
 							digitCount -= leadingZeroCount;
 						}
 						leadingWithZero = false;	
-					} 
+					}
+					int rangeFlags = 0;
 					if(leadingZeroCount == 0) {
 						if(digitCount == 0) {
 							// since we have already checked for an empty segment, this can only happen with a range, ie rangeWildcardIndex >= 0
 							// we allow an empty range boundary to denote the max value
-							value = isMac ? MACAddress.MAX_VALUE_PER_SEGMENT : IPv6Address.MAX_VALUE_PER_SEGMENT;
+							if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) { 
+								// starts with '.', or has two consecutive '.'
+								throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+							} else if(isMac) {
+								value = isSingleSegment ? (macAddressParseData.isExtended() ? 0xffffffffffffffffL : 0xffffffffffffL) : 
+									MACAddress.MAX_VALUE_PER_SEGMENT;
+							} else {
+								if(isSingleIPv6Hex) {
+									extendedValue = value = -1L;
+								} else {
+									value = IPv6Address.MAX_VALUE_PER_SEGMENT;
+								}
+							}
+							rangeFlags = AddressParseData.KEY_INFERRED_UPPER_BOUNDARY;
 							noValuesToSet = false;
 						} else {
 							if(digitCount > maxChars && checkCharCounts) {
@@ -1359,33 +1429,33 @@ public class Validator implements HostIdentifierStringValidator {
 							}
 						}
 						long front, extendedFront;
-						boolean frontEmpty;
+						boolean frontEmpty = frontStartIndex == frontEndIndex;
 						boolean isReversed;
-						if(isSingleIPv6Hex) {//We need this special block here because single ipv6 hex is 128 bits and cannot fit into a long
-							frontEmpty = false;
-							int frontMidIndex = frontEndIndex - 16;
-							extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
-							front = parseLong16(str, frontMidIndex, frontEndIndex);
-							isReversed = false; 
-							int frontCompare = Long.compareUnsigned(extendedFront, extendedValue);
-							isReversed = frontCompare > 0 || (frontCompare == 0 && Long.compareUnsigned(front, value) > 0);
+						if(frontEmpty) {
+							if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
+								throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+							}
+							rangeFlags |= AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
+							front = extendedFront = 0;
+							isReversed = false;
 						} else {
-							frontEmpty = frontStartIndex == frontEndIndex;
-							if(frontEmpty) {
-								front = 0;
-								isReversed = false;
+							if(isSingleIPv6Hex) {//We need this special block here because single ipv6 hex is 128 bits and cannot fit into a long
+								int frontMidIndex = frontEndIndex - 16;
+								extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
+								front = parseLong16(str, frontMidIndex, frontEndIndex);
+								int frontCompare = Long.compareUnsigned(extendedFront, extendedValue);
+								isReversed = frontCompare > 0 || (frontCompare == 0 && Long.compareUnsigned(front, value) > 0);
 							} else {
 								front = currentFrontValueHex;
 								isReversed = Long.compareUnsigned(front, value) > 0;
+								extendedFront = 0;
 							}
-							extendedFront = 0;
 						}
 						int backEndIndex = index;
 						if(isReversed) {
 							if(!stringFormatParams.rangeOptions.allowsReverseRange()) {
 								throw new AddressStringException(str, "ipaddress.error.invalidRange");
 							}
-							noValuesToSet = false;
 							// switcheroo
 							int tmp = frontStartIndex;
 							frontStartIndex = startIndex;
@@ -1407,27 +1477,19 @@ public class Validator implements HostIdentifierStringValidator {
 							extendedFront = extendedValue;
 							extendedValue = tmpl;
 						} 
-						if(noValuesToSet) {
-							assignAttributesValuesFlags(startIndex, index, segmentValueStartIndex, parseData, segCount, 0, AddressParseData.KEY_RANGE_WILDCARD);
-							// note: if the upper value of the range is zero, then there is no range at all
+						if(isSingleIPv6Hex) {
+							assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
+									parseData, segCount, front, extendedFront, value, extendedValue, rangeFlags | AddressParseData.KEY_RANGE_WILDCARD);
 						} else {
-							if(isSingleIPv6Hex) {
-								assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
-										parseData, segCount, front, extendedFront, value, extendedValue, AddressParseData.KEY_RANGE_WILDCARD);
-							} else {
-								int rangeFlags;
-								if(!frontUppercase && !frontEmpty && !isReversed) {
-									if(leadingZeroCount == 0 && (flags & AddressParseData.KEY_STANDARD_STR) != 0 && frontIsStandardRangeChar) {
-										rangeFlags = AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR | AddressParseData.KEY_RANGE_WILDCARD;
-									} else {
-										rangeFlags = AddressParseData.KEY_STANDARD_STR | AddressParseData.KEY_RANGE_WILDCARD;
-									}
+							if(!frontUppercase && !frontEmpty && !isReversed) {
+								if(leadingZeroCount == 0 && (flags & AddressParseData.KEY_STANDARD_STR) != 0 && frontIsStandardRangeChar) {
+									rangeFlags = AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR;
 								} else {
-									rangeFlags = AddressParseData.KEY_RANGE_WILDCARD;
+									rangeFlags = AddressParseData.KEY_STANDARD_STR;
 								}
-								assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
-										parseData, segCount, front, value, rangeFlags);
-							}
+							} 
+							assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
+									parseData, segCount, front, value, rangeFlags | AddressParseData.KEY_RANGE_WILDCARD);
 						}
 						rangeWildcardIndex = -1;
 					} else if(!noValuesToSet) {
@@ -1466,53 +1528,51 @@ public class Validator implements HostIdentifierStringValidator {
 				} else {
 					parseData.setExtended(true);
 				}
-			} else {
-				if(segCount > 2) {
-					if(segCount <= MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && validationOptions.addressSize != AddressSize.EUI64) {
-						if(!hasWildcardSeparator && segCount != MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT) {
-							throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
-						}
-					} else if(!hasWildcardSeparator && segCount < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+			} else if(segCount > 2) {
+				if(segCount <= MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT && validationOptions.addressSize != AddressSize.EUI64) {
+					if(!hasWildcardSeparator && segCount != MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT) {
 						throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
-					} else {
-						parseData.setExtended(true);
 					}
-					if(parseData.getFormat() == MACFormat.DASHED) {
-						int max = MACAddress.MAX_VALUE_PER_SEGMENT;
-						int maxChars = MACAddressSegment.MAX_CHARS;
-						for(int i = 0; i < segCount; i++) {
-							checkMaxValues(
-									fullAddr,
-									addressParseData,
-									i,
-									validationOptions.getFormatParameters(),
-									max,
-									maxChars,
-									maxChars);
-						}
-					}
+				} else if(!hasWildcardSeparator && segCount < MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 				} else {
-					if(parseData.getFormat() == MACFormat.DASHED) {
-						//for single segment, we have already counted the exact number of hex digits
-						//for double segment, we have already counted the exact number of hex digits in some cases and not others.
-						//Basically, for address like a-b we have already counted the exact number of hex digits,
-						//for addresses starting with a|b- or a-b| we have not,
-						//but rather than figure out which are checked out which not it's just as quick to check them all here
-						if(parseData.isDoubleSegment()) {
-							MACAddressStringFormatParameters params = validationOptions.getFormatParameters();
-							checkMaxValues(fullAddr, addressParseData, 0, params, MAC_MAX_TRIPLE, MAC_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_DOUBLE_SEGMENT_DIGIT_COUNT);
-							if(parseData.isExtended()) {
-								checkMaxValues(fullAddr, addressParseData, 1, params, MAC_MAX_QUINTUPLE, MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT);
-							} else {
-								checkMaxValues(fullAddr, addressParseData, 1, params, MAC_MAX_TRIPLE, MAC_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_DOUBLE_SEGMENT_DIGIT_COUNT);
-							}
+					parseData.setExtended(true);
+				}
+				if(parseData.getFormat() == MACFormat.DASHED) {
+					int max = MACAddress.MAX_VALUE_PER_SEGMENT;
+					int maxChars = MACAddressSegment.MAX_CHARS;
+					for(int i = 0; i < segCount; i++) {
+						checkMaxValues(
+								fullAddr,
+								addressParseData,
+								i,
+								validationOptions.getFormatParameters(),
+								max,
+								maxChars,
+								maxChars);
+					}
+				}
+			} else {
+				if(parseData.getFormat() == MACFormat.DASHED) {
+					//for single segment, we have already counted the exact number of hex digits
+					//for double segment, we have already counted the exact number of hex digits in some cases and not others.
+					//Basically, for address like a-b we have already counted the exact number of hex digits,
+					//for addresses starting with a|b- or a-b| we have not,
+					//but rather than figure out which are checked out which not it's just as quick to check them all here
+					if(parseData.isDoubleSegment()) {
+						MACAddressStringFormatParameters params = validationOptions.getFormatParameters();
+						checkMaxValues(fullAddr, addressParseData, 0, params, MAC_MAX_TRIPLE, MAC_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_DOUBLE_SEGMENT_DIGIT_COUNT);
+						if(parseData.isExtended()) {
+							checkMaxValues(fullAddr, addressParseData, 1, params, MAC_MAX_QUINTUPLE, MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT);
+						} else {
+							checkMaxValues(fullAddr, addressParseData, 1, params, MAC_MAX_TRIPLE, MAC_DOUBLE_SEGMENT_DIGIT_COUNT, MAC_DOUBLE_SEGMENT_DIGIT_COUNT);
 						}
-					} else if(!hasWildcardSeparator) {
-						throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
 					}
-					if(validationOptions.addressSize == AddressSize.EUI64) {
-						parseData.setExtended(true);
-					}
+				} else if(!hasWildcardSeparator) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.too.few.segments");
+				}
+				if(validationOptions.addressSize == AddressSize.EUI64) {
+					parseData.setExtended(true);
 				}
 			}
 		} //else single segment
@@ -1643,6 +1703,10 @@ public class Validator implements HostIdentifierStringValidator {
 				int upperRadix = addressParseData.getRadix(i, AddressParseData.KEY_UPPER_RADIX_INDEX);
 				if(i == segCount - 1 && missingCount > 0 && ipv4Options.inet_aton_joinedSegments) {
 					max = getMaxIPv4Value(missingCount + 1);
+					if(addressParseData.isInferredUpperBoundary(i)) {
+						parseData.setValue(i, AddressParseData.KEY_UPPER, max);
+						continue;
+					}
 					maxDigits = getMaxIPv4StringLength(missingCount, lowerRadix);
 					maxUpperDigits = (upperRadix != lowerRadix) ? getMaxIPv4StringLength(missingCount, upperRadix) : maxDigits;
 				} else {

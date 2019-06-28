@@ -810,6 +810,71 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testMatches(true, "*-*", "*:*:*");
 		testMatches(true, "bbaacc0dee0f", "bb:aa:cc:d:ee:f");
 		testMatches(true, "bbaacc0dee0faab0", "bb:aa:cc:d:ee:f:aa:b0");
+		testMatches(false, "*-abcdef|fffffe", "0|ffffff-abcdef|fffffe"); // inet.ipaddr.IncompatibleAddressException: *-abcdef|fffffe, IP Address error: range of joined segments cannot be divided into individual ranges
+		testMatches(true, "*-ab0000|ffffff", "0|ffffff-ab0000|ffffff");
+		testMatches(true, "*-ab|fe-aa-aa-aa-aa", "0|ff-ab|fe-aa-aa-aa-aa");
+		
+		// inferred lower and upper boundaries
+		// single segment
+		testMatches(true, "-abffffffffff", "000000000000-abffffffffff");
+		testMatches(true, "000000000000-", "000000000000-ffffffffffff");
+		testMatches(true, "ab0000000000-", "ab0000000000-ffffffffffff");
+		testMatches(true, "-0xabffffffffff", "000000000000-abffffffffff");
+		testMatches(true, "0x000000000000-", "000000000000-ffffffffffff");
+		testMatches(true, "0xab0000000000-", "ab0000000000-ffffffffffff");
+		
+		testMatches(true, "-abffffffffffffff", "0000000000000000-abffffffffffffff");
+		testMatches(true, "0000000000000000-", "0000000000000000-ffffffffffffffff");
+		testMatches(true, "ab00000000000000-", "ab00000000000000-ffffffffffffffff");
+		testMatches(true, "-0xabffffffffffffff", "0000000000000000-abffffffffffffff");
+		testMatches(true, "0x0000000000000000-", "0000000000000000-ffffffffffffffff");
+		testMatches(true, "0xab00000000000000-", "ab00000000000000-ffffffffffffffff");
+		
+		// dotted
+		testMatches(true, "f302.3304.-06ff", "f302.3304.0-06ff");
+		testMatches(true, "f302.-06ff.3304", "f302.0-06ff.3304");
+		testMatches(true, "-06ff.f302.3304", "0-06ff.f302.3304");
+		
+		testMatches(true, "f302.3304.ffff.-06ff", "f302.3304.ffff.0-06ff");
+		testMatches(true, "f302.3304.-06ff.ffff", "f302.3304.0-06ff.ffff");
+		testMatches(true, "f302.-06ff.3304.ffff", "f302.0-06ff.3304.ffff");
+		testMatches(true, "-06ff.f302.3304.ffff", "0-06ff.f302.3304.ffff");
+		
+		testMatches(true, "f302.3304.100-", "f302.3304.100-ffff");
+		testMatches(true, "f302.100-.3304", "f302.100-ffff.3304");
+		testMatches(true, "100-.f302.3304", "100-ffff.f302.3304");
+		
+		testMatches(true, "f302.3304.ffff.1100-", "f302.3304.ffff.1100-ffff");
+		testMatches(true, "f302.3304.1100-.ffff", "f302.3304.1100-ffff.ffff");
+		testMatches(true, "f302.1100-.3304.ffff", "f302.1100-ffff.3304.ffff");
+		testMatches(true, "1100-.f302.3304.ffff", "1100-ffff.f302.3304.ffff");
+		
+		// colon
+		testMatches(true, "aa-:bb:cc:dd:ee:ff", "aa-ff:bb:cc:dd:ee:ff");
+		testMatches(true, "aa-:bb-:cc:dd:ee:ff", "aa-ff:bb-ff:cc:dd:ee:ff");
+		testMatches(true, "aa-:bb:cc-:dd:ee:ff", "aa-ff:bb:cc-ff:dd:ee:ff");
+		testMatches(true, "aa-:bb:cc:dd-:ee:ff", "aa-ff:bb:cc:dd-ff:ee:ff");
+		testMatches(true, "aa-:bb:cc:dd:ee-:ff", "aa-ff:bb:cc:dd:ee-ff:ff");
+		testMatches(true, "aa-:bb:cc:dd:ee:ff-", "aa-ff:bb:cc:dd:ee:ff");
+		testMatches(true, "aa-:bb:cc:dd:ee:ee-", "aa-ff:bb:cc:dd:ee:ee-ff");
+		testMatches(true, "aa-:bb:cc:dd:ee:ee-:aa:bb", "aa-ff:bb:cc:dd:ee:ee-ff:aa:bb");
+		testMatches(true, "aa-:bb:cc:dd:ee:ee:aa-:bb", "aa-ff:bb:cc:dd:ee:ee:aa-ff:bb");
+		testMatches(true, "aa-:bb:cc:dd:ee:ee:aa:bb-", "aa-ff:bb:cc:dd:ee:ee:aa:bb-ff");
+		
+		testMatches(true, "-ff:bb:cc:dd:ee:ff", "00-ff:bb:cc:dd:ee:ff");
+		testMatches(true, "-ff:-bb:cc:dd:ee:ff", "00-ff:00-bb:cc:dd:ee:ff");
+		testMatches(true, "-ff:-bb:0-cc:dd:ee:ff", "00-ff:00-bb:-cc:dd:ee:ff");
+		testMatches(true, "ff:-bb:0-cc:dd-0:ee:ff", "ff:00-bb:-cc:-dd:ee:ff"); // reverse range
+		testMatches(true, "ff:-bb:0-cc:0-dd:ee-:ff", "ff:00-bb:-cc:-dd:ee-ff:ff");
+		testMatches(true, "ff:-bb:0-cc:0-dd:ee-:-ff", "ff:00-bb:-cc:-dd:ee-ff:0-ff");
+		testMatches(true, "ff:-bb:0-cc:0-dd:ee-:-ff:0-aa:bb", "ff:00-bb:-cc:-dd:ee-ff:0-ff:-aa:bb");
+		testMatches(true, "ff:-bb:0-cc:0-dd:ee-:-ff:0-aa:bb-", "ff:bb-0:-cc:-dd:ee-ff:0-ff:-aa:bb-ff");
+		// end inferred lower and upper boundaries
+		
+		mactest(true, "*-abcdef|fffffe"); // throws IncompatibleAddressException
+		mactest(true, "0|ffffff-abcdef|fffffe"); // throws IncompatibleAddressException
+		mactest(true, "*-ab0000|ffffff");
+		mactest(true, "0|ffffff-ab0000|ffffff");
 		
 		mactest(false, "*|1");
 		mactest(false, "1|*");
@@ -850,6 +915,38 @@ public class MACAddressRangeTest extends MACAddressTest {
 		mactest(false, "ddeeff-aabbffffccc|aabbffffddd");
 		mactest(false, "ddeeff-aabbffffc|aabbffffd");
 		mactest(false, "ddeefffffff-aabbcc|aabbcd");
+		
+		mactest(true, "000000000000-abcdefabcdef");
+		mactest(true, "000000000000-ffffffffffff");
+		mactest(true, "abcdefabcdef-ffffffffffff");
+		mactest(true, "000000000000-abcdefabcdef");
+		mactest(true, "000000000000-ffffffffffff");
+		mactest(true, "abcdefabcdefabcd-ffffffffffffffff");
+		
+		mactest(true, "000000000000-");
+		mactest(true, "-000000000010");
+		mactest(true, "-abcdefabcdefabcd");
+		mactest(true, "abcdefabcdefabcd-");
+		
+		// length mismatch
+		mactest(false, "0000000000001-abcdefabcdef");
+		mactest(false, "000000000000-fffffffffffff");
+		mactest(false, "abcdefabcdeff-ffffffffffff");
+		mactest(false, "000000000000-abcdefabcdeff");
+		mactest(false, "0000000000-ffffffffffff");
+		mactest(false, "abcdefabcdef-ffffffff");
+		
+		mactest(false, "00000000000-");
+		mactest(false, "-00000000001");
+		mactest(false, "-abcdefabcdefabcde");
+		mactest(false, "abcdefabcdefabcde-");
+		mactest(false, "000000000000-abcdefabcdefabcd");
+		mactest(false, "0000000000000000-ffffffffffff");
+		mactest(false, "efabcdefabcd-ffffffffffffffff");
+		mactest(false, "0000000000000000-abcdefabcdef");
+		mactest(false, "0000000000000000-ffffffffffff");
+		mactest(false, "abcdefabcdefabc-fffffffffffffff");
+		
 		
 		testMACIPv6("aaaa:bbbb:cccc:dddd:0221:2fff:fe00-feff:6e10", "00:21:2f:*:6e:10");
 		testMACIPv6("*:*:*:*:200-2ff:FF:FE00-FEFF:*", "0:*:0:*:*:*");
