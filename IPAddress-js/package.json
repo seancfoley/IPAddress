@@ -31,7 +31,7 @@
   "author": "Sean C Foley (https://seancfoley.github.io/)",
   "license": "Apache-2.0",
   "dependencies": {
-    "open": "*"
+    "open": ">=6.0.0"
   },
   "devDependencies": {
     "@types/node": "*"
