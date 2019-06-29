@@ -413,121 +413,16 @@ public class Validator implements HostIdentifierStringValidator {
 							currentChar = IPv6Address.SEGMENT_SEPARATOR;
 							checkCharCounts = false;//counted chars already
 						} else {
-							if(isBase85) {
-								if(extendedRangeWildcardIndex < 0) {
-									if(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
-										if(!validationOptions.allowIPv6) {
-											throw new AddressStringException(str, "ipaddress.error.ipv6");
-										}
-										ipAddressParseData.setVersion(IPVersion.IPV6);
-										BigInteger val = parseBig85(str, strStartIndex, strEndIndex);
-										long value = val.and(LOW_BITS_MASK).longValue();
-										BigInteger shift64 = val.shiftRight(Long.SIZE);
-										extendedValue = shift64.longValue();
-										//note that even with the correct number of digits, we can have a value too large
-										BigInteger shiftMore = shift64.shiftRight(Long.SIZE);
-										if(!shiftMore.equals(BigInteger.ZERO)) {
-											throw new AddressStringException(str, "ipaddress.error.address.too.large");
-										}
-										parseData.initSegmentData(1);
-										parseData.incrementSegmentCount();
-										assignAttributesValuesFlags(strStartIndex, strEndIndex, strStartIndex, parseData, 0, value, extendedValue, IPv6Address.BASE_85_RADIX);
-										ipAddressParseData.setBase85(true);
-										break;
-									}
-								} else {
-									if(totalCharacterCount == (IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT << 1) + 1 /* two base 85 addresses */ ||
-											(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT + 1 &&
-											(extendedRangeWildcardIndex == 0 || extendedRangeWildcardIndex + 1 == strEndIndex)) /* inferred boundary */) {/* note that we already check that extendedRangeWildcardIndex is at index 20 */
-										if(!validationOptions.allowIPv6) {
-											throw new AddressStringException(str, "ipaddress.error.ipv6");
-										}
-										stringFormatParams = ipv6SpecificOptions;
-										if(!stringFormatParams.rangeOptions.allowsRangeSeparator()) {
-											throw new AddressStringException(str, "ipaddress.error.no.range");
-										}
-										ipAddressParseData.setVersion(IPVersion.IPV6);
-										int frontEndIndex = extendedRangeWildcardIndex, flags = 0;
-										long value, value2, extendedValue2;
-										int lowerStart, lowerEnd, upperStart, upperEnd;
-										
-										if(frontEndIndex == strStartIndex + IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
-											BigInteger val = parseBig85(str, strStartIndex, frontEndIndex);
-											value = val.and(LOW_BITS_MASK).longValue();
-											BigInteger shift64 = val.shiftRight(Long.SIZE);
-											extendedValue = shift64.longValue();
-											if(frontEndIndex + 1 < strEndIndex) {
-												BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
-												value2 = val2.and(LOW_BITS_MASK).longValue();
-												shift64 = val2.shiftRight(Long.SIZE);
-												extendedValue2 = shift64.longValue();
-												BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
-												
-												if(val.compareTo(val2) > 0) {
-													BigInteger shiftMoreVal = shift64.shiftRight(Long.SIZE);
-													if(!stringFormatParams.rangeOptions.allowsReverseRange()) {
-														throw new AddressStringException(str, "ipaddress.error.invalidRange");
-													} else if(!shiftMoreVal.equals(BigInteger.ZERO)) {
-														throw new AddressStringException(str, "ipaddress.error.address.too.large");
-													}
-													lowerStart = frontEndIndex + 1;
-													lowerEnd = strEndIndex;
-													upperStart = strStartIndex;
-													upperEnd = frontEndIndex;
-												} else {
-													if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
-														throw new AddressStringException(str, "ipaddress.error.address.too.large");
-													}
-													lowerStart = strStartIndex;
-													lowerEnd = frontEndIndex;
-													upperStart = frontEndIndex + 1;
-													upperEnd = strEndIndex;
-												}
-											} else {
-												if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
-													throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
-												}
-												lowerStart = strStartIndex;
-												lowerEnd = frontEndIndex;
-												upperStart = upperEnd = strEndIndex;
-												value2 = extendedValue2 = -1;
-												flags = AddressParseData.KEY_INFERRED_UPPER_BOUNDARY;
-											}
-										} else if(frontEndIndex == 0) {
-											if(!stringFormatParams.rangeOptions.allowsInferredBoundary()) {
-												throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
-											}
-											lowerStart = lowerEnd = 0;
-											value = extendedValue = 0;
-											flags = AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
-											BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
-											value2 = val2.and(LOW_BITS_MASK).longValue();
-											BigInteger shift64 = val2.shiftRight(Long.SIZE);
-											extendedValue2 = shift64.longValue();
-											BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
-											if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
-												throw new AddressStringException(str, "ipaddress.error.address.too.large");
-											}
-											upperStart = 1;
-											upperEnd = strEndIndex;
-										} else {
-											throw new AddressStringException(str, extendedRangeWildcardIndex);
-										}
-										parseData.incrementSegmentCount();
-										parseData.initSegmentData(1);
-										assignAttributesValuesFlags(lowerStart, lowerEnd, lowerStart, upperStart, upperEnd, upperStart,
-												parseData, 0, value, extendedValue, value2, extendedValue2,
-												AddressParseData.KEY_RANGE_WILDCARD | IPv6Address.BASE_85_RADIX | flags, IPv6Address.BASE_85_RADIX);
-										ipAddressParseData.setBase85(true);
-										break;
-									}
-								}
+							if(isBase85 && 
+									parseBase85(validationOptions, str, strStartIndex, strEndIndex, ipAddressParseData,
+										extendedRangeWildcardIndex, totalCharacterCount, index)) {
+								break;
 							}
 							int leadingZeros = leadingZeroCount;
 							if(leadingWithZero) {
 								leadingZeros++;
 							}
-							if ((totalDigits - leadingZeros) <= IPV4_SINGLE_SEGMENT_OCTAL_DIGIT_COUNT)  {
+							if((totalDigits - leadingZeros) <= IPV4_SINGLE_SEGMENT_OCTAL_DIGIT_COUNT)  {
 								// we are not base 85, so throw if necessary
 								if(extendedCharacterIndex >= 0) {
 									throw new AddressStringException(str, extendedCharacterIndex);
@@ -1508,6 +1403,127 @@ public class Validator implements HostIdentifierStringValidator {
 		} // end of character loop
 	}
 
+	private static boolean parseBase85(
+			final IPAddressStringParameters validationOptions,
+			final CharSequence str,
+			final int strStartIndex,
+			final int strEndIndex,
+			IPAddressParseData ipAddressParseData,
+			int extendedRangeWildcardIndex,
+			int totalCharacterCount,
+			int index) throws AddressStringException {
+		AddressParseData parseData = ipAddressParseData.getAddressParseData();
+		if(extendedRangeWildcardIndex < 0) {
+			if(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
+				if(!validationOptions.allowIPv6) {
+					throw new AddressStringException(str, "ipaddress.error.ipv6");
+				}
+				ipAddressParseData.setVersion(IPVersion.IPV6);
+				BigInteger val = parseBig85(str, strStartIndex, strEndIndex);
+				long value = val.and(LOW_BITS_MASK).longValue();
+				BigInteger shift64 = val.shiftRight(Long.SIZE);
+				long extendedValue = shift64.longValue();
+				//note that even with the correct number of digits, we can have a value too large
+				BigInteger shiftMore = shift64.shiftRight(Long.SIZE);
+				if(!shiftMore.equals(BigInteger.ZERO)) {
+					throw new AddressStringException(str, "ipaddress.error.address.too.large");
+				}
+				parseData.initSegmentData(1);
+				parseData.incrementSegmentCount();
+				assignAttributesValuesFlags(strStartIndex, strEndIndex, strStartIndex, parseData, 0, value, extendedValue, IPv6Address.BASE_85_RADIX);
+				ipAddressParseData.setBase85(true);
+				return true;
+			}
+		} else {
+			if(totalCharacterCount == (IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT << 1) + 1 /* two base 85 addresses */ ||
+					(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT + 1 &&
+					(extendedRangeWildcardIndex == 0 || extendedRangeWildcardIndex + 1 == strEndIndex)) /* inferred boundary */) {/* note that we already check that extendedRangeWildcardIndex is at index 20 */
+				if(!validationOptions.allowIPv6) {
+					throw new AddressStringException(str, "ipaddress.error.ipv6");
+				}
+				IPv6AddressStringParameters ipv6SpecificOptions = validationOptions.getIPv6Parameters();
+				if(!ipv6SpecificOptions.rangeOptions.allowsRangeSeparator()) {
+					throw new AddressStringException(str, "ipaddress.error.no.range");
+				}
+				ipAddressParseData.setVersion(IPVersion.IPV6);
+				int frontEndIndex = extendedRangeWildcardIndex, flags = 0;
+				long value, value2, extendedValue, extendedValue2;
+				int lowerStart, lowerEnd, upperStart, upperEnd;
+				
+				if(frontEndIndex == strStartIndex + IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
+					BigInteger val = parseBig85(str, strStartIndex, frontEndIndex);
+					value = val.and(LOW_BITS_MASK).longValue();
+					BigInteger shift64 = val.shiftRight(Long.SIZE);
+					extendedValue = shift64.longValue();
+					if(frontEndIndex + 1 < strEndIndex) {
+						BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
+						value2 = val2.and(LOW_BITS_MASK).longValue();
+						shift64 = val2.shiftRight(Long.SIZE);
+						extendedValue2 = shift64.longValue();
+						BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
+						
+						if(val.compareTo(val2) > 0) {
+							BigInteger shiftMoreVal = shift64.shiftRight(Long.SIZE);
+							if(!ipv6SpecificOptions.rangeOptions.allowsReverseRange()) {
+								throw new AddressStringException(str, "ipaddress.error.invalidRange");
+							} else if(!shiftMoreVal.equals(BigInteger.ZERO)) {
+								throw new AddressStringException(str, "ipaddress.error.address.too.large");
+							}
+							lowerStart = frontEndIndex + 1;
+							lowerEnd = strEndIndex;
+							upperStart = strStartIndex;
+							upperEnd = frontEndIndex;
+						} else {
+							if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+								throw new AddressStringException(str, "ipaddress.error.address.too.large");
+							}
+							lowerStart = strStartIndex;
+							lowerEnd = frontEndIndex;
+							upperStart = frontEndIndex + 1;
+							upperEnd = strEndIndex;
+						}
+					} else {
+						if(!ipv6SpecificOptions.rangeOptions.allowsInferredBoundary()) {
+							throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+						}
+						lowerStart = strStartIndex;
+						lowerEnd = frontEndIndex;
+						upperStart = upperEnd = strEndIndex;
+						value2 = extendedValue2 = -1;
+						flags = AddressParseData.KEY_INFERRED_UPPER_BOUNDARY;
+					}
+				} else if(frontEndIndex == 0) {
+					if(!ipv6SpecificOptions.rangeOptions.allowsInferredBoundary()) {
+						throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
+					}
+					lowerStart = lowerEnd = 0;
+					value = extendedValue = 0;
+					flags = AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
+					BigInteger val2 = parseBig85(str, frontEndIndex + 1, strEndIndex);
+					value2 = val2.and(LOW_BITS_MASK).longValue();
+					BigInteger shift64 = val2.shiftRight(Long.SIZE);
+					extendedValue2 = shift64.longValue();
+					BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
+					if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+						throw new AddressStringException(str, "ipaddress.error.address.too.large");
+					}
+					upperStart = 1;
+					upperEnd = strEndIndex;
+				} else {
+					throw new AddressStringException(str, extendedRangeWildcardIndex);
+				}
+				parseData.incrementSegmentCount();
+				parseData.initSegmentData(1);
+				assignAttributesValuesFlags(lowerStart, lowerEnd, lowerStart, upperStart, upperEnd, upperStart,
+						parseData, 0, value, extendedValue, value2, extendedValue2,
+						AddressParseData.KEY_RANGE_WILDCARD | IPv6Address.BASE_85_RADIX | flags, IPv6Address.BASE_85_RADIX);
+				ipAddressParseData.setBase85(true);
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	private static void checkSegments(
 			final String fullAddr,
 			final MACAddressStringParameters validationOptions,
