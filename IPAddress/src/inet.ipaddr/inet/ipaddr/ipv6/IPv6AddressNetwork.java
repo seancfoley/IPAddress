@@ -277,6 +277,13 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			return result;
 		}
 		
+		@Override
+		protected IPv6AddressSection createSectionInternal(IPv6AddressSegment segments[], IPv4AddressSection embeddedSection, Integer prefix, boolean singleOnly) {
+			IPv6AddressSection result = new IPv6AddressSection(segments, 0, false, prefix, singleOnly);
+			result.embeddedIPv4Section = embeddedSection;
+			return result;
+		}
+		
 		protected IPv6AddressSection createEmbeddedSectionInternal(IPv6AddressSection encompassingSection, IPv6AddressSegment segments[], int startIndex) {
 			return new EmbeddedIPv6AddressSection(encompassingSection, segments, startIndex);
 		}

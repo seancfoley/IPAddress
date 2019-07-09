@@ -2981,6 +2981,66 @@ public class IPAddressTest extends TestBase {
 		testIncrement(createAddress(originalStr).getAddress(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 	
+	void testIncompatibleAddress(String address, String lower, String upper) {
+		testAddressStringRange(address, true, lower, upper);
+	}
+	
+	void testSubnetStringRange(String address, String lower, String upper) {
+		testAddressStringRange(address, false, lower, upper);
+	}
+	
+	void testAddressStringRange(String address) {
+		testAddressStringRange(address, false, address, address);
+	}
+		
+	private void testAddressStringRange(String address, boolean isIncompatibleAddress, String lower, String upper) {
+		IPAddressString rangeString = createAddress(address);
+		try {
+			// go directly to getting the range which should never throw IncompatibleAddressException even for incompatible addresses
+			IPAddressSeqRange range = rangeString.getSequentialRange();
+			IPAddress low = createAddress(lower).getAddress();
+			IPAddress up = createAddress(upper).getAddress();
+			if(!range.getLower().equals(low)) {
+				addFailure(new Failure("range lower " + range.getLower() + " does not match expected " + low, range));
+			}
+			if(!range.getUpper().equals(up)) {
+				addFailure(new Failure("range upper " + range.getUpper() + " does not match expected " + up, range));
+			}
+			IPAddressString addrStr = createAddress(address);
+			try {
+				// now we should throw IncompatibleAddressException if address is incompatible
+				IPAddress addr = addrStr.toAddress();
+				if(isIncompatibleAddress) {
+					addFailure(new Failure("address " + address + " not identified as an incompatible address, instead it is " + addr, addr));
+				}
+				IPAddressSeqRange addrRange = addr.toSequentialRange();
+				if(!range.equals(addrRange) || !addrRange.equals(range)) {
+					addFailure(new Failure("address range from " + addr + " (" + addrRange.getLower() + "," + addrRange.getUpper() + ")" + 
+							" does not match range from address string " + rangeString + " (" + range.getLower() + "," + range.getUpper() + ")", addr));
+				}
+				// now get the range from rangeString after you get the address, which should get it a different way, from the address
+				rangeString.getAddress();
+				IPAddressSeqRange rangeAfterAddr = rangeString.getSequentialRange();
+				if(!range.equals(rangeAfterAddr) || !rangeAfterAddr.equals(range)) {
+					addFailure(new Failure("address range from " + rangeString + " after address (" + rangeAfterAddr.getLower() + "," + rangeAfterAddr.getUpper() + ")" + 
+							" does not match range from address string " + rangeString + " before address (" + range.getLower() + "," + range.getUpper() + ")", addr));
+				}
+				if(!addrRange.equals(rangeAfterAddr) || !rangeAfterAddr.equals(addrRange)) {
+					addFailure(new Failure("address range from " + rangeString + " after address (" + rangeAfterAddr.getLower() + "," + rangeAfterAddr.getUpper() + ")" + 
+							" does not match range from address string " + addr + " (" + addrRange.getLower() + "," + addrRange.getUpper() + ")", addr));
+				}
+			} catch(IncompatibleAddressException e) {
+				if(!isIncompatibleAddress) {
+					addFailure(new Failure("address " + addrStr + " identified as an incompatible address", addrStr));
+				}
+			}
+		} catch(AddressStringException | RuntimeException e) {
+			addFailure(new Failure("unexpected exception " + e, rangeString));
+			e.printStackTrace();
+		}
+		incrementTestCount();
+	}
+	
 	@SuppressWarnings("serial")
 	static class MyIPv6Address extends IPv6Address {
 
@@ -3143,7 +3203,6 @@ public class IPAddressTest extends TestBase {
 	boolean allowsRange() {
 		return false;
 	}
-	
 	
 	@Override
 	void runTest() {
@@ -5566,7 +5625,8 @@ public class IPAddressTest extends TestBase {
 		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::");	
 
 		testCustomNetwork(prefixConfiguration);
+		
+		testAddressStringRange("1.2.3.4");
+		testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4");
 	}
 }
-
-

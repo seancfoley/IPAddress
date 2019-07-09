@@ -65,7 +65,7 @@ class AddressParseData implements Serializable {
 	
 	private int segmentCount;
 	
-	private boolean anyWildcard;
+	private boolean anyWildcard, rangeWildcard, singleWildcard;
 	private boolean isEmpty, isAll;
 	private boolean isSingleSegment;
 	
@@ -142,8 +142,8 @@ class AddressParseData implements Serializable {
 		return isAll;
 	}
 	
-	void setAll(boolean val) {
-		isAll = val;
+	void setAll() {
+		isAll = true;
 	}
 	
 	int getAddressEndIndex() {
@@ -154,20 +154,28 @@ class AddressParseData implements Serializable {
 		addressEndIndex = val;
 	}
 	
-	void setSingleSegment(boolean val) {
-		isSingleSegment = val;
+	void setSingleSegment() {
+		isSingleSegment = true;
 	}
 	
 	boolean isSingleSegment() {
 		return isSingleSegment;
 	}
 	
-	void setHasWildcard(boolean val) {
-		anyWildcard = val;
+	void setHasWildcard() {
+		anyWildcard = true;
 	}
 	
 	boolean hasWildcard() {
 		return anyWildcard;
+	}
+	
+	void setHasRange() {
+		rangeWildcard = true;
+	}
+	
+	void setHasSingleWildcard() {
+		singleWildcard = true;
 	}
 	
 	void unsetFlag(int segmentIndex, int flagIndicator) {
@@ -522,7 +530,7 @@ class IPAddressParseData extends AddressParseData {
 	protected boolean has_inet_aton_value; // either octal 01 or hex 0x1
 	protected boolean hasIPv4LeadingZeros;
 	
-	private ParsedIPAddress mixedParsedAddress;
+	ParsedIPAddress mixedParsedAddress;
 
 	private boolean isBase85, isBase85Zoned;
 	
@@ -649,10 +657,6 @@ class IPAddressParseData extends AddressParseData {
 		return mixedParsedAddress != null;
 	}
 
-	ParsedIPAddress getMixedParsedAddress() {
-		return mixedParsedAddress;
-	}
-
 	void setMixedParsedAddress(ParsedIPAddress val) {
 		mixedParsedAddress = val;
 	}
@@ -672,7 +676,7 @@ class IPAddressParseData extends AddressParseData {
 					builder.append(", with prefix length ");
 					printQualifier(builder);
 				}
-				builder.append(", with IPv4 embedded address: ").append('\n').append(getMixedParsedAddress());
+				builder.append(", with IPv4 embedded address: ").append('\n').append(mixedParsedAddress);
 			} else {
 				if(isProvidingBase85IPv6()) {
 					builder.append(" base 85");

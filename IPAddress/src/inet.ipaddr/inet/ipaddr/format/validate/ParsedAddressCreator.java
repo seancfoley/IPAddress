@@ -63,6 +63,12 @@ public abstract class ParsedAddressCreator<T extends Address, R extends AddressS
 	
 	protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix);
 	
+	protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix, boolean singleOnly);
+
+	protected R createSectionInternal(S segments[], E embeddedSection, Integer prefix, boolean singleOnly) {
+		return createPrefixedSectionInternal(segments, prefix, singleOnly);
+	}
+	
 	protected R createSectionInternal(S segments[], E embeddedSection) {
 		return createSectionInternal(segments);
 	}

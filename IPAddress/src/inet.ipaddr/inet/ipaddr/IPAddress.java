@@ -939,7 +939,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If this section represents a range of values not corresponding to a prefix, then this is printed as a range of two hex values.
 	 */
 	@Override
-	public String toBinaryString() {
+	public String toBinaryString() throws IncompatibleAddressException {
 		return getSection().toBinaryString();
 	}
 	
@@ -949,7 +949,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If this section represents a range of values not corresponding to a prefix, then this is printed as a range of two hex values.
 	 */
 	@Override
-	public String toOctalString(boolean with0Prefix) {
+	public String toOctalString(boolean with0Prefix) throws IncompatibleAddressException {
 		return getSection().toOctalString(with0Prefix);
 	}
 	

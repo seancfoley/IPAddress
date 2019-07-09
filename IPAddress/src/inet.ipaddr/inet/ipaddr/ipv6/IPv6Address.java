@@ -1823,7 +1823,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * The base 85 string is described by RFC 1924
 	 * @return
 	 */
-	public String toBase85String() {
+	public String toBase85String() throws IncompatibleAddressException {
 		//first we see if we obtained this address from a base 85 string
 		//in the case of a prefix, applying the prefix changes the value
 		IPAddressString originator = getAddressfromString();
@@ -1881,7 +1881,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public String toHexString(boolean with0xPrefix) {
+	public String toHexString(boolean with0xPrefix) throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = (with0xPrefix ? stringCache.hexStringPrefixed : stringCache.hexString)) == null) {
 			if(hasZone()) {
@@ -1899,7 +1899,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public String toBinaryString() {
+	public String toBinaryString() throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = stringCache.binaryString) == null) {
 			if(hasZone()) {
@@ -1913,7 +1913,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public String toOctalString(boolean with0Prefix) {
+	public String toOctalString(boolean with0Prefix) throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = (with0Prefix ? stringCache.octalStringPrefixed : stringCache.octalString)) == null) {
 			if(hasZone()) {

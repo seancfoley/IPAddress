@@ -1321,7 +1321,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	 * 
 	 */
 	@Override
-	public String toHexString(boolean with0xPrefix) {  
+	public String toHexString(boolean with0xPrefix) throws IncompatibleAddressException {  
 		String result;
 		if(hasNoStringCache() || (result = (with0xPrefix ? stringCache.hexStringPrefixed : stringCache.hexString)) == null) {
 			result = toHexString(with0xPrefix, null);
@@ -1334,7 +1334,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		return result;
 	}
 	
-	protected String toHexString(boolean with0xPrefix, CharSequence zone) {
+	protected String toHexString(boolean with0xPrefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			return toNormalizedStringRange(AddressStringParams.toParams(with0xPrefix ? MACStringCache.hexPrefixedParams : MACStringCache.hexParams), getLower(), getUpper(), null);
 		}
@@ -1391,7 +1391,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	/**
 	 * This produces the dotted hexadecimal format aaaa.bbbb.cccc
 	 */
-	public String toDottedString() {
+	public String toDottedString() throws IncompatibleAddressException {
 		String result = null;
 		if(hasNoStringCache() || (result = getStringCache().dottedString) == null) {
 			AddressDivisionGrouping dottedGrouping = getDottedGrouping();

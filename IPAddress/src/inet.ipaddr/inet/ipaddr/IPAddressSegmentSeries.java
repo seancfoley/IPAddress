@@ -205,14 +205,14 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * 
 	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
 	 */
-	String toBinaryString();
+	String toBinaryString() throws IncompatibleAddressException;
 
 	/**
 	 * Writes this IP address segment series as a single octal value with always the exact same number of characters, with or without a preceding 0 prefix.
 	 * 
 	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
 	 */
-	String toOctalString(boolean with0Prefix);
+	String toOctalString(boolean with0Prefix) throws IncompatibleAddressException;
 	
 	
 	IPAddressPartStringCollection toStringCollection(IPStringBuilderOptions options);

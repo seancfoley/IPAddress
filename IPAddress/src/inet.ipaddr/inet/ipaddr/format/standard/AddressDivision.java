@@ -336,7 +336,8 @@ public abstract class AddressDivision extends AddressDivisionBase {
 					return false;
 				}
 				if(highestDifferingBitMasked > highestDifferingBitInRange) {
-					//We have masked out a 1 bit, so we need to check that all bits in upper value that we do not mask out are also 1 bits, otherwise we end up missing values in the masked range
+					//We have masked out a 1 bit, so we need to check that all bits in upper value that we do not mask out are also 1 bits, 
+					// otherwise we end up missing values in the masked range
 					//This check is unnecessary for prefix-length subnets, only non-standard ranges might fail this check.
 					//For instance, if we have range 0000 to 1010
 					//and we mask upper and lower with 0111

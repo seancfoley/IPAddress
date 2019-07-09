@@ -469,7 +469,7 @@ public abstract class Address implements AddressSegmentSeries {
 	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
 	 */
 	@Override
-	public String toHexString(boolean with0xPrefix) {
+	public String toHexString(boolean with0xPrefix) throws IncompatibleAddressException {
 		return getSection().toHexString(with0xPrefix);
 	}
 

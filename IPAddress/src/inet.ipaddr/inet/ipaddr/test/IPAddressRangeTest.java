@@ -5055,6 +5055,30 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testLeadingZeroAddr("1:2:0-1:3::", false);
 		testLeadingZeroAddr("1:2:3:0-1::", false);
 		
+		testIncompatibleAddress("a:b:c:d:e:f:1.2.*.4", "a:b:c:d:e:f:1.2.0.4", "a:b:c:d:e:f:1.2.255.4");
+		testIncompatibleAddress("::ffff:0.0.*.0", "::ffff:0.0.0.0", "::ffff:0.0.255.0");
+		testIncompatibleAddress("::ffff:*.0.0.0", "::ffff:0.0.0.0", "::ffff:255.0.0.0");
+		testIncompatibleAddress("0-ffff::1/f000::10", "::", "f000::");// 
+		if(isAllSubnets) {
+			testSubnetStringRange("0-ffff::1/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+			testSubnetStringRange("0-ffff::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		} else {
+			testSubnetStringRange("0-ffff::1/f000::", "::1", "ffff::1");
+			testSubnetStringRange("0-ffff::/f000::", "::", "ffff::");
+		}
+		if(isAutoSubnets) {
+			testSubnetStringRange("0-f000::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		} else {
+			testSubnetStringRange("0-f000::/f000::", "::", "f000::");
+		}
+		testSubnetStringRange("0-ffff::/0fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "::", "fff::");// /8 prefix?
+		testSubnetStringRange("1.*.*.*", "1.0.0.0", "1.255.255.255");
+		testSubnetStringRange("1-2.3.4-5.6", "1.3.4.6", "2.3.5.6");
+		testSubnetStringRange("1-2:3:4-5:6::", "1:3:4:6::", "2:3:5:6::");
+		
+		testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5");
+		testIncompatibleAddress("0.0.0.*/0.0.0.128", "0.0.0.0", "0.0.0.128");
+		
 		super.runTest();
 	}
 	

@@ -93,7 +93,7 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 
 	IPAddress getMask() {
 		if(mask != null) {
-			return mask.createAddresses().getAddress();
+			return mask.getCachedAddresses().getAddress();
 		}
 		return null;
 	}

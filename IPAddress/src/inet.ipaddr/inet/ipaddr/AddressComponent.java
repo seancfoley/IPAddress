@@ -98,10 +98,11 @@ public interface AddressComponent extends AddressItemRange {
 	 * <p>
 	 * For instance, for IPv4 addresses there are 8 hex characters, for IPv6 addresses there are 32 hex characters.
 	 */
-	String toHexString(boolean with0xPrefix);
+	String toHexString(boolean with0xPrefix) throws IncompatibleAddressException;
 
 	/**
-	 * Produces a string that is consistent for all address components of the same type and version.
+	 * Produces a string that is consistent for all address components of the same type and version, 
+	 * and is also similar to the canonical string {@link AddressSegmentSeries#toCanonicalString()} in {@link AddressComponent} instances that are also {@link AddressSegmentSeries} instances.
 	 * @return
 	 */
 	String toNormalizedString();

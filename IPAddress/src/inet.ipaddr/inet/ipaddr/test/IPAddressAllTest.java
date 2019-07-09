@@ -769,5 +769,28 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testMatches(true, "1-.0.256-", "1-255.0.256-65535"); // 1-.0.256- becomes 1-255.0.*.255 // more than one inferred range
 		testMatches(true, "0.1-.256-", "0.1-255.256-65535"); // more than one inferred range
 		testMatches(true, "1-.65536-", "1-255.65536-16777215"); // test more than one inferred range
+		
+		ipv4test(true, "*.0-65535"); //*.0.*.*
+		
+		testSubnetStringRange("*.0-65535", "0.0.0.0", "255.0.255.255");
+		testIncompatibleAddress("*/f0ff::", "::", "f0ff::");  
+		testIncompatibleAddress("*/129.0.0.0", "0.0.0.0", "129.0.0.0");
+		testIncompatibleAddress("*:*/f0ff::", "::", "f0ff::");
+		testIncompatibleAddress("*.*/129.0.0.0", "0.0.0.0", "129.0.0.0");
+		testIncompatibleAddress("*.257-65535", "0.0.1.1", "255.0.255.255");
+		testIncompatibleAddress("1-1000", "1", "1000");
+		testIncompatibleAddress("50000-60000", "50000", "60000");
+		testIncompatibleAddress("*.11-16000111", "0.11", "255.16000111");
+		testIncompatibleAddress("0-255.11-16000111", "0.11", "255.16000111"); // inet_aton
+		testIncompatibleAddress("0-254.10101-16000111", "0.10101", "254.16000111"); // inet_aton
+		testIncompatibleAddress("1.10101-16000111", "1.10101", "1.16000111"); // inet_aton
+		testIncompatibleAddress("3-1.10101-16000111", "1.10101", "3.16000111"); // inet_aton
+		testIncompatibleAddress("00000000000000000000000000000000-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab");
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "bbcd:efab:cdef:abcd:efab:cdef:abcd:efab");
+		testIncompatibleAddress("-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab");
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+	
+		testIncompatibleAddress("a:bb:c:dd:e:f:1.1-65535", "a:bb:c:dd:e:f:1.1", "a:bb:c:dd:e:f:1.65535"); // mixed with inet_aton, mixed is incompatible address
 	}
 }

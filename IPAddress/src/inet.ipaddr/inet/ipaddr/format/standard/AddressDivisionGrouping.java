@@ -1347,7 +1347,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		opts.cachedParams = cachedParams;
 	}
 	
-	protected boolean isDualString() {
+	protected boolean isDualString() throws IncompatibleAddressException {
 		int count = getDivisionCount();
 		for(int i = 0; i < count; i++) {
 			AddressDivision division = getDivision(i);

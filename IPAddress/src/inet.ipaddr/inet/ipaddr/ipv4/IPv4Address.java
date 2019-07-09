@@ -1011,7 +1011,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSection().toInetAtonString(radix);
 	}
 	
-	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) {
+	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) throws IncompatibleAddressException {
 		return getSection().toInetAtonString(radix, joinedCount);
 	}
 	

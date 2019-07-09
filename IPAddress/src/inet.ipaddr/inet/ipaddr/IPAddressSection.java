@@ -2266,7 +2266,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 
 	@Override
-	public String toBinaryString() {
+	public String toBinaryString() throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = getStringCache().binaryString) == null) {
 			IPStringCache stringCache = getStringCache();
@@ -2283,7 +2283,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	@Override
-	public String toOctalString(boolean with0Prefix) {  
+	public String toOctalString(boolean with0Prefix) throws IncompatibleAddressException {  
 		String result;
 		if(hasNoStringCache() || (result = (with0Prefix ? getStringCache().octalStringPrefixed : getStringCache().octalString)) == null) {
 			IPStringCache stringCache = getStringCache();
@@ -2297,7 +2297,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return result;
 	}
 	
-	protected String toOctalString(boolean with0Prefix, CharSequence zone) {
+	protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			IPAddressSection lower = getLower();
 			IPAddressSection upper = getUpper();
@@ -2313,7 +2313,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 
 	@Override
-	public String toHexString(boolean with0xPrefix) {  
+	public String toHexString(boolean with0xPrefix) throws IncompatibleAddressException {  
 		String result;
 		if(hasNoStringCache() || (result = (with0xPrefix ? getStringCache().hexStringPrefixed : getStringCache().hexString)) == null) {
 			IPStringCache stringCache = getStringCache();
@@ -2328,7 +2328,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	//overridden in ipv6 to handle zone
-	protected String toHexString(boolean with0xPrefix, CharSequence zone) {
+	protected String toHexString(boolean with0xPrefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			return toNormalizedStringRange(toIPParams(with0xPrefix ? IPStringCache.hexPrefixedParams : IPStringCache.hexParams), getLower(), getUpper(), zone);
 		}

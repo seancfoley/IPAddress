@@ -1615,7 +1615,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return result;
 	}
 	
-	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) {
+	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) throws IncompatibleAddressException {
 		if(joinedCount <= 0) {
 			return toInetAtonString(radix);
 		}
@@ -1662,7 +1662,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return result;
 	} 
 	
-	public String toNormalizedString(IPStringOptions stringParams, int joinCount) {
+	public String toNormalizedString(IPStringOptions stringParams, int joinCount) throws IncompatibleAddressException {
 		if(joinCount <= 0) {
 			return toNormalizedString(stringParams);
 		}

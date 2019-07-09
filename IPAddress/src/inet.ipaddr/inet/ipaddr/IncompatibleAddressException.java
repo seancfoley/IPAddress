@@ -24,19 +24,20 @@ import inet.ipaddr.format.AddressItem;
  * Represents situations when an address, address section, address segment, or address string represents a valid type or format but 
  * that type does not match the required type or format for a given operation.
  * 
- * All such occurrences occur only from subnet addresses and sections.
+ * All such occurrences occur only from subnet addresses and sections.  These occurrences cannot happen with single-valued address objects.  
+ * These occurrences cannot happen when using a standard prefix block subnet with standard masks.
  * 
  * Examples include:
  * <ul>
  * <li>producing non-segmented hex, octal or base 85 strings from a subnet with a range that cannot be represented as a single range of values,
  * </li><li>masking multiple addresses in a way that produces a non-contiguous range of values in a segment,
  * </li><li>reversing values that are not reversible,
+ * </li><li>producing strings that are single-segment ranges from subnets which cannot be represented that way,
  * </li><li>producing new formats for which the range of values are incompatible with the new segments 
  * (EUI-64, IPv4 inet_aton formats, IPv4 embedded within IPv6, dotted MAC addresses from standard mac addresses, reverse DNS strings),
  * or
  * </li><li>using a subnet for an operation that requires a single address, such as with @link {@link IPAddress#toCanonicalHostName()}.
  * </li></ul>
- * These issues cannot occur with single-valued address objects.  In most cases, these issues cannot occur when using a standard prefix block subnet.
  * 
  * @author sfoley
  *

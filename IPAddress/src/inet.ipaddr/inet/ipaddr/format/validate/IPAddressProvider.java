@@ -27,6 +27,7 @@ import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.format.validate.ParsedIPAddress.CachedIPAddresses;
@@ -90,6 +91,10 @@ public interface IPAddressProvider extends Serializable {
 	IPAddress getProviderAddress() throws IncompatibleAddressException;
 	
 	IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException;
+	
+	default IPAddressSeqRange getProviderSeqRange() {
+		return getProviderAddress().toSequentialRange();
+	}
 	
 	default int providerCompare(IPAddressProvider other) throws IncompatibleAddressException {
 		if(this == other) {
@@ -761,6 +766,21 @@ public interface IPAddressProvider extends Serializable {
 		@Override
 		CachedIPAddresses<?> createAddresses() {
 			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options));
+		}
+		
+		public IPAddressSeqRange getProviderSeqRange() {
+			if(isProvidingAllAddresses()) {
+				return null;
+			}
+			IPAddress mask = qualifier.getMask();
+			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
+				// we must apply the mask
+				IPAddress all = ParsedIPAddress.createAllAddress(adjustedVersion, ParsedHost.NO_QUALIFIER, null, options);
+				IPAddress upper = all.getUpper().mask(mask);
+				IPAddress lower = all.getLower();
+				return lower.toSequentialRange(upper);
+			}
+			return super.getProviderSeqRange();
 		}
 	}
 }

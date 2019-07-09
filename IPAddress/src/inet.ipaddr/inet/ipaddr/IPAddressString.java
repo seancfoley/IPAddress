@@ -717,7 +717,66 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		}
 		return null;
 	}
-
+	
+	/**
+	 * Returns the range of sequential addresses from the lowest address specified in this address string to the highest.
+	 * <p>
+	 * Since not all IPAddressString instances describe a sequential series of addresses, 
+	 * this does not necessarily match the exact set of addresses listed by the string.  
+	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 -> 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
+	 * <p>
+	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
+	 * Otherwise, the range includes addresses not specified by the address string.
+	 * <p>
+	 * This method can also produce a range for a string for which no IPAddress instance can be created, 
+	 * those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
+	 * The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
+	 * such as the all address '*' or the version-ambiguous prefix '/32'.
+	 * <p>
+	 * This is similar to {@link #toSequentialRange()} except that for invalid address strings, null is returned rather than throwing an exception.
+	 * @return
+	 */
+	public IPAddressSeqRange getSequentialRange() {
+		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
+			try {
+				validate();
+				return addressProvider.getProviderSeqRange();
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns the range of sequential addresses from the lowest address specified in this address string to the highest.
+	 * <p>
+	 * Since not all IPAddressString instances describe a sequential series of addresses, 
+	 * this does not necessarily match the exact set of addresses listed by the string.  
+	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 -> 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
+	 * <p>
+	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
+	 * Otherwise, the range includes addresses not specified by the address string.
+	 * <p>,
+	 * This method can also produce a range for a string for which no IPAddress instance can be created, 
+	 * those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
+	 * The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
+	 * such as the all address '*' or the version-ambiguous prefix '/32'.
+	 * <p>
+	 * Keep in mind that all single addresses, all subnets using written in the canonical address formats, 
+	 * and all subnets with standard network or host masks, all of these have an associated IPAddress instance.
+	 * <p>
+	 * The exceptional cases are those subnets represented in formats supported by IPAddressString that cannot be represented in the canonical formats but can be . 
+	 * This includes IPv6 mixed address subnets that cannot be converted to canonical IPv6 format like ::0-1.2.0-1.4,
+	 * subnets with non-standard masks like 0-2.2.3.4/2.0.0.0, and subnets represented with non-canonical segments like the IPv4 subnet 1.5000-6000
+	 * or the IPv6 subnet 1234567890abcdef1234567890abcdef-1234567890abcdef1234567890abcdef.
+	 * <p>
+	 * This is similar to {@link #getSequentialRange()} except that for invalid address strings, AddressStringException is thrown.
+	 * @return
+	 */
+	public IPAddressSeqRange toSequentialRange() throws AddressStringException {
+		validate();
+		return addressProvider.getProviderSeqRange();
+	}
+	
 	/**
 	 * If this address string was constructed from a host address with prefix, 
 	 * then this provides just the host address, rather than the address with the prefix

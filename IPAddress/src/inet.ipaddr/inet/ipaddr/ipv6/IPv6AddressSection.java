@@ -2208,7 +2208,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * The base 85 string is described by RFC 1924
 	 * @return
 	 */
-	public String toBase85String() {
+	public String toBase85String() throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = getStringCache().base85String) == null) {
 			getStringCache().base85String = result = toBase85String(null);
@@ -2247,7 +2247,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	protected String toBinaryString(CharSequence zone) {
+	protected String toBinaryString(CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			IPAddressStringParams<IPAddressStringDivisionSeries> params = toIPParams(IPStringCache.binaryParams);
 			return toNormalizedStringRange(params, getLower(), getUpper(), zone);
@@ -2256,7 +2256,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	protected String toHexString(boolean with0xPrefix, CharSequence zone) {
+	protected String toHexString(boolean with0xPrefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			IPAddressStringParams<IPAddressStringDivisionSeries> params = toIPParams(with0xPrefix ? IPStringCache.hexPrefixedParams : IPStringCache.hexParams);
 			return toNormalizedStringRange(params, getLower(), getUpper(), zone);
@@ -2265,7 +2265,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
-	protected String toOctalString(boolean with0Prefix, CharSequence zone) {
+	protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
 		if(zone == null) {
 			return super.toOctalString(with0Prefix, null);
 		}

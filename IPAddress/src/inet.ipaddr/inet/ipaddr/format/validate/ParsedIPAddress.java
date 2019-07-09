@@ -29,12 +29,15 @@ import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSegment;
+import inet.ipaddr.ipv4.IPv4AddressSeqRange;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSection;
@@ -81,11 +84,15 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 		private static final long serialVersionUID = 4L;
 		
-		private final R section, hostSection;
+		private final R section, hostSection, lowerSection, upperSection;
+		
+		private IPAddressSeqRange range;
 
-		IPAddresses(R section, R hostSection) {
+		IPAddresses(R section, R hostSection, R lowerSection, R upperSection) {
 			this.section = section;
 			this.hostSection = hostSection;
+			this.lowerSection = lowerSection;
+			this.upperSection = upperSection;
 		}
 
 		abstract ParsedAddressCreator<T, R, ?, ?> getCreator();
@@ -112,12 +119,29 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		R getSection() {
 			return section;
 		}
+		
+		boolean withoutAddresses() {
+			return section == null;
+		}
+		
+		IPAddressSeqRange getSeqRange() {
+			if(!withoutAddresses()) {
+				return getAddress().toSequentialRange();
+			}
+			IPAddressSeqRange srange = range;
+			if(srange == null) {
+				T lower = getCreator().createAddressInternal(lowerSection, null, null);
+				T upper = upperSection == null ? lower : getCreator().createAddressInternal(upperSection, null, null);
+				range = srange = lower.toSequentialRange(upper);
+			}
+			return srange;
+		}
 	}
 	
 	private final IPAddressStringParameters options;
 	private final HostIdentifierString originator;
 	
-	private CachedIPAddresses<?> values;
+	private IPAddresses<?,?> values;
 	private Boolean skipContains;
 
 	ParsedIPAddress(
@@ -152,18 +176,46 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return options;
 	}
 	
-	private CachedIPAddresses<?> getCachedAddresses()  {
-		CachedIPAddresses<?> val = values;
-		if(val == null) {
+	IPAddresses<?, ?> createAddresses(boolean doAddress, boolean doRangeBoundaries) throws IncompatibleAddressException {
+		IPVersion version = getProviderIPVersion();
+		if(version == IPVersion.IPV4) {
+			return createIPv4Addresses(doAddress, doRangeBoundaries);
+		} else if(version == IPVersion.IPV6) {
+			return createIPv6Addresses(doAddress, doRangeBoundaries);
+		}
+		return null;
+	}
+	
+	IPAddresses<?,?> getCachedAddresses()  {
+		IPAddresses<?,?> val = values;
+		if(val == null || val.withoutAddresses()) {
 			synchronized(this) {
 				val = values;
-				if(val == null) {
-					values = val = createAddresses();
+				if(val == null || val.withoutAddresses()) {
+					values = val = createAddresses(true, false);
 					releaseSegmentData();
 				}
 			}
 		}
 		return val;
+	}
+	
+	IPAddresses<?,?> getCachedRange() {
+		IPAddresses<?,?> val = values;
+		if(val == null) {
+			synchronized(this) {
+				val = values;
+				if(val == null) {
+					values = val = createAddresses(false, true);
+				}
+			}
+		}
+		return val;
+	}
+	
+	@Override
+	public IPAddressSeqRange getProviderSeqRange() {
+		return getCachedRange().getSeqRange();
 	}
 	
 	@Override
@@ -940,17 +992,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return getQualifier().getEquivalentPrefixLength();
 	}
 	
-	IPAddresses<?, ?> createAddresses() throws IncompatibleAddressException {
-		IPVersion version = getProviderIPVersion();
-		if(version == IPVersion.IPV4) {
-			return createIPv4Addresses();
-		} else if(version == IPVersion.IPV6) {
-			return createIPv6Addresses();
-		}
-		return null;
-	}
-	
-	private static <S extends IPAddressSegment> S[] allocateHostSegments(
+	private static <S extends IPAddressSegment> S[] allocateSegments(
 			S segments[],
 			S originalSegments[],
 			AddressSegmentCreator<S> creator,
@@ -958,13 +1000,15 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			int originalCount) {
 		if(segments == null) {
 			segments = creator.createSegmentArray(segmentCount);
-			System.arraycopy(originalSegments,  0,  segments, 0, originalCount);
+			if(originalCount > 0) {
+				System.arraycopy(originalSegments,  0,  segments, 0, originalCount);
+			}
 		}
 		return segments;
 	}
 	
 	@SuppressWarnings("serial")
-	private IPAddresses<IPv4Address, IPv4AddressSection> createIPv4Addresses() throws IncompatibleAddressException {
+	private IPAddresses<IPv4Address, IPv4AddressSection> createIPv4Addresses(boolean doAddress, boolean doRangeBoundaries) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
@@ -976,12 +1020,24 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		IPv4AddressCreator creator = getIPv4AddressCreator();
 		int ipv4SegmentCount = IPv4Address.SEGMENT_COUNT;
 		int missingCount = ipv4SegmentCount - segmentCount;
-		IPv4AddressSegment hostSegments[] = null;
-		IPv4AddressSegment segments[] = creator.createSegmentArray(ipv4SegmentCount);
+		
+		IPv4AddressSegment[] hostSegments, segments, lowerSegments, upperSegments = null;
+		hostSegments = upperSegments = null;
+		if(doAddress) {
+			segments = creator.createSegmentArray(ipv4SegmentCount);
+			lowerSegments = null;
+		} else if(doRangeBoundaries) {
+			lowerSegments = creator.createSegmentArray(ipv4SegmentCount);
+			segments = null;
+		} else {
+			return null;
+		}
+		
 		boolean expandedSegments = (missingCount <= 0);
 		int expandedStart, expandedEnd;
 		expandedStart = expandedEnd = -1;
 		CharSequence addressString = str;
+
 		for(int i = 0, normalizedSegmentIndex = 0; i < segmentCount; i++, normalizedSegmentIndex++) {
 			long lower = addrParseData.getValue(i, AddressParseData.KEY_LOWER);
 			long upper = addrParseData.getValue(i, AddressParseData.KEY_UPPER);
@@ -1018,31 +1074,70 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						}
 					}
 					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
-					if(segmentMask != null || currentPrefix != null) {
-						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
-						hostSegments[normalizedSegmentIndex] = createSegment(
-								addressString,
-								IPVersion.IPV4,
-								newLower,
-								newUpper,
-								useStringIndicators,
-								addrParseData,
-								i,
-								null,
-								null,
-								creator);
+					if(doAddress) {
+						if(segmentMask != null || currentPrefix != null) {
+							hostSegments = allocateSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							hostSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV4,
+									newLower,
+									newUpper,
+									useStringIndicators,
+									addrParseData,
+									i,
+									null,
+									null,
+									creator);
+						}
+						segments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV4,
+							newLower,
+							newUpper,
+							useStringIndicators,
+							addrParseData,
+							i,
+							currentPrefix,
+							segmentMask,
+							creator);
 					}
-					segments[normalizedSegmentIndex] = createSegment(
-						addressString,
-						IPVersion.IPV4,
-						newLower,
-						newUpper,
-						useStringIndicators,
-						addrParseData,
-						i,
-						currentPrefix,
-						segmentMask,
-						creator);
+					if(doRangeBoundaries) {
+						boolean isRange = newLower != newUpper;
+						if(!doAddress || isRange) {
+							if(doAddress) {
+								lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							} // else segments already allocated
+							lowerSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV4,
+									newLower,
+									newLower,
+									false,
+									addrParseData,
+									i,
+									currentPrefix,
+									segmentMask,
+									creator);
+						} else if(lowerSegments != null) {
+							lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+						}
+						if(isRange) {
+							upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							upperSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV4,
+									newUpper,
+									newUpper,
+									false,
+									addrParseData,
+									i,
+									currentPrefix,
+									segmentMask,
+									creator);
+						} else if(upperSegments != null) {
+							upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+						}
+					}
 					++normalizedSegmentIndex;
 					count--;
 				}
@@ -1050,9 +1145,22 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			} //end handle inet_aton joined segments
 			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
-			if(segmentMask != null || segmentPrefixLength != null) {
-				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
-				hostSegments[normalizedSegmentIndex] = createSegment(
+			if(doAddress) {
+				if(segmentMask != null || segmentPrefixLength != null) {
+					hostSegments = allocateSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+					hostSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV4,
+							(int) lower,
+							(int) upper,
+							true,
+							addrParseData,
+							i,
+							null,
+							null,
+							creator);
+				}
+				segments[normalizedSegmentIndex] = createSegment(
 						addressString,
 						IPVersion.IPV4,
 						(int) lower,
@@ -1060,21 +1168,47 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						true,
 						addrParseData,
 						i,
-						null,
-						null,
+						segmentPrefixLength,
+						segmentMask,
 						creator);
 			}
-			segments[normalizedSegmentIndex] = createSegment(
-					addressString,
-					IPVersion.IPV4,
-					(int) lower,
-					(int) upper,
-					true,
-					addrParseData,
-					i,
-					segmentPrefixLength,
-					segmentMask,
-					creator);
+			if(doRangeBoundaries) {
+				boolean isRange = lower != upper;
+				if(!doAddress || isRange) {
+					if(doAddress) {
+						lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+					} // else segments already allocated
+					lowerSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV4,
+							(int) lower,
+							(int) lower,
+							false,
+							addrParseData,
+							i,
+							segmentPrefixLength,
+							segmentMask,
+							creator);
+				} else if(lowerSegments != null) {
+					lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+				}
+				if(isRange) {
+					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+					upperSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV4,
+							(int) upper,
+							(int) upper,
+							false,
+							addrParseData,
+							i,
+							segmentPrefixLength,
+							segmentMask,
+							creator);
+				} else if(upperSegments != null) {
+					upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+				}
+			}
 			if(!expandedSegments &&
 					//check for any missing segments that we should account for here
 					addrParseData.isWildcard(i) && (!is_inet_aton_joined() || isLastSegment)) {
@@ -1088,55 +1222,98 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				if(expandSegments) {
 					expandedSegments = true;
 					int count = missingCount;
+					int lowerFull = 0, upperFull = IPv4Address.MAX_VALUE_PER_SEGMENT;
 					while(count-- > 0) { //add the missing segments
 						++normalizedSegmentIndex;
 						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
-						if(segmentMask != null || segmentPrefixLength != null) {
-							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
-							hostSegments[normalizedSegmentIndex] = createSegment(
+						if(doAddress) {
+							if(segmentMask != null || segmentPrefixLength != null) {
+								hostSegments = allocateSegments(hostSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+								hostSegments[normalizedSegmentIndex] = createSegment(
+										addressString,
+										IPVersion.IPV4,
+										lowerFull,
+										upperFull,
+										false,
+										addrParseData,
+										i,
+										null,
+										null,
+										creator);
+							}
+							segments[normalizedSegmentIndex] = createSegment(
+								addressString,
+								IPVersion.IPV4,
+								lowerFull,
+								upperFull,
+								false,
+								addrParseData,
+								i,
+								segmentPrefixLength,
+								segmentMask,
+								creator);
+						}
+						if(doRangeBoundaries) {
+							if(doAddress) {
+								lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							}  // else segments already allocated
+							lowerSegments[normalizedSegmentIndex] = createSegment(
 									addressString,
 									IPVersion.IPV4,
-									(int) lower,
-									(int) upper,
+									lowerFull,
+									lowerFull,
 									false,
 									addrParseData,
 									i,
-									null,
-									null,
+									segmentPrefixLength,
+									segmentMask,
+									creator);
+							upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv4SegmentCount, normalizedSegmentIndex);
+							upperSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV4,
+									upperFull,
+									upperFull,
+									false,
+									addrParseData,
+									i,
+									segmentPrefixLength,
+									segmentMask,
 									creator);
 						}
-						segments[normalizedSegmentIndex] = createSegment(
-							addressString,
-							IPVersion.IPV4,
-							0,
-							IPv4Address.MAX_VALUE_PER_SEGMENT,
-							false,
-							addrParseData,
-							i,
-							segmentPrefixLength,
-							segmentMask,
-							creator);
 					}
 				}
 			}
 		}
 		ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> addressCreator = creator;
 		Integer prefLength = getPrefixLength(qualifier);
-		IPv4AddressSection result = addressCreator.createPrefixedSectionInternal(segments, prefLength);
-		IPv4AddressSection hostResult;
-		if(hostSegments != null) {
-			hostResult = addressCreator.createSectionInternal(hostSegments);
-		} else {
-			hostResult = null;
+
+		
+		IPv4AddressSection result, hostResult, lowerResult, upperResult;
+		result = hostResult = lowerResult = upperResult = null;
+		if(doAddress) {
+			result = addressCreator.createPrefixedSectionInternal(segments, prefLength);
+			if(hostSegments != null) {
+				IPv4AddressSection host = addressCreator.createSectionInternal(hostSegments);
+				if(!checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
+					hostResult = host;
+				}
+			}
+			if(checkExpandedValues(result, expandedStart, expandedEnd)) {
+				throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+			}
 		}
-		if(checkExpandedValues(result, expandedStart, expandedEnd)) {
-			throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+		if (doRangeBoundaries) {
+			if(lowerSegments != null) {
+				lowerResult = addressCreator.createPrefixedSectionInternal(lowerSegments, prefLength, true);
+			}
+			if(upperSegments != null) {
+				upperResult = addressCreator.createPrefixedSectionInternal(upperSegments, prefLength).getUpper();
+			}
 		}
-		if(checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
-			hostResult = null;
-		}
-		return new IPAddresses<IPv4Address, IPv4AddressSection>(result, hostResult) {
+		
+		return new IPAddresses<IPv4Address, IPv4AddressSection>(result, hostResult, lowerResult, upperResult) {
 			@Override
 			ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, ?> getCreator() {
 				return getIPv4AddressCreator();
@@ -1144,36 +1321,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		};
 	}
 	
-	/*
-	 * When expanding a set of segments into multiple, it is possible that the new segments do not accurately
-	 * cover the same ranges of values.  This occurs when there is a range in the upper segments and the lower
-	 * segments do not cover the full range (as is the case in the original unexpanded segment).
-	 * 
-	 * This does not include compressed 0 segments or compressed '*' segments, as neither can have the issue.
-	 * 
-	 * Returns true if the expansion was invalid.
-	 * 
-	 */
-	private boolean checkExpandedValues(IPAddressSection section, int start, int end) {
-		if(section != null && start < end) {
-			IPAddressSegment seg = section.getSegment(start);
-			boolean lastWasRange = seg.isMultiple();
-			do {
-				seg = section.getSegment(++start);
-				if(lastWasRange) {
-					if(!seg.isFullRange()) {
-						return true;
-					}
-				} else {
-					lastWasRange = seg.isMultiple();
-				}
-			} while(start < end);
-		}
-		return false;
-	}
-	
 	@SuppressWarnings("serial")
-	private IPAddresses<IPv6Address, IPv6AddressSection> createIPv6Addresses() throws IncompatibleAddressException {
+	private IPAddresses<IPv6Address, IPv6AddressSection> createIPv6Addresses(boolean doAddress, boolean doRangeBoundaries) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
@@ -1184,8 +1333,19 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		int segmentCount = addressParseData.getSegmentCount();
 		IPv6AddressCreator creator = getIPv6AddressCreator();
 		int ipv6SegmentCount = IPv6Address.SEGMENT_COUNT;
-		IPv6AddressSegment hostSegments[] = null;
-		IPv6AddressSegment segments[] = creator.createSegmentArray(ipv6SegmentCount);
+		
+		IPv6AddressSegment[] hostSegments, segments, lowerSegments, upperSegments = null;
+		hostSegments = upperSegments = null;
+		if(doAddress) {
+			segments = creator.createSegmentArray(ipv6SegmentCount);
+			lowerSegments = null;
+		} else if(doRangeBoundaries) {
+			lowerSegments = creator.createSegmentArray(ipv6SegmentCount);
+			segments = null;
+		} else {
+			return null;
+		}
+		
 		boolean mixed = isProvidingMixedIPv6();
 		int normalizedSegmentIndex = 0;
 		int missingSegmentCount = (mixed ? IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT : ipv6SegmentCount) - segmentCount;
@@ -1199,8 +1359,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			long lower = addressParseData.getValue(i, AddressParseData.KEY_LOWER);
 			long upper = addressParseData.getValue(i, AddressParseData.KEY_UPPER);
 			
-			//handle joined segments
-			if(!expandedSegments && i == segmentCount - 1 && !addressParseData.isWildcard(i)) {
+			//handle joined segments (eg single-segment) - this does not include wildcards or compressed
+			if(!expandedSegments && i == segmentCount - 1 && !addressParseData.isWildcard(i) && !isCompressed(i)) {
 				boolean useStringIndicators = true;
 				expandedSegments = true;
 				int count = missingSegmentCount;
@@ -1251,31 +1411,70 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						}
 					}
 					Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
-					if(segmentMask != null || currentPrefix != null) {
-						hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
-						hostSegments[normalizedSegmentIndex] = createSegment(
-								addressString,
-								IPVersion.IPV6,
-								newLower,
-								newUpper,
-								useStringIndicators,
-								addressParseData,
-								i,
-								null,
-								null,
-								creator);
+					if(doAddress) {
+						if(segmentMask != null || currentPrefix != null) {
+							hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+							hostSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV6,
+									newLower,
+									newUpper,
+									useStringIndicators,
+									addressParseData,
+									i,
+									null,
+									null,
+									creator);
+						}
+						segments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV6,
+							newLower,
+							newUpper,
+							useStringIndicators,
+							addressParseData,
+							i,
+							currentPrefix,
+							segmentMask,
+							creator);
 					}
-					segments[normalizedSegmentIndex] = createSegment(
-						addressString,
-						IPVersion.IPV6,
-						newLower,
-						newUpper,
-						useStringIndicators,
-						addressParseData,
-						i,
-						currentPrefix,
-						segmentMask,
-						creator);
+					if(doRangeBoundaries) {
+						boolean isSegRange = newLower != newUpper;
+						if(!doAddress || isSegRange) {
+							if(doAddress) {
+								lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+							} // else segments already allocated
+							lowerSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV6,
+									newLower,
+									newLower,
+									false,
+									addressParseData,
+									i,
+									currentPrefix,
+									segmentMask,
+									creator);
+						} else if(lowerSegments != null) {
+							lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+						}
+						if(isSegRange) {
+							upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+							upperSegments[normalizedSegmentIndex] = createSegment(
+									addressString,
+									IPVersion.IPV6,
+									newUpper,
+									newUpper,
+									false,
+									addressParseData,
+									i,
+									currentPrefix,
+									segmentMask,
+									creator);
+						} else if(upperSegments != null) {
+							upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+						}
+					}
 					++normalizedSegmentIndex;
 					count--;
 				}
@@ -1284,52 +1483,94 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			
 			Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
-			if(segmentMask != null || segmentPrefixLength != null) {
-				hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
-				hostSegments[normalizedSegmentIndex] = createSegment(
-						addressString,
-						IPVersion.IPV6,
-						(int) lower,
-						(int) upper,
-						true,
-						addressParseData,
-						i,
-						null,
-						null,
-						creator);
+			if(doAddress) {
+				if(segmentMask != null || segmentPrefixLength != null) {
+					hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+					hostSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV6,
+							(int) lower,
+							(int) upper,
+							true,
+							addressParseData,
+							i,
+							null,
+							null,
+							creator);
+				}
+				segments[normalizedSegmentIndex] = createSegment(
+					addressString,
+					IPVersion.IPV6,
+					(int) lower,
+					(int) upper,
+					true,
+					addressParseData,
+					i,
+					segmentPrefixLength,
+					segmentMask,
+					creator);
 			}
-			segments[normalizedSegmentIndex] = createSegment(
-				addressString,
-				IPVersion.IPV6,
-				(int) lower,
-				(int) upper,
-				true,
-				addressParseData,
-				i,
-				segmentPrefixLength,
-				segmentMask,
-				creator);
+			if(doRangeBoundaries) {
+				boolean isRange = lower != upper;
+				if(!doAddress || isRange) {
+					if(doAddress) {
+						lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+					} // else segments already allocated
+					lowerSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV6,
+							(int) lower,
+							(int) lower,
+							false,
+							addressParseData,
+							i,
+							segmentPrefixLength,
+							segmentMask,
+							creator);
+				} else if(lowerSegments != null) {
+					lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+				}
+				if(isRange) {
+					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+					upperSegments[normalizedSegmentIndex] = createSegment(
+							addressString,
+							IPVersion.IPV6,
+							(int) upper,
+							(int) upper,
+							false,
+							addressParseData,
+							i,
+							segmentPrefixLength,
+							segmentMask,
+							creator);
+				} else if(upperSegments != null) {
+					upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+				}
+			}
 			normalizedSegmentIndex++;
-			int expandValueLower = 0, expandValueUpper = 0;
 			if(!expandedSegments) {
-				//check for any missing segments that we should account for here
+				// check for any missing segments that we should account for here
+				// eg wildcarded segments or compressed segments
+				int expandValueLower = 0, expandValueUpper = 0;
 				boolean expandSegments = false;
+				boolean isRange = false;
 				if(addressParseData.isWildcard(i)) {
-					expandValueLower = 0;
-					expandValueUpper = IPv6Address.MAX_VALUE_PER_SEGMENT;
-					expandSegments = true;
-					for(int j = i + 1; j < segmentCount; j++) {
+					int j = i + 1;
+					for(; j < segmentCount; j++) {
 						if(addressParseData.isWildcard(j) || isCompressed(j)) {//another wildcard further down
-							expandSegments = false;
+							//expandSegments = false;
 							break;
 						}
 					}
-				} else {
-					//compressed ipv6?
-					if(isCompressed(i)) {
+					if(j == segmentCount) {
 						expandSegments = true;
-						expandValueLower = expandValueUpper = 0;
+						expandValueLower = 0;
+						expandValueUpper = IPv6Address.MAX_VALUE_PER_SEGMENT;
+						isRange = true;
 					}
+				} else if(isCompressed(i)) { //compressed ipv6?
+					expandSegments = true;
+					expandValueLower = expandValueUpper = 0;
 				}
 				//fill in missing segments
 				if(expandSegments) {
@@ -1338,9 +1579,22 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					while(count-- > 0) { //add the missing segments
 						segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
 						segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
-						if(segmentMask != null || segmentPrefixLength != null) {
-							hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
-							hostSegments[normalizedSegmentIndex] = createSegment(
+						if(doAddress) {
+							if(segmentMask != null || segmentPrefixLength != null) {
+								hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+								hostSegments[normalizedSegmentIndex] = createSegment(
+										addressString,
+										IPVersion.IPV6,
+										expandValueLower,
+										expandValueUpper,
+										false,
+										addressParseData,
+										i,
+										null,
+										null,
+										creator);
+							}
+							segments[normalizedSegmentIndex] = createSegment(
 									addressString,
 									IPVersion.IPV6,
 									expandValueLower,
@@ -1348,97 +1602,153 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									false,
 									addressParseData,
 									i,
-									null,
-									null,
+									segmentPrefixLength,
+									segmentMask,
 									creator);
 						}
-						segments[normalizedSegmentIndex] = createSegment(
-								addressString,
-								IPVersion.IPV6,
-								expandValueLower,
-								expandValueUpper,
-								false,
-								addressParseData,
-								i,
-								segmentPrefixLength,
-								segmentMask,
-								creator);
+						if(doRangeBoundaries) {
+							if(!doAddress || isRange) {
+								if(doAddress) {
+									lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+								} // else segments already allocated
+								lowerSegments[normalizedSegmentIndex] = createSegment(
+										addressString,
+										IPVersion.IPV6,
+										expandValueLower,
+										expandValueLower,
+										false,
+										addressParseData,
+										i,
+										segmentPrefixLength,
+										segmentMask,
+										creator);
+							} else if(lowerSegments != null) {
+								lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+							}
+							if(isRange) {
+								upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+								upperSegments[normalizedSegmentIndex] = createSegment(
+										addressString,
+										IPVersion.IPV6,
+										expandValueUpper,
+										expandValueUpper,
+										false,
+										addressParseData,
+										i,
+										segmentPrefixLength,
+										segmentMask,
+										creator);
+							} else if(upperSegments != null) {
+								upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+							}
+						}
 						normalizedSegmentIndex++;
 					}
 				}
 			}
 		}
-		IPv6AddressSection result = null, hostResult = null;
+		IPv6AddressSection result, hostResult, lowerResult, upperResult;
+		result = hostResult = lowerResult = upperResult = null;
 		ParsedAddressCreator<?, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment> addressCreator = creator;
+		Integer prefLength = getPrefixLength(qualifier);
 		if(mixed) {
-			IPv4AddressSection ipv4AddressSection = getMixedParsedAddress().createIPv4Addresses().getSection();
-			boolean embeddedSectionIsChanged = false;
+			IPv4AddressSeqRange ipv4Range = (IPv4AddressSeqRange) mixedParsedAddress.getProviderSeqRange();
 			for(int n = 0; n < 2; n++) {
 				int m = n << 1;
-				IPv4AddressSegment one = ipv4AddressSection.getSegment(m);
-				IPv4AddressSegment two = ipv4AddressSection.getSegment(m + 1);
 				Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue()) : null;
-				IPv6AddressSegment newSegment;
 				Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
-				boolean doHostSegment = segmentMask != null || segmentPrefixLength != null;
-				if(doHostSegment) {
-					hostSegments = allocateHostSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
-				}
-				int oneLower = one.getSegmentValue();
-				int twoLower = two.getSegmentValue();
-				if(!one.isMultiple() && !two.isMultiple()) {
+				
+				IPv4AddressSegment oneLow = ipv4Range.getLower().getSegment(m);
+				IPv4AddressSegment twoLow = ipv4Range.getLower().getSegment(m + 1);
+				IPv4AddressSegment oneUp = ipv4Range.getUpper().getSegment(m);
+				IPv4AddressSegment twoUp = ipv4Range.getUpper().getSegment(m + 1);
+				int oneLower = oneLow.getSegmentValue();
+				int twoLower = twoLow.getSegmentValue();
+				int oneUpper = oneUp.getSegmentValue();
+				int twoUpper = twoUp.getSegmentValue();
+				
+				boolean isRange = oneLower != oneUpper || twoLower != twoUpper;
+				if(doAddress) {
+					boolean doHostSegment = segmentMask != null || segmentPrefixLength != null;
 					if(doHostSegment) {
-						hostSegments[normalizedSegmentIndex] = createSegment(oneLower, twoLower, null, null, creator);
+						hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 					}
-					segments[normalizedSegmentIndex] = newSegment = createSegment(
-							oneLower,
-							twoLower,
-							segmentPrefixLength,
-							segmentMask,
-							creator);
-				} else {
-					// this can throw IncompatibleAddressException
-					int oneUpper = one.getUpperSegmentValue();
-					int twoUpper = two.getUpperSegmentValue();
-					if(doHostSegment) {
-						hostSegments[normalizedSegmentIndex] = createSegment(one, two, oneLower, oneUpper, twoLower, twoUpper, null, null, creator);
+					if(!isRange) {
+						if(doHostSegment) {
+							hostSegments[normalizedSegmentIndex] = createSegment(oneLower, twoLower, null, null, creator);
+						}
+						segments[normalizedSegmentIndex] = createSegment(
+								oneLower,
+								twoLower,
+								segmentPrefixLength,
+								segmentMask,
+								creator);
+					} else {
+						// this can throw IncompatibleAddressException
+						if(doHostSegment) {
+							hostSegments[normalizedSegmentIndex] = createSegment(ipv4Range, oneLower, oneUpper, twoLower, twoUpper, null, null, creator);
+						}
+						segments[normalizedSegmentIndex] = createSegment(
+								ipv4Range,
+								oneLower,
+								oneUpper,
+								twoLower,
+								twoUpper,
+								segmentPrefixLength,
+								segmentMask,
+								creator);
 					}
-					segments[normalizedSegmentIndex] = newSegment = createSegment(
-							one, 
-							two,
-							oneLower,
-							oneUpper,
-							twoLower,
-							twoUpper,
-							segmentPrefixLength,
-							segmentMask,
-							creator);
 				}
-				embeddedSectionIsChanged |= newSegment.isPrefixed() || /* note that parseData.mixedParsedAddress is never prefixed */ 
-						newSegment.getSegmentValue() != ((one.getSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getSegmentValue()) ||
-						newSegment.getUpperSegmentValue() != ((one.getUpperSegmentValue() << IPv4Address.BITS_PER_SEGMENT) | two.getUpperSegmentValue());
+				if(doRangeBoundaries) {
+					if(!doAddress || isRange) {
+						if(doAddress) {
+							lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+						} // else segments already allocated
+						lowerSegments[normalizedSegmentIndex] = createSegment(
+								oneLower,
+								twoLower,
+								null, // prefix length not needed
+								segmentMask,
+								creator);
+					} else if(lowerSegments != null) {
+						lowerSegments[normalizedSegmentIndex] = segments[normalizedSegmentIndex];
+					}
+					if(isRange) {
+						upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
+						upperSegments[normalizedSegmentIndex] = createSegment(
+								oneUpper,
+								twoUpper,
+								segmentPrefixLength, // we must keep prefix length for upper to get prefix subnet creation
+								segmentMask,
+								creator);
+					} else if(upperSegments != null) {
+						upperSegments[normalizedSegmentIndex] = lowerSegments[normalizedSegmentIndex];
+					}
+				}
 				normalizedSegmentIndex++;
 			}
-			if(!embeddedSectionIsChanged) {
-				if(hostSegments != null) {
-					hostResult = addressCreator.createSectionInternal(hostSegments, ipv4AddressSection);
-				}
-				result = addressCreator.createSectionInternal(segments, ipv4AddressSection, getPrefixLength(qualifier));
-			}
-		} 
-		if(result == null) {
+		}
+		if(doAddress) {
 			if(hostSegments != null) {
 				hostResult = addressCreator.createSectionInternal(hostSegments);
 			}
-			result = addressCreator.createPrefixedSectionInternal(segments, getPrefixLength(qualifier));
+			result = addressCreator.createPrefixedSectionInternal(segments, prefLength);
+			if(checkExpandedValues(result, expandedStart, expandedEnd)) {
+				throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+			}
+			if(checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
+				hostResult = null;
+			}
 		}
-		if(checkExpandedValues(result, expandedStart, expandedEnd)) {
-			throw new IncompatibleAddressException(addressString, "ipaddress.error.invalid.joined.ranges");
+		if (doRangeBoundaries) {
+			if(lowerSegments != null) {
+				lowerResult = addressCreator.createPrefixedSectionInternal(lowerSegments, prefLength, true);
+			}
+			if(upperSegments != null) {
+				upperResult = addressCreator.createPrefixedSectionInternal(upperSegments, prefLength).getUpper();
+			}
 		}
-		if(checkExpandedValues(hostResult, expandedStart, expandedEnd)) {
-			hostResult = null;
-		}
-		return new IPAddresses<IPv6Address, IPv6AddressSection>(result, hostResult) {
+		return new IPAddresses<IPv6Address, IPv6AddressSection>(result, hostResult, lowerResult, upperResult) {
 			@Override
 			ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, ?> getCreator() {
 				return getIPv6AddressCreator();
@@ -1446,6 +1756,34 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		};
 	}
 	
+	/*
+	 * When expanding a set of segments into multiple, it is possible that the new segments do not accurately
+	 * cover the same ranges of values.  This occurs when there is a range in the upper segments and the lower
+	 * segments do not cover the full range (as is the case in the original unexpanded segment).
+	 * 
+	 * This does not include compressed 0 segments or compressed '*' segments, as neither can have the issue.
+	 * 
+	 * Returns true if the expansion was invalid.
+	 * 
+	 */
+	private static boolean checkExpandedValues(IPAddressSection section, int start, int end) {
+		if(section != null && start < end) {
+			IPAddressSegment seg = section.getSegment(start);
+			boolean lastWasRange = seg.isMultiple();
+			do {
+				seg = section.getSegment(++start);
+				if(lastWasRange) {
+					if(!seg.isFullRange()) {
+						return true;
+					}
+				} else {
+					lastWasRange = seg.isMultiple();
+				}
+			} while(start < end);
+		}
+		return false;
+	}
+
 	private static <S extends IPAddressSegment> S createSegment(
 			CharSequence addressString,
 			IPVersion version,
@@ -1499,8 +1837,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	 * create an IPv6 segment by joining two IPv4 segments
 	 */
 	private static IPv6AddressSegment createSegment(
-			IPv4AddressSegment one,
-			IPv4AddressSegment two,
+			AddressItem item,
 			int upperRangeLower,
 			int upperRangeUpper,
 			int lowerRangeLower,
@@ -1518,7 +1855,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			lowerRangeLower &= maskInt;
 			lowerRangeUpper &= maskInt;
 		}
-		IPv6AddressSegment result = join(one, two, upperRangeLower, upperRangeUpper, lowerRangeLower, lowerRangeUpper, segmentPrefixLength, creator);
+		IPv6AddressSegment result = join(item, upperRangeLower, upperRangeUpper, lowerRangeLower, lowerRangeUpper, segmentPrefixLength, creator);
 		if(hasMask && !result.isMaskCompatibleWithRange(mask.intValue(), segmentPrefixLength)) {
 			throw new IncompatibleAddressException(result, mask, "ipaddress.error.maskMismatch");
 		}
@@ -1526,8 +1863,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	private static IPv6AddressSegment join(
-			IPv4AddressSegment one,
-			IPv4AddressSegment two,
+			AddressItem item,
 			int upperRangeLower,
 			int upperRangeUpper,
 			int lowerRangeLower,
@@ -1548,14 +1884,14 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					lowerRangeLower &= networkMask;
 					lowerRangeUpper |= hostMask;
 					if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
-						throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+						throw new IncompatibleAddressException(item, "ipaddress.error.invalidMixedRange");
 					}
 				} else {
 					lowerRangeLower = 0;
 					lowerRangeUpper = IPv4Address.MAX_VALUE_PER_SEGMENT;
 				}
 			} else if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
-				throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+				throw new IncompatibleAddressException(item, "ipaddress.error.invalidMixedRange");
 			}
 		}
 		return creator.createSegment(
@@ -1563,6 +1899,71 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				(upperRangeUpper << shift) | lowerRangeUpper,
 				segmentPrefixLength);
 	}
+	
+//	private static IPv6AddressSegment createSegment(
+//			IPv4AddressSegment one,
+//			IPv4AddressSegment two,
+//			int upperRangeLower,
+//			int upperRangeUpper,
+//			int lowerRangeLower,
+//			int lowerRangeUpper,
+//			Integer segmentPrefixLength,
+//			Integer mask,
+//			IPv6AddressCreator creator) throws IncompatibleAddressException {
+//		boolean hasMask = (mask != null);
+//		if(hasMask) {
+//			int maskInt = mask.intValue();
+//			int shift = IPv4Address.BITS_PER_SEGMENT;
+//			int shiftedMask = maskInt >> shift;
+//			upperRangeLower &= shiftedMask;
+//			upperRangeUpper &= shiftedMask;
+//			lowerRangeLower &= maskInt;
+//			lowerRangeUpper &= maskInt;
+//		}
+//		IPv6AddressSegment result = join(one, two, upperRangeLower, upperRangeUpper, lowerRangeLower, lowerRangeUpper, segmentPrefixLength, creator);
+//		if(hasMask && !result.isMaskCompatibleWithRange(mask.intValue(), segmentPrefixLength)) {
+//			throw new IncompatibleAddressException(result, mask, "ipaddress.error.maskMismatch");
+//		}
+//		return result;
+//	}
+//	private static IPv6AddressSegment join(
+//			IPv4AddressSegment one,
+//			IPv4AddressSegment two,
+//			int upperRangeLower,
+//			int upperRangeUpper,
+//			int lowerRangeLower,
+//			int lowerRangeUpper,
+//			Integer segmentPrefixLength,
+//			IPv6AddressCreator creator) throws IncompatibleAddressException {
+//		int shift = IPv4Address.BITS_PER_SEGMENT;
+//		if(upperRangeLower != upperRangeUpper) {
+//			//if the high segment has a range, the low segment must match the full range, 
+//			//otherwise it is not possible to create an equivalent IPv6 range when joining two IPv4 ranges
+//			if(segmentPrefixLength != null && creator.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+//				if(segmentPrefixLength > shift) {
+//					int lowerPrefixLength = segmentPrefixLength - shift;
+//					
+//					int fullMask = ~(~0 << shift); //allBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+//					int networkMask = fullMask & (fullMask << (shift - lowerPrefixLength));
+//					int hostMask = ~networkMask & fullMask;
+//					lowerRangeLower &= networkMask;
+//					lowerRangeUpper |= hostMask;
+//					if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
+//						throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+//					}
+//				} else {
+//					lowerRangeLower = 0;
+//					lowerRangeUpper = IPv4Address.MAX_VALUE_PER_SEGMENT;
+//				}
+//			} else if(lowerRangeLower != 0 || lowerRangeUpper != IPv4Address.MAX_VALUE_PER_SEGMENT) {
+//				throw new IncompatibleAddressException(one, two, "ipaddress.error.invalidMixedRange");
+//			}
+//		}
+//		return creator.createSegment(
+//				(upperRangeLower << shift) | lowerRangeLower,
+//				(upperRangeUpper << shift) | lowerRangeUpper,
+//				segmentPrefixLength);
+//	}
 	
 	private static <S extends IPAddressSegment> S createRangeSegment(
 			CharSequence addressString,
