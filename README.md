@@ -22,7 +22,22 @@ Version | Notes
 
 Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.org/) / [**JavaScript**](https://www.npmjs.com/) and [**Go**](https://golang.org/).
 
+## Add to Intellij Project
+
+1. Click File from the toolbar
+1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
+1. Select Modules at the left panel
+1. Dependencies tab
+1. '+' → JARs or directories
+1. Library...
+1. From Maven...
+1. Enter "ipaddress" into search bar, search
+1. After waiting for Intellij to locate ipaddress on maven, select the ipaddress version you prefer
+
+
 ## Getting Started
+
+### Java
 
 starting with address or subnet strings
 
@@ -65,3 +80,18 @@ starting with host name strings
 	    // handle improperly formatted host name or address string
 	}
 
+### Kotlin
+
+starting with address or subnet strings
+
+    val ipv6Str = "a:b:c:d:e:f:a:b/64";
+    try {
+        val ipv6AddressStr = IPAddressString(ipv6Str)
+        val ipv6Addr = ipv6AddressStr.toAddress()
+        // use address
+        println(ipv6Addr)
+    } catch(e: AddressStringException) {
+        // handle improperly formatted address string
+        println(e.message)
+    }
+    
