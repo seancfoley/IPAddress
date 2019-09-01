@@ -97,7 +97,9 @@ starting with address or subnet strings
     
     val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112";
     val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
-    // handle improperly formatted address string with nullable types
-    val ipv4Addr: IPAddress? = ipv6v4AddressStr.address?.toIPv6()?.embeddedIPv4Address
+    // handle improperly formatted address string with nullable types and safe calls
+    val ipAddr: IPAddress? = ipv6v4AddressStr.address
+    println(ipAddr) // a:b:c:d:e:f:102:304/112
+    val ipv6Addr: IPv6Address? = ipAddr?.toIPv6()
+    val ipv4Addr: IPv4Address? = ipv6Addr?.embeddedIPv4Address
     println(ipv4Addr) // 1.2.3.4/16
-    
