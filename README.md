@@ -101,6 +101,6 @@ starting with address or subnet strings, using exceptions for invalid formats
     val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
     val ipAddr: IPAddress? = ipv6v4AddressStr.address
     println(ipAddr) // a:b:c:d:e:f:102:304/112
-    val ipv6Addr: IPv6Address? = ipAddr?.toIPv6()
-    val ipv4Addr: IPv4Address? = ipv6Addr?.embeddedIPv4Address
+    val ipv6Addr = ipAddr?.toIPv6()
+    val ipv4Addr = ipv6Addr?.embeddedIPv4Address
     println(ipv4Addr) // 1.2.3.4/16
