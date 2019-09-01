@@ -82,7 +82,7 @@ starting with host name strings
 
 ### Kotlin
 
-starting with address or subnet strings
+starting with address or subnet strings, using exceptions for invalid formats
 
     val ipv6Str = "a:b:c:d::a:b/64";
     try {
@@ -91,13 +91,14 @@ starting with address or subnet strings
         // use address
         println(ipv6Addr) // a:b:c:d::a:b/64
     } catch(e: AddressStringException) {
-        // handle improperly formatted address string with exceptions
+        // handle improperly formatted address string
         println(e.message)
     }
     
+ handle invalid or unexpected formats using nullable types and safe calls
+ 
     val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112";
     val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
-    // handle improperly formatted address string with nullable types and safe calls
     val ipAddr: IPAddress? = ipv6v4AddressStr.address
     println(ipAddr) // a:b:c:d:e:f:102:304/112
     val ipv6Addr: IPv6Address? = ipAddr?.toIPv6()
