@@ -95,7 +95,7 @@ starting with address or subnet strings, using exceptions for invalid formats
         println(e.message)
     }
     
- handle invalid or unexpected formats using nullable types and safe calls
+ starting with address or subnet strings, using nullable types and safe calls to handle invalid or unexpected formats
  
     val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112"
     val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
