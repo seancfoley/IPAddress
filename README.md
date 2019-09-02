@@ -84,7 +84,7 @@ starting with host name strings
 
 starting with address or subnet strings, using exceptions for invalid formats
 
-    val ipv6Str = "a:b:c:d::a:b/64";
+    val ipv6Str = "a:b:c:d::a:b/64"
     try {
         val ipv6AddressStr = IPAddressString(ipv6Str)
         val ipv6Addr = ipv6AddressStr.toAddress()
@@ -97,7 +97,7 @@ starting with address or subnet strings, using exceptions for invalid formats
     
  handle invalid or unexpected formats using nullable types and safe calls
  
-    val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112";
+    val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112"
     val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
     val ipAddr: IPAddress? = ipv6v4AddressStr.address
     println(ipAddr) // a:b:c:d:e:f:102:304/112
