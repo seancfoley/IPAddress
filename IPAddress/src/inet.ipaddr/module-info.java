@@ -16,6 +16,11 @@
  * limitations under the License.
  */
 /**
+ * 
+ * Note: when compiling with a Java 8 or earlier compiler, comment out or delete this source file.
+ * <p>
+ * Modules were introduced with Java 9.  The remainder of the IPAddress source code is Java 8 compatible.
+ * 
  * @author seancfoley
  *
  */
