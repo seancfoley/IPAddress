@@ -22,7 +22,22 @@ Version | Notes
 
 Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.org/) / [**JavaScript**](https://www.npmjs.com/) and [**Go**](https://golang.org/).
 
+## Add to Intellij Project
+
+1. Click File from the toolbar
+1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
+1. Select Modules at the left panel
+1. Dependencies tab
+1. '+' → JARs or directories
+1. Library...
+1. From Maven...
+1. Enter "ipaddress" into search bar, search
+1. After waiting for Intellij to locate ipaddress on maven, select the ipaddress version you prefer
+
+
 ## Getting Started
+
+### Java
 
 starting with address or subnet strings
 
@@ -65,3 +80,27 @@ starting with host name strings
 	    // handle improperly formatted host name or address string
 	}
 
+### Kotlin
+
+starting with address or subnet strings, using exceptions for invalid formats
+
+    val ipv6Str = "a:b:c:d::a:b/64"
+    try {
+        val ipv6AddressStr = IPAddressString(ipv6Str)
+        val ipv6Addr = ipv6AddressStr.toAddress()
+        // use address
+        println(ipv6Addr) // a:b:c:d::a:b/64
+    } catch(e: AddressStringException) {
+        // handle improperly formatted address string
+        println(e.message)
+    }
+    
+ starting with address or subnet strings, using nullable types and safe calls to handle invalid or unexpected formats
+ 
+    val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112"
+    val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
+    val ipAddr: IPAddress? = ipv6v4AddressStr.address
+    println(ipAddr) // a:b:c:d:e:f:102:304/112
+    
+    val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
+    println(ipv4Addr) // 1.2.3.4/16
