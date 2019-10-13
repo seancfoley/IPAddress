@@ -93,6 +93,11 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 			throw new PrefixLenException(segmentPrefixLength);
 		}
 	}
+	
+	@Override
+	public long getMaxValue() {
+		return IPv6Address.MAX_VALUE_PER_SEGMENT;
+	}
 
 	@Override
 	public boolean isIPv6() {
@@ -107,7 +112,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
 		int val = low ? getSegmentValue() : getUpperSegmentValue();
-		return new byte[] {(byte) (val >> 8), (byte) (0xff & val)};
+		return new byte[] {(byte) (val >>> 8), (byte) (0xff & val)};
 	}
 	
 	@Override

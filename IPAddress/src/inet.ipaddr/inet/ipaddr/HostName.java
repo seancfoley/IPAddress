@@ -730,7 +730,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isReverseDNS() {
 		return isValid() && parsedHost.isReverseDNS();
 	}
-	
+
 	/**
 	 * If this represents an ip address or represents any valid IPAddressString, returns the corresponding address string.
 	 * Otherwise, returns null.  Note that translation includes prefix lengths and IPv6 zones.  
@@ -743,7 +743,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * If this represents an ip address, returns that address.  Otherwise, returns null.  
 	 * Note that translation includes prefix lengths and IPv6 zones.
@@ -775,7 +775,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * If a prefix length was supplied, either as part of an address or as part of a domain (in which case the prefix applies to any resolved address), 
 	 * then returns that prefix length.  Otherwise, returns null.
@@ -786,7 +786,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		} else if(isAddressString()) {
 			return parsedHost.asGenericAddressString().getNetworkPrefixLength();
 		}
-		return isValid() ? parsedHost.getNetworkPrefixLength() : null;
+		return isValid() ? parsedHost.getEquivalentPrefixLength() : null;
 	}
 
 	/**

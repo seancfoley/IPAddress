@@ -787,17 +787,32 @@ public class HostTest extends TestBase {
 		testHostAddress("1::%1/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", 3, "1", 16);
 		testHostAddress("1::%%1/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%%1/16", 3, "%1", 16);//that's right, zone, prefix and port!
 		testHostAddress("[1::/16]:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", 3, null, 16);
-		hostTest(false, "[1::/16]/32");//conflicting prefix length
+		
+		hostTest(true, "[1::/16]/32");
 		hostTest(true, "[1::/16]/16");
-		hostTest(false, "[1.2.3.4/16]/32");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/16]/32");
 		hostTest(true, "[1.2.3.4/16]/16");
-		hostTest(false, "[1.2.3.4/16]/255.255.255.0");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/16]/255.255.255.0");
 		hostTest(true, "[1.2.3.4/16]/255.255.0.0");
-		hostTest(false, "[1.2.3.4/255.255.255.0]/16");//conflicting prefix length
+		hostTest(true, "[1.2.3.4/255.255.255.0]/16");
 		hostTest(true, "[1.2.3.4/255.255.0.0]/16");
 		hostTest(true, "[1.2.3.4/255.255.255.0]/255.255.255.0");
-		hostTest(false, "[1.2.3.4/255.255.0.0]/255.255.255.0");//conflicting mask
-		hostTest(false, "[1.2.3.4/255.255.255.0]/255.255.0.0");//conflicting mask
+		hostTest(true, "[1.2.3.4/255.255.0.0]/255.255.255.0");
+		hostTest(true, "[1.2.3.4/255.255.255.0]/255.255.0.0");
+		
+		
+		testHostAddress("[1::/16]/32", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", null, null, 16);
+		testHostAddress("[1::/16]/16", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", null, null, 16);
+		testHostAddress("[1.2.3.4/16]/32", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/16]/16", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/16]/255.255.255.0", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/255.255.255.0]/16", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/16]/255.255.0.0", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/255.255.0.0]/16", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/255.255.0.0]/255.255.255.0", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/255.255.255.0]/255.255.0.0", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		testHostAddress("[1.2.3.4/255.255.0.0]/255.255.255.0", isAllSubnets ? "1.2.*.*" : "1.2.3.4", "1.2.3.4/16", null, null, 16);
+		
 		testHostAddress("1::/16:3", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::/16", 3, null, 16);
 		testHostAddress("[1::%251/16]", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%1/16", null, "1", 16);
 		testHostAddress("[1::%25%241/16]", isNoAutoSubnets ? "1::" : "1:*:*:*:*:*:*:*", "1::%$1/16", null, "$1", 16);

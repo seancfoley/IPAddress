@@ -129,7 +129,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	private transient IPv6StringCache stringCache;
 	
-	transient AddressCache sectionCache;
+	transient AddressCache sectionCache;//rename to addressCache
 
 	IPv6Address(IPv6AddressSection section, CharSequence zone, boolean checkZone) throws AddressValueException {
 		super(section);
@@ -796,6 +796,31 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return BIT_COUNT;
 	}
 	
+	void cache(IPv6Address lower, IPv6Address upper) {
+		if((lower != null || upper != null) && getSection().getSingleLowestOrHighestSection() == null) {
+			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
+			AddressCache cache = sectionCache;
+			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
+				synchronized(this) {
+					cache = sectionCache;
+					boolean create = (cache == null);
+					if(create) {
+						sectionCache = cache = new AddressCache();
+						cache.lower = lower;
+						cache.upper = upper;
+					} else {
+						if(cache.lower == null) {
+							cache.lower = lower;
+						}
+						if(cache.upper == null) {
+							cache.upper = upper;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	private IPv6Address getLowestOrHighest(boolean lowest, boolean excludeZeroHost) {
 		IPv6AddressSection currentSection = getSection();
 		IPv6AddressSection sectionResult = currentSection.getLowestOrHighestSection(lowest, excludeZeroHost);

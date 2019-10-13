@@ -64,6 +64,14 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 
 	private static final long serialVersionUID = 4L;
 	
+	public static interface DivisionValueProvider {
+		long getValue(int segmentIndex);
+	}
+	
+	public static interface DivisionLengthProvider {
+		int getLength(int segmentIndex);
+	}
+
 	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 	
 	/* caches objects to avoid recomputing them */
@@ -71,9 +79,9 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		public R lower;
 		public R lowerNonZeroHost;
 		public R upper;
-		
+
 		public boolean lowerNonZeroHostIsNull;
-		
+
 		public SectionCache() {}
 	}
 	
@@ -246,7 +254,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	}
 	
 	protected static Integer getSegmentPrefixLength(int segmentBits, int segmentPrefixedBits) {
-		return ParsedAddressGrouping.getSegmentPrefixLength(segmentBits, segmentPrefixedBits);
+		return ParsedAddressGrouping.getDivisionPrefixLength(segmentBits, segmentPrefixedBits);
 	}
 	
 	protected static int getNetworkPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
@@ -758,7 +766,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 				if(segBits >= divBitSize) {
 					int diff = segBits - divBitSize;
 					divLowerValue |= segLowerVal >>> diff;
-					int shift = ~(~0 << diff);
+					long shift = ~(~0L << diff);
 					segLowerVal &= shift;
 					divUpperValue |= segUpperVal >>> diff;
 					segUpperVal &= shift;
@@ -1375,7 +1383,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 
 	protected static <T extends AddressStringDivisionSeries, E extends AddressStringDivisionSeries> String 
 			toNormalizedStringRange(AddressStringParams<T> params, T lower, T upper, CharSequence zone) {
-		int length = params.getStringLength(lower, zone) + params.getStringLength(upper, zone);
+		int length = params.getStringLength(lower, null) + params.getStringLength(upper, zone);
 		StringBuilder builder;
 		String separator = params.getWildcards().rangeSeparator;
 		if(separator != null) {

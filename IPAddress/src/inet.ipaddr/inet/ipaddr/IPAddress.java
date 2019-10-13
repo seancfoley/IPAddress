@@ -1270,11 +1270,14 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * A CIDR network mask is all 1 bits in the network section and then all 0 bits in the host section.
 	 * A CIDR host mask is all 0 bits in the network section and then all 1 bits in the host section.
 	 * The prefix is the length of the network section.
-	 * 
+	 * <p>
 	 * Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length used to construct this object.
 	 * The prefix length used to construct indicates the network and host section of this address.  
 	 * The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host
 	 * section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
+	 * <p>
+	 * Just like the mask methods which use the lower value for masking,
+	 * this method applies only to the lower value of the range if this address represents multiple values.
 	 *
 	 * @param network whether to check if we are a network mask or a host mask
 	 * @return the prefix length corresponding to this mask, or null if there is no such prefix length
@@ -1282,11 +1285,13 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public Integer getBlockMaskPrefixLength(boolean network) {
 		return getSection().getBlockMaskPrefixLength(network);
 	}
-	
+
 	/**
 	 * Returns the number of consecutive trailing one or zero bits.
 	 * If network is true, returns the number of consecutive trailing zero bits.
 	 * Otherwise, returns the number of consecutive trailing one bits.
+	 * <p>
+	 * This method applies only to the lower value of the range if this address represents multiple values.
 	 * 
 	 * @param network
 	 * @return
@@ -1299,6 +1304,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * Returns the number of consecutive leading one or zero bits.
 	 * If network is true, returns the number of consecutive leading one bits.
 	 * Otherwise, returns the number of consecutive leading zero bits.
+	 * <p>
+	 * This method applies only to the lower value of the range if this address represents multiple values.
 	 * 
 	 * @param network
 	 * @return

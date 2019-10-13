@@ -19,7 +19,9 @@ package inet.ipaddr.format.validate;
 
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
-import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.DivisionLengthProvider;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.DivisionValueProvider;
+import inet.ipaddr.ipv6.IPv6Address;
 
 public class ParsedAddressGrouping {
 	
@@ -73,7 +75,7 @@ public class ParsedAddressGrouping {
 
 	public static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
 		int decrement = (bitsPerSegment == 8) ? segmentIndex << 3 : ((bitsPerSegment == 16) ? segmentIndex << 4 :  segmentIndex * bitsPerSegment);
-		return getSegmentPrefixLength(bitsPerSegment, prefixLength - decrement);
+		return getDivisionPrefixLength(bitsPerSegment, prefixLength - decrement);
 	}
 	
 	/**
@@ -81,11 +83,11 @@ public class ParsedAddressGrouping {
 	 * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 	 * or IPv4: ...(null).(1 to 8).(0)...
 	 */
-	public static Integer getSegmentPrefixLength(int segmentBits, int segmentPrefixedBits) {
-		if(segmentPrefixedBits <= 0) {
-			return 0; //none of the bits in this segment matter
-		} else if(segmentPrefixedBits <= segmentBits) {
-			return segmentPrefixedBits;//some of the bits in this segment matter
+	public static Integer getDivisionPrefixLength(int divisionBits, int divisionPrefixedBits) {
+		if(divisionPrefixedBits <= 0) {
+			return cache(0); //none of the bits in this segment matter
+		} else if(divisionPrefixedBits <= divisionBits) {
+			return cache(divisionPrefixedBits);//some of the bits in this segment matter
 		}
 		return null; //all the bits in this segment matter
 	}
@@ -100,9 +102,184 @@ public class ParsedAddressGrouping {
 	 */
 	public static Integer getNetworkPrefixLength(int bitsPerSegment, int segmentPrefixLength, int segmentIndex) {
 		int increment = (bitsPerSegment == 8) ? segmentIndex << 3 : ((bitsPerSegment == 16) ? segmentIndex << 4 :  segmentIndex * bitsPerSegment);
-		return increment + segmentPrefixLength;
+		return cache(increment + segmentPrefixLength);
 	}
-
+	
+	public static boolean isPrefixSubnet(
+			DivisionValueProvider lowerValueProvider,
+			DivisionValueProvider lowerExtendedValueProvider,
+			DivisionValueProvider upperValueProvider,
+			DivisionValueProvider upperExtendedValueProvider,
+			DivisionLengthProvider bitLengthProvider,
+			int divisionCount,
+			Integer networkPrefixLength,
+			PrefixConfiguration prefixConfiguration,
+			boolean fullRangeOnly) {
+		if(networkPrefixLength == null || prefixConfiguration.prefixedSubnetsAreExplicit()) {
+			return false;
+		}
+		if(networkPrefixLength < 0) {
+			networkPrefixLength = 0;
+		}
+		int totalBitLength = 0;
+		topLoop:
+		for(int i = 0; i < divisionCount; i++) {
+			int divBitLength = bitLengthProvider.getLength(i);
+			Integer divisionPrefLength = ParsedAddressGrouping.getDivisionPrefixLength(divBitLength, networkPrefixLength - totalBitLength);
+			if(divBitLength == 0) {
+				continue;
+			}
+			if(divisionPrefLength == null) {
+				totalBitLength += divBitLength;
+				continue;
+			}
+			int divisionPrefixLength = divisionPrefLength;
+			int extendedPrefixLength, extendedDivBitLength;
+			boolean isExtended, hasExtendedPrefixLength;
+			boolean hasPrefLen = divisionPrefixLength != divBitLength;
+			if(hasPrefLen) {
+				// for values larger than 64 bits, the "extended" values are the upper (aka most significant, leftmost) bits
+				if(isExtended = (divBitLength > Long.SIZE)) {
+					extendedDivBitLength = divBitLength - Long.SIZE;
+					divBitLength = Long.SIZE;
+					if(hasExtendedPrefixLength = (divisionPrefixLength < extendedDivBitLength)) {
+						extendedPrefixLength = divisionPrefixLength;
+						divisionPrefixLength = 0;
+					} else {
+						isExtended = false;
+						extendedPrefixLength = extendedDivBitLength;
+						divisionPrefixLength -= extendedDivBitLength;
+					}
+				} else {
+					extendedPrefixLength = extendedDivBitLength = 0;
+					hasExtendedPrefixLength = false;
+				}
+			} else {
+				extendedPrefixLength = extendedDivBitLength = 0;
+				hasExtendedPrefixLength = isExtended = false;// we may be extended, but we set to false because we do nothing when no prefix
+			}
+			while(true) {
+				if(isExtended) {
+					long extendedLower = lowerExtendedValueProvider.getValue(i);
+					if(extendedPrefixLength == 0) {
+						if(extendedLower != 0) {
+							return false;
+						}
+						long extendedUpper = upperExtendedValueProvider.getValue(i);
+						if(fullRangeOnly) {
+							long maxVal = ~0L >>> (Long.SIZE - extendedDivBitLength);
+							if(extendedUpper != maxVal) {
+								return false;
+							}
+						} else {
+							int upperOnes = Long.numberOfTrailingZeros(~extendedUpper);
+							if(upperOnes > 0) {
+								if(upperOnes < Long.SIZE && (extendedUpper >>> upperOnes) != 0) {
+									return false;
+								}
+								fullRangeOnly = true;
+							} else if(extendedUpper != 0) {
+								return false;
+							}
+						}
+					} else if(hasExtendedPrefixLength) {
+						int divHostBits = extendedDivBitLength - extendedPrefixLength; // < 64, when 64 handled by block above
+						if(fullRangeOnly) {
+							long hostMask = ~(~0L << divHostBits);
+							if((hostMask & extendedLower) != 0) {
+								return false;
+							}
+							long extendedUpper = upperExtendedValueProvider.getValue(i);
+							if((hostMask & extendedUpper) != hostMask) {
+								return false;
+							}
+						} else {
+							int lowerZeros = Long.numberOfTrailingZeros(extendedLower);
+							if(lowerZeros < divHostBits) {
+								return false;
+							}
+							long extendedUpper = upperExtendedValueProvider.getValue(i);
+							int upperOnes = Long.numberOfTrailingZeros(~extendedUpper);
+							if(upperOnes < divHostBits) {
+								int upperZeros = Long.numberOfTrailingZeros(extendedUpper >>> upperOnes);
+								if(upperOnes + upperZeros < divHostBits) {
+									return false;
+								}
+								fullRangeOnly = upperOnes > 0;
+							} else {
+								fullRangeOnly = true;
+							}
+						}
+					}
+				}
+				if(divisionPrefixLength == 0) {
+					long lower = lowerValueProvider.getValue(i);
+					if(lower != 0) {
+						return false;
+					}
+					long upper = upperValueProvider.getValue(i);
+					if(fullRangeOnly) {	
+						long maxVal = ~0L >>> (Long.SIZE - divBitLength);
+						if(upper != maxVal) {
+							return false;
+						}
+					} else {
+						int upperOnes = Long.numberOfTrailingZeros(~upper);
+						if(upperOnes > 0) {
+							if(upperOnes < Long.SIZE && (upper >>> upperOnes) != 0) {
+								return false;
+							}
+							fullRangeOnly = true;
+						} else if(upper != 0) {
+							return false;
+						}
+					}
+				} else if(hasPrefLen){
+					long lower = lowerValueProvider.getValue(i);
+					int divHostBits = divBitLength - divisionPrefixLength; // < 64, when 64 handled by block above
+					if(fullRangeOnly) {
+						long hostMask = ~(~0L << divHostBits);
+						if((hostMask & lower) != 0) {
+							return false;
+						}
+						long upper = upperValueProvider.getValue(i);
+						if((hostMask & upper) != hostMask) {
+							return false;
+						}
+					} else {
+						int lowerZeros = Long.numberOfTrailingZeros(lower);
+						if(lowerZeros < divHostBits) {
+							return false;
+						}
+						long upper = upperValueProvider.getValue(i);
+						int upperOnes = Long.numberOfTrailingZeros(~upper);
+						if(upperOnes < divHostBits) {
+							int upperZeros = Long.numberOfTrailingZeros(upper >>> upperOnes);
+							if(upperOnes + upperZeros < divHostBits) {
+								return false;
+							}
+							fullRangeOnly = upperOnes > 0;
+						} else {
+							fullRangeOnly = true;
+						}
+					}
+				}
+				if(++i == divisionCount) {
+					break topLoop;
+				}
+				divBitLength = bitLengthProvider.getLength(i);
+				if(hasExtendedPrefixLength = isExtended = (divBitLength > Long.SIZE)) {
+					extendedDivBitLength = divBitLength - Long.SIZE;
+					divBitLength = Long.SIZE;
+				} else {
+					extendedDivBitLength = 0;
+				}
+				extendedPrefixLength = divisionPrefixLength = 0;
+			} // end while
+		}
+		return true;
+	}
+		
 	public static boolean isPrefixSubnet(
 			SegmentValueProvider lowerValueProvider,
 			SegmentValueProvider upperValueProvider,
@@ -165,7 +342,7 @@ public class ParsedAddressGrouping {
 							return false;
 						}
 					}
-				} else {
+				} else if(segmentPrefixLength < bitsPerSegment) {
 					int segHostBits = bitsPerSegment - segmentPrefixLength;
 					if(fullRangeOnly) {
 						int hostMask = ~(~0 << segHostBits);
@@ -183,11 +360,13 @@ public class ParsedAddressGrouping {
 						}
 						int upper = upperValueProvider.getValue(i);
 						int upperOnes = Integer.numberOfTrailingZeros(~upper);
-						int upperZeros = Integer.numberOfTrailingZeros((upper | (~0 << bitsPerSegment)) >>> upperOnes);
-						if(upperOnes + upperZeros < segHostBits) {
-							return false;
-						}
-						if(upperOnes > 0) {
+						if(upperOnes < segHostBits) {
+							int upperZeros = Integer.numberOfTrailingZeros((upper | (~0 << bitsPerSegment)) >>> upperOnes);
+							if(upperOnes + upperZeros < segHostBits) {
+								return false;
+							}
+							fullRangeOnly = upperOnes > 0;
+						} else {
 							fullRangeOnly = true;
 						}
 					}
@@ -198,15 +377,24 @@ public class ParsedAddressGrouping {
 		return true;
 	}
 	
-	private static final Integer cache[] = new Integer[IPv4Address.MAX_VALUE_PER_SEGMENT + 1]; static {
-		for(int i = 0; i < cache.length; i++) {
+	// this is used to cache:
+	// - ports
+	// - prefix lengths and bit lengths
+	// - segment mask values
+	// so it needs to be large enough to accommodate all of those, but we only populate the bit lengths to start
+	private static final Integer cache[] = new Integer[Short.MAX_VALUE]; static {
+		for(int i = 0; i <= IPv6Address.BIT_COUNT; i++) {
 			cache[i] = i;
 		}
 	}
      
 	public static Integer cache(int i) {
 		if(i >= 0 && i < cache.length) {
-			return cache[i];
+			Integer result = cache[i];
+			if(result == null) {
+				result = cache[i] = i;
+			}
+			return result;
 		}
 		return i;
 	}

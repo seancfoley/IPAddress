@@ -21,6 +21,7 @@ package inet.ipaddr.mac;
 import java.util.Iterator;
 
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
+import inet.ipaddr.Address;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IncompatibleAddressException;
@@ -349,7 +350,12 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	public boolean contains(AddressSegment other) {
 		return other instanceof MACAddressSegment && other.getSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
 	}
-	
+
+	@Override
+	protected String getDefaultSegmentWildcardString() {
+		return Address.SEGMENT_WILDCARD_STR;
+	}
+
 	@Override
 	public String toHexString(boolean with0xPrefix) {
 		return toNormalizedString(with0xPrefix ? MACStringCache.hexPrefixedParams : MACStringCache.hexParams);

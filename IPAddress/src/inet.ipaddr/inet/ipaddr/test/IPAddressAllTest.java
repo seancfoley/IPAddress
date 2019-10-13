@@ -18,6 +18,7 @@
 
 package inet.ipaddr.test;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -771,26 +772,251 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testMatches(true, "1-.65536-", "1-255.65536-16777215"); // test more than one inferred range
 		
 		ipv4test(true, "*.0-65535"); //*.0.*.*
+
+		testSubnetStringRange("*.0-65535", "0.0.0.0", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {0, 65535}}); // only valid with inet_aton allowed, and inet_aton takes precedence over wildcard
+		testSubnetStringRange("00000000000000000000000000000000-00000000000000000000007fffffffff", "::", "::7f:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000000000000000007fffffffff", 16)}});
+		testSubnetStringRange("00000000000000000000000000000000-00000000007fffffffffffffffffffff", "::", "::7f:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000007fffffffffffffffffffff", 16)}});
+		testSubnetStringRange("00000000000000000000000000000000-7fffffffffffffffffffffffffffffff", "::", "7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("7fffffffffffffffffffffffffffffff", 16)}});
+		testSubnetStringRange("00000000000000000000000000000000-ffffffffffffffffffffffffffffffff", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffffffffffffffff", 16)}});
+		testSubnetStringRange("0000000000000000000000000000abcd-0000000000000000000000000000bbcd", "::abcd", "::bbcd", 
+				new Object[] {new Integer[] {0xabcd, 0xbbcd}});
 		
-		testSubnetStringRange("*.0-65535", "0.0.0.0", "255.0.255.255");
-		testIncompatibleAddress("*/f0ff::", "::", "f0ff::");  
-		testIncompatibleAddress("*/129.0.0.0", "0.0.0.0", "129.0.0.0");
-		testIncompatibleAddress("*:*/f0ff::", "::", "f0ff::");
-		testIncompatibleAddress("*.*/129.0.0.0", "0.0.0.0", "129.0.0.0");
-		testIncompatibleAddress("*.257-65535", "0.0.1.1", "255.0.255.255");
-		testIncompatibleAddress("1-1000", "1", "1000");
-		testIncompatibleAddress("50000-60000", "50000", "60000");
-		testIncompatibleAddress("*.11-16000111", "0.11", "255.16000111");
-		testIncompatibleAddress("0-255.11-16000111", "0.11", "255.16000111"); // inet_aton
-		testIncompatibleAddress("0-254.10101-16000111", "0.10101", "254.16000111"); // inet_aton
-		testIncompatibleAddress("1.10101-16000111", "1.10101", "1.16000111"); // inet_aton
-		testIncompatibleAddress("3-1.10101-16000111", "1.10101", "3.16000111"); // inet_aton
-		testIncompatibleAddress("00000000000000000000000000000000-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab");
-		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "bbcd:efab:cdef:abcd:efab:cdef:abcd:efab");
-		testIncompatibleAddress("-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab");
-		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testMaskedIncompatibleAddress("*/f0ff::", "::", "f0ff::");
+		testMaskedIncompatibleAddress("*/129.0.0.0", "0.0.0.0", "129.0.0.0");
+		
+		testMaskedIncompatibleAddress("*:*/f0ff::", "::", "f0ff::"); 
+		testMaskedIncompatibleAddress("*.*/129.0.0.0", "0.0.0.0", "129.0.0.0");
+
+		testIncompatibleAddress("*.257-65535", "0.0.1.1", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {257, 65535}});//[0-255, 257-65535]
+		testIncompatibleAddress("1-1000", "1", "1000", new Object[] {new Integer[] {1, 1000}});//[1-1000]
+		testIncompatibleAddress("50000-60000", "50000", "60000", new Object[] {new Integer[] {50000, 60000}});//[50000-60000]
+		testIncompatibleAddress("*.11-16000111", "0.11", "255.16000111", new Object[] {new Integer[] {0, 255}, new Integer[] {11, 16000111}}); //[0-255, 11-16000111]
+		testIncompatibleAddress("0-255.11-16000111", "0.11", "255.16000111", new Object[] {new Integer[] {0, 255}, new Integer[] {11, 16000111}}); //[0-255, 11-16000111] // inet_aton
+		testIncompatibleAddress("0-254.10101-16000111", "0.10101", "254.16000111", new Object[] {new Integer[] {0, 254}, new Integer[] {10101, 16000111}}); // [0-254, 10101-16000111] // inet_aton
+		testIncompatibleAddress("1.10101-16000111", "1.10101", "1.16000111", new Object[] {1L, new Integer[] {10101, 16000111}}); //[1, 10101-16000111] // inet_aton
+		testIncompatibleAddress("3-1.10101-16000111", "1.10101", "3.16000111", new Object[] {new Integer[] {1, 3}, new Integer[] {10101, 16000111}}); //[1-3, 10101-16000111] // inet_aton
+		testIncompatibleAddress("00000000000000000000000000000000-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16)});//[0-abcdefabcdefabcdefabcdefabcdefab]
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)});//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "bbcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("bbcdefabcdefabcdefabcdefabcdefab", 16)});//[abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab]
+		testIncompatibleAddress("-abcdefabcdefabcdefabcdefabcdefab", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16)});//[0-abcdefabcdefabcdefabcdefabcdefab]
+		testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)});//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
 	
-		testIncompatibleAddress("a:bb:c:dd:e:f:1.1-65535", "a:bb:c:dd:e:f:1.1", "a:bb:c:dd:e:f:1.65535"); // mixed with inet_aton, mixed is incompatible address
+		testIncompatibleAddress("a:bb:c:dd:e:f:1.1-65535", "a:bb:c:dd:e:f:1.1", "a:bb:c:dd:e:f:1.65535", new Object[] {0xa, 0xbb, 0xc, 0xdd, 0xe, 0xf, 1, new Integer[] {1, 0xffff}}); // mixed with inet_aton, mixed is incompatible address //[a, bb, c, dd, e, f, 1, 1-ffff]
+
+		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		boolean isAutoSubnets = !isNoAutoSubnets;
+		boolean isAllSubnets = allPrefixesAreSubnets;
+		
+		
+		// with prefix lengths
+
+		if(isAutoSubnets) {
+			// inet_aton *.0.*.*/15
+			testSubnetStringRange("*.0-65535/15", "0.0.0.0", "255.1.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {0, 131071}}, 15); // only valid with inet_aton allowed, and inet_aton takes precedence over wildcard
+		} else {
+			// inet_aton *.0.*.*/15
+			testSubnetStringRange("*.0-65535/15", "0.0.0.0", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {0, 65535}}, 15); // only valid with inet_aton allowed, and inet_aton takes precedence over wildcard
+		}
+		testSubnetStringRange("00000000000000000000000000000000-00000000000000000000007fffffffff/89", "::", "::7f:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000000000000000007fffffffff", 16)}}, 89);
+		testSubnetStringRange("00000000000000000000000000000000-00000000007fffffffffffffffffffff/89", "::", "::7f:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000007fffffffffffffffffffff", 16)}}, 89);
+		if(isAutoSubnets) {
+			testSubnetStringRange("00000000000000000000000000000000-7fffffffffffffffffffffffffffffff/0", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffffffffffffffff", 16)}}, 0);
+		} else {
+			testSubnetStringRange("00000000000000000000000000000000-7fffffffffffffffffffffffffffffff/0", "::", "7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 
+					new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("7fffffffffffffffffffffffffffffff", 16)}}, 0);
+		}
+		testSubnetStringRange("00000000000000000000000000000000-7fffffffffffffffffffffffffffffff/1", "::", "7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("7fffffffffffffffffffffffffffffff", 16)}}, 1);
+		if(isAllSubnets) {
+			testSubnetStringRange("0000000000000000000000000000abcd-0000000000000000000000000000bbcd/126", "::abcc", "::bbcf", 
+				new Object[] {new Integer[] {0xabcc, 0xbbcf}}, 126);
+		} else {
+			testSubnetStringRange("0000000000000000000000000000abcd-0000000000000000000000000000bbcd/126", "::abcd", "::bbcd", 
+					new Object[] {new Integer[] {0xabcd, 0xbbcd}}, 126);
+		}
+		if(isAutoSubnets) {
+			testSubnetStringRange("00000000000000000000000000000000/89", "::", "::7f:ffff:ffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000000000000000007fffffffff", 16)}}, 89);
+		} else {
+			testAddressStringRange("00000000000000000000000000000000/89", new Object[] {0}, 89);
+			testAddressStringRange("00000000000000000000000000000000/128", new Object[] {0}, 128);
+		}
+		testIncompatibleAddress("*.11-16000111/32", "0.11", "255.16000111", new Object[] {new Integer[] {0, 255}, new Integer[] {11, 16000111}}, 32); //[0-255, 11-16000111]
+		if(isAllSubnets) {
+			testSubnetStringRange("*.257-65535/16", "0.0.0.0", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {0, 65535}}, 16);//[0-255, 257-65535]
+			testSubnetStringRange("0-1000/16", "0", "65535", new Object[] {new Integer[] {0, 65535}}, 16);//[1-1000]
+			testSubnetStringRange("50000-60000/16", "0", "65535", new Object[] {new Integer[] {0, 65535}}, 16);//[50000-60000]
+			testSubnetStringRange("3-1.10101-16000111/16", "1.0", "3.16056319", new Object[] {new Integer[] {1, 3}, new Integer[] {0, 16056319}}, 16); //[1-3, 10101-16000111] // inet_aton
+			testIncompatibleAddress("00000000000000000000000000000000-abcdefabcdefabcdefabcdefabcdefab/64", "::", "abcd:efab:cdef:abcd:ffff:ffff:ffff:ffff", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdffffffffffffffff", 16)}, 64);
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff/64", "abcd:efab:cdef:abcd::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcd0000000000000000", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab/64", "abcd:efab:cdef:abcd::", "bbcd:efab:cdef:abcd:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcd0000000000000000", 16), new BigInteger("bbcdefabcdefabcdffffffffffffffff", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab]
+			testIncompatibleAddress("-abcdefabcdefabcdefabcdefabcdefab/64", "::", "abcd:efab:cdef:abcd:ffff:ffff:ffff:ffff", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdffffffffffffffff", 16)}, 64);//[0-abcdefabcdefabcdefabcdefabcdefab]
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-/64", "abcd:efab:cdef:abcd::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcd0000000000000000", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
+		} else {
+			testIncompatibleAddress("*.257-65535/16", "0.0.1.1", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {257, 65535}}, 16);//[0-255, 257-65535]
+			testIncompatibleAddress("1-1000/16", "1", "1000", new Object[] {new Integer[] {1, 1000}}, 16);//[1-1000]
+			testIncompatibleAddress("50000-60000/16", "50000", "60000", new Object[] {new Integer[] {50000, 60000}}, 16);//[50000-60000]
+			testIncompatibleAddress("3-1.10101-16000111/16", "1.10101", "3.16000111", new Object[] {new Integer[] {1, 3}, new Integer[] {10101, 16000111}}, 16); //[1-3, 10101-16000111] // inet_aton
+			testIncompatibleAddress("00000000000000000000000000000000-abcdefabcdefabcdefabcdefabcdefab/64", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16)}, 64);//[0-abcdefabcdefabcdefabcdefabcdefab]
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff/64", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab/64", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "bbcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("bbcdefabcdefabcdefabcdefabcdefab", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-bbcdefabcdefabcdefabcdefabcdefab]
+			testIncompatibleAddress("-abcdefabcdefabcdefabcdefabcdefab/64", "::", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", new BigInteger[] {BigInteger.ZERO, new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16)}, 64);//[0-abcdefabcdefabcdefabcdefabcdefab]
+			testIncompatibleAddress("abcdefabcdefabcdefabcdefabcdefab-/64", "abcd:efab:cdef:abcd:efab:cdef:abcd:efab", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new BigInteger[] {new BigInteger("abcdefabcdefabcdefabcdefabcdefab", 16), new BigInteger("ffffffffffffffffffffffffffffffff", 16)}, 64);//[abcdefabcdefabcdefabcdefabcdefab-ffffffffffffffffffffffffffffffff]
+		}
+		testIncompatibleAddress("a:bb:c:dd:e:f:1.1-65535", "a:bb:c:dd:e:f:1.1", "a:bb:c:dd:e:f:1.65535", new Object[] {0xa, 0xbb, 0xc, 0xdd, 0xe, 0xf, 1, new Integer[] {1, 0xffff}}); // mixed with inet_aton, mixed is incompatible address //[a, bb, c, dd, e, f, 1, 1-ffff]
+	
+		testMaskedIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0", 
+				"1234::", "2234:0:ffff:0:ffff:0:ffff:0");
+		
+		testSubnetStringRange("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/::ffff:ffff:FFFF:ffff:FFFF", 
+				"00000000000000000000000000000000", "000000000000ffffffffffffffffffff",
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("000000000000ffffffffffffffffffff", 16)}}, 
+				null, true
+		);
+		testIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:ffff:ffff:ffff:ffff:FFFF:ffff:FFFF", 
+				"1234567890abcdef1234567890abcdef", "2234567890abcdef1234567890abcdef",
+				new Object[] {new BigInteger[] {new BigInteger("1234567890abcdef1234567890abcdef", 16), new BigInteger("2234567890abcdef1234567890abcdef", 16)}}, 
+				128, true
+		);
+		testSubnetStringRange("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/fff:ffff:ffff:ffff:ffff:FFFF:ffff:FFFF", 
+				"00000000000000000000000000000000", "0fffffffffffffffffffffffffffffff",
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("0fffffffffffffffffffffffffffffff", 16)}}, 
+				null, true
+		);
+		testMaskedIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcded/fff:ffff:ffff:ffff:ffff:FFFF:ffff:FFFF", 
+				"00000000000000000000000000000000", "0fffffffffffffffffffffffffffffff"
+		); 
+		testSubnetStringRange("1234567890abcdef1234567890abcdef-2234567890abcdef2234567890abcdef/::ffff:ffff:FFFF:ffff:FFFF", 
+				"00000000000000000000000000000000", "000000000000ffffffffffffffffffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("000000000000ffffffffffffffffffff", 16)}}, 
+				null, true);
+		testSubnetStringRange("1234567890abcdef1234567890abcdef-2234567890abcdef2234567890abcdef/::FFFF:ffff:FFFF", 
+				"00000000000000000000000000000000", "00000000000000000000ffffffffffff", 
+				new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("00000000000000000000ffffffffffff", 16)}}, 
+				null, true);
+		testMaskedIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef2234567890abcdef/::FFFF:ffff:0000", 
+				"00000000000000000000000000000000", "00000000000000000000ffffffff0000");
+		
+		if(isAllSubnets) {
+			testIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:FFFF:ffff:FFFF::", 
+					"1234567890abcdef0000000000000000", "2234567890abcdefffffffffffffffff", 
+					new Object[] {new BigInteger[] {new BigInteger("1234567890abcdef0000000000000000", 16), new BigInteger("2234567890abcdefffffffffffffffff", 16)}}, 
+					64, true);
+		} else {
+			testIncompatibleAddress("1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:FFFF:ffff:FFFF::", 
+					"1234567890abcdef1234567890abcdef", "2234567890abcdef1234567890abcdef", 
+					new Object[] {new BigInteger[] {new BigInteger("1234567890abcdef1234567890abcdef", 16), new BigInteger("2234567890abcdef1234567890abcdef", 16)}}, 
+					64, true);
+		}
+		
+		//void testMaskedRange(long value, long upperValue, long maskValue, boolean expectedIsSequential, long expectedLower, long expectedUpper) {
+		testMaskedRange(2, 5, 2, false, 0, 2); // for range 2 to 5, masking with 2 gives range 2 to 0, ie reverse the range,
+		testMaskedRange(2, 5, 6, false, 2, 4);
+		testMaskedRange(2, 5, 7, true, 2, 5);
+		testMaskedRange(2, 5, 1, true, 0, 1);
+		testMaskedRange(1, 3, 1, true, 0, 1);
+		testMaskedRange(2, 5, 0, true, 0, 0);
+		testMaskedRange(1, 3, 0, true, 0, 0);
+		
+		testMaskedRange(1, 511, 511, true, 1, 511); 
+		testMaskedRange(101, 612, 511, true, 0, 511);
+		testMaskedRange(102, 612, 511, false, 0, 511);
+		testMaskedRange(102, 611, 511, false, 0, 511);
+		
+		testMaskedRange(1024, 1535, 511, true, 0, 511); //0x400 to 0x5ff with mask 
+		testMaskedRange(1024, 1534, 511, true, 0, 510);
+		testMaskedRange(1026, 1536, 511, false, 0, 511);
+		testMaskedRange(1025, 1536, 511, true, 0, 511);
+		testMaskedRange(1025, 1535, 511, true, 1, 511);
+		
+		testMaskedRange(0x400, 0x5ff, 0x1ff, true, 0, 0x1ff); //0x400 to 0x5ff with mask 
+		testMaskedRange(0x400, 0x5fe, 0x1ff, true, 0, 0x1fe);
+		testMaskedRange(0x402, 0x600, 0x1ff, false, 0, 0x1ff);
+		testMaskedRange(0x401, 0x600, 0x1ff, true, 0, 0x1ff);
+		testMaskedRange(0x401, 0x5ff, 0x1ff, true, 1, 0x1ff);
+		testMaskedRange(0x401, 0x5ff, 0, true, 0, 0);
+		testMaskedRange(0x401, 0x5ff, 1, true, 0, 1);
+		
+		// these 5 essentially the same as above 5 but in the extended 8 bytes
+		testMaskedRange(0x40000000000L, 0x5ffffffffffL, 0x1ffffffffffL, true, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40000000000L, 0x5fffffffffeL, 0x1ffffffffffL, true, 0, 0x1fffffffffeL);
+		testMaskedRange(0x40000000002L, 0x60000000000L, 0x1ffffffffffL, false, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40000000001L, 0x60000000000L, 0x1ffffffffffL, true, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40000000001L, 0x5ffffffffffL, 0x1ffffffffffL, true, 1, 0x1ffffffffffL);
+		
+		// mask 0x1ff is 9 ones, 5ff is 10 followed by 9 ones, 0x400 is 10 followed by 9 zeros
+		// ignoring the last 7 zeros,
+		// this is equivalent to 1000 to 1010 masked by 11, so we clearly must use the highest value to get the masked highest value
+		testMaskedRange(0x40000000000L, 0x5ff00000000L, 0x1ffffffffffL, true, 0, 0x1ff00000000L);
+		testMaskedRange(0x40000000000L, 0x5fe00000000L, 0x1ffffffffffL, true, 0, 0x1fe00000000L);
+		// now this is equivalent to 1000 to 10000 masked by 11, so we've now include the mask value in the range
+		// 0x600 is 110 followed by 8 zeros
+		// 0x400 is 100 followed by 8 zeros
+		// 0x401 is 100 followed by 7 zeros and a 1
+		// 0x402 is 100 followed by 7 zeros and a 2
+		// 0x1ff is 001 followed by 8 ones
+		// so we can get the lowest value by masking the top value 0x600
+		// and we need all values in between 0x600 and 0x601 to fill in the gap to 0x401 and make it sequential again
+		testMaskedRange(0x40000000000L, 0x60000000000L, 0x1ffffffffffL, true, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40200000000L, 0x60000000000L, 0x1ffffffffffL, false, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40100000000L, 0x60000000000L, 0x1ffffffffffL, false, 0, 0x1ffffffffffL);
+		testMaskedRange(0x40100000000L, 0x600ffffffffL, 0x1ffffffffffL, true, 0, 0x1ffffffffffL);
+		
+		testMaskedRange(0x40100000000L, 0x5ff00000000L, 0x1ffffffffffL, true, 0x100000000L, 0x1ff00000000L);
+		testMaskedRange(0x40100000000L, 0x5ffffffffffL, 0x1ffffffffffL, true, 0x100000000L, 0x1ffffffffffL);
+		testMaskedRange(0x400ffffffffL, 0x5ffffffffffL, 0x1ffffffffffL, true, 0xffffffffL, 0x1ffffffffffL);
+
+		
+		testMaskedRange(
+				1, 0xcafe, // lower
+				1, 0xbadcafe, // upper
+				0x1ff, 0x10000000, // mask
+				-1L, 0x10000000000L - 1, // max
+				true, //sequential
+				0, 0, // lower result
+				0x1ff, 0); // upper result
+		testMaskedRange(1, 0xcafe, 
+				1, 0xbadcafe, 
+				0x1fe, 0x10000000,  // mask
+				-1L, 0x10000000000L - 1,
+				false, 
+				0, 0, 
+				0x1fe, 0);
+		testMaskedRange(1, 0xcafe, 
+				1, 0xbadcafe, 
+				-1L, 0x10000000,  // mask
+				-1L, 0x10000000000L - 1,
+				true, 
+				0, 0, 
+				-1L, 0);
+		testMaskedRange(1, 0xcafe, 
+				1, 0xbadcafe, 
+				-1L >>> 1, 0x10000000,  // mask
+				-1L, 0x10000000000L - 1,
+				true, 
+				0, 0, 
+				-1L >>> 1, 0);
+		testMaskedRange(1, 0xcafe, 
+				1, 0xbadcafe, 
+				1, 0x10000000,  // mask
+				-1L, 0x10000000000L - 1,
+				true, 
+				0, 0, 
+				1, 0);
+		testMaskedRange(1, 0xcafe, 
+				1, 0xbadcafe, 
+				0, 0x10000000, 
+				-1L, 0x10000000000L - 1,
+				true, 
+				0, 0, 
+				0, 0);		
 	}
 }

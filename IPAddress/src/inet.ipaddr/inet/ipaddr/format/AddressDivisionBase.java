@@ -416,7 +416,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	
 	@Override
 	public String toString() {
-		return getString();
+		return getWildcardString();
 	}
 
 	/**
@@ -425,14 +425,14 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * @return
 	 */
 	protected abstract String getDefaultLowerString();
-	
+
 	/**
 	 * A simple string using just the lower and upper values and the default radix, separated by the default range character.
 	 * 
 	 * @return
 	 */
 	protected abstract String getDefaultRangeString();
-	
+
 	/**
 	 * This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
 	 * 
@@ -446,7 +446,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * 
 	 * @return
 	 */
-	protected abstract String getDefaultSegmentWildcardString();
+	protected String getDefaultSegmentWildcardString() {
+		return null;
+	}
 	
 	/**
 	 * This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()

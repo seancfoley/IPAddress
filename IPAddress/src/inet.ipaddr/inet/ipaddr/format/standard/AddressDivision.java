@@ -30,6 +30,9 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.validate.ParsedIPAddress;
+import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
+import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
 
 /**
  * A division of an address.
@@ -100,11 +103,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			}
 		}
 		return null;
-	}
-
-	@Override
-	protected String getDefaultSegmentWildcardString() {
-		return Address.SEGMENT_WILDCARD_STR;
 	}
 	
 	@Override
@@ -273,10 +271,11 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		}
 		long thisValue = getDivisionValue();
 		long thisUpperValue = getUpperDivisionValue();
-		if(!isMaskCompatibleWithRange(thisValue, thisUpperValue, mask, getMaxValue())) {
+		Masker masker = maskRange(thisValue, thisUpperValue, mask, getMaxValue());
+		if(!masker.isSequential()) {
 			return false;
 		}
-		return lowerValue == (thisValue & mask) && upperValue == (thisUpperValue & mask);
+		return lowerValue == masker.getMaskedLower(thisValue, mask) && upperValue == masker.getMaskedUpper(thisUpperValue, mask);
 	}
 	
 	@Override
@@ -305,95 +304,170 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		return false;
 	}
 	
-	//when divisionPrefixLen is null, isAutoSubnets has no effect
-	protected static boolean isMaskCompatibleWithRange(long value, long upperValue, long maskValue, long maxValue) {
-		if(value == upperValue || maskValue == maxValue || maskValue == 0) {
-			return true;
-		}
+	
+	/**
+	 * Represents the result of masking a sequential range of values
+	 * 
+	 * @author seancfoley
+	 *
+	 */
+	public static class MaskResult {
+		private final long value, upperValue, maskValue;
+		private final Masker masker;
 
-		//algorithm:
-		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-		//then we find the highest bit in the mask that is 1 that is the same or below highestDifferingBitInRange (if such a bit exists)
-		
-		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-		//if this latter bit exists, then any bit below it in the mask must be 1 to include the entire range.
-		
-		long differing = value ^ upperValue;
-		boolean foundDiffering = (differing != 0);
-		boolean differingIsLowestBit = (differing == 1);
-		if(foundDiffering && !differingIsLowestBit) {
-			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
-			long maskMask = ~0L >>> highestDifferingBitInRange;
-			long differingMasked = maskValue & maskMask;
-			foundDiffering = (differingMasked != 0);
-			differingIsLowestBit = (differingMasked == 1);
-			if(foundDiffering && !differingIsLowestBit) {
-				//anything below highestDifferingBitMasked in the mask must be ones
-				//Also, if we have masked out any 1 bit in the original, then anything that we do not mask out that follows must be all 1s
-				int highestDifferingBitMasked = Long.numberOfLeadingZeros(differingMasked);
-				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);//for the first mask bit that is 1, all bits that follow must also be 1
-				if((maskValue & hostMask) != hostMask) { //check if all ones below
-					return false;
-				}
-				if(highestDifferingBitMasked > highestDifferingBitInRange) {
-					//We have masked out a 1 bit, so we need to check that all bits in upper value that we do not mask out are also 1 bits, 
-					// otherwise we end up missing values in the masked range
-					//This check is unnecessary for prefix-length subnets, only non-standard ranges might fail this check.
-					//For instance, if we have range 0000 to 1010
-					//and we mask upper and lower with 0111
-					//we get 0000 to 0010, but 0111 was in original range, and the mask of that value retains that value
-					//so that value needs to be in final range, and it's not.
-					//What went wrong is that we masked out the top bit, and any other bit that is not masked out must be 1.
-					//To work, our original range needed to be 0000 to 1111, with the three 1s following the first masked-out 1
-					long hostMaskUpper = ~0L >>> highestDifferingBitMasked;
-					if((upperValue & hostMaskUpper) != hostMaskUpper) {
-						return false;
-					}
-				}
-			}
+		public MaskResult(long value, long upperValue, long maskValue, Masker masker) {
+			this.value = value;
+			this.upperValue = upperValue;
+			this.maskValue = maskValue;
+			this.masker = masker;
 		}
-		return true;
+		
+		/**
+		 * The lowest masked value, which is not necessarily the lowest value masked
+		 * @return
+		 */
+		public long getMaskedLower() {
+			return masker.getMaskedLower(value, maskValue);
+		}
+		
+		/**
+		 * The highest masked value, which is not necessarily the highest value masked
+		 * @return
+		 */
+		public long getMaskedUpper() {
+			return masker.getMaskedUpper(upperValue, maskValue);
+		}
+		
+		/**
+		 * Whether masking all values in the range results in a sequential set of values
+		 * @return
+		 */
+		public boolean isSequential() {
+			return masker.isSequential();
+		}
 	}
 	
-	protected static boolean isBitwiseOrCompatibleWithRange(long value, long upperValue, long maskValue, long maxValue) {
-		if(value == upperValue || maskValue == maxValue || maskValue == 0) {
+	/**
+	 * Check that the range resulting from the mask is contiguous, otherwise it cannot be represented by a division or segment instance.
+	 * 
+	 * For instance, for the range 0 to 3 (bits are 00 to 11), if we mask all 4 numbers from 0 to 3 with 2 (ie bits are 10), 
+	 * then we are left with 1 and 3.  2 is not included.  So we cannot represent 1 and 3 as a contiguous range.
+	 * 
+	 * The underlying rule is that mask bits that are 0 must be above the resulting range in each segment.
+	 * 
+	 * Any bit in the mask that is 0 must not fall below any bit in the masked segment range that is different between low and high.
+	 * 
+	 * Any network mask must eliminate the entire division range or keep the entire range.  Any host mask is fine.
+	 * 
+	 * @param maskValue
+	 * @param segmentPrefixLength
+	 * @return
+	 */
+	public boolean isMaskCompatibleWithRange(int maskValue) {
+		long value = getDivisionValue();
+		long upperValue = getUpperDivisionValue();
+		long maxValue = getMaxValue();
+		return maskRange(value, upperValue, maskValue, maxValue).isSequential();
+	}
+
+	protected static Masker maskRange(long value, long upperValue, long maskValue, long maxValue) {
+		return ParsedIPAddress.maskRange(value, upperValue, maskValue, maxValue);
+	}
+
+	/**
+	 * 
+	 * Returns an object that provides the masked values for a range,
+	 * which for subnets is an aggregation of all masked individual addresses in the subnet.
+	 * See {@link #bitwiseOrRange(long, long, long)}
+	 * 
+	 * @param value
+	 * @param upperValue
+	 * @param maskValue
+	 * @return an instance that provides the result of masking the values.  With individual addresses, the result is simply value & maskValue.
+	 *   But with subnets, returns an object providing lower and upper results along with whether the resulting set of values is sequential.
+	 */
+	public static MaskResult maskRange(long value, long upperValue, long maskValue) {
+		Masker masker = ParsedIPAddress.maskRange(value, upperValue, maskValue);
+		return new MaskResult(value, upperValue, maskValue, masker);
+	}
+	
+	
+	/**
+	 * Represents the result of a bitwise or of a sequential range of values
+	 * 
+	 * @author seancfoley
+	 *
+	 */
+	public static class BitwiseOrResult {
+		private final long value, upperValue, maskValue;
+		private final BitwiseOrer masker;
+
+		public BitwiseOrResult(long value, long upperValue, long maskValue, BitwiseOrer masker) {
+			this.value = value;
+			this.upperValue = upperValue;
+			this.maskValue = maskValue;
+			this.masker = masker;
+		}
+		
+		/**
+		 * The lowest ored value, which is not necessarily the lowest value ored
+		 * @return
+		 */
+		public long getOredLower() {
+			return masker.getOredLower(value, maskValue);
+		}
+		
+		/**
+		 * The highest ored value, which is not necessarily the highest value ored
+		 * @return
+		 */
+		public long getOredUpper() {
+			return masker.getOredUpper(upperValue, maskValue);
+		}
+		
+		/**
+		 * Whether masking all values in the range results in a sequential set of values
+		 * @return
+		 */
+		public boolean isSequential() {
+			return masker.isSequential();
+		}
+	}
+	
+	
+	/**
+	 * Similar to masking, checks that the range resulting from the bitwise "or" operation is sequential.
+	 * 
+	 * @param maskValue
+	 * @param segmentPrefixLength
+	 * @return
+	 */
+	public boolean isBitwiseOrCompatibleWithRange(int maskValue) {
+		if(!isMultiple()) {
 			return true;
 		}
-		//algorithm:
-		//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-		//then we find the highest bit in the mask that is 0 that is the same or below highestDifferingBitInRange (if such a bit exists)
-		
-		//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-		//if this latter bit exists, then any bit below it in the mask must be 0 to include the entire range.
-		
-		long differing = value ^ upperValue;
-		boolean foundDiffering = (differing != 0);
-		boolean differingIsLowestBit = (differing == 1);
-		if(foundDiffering && !differingIsLowestBit) {
-			int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
-			long maskMask = ~0L >>> highestDifferingBitInRange;
-			long differingMasked = maskValue & maskMask;
-			foundDiffering = (differingMasked != maskMask);
-			differingIsLowestBit = ((differingMasked | 1) == maskMask);
-			if(foundDiffering && !differingIsLowestBit) {
-				//anything below highestDifferingBitMasked in the mask must be zeros 
-				//Also, if we or'ed out any 0 bit in the original with a 1 in the mask, then anything that we do not mask out that follows must be all 0s
-				int highestDifferingBitMasked = Long.numberOfLeadingZeros(~differingMasked & maskMask);
-				long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-				if((maskValue & hostMask) != 0) { //check if all zeros below
-					return false;
-				}
-				if(highestDifferingBitMasked > highestDifferingBitInRange) {
-					//we have or-ed out a 0 bit, so we need to check that all bits in lower value that we do not or out are also 0 bits, otherwise we end up missing values in the masked range
-					//this is always true for prefix subnets, only non-standard ranges might fail here
-					long hostMaskLower = ~0L >>> highestDifferingBitMasked;
-					if((value & hostMaskLower) != 0) {
-						return false;
-					}
-				}
-			}
-		}
-		return true;
+		long value = getDivisionValue();
+		long upperValue = getUpperDivisionValue();
+		long maxValue = getMaxValue();
+		return bitwiseOrRange(value, upperValue, maskValue, maxValue) != null;
+	}
+	
+	protected static BitwiseOrer bitwiseOrRange(long value, long upperValue, long maskValue, long maxValue) {
+		return ParsedIPAddress.bitwiseOrRange(value, upperValue, maskValue, maxValue);
+	}
+	
+	/**
+	 * Applies bitwise or to a range of values.   Returns an object that provides the ored values for a range,
+	 * which for subnets is an aggregation of all ored individual addresses in the subnet.
+	 * See {@link #maskRange(long, long, long)}
+	 * 
+	 * @param maskValue
+	 * @param segmentPrefixLength
+	 * @return
+	 */
+	public static BitwiseOrResult bitwiseOrRange(long value, long upperValue, long maskValue) {
+		BitwiseOrer masker = ParsedIPAddress.bitwiseOrRange(value, upperValue, maskValue);
+		return new BitwiseOrResult(value, upperValue, maskValue, masker);
 	}
 	
 	public boolean hasUppercaseVariations(int radix, boolean lowerOnly) {
@@ -761,10 +835,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	protected static BigInteger getRadixPower(BigInteger radix, int power) {
 		return AddressDivisionBase.getRadixPower(radix, power);
 	}
-	
-	
-	
-	
 
 	private static void toSplitUnsignedString(
 			long value,

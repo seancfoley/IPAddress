@@ -51,7 +51,12 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
  * @author sfoley
  *
  */
-public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressSection, E extends IPAddressSection, S extends IPAddressSegment, J extends InetAddress> 
+public abstract class IPAddressNetwork<
+		T extends IPAddress, 
+		R extends IPAddressSection,
+		E extends IPAddressSection,
+		S extends IPAddressSegment,
+		J extends InetAddress> 
 	extends AddressNetwork<S> {
 	
 	private static final long serialVersionUID = 4L;
@@ -226,7 +231,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		this.hostMasks = this.subnets.clone();
 		this.creator = createAddressCreator();
 		int segmentBitSize = IPAddressSegment.getBitCount(version);
-		int fullMask = ~(~0 << segmentBitSize); //allBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+		int fullMask = ~(~0 << segmentBitSize); // segmentBitSize must be 5 bits at most for this shift to work per the java spec integer shift ishl operation (so it must be less than 2^5 = 32)
 		networkSegmentMasks = new int[segmentBitSize + 1];
 		hostSegmentMasks = networkSegmentMasks.clone();
 		for(int i = 0; i <= segmentBitSize; i++) {
@@ -665,7 +670,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		}
 		
 		public static SegmentValueProvider getValueProvider(byte bytes[], int segmentByteCount) {
-			return (segmentIndex) -> {	
+			return segmentIndex -> {	
 				int value = 0;
 				for(int start = segmentIndex * segmentByteCount, end = start + segmentByteCount; start < end; start++) {
 					value = (value << 8) | (0xff & bytes[start]);

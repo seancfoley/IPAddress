@@ -28,6 +28,8 @@ import inet.ipaddr.format.standard.AddressDivision;
 import inet.ipaddr.format.standard.IPAddressDivision;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressStringWriter;
+import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
+import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -262,80 +264,36 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		return value != (value & mask) || upperValue != (upperValue & mask);
 	}
 	
-	/**
-	 * returns a new segment masked by the given mask 
-	 * 
-	 * This method applies the mask first to every address in the range, and it does not preserve any existing prefix.
-	 * The given prefix will be applied to the range of addresses after the mask.
-	 * If the combination of the two does not result in a contiguous range, then {@link IncompatibleAddressException} is thrown.
-	 * 
-	 */
-	protected boolean isChangedByMask(int maskValue, Integer segmentPrefixLength) throws IncompatibleAddressException {
-		boolean hasBits = (segmentPrefixLength != null);
-		if(hasBits && (segmentPrefixLength < 0 || segmentPrefixLength > getBitCount())) {
-			throw new PrefixLenException(this, segmentPrefixLength);
-		}
-		
-		//note that the mask can represent a range (for example a CIDR mask), 
-		//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
+	protected boolean isChangedBy(int newValue, int newUpperValue, Integer segmentPrefixLength) throws IncompatibleAddressException {
 		int value = getSegmentValue();
 		int upperValue = getUpperSegmentValue();
-		return value != (value & maskValue) ||
-				upperValue != (upperValue & maskValue) ||
-						(isPrefixed() ? !getSegmentPrefixLength().equals(segmentPrefixLength) : hasBits);
+		return value != newValue ||
+				upperValue != newUpperValue ||
+						(isPrefixed() ? !getSegmentPrefixLength().equals(segmentPrefixLength) : (segmentPrefixLength != null));
 	}
 	
-	protected boolean isChangedByOr(int maskValue, Integer segmentPrefixLength) throws IncompatibleAddressException {
-		boolean hasBits = (segmentPrefixLength != null);
-		if(hasBits && (segmentPrefixLength < 0 || segmentPrefixLength > getBitCount())) {
-			throw new PrefixLenException(this, segmentPrefixLength);
-		}
-		
-		//note that the mask can represent a range (for example a CIDR mask), 
-		//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
+	protected static Masker maskRange(long value, long upperValue, long maskValue, long maxValue) {
+		return AddressDivision.maskRange(value, upperValue, maskValue, maxValue);
+	}
+	
+	public MaskResult maskRange(int maskValue) {
 		int value = getSegmentValue();
 		int upperValue = getUpperSegmentValue();
-		return value != (value | maskValue) ||
-				upperValue != (upperValue | maskValue) ||
-				(isPrefixed() ? !getSegmentPrefixLength().equals(segmentPrefixLength) : hasBits);
-	}
-
-	/**
-	 * Check that the range resulting from the mask is contiguous, otherwise we cannot represent it.
-	 * 
-	 * For instance, for the range 0 to 3 (bits are 00 to 11), if we mask all 4 numbers from 0 to 3 with 2 (ie bits are 10), 
-	 * then we are left with 1 and 3.  2 is not included.  So we cannot represent 1 and 3 as a contiguous range.
-	 * 
-	 * The underlying rule is that mask bits that are 0 must be above the resulting range in each segment.
-	 * 
-	 * Any bit in the mask that is 0 must not fall below any bit in the masked segment range that is different between low and high.
-	 * 
-	 * Any network mask must eliminate the entire segment range.  Any host mask is fine.
-	 * 
-	 * @param maskValue
-	 * @param segmentPrefixLength
-	 * @return
-	 * @throws PrefixLenException
-	 */
-	public boolean isMaskCompatibleWithRange(int maskValue, Integer segmentPrefixLength) throws PrefixLenException {
-		if(!isMultiple()) {
-			return true;
-		}
-		return super.isMaskCompatibleWithRange(maskValue, segmentPrefixLength, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+		Masker masker = AddressDivision.maskRange(value, upperValue, maskValue, getMaxSegmentValue());
+		return new MaskResult(value, upperValue, maskValue, masker);
 	}
 	
-	/**
-	 * Similar to masking, checks that the range resulting from the bitwise or is contiguous.
-	 * 
-	 * @param maskValue
-	 * @param segmentPrefixLength
-	 * @return
-	 * @throws PrefixLenException
-	 */
-	public boolean isBitwiseOrCompatibleWithRange(int maskValue, Integer segmentPrefixLength) throws PrefixLenException {
-		return super.isBitwiseOrCompatibleWithRange(maskValue, segmentPrefixLength, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+	protected static BitwiseOrer bitwiseOrRange(long value, long upperValue, long maskValue, long maxValue) {
+		return AddressDivision.bitwiseOrRange(value, upperValue, maskValue, maxValue);
 	}
 
+	public BitwiseOrResult bitwiseOrRange(int maskValue) {
+		int value = getSegmentValue();
+		int upperValue = getUpperSegmentValue();
+		BitwiseOrer orer = AddressDivision.bitwiseOrRange(value, upperValue, maskValue, getMaxSegmentValue());
+		return new BitwiseOrResult(value, upperValue, maskValue, orer);
+	}
+	
 	/**
 	 * If this segment represents a range of values, returns a segment representing just the lowest value in the range, otherwise returns this.
 	 * @return
@@ -517,10 +475,14 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 			int upper = original.getUpperSegmentValue();
 			if(zeroed) {
 				int maskBits = original.getSegmentNetworkMask(original.getSegmentPrefixLength());
-				if(!original.isMaskCompatibleWithRange(maskBits, null)) {
+				long value = original.getDivisionValue();
+				long upperValue = original.getUpperDivisionValue();
+				long maxValue = original.getMaxValue();
+				Masker masker = maskRange(value, upperValue, maskBits, maxValue);
+				if(!masker.isSequential()) {
 					throw new IncompatibleAddressException(original, maskBits, "ipaddress.error.maskMismatch");
 				}
-				return creator.createSegment(lower & maskBits, upper & maskBits, null);
+				return creator.createSegment((int) masker.getMaskedLower(lower, maskBits), (int) masker.getMaskedUpper(upper, maskBits), null);
 			}
 			return creator.createSegment(lower, upper, null);
 		}
@@ -596,6 +558,11 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	
 	boolean containsSinglePrefixBlock(int lowerVal, int upperVal, int divisionPrefixLen) {
 		return isSinglePrefixBlock(lowerVal, upperVal, divisionPrefixLen);
+	}
+
+	@Override
+	protected String getDefaultSegmentWildcardString() {
+		return Address.SEGMENT_WILDCARD_STR;
 	}
 
 	@Override

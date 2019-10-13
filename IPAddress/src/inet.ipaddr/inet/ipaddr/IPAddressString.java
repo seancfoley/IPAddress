@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.format.IPAddressDivisionSeries;
 import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.IPAddressProvider;
 import inet.ipaddr.format.validate.Validator;
@@ -378,6 +379,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * The accepted IP address formats are:
 	 * an IPv4 address, an IPv6 address, a network prefix alone, the address representing all addresses of all types, or an empty string.
 	 * If this method returns false, and you want more details, call validate() and examine the thrown exception.
+	 * <p>
+	 * see {@link #validate()} or {@link #getAddressStringException()}
 	 * 
 	 * @return whether this is a valid address string format
 	 */
@@ -391,6 +394,28 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			}
 		}
 		return !addressProvider.isInvalid();
+	}
+
+	/**
+	 * Returns the parse exception thrown by validate, rather than throwing it.
+	 * If there is no AddressStringException, then the string is a valid format.
+	 * However, IncompatibleAddressException can be thrown if the format cannot be translated into the desired result,
+	 * whether that is an address, a sequential range, or a division grouping.
+	 * The translation fails only for subnets with non-standard formats or non-standard masks.
+	 * <p>
+	 * See {@link #validate()} or {@link #isValid()}
+	 * 
+	 * @return the parsing exception, if there is one
+	 */
+	public AddressStringException getAddressStringException() {
+		if(!addressProvider.isInvalid()) { // Avoid throwing the exception the second time with this check
+			try {
+				validate();
+			} catch(AddressStringException e) { 
+				return e;/* note that this exception is cached by validate */
+			}
+		}
+		return validateException;
 	}
 
 	/**
@@ -719,10 +744,61 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
+	 * Returns whether the addresses returned by this IPAddressString are sequential, 
+	 * meaning that if any address has a numerical value that lies in between the numerical values of two addresses represented by this IPAddressString,
+	 * then that address is also represented by this IPAddressString.  In other words, the represented range of address values is sequential.
+	 * <p>
+	 * When the IPAddressString is sequential, it can be represented exactly by the IPAddressSeqRange returned from {@link #getSequentialRange()}.
+	 * In some cases, no IPAddress instance can be obtained from {@link #getAddress()} or {@link #toAddress()}, in the cases where {@link #toAddress()} throws IncompatibleAddressException,
+	 * but if the IPAddressString is sequential, you can obtain a IPAddressSeqRange to represent the IPAddressString instead.
+	 * 
+	 * @return
+	 */
+	public boolean isSequential() {
+		return isValid() && addressProvider.isSequential();
+	}
+	
+	/**
+	 * Returns a representation of the address string, the address string represented "as-is", converted to value ranges with bit sizes matching the original string. 
+	 * The returned series has the same division count and division bit sizes as in the original string.
+	 * The method does not attempt to convert to the standard segment counts or bit sizes of IPv4 or IPv6. 
+	 * For the IPv4 or IPv6 representation, use {@link #getAddress()}. 
+	 * <p>
+	 * Examples of strings that do not have the standard segment counts and bit lengths include 
+	 * IPv6 addresses in mixed IPv6/IPv4 format, compressed IPv6 addresses, IPv6 addresses expressed as a single segment, 
+	 * IPv4 addresses in inet_aton form with fewer than 4 segments, and IPv4 or IPv6 addresses in which multiple segments are covered by the '*' wildcard.
+	 * <p>
+	 * The returned types is either IPAddressDivisionGrouping or IPAddressLargeDivisionGrouping in cases where one of the divisions is 64 bits or large.
+	 * This does not return instances of IPAddress, for that you should call {@link #getAddress()} or {@link #toAddress()}
+	 * <p>
+	 * This can be useful for parsing formats that do not convert directly to a single instance of IPAddress, 
+	 * such as ranges of non-segmented IPv6 address values like aaaabbbbccccddddeeeeffffaaaabbb-ffffeeeeddddccccbbbbaaaabbbbaaaa,
+	 * which in most cases cannot be converted to 8 ipv6 segment ranges and thus cannot be converted to a single IPAddress instance.
+	 * <p>
+	 * If the string used to construct this object is not a known format (empty string, address, range of addresses, or prefix) then null is returned.
+	 * <p>
+	 * If the string used to construct this object is a valid subnet format with a non-standard mask, and the masked result has divisions that are not sequential ranges, then null is returned.
+	 * <p>
+	 * An equivalent method that throws exceptions for invalid or incompatible formats is {@link #toDivisionGrouping()}
+	 * <p>
+	 * @return
+	 */
+	public IPAddressDivisionSeries getDivisionGrouping() {
+		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
+			try {
+				validate();
+				return addressProvider.getDivisionGrouping();
+			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */
+			} catch(IncompatibleAddressException e) { /* this will be rethrown each time attempting to construct address */ }
+		}
+		return null;
+	}
+	
+	/**
 	 * Returns the range of sequential addresses from the lowest address specified in this address string to the highest.
 	 * <p>
 	 * Since not all IPAddressString instances describe a sequential series of addresses, 
-	 * this does not necessarily match the exact set of addresses listed by the string.  
+	 * this does not necessarily match the exact set of addresses specified by the string.  
 	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 -> 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
 	 * <p>
 	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
@@ -731,7 +807,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * This method can also produce a range for a string for which no IPAddress instance can be created, 
 	 * those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
 	 * The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
-	 * such as the all address '*' or the version-ambiguous prefix '/32'.
+	 * such as the all address '*' or the version-ambiguous prefix length '/32'.
 	 * <p>
 	 * This is similar to {@link #toSequentialRange()} except that for invalid address strings, null is returned rather than throwing an exception.
 	 * @return
@@ -742,10 +818,41 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 				validate();
 				return addressProvider.getProviderSeqRange();
 			} catch(AddressStringException e) { /* note that this exception is cached, it is not lost forever */ }
+			// catching IncompatibleAddressException not necessary since it is not thrown, once parsed there is always an upper and lower
 		}
 		return null;
 	}
 	
+	/**
+	 * Returns a representation of the address string, the address string represented "as-is", converted to value ranges with bit sizes matching the original string. 
+	 * The returned series has the same division count and division bit sizes as in the original string.
+	 * The method does not attempt to convert to the standard segment counts or bit sizes of IPv4 or IPv6. 
+	 * For the IPv4 or IPv6 representation, use {@link #getAddress()}. 
+	 * <p>
+	 * If the string used to construct this object is not a known format (empty string, address, range of addresses, or prefix) then this method throws {@link AddressStringException}.
+	 * <p>
+	 * If the string used to construct this object is a valid subnet format with a non-standard mask, and the masked result has divisions that are not sequential ranges, then this method throws {@link IncompatibleAddressException}.
+	 * <p>
+	 * An equivalent method that does not throw exceptions for invalid or incompatible formats is {@link #getDivisionGrouping()}
+	 * <p>
+	 * Examples of strings that do not have the standard segment counts and bit lengths include 
+	 * IPv6 addresses in mixed IPv6/IPv4 format, compressed IPv6 addresses, IPv6 addresses expressed as a single segment, 
+	 * IPv4 addresses in inet_aton form with fewer than 4 segments, and IPv4 or IPv6 addresses in which multiple segments are covered by the '*' wildcard.
+	 * <p>
+	 * The returned types is either IPAddressDivisionGrouping or IPAddressLargeDivisionGrouping in cases where one of the divisions is 64 bits or large.
+	 * This does not return instances of IPAddress, for that you should call {@link #getAddress()} or {@link #toAddress()}
+	 * <p>
+	 * This can be useful for parsing formats that do not convert directly to a single instance of IPAddress, 
+	 * such as ranges of non-segmented IPv6 address values like aaaabbbbccccddddeeeeffffaaaabbb-ffffeeeeddddccccbbbbaaaabbbbaaaa,
+	 * which in most cases cannot be converted to 8 ipv6 segment ranges and thus cannot be converted to a single IPAddress instance.
+	 * 
+	 * @return
+	 */
+	public IPAddressDivisionSeries toDivisionGrouping() throws AddressStringException {
+		validate();
+		return addressProvider.getDivisionGrouping();
+	}
+
 	/**
 	 * Returns the range of sequential addresses from the lowest address specified in this address string to the highest.
 	 * <p>
@@ -756,9 +863,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
 	 * Otherwise, the range includes addresses not specified by the address string.
 	 * <p>,
-	 * This method can also produce a range for a string for which no IPAddress instance can be created, 
-	 * those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
-	 * The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
+	 * This method can also produce a range for a string for which no IPAddress instance can be created.  This method does not throw IncompatibleAddressException. 
+	 * This method does not throw for those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
+	 * <p>
+	 * There are some cases where this method returns null.  The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
 	 * such as the all address '*' or the version-ambiguous prefix '/32'.
 	 * <p>
 	 * Keep in mind that all single addresses, all subnets using written in the canonical address formats, 
@@ -769,7 +877,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * subnets with non-standard masks like 0-2.2.3.4/2.0.0.0, and subnets represented with non-canonical segments like the IPv4 subnet 1.5000-6000
 	 * or the IPv6 subnet 1234567890abcdef1234567890abcdef-1234567890abcdef1234567890abcdef.
 	 * <p>
-	 * This is similar to {@link #getSequentialRange()} except that for invalid address strings, AddressStringException is thrown.
+	 * This method is equivalent to {@link #getSequentialRange()} except that for invalid address string formats, AddressStringException is thrown by this method.
+	 * <p>
 	 * @return
 	 */
 	public IPAddressSeqRange toSequentialRange() throws AddressStringException {
@@ -781,11 +890,11 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * If this address string was constructed from a host address with prefix, 
 	 * then this provides just the host address, rather than the address with the prefix
 	 * provided by {@link #toAddress()} that incorporates the prefix.
-	 * 
-	 *  Otherwise this returns the same object as {@link #toAddress()}
-	 * 
+	 * <p>
+	 * Otherwise this returns the same object as {@link #toAddress()}
+	 * <p>
 	 * This method throws exceptions for invalid formats, the equivalent method {@link #getHostAddress()} will simply return null in such cases.
-	 * 
+	 * <p>
 	 * @return
 	 */
 	public IPAddress toHostAddress() throws AddressStringException, IncompatibleAddressException {

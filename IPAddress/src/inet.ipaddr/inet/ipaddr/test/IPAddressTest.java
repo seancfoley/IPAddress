@@ -54,11 +54,16 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.IPAddressDivisionSeries;
+import inet.ipaddr.format.IPAddressGenericDivision;
 import inet.ipaddr.format.large.IPAddressLargeDivision;
 import inet.ipaddr.format.large.IPAddressLargeDivisionGrouping;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
+import inet.ipaddr.format.validate.ParsedIPAddress;
+import inet.ipaddr.format.validate.ParsedIPAddress.ExtendedMasker;
+import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv4.IPv4AddressSection;
@@ -1950,7 +1955,7 @@ public class IPAddressTest extends TestBase {
 			} catch(AddressStringException e) {
 				addFailure(new Failure("testSubnet failed " + e, maskString));
 			}
-		} catch(AddressStringException e) {
+		} catch(AddressStringException | IncompatibleAddressException e) {
 			addFailure(new Failure("testSubnet failed " + e, str));
 		}
 		incrementTestCount();
@@ -2981,32 +2986,127 @@ public class IPAddressTest extends TestBase {
 		testIncrement(createAddress(originalStr).getAddress(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 	
-	void testIncompatibleAddress(String address, String lower, String upper) {
-		testAddressStringRange(address, true, lower, upper);
+	void testMaskedIncompatibleAddress(String address, String lower, String upper) {
+		testAddressStringRange(address, true, true, lower, upper, null, null, null);
 	}
 	
-	void testSubnetStringRange(String address, String lower, String upper) {
-		testAddressStringRange(address, false, lower, upper);
+	void testIncompatibleAddress(String address, String lower, String upper, Object divisions) {
+		testIncompatibleAddress(address, lower, upper, divisions, null);
 	}
 	
-	void testAddressStringRange(String address) {
-		testAddressStringRange(address, false, address, address);
+	void testSubnetStringRange(String address, String lower, String upper, Object divisions) {
+		testSubnetStringRange(address, lower, upper, divisions, null);
 	}
-		
-	private void testAddressStringRange(String address, boolean isIncompatibleAddress, String lower, String upper) {
+	
+	void testAddressStringRange(String address, Object divisions) {
+		testAddressStringRange(address, false, false, address, address, divisions, null, true);
+	}
+	
+	void testIncompatibleAddress(String address, String lower, String upper, Object divisions, Integer prefixLength) {
+		testAddressStringRange(address, true, false, lower, upper, divisions, prefixLength, null);
+	}
+	
+	void testSubnetStringRange(String address, String lower, String upper, Object divisions, Integer prefixLength) {
+		testAddressStringRange(address, false, false, lower, upper, divisions, prefixLength, null);
+	}
+	
+	void testSubnetStringRange(String address, String lower, String upper, Object divisions, Integer prefixLength, boolean isSequential) {
+		testAddressStringRange(address, false, false, lower, upper, divisions, prefixLength, isSequential);
+	}
+	
+	void testAddressStringRange(String address, Object divisions, Integer prefixLength) {
+		testAddressStringRange(address, false, false, address, address, divisions, prefixLength, true);
+	}
+	
+	void testIncompatibleAddress(String address, String lower, String upper, Object divisions, Integer prefixLength, boolean isSequential) {
+		testAddressStringRange(address, true, false, lower, upper, divisions, prefixLength, isSequential);
+	}
+	
+	// divs must be an Object[] with each element a BigInteger/Long/Integer or an array of two BigInteger/Long/Integer
+	// Alternatively, instead of supplying Object[1] you can supply the first and only element instead
+	private void testAddressStringRange(String address, boolean isIncompatibleAddress, boolean isMaskedIncompatibleAddress, String lower, String upper, Object divs, Integer prefixLength, Boolean isSequential) {
+		IPAddressString addrStr = createAddress(address);
+		try {
+			IPAddressDivisionSeries s = addrStr.toDivisionGrouping();
+			if(isMaskedIncompatibleAddress) {
+				addFailure(new Failure("masked incompatible address " + addrStr + " did not throw when getting grouping " + s, addrStr));
+			}
+			Object divisions[];
+			if(divs instanceof BigInteger[] || divs instanceof BigInteger) {
+				divisions = new Object[] {divs};
+			} else {
+				divisions = (Object[]) divs;
+			}
+			//System.out.println(addrStr + " resulted in grouping: " + s);
+			if(s.getDivisionCount() != divisions.length) {
+				addFailure(new Failure("grouping " + s + " for " + addrStr + " does not have expected length " + divisions.length, addrStr));
+			}
+			//s.toString();
+			int totalBits = 0;
+			for(int i = 0; i < divisions.length; i++) {
+				IPAddressGenericDivision d = s.getDivision(i);
+				int divBits = d.getBitCount();
+				totalBits += divBits;
+				BigInteger val = d.getValue();
+				BigInteger upperVal = d.getUpperValue();
+				Object expectedDivision = divisions[i];
+				BigInteger expectedUpper = null, expectedLower = null;
+				if(expectedDivision instanceof Integer) {
+					Integer div = (Integer) expectedDivision;
+					expectedUpper = expectedLower = BigInteger.valueOf(div);
+				} else if(expectedDivision instanceof Integer[]) {
+					Integer[] div = (Integer[]) expectedDivision;
+					expectedLower = BigInteger.valueOf(div[0]);
+					expectedUpper = BigInteger.valueOf(div[1]);
+				} else if(expectedDivision instanceof Long) {
+					Long div = (Long) expectedDivision;
+					expectedUpper = expectedLower = BigInteger.valueOf(div);
+				} else if(expectedDivision instanceof Long[]) {
+					Long[] div = (Long[]) expectedDivision;
+					expectedLower = BigInteger.valueOf(div[0]);
+					expectedUpper = BigInteger.valueOf(div[1]);
+				} else if(expectedDivision instanceof BigInteger) {
+					BigInteger div = (BigInteger) expectedDivision;
+					expectedUpper = expectedLower = div;
+				} else if(expectedDivision instanceof BigInteger[]) {
+					BigInteger[] div = (BigInteger[]) expectedDivision;
+					expectedLower = div[0];
+					expectedUpper = div[1];
+				}
+				if(!val.equals(expectedLower)) {
+					addFailure(new Failure("division val " + val + " for " + addrStr + " is not expected val " + expectedLower, addrStr));
+				} else if(!upperVal.equals(expectedUpper)) {
+					addFailure(new Failure("upper division val " + upperVal + " for " + addrStr + " is not expected val " + expectedUpper, addrStr));
+				}
+			}
+			if(totalBits != (addrStr.isIPv4() ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT)) {
+				addFailure(new Failure("bit count " + totalBits + " for " + addrStr + " is not expected " + (addrStr.isIPv4() ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT), addrStr));
+			}
+			if(!Objects.equals(s.getPrefixLength(), prefixLength)) {
+				addFailure(new Failure("prefix length " + s.getPrefixLength() + " for " + s + " is not expected " + prefixLength, addrStr));
+			}
+		} catch(IncompatibleAddressException e) {
+			if(!isMaskedIncompatibleAddress) {
+				addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
+			}
+		} catch(AddressStringException e) {
+			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
+		} catch(RuntimeException e) {
+			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
+		}
 		IPAddressString rangeString = createAddress(address);
 		try {
 			// go directly to getting the range which should never throw IncompatibleAddressException even for incompatible addresses
 			IPAddressSeqRange range = rangeString.getSequentialRange();
-			IPAddress low = createAddress(lower).getAddress();
-			IPAddress up = createAddress(upper).getAddress();
+			IPAddress low = createAddress(lower).getAddress().getLower(); // getLower() needed for auto subnets
+			IPAddress up = createAddress(upper).getAddress().getUpper(); // getUpper() needed for auto subnets
 			if(!range.getLower().equals(low)) {
 				addFailure(new Failure("range lower " + range.getLower() + " does not match expected " + low, range));
 			}
 			if(!range.getUpper().equals(up)) {
-				addFailure(new Failure("range upper " + range.getUpper() + " does not match expected " + up, range));
+ 				addFailure(new Failure("range upper " + range.getUpper() + " does not match expected " + up, range));
 			}
-			IPAddressString addrStr = createAddress(address);
+			addrStr = createAddress(address);
 			try {
 				// now we should throw IncompatibleAddressException if address is incompatible
 				IPAddress addr = addrStr.toAddress();
@@ -3019,8 +3119,19 @@ public class IPAddressTest extends TestBase {
 							" does not match range from address string " + rangeString + " (" + range.getLower() + "," + range.getUpper() + ")", addr));
 				}
 				// now get the range from rangeString after you get the address, which should get it a different way, from the address
-				rangeString.getAddress();
-				IPAddressSeqRange rangeAfterAddr = rangeString.getSequentialRange();
+				IPAddress after = rangeString.getAddress();
+				IPAddress lowerFromSeqRange = after.getLower(), upperFromSeqRange = after.getUpper();
+				IPAddress lowerFromAddr = addr.getLower(), upperFromAddr = addr.getUpper();
+				if(!lowerFromSeqRange.equals(lowerFromAddr) || !Objects.equals(lowerFromSeqRange.getNetworkPrefixLength(), lowerFromAddr.getNetworkPrefixLength())) {
+					addFailure(new Failure("lower from range " + lowerFromSeqRange + " does not match lower from address " + lowerFromAddr, lowerFromSeqRange));
+				}
+				if(!upperFromSeqRange.equals(upperFromAddr) || !Objects.equals(upperFromSeqRange.getNetworkPrefixLength(), upperFromAddr.getNetworkPrefixLength())) {
+					addFailure(new Failure("upper from range " + upperFromSeqRange + " does not match upper from address " + upperFromAddr, upperFromSeqRange));
+				}
+				// now get the range from a string after you get the address first, which should get it a different way, from the address
+				IPAddressString oneMore = createAddress(address);
+				oneMore.getAddress();
+				IPAddressSeqRange rangeAfterAddr = oneMore.getSequentialRange();
 				if(!range.equals(rangeAfterAddr) || !rangeAfterAddr.equals(range)) {
 					addFailure(new Failure("address range from " + rangeString + " after address (" + rangeAfterAddr.getLower() + "," + rangeAfterAddr.getUpper() + ")" + 
 							" does not match range from address string " + rangeString + " before address (" + range.getLower() + "," + range.getUpper() + ")", addr));
@@ -3032,6 +3143,20 @@ public class IPAddressTest extends TestBase {
 			} catch(IncompatibleAddressException e) {
 				if(!isIncompatibleAddress) {
 					addFailure(new Failure("address " + addrStr + " identified as an incompatible address", addrStr));
+				}
+				IPAddressSeqRange addrRange = addrStr.toSequentialRange();
+				if(!range.equals(addrRange) || !addrRange.equals(range)) {
+					addFailure(new Failure("address range from " + addrStr + " (" + addrRange.getLower() + "," + addrRange.getUpper() + ")" + 
+							" does not match range from address string " + rangeString + " (" + range.getLower() + "," + range.getUpper() + ")", addrStr));
+				}
+			}
+			IPAddressString seqStr = createAddress(address);
+			if(isSequential != null) {
+				if(isSequential != seqStr.isSequential()) {
+					addFailure(new Failure("sequential mismatch, unexpectedly " + seqStr + (seqStr.isSequential() ? " is " : " is not ") + "sequential", seqStr));
+				}
+				if(!isMaskedIncompatibleAddress && isSequential != seqStr.toDivisionGrouping().isSequential()) {
+					addFailure(new Failure("sequential grouping mismatch, unexpectedly " + seqStr + (seqStr.toDivisionGrouping().isSequential() ? " is " : "is not") + " sequential", seqStr));
 				}
 			}
 		} catch(AddressStringException | RuntimeException e) {
@@ -3193,6 +3318,164 @@ public class IPAddressTest extends TestBase {
 			addFailure(new Failure("invalid count matching " + myAddr.getCount() + " and " + regAddrNet.getCount(), myAddr));
 		}
 		incrementTestCount();
+	}
+	
+	void testMaskedRange(long value, long upperValue, long maskValue, boolean expectedIsSequential, long expectedLower, long expectedUpper) {
+		Masker masker = ParsedIPAddress.maskRange(value, upperValue, maskValue);
+		long lowerResult = masker.getMaskedLower(value, maskValue);
+		long upperResult = masker.getMaskedUpper(upperValue, maskValue);
+		boolean isSequential = masker.isSequential();
+		if(isSequential != expectedIsSequential || lowerResult != expectedLower || upperResult != expectedUpper) {
+			String reason = "";
+			if(lowerResult != expectedLower) {
+				reason += "lower mismatch " + lowerResult + '(' + toBinaryString(lowerResult) +  ") with expected " +
+						expectedLower + '(' + toBinaryString(expectedLower) + ") ";
+			}
+			if(upperResult != expectedUpper) {
+				reason += "upper mismatch " + upperResult + '(' + toBinaryString(upperResult) +  ") with expected " +
+						expectedUpper + '(' + toBinaryString(expectedUpper) + ") ";
+			}
+			if(isSequential != expectedIsSequential) {
+				reason += "sequential mismatch ";
+			}
+			addFailure(new Failure("invalid masking, " + reason +
+						value + '(' + toBinaryString(value) + ')' + " to " + 
+						upperValue + '(' + toBinaryString(upperValue) + ')' + " masked with " + 
+						maskValue + '(' + toBinaryString(maskValue) + ')' + " results in " +
+						lowerResult + '(' + toBinaryString(lowerResult) + ')' + " lower and " +
+						upperResult + '(' + toBinaryString(upperResult) + ')' + " upper and sequential " +
+						isSequential + " instead of expected " +
+						expectedLower + '(' + toBinaryString(expectedLower) + ')' + " lower and " +
+						expectedUpper + '(' + toBinaryString(expectedUpper) + ')' + " upper and sequential " +
+						expectedIsSequential
+					));
+		}
+		incrementTestCount();
+		testMaskedRange(value, 0, upperValue, 0, maskValue, 0, -1L, -1L, 
+				expectedIsSequential, expectedLower, 0, expectedUpper, 0);
+		testMaskedRange(0, value, -1L, upperValue, -1L, maskValue, -1L, -1L, 
+				expectedIsSequential, 0, expectedLower, -1L, expectedUpper);
+	}
+	
+	void testMaskedRange(long value, long extendedValue, 
+			long upperValue, long extendedUpperValue, 
+			long maskValue, long extendedMaskValue, 
+			long maxValue, long extendedMaxValue,
+			boolean expectedIsSequential, 
+			long expectedLower, long expectedExtendedLower, 
+			long expectedUpper, long expectedExtendedUpper) {
+		ExtendedMasker masker = ParsedIPAddress.maskRange(
+				value, extendedValue, 
+				upperValue, extendedUpperValue, 
+				maskValue, extendedMaskValue, 
+				maxValue, extendedMaxValue);
+		long lowerResult = masker.getMaskedLower(value, maskValue);
+		long upperResult = masker.getMaskedUpper(upperValue, maskValue);
+		long extendedLowerResult = masker.getExtendedLowerMasked(extendedValue, extendedMaskValue);
+		long extendedUpperResult = masker.getExtendedUpperMasked(extendedUpperValue, extendedMaskValue);
+		boolean isSequential = masker.isSequential();
+		if(masker.isSequential() != expectedIsSequential || 
+				lowerResult != expectedLower || upperResult != expectedUpper ||
+				extendedLowerResult != expectedExtendedLower || extendedUpperResult != expectedExtendedUpper) {
+			String reason = "";
+			if(lowerResult != expectedLower || extendedLowerResult != expectedExtendedLower) {
+				reason += "lower mismatch " + 
+						toBigInteger(lowerResult, extendedLowerResult) + '(' + toBinaryString(lowerResult, extendedLowerResult) + ')' + " with expected " + 
+						toBigInteger(expectedLower, expectedExtendedLower) + '(' + toBinaryString(expectedLower, expectedExtendedLower) + ") ";
+			}
+			if(upperResult != expectedUpper || extendedUpperResult != expectedExtendedUpper) {
+				reason += "upper mismatch " + 
+						toBigInteger(upperResult, extendedUpperResult) + '(' + toBinaryString(upperResult, extendedUpperResult) + ')' + " with expected " + 
+						toBigInteger(expectedUpper, expectedExtendedUpper) + '(' + toBinaryString(expectedUpper, expectedExtendedUpper) + ") ";
+			}
+			if(masker.isSequential() != expectedIsSequential) {
+				reason += "sequential mismatch ";
+			}
+			addFailure(new Failure("invalid masking, " + reason +
+						toBigInteger(value, extendedValue) + '(' + toBinaryString(value, extendedValue) + ')' + " to " + 
+						toBigInteger(upperValue, extendedUpperValue) + '(' + toBinaryString(upperValue, extendedUpperValue) + ')' + " masked with " + 
+						toBigInteger(maskValue, extendedMaskValue) + '(' + toBinaryString(maskValue, extendedMaskValue) + ')' + " results in " +
+						toBigInteger(lowerResult, extendedLowerResult) + '(' + toBinaryString(lowerResult, extendedLowerResult) + ')' + " lower and " +
+						toBigInteger(upperResult, extendedUpperResult) + '(' + toBinaryString(upperResult, extendedUpperResult) + ')' + " and sequential " +
+						isSequential + " instead of expected " +
+						toBigInteger(expectedLower, expectedExtendedLower) + '(' + toBinaryString(expectedLower, expectedExtendedLower) + ')' + " lower and " +
+						toBigInteger(expectedUpper, expectedExtendedUpper) + '(' + toBinaryString(expectedUpper, expectedExtendedUpper) + ')' + "and sequential " +
+						expectedIsSequential
+					));
+		}
+		incrementTestCount();
+		
+	}
+	
+	private static String toBinaryString(long l) {
+		StringBuilder builder = new StringBuilder(64);
+		return toBinaryString(l, false, builder).toString();
+	}
+	
+	private static String toBinaryString(long l, long extendedL) {
+		StringBuilder builder = new StringBuilder(64);
+		toBinaryString(extendedL, false, builder);
+		builder.append(' ');
+		return toBinaryString(l, true, builder).toString();
+	}
+		
+	private static StringBuilder toBinaryString(long l, boolean withLeadingZeros, StringBuilder builder) {
+		if(!withLeadingZeros) {
+			return builder.append(Long.toBinaryString(l));
+		}
+		int lz = Long.numberOfLeadingZeros(l);
+		for(int i = 0; i < lz; i++) {
+			builder.append('0');
+		}
+		if(l != 0) {
+			builder.append(Long.toBinaryString(l));
+		}
+		return builder;
+	}
+	
+//	private static String toBinaryString(BigInteger l) {
+//		StringBuilder builder = new StringBuilder(128);
+//		toBinaryString(l.shiftRight(64).longValue(), false, builder);
+//		builder.append(' ');
+//		return toBinaryString(l.longValue(), true, builder).toString();
+//	}
+	
+	// converts to a byte array but strips leading zero bytes
+	static byte[] toBytesSizeAdjusted(long val, long extended, int numBytes) {
+		// Find first nonzero byte
+		int adjustedNumBytes = numBytes;
+		for(int j = 1, boundary = numBytes - 8, adj = numBytes + boundary; j <= numBytes; j++) {
+			byte b;
+			if(j <= boundary) {
+				b = (byte) (extended >>> ((numBytes - j) << 3));
+			} else {
+				b = (byte) (val >>> ((adj - j) << 3));
+			}
+			if(b != 0) {
+				break;
+			}
+			adjustedNumBytes--;
+		}
+		return toBytes(val, extended, adjustedNumBytes);
+	}
+	
+	static byte[] toBytes(long val, long extended, int numBytes) {
+		byte bytes[] = new byte[numBytes];
+		for(int j = numBytes - 1, boundary = numBytes - 8; j >= 0; j--) {
+			if(j >= boundary) {
+				bytes[j] = (byte) (val & 0xff);
+				val >>>= Byte.SIZE;
+			} else {
+				bytes[j] = (byte) (extended & 0xff);
+				extended >>>= Byte.SIZE;
+			}
+		}
+		return bytes;
+	}
+	
+	BigInteger toBigInteger(long val, long extended) {
+		byte bytes[] = toBytesSizeAdjusted(val, extended, 16);
+		return new BigInteger(1, bytes);
 	}
 	
 	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
@@ -3439,8 +3722,9 @@ public class IPAddressTest extends TestBase {
 		testBitwiseOr("0.0.0.0/0", -1, "1.2.3.4", isNoAutoSubnets ? "1.2.3.4" : null);
 		testBitwiseOr("0.0.0.0/16", null, "0.0.255.255", "0.0.255.255");
 		
-		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.98.8", isNoAutoSubnets ? "0.0.64.0/18" : null, isNoAutoSubnets || allPrefixesAreSubnets ? "0.0.98.8/16" : null);   
-		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.194.8", "0.0.192.0/18", isNoAutoSubnets || allPrefixesAreSubnets ? "0.0.194.8/16" : null);
+		boolean allOrNone = isNoAutoSubnets || allPrefixesAreSubnets;
+		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.98.8", isNoAutoSubnets ? "0.0.64.0/18" : null, allOrNone ? "0.0.98.8/16" : null);   
+		testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.194.8", "0.0.192.0/18", allOrNone ? "0.0.194.8/16" : null);
 		
 		//no zeroing going on - first one applies mask up to the new prefix and then applies the prefix, second one masks everything and then keeps the prefix as well (which in the case of all prefixes subnets wipes out any masking done in host)
 		testPrefixBitwiseOr("0.0.0.1/16", 18, "0.0.194.8", allPrefixesAreSubnets ? "0.0.192.0/18" : "0.0.192.1/18", allPrefixesAreSubnets ? "0.0.0.0/16" : "0.0.194.9/16");
@@ -3451,13 +3735,13 @@ public class IPAddressTest extends TestBase {
 		testPrefixBitwiseOr("1.2.0.0", 24, "0.0.3.0", "1.2.3.0/24", "1.2.3.0");
 		testPrefixBitwiseOr("1.2.0.0", 23, "0.0.3.0", "1.2.2.0/23", "1.2.3.0");
 		
-		testPrefixBitwiseOr("::/32", 36, "0:0:6004:8::", isNoAutoSubnets ? "0:0:6000::/36" : null, isNoAutoSubnets || allPrefixesAreSubnets ? "0:0:6004:8::/32" : null);
-		testPrefixBitwiseOr("::/32", 36, "0:0:f000:8::", isNoAutoSubnets ? "0:0:f000::/36" : "0:0:f000::/36", isNoAutoSubnets || allPrefixesAreSubnets ? "0:0:f000:8::/32" : null);
+		testPrefixBitwiseOr("::/32", 36, "0:0:6004:8::", isNoAutoSubnets ? "0:0:6000::/36" : null, allOrNone ? "0:0:6004:8::/32" : null);
+		testPrefixBitwiseOr("::/32", 36, "0:0:f000:8::", isNoAutoSubnets ? "0:0:f000::/36" : "0:0:f000::/36", allOrNone ? "0:0:f000:8::/32" : null);
 		
-		testPrefixBitwiseOr("1:2::/32", 48, "0:0:3:effe::", isNoAutoSubnets ? "1:2:3::/48" : null, isNoAutoSubnets || allPrefixesAreSubnets ? "1:2:3:effe::/32" : null);
-		testPrefixBitwiseOr("1:2::/32", 47, "0:0:3::", isNoAutoSubnets ? "1:2:2::/47": null, isNoAutoSubnets || allPrefixesAreSubnets ? "1:2:3::/32" : null);
-		testPrefixBitwiseOr("1:2::/46", 48, "0:0:3:248::", "1:2:3::/48", isNoAutoSubnets || allPrefixesAreSubnets ? "1:2:3:248::/46" : null);
-		testPrefixBitwiseOr("1:2::/48", 48, "0:0:3:248::", "1:2:3::/48", isNoAutoSubnets || allPrefixesAreSubnets ? "1:2:3:248::/48" : null);
+		testPrefixBitwiseOr("1:2::/32", 48, "0:0:3:effe::", isNoAutoSubnets ? "1:2:3::/48" : null, allOrNone ? "1:2:3:effe::/32" : null);
+		testPrefixBitwiseOr("1:2::/32", 47, "0:0:3::", isNoAutoSubnets ? "1:2:2::/47": null, allOrNone ? "1:2:3::/32" : null);
+		testPrefixBitwiseOr("1:2::/46", 48, "0:0:3:248::", "1:2:3::/48", allOrNone ? "1:2:3:248::/46" : null);
+		testPrefixBitwiseOr("1:2::/48", 48, "0:0:3:248::", "1:2:3::/48", allOrNone ? "1:2:3:248::/48" : null);
 		testPrefixBitwiseOr("1:2::/48", 47, "0:0:3::", "1:2:2::/47", "1:2:3::/48");
 		testPrefixBitwiseOr("1:2::", 48, "0:0:3:248::", "1:2:3::/48", "1:2:3:248::");
 		testPrefixBitwiseOr("1:2::", 47, "0:0:3::", "1:2:2::/47", "1:2:3::");
@@ -3696,7 +3980,6 @@ public class IPAddressTest extends TestBase {
 		testContains("9.129.237.26/32", "9.129.237.26", true);
 		testNotContains("9.129.237.26/32", "9.128.237.26");
 
-		
 		if(allPrefixesAreSubnets) {
 			testContains("9.129.237.26/0", "0.0.0.0/0", true);
 			testContains("9.129.237.26/1", "0.0.0.0/1", true);
@@ -4107,7 +4390,6 @@ public class IPAddressTest extends TestBase {
 			testSubnet("1.2.3.4/16", "255.255.0.0", 15, "1.2.3.4/15" , "1.2.0.0", "1.2.3.4/15");
 			testSubnet("1.1.3.4/16", "255.255.0.0", 15, "1.1.3.4/15" , "1.1.0.0", "1.0.3.4/15");
 			testSubnet("1.2.128.4/16", "255.255.0.0", 15, "1.2.128.4/15" , "1.2.0.0", "1.2.128.4/15");
-			
 			
 			testSubnet("1.2.3.4/15", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/15");
 			testSubnet("1.2.3.4/15", "255.255.0.0", 17, "1.2.3.4/17" , "1.2.0.0", "1.2.3.4/15");
@@ -5626,7 +5908,56 @@ public class IPAddressTest extends TestBase {
 
 		testCustomNetwork(prefixConfiguration);
 		
-		testAddressStringRange("1.2.3.4");
-		testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4");
+		testAddressStringRange("1.2.3.4", new Object[] {1, 2, 3, 4});
+		testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4});
+		testAddressStringRange("1:2:4:5:6:7:8:f", new Object[] {1, 2, 4, 5, 6, 7, 8, 0xf});
+		testAddressStringRange("1:2:4:5::", new Object[] {1, 2, 4, 5, 0});
+		testAddressStringRange("::1:2:4:5", new Object[] {0, 1, 2, 4, 5});
+		testAddressStringRange("1:2:4:5::6", new Object[] {1, 2, 4, 5, 0, 6});
+		
+		testAddressStringRange("a:b:c::cc:d:1.255.3.128", new Object[] {0xa, 0xb, 0xc, 0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[a, b, c, 0-ffff, cc, d, e, f]
+		testAddressStringRange("a::cc:d:1.255.3.128", new Object[] {0xa, 0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[a, 0-ffffffffffff, cc, d, e, f]
+		testAddressStringRange("::cc:d:1.255.3.128", new Object[] {0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[0-ffffffffffffffff, cc, d, e, f]
+		
+		// with prefix lengths 
+		
+		if(isAutoSubnets) {
+			testAddressStringRange("1.2.3.4/31", new Object[] {1, 2, 3, new Integer[] {4, 5}}, 31);
+			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/127", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, new Integer[] {4, 5}}, 127);
+			testAddressStringRange("1:2:4:5::/64", new Object[] {1, 2, 4, 5, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 64);
+		} else {
+			testAddressStringRange("1.2.3.4/31", new Object[] {1, 2, 3, 4}, 31);
+			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/127", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, 127);
+			testAddressStringRange("1:2:4:5::/64", new Object[] {1, 2, 4, 5, 0}, 64);
+		}
+		
+		if(allPrefixesAreSubnets) {
+			testAddressStringRange("1.2.3.4/15", new Object[] {1, new Integer[] {2, 3}, new Integer[] {0, 255}, new Integer[] {0, 255}}, 15);
+			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, new Integer[] {0xdc, 0xdd}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}}, 63);
+			testAddressStringRange("1:2:4:5::/63", new Object[] {1, 2, 4, new Integer[] {4, 5}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 63);
+			testAddressStringRange("::cc:d:1.255.3.128/16", new Object[] {new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 16);  //[0-ffffffffffffffff, cc, d, e, f]
+			
+		} else {
+			testAddressStringRange("1.2.3.4/15", new Object[] {1, 2, 3, 4}, 15);
+			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, 63);
+			testAddressStringRange("1:2:4:5::/63", new Object[] {1, 2, 4, 5, 0}, 63);	
+			testAddressStringRange("::cc:d:1.255.3.128/16", new Object[] {0x0, 0xcc, 0xd, 1, 255, 3, 128}, 16);  //[0-ffffffffffffffff, cc, d, e, f]
+		}
+		
+		// with masks
+		
+		testSubnetStringRange("::aaaa:bbbb:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"::cccc", "::cccc", new Object[] {0, 0, 0, 0xcccc});
+		testSubnetStringRange("::aaaa:bbbb:cccc/abcd:abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"::8888:0:cccc", "::8888:0:cccc", new Object[] {0, 0x8888, 0, 0xcccc});
+		testSubnetStringRange("aaaa:bbbb::cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"aa88:98ba::cccc", "aa88:98ba::cccc", new Object[] {0xaa88, 0x98ba, 0, 0xcccc});
+		testSubnetStringRange("aaaa:bbbb::/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"aa88:98ba::", "aa88:98ba::", new Object[] {0xaa88, 0x98ba, 0});
+		
+		testSubnetStringRange("3.3.3.3/175.80.81.83", 
+				"3.0.1.3", "3.0.1.3", 
+				new Object[] {3, 0, 1, 3}, 
+				null, true);
 	}
 }

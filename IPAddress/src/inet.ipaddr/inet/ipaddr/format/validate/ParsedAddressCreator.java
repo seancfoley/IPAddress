@@ -90,4 +90,8 @@ public abstract class ParsedAddressCreator<T extends Address, R extends AddressS
 	protected T createAddressInternal(S segments[], CharSequence zone, HostIdentifierString from, Integer prefix) {
 		return createAddressInternal(createPrefixedSectionInternal(segments, prefix), zone, from);
 	}
+	
+	protected abstract T createAddressInternal(R section, CharSequence zone, HostIdentifierString from, T lower, T upper);
+	
+	protected abstract long getMaxValuePerSegment();
 }

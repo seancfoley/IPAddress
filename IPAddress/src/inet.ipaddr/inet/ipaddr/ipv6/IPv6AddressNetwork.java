@@ -76,10 +76,15 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			allPrefixedCache = null;
 			segmentPrefixCache = null;
 		}
-		
+
 		@Override
 		public IPv6AddressNetwork getNetwork() {
 			return (IPv6AddressNetwork) super.getNetwork();
+		}
+
+		@Override
+		public long getMaxValuePerSegment() {
+			return IPv6Address.MAX_VALUE_PER_SEGMENT;
 		}
 		
 		@Override
@@ -379,6 +384,13 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone) {
 			return new IPv6Address(section, zone, false);
+		}
+		
+		@Override
+		protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone, HostIdentifierString from, IPv6Address lower, IPv6Address upper) {
+			IPv6Address result = createAddressInternal(section, zone, from);
+			result.cache(lower, upper);
+			return result;
 		}
 		
 		public IPv6Address createAddress(IPv6AddressSection section, CharSequence zone) {

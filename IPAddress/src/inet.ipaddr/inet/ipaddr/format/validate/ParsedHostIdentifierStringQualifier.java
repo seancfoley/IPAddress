@@ -41,8 +41,12 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 	private final Integer port; //non-null for a host with port
 	private final CharSequence service; //non-null for host with a service instead of a port
 
-	/* if instead of a prefix a mask was provided, this is the mask */
+	/* If instead of a prefix length a mask was provided, this is the mask.
+	 * We can also have both a prefix length and mask if one is added when merging qualifiers  */
 	private ParsedIPAddress mask;
+	
+	/* overrides the parsed mask if present */
+	private IPAddress mergedMask;
 
 	/* this is the IPv6 scope id or network interface name */
 	private final CharSequence zone;
@@ -82,18 +86,51 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 		this.service = service;
 	}
 	
-	void mergePrefix(ParsedHostIdentifierStringQualifier other) {
+	
+	private void overrideMask(ParsedHostIdentifierStringQualifier other) {
 		if(other.mask != null) {
 			this.mask = other.mask;
 		}
+	}
+	
+	private void overridePrefixLength(ParsedHostIdentifierStringQualifier other) {
 		if(other.networkPrefixLength != null) {
-			this.networkPrefixLength = other.networkPrefixLength;
+			networkPrefixLength = other.networkPrefixLength;
+		}
+	}
+	
+	void overridePrefix(ParsedHostIdentifierStringQualifier other) {
+		overridePrefixLength(other);
+		overrideMask(other);
+	}
+	
+	private static Integer cacheBits(int i) {
+		return ParsedAddressGrouping.cache(i);
+	}
+	
+	void merge(ParsedHostIdentifierStringQualifier other) {
+		if(networkPrefixLength == null) {
+			networkPrefixLength = other.networkPrefixLength;
+		} else {
+			if(other.networkPrefixLength != null) {
+				networkPrefixLength = cacheBits(Math.min(networkPrefixLength, other.networkPrefixLength));
+			}
+		}
+		if(mask == null) {
+			mask = other.mask;
+		} else {
+			if(other.mask != null) {
+				mergedMask = getMask().mask(other.getMask());
+			}
 		}
 	}
 
 	IPAddress getMask() {
+		if(mergedMask != null) {
+			return mergedMask;
+		}
 		if(mask != null) {
-			return mask.getCachedAddresses().getAddress();
+			return mask.getValForMask();
 		}
 		return null;
 	}

@@ -405,7 +405,7 @@ public class Validator implements HostIdentifierStringValidator {
 										throw new AddressStringException("ipaddress.error.front.digit.count");
 									}
 								} else if(totalDigits != 0) {
-									throw new AddressStringException("ipaddress.error.front.digit.count");
+									throw new AddressStringException("ipaddress.error.back.digit.count");
 								}
 							} else if(!backIsIpv6) {
 								throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
@@ -511,13 +511,14 @@ public class Validator implements HostIdentifierStringValidator {
 							throw new AddressStringException(str, "ipaddress.error.too.many.segments");
 						}
 						if(wildcardCount > 0) {
-							parseData.setHasWildcard();
 							if(parseData.getConsecutiveSeparatorIndex() < 0 && 
 									totalSegmentCount < IPv6Address.SEGMENT_COUNT && 
 									ipv6SpecificOptions.allowWildcardedSeparator) {
-								//the '*' is covering an additional ipv6 segment (eg 1:2:3:4:5:*.2.3.4, the * covers both an ipv4 and ipv6 segment)
+								// the '*' is covering an additional ipv6 segment (eg 1:2:3:4:5:*.2.3.4, the * covers both an ipv4 and ipv6 segment)
+								// we flag this IPv6 segment with KEY_MERGED_MIXED
+								parseData.setHasWildcard();
 								assignAttributesValuesFlags(segmentStartIndex, index, segmentStartIndex, segmentStartIndex, index, segmentStartIndex,
-										parseData, segCount, 0, IPv6Address.MAX_VALUE_PER_SEGMENT, AddressParseData.KEY_WILDCARD);
+										parseData, segCount, 0, IPv6Address.MAX_VALUE_PER_SEGMENT, AddressParseData.KEY_WILDCARD | AddressParseData.KEY_MERGED_MIXED);
 								parseData.incrementSegmentCount();
 							}
 						}
@@ -619,7 +620,7 @@ public class Validator implements HostIdentifierStringValidator {
 								if(rangeWildcardIndex >= 0) {
 									throw new AddressStringException(str, index, true);
 								}
-								parseData.setHasSingleWildcard();
+								//parseData.setHasSingleWildcard();
 								assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams);
 								value = 0;
 								noValuesToSet = true;
@@ -640,7 +641,7 @@ public class Validator implements HostIdentifierStringValidator {
 								if(rangeWildcardIndex >= 0) {
 									throw new AddressStringException(str, index, true);
 								}
-								parseData.setHasSingleWildcard();
+								//parseData.setHasSingleWildcard();
 								switchSingleWildcard8(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams);
 								value = 0;
 								noValuesToSet = true;
@@ -660,7 +661,7 @@ public class Validator implements HostIdentifierStringValidator {
 								if(rangeWildcardIndex >= 0) {
 									throw new AddressStringException(str, index, true);
 								}
-								parseData.setHasSingleWildcard();
+								//parseData.setHasSingleWildcard();
 								switchSingleWildcard10(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, ipv4SpecificOptions);
 								value = 0;
 								noValuesToSet = true;
@@ -792,7 +793,7 @@ public class Validator implements HostIdentifierStringValidator {
 							front = value;
 							value = tmpl;
 						}
-						parseData.setHasRange();
+						//parseData.setHasRange();
 						assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
 								parseData, segCount, front, value, rangeFlags | AddressParseData.KEY_RANGE_WILDCARD | frontRadix, radix);
 						rangeWildcardIndex = -1;
@@ -891,7 +892,7 @@ public class Validator implements HostIdentifierStringValidator {
 									int startIndex = rangeWildcardIndex - frontDigitCount;
 									int leadingZeroStartIndex = startIndex - frontLeadingZeroCount;
 									if(frontSingleWildcardCount > 0) {
-										parseData.setHasSingleWildcard();
+										//parseData.setHasSingleWildcard();
 										assignSingleWildcard16(currentFrontValueHex, str, startIndex, rangeWildcardIndex, singleWildcardCount, parseData, 0, leadingZeroStartIndex, stringFormatParams);
 									} else {
 										int flags;
@@ -1222,7 +1223,7 @@ public class Validator implements HostIdentifierStringValidator {
 									MACAddress.MAX_VALUE_PER_SEGMENT;
 							} else {
 								if(isSingleIPv6Hex) {
-									extendedValue = value = -1L;
+									extendedValue = value = 0xffffffffffffffffL;
 								} else {
 									value = IPv6Address.MAX_VALUE_PER_SEGMENT;
 								}
@@ -1234,7 +1235,7 @@ public class Validator implements HostIdentifierStringValidator {
 								throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", segmentValueStartIndex);
 							}
 							if(singleWildcardCount > 0) {
-								parseData.setHasSingleWildcard();
+								//parseData.setHasSingleWildcard();
 								noValuesToSet = true;
 								if(rangeWildcardIndex >= 0) {
 									throw new AddressStringException(str, index, true);
@@ -1277,7 +1278,7 @@ public class Validator implements HostIdentifierStringValidator {
 							throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", segmentValueStartIndex);
 						}
 						if(singleWildcardCount > 0) {
-							parseData.setHasSingleWildcard();
+							//parseData.setHasSingleWildcard();
 							noValuesToSet = true;
 							if(rangeWildcardIndex >= 0) {
 								throw new AddressStringException(str, index, true);
@@ -1345,8 +1346,13 @@ public class Validator implements HostIdentifierStringValidator {
 						} else {
 							if(isSingleIPv6Hex) {//We need this special block here because single ipv6 hex is 128 bits and cannot fit into a long
 								int frontMidIndex = frontEndIndex - 16;
-								extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
-								front = parseLong16(str, frontMidIndex, frontEndIndex);
+								if(frontStartIndex < frontMidIndex) {
+									extendedFront = parseLong16(str, frontStartIndex, frontMidIndex);
+									front = parseLong16(str, frontMidIndex, frontEndIndex);
+								} else {
+									extendedFront = 0;
+									front = currentFrontValueHex;
+								}
 								int frontCompare = Long.compareUnsigned(extendedFront, extendedValue);
 								isReversed = frontCompare > 0 || (frontCompare == 0 && Long.compareUnsigned(front, value) > 0);
 							} else {
@@ -1381,16 +1387,16 @@ public class Validator implements HostIdentifierStringValidator {
 							extendedFront = extendedValue;
 							extendedValue = tmpl;
 						}
-						parseData.setHasRange();
+						//parseData.setHasRange();
 						if(isSingleIPv6Hex) {
 							assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
 									parseData, segCount, front, extendedFront, value, extendedValue, rangeFlags | AddressParseData.KEY_RANGE_WILDCARD);
 						} else {
 							if(!frontUppercase && !frontEmpty && !isReversed) {
 								if(leadingZeroCount == 0 && (flags & AddressParseData.KEY_STANDARD_STR) != 0 && frontIsStandardRangeChar) {
-									rangeFlags = AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR;
+									rangeFlags |= AddressParseData.KEY_STANDARD_RANGE_STR | AddressParseData.KEY_STANDARD_STR;
 								} else {
-									rangeFlags = AddressParseData.KEY_STANDARD_STR;
+									rangeFlags |= AddressParseData.KEY_STANDARD_STR;
 								}
 							} 
 							assignAttributesValuesFlags(frontStartIndex, frontEndIndex, frontLeadingZeroStartIndex, startIndex, backEndIndex, segmentValueStartIndex,
@@ -1524,7 +1530,7 @@ public class Validator implements HostIdentifierStringValidator {
 				}
 				parseData.incrementSegmentCount();
 				parseData.initSegmentData(1);
-				parseData.setHasRange();
+				//parseData.setHasRange();
 				assignAttributesValuesFlags(lowerStart, lowerEnd, lowerStart, upperStart, upperEnd, upperStart,
 						parseData, 0, value, extendedValue, value2, extendedValue2,
 						AddressParseData.KEY_RANGE_WILDCARD | IPv6Address.BASE_85_RADIX | flags, IPv6Address.BASE_85_RADIX);
@@ -2025,7 +2031,7 @@ public class Validator implements HostIdentifierStringValidator {
 			ParsedHostIdentifierStringQualifier prefixQualifier = parseValidatedPrefix(result, fullAddr, 
 					zone, validationOptions, hostValidationOptions, index, prefixEndIndex, prefixEndIndex - index /* digitCount */, leadingZeros, ipVersion);
 			if(portQualifier != null) {
-				portQualifier.mergePrefix(prefixQualifier);
+				portQualifier.overridePrefix(prefixQualifier);
 				return portQualifier;
 			}
 			return prefixQualifier;
@@ -2576,7 +2582,7 @@ public class Validator implements HostIdentifierStringValidator {
 		}
 		return result;
 	}
-	
+
 //	private static int parse10(CharSequence s, int start, int end) {
 //		int charArray[] = chars;
 //		int result = charArray[s.charAt(start)];
@@ -2585,7 +2591,7 @@ public class Validator implements HostIdentifierStringValidator {
 //		}
 //		return result;
 //	}
-	
+
 	// OCTX private static long switchValue10(long currentHexValue, int digitCount) {
 	private static long switchValue10(long currentHexValue, CharSequence s, int digitCount) throws AddressStringException {
 		long result = 0xf & currentHexValue;
@@ -2997,28 +3003,17 @@ public class Validator implements HostIdentifierStringValidator {
 							}
 							addrQualifier = parseHostAddressQualifier(str, addressOptions, null, pa.hasPrefixSeparator(), false, pa, insideBracketsQualifierIndex, prefixIndex - 1);
 							if(isPrefixed) {
-								//since we have an address, we apply the prefix to the address rather than to the host
-								//rather than use the prefix as a host qualifier, we treat it as an address qualifier and leave the host qualifier as NO_QUALIFIER
-								//also, keep in mind you can combine prefix with zone like fe80::%2/64, see https://tools.ietf.org/html/rfc4007#section-11.7 
+								// since we have an address, we apply the prefix to the address rather than to the host
+								// rather than use the prefix as a host qualifier, we treat it as an address qualifier and leave the host qualifier as NO_QUALIFIER
+								// also, keep in mind you can combine prefix with zone like fe80::%2/64, see https://tools.ietf.org/html/rfc4007#section-11.7 
 								if(addrQualifier == ParsedHost.NO_QUALIFIER) {
 									addrQualifier = parsedHostQualifier;
 								} else {
-									Integer addPrefLength = addrQualifier.getEquivalentPrefixLength();
-									if(addPrefLength != null) {
-										Integer hostPrefLength = parsedHostQualifier.getEquivalentPrefixLength();
-										if(hostPrefLength != null && addPrefLength.intValue() != hostPrefLength.intValue()) {
-											throw new HostNameException(str, "ipaddress.host.error.bracketed.conflicting.prefix.length");
-										}
-									}
-									IPAddress one = addrQualifier.getMask();
-									if(one != null) {
-										IPAddress two = parsedHostQualifier.getMask();
-										if(two != null && !one.equals(two)) {
-											throw new HostNameException(str, "ipaddress.host.error.bracketed.conflicting.mask");
-										}
-									}
-									addrQualifier.mergePrefix(parsedHostQualifier);
+									// if there are two prefix lengths, we choose the smaller (larger network)
+									// if two masks, we combine them (if both network masks, this is the same as choosing smaller prefix)
+									addrQualifier.merge(parsedHostQualifier);
 								}
+								// note it makes no sense to indicate a port or service with a prefix
 							} else {
 								hostQualifier = parsedHostQualifier;
 							}
@@ -3282,7 +3277,7 @@ public class Validator implements HostIdentifierStringValidator {
 				} else {
 					//only prefix qualifiers and the NO_QUALIFIER are cached, so merging is OK
 					//in the case we can have only a zone qualifier
-					addrQualifier.mergePrefix(hostQualifier);
+					addrQualifier.overridePrefix(hostQualifier);
 					qual = addrQualifier;
 				}
 				IPAddressProvider provider = chooseProvider(null, builder, params, pa, qual);

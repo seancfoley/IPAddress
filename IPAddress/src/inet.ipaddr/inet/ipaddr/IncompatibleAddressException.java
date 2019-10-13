@@ -64,8 +64,16 @@ public class IncompatibleAddressException extends RuntimeException {
 		super(lower + "-" + upper + ", " + errorMessage + " " + getMessage(key));
 	}
 	
-	public IncompatibleAddressException(AddressItem one, int prefixLength, String key) {
-		super(one + " /" + prefixLength + ", " + errorMessage + " " + getMessage(key));
+	public IncompatibleAddressException(long lower, long upper, long prefixLengthOrMask, String key) {
+		super(lower + "-" + upper + " /" + prefixLengthOrMask + ", " + errorMessage + " " + getMessage(key));
+	}
+	
+	public IncompatibleAddressException(String lower, String upper, String prefixLengthOrMask, String key) {
+		super(lower + "-" + upper + " /" + prefixLengthOrMask + ", " + errorMessage + " " + getMessage(key));
+	}
+	
+	public IncompatibleAddressException(AddressItem one, int prefixLengthOrMask, String key) {
+		super(one + " /" + prefixLengthOrMask + ", " + errorMessage + " " + getMessage(key));
 	}
 	
 	public IncompatibleAddressException(AddressItem one, int oneIndex, AddressItem two, int twoIndex, String key) {

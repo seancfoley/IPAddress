@@ -560,8 +560,35 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return (IPv6AddressSegment[]) getDivisionsInternal().clone();
 	}
 	
+	void cache(IPv6AddressSection lower, IPv6AddressSection upper) {
+		SectionCache<IPv6AddressSection> cache = sectionCache;
+		if((lower != null || upper != null) && 
+				(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null))) {
+			synchronized(this) {
+				cache = sectionCache;
+				boolean create = (cache == null);
+				if(create) {
+					sectionCache = cache = new SectionCache<IPv6AddressSection>();
+					cache.lower = lower;
+					cache.upper = upper;
+				} else {
+					if(cache.lower == null) {
+						cache.lower = lower;
+					}
+					if(cache.upper == null) {
+						cache.upper = upper;
+					}
+				}
+			}
+		}
+	}
+	
+	protected IPv6AddressSection getSingleLowestOrHighestSection() {
+		return getSingleLowestOrHighestSection(this);
+	}
+	
 	IPv6AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
-		IPv6AddressSection result = getSingleLowestOrHighestSection(this);
+		IPv6AddressSection result = getSingleLowestOrHighestSection();
 		if(result == null) {
 			SectionCache<IPv6AddressSection> cache = sectionCache;
 			if(cache == null || 
@@ -1393,7 +1420,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			IPv6AddressSegment seg = getSegment(i);
 			int byteIndex = i << 1;
 			int val = low ? seg.getSegmentValue() : seg.getUpperSegmentValue();
-			bytes[byteIndex] = (byte) (val >> 8);
+			bytes[byteIndex] = (byte) (val >>> 8);
 			bytes[byteIndex + 1] = (byte) val;
 		}
 		return bytes;

@@ -342,6 +342,54 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return getSection(index, endIndex, this, getAddressCreator());
 	}
 	
+	void cache(IPv4Address thisAddr, IPv4Address lower, IPv4Address upper) {
+		if((lower != null || upper != null) && getSingleLowestOrHighestSection(this) == null) {
+			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
+			AddressCache cache = thisAddr.sectionCache;
+			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
+				synchronized(this) {
+					cache = thisAddr.sectionCache;
+					boolean create = (cache == null);
+					if(create) {
+						thisAddr.sectionCache = cache = new AddressCache();
+						cache.lower = lower;
+						cache.upper = upper;
+					} else {
+						if(cache.lower == null) {
+							cache.lower = lower;
+						}
+						if(cache.upper == null) {
+							cache.upper = upper;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	void cache(IPv4AddressSection lower, IPv4AddressSection upper) {
+		SectionCache<IPv4AddressSection> cache = sectionCache;
+		if((lower != null || upper != null) && 
+				(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null))) {
+			synchronized(this) {
+				cache = sectionCache;
+				boolean create = (cache == null);
+				if(create) {
+					sectionCache = cache = new SectionCache<IPv4AddressSection>();
+					cache.lower = lower;
+					cache.upper = upper;
+				} else {
+					if(cache.lower == null) {
+						cache.lower = lower;
+					}
+					if(cache.upper == null) {
+						cache.upper = upper;
+					}
+				}
+			}
+		}
+	}
+
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
 		IPv4AddressSection result = getSingleLowestOrHighestSection(this);
 		if(result == null) {
@@ -411,7 +459,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 					if(lowest) {
 						if(excludeZeroHost) {
 							create = (result = cache.lowerNonZeroHost) == null;
-							//	create = (result = cache.lowerNonZeroHost) == null && !cache.lowerNonZeroHostIsNull;
 						} else {
 							create = (result = cache.lower) == null;
 						}
@@ -1289,16 +1336,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv4AddressSection maskNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
 		checkMaskSectionCount(mask);
-		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			return getSubnetSegments(
-					this,
-					cacheBits(networkPrefixLength),
-					getAddressCreator(),
-					true,
-					this::getSegment,
-					i -> mask.getSegment(i).getSegmentValue(),
-					false);
-		}
 		IPv4AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
 		return getSubnetSegments(
 				this,
@@ -1355,15 +1392,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv4AddressSection bitwiseOrNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, SizeMismatchException {
 		checkMaskSectionCount(mask);
-		if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			return getOredSegments(
-					this,
-					networkPrefixLength,
-					getAddressCreator(),
-					true,
-					this::getSegment,
-					i -> mask.getSegment(i).getSegmentValue());
-		}
 		IPv4AddressSection networkMask = getNetwork().getNetworkMaskSection(networkPrefixLength);
 		return getOredSegments(
 				this,

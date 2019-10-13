@@ -21,6 +21,7 @@ package inet.ipaddr.format.validate;
 import java.io.Serializable;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Objects;
 
 import inet.ipaddr.HostIdentifierString;
@@ -30,7 +31,14 @@ import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.format.IPAddressDivisionSeries;
+import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.format.large.IPAddressLargeDivisionGrouping;
+import inet.ipaddr.format.standard.IPAddressBitsDivision;
+import inet.ipaddr.format.standard.IPAddressDivisionGrouping;
 import inet.ipaddr.format.validate.ParsedIPAddress.CachedIPAddresses;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv6.IPv6Address;
 
 /**
  * Provides an address corresponding to a parsed string.
@@ -92,10 +100,28 @@ public interface IPAddressProvider extends Serializable {
 	
 	IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException;
 	
-	default IPAddressSeqRange getProviderSeqRange() {
-		return getProviderAddress().toSequentialRange();
+	default boolean isSequential() {
+		try {
+			IPAddress addr = getProviderAddress();
+			if(addr != null) {
+				return addr.isSequential();
+			}
+		} catch(IncompatibleAddressException e) {}
+		return false;
 	}
-	
+
+	default IPAddressSeqRange getProviderSeqRange() {
+		IPAddress addr = getProviderAddress();
+		if(addr != null) {
+			return addr.toSequentialRange();
+		}
+		return null;
+	}
+
+	default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
+		return getProviderAddress();
+	}
+
 	default int providerCompare(IPAddressProvider other) throws IncompatibleAddressException {
 		if(this == other) {
 			return 0;
@@ -330,7 +356,7 @@ public interface IPAddressProvider extends Serializable {
 		public String toString() {
 			return String.valueOf(getType());
 		}
-	};
+	}
 	
 	/**
 	 * Wraps an IPAddress for IPAddressString in the cases where no parsing is provided, the address exists already
@@ -716,13 +742,13 @@ public interface IPAddressProvider extends Serializable {
 		ParsedHostIdentifierStringQualifier qualifier;
 		
 		AllCreator(ParsedHostIdentifierStringQualifier qualifier, HostIdentifierString originator, IPAddressStringParameters options) {
-			super(qualifier.getNetworkPrefixLength(), options);
+			super(qualifier.getEquivalentPrefixLength(), options);
 			this.originator = originator;
 			this.qualifier = qualifier;
 		}
 		
 		AllCreator(ParsedHostIdentifierStringQualifier qualifier, IPVersion adjustedVersion, HostIdentifierString originator, IPAddressStringParameters options) {
-			super(qualifier.getNetworkPrefixLength(), adjustedVersion, options);
+			super(qualifier.getEquivalentPrefixLength(), adjustedVersion, options);
 			this.originator = originator;
 			this.qualifier = qualifier;
 		}
@@ -765,9 +791,14 @@ public interface IPAddressProvider extends Serializable {
 		
 		@Override
 		CachedIPAddresses<?> createAddresses() {
-			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options));
+			if(qualifier.equals(ParsedHost.NO_QUALIFIER)) {
+				return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options));
+			}
+			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options),
+					ParsedIPAddress.createAllAddress(adjustedVersion, qualifier.getZone() != null ? new ParsedHostIdentifierStringQualifier(qualifier.getZone()) : ParsedHost.NO_QUALIFIER, originator, options));
 		}
-		
+
+		@Override
 		public IPAddressSeqRange getProviderSeqRange() {
 			if(isProvidingAllAddresses()) {
 				return null;
@@ -781,6 +812,43 @@ public interface IPAddressProvider extends Serializable {
 				return lower.toSequentialRange(upper);
 			}
 			return super.getProviderSeqRange();
+		}
+
+		@Override
+		public boolean isSequential() {
+			return !isProvidingAllAddresses();
+		}
+
+		@Override
+		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
+			if(isProvidingAllAddresses()) {
+				return null;
+			}
+			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.isIPv4() ?
+					options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
+			IPAddress mask = qualifier.getMask();
+			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
+				// there is a mask
+				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLength(false);
+				if(hostMaskPrefixLen == null) { // not a host mask
+					throw new IncompatibleAddressException(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
+				}
+				IPAddress hostMask = network.getHostMask(hostMaskPrefixLen);
+				return hostMask.toPrefixBlock();
+			}
+			IPAddressDivisionSeries grouping;
+			if(adjustedVersion.isIPv4()) {
+				grouping = new IPAddressDivisionGrouping(new IPAddressBitsDivision[] {
+							new IPAddressBitsDivision(0, IPv4Address.MAX_VALUE, IPv4Address.BIT_COUNT, IPv4Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())
+						}, network);
+			} else if(adjustedVersion.isIPv6()) {
+				byte upperBytes[] = new byte[16];
+				Arrays.fill(upperBytes, (byte) 0xff);
+				grouping = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] {new IPAddressLargeDivision(new byte[IPv6Address.BYTE_COUNT], upperBytes, IPv6Address.BIT_COUNT, IPv6Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())}, network);
+			} else {
+				grouping = null;
+			}
+			return grouping;
 		}
 	}
 }

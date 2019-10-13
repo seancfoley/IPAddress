@@ -73,11 +73,15 @@ public class AddressBitsDivision extends AddressDivision {
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
 		return low ? new byte[] {
-						(byte) (value >> 8),
-						(byte) (0xff & value)} : 
+						(byte) (value >>> 24),
+						(byte) (value >>> 16),
+						(byte) (value >>> 8),
+						(byte) value} : 
 					new byte[] {
-						(byte) (upperValue >> 8),
-						(byte) (0xff & upperValue)};
+						(byte) (value >>> 24),
+						(byte) (value >>> 16),
+						(byte) (upperValue >>> 8),
+						(byte) upperValue};
 	}
 
 	@Override

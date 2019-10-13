@@ -3302,8 +3302,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 				allPrefixesAreSubnets ? "0-f0:0:0:0:0:0:0:0/12" : "0-ff:0:0:0:0:0:0:0/12", 
 				null, 
 				allPrefixesAreSubnets ? "0-f0:0:0:0:0:0:0:0/12" : "0-ff:0:0:0:0:0:0:0/12");
-		testSubnet("0-f0::", "fff0::", 12, 
-				"0-f0:0:0:0:0:0:0:0/12", "0-f0:0:0:0:0:0:0:0", "0-f0:0:0:0:0:0:0:0/12");
+		//testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "0-f0:0:0:0:0:0:0:0", "0-f0:0:0:0:0:0:0:0/12");
+		testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", null, "0-f0:0:0:0:0:0:0:0/12");
+		testSubnet("0-f::", "fff0::", 12, allPrefixesAreSubnets ? "0:0:0:0:0:0:0:0/12" : "0-f:0:0:0:0:0:0:0/12", "0:0:0:0:0:0:0:0", allPrefixesAreSubnets ? "0:0:0:0:0:0:0:0/12" : "0-f:0:0:0:0:0:0:0/12");
 		testSubnet("0-f::*", "fff0::ffff", 12, allPrefixesAreSubnets ? "0:0:0:0:0:0:0:0/12" : "0-f:0:0:0:0:0:0:*/12", "0:0:0:0:0:0:0:*", allPrefixesAreSubnets ? "0:0:0:0:0:0:0:0/12" : "0-f:0:0:0:0:0:0:*/12");
 		
 		
@@ -5055,30 +5056,202 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testLeadingZeroAddr("1:2:0-1:3::", false);
 		testLeadingZeroAddr("1:2:3:0-1::", false);
 		
-		testIncompatibleAddress("a:b:c:d:e:f:1.2.*.4", "a:b:c:d:e:f:1.2.0.4", "a:b:c:d:e:f:1.2.255.4");
-		testIncompatibleAddress("::ffff:0.0.*.0", "::ffff:0.0.0.0", "::ffff:0.0.255.0");
-		testIncompatibleAddress("::ffff:*.0.0.0", "::ffff:0.0.0.0", "::ffff:255.0.0.0");
-		testIncompatibleAddress("0-ffff::1/f000::10", "::", "f000::");// 
+		testIncompatibleAddress("a:b:c:d:e:f:1.2.*.4", "a:b:c:d:e:f:1.2.0.4", "a:b:c:d:e:f:1.2.255.4", new Object[] {0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 1, 2, new Integer[] {0, 0xff}, 4});//[a, b, c, d, e, f, 1, 2, 0-ff, 4]
+		testIncompatibleAddress("::ffff:0.0.*.0", "::ffff:0.0.0.0", "::ffff:0.0.255.0", new Object[] {0, 0xffff, 0, 0, new Integer[] {0, 0xff}, 0});//[0, ffff, 0, 0, 0-ff, 0]
+		testIncompatibleAddress("::ffff:*.0.0.0", "::ffff:0.0.0.0", "::ffff:255.0.0.0", new Object[] {0, 0xffff, new Integer[] {0, 0xff}, 0, 0, 0});//[0, ffff, 0-ff, 0, 0, 0]
+		testMaskedIncompatibleAddress("0-ffff::1/f000::10", "::", "f000::");
 		if(isAllSubnets) {
-			testSubnetStringRange("0-ffff::1/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-			testSubnetStringRange("0-ffff::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+			testSubnetStringRange("0-ffff::1/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new Object[] {new Integer[] {0, 0xffff}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffffffff", 16)}, new Integer[] {0, 0xffff}}, 4);//[0-f000, 0, 0]
+			testSubnetStringRange("0-ffff::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new Object[] {new Integer[] {0, 0xffff}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffffffffffff", 16)}}, 4);//[0-f000, 0]
 		} else {
-			testSubnetStringRange("0-ffff::1/f000::", "::1", "ffff::1");
-			testSubnetStringRange("0-ffff::/f000::", "::", "ffff::");
+			testSubnetStringRange("0-ffff::1/f000::", "::1", "ffff::1", new Object[] {new Integer[] {0, 0xffff}, 0, 1}, 4);
+			testSubnetStringRange("0-ffff::/f000::", "::", "ffff::", new Object[] {new Integer[] {0, 0xffff}, 0}, 4);
 		}
 		if(isAutoSubnets) {
-			testSubnetStringRange("0-f000::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+			testSubnetStringRange("0-f000::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new Object[] {new Integer[] {0, 0xffff}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffffffffffff", 16)}}, 4);//[0-f000, 0]
 		} else {
-			testSubnetStringRange("0-f000::/f000::", "::", "f000::");
+			testSubnetStringRange("0-f000::/f000::", "::", "f000::", new Object[] {new Integer[] {0, 0xf000}, 0}, 4);
 		}
-		testSubnetStringRange("0-ffff::/0fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "::", "fff::");// /8 prefix?
-		testSubnetStringRange("1.*.*.*", "1.0.0.0", "1.255.255.255");
-		testSubnetStringRange("1-2.3.4-5.6", "1.3.4.6", "2.3.5.6");
-		testSubnetStringRange("1-2:3:4-5:6::", "1:3:4:6::", "2:3:5:6::");
+		testSubnetStringRange("0-ffff::/0fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "::", "fff::", new Object[] {new Integer[] {0, 0xfff}, 0});// [0-fff, 0]  // /8 prefix?
 		
-		testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5");
-		testIncompatibleAddress("0.0.0.*/0.0.0.128", "0.0.0.0", "0.0.0.128");
+		testSubnetStringRange("1.*.*.*", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}});//[1, 0-255, 0-255, 0-255]
+		testSubnetStringRange("1.*.*", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xff}, new Integer[] {0, 0xffff}});//[1, 0-255, 0-65535]
+		testSubnetStringRange("1.*", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xffffff}});//[1, 0-16777215]
+		testSubnetStringRange("a:b:c:*:cc:d:e:f", "a:b:c:0:cc:d:e:f", "a:b:c:ffff:cc:d:e:f", new Object[] {0xa, 0xb, 0xc, new Integer[] {0, 0xffff}, 0xcc, 0xd, 0xe, 0xf});  //[a, b, c, 0-ffff, cc, d, e, f]
+		testSubnetStringRange("a:*:cc:d:e:f", "a::cc:d:e:f", "a:ffff:ffff:ffff:cc:d:e:f", new Object[] {0xa, new Long[] {0L, 0xffffffffffffL}, 0xcc, 0xd, 0xe, 0xf});  //[a, 0-ffffffffffff, cc, d, e, f]
+		testSubnetStringRange("*:cc:d:e:f", "::cc:d:e:f", "ffff:ffff:ffff:ffff:cc:d:e:f", new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}, 0xcc, 0xd, 0xe, 0xf});  //[0-ffffffffffffffff, cc, d, e, f]
 		
+		testSubnetStringRange("a:b:c:*:cc:d:1.255.3.128", "a:b:c:0:cc:d:1.255.3.128", "a:b:c:ffff:cc:d:1.255.3.128", new Object[] {0xa, 0xb, 0xc, new Integer[] {0, 0xffff}, 0xcc, 0xd, 1, 255, 3, 128});  //[a, b, c, 0-ffff, cc, d, e, f]
+		testSubnetStringRange("a:*:cc:d:1.255.3.128", "a::cc:d:1.255.3.128", "a:ffff:ffff:ffff:cc:d:1.255.3.128", new Object[] {0xa, new Long[] {0L, 0xffffffffffffL}, 0xcc, 0xd, 1, 255, 3, 128});  //[a, 0-ffffffffffff, cc, d, e, f]
+		testSubnetStringRange("*:cc:d:1.255.3.128", "::cc:d:1.255.3.128", "ffff:ffff:ffff:ffff:cc:d:1.255.3.128", new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}, 0xcc, 0xd, 1, 255, 3, 128});  //[0-ffffffffffffffff, cc, d, e, f]
+		
+		if(isLenient()) {
+			// inet_aton
+			testSubnetStringRange("1.*.1", "1.0.0.1", "1.255.0.1", new Object[] {1, new Integer[] {0, 0xff}, 1});//[1, 0-255, 1]
+			testSubnetStringRange("*.1", "0.0.0.1", "255.0.0.1", new Object[] {new Integer[] {0, 0xff}, 1});//[0-255, 1]
+			testIncompatibleAddress("a:b:cc:*.4", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.0.0.4", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffff", 16)}, 4});  //[a, b, cc, 0-ffffffffffffff, 4]
+			testIncompatibleAddress("1:2:3:4:*.3.4", "1:2:3:4::0.3.0.4", "1:2:3:4:ffff:ffff:255.3.0.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, 3, 4});//[1, 2, 3, 4, 0-ffffffffff, 3, 4]
+			testIncompatibleAddress("1:2:3:4:*.4", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.0.0.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, 4});//[1, 2, 3, 4, 0-ffffffffff, 4]
+		} else {
+			// not inet_aton
+			testSubnetStringRange("1.*.1", "1.0.0.1", "1.255.255.1", new Object[] {1, new Integer[] {0, 0xffff}, 1});
+			testSubnetStringRange("*.1", "0.0.0.1", "255.255.255.1", new Object[] {new Integer[] {0, 0xffffff}, 1});
+			testIncompatibleAddress("a:b:cc:*.4", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.255.255.4", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffff", 16)}, 4});//[a, b, cc, 0-ffffffffffffffffff, 4]
+			testSubnetStringRange("1:2:3:4:*.3.4", "1:2:3:4::0.0.3.4", "1:2:3:4:ffff:ffff:255.255.3.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffL}, 3, 4});//[1, 2, 3, 4, 0-ffffffffffff, 3, 4]
+			testIncompatibleAddress("1:2:3:4:*.4", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.255.255.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffffL}, 4});//[1, 2, 3, 4, 0-ffffffffffffff, 4]
+		}
+		testSubnetStringRange("1-2.3.4-5.6", "1.3.4.6", "2.3.5.6", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 6}, null, false);//[1-2, 3, 4-5, 6]
+		testSubnetStringRange("1-2:3:4-5:6::", "1:3:4:6::", "2:3:5:6::", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 6, 0}, null, false);//[1-2, 3, 4-5, 6, 0]
+		testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5", new Object[] {1, 2, 3, 4, 5, 6, new Integer[] {1, 3}, 2, 0, new Integer[] {4, 5}}, null, false);//[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+		testMaskedIncompatibleAddress("0.0.0.*/0.0.0.128", "0.0.0.0", "0.0.0.128");//iae
+		
+		testSubnetStringRange("1.2-3.4.5", "1.2.4.5", "1.3.4.5", new Object[] {1, new Integer[] {2, 3}, 4, 5}, null, false);//[1, 2-3, 4, 5]
+		testSubnetStringRange("1:2-3:4:5::", "1:2:4:5::", "1:3:4:5::", new Object[] {1, new Integer[] {2, 3}, 4, 5, 0}, null, false);//[1, 2-3, 4, 5, 0]
+		testSubnetStringRange("1:2:4:5:6-9:7:8:f", "1:2:4:5:6:7:8:f", "1:2:4:5:9:7:8:f", new Object[] {1, 2, 4, 5, new Integer[] {6, 9}, 7, 8, 0xf}, null, false);//[1, 2, 4, 5, 6-9, 7, 8, f]
+		testIncompatibleAddress("a:b:cc:dd:e:*.2.3.4", "a:b:cc:dd:e:0:0.2.3.4", "a:b:cc:dd:e:ffff:255.2.3.4", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, new Integer[] {0, 0xffffff}, 2, 3, 4}, null, false);  // [a, b, cc, dd, e, 0-ffffff, 2, 3, 4]
+		testIncompatibleAddress("a:b:cc:dd:*.2.3.4", "a:b:cc:dd:0:0:0.2.3.4", "a:b:cc:dd:ffff:ffff:255.2.3.4", new Object[] {0xa, 0xb, 0xcc, 0xdd, new Long[] {0L, 0xffffffffffL}, 2, 3, 4}, null, false);  // [a, b, cc, dd, 0-ffffffffff, 2, 3, 4]
+		testIncompatibleAddress("a:b:cc:*.2.3.4", "a:b:cc:0:0:0:0.2.3.4", "a:b:cc:ffff:ffff:ffff:255.2.3.4", new Object[] {0xa, 0xb, 0xcc, new Long[] {0L, 0xffffffffffffffL}, 2, 3, 4}, null, false);  // [a, b, cc, 0-ffffffffffffff, 2, 3, 4]
+
+		testSubnetStringRange("1:2:4:5:6-9:7:8:f/ffff:0:ffff:0:ffff:0:ffff:0", "1:0:4:0:6:0:8:0", "1:0:4:0:9:0:8:0", new Object[] {1, 0, 4, 0, new Integer[] {6, 9}, 0, 8, 0}, null, false);//[1, 2, 4, 5, 6-9, 7, 8, f]
+		testSubnetStringRange("1:2:4:5-6:6:7:8:f/ffff:0:ffff:0:ffff:0:ffff:0", "1:0:4:0:6:0:8:0", "1:0:4:0:6:0:8:0", new Object[] {1, 0, 4, 0, 6, 0, 8, 0}, null, true);//[1, 2, 4, 5, 6-9, 7, 8, f]
+		
+		
+		testSubnetStringRange("1.*.*.*/11", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 11, true);//[1, 0-255, 0-255, 0-255]
+		testSubnetStringRange("1.*.*/32", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xff}, new Integer[] {0, 0xffff}}, 32, true);//[1, 0-255, 0-65535]
+		testSubnetStringRange("1.*/24", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xffffff}}, 24, true);//[1, 0-16777215]
+		if(isAllSubnets) {
+			testSubnetStringRange("a:b:c:*:cc:d:e:f/64", "a:b:c::", "a:b:c:ffff:ffff:ffff:ffff:ffff", new Object[] {0xa, 0xb, 0xc, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}}, 64);  //[a, b, c, 0-ffff, cc, d, e, f]
+			testSubnetStringRange("a:*:cc:d:e:f/64", "a::", "a:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new Object[] {0xa, new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}}, 64);  //[a, 0-ffffffffffff, cc, d, e, f]
+			testSubnetStringRange("*:cc:d:e:f/64", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}}, 64);  //[0-ffffffffffffffff, cc, d, e, f]
+		} else {
+			testSubnetStringRange("a:b:c:*:cc:d:e:f/64", "a:b:c:0:cc:d:e:f", "a:b:c:ffff:cc:d:e:f", new Object[] {0xa, 0xb, 0xc, new Integer[] {0, 0xffff}, 0xcc, 0xd, 0xe, 0xf}, 64);  //[a, b, c, 0-ffff, cc, d, e, f]
+			testSubnetStringRange("a:*:cc:d:e:f/64", "a::cc:d:e:f", "a:ffff:ffff:ffff:cc:d:e:f", new Object[] {0xa, new Long[] {0L, 0xffffffffffffL}, 0xcc, 0xd, 0xe, 0xf}, 64);  //[a, 0-ffffffffffff, cc, d, e, f]
+			testSubnetStringRange("*:cc:d:e:f/64", "::cc:d:e:f", "ffff:ffff:ffff:ffff:cc:d:e:f", new Object[] {new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}, 0xcc, 0xd, 0xe, 0xf}, 64);  //[0-ffffffffffffffff, cc, d, e, f]
+		}
+		//prefix subnets
+		if(isAutoSubnets) {
+			testSubnetStringRange("a:*::/64", "a::", "a:ffff::ffff:ffff:ffff:ffff", new Object[] {0xa, new Integer[] {0, 0xffff}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 64);  //[a, 0-ffffffffffff, cc, d, e, f]
+			testSubnetStringRange("1.128.0.0/11", "1.128.0.0", "1.159.255.255", new Object[] {1, new Integer[] {128, 159}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 11);//[1, 0-255, 0-255, 0-255]
+		} else {
+			testSubnetStringRange("a:*::/64", "a::", "a:ffff::", new Object[] {0xa, new Integer[] {0, 0xffff}, BigInteger.ZERO}, 64);  //[a, 0-ffffffffffff, cc, d, e, f]
+			testAddressStringRange("1.128.0.0/11", new Object[] {1, 128, 0, 0}, 11);
+		}
+		if(isLenient()) {
+			// inet_aton
+			if(isAllSubnets) {
+				testSubnetStringRange("1.*.1/16", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xff}, new Integer[] {0, 0xffff}}, 16);//[1, 0-255, 1]
+				testSubnetStringRange("*.1/16", "0.0.0.0", "255.0.255.255", new Object[] {new Integer[] {0, 0xff}, new Integer[] {0, 0xffff}}, 16);//[0-255, 1]
+				testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc:ffff:ffff:ffff:255.0.255.255", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffff", 16)}, new Integer[] {0, 0xffff}}, 112);  //[a, b, cc, 0-ffffffffffffff, 4]
+				testIncompatibleAddress("1:2:3:4:*.3.4/112", "1:2:3:4::0.3.0.0", "1:2:3:4:ffff:ffff:255.3.255.255", 
+						new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, 3, new Integer[] {0, 0xffff}}, 112);//[1, 2, 3, 4, 0-ffffffffff, 3, 4]
+				testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.0.255.255", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, new Integer[] {0, 0xffff}}, 112);//[1, 2, 3, 4, 0-ffffffffff, 4]
+			} else {
+				testSubnetStringRange("1.*.1/16", "1.0.0.1", "1.255.0.1", new Object[] {1, new Integer[] {0, 0xff}, 1}, 16);//[1, 0-255, 1]
+				testSubnetStringRange("*.1/16", "0.0.0.1", "255.0.0.1", new Object[] {new Integer[] {0, 0xff}, 1}, 16);//[0-255, 1]
+				testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.0.0.4",
+						new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffff", 16)}, 4}, 112);  //[a, b, cc, 0-ffffffffffffff, 4]
+				testIncompatibleAddress("1:2:3:4:*.3.4/112", "1:2:3:4::0.3.0.4", "1:2:3:4:ffff:ffff:255.3.0.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, 3, 4}, 112);//[1, 2, 3, 4, 0-ffffffffff, 3, 4]
+				testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.0.0.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffL}, 4}, 112);//[1, 2, 3, 4, 0-ffffffffff, 4]
+			}
+			// prefix subnet
+			if(isAutoSubnets) {
+				testIncompatibleAddress("a:b:cc:*.0/112", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc:ffff:ffff:ffff:255.0.255.255", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffff", 16)}, new Integer[] {0, 0xffff}}, 112);  //[a, b, cc, 0-ffffffffffffff, 4]
+			} else {
+				testIncompatibleAddress("a:b:cc:*.0/112", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc:ffff:ffff:ffff:255.0.0.0", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffff", 16)}, 0}, 112);  //[a, b, cc, 0-ffffffffffffff, 4]
+			}
+		} else {
+			// not inet_aton
+			if(isAllSubnets) {
+				testSubnetStringRange("1.*.1/16", "1.0.0.0", "1.255.255.255", new Object[] {1, new Integer[] {0, 0xffff}, new Integer[] {0, 0xff}}, 16);
+				testSubnetStringRange("*.1/16", "0.0.0.0", "255.255.255.255", new Object[] {new Integer[] {0, 0xffffff}, new Integer[] {0, 0xff}}, 16);
+				testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc:ffff:ffff:ffff:255.255.255.255", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffff", 16)}, new Integer[] {0, 0xff}}, 112);//[a, b, cc, 0-ffffffffffffffffff, 4]
+				testSubnetStringRange("1:2:3:4:*.3.4/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.255.255.255", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 112);//[1, 2, 3, 4, 0-ffffffffffff, 3, 4]
+				testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.255.255.255", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffffL}, new Integer[] {0, 0xff}}, 112);//[1, 2, 3, 4, 0-ffffffffffffff, 4]
+			} else {
+				testSubnetStringRange("1.*.1/16", "1.0.0.1", "1.255.255.1", new Object[] {1, new Integer[] {0, 0xffff}, 1}, 16);
+				testSubnetStringRange("*.1/16", "0.0.0.1", "255.255.255.1", new Object[] {new Integer[] {0, 0xffffff}, 1}, 16);
+				testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.255.255.4", new Object[] {0xa, 0xb, 0xcc, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffff", 16)}, 4}, 112);//[a, b, cc, 0-ffffffffffffffffff, 4]
+				testSubnetStringRange("1:2:3:4:*.3.4/112", "1:2:3:4::0.0.3.4", "1:2:3:4:ffff:ffff:255.255.3.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffL}, 3, 4}, 112);//[1, 2, 3, 4, 0-ffffffffffff, 3, 4]
+				testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.255.255.4", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffffL}, 4}, 112);//[1, 2, 3, 4, 0-ffffffffffffff, 4]
+			}
+			// prefix subnet
+			if(isAutoSubnets) {
+				testSubnetStringRange("1:2:3:4:*.0.0/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.255.255.255", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 112);//[1, 2, 3, 4, 0-ffffffffffffff, 4]
+			} else {
+				testSubnetStringRange("1:2:3:4:*.0.0/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.255.0.0", new Object[] {1, 2, 3, 4, new Long[] {0L, 0xffffffffffffL}, 0, 0}, 112);//[1, 2, 3, 4, 0-ffffffffffffff, 4]
+			}
+		}
+		// prefix subnet
+		if(isAutoSubnets) {
+			testSubnetStringRange("a:b:cc::0.0.0.0/64", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc::ffff:ffff:255.255.255.255", 
+					new Object[] {0xa, 0xb, 0xcc, new Long[]{0L, 0xffffffffL}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 64);  //[a, b, cc, 0-ffffffffffffff, 4]
+		} else {
+			testAddressStringRange("a:b:cc::0.0.0.0/64", new Object[] {0xa, 0xb, 0xcc, 0, 0, 0, 0, 0}, 64);  //[a, b, cc, 0-ffffffffffffff, 4]
+		}
+		if(isAllSubnets) {
+			testSubnetStringRange("1-2.3.4-5.6/16", "1.3.0.0", "2.3.255.255", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {0, 255}, new Integer[] {0, 255}}, 16);//[1-2, 3, 4-5, 6]
+			testSubnetStringRange("1-2.3.4-5.0/23", "1.3.4.0", "2.3.5.255", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, new Integer[] {0, 255}}, 23);//[1-2, 3, 4-5, 6]
+			testSubnetStringRange("1-2.3.4.0/23", "1.3.4.0", "2.3.5.255", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, new Integer[] {0, 255}}, 23);//[1-2, 3, 4-5, 6]
+		} else {
+			testSubnetStringRange("1-2.3.4-5.6/16", "1.3.4.6", "2.3.5.6", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 6}, 16);//[1-2, 3, 4-5, 6]
+			testSubnetStringRange("1-2.3.4-5.0/23", "1.3.4.0", "2.3.5.0", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 0}, 23);//[1-2, 3, 4-5, 6]
+		}
+		if(isAutoSubnets) {
+			testSubnetStringRange("1-2.3.4-5.0/24", "1.3.4.0", "2.3.5.255", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, new Integer[] {0, 0xff}}, 24);//[1-2, 3, 4-5, 6]
+		} else {
+			testSubnetStringRange("1-2.3.4-5.0/24", "1.3.4.0", "2.3.5.0", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 0}, 24);
+		}
+		if(isAllSubnets) {
+			testSubnetStringRange("1-2:3:4-5:6::/48", "1:3:4::", "2:3:5:ffff:ffff:ffff:ffff:ffff", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, new Integer[] {0, 0xffff}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 48);//[1-2, 3, 4-5, 6, 0]
+		} else {
+			testSubnetStringRange("1-2:3:4-5:6::/48", "1:3:4:6::", "2:3:5:6::", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 6, 0}, 48);//[1-2, 3, 4-5, 6, 0]
+		}
+		if(isAutoSubnets) {
+			testSubnetStringRange("1-2:3:4-5::/48", "1:3:4::", "2:3:5:ffff:ffff:ffff:ffff:ffff", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffffffff", 16)}}, 48);//[1-2, 3, 4-5, 6, 0]
+		} else {
+			testSubnetStringRange("1-2:3:4-5::/48", "1:3:4::", "2:3:5::", new Object[] {new Integer[] {1, 2}, 3, new Integer[] {4, 5}, 0}, 48);
+		}
+		
+		if(isAutoSubnets) {
+			testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.0/112", "1:2:3:4:5:6:1.2.0.0", "1:2:3:4:5:6:3.2.255.255", new Object[] {1, 2, 3, 4, 5, 6, new Integer[] {1, 3}, 2, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 112);//[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+		} else {
+			testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.0/112", "1:2:3:4:5:6:1.2.0.0", "1:2:3:4:5:6:3.2.0.0", new Object[] {1, 2, 3, 4, 5, 6, new Integer[] {1, 3}, 2, 0, 0}, 112);//[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+		}
+		if(isAllSubnets) {
+			testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5/112", "1:2:3:4:5:6:1.2.0.0", "1:2:3:4:5:6:3.2.255.255", new Object[] {1, 2, 3, 4, 5, 6, new Integer[] {1, 3}, 2, new Integer[] {0, 255}, new Integer[] {0, 255}}, 112);//[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+		} else {
+			testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5/112", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5", new Object[] {1, 2, 3, 4, 5, 6, new Integer[] {1, 3}, 2, 0, new Integer[] {4, 5}}, 112);//[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+		}
+				
+		testSubnetStringRange("1-3.1-3.1-3.1-3/175.80.81.83", 
+				"1.0.0.1", "3.0.1.3", 
+				new Object[] {new Integer[]{1, 3}, 0, new Integer[]{0, 1}, new Integer[]{1, 3}}, 
+				null, false);	
+		
+		testMaskedIncompatibleAddress("*.*/202.63.240.51", "0.0.0.0", "202.63.240.51");//10101010 00111111 11110000 00110011
+		testMaskedIncompatibleAddress("*.*/63.240.51.202", "0.0.0.0", "63.240.51.202");
+		testMaskedIncompatibleAddress("*.*/240.51.202.63", "0.0.0.0", "240.51.202.63");
+		testMaskedIncompatibleAddress("*.*/51.202.63.240", "0.0.0.0", "51.202.63.240");
+		
+		testMaskedIncompatibleAddress("*.*.*.*/202.63.240.51", "0.0.0.0", "202.63.240.51");
+		testMaskedIncompatibleAddress("*.*.*.*/63.240.51.202", "0.0.0.0", "63.240.51.202");
+		testMaskedIncompatibleAddress("*.*.*.*/240.51.202.63", "0.0.0.0", "240.51.202.63");
+		testMaskedIncompatibleAddress("*.*.*.*/51.202.63.240", "0.0.0.0", "51.202.63.240");
+		
+		testMaskedIncompatibleAddress("*:aaaa:bbbb:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"::cccc", "abcd:dcba:aaaa:bbbb:cccc::cccc");
+		testMaskedIncompatibleAddress("aaaa:bbbb:*:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"aa88:98ba::cccc", "aa88:98ba:aaaa:bbbb:cccc::cccc");
+		testMaskedIncompatibleAddress("aaaa:bbbb:*/abcd:dcba:aaaa:bbbb:cccc::dddd",
+				"aa88:98ba::", "aa88:98ba:aaaa:bbbb:cccc::dddd");
+		
+		testMaskedIncompatibleAddress("*.*/63.255.15.0", "0.0.0.0", "63.255.15.0");
+		
+		testSubnetStringRange("*.*/63.15.255.255",
+				"0.0.0.0", "63.15.255.255", 
+				new Object[] {new Integer[]{0, 63}, new Integer[]{0, 0xfffff}}, 
+				null, false);
+
 		super.runTest();
 	}
 	

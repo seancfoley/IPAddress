@@ -40,12 +40,13 @@ class AddressParseData implements Serializable {
 	
 	// these are for the flags
 	// a standard string is a string showing only the lower value of a segment.  A standard range string shows both values, low to high, with the standard separator.
-	public static final int KEY_WILDCARD = 0x100, KEY_SINGLE_WILDCARD = 0x200, KEY_STANDARD_STR = 0x400,
-			KEY_STANDARD_RANGE_STR = 0x800, KEY_RANGE_WILDCARD = 0x1000, KEY_INFERRED_LOWER_BOUNDARY = 0x2000, KEY_INFERRED_UPPER_BOUNDARY = 0x4000;
+	public static final int KEY_WILDCARD = 0x10000, KEY_SINGLE_WILDCARD = 0x20000, KEY_STANDARD_STR = 0x40000,
+			KEY_STANDARD_RANGE_STR = 0x80000, KEY_RANGE_WILDCARD = 0x100000, KEY_INFERRED_LOWER_BOUNDARY = 0x200000, KEY_INFERRED_UPPER_BOUNDARY = 0x400000, KEY_MERGED_MIXED = 0x800000;
 	private static final int KEY_RADIX = 0xff;
-	
-	
-	public static final int KEY_LOWER_RADIX_INDEX = 0, FLAGS_INDEX = KEY_LOWER_RADIX_INDEX; // the flags and the radix are stored in the same int, the radix takes the low byte, the remaining 24 bits are available for flags.
+	private static final int KEY_BIT_SIZE = 0xff00;
+	private static final int BIT_SIZE_SHIFT = 8;
+
+	public static final int KEY_LOWER_RADIX_INDEX = 0, KEY_BIT_SIZE_INDEX = KEY_LOWER_RADIX_INDEX, FLAGS_INDEX = KEY_LOWER_RADIX_INDEX; // the flags, radix and bit size are stored in the same int, the radix takes the low byte, the bit size the next byte, the remaining 16 bits are available for flags.
 	
 	public static final int KEY_UPPER_RADIX_INDEX = KEY_LOWER_RADIX_INDEX + UPPER_ADJUSTMENT;
 	
@@ -65,7 +66,7 @@ class AddressParseData implements Serializable {
 	
 	private int segmentCount;
 	
-	private boolean anyWildcard, rangeWildcard, singleWildcard;
+	private boolean anyWildcard;
 	private boolean isEmpty, isAll;
 	private boolean isSingleSegment;
 	
@@ -169,15 +170,7 @@ class AddressParseData implements Serializable {
 	boolean hasWildcard() {
 		return anyWildcard;
 	}
-	
-	void setHasRange() {
-		rangeWildcard = true;
-	}
-	
-	void setHasSingleWildcard() {
-		singleWildcard = true;
-	}
-	
+
 	void unsetFlag(int segmentIndex, int flagIndicator) {
 		int index = (segmentIndex << SEGMENT_INDEX_SHIFT) | FLAGS_INDEX;
 		int segmentData[] = getSegmentData();
@@ -200,6 +193,17 @@ class AddressParseData implements Serializable {
 			return IPv6Address.DEFAULT_TEXTUAL_RADIX; // 16 is the default, we only set the radix if not 16
 		}
 		return radix;
+	}
+	
+	int getBitLength(int segmentIndex) {
+		int segmentData[] = getSegmentData();
+		int bitLength = (segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | KEY_BIT_SIZE_INDEX] & KEY_BIT_SIZE) >>> BIT_SIZE_SHIFT;
+		return bitLength;
+	}
+	
+	void setBitLength(int segmentIndex, int length) {
+		int segmentData[] = getSegmentData();
+		segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | KEY_BIT_SIZE_INDEX] |= ((length << BIT_SIZE_SHIFT) & KEY_BIT_SIZE);
 	}
 
 	void setIndex(int segmentIndex,
@@ -415,6 +419,10 @@ class AddressParseData implements Serializable {
 		long lowerValue = 0xffffffffL & (long) (segmentData[index | 1]);
 		long value = (upperValue << 32) | lowerValue;
 		return value;
+	}
+	
+	boolean isMergedMixed(int index) {
+		return getFlag(index, KEY_MERGED_MIXED);
 	}
 	
 	boolean isWildcard(int index) {

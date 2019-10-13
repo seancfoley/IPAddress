@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork;
+import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
@@ -69,6 +70,11 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		@Override
 		public IPv4AddressNetwork getNetwork() {
 			return IPv4AddressNetwork.this;
+		}
+		
+		@Override
+		public long getMaxValuePerSegment() {
+			return IPv4Address.MAX_VALUE_PER_SEGMENT;
 		}
 
 		@Override
@@ -310,6 +316,13 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		@Override
 		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
 			return createAddress(createSectionInternal(segments));
+		}
+		
+		@Override
+		protected IPv4Address createAddressInternal(IPv4AddressSection section, CharSequence zone, HostIdentifierString from, IPv4Address lower, IPv4Address upper) {
+			IPv4Address result = createAddressInternal(section, zone, from);
+			result.cache(lower, upper);
+			return result;
 		}
 		
 		@Override

@@ -18,7 +18,6 @@
 
 package inet.ipaddr.format.standard;
 
-import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.IPAddressGenericDivision;
@@ -120,7 +119,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 		int hostLength = getTrailingBitCount(network);
 		long shifted;
 		if(network) {
-			shifted = (~getDivisionValue() & getMaxValue())  >>> hostLength;
+			shifted = (~getDivisionValue() & getMaxValue()) >>> hostLength;
 		} else {
 			shifted = getDivisionValue() >>> hostLength;
 		}
@@ -133,7 +132,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 	 * Otherwise, returns the number of consecutive trailing one bits.
 	 * <p>
 	 * This method applies only to the lower value of the range if this segment represents multiple values.
-	 
+	 *
 	 * @param network
 	 * @return
 	 */
@@ -237,48 +236,6 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 		}
 		return isSinglePrefixBlock;
 	}
-	
-	protected boolean isBitwiseOrCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
-		long value = getDivisionValue();
-		long upperValue = getUpperDivisionValue();
-		long maxValue = getMaxValue();
-		if(divisionPrefixLen != null) {
-			int divPrefLen = divisionPrefixLen;
-			int bitCount = getBitCount();
-			if(divPrefLen < 0 || divPrefLen > bitCount) {
-				throw new PrefixLenException(this, divisionPrefixLen);
-			}
-			if(isAutoSubnets) {
-				int shift = bitCount - divPrefLen;
-				maskValue >>>= shift;
-				value >>>= shift;
-				upperValue >>>= shift;
-				maxValue >>>= shift;
-			}
-		}
-		return isBitwiseOrCompatibleWithRange(value, upperValue, maskValue, maxValue);
-	}
-
-	protected boolean isMaskCompatibleWithRange(long maskValue, Integer divisionPrefixLen, boolean isAutoSubnets) {
-		long value = getDivisionValue();
-		long upperValue = getUpperDivisionValue();
-		long maxValue = getMaxValue();
-		if(divisionPrefixLen != null) {
-			int divPrefLen = divisionPrefixLen;
-			int bitCount = getBitCount();
-			if(divPrefLen < 0 || divPrefLen > bitCount) {
-				throw new PrefixLenException(this, divisionPrefixLen);
-			}
-			if(isAutoSubnets) {
-				int shift = bitCount - divPrefLen;
-				maskValue >>>= shift;
-				value >>>= shift;
-				upperValue >>>= shift;
-				maxValue >>>= shift;
-			}
-		}
-		return isMaskCompatibleWithRange(value, upperValue, maskValue, maxValue);
-	}
 
 	/**
 	 * Produces a normalized string to represent the segment.
@@ -295,9 +252,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 				if(result == null) {
 					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
 						result = getDefaultLowerString();
-					} else if(isFullRange()) {
-						result = IPAddress.SEGMENT_WILDCARD_STR;
-					} else {
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
 						long upperValue = getUpperDivisionValue();
 						if(isPrefixBlock()) {
 							upperValue &= getDivisionNetworkMask(getDivisionPrefixLength());
@@ -325,9 +280,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 				if(result == null) {
 					if(!isPrefixed() || !isMultiple()) {
 						result = getString();
-					} else if(isFullRange()) {
-						result = IPAddress.SEGMENT_WILDCARD_STR;
-					} else {
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
 						result = getDefaultRangeString();
 					}
 					cachedWildcardString = result;

@@ -171,18 +171,18 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	}
 
 	/**
-	 * Returns the count of values in the initial (higher) count of segments.
+	 * Returns the count of values in the initial (higher) count of divisions.
 	 * 
 	 * @return
 	 */
-	default BigInteger getBlockCount(int segmentCount) {
-		if(segmentCount < 0) {
+	default BigInteger getBlockCount(int divCount) {
+		if(divCount < 0) {
 			throw new IllegalArgumentException();
 		}
 		BigInteger result = BigInteger.ONE;
 		int divisionCount = getDivisionCount();
-		if(segmentCount < divisionCount) {
-			divisionCount = segmentCount;
+		if(divCount < divisionCount) {
+			divisionCount = divCount;
 		}
 		for(int i = 0; i < divisionCount; i++) {
 			AddressGenericDivision division = getDivision(i);
@@ -204,8 +204,8 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	}
 	
 	/**
-	 * If the series represents a range of values that are sequential.
-	 * 
+	 * Returns whether the series represents a range of values that are sequential.
+	 * <p>
 	 * Generally, this means that any division covering a range of values must be followed by divisions that are full range, covering all values.
 	 * 
 	 * @return

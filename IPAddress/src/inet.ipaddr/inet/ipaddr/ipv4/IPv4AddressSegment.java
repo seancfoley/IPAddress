@@ -97,6 +97,11 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 			throw new PrefixLenException(segmentPrefixLength);
 		}
 	}
+	
+	@Override
+	public long getMaxValue() {
+		return IPv4Address.MAX_VALUE_PER_SEGMENT;
+	}
 
 	@Override
 	public boolean isIPv4() {

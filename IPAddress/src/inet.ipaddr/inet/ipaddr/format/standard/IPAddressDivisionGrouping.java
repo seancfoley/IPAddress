@@ -170,6 +170,8 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	 * Returns the number of consecutive trailing one or zero bits.
 	 * If network is true, returns the number of consecutive trailing zero bits.
 	 * Otherwise, returns the number of consecutive trailing one bits.
+	 * <p>
+	 * This method applies only to the lower value of the range if this division represents multiple values.
 	 * 
 	 * @param network
 	 * @return
@@ -196,7 +198,9 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	 * Returns the number of consecutive leading one or zero bits.
 	 * If network is true, returns the number of consecutive leading one bits.
 	 * Otherwise, returns the number of consecutive leading zero bits.
-	 * 
+	* <p>
+	 * This method applies only to the lower value of the range if this division represents multiple values.
+	  * 
 	 * @param network
 	 * @return
 	 */
@@ -281,7 +285,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 			IPAddressDivision div = getDivision(i);
 			Integer segmentPrefixLength = div.getDivisionPrefixLength();
 			if(segmentPrefixLength != null) {
-				long mask = ~(~0 << (div.getBitCount() - segmentPrefixLength));
+				long mask = ~(~0L << (div.getBitCount() - segmentPrefixLength));
 				if((mask & div.getDivisionValue()) != 0) {
 					return false;
 				}

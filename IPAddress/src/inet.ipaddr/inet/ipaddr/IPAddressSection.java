@@ -53,6 +53,8 @@ import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.util.sql.MySQLTranslator;
 import inet.ipaddr.format.util.sql.SQLStringMatcher;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
+import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
+import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
 
@@ -243,8 +245,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		IPAddressSegment seg = sectionSegments[0];
 		return ParsedAddressGrouping.isPrefixSubnet(
-				(segmentIndex) -> sectionSegments[segmentIndex].getSegmentValue(),
-				(segmentIndex) -> sectionSegments[segmentIndex].getUpperSegmentValue(),
+				segmentIndex -> sectionSegments[segmentIndex].getSegmentValue(),
+				segmentIndex -> sectionSegments[segmentIndex].getUpperSegmentValue(),
 				segmentCount,
 				seg.getByteCount(),
 				seg.getBitCount(),
@@ -532,18 +534,35 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		int bitsPerSegment = original.getBitsPerSegment();
 		int count = original.getSegmentCount();
+		boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() && !singleOnly;
 		for(int i = 0; i < count; i++) {
 			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 			S seg = segProducer.apply(i);
+			//note that the mask can represent a range (for example a CIDR mask), 
+			//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
 			int maskValue = segmentMaskProducer.applyAsInt(i);
-			if(seg.isChangedByMask(maskValue, segmentPrefixLength)) {
-				if(verifyMask && !seg.isMaskCompatibleWithRange(maskValue, segmentPrefixLength)) {
+			
+			int value = seg.getSegmentValue(), upperValue = seg.getUpperSegmentValue();
+			if(verifyMask) {
+				if(isAllSubnets && segmentPrefixLength != null) {
+					int hostMask = seg.getSegmentHostMask(segmentPrefixLength);
+					maskValue |= hostMask;
+				}
+				Masker masker = IPAddressSegment.maskRange(value, upperValue, maskValue, seg.getMaxValue());
+				if(!masker.isSequential()) {
 					throw new IncompatibleAddressException(seg, "ipaddress.error.maskMismatch");
 				}
+				value = (int) masker.getMaskedLower(value, maskValue);
+				upperValue = (int) masker.getMaskedUpper(upperValue, maskValue);
+			} else {
+				value &= maskValue;
+				upperValue &= maskValue;
+			}
+			
+			if(seg.isChangedBy(value, upperValue, segmentPrefixLength)) {
 				S newSegments[] = creator.createSegmentArray(original.getSegmentCount());
 				original.getSegments(0, i, newSegments, 0);
-				newSegments[i] = creator.createSegment(seg.getSegmentValue() & maskValue, seg.getUpperSegmentValue() & maskValue, segmentPrefixLength);
-				boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() && !singleOnly;
+				newSegments[i] = creator.createSegment(value, upperValue, segmentPrefixLength);
 				if(isAllSubnets && segmentPrefixLength != null) {
 					if(++i < count) {
 						S zeroSeg = creator.createSegment(0, 0);
@@ -553,11 +572,26 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 					seg  = segProducer.apply(i);
 					maskValue = segmentMaskProducer.applyAsInt(i);
-					if(seg.isChangedByMask(maskValue, segmentPrefixLength)) {
-						if(verifyMask && !seg.isMaskCompatibleWithRange(maskValue, segmentPrefixLength)) {
+					
+					value = seg.getSegmentValue();
+					upperValue = seg.getUpperSegmentValue();
+					if(verifyMask) {
+						if(isAllSubnets && segmentPrefixLength != null) {
+							int hostMask = seg.getSegmentHostMask(segmentPrefixLength);
+							maskValue |= hostMask;
+						}
+						Masker masker = IPAddressSegment.maskRange(value, upperValue, maskValue, seg.getMaxValue());
+						if(!masker.isSequential()) {
 							throw new IncompatibleAddressException(seg, "ipaddress.error.maskMismatch");
 						}
-						newSegments[i] = creator.createSegment(seg.getSegmentValue() & maskValue, seg.getUpperSegmentValue() & maskValue, segmentPrefixLength);
+						value = (int) masker.getMaskedLower(value, maskValue);
+						upperValue = (int) masker.getMaskedUpper(upperValue, maskValue);
+					} else {
+						value &= maskValue;
+						upperValue &= maskValue;
+					}
+					if(seg.isChangedBy(value, upperValue, segmentPrefixLength)) {
+						newSegments[i] = creator.createSegment(value, upperValue, segmentPrefixLength);
 					} else {
 						newSegments[i] = seg;
 					}
@@ -587,18 +621,31 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		int bitsPerSegment = original.getBitsPerSegment();
 		int count = original.getSegmentCount();
+		boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 		for(int i = 0; i < count; i++) {
 			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 			S seg = segProducer.apply(i);
 			int maskValue = segmentMaskProducer.applyAsInt(i);
-			if(seg.isChangedByOr(maskValue, segmentPrefixLength)) {
-				if(verifyMask && !seg.isBitwiseOrCompatibleWithRange(maskValue, segmentPrefixLength)) {
+			int value = seg.getSegmentValue(), upperValue = seg.getUpperSegmentValue();
+			if(verifyMask) {
+				if(isAllSubnets && segmentPrefixLength != null) {
+					int networkMask = seg.getSegmentNetworkMask(segmentPrefixLength);
+					maskValue &= networkMask;
+				}
+				BitwiseOrer masker = IPAddressSegment.bitwiseOrRange(value, upperValue, maskValue, seg.getMaxValue());
+				if(!masker.isSequential()) {
 					throw new IncompatibleAddressException(seg, "ipaddress.error.maskMismatch");
 				}
+				value = (int) masker.getOredLower(value, maskValue);
+				upperValue = (int) masker.getOredUpper(upperValue, maskValue);
+			} else {
+				value |= maskValue;
+				upperValue |= maskValue;
+			}
+			if(seg.isChangedBy(value, upperValue, segmentPrefixLength)) {
 				S newSegments[] = creator.createSegmentArray(original.getSegmentCount());
 				original.getSegments(0, i, newSegments, 0);
-				newSegments[i] = creator.createSegment(seg.getSegmentValue() | maskValue, seg.getUpperSegmentValue() | maskValue, segmentPrefixLength);
-				boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+				newSegments[i] = creator.createSegment(value, upperValue, segmentPrefixLength);
 				if(isAllSubnets && segmentPrefixLength != null) {
 					if(++i < count) {
 						S zeroSeg = creator.createSegment(0, 0);
@@ -608,11 +655,25 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 					seg  = segProducer.apply(i);
 					maskValue = segmentMaskProducer.applyAsInt(i);
-					if(seg.isChangedByOr(maskValue, segmentPrefixLength)) {
-						if(verifyMask && !seg.isBitwiseOrCompatibleWithRange(maskValue, segmentPrefixLength)) {
+					value = seg.getSegmentValue();
+					upperValue = seg.getUpperSegmentValue();
+					if(verifyMask) {
+						if(isAllSubnets && segmentPrefixLength != null) {
+							int networkMask = seg.getSegmentNetworkMask(segmentPrefixLength);
+							maskValue &= networkMask;
+						}
+						BitwiseOrer masker = IPAddressSegment.bitwiseOrRange(value, upperValue, maskValue, seg.getMaxValue());
+						if(!masker.isSequential()) {
 							throw new IncompatibleAddressException(seg, "ipaddress.error.maskMismatch");
 						}
-						newSegments[i] = creator.createSegment(seg.getSegmentValue() | maskValue, seg.getUpperSegmentValue() | maskValue, segmentPrefixLength);
+						value = (int) masker.getOredLower(value, maskValue);
+						upperValue = (int) masker.getOredUpper(upperValue, maskValue);
+					} else {
+						value |= maskValue;
+						upperValue |= maskValue;
+					}
+					if(seg.isChangedBy(value, upperValue, segmentPrefixLength)) {
+						newSegments[i] = creator.createSegment(value, upperValue, segmentPrefixLength);
 					} else {
 						newSegments[i] = seg;
 					}
@@ -666,23 +727,22 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	@Override
 	public int getSegmentCount() {
 		return getDivisionCount();
 	}
-	
+
 	@Override
 	public IPAddressSegment getSegment(int index) {
 		return getSegmentsInternal()[index];
 	}
-	
+
 	@Override
 	public IPAddressSegment getDivision(int index) {
 		return getSegmentsInternal()[index];
 	}
 
-	
 	@Override
 	public boolean containsPrefixBlock(int prefixLength) {
 		checkSubnet(this, prefixLength);
@@ -714,7 +774,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return true;
 	}
-	
+
 	static boolean containsPrefixBlock(int prefixLength, IPAddressSegmentSeries lower, IPAddressSegmentSeries upper) {
 		checkSubnet(lower, prefixLength);
 		int divCount = lower.getDivisionCount();

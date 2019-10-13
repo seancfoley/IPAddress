@@ -19,10 +19,10 @@
 package inet.ipaddr.mac;
 
 import inet.ipaddr.Address.SegmentValueProvider;
-import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.standard.AddressCreator;
 
 public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
@@ -56,6 +56,11 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 			return owner;
 		}
 
+		@Override
+		public long getMaxValuePerSegment() {
+			return MACAddress.MAX_VALUE_PER_SEGMENT;
+		}
+		
 		@Override
 		public MACAddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
@@ -289,6 +294,13 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		protected MACAddress createAddressInternal(MACAddressSection section, CharSequence zone, HostIdentifierString from) {
 			MACAddress result = createAddress(section);
 			result.cache(from);
+			return result;
+		}
+		
+		@Override
+		protected MACAddress createAddressInternal(MACAddressSection section, CharSequence zone, HostIdentifierString from, MACAddress lower, MACAddress upper) {
+			MACAddress result = createAddressInternal(section, zone, from);
+			//result.cache(lower, upper); this createAddressInternal method not called for MAC, so we do implement the caching here
 			return result;
 		}
 		

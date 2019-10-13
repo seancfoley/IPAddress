@@ -74,6 +74,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public static final int BIT_COUNT = 32;
 	public static final int DEFAULT_TEXTUAL_RADIX = 10;
 	public static final int MAX_VALUE_PER_SEGMENT = 0xff;
+	public static final int MAX_VALUE = 0xffffffff;
 	public static final String REVERSE_DNS_SUFFIX = ".in-addr.arpa";
 	
 	transient AddressCache sectionCache;
@@ -391,6 +392,10 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	public IPv4Address toNetworkAddress() {
 		return toZeroHost();
+	}
+	
+	void cache(IPv4Address lower, IPv4Address upper) {
+		getSection().cache(this, lower, upper);
 	}
 	
 	@Override

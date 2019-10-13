@@ -52,7 +52,7 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 		}
 		networkPrefixLength = getDivisionPrefixLength();
 		if(networkPrefixLength != null && networkPrefixLength < bitCount && network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			long mask = ~0 << (bitCount - networkPrefixLength);
+			long mask = ~0L << (bitCount - networkPrefixLength);
 			this.value = value & mask;
 			this.upperValue = upperValue | ~mask;
 		} else {

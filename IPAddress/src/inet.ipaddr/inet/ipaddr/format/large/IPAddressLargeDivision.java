@@ -522,7 +522,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 				if(result == null) {
 					if(isSinglePrefixBlock() || !isMultiple()) { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
 						result = getDefaultLowerString();
-					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {
+					} else if(!isFullRange() || (result = getDefaultSegmentWildcardString()) == null) {// at this time the latter always true
 						if(isPrefixBlock()) {
 							result = getDefaultMaskedRangeString();
 						} else {
@@ -593,12 +593,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 				getDefaultRangeSeparatorString() + 
 				toDefaultString(upperValueMasked, defaultRadix, false, 0, maxDigitCount);
 	}
-	
-	@Override
-	protected String getDefaultSegmentWildcardString() {
-		return isExtendedDigits() ? null : Address.SEGMENT_WILDCARD_STR;
-	}
-	
+
 	@Override
 	protected String getDefaultRangeSeparatorString() {
 		return isExtendedDigits()  ? EXTENDED_DIGITS_RANGE_SEPARATOR_STR : Address.RANGE_SEPARATOR_STR;
