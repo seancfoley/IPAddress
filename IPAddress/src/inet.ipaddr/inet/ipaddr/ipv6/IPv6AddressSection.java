@@ -2370,7 +2370,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	public static String toNormalizedString(IPStringOptions options, CharSequence zone, IPAddressStringDivisionSeries part) {
-		AddressStringParams<IPAddressStringDivisionSeries> params = toParams(options);
+		AddressStringParams<IPAddressStringDivisionSeries> params = toIPParams(options);
 		String result = params.toString(part, zone);
 		return result;
 	}

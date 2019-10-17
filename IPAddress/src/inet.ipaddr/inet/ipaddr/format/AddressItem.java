@@ -111,27 +111,27 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	
 	/**
 	 * 
-	 * @return the bytes of the smallest address item represented by this address item
+	 * @return the bytes of the lowest address item represented by this address item
 	 */
 	byte[] getBytes();
 	
 	/**
-	 * Copies the bytes of the smallest address item represented by this address item into the supplied array,
+	 * Copies the bytes of the lowest address item represented by this address item into the supplied array,
 	 * and returns that array.
 	 * 
 	 * If the supplied array is null or of insufficient size, a new array is created and returned.
 	 * 
-	 * @return the bytes of the smallest address represented by this address item.
+	 * @return the bytes of the lowest address represented by this address item.
 	 */
 	byte[] getBytes(byte bytes[]);
 	
 	/**
-	 * Copies the bytes of the smallest address item represented by this address item into the supplied array starting at the given index,
+	 * Copies the bytes of the lowest address item represented by this address item into the supplied array starting at the given index,
 	 * and returns that array.
 	 * 
 	 * If the supplied array is null or of insufficient size, a new array is created and returned, with the rest of the array contents the same as the original.
 	 * 
-	 * @return the bytes of the smallest address represented by this address item.
+	 * @return the bytes of the lowest address represented by this address item.
 	 */
 	byte[] getBytes(byte bytes[], int index);
 	

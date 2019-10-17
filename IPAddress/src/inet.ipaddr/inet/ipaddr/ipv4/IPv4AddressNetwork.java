@@ -76,6 +76,11 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		public long getMaxValuePerSegment() {
 			return IPv4Address.MAX_VALUE_PER_SEGMENT;
 		}
+		
+		@Override
+		protected int getAddressSegmentCount() {
+			return IPv4Address.SEGMENT_COUNT;
+		}
 
 		@Override
 		public IPv4AddressSegment[] createSegmentArray(int length) {

@@ -3028,6 +3028,10 @@ public class IPAddressTest extends TestBase {
 		IPAddressString addrStr = createAddress(address);
 		try {
 			IPAddressDivisionSeries s = addrStr.toDivisionGrouping();
+//			System.out.println(address);
+//			System.out.println(addrStr.getAddress());
+//			System.out.println(s.toString());
+//			System.out.println();
 			if(isMaskedIncompatibleAddress) {
 				addFailure(new Failure("masked incompatible address " + addrStr + " did not throw when getting grouping " + s, addrStr));
 			}

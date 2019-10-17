@@ -2403,29 +2403,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public static String toNormalizedString(IPStringOptions opts, IPAddressStringDivisionSeries section) {
 		return toIPParams(opts).toString(section);
 	}
-	
-	protected static AddressStringParams<IPAddressStringDivisionSeries> toParams(IPStringOptions opts) {
-		//since the params here are not dependent on the section, we could cache the params in the options 
-		//this is not true on the IPv6 side where compression settings change based on the section
-		
-		@SuppressWarnings("unchecked")
-		AddressStringParams<IPAddressStringDivisionSeries> result = (AddressStringParams<IPAddressStringDivisionSeries>) getCachedParams(opts);
-		if(result == null) {
-			result = new IPAddressStringParams<IPAddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
-			result.expandSegments(opts.expandSegments);
-			result.setWildcards(opts.wildcards);
-			result.setSegmentStrPrefix(opts.segmentStrPrefix);
-			result.setAddressLabel(opts.addrLabel);
-			result.setReverse(opts.reverse);
-			result.setSplitDigits(opts.splitDigits);
-			result.setRadix(opts.base);
-			result.setUppercase(opts.uppercase);
-			result.setSeparator(opts.separator);
-			result.setZoneSeparator(opts.zoneSeparator);
-			setCachedParams(opts, result);
-		}
-		return result;
-	}
 
 	protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
 		//since the params here are not dependent on the section, we could cache the params in the options 

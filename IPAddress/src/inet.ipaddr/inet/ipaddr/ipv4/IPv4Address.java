@@ -386,10 +386,22 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSection().getLowestOrHighest(this, lowest, excludeZeroHost);
 	}
 	
+	/**
+	 * The broadcast address has the same prefix but a host that is all 1 bits.
+	 * If this address or subnet is not prefixed, this returns the address of all 1 bits, the "max" address.
+	 * 
+	 * @return
+	 */
 	public IPv4Address toBroadcastAddress() {
 		return toMaxHost();
 	}
 	
+	/**
+	 * The network address has the same prefix but a zero host.
+	 * If this address or subnet is not prefixed, this returns the zero "any" address.
+	 * 
+	 * @return
+	 */
 	public IPv4Address toNetworkAddress() {
 		return toZeroHost();
 	}

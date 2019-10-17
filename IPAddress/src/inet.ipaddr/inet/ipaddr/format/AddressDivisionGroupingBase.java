@@ -24,8 +24,21 @@ import java.util.Arrays;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.HostIdentifierException;
+import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressSection.IPStringOptions;
+import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
+import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.string.AddressStringDivision;
+import inet.ipaddr.format.string.AddressStringDivisionSeries;
+import inet.ipaddr.format.string.IPAddressStringDivision;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressDivisionWriter;
+import inet.ipaddr.format.util.AddressSegmentParams;
+import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
@@ -721,5 +734,487 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 			prevBitCount = totalBitCount;
 		}
 		return true;
+	}
+	
+	protected static class AddressStringParams<T extends AddressStringDivisionSeries> implements AddressDivisionWriter, AddressSegmentParams, Cloneable {
+		public static final Wildcards DEFAULT_WILDCARDS = new Wildcards();
+		
+		private Wildcards wildcards = DEFAULT_WILDCARDS;
+		
+		protected boolean expandSegments; //whether to expand 1 to 001 for IPv4 or 0001 for IPv6
+		
+		private String segmentStrPrefix = ""; //eg for inet_aton style there is 0x for hex, 0 for octal
+
+		private int radix;
+		
+		//the segment separator and in the case of split digits, the digit separator
+		protected Character separator;
+				
+		private boolean uppercase; //whether to print A or a
+		
+		//print the segments in reverse, and in the case of splitDigits, print the digits in reverse as well
+		private boolean reverse;
+				
+		//in each segment, split the digits with the separator, so that 123.456.1.1 becomes 1.2.3.4.5.6.1.1
+		private boolean splitDigits;
+		
+		private String addressLabel = "";
+		
+		private char zoneSeparator;
+		
+		public AddressStringParams(int radix, Character separator, boolean uppercase) {
+			this(radix, separator, uppercase, (char) 0);
+		}
+		
+		public AddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
+			this.radix = radix;
+			this.separator = separator;
+			this.uppercase = uppercase;
+			this.zoneSeparator  = zoneSeparator;
+		}
+
+		public void setZoneSeparator(char zoneSeparator) {
+			this.zoneSeparator = zoneSeparator;
+		}
+		
+		public String getAddressLabel() {
+			return addressLabel;
+		}
+		
+		public void setAddressLabel(String str) {
+			this.addressLabel = str;
+		}
+		
+		public Character getSeparator() {
+			return separator;
+		}
+		
+		public void setSeparator(Character separator) {
+			this.separator = separator;
+		}
+		
+		@Override
+		public Wildcards getWildcards() {
+			return wildcards;
+		}
+		
+		public void setWildcards(Wildcards wc) {
+			wildcards = wc;
+		}
+		
+		@Override
+		public boolean preferWildcards() {
+			return true;
+		}
+		
+		//returns -1 to expand
+		@Override
+		public int getLeadingZeros(int segmentIndex) {
+			if(expandSegments) {
+				return -1;
+			}
+			return 0;
+		}
+		
+		@Override
+		public String getSegmentStrPrefix() {
+			return segmentStrPrefix;
+		}
+		
+		public void setSegmentStrPrefix(String segmentStrPrefix) {
+			if(segmentStrPrefix == null) {
+				throw new NullPointerException();
+			}
+			this.segmentStrPrefix = segmentStrPrefix;
+		}
+		
+		@Override
+		public int getRadix() {
+			return radix;
+		}
+		
+		public void setRadix(int radix) {
+			this.radix = radix;
+		}
+		
+		public void setUppercase(boolean uppercase) {
+			this.uppercase = uppercase;
+		}
+		
+		@Override
+		public boolean isUppercase() {
+			return uppercase;
+		}
+		
+		public void setSplitDigits(boolean split) {
+			this.splitDigits = split;
+		}
+		
+		@Override
+		public boolean isSplitDigits() {
+			return splitDigits;
+		}
+		
+		@Override
+		public Character getSplitDigitSeparator() {
+			return separator;
+		}
+		
+		@Override
+		public boolean isReverseSplitDigits() {
+			return reverse;
+		}
+		
+		public void setReverse(boolean rev) {
+			this.reverse = rev;
+		}
+		
+		public boolean isReverse() {
+			return reverse;
+		}
+		
+		public void expandSegments(boolean expand) {
+			expandSegments = expand;
+		}
+		
+		public StringBuilder appendLabel(StringBuilder builder) {
+			String str = getAddressLabel();
+			if(str != null && str.length() > 0) {
+				builder.append(str);
+			}
+			return builder;
+		}
+		
+		public int getAddressLabelLength() {
+			String str = getAddressLabel();
+			if(str != null) {
+				return str.length();
+			}
+			return 0;
+		}
+		
+		public int getSegmentsStringLength(T part) {
+			int count = 0;
+			if(part.getDivisionCount() != 0) {
+				int divCount = part.getDivisionCount();
+				for(int i = 0; i < divCount; i++) {
+					count += appendSegment(i, null, part);
+				}
+				Character separator = getSeparator();
+				if(separator != null) {
+					count += divCount - 1;
+				}
+			}
+			return count;
+		}
+
+		public StringBuilder appendSegments(StringBuilder builder, T part) {
+			int count = part.getDivisionCount();
+			if(count != 0) {
+				boolean reverse = isReverse();
+				int i = 0;
+				Character separator = getSeparator();
+				while(true) {
+					int segIndex = reverse ? (count - i - 1) : i;
+					appendSegment(segIndex, builder, part);
+					if(++i == count) {
+						break;
+					}
+					if(separator != null) {
+						builder.append(separator);
+					}
+				}
+			}
+			return builder;
+		}
+		
+		public int appendSingleDivision(AddressStringDivision seg, StringBuilder builder) {
+			if(builder == null) {
+				return getAddressLabelLength() + seg.getStandardString(0, this, null);
+			}
+			appendLabel(builder);
+			seg.getStandardString(0, this, builder);
+			return 0;
+		}
+		
+		protected int appendSegment(int segmentIndex, StringBuilder builder, T part) {
+			AddressStringDivision seg = part.getDivision(segmentIndex);
+			return seg.getStandardString(segmentIndex, this, builder);
+		}
+		
+		public int getZoneLength(CharSequence zone) {
+			if(zone != null && zone.length() > 0) {
+				return zone.length() + 1; /* zone separator is one char */
+			}
+			return 0;
+		}
+		
+		public int getStringLength(T addr, CharSequence zone) {
+			int result = getStringLength(addr);
+			if(zone != null) {
+				result += getZoneLength(zone);
+			}
+			return result;
+		}
+		
+		public int getStringLength(T addr) {
+			return getAddressLabelLength() + getSegmentsStringLength(addr);
+		}
+		
+		public StringBuilder appendZone(StringBuilder builder, CharSequence zone) {
+			if(zone != null && zone.length() > 0) {
+				builder.append(zoneSeparator).append(zone);
+			}
+			return builder;
+		}
+
+		public StringBuilder append(StringBuilder builder, T addr, CharSequence zone) {
+			return appendZone(appendSegments(appendLabel(builder), addr), zone);
+		}
+		
+		public StringBuilder append(StringBuilder builder, T addr) {
+			return append(builder, addr, null);
+		}
+		
+		@Override
+		public int getDivisionStringLength(AddressStringDivision seg) {
+			return appendSingleDivision(seg, null);
+		}
+		
+		@Override
+		public StringBuilder appendDivision(StringBuilder builder, AddressStringDivision seg) {
+			appendSingleDivision(seg, builder);
+			return builder;
+		}
+
+		public String toString(T addr, CharSequence zone) {	
+			int length = getStringLength(addr, zone);
+			StringBuilder builder = new StringBuilder(length);
+			append(builder, addr, zone);
+			checkLengths(length, builder);
+			return builder.toString();
+		}
+		
+		public String toString(T addr) {	
+			return toString(addr, null);
+		}
+		
+		public static void checkLengths(int length, StringBuilder builder) {
+			//Note: re-enable this when doing development
+//				boolean calcMatch = length == builder.length();
+//				boolean capMatch = length == builder.capacity();
+//				if(!calcMatch || !capMatch) {
+//					//System.out.println(builder);//000a:0000:000c:000d:000e:000f:0001-1:0000/112 instead of 000a:0000:000c:000d:000e:000f:0001:0000/112
+//					throw new IllegalStateException("length is " + builder.length() + ", capacity is " + builder.capacity() + ", expected length is " + length);
+//				}
+		}
+
+		public static AddressStringParams<AddressStringDivisionSeries> toParams(StringOptions opts) {
+			//since the params here are not dependent on the section, we could cache the params in the options 
+			//this is not true on the IPv6 side where compression settings change based on the section
+			@SuppressWarnings("unchecked")
+			AddressStringParams<AddressStringDivisionSeries> result = (AddressStringParams<AddressStringDivisionSeries>) getCachedParams(opts);
+			if(result == null) {
+				result = new AddressStringParams<AddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
+				result.expandSegments(opts.expandSegments);
+				result.setWildcards(opts.wildcards);
+				result.setSegmentStrPrefix(opts.segmentStrPrefix);
+				result.setAddressLabel(opts.addrLabel);
+				result.setReverse(opts.reverse);
+				result.setSplitDigits(opts.splitDigits);
+				setCachedParams(opts, result);
+			}
+			return result;
+		}
+		
+		@Override
+		public AddressStringParams<T> clone() {
+			try {
+				@SuppressWarnings("unchecked")
+				AddressStringParams<T> parms = (AddressStringParams<T>) super.clone();
+				return parms;
+			} catch(CloneNotSupportedException e) {
+				 return null;
+			}
+		}
+	}
+	
+	/**
+	 * Each StringParams has settings to write exactly one type of IP address part string.
+	 * 
+	 * @author sfoley
+	 */
+	protected static class IPAddressStringParams<T extends IPAddressStringDivisionSeries> extends AddressStringParams<T> implements IPAddressStringWriter<T> {
+		
+		public static final WildcardOption DEFAULT_WILDCARD_OPTION = WildcardOption.NETWORK_ONLY;
+		
+		protected static final int EXTRA_SPACE = 16;
+		 
+		private WildcardOption wildcardOption = DEFAULT_WILDCARD_OPTION;
+		private int expandSegment[]; //the same as expandSegments but for each segment
+		private String addressSuffix = "";
+		
+		public IPAddressStringParams(int radix, Character separator, boolean uppercase) {
+			this(radix, separator, uppercase, (char) 0);
+		}
+		
+		public IPAddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
+			super(radix, separator, uppercase, zoneSeparator);
+		}
+		
+		public String getAddressSuffix() {
+			return addressSuffix;
+		}
+		
+		public void setAddressSuffix(String suffix) {
+			this.addressSuffix = suffix;
+		}
+		
+		@Override
+		public boolean preferWildcards() {
+			return wildcardOption == WildcardOption.ALL;
+		}
+		
+		public void setWildcardOption(WildcardOption option) {
+			wildcardOption = option;
+		}
+		
+		public int getExpandedSegmentLength(int segmentIndex) {
+			if(expandSegment == null || expandSegment.length <= segmentIndex) {
+				return 0;
+			}
+			return expandSegment[segmentIndex];
+		}
+		
+		public void expandSegment(int index, int expansionLength, int segmentCount) {
+			if(expandSegment == null) {
+				expandSegment = new int[segmentCount];
+			}
+			expandSegment[index] = expansionLength;
+		}
+
+		@Override
+		public char getTrailingSegmentSeparator() {
+			return separator;
+		}
+		
+		public StringBuilder appendSuffix(StringBuilder builder) {
+			String suffix = getAddressSuffix();
+			if(suffix != null) {
+				builder.append(suffix);
+			}
+			return builder;
+		}
+		
+		public int getAddressSuffixLength() {
+			String suffix = getAddressSuffix();
+			if(suffix != null) {
+				return suffix.length();
+			}
+			return 0;
+		}
+		
+		//returns -1 for MAX, or 0, 1, 2, 3 to indicate the string prefix length
+		@Override
+		public int getLeadingZeros(int segmentIndex) {
+			if(expandSegments) {
+				return -1;
+			} else if(expandSegment != null && expandSegment.length > segmentIndex) {
+				return expandSegment[segmentIndex];
+			}
+			return 0;
+		}
+		
+		@Override
+		public IPAddressStringParams<T> clone() {
+			IPAddressStringParams<T> parms = (IPAddressStringParams<T>) super.clone();
+			if(expandSegment != null) {
+				parms.expandSegment = expandSegment.clone();
+			}
+			return parms;
+			
+		}
+
+		@Override
+		public int getTrailingSeparatorCount(T addr) {
+			int count = addr.getDivisionCount();
+			if(count > 0) {
+				return count - 1;
+			}
+			return 0;
+		}
+		
+		public static int getPrefixIndicatorStringLength(IPAddressStringDivisionSeries addr) {
+			if(addr.isPrefixed()) {
+				return AddressDivisionBase.toUnsignedStringLengthFast(addr.getPrefixLength(), 10) + 1;
+			}
+			return 0;
+		}
+		
+		@Override
+		public int getStringLength(T addr) {
+			int count = getSegmentsStringLength(addr);
+			if(!isReverse() && !preferWildcards()) {
+				count += getPrefixIndicatorStringLength(addr);
+			}
+			return count + getAddressSuffixLength() + getAddressLabelLength();
+		}
+		
+		public void appendPrefixIndicator(StringBuilder builder, IPAddressStringDivisionSeries addr) {
+			if(addr.isPrefixed()) {
+				builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(addr.getPrefixLength());
+			}
+		}
+		
+		@Override
+		public StringBuilder append(StringBuilder builder, T addr, CharSequence zone) {
+			/* 
+			 * Our order is label, then segments, then zone, then suffix, then prefix length.  
+			 * This is documented in more detail in IPv6AddressSection for the IPv6-only case.
+			 */
+			appendSuffix(appendZone(appendSegments(appendLabel(builder), addr), zone));
+			if(!isReverse() && !preferWildcards()) {
+				appendPrefixIndicator(builder, addr);
+			}
+			return builder;
+		}
+		
+		@Override
+		protected int appendSegment(int segmentIndex, StringBuilder builder, T part) {
+			IPAddressStringDivision seg = part.getDivision(segmentIndex);
+			PrefixConfiguration config = part.getNetwork().getPrefixConfiguration();
+			//consider all the cases in which we need not account for prefix length
+			Integer prefix; 
+			if(config.prefixedSubnetsAreExplicit() || preferWildcards() 
+					|| (prefix = seg.getDivisionPrefixLength()) == null  || prefix >= seg.getBitCount()
+					|| (config.zeroHostsAreSubnets() && !part.isPrefixBlock())
+					|| isSplitDigits()) {
+				return seg.getStandardString(segmentIndex, this, builder);
+			}
+			//prefix length will have an impact on the string - either we need not print the range at all
+			//because it is equivalent to the prefix length, or we need to adjust the upper value of the 
+			//range so that the host is zero when printing the string
+			if(seg.isSinglePrefixBlock()) {
+				return seg.getLowerStandardString(segmentIndex, this, builder);
+			}
+			return seg.getPrefixAdjustedRangeString(segmentIndex, this, builder);
+		}
+	}
+	
+	protected static class StringOptionsBase {
+		//use this field if the options to params conversion is not dependent on the address part so it can be reused
+		AddressDivisionWriter cachedParams; 	
+	}
+	
+	protected static AddressDivisionWriter getCachedParams(StringOptionsBase opts) {
+		return opts.cachedParams;
+	}
+	
+	protected static void setCachedParams(StringOptionsBase opts, AddressDivisionWriter cachedParams) {
+		opts.cachedParams = cachedParams;
+	}
+	
+	protected static AddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
+		return AddressDivisionBase.toParams(opts);
 	}
 }

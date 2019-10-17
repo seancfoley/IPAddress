@@ -21,19 +21,13 @@ package inet.ipaddr.format.standard;
 import java.util.Arrays;
 
 import inet.ipaddr.AddressNetwork;
-import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressValueException;
-import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork;
-import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.InconsistentPrefixException;
 import inet.ipaddr.format.AddressDivisionGroupingBase;
 import inet.ipaddr.format.AddressDivisionSeries;
 import inet.ipaddr.format.IPAddressDivisionSeries;
-import inet.ipaddr.format.string.IPAddressStringDivision;
-import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
-import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.ipv6.IPv6Address;
 
 /**
@@ -534,168 +528,6 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 				}
 			}
 			return next;
-		}
-	}
-	
-	/**
-	 * Each StringParams has settings to write exactly one type of IP address part string.
-	 * 
-	 * @author sfoley
-	 */
-	protected static class IPAddressStringParams<T extends IPAddressStringDivisionSeries> extends AddressStringParams<T> implements IPAddressStringWriter<T> {
-		
-		public static final WildcardOption DEFAULT_WILDCARD_OPTION = WildcardOption.NETWORK_ONLY;
-		
-		protected static final int EXTRA_SPACE = 16;
-		 
-		private WildcardOption wildcardOption = DEFAULT_WILDCARD_OPTION;
-		private int expandSegment[]; //the same as expandSegments but for each segment
-		private String addressSuffix = "";
-		
-		public IPAddressStringParams(int radix, Character separator, boolean uppercase) {
-			this(radix, separator, uppercase, (char) 0);
-		}
-		
-		public IPAddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
-			super(radix, separator, uppercase, zoneSeparator);
-		}
-		
-		public String getAddressSuffix() {
-			return addressSuffix;
-		}
-		
-		public void setAddressSuffix(String suffix) {
-			this.addressSuffix = suffix;
-		}
-		
-		@Override
-		public boolean preferWildcards() {
-			return wildcardOption == WildcardOption.ALL;
-		}
-		
-		public void setWildcardOption(WildcardOption option) {
-			wildcardOption = option;
-		}
-		
-		public int getExpandedSegmentLength(int segmentIndex) {
-			if(expandSegment == null || expandSegment.length <= segmentIndex) {
-				return 0;
-			}
-			return expandSegment[segmentIndex];
-		}
-		
-		public void expandSegment(int index, int expansionLength, int segmentCount) {
-			if(expandSegment == null) {
-				expandSegment = new int[segmentCount];
-			}
-			expandSegment[index] = expansionLength;
-		}
-
-		@Override
-		public char getTrailingSegmentSeparator() {
-			return separator;
-		}
-		
-		public StringBuilder appendSuffix(StringBuilder builder) {
-			String suffix = getAddressSuffix();
-			if(suffix != null) {
-				builder.append(suffix);
-			}
-			return builder;
-		}
-		
-		public int getAddressSuffixLength() {
-			String suffix = getAddressSuffix();
-			if(suffix != null) {
-				return suffix.length();
-			}
-			return 0;
-		}
-		
-		//returns -1 for MAX, or 0, 1, 2, 3 to indicate the string prefix length
-		@Override
-		public int getLeadingZeros(int segmentIndex) {
-			if(expandSegments) {
-				return -1;
-			} else if(expandSegment != null && expandSegment.length > segmentIndex) {
-				return expandSegment[segmentIndex];
-			}
-			return 0;
-		}
-		
-		@Override
-		public IPAddressStringParams<T> clone() {
-			IPAddressStringParams<T> parms = (IPAddressStringParams<T>) super.clone();
-			if(expandSegment != null) {
-				parms.expandSegment = expandSegment.clone();
-			}
-			return parms;
-			
-		}
-
-		@Override
-		public int getTrailingSeparatorCount(T addr) {
-			int count = addr.getDivisionCount();
-			if(count > 0) {
-				return count - 1;
-			}
-			return 0;
-		}
-		
-		public static int getPrefixIndicatorStringLength(IPAddressStringDivisionSeries addr) {
-			if(addr.isPrefixed()) {
-				return AddressDivision.toUnsignedStringLengthFast(addr.getPrefixLength(), 10) + 1;
-			}
-			return 0;
-		}
-		
-		@Override
-		public int getStringLength(T addr) {
-			int count = getSegmentsStringLength(addr);
-			if(!isReverse() && !preferWildcards()) {
-				count += getPrefixIndicatorStringLength(addr);
-			}
-			return count + getAddressSuffixLength() + getAddressLabelLength();
-		}
-		
-		public void appendPrefixIndicator(StringBuilder builder, IPAddressStringDivisionSeries addr) {
-			if(addr.isPrefixed()) {
-				builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(addr.getPrefixLength());
-			}
-		}
-		
-		@Override
-		public StringBuilder append(StringBuilder builder, T addr, CharSequence zone) {
-			/* 
-			 * Our order is label, then segments, then zone, then suffix, then prefix length.  
-			 * This is documented in more detail in IPv6AddressSection for the IPv6-only case.
-			 */
-			appendSuffix(appendZone(appendSegments(appendLabel(builder), addr), zone));
-			if(!isReverse() && !preferWildcards()) {
-				appendPrefixIndicator(builder, addr);
-			}
-			return builder;
-		}
-		
-		@Override
-		protected int appendSegment(int segmentIndex, StringBuilder builder, T part) {
-			IPAddressStringDivision seg = part.getDivision(segmentIndex);
-			PrefixConfiguration config = part.getNetwork().getPrefixConfiguration();
-			//consider all the cases in which we need not account for prefix length
-			Integer prefix; 
-			if(config.prefixedSubnetsAreExplicit() || preferWildcards() 
-					|| (prefix = seg.getDivisionPrefixLength()) == null  || prefix >= seg.getBitCount()
-					|| (config.zeroHostsAreSubnets() && !part.isPrefixBlock())
-					|| isSplitDigits()) {
-				return seg.getStandardString(segmentIndex, this, builder);
-			}
-			//prefix length will have an impact on the string - either we need not print the range at all
-			//because it is equivalent to the prefix length, or we need to adjust the upper value of the 
-			//range so that the host is zero when printing the string
-			if(seg.isSinglePrefixBlock()) {
-				return seg.getLowerStandardString(segmentIndex, this, builder);
-			}
-			return seg.getPrefixAdjustedRangeString(segmentIndex, this, builder);
 		}
 	}
 }

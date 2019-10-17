@@ -21,7 +21,12 @@ package inet.ipaddr.format;
 import java.math.BigInteger;
 import java.util.TreeMap;
 
+import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressSection.IPStringOptions;
+import inet.ipaddr.format.AddressDivisionGroupingBase.AddressStringParams;
+import inet.ipaddr.format.AddressDivisionGroupingBase.IPAddressStringParams;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
+import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -31,11 +36,21 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  *
  */
 public abstract class AddressDivisionBase implements AddressGenericDivision {
-	
+
 	private static final long serialVersionUID = 4L;
-	
+
+	// a set of pre-defined string types		
+	private static final IPStringOptions OCTAL_PARAMS, HEX_PARAMS, DECIMAL_PARAMS;
+
+	static {
+		Wildcards rangeWildcard = new Wildcards(IPAddress.RANGE_SEPARATOR_STR);
+		OCTAL_PARAMS = new IPStringOptions.Builder(8).setSegmentStrPrefix("0").setWildcards(rangeWildcard).toOptions();
+		HEX_PARAMS = new IPStringOptions.Builder(16).setSegmentStrPrefix("0x").setWildcards(rangeWildcard).toOptions();
+		DECIMAL_PARAMS = new IPStringOptions.Builder(10).setWildcards(rangeWildcard).toOptions();
+	}
+
 	private static final String zeros[];
-	
+
 	static {
 		int zerosLength = 20;
 		zeros = new String[zerosLength];
@@ -44,7 +59,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			zeros[i] = zeros[i - 1] + '0';
 		}
 	}
-	
+
 	protected static final char[] DIGITS = {
         '0' , '1' , '2' , '3' , '4' , '5' ,
         '6' , '7' , '8' , '9' , 'a' , 'b' ,
@@ -416,7 +431,48 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	
 	@Override
 	public String toString() {
-		return getWildcardString();
+		int radix = getDefaultTextualRadix();
+		IPStringOptions opts;
+		switch(radix) {
+		case 8:
+			opts = OCTAL_PARAMS;
+			break;
+		case 16:
+			opts = HEX_PARAMS;
+			break;
+		case 10:
+			opts = DECIMAL_PARAMS;
+			break;
+		default:
+			opts = new IPStringOptions.Builder(radix).setWildcards(new Wildcards(IPAddress.RANGE_SEPARATOR_STR)).toOptions();
+			break;
+		}
+		StringBuilder builder = new StringBuilder(34);
+		toParams(opts).appendSingleDivision(this, builder);
+		return builder.toString();
+	}
+	
+	protected static AddressStringParams<IPAddressStringDivisionSeries> toParams(IPStringOptions opts) {
+		//since the params here are not dependent on the section, we could cache the params in the options 
+		//this is not true on the IPv6 side where compression settings change based on the section
+		
+		@SuppressWarnings("unchecked")
+		AddressStringParams<IPAddressStringDivisionSeries> result = (AddressStringParams<IPAddressStringDivisionSeries>) AddressDivisionGroupingBase.getCachedParams(opts);
+		if(result == null) {
+			result = new IPAddressStringParams<IPAddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
+			result.expandSegments(opts.expandSegments);
+			result.setWildcards(opts.wildcards);
+			result.setSegmentStrPrefix(opts.segmentStrPrefix);
+			result.setAddressLabel(opts.addrLabel);
+			result.setReverse(opts.reverse);
+			result.setSplitDigits(opts.splitDigits);
+			result.setRadix(opts.base);
+			result.setUppercase(opts.uppercase);
+			result.setSeparator(opts.separator);
+			result.setZoneSeparator(opts.zoneSeparator);
+			AddressDivisionGroupingBase.setCachedParams(opts, result);
+		}
+		return result;
 	}
 
 	/**

@@ -792,10 +792,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		}
 		return Long.toString(val, radix);
 	}
-	
-	protected static int toUnsignedStringLengthFast(int value, int radix) {
-		return AddressDivisionBase.toUnsignedStringLength(value, radix);
-	}
 
 	private static int toUnsignedSplitRangeStringLength(
 			long lower,

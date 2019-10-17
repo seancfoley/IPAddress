@@ -425,6 +425,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						}
 					}
 					int bitsSoFar = 0;
+					int divRadix;
 					if(isLarge) {
 						IPAddressLargeDivision divs[] = new IPAddressLargeDivision[totalCount];
 						for(int i = 0; i < totalCount; i++) {
@@ -453,6 +454,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									extendedLower = addrParseData.getValue(i, AddressParseData.KEY_EXTENDED_LOWER);
 									extendedUpper = addrParseData.getValue(i, AddressParseData.KEY_EXTENDED_UPPER);
 								}
+								divRadix = defaultRadix;
 							} else if(isMergedMixed && i == segmentCount) {
 								isNotMixed = true;
 								// merge the last IPv6 segment with the first IPv4 segment
@@ -469,6 +471,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									upper = bitLength == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << bitLength);
 									extendedUpper = 0;
 								}
+								divRadix = defaultRadix;
 							} else {
 								int adjusted = i - segmentCount;
 								bitLength = mixedParsedAddress.getBitLength(adjusted);
@@ -481,6 +484,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									lower = mixedParsedAddress.getValue(adjusted, AddressParseData.KEY_LOWER);
 									upper = mixedParsedAddress.getValue(adjusted, AddressParseData.KEY_UPPER);
 								}
+								divRadix = IPv4Address.DEFAULT_TEXTUAL_RADIX;
 							}
 							Integer divPrefixLength;
 							if(prefLength == null) {
@@ -559,7 +563,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							int numBytes = (bitLength + 7) / Byte.SIZE;
 							byte lowerBytes[] = toBytes(lower, extendedLower, numBytes);
 							byte upperBytes[] = toBytes(upper, extendedUpper, numBytes);
-							divs[i] = new IPAddressLargeDivision(lowerBytes, upperBytes, bitLength, defaultRadix, network, divPrefixLength);
+							divs[i] = new IPAddressLargeDivision(lowerBytes, upperBytes, bitLength, divRadix, network, divPrefixLength);
 							bitsSoFar += bitLength;
 						}
 						grouping = new IPAddressLargeDivisionGrouping(divs, network);
@@ -577,11 +581,13 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									lower = addrParseData.getValue(i, AddressParseData.KEY_LOWER);
 									upper = addrParseData.getValue(i, AddressParseData.KEY_UPPER);
 								}
+								divRadix = defaultRadix;
 							} else if(isMergedMixed && i == segmentCount) {
 								// merge the last IPv6 segment with the first IPv4 segment
 								bitLength = addrParseData.getBitLength(i) + mixedParsedAddress.getBitLength(0);
 								lower = 0;
 								upper = ~(~0L << bitLength);
+								divRadix = defaultRadix;
 							} else {
 								int adjusted = i - segmentCount;
 								bitLength = mixedParsedAddress.getBitLength(adjusted);
@@ -592,6 +598,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									lower = mixedParsedAddress.getValue(adjusted, AddressParseData.KEY_LOWER);
 									upper = mixedParsedAddress.getValue(adjusted, AddressParseData.KEY_UPPER);
 								}
+								divRadix = IPv4Address.DEFAULT_TEXTUAL_RADIX;
 							}
 							Integer divPrefixLength;
 							if(prefLength == null) {
@@ -626,7 +633,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		
 								}
 							}
-							divs[i] = new IPAddressBitsDivision(lower, upper, bitLength, defaultRadix, network, divPrefixLength);
+							divs[i] = new IPAddressBitsDivision(lower, upper, bitLength, divRadix, network, divPrefixLength);
 							bitsSoFar += bitLength;
 						}
 						grouping = new IPAddressDivisionGrouping(divs, network);

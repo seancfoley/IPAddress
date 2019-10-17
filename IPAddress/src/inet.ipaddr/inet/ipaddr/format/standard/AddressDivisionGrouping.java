@@ -44,11 +44,7 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.AddressDivisionGroupingBase;
-import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
-import inet.ipaddr.format.string.AddressStringDivision;
 import inet.ipaddr.format.string.AddressStringDivisionSeries;
-import inet.ipaddr.format.util.AddressDivisionWriter;
-import inet.ipaddr.format.util.AddressSegmentParams;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
@@ -1347,14 +1343,6 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		return creator.createSectionInternal(segments, startIndex, extended);
 	}
 	
-	protected static AddressDivisionWriter getCachedParams(StringOptions opts) {
-		return opts.cachedParams;
-	}
-	
-	protected static void setCachedParams(StringOptions opts, AddressDivisionWriter cachedParams) {
-		opts.cachedParams = cachedParams;
-	}
-	
 	protected boolean isDualString() throws IncompatibleAddressException {
 		int count = getDivisionCount();
 		for(int i = 0; i < count; i++) {
@@ -1397,318 +1385,13 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		AddressStringParams.checkLengths(length, builder);
 		return builder.toString();
 	}
-	
-	protected static class AddressStringParams<T extends AddressStringDivisionSeries> implements AddressDivisionWriter, AddressSegmentParams, Cloneable {
-		public static final Wildcards DEFAULT_WILDCARDS = new Wildcards();
-		
-		private Wildcards wildcards = DEFAULT_WILDCARDS;
-		
-		protected boolean expandSegments; //whether to expand 1 to 001 for IPv4 or 0001 for IPv6
-		
-		private String segmentStrPrefix = ""; //eg for inet_aton style there is 0x for hex, 0 for octal
 
-		private int radix;
-		
-		//the segment separator and in the case of split digits, the digit separator
-		protected Character separator;
-				
-		private boolean uppercase; //whether to print A or a
-		
-		//print the segments in reverse, and in the case of splitDigits, print the digits in reverse as well
-		private boolean reverse;
-				
-		//in each segment, split the digits with the separator, so that 123.456.1.1 becomes 1.2.3.4.5.6.1.1
-		private boolean splitDigits;
-		
-		private String addressLabel = "";
-		
-		private char zoneSeparator;
-		
-		public AddressStringParams(int radix, Character separator, boolean uppercase) {
-			this(radix, separator, uppercase, (char) 0);
-		}
-		
-		public AddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
-			this.radix = radix;
-			this.separator = separator;
-			this.uppercase = uppercase;
-			this.zoneSeparator  = zoneSeparator;
-		}
-
-		public void setZoneSeparator(char zoneSeparator) {
-			this.zoneSeparator = zoneSeparator;
-		}
-		
-		public String getAddressLabel() {
-			return addressLabel;
-		}
-		
-		public void setAddressLabel(String str) {
-			this.addressLabel = str;
-		}
-		
-		public Character getSeparator() {
-			return separator;
-		}
-		
-		public void setSeparator(Character separator) {
-			this.separator = separator;
-		}
-		
-		@Override
-		public Wildcards getWildcards() {
-			return wildcards;
-		}
-		
-		public void setWildcards(Wildcards wc) {
-			wildcards = wc;
-		}
-		
-		@Override
-		public boolean preferWildcards() {
-			return true;
-		}
-		
-		//returns -1 to expand
-		@Override
-		public int getLeadingZeros(int segmentIndex) {
-			if(expandSegments) {
-				return -1;
-			}
-			return 0;
-		}
-		
-		@Override
-		public String getSegmentStrPrefix() {
-			return segmentStrPrefix;
-		}
-		
-		public void setSegmentStrPrefix(String segmentStrPrefix) {
-			if(segmentStrPrefix == null) {
-				throw new NullPointerException();
-			}
-			this.segmentStrPrefix = segmentStrPrefix;
-		}
-		
-		@Override
-		public int getRadix() {
-			return radix;
-		}
-		
-		public void setRadix(int radix) {
-			this.radix = radix;
-		}
-		
-		public void setUppercase(boolean uppercase) {
-			this.uppercase = uppercase;
-		}
-		
-		@Override
-		public boolean isUppercase() {
-			return uppercase;
-		}
-		
-		public void setSplitDigits(boolean split) {
-			this.splitDigits = split;
-		}
-		
-		@Override
-		public boolean isSplitDigits() {
-			return splitDigits;
-		}
-		
-		@Override
-		public Character getSplitDigitSeparator() {
-			return separator;
-		}
-		
-		@Override
-		public boolean isReverseSplitDigits() {
-			return reverse;
-		}
-		
-		public void setReverse(boolean rev) {
-			this.reverse = rev;
-		}
-		
-		public boolean isReverse() {
-			return reverse;
-		}
-		
-		public void expandSegments(boolean expand) {
-			expandSegments = expand;
-		}
-		
-		public StringBuilder appendLabel(StringBuilder builder) {
-			String str = getAddressLabel();
-			if(str != null && str.length() > 0) {
-				builder.append(str);
-			}
-			return builder;
-		}
-		
-		public int getAddressLabelLength() {
-			String str = getAddressLabel();
-			if(str != null) {
-				return str.length();
-			}
-			return 0;
-		}
-		
-		public int getSegmentsStringLength(T part) {
-			int count = 0;
-			if(part.getDivisionCount() != 0) {
-				int divCount = part.getDivisionCount();
-				for(int i = 0; i < divCount; i++) {
-					count += appendSegment(i, null, part);
-				}
-				Character separator = getSeparator();
-				if(separator != null) {
-					count += divCount - 1;
-				}
-			}
-			return count;
-		}
-
-		public StringBuilder appendSegments(StringBuilder builder, T part) {
-			int count = part.getDivisionCount();
-			if(count != 0) {
-				boolean reverse = isReverse();
-				int i = 0;
-				Character separator = getSeparator();
-				while(true) {
-					int segIndex = reverse ? (count - i - 1) : i;
-					appendSegment(segIndex, builder, part);
-					if(++i == count) {
-						break;
-					}
-					if(separator != null) {
-						builder.append(separator);
-					}
-				}
-			}
-			return builder;
-		}
-		
-		public int appendSingleDivision(AddressStringDivision seg, StringBuilder builder) {
-			if(builder == null) {
-				return getAddressLabelLength() + seg.getStandardString(0, this, null);
-			}
-			appendLabel(builder);
-			seg.getStandardString(0, this, builder);
-			return 0;
-		}
-		
-		protected int appendSegment(int segmentIndex, StringBuilder builder, T part) {
-			AddressStringDivision seg = part.getDivision(segmentIndex);
-			return seg.getStandardString(segmentIndex, this, builder);
-		}
-		
-		public int getZoneLength(CharSequence zone) {
-			if(zone != null && zone.length() > 0) {
-				return zone.length() + 1; /* zone separator is one char */
-			}
-			return 0;
-		}
-		
-		public int getStringLength(T addr, CharSequence zone) {
-			int result = getStringLength(addr);
-			if(zone != null) {
-				result += getZoneLength(zone);
-			}
-			return result;
-		}
-		
-		public int getStringLength(T addr) {
-			return getAddressLabelLength() + getSegmentsStringLength(addr);
-		}
-		
-		public StringBuilder appendZone(StringBuilder builder, CharSequence zone) {
-			if(zone != null && zone.length() > 0) {
-				builder.append(zoneSeparator).append(zone);
-			}
-			return builder;
-		}
-
-		public StringBuilder append(StringBuilder builder, T addr, CharSequence zone) {
-			return appendZone(appendSegments(appendLabel(builder), addr), zone);
-		}
-		
-		public StringBuilder append(StringBuilder builder, T addr) {
-			return append(builder, addr, null);
-		}
-		
-		@Override
-		public int getDivisionStringLength(AddressStringDivision seg) {
-			return appendSingleDivision(seg, null);
-		}
-		
-		@Override
-		public StringBuilder appendDivision(StringBuilder builder, AddressStringDivision seg) {
-			appendSingleDivision(seg, builder);
-			return builder;
-		}
-
-		public String toString(T addr, CharSequence zone) {	
-			int length = getStringLength(addr, zone);
-			StringBuilder builder = new StringBuilder(length);
-			append(builder, addr, zone);
-			checkLengths(length, builder);
-			return builder.toString();
-		}
-		
-		public String toString(T addr) {	
-			return toString(addr, null);
-		}
-		
-		public static void checkLengths(int length, StringBuilder builder) {
-			//Note: re-enable this when doing development
-//			boolean calcMatch = length == builder.length();
-//			boolean capMatch = length == builder.capacity();
-//			if(!calcMatch || !capMatch) {
-//				//System.out.println(builder);//000a:0000:000c:000d:000e:000f:0001-1:0000/112 instead of 000a:0000:000c:000d:000e:000f:0001:0000/112
-//				throw new IllegalStateException("length is " + builder.length() + ", capacity is " + builder.capacity() + ", expected length is " + length);
-//			}
-		}
-
-		public static AddressStringParams<AddressStringDivisionSeries> toParams(StringOptions opts) {
-			//since the params here are not dependent on the section, we could cache the params in the options 
-			//this is not true on the IPv6 side where compression settings change based on the section
-			@SuppressWarnings("unchecked")
-			AddressStringParams<AddressStringDivisionSeries> result = (AddressStringParams<AddressStringDivisionSeries>) getCachedParams(opts);
-			if(result == null) {
-				result = new AddressStringParams<AddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
-				result.expandSegments(opts.expandSegments);
-				result.setWildcards(opts.wildcards);
-				result.setSegmentStrPrefix(opts.segmentStrPrefix);
-				result.setAddressLabel(opts.addrLabel);
-				result.setReverse(opts.reverse);
-				result.setSplitDigits(opts.splitDigits);
-				setCachedParams(opts, result);
-			}
-			return result;
-		}
-		
-		@Override
-		public AddressStringParams<T> clone() {
-			try {
-				@SuppressWarnings("unchecked")
-				AddressStringParams<T> parms = (AddressStringParams<T>) super.clone();
-				return parms;
-			} catch(CloneNotSupportedException e) {
-				 return null;
-			}
-		}
-	}
-	
-	
-	
 	/**
 	 * Represents a clear way to create a specific type of string.
 	 * 
 	 * @author sfoley
 	 */
-	public static class StringOptions {
+	public static class StringOptions extends StringOptionsBase {
 		
 		public static class Wildcards {
 			public final String rangeSeparator;//cannot be null
@@ -1752,8 +1435,6 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		public final boolean splitDigits;
 		public final boolean uppercase;
 		
-		//use this field if the options to params conversion is not dependent on the address part so it can be reused
-		AddressDivisionWriter cachedParams; 
 		
 		protected StringOptions(
 				int base,
@@ -1796,7 +1477,12 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			protected boolean splitDigits;
 			protected boolean uppercase;
 			
-			protected Builder(int base, char separator) {
+			public Builder(int base) {
+				this.base = base;
+				this.separator = ' ';
+			}
+			
+			public Builder(int base, char separator) {
 				this.base = base;
 				this.separator = separator;
 			}

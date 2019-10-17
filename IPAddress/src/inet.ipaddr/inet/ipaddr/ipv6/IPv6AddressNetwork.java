@@ -88,6 +88,11 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 		
 		@Override
+		protected int getAddressSegmentCount() {
+			return IPv6Address.SEGMENT_COUNT;
+		}
+
+		@Override
 		public IPv6AddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
 				return EMPTY_SEGMENTS;
@@ -322,10 +327,6 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		
 		protected IPv6AddressSection createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix) {
 			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true, false);
-		}
-		
-		protected IPv6AddressSection createSectionInternal(byte bytes[], int segmentCount, Integer prefix) {
-			return new IPv6AddressSection(bytes, 0, bytes.length, segmentCount, prefix, false, false);
 		}
 		
 		@Override
