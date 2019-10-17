@@ -156,29 +156,29 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 			return createAddressInternal(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix), zone);
 		}
 		
-		protected R createSectionInternal(byte bytes[], Integer prefix) {
-			return createSectionInternal(bytes, bytes.length, prefix, false);
+		protected R createSectionInternal(byte bytes[], int segmentCount, Integer prefix) {
+			return createSectionInternal(bytes, segmentCount, prefix, false);
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix) {
-			return createAddress(createSectionInternal(bytes, prefix));
+			return createAddress(createSectionInternal(bytes, getAddressSegmentCount(), prefix));
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone) {
-			return createAddressInternal(createSectionInternal(bytes, prefix), zone);
+			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), zone);
 		}
 		
 		@Override
 		protected T createAddressInternal(byte bytes[], CharSequence zone) {
-			return createAddressInternal(createSectionInternal(bytes, null), zone);
+			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), null), zone);
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone, HostName fromHost) {
-			return createAddressInternal(createSectionInternal(bytes, prefix), zone, fromHost);
+			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), zone, fromHost);
 		}
 		
 		protected T createAddressInternal(byte bytes[], Integer prefix, HostName fromHost) {
-			return createAddressInternal(createSectionInternal(bytes, prefix), fromHost);
+			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), fromHost);
 		}
 		
 		public T createAddress(byte bytes[], Integer prefix) {
@@ -210,6 +210,8 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		
 		@Override
 		public abstract T createAddress(R section);
+
+		protected abstract int getAddressSegmentCount();
 	}
 
 	private IPAddressCreator<T, R, E, S, J> creator;
@@ -223,7 +225,7 @@ public abstract class IPAddressNetwork<T extends IPAddress, R extends IPAddressS
 		this.hostMasks = this.subnets.clone();
 		this.creator = createAddressCreator();
 		int segmentBitSize = IPAddressSegment.getBitCount(version);
-		int fullMask = ~(~0 << segmentBitSize); //allBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+		int fullMask = ~(~0 << segmentBitSize); // segmentBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
 		networkSegmentMasks = new int[segmentBitSize + 1];
 		hostSegmentMasks = networkSegmentMasks.clone();
 		for(int i = 0; i <= segmentBitSize; i++) {
