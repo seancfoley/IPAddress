@@ -607,44 +607,81 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 				"03777777777777777777777777777777777777777777");
 	}
 	
-	void testBackAndForth() {
+	void testBackAndForthIPv4(String addrStr) {
 		// agnostic BigInteger and back
-		IPAddress loopback = new IPAddressString("::1").getAddress();
-		BigInteger value = loopback.getValue();
+		IPAddress addr = new IPAddressString(addrStr).getAddress();
+		BigInteger value = addr.getValue();
 		byte bigIntBytes[] = value.toByteArray();
-		int byteCount = loopback.getByteCount();
+		int byteCount = addr.getByteCount();
 		if(bigIntBytes.length < byteCount) { // want correct byte length
 			byte bytes[] = new byte[byteCount];
 			System.arraycopy(bigIntBytes, 0, bytes, bytes.length - bigIntBytes.length, bigIntBytes.length);
 			bigIntBytes = bytes;
 		}
 		IPAddress andAgain = new IPAddressGenerator().from(bigIntBytes);
-		if(!andAgain.equals(loopback)) {
-			addFailure(new Failure("BigInteger result was " + andAgain + " original was " + loopback, loopback));
+		if(!andAgain.equals(addr)) {
+			addFailure(new Failure("BigInteger result was " + andAgain + " original was " + addr, addr));
 		}
 		
 		// byte[] and back
-		byte bytes[] = loopback.getBytes();
+		byte bytes[] = addr.getBytes();
 		IPAddress backAgain = new IPAddressGenerator().from(bytes);
-		if(!backAgain.equals(loopback)) {
-			addFailure(new Failure("bytes result was " + backAgain + " original was " + loopback, loopback));
+		if(!backAgain.equals(addr)) {
+			addFailure(new Failure("bytes result was " + backAgain + " original was " + addr, addr));
 		}
 		
 		// IPv4 int and back
-		IPv4Address loopbackv4 = new IPAddressString("127.0.0.1").getAddress().toIPv4();
-		int val = loopbackv4.intValue();
+		IPv4Address addrv4 = addr.toIPv4();
+		int val = addrv4.intValue();
 		IPv4Address backAgainv4 = new IPv4Address(val);
-		if(!backAgainv4.equals(loopbackv4)) {
-			addFailure(new Failure("int result was " + backAgainv4 + " original was " + loopbackv4, loopbackv4));
+		if(!backAgainv4.equals(addrv4)) {
+			addFailure(new Failure("int result was " + backAgainv4 + " original was " + addrv4, addrv4));
 		}
-
-		//IPv6 BigInteger and back
-		IPv6Address loopbackv6 = new IPAddressString("::1").getAddress().toIPv6();
-		value = loopbackv6.getValue();
+	}
+	
+	void testBackAndForthIPv6(String addrStr) {
+		// agnostic BigInteger and back
+		IPAddress addr = new IPAddressString(addrStr).getAddress();
+		BigInteger value = addr.getValue();
+		byte bigIntBytes[] = value.toByteArray();
+		int byteCount = addr.getByteCount();
+		if(bigIntBytes.length < byteCount) { // want correct byte length
+			byte bytes[] = new byte[byteCount];
+			System.arraycopy(bigIntBytes, 0, bytes, bytes.length - bigIntBytes.length, bigIntBytes.length);
+			bigIntBytes = bytes;
+		}
+		IPAddress andAgain = new IPAddressGenerator().from(bigIntBytes);
+		if(!andAgain.equals(addr)) {
+			addFailure(new Failure("BigInteger result was " + andAgain + " original was " + addr, addr));
+		}
+		
+		// byte[] and back
+		byte bytes[] = addr.getBytes();
+		IPAddress backAgain = new IPAddressGenerator().from(bytes);
+		if(!backAgain.equals(addr)) {
+			addFailure(new Failure("bytes result was " + backAgain + " original was " + addr, addr));
+		}
+		
+		// IPv6 BigInteger and back
+		IPv6Address addrv6 = addr.toIPv6();
+		value = addrv6.getValue();
 		IPv6Address backAgainv6 = new IPv6Address(value);
-		if(!backAgainv6.equals(loopbackv6)) {
-			addFailure(new Failure("int result was " + backAgainv6 + " original was " + loopbackv6, loopbackv6));
+		if(!backAgainv6.equals(addrv6)) {
+			addFailure(new Failure("int result was " + backAgainv6 + " original was " + addrv6, addrv6));
 		}
+	}
+	
+	void testBackAndForth() {
+		testBackAndForthIPv4("127.0.0.1");
+		testBackAndForthIPv4("128.0.0.1");
+		testBackAndForthIPv4("255.255.255.255");
+		testBackAndForthIPv4("128.255.255.255");
+		testBackAndForthIPv6("::1");
+		testBackAndForthIPv6("8000::1");
+		testBackAndForthIPv6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testBackAndForthIPv6("ffff:a:b:c:d:e:f:cccc");
+		testBackAndForthIPv6("cfff:a:b:c:d:e:f:cccc");
+		testBackAndForthIPv6("7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 	}
 
 	/*
