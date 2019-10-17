@@ -72,6 +72,11 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 
 		@Override
+		protected int getAddressSegmentCount() {
+			return IPv4Address.SEGMENT_COUNT;
+		}
+
+		@Override
 		public IPv4AddressSegment[] createSegmentArray(int length) {
 			if(length == 0) {
 				return EMPTY_SEGMENTS;

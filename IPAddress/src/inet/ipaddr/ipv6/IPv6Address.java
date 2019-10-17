@@ -341,7 +341,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @throws AddressValueException if value is outside the range of potential values, or if zone is invalid
 	 */
 	public IPv6Address(BigInteger val, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {	
-		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSectionInternal(val.toByteArray(), IPv6Address.SEGMENT_COUNT, networkPrefixLength));
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSectionInternal(val.toByteArray(), IPv6Address.SEGMENT_COUNT, networkPrefixLength, false));
 		this.zone = checkZone(zone);
 	}
 	

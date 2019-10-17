@@ -18,6 +18,7 @@
 
 package inet.ipaddr.test;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -25,10 +26,12 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressNetwork.IPAddressGenerator;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
 public class IPAddressAllTest extends IPAddressRangeTest {
@@ -603,6 +606,46 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 				"0xffffffffffffffffffffffffffffffff",
 				"03777777777777777777777777777777777777777777");
 	}
+	
+	void testBackAndForth() {
+		// agnostic BigInteger and back
+		IPAddress loopback = new IPAddressString("::1").getAddress();
+		BigInteger value = loopback.getValue();
+		byte bigIntBytes[] = value.toByteArray();
+		int byteCount = loopback.getByteCount();
+		if(bigIntBytes.length < byteCount) { // want correct byte length
+			byte bytes[] = new byte[byteCount];
+			System.arraycopy(bigIntBytes, 0, bytes, bytes.length - bigIntBytes.length, bigIntBytes.length);
+			bigIntBytes = bytes;
+		}
+		IPAddress andAgain = new IPAddressGenerator().from(bigIntBytes);
+		if(!andAgain.equals(loopback)) {
+			addFailure(new Failure("BigInteger result was " + andAgain + " original was " + loopback, loopback));
+		}
+		
+		// byte[] and back
+		byte bytes[] = loopback.getBytes();
+		IPAddress backAgain = new IPAddressGenerator().from(bytes);
+		if(!backAgain.equals(loopback)) {
+			addFailure(new Failure("bytes result was " + backAgain + " original was " + loopback, loopback));
+		}
+		
+		// IPv4 int and back
+		IPv4Address loopbackv4 = new IPAddressString("127.0.0.1").getAddress().toIPv4();
+		int val = loopbackv4.intValue();
+		IPv4Address backAgainv4 = new IPv4Address(val);
+		if(!backAgainv4.equals(loopbackv4)) {
+			addFailure(new Failure("int result was " + backAgainv4 + " original was " + loopbackv4, loopbackv4));
+		}
+
+		//IPv6 BigInteger and back
+		IPv6Address loopbackv6 = new IPAddressString("::1").getAddress().toIPv6();
+		value = loopbackv6.getValue();
+		IPv6Address backAgainv6 = new IPv6Address(value);
+		if(!backAgainv6.equals(loopbackv6)) {
+			addFailure(new Failure("int result was " + backAgainv6 + " original was " + loopbackv6, loopbackv6));
+		}
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -735,5 +778,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		ipv6test(0, "=q{+M|w0(OeO5^F85=C" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "eth0"); // too soon
 		
 		testMatches(true, "-", "0.0.0.*");
+		
+		testBackAndForth();
 	}
 }
