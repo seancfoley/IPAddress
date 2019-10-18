@@ -1245,23 +1245,33 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
+	public IPv4AddressSection getHostMask() {
+		return (IPv4AddressSection) super.getHostMask();
+	}
+
+	@Override
+	public IPv4AddressSection getNetworkMask() {
+		return (IPv4AddressSection) super.getNetworkMask();
+	}
+
+	@Override
 	public IPv4AddressSection getNetworkSection() {
 		if(isPrefixed()) {
 			return getNetworkSection(getNetworkPrefixLength());
 		}
 		return getNetworkSection(getBitCount());
 	}
-	
+
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength) throws PrefixLenException {
 		return getNetworkSection(networkPrefixLength, true);
 	}
-	
+
 	@Override
 	public IPv4AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) throws PrefixLenException {
 		return getNetworkSection(this, networkPrefixLength, withPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, withPrefixLength));
 	}
-	
+
 	@Override
 	public IPv4AddressSection getHostSection() {
 		if(isPrefixed()) {
@@ -1269,13 +1279,13 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return getHostSection(0);
 	}
-	
+
 	@Override
 	public IPv4AddressSection getHostSection(int networkPrefixLength) throws PrefixLenException {
 		int hostSegmentCount = getHostSegmentCount(networkPrefixLength);
 		return getHostSection(this, networkPrefixLength, hostSegmentCount, getAddressCreator(), (i, prefix) -> getSegment(i).toHostSegment(prefix));
 	}
-	
+
 	@Override
 	public IPv4AddressSection toPrefixBlock() {
 		Integer prefixLength = getNetworkPrefixLength();
@@ -1284,22 +1294,22 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return toPrefixBlock(prefixLength);
 	}
-	
+
 	@Override
 	public IPv4AddressSection toPrefixBlock(int networkPrefixLength) throws PrefixLenException {
 		return toPrefixBlock(this, networkPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, true));
 	}
-	
+
 	@Override
 	public IPv4AddressSection assignPrefixForSingleBlock() {
 		return (IPv4AddressSection) super.assignPrefixForSingleBlock();
 	}
-	
+
 	@Override
 	public IPv4AddressSection assignMinPrefixForBlock() {
 		return (IPv4AddressSection) super.assignMinPrefixForBlock();
 	}
-	
+
 	/**
 	 * Produces the list of prefix block subnets that span from this series to the given series.
 	 * 
@@ -1317,7 +1327,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				//IPv4AddressSection::removePrefixLength(),xxx;
 				getAddressCreator()::createSectionArray);
 	}
-	
+
 	/**
 	 * Merges this with the list of sections to produce the smallest array of prefix blocks, going from smallest to largest
 	 * 

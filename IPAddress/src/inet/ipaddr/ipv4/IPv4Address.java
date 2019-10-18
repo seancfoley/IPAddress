@@ -679,6 +679,16 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	public IPv4Address getHostMask() {
+		return (IPv4Address) super.getHostMask();
+	}
+
+	@Override
+	public IPv4Address getNetworkMask() {
+		return (IPv4Address) super.getNetworkMask();
+	}
+
+	@Override
 	public IPv4AddressSection getNetworkSection() {
 		return getSection().getNetworkSection();
 	}

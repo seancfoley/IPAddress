@@ -1794,7 +1794,17 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				false
 		);
 	}
-	
+
+	@Override
+	public IPv6AddressSection getHostMask() {
+		return (IPv6AddressSection) super.getHostMask();
+	}
+
+	@Override
+	public IPv6AddressSection getNetworkMask() {
+		return (IPv6AddressSection) super.getNetworkMask();
+	}
+
 	@Override
 	public IPv6AddressSection getNetworkSection() {
 		if(isPrefixed()) {
@@ -1802,17 +1812,17 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return getNetworkSection(getBitCount());
 	}
-	
+
 	@Override
 	public IPv6AddressSection getNetworkSection(int networkPrefixLength) throws PrefixLenException {
 		return getNetworkSection(networkPrefixLength, true);
 	}
-	
+
 	@Override
 	public IPv6AddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength) throws PrefixLenException {
 		return getNetworkSection(this, networkPrefixLength, withPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, withPrefixLength));
 	}
-	
+
 	@Override
 	public IPv6AddressSection getHostSection() {
 		if(isPrefixed()) {
@@ -1820,14 +1830,14 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return getHostSection(0);
 	}
-	
+
 	@Override
 	public IPv6AddressSection getHostSection(int networkPrefixLength) throws PrefixLenException {
 		int hostSegmentCount = getHostSegmentCount(networkPrefixLength);
 		IPv6AddressCreator creator = getAddressCreator(addressSegmentIndex + (getSegmentCount() - hostSegmentCount));
 		return getHostSection(this, networkPrefixLength, hostSegmentCount, creator, (i, prefix) -> getSegment(i).toHostSegment(prefix));
 	}
-	
+
 	@Override
 	public IPv6AddressSection toPrefixBlock() {
 		Integer prefixLength = getNetworkPrefixLength();
@@ -1836,22 +1846,22 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return toPrefixBlock(prefixLength);
 	}
-	
+
 	@Override
 	public IPv6AddressSection assignPrefixForSingleBlock() {
 		return (IPv6AddressSection) super.assignPrefixForSingleBlock();
 	}
-	
+
 	@Override
 	public IPv6AddressSection assignMinPrefixForBlock() {
 		return (IPv6AddressSection) super.assignMinPrefixForBlock();
 	}
-	
+
 	@Override
 	public IPv6AddressSection toPrefixBlock(int networkPrefixLength) throws PrefixLenException {
 		return toPrefixBlock(this, networkPrefixLength, getAddressCreator(), (i, prefix) -> getSegment(i).toNetworkSegment(prefix, true));
 	}
-	
+
 	/**
 	 * Produces the list of prefix block subnets that span from this series to the given series.
 	 * 

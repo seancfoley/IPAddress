@@ -1353,6 +1353,16 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	@Override
+	public IPv6Address getHostMask() {
+		return (IPv6Address) super.getHostMask();
+	}
+
+	@Override
+	public IPv6Address getNetworkMask() {
+		return (IPv6Address) super.getNetworkMask();
+	}
+
+	@Override
 	public IPv6AddressSection getNetworkSection() {
 		return getSection().getNetworkSection();
 	}
