@@ -932,18 +932,62 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	void testMasksAndPrefixes() {
-		for(int i = 0; i <= 128; i++) {
-			IPv6AddressNetwork network = ADDRESS_OPTIONS.getIPv6Parameters().getNetwork();
-			IPv6Address ipv6HostMask = network.getHostMask(i);
+		IPv6Address sampleIpv6 = createAddress("1234:abcd:cdef:5678:9abc:def0:1234:5678").getAddress().toIPv6();
+		IPv4Address sampleIpv4 = createAddress("123.156.178.201").getAddress().toIPv4();
+		
+		IPv6AddressNetwork ipv6Network = ADDRESS_OPTIONS.getIPv6Parameters().getNetwork();
+		IPv6Address ipv6SampleNetMask = sampleIpv6.getNetworkMask();
+		IPv6Address ipv6SampleHostMask = sampleIpv6.getHostMask();
+		IPv6Address onesNetworkMask = ipv6Network.getNetworkMask(IPv6Address.BIT_COUNT);
+		IPv6Address onesHostMask = ipv6Network.getHostMask(0);
+		if(!ipv6SampleNetMask.equals(onesNetworkMask)) {
+			addFailure(new Failure("mask mismatch between address " + ipv6SampleNetMask + " and network " + onesNetworkMask, sampleIpv6));
+		}
+		if(!ipv6SampleHostMask.equals(onesHostMask)) {
+			addFailure(new Failure("mask mismatch between address " + ipv6SampleHostMask + " and network " + onesHostMask, sampleIpv6));
+		}
+		
+		IPv4AddressNetwork ipv4Network = ADDRESS_OPTIONS.getIPv4Parameters().getNetwork();
+		IPv4Address ipv4SampleNetMask = sampleIpv4.getNetworkMask();
+		IPv4Address ipv4SampleHostMask = sampleIpv4.getHostMask();
+		IPv4Address onesNetworkMaskv4 = ipv4Network.getNetworkMask(IPv4Address.BIT_COUNT);
+		IPv4Address onesHostMaskv4 = ipv4Network.getHostMask(0);
+		if(!ipv4SampleNetMask.equals(onesNetworkMaskv4)) {
+			addFailure(new Failure("mask mismatch between address " + ipv4SampleNetMask + " and network " + onesNetworkMaskv4, sampleIpv4));
+		}
+		if(!ipv4SampleHostMask.equals(onesHostMaskv4)) {
+			addFailure(new Failure("mask mismatch between address " + ipv4SampleHostMask + " and network " + onesHostMaskv4, sampleIpv4));
+		}
+		
+		for(int i = 0; i <= IPv6Address.BIT_COUNT; i++) {
+			IPv6Address ipv6HostMask = ipv6Network.getHostMask(i);
 			if(checkMask(ipv6HostMask, i, false)) {
-				IPv6Address ipv6NetworkMask = network.getNetworkMask(i);
+				IPv6Address ipv6NetworkMask = ipv6Network.getNetworkMask(i);
 				if(checkMask(ipv6NetworkMask, i, true)) {
-					if(i <= 32) {
-						IPv4AddressNetwork ipv4network = ADDRESS_OPTIONS.getIPv4Parameters().getNetwork();
-						IPv4Address ipv4HostMask = ipv4network.getHostMask(i);
+					IPv6Address samplePrefixedIpv6 = sampleIpv6.applyPrefixLength(i);
+					IPv6Address ipv6NetworkMask2 = samplePrefixedIpv6.getNetworkMask();
+					IPv6Address ipv6HostMask2 = samplePrefixedIpv6.getHostMask();
+					if(!ipv6NetworkMask2.equals(ipv6NetworkMask)) {
+						addFailure(new Failure("mask mismatch between address " + ipv6NetworkMask2 + " and network " + ipv6NetworkMask, samplePrefixedIpv6));
+					}
+					if(!ipv6HostMask2.equals(ipv6HostMask)) {
+						addFailure(new Failure("mask mismatch between address " + ipv6HostMask2 + " and network " + ipv6HostMask, samplePrefixedIpv6));
+					}
+					if(i <= IPv4Address.BIT_COUNT) {
+						IPv4Address ipv4HostMask = ipv4Network.getHostMask(i);
 						if(checkMask(ipv4HostMask, i, false)) {
-							IPv4Address ipv4NetworkMask = ipv4network.getNetworkMask(i);
-							checkMask(ipv4NetworkMask, i, true);		
+							IPv4Address ipv4NetworkMask = ipv4Network.getNetworkMask(i);
+							checkMask(ipv4NetworkMask, i, true);
+							
+							IPv4Address samplePrefixedIpv4 = sampleIpv4.applyPrefixLength(i);
+							IPv4Address ipv4NetworkMask2 = samplePrefixedIpv4.getNetworkMask();
+							IPv4Address ipv4HostMask2 = samplePrefixedIpv4.getHostMask();
+							if(!ipv4NetworkMask2.equals(ipv4NetworkMask)) {
+								addFailure(new Failure("mask mismatch between address " + ipv4NetworkMask2 + " and network " + ipv4NetworkMask, samplePrefixedIpv4));
+							}
+							if(!ipv4HostMask2.equals(ipv4HostMask)) {
+								addFailure(new Failure("mask mismatch between address " + ipv4HostMask2 + " and network " + ipv4HostMask, samplePrefixedIpv4));
+							}
 						}
 					}
 				}
