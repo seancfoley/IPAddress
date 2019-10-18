@@ -116,7 +116,7 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 
 	/**
 	 * Returns the host mask associated with the CIDR network prefix length of this series.
-	 * If this series has no prefix length, then this series is returned.
+	 * If this series has no prefix length, then the whole series is considered a host and the all ones host mask is returned.
 	 * 
 	 * @return
 	 */
@@ -124,7 +124,7 @@ public interface IPAddressSegmentSeries extends AddressSegmentSeries {
 
 	/**
 	 * Returns the network mask associated with the CIDR network prefix length of this series.
-	 * If this series has no prefix length, then this series is returned.
+	 * If this series has no prefix length, then the whole series is considered network and the all ones network mask is returned.
 	 * 
 	 * @return
 	 */
