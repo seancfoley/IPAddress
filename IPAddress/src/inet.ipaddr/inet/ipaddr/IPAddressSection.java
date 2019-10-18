@@ -1735,7 +1735,19 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 
 	@Override
 	public abstract IPAddressSection toPrefixBlock(int networkPrefixLength);
-	
+
+	@Override
+	public IPAddressSection getHostMask() {
+		Integer prefLen = getNetworkPrefixLength();
+		return getNetwork().getHostMask(prefLen == null ? 0 : getNetworkPrefixLength()).getSection(0, getSegmentCount());
+	}
+
+	@Override
+	public IPAddressSection getNetworkMask() {
+		Integer prefLen = getNetworkPrefixLength();
+		return getNetwork().getHostMask(prefLen == null ? getBitCount() : getNetworkPrefixLength()).getSection(0, getSegmentCount());
+	}
+
 	/**
 	 * Returns the equivalent CIDR address section with a prefix length for which the subnet block for that prefix matches the range of values in this section.
 	 * <p>

@@ -98,6 +98,22 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	IPAddressSegmentSeries toPrefixBlock(int networkPrefixLength) throws PrefixLenException;
 
 	/**
+	 * Returns the host mask associated with the CIDR network prefix length of this series.
+	 * If this series has no prefix length, this series is returned.
+	 * 
+	 * @return
+	 */
+	IPAddressSegmentSeries getHostMask();
+
+	/**
+	 * Returns the network mask associated with the CIDR network prefix length of this series.
+	 * If this series has no prefix length, this series is returned.
+	 * 
+	 * @return
+	 */
+	IPAddressSegmentSeries getNetworkMask();
+
+	/**
 	 * Returns the host section of the series.  The returned section will have only as many segments as needed
 	 * as determined by the existing CIDR network prefix length.  If this series has no CIDR prefix length, the returned host section will 
 	 * be the full section associated with a prefix length of 0.

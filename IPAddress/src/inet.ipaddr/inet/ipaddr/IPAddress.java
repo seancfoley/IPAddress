@@ -1048,6 +1048,18 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	@Override
+	public IPAddress getHostMask() {
+		Integer prefLength = getNetworkPrefixLength();
+		return getNetwork().getHostMask(prefLength == null ? 0 : prefLength);
+	}
+
+	@Override
+	public IPAddress getNetworkMask() {
+		Integer prefLength = getNetworkPrefixLength();
+		return getNetwork().getNetworkMask(prefLength == null ? getBitCount() : prefLength);
+	}
+	
+	@Override
 	public boolean includesZeroHost() {
 		return getSection().includesZeroHost();
 	}

@@ -624,6 +624,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return defaultIpv4Network();
 	}
 	
+	/**
+	 * Returns the IPv6 network used by {@link #getIPv4MappedAddress()} and {@link #getIPv6Address(IPv6AddressSegment[])}
+	 * 
+	 * @return
+	 */
 	public IPv6AddressNetwork getIPv6Network() {
 		return defaultIpv6Network();
 	}
@@ -739,7 +744,17 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address bitwiseOrNetwork(IPAddress mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, AddressConversionException {
 		return checkIdentity(getSection().bitwiseOrNetwork(convertArg(mask).getSection(), networkPrefixLength));
 	}
-	
+
+	@Override
+	public IPv4Address getHostMask() {
+		return (IPv4Address) super.getHostMask();
+	}
+
+	@Override
+	public IPv4Address getNetworkMask() {
+		return (IPv4Address) super.getNetworkMask();
+	}
+
 	@Override
 	public IPv4AddressSection getNetworkSection() {
 		return getSection().getNetworkSection();

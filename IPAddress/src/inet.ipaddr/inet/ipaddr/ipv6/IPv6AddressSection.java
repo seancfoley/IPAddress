@@ -1948,6 +1948,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public IPv6AddressSection getHostMask() {
+		return (IPv6AddressSection) super.getHostMask();
+	}
+
+	@Override
+	public IPv6AddressSection getNetworkMask() {
+		return (IPv6AddressSection) super.getNetworkMask();
+	}
+
+	@Override
 	public IPv6AddressSection getNetworkSection() {
 		if(isPrefixed()) {
 			return getNetworkSection(getNetworkPrefixLength());

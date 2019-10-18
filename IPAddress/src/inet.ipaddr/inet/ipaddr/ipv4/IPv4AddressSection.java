@@ -1408,6 +1408,16 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
+	public IPv4AddressSection getHostMask() {
+		return (IPv4AddressSection) super.getHostMask();
+	}
+
+	@Override
+	public IPv4AddressSection getNetworkMask() {
+		return (IPv4AddressSection) super.getNetworkMask();
+	}
+
+	@Override
 	public IPv4AddressSection getNetworkSection() {
 		if(isPrefixed()) {
 			return getNetworkSection(getNetworkPrefixLength());
