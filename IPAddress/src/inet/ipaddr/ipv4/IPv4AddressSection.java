@@ -1038,23 +1038,29 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPv4AddressSection toZeroHost() throws IncompatibleAddressException {
 		if(!isPrefixed()) {
-			IPv4Address networkMask = getNetwork().getNetworkMask(0, !getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+			IPv4AddressNetwork network = getNetwork();
+			PrefixConfiguration config = network.getPrefixConfiguration();
+			IPv4Address networkMask = network.getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			if(config.zeroHostsAreSubnets()) {
+				networkMask = networkMask.getLower();
+			}
 			return networkMask.getSection(0, getSegmentCount());
 		}
 		if(includesZeroHost() && isSingleNetwork()) {
 			return getLower();//cached
 		}
-		return createZeroHost();
+		return createZeroHost(false);
 	}
 
-	IPv4AddressSection createZeroHost() {
+	IPv4AddressSection createZeroHost(boolean boundariesOnly) {
 		int prefixLength = getNetworkPrefixLength();//we know it is prefixed here so no NullPointerException
-		IPv4Address mask = getNetwork().getNetworkMask(prefixLength);
+		IPv4AddressNetwork network = getNetwork();
+		IPv4Address mask = network.getNetworkMask(prefixLength);
 		return getSubnetSegments(
 				this,
-				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getNetworkPrefixLength(),
+				network.getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,
 				getAddressCreator(),
-				false,
+				!boundariesOnly,
 				this::getSegment,
 				i -> mask.getSegment(i).getLowerSegmentValue(),
 				true);
@@ -1076,6 +1082,28 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				true);
 	}
 	
+	@Override
+	public IPv4AddressSection toZeroNetwork() {
+		if(!isPrefixed()) {
+			IPv4Address hostMask = getNetwork().getHostMask(getBitCount());
+			return hostMask.getSection(0, getSegmentCount());
+		}
+		return createZeroNetwork();
+	}
+	
+	IPv4AddressSection createZeroNetwork() {
+		int prefixLength = getNetworkPrefixLength();
+		IPv4Address mask = getNetwork().getHostMask(prefixLength);
+		return getSubnetSegments(
+				this,
+				prefixLength,
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue(),
+				true);
+	}
+
 	@Override
 	public IPv4AddressSection toMaxHost() throws IncompatibleAddressException {
 		if(!isPrefixed()) {

@@ -603,9 +603,15 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address toZeroHost() {
+		return toZeroHost(false);
+	}
+	
+	@Override
+	protected IPv4Address toZeroHost(boolean boundariesOnly) {
 		if(!isPrefixed()) {
-			PrefixConfiguration config = getNetwork().getPrefixConfiguration();
-			IPv4Address addr = getNetwork().getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			IPv4AddressNetwork network = getNetwork();
+			PrefixConfiguration config = network.getPrefixConfiguration();
+			IPv4Address addr = network.getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
 			if(config.zeroHostsAreSubnets()) {
 				addr = addr.getLower();
 			}
@@ -614,7 +620,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		if(includesZeroHost() && isSingleNetwork()) {
 			return getLower();//cached
 		}
-		return checkIdentity(getSection().createZeroHost());
+		return checkIdentity(getSection().createZeroHost(boundariesOnly));
 	}
 
 	@Override
@@ -623,6 +629,14 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 			return toZeroHost();
 		}
 		return checkIdentity(getSection().toZeroHost(prefixLength));
+	}
+
+	@Override
+	public IPv4Address toZeroNetwork() {
+		if(!isPrefixed()) {
+			return getNetwork().getHostMask(getBitCount());
+		}
+		return checkIdentity(getSection().createZeroNetwork());
 	}
 
 	@Override

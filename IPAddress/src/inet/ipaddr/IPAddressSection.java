@@ -1268,6 +1268,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract IPAddressSection toZeroHost(int prefixLength);
 	
 	@Override
+	public abstract IPAddressSection toZeroNetwork();
+	
+	@Override
 	public abstract IPAddressSection toMaxHost();
 
 	@Override

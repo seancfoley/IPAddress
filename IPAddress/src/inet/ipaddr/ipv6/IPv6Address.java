@@ -1277,9 +1277,15 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address toZeroHost() {
+		return toZeroHost(false);
+	}
+
+	@Override
+	protected IPv6Address toZeroHost(boolean boundariesOnly) {
 		if(!isPrefixed()) {
-			PrefixConfiguration config = getNetwork().getPrefixConfiguration();
-			IPv6Address addr = getNetwork().getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			IPv6AddressNetwork network = getNetwork();
+			PrefixConfiguration config = network.getPrefixConfiguration();
+			IPv6Address addr = network.getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
 			if(config.zeroHostsAreSubnets()) {
 				addr = addr.getLower();
 			}
@@ -1288,7 +1294,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(includesZeroHost() && isSingleNetwork()) {
 			return getLower();//cached
 		}
-		return checkIdentity(getSection().createZeroHost());
+		return checkIdentity(getSection().createZeroHost(boundariesOnly));
 	}
 
 	@Override
@@ -1297,6 +1303,14 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return toZeroHost();
 		}
 		return checkIdentity(getSection().toZeroHost(prefixLength));
+	}
+
+	@Override
+	public IPv6Address toZeroNetwork() {
+		if(!isPrefixed()) {
+			return getNetwork().getHostMask(getBitCount());
+		}
+		return checkIdentity(getSection().createZeroNetwork());
 	}
 
 	@Override

@@ -28,6 +28,7 @@ import java.util.function.IntUnaryOperator;
 import inet.ipaddr.Address;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressPositionException;
 import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressValueException;
@@ -1649,23 +1650,29 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	@Override
 	public IPv6AddressSection toZeroHost() throws IncompatibleAddressException {
 		if(!isPrefixed()) {
-			IPv6Address networkMask = getNetwork().getNetworkMask(0, !getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
+			IPv6AddressNetwork network = getNetwork();
+			PrefixConfiguration config = network.getPrefixConfiguration();
+			IPv6Address networkMask = network.getNetworkMask(0, !config.allPrefixedAddressesAreSubnets());
+			if(config.zeroHostsAreSubnets()) {
+				networkMask = networkMask.getLower();
+			}
 			return networkMask.getSection(0, getSegmentCount());
 		}
 		if(includesZeroHost() && isSingleNetwork()) {
 			return getLower();//cached
 		}
-		return createZeroHost();
+		return createZeroHost(false);
 	}
 	
-	IPv6AddressSection createZeroHost() {
+	IPv6AddressSection createZeroHost(boolean boundariesOnly) {
 		int prefixLength = getNetworkPrefixLength();
-		IPv6Address mask = getNetwork().getNetworkMask(prefixLength);
+		IPv6AddressNetwork network = getNetwork();
+		IPv6Address mask = network.getNetworkMask(prefixLength);
 		return getSubnetSegments(
 				this,
-				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getNetworkPrefixLength(),
+				network.getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : prefixLength,
 				getAddressCreator(),
-				false,
+				!boundariesOnly,
 				this::getSegment,
 				i -> mask.getSegment(i).getLowerSegmentValue(),
 				true);
@@ -1680,6 +1687,28 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return getSubnetSegments(
 				this,
 				null,
+				getAddressCreator(),
+				false,
+				this::getSegment,
+				i -> mask.getSegment(i).getLowerSegmentValue(),
+				true);
+	}
+	
+	@Override
+	public IPv6AddressSection toZeroNetwork() {
+		if(!isPrefixed()) {
+			IPv6Address hostMask = getNetwork().getHostMask(getBitCount());
+			return hostMask.getSection(0, getSegmentCount());
+		}
+		return createZeroNetwork();
+	}
+	
+	IPv6AddressSection createZeroNetwork() {
+		int prefixLength = getNetworkPrefixLength();
+		IPv6Address mask = getNetwork().getHostMask(prefixLength);
+		return getSubnetSegments(
+				this,
+				prefixLength,
 				getAddressCreator(),
 				false,
 				this::getSegment,
