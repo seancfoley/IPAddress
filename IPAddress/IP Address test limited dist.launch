@@ -13,6 +13,6 @@
     </listAttribute>
     <booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="false"/>
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="inet.ipaddr.test.TestRunner"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="fast performance"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="limited"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="IPAddress"/>
 </launchConfiguration>
