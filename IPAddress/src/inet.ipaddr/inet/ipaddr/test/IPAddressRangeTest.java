@@ -4774,6 +4774,12 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testZeroHost("1.2.*.1/16", allPrefixesAreSubnets ? "1.2.0.0" : "1.2.0.0/16");
 		testZeroHost("1.*.*.1/16", allPrefixesAreSubnets ? "1.*.0.0" : "1.*.0.0/16");
 		
+		testZeroNetwork("1.*.0.0/16", "0.0.0.0/16");
+		testZeroNetwork("1.2.*.*/16", "0.0.*.*/16");
+		testZeroNetwork("1.*.*.*/16", "0.0.*.*/16");
+		testZeroNetwork("1.2.*.1/16", allPrefixesAreSubnets ? "0.0.0.0/16" : "0.0.*.1/16");
+		testZeroNetwork("1.*.*.1/16", allPrefixesAreSubnets ? "0.0.0.0/16" : "0.0.*.1/16");
+		
 		testMaxHost("1:*::ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:*::ffff:ffff:ffff:ffff" : "1:*::ffff:ffff:ffff:ffff/64");
 		testMaxHost("1:2::ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:2::ffff:ffff:ffff:ffff" : "1:2::ffff:ffff:ffff:ffff/64");
 		testMaxHost("1:*::*:*:*:*/64", allPrefixesAreSubnets ? "1:*::ffff:ffff:ffff:ffff" : "1:*::ffff:ffff:ffff:ffff/64");
@@ -4799,6 +4805,22 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testZeroHost("1:2:*/64", allPrefixesAreSubnets ? "1:2:*:*::" : "1:2:*:*::/64");
 		testZeroHost("1:2:3:4:*:1/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
 		testZeroHost("1:*:1/64", allPrefixesAreSubnets ? "1:*:*:*::" : "1:*:*:*::/64");
+		
+		testZeroNetwork("1:*::/64", "::/64");
+		testZeroNetwork("1:2::/64", "::/64");
+		testZeroNetwork("1:*::*:*:*:*/64", "::*:*:*:*/64");
+		testZeroNetwork("1:2::*:*:*:*/64", "::*:*:*:*/64");
+		testZeroNetwork("1:2::*:*:*:1/64", "::*:*:*:1/64");
+		testZeroNetwork("1:*:1/64", "::*:*:*:1/64");
+		testZeroNetwork("::/0", "::/0");
+		testZeroNetwork("*:*/0", "*:*/0");
+		testZeroNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", "::/128");
+		
+		testZeroNetwork("1:2:3:4::/64", "::/64");
+		testZeroNetwork("1:2:3:4:*/64", "0:0:0:0:*/64");
+		testZeroNetwork("1:2:*/64", "0:0:0:0:*/64");
+		testZeroNetwork("1:2:3:4:*:1/64", "0:0:0:0:*:1/64");
+		testZeroNetwork("1:*:1/64", "0:0:0:0:*:1/64");
 		
 		testPrefixBlocks("1.2.*.*", false, false);
 		testPrefixBlocks("1.2.3.*", false, false);

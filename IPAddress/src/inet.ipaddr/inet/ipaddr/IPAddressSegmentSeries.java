@@ -348,11 +348,11 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	IPAddressSegmentSeries incrementBoundary(long increment);
 
 	/**
-	 * Returns the segment series with a host of zero.
+	 * Returns the segment series with a host of zero, the host being the bits following the prefix length.
 	 * If the series has no prefix length, then it returns an all-zero series.
 	 * <p>
-	 * The resultant series will have the same prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is not {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}, 
-	 * otherwise it will no longer have a prefix length.
+	 * The default behaviour is that the resultant series will have the same prefix length.
+	 * The resultant series will not have a prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}. 
 	 * <p>
 	 * For instance, you can get the network address for a subnet as follows:
 	 * <code>
@@ -360,6 +360,8 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * IPAddress address = new IPAddressString(addrStr).getAddress();
 	 * IPAddress networkAddress = address.toZeroHost(); //1.2.0.0
 	 * </code>
+	 * 
+	 * @see #toZeroNetwork()
 	 * 
 	 * @return
 	 */
@@ -386,6 +388,19 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 */
 	IPAddressSegmentSeries toZeroHost(int prefixLength);
 
+	/**
+	 * Returns the segment series with a network of zero, the network being the bits within the prefix length.
+	 * If the series has no prefix length, then it returns an all-zero series.
+	 * <p>
+	 * The default behaviour is that the resultant series will have the same prefix length.
+	 * The resultant series will not have a prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}. 
+	 * <p>
+	 * @see #toZeroHost()
+	 * 
+	 * @return
+	 */
+	IPAddressSegmentSeries toZeroNetwork();
+	
 	/**
 	 * Returns whether the series has a host of zero.  If the series has no prefix length, or the prefix length matches the bit count, then returns false.
 	 * 

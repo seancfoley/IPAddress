@@ -2160,6 +2160,8 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	// gets host address, then creates a second ip addr to match the original and gets host address that way
+	// then checks that they match
 	void testReverseHostAddress(String str) {
 		IPAddressString addrStr = createAddress(str);
 		IPAddress addr = addrStr.getAddress();
@@ -2637,6 +2639,28 @@ public class IPAddressTest extends TestBase {
 		}
 		if(!Objects.equals(transformedHost.getNetworkPrefixLength(), specialHost.getNetworkPrefixLength())) {
 			addFailure(new Failure("prefix length mismatch " + transformedHost.getNetworkPrefixLength() + " and " + specialHost.getNetworkPrefixLength(), addr));
+		}
+		incrementTestCount();
+	}
+	
+	public void testZeroNetwork(String addrString, String zeroNetworkString) {
+		IPAddressString string = createAddress(addrString);
+		IPAddressString string2 = createAddress(zeroNetworkString);
+		IPAddress addr = string.getAddress();
+		IPAddress zeroNetwork = string2.getAddress();
+		IPAddress transformedNetwork = addr.toZeroNetwork();
+		if(!zeroNetwork.equals(transformedNetwork)) {
+			//if(!prefixConfiguration.zeroHostsAreSubnets() && !zeroNetwork.equals(transformedNetwork)) {
+			addFailure(new Failure("mismatch " + zeroNetwork + " with network " + transformedNetwork, addr));
+		}
+		//if(!prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+			IPAddressSection networkSection = transformedNetwork.getNetworkSection();
+			if(networkSection.getSegmentCount() > 0 && !networkSection.isZero()) {
+				addFailure(new Failure("non-zero network " + networkSection, addr));
+			}
+		//}
+		if(!Objects.equals(transformedNetwork.getNetworkPrefixLength(), zeroNetwork.getNetworkPrefixLength())) {
+			addFailure(new Failure("network prefix length mismatch " + transformedNetwork.getNetworkPrefixLength() + " and " + zeroNetwork.getNetworkPrefixLength(), addr));
 		}
 		incrementTestCount();
 	}
@@ -5618,6 +5642,15 @@ public class IPAddressTest extends TestBase {
 		testZeroHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
 		testZeroHost("1:2:3:4:5:6:7:8/128", allPrefixesAreSubnets ? "1:2:3:4:5:6:7:8" : "1:2:3:4:5:6:7:8/128");
 
+		testZeroNetwork("1.2.3.4", "0.0.0.0");
+		testZeroNetwork("1.2.0.0/16", "0.0.0.0/16");
+		
+		testZeroNetwork("1:2:3:4:5:6:7:8", "::");
+		testZeroNetwork("1:2::/64", "::/64");
+		testZeroNetwork("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "::/64" : "::5:6:7:8/64");
+		testZeroNetwork("1:2:3:4:5:6:7:8/128", "::/128");
+
+		
 		testPrefixBlocks("1.2.3.4", false, false);
 		testPrefixBlocks("1.2.3.4/16", allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("1.2.0.0/16", isAutoSubnets, isAutoSubnets);

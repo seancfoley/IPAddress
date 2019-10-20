@@ -139,6 +139,13 @@ import inet.ipaddr.mac.MACAddress;
  * An IPAddressString object represents a single IP address representation that cannot be changed after construction.
  * Some of the derived state is created upon demand and cached, such as the derived IPAddress instances.
  * <p>
+ * This class has a few methods with analogs in IPAddress, such as {@link #contains(IPAddressString)}, {@link #getSequentialRange()},
+ * {@link #prefixEquals(IPAddressString)}, {@link #isIPv4()}, and {@link #isIPv6()}.
+ * Such methods are provided to make creating the IPAddress instance unnecessary when no such IPAddress instance is needed for other reasons.  
+ * <p>
+ * For some methods, like {@link #getSequentialRange()} and {@link #getDivisionGrouping()},
+ * there might not even be an associated IPAddress due to IncompatibleAddressException.  
+ * However, this is generally only the case with subnets that have non-standard and unusual formats or masks.
  * 
  * @custom.core
  * @author sfoley
@@ -885,15 +892,20 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		validate();
 		return addressProvider.getProviderSeqRange();
 	}
-	
+
 	/**
-	 * If this address string was constructed from a host address with prefix, 
-	 * then this provides just the host address, rather than the address with the prefix
-	 * provided by {@link #toAddress()} that incorporates the prefix.
+	 * If this address string was constructed from a string comprising of a host address with prefix length or mask, 
+	 * then this provides just the host address, rather than the address with the prefix or mask applied that is
+	 * provided by {@link #toAddress()}.
 	 * <p>
-	 * Otherwise this returns the same object as {@link #toAddress()}
+	 * Otherwise this returns the same object as {@link #toAddress()}.
 	 * <p>
 	 * This method throws exceptions for invalid formats, the equivalent method {@link #getHostAddress()} will simply return null in such cases.
+	 * <p>
+	 * If this instance of IPAddressString did not originate from a string, but from an IPAddress, 
+	 * then this will return an address that parses from a string to the same IPAddress (with prefix length added to the string if necessary to match).
+	 * <p>
+	 * This method is is intended to operate on the string that is wrapped by IPAddressString (visible from {@link #toString()})
 	 * <p>
 	 * @return
 	 */

@@ -220,7 +220,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
 				return IPAddressProvider.getProviderFor(this, withoutPrefixLength()); 
 			}
-			return IPAddressProvider.getProviderFor(this, toZeroHost());
+			return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLength());
 		}
 		return IPAddressProvider.getProviderFor(this, this);
 	}
@@ -1074,6 +1074,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	@Override
 	public abstract IPAddress toZeroHost();
+	
+	protected abstract IPAddress toZeroHost(boolean boundariesOnly);
+	
+	@Override
+	public abstract IPAddress toZeroNetwork();
 	
 	@Override
 	public abstract IPAddress toMaxHost(int prefixLength);

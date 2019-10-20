@@ -572,7 +572,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 					seg  = segProducer.apply(i);
 					maskValue = segmentMaskProducer.applyAsInt(i);
-					
 					value = seg.getSegmentValue();
 					upperValue = seg.getUpperSegmentValue();
 					if(verifyMask) {
@@ -1708,6 +1707,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 
 	@Override
 	public abstract IPAddressSection toZeroHost(int prefixLength);
+	
+	@Override
+	public abstract IPAddressSection toZeroNetwork();
 	
 	@Override
 	public abstract IPAddressSection toMaxHost();
