@@ -102,6 +102,7 @@ C Maven
 The signing will create a batch file to do the signing.  Running gpg directly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
 
 7. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
+You may need to run "sudo -i" first.
 
 8. Remove the batch file sign.bat.  Create the bundle bundle.jar using build.xml to "create maven bundle".
 
