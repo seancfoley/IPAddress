@@ -846,7 +846,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * IPv6 addresses in mixed IPv6/IPv4 format, compressed IPv6 addresses, IPv6 addresses expressed as a single segment, 
 	 * IPv4 addresses in inet_aton form with fewer than 4 segments, and IPv4 or IPv6 addresses in which multiple segments are covered by the '*' wildcard.
 	 * <p>
-	 * The returned types is either IPAddressDivisionGrouping or IPAddressLargeDivisionGrouping in cases where one of the divisions is 64 bits or large.
+	 * The returned type is either IPAddressDivisionGrouping or IPAddressLargeDivisionGrouping.  It is IPAddressLargeDivisionGrouping in cases where one of the divisions is 64 bits or large.
 	 * This does not return instances of IPAddress, for that you should call {@link #getAddress()} or {@link #toAddress()}
 	 * <p>
 	 * This can be useful for parsing formats that do not convert directly to a single instance of IPAddress, 
@@ -855,7 +855,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * 
 	 * @return
 	 */
-	public IPAddressDivisionSeries toDivisionGrouping() throws AddressStringException {
+	public IPAddressDivisionSeries toDivisionGrouping() throws AddressStringException, IncompatibleAddressException {
 		validate();
 		return addressProvider.getDivisionGrouping();
 	}
