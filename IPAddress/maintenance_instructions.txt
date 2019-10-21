@@ -93,7 +93,7 @@ which allows you to select the branch.
 This creates the tag as well (but does not create a branch).  The tags have the format vx.x.x
 Add the dist jar from (2) to the release.  
 The source code zip and tar files are automatically created by github.
-
+If something goes wrong, move the tag: https://stackoverflow.com/questions/8044583/how-can-i-move-a-tag-on-a-git-branch-to-a-different-commit
 
 C Maven
 
