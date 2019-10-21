@@ -109,7 +109,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	/**
 	 * Constructs a host name from an InetSocketAddress.
 	 * 
-	 * @param inetAddr
+	 * @param inetSocketAddr
 	 */
 	public HostName(InetSocketAddress inetSocketAddr) {
 		InetAddress inetAddr = inetSocketAddr.getAddress();
@@ -138,7 +138,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	/**
 	 * Constructs a host name from an InterfaceAddress.
 	 * 
-	 * @param inetAddr
+	 * @param interfaceAddr
 	 */
 	public HostName(InterfaceAddress interfaceAddr) {
 		this(interfaceAddr.getAddress(), (int) interfaceAddr.getNetworkPrefixLength());

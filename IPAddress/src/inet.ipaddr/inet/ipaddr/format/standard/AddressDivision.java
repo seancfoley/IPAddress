@@ -360,7 +360,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	 * Any network mask must eliminate the entire division range or keep the entire range.  Any host mask is fine.
 	 * 
 	 * @param maskValue
-	 * @param segmentPrefixLength
 	 * @return
 	 */
 	public boolean isMaskCompatibleWithRange(int maskValue) {
@@ -383,7 +382,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	 * @param value
 	 * @param upperValue
 	 * @param maskValue
-	 * @return an instance that provides the result of masking the values.  With individual addresses, the result is simply value & maskValue.
+	 * @return an instance that provides the result of masking the values.  With individual addresses, the result is simply value &amp; maskValue.
 	 *   But with subnets, returns an object providing lower and upper results along with whether the resulting set of values is sequential.
 	 */
 	public static MaskResult maskRange(long value, long upperValue, long maskValue) {
@@ -439,7 +438,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	 * Similar to masking, checks that the range resulting from the bitwise "or" operation is sequential.
 	 * 
 	 * @param maskValue
-	 * @param segmentPrefixLength
 	 * @return
 	 */
 	public boolean isBitwiseOrCompatibleWithRange(int maskValue) {
@@ -462,7 +460,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	 * See {@link #maskRange(long, long, long)}
 	 * 
 	 * @param maskValue
-	 * @param segmentPrefixLength
 	 * @return
 	 */
 	public static BitwiseOrResult bitwiseOrRange(long value, long upperValue, long maskValue) {

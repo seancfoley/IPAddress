@@ -806,7 +806,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * Since not all IPAddressString instances describe a sequential series of addresses, 
 	 * this does not necessarily match the exact set of addresses specified by the string.  
-	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 -> 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
+	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 to 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
 	 * <p>
 	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
 	 * Otherwise, the range includes addresses not specified by the address string.
@@ -865,7 +865,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * Since not all IPAddressString instances describe a sequential series of addresses, 
 	 * this does not necessarily match the exact set of addresses listed by the string.  
-	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 -> 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
+	 * For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 to 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
 	 * <p>
 	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
 	 * Otherwise, the range includes addresses not specified by the address string.
