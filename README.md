@@ -24,7 +24,9 @@ Version | Notes
 
 Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.org/) / [**JavaScript**](https://www.npmjs.com/) and [**Go**](https://golang.org/).
 
-## Add to Intellij Project
+## Getting Started
+
+### Add to Intellij Project
 
 1. Click File from the toolbar
 1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
@@ -36,73 +38,82 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
 1. Enter "ipaddress" into search bar, search
 1. After waiting for Intellij to locate ipaddress on maven, select the ipaddress version you prefer
 
+### Add to Eclipse Project
 
-## Getting Started
+1. From the toolbar click Window -> Show View -> Other
+1. In the Show View window, open Maven -> Maven Repositories
+1. In the window that appears, under "Global Repositories", right-click on "central (http://repo.maven.apache.org/maven2)" and select "Rebuild Index"
+1. It will take a while to build the index
+1. Once indexing is complete, if the project is not a Maven project, in the package explorer view, right-click on the project name -> configure -> convert to Maven project
+1. In the package explorer view, right-click on the project name -> Maven -> Add Dependency 
+1. In group name, type "com.github.seancfoley", in artifact, type "ipaddress"
+
 
 ### Java
 
 starting with address or subnet strings
-
-    String ipv6Str = "::/64";
-    String ipv4Str = "1.2.255.4/255.255.0.0";
-    try {
-        IPAddress ipv6Address = new IPAddressString(ipv6Str).toAddress();
-        IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
+```java
+String ipv6Str = "::/64";
+String ipv4Str = "1.2.255.4/255.255.0.0";
+try {
+	IPAddress ipv6Address = new IPAddressString(ipv6Str).toAddress();
+	IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
         // use addresses
-    } catch (AddressStringException e) {
-        String msg = e.getMessage();//detailed message indicating improper format in address string
-        // handle improperly formatted address string
-    }
-    
+} catch (AddressStringException e) {
+	String msg = e.getMessage();//detailed message indicating improper format in address string
+	// handle improperly formatted address string
+}
+```
 starting with host name strings
-
-    String hostPortStr = "[a:b:c:d:e:f:a:b]:8080";
-	String hostServiceStr = "a.b.com:service";
-	String hostAddressStr = "1.2.3.4";
-	String dnsStr = "a.b.com";
-	try {
-	    HostName host = new HostName(hostPortStr);
-	    InetSocketAddress socketAddress = host.asInetSocketAddress();
-	    // use socket address
+```java
+String hostPortStr = "[a:b:c:d:e:f:a:b]:8080";
+String hostServiceStr = "a.b.com:service";
+String hostAddressStr = "1.2.3.4";
+String dnsStr = "a.b.com";
+try {
+	HostName host = new HostName(hostPortStr);
+	InetSocketAddress socketAddress = host.asInetSocketAddress();
+	// use socket address
 	        
-	    host = new HostName(hostServiceStr);
-	    socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null);
-	    // use socket address
+	host = new HostName(hostServiceStr);
+	socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null);
+	// use socket address
 	        
-	    host = new HostName(hostAddressStr);
-	    IPAddress address = host.asAddress(); // does not resolve
-	    // use address
+	host = new HostName(hostAddressStr);
+	IPAddress address = host.asAddress(); // does not resolve
+	// use address
 	        
-	    host = new HostName(dnsStr);
-	    address = host.toAddress(); // resolves if necessary
-	    // use address
+	host = new HostName(dnsStr);
+	address = host.toAddress(); // resolves if necessary
+	// use address
 	        
-	} catch (HostNameException | UnknownHostException e) {
-	    String msg = e.getMessage();
-	    // handle improperly formatted host name or address string
-	}
-
+} catch (HostNameException | UnknownHostException e) {
+	String msg = e.getMessage();
+	// handle improperly formatted host name or address string
+}
+```
 ### Kotlin
 
 starting with address or subnet strings, using exceptions for invalid formats
-
-    val ipv6Str = "a:b:c:d::a:b/64"
-    try {
-        val ipv6AddressStr = IPAddressString(ipv6Str)
-        val ipv6Addr = ipv6AddressStr.toAddress()
-        // use address
-        println(ipv6Addr) // a:b:c:d::a:b/64
-    } catch(e: AddressStringException) {
-        // handle improperly formatted address string
-        println(e.message)
-    }
-    
+```kotlin
+val ipv6Str = "a:b:c:d::a:b/64"
+try {
+	val ipv6AddressStr = IPAddressString(ipv6Str)
+	val ipv6Addr = ipv6AddressStr.toAddress()
+	// use address
+	println(ipv6Addr) // a:b:c:d::a:b/64
+} catch(e: AddressStringException) {
+	// handle improperly formatted address string
+	println(e.message)
+}
+```
  starting with address or subnet strings, using nullable types and safe calls to handle invalid or unexpected formats
- 
-    val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112"
-    val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
-    val ipAddr: IPAddress? = ipv6v4AddressStr.address
-    println(ipAddr) // a:b:c:d:e:f:102:304/112
-    
-    val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
-    println(ipv4Addr) // 1.2.3.4/16
+```kotlin
+val ipv6v4Str = "a:b:c:d:e:f:1.2.3.4/112"
+val ipv6v4AddressStr = IPAddressString(ipv6v4Str)
+val ipAddr: IPAddress? = ipv6v4AddressStr.address
+println(ipAddr) // a:b:c:d:e:f:102:304/112
+
+val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
+println(ipv4Addr) // 1.2.3.4/16
+```
