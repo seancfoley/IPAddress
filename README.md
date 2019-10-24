@@ -44,9 +44,11 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
 1. In the Show View window, open Maven -> Maven Repositories
 1. In the window that appears, under "Global Repositories", right-click on "central (http://repo.maven.apache.org/maven2)" and select "Rebuild Index"
 1. It will take a while to build the index
+
 1. Once indexing is complete, if the project is not a Maven project, in the package explorer view, right-click on the project name -> configure -> convert to Maven project
 1. In the package explorer view, right-click on the project name -> Maven -> Add Dependency 
-1. In group name, type "com.github.seancfoley", in artifact, type "ipaddress"
+1. In the search box halfway down, type "ipaddress"
+1. After waiting for Eclipse to locate ipaddress in the index, select the ipaddress version you prefer, click OK
 
 
 ### Java
