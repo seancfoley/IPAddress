@@ -20,7 +20,7 @@ Version | Notes
 [v2.0.2](https://github.com/seancfoley/IPAddress/releases/tag/v2.0.2) | Requires Java 8 or higher
 [v3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0) | Requires Java 8 or higher, features MAC address support, EUI-48 and EUI-64 MAC integration with IPv6, new address framework, new IP string formats parsed and produced, and other additions
 [v4.3.1](https://github.com/seancfoley/IPAddress/releases/tag/v4.3.0) | Requires Java 8 or higher.  Features new prefix length handling.  IPv4-network/IPv6-subnet-router-anycast/zero-host addresses are interpreted as the prefix block subnet, while other prefixed addresses are individual addresses. There exists the option to preserve the version 3 behaviour.  Version 4.2.0 has additional methods for managing prefix blocks.  Version 4.3 features improved parsing performance and a change to increment(long) behaviour for subnets.
-**[Latest Version v5.1.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.1.0)** | Requires Java 8 or higher.  Support for Java 9, 10, 11 JPMS modules - the code is compiled with Java 8 but provides a Java 9 compiled module-info.class file.  Compatible with Android using Android API level 24 or higher.  [Delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690) when using Android or other Java 8 environments.  Version 5 features the addition of IPAddress sequential range classes IP\*AddressSeqRange, the reorganization of classes and interfaces in inet.ipaddr.format package to standard, large, and string subpackages, enhanced address block splitting and merging functionality, and the improved parsing performance introduced with version 4.3.0.  Additional parsing options.  Other enhancements listed on the [releases page](https://github.com/seancfoley/IPAddress/releases/tag/v5.0.0)
+**[Latest Version v5.1.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.1.0)** | Requires Java 8 or higher.  Support for Java 9, 10, 11 JPMS modules - the code is compiled with Java 8 but provides a Java 9 compiled module-info.class file.  Compatible with Android using Android API level 26 or higher.  [Delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690) when using Android or other Java 8 environments.  Version 5 features the addition of IPAddress sequential range classes IP\*AddressSeqRange, the reorganization of classes and interfaces in inet.ipaddr.format package to standard, large, and string subpackages, enhanced address block splitting and merging functionality, and the improved parsing performance introduced with version 4.3.0.  Additional parsing options.  Other enhancements listed on the [releases page](https://github.com/seancfoley/IPAddress/releases/tag/v5.0.0)
 
 Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.org/) / [**JavaScript**](https://www.npmjs.com/) and [**Go**](https://golang.org/).
 
@@ -37,6 +37,26 @@ Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.o
 1. From Maven...
 1. Enter "ipaddress" into search bar, search
 1. After waiting for Intellij to locate ipaddress on maven, select the ipaddress version you prefer
+
+### Add to Android Studio 3.5 Project
+
+First Open your project's build.gradle.  Add maven central to the end of the list of repositories, as shown:
+```allprojects {
+    repositories {
+        google()
+        jcenter()
+        mavenCentral()
+    }
+}
+```
+1. Click File from the toolbar
+1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
+1. Select Modules in the left panel, and app under modules, in the dialogs for Source and Target Compatibility choose 1.8 (Java 8)
+1. Select Dependencies at the left panel, and app under modules
+1. Select '+' under Declared Dependencies
+1. Choose Library Dependency
+1. In the Add Library Dependency dialog, enter "ipaddress" into search bar, search 
+1. After waiting for Android Studio to locate ipaddress on maven, select the ipaddress version you prefer
 
 ### Add to Eclipse Project
 
