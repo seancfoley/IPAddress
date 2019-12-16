@@ -19,8 +19,11 @@
 package inet.ipaddr;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import inet.ipaddr.format.AddressDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 
 /**
  * Represents a series of address segments, each of equal byte size, the byte size being a whole number of bytes.
@@ -32,13 +35,6 @@ import inet.ipaddr.format.AddressDivisionSeries;
  *
  */
 public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComponent {
-	
-	/**
-	 * Returns the network object for series of the same version (eg IPv4, IPv6 and MAC each have their own network object)
-	 * @return
-	 */
-	AddressNetwork<?> getNetwork();
-	
 	/**
 	 * Returns the number of segments in this series.
 	 * @return
@@ -160,13 +156,14 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	@Override
 	Iterable<? extends AddressSegmentSeries> getIterable();
 	
-	/**
-	 * Iterates through the individual segment series.
-	 * 
-	 * The resulting elements will not have an assigned prefix.
-	 */
 	@Override
 	Iterator<? extends AddressSegmentSeries> iterator();
+
+	@Override
+	AddressComponentSpliterator<? extends AddressSegmentSeries> spliterator();
+
+	@Override
+	Stream<? extends AddressSegmentSeries> stream();
 
 	/**
 	 * Iterates through the individual prefixes.
@@ -176,6 +173,13 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	Iterator<? extends AddressSegmentSeries> prefixIterator();
 
 	/**
+	 * Partitions and traverses through the individual prefixes for the prefix length of this series.
+	 * 
+	 * @return
+	 */
+	AddressComponentSpliterator<? extends AddressSegmentSeries> prefixSpliterator();
+
+	/**
 	 * Iterates through the individual prefix blocks.
 	 * 
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
@@ -183,9 +187,44 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	Iterator<? extends AddressSegmentSeries> prefixBlockIterator();
 
 	/**
+	 * Returns a sequential stream of the individual prefixes for the prefix length of this series.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends AddressSegmentSeries> prefixStream();
+
+	/**
+	 * Partitions and traverses through the individual prefix blocks for the prefix length of this series.
+	 * 
+	 * @return
+	 */
+	AddressComponentSpliterator<? extends AddressSegmentSeries> prefixBlockSpliterator();
+
+	/**
+	 * Returns a sequential stream of the individual prefix blocks for the prefix length of this series.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends AddressSegmentSeries> prefixBlockStream();
+	
+	/**
 	 * Iterates through the individual segments.
 	 */
 	Iterator<? extends AddressSegment[]> segmentsIterator();
+
+	/**
+	 * Partitions and traverses through the individual segment arrays.
+	 * 
+	 * @return
+	 */
+	AddressComponentRangeSpliterator<? extends AddressSegmentSeries, ? extends AddressSegment[]> segmentsSpliterator();
+
+	/**
+	 * Returns a sequential stream of the individual segment arrays.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends AddressSegment[]> segmentsStream();
 
 	/**
 	 * Returns the series from the subnet that is the given increment upwards into the subnet range, with the increment of 0
@@ -290,24 +329,27 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries toPrefixBlock();
 
 	/**
-	 * Removes the prefix length while zeroing out the existing host.
+	 * Removes the prefix length while zeroing out the existing host bits.
 	 * <p>
 	 * If the series already has a prefix length, the bits outside the prefix become zero.
+	 * Use {@link #withoutPrefixLength()} to remove the prefix length without changing the series values.
 	 * <p>
 	 * Equivalent to calling removePrefixLength(true)
-	 * @see #withoutPrefixLength() for an alternative which never changes the address value
+	 * @see #withoutPrefixLength() for an alternative which does not change the address series values.
 	 * 
 	 * @return
 	 */
 	AddressSegmentSeries removePrefixLength();
 
 	/**
-	 * Provides the same address with no prefix.
+	 * Provides the same address with no prefix.  The values remain unchanged.
+	 * <p>
+	 * Use {@link #removePrefixLength()} as an alternative that deletes the host at the same time by zeroing the host values. 
 	 */
 	AddressSegmentSeries withoutPrefixLength();
 	
 	/**
-	 * Removes the prefix length.
+	 * Removes the prefix length.   If zeroed is false, the bits that were host bits do not become zero, unlike {@link #removePrefixLength()}
 	 * 
 	 * @param zeroed whether the bits outside the prefix become zero
 	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
@@ -362,17 +404,16 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * Sets the prefix length.
 	 * <p>
 	 * If this series has a prefix length, and the prefix length is increased, the bits moved within the prefix become zero.
+	 * For an alternative that does not set bits to zero, use {@link #setPrefixLength(int, boolean)} with the second argument as false.
 	 * <p>
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
 	 * <p>
 	 * The bits that move from one side of the prefix length to the other (ie bits moved into the prefix or outside the prefix) are zeroed.
 	 *
-	 * @see #applyPrefixLength(int)
 	 * @param prefixLength
 	 * @return
 	 */
 	AddressSegmentSeries setPrefixLength(int prefixLength);
-	
 
 	/**
 	 * Sets the prefix length.
@@ -394,9 +435,11 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * <p>
 	 * The bits moved outside the prefix will become zero in the returned series.
 	 *
+	 * @deprecated use #setPrefixLength(int)
 	 * @see #setPrefixLength(int)
 	 * @param prefixLength
 	 * @return
 	 */
+	@Deprecated
 	AddressSegmentSeries applyPrefixLength(int prefixLength);
 }

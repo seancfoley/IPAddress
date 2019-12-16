@@ -20,12 +20,16 @@ package inet.ipaddr.ipv4;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.function.Function;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.standard.AddressCreator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 
@@ -35,11 +39,11 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
  *
  */
 public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<IPv4Address> {
-	
+
 	private static final long serialVersionUID = 1L;
 
 	private static final IPv4AddressSeqRange EMPTY[] = {};
-				
+		
 	public IPv4AddressSeqRange(IPv4Address first, IPv4Address second) {
 		super(
 			first,
@@ -47,29 +51,29 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 			IPv4Address::getLower,
 			IPv4Address::getUpper,
 			IPv4Address::withoutPrefixLength);
-		if(!first.getNetwork().equals(second.getNetwork())) {
+		if(!first.getNetwork().isCompatible(second.getNetwork())) {
 			throw new NetworkMismatchException(first, second);
 		}
 	}
-	
+
 	private IPv4AddressSeqRange(IPAddress first, IPAddress second) {
 		super(first, second);
 	}
-	
+
 	@Override
 	public IPv4Address getLower() {
 		return (IPv4Address) super.getLower();
 	}
-	
+
 	@Override
 	public IPv4Address getUpper() {
 		return (IPv4Address) super.getUpper();
 	}
-	
+
 	private IPv4AddressCreator getAddressCreator() {
 		return getLower().getNetwork().getAddressCreator();
 	}
-	
+
 	/**
 	 * Equivalent to {@link #getCount()} but returns a long
 	 * 
@@ -78,7 +82,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public long getIPv4Count() {
 		return getUpper().longValue() - getLower().longValue() + 1;
 	}
-	
+
 	/**
 	 * Equivalent to {@link #getPrefixCount(int)} but returns a long
 	 * 
@@ -97,17 +101,17 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		long lowerAdjusted = getLower().longValue() >>> shiftAdjustment;
 		return upperAdjusted - lowerAdjusted + 1;
 	}
-	
+
 	@Override
 	protected BigInteger getCountImpl() {
 		return BigInteger.valueOf(getIPv4Count());
 	}
-	
+
 	@Override
 	public BigInteger getPrefixCount(int prefixLength) {
 		return BigInteger.valueOf(getIPv4PrefixCount(prefixLength));
 	}
-	
+
 	@Override
 	public Iterable<IPv4Address> getIterable() {
 		return this;
@@ -135,6 +139,36 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	}
 	
 	@Override
+	public AddressComponentRangeSpliterator<IPv4AddressSeqRange, IPv4Address> spliterator() {
+		int segmentCount = getLower().getSegmentCount();
+		IPv4AddressCreator creator = getAddressCreator();
+		int networkSegIndex = segmentCount - 1;
+		int hostSegIndex = segmentCount;
+		return createSpliterator(this,
+				sink -> {
+					IPv4AddressSeqRange range = sink.getAddressItem();
+					return split(
+						sink,
+						(segsLower, segsUpper) -> new IPv4AddressSeqRange(
+								creator.createAddressInternal(segsLower),
+								creator.createAddressInternal(segsUpper)),
+						creator,
+						range.getLower().getSection().getSegmentsInternal(),
+						range.getUpper().getSection().getSegmentsInternal(),
+						networkSegIndex,
+						hostSegIndex,
+						null);
+				},
+				(lowest, highest, range) -> range.iterator(),
+				IPv4AddressSeqRange::getIPv4Count);
+	}
+
+	@Override
+	public Stream<IPv4Address> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
+	@Override
 	public Iterator<IPv4Address> prefixBlockIterator(int prefLength) {
 		if(prefLength < 0) {
 			throw new PrefixLenException(prefLength);
@@ -142,6 +176,20 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		IPv4Address lower = getLower();
 		IPv4Address upper = getUpper();
 		AddressCreator<IPv4Address, ?, ?, IPv4AddressSegment> creator = getAddressCreator();
+		int bitsPerSegment = lower.getBitsPerSegment();
+		int bytesPerSegment = lower.getBytesPerSegment();
+		int segCount = lower.getSegmentCount();
+		Integer prefLengths[] = new Integer[segCount];
+		int shifts[] = new int[segCount];
+		for(int i = 0; i < segCount; i++) {
+			Integer segPrefLength = ParsedAddressGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, prefLength, i);
+			prefLengths[i] = segPrefLength;
+			if(segPrefLength != null) {
+				shifts[i] = bitsPerSegment - segPrefLength;
+			}
+		}
+		int networkSegIndex = getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment);
+		int hostSegIndex = getHostSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment);
 		return iterator(
 				lower,
 				upper,
@@ -149,17 +197,17 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 				IPv4Address::getSegment,
 				(seg, segIndex) -> seg.iterator(),
 				(addr1, addr2, index) -> {
-					Integer segPrefLength = ParsedAddressGrouping.getPrefixedSegmentPrefixLength(IPv4Address.BITS_PER_SEGMENT, prefLength, index);
+					Integer segPrefLength = prefLengths[index];
 					if(segPrefLength == null) {
 						return addr1.getSegment(index).getSegmentValue() == addr2.getSegment(index).getSegmentValue();
 					}
-					int shift = IPv4Address.BITS_PER_SEGMENT - segPrefLength;
+					int shift = shifts[index];
 					return addr1.getSegment(index).getSegmentValue() >>> shift == addr2.getSegment(index).getSegmentValue() >>> shift;
 				},
-				getNetworkSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT),
-				getHostSegmentIndex(prefLength, IPv4Address.BYTES_PER_SEGMENT, IPv4Address.BITS_PER_SEGMENT),
+				networkSegIndex,
+				hostSegIndex,
 				(seg, index) -> {
-					Integer segPrefLength = ParsedAddressGrouping.getPrefixedSegmentPrefixLength(IPv4Address.BITS_PER_SEGMENT, prefLength, index);
+					Integer segPrefLength = prefLengths[index];
 					if(segPrefLength == null) {
 						return seg.iterator();
 					}
@@ -167,10 +215,89 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 				});
 	}
 
+	@Override
+	public AddressComponentRangeSpliterator<IPv4AddressSeqRange, IPv4Address> prefixBlockSpliterator(int prefLength) {
+		if(prefLength < 0) {
+			throw new PrefixLenException(prefLength);
+		}
+		IPv4Address lower = getLower();
+		int bitsPerSegment = lower.getBitsPerSegment();
+		int bytesPerSegment = lower.getBytesPerSegment();
+		IPv4AddressCreator creator = getAddressCreator();
+		Integer prefixLength = IPv4AddressSection.cacheBits(prefLength);
+		int networkSegIndex = getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		int hostSegIndex = getHostSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		return createSpliterator(
+				this,
+				sink -> {
+					IPv4AddressSeqRange range = sink.getAddressItem();
+					return split(
+						sink,
+						(segsLower, segsUpper) -> new IPv4AddressSeqRange(
+								creator.createAddressInternal(segsLower),
+								creator.createAddressInternal(segsUpper)),
+						creator,
+						range.getLower().getSection().getSegmentsInternal(),
+						range.getUpper().getSection().getSegmentsInternal(),
+						networkSegIndex,
+						hostSegIndex,
+						prefixLength);
+				},
+				(isLowest, isHighest, range) -> range.prefixBlockIterator(prefLength),
+				range -> range.getIPv4PrefixCount(prefLength));
+	}
+
+	@Override
+	public Stream<IPv4Address> prefixBlockStream(int prefLength) {
+		return StreamSupport.stream(prefixBlockSpliterator(prefLength), false);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4AddressSeqRange> prefixIterator(int prefixLength) {
 		return (Iterator<IPv4AddressSeqRange>) super.prefixIterator(prefixLength);
+	}
+
+	@Override
+	public Stream<IPv4AddressSeqRange> prefixStream(int prefLength) {
+		return StreamSupport.stream(prefixSpliterator(prefLength), false);
+	}
+
+	@Override
+	public AddressComponentSpliterator<IPv4AddressSeqRange> prefixSpliterator(int prefLength) {
+		if(prefLength < 0) {
+			throw new PrefixLenException(prefLength);
+		}
+		IPv4Address lower = getLower();
+		int bitsPerSegment = lower.getBitsPerSegment();
+		int bytesPerSegment = lower.getBytesPerSegment();
+		IPv4AddressCreator creator = getAddressCreator();
+		Integer prefixLength = IPv4AddressSection.cacheBits(prefLength);
+		int networkSegIndex = getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		int hostSegIndex = getHostSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		return createPrefixSpliterator(
+				this,
+				sink -> {
+					IPv4AddressSeqRange range = sink.getAddressItem();
+					return split(
+						sink,
+						(segsLower, segsUpper) -> new IPv4AddressSeqRange(
+								creator.createAddressInternal(segsLower),
+								creator.createAddressInternal(segsUpper)),
+						creator,
+						range.getLower().getSection().getSegmentsInternal(),
+						range.getUpper().getSection().getSegmentsInternal(),
+						networkSegIndex,
+						hostSegIndex,
+						prefixLength);
+				},
+				(isLowest, isHighest, range) -> (isLowest || isHighest) ? range.prefixIterator(prefLength) : rangedIterator(range.prefixBlockIterator(prefLength)),
+				range -> range.getIPv4PrefixCount(prefLength));
+	}
+
+	@Override
+	public IPv4Address coverWithPrefixBlock() {
+		return getLower().coverWithPrefixBlock(getUpper());
 	}
 
 	@Override
@@ -182,7 +309,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv4Address[] spanWithSequentialBlocks() {
 		return getLower().spanWithSequentialBlocks(getUpper());
 	}
-	
+
 	@Override
 	public int getMinPrefixLengthForBlock() {
 		int result = getBitCount();
@@ -196,7 +323,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		}
 		return result;
 	}
-	
+
 	@Override
 	public Integer getPrefixLengthForSingleBlock() {
 		int divPrefix = getMinPrefixLengthForBlock();

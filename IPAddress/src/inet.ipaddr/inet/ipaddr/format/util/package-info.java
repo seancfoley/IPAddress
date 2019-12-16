@@ -18,7 +18,7 @@
 
 
 /**
- * For writing different formats of address strings and creating collections of address strings.
+ * Contains utility classes such as collections, spliterators, and String-writers.
  * <p>
  *
  * @author sfoley

@@ -20,6 +20,11 @@ package inet.ipaddr;
 
 import inet.ipaddr.format.AddressItem;
 
+/**
+ * Thrown when two different networks in use by the same address object are in conflict.
+ * @author User
+ *
+ */
 public class NetworkMismatchException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;

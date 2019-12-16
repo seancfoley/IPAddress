@@ -19,6 +19,8 @@
 package inet.ipaddr.ipv6;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
@@ -29,6 +31,7 @@ import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
@@ -133,6 +136,10 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	@Override
 	public int getMaxSegmentValue() {
 		return getMaxSegmentValue(IPVersion.IPV6);
+	}
+	
+	protected IPv6AddressSegment toPrefixNormalizedSeg() {
+		return getSegmentCreator().createSegment(getSegmentValue(), getUpperSegmentValue(), IPv6AddressSection.cacheBits(getBitCount()));
 	}
 	
 	protected IPv6AddressSegment toPrefixedSegment(Integer segmentPrefixLength) {
@@ -244,19 +251,59 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	Iterator<IPv6AddressSegment> iterator(boolean withPrefix) {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false, false);
+		IPv6AddressSegment original;
+		if(!withPrefix && isPrefixed() && !isMultiple()) {
+			original = withoutPrefixLength();
+		} else {
+			original = this;
+		}
+		return iterator(original, getSegmentCreator(), withPrefix ? getSegmentPrefixLength() : null, false, false);
 	}
 	
 	@Override
 	public Iterator<IPv6AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false, false);
+		return iterator(!getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
 	}
 	
 	@Override
-	public Iterator<IPv6AddressSegment> prefixBlockIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, true);
+	public AddressComponentSpliterator<IPv6AddressSegment> spliterator() {
+		IPv6AddressCreator creator = getSegmentCreator();
+		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		Integer segPrefLength = isAllSubnets ? null : getSegmentPrefixLength();
+		int bitCount = getBitCount();
+		return createSegmentSpliterator(
+				this,
+				getSegmentValue(),
+				getUpperSegmentValue(),
+				this::iterator,
+				(isLowest, isHighest, value, upperValue) -> iterator(null, value, upperValue, bitCount, creator, segPrefLength, false, false),
+				(value, upperValue) -> creator.createSegment(value, upperValue, segPrefLength));
 	}
 	
+	@Override
+	public Stream<IPv6AddressSegment> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
+	@Override
+	public Iterator<IPv6AddressSegment> prefixBlockIterator() {
+		return iterator(this, getSegmentCreator(), getSegmentPrefixLength(), true, true);
+	}
+	
+	@Override
+	public AddressComponentSpliterator<IPv6AddressSegment> prefixBlockSpliterator() {
+		Integer segPrefLength = getSegmentPrefixLength();
+		if(segPrefLength == null) {
+			return spliterator();
+		}
+		return prefixBlockSpliterator(segPrefLength);
+	}
+	
+	@Override
+	public Stream<IPv6AddressSegment> prefixBlockStream() {
+		return StreamSupport.stream(prefixBlockSpliterator(), false);
+	}
+
 	Iterator<IPv6AddressSegment> identityIterator() {
 		return identityIterator(this);
 	}
@@ -266,14 +313,46 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 		if(prefixLength < 0) {
 			throw new PrefixLenException(prefixLength);
 		}
-		return iterator(this, getSegmentCreator(), false, IPv6AddressSection.cacheBits(prefixLength), true, true);
+		return iterator(this, getSegmentCreator(), IPv6AddressSection.cacheBits(prefixLength), true, true);
 	}
 	
 	@Override
-	public Iterator<IPv6AddressSegment> prefixIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, false);
+	public AddressComponentSpliterator<IPv6AddressSegment> prefixBlockSpliterator(int segPrefLength) {
+		return prefixBlockSpliterator(
+				this,
+				segPrefLength,
+				getSegmentCreator(),
+				this::prefixBlockIterator);
 	}
 	
+	@Override
+	public Stream<IPv6AddressSegment> prefixBlockStream(int segPrefLength) {
+		return StreamSupport.stream(prefixBlockSpliterator(segPrefLength), false);
+	}
+
+	@Override
+	public Iterator<IPv6AddressSegment> prefixIterator() {
+		return iterator(this, getSegmentCreator(), getSegmentPrefixLength(), true, false);
+	}
+	
+	@Override
+	public AddressComponentSpliterator<IPv6AddressSegment> prefixSpliterator() {
+		Integer segPrefLength = getSegmentPrefixLength();
+		if(segPrefLength == null) {
+			return spliterator();
+		}
+		return prefixSpliterator(
+				this,
+				segPrefLength,
+				getSegmentCreator(),
+				this::prefixIterator);
+	}
+	
+	@Override
+	public Stream<IPv6AddressSegment> prefixStream() {
+		return StreamSupport.stream(prefixSpliterator(), false);
+	}
+
 	@Override
 	public int getBitCount() {
 		return IPv6Address.BITS_PER_SEGMENT;

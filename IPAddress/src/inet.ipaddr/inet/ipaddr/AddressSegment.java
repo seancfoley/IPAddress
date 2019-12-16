@@ -20,8 +20,10 @@ package inet.ipaddr;
 
 
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import inet.ipaddr.format.AddressGenericDivision;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 
 /**
  * Represents a single segment of an address.
@@ -48,9 +50,6 @@ import inet.ipaddr.format.AddressGenericDivision;
  *
  */
 public interface AddressSegment extends AddressComponent, AddressGenericDivision {
-
-	AddressNetwork<?> getNetwork();
-	
 	/**
 	 * @return the same value as {@link #getCount()} as an integer
 	 */
@@ -60,51 +59,57 @@ public interface AddressSegment extends AddressComponent, AddressGenericDivision
 	 * returns the lower value
 	 */
 	int getSegmentValue();
-	
+
 	/**
 	 * returns the upper value
 	 */
 	int getUpperSegmentValue();
-	
+
 	/**
 	 * If this segment represents a range of values, returns a segment representing just the lowest value in the range, otherwise returns this.
 	 * @return
 	 */
 	@Override
 	AddressSegment getLower();
-	
+
 	/**
 	 * If this segment represents a range of values, returns a segment representing just the highest value in the range, otherwise returns this.
 	 * @return
 	 */
 	@Override
 	AddressSegment getUpper();
-	
+
 	@Override
 	AddressSegment reverseBits(boolean perByte);
-	
+
 	@Override
 	AddressSegment reverseBytes();
-	
+
 	@Override
 	Iterable<? extends AddressSegment> getIterable();
-	
+
 	@Override
-	Iterator<? extends AddressSegment> iterator();	
-	
+	Iterator<? extends AddressSegment> iterator();
+
+	@Override
+	AddressComponentSpliterator<? extends AddressSegment> spliterator();
+
+	@Override
+	Stream<? extends AddressSegment> stream();
+
 	boolean matches(int value);
-	
+
 	boolean matchesWithMask(int value, int mask);
 
 	boolean matchesWithMask(int lowerValue, int upperValue, int mask);
 
 	boolean contains(AddressSegment other);
-	
+
 	@Override
 	boolean equals(Object other);
-	
+
 	boolean prefixEquals(AddressSegment other, int prefixLength);
-	
+
 	/**
 	 * Gets the maximum possible value for this type of segment (for the highest range value of this particular segment, use {@link #getUpper()}
 	 * 

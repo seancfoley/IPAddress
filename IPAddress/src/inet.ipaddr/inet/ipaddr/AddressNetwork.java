@@ -186,6 +186,10 @@ public abstract class AddressNetwork<S extends AddressSegment> implements Serial
 		return defaultPrefixConfiguration;
 	}
 	
+	protected boolean isCompatible(AddressNetwork<?> other) {
+		return IPAddressSection.isCompatibleNetworks(this, other);
+	}
+	
 	/**
 	 * Generates and caches HostIdentifierString instances.  Choose a map of your choice to implement a cache of address string identifiers.
 	 * <p>

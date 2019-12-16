@@ -26,10 +26,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.IPAddressConverter.DefaultAddressConverter;
@@ -37,8 +37,10 @@ import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSection.SeriesCreator;
+import inet.ipaddr.IPAddressSection.TriFunction;
 import inet.ipaddr.format.IPAddressRange;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.sql.IPAddressSQLTranslator;
 import inet.ipaddr.format.validate.IPAddressProvider;
@@ -92,7 +94,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  *
  */
 public abstract class IPAddress extends Address implements IPAddressSegmentSeries, IPAddressRange {
-	
+
 	private static final long serialVersionUID = 4L;
 
 	/**
@@ -109,6 +111,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		
 		public boolean isIPv6() {
 			return this == IPV6;
+		}
+		
+		@Override
+		public String toString() {
+			return isIPv4() ? "IPv4" : "IPv6";
 		}
 	}
 
@@ -355,23 +362,60 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract Iterator<? extends IPAddress> iterator();
 	
 	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddress> spliterator();
+
+	@Override
+	public abstract Stream<? extends IPAddress> stream();
+
+	@Override
 	public abstract Iterator<? extends IPAddress> nonZeroHostIterator();
 
 	@Override
 	public abstract Iterator<? extends IPAddress> prefixIterator();
 
 	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddress> prefixSpliterator();
+
+	@Override
+	public abstract Stream<? extends IPAddress> prefixStream();
+		
+	@Override
 	public abstract Iterator<? extends IPAddress> prefixBlockIterator();
 
 	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddress> prefixBlockSpliterator();
+
+	@Override
+	public abstract Stream<? extends IPAddress> prefixBlockStream();
+		
+	@Override
 	public abstract Iterator<? extends IPAddress> blockIterator(int segmentCount);
+
+	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddress> blockSpliterator(int segmentCount);
+
+	@Override
+	public abstract Stream<? extends IPAddress> blockStream(int segmentCount);
+	
+	private int getSequentialDivisionIndex() {
+		return getSection().getSequentialDivisionIndex();
+	}
 	
 	@Override
 	public Iterator<? extends IPAddress> sequentialBlockIterator() {
-		int sequentialSegCount = getSection().getSequentialSegmentCount();
-		return blockIterator(sequentialSegCount);
+		return blockIterator(getSequentialDivisionIndex());
 	}
-	
+
+	@Override
+	public AddressComponentSpliterator<? extends IPAddress> sequentialBlockSpliterator() {
+		return blockSpliterator(getSequentialDivisionIndex());
+	}
+
+	@Override
+	public Stream<? extends IPAddress> sequentialBlockStream() {
+		return blockStream(getSequentialDivisionIndex());
+	}
+		
 	@Override
 	public BigInteger getSequentialBlockCount() {
 		return getSection().getSequentialBlockCount();
@@ -1124,7 +1168,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return result;
 		}
 		List<IPAddressSegmentSeries> blocks = 
-				IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, IPAddressSection::splitIntoPrefixBlocks);
+				IPAddressSection.applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, (orig, one, two) -> IPAddressSection.splitIntoPrefixBlocks(one, two));
 		return blocks.toArray(arrayProducer.apply(blocks.size()));
 	}
 	
@@ -1178,8 +1222,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			return result;
 		}
 		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
-		BiFunction<T, T, List<IPAddressSegmentSeries>> operatorFunctor = (one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
-		List<IPAddressSegmentSeries> blocks = IPAddressSection.getSpanningBlocks(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
+		TriFunction<T, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
+		List<IPAddressSegmentSeries> blocks = IPAddressSection.applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
 		return blocks.toArray(creator.createAddressArray(blocks.size()));
 	}
 	
@@ -1235,8 +1279,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		};
 		return seriesCreator;
 	}
-	
-	
+
 	/**
 	 * Returns the subnet associated with the prefix length of this address.  If this address has no prefix length, this address is returned.
 	 * <p>
@@ -1332,13 +1375,20 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	/**
+	 * Returns the minimal-size prefix block that covers all the addresses spanning from this subnet to the given subnet.
+	 * <p>
+	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 */
+	public abstract IPAddress coverWithPrefixBlock(IPAddress other) throws AddressConversionException;
+
+	/**
 	 * Produces the list of prefix block subnets that span from this subnet to the given subnet.
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
+	 * From the list of returned subnets you can recover the original range (this to other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * 
 	 * @param other
@@ -1602,6 +1652,32 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	@Override
 	public abstract IPAddress setPrefixLength(int prefixLength, boolean zeroed);
 	
+	/**
+	 * Sets the prefix length while allowing the caller to control whether bits moved in or out of the prefix become zero, 
+	 * and whether a zero host for the new prefix bits can be translated into a prefix block.  
+	 * The latter behaviour only applies to the default prefix handling configuration,
+	 * PREFIXED_ZERO_HOSTS_ARE_SUBNETS.  The methods  {@link #setPrefixLength(int, boolean)} and {@link #setPrefixLength(int)}
+	 * use a value of true for zeroed and for zeroHostIsBlock.
+	 * <p>
+	 * For example, when zeroHostIsBlock is true, applying to 1.2.0.0 the prefix length 16 results in 1.2.*.*&#2f;16 
+	 * <p>
+	 * Or if you start with 1.2.0.0&#2f;24, setting the prefix length to 16 results in 
+	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#2f;16
+	 * <p>
+	 * When both zeroed and zeroHostIsBlock are true, applying the prefiix length of 16 to 1.2.4.0&#2f;24 also results in 
+	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#2f;16.
+	 * <p>
+	 * When both zeroed and zeroHostIsBlock are false, the resulting address always encompasses the same set of addresses as the original,
+	 * albeit with a different prefix length.
+	 * 
+	 * @param prefixLength
+	 * @param zeroed
+	 * @param zeroHostIsBlock
+	 * @return
+	 */
+	public abstract IPAddress setPrefixLength(int prefixLength, boolean zeroed, boolean zeroHostIsBlock);
+	
+	@Deprecated
 	@Override
 	public abstract IPAddress applyPrefixLength(int networkPrefixLength);
 

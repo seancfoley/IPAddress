@@ -22,14 +22,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
+import inet.ipaddr.IPAddressSection.IPAddressSeqRangeSpliterator;
+import inet.ipaddr.IPAddressSection.IPAddressSeqRangePrefixSpliterator;
 import inet.ipaddr.IPAddressSection.SegFunction;
+import inet.ipaddr.IPAddressSection.SeqRangeIteratorProvider;
+import inet.ipaddr.format.AddressComponentRange;
 import inet.ipaddr.format.IPAddressRange;
 import inet.ipaddr.format.standard.AddressCreator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
@@ -142,15 +153,92 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 */
 	@Override
 	public abstract Iterator<? extends IPAddress> prefixBlockIterator(int prefLength);
+
+	@Override
+	public abstract AddressComponentRangeSpliterator<? extends IPAddressSeqRange, ? extends IPAddress> prefixBlockSpliterator(int prefLength);
+
+	@Override
+	public abstract Stream<? extends IPAddress> prefixBlockStream(int prefLength);
+
+	protected static interface IPAddressSeqRangeSplitterSink<S, T>{
+		void setSplitValues(S left, S right);
+		
+		S getAddressItem();
+	};
 	
+	@FunctionalInterface
+	protected static interface IPAddressSeqRangeIteratorProvider<S, T> extends SeqRangeIteratorProvider<S,T>{}
+	
+	protected static <S extends AddressComponentRange, T> AddressComponentRangeSpliterator<S, T> createSpliterator(
+			S forIteration,
+			Predicate<IPAddressSeqRangeSplitterSink<S, T>> splitter,
+			IPAddressSeqRangeIteratorProvider<S, T> iteratorProvider,
+			ToLongFunction<S> longSizer) {
+		return new IPAddressSeqRangeSpliterator<S, T>(forIteration, splitter, iteratorProvider, longSizer);
+	}
+	
+	protected static <S extends AddressComponentRange, T> AddressComponentRangeSpliterator<S, T> createSpliterator(
+			S forIteration,
+			Predicate<IPAddressSeqRangeSplitterSink<S, T>> splitter,
+			IPAddressSeqRangeIteratorProvider<S, T> iteratorProvider,
+			Function<S, BigInteger> sizer,
+			Predicate<S> downSizer,
+			ToLongFunction<S> longSizer) {
+		return new IPAddressSeqRangeSpliterator<S, T>(forIteration, splitter, iteratorProvider, sizer, downSizer, longSizer);
+	}
+
+	protected static <S extends AddressComponentRange> AddressComponentSpliterator<S> createPrefixSpliterator(
+			S forIteration,
+			Predicate<IPAddressSeqRangeSplitterSink<S, S>> splitter,
+			IPAddressSeqRangeIteratorProvider<S, S> iteratorProvider,
+			ToLongFunction<S> longSizer) {
+		return new IPAddressSeqRangePrefixSpliterator<S>(forIteration, splitter, iteratorProvider, longSizer);
+	}
+	
+	protected static <S extends AddressComponentRange> AddressComponentSpliterator<S> createPrefixSpliterator(
+			S forIteration,
+			Predicate<IPAddressSeqRangeSplitterSink<S, S>> splitter,
+			IPAddressSeqRangeIteratorProvider<S, S> iteratorProvider,
+			Function<S, BigInteger> sizer,
+			Predicate<S> downSizer,
+			ToLongFunction<S> longSizer) {
+		return new IPAddressSeqRangePrefixSpliterator<S>(forIteration, splitter, iteratorProvider, sizer, downSizer, longSizer);
+	}
+	
+	protected static <R,A extends IPAddress> Iterator<R> rangedIterator(Iterator<A> iter) {
+		return new Iterator<R>() {
+			@Override
+			public boolean hasNext() {
+				return iter.hasNext();
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public R next() {
+				return (R) iter.next().toSequentialRange();
+			}
+		};
+	}
+
 	/**
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
+	 * <p>
+	 * Since a range between two arbitrary addresses cannot always be represented with a single IPAddress instance,
+	 * the returned iterator iterates through IPAddressRange instances.
+	 * <p>
+	 * For instance, if iterating from 1.2.3.4 to 1.2.4.5 with prefix 8, the range shares the same prefix 1,
+	 * but the range cannot be represented by the address 1.2.3-4.4-5 which does not include 1.2.3.255 or 1.2.4.0 both of which are in the original range.
+	 * Nor can the range be represented by 1.2.3-4.0-255 which includes 1.2.4.6 and 1.2.3.3, both of which were not in the original range.
+	 * An IPAddressSeqRange is thus required to represent that prefixed range.
 	 * 
 	 * @param prefixLength
 	 * @return
 	 */
 	@Override
 	public Iterator<? extends IPAddressSeqRange> prefixIterator(int prefixLength) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
 		if(!isMultiple()) {
 			return new Iterator<IPAddressSeqRange>() {
 				IPAddressSeqRange orig = IPAddressSeqRange.this;
@@ -217,15 +305,107 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		    }
 		};
 	}
+
+	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddressSeqRange> prefixSpliterator(int prefLength);
 	
+	@Override
+	public abstract Stream<? extends IPAddressSeqRange> prefixStream(int prefLength);
+
 	@FunctionalInterface
 	protected interface SegValueComparator<T> {
 	    boolean apply(T segmentSeries1, T segmentSeries2, int index);
 	}
-	
+
+	/**
+	 * Splits a sequential range into two
+	 * <p>
+	 * Returns false if it cannot be done
+	 * 
+	 * @param beingSplit
+	 * @param transformer
+	 * @param segmentCreator
+	 * @param originalSegments
+	 * @param networkSegmentIndex if this index matches hostSegmentIndex, splitting will attempt to split the network part of this segment
+	 * @param hostSegmentIndex splitting will work with the segments prior to this one
+	 * @param prefixLength
+	 * @return
+	 */
+	protected static <I extends IPAddressSeqRange, T extends IPAddressRange, S extends AddressSegment> boolean split(
+			IPAddressSeqRangeSplitterSink<I, T> sink,
+			BiFunction<S[], S[], I> transformer,
+			AddressSegmentCreator<S> segmentCreator,
+			S originalSegmentsLower[],
+			S originalSegmentsUpper[],
+			int networkSegmentIndex, //for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1) - it is only instrumental with prefix iterators
+			int hostSegmentIndex, // for regular iterators hostSegmentIndex is past last segment (count) - it is only instrumental with prefix iterators
+			Integer prefixLength) {
+		int i = 0;
+		S lowerSeg, upperSeg;
+		lowerSeg = upperSeg = null;
+		boolean isSplit = false;
+		for(; i < hostSegmentIndex; i++) {
+			S segLower = originalSegmentsLower[i];
+			S segUpper = originalSegmentsUpper[i];
+			int lower = segLower.getSegmentValue();
+			int upper = segUpper.getSegmentValue();
+			// if multiple, split into two
+			if(lower != upper) {
+				isSplit = true;
+				int size = upper - lower;
+				int mid = lower + (size >>> 1);
+				lowerSeg = segmentCreator.createSegment(mid);
+				upperSeg = segmentCreator.createSegment(mid + 1);
+				break;
+			}
+		}
+		if(i == networkSegmentIndex && !isSplit) {
+			// prefix or prefix block iterators: no need to differentiate, handle both as prefix, iteration will handle the rest
+			S segLower = originalSegmentsLower[i];
+			S segUpper = originalSegmentsUpper[i];
+			int segBitCount = segLower.getBitCount();
+			Integer pref = IPAddressSection.getSegmentPrefixLength(segBitCount, prefixLength, i);
+			int shiftAdjustment = segBitCount - pref;
+			int lower = segLower.getSegmentValue();
+			int upper = segUpper.getSegmentValue();
+			lower >>>= shiftAdjustment;
+			upper >>>= shiftAdjustment;
+			if(lower != upper) {
+				isSplit = true;
+				int size = upper - lower;
+				int mid = lower + (size >>> 1);
+				int next = mid + 1;
+				mid = (mid << shiftAdjustment) | ~(~0 << shiftAdjustment);
+				next <<= shiftAdjustment;
+				lowerSeg = segmentCreator.createSegment(mid);
+				upperSeg = segmentCreator.createSegment(next);
+			}
+		}
+		if(isSplit) {
+			int len = originalSegmentsLower.length;
+			S lowerUpperSegs[] = segmentCreator.createSegmentArray(len);
+			S upperLowerSegs[] = segmentCreator.createSegmentArray(len);
+			System.arraycopy(originalSegmentsLower, 0, lowerUpperSegs, 0, i);
+			System.arraycopy(originalSegmentsLower, 0, upperLowerSegs, 0, i);
+			int j = i + 1;
+			lowerUpperSegs[i] = lowerSeg;
+			upperLowerSegs[i] = upperSeg;
+			Arrays.fill(lowerUpperSegs, j, lowerUpperSegs.length, segmentCreator.createSegment(lowerSeg.getMaxSegmentValue()));
+			Arrays.fill(upperLowerSegs, j, upperLowerSegs.length, segmentCreator.createSegment(0));
+			sink.setSplitValues(transformer.apply(originalSegmentsLower, lowerUpperSegs), transformer.apply(upperLowerSegs, originalSegmentsUpper));
+		}
+		return isSplit;
+	}
+
 	@Override
 	public abstract Iterator<? extends IPAddress> iterator();
+
+	@Override
+	public abstract AddressComponentRangeSpliterator<? extends IPAddressSeqRange, ? extends IPAddress> spliterator();
 	
+	@Override
+	public abstract Stream<? extends IPAddress> stream();
+
 	/*
 	 * This iterator is used for the case where the range is non-multiple
 	 */
@@ -282,7 +462,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		
 		// here is how the segment iterators will work:
 		// the low and high values at each segment are low, high
-		// the maximum possible valoues for any segment are min, max
+		// the maximum possible values for any segment are min, max
 		// we first find the first k >= 0 such that low != high for the segment at index k
 		
 		//	the initial set of iterators at each index are as follows:
@@ -297,7 +477,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		//	  	if i == 0 or of if flagged[i - 1] is true, we create a wrapped iterator from Seg(low, high), wrapper will set finalValue[i] once we reach the final value of the iterator
 		//      otherwise we create an iterator from Seg(min, max)
 		//
-		// By following these rules, we iterator through all possible addresses	
+		// By following these rules, we iterate through all possible addresses	
 		boolean notDiffering = true;
 		finalValue[0] = true;
 		S allSegShared = null;
@@ -434,6 +614,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return toCanonicalString();
 	}
 
+	@Override
+	public abstract IPAddress coverWithPrefixBlock();
+	
 	@Override
 	public abstract IPAddress[] spanWithPrefixBlocks();
 

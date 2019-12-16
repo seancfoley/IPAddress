@@ -633,14 +633,14 @@ public interface IPAddressProvider extends Serializable {
 
 		private IPAddress createVersionedMask(IPVersion version, int bits, boolean withPrefixLength) {
 			IPAddressNetwork<?, ?, ?, ?, ?> network = version.isIPv4() ? options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
-			return network.getNetworkMask(bits, withPrefixLength);
+			return withPrefixLength ? network.getNetworkAddress(bits) : network.getNetworkMask(bits, false);
 		}
-		
+
 		@Override
 		IPAddress createVersionedAddress(IPVersion version) {
 			return createVersionedMask(version, getProviderNetworkPrefixLength(), true);
 		}
-		
+
 		@Override
 		public IPAddressProvider.IPType getType() {
 			if(adjustedVersion != null) {

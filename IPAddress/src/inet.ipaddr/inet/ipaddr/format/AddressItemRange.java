@@ -18,38 +18,10 @@
 
 package inet.ipaddr.format;
 
-import java.util.Iterator;
-
-import inet.ipaddr.format.AddressItem;
-
-
-public interface AddressItemRange extends AddressItem {
-	/**
-	 * If this instance represents multiple address items, returns the one with the lowest numeric value.
-	 * 
-	 * @return
-	 */
-	AddressItem getLower();
-	
-	/**
-	 * If this instance represents multiple address items, returns the one with the highest numeric value.
-	 * 
-	 * @return
-	 */
-	AddressItem getUpper();
-	
-	/**
-	 * Useful for using an instance in a "for-each loop".  Otherwise just call {@link #iterator()} directly.
-	 * @return
-	 */
-	Iterable<? extends AddressItem> getIterable();
-
-	/**
-	 * Iterates through the individual elements of this address item.
-	 * <p>
-	 * Call {@link #isMultiple()} to determine if this instance represents multiple, or {@link #getCount()} for the count.
-	 * 
-	 * @return
-	 */
-	Iterator<? extends AddressItem> iterator();
-}
+/**
+ * 
+ * @author seancfoley
+ * @deprecated use AddressComponentRange
+ */
+@Deprecated 
+public interface AddressItemRange extends AddressItem {}

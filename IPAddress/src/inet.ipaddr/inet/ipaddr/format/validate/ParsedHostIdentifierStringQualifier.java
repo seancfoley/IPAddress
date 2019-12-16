@@ -59,8 +59,8 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 		this(null, null, zone, null, null);
 	}
 	
-	public ParsedHostIdentifierStringQualifier(CharSequence zone, Integer port) {
-		this(null, null, zone, port, null);
+	public ParsedHostIdentifierStringQualifier(CharSequence zone, int port) {
+		this(null, null, zone, cachePorts(port), null);
 	}
 	
 	public ParsedHostIdentifierStringQualifier(Integer networkPrefixLength, CharSequence zone) {
@@ -86,7 +86,10 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 		this.service = service;
 	}
 	
-	
+	private static Integer cachePorts(int i) {
+		return ParsedAddressGrouping.cache(i);
+	}
+
 	private void overrideMask(ParsedHostIdentifierStringQualifier other) {
 		if(other.mask != null) {
 			this.mask = other.mask;

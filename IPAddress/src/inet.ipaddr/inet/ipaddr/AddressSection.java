@@ -19,6 +19,9 @@
 package inet.ipaddr;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
+
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 
 /**
  * @author sfoley
@@ -100,6 +103,7 @@ public interface AddressSection extends AddressSegmentSeries {
 	@Override
 	AddressSection setPrefixLength(int prefixLength, boolean zeroed);
 
+	@Deprecated
 	@Override
 	AddressSection applyPrefixLength(int networkPrefixLength);
 
@@ -110,11 +114,29 @@ public interface AddressSection extends AddressSegmentSeries {
 	Iterator<? extends AddressSection> iterator();
 	
 	@Override
+	AddressComponentSpliterator<? extends AddressSection> spliterator();
+
+	@Override
+	Stream<? extends AddressSection> stream();
+
+	@Override
 	Iterator<? extends AddressSection> prefixIterator();
 	
 	@Override
+	AddressComponentSpliterator<? extends AddressSection> prefixSpliterator();
+
+	@Override
+	public abstract Stream<? extends AddressSection> prefixStream();
+
+	@Override
 	Iterator<? extends AddressSection> prefixBlockIterator();
 	
+	@Override
+	AddressComponentSpliterator<? extends AddressSection> prefixBlockSpliterator();
+
+	@Override
+	public abstract Stream<? extends AddressSection> prefixBlockStream();
+
 	@Override
 	AddressSection increment(long increment);
 

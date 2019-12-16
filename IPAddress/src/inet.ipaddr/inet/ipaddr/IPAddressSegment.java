@@ -19,14 +19,18 @@
 package inet.ipaddr;
 
 import java.util.Iterator;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.IPStringCache;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.format.standard.AddressDivision;
 import inet.ipaddr.format.standard.IPAddressDivision;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
 import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
@@ -190,14 +194,18 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		if(withPrefixLength != thisHasPrefix) {
 			return true;
 		}
-		if(hasBits && bits != getDivisionPrefixLength()) {
+		if(!hasBits || bits != getDivisionPrefixLength()) {
 			return true;
 		}
 		return
 			//this call differs from the host side.  On the host side, we check that the network portion is 0
 			//on the network side, we check that the host side is the full range, not 0.  
 			//This means that any resulting network section is the same regardless of whether a prefix is used: we don't need a prefix.
-			!hasBits || !containsPrefixBlock(bits);
+			!containsPrefixBlock(bits);
+	}
+	
+	protected boolean isNetworkChangedByPrefixNonNull(int prefixBitCount) {
+		return !isPrefixed() || prefixBitCount != getDivisionPrefixLength() || !containsPrefixBlock(prefixBitCount);
 	}
 	
 	/**
@@ -321,26 +329,150 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 
 	@Override
 	public abstract Iterator<? extends IPAddressSegment> iterator();
-	
+
+	@Override
+	public abstract AddressComponentSpliterator<? extends IPAddressSegment> spliterator();
+
+	@Override
+	public abstract Stream<? extends IPAddressSegment> stream();
+
 	/**
 	 * Iterates through the individual prefix blocks.
 	 * <p>
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
 	 */
 	public abstract Iterator<? extends IPAddressSegment> prefixBlockIterator();
-	
+
+	/**
+	 * Partitions and traverses through the individual prefix blocks of this segment for its prefix length.
+	 * 
+	 * @return
+	 */
+	public abstract AddressComponentSpliterator<? extends IPAddressSegment> prefixBlockSpliterator();
+
+	/**
+	 * Returns a sequential stream of the individual prefix blocks of this segment.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	public abstract Stream<? extends IPAddressSegment> prefixBlockStream();
+
 	/**
 	 * Iterates through the individual prefixes.
 	 * <p>
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
 	 */
 	public abstract Iterator<? extends IPAddressSegment> prefixIterator();
-	
+
+	/**
+	 * Partitions and traverses through the individual prefixes of this segment for its prefix length.
+	 * 
+	 * @return
+	 */
+	public abstract AddressComponentSpliterator<? extends IPAddressSegment> prefixSpliterator();
+
+	protected static <S extends IPAddressSegment> AddressComponentSpliterator<S> prefixSpliterator(
+			S seg, int segPrefLength,
+			IPAddressCreator<?, ?, ?, S, ?> creator,
+			Supplier<Iterator<S>> iteratorProvider) {
+		int bitCount = seg.getBitCount();
+		int shiftAdjustment = bitCount - segPrefLength;
+		int shiftMask, upperShiftMask;
+		if(shiftAdjustment > 0) {
+			shiftMask = ~0 << shiftAdjustment;
+			upperShiftMask = ~shiftMask;
+		} else {
+			shiftMask = ~0;
+			upperShiftMask = 0;
+		}
+		int originalValue = seg.getSegmentValue();
+		int originalUpperValue = seg.getUpperSegmentValue();
+		int originalValuePrefix = originalValue >>> shiftAdjustment;
+		int originalUpperValuePrefix = originalUpperValue >>> shiftAdjustment;
+		Integer segPrefixLength = IPAddressSection.cacheBits(segPrefLength);
+		IntBinaryIteratorProvider<S> subIteratorProvider = (isLowest, isHighest, value, upperValue) -> {
+			if(isLowest || isHighest) {
+				value = isLowest ? originalValue : value << shiftAdjustment;
+				upperValue = isHighest ?  originalUpperValue : ((upperValue << shiftAdjustment) | upperShiftMask);
+				return iterator(null, value, upperValue, bitCount, creator, segPrefixLength, true, false);
+			}
+			return iterator(null, value << shiftAdjustment, upperValue << shiftAdjustment, bitCount, creator, segPrefixLength, true, true);
+		};
+		return createSegmentSpliterator(
+				seg,
+				originalValuePrefix,
+				originalUpperValuePrefix,
+				iteratorProvider,
+				subIteratorProvider,
+				(value, upperValue) -> {
+					value = (value == originalValuePrefix) ? originalValue : value << shiftAdjustment;
+					upperValue = (upperValue == originalUpperValuePrefix) ? 
+							originalUpperValue : ((upperValue << shiftAdjustment) | upperShiftMask);
+					return creator.createSegment(value, upperValue, segPrefLength);
+				});
+	}
+
+	/**
+	 * Returns a sequential stream of the individual prefixes of this segment.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	public abstract Stream<? extends IPAddressSegment> prefixStream();
+
 	/**
 	 * Iterates through the individual prefix blocks according to the given segment prefix length.
 	 * Any existing prefix length is disregarded.
 	 */
 	public abstract Iterator<? extends IPAddressSegment> prefixBlockIterator(int prefixLength);
+	
+	protected static <S extends IPAddressSegment> AddressComponentSpliterator<S> prefixBlockSpliterator(
+			S seg, int segPrefLength,
+			IPAddressCreator<?, ?, ?, S, ?> creator,
+			Supplier<Iterator<S>> iteratorProvider) {
+		int bitCount = seg.getBitCount();
+		int shiftAdjustment = bitCount - segPrefLength;
+		int shiftMask, upperShiftMask;
+		if(shiftAdjustment > 0) {
+			shiftMask = ~0 << shiftAdjustment;
+			upperShiftMask = ~shiftMask;
+		} else {
+			shiftMask = ~0;
+			upperShiftMask = 0;
+		}
+		Integer segmentPrefixLength = IPAddressSection.cacheBits(segPrefLength);
+		return createSegmentSpliterator(
+				seg,
+				seg.getSegmentValue() >>> shiftAdjustment,
+				seg.getUpperSegmentValue() >>> shiftAdjustment,
+				iteratorProvider,
+				(isLowest, isHighest, value, upperValue) -> iterator(
+							null,
+							value << shiftAdjustment,
+							(upperValue << shiftAdjustment) | upperShiftMask,
+							bitCount,
+							creator,
+							segmentPrefixLength,
+							true,
+							true),
+				(value, upperValue) -> creator.createSegment(
+						value << shiftAdjustment,
+						(upperValue << shiftAdjustment) | upperShiftMask,
+						segmentPrefixLength));
+	}
+
+	/**
+	 * Partitions and traverses through the individual prefix blocks for the given prefix length.
+	 * 
+	 * @return
+	 */
+	public abstract AddressComponentSpliterator<? extends IPAddressSegment> prefixBlockSpliterator(int prefixLength);
+
+	/**
+	 * Returns a sequential stream of the individual prefix blocks for the given prefix length.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	public abstract Stream<? extends IPAddressSegment> prefixBlockStream(int prefixLength);
 
 	public static int getBitCount(IPVersion version) {
 		return version.isIPv4() ? IPv4Address.BITS_PER_SEGMENT : IPv6Address.BITS_PER_SEGMENT;
@@ -390,8 +522,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		if(prefixLength == null) {
 			return getValueCount();
 		}
-		int shiftAdjustment = getBitCount() - prefixLength;
-		return (getUpperSegmentValue() >>> shiftAdjustment) - (getSegmentValue() >>> shiftAdjustment) + 1;
+		return getPrefixValueCount(this, prefixLength);
 	}
 	
 	@Override

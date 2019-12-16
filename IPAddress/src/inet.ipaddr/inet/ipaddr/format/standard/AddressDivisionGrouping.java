@@ -25,7 +25,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -68,8 +70,6 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		int getLength(int segmentIndex);
 	}
 
-	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-	
 	/* caches objects to avoid recomputing them */
 	protected static class SectionCache<R extends AddressSegmentSeries> {
 		public R lower;
@@ -232,6 +232,44 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		}
 		return false;
 	}
+	
+	protected static long getLongCount(IntUnaryOperator countProvider, int segCount) {
+		if(segCount == 0) {
+			return 1;
+		}
+		long result = countProvider.applyAsInt(0);
+		for(int i = 1; i < segCount; i++) {
+			result *= countProvider.applyAsInt(i);
+		}
+		return result;
+	}
+
+	// note: only to be used when you already know the total size fits into a long
+	protected static <R extends AddressSection, S extends AddressSegment> long longPrefixCount(R section, int prefixLength) {
+		int bitsPerSegment = section.getBitsPerSegment();
+		int bytesPerSegment = section.getBytesPerSegment();
+		int networkSegmentIndex = getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		int hostSegmentIndex = getHostSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
+		boolean hasPrefixedSegment = (networkSegmentIndex == hostSegmentIndex);
+		return getLongCount(i -> {
+			if(hasPrefixedSegment && i == networkSegmentIndex) {
+				int segmentPrefixLength = getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, i);
+				return AddressDivision.getPrefixValueCount(section.getSegment(i), segmentPrefixLength);
+			}
+			return section.getSegment(i).getValueCount();
+		}, networkSegmentIndex + 1);
+	}
+
+	// note: only to be used when you already know the total size fits into a long
+	protected static <R extends AddressSection, S extends AddressSegment> long longCount(R section, int segCount) {
+		long result = getLongCount(i -> section.getSegment(i).getValueCount(), segCount);
+		return result;
+	}
+
+	// note: only to be used when you already know the total size fits into a long
+	protected static <R extends AddressSection, S extends AddressSegment> long longCount(R section) {//TODD do we use this?
+		return longCount(section, section.getSegmentCount());
+	}
 
 	protected static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
 		return ParsedAddressGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
@@ -341,14 +379,14 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			S segments[],
 			int segmentBitCount,
 			int segmentByteCount,
-			BiFunction<S, Integer, S> segProducer) {
+			Function<S, S> segProducer) {
 		//we've already verified segment prefixes in super constructor.  We simply need to check the case where the prefix is at a segment boundary,
 		//whether the network side has the correct prefix
 		int networkSegmentIndex = getNetworkSegmentIndex(sectionPrefixBits, segmentByteCount, segmentBitCount);
 		if(networkSegmentIndex >= 0) {
 			S segment = segments[networkSegmentIndex];
 			if(!segment.isPrefixed()) {
-				segments[networkSegmentIndex] = segProducer.apply(segment, segmentBitCount);
+				segments[networkSegmentIndex] = segProducer.apply(segment);
 			}
 		}
 	}
@@ -368,7 +406,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 				segments[i] = segProducer.apply(segments[i], pref);
 				if(allPrefsSubnet) {
 					if(++i < segments.length) {
-						S allSeg = segmentCreator.createSegment(0, 0);
+						S allSeg = segmentCreator.createSegment(0, cacheBits(0));
 						Arrays.fill(segments, i, segments.length, allSeg);
 					}
 				}
@@ -441,7 +479,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 				Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 				int value = segmentMask & (int) bytes;
 				S seg = creator.createSegment(value, segmentPrefixLength);
-				if(!network.equals(seg.getNetwork())) {
+				if(!isCompatibleNetworks(network, seg.getNetwork())) {
 					throw new NetworkMismatchException(seg);
 				}
 				segments[segmentIndex] = seg;
@@ -459,6 +497,10 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		return segments;
 	}
 	
+	protected static boolean isCompatibleNetworks(AddressNetwork<?> one, AddressNetwork<?> two) {
+		return one.getPrefixConfiguration().equals(two.getPrefixConfiguration());
+	}
+	
 	protected static <S extends AddressSegment> S[] createSegments(
 			S segments[],
 			SegmentValueProvider lowerValueProvider,
@@ -472,8 +514,8 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		for(int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
 			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 			if(segmentPrefixLength != null && segmentPrefixLength == 0 && network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-				S allSeg = creator.createSegment(0, 0);
-				if(!network.equals(allSeg.getNetwork())) {
+				S allSeg = creator.createSegment(0, cacheBits(0));
+				if(!isCompatibleNetworks(network, allSeg.getNetwork())) {
 					throw new NetworkMismatchException(allSeg);
 				}
 				Arrays.fill(segments, segmentIndex, segmentCount, allSeg);
@@ -492,7 +534,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			S seg = (lowerValueProvider != null && upperValueProvider != null) ? 
 					creator.createSegment(value, value2, segmentPrefixLength) : 
 						creator.createSegment(value, segmentPrefixLength);
-			if(!network.equals(seg.getNetwork())) {
+			if(!isCompatibleNetworks(network, seg.getNetwork())) {
 				throw new NetworkMismatchException(seg);
 			}
 			segments[segmentIndex] = seg;
@@ -565,8 +607,8 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		for(int i = 0, segmentIndex = 0; i < expectedByteCount; segmentIndex++) {
 			Integer segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 			if(allPrefixedAddressesAreSubnets && segmentPrefixLength != null && segmentPrefixLength == 0) {
-				S allSeg = creator.createSegment(0, 0);
-				if(!network.equals(allSeg.getNetwork())) {
+				S allSeg = creator.createSegment(0, cacheBits(0));
+				if(!isCompatibleNetworks(network, allSeg.getNetwork())) {
 					throw new NetworkMismatchException(allSeg);
 				}
 				Arrays.fill(segments, segmentIndex, segmentCount, allSeg);
@@ -596,7 +638,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			i = k;
 			
 			S seg = creator.createSegment(value, segmentPrefixLength);
-			if(!network.equals(seg.getNetwork())) {
+			if(!isCompatibleNetworks(network, seg.getNetwork())) {
 				throw new NetworkMismatchException(seg);
 			}
 			segments[segmentIndex] = seg;
@@ -732,15 +774,15 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 				int mod = bitCount % bitsPerDigit;
 				int secondLast = bitCount - mod;
 				if(secondLast > 0) {
-					bitDivs.add(secondLast);
+					bitDivs.add(cacheBits(secondLast));
 				}
 				if(mod > 0) {
-					bitDivs.add(mod);
+					bitDivs.add(cacheBits(mod));
 				}
 				break;
 			} else {
 				bitCount -= largestBitCount;
-				bitDivs.add(largestBitCount);
+				bitDivs.add(cacheBits(largestBitCount));
 			}
 		} while(true);
 		int bitDivSize = bitDivs.size();
@@ -794,6 +836,85 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			bitsSoFar += originalDivBitSize;
 		}
 		return divs;
+	}
+
+	/**
+	 * Splits a subnet into two
+	 * <p>
+	 * Returns false if it cannot be done
+	 * 
+	 * @param beingSplit
+	 * @param transformer
+	 * @param segmentCreator
+	 * @param originalSegments
+	 * @param networkSegmentIndex if this index matches hostSegmentIndex, splitting will attempt to split the network part of this segment
+	 * @param hostSegmentIndex splitting will work with the segments prior to this one
+	 * @param prefixLength
+	 * @return
+	 */
+	protected static <I extends AddressSegmentSeries, S extends AddressSegment> boolean split(
+			SplitterSink<I, ?> beingSplit,
+			Function<S[], I> transformer,
+			AddressSegmentCreator<S> segmentCreator,
+			S originalSegments[],
+			int networkSegmentIndex, //for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1) - it is only instrumental with prefix iterators
+			int hostSegmentIndex, // for regular iterators hostSegmentIndex is past last segment (count) - it is only instrumental with prefix iterators
+			Integer prefixLength) {
+		int i = 0;
+		S lowerSeg, upperSeg;
+		lowerSeg = upperSeg = null;
+		boolean isSplit = false;
+		for(; i < hostSegmentIndex; i++) {
+			S seg = originalSegments[i];
+			// if segment multiple, split into two
+			if(seg.isMultiple()) {
+				isSplit = true;
+				int lower = seg.getSegmentValue();
+				int upper = seg.getUpperSegmentValue();
+				int size = upper - lower;
+				int mid = lower + (size >>> 1);
+				Integer pref = getSegmentPrefixLength(seg.getBitCount(), prefixLength, i);
+				lowerSeg = segmentCreator.createSegment(lower, mid, pref);
+				upperSeg = segmentCreator.createSegment(mid + 1, upper, pref);
+				break;
+			}
+		}
+		if(i == networkSegmentIndex && !isSplit) {
+			// prefix or prefix block iterators: no need to differentiate, handle both as prefix, iteration will handle the rest
+			S seg = originalSegments[i];
+			int segBitCount = seg.getBitCount();
+			Integer pref = getSegmentPrefixLength(segBitCount, prefixLength, i);
+			int shiftAdjustment = segBitCount - pref;
+			int lower = seg.getSegmentValue();
+			int upper = seg.getUpperSegmentValue();
+			int originalLower = lower, originalUpper = upper;
+			lower >>>= shiftAdjustment;
+			upper >>>= shiftAdjustment;
+			if(lower != upper) {
+				isSplit = true;
+				int size = upper - lower;
+				int mid = lower + (size >>> 1);
+				int next = mid + 1;
+				mid = (mid << shiftAdjustment) | ~(~0 << shiftAdjustment);
+				next <<= shiftAdjustment;
+				lowerSeg = segmentCreator.createSegment(originalLower, mid, pref);
+				upperSeg = segmentCreator.createSegment(next, originalUpper, pref);
+			}
+		}
+		if(isSplit) {
+			int len = originalSegments.length;
+			S lowerSegs[] = segmentCreator.createSegmentArray(len);
+			S upperSegs[] = segmentCreator.createSegmentArray(len);
+			System.arraycopy(originalSegments, 0, lowerSegs, 0, i);
+			System.arraycopy(originalSegments, 0, upperSegs, 0, i);
+			int j = i + 1;
+			lowerSegs[i] = lowerSeg;
+			upperSegs[i] = upperSeg;
+			System.arraycopy(originalSegments, j, lowerSegs, j, len - j);
+			System.arraycopy(originalSegments, j, upperSegs, j, len - j);
+			beingSplit.setSplitValues(transformer.apply(lowerSegs), transformer.apply(upperSegs));
+		}
+		return isSplit;
 	}
 	
 	protected static <R extends AddressSection, S extends AddressSegment> Iterator<R> iterator(
@@ -849,6 +970,13 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		};
 	}
 	
+	protected static <T extends Address, S extends AddressSegment> T createIteratedAddress(
+			S next[],
+			AddressCreator<T, ?, ?, S> creator,
+			Integer prefixLength) {
+		return creator.createAddressInternal(next, prefixLength, true);
+	}
+
 	protected static <R extends AddressSection, S extends AddressSegment> R createIteratedSection(
 			S next[],
 			AddressCreator<?, R, ?, S> creator,
@@ -856,15 +984,16 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		return creator.createPrefixedSectionInternal(next, prefixLength, true);
 	}
 	
-	protected static <S extends AddressSegment> Iterator<S[]> iterator(
+	// this iterator function used by addresses and segment arrays, for iterators that are not prefix or prefix block iterators
+	protected static <S extends AddressSegment> Iterator<S[]> segmentsIterator(
 			int divCount,
 			AddressSegmentCreator<S> segmentCreator,
 			Supplier<S[]> segSupplier,
 			IntFunction<Iterator<S>> segIteratorProducer,
 			Predicate<S[]> excludeFunc) {
-		return iterator(divCount, segmentCreator, segSupplier, segIteratorProducer, excludeFunc, divCount - 1, divCount, null);
+		return segmentsIterator(divCount, segmentCreator, segSupplier, segIteratorProducer, excludeFunc, divCount - 1, divCount, null);
 	}
-	
+
 	/**
 	 * Used to produce regular iterators with or without zero-host values, and prefix block iterators
 	 * @param segmentCreator
@@ -873,10 +1002,10 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	 * @param excludeFunc
 	 * @param networkSegmentIndex
 	 * @param hostSegmentIndex
-	 * @param prefixedSegIteratorProducer
+	 * @param hostSegIteratorProducer used to produce prefix iterators for the the prefix and prefix block iterators, or identity iterators for the block iterators that only iterate through top segments
 	 * @return
 	 */
-	protected static <S extends AddressSegment> Iterator<S[]> iterator(
+	protected static <S extends AddressSegment> Iterator<S[]> segmentsIterator(
 			int divCount,
 			AddressSegmentCreator<S> segmentCreator,
 			Supplier<S[]> segSupplier,//provides the original segments in an array for a single valued iterator
@@ -884,7 +1013,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			Predicate<S[]> excludeFunc,
 			int networkSegmentIndex,
 			int hostSegmentIndex,
-			IntFunction<Iterator<S>> prefixedSegIteratorProducer) {
+			IntFunction<Iterator<S>> hostSegIteratorProducer) {
 		if(segSupplier != null) {
 			return new Iterator<S[]>() {
 				S result[] = segSupplier.get(); {
@@ -924,7 +1053,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 			private S nextSet[] = segmentCreator.createSegmentArray(divCount);  {
 				updateVariations(0);
 				for(int i = networkSegmentIndex + 1; i < divCount; i++) {//for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1)
-					variations[i] = prefixedSegIteratorProducer.apply(i);
+					variations[i] = hostSegIteratorProducer.apply(i);
 					nextSet[i] = variations[i].next();
 				}
 				if(excludeFunc != null && excludeFunc.test(nextSet)) {
@@ -939,7 +1068,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 					nextSet[i] = variations[i].next();
 				}
 				if(i == networkSegmentIndex) {
-					variations[i] = prefixedSegIteratorProducer.apply(i);
+					variations[i] = hostSegIteratorProducer.apply(i);
 					nextSet[i] = variations[i].next();
 				}
 			}
@@ -985,11 +1114,12 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	}
 
 	protected static <T extends Address, S extends AddressSegment> Iterator<T> iterator(
+			boolean useOriginal,
 			T original,
 			AddressCreator<T, ?, ?, S> creator,
 			Iterator<S[]> iterator, /* unused if original not null */
 			Integer prefixLength /* if the segments themselves do not have associated prefix length, one can be supplied here */) {
-		if(original != null) {
+		if(useOriginal) {
 			return new Iterator<T>() {
 				T orig = original;
 
@@ -1026,7 +1156,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		    		throw new NoSuchElementException();
 		    	}
 		    	S[] next = iterator.next();
-		    	return prefixLength != null ? creator.createAddressInternal(next, prefixLength, true) : creator.createAddressInternal(next); /* address creation */
+		    	return createIteratedAddress(next, creator, prefixLength);
 		    }
 		
 		    @Override
@@ -1291,7 +1421,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		S segs[] = creator.createSegmentArray(totalSegmentCount);
 		section.getSegments(0, segmentCount, segs, 0);
 		if(section.isPrefixed() && section.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-			S allSegment = creator.createSegment(0, 0);
+			S allSegment = creator.createSegment(0, cacheBits(0));
 			Arrays.fill(segs, segmentCount, totalSegmentCount, allSegment);
 		} else {
 			other.getSegments(0, otherSegmentCount, segs, segmentCount);
@@ -1320,7 +1450,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 							(getHostSegmentIndex(section.getPrefixLength(), section.getBytesPerSegment(), section.getBitsPerSegment()) < index) :
 							(getNetworkSegmentIndex(section.getPrefixLength(), section.getBytesPerSegment(), section.getBitsPerSegment()) < index)) && 
 					(isMac || index > 0)) { 
-				S allSegment = creator.createSegment(0, 0);
+				S allSegment = creator.createSegment(0, cacheBits(0));
 				Arrays.fill(segs, index, totalSegmentCount, allSegment);
 				return creator.createSectionInternal(segs);
 			}
@@ -1329,7 +1459,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 				if(replacement.isPrefixed() && section.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() && 
 						getNetworkSegmentIndex(replacement.getPrefixLength(), replacement.getBytesPerSegment(), replacement.getBitsPerSegment()) < replacementEndIndex && 
 						(isMac || otherSegmentCount > 0)) {
-					S allSegment = creator.createSegment(0, 0);
+					S allSegment = creator.createSegment(0, cacheBits(0));
 					Arrays.fill(segs, index + otherSegmentCount, totalSegmentCount, allSegment);
 				} else {
 					section.getSegments(endIndex, segmentCount, segs, index + otherSegmentCount);

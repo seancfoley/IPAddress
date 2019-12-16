@@ -192,6 +192,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	private TranslatedResult<?,?> values;
 	private Boolean skipContains;
 	private Masker maskers[];
+	private Masker mixedMaskers[];
 
 	ParsedIPAddress(
 			HostIdentifierString from, 
@@ -309,7 +310,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 		}		
 		if(val == null || (val.withoutAddresses() && val.withoutRange())) {
-			// we need the bit lengths that are calculated when constructing,
+			// we need the bit lengths and maskers that are calculated when constructing,
 			// so we construct here since not done already
 			synchronized(this) {
 				val = values;
@@ -648,20 +649,22 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return grouping;
 	}
 
-	public static class BitwiseOrer {
+	public static class BitwiseOrer implements Serializable {
+		private static final long serialVersionUID = 1L;
 		private final boolean isSequential;
-		
+
 		public BitwiseOrer(boolean isSequential) {
 			this.isSequential = isSequential;
 		}
+
 		public long getOredLower(long value, long maskValue) {
 			return value | maskValue;
 		}
-		
+
 		public long getOredUpper(long upperValue, long maskValue) {
 			return upperValue | maskValue;
 		}
-		
+
 		public boolean isSequential() {
 			return isSequential;
 		}
@@ -669,6 +672,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	
 	// These can be cached by the int used to construct
 	public static class FullRangeBitwiseOrer extends BitwiseOrer {
+		private static final long serialVersionUID = 1L;
 		private final long upperMask;
 		public final int fullRangeBit;
 
@@ -695,6 +699,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	 *
 	 */
 	public static class SpecificValueBitwiseOrer extends BitwiseOrer {
+		private static final long serialVersionUID = 1L;
 		private final long lower, upper;
 		
 		public SpecificValueBitwiseOrer(long lower, long upper) {
@@ -714,7 +719,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 	}
 
-	public static abstract class Masker {
+	public static abstract class Masker implements Serializable {
+		private static final long serialVersionUID = 1L;
 		private final boolean isSequential;
 		
 		public Masker(boolean isSequential) {
@@ -752,6 +758,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 	// These can be cached by the int used to construct
 	public static class FullRangeMasker extends Masker {
+		private static final long serialVersionUID = 1L;
 		private final long upperMask;
 		public final int fullRangeBit;
 		
@@ -801,6 +808,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	 *
 	 */
 	public static class SpecificValueMasker extends Masker {
+		private static final long serialVersionUID = 1L;
 		private final long lower, upper;
 		
 		public SpecificValueMasker(long lower, long upper) {
@@ -821,7 +829,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 
 	public static class ExtendedMasker extends Masker {
-		
+		private static final long serialVersionUID = 1L;
+
 		public ExtendedMasker(boolean isSequential) {
 			super(isSequential);
 		}
@@ -837,6 +846,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 	// These can be cached by the int used to construct
 	public static class ExtendedFullRangeMasker extends ExtendedMasker {
+		private static final long serialVersionUID = 1L;
 		private final long upperMask, extendedUpperMask;
 
 		ExtendedFullRangeMasker(int fullRangeBit, boolean isSequential) {
@@ -872,6 +882,10 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	public static class ExtendedSpecificValueMasker extends ExtendedMasker {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 		private final long extendedLower, lower, extendedUpper, upper;
 		
 		public ExtendedSpecificValueMasker(long extendedLower, long lower, long extendedUpper, long upper) {
@@ -904,6 +918,10 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	public static class WrappedMasker extends ExtendedMasker {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 		private final Masker masker;
 		
 		WrappedMasker(Masker masker) {
@@ -2195,7 +2213,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return segments;
 	}
 
-	@SuppressWarnings("serial")
 	private void createIPv4Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
@@ -2205,7 +2222,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		boolean hasMask = mask != null;
 		AddressParseData addrParseData = getAddressParseData();
 		int segmentCount = addrParseData.getSegmentCount();
-		if(hasMask) {
+		if(hasMask && maskers == null) {
 			maskers = new Masker[segmentCount];
 		}
 		IPv4AddressCreator creator = getIPv4AddressCreator();
@@ -2228,6 +2245,11 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				(TranslatedResult<IPv4Address, IPv4AddressSection>) values;
 		if(values == null) {
 			values = finalResult = new TranslatedResult<IPv4Address, IPv4AddressSection>() {
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, ?> getCreator() {
 					return getIPv4AddressCreator();
@@ -2274,16 +2296,19 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						for(int k = 0; k <= missingCount; k++) {
 							divMask = (divMask << IPv4Address.BITS_PER_SEGMENT) | mask.getSegment(normalizedSegmentIndex + k).getSegmentValue();
 						}
-						long maxValue = (bits == Integer.SIZE) ? 0xffffffffL : ~(~0 << bits);
-						Masker masker = maskRange(lower, upper, divMask, maxValue);
-						if(!masker.isSequential()) {
-							if(finalResult.maskException == null) {
-								finalResult.maskException = new IncompatibleAddressException(lower, upper, divMask, "ipaddress.error.maskMismatch");
+						Masker masker = maskers[i];
+						if(masker == null) {
+							long maxValue = (bits == Integer.SIZE) ? 0xffffffffL : ~(~0 << bits);
+							masker = maskRange(lower, upper, divMask, maxValue);
+							if(!masker.isSequential()) {
+								if(finalResult.maskException == null) {
+									finalResult.maskException = new IncompatibleAddressException(lower, upper, divMask, "ipaddress.error.maskMismatch");
+								}
 							}
+							maskers[i] = masker;
 						}
 						maskedLower = masker.getMaskedLower(lower, divMask);
 						maskedUpper = masker.getMaskedUpper(upper, divMask);
-						maskers[i] = masker;
 						maskedIsDifferent = maskedIsDifferent || maskedLower != lower || maskedUpper != upper;
 					} else {
 						maskedLower = lower;
@@ -2373,11 +2398,14 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			long hostLower = lower, hostUpper = upper;
 			Masker masker = null;
 			if(hasMask) {
+				masker = maskers[i];
 				Integer segmentMask = cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue());
 				int maskInt = segmentMask.intValue();
-				masker = maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
-				if(!masker.isSequential() && finalResult.maskException == null) {
-					finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
+				if(masker == null) {
+					maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
+					if(!masker.isSequential() && finalResult.maskException == null) {
+						finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
+					}
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
@@ -2492,7 +2520,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						//allocate lower segments from address segments
 						lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv4SegmentCount, ipv4SegmentCount);
 					}
-					if(upperSegments == null) { // [255, 0, 255, 255], isPrefixSubnet = true
+					if(upperSegments == null) {
 						//allocate upper segments from lower segments
 						upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv4SegmentCount, ipv4SegmentCount);
 					}
@@ -2513,7 +2541,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 	}
 
-	@SuppressWarnings("serial")
 	private void createIPv6Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = qualifier.getMask();
@@ -2523,7 +2550,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		boolean hasMask = mask != null;
 		AddressParseData addressParseData = getAddressParseData();
 		int segmentCount = addressParseData.getSegmentCount();
-		if(hasMask) {
+		if(hasMask && maskers == null) {
 			maskers = new Masker[segmentCount];
 		}
 		IPv6AddressCreator creator = getIPv6AddressCreator();
@@ -2545,6 +2572,11 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				(TranslatedResult<IPv6Address, IPv6AddressSection>) values;
 		if(values == null) {
 			values = finalResult = new TranslatedResult<IPv6Address,IPv6AddressSection>() {
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, ?> getCreator() {
 					return getIPv6AddressCreator();
@@ -2624,6 +2656,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							int bitsPerSegment = IPv6Address.BITS_PER_SEGMENT;
 							long maskVal = 0;
 							if(missingSegmentCount >= 4) {
+								ExtendedMasker masker = (ExtendedMasker) maskers[i];
 								long extendedMaskVal = 0;
 								int extendedCount = missingSegmentCount - 3;
 								for(int k = 0; k < extendedCount; k++) {
@@ -2632,47 +2665,52 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 								for(int k = extendedCount; k <= missingSegmentCount; k++) {
 									maskVal = (maskVal << bitsPerSegment) | mask.getSegment(normalizedSegmentIndex + k).getSegmentValue();
 								}
-								// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
-								long extendedMaxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << (bits - Long.SIZE));
-								ExtendedMasker masker = maskRange(
-										lower, lowerHighBytes, 
-										upper, upperHighBytes, 
-										maskVal, extendedMaskVal, 
-										0xffffffffffffffffL, extendedMaxValue);
-								if(!masker.isSequential()) {
-									if(finalResult.maskException == null) {
-										int byteCount = (missingSegmentCount + 1) * IPv6Address.BYTES_PER_SEGMENT;
-										finalResult.maskException = new IncompatibleAddressException(
-											new BigInteger(1, toBytesSizeAdjusted(lower, lowerHighBytes, byteCount)).toString(), 
-											new BigInteger(1, toBytesSizeAdjusted(upper, upperHighBytes, byteCount)).toString(), 
-											new BigInteger(1, toBytesSizeAdjusted(maskVal, extendedMaskVal, byteCount)).toString(),
-											"ipaddress.error.maskMismatch");
+								if(masker == null) {
+									// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+									long extendedMaxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << (bits - Long.SIZE));
+									masker = maskRange(
+											lower, lowerHighBytes, 
+											upper, upperHighBytes, 
+											maskVal, extendedMaskVal, 
+											0xffffffffffffffffL, extendedMaxValue);
+									if(!masker.isSequential()) {
+										if(finalResult.maskException == null) {
+											int byteCount = (missingSegmentCount + 1) * IPv6Address.BYTES_PER_SEGMENT;
+											finalResult.maskException = new IncompatibleAddressException(
+												new BigInteger(1, toBytesSizeAdjusted(lower, lowerHighBytes, byteCount)).toString(), 
+												new BigInteger(1, toBytesSizeAdjusted(upper, upperHighBytes, byteCount)).toString(), 
+												new BigInteger(1, toBytesSizeAdjusted(maskVal, extendedMaskVal, byteCount)).toString(),
+												"ipaddress.error.maskMismatch");
+										}
 									}
+									maskers[i] = masker;
 								}
 								maskedLowerHighBytes = masker.getExtendedLowerMasked(lowerHighBytes, extendedMaskVal);
 								maskedUpperHighBytes = masker.getExtendedUpperMasked(upperHighBytes, extendedMaskVal);
 								maskedLower = masker.getMaskedLower(lower, maskVal);
 								maskedUpper = masker.getMaskedUpper(upper, maskVal);
 								maskedIsRange = (maskedLower != maskedUpper) || (maskedLowerHighBytes != maskedUpperHighBytes);
-								maskers[i] = masker;
 								maskedIsDifferent = maskedIsDifferent || maskedLower != lower || maskedUpper != upper|| maskedLowerHighBytes != lowerHighBytes || maskedUpperHighBytes != upperHighBytes;
 							} else {
+								Masker masker = maskers[i];
 								for(int k = 0; k <= missingSegmentCount; k++) {
 									maskVal = (maskVal << bitsPerSegment) | mask.getSegment(normalizedSegmentIndex + k).getSegmentValue();
 								}
-								// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
-								long maxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << bits);
-								Masker masker = maskRange(lower, upper, maskVal, maxValue);
-								if(!masker.isSequential()) {
-									if(finalResult.maskException == null) {
-										finalResult.maskException = new IncompatibleAddressException(lower, upper, maskVal, "ipaddress.error.maskMismatch");
+								if(masker == null) {
+									// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+									long maxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << bits);
+									masker = maskRange(lower, upper, maskVal, maxValue);
+									if(!masker.isSequential()) {
+										if(finalResult.maskException == null) {
+											finalResult.maskException = new IncompatibleAddressException(lower, upper, maskVal, "ipaddress.error.maskMismatch");
+										}
 									}
+									maskers[i] = masker;
 								}
 								maskedLowerHighBytes = maskedUpperHighBytes = 0;
 								maskedLower = masker.getMaskedLower(lower, maskVal);
 								maskedUpper = masker.getMaskedUpper(upper, maskVal);
 								maskedIsRange = maskedLower != maskedUpper;
-								maskers[i] = masker;
 								maskedIsDifferent = maskedIsDifferent || maskedLower != lower || maskedUpper != upper;
 							}
 						}
@@ -2720,7 +2758,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 							if(maskedIsDifferent || currentPrefix != null) {
 								hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 								hostSegments[normalizedSegmentIndex] = createSegment(
-										//finalResult,
 										addressString,
 										IPVersion.IPV6,
 										hostSegLower,
@@ -2731,7 +2768,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 										creator);
 							}
 							segments[normalizedSegmentIndex] = createSegment(
-								//finalResult,
 								addressString,
 								IPVersion.IPV6,
 								maskedSegLower,
@@ -2748,7 +2784,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 								} // else segments already allocated
 								lowerSegments[normalizedSegmentIndex] = createSegment(
-										//finalResult,
 										addressString,
 										IPVersion.IPV6,
 										maskedSegLower,
@@ -2765,7 +2800,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 								if(isSegRange) {
 									upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 									upperSegments[normalizedSegmentIndex] = createSegment(
-											//finalResult,
 											addressString,
 											IPVersion.IPV6,
 											maskedSegUpper,
@@ -2790,11 +2824,14 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			long hostLower = lower, hostUpper = upper;
 			Masker masker = null;
 			if(hasMask) {
+				masker = maskers[i];
 				Integer segmentMask = cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue());
 				int maskInt = segmentMask.intValue();
-				masker = maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
-				if(!masker.isSequential() && finalResult.maskException == null) {
-					finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
+				if(masker == null) {
+					maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
+					if(!masker.isSequential() && finalResult.maskException == null) {
+						finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
+					}
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
@@ -2831,7 +2868,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 					} // else segments already allocated
 					lowerSegments[normalizedSegmentIndex] = createSegment(
-							//finalResult,
 							addressString,
 							IPVersion.IPV6,
 							(int) lower,
@@ -2867,6 +2903,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		Integer prefLength = getPrefixLength(qualifier);
 		if(mixed) {
 			IPv4AddressSeqRange ipv4Range = (IPv4AddressSeqRange) mixedParsedAddress.getProviderSeqRange();
+			if(hasMask && mixedMaskers == null) {
+				mixedMaskers = new Masker[IPv4Address.SEGMENT_COUNT];
+			}
 			for(int n = 0; n < 2; n++) {
 				int m = n << 1;
 				Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
@@ -2890,22 +2929,27 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					int maskInt = segmentMask.intValue();
 					int shift = IPv4Address.BITS_PER_SEGMENT;
 					int shiftedMask = maskInt >> shift;
-					Masker masker = maskRange(oneLower, oneUpper, shiftedMask, IPv4Address.MAX_VALUE_PER_SEGMENT);
-					if(!masker.isSequential() && finalResult.maskException == null) {
-						finalResult.maskException = new IncompatibleAddressException(oneLower, oneUpper, shiftedMask, "ipaddress.error.maskMismatch");
+					Masker masker = mixedMaskers[m];
+					if(masker == null) {
+						mixedMaskers[m] = masker = maskRange(oneLower, oneUpper, shiftedMask, IPv4Address.MAX_VALUE_PER_SEGMENT);
+						if(!masker.isSequential() && finalResult.maskException == null) {
+							finalResult.maskException = new IncompatibleAddressException(oneLower, oneUpper, shiftedMask, "ipaddress.error.maskMismatch");
+						}
 					}
 					oneLower = (int) masker.getMaskedLower(oneLower, shiftedMask);
 					oneUpper = (int) masker.getMaskedUpper(oneUpper, shiftedMask);
-					masker = maskRange(twoLower, twoUpper, maskInt, IPv4Address.MAX_VALUE_PER_SEGMENT);
-					if(!masker.isSequential() && finalResult.maskException == null) {
-						finalResult.maskException = new IncompatibleAddressException(twoLower, twoUpper, maskInt, "ipaddress.error.maskMismatch");
+					masker = mixedMaskers[m + 1];
+					if(masker == null) {
+						 mixedMaskers[m + 1] = masker = maskRange(twoLower, twoUpper, maskInt, IPv4Address.MAX_VALUE_PER_SEGMENT);
+						if(!masker.isSequential() && finalResult.maskException == null) {
+							finalResult.maskException = new IncompatibleAddressException(twoLower, twoUpper, maskInt, "ipaddress.error.maskMismatch");
+						}
 					}
 					twoLower = (int) masker.getMaskedLower(twoLower, maskInt);
 					twoUpper = (int) masker.getMaskedUpper(twoUpper, maskInt);
 					maskedIsDifferent = maskedIsDifferent || oneLower != originalOneLower || oneUpper != originalOneUpper ||
 							twoLower != originalTwoLower || twoUpper != originalTwoUpper;
 				}
-				
 				boolean isRange = oneLower != oneUpper || twoLower != twoUpper;
 				if(doAddress) {
 					boolean doHostSegment = maskedIsDifferent || segmentPrefixLength != null;
@@ -3034,7 +3078,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					section = section.toPrefixBlock();
 				}
 				finalResult.upperSection = section.getUpper();
-				//finalResult.upperSection = addressCreator.createPrefixedSectionInternal(upperSegments, prefLength).getUpper(); // getUpper needed for prefix subnets
 			}
 		}
 	}

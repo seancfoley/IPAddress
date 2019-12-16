@@ -31,8 +31,8 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.validate.ParsedIPAddress;
-import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
 import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
+import inet.ipaddr.format.validate.ParsedIPAddress.Masker;
 
 /**
  * A division of an address.
@@ -1112,6 +1112,11 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		return (x >>> 16) | (x << 16);
 	}
 	
+	protected static <S extends AddressSegment> int getPrefixValueCount(S segment, int segmentPrefixLength) {
+		int shiftAdjustment = segment.getBitCount() - segmentPrefixLength;
+		return (segment.getUpperSegmentValue() >>> shiftAdjustment) - (segment.getSegmentValue() >>> shiftAdjustment) + 1;
+	}
+
 	protected static <S extends AddressSegment> Iterator<S> identityIterator(S original) {
 		return new Iterator<S>() {
 			boolean done;
@@ -1136,33 +1141,42 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    }
 		};
 	}
-		
+
 	protected static <S extends AddressSegment> Iterator<S> iterator(
 			S original,
 			AddressSegmentCreator<S> creator,
-			//Even though a segment represents a single value, it still might have a prefix extending to the end of the segment
-	    	//Iterators may or may not return prefixed segments matching the original prefix of the segment
-			boolean prefixMatchesIteratorPrefix,
+			Integer segmentPrefixLength,
+			boolean isPrefixIterator,
+			boolean isBlockIterator) {
+		return iterator(
+				original,
+				original.getSegmentValue(),
+				original.getUpperSegmentValue(),
+				original.getBitCount(),
+				creator,
+				segmentPrefixLength,
+				isPrefixIterator,
+				isBlockIterator);
+	}
+
+	protected static <S extends AddressSegment> Iterator<S> iterator(
+			S original,
+			int originalLower,
+			int originalUpper,
+			int bitCount,
+			AddressSegmentCreator<S> creator,
 			Integer segmentPrefixLength,
 			boolean isPrefixIterator,
 			boolean isBlockIterator) {
 		int shiftAdjustment, shiftMask, upperShiftMask;
-		int originalLower = original.getSegmentValue();
-		int originalUpper = original.getUpperSegmentValue();
 		if(isPrefixIterator) {
-			shiftAdjustment = original.getBitCount() - segmentPrefixLength;
-			if(shiftAdjustment > 0) {
-				shiftMask = ~0 << shiftAdjustment;
-				upperShiftMask = ~shiftMask;
-			} else {
-				isPrefixIterator = false;
-				shiftMask = upperShiftMask = 0;
-			}
+			shiftAdjustment = bitCount - segmentPrefixLength;
+			shiftMask = ~0 << shiftAdjustment;
+			upperShiftMask = ~shiftMask;
 		} else {
 			shiftAdjustment = shiftMask = upperShiftMask = 0;
 		}
-		boolean isPrefixI = isPrefixIterator;
-		if(!original.isMultiple()) {
+		if(original != null && !original.isMultiple()) {
 			return new Iterator<S>() {
 				boolean done;
 				
@@ -1177,15 +1191,13 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			    		throw new NoSuchElementException();
 			    	}
 			    	done = true;
-			    	S result;
-			    	if(isPrefixI) {
-			    		result = creator.createSegment(originalLower & shiftMask, originalLower | upperShiftMask, segmentPrefixLength);
-			    	} else if(prefixMatchesIteratorPrefix) {
-			    		return original;
-			    	} else {
-			    		result = creator.createSegment(originalLower, originalUpper, segmentPrefixLength);
+			    	if(isBlockIterator) {
+			    		return creator.createSegment(
+			    				originalLower & shiftMask,
+			    				originalUpper | upperShiftMask,
+			    				segmentPrefixLength);
 			    	}
-			    	return result;
+			    	return original;
 			    }
 		
 			    @Override
@@ -1194,14 +1206,89 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			    }
 			};
 		}
-		return new Iterator<S>() {
-			private boolean notDone = true, notFirst;
-			private int current = originalLower, last = originalUpper; {
-				if(isPrefixI) {
+		if(isPrefixIterator) {
+			if(isBlockIterator) {
+				return new Iterator<S>() {
+					private boolean notDone = true;
+					private int current = originalLower, last = originalUpper; {
+						current >>>= shiftAdjustment;
+						last >>>= shiftAdjustment;
+					}
+					
+					@Override
+					public boolean hasNext() {
+						return notDone;
+					}
+				
+				    @Override
+					public S next() {
+				    	if(!notDone) {
+				    		throw new NoSuchElementException();
+				    	}
+				    	int cur = current;
+			    		int blockLow = cur << shiftAdjustment;
+			    		S result = creator.createSegment(blockLow, blockLow | upperShiftMask, segmentPrefixLength);
+		    			if(++cur > last) {
+		    				notDone = false;
+		    			} else {
+		    				current = cur;
+		    			}
+				    	return result;
+				    }
+				
+				    @Override
+					public void remove() {
+				    	throw new UnsupportedOperationException();
+				    }
+				};
+			}
+			return new Iterator<S>() {
+				private boolean notDone = true, notFirst;
+				private int current = originalLower, last = originalUpper; {
 					current >>>= shiftAdjustment;
 					last >>>= shiftAdjustment;
 				}
-			}
+				
+				@Override
+				public boolean hasNext() {
+					return notDone;
+				}
+			
+			    @Override
+				public S next() {
+			    	if(!notDone) {
+			    		throw new NoSuchElementException();
+			    	}
+			    	int cur = current;
+		    		int blockLow = cur << shiftAdjustment;
+		    		int blockHigh = blockLow | upperShiftMask;
+		    		current = ++cur;
+		    		int low, high;
+		    		if(notFirst) {
+		    			low = blockLow;
+		    		} else {
+		    			low = originalLower;
+		    			notFirst = true;
+		    		}
+		    		boolean notDne = cur <= last;
+		    		if(notDne) {
+		    			high = blockHigh;
+		    		} else {
+		    			high = originalUpper;
+		    			notDone = false;
+		    		}
+		    		return creator.createSegment(low, high, segmentPrefixLength);
+			    }
+			
+			    @Override
+				public void remove() {
+			    	throw new UnsupportedOperationException();
+			    }
+			};
+		}
+		return new Iterator<S>() {
+			private boolean notDone = true;
+			private int current = originalLower, last = originalUpper;
 			
 			@Override
 			public boolean hasNext() {
@@ -1213,35 +1300,8 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    	if(!notDone) {
 		    		throw new NoSuchElementException();
 		    	}
-		    	S result;
-		    	if(isPrefixI) {
-		    		int cur = current;
-		    		int blockLow = cur << shiftAdjustment;
-		    		int blockHigh = blockLow | upperShiftMask;
-		    		current = ++cur;
-		    		boolean notD = cur <= last;
-		    		if(isBlockIterator) {
-		    			result = creator.createSegment(blockLow, blockHigh, segmentPrefixLength);
-		    			if(!notD) {
-		    				notDone = false;
-		    			}
-		    		} else if(notD && notFirst) {
-		    			result = creator.createSegment(blockLow, blockHigh, segmentPrefixLength);
-		    		} else if (notD) {
-		    			result = creator.createSegment(originalLower, blockHigh, segmentPrefixLength);
-		    			notFirst = true;
-		    		} else {
-		    			notDone = false;
-		    			if (notFirst) {
-			    			result = creator.createSegment(blockLow, originalUpper, segmentPrefixLength);
-			    		} else {
-			    			result = creator.createSegment(originalLower, originalUpper, segmentPrefixLength);
-			    		}
-		    		}
-		    	} else {
-		    		result = creator.createSegment(current, segmentPrefixLength);
-		    		notDone = ++current <= last;
-		    	}
+		    	S result = creator.createSegment(current, segmentPrefixLength);
+		    	notDone = ++current <= last;
 		    	return result;
 		    }
 		

@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressConversionException;
@@ -43,6 +46,8 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4Address;
@@ -129,7 +134,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	private transient IPv6StringCache stringCache;
 	
-	transient AddressCache sectionCache;//rename to addressCache
+	transient AddressCache addressCache;
 
 	IPv6Address(IPv6AddressSection section, CharSequence zone, boolean checkZone) throws AddressValueException {
 		super(section);
@@ -529,11 +534,12 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return getNetwork().getAddressCreator();
 	}
 	
-	private IPv6AddressCreator getCreator() {
+	IPv6AddressCreator getCreator() {
+		IPv6AddressCreator defaultCreator = getDefaultCreator();
 		if(!hasZone()) {
-			return getDefaultCreator();
+			return defaultCreator;
 		}
-		return new IPv6AddressCreator(getNetwork()) {// using a lambda for this one results in a big performance hit, so we use anonymous class
+		return new IPv6AddressCreator(getNetwork(), defaultCreator.cache) {// using a lambda for this one results in a big performance hit, so we use anonymous class
 
 			private static final long serialVersionUID = 4L;
 
@@ -799,13 +805,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	void cache(IPv6Address lower, IPv6Address upper) {
 		if((lower != null || upper != null) && getSection().getSingleLowestOrHighestSection() == null) {
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
-			AddressCache cache = sectionCache;
+			AddressCache cache = addressCache;
 			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
 				synchronized(this) {
-					cache = sectionCache;
+					cache = addressCache;
 					boolean create = (cache == null);
 					if(create) {
-						sectionCache = cache = new AddressCache();
+						addressCache = cache = new AddressCache();
 						cache.lower = lower;
 						cache.upper = upper;
 					} else {
@@ -830,14 +836,14 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return null;
 		}
 		IPv6Address result = null;
-		AddressCache cache = sectionCache;
+		AddressCache cache = addressCache;
 		if(cache == null || 
 			(result = lowest ? (excludeZeroHost ? cache.lowerNonZeroHost : cache.lower) : cache.upper) == null) {
 			synchronized(this) {
-				cache = sectionCache;
+				cache = addressCache;
 				boolean create = (cache == null);
 				if(create) {
-					sectionCache = cache = new AddressCache();
+					addressCache = cache = new AddressCache();
 				} else {
 					if(lowest) {
 						if(excludeZeroHost) {
@@ -897,53 +903,102 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6Address reverseBits(boolean perByte) {
-		IPv6AddressCreator creator = getCreator();
-		return creator.createAddress(getSection().reverseBits(perByte));
+		return getCreator().createAddress(getSection().reverseBits(perByte));
 	}
-	
+
 	@Override
 	public IPv6Address reverseBytes() {
 		return checkIdentity(getSection().reverseBytes());
 	}
-	
+
 	@Override
 	public IPv6Address reverseBytesPerSegment() {
 		return checkIdentity(getSection().reverseBytesPerSegment());
 	}
-	
+
 	@Override
 	public IPv6Address reverseSegments() {
 		return checkIdentity(getSection().reverseSegments());
 	}
-	
+
 	@Override
 	public Iterator<IPv6AddressSegment[]> segmentsNonZeroHostIterator() {
 		return getSection().segmentsNonZeroHostIterator();
 	}
-	
+
 	@Override
 	public Iterator<IPv6AddressSegment[]> segmentsIterator() {
 		return getSection().segmentsIterator();
 	}
-	
+
+	@Override
+	public AddressComponentRangeSpliterator<IPv6Address, IPv6AddressSegment[]> segmentsSpliterator() {
+		return getSection().segmentsSpliterator(this, getCreator());
+	}
+
+	@Override
+	public Stream<IPv6AddressSegment[]> segmentsStream() {
+		return StreamSupport.stream(segmentsSpliterator(), false);
+	}
+
 	@Override
 	public Iterator<IPv6Address> prefixBlockIterator() {
-		return getSection().prefixBlockIterator(this, getCreator(), true);
+		return getSection().prefixIterator(this, getCreator(), true);
+	}
+
+	@Override
+	public AddressComponentSpliterator<IPv6Address> prefixBlockSpliterator() {
+		return getSection().prefixSpliterator(this, getCreator(), true);
+	}
+
+	@Override
+	public Stream<IPv6Address> prefixBlockStream() {
+		return StreamSupport.stream(prefixBlockSpliterator(), false);
 	}
 
 	@Override
 	public Iterator<IPv6Address> prefixBlockIterator(int prefixLength) {
-		return getSection().prefixBlockIterator(this, getCreator(), true, prefixLength);
+		return getSection().prefixIterator(this, getCreator(), true, prefixLength);
 	}
-	
+
+	@Override
+	public AddressComponentSpliterator<IPv6Address> prefixBlockSpliterator(int prefixLength) {
+		return getSection().prefixSpliterator(this, getCreator(), true, prefixLength);
+	}
+
+	@Override
+	public Stream<IPv6Address> prefixBlockStream(int prefixLength) {
+		return StreamSupport.stream(prefixBlockSpliterator(prefixLength), false);
+	}
+
 	@Override
 	public Iterator<IPv6Address> prefixIterator() {
-		return getSection().prefixBlockIterator(this, getCreator(), false);
+		return getSection().prefixIterator(this, getCreator(), false);
+	}
+
+	@Override
+	public AddressComponentSpliterator<IPv6Address> prefixSpliterator() {
+		return getSection().prefixSpliterator(this, getCreator(), false);
+	}
+
+	@Override
+	public Stream<IPv6Address> prefixStream() {
+		return StreamSupport.stream(prefixSpliterator(), false);
 	}
 
 	@Override
 	public Iterator<IPv6Address> prefixIterator(int prefixLength) {
-		return getSection().prefixBlockIterator(this, getCreator(), false, prefixLength);
+		return getSection().prefixIterator(this, getCreator(), false, prefixLength);
+	}
+
+	@Override
+	public AddressComponentSpliterator<IPv6Address> prefixSpliterator(int prefixLength) {
+		return getSection().prefixSpliterator(this, getCreator(), false, prefixLength);
+	}
+
+	@Override
+	public Stream<IPv6Address> prefixStream(int prefixLength) {
+		return StreamSupport.stream(prefixSpliterator(prefixLength), false);
 	}
 
 	@Override
@@ -951,22 +1006,59 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return getSection().blockIterator(this, getCreator(), segmentCount);
 	}
 	
+	@Override
+	public AddressComponentSpliterator<IPv6Address> blockSpliterator(int segmentCount) {
+		return getSection().blockSpliterator(this, getCreator(), segmentCount);
+	}
+	
+	@Override
+	public Stream<IPv6Address> blockStream(int prefixLength) {
+		return StreamSupport.stream(blockSpliterator(prefixLength), false);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv6Address> sequentialBlockIterator() {
 		return (Iterator<IPv6Address>) super.sequentialBlockIterator();
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public AddressComponentSpliterator<IPv6Address> sequentialBlockSpliterator() {
+		return (AddressComponentSpliterator<IPv6Address>) super.sequentialBlockSpliterator();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Stream<IPv6Address> sequentialBlockStream() {
+		return (Stream<IPv6Address>) super.sequentialBlockStream();
+	}
+
 	@Override
 	public Iterator<IPv6Address> iterator() {
-		return getSection().iterator(this, getCreator(), false);
+		return getSection().iterator(this, getCreator(), null);
 	}
-	
+
+	@Override
+	public AddressComponentSpliterator<IPv6Address> spliterator() {
+		return getSection().spliterator(this, getCreator(), false);
+	}
+
+	@Override
+	public Stream<IPv6Address> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
 	@Override
 	public Iterator<IPv6Address> nonZeroHostIterator() {
-		return getSection().iterator(this, getCreator(), true);
+		Predicate<IPv6AddressSegment[]> excludeFunc = null;
+		if(includesZeroHost()) {
+			int prefLength = getNetworkPrefixLength();
+			excludeFunc = segments -> getSection().isZeroHost(segments, prefLength);
+		}
+		return getSection().iterator(this, getCreator(), excludeFunc);
 	}
-	
+
 	@Override
 	public Iterable<IPv6Address> getIterable() {
 		return this;
@@ -986,7 +1078,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * If this address is IPv4 convertible, returns that address.
 	 * Otherwise, returns null.
 	 * <p>
-	 * This uses {@link #isIPv4Convertible()} to determine convertibility, and that uses an instance of {@link IPAddressConverter.DefaultAddressConverter} which uses IPv4-mapped address mappings from rfc 4038.
+	 * You can also use {@link #isIPv4Convertible()} to determine convertibility.  Both use an instance of {@link IPAddressConverter.DefaultAddressConverter} which uses IPv4-mapped address mappings from rfc 4038.
 	 * <p>
 	 * Override this method and {@link IPv6Address#isIPv4Convertible()} if you wish to map IPv6 to IPv4 according to the mappings defined by
 	 * in {@link IPv6Address#isIPv4Compatible()}, {@link IPv6Address#isIPv4Mapped()}, {@link IPv6Address#is6To4()} or by some other mapping.
@@ -996,10 +1088,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv4Address toIPv4() {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
-		if(conv != null) {
-			return conv.toIPv4(this);
-		}
-		return null;
+		return conv.toIPv4(this);
 	}
 	
 	@Override
@@ -1019,7 +1108,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public boolean isIPv4Convertible() {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
-		return conv != null && conv.isIPv4Convertible(this);
+		return conv.isIPv4Convertible(this);
 	}
 	
 	@Override
@@ -1315,6 +1404,12 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	@Override
+	public IPv6Address setPrefixLength(int prefixLength, boolean zeroed, boolean zeroHostIsBlock) throws PrefixLenException {
+		return checkIdentity(getSection().setPrefixLength(prefixLength, zeroed, zeroHostIsBlock));
+	}
+
+	@Deprecated
+	@Override
 	public IPv6Address applyPrefixLength(int networkPrefixLength) throws PrefixLenException {
 		return checkIdentity(getSection().applyPrefixLength(networkPrefixLength));
 	}
@@ -1490,6 +1585,21 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address assignMinPrefixForBlock() {
 		return (IPv6Address) super.assignMinPrefixForBlock();
+	}
+
+	@Override
+	public IPv6Address coverWithPrefixBlock() {
+		return (IPv6Address) IPv6AddressSection.coverWithPrefixBlock(this, getLower(), getUpper());
+	}
+
+	@Override
+	public IPv6Address coverWithPrefixBlock(IPAddress other) throws AddressConversionException {
+		return IPv6AddressSection.coverWithPrefixBlock(
+				this,
+				convertArg(other),
+				IPv6Address::getLower,
+				IPv6Address::getUpper, 
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare);
 	}
 
 	/**

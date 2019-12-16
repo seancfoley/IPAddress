@@ -19,6 +19,8 @@
 package inet.ipaddr.ipv4;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
@@ -29,6 +31,7 @@ import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSegment;
@@ -133,13 +136,17 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 		return getMaxSegmentValue(IPVersion.IPV4);
 	}
 	
+	protected IPv4AddressSegment toPrefixNormalizedSeg() {
+		return getSegmentCreator().createSegment(getSegmentValue(), getUpperSegmentValue(), IPv4AddressSection.cacheBits(getBitCount()));
+	}
+	
 	protected IPv4AddressSegment toPrefixedSegment(Integer segmentPrefixLength) {
 		if(isChangedByPrefix(segmentPrefixLength, getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets())) {
 			return super.toPrefixedSegment(segmentPrefixLength, getSegmentCreator());
 		}
 		return this;
 	}
-	
+
 	@Override
 	public IPv4AddressSegment toNetworkSegment(Integer segmentPrefixLength) {
 		return toNetworkSegment(segmentPrefixLength, true);
@@ -186,22 +193,80 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	Iterator<IPv4AddressSegment> iterator(boolean withPrefix) {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), withPrefix ? getSegmentPrefixLength() : null, false, false);
+		IPv4AddressSegment original;
+		if(!withPrefix && isPrefixed() && !isMultiple()) {
+			original = withoutPrefixLength();
+		} else {
+			original = this;
+		}
+		return iterator(original, getSegmentCreator(), withPrefix ? getSegmentPrefixLength() : null, false, false);
 	}
 
 	@Override
 	public Iterator<IPv4AddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), !isPrefixed(), getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getSegmentPrefixLength(), false, false);
+		return iterator(!getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets());
 	}
 	
+	@Override
+	public AddressComponentSpliterator<IPv4AddressSegment> spliterator() {
+		IPv4AddressCreator creator = getSegmentCreator();
+		boolean isAllSubnets = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		Integer segPrefLength = isAllSubnets ? null : getSegmentPrefixLength();
+		int bitCount = getBitCount();
+		return createSegmentSpliterator(
+				this,
+				getSegmentValue(),
+				getUpperSegmentValue(),
+				this::iterator,
+				(isLowest, isHighest, value, upperValue) -> iterator(null, value, upperValue, bitCount, creator, segPrefLength, false, false),
+				(value, upperValue) -> creator.createSegment(value, upperValue, segPrefLength));
+	}
+
+	@Override
+	public Stream<IPv4AddressSegment> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
 	@Override
 	public Iterator<IPv4AddressSegment> prefixBlockIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, true);
+		return iterator(this, getSegmentCreator(), getSegmentPrefixLength(), true, true);
 	}
 	
 	@Override
+	public AddressComponentSpliterator<IPv4AddressSegment> prefixBlockSpliterator() {
+		Integer segPrefLength = getSegmentPrefixLength();
+		if(segPrefLength == null) {
+			return spliterator();
+		}
+		return prefixBlockSpliterator(segPrefLength);
+	}
+	
+	@Override
+	public Stream<IPv4AddressSegment> prefixBlockStream() {
+		return StreamSupport.stream(prefixBlockSpliterator(), false);
+	}
+
+	@Override
 	public Iterator<IPv4AddressSegment> prefixIterator() {
-		return iterator(this, getSegmentCreator(), true, getSegmentPrefixLength(), true, false);
+		return iterator(this, getSegmentCreator(), getSegmentPrefixLength(), true, false);
+	}
+	
+	@Override
+	public AddressComponentSpliterator<IPv4AddressSegment> prefixSpliterator() {
+		Integer segPrefLength = getSegmentPrefixLength();
+		if(segPrefLength == null) {
+			return spliterator();
+		}
+		return prefixSpliterator(
+				this,
+				segPrefLength,
+				getSegmentCreator(),
+				this::prefixIterator);
+	}
+
+	@Override
+	public Stream<IPv4AddressSegment> prefixStream() {
+		return StreamSupport.stream(prefixSpliterator(), false);
 	}
 
 	@Override
@@ -209,9 +274,23 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 		if(prefixLength < 0) {
 			throw new PrefixLenException(prefixLength);
 		}
-		return iterator(this, getSegmentCreator(), false, IPv4AddressSection.cacheBits(prefixLength), true, true);
+		return iterator(this, getSegmentCreator(), IPv4AddressSection.cacheBits(prefixLength), true, true);
 	}
 	
+	@Override
+	public AddressComponentSpliterator<IPv4AddressSegment> prefixBlockSpliterator(int segPrefLength) {
+		return prefixBlockSpliterator(
+				this,
+				segPrefLength,
+				getSegmentCreator(),
+				this::prefixBlockIterator);
+	}
+
+	@Override
+	public Stream<IPv4AddressSegment> prefixBlockStream(int segPrefLength) {
+		return StreamSupport.stream(prefixBlockSpliterator(segPrefLength), false);
+	}
+
 	Iterator<IPv4AddressSegment> identityIterator() {
 		return identityIterator(this);
 	}
@@ -312,8 +391,8 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 		int shift = IPv4Address.BITS_PER_SEGMENT;
 		Integer prefix = getJoinedSegmentPrefixLength(shift, getSegmentPrefixLength(), low.getSegmentPrefixLength());
 		if(isMultiple()) {
-			//if the high segment has a range, the low segment must match the full range, 
-			//otherwise it is not possible to create an equivalent range when joining
+			// if the high segment has a range, the low segment must match the full range, 
+			// otherwise it is not possible to create an equivalent range when joining
 			if(!low.isFullRange()) {
 				throw new IncompatibleAddressException(this, low, "ipaddress.error.invalidMixedRange");
 			}
@@ -331,6 +410,6 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 		if(lowBits == 0) {
 			return highBits;
 		}
-		return lowBits + bitsPerSegment;
+		return IPv4AddressSection.cacheBits(lowBits + bitsPerSegment);
 	}
 }

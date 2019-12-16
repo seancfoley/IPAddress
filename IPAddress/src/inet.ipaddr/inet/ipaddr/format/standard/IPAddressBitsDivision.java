@@ -35,7 +35,8 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 	}
 
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer networkPrefixLength) {
-		super(networkPrefixLength == null ? null : Math.min(bitCount, networkPrefixLength));
+		super(networkPrefixLength == null ? null : 
+			((bitCount < networkPrefixLength) ? AddressDivisionGrouping.cacheBits(bitCount) : networkPrefixLength));
 		this.bitCount = bitCount;
 		if(value < 0 || upperValue < 0) {
 			throw new AddressValueException(value < 0 ? value : upperValue);

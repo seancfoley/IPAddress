@@ -19,12 +19,15 @@
 package inet.ipaddr.format;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSeqRange;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 
 
-public interface IPAddressRange extends AddressItemRange {
+public interface IPAddressRange extends AddressComponentRange {
 	
 	/**
 	 * Returns whether this range contains all addresses in the given sequential range
@@ -78,12 +81,34 @@ public interface IPAddressRange extends AddressItemRange {
 	Iterator<? extends IPAddress> iterator();
 
 	/**
+	 * Partitions and traverses through the individual addresses.
+	 * 
+	 * @return
+	 */
+	@Override
+	AddressComponentRangeSpliterator<? extends IPAddressRange, ? extends IPAddress> spliterator();
+
+	/**
 	 * Iterates through the range of prefix blocks in this range instance using the given prefix length.
 	 * 
 	 * @param prefLength
 	 * @return
 	 */
 	Iterator<? extends IPAddress> prefixBlockIterator(int prefLength);
+
+	/**
+	 * Partitions and traverses through the individual prefix blocks for the given prefix length.
+	 * 
+	 * @return
+	 */
+	AddressComponentRangeSpliterator<? extends IPAddressRange, ? extends IPAddress> prefixBlockSpliterator(int prefLength);
+	
+	/**
+	 * Returns a sequential stream of the prefix blocks for the given prefix length.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends IPAddress> prefixBlockStream(int prefLength);
 
 	/**
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
@@ -94,7 +119,27 @@ public interface IPAddressRange extends AddressItemRange {
 	Iterator<? extends IPAddressRange> prefixIterator(int prefixLength);
 
 	/**
-	 * Produces an array of prefix blocks that cover the same set of addresses.
+	 * Partitions and traverses through the individual prefixes for the given prefix length.
+	 * 
+	 * @return
+	 */
+	AddressComponentSpliterator<? extends IPAddressRange> prefixSpliterator(int prefLength);
+
+	/**
+	 * Returns a sequential stream of the individual prefixes for the given prefix length.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends IPAddressRange> prefixStream(int prefLength);
+
+	/**
+	 * Returns the minimal-size prefix block that covers all the addresses in this range.
+	 * The resulting block will have a larger address count than this range, unless this range is already a prefix block.
+	 */
+	IPAddress coverWithPrefixBlock();
+
+	/**
+	 * Produces an array of prefix blocks that spans the same set of addresses.
 	 */
 	IPAddress[] spanWithPrefixBlocks();
 

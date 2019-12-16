@@ -1909,7 +1909,7 @@ public class Validator implements HostIdentifierStringValidator {
 			} else if(result > 65535) {
 				throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.invalidPort.too.large");
 			}
-			return new ParsedHostIdentifierStringQualifier(zone, cachePorts(result));
+			return new ParsedHostIdentifierStringQualifier(zone, result);
 		} else if(!validationOptions.allowService) {
 			throw new AddressStringException(fullAddr.toString(), "ipaddress.host.error.service");
 		} else if(charCount == 0) {
@@ -1977,10 +1977,6 @@ public class Validator implements HostIdentifierStringValidator {
 		return ParsedAddressGrouping.cache(i);
 	}
 	
-	private static Integer cachePorts(int i) {
-		return ParsedAddressGrouping.cache(i);
-	}
-
 	private static ParsedHostIdentifierStringQualifier validatePrefix(
 			final CharSequence fullAddr,
 			final CharSequence zone,

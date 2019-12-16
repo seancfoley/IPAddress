@@ -21,10 +21,12 @@ package inet.ipaddr;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import inet.ipaddr.AddressComparator.CountComparator;
 import inet.ipaddr.AddressComparator.ValueComparator;
 import inet.ipaddr.format.AddressDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork;
@@ -35,9 +37,9 @@ import inet.ipaddr.mac.MACAddressNetwork;
  *
  */
 public abstract class Address implements AddressSegmentSeries {
-	
+
 	private static final long serialVersionUID = 4L;
-	
+
 	public static interface AddressValueProvider {
 		
 		int getSegmentCount();
@@ -48,12 +50,13 @@ public abstract class Address implements AddressSegmentSeries {
 			return getValues();
 		}
 	}
-	
+
 	/**
 	 * @custom.core
 	 * @author sfoley
 	 *
 	 */
+	@FunctionalInterface
 	public static interface SegmentValueProvider {
 		int getValue(int segmentIndex);
 	}
@@ -71,7 +74,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public static final String SEGMENT_SQL_WILDCARD_STR = String.valueOf(SEGMENT_SQL_WILDCARD);
 	public static final char SEGMENT_SQL_SINGLE_WILDCARD = '_';
 	public static final String SEGMENT_SQL_SINGLE_WILDCARD_STR = String.valueOf(SEGMENT_SQL_SINGLE_WILDCARD);
-	
+
 	public static final AddressComparator DEFAULT_ADDRESS_COMPARATOR = new CountComparator(true);
 	public static final AddressComparator ADDRESS_LOW_VALUE_COMPARATOR = new ValueComparator(true, false);
 
@@ -85,25 +88,25 @@ public abstract class Address implements AddressSegmentSeries {
 
 	/* an object encapsulating a string representing the address, which is the one used to construct the address if the address was constructed from a string */
 	protected HostIdentifierString fromString;
-	
+
 	/**
 	 * Constructs an address.
 	 * @param section the address segments
 	 */
 	protected Address(AddressSection section) {
 		addressSection = section;
-		if(!getNetwork().equals(addressSection.getNetwork())) {
+		if(!getNetwork().isCompatible(addressSection.getNetwork())) {
 			throw new NetworkMismatchException(addressSection);
 		}
 	}
-	
+
 	protected Address(Function<Address, AddressSection> supplier) {
 		addressSection = supplier.apply(this);
-		if(!getNetwork().equals(addressSection.getNetwork())) {
+		if(!getNetwork().isCompatible(addressSection.getNetwork())) {
 			throw new NetworkMismatchException(addressSection);
 		}
 	}
-	
+
 	public static IPv6AddressNetwork defaultIpv6Network() {
 		if(ipv6Network == null) {
 			synchronized(Address.class) {
@@ -136,7 +139,7 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return macNetwork;
 	}
-	
+
 	protected static String getMessage(String key) {
 		return HostIdentifierException.getMessage(key);
 	}
@@ -183,11 +186,29 @@ public abstract class Address implements AddressSegmentSeries {
 	public abstract Iterator<? extends Address> iterator();
 	
 	@Override
+	public abstract AddressComponentSpliterator<? extends Address> spliterator();
+
+	@Override
+	public abstract Stream<? extends Address> stream();
+
+	@Override
 	public abstract Iterator<? extends Address> prefixIterator();
 	
 	@Override
+	public abstract AddressComponentSpliterator<? extends Address> prefixSpliterator();
+
+	@Override
+	public abstract Stream<? extends Address> prefixStream();
+
+	@Override
 	public abstract Iterator<? extends Address> prefixBlockIterator();
 	
+	@Override
+	public abstract AddressComponentSpliterator<? extends Address> prefixBlockSpliterator();
+
+	@Override
+	public abstract Stream<? extends Address> prefixBlockStream();
+
 	@Override
 	public abstract Address increment(long increment) throws AddressValueException;
 	
@@ -595,6 +616,7 @@ public abstract class Address implements AddressSegmentSeries {
 	@Override
 	public abstract Address setPrefixLength(int prefixLength, boolean zeroed);
 	
+	@Deprecated
 	@Override
 	public abstract Address applyPrefixLength(int networkPrefixLength);
 }

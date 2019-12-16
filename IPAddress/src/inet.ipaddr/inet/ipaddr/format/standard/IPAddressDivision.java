@@ -123,7 +123,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 		} else {
 			shifted = getDivisionValue() >>> hostLength;
 		}
-		return shifted == 0 ? getBitCount() - hostLength : null;
+		return shifted == 0 ? AddressDivisionGrouping.cacheBits(getBitCount() - hostLength) : null;
 	}
 
 	/**

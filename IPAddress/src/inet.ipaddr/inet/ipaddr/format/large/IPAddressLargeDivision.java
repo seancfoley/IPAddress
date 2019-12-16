@@ -45,8 +45,8 @@ import inet.ipaddr.format.util.AddressSegmentParams;
  */
 public class IPAddressLargeDivision extends AddressDivisionBase implements IPAddressGenericDivision {
 
-	private static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-	
+	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+
 	public static final char EXTENDED_DIGITS_RANGE_SEPARATOR = Address.ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String EXTENDED_DIGITS_RANGE_SEPARATOR_STR = String.valueOf(EXTENDED_DIGITS_RANGE_SEPARATOR);
 	

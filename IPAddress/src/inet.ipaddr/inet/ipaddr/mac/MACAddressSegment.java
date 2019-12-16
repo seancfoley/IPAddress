@@ -19,9 +19,11 @@
 package inet.ipaddr.mac;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.Address;
+import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IncompatibleAddressException;
@@ -29,6 +31,7 @@ import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.standard.AddressDivision;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressDivisionWriter;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.MACStringCache;
@@ -118,15 +121,14 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	public MACAddressNetwork getNetwork() {
 		return MACAddress.defaultMACNetwork();
 	}
-	
+
 	@Override
 	public int getValueCount() {
 		return getUpperSegmentValue() - getSegmentValue() + 1;
 	}
-	
+
 	int getPrefixValueCount(int segmentPrefixLength) {
-		int shiftAdjustment = MACAddress.BITS_PER_SEGMENT - segmentPrefixLength;
-		return (getUpperSegmentValue() >>> shiftAdjustment) - (getSegmentValue() >>> shiftAdjustment) + 1;
+		return getPrefixValueCount(this, segmentPrefixLength);
 	}
 	
 	@Override
@@ -313,15 +315,33 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 
 	@Override
 	public Iterator<MACAddressSegment> iterator() {
-		return iterator(this, getSegmentCreator(), true, null, false, false);
+		return iterator(this, getSegmentCreator(), null, false, false);
 	}
-	
+
+	@Override
+	public AddressComponentSpliterator<MACAddressSegment> spliterator() {
+		MACAddressCreator creator = getSegmentCreator();
+		int bitCount = getBitCount();
+		return createSegmentSpliterator(
+				this,
+				getSegmentValue(),
+				getUpperSegmentValue(),
+				this::iterator,
+				(isLowest, isHighest, value, upperValue) -> iterator(null, value, upperValue, bitCount, creator, null, false, false),
+				(value, upperValue) -> creator.createSegment(value, upperValue, null));
+	}
+
+	@Override
+	public Stream<MACAddressSegment> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
 	Iterator<MACAddressSegment> prefixBlockIterator(int segmentPrefixLength) {
-		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true, true);
+		return iterator(this, getSegmentCreator(), segmentPrefixLength, true, true);
 	}
-	
+
 	Iterator<MACAddressSegment> prefixIterator(int segmentPrefixLength) {
-		return iterator(this, getSegmentCreator(), true, segmentPrefixLength, true, false);
+		return iterator(this, getSegmentCreator(), segmentPrefixLength, true, false);
 	}
 
 	@Override
@@ -345,7 +365,7 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean contains(AddressSegment other) {
 		return other instanceof MACAddressSegment && other.getSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
@@ -393,5 +413,4 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	public boolean containsSinglePrefixBlock(int divisionPrefixLen) {
 		return isSinglePrefixBlock(getDivisionValue(), getUpperDivisionValue(), divisionPrefixLen);
 	}
-	
 }

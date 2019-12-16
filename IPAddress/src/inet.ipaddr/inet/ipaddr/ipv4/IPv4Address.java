@@ -22,6 +22,9 @@ import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressConversionException;
@@ -35,6 +38,8 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.AddressCache;
@@ -352,22 +357,27 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		segs[5] = creator.createSegment(IPv6Address.MAX_VALUE_PER_SEGMENT);
 		return getIPv6Address(segs);
 	}
-
+	
 	/**
+	 * Override this method to convert in your own way.
+	 * The default behaviour uses IPv4-mapped conversion.
+	 * 
+	 * You should also override {@link #toIPv6()} to match the conversion.
+	 * 
 	 * @see IPv4Address#toIPv6()
 	 */
 	@Override
 	public boolean isIPv6Convertible() {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
-		return conv != null && conv.isIPv6Convertible(this);
+		return conv.isIPv6Convertible(this);
 	}
 	
 	/**
 	 * Returns this address converted to IPv6.
 	 * <p>
-	 * This uses {@link #isIPv6Convertible()} to determine convertibility, and that uses an instance of {@link IPAddressConverter.DefaultAddressConverter} which uses IPv4-mapped address mappings from rfc 4038.
+	 * You can also use {@link #isIPv6Convertible()} to determine convertibility.  Both use an instance of {@link IPAddressConverter.DefaultAddressConverter} which uses IPv4-mapped address mappings from rfc 4038.
 	 * <p>
-	 * Override this method and {@link IPv6Address#isIPv4Convertible()} if you wish to map IPv4 to IPv6 according to the mappings defined by
+	 * Override this method and {@link IPv6Address#isIPv6Convertible()} if you wish to map IPv4 to IPv6 according to the mappings defined by
 	 * in {@link IPv6Address#isIPv4Compatible()}, {@link IPv6Address#isIPv4Mapped()}, {@link IPv6Address#is6To4()} or some other mapping.
 	 * <p>
 	 * If you override this method, you should also override the {@link IPv4Address#isIPv6Convertible()} method to match this behaviour, 
@@ -376,10 +386,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public IPv6Address toIPv6() {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
-		if(conv != null) {
-			return conv.toIPv6(this);
-		}
-		return null;
+		return conv.toIPv6(this);
 	}
 
 	private IPv4Address getLowestOrHighest(boolean lowest, boolean excludeZeroHost) {
@@ -530,6 +537,12 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	public IPv4Address setPrefixLength(int prefixLength, boolean zeroed, boolean zeroHostIsBlock) throws PrefixLenException {
+		return checkIdentity(getSection().setPrefixLength(prefixLength, zeroed, zeroHostIsBlock));
+	}
+
+	@Deprecated
+	@Override
 	public IPv4Address applyPrefixLength(int networkPrefixLength) throws PrefixLenException {
 		return checkIdentity(getSection().applyPrefixLength(networkPrefixLength));
 	}
@@ -557,36 +570,101 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public Iterator<IPv4AddressSegment[]> segmentsIterator() {
 		return getSection().segmentsIterator();
-	};
-	
-	@Override
-	public Iterator<IPv4Address> iterator() {
-		return getSection().iterator(this, getAddressCreator(), false);
 	}
 	
 	@Override
+	public AddressComponentRangeSpliterator<IPv4Address, IPv4AddressSegment[]> segmentsSpliterator() {
+		return getSection().segmentsSpliterator(this, getAddressCreator());
+	}
+
+	@Override
+	public Stream<IPv4AddressSegment[]> segmentsStream() {
+		return StreamSupport.stream(segmentsSpliterator(), false);
+	}
+
+	@Override
+	public Iterator<IPv4Address> iterator() {
+		return getSection().iterator(this, getAddressCreator(), null);
+	}
+	
+	@Override
+	public AddressComponentSpliterator<IPv4Address> spliterator() {
+		return getSection().spliterator(this, getAddressCreator(), false);
+	}
+
+	@Override
+	public Stream<IPv4Address> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
+	@Override
 	public Iterator<IPv4Address> nonZeroHostIterator() {
-		return getSection().iterator(this, getAddressCreator(), true);
+		Predicate<IPv4AddressSegment[]> excludeFunc = null;
+		if(includesZeroHost()) {
+			int prefLength = getNetworkPrefixLength();
+			excludeFunc = s -> getSection().isZeroHost(s, prefLength);
+		}
+		return getSection().iterator(this, getAddressCreator(), excludeFunc);
 	}
 	
 	@Override
 	public Iterator<IPv4Address> prefixBlockIterator() {
-		return getSection().prefixBlockIterator(this, getAddressCreator(), true);
+		return getSection().prefixIterator(this, getAddressCreator(), true);
 	}
 	
+	@Override
+	public AddressComponentSpliterator<IPv4Address> prefixBlockSpliterator() {
+		return getSection().prefixSpliterator(this, getAddressCreator(), true);
+	}
+
+	@Override
+	public Stream<IPv4Address> prefixBlockStream() {
+		return StreamSupport.stream(prefixBlockSpliterator(), false);
+	}
+
 	@Override
 	public Iterator<IPv4Address> prefixBlockIterator(int prefixLength) {
 		return getSection().prefixIterator(this, getAddressCreator(), true, prefixLength);
 	}
 	
 	@Override
+	public AddressComponentSpliterator<IPv4Address> prefixBlockSpliterator(int prefixLength) {
+		return getSection().prefixSpliterator(this, getAddressCreator(), true, prefixLength);
+	}
+
+	@Override
+	public Stream<IPv4Address> prefixBlockStream(int prefixLength) {
+		return StreamSupport.stream(prefixBlockSpliterator(prefixLength), false);
+	}
+
+	@Override
 	public Iterator<IPv4Address> prefixIterator() {
-		return getSection().prefixBlockIterator(this, getAddressCreator(), false);
+		return getSection().prefixIterator(this, getAddressCreator(), false);
 	}
 	
 	@Override
+	public AddressComponentSpliterator<IPv4Address> prefixSpliterator() {
+		return getSection().prefixSpliterator(this, getAddressCreator(), false);
+	}
+
+	@Override
+	public Stream<IPv4Address> prefixStream() {
+		return StreamSupport.stream(prefixSpliterator(), false);
+	}
+
+	@Override
 	public Iterator<IPv4Address> prefixIterator(int prefixLength) {
 		return getSection().prefixIterator(this, getAddressCreator(), false, prefixLength);
+	}
+
+	@Override
+	public AddressComponentSpliterator<IPv4Address> prefixSpliterator(int prefixLength) {
+		return getSection().prefixSpliterator(this, getAddressCreator(), false, prefixLength);
+	}
+
+	@Override
+	public Stream<IPv4Address> prefixStream(int prefixLength) {
+		return StreamSupport.stream(prefixSpliterator(prefixLength), false);
 	}
 
 	@Override
@@ -594,10 +672,32 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSection().blockIterator(this, getAddressCreator(), segmentCount);
 	}
 	
+	@Override
+	public AddressComponentSpliterator<IPv4Address> blockSpliterator(int segmentCount) {
+		return getSection().blockSpliterator(this, getAddressCreator(), segmentCount);
+	}
+	
+	@Override
+	public Stream<IPv4Address> blockStream(int segmentCount) {
+		return StreamSupport.stream(blockSpliterator(segmentCount), false);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4Address> sequentialBlockIterator() {
 		return (Iterator<IPv4Address>) super.sequentialBlockIterator();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AddressComponentSpliterator<IPv4Address> sequentialBlockSpliterator() {
+		return (AddressComponentSpliterator<IPv4Address>) super.sequentialBlockSpliterator();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Stream<IPv4Address> sequentialBlockStream() {
+		return (Stream<IPv4Address>) super.sequentialBlockStream();
 	}
 
 	@Override
@@ -816,6 +916,21 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public IPv4Address assignMinPrefixForBlock() {
 		return (IPv4Address) super.assignMinPrefixForBlock();
+	}
+
+	@Override
+	public IPv4Address coverWithPrefixBlock() {
+		return (IPv4Address) IPv4AddressSection.coverWithPrefixBlock(this, getLower(), getUpper());
+	}
+
+	@Override
+	public IPv4Address coverWithPrefixBlock(IPAddress other) throws AddressConversionException {
+		return IPv4AddressSection.coverWithPrefixBlock(
+				this,
+				convertArg(other),
+				IPv4Address::getLower,
+				IPv4Address::getUpper, 
+				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare);
 	}
 
 	/**
@@ -1046,6 +1161,16 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				return "0x";
 			}
 			return null;
+		}
+		
+		@Override
+		public String toString() {
+			if(this == OCTAL) {
+				return "octal";
+			} else if(this == HEX) {
+				return "hexadecimal";
+			}
+			return "decimal";
 		}
 	}
 

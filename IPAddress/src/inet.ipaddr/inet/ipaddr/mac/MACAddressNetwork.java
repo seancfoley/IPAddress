@@ -19,6 +19,9 @@
 package inet.ipaddr.mac;
 
 import inet.ipaddr.Address.SegmentValueProvider;
+
+import java.io.Serializable;
+
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.PrefixLenException;
@@ -35,20 +38,39 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 	public static class MACAddressCreator extends AddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> implements AddressSegmentCreator<MACAddressSegment> {
 		private static final long serialVersionUID = 4L;
 
-		private transient MACAddressSegment ALL_RANGE_SEGMENT;
+		static class Cache implements Serializable {
 
-		private transient MACAddressSegment segmentCache[];
+			private static final long serialVersionUID = 1L;
 
+			private transient MACAddressSegment ALL_RANGE_SEGMENT;
+	
+			private transient MACAddressSegment segmentCache[];
+	
+			void clear() {
+				segmentCache = null;
+				ALL_RANGE_SEGMENT = null;
+			}
+		}
+		
+		Cache cache;
+		
 		private final MACAddressNetwork owner;
 		
 		MACAddressCreator(MACAddressNetwork owner) {
 			this.owner = owner;
+			this.cache = new Cache();
+		}
+		
+		MACAddressCreator(MACAddressNetwork owner, Cache cache) {
+			this.owner = owner;
+			this.cache = cache;
 		}
 		
 		@Override
 		public void clearCaches() {
 			super.clearCaches();
-			segmentCache = null;
+			cache.clear();
+			//segmentCache = null;
 		}
 
 		@Override
@@ -72,9 +94,9 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		@Override
 		public MACAddressSegment createSegment(int value) {
 			if(value >= 0 && value <= MACAddress.MAX_VALUE_PER_SEGMENT) {
-				MACAddressSegment result, cache[] = segmentCache;
+				MACAddressSegment result, cache[] = this.cache.segmentCache;
 				if(cache == null) {
-					segmentCache = cache = new MACAddressSegment[MACAddress.MAX_VALUE_PER_SEGMENT + 1];
+					this.cache.segmentCache = cache = new MACAddressSegment[MACAddress.MAX_VALUE_PER_SEGMENT + 1];
 					cache[value] = result = new MACAddressSegment(value);
 				} else {
 					result = cache[value];
@@ -103,9 +125,9 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 				}
 				if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 					if(segmentPrefixLength == 0) {
-						MACAddressSegment result = ALL_RANGE_SEGMENT;
+						MACAddressSegment result = cache.ALL_RANGE_SEGMENT;
 						if(result == null) {
-							ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
+							cache.ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
 						}
 						return result;
 					}
@@ -122,9 +144,9 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		public MACAddressSegment createRangeSegment(int lower, int upper) {
 			if(lower != upper) {
 				if(lower == 0 && upper == MACAddress.MAX_VALUE_PER_SEGMENT) {
-					MACAddressSegment result = ALL_RANGE_SEGMENT;
+					MACAddressSegment result = cache.ALL_RANGE_SEGMENT;
 					if(result == null) {
-						ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, upper);
+						cache.ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, upper);
 					}
 					return result;
 				}
@@ -146,9 +168,9 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 			}
 			if(getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 				if(segmentPrefixLength == 0) {
-					MACAddressSegment result = ALL_RANGE_SEGMENT;
+					MACAddressSegment result = cache.ALL_RANGE_SEGMENT;
 					if(result == null) {
-						ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
+						cache.ALL_RANGE_SEGMENT = result = new MACAddressSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
 					}
 					return result;
 				}
@@ -326,6 +348,11 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 	}
 	
 	@Override
+	protected boolean isCompatible(AddressNetwork<?> other) {
+		return super.isCompatible(other);
+	}
+	
+	@Override
 	public PrefixConfiguration getPrefixConfiguration() {
 		return defaultPrefixConfiguration;
 	}
@@ -342,7 +369,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 	}
 	
 	/**
-	 * Gets the default prefix configuration used by this network.
+	 * Gets the default prefix configuration used by this network type and version.
 	 * 
 	 * @see AddressNetwork#getDefaultPrefixConfiguration()
 	 * @see PrefixConfiguration

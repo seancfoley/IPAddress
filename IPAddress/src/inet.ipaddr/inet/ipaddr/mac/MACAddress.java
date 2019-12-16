@@ -20,6 +20,8 @@ package inet.ipaddr.mac;
 
 import java.net.NetworkInterface;
 import java.util.Iterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressPositionException;
@@ -29,6 +31,8 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.format.standard.AddressDivisionGrouping;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
@@ -288,22 +292,62 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	
 	@Override
 	public Iterator<MACAddress> iterator() {
-		return getSection().iterator(this);
+		return getSection().iterator(this, getAddressCreator());
 	}
 	
+	@Override
+	public AddressComponentSpliterator<MACAddress> spliterator() {
+		return getSection().spliterator(this, getAddressCreator());
+	}
+
+	@Override
+	public Stream<MACAddress> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
 	@Override
 	public Iterator<MACAddress> prefixBlockIterator() {
-		return getSection().prefixIterator(this, true);
+		return getSection().prefixIterator(this, getAddressCreator(), true);
 	}
-	
+
+	@Override
+	public AddressComponentSpliterator<MACAddress> prefixBlockSpliterator() {
+		return getSection().prefixSpliterator(this, getAddressCreator(), true);
+	}
+
+	@Override
+	public Stream<MACAddress> prefixBlockStream() {
+		return StreamSupport.stream(prefixBlockSpliterator(), false);
+	}
+
 	@Override
 	public Iterator<MACAddress> prefixIterator() {
-		return getSection().prefixIterator(this, false);
+		return getSection().prefixIterator(this, getAddressCreator(), false);
+	}
+
+	@Override
+	public AddressComponentSpliterator<MACAddress> prefixSpliterator() {
+		return getSection().prefixSpliterator(this, getAddressCreator(), false);
+	}
+
+	@Override
+	public Stream<MACAddress> prefixStream() {
+		return StreamSupport.stream(prefixSpliterator(), false);
 	}
 
 	@Override
 	public Iterator<MACAddressSegment[]> segmentsIterator() {
 		return getSection().segmentsIterator();
+	}
+
+	@Override
+	public AddressComponentRangeSpliterator<MACAddress, MACAddressSegment[]> segmentsSpliterator() {
+		return getSection().segmentsSpliterator(this, getAddressCreator());
+	}
+
+	@Override
+	public Stream<MACAddressSegment[]> segmentsStream() {
+		return StreamSupport.stream(segmentsSpliterator(), false);
 	}
 
 	@Override
@@ -391,6 +435,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}
 	
+	@Deprecated
 	@Override
 	public MACAddress applyPrefixLength(int prefixLength) {
 		return checkIdentity(getSection().applyPrefixLength(prefixLength));

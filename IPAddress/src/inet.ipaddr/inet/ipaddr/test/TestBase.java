@@ -42,12 +42,12 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPAddressValueProvider;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
-import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
+import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -66,12 +66,11 @@ public abstract class TestBase {
 			
 	static class Failure {
 		HostIdentifierString addr;
-		Address addrValue;
-		AddressSegmentSeries series;
-		IPAddressSeqRange range;
+		AddressItem item;
 		String str;
 		StackTraceElement[] stack;
 		Class<? extends TestBase> testClass;
+		
 		
 		Failure(String str) {
 			this.str = str;
@@ -81,46 +80,30 @@ public abstract class TestBase {
 			this.addr = addr;
 		}
 		
-		Failure(String str, AddressSegmentSeries addr) {
+		Failure(String str, AddressItem addr) {
 			this.str = str;
-			this.series = addr;
+			this.item = addr;
+		}
+		
+		Failure(boolean pass, AddressItem addr) {
+			this.item = addr;
 		}
 
-		Failure(boolean pass, Address addr) {
-			this.addrValue = addr;
-		}
-		
-		Failure(String str, IPAddressSeqRange range) {
-			this.str = str;
-			this.range = range;
-		}
-		
 		Failure(String str, HostIdentifierString addr) {
 			this.str = str;
 			this.addr = addr;
 		}
-		
-		Failure(String str, Address addr) {
-			this.str = str;
-			this.addrValue = addr;
-		}
-		
+
 		String getObjectDescriptor() {
 			if(addr != null) {
 				return addr.toString();
 			}
-			if(addrValue != null) {
-				return addrValue.toString();
-			}
-			if(series != null) {
-				return series.toString();
-			}
-			if(range != null) {
-				return range.toString();
+			if(item != null) {
+				return item.toString();
 			}
 			return "<unknown>";
 		}
-		
+
 		@Override
 		public String toString() {
 			if(str == null) {
@@ -173,7 +156,7 @@ public abstract class TestBase {
 			
 		}
 	}
-	
+
 	static class Perf {
 		ArrayList<Long> runTimes = new ArrayList<Long>();
 		
@@ -194,7 +177,7 @@ public abstract class TestBase {
 			showMessage("times:" + System.lineSeparator() + str);
 		}
 	}
-	
+
 	static void showMessage(String s) {
 		System.out.println(s);
 	}
@@ -608,7 +591,6 @@ public abstract class TestBase {
 				adjustedSeries = original.adjustPrefixLength(adjustment);
 				Integer adjustedPrefix = adjustedSeries.getPrefixLength();
 				if(!adjustedSeries.equals(adjusted)) {
-					//original.adjustPrefixLength(adjustment);
 					addFailure(new Failure("prefix adjusted: " + adjustedSeries, adjusted));
 				} else {
 					adjustedSeries = original.setPrefixLength(prefix);
@@ -623,14 +605,8 @@ public abstract class TestBase {
 						} else {
 							ExpectedPrefixes expected = new ExpectedPrefixes(original instanceof MACAddress, original.getPrefixLength(), original.getBitCount(), original.getBitsPerSegment(), prefix, adjustment);
 							if(!expected.compare(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)) {
-								//System.out.println(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix));
-								//System.out.println();
 								addFailure(new Failure(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)));
 							} 
-//							else {
-//								System.out.println("all good");
-//								System.out.println();
-//							}
 						}
 					}
 				}
@@ -638,10 +614,27 @@ public abstract class TestBase {
 		}
 	}
 	
+	private static final Integer cache[] = new Integer[Short.MAX_VALUE]; static {
+		for(int i = 0; i <= IPv6Address.BIT_COUNT; i++) {
+			cache[i] = i;
+		}
+	}
+     
+	public static Integer cacheTestBits(int i) {
+		if(i >= 0 && i < cache.length) {
+			Integer result = cache[i];
+			if(result == null) {
+				result = cache[i] = i;
+			}
+			return result;
+		}
+		return i;
+	}
+	
 	void testPrefix(AddressSegmentSeries original, Integer prefixLength, int minPrefix, Integer equivalentPrefix) {
 		if(!Objects.equals(original.getPrefixLength(), prefixLength)) {
 			addFailure(new Failure("prefix: " + original.getPrefixLength() + " expected: " + prefixLength, original));
-		} else if(!Objects.equals(original.getMinPrefixLengthForBlock(), minPrefix)) {
+		} else if(!Objects.equals(cacheTestBits(original.getMinPrefixLengthForBlock()), cacheTestBits(minPrefix))) {
 			addFailure(new Failure("min prefix: " + original.getMinPrefixLengthForBlock() + " expected: " + minPrefix, original));
 		} else if(!Objects.equals(original.getPrefixLengthForSingleBlock(), equivalentPrefix)) {
 			addFailure(new Failure("equivalent prefix: " + original.getPrefixLengthForSingleBlock() + " expected: " + equivalentPrefix, original));
@@ -714,7 +707,7 @@ public abstract class TestBase {
 		testStrings(w, ipAddr, normalizedString, normalizedWildcardString, canonicalWildcardString, sqlString, fullString, compressedString, canonicalString, subnetString, subnetString, compressedWildcardString, reverseDNSString, uncHostString, singleHex, singleOctal);
 		
 		//now test some IPv6-only strings
-		testIPv6OnlyStrings(w, (IPv6Address) ipAddr, mixedStringNoCompressMixed,
+		testIPv6OnlyStrings(w, ipAddr.toIPv6(), mixedStringNoCompressMixed,
 				mixedStringNoCompressHost, mixedStringCompressCoveredHost, mixedString, base85String);
 	}
 

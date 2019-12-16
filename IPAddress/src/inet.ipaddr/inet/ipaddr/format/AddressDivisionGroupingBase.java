@@ -21,9 +21,15 @@ package inet.ipaddr.format;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.ToLongFunction;
 
+import inet.ipaddr.AddressComponent;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.HostIdentifierException;
 import inet.ipaddr.IPAddress;
@@ -36,7 +42,9 @@ import inet.ipaddr.format.string.AddressStringDivision;
 import inet.ipaddr.format.string.AddressStringDivisionSeries;
 import inet.ipaddr.format.string.IPAddressStringDivision;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressDivisionWriter;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressSegmentParams;
 import inet.ipaddr.format.util.IPAddressStringWriter;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
@@ -56,6 +64,8 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	
 	protected static final Integer NO_PREFIX_LENGTH = -1;
 	static final BigInteger ALL_ONES = BigInteger.ZERO.not();
+	
+	protected static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 	
 	static ResourceBundle bundle;
 	
@@ -494,10 +504,10 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 			for(int i = getDivisionCount() - 1; i >= 0; i--) {//go in reverse order, with prefixes multiple more likely to show up in last segment
 				AddressDivisionBase seg = getDivision(i);
 				if(seg.isMultiple()) {
-					return isMultiple = true;
+					return isMultiple = Boolean.TRUE;
 				}
 			}
-			return isMultiple = false;
+			return isMultiple = Boolean.FALSE;
 		}
 		return result;
 	}
@@ -644,6 +654,19 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		return true;
 	}
 	
+	/**
+	 * Gets the minimal index for which preceding divisions must be non-multiple for the whole grouping to be sequential
+	 * @return
+	 */
+	protected int getSequentialDivisionIndex() {
+		int segCount = getDivisionCount();
+		if(segCount == 0) {
+			return 0;
+		}
+		for(segCount--; segCount > 0 && getDivision(segCount).isFullRange(); segCount--);
+		return segCount;
+	}
+
 	protected static void checkSubnet(AddressDivisionSeries series, int prefixLength) throws PrefixLenException {
 		if(prefixLength < 0 || prefixLength > series.getBitCount()) {
 			throw new PrefixLenException(series, prefixLength);
@@ -735,7 +758,272 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		}
 		return true;
 	}
+
+	@FunctionalInterface
+	protected static interface IteratorProvider<S, T> {
+		Iterator<T> apply(boolean isLowestRange, boolean isHighestRange, S iteratedAddressItem);
+	}
+
+	protected static class AddressItemRangeSpliterator<S extends AddressComponentRange, T>
+		extends AddressItemSpliteratorBase<S, T> implements SplitterSink<S, T> {
+
+		private S forIteration;
+		private Iterator<T> iterator;
+
+		private S split1, split2; // To be assigned by splitter when splitting
+
+		protected final IteratorProvider<S, T> iteratorProvider;
+		private boolean isLowest;
+		private final boolean isHighest;
+
+		private Function<S, BigInteger> sizer; // Can be null: when null, we use longSizer
+		private Predicate<S> downSizer;
+		private final ToLongFunction<S> longSizer; // To be used only when sizer is null.
+		private long longSize;
+		private BigInteger bigSize;
+		
+		final Predicate<SplitterSink<S, T>> splitter;
+		
+		protected AddressItemRangeSpliterator(
+				S forIteration,
+				Predicate<SplitterSink<S, T>> splitter,
+				IteratorProvider<S, T> iteratorProvider,
+				Function<S, BigInteger> sizer /* can be null */,
+				Predicate<S> downSizer,
+				ToLongFunction<S> longSizer /* not to be used if sizer not null */) {
+			this(forIteration, splitter, iteratorProvider, true, true, sizer, downSizer, longSizer);
+			updateSizers();
+		}
+		
+		protected AddressItemRangeSpliterator(
+				S forIteration,
+				Predicate<SplitterSink<S, T>> splitter,
+				IteratorProvider<S, T> iteratorProvider,
+				boolean isLowest,
+				boolean isHighest,
+				Function<S, BigInteger> sizer /* can be null */,
+				Predicate<S> downSizer,
+				ToLongFunction<S> longSizer /* not to be used if sizer not null */) {
+			this.forIteration = forIteration;
+			this.iteratorProvider = iteratorProvider;
+			this.isLowest = isLowest;
+			this.isHighest = isHighest;
+			this.longSizer = longSizer;
+			this.sizer = sizer;
+			this.downSizer = downSizer;
+			this.splitter = splitter;
+			updateSizers();
+		}
+
+		void updateSizers() {
+			if(sizer != null) { 
+				isBig = downSizer == null || !downSizer.test(forIteration);
+				if(!isBig) {
+					sizer = null;
+					downSizer = null;
+				}
+			} else {
+				isBig = false;
+			}
+			longSize = -1;
+			bigSize = null;
+		}
+		
+		private long originalLongSize() {
+			long size = longSize;
+			if(size < 0) {
+				longSize = size = longSizer.applyAsLong(forIteration);
+			}
+			return size;
+		}
+		
+		private long currentLongSize() {
+			return originalLongSize() - iteratedCountL;
+		}
+		
+		@Override
+		public long estimateSize() {
+			if(isBig) {
+				// if we have iterated a lot, bring us below LONG_MAX, we can give a better estimate
+				if(currentBigSize().compareTo(LONG_MAX) <= 0) {
+					return currentBigSize().longValue();
+				}
+				return Long.MAX_VALUE;
+			}
+			return currentLongSize();
+		}
+
+		private BigInteger originalBigSize() {
+			BigInteger size = bigSize;
+			if(bigSize == null) {
+				bigSize = size = sizer.apply(forIteration);
+			}
+			return size;
+		}
+		
+		private BigInteger currentBigSize() {
+			return originalBigSize().subtract(iteratedCountB);
+		}
+
+		@Override
+		public BigInteger getSize() {
+			if(isBig) {
+				return currentBigSize().subtract(BigInteger.valueOf(iteratedCountI));
+			}
+			return BigInteger.valueOf(currentLongSize());
+		}
+
+		@Override
+		public S getAddressItem() {
+			return forIteration;
+		}
+
+		@Override
+		public int characteristics() {
+			if(isBig) {
+				return CONCURRENT | NONNULL | SORTED | ORDERED | DISTINCT;
+			}
+			return super.characteristics();
+		}
+
+		private Iterator<T> provideIterator() {
+			if(iterator == null) {
+				iterator = iteratorProvider.apply(isLowest, isHighest, forIteration);
+			}
+			return iterator;
+		}
+
+		@Override
+		public boolean tryAdvance(Consumer<? super T> action) {
+			if(inForEach) {
+				return false;
+			}
+			if(isBig ? iteratedCountB.signum() <= 0 || iteratedCountB.compareTo(originalBigSize()) < 0 : iteratedCountL < originalLongSize()) {
+				return tryAdvance(provideIterator(), action);
+			}
+			return false;
+		}
+		
+		@Override
+		public void forEachRemaining(Consumer<? super T> action) {
+			if(inForEach) {
+				return;
+			}
+			inForEach = true;
+			try {
+				if(isBig) {
+					forEachRemaining(provideIterator(), action, originalBigSize());
+				} else {
+					forEachRemaining(provideIterator(), action, originalLongSize());
+				}
+				return;
+			} finally {
+				inForEach = false;
+			}
+		}
+		
+		protected boolean canSplit() {
+			// we can split if no forEachRemaining or tryAdvance in progress, and we are big enough to split into two
+			if(inForEach) {
+				return false;
+			}
+			// we can split if we are big enough to split into two
+			return isBig ? iteratedCountB.compareTo(originalBigSize().shiftRight(1)) < 0 :
+					iteratedCountL < (originalLongSize() >> 1);
+		}
+		
+		protected boolean split() {
+			return splitter.test(this);
+		}
+
+		protected AddressItemRangeSpliterator<S, T> createSpliterator(
+				S split, 
+				boolean isLowest,
+				Function<S, BigInteger> sizer,
+				Predicate<S> downSizer,
+				ToLongFunction<S> longSizer) {
+			return new AddressItemRangeSpliterator<S, T>(split, splitter, iteratorProvider, isLowest, false, sizer, downSizer, longSizer);
+		}
+
+		@Override
+		public AddressItemRangeSpliterator<S, T> trySplit() {
+			if(!canSplit() || !split()) {
+				return null;
+			}
+			boolean hasIterated = isBig ? iteratedCountB.signum() > 0 : iteratedCountL > 0;
+			BigInteger splitSizeBig = null;
+			long splitSize = -1;
+			// check that we haven't iterated too far for the split
+			if(hasIterated) {
+				if(isBig) {
+					splitSizeBig = sizer.apply(split1);
+					if(iteratedCountB.compareTo(splitSizeBig) >= 0) {
+						return null;
+					}
+				} else {
+					splitSize = longSizer.applyAsLong(split1);
+					if(iteratedCountL >= splitSize) {
+						return null;
+					}
+				}
+			}
+			AddressItemRangeSpliterator<S, T> splitOff = createSpliterator(split1, isLowest, sizer, downSizer, longSizer);
+			if(hasIterated) {
+				if(isBig) {
+					if(splitOff.isBig) {
+						splitOff.iteratedCountB = iteratedCountB;
+					} else {
+						splitOff.iteratedCountL = iteratedCountB.longValue();
+					}
+					iteratedCountB = BigInteger.ZERO;
+				} else {
+					splitOff.iteratedCountL = iteratedCountL;
+					iteratedCountL = 0;
+				}
+				splitOff.iterator = iterator;
+				iterator = null;
+				splitOff.bigSize = splitSizeBig;
+				splitOff.longSize = splitSize;
+			}
+			forIteration = split2;
+			isLowest = false;
+			updateSizers();
+			return splitOff;
+		}
+
+		@Override
+		public void setSplitValues(S left, S right) {
+			split1 = left;
+			split2 = right;
+		}
+	}
+
+	protected static interface SplitterSink<S, T> {
+		void setSplitValues(S left, S right);
+		
+		S getAddressItem();
+	};
 	
+	protected static <S extends AddressComponentRange,T> AddressComponentRangeSpliterator<S, T> createItemSpliterator(
+			S forIteration,
+			Predicate<SplitterSink<S, T>> splitter,
+			IteratorProvider<S, T> iteratorProvider,
+			Function<S, BigInteger> sizer /* can be null */,
+			Predicate<S> downSizer,
+			ToLongFunction<S> longSizer /* not to be used if sizer not null */) {
+		return new AddressItemRangeSpliterator<S, T>(forIteration, splitter, iteratorProvider, sizer, downSizer, longSizer);
+	}
+
+	protected static <T extends AddressComponent> AddressComponentSpliterator<T> createSeriesSpliterator(
+			T forIteration,
+			Predicate<SplitterSink<T,T>> splitter,
+			IteratorProvider<T, T> iteratorProvider,
+			Function<T, BigInteger> sizer /* can be null */,
+			Predicate<T> downSizer,
+			ToLongFunction<T> longSizer /* not to be used if sizer not null */) {
+		return new AddressSeriesSpliterator<T>(forIteration, splitter, iteratorProvider, sizer, downSizer, longSizer);
+	}
+
 	protected static class AddressStringParams<T extends AddressStringDivisionSeries> implements AddressDivisionWriter, AddressSegmentParams, Cloneable {
 		public static final Wildcards DEFAULT_WILDCARDS = new Wildcards();
 		
@@ -1004,7 +1292,6 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 //				boolean calcMatch = length == builder.length();
 //				boolean capMatch = length == builder.capacity();
 //				if(!calcMatch || !capMatch) {
-//					//System.out.println(builder);//000a:0000:000c:000d:000e:000f:0001-1:0000/112 instead of 000a:0000:000c:000d:000e:000f:0001:0000/112
 //					throw new IllegalStateException("length is " + builder.length() + ", capacity is " + builder.capacity() + ", expected length is " + length);
 //				}
 		}

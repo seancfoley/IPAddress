@@ -886,7 +886,7 @@ public class IPAddressTest extends TestBase {
 			IPAddressStringFormatParameters params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
 			IPAddressNetwork<?, ?, ?, ?, ?> addressNetwork = params.getNetwork();
 			IPAddressCreator<?, ?, ?, ?, ?> creator = addressNetwork.getAddressCreator();
-			IPAddress another = network ? creator.createAddress(bytes, prefixBits) : creator.createAddress(bytes);
+			IPAddress another = network ? creator.createAddress(bytes, cacheTestBits(prefixBits)) : creator.createAddress(bytes);
 			
 			boolean result = checkMask(another, prefixBits, network);
 			secondTry = false;
@@ -1229,6 +1229,13 @@ public class IPAddressTest extends TestBase {
 				IPAddressString.validateNetworkPrefixLength(IPVersion.IPV6, "" + prefix);
 				IPAddress ipv6AddrValue = ipv6Addr.toAddress();
 				IPAddressNetwork<?, ?, ?, ?, ?> ipv6network = ipv6AddrValue.getNetwork();
+				if(ipv6network.getPrefixConfiguration().zeroHostsAreSubnets()) {
+					IPAddress networkAddress = ipv6network.getNetworkAddress(prefix);
+					if(!isSameAllAround(networkAddress, ipv6AddrValue)) {
+						addFailure(new Failure("network address mismatch " + networkAddress, ipv6AddrValue));
+					}
+					ipv6AddrValue = ipv6AddrValue.getLower();
+				}
 				IPAddress addr6 = ipv6network.getNetworkMask(prefix);
 				IPAddress addr6NoPrefix = ipv6network.getNetworkMask(prefix, false);
 				IPAddress w2ValueNoPrefix = w2NoPrefix.toAddress();
@@ -1238,22 +1245,31 @@ public class IPAddressTest extends TestBase {
 					isSameAllAround(w2ValueNoPrefix, addr6NoPrefix);
 					addFailure(one ? new Failure("failed " + addr6, ipv6AddrValue) : new Failure("failed " + addr6NoPrefix, w2ValueNoPrefix));
 				} else {
-					addr6 = ipv6network.getHostMask(prefix);
-					ipv6Addr = createAddress(ipv6HostAddress);
+					IPAddress addrHost6 = ipv6network.getHostMask(prefix);
+					IPAddressString ipv6HostAddrString = createAddress(ipv6HostAddress);
 					try {
-						ipv6AddrValue = ipv6Addr.toAddress();
-						if(!isSameAllAround(ipv6AddrValue, addr6)) {
-							addFailure(new Failure("failed " + addr6, ipv6Addr));
+						IPAddress ipv6HostAddrValue = ipv6HostAddrString.toAddress();
+						if(!isSameAllAround(ipv6HostAddrValue, addrHost6)) {
+							addFailure(new Failure("failed " + addrHost6, ipv6HostAddrString));
 						} else if (prefix <= IPv4Address.BIT_COUNT) {
 							IPAddressString wNoPrefix = createAddress(ipv4NetworkAddressNoPrefix);
 							try {
 								IPAddressString.validateNetworkPrefixLength(IPVersion.IPV4, "" + prefix);
 								IPAddress wValue = ipv4Addr.toAddress();
 								IPAddressNetwork<?, ?, ?, ?, ?> ipv4network = wValue.getNetwork();
+								if(ipv4network.getPrefixConfiguration().zeroHostsAreSubnets()) {
+									IPAddress networkAddress = ipv4network.getNetworkAddress(prefix);
+									if(!isSameAllAround(networkAddress, wValue)) {
+										addFailure(new Failure("network address mismatch " + networkAddress, wValue));
+									}
+									wValue = wValue.getLower();
+								}
 								IPAddress addr4 = ipv4network.getNetworkMask(prefix);
 								IPAddress addr4NoPrefix = ipv4network.getNetworkMask(prefix, false);
 								IPAddress wValueNoPrefix = wNoPrefix.toAddress();
 								if((one = !isSameAllAround(wValue, addr4)) || !isSameAllAround(wValueNoPrefix, addr4NoPrefix)) {
+									isSameAllAround(wValue, addr4);
+									isSameAllAround(wValueNoPrefix, addr4NoPrefix);
 									addFailure(one ? new Failure("failed " + addr4, wValue) : new Failure("failed " + addr4NoPrefix, wValueNoPrefix));
 								} else {
 									addr4 = ipv4network.getHostMask(prefix);
@@ -1277,7 +1293,7 @@ public class IPAddressTest extends TestBase {
 							} catch(AddressStringException e) {}
 						}
 					} catch(AddressStringException e) {
-						addFailure(new Failure("failed " + addr6, ipv6Addr));
+						addFailure(new Failure("failed " + addrHost6, ipv6HostAddrString));
 					}
 				}
 			} catch(AddressStringException | IncompatibleAddressException e) {
@@ -1539,14 +1555,14 @@ public class IPAddressTest extends TestBase {
 		@Override
 		public StringBuilder matchSeparatorCount(StringBuilder builder,
 				String expression, char separator, int separatorCount) {
-			currentConditions.separatorCountMatches.add(separatorCount);
+			currentConditions.separatorCountMatches.add(cacheTestBits(separatorCount));
 			return super.matchSeparatorCount(builder, expression, separator, separatorCount);
 		}
 
 		@Override
 		public StringBuilder boundSeparatorCount(StringBuilder builder,
 				String expression, char separator, int separatorCount) {
-			currentConditions.separatorBoundMatches.add(separatorCount);
+			currentConditions.separatorBoundMatches.add(cacheTestBits(separatorCount));
 			return super.boundSeparatorCount(builder, expression, separator, separatorCount);
 		}
 	}
@@ -1629,6 +1645,10 @@ public class IPAddressTest extends TestBase {
 		
 		MatchConditions(SubMatch subMatch) {
 			this(null, subMatch, null, null);
+		}
+		
+		MatchConditions(SubMatch subMatch, Integer separatorCountMatch, int separatorBoundMatch) {
+			this(subMatch, separatorCountMatch, cacheTestBits(separatorBoundMatch));
 		}
 		
 		MatchConditions(SubMatch subMatch, Integer separatorCountMatch, Integer separatorBoundMatch) {
@@ -1794,8 +1814,10 @@ public class IPAddressTest extends TestBase {
 			});
 	}
 
+	
+	
 	void testEquivalentPrefix(String host, int prefix) {
-		testEquivalentPrefix(host, prefix, prefix);
+		testEquivalentPrefix(host, cacheTestBits(prefix), prefix);
 	}
 	
 	void testEquivalentPrefix(String host, Integer equivPrefix, int minPrefix) {
@@ -1864,14 +1886,14 @@ public class IPAddressTest extends TestBase {
 				int mask = network.getSegmentNetworkMask(pref % directAddress.getBitsPerSegment());
 				segs[prefSeg] = creator.createSegment(origSeg.getSegmentValue() & mask, origSeg.getUpperSegmentValue() & mask, origSeg.getSegmentPrefixLength());
 				for(int ps = prefSeg + 1; ps < segs.length; ps++) {
-					segs[ps] = creator.createSegment(0, 0);
+					segs[ps] = creator.createSegment(0, cacheTestBits(0));
 				}
 				byte bytes[] = new byte[directAddress.getByteCount()];
 				int bytesPerSegment = directAddress.getBytesPerSegment();
 				for(int i = 0, j = 0; i < segs.length; i++, j += bytesPerSegment) {
 					segs[i].getBytes(bytes, j);
 				}
-				directAddress = creator.createAddress(bytes, pref);
+				directAddress = creator.createAddress(bytes, cacheTestBits(pref));
 			} else {
 				//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 				IPAddressSegment origSeg = segs[prefSeg];
@@ -2185,7 +2207,7 @@ public class IPAddressTest extends TestBase {
 	void testInsertAndAppend(String front, String back, int expectedPref[]) {
 		Integer is[] = new Integer[expectedPref.length];
 		for(int i = 0; i < expectedPref.length; i++) {
-			is[i] = expectedPref[i];
+			is[i] = cacheTestBits(expectedPref[i]);
 		}
 		testInsertAndAppend(front, back, is);
 	}
@@ -2357,6 +2379,7 @@ public class IPAddressTest extends TestBase {
 		} catch(UnknownHostException e) {
 			addFailure(new Failure("failed unexpected: " + e));
 		}
+		
 	}
 	
 	void testInvalidIpv6Values() {
@@ -2433,6 +2456,7 @@ public class IPAddressTest extends TestBase {
 			});
 		} catch(AddressValueException e) {
 			addFailure(new Failure("unexpected exception " + e));
+			e.printStackTrace();
 		}
 	}
 	
@@ -3159,11 +3183,28 @@ public class IPAddressTest extends TestBase {
 			}
 		} catch(IncompatibleAddressException e) {
 			if(!isMaskedIncompatibleAddress) {
+				e.printStackTrace();
 				addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
 			}
 		} catch(AddressStringException e) {
+			e.printStackTrace();
 			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
 		} catch(RuntimeException e) {
+		// address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0
+				e.printStackTrace();
+				/*
+				 address 0.0.0.* /0.0.0.128 threw java.lang.NullPointerException when getting grouping , 0.0.0.* /0.0.0.128
+				 
+				 java.lang.NullPointerException
+	at inet.ipaddr.format.validate.ParsedIPAddress.getDivisionGrouping(ParsedIPAddress.java:608)
+	at inet.ipaddr.IPAddressString.toDivisionGrouping(IPAddressString.java:860)
+	at inet.ipaddr.test.IPAddressTest.testAddressStringRange(IPAddressTest.java:3115)
+	at inet.ipaddr.test.IPAddressTest.testMaskedIncompatibleAddress(IPAddressTest.java:3075)
+	at inet.ipaddr.test.IPAddressRangeTest.runTest(IPAddressRangeTest.java:5571)
+	at inet.ipaddr.test.TestRunner.testAll(TestRunner.java:676)
+	at inet.ipaddr.test.TestRunner$9.run(TestRunner.java:584)
+	at inet.ipaddr.test.TestRunner$11.run(TestRunner.java:648)	
+				 */
 			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
 		}
 		IPAddressString rangeString = createAddress(address);

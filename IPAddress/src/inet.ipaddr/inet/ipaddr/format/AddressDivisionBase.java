@@ -19,14 +19,18 @@
 package inet.ipaddr.format;
 
 import java.math.BigInteger;
+import java.util.Iterator;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
+import inet.ipaddr.AddressSegment;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.format.AddressDivisionGroupingBase.AddressStringParams;
 import inet.ipaddr.format.AddressDivisionGroupingBase.IPAddressStringParams;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
@@ -308,7 +312,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		long key = (((long) radix) << 32) | bitCount;
 		Integer digs = maxDigitMap.get(key);
 		if(digs == null) {
-			digs = getDigitCount(maxValue, radix);
+			digs = AddressDivisionGroupingBase.cacheBits(getDigitCount(maxValue, radix));
 			maxDigitMap.put(key, digs);
 		}
 		return digs;
@@ -1414,6 +1418,26 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			}
 		}
 		return 0;
+	}
+
+	@FunctionalInterface
+	protected static interface SegmentCreator<R extends AddressSegment> {
+		R applyAsInt(int low, int high);
+	}
+
+	@FunctionalInterface
+	protected static interface IntBinaryIteratorProvider<R> {
+		Iterator<R> applyAsInt(boolean isLowest, boolean isHighest, int low, int high);
+	}
+
+	protected static <T extends AddressSegment> AddressComponentSpliterator<T> createSegmentSpliterator(
+			T splitForIteration,
+			int value,
+			int upperValue,
+			Supplier<Iterator<T>> iteratorProvider,
+			IntBinaryIteratorProvider<T> subIteratorProvider,
+			SegmentCreator<T> itemProvider) {
+		return new AddressSegmentSpliterator<T>(splitForIteration, value, upperValue, iteratorProvider, subIteratorProvider, itemProvider);
 	}
 }
 

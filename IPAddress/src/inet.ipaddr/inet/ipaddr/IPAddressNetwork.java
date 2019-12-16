@@ -61,8 +61,9 @@ public abstract class IPAddressNetwork<
 	
 	private static final long serialVersionUID = 4L;
 
-	private final T subnets[];
+	private final T subnetsMasksWithPrefix[];
 	private final T subnetMasks[];
+	private final T networkAddresses[];
 	private final T hostMasks[];
 	private final int networkSegmentMasks[];
 	private final int hostSegmentMasks[];
@@ -116,9 +117,9 @@ public abstract class IPAddressNetwork<
 		protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix, boolean singleOnly);
 		
 		public abstract R createFullSectionInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix);
-		
+
 		public abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix);
-		
+
 		public abstract R createSection(byte bytes[], Integer prefix);
 		
 		public abstract R createSection(S segments[], Integer networkPrefixLength);
@@ -134,91 +135,101 @@ public abstract class IPAddressNetwork<
 		public T createAddress(S segments[], Integer prefix) {
 			return createAddress(createSection(segments, prefix));
 		}
-		
+
 		@Override
 		protected T createAddressInternal(S segments[]) {
 			return createAddress(createSectionInternal(segments));
 		}
-		
+
 		@Override
 		protected T createAddressInternal(S segments[], Integer prefix, boolean singleOnly) {
 			return createAddress(createPrefixedSectionInternal(segments, prefix, singleOnly));
 		}
-		
+
 		@Override
 		protected T createAddressInternal(S segments[], Integer prefix) {
 			return createAddress(createPrefixedSectionInternal(segments, prefix));
 		}
-		
+
 		protected T createAddressInternal(S segments[], CharSequence zone) {
 			return createAddressInternal(createSectionInternal(segments), zone);
 		}
-		
+
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix) {
 			return createAddress(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix));
 		}
-		
+
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix, CharSequence zone) {
 			return createAddressInternal(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix), zone);
 		}
-		
+
 		protected R createSectionInternal(byte bytes[], int segmentCount, Integer prefix) {
 			return createSectionInternal(bytes, segmentCount, prefix, false);
 		}
 		
+		protected abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, int segmentCount, Integer prefix);
+
+		public T createAddress(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix) {
+			return createAddress(createSection(bytes, byteStartIndex, byteEndIndex, getAddressSegmentCount(), prefix));
+		}
+
+		public T createAddress(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix, CharSequence zone) {
+			return createAddressInternal(createSection(bytes, byteStartIndex, byteEndIndex, getAddressSegmentCount(), prefix), zone);
+		}
+
 		protected T createAddressInternal(byte bytes[], Integer prefix) {
 			return createAddress(createSectionInternal(bytes, getAddressSegmentCount(), prefix));
 		}
-		
+
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone) {
 			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), zone);
 		}
-		
+
 		@Override
 		protected T createAddressInternal(byte bytes[], CharSequence zone) {
 			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), null), zone);
 		}
-		
+
 		protected T createAddressInternal(byte bytes[], Integer prefix, CharSequence zone, HostName fromHost) {
 			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), zone, fromHost);
 		}
-		
+
 		protected T createAddressInternal(byte bytes[], Integer prefix, HostName fromHost) {
 			return createAddressInternal(createSectionInternal(bytes, getAddressSegmentCount(), prefix), fromHost);
 		}
-		
+
 		public T createAddress(byte bytes[], Integer prefix) {
 			return createAddress(createSection(bytes, prefix));
 		}
-		
+
 		public T createAddress(byte bytes[]) {
 			return createAddress(createSection(bytes, null));
 		}
-		
+
 		@Override
 		protected T createAddressInternal(R section, CharSequence zone, HostIdentifierString from) {
 			T result = createAddressInternal(section, zone);
 			result.cache(from);
 			return result;
 		}
-		
+
 		@Override
 		protected T createAddressInternal(R section, HostIdentifierString from) {
 			T result = createAddress(section);
 			result.cache(from);
 			return result;
 		}
-		
+
 		protected abstract T createAddress(J inetAddress);
-		
+
 		protected abstract T createAddress(J inetAddress, Integer networkPrefixLength);
-		
+
 		/* this method exists and is protected because zone makes no sense for IPv4 so we do not expose it as public (internally it is always null) */
 		protected abstract T createAddressInternal(R section, CharSequence zone);
-		
+
 		@Override
 		public abstract T createAddress(R section);
-		
+
 		protected abstract int getAddressSegmentCount();
 	}
 
@@ -228,9 +239,10 @@ public abstract class IPAddressNetwork<
 	protected IPAddressNetwork(Class<T> addressType) {
 		IPVersion version = getIPVersion();
 		int bitSize = IPAddress.getBitCount(version);
-		this.subnets = (T[]) Array.newInstance(addressType, bitSize + 1);
-		this.subnetMasks = this.subnets.clone();
-		this.hostMasks = this.subnets.clone();
+		this.subnetsMasksWithPrefix = (T[]) Array.newInstance(addressType, bitSize + 1);
+		this.subnetMasks = this.subnetsMasksWithPrefix.clone();
+		this.networkAddresses = this.subnetsMasksWithPrefix.clone();
+		this.hostMasks = this.subnetsMasksWithPrefix.clone();
 		this.creator = createAddressCreator();
 		int segmentBitSize = IPAddressSegment.getBitCount(version);
 		int fullMask = ~(~0 << segmentBitSize); // segmentBitSize must be 5 bits at most for this shift to work per the java spec integer shift ishl operation (so it must be less than 2^5 = 32)
@@ -244,8 +256,9 @@ public abstract class IPAddressNetwork<
 	
 	@Override
 	public void clearCaches() {
-		Arrays.fill(subnets, null);//this cache has prefixed addresses
+		Arrays.fill(subnetsMasksWithPrefix, null);//this cache has prefixed addresses
 		Arrays.fill(subnetMasks, null);
+		Arrays.fill(networkAddresses, null);
 		Arrays.fill(hostMasks, null);
 		loopback = null;
 		loopbackStrings = null;
@@ -311,8 +324,12 @@ public abstract class IPAddressNetwork<
 		return getNetworkMask(networkPrefixLength, true);
 	}
 	
+	public T getNetworkAddress(int networkPrefixLength) {
+		return getMask(networkPrefixLength, networkAddresses, true, true, true);
+	}
+	
 	public T getNetworkMask(int networkPrefixLength, boolean withPrefixLength) {
-		return getMask(networkPrefixLength, withPrefixLength ? subnets : subnetMasks, true, withPrefixLength);
+		return getMask(networkPrefixLength, withPrefixLength ? subnetsMasksWithPrefix : subnetMasks, true, withPrefixLength, false);
 	}
 	
 	public R getNetworkMaskSection(int networkPrefixLength) {
@@ -320,14 +337,15 @@ public abstract class IPAddressNetwork<
 	}
 	
 	public T getHostMask(int networkPrefixLength) {
-		return getMask(networkPrefixLength, hostMasks, false, false);
+		return getMask(networkPrefixLength, hostMasks, false, false, false);
 	}
 	
 	public R getHostMaskSection(int networkPrefixLength) {
 		return getSectionProducer().apply(getHostMask(networkPrefixLength));
 	}
 	
-	private T getMask(int networkPrefixLength, T cache[], boolean network, boolean withPrefixLength) {
+	@SuppressWarnings("unchecked")
+	private T getMask(int networkPrefixLength, T cache[], boolean network, boolean withPrefixLength, boolean networkAddress) {
 		int bits = networkPrefixLength;
 		IPVersion version = getIPVersion();
 		int addressBitLength = IPAddress.getBitCount(version);
@@ -368,7 +386,7 @@ public abstract class IPAddressNetwork<
 							Arrays.fill(newSegments, segment);
 							onesSubnet = creator.createAddressInternal(newSegments); /* address creation */
 						}
-						initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
+						initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
 						cache[onesSubnetIndex] = onesSubnet;
 					}
 					zerosSubnet = cache[zerosSubnetIndex];
@@ -380,12 +398,15 @@ public abstract class IPAddressNetwork<
 							seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
 							Arrays.fill(newSegments, seg);
 							zerosSubnet = creator.createAddressInternal(newSegments, cacheBits(0)); /* address creation */
+							if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
+								zerosSubnet = (T) zerosSubnet.getLower();
+							}
 						} else {
 							seg = creator.createSegment(0);
 							Arrays.fill(newSegments, seg);
 							zerosSubnet = creator.createAddressInternal(newSegments); /* address creation */
 						}
-						initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
+						initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
 						cache[zerosSubnetIndex] = zerosSubnet;
 					}
 				}
@@ -446,11 +467,14 @@ public abstract class IPAddressNetwork<
 					segmentList.toArray(newSegments);
 					if(network && withPrefixLength) {
 						subnet = creator.createAddressInternal(newSegments, cacheBits(prefix)); /* address creation */
+						if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
+							subnet = (T) subnet.getLower();
+						}
 					} else {
 						subnet = creator.createAddressInternal(newSegments); /* address creation */
 					}
 					//initialize the cache fields since we know what they are now - they do not have to be calculated later
-					initMaskCachedValues(subnet.getSection(), network, withPrefixLength, addressBitLength, prefix, segmentCount, bitsPerSegment, bytesPerSegment);
+					initMaskCachedValues(subnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, prefix, segmentCount, bitsPerSegment, bytesPerSegment);
 					cache[cacheIndex] = subnet; //last thing is to put into the cache - don't put it there before we are done with it
 				} // end subnet from cache is null
 			} //end synchronized
@@ -461,7 +485,8 @@ public abstract class IPAddressNetwork<
 	private void initMaskCachedValues(
 			IPAddressSection section, 
 			boolean network,
-			boolean withPrefixLength, 
+			boolean withPrefixLength,
+			boolean networkAddress,
 			int addressBitLength, 
 			int networkPrefixLength,
 			int segmentCount, 
@@ -489,7 +514,7 @@ public abstract class IPAddressNetwork<
 		}
 		Integer npl = cacheBits(networkPrefixLength);
 		if(network && withPrefixLength) {
-			if(getPrefixConfiguration().prefixedSubnetsAreExplicit()) {
+			if(getPrefixConfiguration().prefixedSubnetsAreExplicit() || (getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress)) {
 				cachedEquivalentPrefix = cachedMinPrefix = cacheBits(addressBitLength);
 				cachedNetworkPrefix = npl;
 				cachedCount = BigInteger.ONE;
@@ -576,25 +601,40 @@ public abstract class IPAddressNetwork<
 			}
 			return null;
 		}
-		
+	
 		public IPAddress from(byte bytes[]) {
-			return from(bytes, null, null);
+			return from(bytes, 0, bytes.length, null, null);
 		}
 		
+		public IPAddress from(byte bytes[], int byteStartIndex, int byteEndIndex) {
+			return from(bytes, byteStartIndex, byteEndIndex, null, null);
+		}
+		
+		public IPAddress from(byte bytes[], int byteStartIndex, int byteEndIndex, Integer networkPrefixLength) {
+			return from(bytes, byteStartIndex, byteEndIndex, networkPrefixLength, null);
+		}
+	
 		public IPAddress from(byte bytes[], Integer prefixLength) {
-			return from(bytes, prefixLength, null);
+			return from(bytes, 0, bytes.length, prefixLength, null);
 		}
 		
+		private IPAddress from(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefixLength, CharSequence zone) {
+			if(bytes.length < IPv6Address.BYTE_COUNT) {
+				return getIPv4Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength);
+			}
+			return getIPv6Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength, zone);
+		}
+	
 		public IPAddress from(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
 			return from(version, lowerValueProvider, upperValueProvider, prefixLength, null);
 		}
-		
+	
 		private IPv4AddressCreator getIPv4Creator() {
 			IPv4AddressNetwork network = options.getIPv4Parameters().getNetwork();
 			IPv4AddressCreator addressCreator = network.getAddressCreator();
 			return addressCreator;
 		}
-		
+	
 		private IPv6AddressCreator getIPv6Creator() {
 			IPv6AddressNetwork network = options.getIPv6Parameters().getNetwork();
 			IPv6AddressCreator addressCreator = network.getAddressCreator();
@@ -610,15 +650,8 @@ public abstract class IPAddressNetwork<
 			}
 			throw new IllegalArgumentException();
 		}
-		
-		private IPAddress from(byte bytes[], Integer prefixLength, CharSequence zone) {
-			if(bytes.length < IPv6Address.BYTE_COUNT) {
-				return getIPv4Creator().createAddressInternal(bytes, prefixLength);
-			}
-			return getIPv6Creator().createAddressInternal(bytes, prefixLength, zone);
-		}
 	}
-	
+
 	/**
 	 * Choose a map of your choice to implement a cache of addresses and/or host names.
 	 * <p>
@@ -731,11 +764,11 @@ public abstract class IPAddressNetwork<
 			}
 			return result;
 		}
-		
+
 		protected String toNormalizedString(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
 			return addressGenerator.toNormalizedString(version, lowerValueProvider, upperValueProvider, prefixLength, zone);
 		}
-		
+
 		protected abstract T create(IPAddress addr);
 
 		protected abstract void cache(T result, IPAddress addr);
@@ -756,7 +789,7 @@ public abstract class IPAddressNetwork<
 	public static class IPAddressStringGenerator extends HostIdentifierStringGenerator<IPAddressString> {
 
 		private static final long serialVersionUID = 4L;
-		
+
 		private final HostIDStringAddressGenerator<IPAddressString> addressGenerator;
 
 		@SuppressWarnings("serial")
@@ -780,15 +813,15 @@ public abstract class IPAddressNetwork<
 				}
 			};
 		}
-		
+
 		public IPAddressStringGenerator(Map<String, IPAddressString> backingMap) {
 			this(backingMap, null);
 		}
-		
+
 		public IPAddressStringGenerator(IPAddressStringParameters options) {
 			this(null, options);
 		}
-		
+
 		public IPAddressStringGenerator() {
 			this(null, null);
 		}
@@ -798,29 +831,29 @@ public abstract class IPAddressNetwork<
 			IPAddressStringParameters options = addressGenerator.addressGenerator.options;
 			return options == null ? new IPAddressString(addressString) : new IPAddressString(addressString, options);
 		}
-		
+
 		public static SegmentValueProvider getValueProvider(byte bytes[]) {
 			return HostIDStringAddressGenerator.getValueProvider(bytes);
 		}
-		
+
 		@Override
 		public IPAddressString get(byte bytes[]) {
 			return addressGenerator.get(bytes);
 		}
-		
+
 		public IPAddressString get(IPAddressValueProvider addressProvider) {
 			return addressGenerator.get(addressProvider);
 		}
-		
+
 		@Override
 		public IPAddressString get(AddressValueProvider addressProvider) {
 			return addressGenerator.get(addressProvider);
 		}
-		
+
 		public IPAddressString get(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
 			return addressGenerator.get(version, lowerValueProvider, upperValueProvider, prefixLength);
 		}
-		
+
 		public IPAddressString get(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
 			return addressGenerator.get(lowerValueProvider, upperValueProvider, prefixLength, zone);
 		}

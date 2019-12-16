@@ -20,11 +20,14 @@ package inet.ipaddr;
 
 import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.format.IPAddressDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 
 /**
@@ -79,6 +82,12 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSegmentSeries assignPrefixForSingleBlock();
+
+	/**
+	 * Returns the minimal-size prefix block that covers all the addresses in this series.
+	 * The resulting block will have a larger series count than this, unless this series is already a prefix block.
+	 */
+	IPAddressSegmentSeries coverWithPrefixBlock();
 
 	/**
 	 * If this series has a prefix length, returns the subnet block for that prefix. If this series has no prefix length, this series is returned.
@@ -287,18 +296,36 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	
 	@Override
 	Iterable<? extends IPAddressSegmentSeries> getIterable();
-	
+
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> iterator();
-	
+
+	@Override
+	AddressComponentSpliterator<? extends IPAddressSegmentSeries> spliterator();
+
+	@Override
+	Stream<? extends IPAddressSegmentSeries> stream();
+
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> prefixIterator();
-	
+
+	@Override
+	AddressComponentSpliterator<? extends IPAddressSegmentSeries> prefixSpliterator();
+
+	@Override
+	Stream<? extends IPAddressSegmentSeries> prefixStream();
+
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> prefixBlockIterator();
 	
+	@Override
+	AddressComponentSpliterator<? extends IPAddressSegmentSeries> prefixBlockSpliterator();
+
+	@Override
+	Stream<? extends IPAddressSegmentSeries> prefixBlockStream();
+
 	/**
-	 * Similar to the prefix block iterator, but series with a host of zero are skipped.
+	 * Similar to the iterator, but series with a host of zero are skipped.
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegmentSeries> nonZeroHostIterator();
@@ -314,7 +341,22 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegmentSeries> blockIterator(int segmentCount);
-	
+
+	/**
+	 * Partitions and traverses through the individual sequential blocks created from each of the individual values up to the given segment count. 
+	 * 
+	 * @return
+	 */
+	AddressComponentSpliterator<? extends IPAddressSegmentSeries> blockSpliterator(int segmentCount);
+
+	/**
+	 * Returns a sequential stream of the individual blocks created from each of the individual values up to the given segment count.  
+	 * For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends IPAddressSegmentSeries> blockStream(int segmentCount);
+
 	/**
 	 * Iterates through the sequential series that make up this series.
 	 * Generally this means finding the count of segments for which the segments that follow are not full range, and the using {@link #blockIterator(int)} with that segment count.
@@ -324,7 +366,21 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegmentSeries> sequentialBlockIterator();
-	
+
+	/**
+	 * Partitions and traverses through the individual sequential blocks.
+	 * 
+	 * @return
+	 */
+	AddressComponentSpliterator<? extends IPAddressSegmentSeries> sequentialBlockSpliterator();
+
+	/**
+	 * Returns a sequential stream of the individual sequential blocks.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * 
+	 * @return
+	 */
+	Stream<? extends IPAddressSegmentSeries> sequentialBlockStream();
+
 	/**
 	 * provides the count of elements from the {@link #sequentialBlockIterator()}, the minimal number of sequential subseries that comprise this series
 	 * @return
@@ -333,14 +389,20 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	
 	@Override
 	Iterator<? extends IPAddressSegment[]> segmentsIterator();
-	
+
+	@Override
+	AddressComponentRangeSpliterator<? extends IPAddressSegmentSeries, ? extends IPAddressSegment[]> segmentsSpliterator();
+
+	@Override
+	Stream<? extends IPAddressSegment[]> segmentsStream();
+
 	/**
 	 * Similar to the segments iterator, but series with a host of zero are skipped.
 	 * 
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
-
+	
 	@Override
 	IPAddressSegmentSeries increment(long increment);
 
@@ -499,25 +561,12 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	@Override
 	IPAddressSegmentSeries reverseBytesPerSegment();
 	
-	/**
-	 * Removes the prefix length.  The bits that were host bits become zero.
-	 * 
-	 * @see #removePrefixLength(boolean)
-	 * @return
-	 */
 	@Override
 	IPAddressSegmentSeries removePrefixLength();
 	
 	@Override
 	IPAddressSegmentSeries withoutPrefixLength();
 	
-	/**
-	 * Removes the prefix length.  If zeroed is false, the bits that were host bits do not become zero, unlike {@link #removePrefixLength()}
-	 * 
-	 * @deprecated use {@link #removePrefixLength()} or {@link #withoutPrefixLength()}
-	 * @param zeroed whether the host bits become zero.
-	 * @return
-	 */
 	@Override  @Deprecated
 	IPAddressSegmentSeries removePrefixLength(boolean zeroed);
 	
@@ -539,6 +588,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	@Override
 	IPAddressSegmentSeries setPrefixLength(int prefixLength, boolean zeroed);
 
+	@Deprecated
 	@Override
 	IPAddressSegmentSeries applyPrefixLength(int networkPrefixLength);
 }

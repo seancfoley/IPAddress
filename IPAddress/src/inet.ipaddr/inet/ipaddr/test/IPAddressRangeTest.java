@@ -19,33 +19,57 @@
 package inet.ipaddr.test;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import inet.ipaddr.Address;
+import inet.ipaddr.AddressComponent;
 import inet.ipaddr.AddressSection;
+import inet.ipaddr.AddressSegment;
+import inet.ipaddr.AddressSegmentSeries;
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
-import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressSection;
+import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.format.AddressItem;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6AddressSection;
+import inet.ipaddr.mac.MACAddressSection;
 
 
 public class IPAddressRangeTest extends IPAddressTest {
-	
+
+	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+	private static final BigInteger BIG_THREE = BigInteger.valueOf(3);
+	private static final BigInteger BIG_TWO = BigInteger.valueOf(2);
+
 	static final IPAddressStringParameters WILDCARD_AND_RANGE_ADDRESS_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).toParams();
 	static final IPAddressStringParameters WILDCARD_ONLY_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeOptions(RangeParameters.WILDCARD_ONLY).toParams();
 	private static final IPAddressStringParameters NO_RANGE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().setRangeOptions(RangeParameters.NO_RANGE).toParams();
-	
+
 	private static final IPAddressStringParameters INET_ATON_WILDCARD_OPTS = INET_ATON_WILDCARD_AND_RANGE_OPTIONS.toBuilder().setRangeOptions(RangeParameters.WILDCARD_ONLY).toParams();
 	private static IPAddressStringParameters optionsCache[][] = new IPAddressStringParameters[3][3];
 
@@ -284,6 +308,30 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount(this, w, number);
 	}
 	
+	void testCover(String oneStr, String resultStr) {
+		IPAddress oneAddr = createAddress(oneStr).getAddress();
+		IPAddress resultAddr = createAddress(resultStr).getAddress();
+		IPAddress result = oneAddr.coverWithPrefixBlock();
+		if(!result.equals(resultAddr)) {
+			addFailure(new Failure("cover was " + result + " instead of expected " + resultAddr, oneAddr));
+		}
+		testCover(oneAddr.getUpper().toString(), oneAddr.getLower().toString(), resultStr);
+		testCover(oneAddr.getUpper().toString(), oneStr, resultStr);
+		incrementTestCount();
+	}
+	
+	void testCover(String oneStr, String twoStr, String resultStr) {
+		IPAddress oneAddr = createAddress(oneStr).getAddress();
+		IPAddress twoAddr = createAddress(twoStr).getAddress();
+		IPAddress resultAddr = createAddress(resultStr).getAddress();
+		
+		IPAddress result = oneAddr.coverWithPrefixBlock(twoAddr);
+		if(!result.equals(resultAddr) || !Objects.equals(resultAddr.getNetworkPrefixLength(), result.getNetworkPrefixLength())) {
+			addFailure(new Failure("cover was " + result + " instead of expected " + resultAddr, oneAddr));
+		}
+		incrementTestCount();
+	}
+	
 	static int COUNT_LIMIT = 1024;
 	
 	static void testPrefixCount(TestBase testBase, HostIdentifierString w, long number) {
@@ -294,22 +342,26 @@ public class IPAddressRangeTest extends IPAddressTest {
 		boolean isIp = val instanceof IPAddress;
 		boolean isPrefixed = val.isPrefixed();
 		BigInteger count = val.getPrefixCount();
+		HashSet<AddressItem> prefixSet = new HashSet<AddressItem>();
+		HashSet<AddressItem> prefixBlockSet = new HashSet<AddressItem>();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
 			int loopCount = 0;
 			BigInteger totalCount = val.getCount();
-			BigInteger countedCount = BigInteger.ZERO;
-			while(++loopCount < 2) {
+			BigInteger countedCount;
+			boolean originalIsPrefixBlock = val.isPrefixBlock();
+			while(++loopCount <= 2) {
+				countedCount = BigInteger.ZERO;
 				boolean isBlock = loopCount == 1;
 				Iterator<? extends Address> addrIterator = isBlock ? val.prefixBlockIterator() : val.prefixIterator();
+				HashSet<AddressItem> set = isBlock ? prefixBlockSet : prefixSet;
 				long counter = 0;
-				Set<Address> set = new HashSet<Address>();
 				Address previous = null;
 				Address next = null;
 				while(addrIterator.hasNext()) {
 					next = addrIterator.next();
-					if(isBlock || (previous != null && addrIterator.hasNext())) {
+					if(isBlock || (originalIsPrefixBlock && previous != null && addrIterator.hasNext())) {
 						if(isPrefixed ? !next.isPrefixBlock() : next.isPrefixBlock()) {
 							testBase.addFailure(new Failure("not prefix block next: " + next, next));
 							break;
@@ -318,7 +370,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 							testBase.addFailure(new Failure("not single prefix block next: " + next, next));
 							break;
 						}
-					} else if(!isBlock) {
+					} 
+					if(!isBlock) {
 						countedCount = countedCount.add(next.getCount());
 					}
 					if(isIp && previous != null && ((IPAddress) next).intersect((IPAddress) previous) != null) {
@@ -326,7 +379,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 						break;
 					}
 					set.add(next);
-					//System.out.println(next);
+					
 					counter++;
 					previous = next;
 				}
@@ -337,7 +390,81 @@ public class IPAddressRangeTest extends IPAddressTest {
 				} else if (!isBlock && !countedCount.equals(totalCount)){
 					testBase.addFailure(new Failure("count mismatch, expected " + totalCount + " got " + countedCount, val));
 				}
+				
+				Function<Address, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = isBlock ? 
+						Address::prefixBlockSpliterator : Address::prefixSpliterator;
+						
+				testSpliterate(testBase, val, 0, number, spliteratorFunc);
+				testSpliterate(testBase, val, 1, number, spliteratorFunc);
+				testSpliterate(testBase, val, 8, number, spliteratorFunc);
+				testSpliterate(testBase, val, -1, number, spliteratorFunc);
+				
+				if(isIp && isPrefixed) {
+					// use val to indicate prefix length,
+					// but we actually iterate on a value with different prefix length, while assigning the prefix length with the spliterator call
+					IPAddress ipAddr = ((IPAddress) val);
+					Integer prefLength = ipAddr.getPrefixLength();
+					IPAddress iteratedVal = null;
+					if(prefLength >= val.getBitCount() - 3) {
+						if(!val.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+							iteratedVal = ipAddr.setPrefixLength(prefLength - 3, false, false);
+						}
+					} else {
+						iteratedVal = ipAddr.adjustPrefixLength(3, false);
+					}
+					
+					
+					if(iteratedVal != null) {
+						IPAddress ival = iteratedVal;
+						spliteratorFunc = isBlock ? addr -> ival.prefixBlockSpliterator(prefLength):
+							addr -> ival.prefixSpliterator(prefLength);
+							
+						testSpliterate(testBase, val, 0, number, spliteratorFunc);
+						testSpliterate(testBase, val, 1, number, spliteratorFunc);
+						testSpliterate(testBase, val, 3, number, spliteratorFunc);
+					}
+				}
 			}
+			testStream(testBase, val, prefixSet, Address::prefixStream);
+			testStream(testBase, val, prefixBlockSet, Address::prefixBlockStream);
+		}
+		// segment tests
+		AddressSegment lastSeg = null;
+		for(int i = 0; i < val.getSegmentCount(); i++) {
+			AddressSegment seg = val.getSegment(i);
+			if(i == 0 || !seg.equals(lastSeg)) {
+				Function<AddressSegment, AddressComponentRangeSpliterator<?,? extends AddressItem>> funct = segm -> segm.spliterator();
+				int segCount = seg.getValueCount();
+				Set<AddressItem> segmentSet = testSpliterate(testBase, seg, 0, segCount, funct);
+				testSpliterate(testBase, seg, 1, segCount, funct);
+				testSpliterate(testBase, seg, 8, segCount, funct);
+				testSpliterate(testBase, seg, -1, segCount, funct);
+				
+				testStream(testBase, seg, segmentSet, AddressSegment::stream);
+				
+				if(seg instanceof IPAddressSegment) {
+					IPAddressSegment ipseg = ((IPAddressSegment)seg);
+					if(ipseg.isPrefixed()) {
+						Function<IPAddressSegment, AddressComponentRangeSpliterator<?,? extends AddressItem>> func = segm -> segm.prefixSpliterator();
+						segCount = ipseg.getPrefixValueCount();
+						testSpliterate(testBase, ipseg, 0, segCount, func);
+						testSpliterate(testBase, ipseg, 1, segCount, func);
+						segmentSet = testSpliterate(testBase, ipseg, 8, segCount, func);
+						testSpliterate(testBase, ipseg, -1, segCount, func);
+
+						testStream(testBase, ipseg, segmentSet, IPAddressSegment::prefixStream);
+						
+						func = segm -> segm.prefixBlockSpliterator();
+						testSpliterate(testBase, ipseg, 0, segCount, func);
+						testSpliterate(testBase, ipseg, 1, segCount, func);
+						testSpliterate(testBase, ipseg, 8, segCount, func);
+						segmentSet = testSpliterate(testBase, ipseg, -1, segCount, func);
+						
+						testStream(testBase, ipseg, segmentSet, IPAddressSegment::prefixBlockStream);
+					}
+				}
+			}
+			lastSeg = seg;
 		}
 		testBase.incrementTestCount();
 	}
@@ -354,7 +481,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 	
 	static void testCount(TestBase testBase, HostIdentifierString w, long number, long excludeZerosNumber) {
 		testCount(testBase, w, number, false);
-		if(excludeZerosNumber >= 0) {
+		if(excludeZerosNumber >= 0) { // this is used to filter out mac tests
 			testCount(testBase, w, excludeZerosNumber, true);
 		}
 	}
@@ -375,19 +502,19 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		testBase.incrementTestCount();
 	}
-	
+
 	static void testCount(TestBase testBase, HostIdentifierString w, long number, boolean excludeZeroHosts) {
 		if(!testBase.fullTest && number > COUNT_LIMIT) {
 			return;
 		}
 		Address val = w.getAddress();
 		BigInteger count = excludeZeroHosts ? ((IPAddress)val).getNonZeroHostCount() : val.getCount();
+		Set<AddressItem> set = new HashSet<AddressItem>();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
 			Iterator<? extends Address> addrIterator = excludeZeroHosts ? ((IPAddress)val).nonZeroHostIterator() : val.iterator();
 			long counter = 0;
-			Set<Address> set = new HashSet<Address>();
 			Address next = null;
 			while(addrIterator.hasNext()) {
 				next = addrIterator.next();
@@ -443,8 +570,285 @@ public class IPAddressRangeTest extends IPAddressTest {
 					testBase.addFailure(new Failure("unexpected zero count ", val));
 				}
 			}
+			
+			if(!excludeZeroHosts){
+			
+//				Function<Address, Spliterator<? extends AddressItem>> spliteratorFunc = excludeZeroHosts ? 
+//						addr -> ((IPAddress)addr).nonZeroHostSpliterator() : Address::spliterator;
+				Function<Address, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = Address::spliterator;
+								
+				testSpliterate(testBase, val, 0, number, spliteratorFunc);
+				testSpliterate(testBase, val, 1, number, spliteratorFunc);
+				testSpliterate(testBase, val, 8, number, spliteratorFunc);
+				testSpliterate(testBase, val, -1, number, spliteratorFunc);
+				
+				testStream(testBase, val, set, Address::stream);
+				
+				AddressSection section = val.getSection();
+				
+//				Function<AddressSection, Spliterator<? extends AddressItem>> sectionFunc = excludeZeroHosts ? 
+//						addr -> ((IPAddressSection)section).nonZeroHostSpliterator() : AddressSection::spliterator;
+				Function<AddressSection, AddressComponentRangeSpliterator<?,? extends AddressItem>> sectionFunc = AddressSection::spliterator;
+
+				testSpliterate(testBase, section, 0, number, sectionFunc);
+				testSpliterate(testBase, section, 1, number, sectionFunc);
+				testSpliterate(testBase, section, 2, number, sectionFunc);
+				set = testSpliterate(testBase, section, 7, number, sectionFunc);
+				testSpliterate(testBase, section, -1, number, sectionFunc);
+				
+				testStream(testBase, section, set, AddressSection::stream);
+				
+				Set<AddressItem> createdSet = null;
+				if(section instanceof IPv6AddressSection) {
+					createdSet = ((IPv6AddressSection) section).segmentsStream().map(IPv6AddressSection::new).collect(Collectors.toSet());
+				} else if(section instanceof IPv4AddressSection) {
+					createdSet = ((IPv4AddressSection) section).segmentsStream().map(IPv4AddressSection::new).collect(Collectors.toSet());
+				} else if(section instanceof MACAddressSection) {
+					createdSet = ((MACAddressSection) section).segmentsStream().map(MACAddressSection::new).collect(Collectors.toSet());
+				}
+				
+				testStream(testBase, section, createdSet, AddressSection::stream);
+
+			}
 		}
 		testBase.incrementTestCount();
+	}
+	
+	private static ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
+	        new ThreadFactory() {
+        @Override
+		public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        }
+    });
+	
+	static int spliterateTestCounter = 0;
+	
+	static <T extends AddressItem> Set<AddressItem> testSpliterate(TestBase testBase, T val, int splitCount, long number, 
+			Function<T, AddressComponentRangeSpliterator<?, ? extends AddressItem>> spliteratorFunc) {
+		spliterateTestCounter++;
+		boolean limitedSplit =  number > COUNT_LIMIT;
+		Set<AddressItem> set = Collections.synchronizedSet(new HashSet<AddressItem>());
+		ArrayList<AddressComponentRangeSpliterator<?,? extends AddressItem>> list = new ArrayList<>();
+		AddressComponentRangeSpliterator<?,? extends AddressItem> spliterator = spliteratorFunc.apply(val);
+		list.add(spliterator);
+		BigInteger originalSize = spliterator.getSize();
+		boolean isLongish = originalSize.compareTo(LONG_MAX) < 0;
+		long originalLongSize = spliterator.getExactSizeIfKnown();
+		for(int i = 0; splitCount < 0 || i < splitCount; i++) {
+			if(limitedSplit) {
+				boolean didSplit = false;
+				AddressComponentRangeSpliterator<?,? extends AddressItem> first = list.get(0);
+				AddressComponentRangeSpliterator<?,? extends AddressItem> split = first.trySplit();
+				if(split != null) {
+					didSplit = true;
+					list.add(split);
+				}
+				if(list.size() > 1) {
+					AddressComponentRangeSpliterator<?,? extends AddressItem> last = list.get(list.size() - 1);
+					split = last.trySplit();
+					if(split != null) {
+						didSplit = true;
+						list.add(split);
+					}
+				}
+				if(!didSplit) {
+					break;
+				}
+			} else {
+				ArrayList<AddressComponentRangeSpliterator<?,? extends AddressItem>> newList = new ArrayList<>();
+				for(AddressComponentRangeSpliterator<?,? extends AddressItem> toSplit : list) {
+					AddressComponentRangeSpliterator<?,? extends AddressItem> split = toSplit.trySplit();
+					if(split != null) {
+						newList.add(split);
+						
+						BigInteger size1 = toSplit.getSize();
+						if(size1.compareTo(BIG_THREE) > 0) {
+							BigInteger size2 = split.getSize();
+							if(size1.multiply(BIG_TWO).compareTo(size2) < 0) {
+								testBase.addFailure(new Failure("unequal split " + size1 + " and " + size2, val));
+							} else if(size2.multiply(BIG_TWO).compareTo(size1) < 0) {
+								testBase.addFailure(new Failure("unequal split " + size1 + " and " + size2, val));
+							}
+						}
+					}
+					newList.add(toSplit);
+				}
+				if(list.size() == newList.size()) {
+					for(AddressComponentRangeSpliterator<?,? extends AddressItem> splitter : list) {
+						long exactSize = splitter.getExactSizeIfKnown();
+						if(exactSize > 2) {
+							testBase.addFailure(new Failure("unable to split " + splitter + " but size is " + exactSize, val));
+						}
+					}
+					break;
+				}
+				list = newList;
+			}
+			if(spliterateTestCounter % 5 == 0) { // we don't always get size, we also want to test splitting and iterating without getting it first
+				BigInteger newSize = BigInteger.ZERO;
+				long newLongSize = 0;
+				for(AddressComponentRangeSpliterator<?,? extends AddressItem> splitter : list) {
+					newSize = newSize.add(splitter.getSize());
+					if(isLongish) {
+						long exact = splitter.getExactSizeIfKnown();
+						long estimate = splitter.estimateSize();
+						if(exact != estimate) {
+							testBase.addFailure(new Failure("long value mismatch exact " + exact + " and estimate " + estimate, val));
+						}
+						newLongSize += exact;
+					} else {
+						long exact = splitter.getExactSizeIfKnown();
+						long estimate = splitter.estimateSize();
+						if(exact != Long.MAX_VALUE) {
+							testBase.addFailure(new Failure("long value invalid " + exact + " and expected " + Long.MAX_VALUE, val));
+						} else if(estimate != -1L) {
+							testBase.addFailure(new Failure("long value invalid " + exact + " and expected " + -1L, val));
+						}
+					}
+				}
+				// check that total spliterator sizes match the original
+				if(!newSize.equals(originalSize)) {
+					testBase.addFailure(new Failure("size mismatch, before splits " + originalSize + " and after " + newSize, val));
+				} else if(isLongish && newLongSize != originalLongSize) {
+					testBase.addFailure(new Failure("long size mismatch, before splits " + originalLongSize + " and after " + newLongSize, val));
+				}
+			}
+		}
+		Integer expectedPrefixLen = null;
+		boolean checkMatchingPrefix = false;
+		if(val instanceof AddressComponent) {
+			AddressComponent comp = (AddressComponent) val;
+			checkMatchingPrefix = !comp.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+			if(checkMatchingPrefix) {
+				if(val instanceof AddressSegmentSeries) {
+					expectedPrefixLen = ((AddressSegmentSeries) val).getPrefixLength();
+				} else if(val instanceof IPAddressSegment) {
+					expectedPrefixLen = ((IPAddressSegment) val).getSegmentPrefixLength();
+				} else {
+					checkMatchingPrefix = false;
+				}
+			}
+		}
+		boolean checkMatchingPrefixLength = checkMatchingPrefix;
+		Integer expectedPrefixLength = expectedPrefixLen;
+		AtomicInteger counter = new AtomicInteger();
+		List<Future<?>> jobs = new ArrayList<Future<?>>(list.size());
+
+		int spliteratorCount = list.size();
+		int newSpliteratorCount = 0;
+		int subSpliteratorCount = 0;
+		
+		//System.out.println("\nhere we go with " + val);
+		while(true) {
+			ArrayList<AddressComponentRangeSpliterator<?,? extends AddressItem>> newList = new ArrayList<>();
+			int splitsCounter = 0;
+			for(AddressComponentRangeSpliterator<?,? extends AddressItem> splitter : list) {
+				int ctr = ++splitsCounter;
+				int adjustedCtr = spliterateTestCounter % 3 == 0 ? ctr - 1 : ctr; // this means sometimes we will split off the first spliterator, sometimes not the first
+				
+				Future<?> job = threadPool.submit(new Runnable() {
+					AddressComponentRangeSpliterator<?,? extends AddressItem> toSplit = splitter;
+					boolean firstTime = true;
+					boolean doTryAdvance = (adjustedCtr % 3) == 0;
+					boolean doAdditionalSplit = (adjustedCtr % 6) == 0;
+					
+					@Override
+					public void run() {
+						if(doTryAdvance) {
+							toSplit.tryAdvance(next -> {
+								//System.out.println("adding single " + next);
+								set.add(next);
+								counter.incrementAndGet();
+								if(checkMatchingPrefixLength) {
+									if(next instanceof AddressSegmentSeries) {
+										Integer prefLength = ((AddressSegmentSeries) next).getPrefixLength();
+										if(!Objects.equals(prefLength, expectedPrefixLength)) {
+											testBase.addFailure(new Failure("mismatched pref lengths, original " + expectedPrefixLength + " and actual " + prefLength, val));
+										}
+									} else if(next instanceof IPAddressSegment) {
+										Integer prefLength = ((IPAddressSegment) next).getSegmentPrefixLength();
+										if(!Objects.equals(prefLength, expectedPrefixLength)) {
+											testBase.addFailure(new Failure("mismatched pref lengths, original " + expectedPrefixLength + " and actual " + prefLength, val));
+										}
+									} 
+								}
+							});
+							if(doAdditionalSplit) {
+								AddressComponentRangeSpliterator<?,? extends AddressItem> split = toSplit.trySplit();
+								if(split != null) {
+									synchronized(newList) {
+										newList.add(split);
+									}
+								}
+							}
+						}
+						//System.out.println("adding all of " + ((AddressItemSpliterator<?,?>) toSplit).getAddressItem() + " , currently counter is " + counter);
+						toSplit.forEachRemaining(next -> {
+							//System.out.println(next);
+							set.add(next);
+							counter.incrementAndGet();
+							if(firstTime) {
+								if(checkMatchingPrefixLength) {
+									if(next instanceof AddressSegmentSeries) {
+										Integer prefLength = ((AddressSegmentSeries) next).getPrefixLength();
+										if(!Objects.equals(prefLength, expectedPrefixLength)) {
+											testBase.addFailure(new Failure("mismatched pref lengths, original " + expectedPrefixLength + " and actual " + prefLength, val));
+										}
+									} else if(next instanceof IPAddressSegment) {
+										Integer prefLength = ((IPAddressSegment) next).getSegmentPrefixLength();
+										if(!Objects.equals(prefLength, expectedPrefixLength)) {
+											testBase.addFailure(new Failure("mismatched pref lengths, original " + expectedPrefixLength + " and actual " + prefLength, val));
+										}
+									} 
+								}
+							}
+							firstTime = false;
+						});
+					//	System.out.println("added all of " + ((AddressItemSpliterator<?,?>) toSplit).getAddressItem() + " , currently counter is " + counter);
+					}
+				});
+				jobs.add(job);
+			}
+			try {
+				for(Future<?> job : jobs) {
+					job.get();
+				}
+			} catch (InterruptedException | ExecutionException e) {
+				testBase.addFailure(new Failure("unexpected interruption " + e, val));
+			}
+			
+			if(newList.size() == 0) {
+				break;
+			}
+			if(newSpliteratorCount == 0) {
+				if(spliteratorCount == 0 || subSpliteratorCount > 0) {
+					throw new Error();
+				}
+				newSpliteratorCount += newList.size();
+			} else {
+				subSpliteratorCount += newList.size();
+			}
+			list = newList;
+		}
+		//System.out.println("tested " + spliteratorCount + " spliterators, " + newSpliteratorCount + " split off, " + subSpliteratorCount + " split off from split off");
+		if(number < Integer.MAX_VALUE && set.size() != number) {
+			testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, val));
+		} else if(number < Integer.MAX_VALUE && counter.intValue() != number) {
+			testBase.addFailure(new Failure("count was " + counter + " instead of expected " + number, val));
+		}
+		return set;
+	}
+	
+	static <T extends AddressItem> void testStream(TestBase testBase, T val, Set<AddressItem> originalSet, 
+			Function<T, Stream<? extends AddressItem>> streamFunc) {
+		Stream<? extends AddressItem> stream = streamFunc.apply(val);
+		Set<? extends AddressItem> set = stream.parallel().collect(Collectors.toSet());
+		if(!set.equals(originalSet)) {
+			testBase.addFailure(new Failure("set mismatch, count is " + set.size() + " instead of expected " + originalSet.size(), val));
+		}
 	}
 	
 	void testRangeCount(String low, String high, long number) {
@@ -492,8 +896,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				set.add(next);
 				counter++;
 			}
-			if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+			if(number < Integer.MAX_VALUE && set.size() != number) {
 				testBase.addFailure(new Failure("set count was " + set.size() + " instead of expected " + number, w));
+			} else if(number < Long.MAX_VALUE && counter != number) {
+				testBase.addFailure(new Failure("count was " + counter + " instead of expected " + number, w));
 			} else if (number > 0){
 				if(!next.equals(val.getUpper())) {
 					testBase.addFailure(new Failure("highest: " + val.getUpper(), next));
@@ -522,13 +928,17 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getPrefixCount(prefixLength);
+//		Set<IPAddress> prefixBlockSet = new HashSet<IPAddress>();
+//		Set<IPAddressSeqRange> prefixSet = new HashSet<IPAddressSeqRange>();
+		Set<AddressItem> prefixBlockSet = new HashSet<AddressItem>();
+		Set<AddressItem> prefixSet = new HashSet<AddressItem>();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
 			Iterator<? extends IPAddress> addrIterator = val.prefixBlockIterator(prefixLength);
 			long counter = 0;
-			Set<IPAddress> set = new HashSet<IPAddress>();
 			IPAddress next = null, previous = null;
+			Set<AddressItem> set = prefixBlockSet;
 			while(addrIterator.hasNext()) {
 				next = addrIterator.next();
 				if(!next.isPrefixBlock()) {
@@ -558,10 +968,12 @@ public class IPAddressRangeTest extends IPAddressTest {
 			BigInteger countedCount = BigInteger.ZERO;
 			Iterator<? extends IPAddressSeqRange> rangeIterator = val.prefixIterator(prefixLength);
 			counter = 0;
-			Set<IPAddressSeqRange> rangeSet = new HashSet<IPAddressSeqRange>();
+			Set<AddressItem> rangeSet = prefixSet;
 			IPAddressSeqRange nextRange = null, previousRange = null;
+			//int i = 0;
 			while(rangeIterator.hasNext()) {
 				nextRange = rangeIterator.next();
+				//System.out.println(++i + " " + nextRange);
 				IPAddress blocks[] = nextRange.spanWithPrefixBlocks();
 				if(previous != null && addrIterator.hasNext()) {
 					if(blocks.length != 1) {
@@ -591,6 +1003,23 @@ public class IPAddressRangeTest extends IPAddressTest {
 				testBase.addFailure(new Failure("count mismatch, expected " + totalCount + " got " + countedCount, val));
 			}
 
+			Function<IPAddressSeqRange, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = 
+					range -> range.prefixBlockSpliterator(prefixLength);
+			
+			testSpliterate(testBase, val, 0, number, spliteratorFunc);
+			testSpliterate(testBase, val, 1, number, spliteratorFunc);
+			testSpliterate(testBase, val, 8, number, spliteratorFunc);
+			testSpliterate(testBase, val, -1, number, spliteratorFunc);
+			
+			spliteratorFunc = range -> range.prefixSpliterator(prefixLength);
+			
+			testSpliterate(testBase, val, 0, number, spliteratorFunc);
+			testSpliterate(testBase, val, 1, number, spliteratorFunc);
+			testSpliterate(testBase, val, 8, number, spliteratorFunc);
+			testSpliterate(testBase, val, -1, number, spliteratorFunc);
+			
+			testStream(testBase, val, prefixSet, range -> range.prefixStream(prefixLength));
+			testStream(testBase, val, prefixBlockSet, range -> range.prefixBlockStream(prefixLength));
 		}
 		testBase.incrementTestCount();
 	}
@@ -606,6 +1035,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		IPAddress val = w.getAddress();
 		BigInteger count = val.getBlockCount(segmentCount);
+		Set<AddressItem> set = new HashSet<AddressItem>();
 		if(!count.equals(BigInteger.valueOf(number))) {
 			testBase.addFailure(new Failure("count was " + count + " instead of expected count " + number, w));
 		} else {
@@ -613,7 +1043,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 			long counter = 0, sectionCounter = 0;
 			IPAddressSection valSection = val.getSection(0, segmentCount);
 			Iterator<? extends IPAddressSection> sectionIterator = valSection.iterator();
-			Set<Address> set = new HashSet<Address>();
 			Address next = null;
 			AddressSection nextSection = null;
 			while(addrIterator.hasNext()) {
@@ -684,6 +1113,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 			} else {
 				testBase.addFailure(new Failure("unexpected zero count ", val));
 			}
+			
+			Function<IPAddress, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = addr -> addr.blockSpliterator(segmentCount);
+					
+			testSpliterate(testBase, val, 0, number, spliteratorFunc);
+			testSpliterate(testBase, val, 1, number, spliteratorFunc);
+			testSpliterate(testBase, val, 5, number, spliteratorFunc);
+			testSpliterate(testBase, val, -1, number, spliteratorFunc);
+			
+			testStream(testBase, val, set, addr -> addr.blockStream(segmentCount));
 		}
 		testBase.incrementTestCount();
 	}
@@ -697,6 +1135,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testWildcarded(original, bits, expectedSubnet, all, all, all, expectedSQL);
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testWildcarded(String original, int bits, String expectedSubnet, String expectedNormalized, String expectedCanonical, String expectedCompressed, String expectedSQL) {
 		IPAddressString w = createAddress(original);
 		IPAddress addr = w.getAddress();
@@ -3746,7 +4185,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("1.2.3.*/31", 128);
 		testPrefixCount("1.2.3.*/25", 2);
 		testPrefixCount("1.2.*.4/31", 256);
+		testPrefixCount("1.2.*.5/31", 256);
 		testPrefixCount("1.2.*.4/23", 128);
+		//testPrefixCount("::1:2:*:4/111", 65536 >> 1);
+		testPrefixCount("::1:2:*:4/107", 2048);
 		testPrefixCount("*.2.*.4/23", 128 * 256);
 		testPrefixCount("*.2.3.*/7", 128);
 		testPrefixCount("2-3.2.3.*/8", 2);
@@ -3769,6 +4211,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testCount("1.2.3.4/30", isNoAutoSubnets ? 1 : 4, isNoAutoSubnets ? 0 : 3);
 		testCount("1.2.3.6/30", allPrefixesAreSubnets ? 4 : 1, allPrefixesAreSubnets ? 3 : 1);
 		testCount("1.1-2.3.4", 2, 2, RangeParameters.WILDCARD_AND_RANGE);
+		testCount("1.2.3.0/24", isNoAutoSubnets ? 1 : 256, isNoAutoSubnets ? 0 : 255);
 		testCount("1.*.3.4", 256, 256);
 		testCount("1.2.252.0/22", isNoAutoSubnets ? 1 : 4 * 256, isNoAutoSubnets ? 0 : (4 * 256) - 1);
 		testCount("1-2.2.252.0/22", isNoAutoSubnets ? 2 : 2 * 4 * 256, isNoAutoSubnets ? 0 : 2 * ((4 * 256) - 1));
@@ -3882,7 +4325,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangePrefixCount("2.3.255.5", "2.4.0.5", 24, 2);
 		testRangePrefixCount("2.3.255.5", "2.4.1.5", 24, 3);
 		
-		
+		testRangePrefixCount("::1:2:3:fffe", "::1:2:5:0", 112, 3);
 		
 		if(fullTest) {
 			testRangePrefixCount("::1:2:3:fffe", "::1:2:5:0", 128, 3L + 0x10000L);
@@ -5273,7 +5716,27 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"0.0.0.0", "63.15.255.255", 
 				new Object[] {new Integer[]{0, 63}, new Integer[]{0, 0xfffff}}, 
 				null, false);
-
+		
+		testCover("1.2.3.4", "1.2.4.4", isAutoSubnets ? "1.2.0.0/21" : "1.2.0-7.*/21");
+		testCover("1.10-11.3.4", isAutoSubnets ? "1.10.0.0/15" : "1.10-11.*.*/15");
+		testCover("0.0.1.1", "128.0.0.0", "*.*/0");
+		testCover("0.0.1.1", "0.0.1.1", "0.0.1.1/32");
+		testCover("0.0.1.1", "0.0.1.1/32");
+		testCover("0.0.1.1", "0.0.1.0", "0.0.1.0-1/31");
+		testCover("1.2.0.0/16", isAutoSubnets ? "1.2.0.0/16" : "1.2.0.0/32");
+		testCover("1.2.0.1/16", isAllSubnets ? "1.2.*/16" : "1.2.0.1/32");
+		
+		testCover("8000:a:b:c::/64", isAutoSubnets ? "8000:a:b:c::/64" :  "8000:a:b:c::/128");
+		testCover("8000::", "::", "*:*/0");
+		testCover("*:0:*:0:*:0:*:0", "0:*:0:*:0:*:0:*", "*:*/0");
+		testCover("0:0:*:0:*:0:*:0", "0:*:0:*:0:*:0:*", "0:*/16");
+		testCover("0:0:0-63:0:*:0:*:0", "0:0:64:*:0:*:0:*", "0:0:0-7f:*/41");
+		testCover("8000::/1", "::", "*:*/0");
+		testCover("8000::/1", "::/64", "*:*/0");
+		testCover("::1:ffff", "::1:ffff", "::1:ffff/128");
+		testCover("::1", "::", "::0-1/127");
+		testCover("ffff:ffff:ffff:ffff::/64", isAutoSubnets ? "ffff:ffff:ffff:ffff:*/64" : "ffff:ffff:ffff:ffff::/128");
+		
 		super.runTest();
 	}
 	

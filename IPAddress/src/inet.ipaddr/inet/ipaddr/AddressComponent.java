@@ -19,8 +19,10 @@
 package inet.ipaddr;
 
 import java.util.Iterator;
+import java.util.stream.Stream;
 
-import inet.ipaddr.format.AddressItemRange;
+import inet.ipaddr.format.AddressComponentRange;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 
 
 // The hierarchy is shown in various views
@@ -90,7 +92,13 @@ import inet.ipaddr.format.AddressItemRange;
 // | IPAddressStringDivisionGrouping (for the large division)
 // IPAddressDivisionGrouping (most ip address division groupings)
 //
-public interface AddressComponent extends AddressItemRange {
+public interface AddressComponent extends AddressComponentRange {
+	/**
+	 * Returns the network object for components of the same version (eg IPv4, IPv6 and MAC each have their own network object)
+	 * @return
+	 */
+	AddressNetwork<?> getNetwork();
+
 	/**
 	 * Writes this address component as a single hexadecimal value with always the exact same number of characters, with or without a preceding 0x prefix.
 	 * <p>
@@ -157,4 +165,10 @@ public interface AddressComponent extends AddressItemRange {
 	 */
 	@Override
 	Iterator<? extends AddressComponent> iterator();
+
+	@Override
+	AddressComponentSpliterator<? extends  AddressComponent> spliterator();
+
+	@Override
+	Stream<? extends AddressComponent> stream();
 }
