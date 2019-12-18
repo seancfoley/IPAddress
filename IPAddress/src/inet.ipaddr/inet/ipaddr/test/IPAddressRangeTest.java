@@ -332,6 +332,24 @@ public class IPAddressRangeTest extends IPAddressTest {
 		incrementTestCount();
 	}
 	
+	void testMasked(String masked, String mask, Integer prefixLength, String result) {
+		IPAddressString maskedAddrStr = createAddress(masked);
+		IPAddress maskedAddr = maskedAddrStr.getAddress();
+		IPAddress maskAddr = mask != null ? createAddress(mask).getAddress() : null;
+		IPAddress resultAddr = createAddress(result).getAddress();
+		
+		if(!maskedAddr.equals(resultAddr)) {
+			addFailure(new Failure("masked " + maskedAddr + " instead of expected " + resultAddr, maskedAddr));
+		}
+		if(!Objects.equals(maskAddr, maskedAddrStr.getMask())) {
+			addFailure(new Failure("masked " + maskAddr + " instead of expected " + maskedAddrStr.getMask(), maskedAddr));
+		}
+		if(!Objects.equals(resultAddr.getNetworkPrefixLength(), prefixLength)) {
+			addFailure(new Failure("masked prefix length was " + resultAddr.getNetworkPrefixLength() + " instead of expected " + prefixLength, maskedAddr));
+		}
+		incrementTestCount();
+	}
+	
 	static int COUNT_LIMIT = 1024;
 	
 	static void testPrefixCount(TestBase testBase, HostIdentifierString w, long number) {
@@ -4471,6 +4489,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 		
 		ipv4testOnly(false, "1:2:3:4:5:*:7:8"); //fixed
 		ipv4testOnly(false, "*::1"); //fixed
+		
+		testMasked("1.*.3.4", null, null, "1.*.3.4");
+		testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
+		testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, isAllSubnets ? "1.*.2.0/23" : "1.*.3.4/23");
+		
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", null, null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", null, "0:101:0:101:0:101:0:101");
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, isAllSubnets ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
+		testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
 		
 		ipv6test(1, "*"); //toAddress() should not work on this, toAddress(version) should
 		ipv6test(1, "*%"); //toAddress() should not work on this, toAddress(version) should

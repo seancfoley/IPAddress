@@ -117,6 +117,10 @@ public interface IPAddressProvider extends Serializable {
 		}
 		return null;
 	}
+	
+	default IPAddress getProviderMask() {
+		return null;
+	}
 
 	default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
 		return getProviderAddress();
@@ -797,13 +801,17 @@ public interface IPAddressProvider extends Serializable {
 			return new CachedIPAddresses<IPAddress>(ParsedIPAddress.createAllAddress(adjustedVersion, qualifier, originator, options),
 					ParsedIPAddress.createAllAddress(adjustedVersion, qualifier.getZone() != null ? new ParsedHostIdentifierStringQualifier(qualifier.getZone()) : ParsedHost.NO_QUALIFIER, originator, options));
 		}
+		
+		public IPAddress getProviderMask() {
+			return qualifier.getMaskLower();
+		}
 
 		@Override
 		public IPAddressSeqRange getProviderSeqRange() {
 			if(isProvidingAllAddresses()) {
 				return null;
 			}
-			IPAddress mask = qualifier.getMask();
+			IPAddress mask = getProviderMask();
 			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
 				// we must apply the mask
 				IPAddress all = ParsedIPAddress.createAllAddress(adjustedVersion, ParsedHost.NO_QUALIFIER, null, options);
@@ -826,7 +834,7 @@ public interface IPAddressProvider extends Serializable {
 			}
 			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.isIPv4() ?
 					options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
-			IPAddress mask = qualifier.getMask();
+			IPAddress mask = getProviderMask();
 			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
 				// there is a mask
 				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLength(false);

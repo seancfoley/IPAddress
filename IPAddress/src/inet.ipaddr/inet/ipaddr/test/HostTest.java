@@ -95,6 +95,25 @@ public class HostTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	void testMasked(String masked, String mask, Integer prefixLength, String result) {
+		HostName maskedHostStr = createHost(masked);
+		IPAddress maskAddr = mask != null ? createAddress(mask).getAddress() : null;
+		if(result != null) {
+			IPAddress resultAddr = createAddress(result).getAddress();
+			IPAddress maskedAddr = maskedHostStr.getAddress();
+			if(!maskedAddr.equals(resultAddr)) {
+				addFailure(new Failure("masked " + maskedAddr + " instead of expected " + resultAddr, maskedAddr));
+			}
+		}
+		if(!Objects.equals(maskAddr, maskedHostStr.getMask())) {
+			addFailure(new Failure("masked " + maskAddr + " instead of expected " + maskedHostStr.getMask(), maskedHostStr));
+		}
+		if(!Objects.equals(maskedHostStr.getNetworkPrefixLength(), prefixLength)) {
+			addFailure(new Failure("masked prefix length was " + maskedHostStr.getNetworkPrefixLength() + " instead of expected " + prefixLength, maskedHostStr));
+		}
+		incrementTestCount();
+	}
+	
 	void hostTest_inet_aton(boolean pass, String x) {
 		HostName addr = createHost_inet_aton(x);
 		hostTestDouble(pass, addr, false);
@@ -328,7 +347,7 @@ public class HostTest extends TestBase {
 	void testHost(HostName hostName, String hostExpected, String addrExpected, Integer portExpected, String serviceExpected, String expectedZone) {
 		testHost(hostName, hostExpected, addrExpected, portExpected, serviceExpected, expectedZone, null);
 	}
-	
+
 	void testHost(HostName hostName, String hostExpected, String addrExpected, Integer portExpected, String serviceExpected, String expectedZone, Integer prefixLengthExpected) {
 		try {
 			String h = hostName.getHost();

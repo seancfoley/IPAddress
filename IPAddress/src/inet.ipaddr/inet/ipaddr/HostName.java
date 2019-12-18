@@ -788,6 +788,22 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 		return isValid() ? parsedHost.getEquivalentPrefixLength() : null;
 	}
+	
+	/**
+	 * If a mask was provided with this host name, this returns the resulting mask value.
+	 * The resulting mask value is the lower value of the supplied address for masking.
+	 * 
+	 * @return
+	 */
+	public IPAddress getMask() {
+		if(isValid()) {
+			if(parsedHost.isAddressString()) {
+				return parsedHost.getAddressProvider().getProviderMask();
+			}
+			return parsedHost.getMask();
+		}
+		return null;
+	}
 
 	/**
 	 * Similar to {@link #toInetAddress()} but does not throw, instead returns null whenever not a valid address.

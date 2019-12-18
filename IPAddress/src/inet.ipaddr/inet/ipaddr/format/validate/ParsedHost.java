@@ -116,7 +116,7 @@ public class ParsedHost implements Serializable {
 	}
 	
 	public IPAddress getMask() {
-		return labelsQualifier.getMask();
+		return labelsQualifier.getMaskLower();
 	}
 	
 	public IPAddressProvider getAddressProvider() {

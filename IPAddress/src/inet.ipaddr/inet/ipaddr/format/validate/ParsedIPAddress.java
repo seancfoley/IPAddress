@@ -257,7 +257,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 		return val.range;
 	}
-	
+
+	// this is for parsed addresses which are masks in and of themselves
 	// with masks, only the lower value matters
 	IPAddress getValForMask() {
 		TranslatedResult<?,?> val = values;
@@ -267,12 +268,17 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				if(val == null || val.lowerSection == null) {
 					createAddresses(false, true, false);
 					val = values;
-					releaseSegmentData();
+					releaseSegmentData(); // As a mask value, we can release our data sooner, there will be no request for address or division grouping
 				}
 			}
 		}
 		return val.getValForMask();
-	}	
+	}
+	
+	// this is for parsed addresses which have associated masks
+	public IPAddress getProviderMask() {
+		return getQualifier().getMaskLower();
+	}
 
 	boolean doneTranslating() {
 		TranslatedResult<?,?> val = values;
@@ -346,7 +352,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						totalCount += mixedParsedAddress.getSegmentCount();
 					}
 					Integer prefLength = getPrefixLength(qualifier);
-					IPAddress mask = qualifier.getMask();
+					IPAddress mask = getProviderMask();
 					if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
 						mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 					}
@@ -1463,7 +1469,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 		}
 		// exclude non-standard masks which will modify segment values from their parsed values
-		IPAddress mask = getQualifier().getMask();
+		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) == null) { // handles non-standard masks
 			skipContains = Boolean.TRUE;
 			return true;
@@ -2215,7 +2221,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 	private void createIPv4Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
-		IPAddress mask = qualifier.getMask();
+		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
 			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 		}
@@ -2397,6 +2403,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 			long hostLower = lower, hostUpper = upper;
 			Masker masker = null;
+			boolean unmasked = true;
 			if(hasMask) {
 				masker = maskers[i];
 				Integer segmentMask = cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue());
@@ -2409,7 +2416,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
-				maskedIsDifferent = maskedIsDifferent || hostLower != lower || hostUpper != upper;
+				unmasked = hostLower == lower && hostUpper == upper;
+				maskedIsDifferent = maskedIsDifferent || !unmasked;
 			}
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv4Address.BITS_PER_SEGMENT, qualifier);
 			if(doAddress) {
@@ -2430,7 +2438,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						IPVersion.IPV4,
 						(int) lower,
 						(int) upper,
-						true,
+						unmasked,
 						i,
 						segmentPrefixLength,
 						creator);
@@ -2543,7 +2551,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 	private void createIPv6Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
-		IPAddress mask = qualifier.getMask();
+		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
 			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 		}
@@ -2823,6 +2831,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 
 			long hostLower = lower, hostUpper = upper;
 			Masker masker = null;
+			boolean unmasked = true;
 			if(hasMask) {
 				masker = maskers[i];
 				Integer segmentMask = cacheSegmentMask(mask.getSegment(normalizedSegmentIndex).getSegmentValue());
@@ -2835,7 +2844,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
-				maskedIsDifferent = maskedIsDifferent || hostLower != lower || hostUpper != upper;
+				unmasked =  hostLower == lower && hostUpper == upper;
+				maskedIsDifferent = maskedIsDifferent || !unmasked;
 			}
 			Integer segmentPrefixLength = getSegmentPrefixLength(normalizedSegmentIndex, IPv6Address.BITS_PER_SEGMENT, qualifier);
 			if(doAddress) {
@@ -2856,7 +2866,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					IPVersion.IPV6,
 					(int) lower,
 					(int) upper,
-					true,
+					unmasked,
 					i,
 					segmentPrefixLength,
 					creator);
@@ -2940,7 +2950,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					oneUpper = (int) masker.getMaskedUpper(oneUpper, shiftedMask);
 					masker = mixedMaskers[m + 1];
 					if(masker == null) {
-						 mixedMaskers[m + 1] = masker = maskRange(twoLower, twoUpper, maskInt, IPv4Address.MAX_VALUE_PER_SEGMENT);
+						mixedMaskers[m + 1] = masker = maskRange(twoLower, twoUpper, maskInt, IPv4Address.MAX_VALUE_PER_SEGMENT);
 						if(!masker.isSequential() && finalResult.maskException == null) {
 							finalResult.maskException = new IncompatibleAddressException(twoLower, twoUpper, maskInt, "ipaddress.error.maskMismatch");
 						}
@@ -3252,7 +3262,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			HostIdentifierString originator, 
 			IPAddressStringParameters options) {
 		int segmentCount = IPAddress.getSegmentCount(version);
-		IPAddress mask = qualifier.getMask();
+		IPAddress mask = qualifier.getMaskLower();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
 			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 		}

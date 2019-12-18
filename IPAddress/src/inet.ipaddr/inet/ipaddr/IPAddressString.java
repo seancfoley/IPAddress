@@ -268,7 +268,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 
 	/**
-	 * if this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null
+	 * If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
+	 * The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
 	 * 
 	 * @return the prefix length or null
 	 */
@@ -278,7 +279,20 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		}
 		return null;
 	}
-
+	
+	/**
+	 * If a mask was provided with this address string, this returns the resulting mask value.
+	 * The resulting mask value is the lower value of the supplied address for masking.
+	 * 
+	 * @return
+	 */
+	public IPAddress getMask() {
+		if(isValid()) {
+			return addressProvider.getProviderMask();
+		}
+		return null;
+	}
+	
 	/**
 	 * Returns whether the address represents a valid specific IP address or subnet, either IPv4 or IPv6, 
 	 * as opposed to an empty string, the address representing all addresses of all types, a prefix length, or an invalid format.

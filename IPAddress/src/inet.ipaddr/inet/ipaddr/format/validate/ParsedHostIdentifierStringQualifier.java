@@ -123,12 +123,12 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 			mask = other.mask;
 		} else {
 			if(other.mask != null) {
-				mergedMask = getMask().mask(other.getMask());
+				mergedMask = getMaskLower().mask(other.getMaskLower());
 			}
 		}
 	}
 
-	IPAddress getMask() {
+	IPAddress getMaskLower() {
 		if(mergedMask != null) {
 			return mergedMask;
 		}
@@ -141,7 +141,7 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 	Integer getEquivalentPrefixLength() {
 		Integer pref = getNetworkPrefixLength();
 		if(pref == null) {
-			IPAddress mask = getMask();
+			IPAddress mask = getMaskLower();
 			if(mask != null) {
 				pref = mask.getBlockMaskPrefixLength(true);
 			}

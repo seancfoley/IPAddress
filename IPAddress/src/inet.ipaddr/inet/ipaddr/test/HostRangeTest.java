@@ -144,6 +144,9 @@ public class HostRangeTest extends HostTest {
 	@Override
 	void runTest()
 	{
+		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+		
 		testResolved("a::b:*:d:1.2.*%x", "a::b:*:d:1.2.*%x");
 		testResolved("[a::b:*:d:1.2.*%x]", "a::b:*:d:1.2.*%x");
 		testResolved("[a::*:c:d:1.*.3.4]", "a::*:c:d:1.*.3.4");
@@ -172,6 +175,18 @@ public class HostRangeTest extends HostTest {
 		testResolved("9.*.237.26", "9.*.237.26");
 		testResolved("*.70.146.*", "*.70.146.*");
 		
+		testMasked("1.*.3.4", null, null, "1.*.3.4");
+		testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
+		testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, allPrefixesAreSubnets ? "1.*.2.0/23" : "1.*.3.4/23");
+		
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", null, null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", null, "0:101:0:101:0:101:0:101");
+		testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, allPrefixesAreSubnets ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
+		testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
+		
+		testMasked("bla.com/ffff:ffff:8000::", "ffff:ffff:8000::", 33, null);
+		testMasked("bla.com", null, null, null);
+		
 		hostTest(true, "1.2.3.4/1.2.3.4");
 		hostTest(false, "1.2.3.4/*");
 		hostTest(false, "1.*.3.4/*");
@@ -191,8 +206,6 @@ public class HostRangeTest extends HostTest {
 		testAddress("1::2", 8, "[1:0:0:0:0:0:0:2]", "1:0:0:0:0:0:0:2");
 		testAddress("1.2.3.4", 4, "1.2.3.4", "1.2.3.4");
 		
-		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
-		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
 		
 		testMatches(!isNoAutoSubnets, "1.*.*.*/255.0.0.0", "1.0.0.0/255.0.0.0");
 		testMatches(true, "1.0.0.0/8", "1.0.0.0/255.0.0.0");
