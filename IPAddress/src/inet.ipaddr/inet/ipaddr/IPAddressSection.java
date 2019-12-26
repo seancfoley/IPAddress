@@ -2176,13 +2176,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * PREFIXED_ZERO_HOSTS_ARE_SUBNETS.  The methods  {@link #setPrefixLength(int, boolean)} and {@link #setPrefixLength(int)}
 	 * use a value of true for zeroed and for zeroHostIsBlock.
 	 * <p>
-	 * For example, when zeroHostIsBlock is true, applying to 1.2.0.0 the prefix length 16 results in 1.2.*.*&#2f;16 
+	 * For example, when zeroHostIsBlock is true, applying to 1.2.0.0 the prefix length 16 results in 1.2.*.*&#x2f;16 
 	 * <p>
-	 * Or if you start with 1.2.0.0&#2f;24, setting the prefix length to 16 results in 
-	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#2f;16
+	 * Or if you start with 1.2.0.0&#x2f;24, setting the prefix length to 16 results in 
+	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#x2f;16
 	 * <p>
-	 * When both zeroed and zeroHostIsBlock are true, applying the prefiix length of 16 to 1.2.4.0&#2f;24 also results in 
-	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#2f;16.
+	 * When both zeroed and zeroHostIsBlock are true, applying the prefix length of 16 to 1.2.4.0&#x2f;24 also results in 
+	 * a zero host followed by the existing prefix block, which is then converted to a full prefix block, 1.2.*.*&#x2f;16.
 	 * <p>
 	 * When both zeroed and zeroHostIsBlock are false, the resulting address always encompasses the same set of addresses as the original,
 	 * albeit with a different prefix length.

@@ -350,7 +350,8 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	}
 	
 	/**
-	 * In the case where the prefix sits at a segment boundary, and the prefix sequence is null - null - 0, this changes to prefix sequence of null - x - 0, where x is segment bit length.
+	 * In the case where the prefix sits at a segment boundary, and the prefix sequence is null - null - 0, 
+	 * this changes to prefix sequence of null - x - 0, where x is segment bit length.
 	 * 
 	 * Note: We allow both [null, null, 0] and [null, x, 0] where x is segment length.  However, to avoid inconsistencies when doing segment replacements, 
 	 * and when getting subsections, in the calling constructor we normalize [null, null, 0] to become [null, x, 0].

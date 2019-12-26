@@ -62,8 +62,14 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	}
 
 	/**
-	 * If the grouping is prefixed, then note that we allow both null:null:x:0:0 where is x is the division bit count and null:null:0:0:0 which essentially have the same overall prefix grouping prefix.
-	 * For further discussion of this, see {@link AddressDivisionGrouping#normalizePrefixBoundary(int, IPAddressSegment[], int, int, java.util.function.BiFunction)}
+	 * Constructs a grouping of IPAddress divisions.
+	 * <p>
+	 * Note: If the grouping is prefixed and the prefix length aligns with a division boundary, 
+	 * then we allow as division prefix lengths both 
+	 * null:null:x:0:0 where is x is the division bit count and 
+	 * null:null:null:0:0, which are essentially equivalent.
+	 * The overall prefix length of this example grouping is the division bit count tripled.
+	 * For further discussion of this, see {@link AddressDivisionGrouping#normalizePrefixBoundary(int, IPAddressSegment[], int, int, java.util.function.Function)}
 	 * 
 	 * @param divisions
 	 * @param network
@@ -100,6 +106,8 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	}
 	
 	/**
+	 * Constructs a grouping of IPAddress divisions.
+	 * <p>
 	 * @throws NullPointerException if getNetwork() returns null or a division is null
 	 * @param divisions
 	 * @param checkSegs
