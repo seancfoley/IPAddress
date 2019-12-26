@@ -65,7 +65,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public static final String OCTAL_PREFIX = "0";
 	public static final char RANGE_SEPARATOR = '-';
 	public static final String RANGE_SEPARATOR_STR = String.valueOf(RANGE_SEPARATOR);
-	public static final char ALTERNATIVE_RANGE_SEPARATOR = '»';
+	public static final char ALTERNATIVE_RANGE_SEPARATOR = '\u00bb'; //'»'; javadoc whines about this char
 	public static final String ALTERNATIVE_RANGE_SEPARATOR_STR = String.valueOf(ALTERNATIVE_RANGE_SEPARATOR);
 	public static final char SEGMENT_WILDCARD = '*';
 	public static final String SEGMENT_WILDCARD_STR = String.valueOf(SEGMENT_WILDCARD);

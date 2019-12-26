@@ -315,7 +315,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return false; //not the right number of segments
 		}
 		//the segment count matches, now compare the prefixed segment
-		int segPrefLength = getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, prefixedSegmentIndex);
+		int segPrefLength = getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, prefixedSegmentIndex);// prefixedSegmentIndex of -1 already handled
 		return !getSegment(segmentCount - 1).isNetworkChangedByPrefix(cacheBits(segPrefLength), withPrefixLength);
 	}
 	
@@ -1336,7 +1336,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		Integer prefix1 = one.getPrefixLength();
 		Integer prefix2 = two.getPrefixLength();
 		int comparison = (prefix1 == prefix2) ? 0 : ((prefix1 == null) ? -1 : ((prefix2 == null) ? 1 : prefix2.compareTo(prefix1)));
-		if(comparison == 0) {
+		if(comparison == 0 && prefix1.intValue() != 0) {// this does not actually need to handle prefix len 0, but we handle anyway
 			//compare the network segment index range size (for range blocks, which must ensure that lower entries cannot contain higher entries)
 			int networkSegIndex = (prefix1 == null) ? one.getSegmentCount() - 1 : getNetworkSegmentIndex(prefix1, one.getBytesPerSegment(), one.getBitsPerSegment());
 			AddressSegment segOne = one.getSegment(networkSegIndex);
@@ -1592,9 +1592,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				Integer otherPrefixLen = otherItem.getPrefixLength();
 				boolean checkLastBit = otherPrefixLen == null || otherPrefixLen >= bitCount || (prefixLen != null && otherPrefixLen >= prefixLen);
 				int matchBitIndex = checkLastBit ? bitToCheck : otherPrefixLen;
-				//if prefix length is 0, lastMatchSegmentIndex would be -1 here.  But if prefix length is 0 we would never reach this point.
-				int lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
-				int lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+				//if prefix length is 0, lastMatchSegmentIndex would be -1 here.  But if prefix length is 0 we would never reach this point, because singleElement is true.
+				int lastMatchSegmentIndex, lastBitSegmentIndex;
+				if(matchBitIndex == 0) {
+					lastMatchSegmentIndex = lastBitSegmentIndex = 0;
+				} else {
+					lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+					lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+				}
 				IPAddressSegment itemSegment = item.getSegment(lastMatchSegmentIndex);
 				IPAddressSegment otherItemSegment = otherItem.getSegment(lastMatchSegmentIndex);
 				int itemSegmentValue = itemSegment.getSegmentValue();
@@ -1625,7 +1630,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						} //else we will merge these two into a single prefix block, presuming the initial segments match
 					}
 				} else {
-					//compare up to the prefix length of otherItem
+					//compare up to the prefix length of otherItem, which has a shorter prefix length, we are checking for a match
 					int otherSegmentPrefixLen = getSegmentPrefixLength(otherItem.getBitsPerSegment(), otherPrefixLen, lastMatchSegmentIndex);
 					int shift = bitsPerSegment - otherSegmentPrefixLen;
 					itemSegmentValue >>>= shift;
@@ -1645,8 +1650,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						continue top;
 					}
 				}
-				if(checkLastBit) {
+				if(checkLastBit) { // we are merging two items
 					IPAddressSegmentSeries joinedItem = otherItem.toPrefixBlock(bitToCheck);
+					// now insert the new item in the right spot
 					if(j == list.size() - 1) {
 						list.set(j, joinedItem);
 					} else {

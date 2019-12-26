@@ -94,7 +94,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	public static final char SEGMENT_SEPARATOR = ':';
 	public static final char ZONE_SEPARATOR = '%';
-	public static final char ALTERNATIVE_ZONE_SEPARATOR = '§';
+	public static final char ALTERNATIVE_ZONE_SEPARATOR = '\u00a7';//'§'; javadoc whines about this char 
 
 	public static final char UNC_SEGMENT_SEPARATOR = '-';
 	public static final char UNC_ZONE_SEPARATOR = 's';

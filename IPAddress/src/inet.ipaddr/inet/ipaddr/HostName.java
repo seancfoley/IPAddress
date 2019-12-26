@@ -791,7 +791,6 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	
 	/**
 	 * If a mask was provided with this host name, this returns the resulting mask value.
-	 * The resulting mask value is the lower value of the supplied address for masking.
 	 * 
 	 * @return
 	 */

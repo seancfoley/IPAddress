@@ -282,7 +282,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	
 	/**
 	 * If a mask was provided with this address string, this returns the resulting mask value.
-	 * The resulting mask value is the lower value of the supplied address for masking.
 	 * 
 	 * @return
 	 */

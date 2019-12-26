@@ -448,7 +448,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		// segment tests
 		AddressSegment lastSeg = null;
-		for(int i = 0; i < val.getSegmentCount(); i++) {
+		for(int i = 0; i < val.getSegmentCount(); i++) {// note this can be a little slow with IPv6
 			AddressSegment seg = val.getSegment(i);
 			if(i == 0 || !seg.equals(lastSeg)) {
 				Function<AddressSegment, AddressComponentRangeSpliterator<?,? extends AddressItem>> funct = segm -> segm.spliterator();
@@ -4219,6 +4219,11 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("1.2.3.*/0", 1);
 		testPrefixCount("1.2.3.4/0", 1);
 		
+		testPrefixCount("*.*/0", 1);
+		testPrefixCount("*:*/0", 1);
+		testPrefixCount("*.*/1", 2);
+		testPrefixCount("*:*/1", 2);
+		
 		testCount("1.2.3.4", 1, 1);
 		if(!allPrefixesAreSubnets) {
 			testCount("1.2.3.4/0", 1, 1);
@@ -5407,6 +5412,49 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
 		}
 
+		testMerge("*.*", "*.*", "1.2.3.4");
+		testMerge("*.*", "1.2.3.4", "*.*");
+		testMerge("*.*", "*.*", "*.*");
+		
+		testMerge("*:*", "*:*", "::");
+		testMerge("*:*", "::", "*:*");
+		testMerge("*:*", "*:*", "*:*");
+		
+		if(!isNoAutoSubnets) {
+			testMerge("*.*", "0.0.0.0/1", "128.0.0.0/1");
+			testMerge("*.*", "128.0.0.0/1", "0.0.0.0/1");
+			testMerge("128.0.0.0/1", "128.0.0.0/1", "128.0.0.0/1");
+			testMerge("0.0.0.0/1", "0.0.0.0/1", "0.0.0.0/1");
+			
+			testMergeRange("*.*", "0.0.0.0/1", "128.0.0.0/1");
+			testMergeRange("*.*", "128.0.0.0/1", "0.0.0.0/1");
+			testMergeRange("128.0.0.0/1", "128.0.0.0/1", "128.0.0.0/1");
+			testMergeRange("0.0.0.0/1", "0.0.0.0/1", "0.0.0.0/1");
+			
+			testMerge("*:*", "::/1", "8000::/1");
+			testMerge("*:*", "8000::/1", "::/1");
+			testMerge("8000::/1", "8000::/1", "8000::/1");
+			testMerge("::/1", "::/1", "::/1");
+			
+			testMergeRange("*:*", "::/1", "8000::/1");
+			testMergeRange("*:*", "8000::/1", "::/1");
+			testMergeRange("8000::/1", "8000::/1", "8000::/1");
+			testMergeRange("::/1", "::/1", "::/1");
+		}
+		
+		
+		testMerge("0-127.*", "0-127.*", "1.2.3.4");
+		
+		testMergeRange("*.*", "*.*", "1.2.3.4");
+		testMergeRange("*.*", "1.2.3.4", "*.*");
+		testMergeRange("*.*", "*.*", "*.*");
+		
+		testMergeRange("*:*", "*:*", "::");
+		testMergeRange("*:*", "::", "*:*");
+		testMergeRange("*:*", "*:*", "*:*");
+		
+		testMergeRange("0-127.*", "0-127.*", "1.2.3.4");
+		
 		testMerge("1.2.3.4/32", "1.2.3.4");
 		testMergeRange("1.2.3.4", "1.2.3.4");
 		
