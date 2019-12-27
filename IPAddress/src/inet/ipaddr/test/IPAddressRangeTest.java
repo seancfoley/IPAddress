@@ -3389,6 +3389,11 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testPrefixCount("192.168.0.0-8/29", 2);
 		testPrefixCount("192.168.0.0-15/29", 2);
 		
+		testPrefixCount("*.*/0", 1);
+		testPrefixCount("*:*/0", 1);
+		testPrefixCount("*.*/1", 2);
+		testPrefixCount("*:*/1", 2);
+		
 		testCount("1.2.3.4", 1, 1);
 		testCount("1.2.3.4/32", 1, 1);
 		testCount("1.2.3.5/31", allPrefixesAreSubnets ? 2 : 1, 1);
@@ -4417,6 +4422,31 @@ public class IPAddressRangeTest extends IPAddressTest {
 			
 			testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
 		}
+		
+		
+		
+		testMerge("*.*", "*.*", "1.2.3.4");
+		testMerge("*.*", "1.2.3.4", "*.*");
+		testMerge("*.*", "*.*", "*.*");
+
+		testMerge("*:*", "*:*", "::");
+		testMerge("*:*", "::", "*:*");
+		testMerge("*:*", "*:*", "*:*");
+
+		if(!isNoAutoSubnets) {
+			testMerge("*.*", "0.0.0.0/1", "128.0.0.0/1");
+			testMerge("*.*", "128.0.0.0/1", "0.0.0.0/1");
+			testMerge("128.0.0.0/1", "128.0.0.0/1", "128.0.0.0/1");
+			testMerge("0.0.0.0/1", "0.0.0.0/1", "0.0.0.0/1");
+
+			testMerge("*:*", "::/1", "8000::/1");
+			testMerge("*:*", "8000::/1", "::/1");
+			testMerge("8000::/1", "8000::/1", "8000::/1");
+			testMerge("::/1", "::/1", "::/1");
+		}
+
+
+		testMerge("0-127.*", "0-127.*", "1.2.3.4");
 
 		testMerge(isNoAutoSubnets ? "192.168.0.0-15/28" : "192.168.0.0/28", "192.168.0.0", "192.168.0.1", "192.168.0.2",
                 "192.168.0.3", "192.168.0.4", "192.168.0.5",

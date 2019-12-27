@@ -853,7 +853,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			throw new IllegalArgumentException();
 		}
 		if(segCount == 0) {
-			return BigInteger.ZERO;
+			return BigInteger.ONE;
 		}
 		long result1 = segmentValueCountProvider.applyAsInt(0);
 		int limit = Math.min(segCount,  3);

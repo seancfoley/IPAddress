@@ -658,6 +658,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	private static long getCount(IntUnaryOperator countProvider, int segCount) {
+		if(segCount == 0) {
+			return 1;
+		}
 		long result = countProvider.applyAsInt(0);
 		for(int i = 1; i < segCount; i++) {
 			result *= countProvider.applyAsInt(i);

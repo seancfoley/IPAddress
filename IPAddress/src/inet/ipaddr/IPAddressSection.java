@@ -1035,8 +1035,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				Integer otherPrefixLen = otherItem.getPrefixLength();
 				boolean checkLastBit = otherPrefixLen == null || otherPrefixLen >= bitCount || (prefixLen != null && otherPrefixLen >= prefixLen);
 				int matchBitIndex = checkLastBit ? bitToCheck : otherPrefixLen;
-				int lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
-				int lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+				//if prefix length is 0, lastMatchSegmentIndex would be -1 here.  But if prefix length is 0 we would never reach this point, because singleElement is true.
+				int lastMatchSegmentIndex, lastBitSegmentIndex;
+				if(matchBitIndex <= 0) {
+					lastMatchSegmentIndex = lastBitSegmentIndex = 0;
+				} else {
+					lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+					lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+				}
 				IPAddressSegment itemSegment = item.getSegment(lastMatchSegmentIndex);
 				IPAddressSegment otherItemSegment = otherItem.getSegment(lastMatchSegmentIndex);
 				int itemSegmentValue = itemSegment.getLowerSegmentValue();
