@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.1.0"/>
+	<property name="version" value="5.2.0"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -77,7 +77,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
     		</fileset>
     	</delete>
 		<echo message="compiling as Java 8"/>
-			<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
+		<javac srcdir="${src_location}" destdir="${bin_location}" debug="on"
 				source="1.8" target="1.8" failonerror="false" verbose="false" createMissingPackageInfoClass="false"
 				deprecation="true">
 			<include name="${rootPackagePath}/**/*.java"/>
@@ -97,7 +97,6 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 				${rootPackage}.format.standard, ${rootPackage}.format.large, ${rootPackage}.format.string,
 				${rootPackage}.format.util.sql, ${rootPackage}.ipv6, ${rootPackage}.ipv4, ${rootPackage}.mac"
 			stylesheetfile="${functional_doclet_dir}/stylesheet_custom.css"
-			verbose="true"
 			author="true"
 			public="true"
 			use="true"
