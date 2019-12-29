@@ -359,7 +359,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 
 	/**
 	 * Iterates through the sequential series that make up this series.
-	 * Generally this means finding the count of segments for which the segments that follow are not full range, and the using {@link #blockIterator(int)} with that segment count.
+	 * Generally this means finding the count of segments for which the segments that follow are not full range, and then using {@link #blockIterator(int)} with that segment count.
 	 * <p>
 	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7-8, it will iterate through 1.3.5.7-8, 1.3.6.7-8, 1.4.5.7-8, 1.4.6.7-8, 2.3.5.7-8, 2.3.6.7-8, 2.4.6.7-8, 2.4.6.7-8
 	 * 

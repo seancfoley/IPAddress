@@ -46,7 +46,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	boolean contains(IPAddress other);
 
 	/**
-	 * If this instance represents multiple individual addresses, returns the one with the lowest numeric value.
+	 * Returns the address in the range with the lowest numeric value.
 	 * 
 	 * @return
 	 */
@@ -54,7 +54,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	IPAddress getLower();
 
 	/**
-	 * If this instance represents multiple individual addresses, returns the one with the highest numeric value.
+	 * Returns the address in the range with the highest numeric value.
 	 * 
 	 * @return
 	 */
