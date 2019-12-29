@@ -80,6 +80,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 		
 		Cache cache;
+		boolean useSegmentCache = true;
 
 		public IPv6AddressCreator(IPv6AddressNetwork network) {
 			super(network);
@@ -95,6 +96,11 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		public void clearCaches() {
 			super.clearCaches();
 			cache.clear();
+		}
+
+		@Override
+		public void setSegmentCaching(boolean enable) {
+			useSegmentCache = enable;
 		}
 
 		@Override
@@ -122,7 +128,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		
 		@Override
 		public IPv6AddressSegment createSegment(int value) {
-			if(value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT) {
+			if(useSegmentCache && value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT) {
 				IPv6AddressSegment result, block[], cache[][] = this.cache.segmentCache;
 				int blockIndex = value >>> 8; // divide by 0x100
 				int resultIndex = value - (blockIndex << 8); // mod 0x100
@@ -152,7 +158,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			if(segmentPrefixLength == null) {
 				return createSegment(value);
 			}
-			if(value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv6Address.BIT_COUNT) {
+			if(useSegmentCache && value >= 0 && value <= IPv6Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv6Address.BIT_COUNT) {
 				if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 					IPv6AddressSegment result = cache.ZERO_PREFIX_SEGMENT;
 					if(result == null) {
@@ -223,7 +229,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				if(lower == upper) {
 					return createSegment(lower);
 				}
-				if(lower == 0 && upper == IPv6Address.MAX_VALUE_PER_SEGMENT) {
+				if(useSegmentCache && lower == 0 && upper == IPv6Address.MAX_VALUE_PER_SEGMENT) {
 					IPv6AddressSegment result = cache.ALL_RANGE_SEGMENT;
 					if(result == null) {
 						cache.ALL_RANGE_SEGMENT = result = new IPv6AddressSegment(0, IPv6Address.MAX_VALUE_PER_SEGMENT, null);
@@ -234,7 +240,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				if(lower == upper) {
 					return createSegment(lower, segmentPrefixLength);
 				}
-				if(lower >= 0 && lower <= IPv6Address.MAX_VALUE_PER_SEGMENT && 
+				if(useSegmentCache && lower >= 0 && lower <= IPv6Address.MAX_VALUE_PER_SEGMENT && 
 					upper >= 0 && upper <= IPv6Address.MAX_VALUE_PER_SEGMENT && 
 						segmentPrefixLength >= 0 && segmentPrefixLength <= IPv6Address.BIT_COUNT) {
 					if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {

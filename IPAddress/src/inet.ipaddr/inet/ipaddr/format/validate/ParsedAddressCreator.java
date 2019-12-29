@@ -44,6 +44,8 @@ public abstract class ParsedAddressCreator<T extends Address, R extends AddressS
 			Validator.MASK_CACHE[i] = null;
 		}
 	}
+	
+	public void setSegmentCaching(boolean enable) {}
 
 	public abstract S[] createSegmentArray(int length);
 

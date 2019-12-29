@@ -1524,6 +1524,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				return new IPv6AddressSection(segments, startIndex, false, prefix, singleOnly);
 			}
 		};
+		creator.useSegmentCache = defaultCreator.useSegmentCache;
 		if(useCached) {
 			creators[startIndex] = creator;
 		}

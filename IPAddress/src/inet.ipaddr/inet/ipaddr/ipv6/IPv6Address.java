@@ -533,13 +533,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	IPv6AddressCreator getDefaultCreator() {
 		return getNetwork().getAddressCreator();
 	}
-	
+
 	IPv6AddressCreator getCreator() {
 		IPv6AddressCreator defaultCreator = getDefaultCreator();
 		if(!hasZone()) {
 			return defaultCreator;
 		}
-		return new IPv6AddressCreator(getNetwork(), defaultCreator.cache) {// using a lambda for this one results in a big performance hit, so we use anonymous class
+		IPv6AddressCreator creator = new IPv6AddressCreator(getNetwork(), defaultCreator.cache) {// using a lambda for this one results in a big performance hit, so we use anonymous class
 
 			private static final long serialVersionUID = 4L;
 
@@ -555,8 +555,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				return creator.createAddressInternal(section, zone); /* address creation */
 			}
 		};
+		creator.useSegmentCache = defaultCreator.useSegmentCache;
+		return creator;
 	}
-	
+
 	private static CharSequence getZone(Inet6Address inet6Address) {
 		NetworkInterface networkInterface = inet6Address.getScopedInterface();
 		String zone = null;
@@ -1012,8 +1014,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
-	public Stream<IPv6Address> blockStream(int prefixLength) {
-		return StreamSupport.stream(blockSpliterator(prefixLength), false);
+	public Stream<IPv6Address> blockStream(int segmentCount) {
+		return StreamSupport.stream(blockSpliterator(segmentCount), false);
 	}
 
 	@SuppressWarnings("unchecked")

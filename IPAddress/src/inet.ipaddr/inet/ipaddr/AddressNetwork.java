@@ -75,7 +75,11 @@ public abstract class AddressNetwork<S extends AddressSegment> implements Serial
 	public void clearCaches() {
 		getAddressCreator().clearCaches();
 	}
-	
+
+	public void setSegmentCaching(boolean enable) {
+		getAddressCreator().setSegmentCaching(enable);
+	}
+
 	//// Configuration
 	
 	/*

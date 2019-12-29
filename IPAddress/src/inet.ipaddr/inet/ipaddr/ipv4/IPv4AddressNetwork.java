@@ -70,6 +70,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 		
 		Cache cache;
+		boolean useSegmentCache = true;
 		
 		public IPv4AddressCreator(IPv4AddressNetwork network) {
 			super(network);
@@ -85,6 +86,11 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		public void clearCaches() {
 			super.clearCaches();
 			cache.clear();
+		}
+		
+		@Override
+		public void setSegmentCaching(boolean enable) {
+			useSegmentCache = enable;
 		}
 		
 		@Override
@@ -112,7 +118,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		
 		@Override
 		public IPv4AddressSegment createSegment(int value) {
-			if(value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT) {
+			if(useSegmentCache && value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT) {
 				IPv4AddressSegment result, cache[] = this.cache.segmentCache;
 				if(cache == null) {
 					this.cache.segmentCache = cache = new IPv4AddressSegment[IPv4Address.MAX_VALUE_PER_SEGMENT + 1];
@@ -133,7 +139,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 			if(segmentPrefixLength == null) {
 				return createSegment(value);
 			}
-			if(value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv4Address.BIT_COUNT) {
+			if(useSegmentCache && value >= 0 && value <= IPv4Address.MAX_VALUE_PER_SEGMENT && segmentPrefixLength >= 0 && segmentPrefixLength <= IPv4Address.BIT_COUNT) {
 				if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
 					IPv4AddressSegment result = cache.ZERO_PREFIX_SEGMENT;
 					if(result == null) {
@@ -182,7 +188,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 				if(lower == upper) {
 					return createSegment(lower);
 				}
-				if(lower == 0 && upper == IPv4Address.MAX_VALUE_PER_SEGMENT) {
+				if(useSegmentCache && lower == 0 && upper == IPv4Address.MAX_VALUE_PER_SEGMENT) {
 					IPv4AddressSegment result = cache.ALL_RANGE_SEGMENT;
 					if(result == null) {
 						cache.ALL_RANGE_SEGMENT = result = new IPv4AddressSegment(0, IPv4Address.MAX_VALUE_PER_SEGMENT, null);
@@ -206,7 +212,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 				if(lower == upper) {
 					return createSegment(lower, segmentPrefixLength);
 				}
-				if(lower >= 0 && lower <= IPv4Address.MAX_VALUE_PER_SEGMENT &&
+				if(useSegmentCache && lower >= 0 && lower <= IPv4Address.MAX_VALUE_PER_SEGMENT &&
 						upper >= 0 && upper <= IPv4Address.MAX_VALUE_PER_SEGMENT &&
 						segmentPrefixLength >= 0 && segmentPrefixLength <= IPv4Address.BIT_COUNT) {
 					if(segmentPrefixLength == 0 && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
