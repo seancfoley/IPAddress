@@ -7,12 +7,14 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 
 [View Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
 
-[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/)
+[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/) and [JCenter](https://bintray.com/bintray/jcenter/com.github.seancfoley%3Aipaddress)
 - group id: com.github.seancfoley
 - artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
-- versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.1.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.1.0/jar)
+- versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.2.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.2.0/jar)
 
-Developed as an Eclipse project, the project files are checked in so it can be easily be imported into an Eclipse workspace.  As a java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
+As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
+
+[Integrating into Development: Intellij, Android, and Eclipse](Development-IDEs)
 
 Version | Notes
 ------- | -------------
@@ -20,56 +22,11 @@ Version | Notes
 [v2.0.2](https://github.com/seancfoley/IPAddress/releases/tag/v2.0.2) | Requires Java 8 or higher
 [v3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0) | Requires Java 8 or higher, features MAC address support, EUI-48 and EUI-64 MAC integration with IPv6, new address framework, new IP string formats parsed and produced, and other additions
 [v4.3.3](https://github.com/seancfoley/IPAddress/releases/tag/v4.3.3) | Requires Java 8 or higher.  Features new prefix length handling.  IPv4-network/IPv6-subnet-router-anycast/zero-host addresses are interpreted as the prefix block subnet, while other prefixed addresses are individual addresses. There exists the option to preserve the version 3 behaviour.  Version 4.2.0 has additional methods for managing prefix blocks.  Version 4.3 features improved parsing performance and a change to increment(long) behaviour for subnets.
-**[Latest Version v5.1.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.1.0)** | Requires Java 8 or higher.  Support for Java 9, 10, 11 JPMS modules - the code is compiled with Java 8 but provides a Java 9 compiled module-info.class file.  Compatible with Android using Android API level 24 or higher.  You may need to [delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690) when using Android or other Java 8 environments.  Version 5 features the addition of IPAddress sequential range classes IP\*AddressSeqRange, the reorganization of classes and interfaces in inet.ipaddr.format package to standard, large, and string subpackages, enhanced address block splitting and merging functionality, and the improved parsing performance introduced with version 4.3.0.  Additional parsing options.  Other enhancements listed on the [releases page](https://github.com/seancfoley/IPAddress/releases/tag/v5.0.0)
+**[Latest Version v5.2.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.1.0)** | Requires Java 8 or higher.  Support for Java 9 JPMS modules - the code is compiled with Java 8 but provides a Java 9 compiled module-info.class file.  Compatible with Android using Android API level 24 or higher.  You may need to [delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690) when using Android or other Java 8 environments.  Version 5 features the addition of IPAddress sequential range classes IP\*AddressSeqRange, the reorganization of classes and interfaces in inet.ipaddr.format package to standard, large, and string subpackages, enhanced address block splitting and merging functionality, the improved parsing performance introduced with version 4.3.0, Java 8 stream and spliterator methods, and additional parsing options.  Other enhancements listed on the releases page for [5.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.0.0), [5.1.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.1.0) and [5.2.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.2.0)
 
 Planned future additions: ports to [**TypeScript**](https://www.typescriptlang.org/) / [**JavaScript**](https://www.npmjs.com/) and [**Go**](https://golang.org/).
 
 ## Getting Started
-
-### Add to Intellij Project
-
-1. Click File from the toolbar
-1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
-1. Select Modules at the left panel
-1. Dependencies tab
-1. '+' → JARs or directories
-1. Library...
-1. From Maven...
-1. Enter "ipaddress" into search bar, search
-1. After waiting for Intellij to locate ipaddress on maven, select the ipaddress version you prefer
-
-### Add to Android Studio 3.5 Project
-
-First Open your project's build.gradle.  Add maven central to the end of the list of repositories, as shown:
-```allprojects {
-    repositories {
-        google()
-        jcenter()
-        mavenCentral()
-    }
-}
-```
-1. Click File from the toolbar
-1. Project Structure (CTRL + SHIFT + ALT + S on Windows/Linux, ⌘ + ; on Mac OS X)
-1. Select Modules in the left panel, and app under modules, in the dialogs for Source and Target Compatibility choose 1.8 (Java 8)
-1. Select Dependencies at the left panel, and app under modules
-1. Select '+' under Declared Dependencies
-1. Choose Library Dependency
-1. In the Add Library Dependency dialog, enter "ipaddress" into search bar, search 
-1. After waiting for Android Studio to locate ipaddress on maven, select the ipaddress version you prefer
-1. You need to [run on API level 24 or higher](https://developer.android.com/studio/write/java8-support)
-
-### Add to Eclipse Project
-
-1. From the toolbar click Window -> Show View -> Other
-1. In the Show View window, open Maven -> Maven Repositories
-1. In the window that appears, under "Global Repositories", right-click on "central (http://repo.maven.apache.org/maven2)" and select "Rebuild Index"
-1. It will take a while to build the index
-1. Once indexing is complete, if the project is not a Maven project, in the package explorer view, right-click on the project name -> configure -> convert to Maven project
-1. In the package explorer view, right-click on the project name -> Maven -> Add Dependency 
-1. In the search box halfway down, type "ipaddress"
-1. After waiting for Eclipse to locate ipaddress in the index, select the ipaddress version you prefer, click OK
-
 
 ### Java
 
