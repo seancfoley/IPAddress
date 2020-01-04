@@ -276,6 +276,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 	
 	// this is for parsed addresses which have associated masks
+	@Override
 	public IPAddress getProviderMask() {
 		return getQualifier().getMaskLower();
 	}

@@ -802,6 +802,7 @@ public interface IPAddressProvider extends Serializable {
 					ParsedIPAddress.createAllAddress(adjustedVersion, qualifier.getZone() != null ? new ParsedHostIdentifierStringQualifier(qualifier.getZone()) : ParsedHost.NO_QUALIFIER, originator, options));
 		}
 		
+		@Override
 		public IPAddress getProviderMask() {
 			return qualifier.getMaskLower();
 		}
