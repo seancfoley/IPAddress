@@ -1698,21 +1698,22 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			return getEmbeddedIPv4AddressSection();
 		}
 		IPv4AddressCreator creator = getIPv4Network().getAddressCreator();
-		IPv4AddressSegment[] segments = creator.createSegmentArray((endIndex - startIndex) >> 1);
+		IPv4AddressSegment[] segments = creator.createSegmentArray(endIndex - startIndex);
 		int i = startIndex, j = 0;
-		if(i % getBytesPerSegment() == 1) {
+		int bytesPerSegment = getBytesPerSegment();
+		if(i % bytesPerSegment == 1) {
 			IPv6AddressSegment ipv6Segment = getSegment(i >> 1);
 			i++;
 			ipv6Segment.getSplitSegments(segments, j - 1, creator);
 			j++;
 		}
-		for(; i < endIndex; i <<= 1, j <<= 1) {
+		for(; i < endIndex; i += bytesPerSegment, j += bytesPerSegment) {
 			IPv6AddressSegment ipv6Segment = getSegment(i >> 1);
 			ipv6Segment.getSplitSegments(segments, j, creator);
 		}
 		return createEmbeddedSection(creator, segments, this);
 	}
-	
+
 	/**
 	 * Gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
 	 * which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
@@ -1743,7 +1744,6 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 							high.getSplitSegments(mixed, 0, creator);
 							low.getSplitSegments(mixed, getBytesPerSegment(), creator);
 						}
-						
 					}
 					embeddedIPv4Section = createEmbeddedSection(creator, mixed, this);
 				}

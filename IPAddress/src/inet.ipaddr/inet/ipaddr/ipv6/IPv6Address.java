@@ -1129,13 +1129,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	/**
-	 * Returns the second and third bytes as an {@link IPv4Address}.
+	 * Returns the second and third segments as an {@link IPv4Address}.
 	 * 
 	 * This can be used for IPv4 or for IPv6 6to4 addresses convertible to IPv4.
 	 * 
 	 * @return the address
 	 */
-	public IPv4Address get6to4IPv4Address() {
+	public IPv4Address get6To4IPv4Address() {
 		return getEmbeddedIPv4Address(2);
 	}
 
@@ -1267,7 +1267,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * Whether the address is 6over4
 	 */
 	public boolean is6Over4() {
-		return getSegment(4).isZero() && getSegment(5).isZero();
+		return getSegment(0).matches(0xfe80) && 
+				getSegment(1).isZero() && getSegment(2).isZero() &&
+				getSegment(3).isZero() && getSegment(4).isZero() &&
+				getSegment(5).isZero();
 	}
 	
 	/**
@@ -1282,7 +1285,14 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * Whether the address is ISATAP
 	 */
 	public boolean isIsatap() {
-		return getSegment(4).isZero() && getSegment(5).matches(0x5efe);
+		// 0,1,2,3 is fe80::
+		// 4 can be 0200
+		return getSegment(0).matches(0xfe80) &&
+				getSegment(1).isZero() &&
+				getSegment(2).isZero() &&
+				getSegment(3).isZero() &&
+				(getSegment(4).isZero() || getSegment(4).matches(0x200)) && 
+				getSegment(5).matches(0x5efe);
 	}
 	
 	/**
@@ -1291,15 +1301,12 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public boolean isIPv4Translatable() { //rfc 2765  
 		//::ffff:0:x:x/96 indicates IPv6 addresses translated from IPv4
-		if(getSegment(4).matches(0xffff) && getSegment(5).isZero()) {
-			for(int i = 0; i < 3; i++) {
-				if(!getSegment(i).isZero()) {
-					return false;
-				}
-			}
-			return true;
-		}
-		return false;
+		return getSegment(4).matches(0xffff) && 
+				getSegment(5).isZero() &&
+				getSegment(0).isZero() &&
+				getSegment(1).isZero() &&
+				getSegment(2).isZero() &&
+				getSegment(3).isZero();
 	}
 	
 	/**
