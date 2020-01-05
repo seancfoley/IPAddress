@@ -400,19 +400,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		
 		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
-			return createAddress(createSectionInternal(segments));
-		}
-		
-		@Override
-		protected IPv6Address createAddressInternal(IPv6AddressSection section, CharSequence zone, HostIdentifierString from) {
-			IPv6Address result = super.createAddressInternal(section, zone, from);
-			return result;
-		}
-		
-		@Override
-		protected IPv6Address createAddressInternal(IPv6AddressSection section, HostIdentifierString from) {
-			IPv6Address result = super.createAddressInternal(section, from);
-			return result;
+			return super.createAddressInternal(segments);
 		}
 
 		@Override
