@@ -350,7 +350,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		
 		@Override
 		protected IPv4Address createAddressInternal(IPv4AddressSegment segments[]) {
-			return createAddress(createSectionInternal(segments));
+			return super.createAddressInternal(segments);
 		}
 		
 		@Override
