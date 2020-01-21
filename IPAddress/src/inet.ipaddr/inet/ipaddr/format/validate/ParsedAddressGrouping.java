@@ -279,7 +279,9 @@ public class ParsedAddressGrouping {
 		}
 		return true;
 	}
-		
+	
+	// For explicit prefix config this always returns false.  
+	// For all prefix subnets config this always returns true if the prefix length does not extend beyond the address end.
 	public static boolean isPrefixSubnet(
 			SegmentValueProvider lowerValueProvider,
 			SegmentValueProvider upperValueProvider,
