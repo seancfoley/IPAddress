@@ -7,7 +7,7 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 
 [View Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
 
-[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/) and [JCenter](https://bintray.com/seancfoley/ipaddress/com.github.seancfoley:ipaddress)
+[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/) and the [Bintray](https://bintray.com/seancfoley/ipaddress/com.github.seancfoley:ipaddress) [JCenter Repository](https://dl.bintray.com/seancfoley/ipaddress/)
 - group id: com.github.seancfoley
 - artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
 - versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.2.1](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.2.1/jar)
