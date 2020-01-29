@@ -1,14 +1,7 @@
-# IPAddress
-Library for handling IP addresses and subnets, both IPv4 and IPv6
-
-As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
-
-[View on Github](https://https://github.com/seancfoley/IPAddress)
-
-[View Project Page](https://seancfoley.github.io/IPAddress/)
-
-[View Javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/)
-
-[View Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
-
-[Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
+Version | Notes         |
+------- | ------------- |
+[v1.0.1](https://github.com/seancfoley/IPAddress/releases/tag/v1.0.1) | Requires Java 6 or higher |
+[v2.0.2](https://github.com/seancfoley/IPAddress/releases/tag/v2.0.2) | Requires Java 8 or higher |
+[v3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0) | Requires Java 8 or higher |
+[v4.3.3](https://github.com/seancfoley/IPAddress/releases/tag/v4.3.3) | Requires Java 8 or higher |
+**[Latest Version v5.2.1](https://github.com/seancfoley/IPAddress/releases/tag/v5.2.1)** | Requires Java 8 or higher.  Compatible with Android using Android API level 24 or higher.  The code is compiled with Java 8 but provides a Java 9 compiled module-info.class file for those using the Java Platform Module System (JPMS).  You may need (or wish) to [delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452425235), which can be done [with gradle](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690), when using Android, other Java 8 environments, or Java version 9 and up environments that do not [properly support modules](https://ecosystem.atlassian.net/browse/AMPS-1509). Since Android Studio 3.3 deleting the module-info is no longer necessary. |
