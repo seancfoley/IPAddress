@@ -5,6 +5,7 @@
 [3.0.0](https://github.com/seancfoley/IPAddress/releases/tag/v3.0.0) | Requires Java 8 or higher |
 [4.3.3](https://github.com/seancfoley/IPAddress/releases/tag/v4.3.3) | Requires Java 8 or higher |
 
+&nbsp;
 
 **[Latest Version 5.2.1](https://github.com/seancfoley/IPAddress/releases/tag/v5.2.1)** 
 
