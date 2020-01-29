@@ -15,7 +15,7 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 
 As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
 
-[Integrating into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
+[Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
 
 Version | Notes         |
 ------- | ------------- |
