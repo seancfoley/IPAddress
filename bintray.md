@@ -1,4 +1,4 @@
-Version | Notes         |
+ Version |          |
 ------- | ------------- |
 [v1.0.1](https://github.com/seancfoley/IPAddress/releases/tag/v1.0.1) | Requires Java 6 or higher |
 [v2.0.2](https://github.com/seancfoley/IPAddress/releases/tag/v2.0.2) | Requires Java 8 or higher |
