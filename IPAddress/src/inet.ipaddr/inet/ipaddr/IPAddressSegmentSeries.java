@@ -19,6 +19,7 @@
 package inet.ipaddr;
 
 import java.math.BigInteger;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -41,6 +42,16 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
  */
 public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, AddressSegmentSeries {
 
+	/**
+	 * Returns the comparator used by IPAddress to sort series by prefix length, such as in calls to {@link IPAddress#mergeToPrefixBlocks(IPAddress...)}
+	 * and {@link IPAddress#mergeToSequentialBlocks(IPAddress...)}
+	 * 
+	 * @return
+	 */
+	static Comparator<? super IPAddressSegmentSeries> getPrefixLenComparator() {
+		return IPAddressSection.mergeListComparator;
+	}
+	
 	/**
 	 * Returns the version of this segment series
 	 * 

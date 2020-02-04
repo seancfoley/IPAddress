@@ -285,6 +285,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * so the sequence of zeros can be empty and the sequence of where low values are zero and high values are 1 can be empty as well.
 	 * However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
 	 */
+	//For explicit prefix config this always returns false.  For all prefix subnets config this always returns true if the prefix length does not extend beyond the address end
 	protected static boolean isPrefixSubnet(IPAddressSegment sectionSegments[], Integer networkPrefixLength, IPAddressNetwork<?, ?, ?, ?, ?> network, boolean fullRangeOnly) {
 		int segmentCount = sectionSegments.length;
 		if(segmentCount == 0) {
@@ -1332,39 +1333,42 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	//sort by prefix length, smallest blocks coming first
 	//so this means null prefixes come first, then largest prefix length to smallest
-	private static final Comparator<? super IPAddressSegmentSeries> mergeListComparator = (one, two) ->  {
+	static final Comparator<? super IPAddressSegmentSeries> mergeListComparator = (one, two) ->  {
 		Integer prefix1 = one.getPrefixLength();
 		Integer prefix2 = two.getPrefixLength();
 		int comparison = (prefix1 == prefix2) ? 0 : ((prefix1 == null) ? -1 : ((prefix2 == null) ? 1 : prefix2.compareTo(prefix1)));
-		if(comparison == 0 && prefix1.intValue() != 0) {// this does not actually need to handle prefix len 0, but we handle anyway
-			//compare the network segment index range size (for range blocks, which must ensure that lower entries cannot contain higher entries)
+		if(comparison != 0) {
+			return comparison;
+		}
+		if(prefix1 == null || prefix1 != 0) {// this does not actually need to handle prefix len 0, but we handle anyway
 			int networkSegIndex = (prefix1 == null) ? one.getSegmentCount() - 1 : getNetworkSegmentIndex(prefix1, one.getBytesPerSegment(), one.getBitsPerSegment());
-			AddressSegment segOne = one.getSegment(networkSegIndex);
-			AddressSegment segTwo = two.getSegment(networkSegIndex);
-			int oneValue = segOne.getSegmentValue();
-			int twoValue = segTwo.getSegmentValue();
-			int oneUpperValue = segOne.getUpperSegmentValue();
-			int twoUpperValue = segTwo.getUpperSegmentValue();
-			comparison = (oneUpperValue - oneValue) - (twoUpperValue - twoValue);
-			if(comparison == 0) {
-				// compare the low values of each segment.  It helps to have similar prefix lengths near each other, however the prefix values do not really matter.
-				if(networkSegIndex == 0) {
-					comparison = oneValue - twoValue;
-				} else for(int i = 0; i <= networkSegIndex; i++) {
-					segOne = one.getSegment(networkSegIndex);
-					segTwo = two.getSegment(networkSegIndex);
-					oneValue = segOne.getSegmentValue();
-					twoValue = segTwo.getSegmentValue();
-					comparison = oneValue - twoValue;
-					if(comparison != 0) {
-						break;
-					}
+			int hostSegIndex = (prefix1 == null) ? one.getSegmentCount() : getHostSegmentIndex(prefix1, one.getBytesPerSegment(), one.getBitsPerSegment());
+			for(int i = 0; i < hostSegIndex; i++) {
+				AddressSegment segOne = one.getSegment(i);
+				AddressSegment segTwo = two.getSegment(i);
+				int oneValue = segOne.getSegmentValue();
+				int twoValue = segTwo.getSegmentValue();
+				int oneUpperValue = segOne.getUpperSegmentValue();
+				int twoUpperValue = segTwo.getUpperSegmentValue();
+				comparison = (oneUpperValue - oneValue) - (twoUpperValue - twoValue);
+				if(comparison != 0) {
+					return comparison;
+				}
+			}
+			for(int i = 0; i <= networkSegIndex; i++) {
+				AddressSegment segOne = one.getSegment(i);
+				AddressSegment segTwo = two.getSegment(i);
+				int oneValue = segOne.getSegmentValue();
+				int twoValue = segTwo.getSegmentValue();
+				comparison = oneValue - twoValue;
+				if(comparison != 0) {
+					return comparison;
 				}
 			}
 		}
 		return comparison;
 	};
-
+	
 	private static boolean organizeByMinPrefix(
 			IPAddressSegmentSeries first,
 			IPAddressSegmentSeries sections[],
@@ -1382,7 +1386,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				list.add(first);
 			}
 		}
-		if(bitCount == 0) {
+		if(bitCount == 0 && list.isEmpty()) {
 			list.add(first);
 		}
 		if(!list.isEmpty()) {
@@ -1406,37 +1410,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(!list.isEmpty()) {
 			return true;
 		}
-
-		Arrays.sort(sections, listOrdering);
-		
-		//now we split up the prefix blocks into individual prefix blocks
-		Integer firstPrefixLength = first.getPrefixLength();
-		boolean addedFirst;
-		if(firstPrefixLength == null || firstPrefixLength >= bitCount) {
-			addedFirst = true;
-			list.add(first);
-		} else {
-			addedFirst = false;
-		}
+		Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(first);
+		iterator.forEachRemaining(list::add);
 		for(int i = 0; i < sections.length; i++) {
 			IPAddressSegmentSeries section = sections[i];
-			Integer sectionPrefixLength = section.getNetworkPrefixLength();
-			if(sectionPrefixLength == null || sectionPrefixLength >= bitCount) {
-				list.add(section);
-			} else {
-				if(!addedFirst && firstPrefixLength > sectionPrefixLength) {
-					addedFirst = true;
-					Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(first);
-					iterator.forEachRemaining(list::add);
-				}
-				Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(section);
-				iterator.forEachRemaining(list::add);
-			}
-		}
-		if(!addedFirst) {
-			Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(first);
+			iterator = blockIteratorFunc.apply(section);
 			iterator.forEachRemaining(list::add);
 		}
+		list.sort(listOrdering);
 		return list.size() == 1;
 	}
 	
@@ -1532,7 +1513,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					//here we must insert a new item in the right place
 					IPAddressSegmentSeries joinedItem = seriesCreator.apply(item, rangeSegmentIndex, Math.min(rangeItemValue, otherRangeItemValue), Math.max(rangeItemUpperValue, otherRangeItemUpperValue));
 					joinedItem = joinedItem.assignMinPrefixForBlock();
-					//int newPrefixLen = joinedItem.getPrefixLength();
 					if(j == list.size() - 1) {
 						list.set(j, joinedItem);
 					} else {
