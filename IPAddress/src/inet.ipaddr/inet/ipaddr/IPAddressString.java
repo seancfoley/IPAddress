@@ -1035,7 +1035,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * and the prefix length is being decreased, then the address representing all addresses of any version is returned.
 	 * <p>
 	 * When there is an associated address value and the prefix length is increased, the bits moved within the prefix become zero, 
-	 * and if prefix lengthis extended beyond the segment series boundary, it is removed.
+	 * and if prefix length is extended beyond the segment series boundary, it is removed.
 	 * When there is an associated address value 
 	 * and the prefix length is decreased, the bits moved outside the prefix become zero.
 	 * 
@@ -1052,7 +1052,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(address == null) {
 			return null;
 		}
-		if(adjustment == 0) {
+		if(adjustment == 0 && isPrefixed()) {
 			return this;
 		}
 		Integer prefix = address.getNetworkPrefixLength();

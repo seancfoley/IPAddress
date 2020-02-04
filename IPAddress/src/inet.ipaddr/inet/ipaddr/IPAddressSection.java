@@ -2118,7 +2118,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> IPAddressSection adjustPrefixLength(
 			R original, int adjustment, boolean withZeros, IPAddressCreator<?, R, ?, S, ?> creator, SegFunction<R, S> segProducer) throws IncompatibleAddressException {
-		if(adjustment == 0) {
+		if(adjustment == 0 && original.isPrefixed()) {
 			return original;
 		}
 		int prefix = original.getAdjustedPrefix(adjustment, false, false);
