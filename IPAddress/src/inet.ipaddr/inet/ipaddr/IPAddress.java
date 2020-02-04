@@ -688,9 +688,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public static void toNormalizedString(IPAddressValueProvider provider, StringBuilder builder) {
 		IPVersion version = provider.getIPVersion();
 		if(version.isIPv4()) {
-			toNormalizedString(IPv4Address.defaultIpv4Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv4Address.SEGMENT_COUNT,  IPv4Address.BYTES_PER_SEGMENT,  IPv4Address.BITS_PER_SEGMENT,  IPv4Address.MAX_VALUE_PER_SEGMENT,  IPv4Address.SEGMENT_SEPARATOR,  IPv4Address.DEFAULT_TEXTUAL_RADIX, null, builder);
+			toNormalizedString(defaultIpv4Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv4Address.SEGMENT_COUNT,  IPv4Address.BYTES_PER_SEGMENT,  IPv4Address.BITS_PER_SEGMENT,  IPv4Address.MAX_VALUE_PER_SEGMENT,  IPv4Address.SEGMENT_SEPARATOR,  IPv4Address.DEFAULT_TEXTUAL_RADIX, null, builder);
 		} else if(version.isIPv6()) {
-			toNormalizedString(IPv4Address.defaultIpv6Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.DEFAULT_TEXTUAL_RADIX, provider.getZone(), builder);
+			toNormalizedString(defaultIpv6Network().getPrefixConfiguration(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), IPv6Address.SEGMENT_COUNT, IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT, IPv6Address.MAX_VALUE_PER_SEGMENT, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.DEFAULT_TEXTUAL_RADIX, provider.getZone(), builder);
 		} else {
 			throw new IllegalArgumentException();
 		}
@@ -705,9 +705,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public static String toNormalizedString(IPAddressValueProvider provider) {
 		IPVersion version = provider.getIPVersion();
 		if(version.isIPv4()) {
-			return IPv4Address.toNormalizedString(IPv4Address.defaultIpv4Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength());
+			return IPv4Address.toNormalizedString(defaultIpv4Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength());
 		} else if(version.isIPv6()) {
-			return IPv6Address.toNormalizedString(IPv6Address.defaultIpv6Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), provider.getZone());
+			return IPv6Address.toNormalizedString(defaultIpv6Network(), provider.getValues(), provider.getUpperValues(), provider.getPrefixLength(), provider.getZone());
 		}
 		throw new IllegalArgumentException();
 	}
