@@ -5497,6 +5497,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMerge("1.2.*.*/16", "1.2.*.*/16", "1.2.3.*/24");
 		testMerge("1.2.3.*/24", "1.2.3.*/24", "1.2.3.*/24");
 		testMerge("1.2.3.*/24", "1.2.3.*", "1.2.3.*");
+		testMerge2("1.2.3.1/32", "1.2.3.2/32", "1.2.3.1-2");
 		
 		testMerge2("1.2.3.*/24", "1.1.2.*/24", "1.2.3.*/24", "1.1.2.*/24");
 		testMerge2("1.2.3.*/24", "1.2.6.*/24", "1.2.3.*/24", "1.2.6.*/24");
@@ -5507,6 +5508,17 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testMergeRange("1.2.3-4.*", "1.2.3-4.*", "1.2.4.*");
 		testMergeRange2("1.2.3-4.*", "2.2.3.*", "1-2.2.3.*", "1.2.4.*");
 		testMergeRange2("1.2.3-4.*", "2.2.3.*", "1.2.3-4.*", "2.2.3.*");
+		
+		testMergeRange("1.0-25.*", "1.0-6.*", "1.4-25.*");
+		testMergeRange("1-2.*", "1.0-6.*", "1.4-255.*", "2.*");
+		testMergeRange("1-2:*", "1:0-6:*", "1:4-ffff:*", "2:*");
+		testMergeRange("3.1-2.*", "3.1.0-6.*", "3.1.4-255.*", "3.2.*");
+		testMergeRange("3:1-2:*", "3:1:0-6:*", "3:1:4-ffff:*", "3:2:*");
+		testMergeRange("1.2.3.1-2", "1.2.3.1-2");
+		testMergeRange2("1.2.2.1", "1.2.3.1", "1.2.2-3.1");
+		
+		testMergeRange2("1.2.3-4.*", "2.2.3-4.*", "1-2.2.3-4.*");
+		testMergeRange2("1:2:3-4:*", "2:2:3-4:*", "1-2:2:3-4:*");
 		
 		//the following 4 are an example where prefix blocks require more addresses
 		if(!isNoAutoSubnets) {

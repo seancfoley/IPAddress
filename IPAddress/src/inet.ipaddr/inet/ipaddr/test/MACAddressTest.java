@@ -194,7 +194,7 @@ public class MACAddressTest extends TestBase {
 		if(!prefixed.equals(expectedAddress)) {
 			addFailure(new Failure("oui prefixed was " + prefixed + " expected was " + expected, w));
 		}
-		if(expectedPref != prefixed.getPrefixLength().intValue()) {
+		if(expectedPref != prefixed.getPrefixLength()) {
 			addFailure(new Failure("oui prefix was " + prefixed.getPrefixLength() + " expected was " + expectedPref, w));
 		}
 		incrementTestCount();
