@@ -2557,7 +2557,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				throw new AddressPositionException(section, section.addressSegmentIndex, addressSegmentIndex);
 			}
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections, true);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 	
@@ -2568,7 +2568,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv6AddressSection[] mergeToSequentialBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 

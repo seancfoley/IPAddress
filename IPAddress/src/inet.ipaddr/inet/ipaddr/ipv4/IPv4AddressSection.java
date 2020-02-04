@@ -1950,7 +1950,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv4AddressSection[] mergeToPrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections, true);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 	
@@ -1961,7 +1961,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 */
 	public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections, true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 

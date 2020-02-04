@@ -1675,6 +1675,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
+		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
@@ -1684,6 +1685,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
+		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}

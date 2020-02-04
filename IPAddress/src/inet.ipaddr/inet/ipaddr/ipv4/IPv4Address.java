@@ -997,6 +997,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 
 	@Override
 	public IPv4Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
+		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
@@ -1006,6 +1007,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
+		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]);
 		}
