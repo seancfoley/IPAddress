@@ -413,7 +413,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	}
 
 	/**
-	 * A cache of ZeroRange objects in a tree structure.
+	 * A cache of RangeList objects in a tree structure.
 	 * 
 	 * Starting from the root of the tree, as you traverse an address grouping from left to right,
 	 * if you have another range located at offset x from the last one, and it has length y,
