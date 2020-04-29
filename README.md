@@ -97,3 +97,24 @@ println(ipAddr) // a:b:c:d:e:f:102:304/112
 val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
 println(ipv4Addr) // 1.2.3.4/16
 ```
+
+### Groovy
+
+starting with address or subnet strings, using exceptions for invalid formats
+```groovy
+def addressStr = new IPAddressString('a:b:c:d:e:f:1.2.3.4')
+try {
+    def address = addressStr.toAddress()
+    // use address
+} catch (AddressStringException e) {
+    // handle improperly formatted address string
+}
+```
+starting with address or subnet strings, checking for null for invalid formats
+```groovy
+def subnetStr = new IPAddressString('108.30-31.*.*')
+def subnet = subnetStr.getAddress()
+if(subnet != null) {
+    // use address
+}
+```
