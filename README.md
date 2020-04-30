@@ -97,6 +97,20 @@ println(ipAddr) // a:b:c:d:e:f:102:304/112
 val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
 println(ipv4Addr) // 1.2.3.4/16
 ```
+### Scala
+
+starting with address strings, using exceptions for invalid formats
+```scala
+import scala.util.{Failure, Success, Try}
+
+val addressStr = new IPAddressString("a:b:c:d::/64")
+Try(addressStr.toAddress) match {
+    case Success(userInfo) =>
+        // use address
+    case Failure(exception: AddressStringException) =>
+        // handle improperly formatted address string
+}
+```
 
 ### Groovy
 
