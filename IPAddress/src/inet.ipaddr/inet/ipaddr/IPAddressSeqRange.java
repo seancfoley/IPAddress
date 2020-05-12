@@ -605,7 +605,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return toCanonicalString(" -> ");
 	}
 	
-	public String toString(Function<IPAddress, String> lowerStringer, String separator, Function<IPAddress, String> upperStringer) {
+	public String toString(Function<? super IPAddress, String> lowerStringer, String separator, Function<? super IPAddress, String> upperStringer) {
 		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
 	}
 	
@@ -625,33 +625,59 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Joins the given ranges into the fewest number of ranges.
-	 * If no joining can take place, the original array is returned.
+	 * The returned array will be sorted by ascending lowest range value. 
 	 * 
 	 * @param ranges
 	 * @return
 	 */
 	public static IPAddressSeqRange[] join(IPAddressSeqRange... ranges) {
+		ranges = ranges.clone();
+		// null entries are automatic joins
 		int joinedCount = 0;
-		Arrays.sort(ranges, Address.ADDRESS_LOW_VALUE_COMPARATOR);
-		for(int i = 0; i < ranges.length; i++) {
+		for(int i = 0, j = ranges.length - 1; i <= j; i++) {
+			if(ranges[i] == null) {
+				joinedCount++;
+				while(ranges[j] == null && j > i) {
+					j--;
+					joinedCount++;
+				}
+				if(j > i) {
+					ranges[i] = ranges[j];
+					ranges[j] = null;
+					j--;
+				}
+			}
+		}
+		int len = ranges.length - joinedCount;
+		Arrays.sort(ranges, 0, len, Address.ADDRESS_LOW_VALUE_COMPARATOR);
+		for(int i = 0; i < len; i++) {
 			IPAddressSeqRange range = ranges[i];
 			if(range == null) {
 				continue;
 			}
+			IPAddress currentLower = range.getLower();
+			IPAddress currentUpper = range.getUpper();
+			boolean didJoin = false;
 			for(int j = i + 1; j < ranges.length; j++) {
 				IPAddressSeqRange range2 = ranges[j];
 				if(range2 == null) {
 					continue;
 				}
-				IPAddress upper = range.getUpper();
-				IPAddress lower = range2.getLower();
-				if(compareLowValues(upper, lower) >= 0
-						|| upper.increment(1).equals(lower)) {
+				IPAddress nextLower = range2.getLower();
+				if(compareLowValues(currentUpper, nextLower) >= 0
+						|| currentUpper.increment(1).equals(nextLower)) {
 					//join them
-					ranges[i] = range = range.create(range.getLower(), range2.getUpper());
+					IPAddress nextUpper = range2.getUpper();
+					if(compareLowValues(currentUpper, nextUpper) < 0) {
+						currentUpper = nextUpper;
+					}
 					ranges[j] = null;
+					didJoin = true;
 					joinedCount++;
 				} else break;
+			}
+			if(didJoin) {
+				ranges[i] = range.create(currentLower, currentUpper);
 			}
 		}
 		if(joinedCount == 0) {
@@ -777,7 +803,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
-	 * If the result has length 2, the two ranges are in increasing order.
+	 * If the result has length 2, the two ranges are ordered by ascending lowest range value. 
 	 * 
 	 * @param other
 	 * @return

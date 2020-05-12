@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -185,6 +186,14 @@ public class TestRunner extends TestBase implements AddressCreator {
 	}
 	
 	@Override
+	public IPAddress[] getAllCached() {
+		if(CACHING) {
+			return cache.getAllCached();
+		}
+		return null;
+	}
+	
+	@Override
 	public MACAddress createMACAddress(byte[] bytes) {
 		MACAddressKey key = new MACAddressKey(bytes);
 		if(CACHING) {
@@ -216,6 +225,24 @@ public class TestRunner extends TestBase implements AddressCreator {
 		ConcurrentHashMap<MACAddressKey, MACAddress> cachingMACMap = new ConcurrentHashMap<MACAddressKey, MACAddress>();
 		ConcurrentHashMap<MACAddressLongKey, MACAddress> cachingMACLongMap = new ConcurrentHashMap<MACAddressLongKey, MACAddress>();
 		ConcurrentHashMap<HostKey, HostName> cachingHostMap = new ConcurrentHashMap<HostKey, HostName>();
+		
+		public IPAddress[] getAllCached() {
+			ArrayList<IPAddress> all = new ArrayList<>();
+			Collection<IPAddressString> x = cachingIPStringMap.values();
+			for(IPAddressString str : x) {
+				IPAddress addr = str.getAddress();
+				if(addr != null) {
+					all.add(addr);
+				}
+			}
+			Collection<IPAddress> y = cachingIPMap.values();
+			for(IPAddress addr : y) {
+				if(addr != null) {
+					all.add(addr);
+				}
+			}
+			return all.toArray(new IPAddress[all.size()]);
+		}
 		
 		public int size() {
 			return cachingIPStringMap.size() + cachingIPMap.size() + cachingIPIntMap.size() + cachingMACStringMap.size() +
@@ -669,7 +696,8 @@ public class TestRunner extends TestBase implements AddressCreator {
 					new HostAllTest(this),
 					new MACAddressTest(this),
 					new MACAddressRangeTest(this),
-					new AddressOrderTest(this)
+					new AddressOrderTest(this),
+					new TrieTest(this),
 				};
 		for(TestBase test : tests) {
 			test.fullTest = fullTest;

@@ -1256,7 +1256,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Whether the address is IPv6 to IPv4 relay
-	 * @see #get6to4IPv4Address()
+	 * @see #get6To4IPv4Address()
 	 */
 	public boolean is6To4() {
 		//2002::/16

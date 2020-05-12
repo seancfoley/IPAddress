@@ -61,7 +61,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	
 	/**
 	 * Returns the equivalent address series with the smallest CIDR prefix possible (largest network),
-	 * such that the range of values of this address includes the subnet block for that prefix.
+	 * such that the range of values of this address includes the subnet prefix block for that prefix.
 	 * 
 	 * @see #toPrefixBlock()
 	 * @see #assignPrefixForSingleBlock()
@@ -83,7 +83,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * {@link #assignPrefixForSingleBlock} finds the smallest prefix length possible for this subnet that results in just a single prefix and returns that subnet.<br>
 	 * <p>
 	 * For example, given the address 1-2.2.3.* /16<br>
-	 * {@link #assignMinPrefixForBlock} returns 1-2.2.3.* /24 if the prefix configuration is not ALL_PREFIXES_ARE_SUBNETS, otherwise 1-2.2.*.* /16, in order to return the subnet with the smallest prefix length <br>
+	 * {@link #assignMinPrefixForBlock} returns 1-2.2.3.* /24 if the prefix configuration is the default or is not ALL_PREFIXES_ARE_SUBNETS, otherwise 1-2.2.*.* /16, in order to return the subnet with the smallest prefix length <br>
 	 * {@link #assignPrefixForSingleBlock} returns null because any prefix length will end up with at least two prefixes due to the first segment spanning two values: 1-2.
 	 * <p>
 	 * For another example, for the address 1.2.*.* /16 or the address 1.2.*.* both methods return 1.2.*.* /16.

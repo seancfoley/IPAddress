@@ -111,6 +111,47 @@ public interface AddressSegment extends AddressComponent, AddressGenericDivision
 	boolean prefixEquals(AddressSegment other, int prefixLength);
 
 	/**
+	 * Analogous to {@link java.math.BigInteger#testBit},
+	 * Computes (this &amp; (1 &lt;&lt; n)) != 0)
+	 * 
+	 * @see AddressSegmentSeries#testBit(int)
+	 * @see #isOneBit(int)
+	 * 
+	 * @throws IndexOutOfBoundsException if the index is negative or as large as the bit count
+	 * 
+	 * @param n
+	 * @return
+	 */
+	default boolean testBit(int n) {
+		int value = getSegmentValue();
+		int bitCount = getBitCount();
+		if(n < 0 || n >= bitCount) {
+			throw new IndexOutOfBoundsException();
+		}
+		return (value & (1 << n)) != 0;
+	}
+	
+	/**
+	 * Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+	 * 
+	 * @see AddressSegmentSeries#isOneBit(int)
+	 * @see #testBit(int)
+	 * 
+	 * @throws IndexOutOfBoundsException if the index is negative or as large as the bit count
+	 * 
+	 * @param segmentBitIndex
+	 * @return
+	 */
+	default boolean isOneBit(int segmentBitIndex) {
+		int value = getSegmentValue();
+		int bitCount = getBitCount();
+		if(segmentBitIndex < 0 || segmentBitIndex >= bitCount) {
+			throw new IndexOutOfBoundsException();
+		}
+		return (value & (1 << (bitCount - (segmentBitIndex + 1)))) != 0;
+	}
+
+	/**
 	 * Gets the maximum possible value for this type of segment (for the highest range value of this particular segment, use {@link #getUpper()}
 	 * 
 	 * @return

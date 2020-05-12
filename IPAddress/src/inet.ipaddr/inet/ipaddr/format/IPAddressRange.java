@@ -26,7 +26,12 @@ import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 
-
+/**
+ * Represents a range of IP addresses
+ * 
+ * @author seancfoley
+ *
+ */
 public interface IPAddressRange extends AddressComponentRange {
 	
 	/**

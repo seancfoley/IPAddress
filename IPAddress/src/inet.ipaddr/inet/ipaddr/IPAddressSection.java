@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2020 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -92,6 +94,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		/* also for caching */
 		private Integer cachedMinPrefix; //null indicates this field not initialized
 		private Integer cachedEquivalentPrefix; //null indicates this field not initialized, -1 indicates the prefix len is null
+		private Boolean cachedIsSinglePrefixBlock; //null indicates this field not initialized
 	}
 	
 	private transient PrefixCache prefixCache;
@@ -162,7 +165,21 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		super.initCachedValues(cachedNetworkPrefix, cachedCount);
 		prefixCache.cachedMinPrefix = cachedMinPrefix;
+		prefixCache.cachedIsSinglePrefixBlock = Objects.equals(cachedEquivalentPrefix, cachedNetworkPrefix);
 		prefixCache.cachedEquivalentPrefix = cachedEquivalentPrefix;
+	}
+	
+	@Override
+	public boolean isSinglePrefixBlock() {
+		if(!hasNoPrefixCache() && prefixCache.cachedIsSinglePrefixBlock != null) {
+			return prefixCache.cachedIsSinglePrefixBlock;
+		}
+		boolean result = super.isSinglePrefixBlock();
+		prefixCache.cachedIsSinglePrefixBlock = result;
+		if(result) {
+			prefixCache.cachedEquivalentPrefix = getNetworkPrefixLength();
+		}
+		return result;
 	}
 	
 	protected static RangeList getNoZerosRange() {
@@ -1201,69 +1218,158 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper,
 			SeriesCreator seriesCreator) {
-		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
-		splitIntoSequentialBlocksRecursive(lower, upper, 0, 0, seriesCreator, blocks);
-		return blocks;
-	}
-	
-	private static void splitIntoSequentialBlocksRecursive(
-			IPAddressSegmentSeries lower,
-			IPAddressSegmentSeries upper,
-			int previousSegmentBits,
-			int currentSegment,
-			SeriesCreator seriesCreator,
-			List<IPAddressSegmentSeries> blocks) {
+		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>(IPv6Address.SEGMENT_COUNT);
 		int segCount = lower.getSegmentCount();
+		if(segCount == 0) {
+			//all segments match, it's just a single address
+			blocks.add(lower);
+			return blocks;
+		}
+		int previousSegmentBits = 0, currentSegment = 0;
 		int bitsPerSegment = lower.getBitsPerSegment();
 		int segSegment;
 		int lowerValue, upperValue;
+		SeriesStack stack = null;
+		Deque<IPAddressSegmentSeries> toAdd = null;
 		while(true) {
-			if(currentSegment == segCount) {
-				//all segments match, it's just a single address
+			do {
+				segSegment = currentSegment;
+				IPAddressSegment lowerSeg = lower.getSegment(currentSegment);
+				IPAddressSegment upperSeg = upper.getSegment(currentSegment++);
+				lowerValue = lowerSeg.getSegmentValue();//these are single addresses, so lower or upper value no different here
+				upperValue = upperSeg.getSegmentValue();
+				previousSegmentBits += bitsPerSegment;
+			} while(lowerValue == upperValue && currentSegment < segCount);
+			
+			if(lowerValue == upperValue) {
 				blocks.add(lower);
-				return;
+			} else {	
+				boolean lowerIsLowest = lower.includesZeroHost(previousSegmentBits);
+				boolean higherIsHighest = upper.includesMaxHost(previousSegmentBits);
+				if(lowerIsLowest) {
+					if(higherIsHighest) {
+						// full range
+						IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, upperValue);
+						blocks.add(series);
+					} else {
+						IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);
+						IPAddressSegmentSeries middleUpper = topLower.increment(-1);
+						IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
+						blocks.add(series);
+						lower = topLower;
+						continue;
+					}
+				} else if(higherIsHighest) {
+					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
+					IPAddressSegmentSeries topLower = bottomUpper.increment(1);
+					IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
+					if(toAdd == null) {
+						toAdd = new ArrayDeque<>(IPv6Address.SEGMENT_COUNT);
+					}
+					toAdd.addFirst(series);
+					upper = bottomUpper;
+					continue;
+				} else {	//lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
+					//from top to bottom we have: top - topLower - middleUpper - middleLower - bottomUpper - lower
+					IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);//2:4::
+					IPAddressSegmentSeries middleUpper = topLower.increment(-1);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+					IPAddressSegmentSeries middleLower = bottomUpper.increment(1);//2:4::
+					if(middleLower.compareTo(middleUpper) <= 0) {
+						IPAddressSegmentSeries series = seriesCreator.apply(middleLower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
+						if(toAdd == null) {
+							toAdd = new ArrayDeque<>(IPv6Address.SEGMENT_COUNT);
+						}
+						toAdd.addFirst(series);
+					}
+					if(stack == null) {
+						stack = new SeriesStack(IPv6Address.SEGMENT_COUNT);
+					}
+					stack.push(topLower, upper, previousSegmentBits, currentSegment); // do this one later
+					upper = bottomUpper;
+					continue;
+				}
 			}
-			segSegment = currentSegment;
-			IPAddressSegment lowerSeg = lower.getSegment(currentSegment);
-			IPAddressSegment upperSeg = upper.getSegment(currentSegment++);
-			lowerValue = lowerSeg.getSegmentValue();//these are single addresses, so lower or upper value no different here
-			upperValue = upperSeg.getSegmentValue();
-			previousSegmentBits += bitsPerSegment;
-			if(lowerValue != upperValue) {
-				break;
+			if(toAdd != null) {
+				while(true) {
+					IPAddressSegmentSeries saved = toAdd.pollFirst();
+					if(saved == null) {
+						break;
+					}
+					blocks.add(saved);
+				}
 			}
+			if(stack == null || !stack.pop()) {
+				return blocks;
+			}
+			lower = stack.lower;
+			upper = stack.upper;
+			previousSegmentBits = stack.previousSegmentBits;
+			currentSegment = stack.currentSegment;
 		}
-		boolean lowerIsLowest = lower.includesZeroHost(previousSegmentBits);
-		boolean higherIsHighest = upper.includesMaxHost(previousSegmentBits);
-		if(lowerIsLowest) {
-			if(higherIsHighest) {
-				IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, upperValue);
-				blocks.add(series);
+	}
+	
+	static class SeriesStack {
+		int stackSize;
+		int top; // top of stack
+		int capacity;
+		
+		IPAddressSegmentSeries seriesPairs[]; // stack items
+		int indexPairs[]; // stack items
+		
+		IPAddressSegmentSeries lower, upper; // last popped items
+		int previousSegmentBits, currentSegment; // last popped items
+		
+		SeriesStack(int initialCapacity) {
+			this.capacity = 2 * initialCapacity;
+		}
+		
+		void push(IPAddressSegmentSeries lower, IPAddressSegmentSeries upper, int previousSegmentBits, int currentSegment) {
+			int top = this.top;
+			if(top >= stackSize) {
+				resize();
+			}
+			IPAddressSegmentSeries seriesPairs[] = this.seriesPairs;
+			int indexPairs[] = this.indexPairs;
+			seriesPairs[top] = lower;
+			indexPairs[top++] = previousSegmentBits;
+			seriesPairs[top] = upper;
+			indexPairs[top++] = currentSegment;
+			this.top = top;
+		}
+		
+		boolean pop() {
+			if(top <= 0) {
+				return false;
+			}
+			IPAddressSegmentSeries seriesPairs[] = this.seriesPairs;
+			int indexPairs[] = this.indexPairs;
+			int top = this.top;
+			currentSegment = indexPairs[--top];
+			upper = seriesPairs[top];
+			previousSegmentBits = indexPairs[--top];
+			lower = seriesPairs[top];
+			this.top = top;
+			return true;
+		}
+		
+		void resize() {
+			int size = stackSize;
+			if(size == 0) {
+				// splits are limited by bit count, and each recursion here pushes a pair onto each stack
+				size = capacity;
 			} else {
-				IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);
-				IPAddressSegmentSeries middleUpper = topLower.increment(-1);
-				IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
-				blocks.add(series);
-				splitIntoSequentialBlocksRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+				size <<= 1; // double the stack size
 			}
-		} else if(higherIsHighest) {
-			IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
-			IPAddressSegmentSeries topLower = bottomUpper.increment(1);
-			splitIntoSequentialBlocksRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
-			IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
-			blocks.add(series);
-		} else {	//lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
-			//from top to bottom we have: top - topLower - middleUpper - middleLower - bottomUpper - lower
-			IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);//2:4::
-			IPAddressSegmentSeries middleUpper = topLower.increment(-1);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
-			IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
-			IPAddressSegmentSeries middleLower = bottomUpper.increment(1);//2:4::
-			splitIntoSequentialBlocksRecursive(lower, bottomUpper, previousSegmentBits, currentSegment, seriesCreator, blocks);
-			if(middleLower.compareTo(middleUpper) <= 0) {
-				IPAddressSegmentSeries series = seriesCreator.apply(middleLower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
-				blocks.add(series);
+			IPAddressSegmentSeries newSeriesPairs[] = new IPAddressSegmentSeries[size];
+			int newIndexPairs[] = new int[size];
+			if(top > 0) {
+				System.arraycopy(seriesPairs, 0, newSeriesPairs, 0, top);
+				System.arraycopy(indexPairs, 0, newIndexPairs, 0, top);
 			}
-			splitIntoSequentialBlocksRecursive(topLower, upper, previousSegmentBits, currentSegment, seriesCreator, blocks);
+			seriesPairs = newSeriesPairs;
+			indexPairs = newIndexPairs;
+			stackSize = size;
 		}
 	}
 	
@@ -1271,64 +1377,69 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IPAddressSegmentSeries lower,
 			IPAddressSegmentSeries upper) {
 		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
-		splitIntoPrefixBlocksRecursive(lower, upper, 0, 0, blocks);
-		return blocks;
-	}
-
-	private static void splitIntoPrefixBlocksRecursive(
-			IPAddressSegmentSeries lower,
-			IPAddressSegmentSeries upper,
-			int previousSegmentBits,
-			int currentSegment,
-			List<IPAddressSegmentSeries> blocks) {
-		//Find first non-matching bit.  
-		int differing = 0;
-		int segCount = lower.getSegmentCount();
-		int bitsPerSegment = lower.getBitsPerSegment();
-		for(; currentSegment < segCount; currentSegment++) {
-			IPAddressSegment lowerSeg = lower.getSegment(currentSegment);
-			IPAddressSegment upperSeg = upper.getSegment(currentSegment);
-			int lowerValue = lowerSeg.getSegmentValue();//these are single addresses, so lower or upper value no different here
-			int upperValue = upperSeg.getSegmentValue();
-			differing = lowerValue ^ upperValue;
-			if(differing != 0) {
-				break;
+		int previousSegmentBits = 0, currentSegment = 0;
+		SeriesStack stack = null;
+		
+		while(true) {
+			//Find first non-matching bit.  
+			int differing = 0;
+			int segCount = lower.getSegmentCount();
+			int bitsPerSegment = lower.getBitsPerSegment();
+			for(; currentSegment < segCount; currentSegment++) {
+				IPAddressSegment lowerSeg = lower.getSegment(currentSegment);
+				IPAddressSegment upperSeg = upper.getSegment(currentSegment);
+				int lowerValue = lowerSeg.getSegmentValue();//these are single addresses, so lower or upper value no different here
+				int upperValue = upperSeg.getSegmentValue();
+				differing = lowerValue ^ upperValue;
+				if(differing != 0) {
+					break;
+				}
+				previousSegmentBits += bitsPerSegment;
 			}
-			previousSegmentBits += bitsPerSegment;
+			if(differing == 0) {
+				//all bits match, it's just a single address
+				blocks.add(lower.toPrefixBlock(lower.getBitCount()));
+			} else {
+				boolean differingIsLowestBit = (differing == 1);
+				if(differingIsLowestBit && currentSegment + 1 == segCount) {
+					//only the very last bit differs, so we have a prefix block right there
+					blocks.add(lower.toPrefixBlock(lower.getBitCount() - 1));
+				} else {
+					int highestDifferingBitInRange = Integer.numberOfLeadingZeros(differing) - (Integer.SIZE - bitsPerSegment);
+					int differingBitPrefixLen = highestDifferingBitInRange + previousSegmentBits;
+					if(lower.includesZeroHost(differingBitPrefixLen) && upper.includesMaxHost(differingBitPrefixLen)) {
+						//full range at the differing bit, we have a single prefix block
+						blocks.add(lower.toPrefixBlock(differingBitPrefixLen));
+					} else {
+						//neither a prefix block nor a single address
+						//we split into two new ranges to continue  
+						//starting from the differing bit,
+						//lower top becomes 1000000...
+						//upper bottom becomes 01111111...
+						//so in each new range, the differing bit is at least one further to the right (or more)
+						IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
+						IPAddressSegmentSeries upperBottom = lowerTop.increment(-1);
+						if(differingIsLowestBit) {
+							previousSegmentBits += bitsPerSegment;
+							currentSegment++;
+						}
+						if(stack == null) {
+							stack = new SeriesStack(IPv6Address.BIT_COUNT);
+						}
+						stack.push(lowerTop, upper, previousSegmentBits, currentSegment); // do upper one later
+						upper = upperBottom; // do lower one now
+						continue;
+					}
+				}
+			}
+			if(stack == null || !stack.pop()) {
+				return blocks;
+			}
+			lower = stack.lower;
+			upper = stack.upper;
+			previousSegmentBits = stack.previousSegmentBits;
+			currentSegment = stack.currentSegment;
 		}
-		if(differing == 0) {
-			//all bits match, it's just a single address
-			blocks.add(lower.toPrefixBlock(lower.getBitCount()));
-			return;
-		}
-		boolean differingIsLowestBit = (differing == 1);
-		if(differingIsLowestBit && currentSegment + 1 == segCount) {
-			//only the very last bit differs, so we have a prefix block right there
-			blocks.add(lower.toPrefixBlock(lower.getBitCount() - 1));
-			return;
-		}
-		int highestDifferingBitInRange = Integer.numberOfLeadingZeros(differing) - (Integer.SIZE - bitsPerSegment);
-		int differingBitPrefixLen = highestDifferingBitInRange + previousSegmentBits;
-		if(lower.includesZeroHost(differingBitPrefixLen) && upper.includesMaxHost(differingBitPrefixLen)) {
-			//full range at the differing bit, we have a single prefix block
-			blocks.add(lower.toPrefixBlock(differingBitPrefixLen));
-			return;
-		}
-		//neither a prefix block nor a single address
-		//we split into two new ranges to continue  
-		//starting from the differing bit,
-		//lower top becomes 1000000...
-		//upper bottom becomes 01111111...
-		//so in each new range, the differing bit is at least one further to the right (or more)
-		IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
-		IPAddressSegmentSeries upperBottom = lowerTop.increment(-1);
-		//IPAddressSegmentSeries upperBottom = lower.toMaxHost(differingBitPrefixLen + 1);//gives same result as lowerTop.add(-1)
-		if(differingIsLowestBit) {
-			previousSegmentBits += bitsPerSegment;
-			currentSegment++;
-		} 
-		splitIntoPrefixBlocksRecursive(lower, upperBottom, previousSegmentBits, currentSegment, blocks);
-		splitIntoPrefixBlocksRecursive(lowerTop, upper, previousSegmentBits, currentSegment, blocks);
 	}
 	
 	//sort by prefix length, smallest blocks coming first
@@ -1868,7 +1979,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return this;
 		}
 		Integer newPrefix = getPrefixLengthForSingleBlock();
-		return newPrefix == null ? null : setPrefixLength(newPrefix, false);
+		if(newPrefix == null) {
+			return null;
+		}
+		IPAddressSection result = setPrefixLength(newPrefix, false);
+		result.hasNoPrefixCache();
+		result.prefixCache.cachedIsSinglePrefixBlock = true;
+		result.prefixCache.cachedEquivalentPrefix = newPrefix;
+		return result;
 	}
 	
 	/**
@@ -2225,9 +2343,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		Integer res = super.getPrefixLengthForSingleBlock();
 		if(res == null) {
 			prefixCache.cachedEquivalentPrefix = NO_PREFIX_LENGTH;
+			prefixCache.cachedIsSinglePrefixBlock = false;
 			return null;
 		}
-		return prefixCache.cachedEquivalentPrefix = res;
+		if(isPrefixed() && res.equals(getNetworkPrefixLength())) {
+			prefixCache.cachedIsSinglePrefixBlock = true;
+		}
+		prefixCache.cachedEquivalentPrefix = res;
+		return res;
 	}
 
 	@Override

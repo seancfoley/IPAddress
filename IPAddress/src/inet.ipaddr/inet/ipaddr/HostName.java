@@ -112,18 +112,13 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * @param inetSocketAddr
 	 */
 	public HostName(InetSocketAddress inetSocketAddr) {
-		InetAddress inetAddr = inetSocketAddr.getAddress();
-		if(inetAddr != null) {
-			IPAddress addr = toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS);
-			ParsedHostIdentifierStringQualifier qualifier = new ParsedHostIdentifierStringQualifier(null, inetSocketAddr.getPort());
-			host = toNormalizedString(addr, inetSocketAddr.getPort());
-			parsedHost = new ParsedHost(host, addr.getProvider(), qualifier);
-			validationOptions = null;
-		} else {
-			//for host name strings we will parse and normalize as usual
-			host = inetSocketAddr.getHostName().trim() + PORT_SEPARATOR + inetSocketAddr.getPort();
-			validationOptions = DEFAULT_VALIDATION_OPTIONS;
+		if(!inetSocketAddr.isUnresolved()) {
+			resolvedAddress = toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS);
 		}
+		// we will parse and normalize as usual
+		// there is no way to know if we are getting a host name string here or an ip address literal without parsing it ourselves
+		host = inetSocketAddr.getHostString().trim() + PORT_SEPARATOR + inetSocketAddr.getPort();
+		validationOptions = DEFAULT_VALIDATION_OPTIONS;
 	}
 
 	/**
@@ -747,7 +742,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	/**
 	 * If this represents an ip address, returns that address.  Otherwise, returns null.  
 	 * Note that translation includes prefix lengths and IPv6 zones.
-	 * This does not resolve addresses.
+	 * This does not resolve addresses or return resolved addresses.
 	 * Call {@link #toAddress()} or {@link #getAddress()} to get the resolved address.
 	 * <p>
 	 * In cases such as IPv6 literals and reverse DNS hosts, you can check the relevant methods isIpv6Literal or isReverseDNS,

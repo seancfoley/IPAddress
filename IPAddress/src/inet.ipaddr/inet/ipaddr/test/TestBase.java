@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 import inet.ipaddr.Address;
@@ -48,6 +50,7 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.format.AddressItem;
+import inet.ipaddr.format.util.TreeOps;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -64,32 +67,50 @@ public abstract class TestBase {
 
 	public static PrefixConfiguration prefixConfiguration;
 			
-	static class Failure {
+	public static class Failure {
 		HostIdentifierString addr;
 		AddressItem item;
 		String str;
 		StackTraceElement[] stack;
 		Class<? extends TestBase> testClass;
+		TreeOps<?> trie;
+		Set<?> set;
+		Map<?, ?> map;
 		
 		
-		Failure(String str) {
+		public Failure(String str) {
 			this.str = str;
 		}
 		
-		Failure(boolean pass, HostIdentifierString addr) {
+		public Failure(boolean pass, HostIdentifierString addr) {
 			this.addr = addr;
 		}
 		
-		Failure(String str, AddressItem addr) {
+		public Failure(String str, AddressItem addr) {
 			this.str = str;
 			this.item = addr;
 		}
 		
-		Failure(boolean pass, AddressItem addr) {
+		public Failure(String str, TreeOps<?> trie) {
+			this.str = str;
+			this.trie = trie;
+		}
+		
+		public Failure(String str, Set<?> set) {
+			this.str = str;
+			this.set = set;
+		}
+		
+		public Failure(String str, Map<?, ?> map) {
+			this.str = str;
+			this.map = map;
+		}
+		
+		public Failure(boolean pass, AddressItem addr) {
 			this.item = addr;
 		}
 
-		Failure(String str, HostIdentifierString addr) {
+		public Failure(String str, HostIdentifierString addr) {
 			this.str = str;
 			this.addr = addr;
 		}
@@ -100,6 +121,15 @@ public abstract class TestBase {
 			}
 			if(item != null) {
 				return item.toString();
+			}
+			if(trie != null) {
+				return trie.toString();
+			}
+			if(set != null) {
+				return set.toString();
+			}
+			if(map != null) {
+				return map.toString();
 			}
 			return "<unknown>";
 		}
@@ -414,6 +444,10 @@ public abstract class TestBase {
 	TestBase(AddressCreator creator) {
 		this.addressCreator = creator;
 	}
+	
+	IPAddress[] getAllCached() {
+		return addressCreator.getAllCached();
+	}
 
 	protected HostName createHost(HostKey key) {
 		return addressCreator.createHost(key);
@@ -477,7 +511,7 @@ public abstract class TestBase {
 		return createMACAddress(new MACAddressStringKey(x, MAC_ADDRESS_OPTIONS));
 	}
 	
-	void addFailure(Failure failure) {
+	public void addFailure(Failure failure) {
 		failures.addFailure(failure, getClass());
 	}
 	
@@ -1587,6 +1621,9 @@ public abstract class TestBase {
 }
 
 interface AddressCreator {
+	
+	IPAddress[] getAllCached();
+	
 	HostName createHost(HostKey key);
 	
 	IPAddressString createAddress(IPAddressStringKey key);

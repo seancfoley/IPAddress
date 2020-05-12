@@ -329,11 +329,11 @@ public class MACAddressTest extends TestBase {
 			} else {
 				if(equal ? !w2.contains(w) : w2.contains(w)) {
 					addFailure(new Failure("failed " + w, w2));
-					if(equal) {
-						System.out.println("containment: " + !w2.contains(w));
-					} else {
-						System.out.println("containment: " + w2.contains(w));
-					}
+//					if(equal) {
+//						System.out.println("containment: " + !w2.contains(w));
+//					} else {
+//						System.out.println("containment: " + w2.contains(w));
+//					}
 				}
 			}
 		} catch(AddressStringException e) {

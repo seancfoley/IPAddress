@@ -298,12 +298,12 @@ public class HostTest extends TestBase {
 	
 	void testHostInetSocketAddress(String host, Function<String, Integer> serviceMapper, InetSocketAddress expected) {
 		HostName h = createHost(host);
-		InetSocketAddress addr = h.asInetSocketAddress(serviceMapper);
-		if(!Objects.equals(addr, expected)) {
-			addFailure(new Failure("socket address mismatch, expected: " + expected + " result: " + addr, h));
+		InetSocketAddress socketAddr = h.asInetSocketAddress(serviceMapper);
+		if(!Objects.equals(socketAddr, expected)) {
+			addFailure(new Failure("socket address mismatch, expected: " + expected + " result: " + socketAddr, h));
 		}
-		if(addr != null && h.getService() == null) {
-			HostName h2 = new HostName(addr);
+		if(socketAddr != null && h.getService() == null) {
+			HostName h2 = new HostName(socketAddr);
 			if(!h.equals(h2)) {
 				addFailure(new Failure("socket address mismatch, expected: " + h + " result: " + h2, h));
 			}
@@ -406,7 +406,8 @@ public class HostTest extends TestBase {
 		return false;
 	}
 	
-	public static boolean runDNS = true;
+	//public static boolean runDNS = true;
+	public static boolean runDNS;
 	
 	@Override
 	void runTest()
@@ -894,6 +895,7 @@ public class HostTest extends TestBase {
 		testHostInetSocketAddress(":::123", "::", 123);
 		testHostInetSocketAddress("[::]:123", "::", 123);
 		testHostInetSocketAddress("a.com:123", "a.com", 123);
+		testHostInetSocketAddress("espn.com:123", "espn.com", 123);
 		testHostInetSocketAddress("foo:123", "foo", 123);
 		testNotHostInetSocketAddress("1.2.3.4");
 		testNotHostInetSocketAddress("::");

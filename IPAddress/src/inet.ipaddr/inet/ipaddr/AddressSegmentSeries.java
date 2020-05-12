@@ -153,6 +153,41 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	@Override
 	AddressSegmentSeries getUpper();
 	
+	/**
+	 * Analogous to {@link java.math.BigInteger#testBit},
+	 * Computes (this &amp; (1 &lt;&lt; n)) != 0)
+	 * 
+	 * @see #isOneBit(int)
+	 * @throws IndexOutOfBoundsException if the index is negative or as large as the bit count
+	 * 
+	 * @param n
+	 * @return
+	 */
+	default boolean testBit(int n) {
+		return isOneBit(getBitCount() - (n + 1));
+	}
+	
+	/**
+	 * Returns true if the bit in the lower value of this series at the given index is 1, where index 0 is the most significant bit.
+	 * 
+	 * For example, isOneBit(0) for 128.0.0.0 and isOneBit(31) for 0.0.0.1 are both true, while
+	 * isOneBit(31) for 128.0.0.0/24 is false.  isOneBit(0) for 8000:: is true.
+	 * 
+	 * @see #testBit(int)
+	 * @throws IndexOutOfBoundsException if the index is negative or as large as the bit count
+	 * 
+	 * @param prefixBitIndex
+	 * @return
+	 */
+	default boolean isOneBit(int prefixBitIndex) {
+		int bitsPerSegment = getBitsPerSegment();
+		AddressSegment segment = getSegment(prefixBitIndex / bitsPerSegment);
+		int segmentBitIndex = prefixBitIndex % bitsPerSegment;
+		// doing the calculation here allows us to skip bounds checking in AddressSegment#isOneBit
+		int value = segment.getSegmentValue();
+		return (value & (1 << (bitsPerSegment - (segmentBitIndex + 1)))) != 0;
+	}
+	
 	@Override
 	Iterable<? extends AddressSegmentSeries> getIterable();
 	

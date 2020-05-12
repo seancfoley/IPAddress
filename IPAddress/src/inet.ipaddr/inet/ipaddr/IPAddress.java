@@ -518,7 +518,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	
 	/**
 	 * Returns whether this address is the address which binds to any address on the local host.
-	 * This is the address that has the value of 0, aka the unspecfied address.
+	 * This is the address that has the value of 0, aka the unspecified address.
 	 * 
 	 * @see java.net.InetAddress#isAnyLocalAddress()
 	 */
