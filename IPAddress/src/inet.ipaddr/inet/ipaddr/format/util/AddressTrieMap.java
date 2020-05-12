@@ -207,7 +207,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 		 */
 		@SuppressWarnings("unchecked")
 		public Iterator<Entry<K,V>> containingFirstIterator() {
-			Iterator<? extends BinaryTreeNode<K>> it = trie.containingFirstIterator(!isReverse);
+			Iterator<? extends Entry<K, V>> it = trie.containingFirstIterator(!isReverse);
 			return (Iterator<Entry<K, V>>) it;
 		}
 
@@ -217,7 +217,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 		 */
 		@SuppressWarnings("unchecked")
 		public Iterator<Entry<K,V>> containedFirstIterator() {
-			Iterator<? extends BinaryTreeNode<K>> it = trie.containedFirstIterator(!isReverse);
+			Iterator<? extends Entry<K, V>> it = trie.containedFirstIterator(!isReverse);
 			return (Iterator<Entry<K, V>>) it;
 		}
 

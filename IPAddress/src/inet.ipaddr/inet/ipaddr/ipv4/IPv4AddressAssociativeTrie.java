@@ -449,7 +449,7 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 	public AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>> constructAddedNodesTree() {
 		IPv4AddressAssociativeTrie<List<AssociativeTrieNode<IPv4Address, ?>>> trie = new IPv4AddressAssociativeTrie<>();
 		contructAddedTree(trie);
-		IPv4AddressAssociativeTrie<? extends List<AssociativeTrieNode<IPv4Address, ?>>> ret = trie;
+		IPv4AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv4Address, ?>>> ret = trie;
 		return (AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>>) ret;
 	}
 }

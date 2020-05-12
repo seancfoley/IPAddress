@@ -129,7 +129,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * You can use the method {@link #toString(boolean, AbstractTree...)} for a String that represents multiple tries as a single tree.
  * <p>
  * Tries are thread-safe when not being modified (elements added or removed), but are not thread-safe when one thread is modifying the trie.
- * For thread safety, one option is to use {@link Collections#synchronizedNavigableMap(java.util.NavigableSet)} on {@link #asSet()}.
+ * For thread safety when modifying, one option is to use {@link Collections#synchronizedNavigableSet(java.util.NavigableSet)} on {@link #asSet()}.
  * <p>
  * 
  * @author scfoley

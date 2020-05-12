@@ -449,7 +449,7 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 	public AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>> constructAddedNodesTree() {
 		IPv6AddressAssociativeTrie<List<AssociativeTrieNode<IPv6Address, ?>>> trie = new IPv6AddressAssociativeTrie<>();
 		contructAddedTree(trie);
-		IPv6AddressAssociativeTrie<? extends List<AssociativeTrieNode<IPv6Address, ?>>> ret = trie;
+		IPv6AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv6Address, ?>>> ret = trie;
 		return (AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>>) ret;
 	}
 }

@@ -34,17 +34,10 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	private static final long serialVersionUID = 1L;
 	
 	static final IPv4Address INIT_ROOT = new IPAddressString("0.0.0.0/0").getAddress().toIPv4();
-	
-//	public IPv4AddressTrie() {
-//		super(trie -> new IPv4TrieNode());
-//	}
+
 	public IPv4AddressTrie() {
 		super(new IPv4TrieNode());
 	}
-	
-//	protected IPv4AddressTrie(IPv4TrieNode root) {
-//		super(root);
-//	}
 	
 	protected IPv4AddressTrie(AddressBounds<IPv4Address> bounds) {
 		super(new IPv4TrieNode(), bounds);
@@ -138,12 +131,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public IPv4TrieNode getNode(IPv4Address addr) {
 			return (IPv4TrieNode) super.getNode(addr);
 		}
-		
-//		@SuppressWarnings("unchecked")
-//		@Override
-//		public Iterator<IPv4TrieNode> nodeIterator(boolean forward, boolean addedNodesOnly) {
-//			return (Iterator<IPv4TrieNode>) super.nodeIterator(forward, addedNodesOnly);
-//		}
+
 		@SuppressWarnings("unchecked")
 		@Override
 		public Iterator<IPv4TrieNode> nodeIterator(boolean forward) {
@@ -155,13 +143,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public Iterator<IPv4TrieNode> allNodeIterator(boolean forward) {
 			return (Iterator<IPv4TrieNode>) super.allNodeIterator(forward);
 		}
-		
-//		@SuppressWarnings("unchecked")
-//		@Override
-//		public Iterator<IPv4TrieNode> blockSizeNodeIterator(boolean lowerSubNodeFirst, boolean addedNodesOnly) {
-//			return (Iterator<IPv4TrieNode>) super.blockSizeNodeIterator(lowerSubNodeFirst, addedNodesOnly);
-//		}
-
+	
 		@SuppressWarnings("unchecked")
 		@Override
 		public Iterator<IPv4TrieNode> blockSizeNodeIterator(boolean lowerSubNodeFirst) {
@@ -180,11 +162,6 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 			return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.blockSizeCachingAllNodeIterator();
 		}
 
-//		@SuppressWarnings("unchecked")
-//		@Override
-//		public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder, boolean addedNodesOnly) {
-//			return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstIterator(forwardSubNodeOrder, addedNodesOnly);
-//		}
 		@SuppressWarnings("unchecked")
 		@Override
 		public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
@@ -196,12 +173,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstAllNodeIterator(boolean forwardSubNodeOrder) {
 			return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstAllNodeIterator(forwardSubNodeOrder);
 		}
-		
-//		@SuppressWarnings("unchecked")
-//		@Override
-//		public Iterator<IPv4TrieNode> containedFirstIterator(boolean forwardSubNodeOrder, boolean addedNodesOnly) {
-//			return (Iterator<IPv4TrieNode>) super.containedFirstIterator(forwardSubNodeOrder, addedNodesOnly);
-//		}
+
 		@SuppressWarnings("unchecked")
 		@Override
 		public Iterator<IPv4TrieNode> containedFirstIterator(boolean forwardSubNodeOrder) {
@@ -326,53 +298,37 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	public IPv4TrieNode addTrie(TrieNode<IPv4Address> trie) {
 		return (IPv4TrieNode) super.addTrie(trie);
 	}
-	
-//	@SuppressWarnings("unchecked")
-//	@Override
-//	public Iterator<IPv4TrieNode> nodeIterator(boolean forward, boolean addedNodesOnly) {
-//		return (Iterator<IPv4TrieNode>) super.nodeIterator(forward, addedNodesOnly);
-//	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4TrieNode> nodeIterator(boolean forward) {
 		return (Iterator<IPv4TrieNode>) super.nodeIterator(forward);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4TrieNode> allNodeIterator(boolean forward) {
 		return (Iterator<IPv4TrieNode>) super.allNodeIterator(forward);
 	}
 
-//	@SuppressWarnings("unchecked")
-//	@Override
-//	public Iterator<IPv4TrieNode> blockSizeNodeIterator(boolean lowerSubNodeFirst, boolean addedNodesOnly) {
-//		return (Iterator<IPv4TrieNode>) super.blockSizeNodeIterator(lowerSubNodeFirst, addedNodesOnly);
-//	}
-	
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4TrieNode> blockSizeNodeIterator(boolean lowerSubNodeFirst) {
 		return (Iterator<IPv4TrieNode>) super.blockSizeNodeIterator(lowerSubNodeFirst);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4TrieNode> blockSizeAllNodeIterator(boolean lowerSubNodeFirst) {
 		return (Iterator<IPv4TrieNode>) super.blockSizeAllNodeIterator(lowerSubNodeFirst);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> blockSizeCachingAllNodeIterator() {
 		return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.blockSizeCachingAllNodeIterator();
 	}
 
-//	@SuppressWarnings("unchecked")
-//	@Override
-//	public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder, boolean addedNodesOnly) {
-//		return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstIterator(forwardSubNodeOrder, addedNodesOnly);
-//	}
 	@SuppressWarnings("unchecked")
 	@Override
 	public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
@@ -384,12 +340,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstAllNodeIterator(boolean forwardSubNodeOrder) {
 		return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstAllNodeIterator(forwardSubNodeOrder);
 	}
-	
-//	@SuppressWarnings("unchecked")
-//	@Override
-//	public Iterator<IPv4TrieNode> containedFirstIterator(boolean forwardSubNodeOrder, boolean addedNodesOnly) {
-//		return (Iterator<IPv4TrieNode>) super.containedFirstIterator(forwardSubNodeOrder, addedNodesOnly);
-//	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<IPv4TrieNode> containedFirstIterator(boolean forwardSubNodeOrder) {
@@ -433,7 +384,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	public IPv4TrieNode ceilingAddedNode(IPv4Address addr) {
 		return (IPv4TrieNode) super.ceilingAddedNode(addr);
 	}
-	
+
 	@Override
 	public IPv4TrieNode firstNode() {
 		return (IPv4TrieNode) super.firstNode();
@@ -448,18 +399,18 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	public IPv4AddressTrie clone() {
 		return (IPv4AddressTrie) super.clone();
 	}
-	
+
 	@Override
 	public boolean equals(Object o) {
 		return o instanceof IPv4AddressTrie && super.equals(o);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>> constructAddedNodesTree() {
 		IPv4AddressAssociativeTrie<List<AssociativeTrieNode<IPv4Address, ?>>> trie = new IPv4AddressAssociativeTrie<>();
 		contructAddedTree(trie);
-		IPv4AddressAssociativeTrie<? extends List<AssociativeTrieNode<IPv4Address, ?>>> ret = trie;
+		IPv4AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv4Address, ?>>> ret = trie;
 		return (AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>>) ret;
 	}
 }

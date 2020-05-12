@@ -462,7 +462,7 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 	public AssociativeAddressTrie<MACAddress, List<MACAssociativeTrieNode<?>>> constructAddedNodesTree() {
 		MACAddressAssociativeTrie<List<AssociativeTrieNode<MACAddress, ?>>> trie = new MACAddressAssociativeTrie<>();
 		contructAddedTree(trie);
-		MACAddressAssociativeTrie<? extends List<AssociativeTrieNode<MACAddress, ?>>> ret = trie;
+		MACAddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<MACAddress, ?>>> ret = trie;
 		return (AssociativeAddressTrie<MACAddress, List<MACAssociativeTrieNode<?>>>) ret;
 	}
 }

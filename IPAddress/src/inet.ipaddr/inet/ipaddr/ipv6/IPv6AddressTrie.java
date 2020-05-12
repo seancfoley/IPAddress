@@ -431,7 +431,7 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 	public AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>> constructAddedNodesTree() {
 		IPv6AddressAssociativeTrie<List<AssociativeTrieNode<IPv6Address, ?>>> trie = new IPv6AddressAssociativeTrie<>();
 		contructAddedTree(trie);
-		IPv6AddressAssociativeTrie<? extends List<AssociativeTrieNode<IPv6Address, ?>>> ret = trie;
+		IPv6AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv6Address, ?>>> ret = trie;
 		return (AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>>) ret;
 	}
 }

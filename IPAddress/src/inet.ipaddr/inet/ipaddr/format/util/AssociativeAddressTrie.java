@@ -33,11 +33,11 @@ import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
  * An address trie in which each node is is associated with a value.
  * <p>
  * The trie can also be used as the backing data structure for a {@link AddressTrieMap} which is a @{link java.util.NavigableMap}.
- * Unlike {@link java.util.TreeMap} this data structure provides access to the nodes and the associated subtrie with each node,
+ * Unlike {@link java.util.TreeMap} this data structure provides access to the nodes and the associated sub-trie with each node as the sub-trie root,
  * which corresponds with their associated CIDR prefix block subnets.
  * <p>
- * When using the {@link #add(Address)} methods the value will be null.  
  * Use one of the put methods to add nodes with values or to change the values of existing nodes.
+ * You can also add to the trie using {@link #add(Address)} and the associated value will be null.  
  * <p>
  * Mapped tries are thread-safe when not being modified (ie mappings added or removed), but are not thread-safe when a thread is modifying the trie.
  * <p>
