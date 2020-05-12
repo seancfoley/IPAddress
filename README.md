@@ -29,7 +29,7 @@ Planned future additions: ports to [**JavaScript**](https://www.npmjs.com/) and 
 
 ## Getting Started
 
-### Java
+## Java
 
 starting with address or subnet strings
 ```java
@@ -72,7 +72,7 @@ try {
 	// handle improperly formatted host name or address string
 }
 ```
-### Kotlin
+## Kotlin
 
 starting with address or subnet strings, using exceptions for invalid formats
 ```kotlin
@@ -97,7 +97,7 @@ println(ipAddr) // a:b:c:d:e:f:102:304/112
 val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
 println(ipv4Addr) // 1.2.3.4/16
 ```
-### Scala
+## Scala
 
 starting with address strings, using exceptions for invalid formats
 ```scala
@@ -112,7 +112,7 @@ Try(addressStr.toAddress) match {
 }
 ```
 
-### Groovy
+## Groovy
 
 starting with address or subnet strings, using exceptions for invalid formats
 ```groovy
