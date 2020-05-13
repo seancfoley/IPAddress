@@ -42,7 +42,7 @@ import inet.ipaddr.format.util.BinaryTreeNode.KeyIterator;
  * See {@link inet.ipaddr.format.util.AddressTrieMap} for a description of some of the differences.
  * {@link java.util.TreeMap} is backed by a {@link java.util.TreeSet} and 
  * {@link inet.ipaddr.format.util.AddressTrieMap} is backed by an {@link inet.ipaddr.format.util.AddressTrie} just like {@link inet.ipaddr.format.util.AddressTrie},
- * so all of the same implmentation comparisons apply equally between the map implementations and the set implementations.
+ * so all of the same implementation comparisons apply equally between the map implementations and the set implementations.
  * <p>
  * With the trie set, only addresses that are either individual address or prefix block subnets of the same type and version can be added to the trie,
  * see {@link inet.ipaddr.format.util.AddressTrie.AddressComparator} for a comparator for the ordering.
