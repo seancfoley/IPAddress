@@ -1,0 +1,7 @@
+#-classpath: ./bin/
+-classpath: dist/classes.jar
+Bundle-SymbolicName: com.github.seancfoley.ipaddress
+ver: 5.3
+-output: dist/bdsout.jar
+Bundle-Version: ${ver}
+Export-Package: *;version=${ver}

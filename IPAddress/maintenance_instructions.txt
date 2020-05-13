@@ -82,15 +82,17 @@ B Github
 
 2. Edit the release "version" property in pom.xml
 
-3. Use build.xml to first "create javadoc", then after to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
+3. Edit the release "version" property in ipaddress.bnd
+
+4. Use build.xml to first "create javadoc", then after to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
 NOTE: Currently we have had to separate javadoc creation from the creation of dist jar or maven, see notes in build.xml for the reason.
 You need the project at compile level 9 with a jre >= 9 (last time used 11).
 Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
 Then switch over the job to jre >= 9.  Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-4. Check in and push the changes.
+5. Check in and push the changes.
 
-5. Create the release using the github releases button on the releases page, 
+6. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
 This creates the tag as well (but does not create a branch).  The tags have the format vx.x.x
 Add the dist jar from (2) to the release.  
@@ -99,16 +101,16 @@ If something goes wrong, move the tag: https://stackoverflow.com/questions/80445
 
 C Maven
 
-6. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created.
+7. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created.
 
 The signing will create a batch file to do the signing.  Running gpg directly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
 
-7. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
+8. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
 You may need to run "sudo -i" first.
 
-8. Remove the batch file sign.bat.  Create the bundle bundle.jar using build.xml to "create maven bundle".
+9. Remove the batch file sign.bat.  Create the bundle bundle.jar using build.xml to "create maven bundle".
 
-9. Follow instructions here for manual deployment:
+10. Follow instructions here for manual deployment:
 http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
 which requires that you go here https://oss.sonatype.org/ to upload.
 	
@@ -117,10 +119,10 @@ Your original sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28
 
 Use your sonatype user/pw.
 
-10. Go to maven central repository, https://search.maven.org/, and browse or search for your release.  It will not show up immediately.
+11. Go to maven central repository, https://search.maven.org/, and browse or search for your release.  It will not show up immediately.
 It may take about 10 minutes.
 
-11. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
+12. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
 
 
 

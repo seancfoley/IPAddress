@@ -15,7 +15,7 @@
 	<property name="rootPackagePath" value="inet/ipaddr"/>
 	<property name="runScriptName" value="ip_address_test" />
 	<property name="runScriptPath" value="${rootdistdir}/${runScriptName}" />
-	<property name="jarname" value="IPAddress${jarExtension}" />
+	<property name="jarname" value="classes${jarExtension}" />
 			
 	<target name="check root dist dir">
 		<available property="rootdistdir.exists" file="${rootdistdir}" />
@@ -122,7 +122,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			<include name="${rootPackagePath}/ipv6/**/*.java" />
 			<include name="${rootPackagePath}/mac/**/*.java" />
 		</fileset>
-		<fileset id="ipaddress.src.xml" dir="${src_location}">
+		<fileset id="ipaddress.src.xml" dir="${rootOffset}">
 			<include name="${rootPackagePath}/**/*.xml" />
 		</fileset>
 		<fileset id="ipaddress.src.test" dir="${src_location}">
@@ -164,16 +164,33 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
+	<target name="create bnd jar" depends="create class jar">
+		<property name="bndloc" location="${rootdistdir}/bndipaddress${jarExtension}" />
+		<taskdef resource="aQute/bnd/ant/taskdef.properties"/>
+		<bnd eclipse="false" failok="false" exceptions="true"
+			files="ipaddress.bnd"
+			output="${rootdistdir}/bndout.jar"/>
+		<unzip src="${rootdistdir}/bndout.jar" dest="${rootdistdir}">
+		  <patternset>
+		    <include name="META-INF/MANIFEST.MF"/>
+		  </patternset>
+		</unzip>
+		<fileset id="ipaddress.manifest" dir="${rootdistdir}">
+			<include name="META_INF/MANIFEST.MF" />
+		</fileset>
+	 </target>
+	
 	<!-- javadoc is needed but was split off to be done separately, see comments above for the reason -->
 	<!-- target name="create dist jar" depends="compile, create file sets, create javadoc, create dist name" -->	
-	<target name="create dist jar" depends="compile, create file sets, create dist name">	
+	<target name="create dist jar" depends="compile, create file sets, create dist name, create bnd jar">	
 		<property name="archiveloc" location="${rootdistdir}/${archivename}" />
-		<jar destfile="${archiveloc}" filesonly="true">
-			<manifest>
+		<jar destfile="${archiveloc}" filesonly="true" manifest="${rootdistdir}/META-INF/MANIFEST.MF">
+			<!-- <manifest>
 				<attribute name="Version" value="${version}"/>
 				<attribute name="Timestamp" value="${timestamp}"/>
-			</manifest>
+			</manifest> -->
 			<fileset refid="ipaddress.src" />
+			<!-- <fileset refid="ipaddress.manifest" /> -->
 			<fileset refid="ipaddress.src.xml" />
 			<fileset refid="ipaddress.src.test" />
 			<fileset refid="ipaddress.jar.contents" />
@@ -197,7 +214,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		
 		<mkdir dir="${rootdistdir}/mavenlib"/>
 		
-		<jar destfile="${jar}" filesonly="true" >
+		<jar destfile="${jar}" filesonly="true" manifest="${rootdistdir}/META-INF/MANIFEST.MF">
 			<fileset refid="ipaddress.jar.contents" />
 		</jar>
 		
