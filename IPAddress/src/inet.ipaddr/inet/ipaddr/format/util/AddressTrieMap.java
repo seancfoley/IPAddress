@@ -224,7 +224,6 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 		/**
 		 * Iterates from largest prefix blocks to smallest to individual addresses.
 		 * 
-		 * @param lowerFirst if true, for blocks of equal size the lower is first, otherwise the reverse order
 		 * @return
 		 */	
 		@SuppressWarnings("unchecked")

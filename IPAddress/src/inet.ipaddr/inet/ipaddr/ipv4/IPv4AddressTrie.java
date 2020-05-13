@@ -24,8 +24,8 @@ import java.util.Spliterator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.format.util.AddressTrie;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
-import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
+import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 import inet.ipaddr.ipv4.IPv4AddressAssociativeTrie.IPv4AssociativeTrieNode;
 

@@ -59,7 +59,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * The trie allows you to check a subnet for containment of many smaller subnets or addresses at once, in constant time.
  * The trie allows you to check for equality of a subnet or address with a large number of subnets or addresses at once.
  *<p>
- * The trie can also be used as the backing structure for a {@link TreeSet} which is a @{link java.util.NavigableSet}.
+ * The trie can also be used as the backing structure for a {@link TreeSet} which is a {@link java.util.NavigableSet}.
  * Unlike {@link java.util.TreeSet} this data structure provides access to the nodes and the associated subtrie with each node,
  * which corresponds with their associated CIDR prefix block subnets.
  * <p>
@@ -126,7 +126,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * </li><li>break the concept of equality, for example MAC 1:2:3:*:*:* and IPv4 1.2.3.0/24 would be considered the same since they have the same prefix bits and length 
  * </li></ul><p>
  * Instead, you could aggregate multiple subtries to create a collection multiple address types or versions.
- * You can use the method {@link #toString(boolean, AbstractTree...)} for a String that represents multiple tries as a single tree.
+ * You can use the method {@link #toString(boolean, AddressTrie...)} for a String that represents multiple tries as a single tree.
  * <p>
  * Tries are thread-safe when not being modified (elements added or removed), but are not thread-safe when one thread is modifying the trie.
  * For thread safety when modifying, one option is to use {@link Collections#synchronizedNavigableSet(java.util.NavigableSet)} on {@link #asSet()}.
@@ -825,8 +825,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		 * Iterates all nodes, ordered by keys from largest prefix blocks to smallest and then to individual addresses,
 		 *  in the sub-trie with this node as the root.
 		 * 
-		 * @param lowerSubNodeFirst if true, for blocks of equal size the lower is first, otherwise the reverse order
-		 * @param addedNodesOnly if true, only nodes of added elements are visited, not auto-generated subnet block nodes
 		 * @return
 		 */
 		@SuppressWarnings("unchecked")
@@ -1521,7 +1519,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@Override
 		public boolean equals(Object o) {
-			return o instanceof TrieNode<?> && super.equals(o);
+			return o instanceof TrieNode && super.equals(o);
 		}
 	}
 
@@ -1701,7 +1699,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * <p>
 	 * See {@link #constructAddedNodesTree()}
 	 * 
-	 * @param addedTree
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
@@ -1775,14 +1772,15 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	* 
 	* @return
 	*/
-	protected void contructAddedTree(AssociativeAddressTrie<E, List<AssociativeTrieNode<E, ?>>> emptyTrie) {
+	@SuppressWarnings("unchecked")
+	protected void contructAddedTree(AssociativeAddressTrie<E, ? extends List<? extends AssociativeTrieNode<E, ?>>> emptyTrie) {
 		emptyTrie.addTrie(absoluteRoot());
-		CachingIterator<? extends AssociativeTrieNode<E, List<AssociativeTrieNode<E,?>>>, E,
-				AssociativeTrieNode<E, List<AssociativeTrieNode<E,?>>>> iterator = 
+		CachingIterator<? extends AssociativeTrieNode<E, ? extends List<? extends AssociativeTrieNode<E, ?>>>, E,
+				AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>>> iterator = 
 					emptyTrie.containingFirstAllNodeIterator(true);
 		while(iterator.hasNext()) {
-			AssociativeTrieNode<E, List<AssociativeTrieNode<E,?>>> next = iterator.next(), parent;
-			// cache this node with its sub-ndoes
+			AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>> next = (AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>>) iterator.next(), parent;
+			// cache this node with its sub-nodes
 			iterator.cacheWithLowerSubNode(next);
 			iterator.cacheWithUpperSubNode(next);
 			
@@ -1794,14 +1792,14 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					// this part would be tricky if we accounted for the bounds,
 					// maybe we'd have to filter on the bounds, and also look for the sub-root
 					while(!parent.isAdded()) {
-						AssociativeTrieNode<E, List<AssociativeTrieNode<E,?>>> parentParent = parent.getParent();
+						AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>> parentParent = parent.getParent();
 						if(parentParent == null) {
 							break;
 						}
 						parent = parentParent;
 					}
 					// store ourselves with that added parent or root
-					List<AssociativeTrieNode<E,?>> addedSubs = parent.getValue();
+					List<AssociativeTrieNode<E, ?>> addedSubs = (List<AssociativeTrieNode<E, ?>>) parent.getValue();
 					if(addedSubs == null) {
 						addedSubs = new ArrayList<AssociativeTrieNode<E, ?>>(next.size() - 1);
 						parent.setValue(addedSubs);
@@ -1810,16 +1808,16 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				} // else root
 			}
 		}
-		Iterator<? extends AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>>> iter = emptyTrie.allNodeIterator(true);
-		AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>> root = emptyTrie.absoluteRoot();
-		List<AssociativeTrieNode<E, ?>> list = root.getValue();
+		Iterator<? extends AssociativeTrieNode<E, ? extends List<? extends TrieNode<E>>>> iter = emptyTrie.allNodeIterator(true);
+		AssociativeTrieNode<E, ? extends List<? extends TrieNode<E>>> root = emptyTrie.absoluteRoot();
+		List<? extends TrieNode<E>> list = root.getValue();
 		if(list != null) {
-			((ArrayList<AssociativeTrieNode<E, ?>>) list).trimToSize();
+			((ArrayList<? extends TrieNode<E>>) list).trimToSize();
 		}
 		while(iter.hasNext()) {
 			list = iter.next().getValue();
 			if(list != null) {
-				((ArrayList<AssociativeTrieNode<E, ?>>) list).trimToSize();
+				((ArrayList<? extends TrieNode<E>>) list).trimToSize();
 			}
 		}
 	}
@@ -2112,8 +2110,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * <p>
 	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
 	 * 
-	 * @param lowerSubNodeFirst if true, for blocks of equal size the lower is first, otherwise the reverse order
-	 * @param addedNodesOnly if true, only nodes of added elements are visited, not auto-generated subnet block nodes
 	 * @return
 	 */
 	public <C> CachingIterator<? extends TrieNode<E>, E, C> blockSizeCachingAllNodeIterator() {

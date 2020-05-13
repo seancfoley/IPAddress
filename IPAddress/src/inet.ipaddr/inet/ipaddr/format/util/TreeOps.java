@@ -289,7 +289,6 @@ static &lt;E&gt; void visitIterative(BinaryTreeNode&lt;E&gt; node) {
 	 * See {@link TreeOps} for more details on the ordering.
 	 * 
 	 * @param forwardSubNodeOrder if true, a left sub-node will be visited before the right sub-node of the same parent node.
-	 * @param addedNodesOnly if true, skips nodes not corresponding to added keys, otherwise visits all nodes
 	 * @return
 	 */
 	<C> CachingIterator<? extends BinaryTreeNode<E>, E, C> containingFirstAllNodeIterator(boolean forwardSubNodeOrder);

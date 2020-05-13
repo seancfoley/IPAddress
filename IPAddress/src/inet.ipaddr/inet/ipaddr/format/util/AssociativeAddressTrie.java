@@ -32,7 +32,7 @@ import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
 /**
  * An address trie in which each node is is associated with a value.
  * <p>
- * The trie can also be used as the backing data structure for a {@link AddressTrieMap} which is a @{link java.util.NavigableMap}.
+ * The trie can also be used as the backing data structure for a {@link AddressTrieMap} which is a {@link java.util.NavigableMap}.
  * Unlike {@link java.util.TreeMap} this data structure provides access to the nodes and the associated sub-trie with each node as the sub-trie root,
  * which corresponds with their associated CIDR prefix block subnets.
  * <p>
@@ -608,6 +608,10 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		return (AssociativeTrieNode<K,V>) super.elementsContainedBy(addr);
 	}
 
+	/**
+	 * Returns a Java collections framework java.util.NavigableMap backed by this trie
+	 * @return
+	 */
 	public AddressTrieMap<K,V> asMap() {
 		AddressTrieMap<K,V> map = this.map;
 		if(map == null) {

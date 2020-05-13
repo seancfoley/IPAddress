@@ -48,7 +48,7 @@ import inet.ipaddr.IPAddressSegmentSeries;
  * For instance, you can use methods like {@link AddressTrieOps#contains(inet.ipaddr.Address)} or {@link AddressTrieOps#remove(inet.ipaddr.Address)} with {@link Partition#predicateForAny(Predicate)} or {@link Partition#predicateForEach(Predicate)} 
  * since the contains or remove method matches the Predicate interface.
  * Methods that return non-boolean values would match the {@link Partition#applyForEach(Function)} or {@link Partition#forEach(Consumer)} methods, as in the following code example for a given subnet s of type E:
- * <code>Map<E, TrieNode<E>> all = Partition.partitionWithSingleBlockSize(s).applyForEach(trie::getNode)</code>
+ * <code>Map&lt;E, TrieNode&lt;E&gt;&gt; all = Partition.partitionWithSingleBlockSize(s).applyForEach(trie::getNode)</code>
  *
  * @author scfoley
  *
@@ -209,11 +209,10 @@ public class Partition<E> {
 	 * returning true if the given predicate returns true for any of the elements.
 	 * 
 	 * @param predicate
-	 * @param returnEarly returns as soon as one call to the predicate returns true
 	 * @return
 	 */
 	public boolean predicateForAny(Predicate<? super E> predicate) {
-		return predicateForAny(predicate);
+		return predicateForAny(predicate, false);
 	}
 
 	/**

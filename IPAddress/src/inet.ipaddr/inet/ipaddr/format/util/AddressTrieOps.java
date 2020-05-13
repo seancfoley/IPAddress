@@ -143,7 +143,6 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 * <p>
 	 * Returns the root node of the subtrie that was removed from the trie, or null if nothing was removed.
 	 * 
-	 * @see #removeElementsContainedByEach(Address, Function)
 	 * @param addr
 	 * @return
 	 */
@@ -281,7 +280,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 		 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
 		 * <p>
 		 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
-		 * Given a subnet s of type T and a trie of type AddressTrie<T>, such as {@link inet.ipaddr.ipv4.IPv4Address} and {@link inet.ipaddr.ipv4.IPv4AddressTrie},
+		 * Given a subnet s of type E and a trie of type AddressTrie&lt;E&gt;, such as {@link inet.ipaddr.ipv4.IPv4Address} and {@link inet.ipaddr.ipv4.IPv4AddressTrie},
 		 * you can convert and add the spanning prefix blocks with <code>Partition.partitionWithSpanningBlocks(s).predicateForEach(trie::add)</code>,
 		 * or you can convert and add using a single max block size with <code>Partition.partitionWithSingleBlockSize(s).predicateForEach(trie::add)</code>.
 		 * <p>
@@ -325,7 +324,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 		 * Returns the node corresponding to the given sub-root node, whether it was already in the trie or not.
 		 * <p>
 		 * 
-		 * @param addr
+		 * @param trie
 		 * @return
 		 */
 		TrieNode<E> addTrie(TrieNode<E> trie);
@@ -506,7 +505,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 		 * Returns the node corresponding to the given sub-root node, whether it was already in the trie or not.
 		 * <p>
 		 * 
-		 * @param addr
+		 * @param trie
 		 * @return
 		 */
 		AssociativeTrieNode<K, V> putTrie(AssociativeTrieNode<K, V> trie);
