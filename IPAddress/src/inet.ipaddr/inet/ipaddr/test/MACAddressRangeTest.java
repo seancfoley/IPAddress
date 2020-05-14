@@ -153,6 +153,7 @@ public class MACAddressRangeTest extends MACAddressTest {
 		incrementTestCount();
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testPrefixBlock(String prefixedAddressStr, int expectedPref) {
 		//starting with prefixed address like 1:2:3:*:*:*, get lower (whcih should retain prefix except for allsubnets)
 		//check if prefix block (not), then for all subnets assign prefix, then for all call toPrefixBlock, compare with original and also the prefix

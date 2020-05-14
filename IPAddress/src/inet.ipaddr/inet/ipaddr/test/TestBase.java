@@ -571,7 +571,8 @@ public abstract class TestBase {
 			return "expected " + label + ": " + expected + " result: " + result;
 		}
 	}
-
+	
+	@SuppressWarnings("deprecation")
 	void testPrefixes(AddressSegmentSeries original, 
 			int prefix, int adjustment,
 			AddressSegmentSeries next,

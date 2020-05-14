@@ -932,6 +932,7 @@ public class IPAddressTest extends TestBase {
 		return maskString;
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testMasksAndPrefixes() {
 		IPv6Address sampleIpv6 = createAddress("1234:abcd:cdef:5678:9abc:def0:1234:5678").getAddress().toIPv6();
 		IPv4Address sampleIpv4 = createAddress("123.156.178.201").getAddress().toIPv4();
@@ -1931,6 +1932,7 @@ public class IPAddressTest extends TestBase {
 		return directAddress;
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testSubnet(String addressStr, String maskStr, int prefix, 
 			String normalizedPrefixSubnetString,
 			String normalizedSubnetString, 
