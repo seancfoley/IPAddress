@@ -27,7 +27,7 @@ Done.
 To update the gh-pages docs
 ---------------------------
 
-1. The master file for the docs is the docs.odt file checked into the IPAddress Eclipse project in the IPAddress repository which contains this file.
+1. The master file for the docs is the docs.docx file checked into the IPAddress Eclipse project in the IPAddress repository which contains this file.
 You edit that file first.  But that contains only the content, and not the menu and links on the left side.
 
 2. When you are done, you save your changes to the odt file.  Then you save as a filtered html file using MS Word.  
@@ -124,5 +124,6 @@ It may take about 10 minutes.
 
 12. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
 
+13. bintray... 
 
 
