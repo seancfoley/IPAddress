@@ -7,6 +7,6 @@
 
 &nbsp;
 
-**[Latest Version 5.2.1](https://github.com/seancfoley/IPAddress/releases/tag/v5.2.1)** 
+**[Latest Version 5.3.0](https://github.com/seancfoley/IPAddress/releases/tag/v5.3.0)** 
 
 Requires Java 8 or higher.  Compatible with Android using Android API level 24 or higher.  The code is compiled with Java 8 but provides a Java 9 compiled module-info.class file for those using the Java Platform Module System (JPMS).  You may need (or wish) to [delete the module-info](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452425235), which can be done [with gradle](https://github.com/seancfoley/IPAddress/issues/16#issuecomment-452564690), when using Android, other Java 8 environments, or Java version 9 and up environments that do not [properly support modules](https://ecosystem.atlassian.net/browse/AMPS-1509). Since Android Studio 3.3, deleting the module-info is no longer necessary. 
