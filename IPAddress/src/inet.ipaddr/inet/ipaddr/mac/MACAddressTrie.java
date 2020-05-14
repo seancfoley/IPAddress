@@ -29,6 +29,14 @@ import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 import inet.ipaddr.mac.MACAddressAssociativeTrie.MACAssociativeTrieNode;
 
+/**
+ * A MAC address trie.
+ * 
+ * See {@link AddressTrie}  for more details.
+ * 
+ * @author scfoley
+ *
+ */
 public class MACAddressTrie extends AddressTrie<MACAddress> {
 
 	private static final long serialVersionUID = 1L;

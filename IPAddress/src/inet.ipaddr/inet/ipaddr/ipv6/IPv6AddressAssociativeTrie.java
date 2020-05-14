@@ -27,6 +27,15 @@ import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 
+/**
+ * An IPv6 address trie in which each node can be associated with a value.
+ * 
+ * See {@link AssociativeAddressTrie} for more details.
+ * 
+ * @author scfoley
+ *
+ * @param <V> the type of the associated values
+ */
 public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Address, V> {
 
 	private static final long serialVersionUID = 1L;

@@ -63,6 +63,9 @@ import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 
 /**
+ * A section of an IPv4Address. 
+ * 
+ * It is a series of 0 to 4 individual IPv4 address segments.
  * 
  * @author sfoley
  *

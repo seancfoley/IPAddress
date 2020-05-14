@@ -47,6 +47,16 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 
+/**
+ * A section of a MACAddress. 
+ * 
+ * It is a series of 0 to 8 individual MAC address segments 
+ * that is aware of the segment index from within the address from which the section begins.
+ * 
+ * 
+ * @author sfoley
+ *
+ */
 public class MACAddressSection extends AddressDivisionGrouping implements AddressSection, Iterable<MACAddressSection> {
 
 	private static final long serialVersionUID = 4L;

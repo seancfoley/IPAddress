@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Spliterator;
-import java.util.TreeSet;
 import java.util.function.Function;
 
 import inet.ipaddr.Address;
@@ -59,7 +58,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * The trie allows you to check a subnet for containment of many smaller subnets or addresses at once, in constant time.
  * The trie allows you to check for equality of a subnet or address with a large number of subnets or addresses at once.
  *<p>
- * The trie can also be used as the backing structure for a {@link TreeSet} which is a {@link java.util.NavigableSet}.
+ * The trie can also be used as the backing structure for a {@link AddressTrieSet} which is a {@link java.util.NavigableSet}.
  * Unlike {@link java.util.TreeSet} this data structure provides access to the nodes and the associated subtrie with each node,
  * which corresponds with their associated CIDR prefix block subnets.
  * <p>
@@ -125,7 +124,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <li>break the concept of containment, for example IPv6 address 0::/8 would be considered to contain IPv4 address 0.2.3.4
  * </li><li>break the concept of equality, for example MAC 1:2:3:*:*:* and IPv4 1.2.3.0/24 would be considered the same since they have the same prefix bits and length 
  * </li></ul><p>
- * Instead, you could aggregate multiple subtries to create a collection multiple address types or versions.
+ * Instead, you could aggregate multiple subtries to create a collection of multiple address types or versions.
  * You can use the method {@link #toString(boolean, AddressTrie...)} for a String that represents multiple tries as a single tree.
  * <p>
  * Tries are thread-safe when not being modified (elements added or removed), but are not thread-safe when one thread is modifying the trie.
@@ -134,7 +133,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * 
  * @author scfoley
  *
- * @param <E>
+ * @param <E> the type of the address keys
  */
 // Note: We do not allow direct access to tries that have non-null bounds.
 // Such tries can only be accessed indirectly through the Set and Map classes.
@@ -2375,6 +2374,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return (TrieComparator<E>) reverseComparator;
 	}
 
+	/**
+	 * Returns a java.util.NavigableSet that uses this as the backing data structure.
+	 * Added elements of this trie are the elements in the set.
+	 * 
+	 * @return
+	 */
 	public AddressTrieSet<E> asSet() {
 		AddressTrieSet<E> set = this.set;
 		if(set == null) {

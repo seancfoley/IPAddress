@@ -30,7 +30,7 @@ import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
 
 /**
- * An address trie in which each node is is associated with a value.
+ * An address trie in which each node is associated with a value.
  * <p>
  * The trie can also be used as the backing data structure for a {@link AddressTrieMap} which is a {@link java.util.NavigableMap}.
  * Unlike {@link java.util.TreeMap} this data structure provides access to the nodes and the associated sub-trie with each node as the sub-trie root,
@@ -46,8 +46,8 @@ import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
  * 
  * @author scfoley
  *
- * @param <K>
- * @param <V>
+ * @param <K> the type of the address keys
+ * @param <V> the type of the associated values
  */ 
 public abstract class AssociativeAddressTrie<K extends Address, V> extends AddressTrie<K> implements AssociativeAddressTriePutOps<K, V> {
 
@@ -609,7 +609,9 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	}
 
 	/**
-	 * Returns a Java collections framework java.util.NavigableMap backed by this trie
+	 * Returns a java.util.NavigableMap backed by this associative trie.
+	 * The added elements of this trie are keys for the map, the associated values are the map values.
+	 * 
 	 * @return
 	 */
 	public AddressTrieMap<K,V> asMap() {

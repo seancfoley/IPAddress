@@ -30,6 +30,14 @@ import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 import inet.ipaddr.ipv6.IPv6AddressAssociativeTrie.IPv6AssociativeTrieNode;
 
 
+/**
+ * An IPv6 address trie.
+ * 
+ * See {@link AddressTrie}  for more details.
+ * 
+ * @author scfoley
+ *
+ */
 public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 
 	private static final long serialVersionUID = 1L;

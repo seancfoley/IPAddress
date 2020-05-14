@@ -27,6 +27,12 @@ import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.standard.AddressCreator;
 
+/**
+ * Provides methods and types associated with all MAC addresses.
+ * 
+ * @author scfoley
+ *
+ */
 public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		
 	private static final long serialVersionUID = 4L;

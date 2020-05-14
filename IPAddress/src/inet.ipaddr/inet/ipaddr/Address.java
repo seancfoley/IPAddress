@@ -32,6 +32,11 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork;
 
 /**
+ * An address, or a collection of multiple addresses.  Each segment can represent a single value or a range of values.
+ * <p>
+ * To construct one from a {@link java.lang.String} use 
+ * {@link inet.ipaddr.IPAddressString} or  {@link inet.ipaddr.MACAddressString}
+ * 
  * @custom.core
  * @author sfoley
  *

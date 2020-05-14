@@ -32,8 +32,10 @@ import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSection.EmbeddedIPv4AddressSection;
 
 /**
+ * Provides methods and types associated with all IPv4 addresses.
  * 
- * @author sfoley
+ * @author scfoley
+ *
  */
 public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment, Inet4Address> {
 	

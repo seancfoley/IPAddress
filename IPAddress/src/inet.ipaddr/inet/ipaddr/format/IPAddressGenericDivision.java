@@ -20,7 +20,7 @@ package inet.ipaddr.format;
 import inet.ipaddr.format.string.IPAddressStringDivision;
 
 /**
- * Represents 
+ * Represents a division for any IP address series.
  * 
  * @author sfoley
  *

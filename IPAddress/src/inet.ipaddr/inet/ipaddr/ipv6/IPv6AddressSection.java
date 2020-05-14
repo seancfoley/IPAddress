@@ -88,6 +88,10 @@ import inet.ipaddr.mac.MACAddressSection;
 import inet.ipaddr.mac.MACAddressSegment;
 
 /**
+ * A section of an IPv6Address. 
+ * 
+ * It is a series of 0 to 8 individual IPv6 address segments 
+ * that is aware of the segment index from within the address from which the section begins.
  * 
  * @author sfoley
  *

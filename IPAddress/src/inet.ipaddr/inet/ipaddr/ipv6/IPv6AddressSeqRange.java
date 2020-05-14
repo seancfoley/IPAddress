@@ -34,6 +34,10 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
+ * Represents an arbitrary range of IPv6 addresses.
+ * 
+ * See {@link IPAddressSeqRange} for more details.
+ * <p>
  * @custom.core
  * @author sfoley
  *

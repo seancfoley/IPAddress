@@ -36,6 +36,14 @@ import inet.ipaddr.format.util.AddressDivisionWriter;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
 import inet.ipaddr.mac.MACAddressSection.MACStringCache;
 
+/**
+ * Represents a segment of a MAC address.  For MAC, segments are 1 byte.
+ * 
+ * Segments are immutable, which also makes them thread-safe.
+ * 
+ * @author sfoley
+ *
+ */
 public class MACAddressSegment extends AddressDivision implements AddressSegment, Iterable<MACAddressSegment> {
 
 	private static final long serialVersionUID = 4L;

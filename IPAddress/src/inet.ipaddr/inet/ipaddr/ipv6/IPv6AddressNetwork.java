@@ -35,8 +35,10 @@ import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressSection;
 
 /**
+ * Provides methods and types associated with all IPv6 addresses.
  * 
- * @author sfoley
+ * @author scfoley
+ *
  */
 public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6AddressSection, IPv4AddressSection, IPv6AddressSegment, Inet6Address> {
 	

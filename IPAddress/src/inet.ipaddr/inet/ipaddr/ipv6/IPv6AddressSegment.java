@@ -35,7 +35,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
- * This represents a segment of an IP address.  For IPv4, segments are 1 byte.  For IPv6, they are two bytes.
+ * This represents a segment of an IPv6 address.  For IPv4, segments are 1 byte.  For IPv6, they are two bytes.
  * 
  * Like String and Integer and various others basic objects, segments are immutable, which also makes them thread-safe.
  * 

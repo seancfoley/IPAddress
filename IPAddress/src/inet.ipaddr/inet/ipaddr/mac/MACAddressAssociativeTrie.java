@@ -27,6 +27,16 @@ import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 
+/**
+ * A MAC address trie in which each node can be associated with a value.
+ * 
+ * See {@link AssociativeAddressTrie} for more details.
+ * 
+ * @author scfoley
+ * 
+ * @param <V> the type of the associated values
+ *
+ */
 public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddress, V> {
 
 	private static final long serialVersionUID = 1L;

@@ -34,6 +34,10 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 
 /**
+ * Represents an arbitrary range of IPv4 addresses.
+ * 
+ * See {@link IPAddressSeqRange} for more details.
+ * 
  * @custom.core
  * @author sfoley
  *
