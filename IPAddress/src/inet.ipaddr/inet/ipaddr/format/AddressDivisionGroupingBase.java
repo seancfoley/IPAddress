@@ -1487,7 +1487,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 			return seg.getPrefixAdjustedRangeString(segmentIndex, this, builder);
 		}
 	}
-	//TODO
+	
 	protected static class StringOptionsBase {
 		//use this field if the options to params conversion is not dependent on the address part so it can be reused
 		AddressDivisionWriter cachedParams; 	
