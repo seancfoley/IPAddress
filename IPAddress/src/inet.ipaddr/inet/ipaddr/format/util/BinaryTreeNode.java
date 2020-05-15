@@ -1378,7 +1378,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 			this.addedOnly = addedOnly;
 			this.bounds = bounds;
 			Comparator<BinaryTreeNode<E>> comp = 
-					(Comparator<BinaryTreeNode<E>>) (reverseBlocksEqualSize ? COMP : REVERSE_COMP);
+					(Comparator<BinaryTreeNode<E>>) (reverseBlocksEqualSize ? REVERSE_COMP : COMP);
 			if(treeSize > 0) {
 				int initialCapacity = treeSize >> 1;
 				if(initialCapacity == 0) {
@@ -1478,7 +1478,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 
 		private static final Comparator<?> COMP = new Comp<>(false), REVERSE_COMP = new Comp<>(true);
 
-		// heap will have either a caching objectwith the node or just the node
+		// heap will have the caching object with the node
 		private PriorityQueue<Cached<E, C>> queue;
 
 		private C cacheItem;
@@ -1493,7 +1493,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 				ChangeTracker changeTracker) {
 			super(start, null, changeTracker);
 			@SuppressWarnings("unchecked")
-			Comparator<Cached<E, C>> comp = (Comparator<Cached<E, C>>) (reverseBlocksEqualSize ? COMP : REVERSE_COMP);
+			Comparator<Cached<E, C>> comp = (Comparator<Cached<E, C>>) (reverseBlocksEqualSize ? REVERSE_COMP : COMP);
 			if(treeSize == 0) {
 				queue = new PriorityQueue<>(comp);
 			} else {
