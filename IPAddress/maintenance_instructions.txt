@@ -90,7 +90,7 @@ You need the project at compile level 9 with a jre >= 9 (last time used 11).
 Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
 Then switch over the job to jre >= 9.  Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-5. Commit and push the changes.
+5. Commit and push the changes (pom, bnd, build, dist jar).
 
 6. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
