@@ -124,6 +124,16 @@ It may take about 10 minutes.
 
 12. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
 
-13. bintray... 
+13. bintray - create version using the button, then add date and version number 5.3.1 (description can be skipped)
+Then go to the version, select upload files at the top
+com/github/seancfoley/ipaddress/5.3.1 is target folder
+select pom, javadoc, source, main jar
+Probably best to just grab from maven central
+upload them, save, then publish
+https://www.jfrog.com/confluence/display/BT/Manually+Uploading+Files+to+a+Version
+
+
+
+
 
 
