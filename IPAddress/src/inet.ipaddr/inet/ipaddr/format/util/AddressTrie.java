@@ -93,12 +93,13 @@ import inet.ipaddr.ipv6.IPv6Address;
  * <p>
  * The unique and pre-defined structure for a trie means that different means of traversing the trie can be more meaningful.
  * This trie implementation provides 8 different ways of iterating through the trie:
- * <ul><li>1, 2: the natural sorted trie order, forward and reverse (spliterating is also an option for these two orders).  A comparator is also provided for this order.
+ * <ul><li>1, 2: the natural sorted trie order, forward and reverse (spliterating is also an option for these two orders).  Use {@link #nodeIterator(boolean)}, {@link #iterator()} or {@link #descendingIterator()}.  A comparator is also provided for this order.
  * </li><li>3, 4: pre-order tree traversal, in which parent node is visited before sub-nodes, with sub-nodes visited in forward or reverse order
  * </li><li>5, 6: post-order tree traversal, in which sub-nodes are visited before parent nodes, with sub-nodes visited in forward or reverse order
  * </li><li>7, 8: prefix-block order, in which larger prefix blocks are visited before smaller, and blocks of equal size are visited in forward or reverse sorted order
  * </li></ul>
  * <p>
+ * 
  * All of these orderings are useful in specific contexts.
  * <p>
  * You can do lookup and containment checks on all the subnets and addresses in the trie at once, in constant time.

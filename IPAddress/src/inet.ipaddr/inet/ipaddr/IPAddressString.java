@@ -882,7 +882,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * <p>
 	 * The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
 	 * Otherwise, the range includes addresses not specified by the address string.
-	 * <p>,
+	 * <p>
 	 * This method can also produce a range for a string for which no IPAddress instance can be created.  This method does not throw IncompatibleAddressException. 
 	 * This method does not throw for those cases where {@link #isValid()} returns true but {@link #toAddress()} throws IncompatibleAddressException and {@link #getAddress()} returns null.
 	 * <p>

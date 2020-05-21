@@ -3348,7 +3348,7 @@ public class TrieTest extends TestBase {
 				testSerialize(ipv6Tree);
 
 //				System.out.println(ipv6Tree);
-//				String s = ipv6Tree.toAddedNodesTreeString(ipv6Tree.constructAddedNodesTree());
+//				String s = ipv6Tree.toAddedNodesTreeString();
 //				System.out.println(s);
 			}
 			
@@ -3365,7 +3365,7 @@ public class TrieTest extends TestBase {
 				testSerialize(ipv4Tree);
 				
 //				System.out.println(ipv4Tree);
-//				String s = ipv4Tree.toAddedNodesTreeString(ipv4Tree.constructAddedNodesTree());
+//				String s = ipv4Tree.toAddedNodesTreeString();
 //				System.out.println(s);
 			}
 		}
