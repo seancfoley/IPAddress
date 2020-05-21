@@ -46,8 +46,11 @@
 
 [Cache Classes](#cache-classes)
 
+[Make your IPv4 App work with IPv6](#make-your-ipv4-app-work-with-ipv6)
+
 [Alternative Options for Prefix Length Handling](#alternative-options-for-prefix-length-handling)
 
+&#8203;
 ## Benefits of this Library
 
 The library was intended to satisfy the following primary goals:
@@ -132,10 +135,12 @@ The library was intended to satisfy the following primary goals:
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
+&#8203;
 ## Code Examples
 
 This document provides in-depth and extensive documentation for the library, and includes some code snippets throughout.  However, for common use-cases, you may wish to go straight to the wiki [code examples which cover a wide breadth of common use-cases](https://github.com/seancfoley/IPAddress/wiki/Code-Examples).  The code examples are focused more on common use-cases and operations, while this document is focused more on covering all areas in more detail with more words.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
 
+&#8203;
 ## Supported IP Address Parsing Formats
 
 This includes, those supported by the well-known routines inet\_aton and
@@ -168,6 +173,8 @@ above, and others:
 For a more detailed list or formats parsed, some examples are below, or
 see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
 
+&#8203;
+
 **Subnet formats**
 
   - **CIDR (Classless Inter-Domain Routing) prefix length subnets**  
@@ -191,6 +198,7 @@ see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/I
 For a more detailed list or formats parsed, some examples are below, or
 see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
 
+&#8203;
 ## Core classes
 
 The core classes are **HostName**, **IPAddressString**, and
@@ -205,6 +213,7 @@ numeric bytes or integers, then start with `IPV4Address`, `IPV6Address` or
 address or a subnet. If you have either an address or host name, or you
 have something with a port or service name, then use HostName.
 
+&#8203;
 ## Parse String Representation of IP Address or Host Name
 
 `IPAddressString` is used to convert. You can use one of `getAddress` or
@@ -253,6 +262,9 @@ address: ::1
 address string with ambiguous address: *
 host name with labels: [a, b, com]
 ```
+
+&#8203;
+
 **Format Examples**
 
 Many formats are supported. For instance, the address 1:2:3:0:0:6:: can
@@ -398,6 +410,9 @@ ffff::/104
 ffff::/104
 ffff::/104
 ```
+
+&#8203;
+
 **Delimited Segments**
 
 The subnet formats allow you to specify ranges of values. However, if
@@ -411,6 +426,8 @@ For example, given `"1,2.3.4,5.6"` `parseDelimitedSegments` will iterate
 through `"1.3.4.6"`, `"1.3.5.6"`, `"2.3.4.6"` and `"2.3.5.6"`. You can then
 construct `IPAddressString` instances from those individual strings for
 parsing.
+
+&#8203;
 
 **Address or Host Name Validation Options**
 
@@ -452,6 +469,8 @@ HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
 The default options used by the library are permissive and not
 restrictive.
 
+&#8203;
+
 **Host Name or Address with Port or Service Name**
 
 For an address or host with port or service name, use `HostName`. IPv6
@@ -479,6 +498,9 @@ host: ::1 address: ::1 port: 80
 host: localhost port: 80  
 host: 127.0.0.1 address: 127.0.0.1 port: 80
 ```
+
+&#8203;
+
 **IP Version Determination and IPv4/v6 Conversion**
 
 With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` and `isIPv6()` and get the appropriate subclass with
@@ -503,6 +525,8 @@ Output:
 ```
 Should you wish to change the default IPv4/IPv6 conversions from IPv4
 mapped to something else, you can override the pair of methods `toIPv4()` and `isIPv4Convertible()` in your own `IPv6Address` subclass and/or the pair of methods `toIPv6()` and `isIPv6Convertible()` in your own `IPv4Address` subclass.
+
+&#8203;
 
 **Prefixed Addresses and toHostAddress()**
 
@@ -558,6 +582,9 @@ count: 256
 24
 10.1.2.0/24
 ```
+
+&#8203;
+
 **Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85**
 
 Typically, the segments or other punctuation identify a string as a host
@@ -600,6 +627,8 @@ Output:
 When parsing a range of single-segment values, it might not be possible to represent the range as a series of segments of range values, which is what is needed to be represented by an `IPv6Address` of 8 segment ranges, or an `IPv4Address` of 4 segment ranges.
 However, the string can still be parsed, and the parsed result can be obtained using `toDivisionGrouping`, `getDivisionGrouping`, `getSequentialRange`, or `toSequentialRange`.  The former two methods provide an exact representation of the string divisions, and the latter provides an `IPAddressSeqRange` instance with the range of addresses from the lower to the upper value of the range expressed by the string, from which a series of `IPAddress` instances can be obtained using `spanWithPrefixBlocks` or `spanWithSequentialBlocks`.
 
+&#8203;
+
 **Parse Special Host Names – Reverse DNS Host Name, IPv6 Literal UNC Host Name**
 
 A couple of standardized host formats are recognized, namely the reverse
@@ -627,6 +656,9 @@ A couple of methods in `HostName` are available as well:
 public boolean isUNCIPv6Literal()  
 public boolean isReverseDNS()
 ```
+
+&#8203;
+
 **Parse IPv6 Zone or Scope ID**
 
 The IPv6 zone or scope ID is recognized, denoted by the ‘%’ character.  It can be retrieved by `IPv6Address.getZone()`.
@@ -640,6 +672,8 @@ Output:
 ```
 eth0
 ```
+
+&#8203;
 ## IP Address and Numeric Values
 
 In addition to the range of string formats that can be parsed to produce ``IPAddress`` instances, you can also obtain instances of ``IPAddress`` from byte arrays, ``java.net.InetAddress``, arrays of address segments, or
@@ -657,6 +691,7 @@ The same rule applies to subnets where the lower and upper values have zero host
 
 Should you wish to get the individual address or section with a zero host, you can construct without the prefix length and then apply the prefix length afterwards, or you can use `getLower()` after construction.
 
+&#8203;
 ## Networks
 
 Each of the different address types (IPv6, IPv4, MAC) has an associated singleton network object. The network objects are used for caching, for
@@ -672,6 +707,8 @@ The `defaultIpv6Network()`, `defaultIpv4Network()`, and `defaultMACNetwork()`
 methods in Address provide access to the respective network objects.
 Each network’s associated creator object is accessible from
 `getAddressCreator()`.
+
+&#8203;
 
 **Using your own address classes**
 
@@ -714,6 +751,7 @@ Those validation objects can be supplied to the appropriate constructor
 of `IPAddressString` or `MACAddressString`, and the subsequent string
 parsing with those instances will use the supplied networks.
 
+&#8203;
 ## Prefix Length Handling
 
 Prefix lengths are supported both in parsing, as indicated in the
@@ -730,6 +768,8 @@ with prefix length using the methods `assignPrefixForSingleBlock()` or
 you to set any given prefix length directly such as
 `setPrefixLength(int)`.
 
+&#8203;
+
 **Prefix Length and Equality**
 
 In this library, the subnet with prefix length 10.1.2.\*/24 is
@@ -737,6 +777,7 @@ equivalent the non-prefixed address 10.1.2.\* as they both contain the
 same set of addresses.  In other words, when it comes to equality or comparison, the
 prefix length has no effect.
 
+&#8203;
 
 ## Address Sections
 
@@ -752,6 +793,8 @@ address.
 You can also reconstitute an address from a section or array of segments
 using the appropriate address constructor, if your section or array of
 segments has the correct number of segments for the address type.
+
+&#8203;
 
 **Host and Network Sections of IP Address**
 
@@ -771,6 +814,8 @@ Output:
 ```
 Once you have a section of an address, most of the same methods are
 available as those available with addresses themselves.
+
+&#8203;
 
 ## Address Tries
 
@@ -906,11 +951,13 @@ Output:
 └─● 2.2.7.0/24
 ```
 
+&#8203;
+
 **Partitioning Subnets**
 
 An address trie accepts individual addresses or CIDR prefix blocks subnets.  While this covers most use-cases, there are IPAddress instances that cannot be added to a trie as-is.  But any subnet can be subdivided or partitioned in various ways.  
 
-The Partition class encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used once, so simply create another if that is necessary.
+The `Partition` class encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used once, so simply create another if that is necessary.
 
 The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which often results in a smaller number of blocks.
 
@@ -964,9 +1011,12 @@ all inserted: true
 ```
 The two tries illustrate how the two partitions differ.
 
+&#8203;
 ## IP Address Operations
 
 There are various methods for masking, obtaining subnets, and so on.
+
+&#8203;
 
 **Summary of IP Address Operations**
 
@@ -1065,6 +1115,8 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **prefixBlockIterator**: iterates through the individual prefix
     block subnets of a larger subnet
 
+&#8203;
+
 **Queries for Prefix Lengths and Prefix Blocks**
 
 In some cases you may need to know if you have a prefix block subnet,
@@ -1101,6 +1153,8 @@ lengths of blocks.
     such that this address division series includes the block of
     addresses for that prefix, which is the bit count for individual
     addresses.
+
+&#8203;
 
 **Iterators, Spliterators and Streams**
 
@@ -1142,6 +1196,7 @@ different ways.
 
   - **segmentIterator**, **segmentsSpliterator**, **segmentsStream**: Traverses through all address items, similar to `iterator`/`spliterator`/`stream`, but using only segment arrays. Use `getCount` to get the count.
 
+&#8203;
 
 **Mask and Prefix Length Operations**
 
@@ -1215,6 +1270,9 @@ lowest in subnet no prefix 1.2.0.0
 equals: true
 prefix removed 1.2.0.0
 ```
+
+&#8203;
+
 **Polymorphism**
 
 Simply change the string "1.2.3.4" in the code above to an IPv6 address
@@ -1232,6 +1290,9 @@ lowest in subnet no prefix a::
 equals: true  
 prefix removed a::
 ```
+
+&#8203;
+
 **Subnetting**
 
 Subnetting can be accomplished using various address manipulation
@@ -1291,6 +1352,8 @@ Output:
 [192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30]
 ```
 
+&#8203;
+
 **Trie Operations**
 
 Most of these operations are methods that operate directly on `AddressTrie` or `AssociativeAddressTrie` instances, but some are available from their associated `AddressTrieSet` or  `AddressTrieMap` instances available from `asSet` or `asMap`, in which case the methods would still be operating on the same backing trie.
@@ -1324,6 +1387,8 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 - **toAddedNodesTreeString**: A more compact representation of a trie (compared to `toString` or `toTreeString`) showing only the root and the added nodes, one node per line, and the non-binary tree relationships between the added nodes visible.  This visualizes the tree produced by `constructAddedNodesTree`.
 
+&#8203;
+
 **Trie Iterators, Spliterators, and Streams**
 
 Most of these traversal methods traverse the nodes, while some traverse the keys/addresses of the nodes, including those iterators and spliterators within `AddressTrieSet` or `AddressTrieMap`.
@@ -1341,6 +1406,8 @@ Those that traverse the keys/addresses traverse only the added keys/addresses.
 - **blockSizeIterator**, **blockSizeNodeIterator**, **blockSizeAllNodeIterator**, **blockSizeCachingAllNodeIterator**: Traverses the trie from largest prefix blocks to smaller prefix blocks and then to individual addresses.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node.
 
 See [the javadoc for TreeOps](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/format/util/TreeOps.html) for more details on the orderings for the various traversals.
+
+&#8203;
 
 ## IP Address Ranges
 
@@ -1494,6 +1561,8 @@ Merged sequential blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
 As you can see in the example above, you can generally describe a range
 with fewer sequential blocks than prefix blocks.
 
+&#8203;
+
 ## Parse String Representations of MAC Address
 
 Parsing is like that for IP address. `MACAddressString` is used to convert. You
@@ -1515,6 +1584,9 @@ try {
   String msg = e.getMessage(); // detailed message indicating issue
 }
 ```
+
+&#8203;
+
 **Various Formats of MAC Addresses**
 
 MAC Addresses are expected to be in hexadecimal. However, there is a number of accepted formats for MAC addresses:
@@ -1545,6 +1617,8 @@ are required to avoid ambiguity.
 As with IP addresses, you can specify ranges using ‘\*’ and ‘-’ like
 aa-bb:\*:\*:cc:dd:ee. The range character for addresses that use the
 dash ‘-’ character as a separator is ‘|’, like aa|bb-\*-\*-cc-dd-ee.
+
+&#8203;
 
 **Format Examples**
 
@@ -1620,6 +1694,9 @@ ff:0f:aa-ff:*:*:*
 ff:0f:aa-ff:*:*:*  
 ff:0f:aa-ff:*:*:*
 ```
+
+&#8203;
+
 **Delimited Segments**
 
 The range formats allow you to specify ranges of values. However, if you
@@ -1633,6 +1710,8 @@ For example, given "1,2:3:4,5:6:7:8", `countDelimitedAddresses` will
 return 4 for the possible combinations: "1:3:4:6:7:8", "1:3:5:6:7:8",
 "2:3:4:6:7:8" and "2:3:5:6:7:8". With each string obtained from
 `parseDelimitedSegments` you can construct a `MACAddressString` instance.
+
+&#8203;
 
 **MAC Address Validation Options**
 
@@ -1659,6 +1738,8 @@ MACAddressStringParameters MAC_ADDRESS_OPTIONS_EXAMPLE =
 ```
 The default options used by the library are permissive and not
 restrictive.
+
+&#8203;
 
 **MAC Address Prefix Lengths**
 
@@ -1703,6 +1784,8 @@ In summary, on the MAC side, the prefix length is implicit and based
 upon the address itself, while on the IP address side, the prefix length is
 explicitly defined.
 
+&#8203;
+
 ## MAC Address Operations
 
 Many of the same address operations available for IP addresses are
@@ -1711,6 +1794,8 @@ available for MAC addresses, including the prefix operations, the section and se
 The reverse operations may be useful for for "MSB format", "IBM format",
 "Token-Ring format", and "non-canonical form", where the bits are
 reversed in each byte of a MAC address.
+
+&#8203;
 
 ## IPv6 – MAC Address Integration
 
@@ -1823,6 +1908,9 @@ Output:
 fe80::a8bb:ccff:fedd:eeff  
 1111:2222:3333:4444:a8bb:ccff:fedd:eeff/64
 ```
+
+&#8203;
+
 ## Address Framework
 
 Much like there is a Java collections framework, there is an address
@@ -1866,6 +1954,8 @@ are a few less-prominent classes in the library not shown in the
 diagram.
 
 ![](.//media/image5.png)
+
+&#8203;
 
 ## Conversion to String Representation of Address
 
@@ -1965,6 +2055,8 @@ MAC address only:
   - **toDottedString**: xxxx.xxxx.xxxx
 
   - **toSpaceDelimitedString**: xx xx xx xx xx xx
+
+&#8203;
 
 **More Details and Examples**
 
@@ -2103,6 +2195,9 @@ a:b:c:%:0:0:0:0
 a:b:c:*::
 a:b:c:*::
 ```
+
+&#8203;
+
 **UNC Strings**
 
 The method `toUNCHostName()` produces the UNC IP-literal string.
@@ -2120,6 +2215,9 @@ Output:
 2001-db8-0-0-0-0-0-1.ipv6-literal.net
 1.2.3.4
 ```
+
+&#8203;
+
 **DNS Lookup Strings**
 
 The method `toReverseDNSLookupString()` will produce a string for DNS
@@ -2157,6 +2255,9 @@ Output:
 *.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
 0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
 ```
+
+&#8203;
+
 **General String Methods**
 
 The methods `toCanonicalString` and `toCompressedString` are available for
@@ -2164,6 +2265,8 @@ any address or address section.
 
 The methods `toHexString` and `toNormalizedString` are available for any
 address component, including segments and sections.
+
+&#8203;
 
 **Prefix Length Indicator in Strings**
 
@@ -2200,6 +2303,9 @@ a:b:c:*:*:*:*:*
 a:b:c:*:0:0:0:0/64
 a:b:c:%:%:%:%:%
 ```
+
+&#8203;
+
 **IP Version-dependent Strings**
 
 Some strings are version-dependent:
@@ -2219,6 +2325,9 @@ Output:
 a:b::/64
 ::ffff:0.10.0.11
 ```
+
+&#8203;
+
 **Collections of IP Address Strings**
 
 You can produce collections of strings:
@@ -2272,6 +2381,8 @@ The String collections can be customized with
 Note that string collections never have duplicate strings. The String
 collections can be customized with `toStrings(IPStringBuilderOptions
 options)`.
+
+&#8203;
 
 ## Searching Text of Databases for all Addresses in a Subnet
 
@@ -2343,6 +2454,9 @@ Then your SQL search string would be like:
 ```sql
 Select rows from table where column1 like 1.2.%.%
 ```
+
+&#8203;
+
 ## Containment and Subnet Membership
 
 To check whether an IP address is contained by a subnet:
@@ -2375,12 +2489,16 @@ There is also an assortment of iterators for addresses, sections, and
 segments which represent multiple values. There is an `iterator()`,
 `getLower()` method and `getUpper()` method for every address component.
 
+&#8203;
+
 ## DNS Resolution and URLs
 
 If you have a string that can be a host or an address and you wish to
 resolve to an address, create a `HostName` and use
 `HostName.toResolvedAddress()`. If you wish to obtain a string
 representation to be part of a URL, use `HostName.toNormalizedString()`.
+
+&#8203;
 
 ## Sorting and Comparisons
 
@@ -2398,6 +2516,8 @@ by the subnet, and comparators are provided for those variations.
 
 The address tries provide their own sorting and comparison, which matches the comparators above with respect to individual addresses, but when comparing a prefix block to a second address or block with larger prefix, and the first prefix matches the same bits in the second, the trie comparator orders by the bit that follows the first prefix in the second.
 
+&#8203;
+
 ## Cache Classes
 
 The `IPAddressNetwork` class defines `IPAddressStringCache` and
@@ -2409,6 +2529,20 @@ other objects. Therefore, these cache classes go a long way towards
 allowing you to avoid creating the same objects frequently. These caches
 do quick lookups using either bytes or strings, which can be ideal for
 some applications that handle many addresses or host names.
+
+&#8203;
+
+## Make your IPv4 App work with IPv6
+
+If you want to make your app work with IPv6, that is a wise decision.  IPv6 penetration is getting close 50% in some countries.
+
+But you have no IPv6 testing and a lot of code.  
+
+Start by replacing your IPv4 code with the types and operations in this library.  But don't use the IPv4-specific types like IPv4Address everywhere, use `IPAddressString`, `IPAddress`, and the other polymorphic types, along with their iterators, their containment checks, and all the other polymorphic operations like [`toString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/Address.html#toString--), [`contains`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#contains-inet.ipaddr.IPAddress-), and [`iterator`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#iterator--) that avoid exposing the specifics of IPv4.  If your app uses network or host masks, start working with CIDR prefix lengths instead.  Use methods like [`getBlockMaskPrefixLength`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#getBlockMaskPrefixLength-boolean-) to store prefix lengths, even if the app continues to use masking.
+
+When you're ready, use your existing regression tests, ensuring the app still runs as always on IPv4.  Once your existing IPv4 tests all pass, you are already most of the way to supporting IPv6, without having written a single line of IPv6 code.  With some apps, you may even be ready to try it out with IPv6.
+
+&#8203;
 
 ## Alternative Options for Prefix Length Handling
 
@@ -2487,6 +2621,8 @@ since there is no analog to the zero-host/network/anycast address. With
 MAC, when using an operation that allows you to supply a prefix, the
 first option above results in addresses that span all values beyond the
 prefix, while options 2 and 3 do not.
+
+&#8203;
 
 **Configuring Alternative Prefix Length Handling**
 
