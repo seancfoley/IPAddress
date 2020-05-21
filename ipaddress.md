@@ -227,7 +227,7 @@ try {
 }
 ```
 If you have either a host name or an address, you can use HostName:
-```Java
+```java
 public static void main(String[] args) {
   check(new HostName("[::1]"));
   check(new HostName("*"));
