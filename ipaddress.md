@@ -30,7 +30,7 @@
 
 [MAC Address Operations](#mac-address-operations)
 
-[IPv6 – MAC Address Integration](#ipv6-mac-address-integration)
+[IPv6 – MAC Address Integration](#ipv6--mac-address-integration)
 
 [Address Framework](#address-framework)
 
