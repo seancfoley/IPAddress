@@ -1528,7 +1528,7 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 - **constructAddedNodesTree**: Produces an associative trie from a trie.  The produced trie maps the root and the added nodes to their added sub-nodes.  This is essentially creating a non-binary tree structure from the added nodes of the tree.  
 
-- **toString**, **toTreeString**: The String representing a trie or sub-trie consists of a view of trie showing all the nodes, with added nodes differentiated from non-added, one node per line, and the binary tree relationships between the nodes visible, and with the element size (as described by 'size') of the trie and each sub-trie visible.
+- **toString**, **toTreeString**: The String representing a trie or sub-trie consists of a view of trie showing all the nodes, with added nodes differentiated from non-added, one node per line, and the binary tree relationships between the nodes visible, and with the element size (as described by `size`) of the trie and each sub-trie visible.
 
 - **toAddedNodesTreeString**: A more compact representation of a trie (compared to `toString` or `toTreeString`) showing only the root and the added nodes, one node per line, and the non-binary tree relationships between the added nodes visible.  This visualizes the tree produced by `constructAddedNodesTree`.
 
@@ -2264,7 +2264,7 @@ address component, including segments and sections.
 **Prefix Length Indicator in Strings**
 
 Typically prefix lengths will be added to IP strings. To choose to print
-wildcards '\*' and range characters '-' as opposed to using prefix
+wildcards `*` and range characters `-` as opposed to using prefix
 length, there are additional methods:
 ```java
 public static void main(String[] args) {  
@@ -2588,7 +2588,7 @@ legacy behavior, the new default behavior, and a third option:
     subnet like 1:2:3:4::/64, with a zero-valued (and usually
     compressed) host, and that subnet represents the prefix block all
     addresses starting with that prefix 1:2:3:4. An address with a host
-    of zero is known as the anycast address. The all-zero address '::'
+    of zero is known as the anycast address. The all-zero address `::`
     is the value of IN6ADDR\_ANY\_INIT, the analog to the IPv4
     INADDR\_ANY), and the address that returns true for
     `java.net.Inet6Address.isAnyLocalAddress()`.
