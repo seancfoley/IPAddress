@@ -17,6 +17,8 @@ As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Cloju
 
 [Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
 
+[Make your IPv4 App work with IPv6](https://seancfoley.github.io/IPAddress/ipaddress.html#make-your-ipv4-app-work-with-ipv6)
+
 Version | Notes         |
 ------- | ------------- |
 [1.0.1](https://github.com/seancfoley/IPAddress/releases/tag/v1.0.1) | Requires Java 6 or higher |
