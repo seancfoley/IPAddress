@@ -59,23 +59,23 @@ The library was intended to satisfy the following primary goals:
 
   - **Parsing and representation of subnets**, either those specified by network prefix length or those specified with ranges of segment values. For example, all strings in the list below represent the same IPv4 subnet:
 
-      - with CIDR network prefix length:1.2.0.0/16
+      - with CIDR network prefix length: `1.2.0.0/16`
 
-      - with mask: 1.2.0.0/255.255.0.0
+      - with mask: `1.2.0.0/255.255.0.0`
 
-      - wildcard segments: 1.2.\*.\*
+      - wildcard segments: `1.2.*.*`
 
-      - range segments: 1.2.0-255.0-255
+      - range segments: `1.2.0-255.0-255`
 
-      - range using inet\_aton format: 0x1.0x2.0x0-0xffff
+      - range using inet\_aton format: `0x1.0x2.0x0-0xffff`
 
-      - SQL-style single wildcards to end segments: 1.2.\_\_\_.\_\_\_
+      - SQL-style single wildcards to end segments: `1.2.___.___`
 
-      - IPv4 mapped IPv6: ::ffff:1.2.0.0/112
+      - IPv4 mapped IPv6: `::ffff:1.2.0.0/112`
 
-      - Hexadecimal values: 0x01020000-0x0102ffff
+      - Hexadecimal values: `0x01020000-0x0102ffff`
 
-      - Octal values: 000100400000-000100577777
+      - Octal values: `000100400000-000100577777`
 
   - **Allow the separation of address parsing from host parsing**. In some cases you may have an address, in others you may have a host name, in some cases either one, so this supports all three options
     (for instance, when validating invalid input "1.2.3.a" as an address
@@ -147,28 +147,28 @@ This includes, those supported by the well-known routines inet\_aton and
 inet\_pton, the subnet formats listed above, all combinations of the
 above, and others:
 
-  - all the formats supported by inet\_pton and inet\_aton
+  - all the formats supported by `inet_pton` and `inet_aton`
 
-  - all the formats supported by nmap
+  - all the formats supported by `nmap`
 
-  - all the formats produced by netstat involving hosts/addresses with
+  - all the formats produced by `netstat` involving hosts/addresses with
     ports/services
 
   - the subnet formats listed above, whether prefixed, masked,
     wildcards, ranges
 
-  - IPv6 canonical, compressed (1::1), mixed (1:2:3:4:5:6:1.2.3.4),
-    [bracketed]:port, ::1:service, and so on
+  - IPv6 canonical, compressed `1::1`, mixed `1:2:3:4:5:6:1.2.3.4`,
+    `[bracketed]:port`, `::1:service`, and so on
 
   - Hex values
 
   - IPv6 base 85 values
 
-  - \* represents all addresses both ipv4 and ipv6
+  - `*` represents all addresses both ipv4 and ipv6
 
-  - /x where x is a positive integer, with no associated address, is interpreted as the network mask for prefix length x
+  - `/x` where x is a positive integer, with no associated address, is interpreted as the network mask for prefix length x
 
-  - "" the empty string is considered the default loopback
+  - "` `" the empty string is considered the default loopback
 
 For a more detailed list or formats parsed, some examples are below, or
 see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
@@ -178,16 +178,16 @@ see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/I
 **Subnet formats**
 
   - **CIDR (Classless Inter-Domain Routing) prefix length subnets**  
-    Adding the prefix length /x creates the address or subnet for that
+    Adding the prefix length `/x` creates the address or subnet for that
     network prefix length, depending upon the configuration for prefix
     handling. The subnet 1.2.0.0/16 is the set of all addresses starting
     with 1.2
 
-  - **Wildcard (\* \_) and range (-) subnets:**  
-    \* denotes all possible values in one or more segments, so
+  - **Wildcard `*` `_` and range `-` subnets:**  
+    `*` denotes all possible values in one or more segments, so
     1.\*.\*.\* or just 1.\* is equivalent to 1.0.0.0/8  
-    0-1 denotes the range from 0 to 1  
-    \_ replaces any digit at the end of a segment, for example 1\_
+    `0-1` denotes the range from 0 to 1  
+    `_` replaces any digit at the end of a segment, for example 1\_
     represents 10 to 19 in decimal or 10 to 1f in hex
 
   - **Combinations:**
@@ -1331,7 +1331,7 @@ Output:
 ```
 207.0.68.0/22
 ```
-Alternatively, you can use the prefixBlockIterator() method to get a
+Alternatively, you can use the `prefixBlockIterator()` method to get a
 list of subnets when adjusting the prefix:
 ```java
 IPAddress subnet = new
@@ -1365,7 +1365,7 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 - **remove**, **removeAll**: Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks, if any.
 
-- **ceilingAddedNode**, **floorAddedNode**, **higherAddedNode**, **lowerAddedNode**, **ceiling**, **floor**, **higher**, **lower**, **ceilingKey**, **floorKey**, **higherKey**, **lowerKey**, **ceilingEntry**, **floorEntry**, **higherEntry**, **lowerEntry**: Finds nodes whose keys are closest to the given individual address or CIDR prefix block.  These are implementations of methods with similar names defined by `java.util.NavigableSet` and `java.util.NavigableMap`.
+- **ceilingAddedNode**, **floorAddedNode**, **higherAddedNode**, **lowerAddedNode**, **ceiling**, **floor**, **higher**, **lower**, **ceilingKey**, **floorKey**, **higherKey**, **lowerKey**, **ceilingEntry**, **floorEntry**, **higherEntry**, **lowerEntry**: Finds nodes whose keys are closest to the given individual address or CIDR prefix block.  These are implementations of methods defined by `java.util.NavigableSet` and `java.util.NavigableMap`.
 
 - **firstNode**, **firstAddedNode**, **lastNode**, **lastAddedNode**: Retrieves the node for the lowest or highest valued key/address in the trie, according to the trie order.  The "added" variants give the same answer in most cases, because the first and last node is usually an added node, the exceptions being when all the nodes are bigger than the non-added root, when all the nodes are smaller than the non-added root, or both conditions are true and the trie is empty.
 
@@ -1450,7 +1450,7 @@ static void convertNonSequentialBlock(String string) {
   BigInteger sequentialCount = addr.getSequentialBlockCount();
   System.out.println("Sequential range block count is " + sequentialCount);
 
-  Iterator\<? extends IPAddress\> iterator = addr.sequentialBlockIterator();
+  Iterator<? extends IPAddress> iterator = addr.sequentialBlockIterator();
   while(iterator.hasNext()) {
     System.out.println(iterator.next());
   }
@@ -1540,19 +1540,11 @@ static void spanAndMerge(String address1, String address2) {
 ```
 Output:
 ```
-Original range of size 2417851639229258349412353: 2:3:ffff:5:: ->
-2:4:1:5::
+Original range of size 2417851639229258349412353: 2:3:ffff:5:: -> 2:4:1:5::
 
-Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61,
-2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57,
-2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54,
-2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51,
-2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62,
-2:4:1:4::/64, 2:4:1:5::]
+Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::]
 
-Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*,
-2:3-4:*:*:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*,
-2:4:1:5::]
+Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*, 2:3-4:*:*:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*, 2:4:1:5::]
 
 Merged prefix blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
 
