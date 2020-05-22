@@ -20,11 +20,11 @@
 
 [Address Sections](#address-sections)
 
+[IP Address Ranges](#ip-address-ranges)
+
 [Address Tries](#address-tries)
 
 [IP Address Operations](#ip-address-operations)
-
-[IP Address Ranges](#ip-address-ranges)
 
 [Parse String Representations of MAC Address](#parse-string-representations-of-mac-address)
 
@@ -817,6 +817,152 @@ available as those available with addresses themselves.
 
 &#8203;
 
+## IP Address Ranges
+
+An `IPAddress` or `IPAddressString` instance can represent any individual
+address or any range of addresses in which each segment specifies its
+own range of sequential values. For `IPAddress`, the ranges are specified
+with the canonical number of segments for each address version or type,
+which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 for MAC.
+
+Any prefix block of addresses can be specified this way (a block of
+addresses that includes all the hosts for a given prefix).
+
+An `IPAddressString` can represent any such address string, even those
+that do not use the canonical number of segments. However, for ranges
+involving a non-canonical number of segments, converting to an IPAddress
+instance is not always possible (for example the IPv4 subnet
+1.2-3.0-1000 cannot be expressed with 4 segments).
+
+Not all `IPAddress` subnets are sequential. For instance, 1-2.3.4-5.6 is
+not sequential, since the address 1.3.4.6 is followed in the block by
+1.3.5.6 while the next sequential address 1.3.4.7 is not part of the
+block. A sequential block is one in which the range is sequential. For a
+block to be sequential, the first segment with a range of values must be
+followed only by segments that cover all values. For instance,
+1.2.3-4.\* is a sequential block, as well as 1:a-f:\*:\*:\*:\*:\*:\*,
+also writeable as 1:a-f:\*. Any prefix block is sequential and can also
+be expressed without the prefix length. For instance, the prefix block
+1:2:3:4::/64 can be written without the prefix length as 1:2:3:4:\*.
+
+You can convert a non-sequential block to a collection of sequential
+blocks using the `sequentialBlockIterator` method of `IPAddress`. If you
+wish to get the count of sequential blocks, use the method `getSequentialBlockCount`.
+```java
+convertNonSequentialBlock("a:b:c:d:1:2-4:3-5:4-6");
+
+static void convertNonSequentialBlock(String string) {
+  IPAddressString addrString = new IPAddressString(string);
+  IPAddress addr = addrString.getAddress();
+  System.out.println("Initial range block is " + addr);
+  BigInteger sequentialCount = addr.getSequentialBlockCount();
+  System.out.println("Sequential range block count is " + sequentialCount);
+
+  Iterator<? extends IPAddress> iterator = addr.sequentialBlockIterator();
+  while(iterator.hasNext()) {
+    System.out.println(iterator.next());
+  }
+}
+```
+Output:
+```
+Initial range block is a:b:c:d:1:2-4:3-5:4-6
+Sequential range block count is 9
+a:b:c:d:1:2:3:4-6
+a:b:c:d:1:2:4:4-6
+a:b:c:d:1:2:5:4-6
+a:b:c:d:1:3:3:4-6
+a:b:c:d:1:3:4:4-6
+a:b:c:d:1:3:5:4-6
+a:b:c:d:1:4:3:4-6
+a:b:c:d:1:4:4:4-6
+a:b:c:d:1:4:5:4-6
+```
+Not all sequential address ranges can be described by an instance of
+`IPAddress` or `IPAddressString`. One such example is the range of two IPv4
+addresses from 1.2.3.255 to 1.2.4.0. One option is to represent the
+address range with just a single large segment covering the section of
+the address that has a range of values, such as in an instance of
+`IPAddressLargeDivisionGrouping`.
+
+The better option is to use an `IPAddressSeqRange` instance, which
+provides a more general representation of address ranges and their
+associated operations. You can represent any sequential range of
+addresses with an `IPAddressSeqRange` instance.
+
+Both `IPAddress` and `IPAddressSeqRange` implement the `IPAddressRange`
+interface. `IPAddressSeqRange` instances cover all ranges of addresses,
+while `IPAddress` instances cover all ranges of segments, including CIDR prefix blocks.
+
+An `IPAddressSeqRange` instance can be converted to the minimal list of
+sequential blocks or prefix blocks that cover the same range of
+addresses, so that is a couple of ways to go from `IPAddressSeqRange` to
+`IPAddress` instances. To go in the reverse direction from `IPAddress` to
+`IPAddressSeqRange`, you can convert any `IPAddress` sequential block or
+prefix block to an `IPAddressRange` with the method `toSequentialRange`, and
+then you can join any collection of `IPAddressRange` instances with the
+join method in `IPAddressSeqRange`.
+
+Here we show a code example of creating a sequential range, breaking it
+up into either prefix blocks or sequential blocks, and then merging
+those blocks to get the original sequential range.
+```java
+spanAndMerge("2:3:ffff:5::", "2:4:1:5::");
+
+static void spanAndMerge(String address1, String address2) {
+  IPAddressString string1 = new IPAddressString(address1);
+  IPAddressString string2 = new IPAddressString(address2);
+  IPAddress addr1 = string1.getAddress();
+  IPAddress addr2 = string2.getAddress();
+  IPAddressSeqRange range = addr1.toSequentialRange(addr2);
+  System.out.println("Original range of size " +
+    range.getCount() + ": " + range);
+
+  IPAddress result[] = range.spanWithPrefixBlocks();
+  System.out.println("Prefix blocks: " + Arrays.*asList*(result));
+
+  IPAddress result2[] = range.spanWithSequentialBlocks();
+  System.out.println("Sequential blocks: " +
+
+  Arrays.asList(result2));
+  List<IPAddressSeqRange> rangeList = new ArrayList<>();
+  for(IPAddress a : result) {
+    IPAddressSeqRange r = a.toSequentialRange();
+    rangeList.add(r);
+  }
+  IPAddressSeqRange joined[] = IPAddressSeqRange.join(
+  rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+  System.out.println("Merged prefix blocks back again: " +
+
+  Arrays.asList(joined));
+  rangeList.clear();
+  for(IPAddress a : result2) {
+    IPAddressSeqRange r = a.toSequentialRange();
+    rangeList.add(r);
+  }
+  joined = IPAddressSeqRange.join(
+    rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+    System.out.println("Merged sequential blocks back again: " +
+      Arrays.asList(joined));
+}
+```
+Output:
+```
+Original range of size 2417851639229258349412353: 2:3:ffff:5:: -> 2:4:1:5::
+
+Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::]
+
+Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*, 2:3-4:*:*:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*, 2:4:1:5::]
+
+Merged prefix blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
+
+Merged sequential blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
+```
+As you can see in the example above, you can generally describe a range
+with fewer sequential blocks than prefix blocks.
+
+&#8203;
+
 ## Address Tries
 
 The trie data structure is particularly useful when working with addresses.  For that reason this library includes compact binary address tries (aka compact binary prefix tree or binary radix trie, amongst other names).  Tries provide efficient re**trie**val operations, hence the name *trie*, but what makes them additionally useful for addresses is the fact that prefix tries are organized based on the prefix bits of the keys, which are addresses in this case, mirroring the way that CIDR subnets and addresses are organized by prefix.  So you can use tries for efficient subnet containment checks on many addresses or subnets at once in constant time (such as with a routing table), for efficient lookups, for efficiently dividing and subdividing subnets, for sorting addresses, and for traversing through subnets in different ways.
@@ -1158,8 +1304,7 @@ lengths of blocks.
 
 **Iterators, Spliterators and Streams**
 
-Various iterators are available for iterating through subnets in
-different ways.
+Various iterators, spliterators and streams are available for traversing through subnets in different ways.
 
   - **iterator**, **spliterator**, **stream**: Traverses through all address items. Use `getCount` to get the count.
 
@@ -1373,7 +1518,7 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 - **elementsContainedBy**, **removeElementsContainedBy**: Retrieves or removes the sub-trie (if any) contained by the given individual address or CIDR prefix block.  If the given argument is an individual address, then the returned or removed sub-trie can only be a single node or null.
 
-- **headMap**, **tailMap**, **subMap**, **headSet**, **tailSet**, **subSet**: Creates a new `AddressTrieMap` or `AddressTrieSet` with a restricted range, created from the original `AddressTrieMap` or `AddressTrieSet`, with the new set or map backed by the same trie.  Since it is backed by the same trie, changes to the new set or map will affect the original set or map and the shared trie, and vice-versa.  After creating the new set or map, you can use 'asTrie' on that new set or map to give you a new trie (and a new associated set or map), allowing you to make changes without affecting the original.
+- **headMap**, **tailMap**, **subMap**, **headSet**, **tailSet**, **subSet**: Creates a new `AddressTrieMap` or `AddressTrieSet` with a restricted range, created from the original `AddressTrieMap` or `AddressTrieSet`, with the new set or map backed by the same trie.  Since it is backed by the same trie, changes to the new set or map will affect the original set or map and the shared trie, and vice-versa.  After creating the new set or map, you can use `asTrie` on that new set or map to give you a new trie (and a new associated set or map), allowing you to make changes without affecting the original.
 
 - **size**, **nodeSize**: returns the number of elements (added nodes) or the number of nodes (both added and auto-generated) in the trie.  The `size` operation is constant time unless you are using a head/tail/sub `AddressTrieMap` or `AddressTrieSet` with a restricted range, in which case it is linear time like `nodeSize`.
 
@@ -1397,7 +1542,7 @@ Of those that traverse the nodes, some traverse only the added nodes and element
 
 Those that traverse the keys/addresses traverse only the added keys/addresses.
 
-- **iterator**, **descendingIterator**, **nodeIterator**, **allNodeIterator**, **spliterator**, **descendingSpliterator**, **nodeSpliterator**, **allNodeSpliterator**, **stream**, **parallelStream**: Traverses the trie (or corresponding set) in natural trie order, either in forward (ascending) or reverse (descending) order.  To obtain the corresponding stream for a `Spliterator` method that does not have a corresponding `Stream` method, use `java.util.stream.StreamSupport.stream(Spliterator spliterator, boolean parallel)`.
+- **iterator**, **descendingIterator**, **nodeIterator**, **allNodeIterator**, **spliterator**, **descendingSpliterator**, **stream**, **parallelStream**, **nodeSpliterator**, **allNodeSpliterator**: Traverses the trie (or corresponding set) in natural trie order, either in forward (ascending) or reverse (descending) order.  To obtain the corresponding stream for the two node spliterators, which do not have a corresponding `Stream` method, use `java.util.stream.StreamSupport.stream(Spliterator spliterator, boolean parallel)`.
 
 - **containingFirstIterator**, **containingFirstNodeIterator**, **containingFirstAllNodeIterator**: Traverses the trie (or corresponding set) with a pre-order binary tree traversal.  Such a traversal visits parent (containing prefix blocks) nodes before sub-nodes.  Sub-nodes can be visited either lower sub-node first (forwardSubNodeOrder) or upper sub-node first.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node.
 
@@ -1409,151 +1554,7 @@ See [the javadoc for TreeOps](https://seancfoley.github.io/IPAddress/IPAddress/a
 
 &#8203;
 
-## IP Address Ranges
 
-An `IPAddress` or `IPAddressString` instance can represent any individual
-address or any range of addresses in which each segment specifies its
-own range of sequential values. For `IPAddress`, the ranges are specified
-with the canonical number of segments for each address version or type,
-which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 for MAC.
-
-Any prefix block of addresses can be specified this way (a block of
-addresses that includes all the hosts for a given prefix).
-
-An `IPAddressString` can represent any such address string, even those
-that do not use the canonical number of segments. However, for ranges
-involving a non-canonical number of segments, converting to an IPAddress
-instance is not always possible (for example the IPv4 subnet
-1.2-3.0-1000 cannot be expressed with 4 segments).
-
-Not all `IPAddress` subnets are sequential. For instance, 1-2.3.4-5.6 is
-not sequential, since the address 1.3.4.6 is followed in the block by
-1.3.5.6 while the next sequential address 1.3.4.7 is not part of the
-block. A sequential block is one in which the range is sequential. For a
-block to be sequential, the first segment with a range of values must be
-followed only by segments that cover all values. For instance,
-1.2.3-4.\* is a sequential block, as well as 1:a-f:\*:\*:\*:\*:\*:\*,
-also writeable as 1:a-f:\*. Any prefix block is sequential and can also
-be expressed without the prefix length. For instance, the prefix block
-1:2:3:4::/64 can be written without the prefix length as 1:2:3:4:\*.
-
-You can convert a non-sequential block to a collection of sequential
-blocks using the `sequentialBlockIterator` method of `IPAddress`. If you
-wish to get the count of sequential blocks, use the method `getSequentialBlockCount`.
-```java
-convertNonSequentialBlock("a:b:c:d:1:2-4:3-5:4-6");
-
-static void convertNonSequentialBlock(String string) {
-  IPAddressString addrString = new IPAddressString(string);
-  IPAddress addr = addrString.getAddress();
-  System.out.println("Initial range block is " + addr);
-  BigInteger sequentialCount = addr.getSequentialBlockCount();
-  System.out.println("Sequential range block count is " + sequentialCount);
-
-  Iterator<? extends IPAddress> iterator = addr.sequentialBlockIterator();
-  while(iterator.hasNext()) {
-    System.out.println(iterator.next());
-  }
-}
-```
-Output:
-```
-Initial range block is a:b:c:d:1:2-4:3-5:4-6
-Sequential range block count is 9
-a:b:c:d:1:2:3:4-6
-a:b:c:d:1:2:4:4-6
-a:b:c:d:1:2:5:4-6
-a:b:c:d:1:3:3:4-6
-a:b:c:d:1:3:4:4-6
-a:b:c:d:1:3:5:4-6
-a:b:c:d:1:4:3:4-6
-a:b:c:d:1:4:4:4-6
-a:b:c:d:1:4:5:4-6
-```
-Not all sequential address ranges can be described by an instance of
-`IPAddress` or `IPAddressString`. One such example is the range of two IPv4
-addresses from 1.2.3.255 to 1.2.4.0. One option is to represent the
-address range with just a single large segment covering the section of
-the address that has a range of values, such as in an instance of
-`IPAddressLargeDivisionGrouping`.
-
-The better option is to use an `IPAddressSeqRange` instance, which
-provides a more general representation of address ranges and their
-associated operations. You can represent any sequential range of
-addresses with an `IPAddressSeqRange` instance.
-
-Both `IPAddress` and `IPAddressSeqRange` implement the `IPAddressRange`
-interface. `IPAddressSeqRange` instances cover all ranges of addresses,
-while `IPAddress` instances cover all ranges of segments, including CIDR prefix blocks.
-
-An `IPAddressSeqRange` instance can be converted to the minimal list of
-sequential blocks or prefix blocks that cover the same range of
-addresses, so that is a couple of ways to go from `IPAddressSeqRange` to
-`IPAddress` instances. To go in the reverse direction from `IPAddress` to
-`IPAddressSeqRange`, you can convert any `IPAddress` sequential block or
-prefix block to an `IPAddressRange` with the method `toSequentialRange`, and
-then you can join any collection of `IPAddressRange` instances with the
-join method in `IPAddressSeqRange`.
-
-Here we show a code example of creating a sequential range, breaking it
-up into either prefix blocks or sequential blocks, and then merging
-those blocks to get the original sequential range.
-```java
-spanAndMerge("2:3:ffff:5::", "2:4:1:5::");
-
-static void spanAndMerge(String address1, String address2) {
-  IPAddressString string1 = new IPAddressString(address1);
-  IPAddressString string2 = new IPAddressString(address2);
-  IPAddress addr1 = string1.getAddress();
-  IPAddress addr2 = string2.getAddress();
-  IPAddressSeqRange range = addr1.toSequentialRange(addr2);
-  System.out.println("Original range of size " +
-    range.getCount() + ": " + range);
-
-  IPAddress result[] = range.spanWithPrefixBlocks();
-  System.out.println("Prefix blocks: " + Arrays.*asList*(result));
-
-  IPAddress result2[] = range.spanWithSequentialBlocks();
-  System.out.println("Sequential blocks: " +
-
-  Arrays.asList(result2));
-  List<IPAddressSeqRange> rangeList = new ArrayList<>();
-  for(IPAddress a : result) {
-    IPAddressSeqRange r = a.toSequentialRange();
-    rangeList.add(r);
-  }
-  IPAddressSeqRange joined[] = IPAddressSeqRange.join(
-  rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-  System.out.println("Merged prefix blocks back again: " +
-
-  Arrays.asList(joined));
-  rangeList.clear();
-  for(IPAddress a : result2) {
-    IPAddressSeqRange r = a.toSequentialRange();
-    rangeList.add(r);
-  }
-  joined = IPAddressSeqRange.join(
-    rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-    System.out.println("Merged sequential blocks back again: " +
-      Arrays.asList(joined));
-}
-```
-Output:
-```
-Original range of size 2417851639229258349412353: 2:3:ffff:5:: -> 2:4:1:5::
-
-Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::]
-
-Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*, 2:3-4:*:*:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*, 2:4:1:5::]
-
-Merged prefix blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
-
-Merged sequential blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
-```
-As you can see in the example above, you can generally describe a range
-with fewer sequential blocks than prefix blocks.
-
-&#8203;
 
 ## Parse String Representations of MAC Address
 
