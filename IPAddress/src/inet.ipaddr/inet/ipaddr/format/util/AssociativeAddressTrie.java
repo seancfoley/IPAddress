@@ -108,7 +108,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		}
 
 		/**
-		 * The has code is the same as that specified by {@link java.util.Map.Entry#hashCode()}
+		 * The hash code is the same as that specified by {@link java.util.Map.Entry#hashCode()}
 		 */
 		@Override
 		public int hashCode() {
@@ -570,7 +570,6 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			subRoot = getRoot();
 			if(subRoot == null) {
 				return null;
-				//subRoot = root();
 			}
 		} else {
 			subRoot = absoluteRoot();

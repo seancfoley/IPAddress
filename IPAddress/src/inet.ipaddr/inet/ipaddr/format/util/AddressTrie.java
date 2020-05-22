@@ -1051,7 +1051,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 								} else if(op == Operation.SUBNET_DELETE) {
 									removeSubnet(result);
 								} else if(op == Operation.NEAR) {
-									//findNearest(result, bitsMatchedSoFar + newPrefixLen);
 									findNearestFromMatch(result);
 								} else if(op == Operation.REMAP) {
 									remapNonAdded(result);
@@ -1305,6 +1304,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			}
 			return newNode;
 		}
+
 		// only called when lower/higher and not floor/ceiling since for a match ends things for the latter
 		private void findNearestFromMatch(OpResult<E> result) {
 			if(result.nearestFloor) {
