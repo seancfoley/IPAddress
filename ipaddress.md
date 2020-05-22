@@ -1034,7 +1034,7 @@ Output:
       ├─● bb::ffff:2:3:42 (1)
       └─● bb::ffff:2:3:43 (1)
 ```
-An IPv4 trie constructed and then converted to a string using the same polymorphic populateTree method:
+An IPv4 trie constructed and then converted to a string using the same polymorphic `populateTree` method:
 ```java
 String ipv4Addresses[] = {
 	"1.2.3.4",
