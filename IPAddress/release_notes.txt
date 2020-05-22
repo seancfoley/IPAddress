@@ -1,3 +1,41 @@
+Version 5.3:
+
+This version introduces address tries, associative address tries, address sets backed by address tries, and maps backed by associative address tries
+
+added AddressTrie and its subclasses for IPv4, IPv6 and MAC
+added AssociativeAddressTrie and its subclasses for IPv4, IPv6 and MAC
+tries can be used as Java collections framework navigable set
+associative tries can be used as Java collections framework navigable map
+added testBit and isOneBit methods to all series and segments
+
+
+Version 5.2:
+
+This version introduces methods for Java 8 functional-style operations.
+
+added stream methods for addresses, address sections, address segments, and ip address sequential ranges: stream, prefixStream, prefixStream(int prefixLength), prefixBlockStream, prefixBlockStream(int prefixLength), blockStream(int segmentCount), sequentialBlockStream, segmentsStream
+added corresponding spliterator methods: spliterator, prefixSpliterator, prefixSpliterator(int prefixLength), prefixBlockSpliterator, prefixBlockSpliterator(int prefixLength), blockSpliterator(int segmentCount), sequentialBlockSpliterator, segmentsSpliterator
+added functions to create a single stream from multiple spliterators in AddressComponentRange:
+<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, T ...components)
+<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, Collection<? extends T> components)
+added coverWithPrefixBlock method to find single covering prefix block, the smallest prefix block covering two subnets or addresses
+added IPAddressString and HostName parsed mask access through getMask method
+made sub-typing of address classes easier by loosening restrictions on using multiple network objects
+altered network mask with prefix length so that it is single host
+
+
+Version 5.1:
+
+Mostly parsing and masking improvements.
+
+getSequentialRange() method added to IPAddressString for direct access to sequential range
+improved handling of masking and bitwise-oring subnets. isMaskCompatibleWithRange replaced by maskRange, same with bitwise-or.
+getDivisionGrouping() method added to IPAddressString for "as-is" parsing
+toString() for division strings adjusted, no longer using '*' due to varying bit lengths for divisions and potentially no segment separator to indicate bit length, also using radix matching parsed string
+reverse ranges allowed in parsed strings
+improved control/support of inferred range boundaries
+
+
 Version 5 release:
 
 This version introduces new address range classes and reorganizes classes and code in the inet.ipaddr.format package.
@@ -16,6 +54,7 @@ This version introduces new address range classes and reorganizes classes and co
 -distributed jars are compiled with java 8, but those jars also include the module-info class for the Java Platform Module System (JPMS) 
 introduced with Java 9
 -fully compatible with Android using Android API level 24 or higher.
+
 
 Version 4 release:
 

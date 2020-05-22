@@ -27,41 +27,11 @@ Done.
 To update the gh-pages docs
 ---------------------------
 
-1. The master file for the docs is the docs.docx file checked into the IPAddress Eclipse project in the IPAddress repository which contains this file.
-You edit that file first.  But that contains only the content, and not the menu and links on the left side.
+Thankfully this is much easier than before, no more odt, no more docx.  The master file is now the file ipaddress.md in the repo.  You have two options:
 
-2. When you are done, you save your changes to the odt file.  Then you save as a filtered html file using MS Word.  
-If you are using some other word processor you would save as html but at the moment the online file was generated from Word.
+1. Make edits directly in github.  https://github.com/seancfoley/IPAddress/edit/gh-pages/ipaddress.md
 
-3. In the gh-pages branch of the IPAddress repository, you edit the file index.html.  
-In some cases I have just been using the github editor which works directly on the github repo and thus no push will be required, just a commit.
-However, if you do it with Eclipse, you can switch to the branch inside Eclipse and then go to the github repo in the filesystem.
-
-4. Inside index.html, there are two sections that can be replaced: the <style> in the html header, and the content inside the <section> tags.
-There are comments that denote the start and end.
-
-5. Optional: Typically you do not need to replace the style, but if so, you simply cut and paste the corresponding <style> from the header in the word html file into the index.html file.
-If you do replace the style, note that I had to delete the "a:visited" and "a:link" strings in that <style> section which were not needed but interfered with the existing styles in the page.
-You do not delete the style settings for them because the setting also applied to some MS Word style class or div.  See the diff for the check-in "adjust link colors"
-
-6. You cut and paste the <div class=WordSection1> section from the word file inside the <section> section in the index.html file
-
-7. You commit the index.html file in the github repository.
-
-8. Save the odt doc as a pdf.  If you open in MS Word and save as pdf, the links go away.   
-However, if you open in Word and save as filtered html (as in step 2), and then you open in chrome as print to pdf, 
-then the links are preserved.  Also, in chrome, when printing uncheck the "headers and footers".
-
-Done.
-
-Note: MS Word can give trouble with the hyperlinks and anchors.  I tried to save as html, edit html yourself, then save as odt again, which helped.
-But even then you cannot create new hyperlink anchors that match the existing, the underlying issue seems to be anchors in new Word inserted in front of heading, while old anchors surrounded heading:
-<a name="x"></a>Bla 
-<a name="x">Bla</a>
-
-Note 2: When you save, it may create a relative link to the images in the git hub repo, like <img src="../../eclipse/github/IPAddress/IPAddress/address.png">
-So you need to change that to just <img src="address.png">.  Or you should create the filtered html doc in the same directory as the original.
-
+2. Check out the repo gh-pages branch, then use Atom to edit.  Use the markdown preview using Ctl-Shift-M.
 
 
 
