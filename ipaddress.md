@@ -2526,7 +2526,7 @@ some applications that handle many addresses or host names.
 
 ## Make your IPv4 App work with IPv6
 
-If you want to make your app work with IPv6, that is a wise decision.  IPv6 penetration is getting close 50% in some countries.
+If you want to make your app work with IPv6, that is a wise decision.  IPv6 penetration is getting close to 50% in some countries.
 
 But you have no IPv6 testing and a lot of code.  
 
