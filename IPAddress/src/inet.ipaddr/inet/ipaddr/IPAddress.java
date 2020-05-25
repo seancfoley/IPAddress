@@ -1193,13 +1193,13 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			IntFunction<T[]> arrayProducer) {
 		T result = null;
 		if(container.isPrefixed()) {
-			if(container.isPrefixBlock()) {
+			if(container.isSinglePrefixBlock()) {
 				result = container;
 			}
-		} else if(checkEqual && contained.isPrefixed() && container.equals(contained) && contained.isPrefixBlock()) {
+		} else if(checkEqual && contained.isPrefixed() && container.equals(contained) && contained.isSinglePrefixBlock()) {
 			result = contained;
 		} else {
-			result = prefixAdder.apply(container);//returns null if cannot be a prefix block
+			result = prefixAdder.apply(container); // returns null if cannot be a prefix block
 		}
 		if(result != null) {
 			T resultArray[] = arrayProducer.apply(1);
