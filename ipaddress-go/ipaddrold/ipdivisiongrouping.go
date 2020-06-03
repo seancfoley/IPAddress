@@ -1,8 +1,4 @@
-package ipaddr
-
-import (
-//"reflect"
-)
+package ipaddrold
 
 //func (grouping *AddressDivisionGrouping) ToDivisionGrouping() *AddressDivisionGrouping {
 //	return grouping

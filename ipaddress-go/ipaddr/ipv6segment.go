@@ -1,88 +1,85 @@
-package ipaddr // import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-
-import (
-	//"fmt"
-	"math/big"
-)
+package ipaddr
 
 type ipv6SegmentValues struct {
-	divisionValue      uint16
-	upperDivisionValue uint16
-	prefix             *PrefixLen
+	value      uint16
+	upperValue uint16
+	prefLen    PrefixLen
 }
 
-func (d *ipv6SegmentValues) GetDivisionValue() DivInt {
-	return DivInt(d.divisionValue)
+func (seg ipv6SegmentValues) GetBitCount() int {
+	return IPv6BitsPerSegment
 }
 
-func (d *ipv6SegmentValues) GetUpperDivisionValue() DivInt {
-	return DivInt(d.upperDivisionValue)
+func (seg ipv6SegmentValues) GetByteCount() int {
+	return IPv6BytesPerSegment
 }
 
-func (d *ipv6SegmentValues) getDivisionPrefixLength() *PrefixLen {
-	return d.prefix
+func (seg ipv6SegmentValues) GetDivisionValue() DivInt {
+	return DivInt(seg.value)
 }
 
-func (d *ipv6SegmentValues) GetValue() *BigDivInt {
-	return big.NewInt(int64(d.divisionValue))
+func (seg ipv6SegmentValues) GetUpperDivisionValue() DivInt {
+	return DivInt(seg.upperValue)
 }
 
-func (d *ipv6SegmentValues) GetUpperValue() *BigDivInt {
-	return big.NewInt(int64(d.upperDivisionValue))
+func (seg ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
+	return seg.prefLen
 }
 
-func (d *ipv6SegmentValues) GetBitCount() int {
-	return 16 //TODO make constants
-}
+var _ divisionValues = ipv6SegmentValues{}
 
-func (d *ipv6SegmentValues) GetByteCount() int {
-	return 2 //TODO make constants
-}
-
-// IPv6AddressSegment is a segment in an IPv6 address or address section
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal
 }
 
-func (d *IPv6AddressSegment) assignDefaultValues() {
-	if d.divisionValues == nil {
-		d.divisionValues = &ipv6SegmentValues{}
+// We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
+
+func (seg IPv6AddressSegment) GetBitCount() int {
+	return IPv6BitsPerSegment
+}
+
+func (seg IPv6AddressSegment) GetByteCount() int {
+	return IPv6BytesPerSegment
+}
+
+func (seg IPv6AddressSegment) ToAddressDivision() AddressDivision {
+	vals := seg.divisionValues
+	if vals == nil {
+		seg.divisionValues = ipv6SegmentValues{}
 	}
+	return seg.AddressDivision
 }
 
-//func (d *IPv6AddressSegment) assignIPv6Values() {
-//	if d.divisionValues == nil {
-//		d.divisionValues = &ipv6SegmentValues{}
-//	}
-//}
-
-func (d *IPv6AddressSegment) ToIPSegment() *IPAddressSegment {
-	d.assignDefaultValues()
-	return &IPAddressSegment{d.ipAddressSegmentInternal}
+func (seg IPv6AddressSegment) ToIPAddressSegment() IPAddressSegment {
+	vals := seg.divisionValues
+	if vals == nil {
+		seg.divisionValues = ipv6SegmentValues{}
+	}
+	return seg.IPAddressSegment
 }
 
-// ToIPv6() returns this segment
-//func (d *IPv6AddressSegment) ToIPv6() *IPv6AddressSegment {
-//	return d
-//}
-
-// ToIPv4() returns nil
-//func (d *IPv6AddressSegment) ToIPv4() *IPv4AddressSegment {
-//	return nil
-//}
-
-func (d *IPv6AddressSegment) GetBitCount() int {
-	d.assignDefaultValues()
-	return d.divisionValues.GetBitCount()
+func (seg IPv6AddressSegment) ToIPv6AddressSegment() IPv6AddressSegment {
+	return seg
 }
 
-func (d *IPv6AddressSegment) GetByteCount() int {
-	d.assignDefaultValues()
-	return d.divisionValues.GetByteCount()
+func (seg IPv6AddressSegment) ToIPv4AddressSegment() IPv4AddressSegment {
+	return IPv4AddressSegment{}
 }
 
-//func (d *IPv6AddressSegment) getSplitSegments() {
-//	s := d.GetSegmentValue()
-//	t := d.GetDivisionPrefixLength()
-//	fmt.Printf("%d %d", s, *t)
-//}
+func NewIPv6Segment(val uint16) IPv6AddressSegment {
+	return NewIPv6RangeSegment(val, val)
+}
+
+func NewIPv6RangeSegment(val, upperVal uint16) IPv6AddressSegment {
+	return NewIPv6PrefixSegment(val, val, nil)
+}
+
+func NewIPv6PrefixSegment(val, upperVal uint16, prefixLen PrefixLen) IPv6AddressSegment {
+	return IPv6AddressSegment{ipAddressSegmentInternal{IPAddressSegment{AddressDivision{
+		ipv6SegmentValues{
+			value:      val,
+			upperValue: upperVal,
+			prefLen:    prefixLen,
+		},
+	}}}}
+}

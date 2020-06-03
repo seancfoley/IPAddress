@@ -1,6 +1,4 @@
-package ipaddr // import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-
-import ()
+package ipaddrold
 
 // a boolean type that has three states: not set, true, false
 type cachedBoolean struct {

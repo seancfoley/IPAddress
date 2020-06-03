@@ -1,8 +1,4 @@
-package ipaddr
-
-import (
-//"reflect"
-)
+package ipaddrold
 
 type ipAddressSectionInternal struct {
 	ipaddressDivisionGroupingInternal //TODO rename with capital A

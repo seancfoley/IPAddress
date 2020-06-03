@@ -1,4 +1,4 @@
-package ipaddr
+package ipaddrold
 
 import (
 	"fmt"

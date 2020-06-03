@@ -1,6 +1,4 @@
-package ipaddr // import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-
-import ()
+package ipaddrold
 
 type ipAddressDivisionValues struct {
 	addressDivisionValues

@@ -1,8 +1,4 @@
-package ipaddr
-
-import (
-//"reflect"
-)
+package ipaddrold
 
 type ipv6AddressSectionInternal struct {
 	ipAddressSectionInternal

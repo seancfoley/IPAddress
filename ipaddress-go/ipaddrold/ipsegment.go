@@ -1,10 +1,4 @@
-package ipaddr // import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-
-import (
-//"fmt"
-//"math/big"
-//"reflect"
-)
+package ipaddrold
 
 type ipAddressSegmentInternal struct {
 	ipAddressDivisionInternal
