@@ -604,7 +604,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	@SuppressWarnings("unchecked")
 	@Override
 	public AssociativeTrieNode<K,V> elementsContaining(K addr) {
-		return (AssociativeTrieNode<K,V>) super.elementsContainedBy(addr);
+		return (AssociativeTrieNode<K,V>) super.elementsContaining(addr);
 	}
 
 	/**
