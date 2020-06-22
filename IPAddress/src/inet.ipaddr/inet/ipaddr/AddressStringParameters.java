@@ -87,7 +87,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		 * @return whether '-' (or the expected range separator for the address) is allowed to denote a range from higher to lower, like 10-1
 		 */
 		public boolean allowsReverseRange() {
-			return range;
+			return allowReverse;
 		}
 		
 		/**
