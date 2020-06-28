@@ -167,14 +167,8 @@ func (section IPAddressSection) ToIPv4AddressSection() IPv4AddressSection {
 	return IPv4AddressSection{}
 }
 
-// Need to prevent direct access to the IPAddressSection, particularly when zero value
-//type ipAddressSectionInternal struct {
-//	IPAddressSection
-//}
-
-//
-//
-//
+// IPv6AddressSection represents a section of an IPv6 address comprising 0 to 8 IPv6 address segments.
+// The zero values is a section with zero segments.
 type IPv6AddressSection struct {
 	IPAddressSection
 }
@@ -183,9 +177,8 @@ func (section IPv6AddressSection) ToIPv6AddressSection() IPv6AddressSection {
 	return section
 }
 
-//
-//
-//
+// IPv4AddressSection represents a section of an IPv4 address comprising 0 to 4 IPv4 address segments.
+// The zero values is a section with zero segments.
 type IPv4AddressSection struct {
 	IPAddressSection
 }

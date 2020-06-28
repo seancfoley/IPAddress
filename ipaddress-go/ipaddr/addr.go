@@ -9,35 +9,6 @@ const (
 	AlternativeSegmentWildcard = '¿'
 	SegmentSqlWildcard         = '%'
 	SegmentSqlSingleWildcard   = '_'
-
-	IPv4SegmentSeparator    = '.'
-	IPv4BitsPerSegment      = 8
-	IPv4BytesPerSegment     = 1
-	IPv4SegmentCount        = 4
-	IPv4ByteCount           = 4
-	IPv4BitCount            = 32
-	IPv4DefaultTextualRadix = 10
-	IPv4MaxValuePerSegment  = 0xff
-	IPv4MaxValue            = 0xffffffff
-	IPv4ReverseDnsSuffix    = ".in-addr.arpa"
-
-	IPv6SegmentSeparator           = ':'
-	IPv6ZoneSeparator              = '%'
-	IPv6AlternativeZoneSeparator   = '\u00a7'
-	IPv6BitsPerSegment             = 16
-	IPv6BytesPerSegment            = 2
-	IPv6SegmentCount               = 8
-	IPv6ByteCount                  = 16
-	IPv6BitCount                   = 128
-	IPv6DefaultTextualRadix        = 16
-	IPv6MaxValuePerSegment         = 0xffff
-	IPv6ReverseDnsSuffix           = ".ip6.arpa"
-	IPv6ReverseDnsSuffixDeprecated = ".ip6.int"
-
-	IPv6UncSegmentSeparator = '-'
-	IPv6UncZoneSeparator    = 's'
-	IPv6UncRangeSeparator   = AlternativeRangeSeparator
-	IPv6UncSuffix           = ".ipv6-literal.net"
 )
 
 //
@@ -105,61 +76,3 @@ type ipAddressInternal struct {
 
 // TODO make sure everything in IPv4 and IPv6 is "overridden" so we never expose a zero value with 0 segments
 // The zero values of everythign else will have sections with no segments
-
-//
-//
-//
-type IPv6Address struct {
-	ipAddressInternal
-}
-
-func (addr IPv6Address) init() {
-	if addr.hasNoDivisions() {
-		div := NewIPv6Segment(0).ToAddressDivision()
-		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []AddressDivision{div, div, div, div, div, div, div, div}}}
-	}
-}
-
-func (addr IPv6Address) ToAddress() Address {
-	addr.init()
-	return addr.Address
-}
-
-func (addr IPv6Address) ToIPAddress() IPAddress {
-	addr.init()
-	return addr.IPAddress
-}
-
-func (addr IPv6Address) ToIPv6Address() IPv6Address {
-	return addr
-}
-
-//
-//
-//
-type IPv4Address struct {
-	ipAddressInternal
-}
-
-func (addr IPv4Address) init() {
-	if addr.hasNoDivisions() {
-		div := NewIPv4Segment(0).ToAddressDivision()
-		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []AddressDivision{div, div, div, div}}}
-	}
-}
-
-func (addr IPv4Address) ToAddress() Address {
-	addr.init()
-	return addr.Address
-}
-
-func (addr IPv4Address) ToIPAddress() IPAddress {
-	addr.init()
-	return addr.IPAddress
-}
-
-func (addr IPv4Address) ToIPv4Address() IPv4Address {
-	return addr
-}
