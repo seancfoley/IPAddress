@@ -800,4 +800,13 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 	public boolean keyContains(K addr) {
 		return trie.elementContainsBounds(addr);
 	}
+	
+	/**
+	 * Returns the map entry corresponding to the key with the longest prefix match with the given address.
+	 * @param addr
+	 * @return
+	 */
+	public Entry<K,V> longestPrefixMatchEntry(K addr) {
+		return trie.smallestElementContainingBounds(addr);
+	}
 }

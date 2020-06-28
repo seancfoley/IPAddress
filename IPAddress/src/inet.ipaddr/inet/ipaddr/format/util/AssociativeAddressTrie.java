@@ -118,6 +118,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			return super.hashCode() ^ value.hashCode();
 		}
 
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeAddressTrie<K,V> asNewTrie() {
+			return (AssociativeAddressTrie<K, V>) super.asNewTrie();
+		}
+		
 		/**
 		 * Clones the subtrie starting with this node as root. 
 		 * The nodes are cloned, the keys and values are not cloned.
@@ -323,6 +329,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		@Override
 		public AssociativeTrieNode<K,V> elementsContaining(K addr) {
 			return (AssociativeTrieNode<K, V>) super.elementsContaining(addr);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
+			return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
 		}
 
 		@Override
@@ -588,6 +600,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	public AssociativeTrieNode<K, V> getNode(K addr) {
 		return (AssociativeTrieNode<K, V>) super.getNode(addr);
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	AssociativeTrieNode<K, V> smallestElementContainingBounds(K addr) {
+		return (AssociativeTrieNode<K, V>) super.smallestElementContainingBounds(addr);
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -605,6 +623,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	@Override
 	public AssociativeTrieNode<K,V> elementsContaining(K addr) {
 		return (AssociativeTrieNode<K,V>) super.elementsContaining(addr);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
+		return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
 	}
 
 	/**

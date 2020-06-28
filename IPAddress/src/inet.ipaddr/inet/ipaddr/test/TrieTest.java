@@ -1108,7 +1108,8 @@ public class TrieTest extends TestBase {
 					addFailure("containedBy is " + containedBy + " for address " + halfwayAddr + " instead of expected " + next, trie);
 				}
 			}
-			
+			T lpm = trie.longestPrefixMatch(halfwayAddr);
+			TrieNode<T> smallestContaining = trie.longestPrefixMatchNode(halfwayAddr);
 			TrieNode<T> containing = trie.elementsContaining(halfwayAddr);
 			boolean elementsContains = trie.elementContains(halfwayAddr);
 			TrieNode<T> addedParent = parent;
@@ -1119,7 +1120,7 @@ public class TrieTest extends TestBase {
 				addedParent = next;
 			}
 			if(addedParent == null) {
-				if(containing != null) {
+				if(containing != null || lpm != null) {
 					addFailure("containing is " + containing + " for address " + halfwayAddr + " instead of expected " + null, trie);
 				} else if(elementsContains) {
 					addFailure("containing is " + elementsContains + " for address " + halfwayAddr + " instead of expected " + !elementsContains, trie);
@@ -1141,6 +1142,10 @@ public class TrieTest extends TestBase {
 				}
 				if(lastContaining == null || !lastContaining.equals(addedParent)) {
 					addFailure("containing ends with " + lastContaining + " for address " + halfwayAddr + " instead of expected " + addedParent, trie);
+				} else if(!lastContaining.equals(smallestContaining)) {
+					addFailure("containing ends with " + lastContaining + " for address " + halfwayAddr + " instead of expected smallest containing " + smallestContaining, trie);
+				} else if(lastContaining.getKey() != lpm) {
+					addFailure("containing ends with addr " + lastContaining.getKey() + " for address " + halfwayAddr + " instead of expected " + lpm, trie);
 				}
 				if(!elementsContains) {
 					addFailure("containing is " + elementsContains + " for address " + halfwayAddr + " instead of expected " + !elementsContains, trie);

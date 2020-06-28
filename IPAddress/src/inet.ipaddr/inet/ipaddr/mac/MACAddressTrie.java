@@ -144,6 +144,11 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 		}
 
 		@Override
+		public MACTrieNode longestPrefixMatchNode(MACAddress addr) {
+			return (MACTrieNode) super.longestPrefixMatchNode(addr);
+		}
+
+		@Override
 		public MACTrieNode getAddedNode(MACAddress addr) {
 			return (MACTrieNode) super.getAddedNode(addr);
 		}
@@ -278,6 +283,16 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 		public MACTrieNode lastAddedNode() {
 			return (MACTrieNode) super.lastAddedNode();
 		}
+		
+		@Override
+		protected MACAddressTrie createNewTree() {
+			return new MACAddressTrie();
+		}
+		
+		@Override
+		public MACAddressTrie asNewTrie() {
+			return (MACAddressTrie) super.asNewTrie();
+		}
 
 		@Override
 		public MACTrieNode cloneTree() {
@@ -308,6 +323,11 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 	@Override
 	public MACTrieNode elementsContaining(MACAddress addr) {
 		return (MACTrieNode) super.elementsContaining(addr);
+	}
+
+	@Override
+	public MACTrieNode longestPrefixMatchNode(MACAddress addr) {
+		return (MACTrieNode) super.longestPrefixMatchNode(addr);
 	}
 
 	@Override

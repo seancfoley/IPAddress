@@ -131,6 +131,11 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		}
 		
 		@Override
+		public IPv4TrieNode longestPrefixMatchNode(IPv4Address addr) {
+			return (IPv4TrieNode) super.longestPrefixMatchNode(addr);
+		}
+		
+		@Override
 		public IPv4TrieNode getAddedNode(IPv4Address addr) {
 			return (IPv4TrieNode) super.getAddedNode(addr);
 		}
@@ -255,6 +260,16 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public IPv4TrieNode lastNode() {
 			return (IPv4TrieNode) super.lastNode();
 		}
+		
+		@Override
+		protected IPv4AddressTrie createNewTree() {
+			return new IPv4AddressTrie();
+		}
+
+		@Override
+		public IPv4AddressTrie asNewTrie() {
+			return (IPv4AddressTrie) super.asNewTrie();
+		}
 
 		@Override
 		public IPv4TrieNode cloneTree() {
@@ -285,6 +300,11 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	@Override
 	public IPv4TrieNode elementsContaining(IPv4Address addr) {
 		return (IPv4TrieNode) super.elementsContaining(addr);
+	}
+	
+	@Override
+	public IPv4TrieNode longestPrefixMatchNode(IPv4Address addr) {
+		return (IPv4TrieNode) super.longestPrefixMatchNode(addr);
 	}
 	
 	@Override

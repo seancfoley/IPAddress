@@ -567,4 +567,13 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 	public boolean elementContains(E addr) {
 		return trie.elementContainsBounds(addr);
 	}
+	
+	/**
+	 * Returns the element with the longest prefix match with the given address.
+	 * @param addr
+	 * @return
+	 */
+	public E longestPrefixMatch(E addr) {
+		return trie.longestPrefixMatchBounds(addr);
+	}
 }

@@ -118,6 +118,11 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 		
 		public Builder() {}
 		
+		public Builder allowBase85(boolean allow) {
+			allowBase85 = allow;
+			return this;
+		}
+		
 		public Builder allowZone(boolean allow) {
 			//we must decide whether to treat the % character as a zone when parsing the mixed part
 			//if considered zone, then the zone character is actually part of the encompassing ipv6 address

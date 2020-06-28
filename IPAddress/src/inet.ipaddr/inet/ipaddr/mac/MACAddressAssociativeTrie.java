@@ -144,6 +144,11 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 		}
 
 		@Override
+		public MACAssociativeTrieNode<V> longestPrefixMatchNode(MACAddress addr) {
+			return (MACAssociativeTrieNode<V>) super.longestPrefixMatchNode(addr);
+		}
+
+		@Override
 		public MACAssociativeTrieNode<V> getAddedNode(MACAddress addr) {
 			return (MACAssociativeTrieNode<V>) super.getAddedNode(addr);
 		}
@@ -278,7 +283,17 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 		public MACAssociativeTrieNode<V> lastAddedNode() {
 			return (MACAssociativeTrieNode<V>) super.lastAddedNode();
 		}
+		
+		@Override
+		protected MACAddressAssociativeTrie<V> createNewTree() {
+			return new MACAddressAssociativeTrie<V>();
+		}
 
+		@Override
+		public MACAddressAssociativeTrie<V> asNewTrie() {
+			return (MACAddressAssociativeTrie<V>) super.asNewTrie();
+		}
+		
 		@Override
 		public MACAssociativeTrieNode<V> cloneTree() {
 			return (MACAssociativeTrieNode<V>) super.cloneTree();
@@ -308,6 +323,11 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 	@Override
 	public MACAssociativeTrieNode<V> elementsContaining(MACAddress addr) {
 		return (MACAssociativeTrieNode<V>) super.elementsContaining(addr);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> longestPrefixMatchNode(MACAddress addr) {
+		return (MACAssociativeTrieNode<V>) super.longestPrefixMatchNode(addr);
 	}
 
 	@Override

@@ -288,7 +288,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// Given an address/subnet key E
 	    INSERT, // add node for E if not already there
 	    REMAP, // alters nodes based on the existing nodes and their values
-	    LOOKUP, // find node for E
+	    LOOKUP, // find node for E, traversing all containing elements along the way
 	    NEAR, // closest match, going down trie to get element considered closest.
 	    	// Whether one thing is closer than another is determined by the sorted order.
 	    	// For example, for subnet 1.2.0.0/16, 1.2.128.0 is closest address on the high side, 1.2.127.255 is closest address on the low side
@@ -350,9 +350,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// A linked list of the tree elements, from largest to smallest, 
 		// that contain the supplied argument, and the end of the list
 		TrieNode<E> containing, containingEnd;
+		
+		// The tree node with the smallest subnet or address containing the supplied argument
+		TrieNode<E> smallestContaining;
 
 		// at least one tree element contains the the supplied argument
-		boolean contains;
+		//boolean contains;
 
 		// contained by: 
 
@@ -894,9 +897,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@Override
 		public boolean contains(E addr) {
-			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.LOOKUP);
-			matchBits(result);
+			OpResult<E> result = doLookup(addr);
 			return result.exists;
 		}
 
@@ -910,9 +911,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@Override
 		public TrieNode<E> getNode(E addr) {
-			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.LOOKUP);
-			matchBits(result);
+			OpResult<E> result = doLookup(addr);
 			TrieNode<E> ret = result.existingNode;
 			return ret;
 		}
@@ -927,9 +926,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@Override
 		public TrieNode<E> elementsContainedBy(E addr) {
-			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.LOOKUP);
-			matchBits(result);
+			OpResult<E> result = doLookup(addr);
 			return result.containedBy;
 		}
 
@@ -943,11 +940,27 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		@Override
+		public E longestPrefixMatch(E addr) {
+			TrieNode<E> node = longestPrefixMatchNode(addr);
+			return node == null ? null : node.getKey();
+		}
+
+		// only added nodes are added to the linked list
+		@Override
+		public TrieNode<E> longestPrefixMatchNode(E addr) {
+			return doLookup(addr).smallestContaining;
+		}
+
+		@Override
 		public boolean elementContains(E addr) {
+			return longestPrefixMatch(addr) != null;
+		}
+
+		private OpResult<E> doLookup(E addr) {
 			addr = checkBlockOrAddress(addr, true);
 			OpResult<E> result = new OpResult<>(addr, Operation.LOOKUP);
 			matchBits(result);
-			return result.contains;
+			return result;
 		}
 
 		private void removeSubnet(OpResult<E> result) {
@@ -1122,7 +1135,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		private boolean handleContains(OpResult<E> result) {
-			result.contains = true;
+			result.smallestContaining = this;
 			if(result.op == Operation.CONTAINING) {
 				result.addContaining(this);
 				return true;
@@ -1501,7 +1514,19 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		protected abstract TrieNode<E> createNewImpl(E newAddr);
+		
+		protected abstract AddressTrie<E> createNewTree();
 
+		/**
+		 * Creates a new sub-trie, copying the nodes starting with this node as root. 
+		 * The nodes are copies of the nodes in this sub-trie, but their keys and values are not copies.
+		 */
+		public AddressTrie<E> asNewTrie() {
+			AddressTrie<E> newTrie = createNewTree();
+			newTrie.addTrie(this);
+			return newTrie;
+		}
+		
 		@Override
 		public TrieNode<E> cloneTree() {
 			return (TrieNode<E>) super.cloneTree();
@@ -1927,7 +1952,26 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().elementsContaining(addr);
 	}
+	
+	@Override
+	public E longestPrefixMatch(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().longestPrefixMatch(addr);
+	}
 
+	// only added nodes are added to the linked list
+	@Override
+	public TrieNode<E> longestPrefixMatchNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().longestPrefixMatchNode(addr);
+	}
+	
 	@Override
 	public boolean elementContains(E addr) {
 		if(bounds != null) {
@@ -1990,7 +2034,45 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// Now we need to know if any of the nodes are within the bounds
 		return !createNewSameBoundsFromList(node).isEmpty();
 	}
-
+	
+	TrieNode<E> smallestElementContainingBounds(E addr) {
+		if(bounds == null) {
+			return longestPrefixMatchNode(addr);
+		}
+		TrieNode<E> subRoot = getRoot();
+		if(subRoot == null) {
+			return null;
+		}
+		TrieNode<E> node = subRoot.longestPrefixMatchNode(addr);
+		if(node == null) {
+			return null;
+		}
+		if(!bounds.isInBounds(node.getKey())) {
+			node = subRoot.elementsContaining(addr); // creates the new containing linked list
+			TrieNode<E> next, lastInBounds = bounds.isInBounds(node.getKey()) ? node : null;
+			do {
+				if((next = node.getLowerSubNode()) != null) {
+					node = next;
+					if(bounds.isInBounds(node.getKey())) {
+						lastInBounds = node;
+					}
+				} else if((next = node.getUpperSubNode()) != null) {
+					node = next;
+					if(bounds.isInBounds(node.getKey())) {
+						lastInBounds = node;
+					}
+				}
+			} while(next != null);
+			node = lastInBounds;
+		}
+		return node;
+	}
+	
+	E longestPrefixMatchBounds(E addr) {
+		TrieNode<E> node = smallestElementContainingBounds(addr);
+		return node == null ? null : node.getKey();
+	}
+	
 	// creates a new one-node trie with a new root and the given bounds
 	protected abstract AddressTrie<E> createNew(AddressBounds<E> bounds);
 	

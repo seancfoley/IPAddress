@@ -130,6 +130,11 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 		public IPv6TrieNode elementsContaining(IPv6Address addr) {
 			return (IPv6TrieNode) super.elementsContaining(addr);
 		}
+		
+		@Override
+		public IPv6TrieNode longestPrefixMatchNode(IPv6Address addr) {
+			return (IPv6TrieNode) super.longestPrefixMatchNode(addr);
+		}
 
 		@Override
 		public IPv6TrieNode getAddedNode(IPv6Address addr) {
@@ -266,6 +271,16 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 		public IPv6TrieNode lastAddedNode() {
 			return (IPv6TrieNode) super.lastAddedNode();
 		}
+		
+		@Override
+		protected IPv6AddressTrie createNewTree() {
+			return new IPv6AddressTrie();
+		}
+		
+		@Override
+		public IPv6AddressTrie asNewTrie() {
+			return (IPv6AddressTrie) super.asNewTrie();
+		}
 
 		@Override
 		public IPv6TrieNode cloneTree() {
@@ -296,6 +311,11 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 	@Override
 	public IPv6TrieNode elementsContaining(IPv6Address addr) {
 		return (IPv6TrieNode) super.elementsContaining(addr);
+	}
+
+	@Override
+	public IPv6TrieNode longestPrefixMatchNode(IPv6Address addr) {
+		return (IPv6TrieNode) super.longestPrefixMatchNode(addr);
 	}
 
 	@Override

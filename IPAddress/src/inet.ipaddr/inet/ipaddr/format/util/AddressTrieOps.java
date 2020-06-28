@@ -77,7 +77,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 * <p>
 	 * Returns true if the subnet or address is contained by a trie element, false otherwise.
 	 * <p>
-	 * To get the containing addresses, use {@link #elementsContaining(Address)}.
+	 * To get all the containing addresses, use {@link #elementsContaining(Address)}.
 	 * 
 	 * @param addr
 	 * @return
@@ -183,6 +183,47 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 * @return
 	 */
 	TrieNode<E> elementsContaining(E addr);
+	
+	/**
+	 * Finds the containing subnet or address in the trie with the smallest subnet size,
+	 * which is equivalent to finding the subnet or address with the longest matching prefix.
+	 * Returns the node corresponding to that subnet.
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException.
+	 * <p>
+	 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
+	 * See {@link AddressTrieAddOps#add(Address)} for more details.
+	 * <p>
+	 * Returns null if no added subnet or address contains the given argument.
+	 * <p>
+	 * Use {@link #elementContains(Address)} to check for the existence of a containing address.<br>
+	 * To get all the containing addresses, use {@link #elementsContaining(Address)}.<br>
+	 * Use {@link #longestPrefixMatch(Address)} to get the address corresponding to the result of this method.<br>
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> longestPrefixMatchNode(E addr);
+	
+	/**
+	 * Of all the added subnets or address whose prefix matches the given address, returns the one with the longest prefix.
+	 * This is equivalent to finding the containing subnet or address with the smallest subnet size.
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException.
+	 * <p>
+	 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
+	 * See {@link AddressTrieAddOps#add(Address)} for more details.
+	 * <p>
+	 * Returns null if no added subnet or address contains the given argument.
+	 * <p>
+	 * Use {@link #elementContains(Address)} to check for the existence of a containing address.<br>
+	 * To get all the containing addresses (subnets with matching prefix), use {@link #elementsContaining(Address)}.<br>
+	 * To get the node corresponding to the result of this method, use {@link #longestPrefixMatchNode(Address)}<br>
+	 *
+	 * @param addr
+	 * @return
+	 */
+	E longestPrefixMatch(E addr);
 
 	@Override
 	Iterator<? extends TrieNode<E>> nodeIterator(boolean forward);
