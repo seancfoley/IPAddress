@@ -138,7 +138,7 @@ The library was intended to satisfy the following primary goals:
 &#8203;
 ## Code Examples
 
-This document provides in-depth and extensive documentation for the library, and includes some code snippets throughout.  However, for common use-cases, you may wish to go straight to the wiki [code examples which cover a wide breadth of common use-cases](https://github.com/seancfoley/IPAddress/wiki/Code-Examples).  The code examples are focused more on common use-cases and operations, while this document is focused more on covering all areas in more detail with more words.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
+This document provides in-depth and extensive documentation for the library, and includes some code snippets throughout.  However, for common use-cases, you may wish to go straight to the wiki <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">code examples which cover a wide breadth of common use-cases</a>.  The code examples are focused more on common use-cases and operations, while this document is focused more on covering all areas in more detail with more words.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
 
 &#8203;
 ## Supported IP Address Parsing Formats
