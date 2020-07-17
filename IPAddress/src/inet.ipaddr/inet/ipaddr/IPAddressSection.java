@@ -2321,7 +2321,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 	
 	/**
-	 * Returns a prefix length for which the range of this address section matches the the block of addresses for that prefix.
+	 * Returns a prefix length for which the range of this address section matches the block of addresses for that prefix.
 	 * <p>
 	 * If no such prefix exists, returns null
 	 * <p>
