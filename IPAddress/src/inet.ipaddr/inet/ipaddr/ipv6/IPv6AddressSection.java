@@ -1297,7 +1297,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	private static final BigInteger MAX_VALUES_BY_SEGMENT[] = {
 			BigInteger.ZERO,
 			BigInteger.valueOf(IPv6Address.MAX_VALUE_PER_SEGMENT),
-			BigInteger.valueOf(0xffffffff),
+			BigInteger.valueOf(0xffffffffL),
 			BigInteger.valueOf(0xffffffffffffL),
 			BigInteger.valueOf(1).shiftLeft(16 * 4).subtract(BigInteger.ONE),
 			BigInteger.valueOf(1).shiftLeft(16 * 5).subtract(BigInteger.ONE),
