@@ -54,7 +54,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	int getBytesPerSegment();
 	
 	/**
-	 * Returns the the maximum possible segment value for this type of address.
+	 * Returns the maximum possible segment value for this type of address.
 	 * 
 	 * Note this is not the maximum value of the range of segment values in this specific address,
 	 * this is the maximum value of any segment for this address type, and is usually determined by the number of bits per segment.
@@ -120,7 +120,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	void getSegments(AddressSegment segs[]);
 	
 	/**
-	 * get the segments from start to end and insert into the segs array at the the given index
+	 * get the segments from start to end and insert into the segs array at the given index
 	 * @param start the first segment index from this series to be included
 	 * @param end the first segment index to be excluded
 	 * @param segs the target array

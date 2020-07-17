@@ -389,7 +389,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	}
 	
 	/**
-	 * Returns a prefix length for which the range of this segment grouping matches the the block of addresses for that prefix.
+	 * Returns a prefix length for which the range of this segment grouping matches the block of addresses for that prefix.
 	 * 
 	 * If no such prefix exists, returns null
 	 * 

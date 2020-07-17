@@ -1003,7 +1003,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	 * @param excludeFunc
 	 * @param networkSegmentIndex
 	 * @param hostSegmentIndex
-	 * @param hostSegIteratorProducer used to produce prefix iterators for the the prefix and prefix block iterators, or identity iterators for the block iterators that only iterate through top segments
+	 * @param hostSegIteratorProducer used to produce prefix iterators for the prefix and prefix block iterators, or identity iterators for the block iterators that only iterate through top segments
 	 * @return
 	 */
 	protected static <S extends AddressSegment> Iterator<S[]> segmentsIterator(

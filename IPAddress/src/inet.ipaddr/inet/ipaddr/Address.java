@@ -272,7 +272,7 @@ public abstract class Address implements AddressSegmentSeries {
 	}
 
 	/**
-	 * Returns a prefix length for which the range of this address subnet matches the the block of addresses for that prefix.
+	 * Returns a prefix length for which the range of this address subnet matches the block of addresses for that prefix.
 	 * <p>
 	 * If the range can be dictated this way, then this method returns the same value as {@link #getMinPrefixLengthForBlock()}.
 	 * <p>

@@ -354,9 +354,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// The tree node with the smallest subnet or address containing the supplied argument
 		TrieNode<E> smallestContaining;
 
-		// at least one tree element contains the the supplied argument
-		//boolean contains;
-
 		// contained by: 
 
 		// this tree is contained by the supplied argument

@@ -66,7 +66,7 @@ import inet.ipaddr.mac.MACAddress;
  * </ul>
  * <p>
  * All of the above subnet variations work for IPv6, whether network prefix lengths, masks, ranges or wildcards.
- * Similarly, all the the above subnet variations work for any supported IPv4 format, such as the standard dotted-decimal IPv4 format as well as the inet_aton formats listed below.
+ * Similarly, all the above subnet variations work for any supported IPv4 format, such as the standard dotted-decimal IPv4 format as well as the inet_aton formats listed below.
  * <p>
  * This class support all address formats of the C routine inet_pton and the Java method java.net.InetAddress.getByName.
  * This class supports all IPv4 address formats of the C routine inet_aton as follows:
