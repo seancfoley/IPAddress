@@ -43,7 +43,7 @@ try {
 	IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
         // use addresses
 } catch (AddressStringException e) {
-	String msg = e.getMessage();//detailed message indicating improper format in address string
+	String msg = e.getMessage();//detailed message indicating improper string format
 	// handle improperly formatted address string
 }
 ```
