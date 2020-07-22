@@ -59,7 +59,8 @@ try {
 	// use socket address
 	        
 	host = new HostName(hostServiceStr);
-	socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null);
+	socketAddress = host.asInetSocketAddress(
+		service -> service.equals("service") ? 100 : null);
 	// use socket address
 	        
 	host = new HostName(hostAddressStr);
@@ -114,7 +115,6 @@ Try(addressStr.toAddress) match {
         // handle improperly formatted address string
 }
 ```
-
 ## Groovy
 
 starting with address or subnet strings, using exceptions for invalid formats
