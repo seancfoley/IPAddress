@@ -1449,6 +1449,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return getProviderAddress();
 	}
 	
+	// skips contains checking for addresses already parsed - 
+	// so this is not a case of unusual string formatting, because this is not for comparing strings,
+	// but more a case of whether the parsing data structures are easy to use or not
 	private boolean skipContains() {
 		Boolean result = skipContains;
 		if(result != null) {
@@ -1489,6 +1492,11 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(skipContains()) {
 			return null;
 		}
+		if(has_inet_aton_value || hasIPv4LeadingZeros || isBinary) {
+			//you need to skip inet_aton completely because it can screw up where prefix matches up with digits
+			//you need to skip ipv4 leading zeros because addresses like 01.02.03.04 can change value depending on the validation options (octal or decimal)
+			return null;
+		}
 		Integer pref = getProviderNetworkPrefixLength();
 		IPAddressStringParameters options = getParameters();
 		IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network = (isProvidingIPv4() ? options.getIPv4Parameters() : options.getIPv6Parameters()).getNetwork();
@@ -1498,12 +1506,16 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			// it depends on the host being full range in the containing address
 			return null;
 		}
-		if(has_inet_aton_value || hasIPv4LeadingZeros) {
-			//you need to skip inet_aton completely because it can screw up where prefix matches up with digits
-			//you need to skip ipv4 leading zeros because addresses like 01.02.03.04 can change value depending on the validation options (octal or decimal)
-			return null;
-		}
 		return matchesPrefix(other, segmentData);
+	}
+	
+	@Override
+	public Boolean prefixContains(String other) {
+		Boolean b = prefixEquals(other);
+		if(b != null && b.booleanValue()) {
+			return true;
+		}
+		return null;
 	}
 	
 	@Override
@@ -1516,7 +1528,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(skipContains()) {
 			return null;
 		}
-		if(has_inet_aton_value || hasIPv4LeadingZeros) {
+		if(has_inet_aton_value || hasIPv4LeadingZeros || isBinary) {
 			//you need to skip inet_aton completely because it can screw up where prefix matches up with digits
 			//you need to skip ipv4 leading zeros because addresses like 01.02.03.04 can change value depending on the validation options (octal or decimal)
 			return null;
@@ -1993,6 +2005,20 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	}
 
 	@Override
+	public Boolean prefixContains(IPAddressProvider other) {
+		if(other instanceof ParsedIPAddress) {
+			CachedIPAddresses<?> vals = values;
+			CachedIPAddresses<?> otherVals = values;
+			if(vals == null || otherVals == null) {
+				// one or the other value not yet created, so take the shortcut that provides an answer most (but not all) of the time
+				// An answer is provided for all normalized, conventional or canonical addresses
+				return contains((ParsedIPAddress) other, true, false);
+			} // else we defer to the values-based containment check (in the caller), which is best since it is ready to go.
+		}
+		return null;
+	}
+	
+	@Override
 	public Boolean prefixEquals(IPAddressProvider other) {
 		if(other instanceof ParsedIPAddress) {
 			CachedIPAddresses<?> vals = values;
@@ -2051,30 +2077,47 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		boolean allPrefixedAddressesAreSubnets = prefConf.allPrefixedAddressesAreSubnets();
 		Integer pref = getProviderNetworkPrefixLength();
 		Integer otherPref = other.getProviderNetworkPrefixLength();
-		int networkSegIndex, hostSegIndex, endIndex, otherHostAllSegIndex, hostAllSegIndex = expectedSegCount;
+		int networkSegIndex, hostSegIndex, endIndex, otherHostAllSegIndex, hostAllSegIndex;
 		endIndex = segmentCount;
+		
+		// determine what indexes to use for network, host, and prefix block adjustments (hostAllSegIndex and otherHostAllSegIndex)
+		Integer adjustedOtherPref = null;
 		if(pref == null) {
 			networkOnly = false;
-			hostSegIndex = expectedSegCount;
+			hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = expectedSegCount;
 			networkSegIndex = hostSegIndex - 1;
-		} else {
-			hostSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
+		} else if(networkOnly) {
+			hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
 			networkSegIndex = ParsedAddressGrouping.getNetworkSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
-			if(!networkOnly || networkSegIndex == hostSegIndex) {
-				boolean isPrefixSubnet = allPrefixedAddressesAreSubnets || (zeroHostsAreSubnets && isPrefixSubnet(pref, network, segmentData));
-				if(!equals) {
-					networkOnly |= isPrefixSubnet;
-				}
-				if(isPrefixSubnet) {
-					hostAllSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
-				}
-			}
-		}
-		if(otherPref != null && (allPrefixedAddressesAreSubnets || (zeroHostsAreSubnets && other.isPrefixSubnet(otherPref, network, otherSegmentData)))) {
-			otherHostAllSegIndex = ParsedAddressGrouping.getHostSegmentIndex(otherPref, bytesPerSegment, bitsPerSegment);
+			// we treat the other as if it were a prefix block of the same prefix length
+			// this allows us to compare entire segments for prefixEquals, ignoring the host values
+			adjustedOtherPref = pref;
 		} else {
 			otherHostAllSegIndex = expectedSegCount;
+			hostSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
+			networkSegIndex = ParsedAddressGrouping.getNetworkSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
+			if(allPrefixedAddressesAreSubnets || 
+					(zeroHostsAreSubnets && isPrefixSubnet(pref, network, segmentData))) {
+				hostAllSegIndex = hostSegIndex;
+				if(!equals) {
+					// no need to look at host for containment when a prefix subnet
+					networkOnly = true;
+				}
+			} else {
+				hostAllSegIndex = expectedSegCount;
+			}
 		}
+		// Now determine if the other is a prefix block subnet, and if so, adjust otherHostAllSegIndex
+		if(otherPref != null && (adjustedOtherPref == null || otherPref < adjustedOtherPref)) {
+			int otherHostIndex = ParsedAddressGrouping.getHostSegmentIndex(otherPref, bytesPerSegment, bitsPerSegment);
+			if(otherHostIndex < otherHostAllSegIndex &&
+					(allPrefixedAddressesAreSubnets || (zeroHostsAreSubnets && other.isPrefixSubnet(otherPref, network, otherSegmentData)))) {
+				otherHostAllSegIndex = otherHostIndex;
+			}
+		} else {
+			otherPref = adjustedOtherPref;
+		}
+		
 		int i = 0, j = 0, normalizedCount = 0;
 		int compressedCount, otherCompressedCount;
 		compressedCount = otherCompressedCount = 0;

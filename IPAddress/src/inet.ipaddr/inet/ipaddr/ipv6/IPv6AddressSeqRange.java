@@ -337,4 +337,9 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv6AddressSeqRange[] subtract(IPAddressSeqRange other) {
 		return (IPv6AddressSeqRange[]) super.subtract(other);
 	}
+
+	@Override
+	public IPv6AddressSeqRange toSequentialRange() {
+		return this;
+	}
 }

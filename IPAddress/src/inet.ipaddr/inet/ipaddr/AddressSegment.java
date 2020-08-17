@@ -108,6 +108,13 @@ public interface AddressSegment extends AddressComponent, AddressGenericDivision
 	@Override
 	boolean equals(Object other);
 
+	/**
+	 * Returns whether the given prefix bits match the same bits of the given segment.
+	 * 
+	 * @param other
+	 * @param prefixLength
+	 * @return
+	 */
 	boolean prefixEquals(AddressSegment other, int prefixLength);
 
 	/**

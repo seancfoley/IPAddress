@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
@@ -138,6 +139,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	public static final char PREFIX_LEN_SEPARATOR = '/';
+	public static final String BINARY_STR_PREFIX = "0b";
 	
 	/**
 	 * The default way by which addresses are converted, initialized to an instance of {@link DefaultAddressConverter}
@@ -337,6 +339,46 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return version.isIPv4() ? IPv4Address.BIT_COUNT : IPv6Address.BIT_COUNT;
 	}
 
+	protected abstract IPAddress convertArg(IPAddress arg) throws AddressConversionException;
+	
+	/**
+	 * Finds the lowest and highest single-valued address from the given addresses and subnets,
+	 * and then calls the given BiFunction with the lowest as first argument and the highest as second.
+	 * It returns the result returned from the call to the BiFunction.
+	 * <p>
+	 * For instance, given the IPv4 addresses 1.2.0.0/16 and 1.3.4.5, the lowest is 1.2.0.0 and the highest is 1.3.4.5.
+	 * Given the addresses 1.2.0.0/16 and 1.1.4.5, the lowest is 1.1.4.5 and the highest is 1.2.255.255.
+	 * <p>
+	 * If one of the given addresses or subnets is a different version than this, 
+	 * then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * This can be useful for methods that require a range as input, 
+	 * like {@link IPAddress#spanWithPrefixBlocks(IPAddress), IPAddress#spanWithSequentialBlocks(IPAddress), 
+	 * IPAddress#coverWithPrefixBlock(IPAddress), or IPAddress#toSequentialRange(IPAddress).<p>
+	 * For instance, to cover multiple addresses with a prefix block:<br>
+	 * IPAddress coveringAddress = address0.applyToBounds(IPAddress::coverWithPrefixBlock, address1, address2, address3, ...);
+	 */
+	public <V> V applyToBounds(BiFunction<? super IPAddress, ? super IPAddress, V> func, IPAddress ...series) {
+		AddressComparator lowComparator = Address.ADDRESS_LOW_VALUE_COMPARATOR;
+		AddressComparator highComparator = Address.ADDRESS_HIGH_VALUE_COMPARATOR;
+		IPAddress lowest = this;
+		IPAddress highest = this;
+		for(int i = 0; i < series.length; i++) {
+			IPAddress next = series[i];
+			if(next == null) {
+				continue;
+			}
+			next = convertArg(next);
+			if(lowComparator.compare(next, lowest) < 0) {
+				lowest = next;
+			}
+			if(highComparator.compare(next, highest) > 0) {
+				highest = next;
+			}
+		}
+		return func.apply(lowest.getLower(), highest.getUpper());
+	}
+	
 	@Override
 	public abstract IPAddress getLowerNonZeroHost();
 
@@ -555,23 +597,33 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	/**
 	 * Creates a sequential range instance from the lowest and highest addresses in this subnet
 	 * <p>
-	 * The two will represent the same set of addresses if and only if {@link #isSequential()} is true
+	 * The two will represent the same set of individual addresses if and only if {@link #isSequential()} is true.
+	 * To get a series of ranges that represent the same set of individual addresses use the {@link #sequentialBlockIterator()} (or {@link #prefixIterator()}),
+	 * and apply this method to each iterated subnet.
 	 * <p>
 	 * If this represents just a single address then the returned instance covers just that single address as well.
 	 * 
 	 * @return
 	 */
+	@Override
 	public abstract IPAddressSeqRange toSequentialRange();
 
 	/**
 	 * Creates a sequential range instance from this and the given address, 
 	 * spanning from the lowest to the highest addresses in the two subnets
-	 * 
+	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * When you have multiple subnets, create a range from lowest to highest with:
+	 * <code>
+	 * IPAddressSeqRange range = subnet0.applyToBounds(IPAddress::toSequentialRange, subnet1, subnet2, ...);
+	 * </code>
+	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
+	 * @param other
 	 * @return
 	 */
-	public abstract IPAddressSeqRange toSequentialRange(IPAddress other);
+	public abstract IPAddressSeqRange toSequentialRange(IPAddress other) throws AddressConversionException;
 	
 	public boolean matches(IPAddressString otherString) {
 		//before converting otherString to an address object, check if the strings match
@@ -621,6 +673,19 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
+	 * Returns whether the prefix of this address contains all values of the same bits in the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean prefixContains(IPAddress other) {
+		if(other == this) {
+			return true;
+		}
+		return getSection().prefixContains(other.getSection());
+	}
+	
+	/**
 	 * Returns whether this address has a prefix length and if so, whether the host section is zero for this address or all addresses in this subnet.
 	 * If the host section is zero length (there are no host bits at all), returns false.
 	 * 
@@ -642,8 +707,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 
 	@Override
-	public boolean contains(IPAddressSeqRange other) {
-		IPAddressSeqRange otherRange = (IPAddressSeqRange) other;
+	public boolean contains(IPAddressSeqRange otherRange) {
 		if(compareLowValues(otherRange.getLower(), getLower()) >= 0 && 
 				compareLowValues(otherRange.getUpper(), getUpper()) <= 0) {
 			if(isSequential()) {
@@ -652,7 +716,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			Iterator<? extends IPAddress> iterator = sequentialBlockIterator();
 			while(iterator.hasNext()) {
 				IPAddress sequential = iterator.next();
-				if(sequential.contains(other)) {
+				if(sequential.contains(otherRange)) {
 					return true;
 				}
 			}
@@ -1373,11 +1437,17 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public int getLeadingBitCount(boolean network) {
 		return getSection().getLeadingBitCount(network);
 	}
-
+	
 	/**
 	 * Returns the minimal-size prefix block that covers all the addresses spanning from this subnet to the given subnet.
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * When you have multiple subnets, cover with:
+	 * <code>
+	 * IPAddress block = subnet0.applyToBounds(IPAddress::coverWithPrefixBlock, subnet1, subnet2, ...);
+	 * </code>
+	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 */
 	public abstract IPAddress coverWithPrefixBlock(IPAddress other) throws AddressConversionException;
 
@@ -1390,6 +1460,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * From the list of returned subnets you can recover the original range (this to other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
+	 * <p>
+	 * When you have multiple subnets, span with:
+	 * <code>
+	 * IPAddress blocks[] = subnet0.applyToBounds(IPAddress::spanWithPrefixBlocks, subnet1, subnet2, ...);
+	 * </code>
+	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1410,6 +1486,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
+	 * <p>
+	 * When you have multiple subnets, span with:
+	 * <code>
+	 * IPAddress blocks[] = subnet0.applyToBounds(IPAddress::spanWithSequentialBlocks, subnet1, subnet2, ...);
+	 * </code>
+	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @param other
 	 * @return
@@ -1431,13 +1513,21 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	* Produces an IPAddressRange instance that spans this subnet to the given subnet.
-	* <p>
-	* If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
-	* 
-	* @param other
-	* @return
-	*/
+	 * Produces an IPAddressRange instance that spans this subnet to the given subnet.
+	 * <p>
+	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
+	 * <p>
+	 * When you have multiple subnets, span with:
+	 * <code>
+	 * IPAddressSeqRange range = subnet0.applyToBounds(IPAddress::spanWithRange, subnet1, subnet2, ...);
+	 * </code>
+	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
+	 * 
+	 * @deprecated use {@link #toSequentialRange(IPAddress)}
+	 * @param other
+	 * @return
+	 */
+	@Deprecated
 	public abstract IPAddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException;
 	
 	/**

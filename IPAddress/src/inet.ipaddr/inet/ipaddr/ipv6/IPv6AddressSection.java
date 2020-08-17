@@ -33,8 +33,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import inet.ipaddr.Address;
-import inet.ipaddr.AddressConversionException;
 import inet.ipaddr.Address.SegmentValueProvider;
+import inet.ipaddr.AddressConversionException;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressPositionException;
@@ -61,8 +61,8 @@ import inet.ipaddr.format.standard.IPAddressDivision;
 import inet.ipaddr.format.standard.IPAddressDivisionGrouping;
 import inet.ipaddr.format.string.AddressStringDivision;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
-import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressPartConfiguredString;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.util.IPAddressPartStringSubCollection;
@@ -119,6 +119,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		
 		static final IPStringOptions base85Params;
 		
+		static final IPStringOptions segmentedBinaryParams;
+		
 		static {
 			CompressOptions 
 				compressAll = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST),
@@ -146,6 +148,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			networkPrefixLengthParams = new IPv6StringOptions.Builder().setCompressOptions(compressHostPreferred).toOptions();
 			reverseDNSParams = new IPv6StringOptions.Builder().setReverse(true).setAddressSuffix(IPv6Address.REVERSE_DNS_SUFFIX).setSplitDigits(true).setExpandedSegments(true).setSeparator('.').toOptions();
 			base85Params = new IPStringOptions.Builder(85).setExpandedSegments(true).setWildcards(new Wildcards(Address.ALTERNATIVE_RANGE_SEPARATOR_STR)).setZoneSeparator(IPv6Address.ALTERNATIVE_ZONE_SEPARATOR).toOptions();
+			segmentedBinaryParams = new IPStringOptions.Builder(2).setSeparator(IPv6Address.SEGMENT_SEPARATOR).setSegmentStrPrefix(IPAddress.BINARY_STR_PREFIX).setExpandedSegments(true).toOptions();
 		}
 		
 		public String normalizedString;
@@ -2016,6 +2019,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public boolean prefixEquals(AddressSection o) {
+		if(o == this) {
+			return true;
+		}
 		if(o instanceof IPv6AddressSection) {
 			IPv6AddressSection other = (IPv6AddressSection) o;
 			if(addressSegmentIndex >= other.addressSegmentIndex) {
@@ -2025,6 +2031,20 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return false;
 	}
 	
+	@Override
+	public boolean prefixContains(IPAddressSection o) {
+		if(o == this) {
+			return true;
+		}
+		if(o instanceof IPv6AddressSection) {
+			IPv6AddressSection other = (IPv6AddressSection) o;
+			if(addressSegmentIndex >= other.addressSegmentIndex) {
+				return prefixContains(this, other, addressSegmentIndex - other.addressSegmentIndex);
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public boolean matchesWithMask(IPAddressSection other, IPAddressSection mask) {
 		return other instanceof IPv6AddressSection && mask instanceof IPv6AddressSection && super.matchesWithMask(other, mask);
@@ -2460,6 +2480,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	public IPv6AddressSection coverWithPrefixBlock(IPv6AddressSection other) throws AddressConversionException {
+		checkSectionCount(other);
 		return coverWithPrefixBlock(
 				this,
 				other,
@@ -2732,7 +2753,6 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			largeDiv = new IPAddressLargeDivision(getBytesInternal(), getBitCount(), 85, getNetwork(), prefixLength);
 		}
 		IPAddressStringDivisionSeries part = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] { largeDiv }, getNetwork());
-		//IPAddressStringDivisionSeries part = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] { largeDiv }, getNetwork(), prefixLength);
 		return toNormalizedString(IPv6StringCache.base85Params, zone, part);
 	}
 
@@ -2751,6 +2771,19 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			stringCache.reverseDNSString = result = toNormalizedString(IPv6StringCache.reverseDNSParams, "");
 		}
 		return result;
+	}
+	
+	@Override
+	public String toSegmentedBinaryString() {
+		String result;
+		if(hasNoStringCache() || (result = stringCache.segmentedBinaryString) == null) {
+			getStringCache().segmentedBinaryString = result = toSegmentedBinaryString(null);
+		}
+		return result;
+	}
+	
+	protected String toSegmentedBinaryString(CharSequence zone) {
+		return toNormalizedString(IPv6StringCache.segmentedBinaryParams, zone);
 	}
 	
 	@Override

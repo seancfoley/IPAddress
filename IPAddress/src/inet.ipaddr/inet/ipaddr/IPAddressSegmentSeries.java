@@ -239,9 +239,14 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	/**
 	 * Writes this IP address segment series as a single binary value with always the exact same number of characters
 	 * 
-	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
+	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two binary values.
 	 */
 	String toBinaryString() throws IncompatibleAddressException;
+
+	/**
+	 * Writes this IP address segment series as a segments of binary values preceded by the "0b" prefix.
+	 */
+	String toSegmentedBinaryString();
 
 	/**
 	 * Writes this IP address segment series as a single octal value with always the exact same number of characters, with or without a preceding 0 prefix.
@@ -372,7 +377,9 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * Iterates through the sequential series that make up this series.
 	 * Generally this means finding the count of segments for which the segments that follow are not full range, and then using {@link #blockIterator(int)} with that segment count.
 	 * <p>
-	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7-8, it will iterate through 1.3.5.7-8, 1.3.6.7-8, 1.4.5.7-8, 1.4.6.7-8, 2.3.5.7-8, 2.3.6.7-8, 2.4.6.7-8, 2.4.6.7-8
+	 * For instance, given the IPv4 subnet 1-2.3-4.5-6.7-8, it will iterate through 1.3.5.7-8, 1.3.6.7-8, 1.4.5.7-8, 1.4.6.7-8, 2.3.5.7-8, 2.3.6.7-8, 2.4.6.7-8, 2.4.6.7-8.
+	 * <p>
+	 * Use {@link #getSequentialBlockCount()} to get the count of iterated elements.
 	 * 
 	 * @return
 	 */
@@ -387,13 +394,15 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 
 	/**
 	 * Returns a sequential stream of the individual sequential blocks.  For a parallel stream, call {@link Stream#parallel()} on the returned stream.
+	 * <p>
+	 * Use {@link #getSequentialBlockCount()} to get the count of streamed elements.
 	 * 
 	 * @return
 	 */
 	Stream<? extends IPAddressSegmentSeries> sequentialBlockStream();
 
 	/**
-	 * provides the count of elements from the {@link #sequentialBlockIterator()}, the minimal number of sequential subseries that comprise this series
+	 * provides the count of elements from the {@link #sequentialBlockIterator()}, the minimal number of sequential sub-series that comprise this series
 	 * @return
 	 */
 	BigInteger getSequentialBlockCount();

@@ -65,6 +65,14 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 	 */
 	private IPAddressStringParameters embeddedIPv4Options;
 	
+	/**
+	 * Retained for backwards compatibility.
+	 * <br>
+	 * Library users are strongly encourage to use the builder classes instead of this constructor.
+	 * 
+	 * @deprecated
+	 */
+	@Deprecated
 	public IPv6AddressStringParameters(
 			boolean allowLeadingZeros,
 			boolean allowCIDRPrefixLeadingZeros,
@@ -77,7 +85,52 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 			boolean allowWildcardedSeparator,
 			boolean allowPrefixesBeyondAddressSize,
 			IPv6AddressNetwork network) {
-		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
+		this(allowLeadingZeros,
+				allowCIDRPrefixLeadingZeros,
+				allowUnlmitedLeadingZeros,
+				allowMixed,
+				mixedOptions,
+				allowZone,
+				allowBase85,
+				rangeOptions,
+				allowWildcardedSeparator,
+				allowPrefixesBeyondAddressSize,
+				false, /* backwards compatibility to retain legacy behaviour, which did not support binary */
+				network);
+	}
+
+	/**
+	 * Constructs the parameters for IPv6-specific string parsing.
+	 * <br>
+	 * Users are strongly encouraged to use the nested Builder class instead of this constructor.
+	 * 
+	 * @param allowLeadingZeros
+	 * @param allowCIDRPrefixLeadingZeros
+	 * @param allowUnlmitedLeadingZeros
+	 * @param allowMixed
+	 * @param mixedOptions
+	 * @param allowZone
+	 * @param allowBase85
+	 * @param rangeOptions
+	 * @param allowWildcardedSeparator
+	 * @param allowPrefixesBeyondAddressSize
+	 * @param allowBinary
+	 * @param network
+	 */
+	public IPv6AddressStringParameters(
+			boolean allowLeadingZeros,
+			boolean allowCIDRPrefixLeadingZeros,
+			boolean allowUnlmitedLeadingZeros,
+			boolean allowMixed,
+			IPAddressStringParameters mixedOptions,
+			boolean allowZone,
+			boolean allowBase85,
+			RangeParameters rangeOptions,
+			boolean allowWildcardedSeparator,
+			boolean allowPrefixesBeyondAddressSize,
+			boolean allowBinary,
+			IPv6AddressNetwork network) {
+		super(allowBinary, allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.allowMixed = allowMixed;
 		this.allowZone = allowZone;
 		this.allowBase85 = allowBase85;
@@ -189,7 +242,13 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 			this.network = network;
 			return this;
 		}
-		
+
+		@Override
+		public Builder allowBinary(boolean allow) {
+			super.allowBinary(allow);
+			return this;
+		}
+
 		@Override
 		public Builder allowWildcardedSeparator(boolean allow) {
 			getEmbeddedIPv4AddressParametersBuilder().allowWildcardedSeparator(allow);
@@ -249,6 +308,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 					rangeOptions,
 					allowWildcardedSeparator,
 					allowPrefixesBeyondAddressSize,
+					allowBinary,
 					network);
 		}
 	}

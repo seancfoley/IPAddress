@@ -279,6 +279,30 @@ public interface IPAddressProvider extends Serializable {
 	}
 	
 	/**
+	 * An optimized prefix comparison that does not need to create addresses to return an answer.
+	 * 
+	 * Unconventional addresses may require the address objects, in such cases null is returned.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	default Boolean prefixContains(String other) {
+		return null;
+	}
+	
+	/**
+	 * An optimized prefix comparison that does not need to create addresses to return an answer.
+	 * 
+	 * Unconventional addresses may require the address objects, in such cases null is returned.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	default Boolean prefixContains(IPAddressProvider other) {
+		return null;
+	}
+	
+	/**
 	 * An optimized equality comparison that does not need to create addresses to return an answer.
 	 * 
 	 * Unconventional addresses may require the address objects, in such cases null is returned.

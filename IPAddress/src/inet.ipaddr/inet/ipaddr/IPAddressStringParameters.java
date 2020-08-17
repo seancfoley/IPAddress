@@ -257,20 +257,31 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		
 		public static final boolean DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS = true;
 		public static final boolean DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE = false;
-		
+		public static final boolean DEFAULT_ALLOW_BINARY = true;
+
+		/**
+		 * Allows ip address binary format 0b1.0b100.0b0.0b10101010 or 0b1111000011110000::0b0101010101010101
+		 */
+		public final boolean allowBinary;
+
 		/**
 		 * controls whether ipv4 can have prefix length bigger than 32 and whether ipv6 can have prefix length bigger than 128
 		 * @see #DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE
 		 */
 		public final boolean allowPrefixesBeyondAddressSize; 
-		
+
 		/**
 		 * controls whether you allow addresses with prefixes that have leasing zeros like 1.0.0.0/08 or 1::/064
 		 * 
 		 * @see #DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS
 		 */
 		public final boolean allowPrefixLengthLeadingZeros;
-		
+
+		/**
+		 * retained for backwards compatibility
+		 * @deprecated
+		 */
+		@Deprecated
 		public IPAddressStringFormatParameters(
 				boolean allowLeadingZeros,
 				boolean allowPrefixLengthLeadingZeros,
@@ -278,21 +289,55 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 				RangeParameters rangeOptions,
 				boolean allowWildcardedSeparator,
 				boolean allowPrefixesBeyondAddressSize) {
+			this(
+				false, /* backwards compatibility to retain legacy behaviour, which did not support binary */
+				allowLeadingZeros,
+				allowPrefixLengthLeadingZeros,
+				allowUnlimitedLeadingZeros,
+				rangeOptions,
+				allowWildcardedSeparator,
+				allowPrefixesBeyondAddressSize);
+		}
+
+		/**
+		 * Constructs the parameters for parsing version-specific IP address strings.
+		 * <br>
+		 * Users are strongly encouraged to use Builder classes instead of this constructor.
+		 * 
+		 * @param allowBinary
+		 * @param allowLeadingZeros
+		 * @param allowPrefixLengthLeadingZeros
+		 * @param allowUnlimitedLeadingZeros
+		 * @param rangeOptions
+		 * @param allowWildcardedSeparator
+		 * @param allowPrefixesBeyondAddressSize
+		 */
+		public IPAddressStringFormatParameters(
+				boolean allowBinary,
+				boolean allowLeadingZeros,
+				boolean allowPrefixLengthLeadingZeros,
+				boolean allowUnlimitedLeadingZeros,
+				RangeParameters rangeOptions,
+				boolean allowWildcardedSeparator,
+				boolean allowPrefixesBeyondAddressSize) {
 			super(allowLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator);
+			this.allowBinary = allowBinary;
 			this.allowPrefixLengthLeadingZeros = allowPrefixLengthLeadingZeros;
 			this.allowPrefixesBeyondAddressSize = allowPrefixesBeyondAddressSize;
 		}
-		
+
 		protected BuilderBase toBuilder(BuilderBase builder) {
 			super.toBuilder(builder);
 			builder.allowPrefixLengthLeadingZeros = allowPrefixLengthLeadingZeros;
 			builder.allowPrefixesBeyondAddressSize = allowPrefixesBeyondAddressSize;
+			builder.allowBinary = allowBinary;
 			return builder;
 		}
-		
+
 		protected static class BuilderBase extends AddressStringFormatParameters.BuilderBase {
 			protected boolean allowPrefixesBeyondAddressSize = DEFAULT_ALLOW_PREFIX_BEYOND_ADDRESS_SIZE;
 			protected boolean allowPrefixLengthLeadingZeros = DEFAULT_ALLOW_PREFIX_LENGTH_LEADING_ZEROS;
+			protected boolean allowBinary = DEFAULT_ALLOW_BINARY;
 			
 			IPAddressStringParameters.Builder parent;
 			
@@ -307,6 +352,11 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			
 			public BuilderBase allowPrefixesBeyondAddressSize(boolean allow) {
 				allowPrefixesBeyondAddressSize = allow;
+				return this;
+			}
+			
+			public BuilderBase allowBinary(boolean allow) {
+				allowBinary = allow;
 				return this;
 			}
 			
@@ -330,7 +380,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 				return (BuilderBase) super.allowUnlimitedLeadingZeros(allow);
 			}
 		}
-		
+
 		public abstract IPAddressNetwork<?, ?, ?, ?, ?> getNetwork();
 
 		protected int compareTo(IPAddressStringFormatParameters o) {
@@ -339,22 +389,28 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 				result = Boolean.compare(allowPrefixesBeyondAddressSize, o.allowPrefixesBeyondAddressSize);
 				if(result == 0) {
 					result = Boolean.compare(allowPrefixLengthLeadingZeros, o.allowPrefixLengthLeadingZeros);
+					if(result == 0) {
+						result = Boolean.compare(allowBinary, o.allowBinary);
+					}
 				}
 			}
 			return result;
 		}
-		
+
 		@Override
 		public boolean equals(Object o) {
 			if(o instanceof IPAddressStringFormatParameters) {
 				IPAddressStringFormatParameters other = (IPAddressStringFormatParameters) o;
 				return super.equals(o) &&
 						allowPrefixesBeyondAddressSize == other.allowPrefixesBeyondAddressSize
+						&& allowBinary == other.allowBinary
 						&& allowPrefixLengthLeadingZeros == other.allowPrefixLengthLeadingZeros;
+				
+				
 			}
 			return false;
 		}
-		
+
 		@Override
 		public int hashCode() {
 			int hash = super.hashCode();
@@ -364,11 +420,11 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			return hash;
 		}
 	}
-	
+
 	public Builder toBuilder() {
 		return toBuilder(false);
 	}
-	
+
 	public Builder toBuilder(boolean isMixed) {
 		Builder builder = new Builder();
 		super.toBuilder(builder);
@@ -408,15 +464,15 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		this.ipv6Options = ipv6Options;
 		this.ipv4Options = ipv4Options;
 	}
-	
+
 	public IPv6AddressStringParameters getIPv6Parameters() {
 		return ipv6Options;
 	}
-	
+
 	public IPv4AddressStringParameters getIPv4Parameters() {
 		return ipv4Options;
 	}
-	
+
 	@Override
 	public IPAddressStringParameters clone() {
 		IPAddressStringParameters result = (IPAddressStringParameters) super.clone();
@@ -454,7 +510,7 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 		}
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object o) {
 		if(o instanceof IPAddressStringParameters) {

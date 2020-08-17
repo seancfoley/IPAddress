@@ -18,9 +18,6 @@
 
 package inet.ipaddr;
 
-import java.util.Iterator;
-import java.util.stream.Stream;
-
 import inet.ipaddr.format.AddressComponentRange;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 
@@ -143,32 +140,7 @@ public interface AddressComponent extends AddressComponentRange {
 	 * @return
 	 */
 	AddressComponent reverseBytes();
-	
-	@Override
-	AddressComponent getLower();
-
-	@Override
-	AddressComponent getUpper();
-	
-	@Override
-	Iterable<? extends AddressComponent> getIterable();
-
-	/**
-	 * Iterates through the individual elements of this address component.
-	 * <p>
-	 * An address component can represent a single segment, address, or section, or it can represent multiple,
-	 * typically a subnet of addresses or a range of segment or section values.
-	 * <p>
-	 * Call {@link #isMultiple()} to determine if this instance represents multiple.
-	 * 
-	 * @return
-	 */
-	@Override
-	Iterator<? extends AddressComponent> iterator();
 
 	@Override
 	AddressComponentSpliterator<? extends  AddressComponent> spliterator();
-
-	@Override
-	Stream<? extends AddressComponent> stream();
 }

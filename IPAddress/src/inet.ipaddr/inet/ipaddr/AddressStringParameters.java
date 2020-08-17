@@ -237,31 +237,29 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		public static final boolean DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS = true;
 		public static final boolean DEFAULT_ALLOW_WILDCARDED_SEPARATOR = true;
 		public static final RangeParameters DEFAULT_RANGE_OPTIONS = RangeParameters.WILDCARD_AND_RANGE;
-		
+
 		/**
 		 * controls whether wildcards like '*', '_' or ranges with '-' are allowed
 		 */
 		public final RangeParameters rangeOptions;
-		
+
 		/**
 		 * controls whether the wildcard '*' or '%' can replace the segment separators '.' and ':'.
 		 * If so, then you can write addresses like *.* or *:*
 		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_WILDCARDED_SEPARATOR
 		 */
 		public final boolean allowWildcardedSeparator; 
-		
+
 		/**
 		 * whether you allow addresses with segments that have leasing zeros like 001.2.3.004 or 1:000a::
-		 * For IPV4, this option overrides inet_aton octal.  
+		 * For IPV4, this option overrides inet_aton octal.
 		 * 
-		 * In other words, if this field is true, and if there are leading zeros then they are interpreted as decimal regardless of {@link inet.ipaddr.ipv4.IPv4AddressStringParameters#inet_aton_octal}. 
-		 * 
-		 * Otherwise, validation defers to {@link inet.ipaddr.ipv4.IPv4AddressStringParameters#inet_aton_octal}
+		 * Single segment addresses that must have the requisite length to be parsed are not affected by this flag.
 		 * 
 		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_LEADING_ZEROS
 		 */
 		public final boolean allowLeadingZeros;
-		
+
 		/**
 		 * if {@link #allowLeadingZeros} or the address is IPv4 and {@link inet.ipaddr.ipv4.IPv4AddressStringParameters#inet_aton_octal} is true, 
 		 * this determines if you allow leading zeros that extend segments 
@@ -271,7 +269,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 		 * @see AddressStringFormatParameters#DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS
 		 */
 		public final boolean allowUnlimitedLeadingZeros;
-		
+
 		public AddressStringFormatParameters(
 				boolean allowLeadingZeros,
 				boolean allowUnlimitedLeadingZeros,
@@ -285,7 +283,7 @@ public class AddressStringParameters implements Cloneable, Serializable {
 			this.allowLeadingZeros = allowLeadingZeros;
 			this.allowUnlimitedLeadingZeros = allowUnlimitedLeadingZeros;
 		}
-		
+
 		protected BuilderBase toBuilder(BuilderBase builder) {
 			builder.allowUnlimitedLeadingZeros = allowUnlimitedLeadingZeros;
 			builder.rangeOptions = rangeOptions;
@@ -293,14 +291,14 @@ public class AddressStringParameters implements Cloneable, Serializable {
 			builder.allowLeadingZeros = allowLeadingZeros;
 			return builder;
 		}
-		
+
 		protected static class BuilderBase {
-			
+
 			protected RangeParameters rangeOptions = DEFAULT_RANGE_OPTIONS;
 			protected boolean allowWildcardedSeparator = DEFAULT_ALLOW_WILDCARDED_SEPARATOR;
 			protected boolean allowLeadingZeros = DEFAULT_ALLOW_LEADING_ZEROS;
 			protected boolean allowUnlimitedLeadingZeros = DEFAULT_ALLOW_UNLIMITED_LEADING_ZEROS;
-			
+
 			public BuilderBase setRangeOptions(RangeParameters rangeOptions) {
 				this.rangeOptions = rangeOptions;
 				return this;

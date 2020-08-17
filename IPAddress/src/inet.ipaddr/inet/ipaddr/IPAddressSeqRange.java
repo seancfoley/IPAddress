@@ -77,7 +77,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			UnaryOperator<T> prefixLenRemover) {
 		boolean f;
 		if((f = first.contains(other)) || other.contains(first)) {
-			T addr = f ? prefixLenRemover.apply(first):  prefixLenRemover.apply(other);
+			T addr = f ? prefixLenRemover.apply(first) : prefixLenRemover.apply(other);
 			lower = getLower.apply(addr);
 			upper = getUpper.apply(addr);
 		} else {
@@ -700,7 +700,16 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean overlaps(IPAddressSeqRange other) {
 		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
-	
+
+	// we choose to not make this public
+	// it is simply wrong to do an instanceof in the IPAddressRange interface, it assumes you know all implementors, 
+	// it will not work if/when someone adds a new implementation.
+	// If you do not know how an IPAddressRange is implemented, can you do the contains?  
+	// Yes, but only by iterating, which is damn ugly for large ranges.
+	// Now that we have toSequentialRange() in IPAddressRange, it is easy to do this for sequential subnets.
+	// And for non-sequential, there is no simple way of doing it, 
+	// in IPAddress you need to either go through the segments, or you need to go through the sequential blocks,
+	// and there is no general way to do it for any implementation of IPAddressRange.
 	private boolean containsRange(IPAddressRange other) {
 		return compareLowValues(other.getLower(), getLower()) >= 0 && compareLowValues(other.getUpper(), getUpper()) <= 0;
 	}
@@ -713,6 +722,11 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	@Override
 	public boolean contains(IPAddressSeqRange other) {
 		return containsRange(other);
+	}
+	
+	@Override
+	public boolean isSequential() {
+		return true;
 	}
 	
 	@Override
@@ -735,15 +749,15 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 	
 	/**
-	 * Returns the intersection of this range with the given range, a range which includes those addresses in both this and the given rqnge.
+	 * Returns the intersection of this range with the given range, a range which includes those addresses in both this and the given range.
 	 * @param other
 	 * @return
 	 */
 	public IPAddressSeqRange intersect(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
-		IPAddress lower = this.getLower();
-		IPAddress upper = this.getUpper();
+		IPAddress lower = getLower();
+		IPAddress upper = getUpper();
 		if(compareLowValues(lower, otherLower) <= 0) {
 			if(compareLowValues(upper, otherUpper) >= 0) {
 				return other;
@@ -772,8 +786,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public IPAddressSeqRange join(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
-		IPAddress lower = this.getLower();
-		IPAddress upper = this.getUpper();
+		IPAddress lower = getLower();
+		IPAddress upper = getUpper();
 		int lowerComp = compareLowValues(lower, otherLower);
 		if(!overlaps(other)) {
 			if(lowerComp >= 0) {
@@ -800,7 +814,46 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		highestUpper = upperComp >= 0 ? upper : otherUpper;
 		return create(lowestLower, highestUpper);
 	}
-	
+
+	/**
+	 * Extend this sequential range to include all address in the given range, which can be an IPAddress or IPAddressSeqRange.
+	 * If the argument has a different IP version than this, null is returned.
+	 * Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public IPAddressSeqRange extend(IPAddressRange other) {
+		IPAddress otherLower = other.getLower();
+		IPAddress otherUpper = other.getUpper();
+		IPAddress lower = getLower();
+		IPAddress upper = getUpper();
+		int lowerComp = compareLowValues(lower, otherLower);
+		int upperComp = compareLowValues(upper, otherUpper);
+		if(lowerComp > 0) { // 
+			if(upperComp <= 0) { // ol l u ou
+				return other.toSequentialRange();
+			}
+			IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
+			int versionComp = compareLowValues(lower, max);
+			if(versionComp > 0) { // different versions: ol ou max l u
+				return null;
+			}
+			// ol l ou u
+			return create(otherLower, upper);
+		}
+		// lowerComp <= 0
+		if(upperComp >= 0) { // l ol ou u
+			return this;
+		}
+		IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
+		int versionComp = compareLowValues(otherLower, max);
+		if(versionComp > 0) { // different versions: l u max ol ou
+			return null;
+		}
+		return create(lower, otherUpper);// l ol u ou
+	}
+
 	/**
 	 * Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
 	 * If the result has length 2, the two ranges are ordered by ascending lowest range value. 
@@ -811,8 +864,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public IPAddressSeqRange[] subtract(IPAddressSeqRange other) {
 		IPAddress otherLower = other.getLower();
 		IPAddress otherUpper = other.getUpper();
-		IPAddress lower = this.getLower();
-		IPAddress upper = this.getUpper();
+		IPAddress lower = getLower();
+		IPAddress upper = getUpper();
 		if(compareLowValues(lower, otherLower) < 0) {
 			if(compareLowValues(upper, otherUpper) > 0) { // l ol ou u
 				return createPair(lower, otherLower.increment(-1), otherUpper.increment(1), upper);
@@ -832,7 +885,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(comp < 0) {
 				return createSingle(); // ol ou l u
 			} else if(comp == 0) {
-				return createSingle(lower.increment(1), upper); //ol ou == l u
+				return createSingle(lower.increment(1), upper); // ol ou == l u
 			}
 			return createSingle(otherUpper.increment(1), upper); // ol l ou u    
 		}

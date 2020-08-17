@@ -733,7 +733,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return defaultIpv6Network();
 	}
 
-	IPv4Address convertArg(IPAddress arg) throws AddressConversionException {
+	@Override
+	protected IPv4Address convertArg(IPAddress arg) throws AddressConversionException {
 		IPv4Address converted = arg.toIPv4();
 		if(converted == null) {
 			throw new AddressConversionException(this, arg);
@@ -990,9 +991,10 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				getAddressCreator());
 	}
 	
+	@Deprecated
 	@Override
 	public IPv4AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv4AddressSeqRange(this, convertArg(other));
+		return toSequentialRange(other);
 	}
 
 	@Override
@@ -1186,6 +1188,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) throws IncompatibleAddressException {
 		return getSection().toInetAtonString(radix, joinedCount);
+	}
+	
+	@Override
+	public String toSegmentedBinaryString() {
+		return getSection().toSegmentedBinaryString();
 	}
 	
 	@Override

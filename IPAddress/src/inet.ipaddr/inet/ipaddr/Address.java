@@ -82,6 +82,7 @@ public abstract class Address implements AddressSegmentSeries {
 
 	public static final AddressComparator DEFAULT_ADDRESS_COMPARATOR = new CountComparator(true);
 	public static final AddressComparator ADDRESS_LOW_VALUE_COMPARATOR = new ValueComparator(true, false);
+	public static final AddressComparator ADDRESS_HIGH_VALUE_COMPARATOR = new ValueComparator(true, true);
 
 	private static MACAddressNetwork macNetwork;
 	private static IPv6AddressNetwork ipv6Network;

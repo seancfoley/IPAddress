@@ -386,6 +386,7 @@ public abstract class TestBase {
 						allowPrefixLengthLeadingZeros(true).
 						allowPrefixesBeyondAddressSize(false).
 						allowWildcardedSeparator(true).
+						allowBinary(true).
 						getParentBuilder().
 				getIPv6AddressParametersBuilder().
 						allowLeadingZeros(true).
@@ -395,6 +396,7 @@ public abstract class TestBase {
 						allowWildcardedSeparator(true).
 						allowMixed(true).
 						allowZone(true).
+						allowBinary(true).
 						getParentBuilder().getParentBuilder().toParams();
 
 	protected static final IPAddressStringParameters ADDRESS_OPTIONS = HOST_OPTIONS.toAddressOptionsBuilder().toParams();
@@ -1102,15 +1104,22 @@ public abstract class TestBase {
 						break;
 					}
 				}
+				String withStrPrefix;
+				int next = binary.indexOf('-', 0);
+				if(next >= 0) {
+					withStrPrefix = IPAddress.BINARY_STR_PREFIX + binary.substring(0, next + 1) + IPAddress.BINARY_STR_PREFIX + binary.substring(next + 1);
+				} else {
+					withStrPrefix = IPAddress.BINARY_STR_PREFIX + binary;
+				}
+				confirmAddrStrings(ipAddr, withStrPrefix);
 			} catch(IncompatibleAddressException | IllegalStateException e) {
 				boolean isMatch = singleHex == null;//iff hex is null is binary null
 				if(!isMatch) {
 					addFailure(new Failure("failed expected non-null binary string but got: " + e, w));
 				}
 			}
-			
-	
-			confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw);
+			String binary = ipAddr.toSegmentedBinaryString();
+			confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw, binary);
 			if(ipAddr.isIPv6()) {
 				confirmAddrStrings(ipAddr, full);
 				confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses

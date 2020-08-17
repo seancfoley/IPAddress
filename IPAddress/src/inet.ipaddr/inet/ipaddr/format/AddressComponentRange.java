@@ -58,6 +58,9 @@ public interface AddressComponentRange extends AddressItem, AddressItemRange {
 	/**
 	 * Iterates through the individual address components.
 	 * <p>
+	 * An address component can represent an individual segment, address, or section, or it can represent multiple,
+	 * typically a subnet of addresses or a range of segment or section values.
+	 * <p>
 	 * Call {@link #isMultiple()} to determine if this instance represents multiple, or {@link #getCount()} for the count.
 	 * 
 	 * @return

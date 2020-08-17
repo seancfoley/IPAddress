@@ -220,6 +220,7 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 							return false;
 						}
 					}
+					return true;
 				}
 			}
 		}

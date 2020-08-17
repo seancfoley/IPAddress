@@ -320,10 +320,26 @@ public abstract class IPAddressNetwork<
 		return (int) hostSegmentMasks[segmentPrefixLength];
 	}
 	
+	/**
+	 * The tne network mask is a single address with zeros corresponding to the host section of the address.
+	 * It may or may not include the prefix length of the network.
+	 * 
+	 * @param networkPrefixLength
+	 * @return
+	 */
 	public T getNetworkMask(int networkPrefixLength) {
 		return getNetworkMask(networkPrefixLength, true);
 	}
 	
+	/**
+	 * The network address is the subnet of all address with the same network mask.
+	 * For example, 1.2.0.0/16 is a network address when it includes all addresses 1.2.*.*,
+	 * rather than just being the single address, the mask 1.2.0.0
+	 * <p>
+	 * 
+	 * @param networkPrefixLength
+	 * @return
+	 */
 	public T getNetworkAddress(int networkPrefixLength) {
 		return getMask(networkPrefixLength, networkAddresses, true, true, true);
 	}

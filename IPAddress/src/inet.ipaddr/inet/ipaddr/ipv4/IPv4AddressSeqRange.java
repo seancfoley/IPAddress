@@ -399,4 +399,9 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv4AddressSeqRange[] subtract(IPAddressSeqRange other) {
 		return (IPv4AddressSeqRange[]) super.subtract(other);
 	}
+	
+	@Override
+	public IPv4AddressSeqRange toSequentialRange() {
+		return this;
+	}
 }

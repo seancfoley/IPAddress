@@ -202,7 +202,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 
 	/**
 	 * Iterates through the individual prefixes.
-	 * 
+	 * <p>
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
 	 */
 	Iterator<? extends AddressSegmentSeries> prefixIterator();
@@ -216,7 +216,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 
 	/**
 	 * Iterates through the individual prefix blocks.
-	 * 
+	 * <p>
 	 * If the series has no prefix length, then this is equivalent to {@link #iterator()}
 	 */
 	Iterator<? extends AddressSegmentSeries> prefixBlockIterator();

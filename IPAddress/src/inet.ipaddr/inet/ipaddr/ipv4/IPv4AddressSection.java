@@ -87,6 +87,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 
 		static final IPStringOptions reverseDNSParams;
 		
+		static final IPStringOptions segmentedBinaryParams;
+		
 		static {
 			WildcardOptions allWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL);
 			WildcardOptions allSQLWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL, new Wildcards(IPAddress.SEGMENT_SQL_WILDCARD_STR, IPAddress.SEGMENT_SQL_SINGLE_WILDCARD_STR));
@@ -96,8 +98,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			sqlWildcardParams = new IPv4StringOptions.Builder().setWildcardOptions(allSQLWildcards).toOptions();
 			inetAtonOctalParams = new IPv4StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.OCTAL.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.OCTAL.getSegmentStrPrefix()).toOptions();
 			inetAtonHexParams = new IPv4StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.HEX.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.HEX.getSegmentStrPrefix()).toOptions();
-			canonicalParams = new IPv4StringOptions.Builder(IPv4Address.DEFAULT_TEXTUAL_RADIX, IPv4Address.SEGMENT_SEPARATOR).toOptions();
+			canonicalParams = new IPv4StringOptions.Builder().toOptions();
 			reverseDNSParams = new IPv4StringOptions.Builder().setWildcardOptions(allWildcards).setReverse(true).setAddressSuffix(IPv4Address.REVERSE_DNS_SUFFIX).toOptions();
+			segmentedBinaryParams = new IPStringOptions.Builder(2).setSeparator(IPv4Address.SEGMENT_SEPARATOR).setSegmentStrPrefix(IPAddress.BINARY_STR_PREFIX).toOptions();
 		}
 		
 		public String octalString;
@@ -1352,6 +1355,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public boolean prefixEquals(AddressSection other) {
 		return other == this || (other instanceof IPv4AddressSection && prefixEquals(this, other, 0));
 	}
+	
+	@Override
+	public boolean prefixContains(IPAddressSection other) {
+		return other == this || (other instanceof IPv4AddressSection && prefixContains(this, other, 0));
+	}
 
 	public IPv4AddressSection append(IPv4AddressSection other) {
 		int count = getSegmentCount();
@@ -1864,6 +1872,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	public IPv4AddressSection coverWithPrefixBlock(IPv4AddressSection other) throws AddressConversionException {
+		checkSectionCount(other);
 		return coverWithPrefixBlock(
 				this,
 				other,
@@ -2067,7 +2076,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return result;
 	}
-	
+
 	public String toInetAtonString(IPv4Address.inet_aton_radix radix, int joinedCount) throws IncompatibleAddressException {
 		if(joinedCount <= 0) {
 			return toInetAtonString(radix);
@@ -2082,7 +2091,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return toNormalizedString(stringParams, joinedCount);
 	}
-	
+
 	@Override
 	public String toNormalizedWildcardString() {
 		String result;
@@ -2091,12 +2100,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return result;
 	}
-	
+
 	@Override
 	public String toCanonicalWildcardString() {
 		return toNormalizedWildcardString();
 	}
-	
+
 	@Override
 	public String toSQLWildcardString() {
 		String result;
@@ -2113,7 +2122,16 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			stringCache.reverseDNSString = result = toNormalizedString(IPv4StringCache.reverseDNSParams);
 		}
 		return result;
-	} 
+	}
+
+	@Override
+	public String toSegmentedBinaryString() {
+		String result;
+		if(hasNoStringCache() || (result = stringCache.segmentedBinaryString) == null) {
+			stringCache.segmentedBinaryString = result = toNormalizedString(IPv4StringCache.segmentedBinaryParams);
+		}
+		return result;
+	}
 	
 	public String toNormalizedString(IPStringOptions stringParams, int joinCount) throws IncompatibleAddressException {
 		if(joinCount <= 0) {

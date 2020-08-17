@@ -3205,7 +3205,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"0xffff00000000000000000000eeeeeeee",
 					"03777760000000000000000000000000035673567356");
 		}
-		testIPv6Strings("1:2:3:4::%x%x%", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
+		testIPv6Strings("1:2:3:4::%x%x%", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone x%x%
 				"1:2:3:4:0:0:0:0%x%x%", //normalized
 				"1:2:3:4:0:0:0:0%x%x%", //normalizedWildcards
 				"1:2:3:4::%x%x%", //canonicalWildcards
@@ -3307,7 +3307,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 					"00000020000200001400010000000000000000000000-00000020000200001400011777777777777777777777%a");
 		}
 		
-		testIPv6Strings("1:2:3:4::%.a.a", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
+		testIPv6Strings("1:2:3:4::%.a.a", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone .a.a
 				"1:2:3:4:0:0:0:0%.a.a", //normalized
 				"1:2:3:4:0:0:0:0%.a.a", //normalizedWildcards
 				"1:2:3:4::%.a.a", //canonicalWildcards
@@ -3719,9 +3719,62 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMatches(true, "1:-1::16/32", "1:0-1::16");
 			testMatches(true, "1:-1::16", "1:0-1::16/32");
 		}
-		testMatches(true, "0.0.0.-", "0.0.0.*");//ok
+		testMatches(true, "0.0.0.-", "0.0.0.*"); // ok
 		testMatches(true, "1-.0.0.1-", "1-255.0.0.1-255"); // ok // more than one inferred range
 		
+		testMatches(true, "0b1.0b01.0b101.1-0b11111111", "1.1.5.1-255");
+		testMatches(true, "0b1.0b01.0b101.0b11110000-0b11111111", "1.1.5.240-255");
+		testMatches(true, "0b1.0b01.0b101.0b1111____", "1.1.5.240-255");
+		
+ 		testMatches(true, "::0b0000111100001111-0b1111000011110000:3", "::f0f-f0f0:3");
+ 		testMatches(true, "::0b000011110000____:3", "::f00-f0f:3");
+ 		testMatches(true, "::0B000011110000____:3", "::f00-f0f:3");
+		testMatches(true, "::f0f-0b1111000011110000:3", "::f0f-f0f0:3");
+		testMatches(true, "::0b0000111100001111-f0f0:3", "::f0f-f0f0:3");
+		testMatches(true, "::0B0000111100001111-f0f0:3", "::f0f-f0f0:3");
+		
+		ipv6test(false, "::0b000011110000111-0b1111000011110000:3");//front too short
+		ipv6test(false, "::0b00001111000011111-0b1111000011110000:3");//front too long
+		ipv6test(false, "::0b0000111100001111-0b11110000111100000:3");//back too short
+		ipv6test(false, "::0b0000111100001111-0b11110000111100000:3");//back too long
+		
+		ipv6test(false, "0b000011110000111-0b1111000011110000::3");//front too short
+		ipv6test(false, "0b00001111000011111-0b1111000011110000::3");//front too long
+		ipv6test(false, "0b0000111100001111-0b11110000111100000::3");//back too short
+		ipv6test(false, "0b0000111100001111-0b11110000111100000::3");//back too long
+		
+		ipv6test(false, "::0b000011110000111-0b1111000011110000");//front too short
+		ipv6test(false, "::0b00001111000011111-0b1111000011110000");//front too long
+		ipv6test(false, "::0b0000111100001111-0b11110000111100000");//back too short
+		ipv6test(false, "::0b0000111100001111-0b11110000111100000");//back too long
+		
+		ipv6test(false, "::0b0000111100001121-0b1111000011110000:3");//invalid digit
+		ipv6test(false, "::0b0000111100001111-0b1111000011112000:3");//invalid digit
+		ipv6test(false, "::0b0000111100001111-0ba111000011110000:3");//invalid digit
+		ipv6test(false, "::0ba000111100001111-0b1111000011110000:3");//invalid digit
+		
+		ipv6test(false, "::0000111100001111-0b1111000011110000:3");//missing prefix
+		ipv6test(false, "::0b0000111100001111-1111000011110000:3");//missing prefix
+		
+		testMatches(true, "0b1.0b01.0b101.1-0b11111111", "1.1.5.1-255");
+		testMatches(true, "0b1.0b01.0b101.0b11110000-0b11111111", "1.1.5.240-255");
+		
+		testMatches(true, "0b01.0b101.01-0b11111111.5", "1.5.1-255.5", true);
+		testMatches(true, "0b01.0b101.0b1-0377.5", "1.5.1-255.5", true);
+		testMatches(true, "0b01.0b101.0xf0-0b11111111.5", "1.5.240-255.5", true);
+		testMatches(true, "0b01.0b101.0b11110000-0xff.5", "1.5.240-255.5", true);
+		testMatches(true, "0b1.0b01.0b101.01-0b11111111", "1.1.5.1-255", true);
+		testMatches(true, "0b1.0b01.0b101.0b1-0377", "1.1.5.1-255", true);
+		testMatches(true, "0b1.0b01.0b101.0xf0-0b11111111", "1.1.5.240-255", true);
+		testMatches(true, "0b1.0b01.0b101.0b11110000-0xff", "1.1.5.240-255", true);
+		testMatches(true, "0B1.0b01.0b101.0B11110000-0Xff", "1.1.5.240-255", true);
+		
+		testMatches(true, "0b01.0b101.0xf0-0b11111111", "1.5.240-255", true);
+		testMatches(true, "0b01.0B101.0xf0-0B11111111", "1.5.240-255", true);
+		testMatches(true, "0b01.0b101.0b11110000-0xff", "1.5.240-255", true);
+		
+		testMatches(true, "0b01.0b101.0xf000-0b1111111111111111", "1.5.61440-65535", true);
+		testMatches(true, "0b01.0b101.0b1100000000-0xffff", "1.5.768-65535", true);
 		
 		if(allPrefixesAreSubnets) {
 			testCIDRSubnets("9.*.237.26/0", "0.0.0.0/0");
@@ -4397,6 +4450,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4_inet_aton_test(true, "0.65536-16777215");
 		ipv4_inet_aton_test(false, "0.65536-16777216");
 		ipv4_inet_aton_test(true, "16777216-4294967295");
+		ipv4_inet_aton_test(true, "0b00000001000000000000000000000000-4294967295");
+		//ipv4_inet_aton_test(true, "0b1000000000000000000000000-4294967295");
 		ipv4_inet_aton_test(false, "16777216-4294967296");
 		ipv4_inet_aton_test(false, "0.0.0.0x1x");
 		ipv4_inet_aton_test(false, "0.0.0.1x");
@@ -4419,6 +4474,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		ipv4_inet_aton_test(false, "0.0x10000-0100000000");
 		ipv4_inet_aton_test(true, "0x1000000-03777777777");
 		ipv4_inet_aton_test(true, "0x1000000-037777777777");
+		ipv4_inet_aton_test(true, "0x1000000-0b11111111111111111111111111111111");//[0-1, 0, 0-255, 0-255]
 		ipv4_inet_aton_test(false, "0x1000000-040000000000");
 		
 		ipv4test(true, "*"); //toAddress() should not work on this, toAddress(Version) should.
@@ -5808,6 +5864,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testCover("1.10-11.3.4", isAutoSubnets ? "1.10.0.0/15" : "1.10-11.*.*/15");
 		testCover("0.0.1.1", "128.0.0.0", "*.*/0");
 		testCover("0.0.1.1", "0.0.1.1", "0.0.1.1/32");
+		testCover("0-1.0.1.1", "0-1.0.1.1", isAutoSubnets ? "0.0.0.0/7" : "0-1.*/7");
 		testCover("0.0.1.1", "0.0.1.1/32");
 		testCover("0.0.1.1", "0.0.1.0", "0.0.1.0-1/31");
 		testCover("1.2.0.0/16", isAutoSubnets ? "1.2.0.0/16" : "1.2.0.0/32");
@@ -5823,6 +5880,9 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testCover("::1:ffff", "::1:ffff", "::1:ffff/128");
 		testCover("::1", "::", "::0-1/127");
 		testCover("ffff:ffff:ffff:ffff::/64", isAutoSubnets ? "ffff:ffff:ffff:ffff:*/64" : "ffff:ffff:ffff:ffff::/128");
+		
+		testRangeExtend("1.2.3.4-5", "1.2.4.3", "1.2.3-5.6", null, "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4-5", "1.2.4.3", "1.2.1-5.6", null, "1.2.1.6", "1.2.5.6");
 		
 		super.runTest();
 	}

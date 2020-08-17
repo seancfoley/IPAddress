@@ -553,6 +553,9 @@ public class HostTest extends TestBase {
 		hostTest(true, "1.2.3.4");
 		hostTest_inet_aton(true, "1.2.3");
 		hostTest(true,"0x1.0x2.0x3.04");
+		hostTest(true,"0X1.0x2.0x3.04");
+		hostTest(true,"0x1.0x2.0b3.04");
+		hostTest(true,"0x1.0x2.0B3.04");
 		hostTest(true, "[1.2.3.4]");
 		
 		hostTest(true, "a_b.com");

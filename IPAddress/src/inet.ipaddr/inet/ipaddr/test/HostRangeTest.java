@@ -200,7 +200,9 @@ public class HostRangeTest extends HostTest {
 		testHostOrRangeAddress("1-2.2.3.4", 4, "1-2.2.3.4", "1-2.2.3.4");
 		testHostOrAddress_inet_aton("1-9.1-2", 2, 4, "1-9.1-2", "1-9.0.0.1-2");
 		testHostOrAddress_inet_aton("1-9.0x1-0x22", 2, 4, "1-9.0x1-0x22", "1-9.0.0.1-34");
-		testHostOrAddress_inet_aton("9-1.0x1-0x22", 2, 4, "9-1.0x1-0x22", "1-9.0.0.1-34");
+		testHostOrAddress_inet_aton("1-9.0x1-0x22", 2, 4, "1-9.0x1-0x22", "1-9.0.0.1-34");
+		testHostOrAddress_inet_aton("9-1.0X1-0x22", 2, 4, "9-1.0x1-0x22", "1-9.0.0.1-34");
+		testHostOrAddress_inet_aton("9-1.0X1-0X22", 2, 4, "9-1.0x1-0x22", "1-9.0.0.1-34");
 		testHostOnly("9-1g.0x1-0x22", 2, "9-1g.0x1-0x22", null);
 		testHostOrAddress_inet_aton("1-9.0x1-0x22.03.04", 4, 4, "1-9.0x1-0x22.03.04", "1-9.1-34.3.4");
 		testAddress("1::2", 8, "[1:0:0:0:0:0:0:2]", "1:0:0:0:0:0:0:2");

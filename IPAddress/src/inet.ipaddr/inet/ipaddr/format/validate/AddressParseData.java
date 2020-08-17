@@ -238,6 +238,25 @@ class AddressParseData implements Serializable {
 			int indexIndicator3, int value3,
 			int indexIndicator4, int value4,
 			int indexIndicator5, int value5,
+			int indexIndicator6, int value6) {
+		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
+		int segmentData[] = getSegmentData();
+		segmentData[baseIndex | indexIndicator0] = value0;
+		segmentData[baseIndex | indexIndicator1] = value1;
+		segmentData[baseIndex | indexIndicator2] = value2;
+		segmentData[baseIndex | indexIndicator3] = value3;
+		segmentData[baseIndex | indexIndicator4] = value4;
+		segmentData[baseIndex | indexIndicator5] = value5;
+		segmentData[baseIndex | indexIndicator6] = value6;
+	}
+	
+	void setIndexFlags(int segmentIndex,
+			int indexIndicator0, int value0,
+			int indexIndicator1, int value1,
+			int indexIndicator2, int value2,
+			int indexIndicator3, int value3,
+			int indexIndicator4, int value4,
+			int indexIndicator5, int value5,
 			int indexIndicator6, int value6,
 			int indexIndicator7, int value7) {
 		int baseIndex = segmentIndex << SEGMENT_INDEX_SHIFT;
@@ -537,6 +556,7 @@ class IPAddressParseData extends AddressParseData {
 	private boolean is_inet_aton_joined;
 	protected boolean has_inet_aton_value; // either octal 01 or hex 0x1
 	protected boolean hasIPv4LeadingZeros;
+	protected boolean isBinary;
 	
 	ParsedIPAddress mixedParsedAddress;
 
@@ -590,6 +610,14 @@ class IPAddressParseData extends AddressParseData {
 	
 	boolean hasIPv4LeadingZeros() {
 		return hasIPv4LeadingZeros;
+	}
+	
+	void setHasBinaryDigits(boolean val) {
+		isBinary = val;
+	}
+	
+	boolean hasBinaryDigits() {
+		return isBinary;
 	}
 	
 	ParsedHostIdentifierStringQualifier getQualifier() {

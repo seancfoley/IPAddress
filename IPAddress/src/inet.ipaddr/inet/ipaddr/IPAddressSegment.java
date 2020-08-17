@@ -317,11 +317,12 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	public abstract IPAddressSegment getUpper();
 	
 	protected static <S extends IPAddressSegment> S getLowestOrHighest(S original, AddressSegmentCreator<S> segmentCreator, boolean lowest) {
-		if(!original.isMultiple() && !original.isPrefixed()) {//like with the iterator, we do not return segments with prefix, even if it is the full bit length
+		boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+		if(!original.isMultiple() && !(isAllSubnets  && original.isPrefixed())) {
 			return original;
 		}
 		return segmentCreator.createSegment(lowest ? original.getSegmentValue() : original.getUpperSegmentValue(), 
-				original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : original.getSegmentPrefixLength());
+				isAllSubnets ? null : original.getSegmentPrefixLength());
 	}
 
 	@Override
@@ -664,6 +665,42 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 				(other.getUpperSegmentValue() >>> shift) == (getUpperSegmentValue() >>> shift);
 	}
 	
+	/**
+	 * Using the prefix length of this segment, or the whole segment if it has no prefix length,
+	 * returns whether the prefix bit value ranges contain the same bits of the given segment.
+	 * 
+	 * 
+	 * @param other
+	 * @param prefixLength
+	 * @return
+	 */
+	public boolean prefixContains(IPAddressSegment other) {
+		Integer prefLength = getSegmentPrefixLength();
+		if(prefLength == null) {
+			return equals(other);
+		}
+		return prefixContains(other, prefLength);
+	}
+	
+	/**
+	 * Returns whether the given prefix bit value ranges contain the same bits of the given segment.
+	 * 
+	 * @param other
+	 * @param prefixLength
+	 * @return
+	 */
+	public boolean prefixContains(IPAddressSegment other, int prefixLength) {
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		int shift = getBitCount() - prefixLength;
+		if(shift <= 0) {
+			return contains(other);
+		}
+		return (other.getSegmentValue() >>> shift) >= (getSegmentValue() >>> shift) && 
+				(other.getUpperSegmentValue() >>> shift) <= (getUpperSegmentValue() >>> shift);
+	}
+
 	/**
 	 * 
 	 * @param other

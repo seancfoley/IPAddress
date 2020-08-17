@@ -439,16 +439,28 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	}
 
 	protected static boolean prefixEquals(AddressSection first, AddressSection other, int otherIndex) {
+		if(otherIndex < 0) {
+			return false;
+		}
 		Integer prefixLength = first.getPrefixLength();
 		int prefixedSection;
 		if(prefixLength == null) {
 			prefixedSection = first.getSegmentCount();
+			int oIndex = prefixedSection + otherIndex;
+			if(oIndex > other.getSegmentCount()) {
+				return false;
+			}
 		} else {
 			prefixedSection = getNetworkSegmentIndex(prefixLength, first.getBytesPerSegment(), first.getBitsPerSegment());
 			if(prefixedSection >= 0) {
+				int oIndex = prefixedSection + otherIndex;
+				if(oIndex >= other.getSegmentCount()) {
+					return false;
+				}
 				AddressSegment one = first.getSegment(prefixedSection);
-				AddressSegment two = other.getSegment(prefixedSection + otherIndex);
-				if(!one.prefixEquals(two, prefixLength)) {
+				AddressSegment two = other.getSegment(oIndex);
+				int segPrefixLength = getPrefixedSegmentPrefixLength(one.getBitCount(), prefixLength, prefixedSection);
+				if(!one.prefixEquals(two, segPrefixLength)) {
 					return false;
 				}
 			}
@@ -462,7 +474,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		}
 		return true;
 	}
-	
+
 	protected static <S extends AddressSegment> S[] createSegments(
 			S segments[],
 			long highBytes,
@@ -497,11 +509,11 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		}
 		return segments;
 	}
-	
+
 	protected static boolean isCompatibleNetworks(AddressNetwork<?> one, AddressNetwork<?> two) {
 		return one.getPrefixConfiguration().equals(two.getPrefixConfiguration());
 	}
-	
+
 	protected static <S extends AddressSegment> S[] createSegments(
 			S segments[],
 			SegmentValueProvider lowerValueProvider,

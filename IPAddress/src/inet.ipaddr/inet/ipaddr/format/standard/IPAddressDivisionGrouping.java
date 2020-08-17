@@ -23,6 +23,7 @@ import java.util.Arrays;
 import inet.ipaddr.AddressNetwork;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.InconsistentPrefixException;
 import inet.ipaddr.format.AddressDivisionGroupingBase;
@@ -318,6 +319,43 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 			return other.isSameGrouping(this); 
 		}
 		return false;
+	}
+
+	protected static boolean prefixContains(IPAddressSection first, IPAddressSection other, int otherIndex) {
+		if(otherIndex < 0) {
+			return false;
+		}
+		Integer prefixLength = first.getPrefixLength();
+		int prefixedSection;
+		if(prefixLength == null) {
+			prefixedSection = first.getSegmentCount();
+			int oIndex = prefixedSection + otherIndex;
+			if(oIndex > other.getSegmentCount()) {
+				return false;
+			}
+		} else {
+			prefixedSection = getNetworkSegmentIndex(prefixLength, first.getBytesPerSegment(), first.getBitsPerSegment());
+			if(prefixedSection >= 0) {
+				int oIndex = prefixedSection + otherIndex;
+				if(oIndex >= other.getSegmentCount()) {
+					return false;
+				}
+				IPAddressSegment one = first.getSegment(prefixedSection);
+				IPAddressSegment two = other.getSegment(oIndex);
+				int segPrefixLength = getPrefixedSegmentPrefixLength(one.getBitCount(), prefixLength, prefixedSection);
+				if(!one.prefixContains(two, segPrefixLength)) {
+					return false;
+				}
+			}
+		}
+		while(--prefixedSection >= 0) {
+			IPAddressSegment one = first.getSegment(prefixedSection);
+			IPAddressSegment two = other.getSegment(prefixedSection + otherIndex);
+			if(!one.contains(two)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

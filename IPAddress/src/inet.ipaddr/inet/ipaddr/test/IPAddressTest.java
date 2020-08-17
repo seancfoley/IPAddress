@@ -1072,6 +1072,7 @@ public class IPAddressTest extends TestBase {
 			IPAddressString w2str = createAddress(cidr2);
 			IPAddress w = wstr.toAddress();
 			IPAddress w2 = w2str.toAddress();
+			boolean needsConversion = !w.getIPVersion().equals(w2.getIPVersion());
 			boolean firstContains;
 			boolean convCont = false;
 			if(!(firstContains = w.contains(w2)) && !(convCont = conversionContains(w, w2))) {
@@ -1112,6 +1113,111 @@ public class IPAddressTest extends TestBase {
 				prefixMatches = wstr.prefixEquals(w2str);
 				if(prefixMatches && !result) {
 					addFailure(new Failure("expected containment due to same prefix 3 " + w2, w));
+				}
+			}
+			
+			
+			if(!needsConversion) {
+				boolean noRangeParsingAllowed = w.isIPv4() ? 
+					wstr.getValidationOptions().getIPv4Parameters().rangeOptions.isNoRange() :
+					wstr.getValidationOptions().getIPv6Parameters().rangeOptions.isNoRange();
+				
+				wstr = createAddress(cidr1);
+				w2str = createAddress(cidr2);
+				boolean prefContains = wstr.prefixContains(w2str);
+				if(!prefContains) {
+					// if contains, then prefix should also contain other prefix
+					if(result) {
+						addFailure(new Failure("str prefix containment failed " + w2, w));
+					}
+					wstr.isValid();
+					w2str.isValid();
+					prefContains = wstr.prefixContains(w2str);
+					if(prefContains) {
+						addFailure(new Failure("str prefix containment failed " + w2, w));
+					}
+					w = wstr.toAddress();
+					w2 = w2str.toAddress();
+					prefContains = wstr.prefixContains(w2str);
+					if(prefContains) {
+						addFailure(new Failure("str prefix containment failed " + w2, w));
+					}
+				}
+					
+				if(!needsConversion && !(prefixConfiguration.prefixedSubnetsAreExplicit() && noRangeParsingAllowed)) { // with explicit subnets strings look like 1.2.*.*/16
+					// now do testing on the prefix block, allowing us to test prefixContains
+					wstr = createAddress(wstr.toAddress().toPrefixBlock().toString());
+					w2str = createAddress(w2str.toAddress().toPrefixBlock().toString());
+					prefContains = wstr.prefixContains(w2str);
+					
+					wstr.isValid();
+					w2str.isValid();
+					boolean prefContains2 = wstr.prefixContains(w2str);
+					
+					w = wstr.toAddress();
+					w2 = w2str.toAddress();
+					boolean origContains = w.contains(w2);
+					boolean prefContains3 = wstr.prefixContains(w2str);
+					if(!origContains) {
+						// if the prefix block does not contain, then prefix should also not contain other prefix
+						if(prefContains) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+						if(prefContains2) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+						if(prefContains3) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+					} else {
+						// if contains, then prefix should also contain other prefix
+						if(!prefContains) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+						if(!prefContains2) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+						if(!prefContains3) {
+							addFailure(new Failure("str prefix containment failed " + w2, w));
+						}
+					}
+
+					// again do testing on the prefix block, allowing us to test prefixEquals
+					wstr = createAddress(wstr.toAddress().toPrefixBlock().toString());
+					w2str = createAddress(w2str.toAddress().toPrefixBlock().toString());
+					boolean prefEquals = wstr.prefixEquals(w2str);
+					
+					wstr.isValid();
+					w2str.isValid();
+					boolean prefEquals2 = wstr.prefixEquals(w2str);
+					
+					w = wstr.toAddress();
+					w2 = w2str.toAddress();
+					boolean origEquals = w.prefixEquals(w2);
+					boolean prefEquals3 = wstr.prefixEquals(w2str);
+					if(!origEquals) {
+						// if the prefix block does not contain, then prefix should also not contain other prefix
+						if(prefEquals) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+						if(prefEquals2) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+						if(prefEquals3) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+					} else {
+						// if prefix blocks are equal, then prefix should also equal other prefix
+						if(!prefEquals) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+						if(!prefEquals2) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+						if(!prefEquals3) {
+							addFailure(new Failure("str prefix equality failed " + w2, w));
+						}
+					}
 				}
 			}
 		} catch(AddressStringException e) {
@@ -1389,6 +1495,9 @@ public class IPAddressTest extends TestBase {
 		IPAddressString h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
 		boolean straightMatch = h1.equals(h2);
 		if(matches != straightMatch && matches != conversionMatches(h1, h2)) {
+			h1.equals(h2);
+			System.out.println(h1 + ": " + h1.getAddress());
+			System.out.println(h2 + ": " + h2.getAddress());
 			addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h2, h1));
 		} else {
 			if(matches != h2.equals(h1) && matches != conversionMatches(h2, h1)) {
@@ -2751,6 +2860,55 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	void testRangeExtend(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		testRangeExtendImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
+		testRangeExtendImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
+	}
+	
+	void testRangeExtendImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
+		IPAddress addr, addr2;
+		IPAddressSeqRange range, range2;
+		IPAddressSeqRange result2 = null;
+		
+		addr = createAddress(lower1).getAddress();
+		if(higher1 == null) {
+			range = addr.toSequentialRange();
+		} else {
+			addr2 = createAddress(higher1).getAddress();
+			range = addr.spanWithRange(addr2);
+		}
+		
+		addr = createAddress(lower2).getAddress();
+		if(higher2 == null) {
+			result2 = range.extend(addr);
+			range2 = addr.toSequentialRange();
+		} else {
+			addr2 = createAddress(higher2).getAddress();
+			range2 = addr.spanWithRange(addr2);
+		}
+		
+		
+		IPAddressSeqRange result = range.extend(range2);
+		if(result2 != null) {
+			if(!result.equals(result2)) {
+				addFailure(new Failure("mismatch result " + result + "' with '" + result2 + "'", addr));	
+			}
+		}
+		if(resultLower == null) {
+			if(result != null) {
+				addFailure(new Failure("mismatch result " + result + " expected null extending '" + range + "' with '" + range2 + "'", addr));
+			}
+		} else {
+			addr = createAddress(resultLower).getAddress();
+			addr2 = createAddress(resultHigher).getAddress();
+			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
+			if(!result.equals(expectedResult)) {
+				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' extending '" + range + "' with '" + range2 + "'", addr));
+			}
+		}
+		incrementTestCount();
+	}
+	
 	void testRangeJoin(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
 		testRangeJoinImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
@@ -4028,6 +4186,31 @@ public class IPAddressTest extends TestBase {
 		testMatches(true, "1:2:3:4:5:6:1.2.0.0/112", "1:2:3:4:5:6:102::/112");
 		testMatches(true, "1:2:3:4:5:6:1.2.224.0/115", "1:2:3:4:5:6:102:e000/115");
 		testMatches(true, "1:2:3:4:5:6:1.2.3.4/128", "1:2:3:4:5:6:102:304/128");
+
+		testMatches(true, "0b1.0b01.0b101.0b11111111", "1.1.5.255");
+		testMatches(true, "0b1.0b01.0b101.0b11111111/16", "1.1.5.255/16");
+		testMatches(true, "0b1.1.0b101.0b11111111/16", "1.1.5.255/16");
+
+		testMatches(true, "::0b1111111111111111:1", "::ffff:1");
+		testMatches(true, "0b1111111111111111:1::/64", "ffff:1::/64");
+
+		ipv6test(false, "::0b11111111111111111:1"); // one digit too many
+		ipv6test(false, "::0b111111111111111:1"); // one digit too few
+
+		ipv4test(allowsRange(), "0b1.0b01.0b101.1-0b11111111");
+		ipv4test(allowsRange(), "0b1.0b01.0b101.0b11110000-0b11111111");
+		
+		ipv6test(allowsRange(), "::0b0000111100001111-0b1111000011110000:3");
+		ipv6test(allowsRange(), "0b0000111100001111-0b1111000011110000::3");
+		ipv6test(allowsRange(), "1::0b0000111100001111-0b1111000011110000:3");
+		ipv6test(allowsRange(), "1::0b0000111100001111-0b1111000011110000");
+		ipv6test(allowsRange(), "1:0b0000111100001111-0b1111000011110000:3::");
+		
+		ipv4test(false, "0b1.0b01.0b101.0b111111111"); // one digit too many
+		ipv4test(false, "0b.0b01.0b101.0b111111111"); // one digit too few
+		ipv4test(false, "0b1.0b01.0b101.0b11121111"); // not binary
+		ipv4test(false, "0b1.0b2.0b101.0b1111111"); // not binary
+		ipv4test(false, "0b1.b1.0b101.0b1111111"); // not binary
 		
 		ipv4test(true, "1.2.3.4/255.1.0.0");
 		ipv4test(false, "1.2.3.4/1::1");//mask mismatch
@@ -6007,31 +6190,54 @@ public class IPAddressTest extends TestBase {
 		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3");
 		
+		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
+		
 		//a x b y
 		testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.2");
+		
+		testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
 		
 		//a x y b
 		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.2", "1.2.4.6", "1.2.5.6");
 		
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", null, "1.2.3.4", "1.2.5.6");
+		
 		//a b x y
 		testRangeJoin("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeIntersect("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeSubtract("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::");
+		
+		testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
 		
 		//a x b y
 		testRangeJoin("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::");
 		testRangeSubtract("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff");
 		
+		testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
+		
 		//a x y b
 		testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:4:3::", "1:2:4:5::");
 		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::");	
 
+		testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", null, "1:2:3:4::", "1:2:5:6::");
+		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
+		
 		testCustomNetwork(prefixConfiguration);
 		
 		testAddressStringRange("1.2.3.4", new Object[] {1, 2, 3, 4});

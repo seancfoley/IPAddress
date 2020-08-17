@@ -1438,7 +1438,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return checkIdentity(getSection().removePrefixLength(zeroed));
 	}
 
-	private IPv6Address convertArg(IPAddress arg) throws AddressConversionException{
+	@Override
+	protected IPv6Address convertArg(IPAddress arg) throws AddressConversionException {
 		IPv6Address converted = arg.toIPv6();
 		if(converted == null) {
 			throw new AddressConversionException(this, arg);
@@ -1655,7 +1656,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(false);
 		return list.toArray(new IPv6Address[list.size()]);
 	}
-	
+
 	@Override
 	public IPv6Address[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningSequentialBlocks(
@@ -1667,12 +1668,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				IPv6Address::withoutPrefixLength,
 				getDefaultCreator());
 	}
-	
+
+	@Deprecated
 	@Override
 	public IPv6AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return new IPv6AddressSeqRange(this, convertArg(other));
+		return toSequentialRange(other);
 	}
-	
+
 	@Override
 	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
 		addresses = addresses.clone();
@@ -1997,7 +1999,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		//first we see if we obtained this address from a base 85 string
 		//in the case of a prefix, applying the prefix changes the value
 		IPAddressString originator = getAddressfromString();
-		if(originator != null && (!isPrefixed() || getNetworkPrefixLength() == IPv6Address.BIT_COUNT) && originator.isBase85IPv6()) {
+		if(originator != null && (!isPrefixed() || getNetworkPrefixLength() == IPv6Address.BIT_COUNT) && 
+				originator.isBase85IPv6()) {
 			return originator.toString();
 		}
 		String result;
@@ -2077,6 +2080,20 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				stringCache.binaryString = result;
 			} else {
 				result = getSection().toBinaryString();//the cache is shared so no need to update it here
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	public String toSegmentedBinaryString() {
+		String result;
+		if(hasNoStringCache() || (result = stringCache.segmentedBinaryString) == null) {
+			if(hasZone()) {
+				result = getSection().toSegmentedBinaryString(zone);
+				stringCache.segmentedBinaryString = result;
+			} else {
+				result = getSection().toSegmentedBinaryString();//the cache is shared so no need to update it here
 			}
 		}
 		return result;

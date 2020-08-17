@@ -63,6 +63,7 @@ import inet.ipaddr.mac.MACAddress;
  * <li>IPv6 compressed addresses like ::1</li>
  * <li>A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimiter 0x</li>
  * <li>A base 85 address comprising 20 base 85 digits like 4)+k&amp;C#VzJ4br&gt;0wv%Yp as in rfc 1924 https://tools.ietf.org/html/rfc1924</li>
+ * <li>Binary, preceded by 0b, either with binary segments that comprise all 16 bits like ::0b0000111100001111 or a single segment address of 0b followed by 128 binary bits.
  * </ul>
  * <p>
  * All of the above subnet variations work for IPv6, whether network prefix lengths, masks, ranges or wildcards.
@@ -77,8 +78,12 @@ import inet.ipaddr.mac.MACAddress;
  * <li>2-part IPv4: 1.2 (which is interpreted as 1.0.0.2 (ie the 2nd part covers the last 3)</li>
  * <li>1-part IPv4: 1 (which is interpreted as 0.0.0.1 (ie the number represents all 4 segments, and can be any number of digits less than the 32 digits which would be interpreted as IPv6)</li>
  * <li>hex or octal variants of 1, 2, and 3 part, such as 0xffffffff (which is interpreted as 255.255.255.255)</li>
- * </ul><br>
- * inet_aton (and this class) allows mixing octal, hex and decimal (e.g. 0xa.11.013.11 which is equivalent to 11.11.11.11).  String variations using prefixes, masks, ranges, and wildcards also work for inet_aton style.
+ * </ul>
+ * Also supported are binary segments of a 0b followed by binary digits like 0b1.0b1010.2.3, or a single segment address of 0b followed by all 32 bits.
+ * <br>
+ * inet_aton (and this class) allows mixing octal, hex and decimal (e.g. 0xa.11.013.11 which is equivalent to 11.11.11.11).  
+ * String variations using prefixes, masks, ranges, and wildcards also work for inet_aton style.
+ * The same can be said of binary segments, they can be mixed with all other formats.
  * <p>
  * Note that there is ambiguity when supporting both inet_aton octal and dotted-decimal leading zeros, like 010.010.010.010 which can 
  * be interpreted as octal or decimal, thus it can be either 8.8.8.8 or 10.10.10.10, with the default behaviour using the former interpretation<p>
@@ -593,13 +598,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public boolean prefixEquals(IPAddressString other) {
 		// getting the prefix 
-		Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
-		if(prefixLength == null) {
-			return false;
-		}
 		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
+		isValid();
 		if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
 			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
 			Boolean directResult = addressProvider.prefixEquals(other.fullAddr);
@@ -616,7 +618,51 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			if(thisAddress != null) {
 				IPAddress otherAddress = other.getAddress();
 				if(otherAddress != null) {
-					return prefixLength <= otherAddress.getBitCount() && thisAddress.prefixEquals(otherAddress);
+					Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
+					return (prefixLength == null || prefixLength <= otherAddress.getBitCount()) && thisAddress.prefixEquals(otherAddress);
+				}
+			}
+			// one or both addresses are null, so there is no prefix to speak of
+		}
+		return false;
+	}
+	
+	/**
+	 * Similar to {@link #prefixEquals(Object)}, but instead returns whether the prefix of this address contains the same of the given address,
+	 * using the prefix length of this address.
+	 * <p>
+	 * In other words, determines if the other address is in one of the same prefix subnets using the prefix length of this address.
+	 * <p>
+	 * It this address has no prefix length, returns false.  The other address need not have an associated prefix length for this method to return true.
+	 * <p>
+	 * If this address string or the given address string is invalid, returns false.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean prefixContains(IPAddressString other) {
+		if(other == this && !isPrefixOnly()) {
+			return true;
+		}
+		isValid();
+		if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
+			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
+			Boolean directResult = addressProvider.prefixContains(other.fullAddr);
+			if(directResult != null) {
+				return directResult.booleanValue();
+			}
+		}
+		if(other.isValid()) {
+			Boolean directResult = addressProvider.prefixContains(other.addressProvider); 
+			if(directResult != null) {
+				return directResult.booleanValue();
+			}
+			IPAddress thisAddress = getAddress();
+			if(thisAddress != null) {
+				IPAddress otherAddress = other.getAddress();
+				Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
+				if(otherAddress != null) {
+					return (prefixLength == null || prefixLength <= otherAddress.getBitCount()) && thisAddress.prefixContains(otherAddress);
 				}
 			}
 			// one or both addresses are null, so there is no prefix to speak of

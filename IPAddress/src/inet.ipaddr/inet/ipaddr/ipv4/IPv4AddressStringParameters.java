@@ -73,6 +73,14 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	 */
 	private final IPv4AddressNetwork network;
 	
+	/**
+	 * Retained for backwards compatibility<br>
+	 * 
+	 * Library users are strongly encourage to use the builder classes instead of this constructor.
+	 * 
+	 * @deprecated
+	 */
+	@Deprecated
 	public IPv4AddressStringParameters(
 			boolean allowLeadingZeros,
 			boolean allowCIDRPrefixLeadingZeros,
@@ -86,7 +94,55 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			boolean inet_aton_joinedSegments,
 			boolean inet_aton_single_segment_mask,
 			IPv4AddressNetwork network) {
-		super(allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
+		this(allowLeadingZeros,
+			allowCIDRPrefixLeadingZeros,
+			allowUnlimitedLeadingZeros,
+			rangeOptions,
+			allowWildcardedSeparator,
+			allowPrefixesBeyondAddressSize,
+			false, /* backwards compatibility to retain legacy behaviour, which did not support binary */
+			inet_aton_hex,
+			inet_aton_octal,
+			inet_aton_leading_zeros,
+			inet_aton_joinedSegments,
+			inet_aton_single_segment_mask,
+			network);
+	}
+	
+	/**
+	 * Constructs the parameters for IPv4-specific string parsing.
+	 * <br>
+	 * Users are strongly encouraged to use the nested Builder class instead of this constructor.
+	 * 
+	 * @param allowLeadingZeros
+	 * @param allowCIDRPrefixLeadingZeros
+	 * @param allowUnlimitedLeadingZeros
+	 * @param rangeOptions
+	 * @param allowWildcardedSeparator
+	 * @param allowPrefixesBeyondAddressSize
+	 * @param allowBinary
+	 * @param inet_aton_hex
+	 * @param inet_aton_octal
+	 * @param inet_aton_leading_zeros
+	 * @param inet_aton_joinedSegments
+	 * @param inet_aton_single_segment_mask
+	 * @param network
+	 */
+	public IPv4AddressStringParameters(
+			boolean allowLeadingZeros,
+			boolean allowCIDRPrefixLeadingZeros,
+			boolean allowUnlimitedLeadingZeros,
+			RangeParameters rangeOptions,
+			boolean allowWildcardedSeparator,
+			boolean allowPrefixesBeyondAddressSize,
+			boolean allowBinary,
+			boolean inet_aton_hex,
+			boolean inet_aton_octal,
+			boolean inet_aton_leading_zeros,
+			boolean inet_aton_joinedSegments,
+			boolean inet_aton_single_segment_mask,
+			IPv4AddressNetwork network) {
+		super(allowBinary, allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.inet_aton_hex = inet_aton_hex;
 		this.inet_aton_octal = inet_aton_octal;
 		this.inet_aton_leading_zeros = inet_aton_leading_zeros;
@@ -126,6 +182,12 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		public Builder allow_inet_aton(boolean allow) {
 			inet_aton_joinedSegments = inet_aton_octal = inet_aton_hex = allow;
 			super.allowUnlimitedLeadingZeros(allow);
+			return this;
+		}
+		
+		@Override
+		public Builder allowBinary(boolean allow) {
+			super.allowBinary(allow);
 			return this;
 		}
 		
@@ -233,6 +295,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 					rangeOptions, 
 					allowWildcardedSeparator,
 					allowPrefixesBeyondAddressSize,
+					allowBinary,
 					inet_aton_hex,
 					inet_aton_octal,
 					inet_aton_leading_zeros,

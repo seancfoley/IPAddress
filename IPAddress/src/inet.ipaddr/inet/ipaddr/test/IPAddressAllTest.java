@@ -793,7 +793,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		ipv6test(1, "0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff");
 		ipv6test(1, "0x0001000200030004ffffffffffffffff-0x00010002000300040000000000000000");
 		ipv6test(1, "0x00010002000300040000000000000000");
-		
+
 		ipv6test(1, "00010002000300040000000000000000-0001000200030004ffffffffffffffff");
 		ipv6test(1, "0001000200030004ffffffffffffffff-00010002000300040000000000000000");
 		ipv6test(1, "00010002000300040000000000000000");
@@ -805,6 +805,11 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		ipv6test(0, "00|M>t|ttwH6V6EEzkrZx" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "00|M>t|ttwH6V6EEzblZ");
 		ipv6test(0, "00|M>t|ttwH6V6EEzkrZ" + IPv6Address.ALTERNATIVE_RANGE_SEPARATOR + "x00|M>t|ttwH6V6EEzblZ");
 		
+		testMatches(true, "ef86:1dc3:deba:d48:612d:f19c:de7d:e89c", "********************"); // base 85
+		testMatches(true, "--------------------", "f677:73f6:11b4:5073:4a06:76c2:ceae:1474");
+		
+		ipv6test(true, "00000000000000000000000000000000-0001ffffffffffffffffffffffffffff");
+
 		ipv6test(1, "=q{+M|w0(OeO5^F85=Cb");
 		ipv6test(0, "=q{+M|w0.OeO5^F85=Cb"); // .
 		ipv6test(0, "=q{+:|w0(OeO5^F85=Cb"); // :
@@ -823,6 +828,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testMatches(true, "abfe0000000000000000000000000000-", "abfe0000000000000000000000000000-ffffffffffffffffffffffffffffffff");
 		
 		testMatches(true, "-0x0000000000000000efabffffffffffff", "00000000000000000000000000000000-0000000000000000efabffffffffffff");
+		testMatches(true, "-0X0000000000000000efabffffffffffff", "00000000000000000000000000000000-0000000000000000efabffffffffffff");
 		testMatches(true, "0x00000000000000000000000000000000-", "00000000000000000000000000000000-ffffffffffffffffffffffffffffffff");
 		testMatches(true, "0xabcd0000000000000000000000000000-", "abcd0000000000000000000000000000-ffffffffffffffffffffffffffffffff");
 		
@@ -850,6 +856,10 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 		testMatches(true, "0.1-.256-", "0.1-255.256-65535"); // more than one inferred range
 		testMatches(true, "1-.65536-", "1-255.65536-16777215"); // test more than one inferred range
 		
+		testMatches(true, "0b1.0b01.0b101.0b11111111", "1.1.5.255");
+		testMatches(true, "0b1.0b01.0b101.0b11111111/16", "1.1.5.255/16");
+		testMatches(true, "0b1.1.0b101.0b11111111/16", "1.1.5.255/16");
+
 		ipv4test(true, "*.0-65535"); //*.0.*.*
 
 		testSubnetStringRange("*.0-65535", "0.0.0.0", "255.0.255.255", new Object[] {new Integer[] {0, 255}, new Integer[] {0, 65535}}); // only valid with inet_aton allowed, and inet_aton takes precedence over wildcard

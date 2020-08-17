@@ -933,6 +933,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	protected abstract boolean containsNonZeroHostsImpl(IPAddressSection other, int otherPrefixLength);
 
+	/**
+	 * Returns whether the prefix of this address contains all values of the same bits in the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public abstract boolean prefixContains(IPAddressSection other);
+
 	@Override
 	public boolean isFullRange() {
 		int divCount = getDivisionCount();
@@ -1031,12 +1039,12 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		R result = addrCreator.createSection(segs);
 		return result;
 	}
-	
+
 	@FunctionalInterface
 	public interface TriFunction<R, S> {
 	    S apply(R addrItem, R addrItem2, R addrItem3);
 	}
-
+	
 	static <R extends IPAddressSegmentSeries, OperatorResult> OperatorResult applyOperatorToLowerUpper(
 			R first,
 			R other,
@@ -1045,7 +1053,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			Comparator<R> comparator,
 			Function<R, R> prefixRemover,
 			TriFunction<R, OperatorResult> operatorFunctor) {
-		//check if they are comparable first.  We only check segment count, we do not care about start index.
 		R lower, upper;
 		boolean isFirst, isOther;
 		isFirst = isOther = true;
@@ -2999,6 +3006,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		public String octalStringPrefixed;
 		public String octalString;
 		public String binaryString;
+		
+		public String segmentedBinaryString;
 	}
 	
 	public static class WildcardOptions {

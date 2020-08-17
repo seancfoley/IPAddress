@@ -33,7 +33,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  *
  */
 public interface IPAddressRange extends AddressComponentRange {
-	
+
 	/**
 	 * Returns whether this range contains all addresses in the given sequential range
 	 * 
@@ -154,6 +154,20 @@ public interface IPAddressRange extends AddressComponentRange {
 	 */
 	IPAddress[] spanWithSequentialBlocks();
 
+	/**
+	 * Returns whether this range represents a range of values that are sequential.
+	 * 
+	 * @return
+	 */
+	boolean isSequential();
+
+	/**
+	 * Converts to a sequential range from the lowest and highest addresses in this range, returns "this" if one already
+	 * <p>
+	 * The result will represent the same set of addresses if and only if {@link #isSequential()} is true
+	 */
+	IPAddressSeqRange toSequentialRange();
+	
 	/**
 	 * Produces a string that is unique and consistent for all instances.
 	 * @return
