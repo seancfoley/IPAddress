@@ -7,10 +7,11 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 
 [View Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
 
-[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/) and the [Bintray](https://bintray.com/seancfoley/ipaddress/com.github.seancfoley:ipaddress) [JCenter Repository](https://dl.bintray.com/seancfoley/ipaddress/) and packaged as an OSGI bundle
-- group id: com.github.seancfoley
-- artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
-- versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.3.1](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.3.1/jar)
+[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/) and the [Bintray](https://bintray.com/seancfoley/ipaddress/com.github.seancfoley:ipaddress) [JCenter Repository](https://dl.bintray.com/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
+- Maven group id: com.github.seancfoley
+- Maven artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
+- Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.3.1](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.3.1/jar)
+- OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
 
 As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
@@ -42,7 +43,7 @@ try {
 	IPAddress ipv4Address = new IPAddressString(ipv4Str).toAddress();
         // use addresses
 } catch (AddressStringException e) {
-	String msg = e.getMessage();//detailed message indicating improper format in address string
+	String msg = e.getMessage();//detailed message indicating improper string format
 	// handle improperly formatted address string
 }
 ```
@@ -58,7 +59,8 @@ try {
 	// use socket address
 	        
 	host = new HostName(hostServiceStr);
-	socketAddress = host.asInetSocketAddress(service -> service.equals("service") ? 100 : null);
+	socketAddress = host.asInetSocketAddress(
+		service -> service.equals("service") ? 100 : null);
 	// use socket address
 	        
 	host = new HostName(hostAddressStr);
@@ -113,7 +115,6 @@ Try(addressStr.toAddress) match {
         // handle improperly formatted address string
 }
 ```
-
 ## Groovy
 
 starting with address or subnet strings, using exceptions for invalid formats
