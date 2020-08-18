@@ -429,7 +429,7 @@ parsing.
 
 &#8203;
 
-**Address or Host Name Validation Options**
+#### Address or Host Name Validation Options
 
 Validation options allow you to restrict the allowed formats, whether
 you wish to support just IPv4 or IPv6, or whether you wish to support
