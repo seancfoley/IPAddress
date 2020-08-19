@@ -1566,6 +1566,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
+	@Deprecated
 	public IPv4AddressSection removePrefixLength() {
 		return removePrefixLength(true);
 	}

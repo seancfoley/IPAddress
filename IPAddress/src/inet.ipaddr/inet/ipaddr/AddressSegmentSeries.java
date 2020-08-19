@@ -364,16 +364,22 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries toPrefixBlock();
 
 	/**
-	 * Removes the prefix length while zeroing out the existing host bits.
+	 * Removes the prefix length while zeroing out the bits beyond the prefix.
 	 * <p>
 	 * If the series already has a prefix length, the bits outside the prefix become zero.
 	 * Use {@link #withoutPrefixLength()} to remove the prefix length without changing the series values.
 	 * <p>
 	 * Equivalent to calling removePrefixLength(true)
+	 * <p>
 	 * @see #withoutPrefixLength() for an alternative which does not change the address series values.
+	 * 
+	 * @deprecated to remove the prefix length, use {@link #withoutPrefixLength()}, 
+	 * 	to remove the prefix length and zero out the bits beyond the prefix, use {@link #adjustPrefixLength(int)}
+	 *  with {@link #getBitCount()} as the argument, as in adjustPrefixLength(getBitCount())
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	AddressSegmentSeries removePrefixLength();
 
 	/**
@@ -399,7 +405,8 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * Follows the same rules as {@link #adjustPrefixLength(int)}:<br>
 	 * When prefix length is increased, the bits moved within the prefix become zero.
 	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
-	 * 
+	 * To avoid the zeroing behaviour, use {@link #adjustPrefixBySegment(boolean, boolean)} with second arg false.
+	 * <p>
 	 * @param nextSegment whether to move prefix to previous or following segment boundary
 	 * @return
 	 */
@@ -420,6 +427,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * When prefix length is increased, the bits moved within the prefix become zero.
 	 * When the prefix is extended beyond the segment series boundary, it is removed.
 	 * When a prefix length is decreased, the bits moved outside the prefix become zero.
+	 * To avoid the zeroing behaviour, use {@link #adjustPrefixLength(int, boolean)} with second arg false.
 	 * 
 	 * @param adjustment
 	 * @return

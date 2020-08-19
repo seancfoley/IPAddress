@@ -2144,7 +2144,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	@Override @Deprecated
 	public abstract IPAddressSection removePrefixLength(boolean zeroed);
 
-	@Override
+	@Override @Deprecated
 	public abstract IPAddressSection removePrefixLength();
 	
 	@Override

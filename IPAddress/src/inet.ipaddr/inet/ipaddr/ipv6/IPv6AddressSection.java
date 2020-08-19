@@ -2160,7 +2160,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				(section, i) -> section.getSegment(i));
 	}
 
-	@Override
+	@Override @Deprecated
 	public IPv6AddressSection removePrefixLength() {
 		return removePrefixLength(true);
 	}

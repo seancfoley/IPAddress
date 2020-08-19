@@ -342,22 +342,28 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public IPv4AddressSegment reverseBytes() {
+		// Since a segment is already one byte, already reversed, but we do need to remove the prefix
 		return removePrefix(this, false, getSegmentCreator());
 	}
 	
 	@Override
+	public IPv4AddressSegment toZeroHost() {
+		return toZeroHost(this, getSegmentCreator());
+	}
+	
+	@Override @Deprecated
 	public IPv4AddressSegment removePrefixLength(boolean zeroed) {
 		return removePrefix(this, zeroed, getSegmentCreator());
 	}
 	
-	@Override
+	@Override @Deprecated
 	public IPv4AddressSegment removePrefixLength() {
 		return removePrefixLength(true);
 	}
 	
 	@Override
 	public IPv4AddressSegment withoutPrefixLength() {
-		return removePrefixLength(false);
+		return removePrefix(this, false, getSegmentCreator());
 	}
 	
 	@Override

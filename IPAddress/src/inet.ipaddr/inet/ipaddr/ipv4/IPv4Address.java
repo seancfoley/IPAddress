@@ -558,6 +558,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 
 	@Override
+	@Deprecated
 	public IPv4Address removePrefixLength() {
 		return removePrefixLength(true);
 	}

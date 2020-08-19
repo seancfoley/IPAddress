@@ -227,18 +227,23 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	@Override
+	public IPv6AddressSegment toZeroHost() {
+		return toZeroHost(this, getSegmentCreator());
+	}
+	
+	@Override @Deprecated
 	public IPv6AddressSegment removePrefixLength(boolean zeroed) {
 		return removePrefix(this, zeroed, getSegmentCreator());
 	}
 	
-	@Override
+	@Override @Deprecated
 	public IPv6AddressSegment removePrefixLength() {
 		return removePrefixLength(true);
 	}
 	
 	@Override
 	public IPv6AddressSegment withoutPrefixLength() {
-		return removePrefixLength(false);
+		return removePrefix(this, false, getSegmentCreator());
 	}
 
 	protected IPv6AddressCreator getSegmentCreator() {

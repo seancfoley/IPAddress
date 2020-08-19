@@ -2776,6 +2776,39 @@ public class IPAddressTest extends TestBase {
 		if(!Objects.equals(transformedHost.getNetworkPrefixLength(), specialHost.getNetworkPrefixLength())) {
 			addFailure(new Failure("prefix length mismatch " + transformedHost.getNetworkPrefixLength() + " and " + specialHost.getNetworkPrefixLength(), addr));
 		}
+		
+		for(int i = 0; i < addr.getSegmentCount(); i++) {
+			IPAddressSegment seg = addr.getSegment(i);
+			for(int j = 0; j < 2; j++) {
+				IPAddressSegment newSeg = seg.toZeroHost();
+				if(seg.isPrefixed()) {
+					Integer segPrefix = seg.getSegmentPrefixLength();
+					boolean allPrefsSubnets = seg.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+					if(allPrefsSubnets) {
+						if(newSeg.isPrefixed()) {
+							addFailure(new Failure("prefix length unexpected " + newSeg.getSegmentPrefixLength(), seg));
+						}
+					} else {
+						if(!newSeg.isPrefixed() || !segPrefix.equals(newSeg.getSegmentPrefixLength())) {
+							addFailure(new Failure("prefix length mismatch " + segPrefix + " and " + newSeg.getSegmentPrefixLength(), seg));
+						}
+						IPAddressSegment expected = seg.toNetworkSegment(segPrefix).getLower();
+						if(!newSeg.getLower().equals(expected)) {
+							newSeg = seg.toZeroHost();
+							addFailure(new Failure("new seg mismatch " + newSeg + " expected: " + expected, newSeg));
+						}
+						expected = seg.toNetworkSegment(segPrefix).getUpper().toZeroHost();
+						if(!newSeg.getUpper().equals(expected)) {
+							newSeg = seg.toZeroHost();
+							addFailure(new Failure("new seg mismatch " + newSeg + " expected: " + expected, newSeg));
+						}
+					}
+				} else if(newSeg.isPrefixed() || !newSeg.isZero()) {
+					addFailure(new Failure("new seg not zero " + newSeg, newSeg));
+				}
+				seg = newSeg;
+			}
+		}
 		incrementTestCount();
 	}
 	

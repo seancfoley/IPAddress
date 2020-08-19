@@ -595,7 +595,7 @@ public abstract class Address implements AddressSegmentSeries {
 	@Override
 	public abstract Address toPrefixBlock();
 	
-	@Override
+	@Override @Deprecated
 	public abstract Address removePrefixLength();
 	
 	@Override

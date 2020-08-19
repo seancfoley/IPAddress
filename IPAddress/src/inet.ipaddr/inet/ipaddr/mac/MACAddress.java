@@ -419,8 +419,8 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		}
 		return getAddressCreator().createAddress(newSection);
 	}
-	
-	@Override
+
+	@Override @Deprecated
 	public MACAddress removePrefixLength() {
 		return removePrefixLength(true);
 	}

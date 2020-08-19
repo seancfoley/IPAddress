@@ -1700,7 +1700,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public abstract IPAddress bitwiseOrNetwork(IPAddress mask, int networkPrefixLength) throws AddressConversionException, IncompatibleAddressException;
 	
-	@Override
+	@Override @Deprecated
 	public abstract IPAddress removePrefixLength();
 	
 	@Override @Deprecated

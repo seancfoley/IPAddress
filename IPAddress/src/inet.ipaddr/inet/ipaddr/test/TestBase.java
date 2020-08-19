@@ -582,38 +582,48 @@ public abstract class TestBase {
 			AddressSegmentSeries adjusted,
 			AddressSegmentSeries prefixSet,
 			AddressSegmentSeries prefixApplied) {
-		AddressSegmentSeries removed = original.removePrefixLength();
-		if(original.isPrefixed()) {
-			int prefLength = original.getPrefixLength();
-			int bitsSoFar = 0;
-			for(int i = 0; i < removed.getSegmentCount(); i++) {
-				int prevBitsSoFar = bitsSoFar;
-				AddressSegment seg = removed.getSegment(i);
-				bitsSoFar += seg.getBitCount();
-				if(prefLength >= bitsSoFar) {
-					if(!seg.equals(original.getSegment(i))) {
-						addFailure(new Failure("removed prefix: " + removed, original));
-						break;
-					}
-				} else if(prefLength <= prevBitsSoFar) {
-					if(!seg.isZero()) {
-						addFailure(new Failure("removed prefix all: " + removed, original));
-						break;
-					}
-				} else {
-					int segPrefix = prefLength - prevBitsSoFar;
-					int mask = ~0 << (seg.getBitCount() - segPrefix);
-					int lower = seg.getSegmentValue();
-					int upper = seg.getUpperSegmentValue();
-					if((lower & mask) != lower || (upper & mask) != upper) {
-						removed = original.removePrefixLength();
-						addFailure(new Failure("prefix app: " + removed + " " + (lower & mask) + " " + (upper & mask), original));
-						break;
+		for(int j = 0; j < 2; j++) {
+			AddressSegmentSeries removed = (j == 0) ? original.removePrefixLength() : original.adjustPrefixLength(original.getBitCount());
+			if(j == 1 && original.getPrefixLength() != null && original.getPrefixLength() == 0) {
+				removed = original.adjustPrefixLength(original.getBitCount() + 1);
+			}
+			if(original.isPrefixed()) {
+				int prefLength = original.getPrefixLength();
+				int bitsSoFar = 0;
+				for(int i = 0; i < removed.getSegmentCount(); i++) {
+					int prevBitsSoFar = bitsSoFar;
+					AddressSegment seg = removed.getSegment(i);
+					bitsSoFar += seg.getBitCount();
+					if(prefLength >= bitsSoFar) {
+						if(!seg.equals(original.getSegment(i))) {
+							addFailure(new Failure("removed prefix: " + removed, original));
+							break;
+						}
+					} else if(prefLength <= prevBitsSoFar) {
+						if(!seg.isZero()) {
+							addFailure(new Failure("removed prefix all: " + removed, original));
+							break;
+						}
+					} else {
+						int segPrefix = prefLength - prevBitsSoFar;
+						int mask = ~0 << (seg.getBitCount() - segPrefix);
+						int lower = seg.getSegmentValue();
+						int upper = seg.getUpperSegmentValue();
+						if((lower & mask) != lower || (upper & mask) != upper) {
+							//removed = original.removePrefixLength();
+							addFailure(new Failure("prefix app: " + removed + " " + (lower & mask) + " " + (upper & mask), original));
+							break;
+						}
 					}
 				}
+				if(removed.isPrefixed()) {
+					addFailure(new Failure("prefix not removed: " + removed, original));
+				}
+			} else if(!removed.equals(original)) {
+				addFailure(new Failure("prefix removed: " + removed, original));
+			} else if(removed.isPrefixed()) {
+				addFailure(new Failure("prefix not removed from non-prefixed: " + removed, original));
 			}
-		} else if(!removed.equals(original)) {
-			addFailure(new Failure("prefix removed: " + removed, original));
 		}
 		AddressSegmentSeries adjustedSeries = original.adjustPrefixBySegment(true);
 		Integer nextPrefix = adjustedSeries.getPrefixLength();

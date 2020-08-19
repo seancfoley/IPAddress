@@ -1422,8 +1422,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address applyPrefixLength(int networkPrefixLength) throws PrefixLenException {
 		return checkIdentity(getSection().applyPrefixLength(networkPrefixLength));
 	}
-	
-	@Override
+
+	@Override @Deprecated
 	public IPv6Address removePrefixLength() {
 		return removePrefixLength(true);
 	}

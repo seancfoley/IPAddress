@@ -406,7 +406,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	BigInteger getSequentialBlockCount();
-	
+
 	@Override
 	Iterator<? extends IPAddressSegment[]> segmentsIterator();
 
@@ -422,7 +422,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
-	
+
 	@Override
 	IPAddressSegmentSeries increment(long increment);
 
@@ -448,7 +448,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSegmentSeries toZeroHost();
-	
+
 	/**
 	 * Produces the series with host values of 0 for the given prefix length.
 	 * <p>
@@ -456,7 +456,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * <p>
 	 * This is nearly equivalent to doing the mask (bitwise conjunction) of this address series with the network mask for the given prefix length,
 	 * but without the possibility of IncompatibleAddressException that can occur when applying a mask to a range of values.
-	 * Instead, in this case, if the resulting series has a range of values, then the resulting series range boundaries will have host values of 0, but not necessarily  the intervening values.
+	 * Instead, in this case, if the resulting series has a range of values, then the resulting series range boundaries will have host values of 0, but not necessarily the intervening values.
 	 * <p>
 	 * For instance, you can get the network address for a subnet of prefix length 16 as follows:
 	 * <code>
@@ -482,7 +482,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSegmentSeries toZeroNetwork();
-	
+
 	/**
 	 * Returns whether the series has a host of zero.  If the series has no prefix length, or the prefix length matches the bit count, then returns false.
 	 * 
@@ -491,7 +491,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	boolean includesZeroHost();
-	
+
 	/**
 	 * Returns whether all bits past the given prefix length are zero.
 	 * 
@@ -519,7 +519,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSegmentSeries toMaxHost(int prefixLength);
-	
+
 	/**
 	 * Returns the segment series with a host of all ones.
 	 * If the series has no prefix length, then it returns an all-ones series.
@@ -537,8 +537,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSegmentSeries toMaxHost();
-	
-	
+
 	/**
 	 * Returns whether the series has a host of all ones.  If the series has no prefix length, or the prefix length matches the bit count, then returns false.
 	 * 
@@ -581,7 +580,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	@Override
 	IPAddressSegmentSeries reverseBytesPerSegment();
 	
-	@Override
+	@Override @Deprecated
 	IPAddressSegmentSeries removePrefixLength();
 	
 	@Override
@@ -608,7 +607,6 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	@Override
 	IPAddressSegmentSeries setPrefixLength(int prefixLength, boolean zeroed);
 
-	@Deprecated
-	@Override
+	@Override @Deprecated
 	IPAddressSegmentSeries applyPrefixLength(int networkPrefixLength);
 }

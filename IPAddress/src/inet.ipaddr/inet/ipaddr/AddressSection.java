@@ -76,7 +76,7 @@ public interface AddressSection extends AddressSegmentSeries {
 	@Override
 	AddressSection toPrefixBlock();
 
-	@Override
+	@Override @Deprecated
 	AddressSection removePrefixLength();
 	
 	@Override

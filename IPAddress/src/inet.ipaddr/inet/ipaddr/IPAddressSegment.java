@@ -595,11 +595,77 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	@Override
 	public abstract IPAddressSegment reverseBytes();
 
+	/**
+	 * @deprecated use {@link #withoutPrefixLength()} and {@link #toZeroHost()}
+	 * @return
+	 */
+	@Deprecated
 	public abstract IPAddressSegment removePrefixLength();
-	
+
+	/**
+	 * Returns a segment with the same network bits as this segment, 
+	 * but with the host bits changed to 0.
+	 * <p>
+	 * If there is no prefix length associated with this segment, returns an all-zero segment.
+	 * <p>
+	 * This is nearly equivalent to doing the mask (see {@link #maskRange(int)}) of this segment
+	 * with the network mask for the given prefix length,
+	 * but when applying a mask to a range of values you can have a non-sequential result.
+	 * <p>
+	 * With this method, if the resulting series has a range of values, 
+	 * then the resulting series range boundaries will have host values of 0, 
+	 * but not necessarily all the intervening values.
+	 * <p>
+	 * For instance, the 1-byte segment range 4-7 with prefix length 6, 
+	 * when masked with 252 (the network mask) results in just the single value 4, matching the result of this method.
+	 * The 1-byte segment range 4-8 with prefix length 6, 
+	 * when masked with 252 results in the two non-sequential values, 4 and 8, 
+	 * but the result of this method with prefix length 6 results in the range 4-8, the same as the original segment.
+	 * <p>
+	 * The default behaviour is that the resultant series will have the same prefix length.
+	 * The resultant series will not have a prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}. 
+	 *
+	 * @param withoutPrefixLength whether the new segment retains the same prefix length
+	 * @return
+	 */
+	public abstract IPAddressSegment toZeroHost();
+
+	/**
+	 * @deprecated use {@link #withoutPrefixLength()} and {@link #toZeroHost()}
+	 * @param zeroed
+	 * @return
+	 */
+	@Deprecated
 	public abstract IPAddressSegment removePrefixLength(boolean zeroed);
-	
+
+	/**
+	 * Returns a segment with the same values but without a prefix length.
+	 * 
+	 * @return
+	 */
 	public abstract IPAddressSegment withoutPrefixLength();
+	
+	protected static <S extends IPAddressSegment> S toZeroHost(S original, AddressSegmentCreator<S> creator) {
+		if(original.isPrefixed()) {
+			int lower = original.getSegmentValue();
+			int upper = original.getUpperSegmentValue();
+			Integer segmentPrefixLength = original.getSegmentPrefixLength();
+			int mask = original.getSegmentNetworkMask(segmentPrefixLength);
+			int newLower = lower & mask;
+			int newUpper = upper & mask;
+			boolean allPrefsSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+			if(allPrefsSubnets) {
+				return creator.createSegment(newLower, newUpper, null);
+			}
+			if(newLower == lower && newUpper == upper) {
+				return original;
+			}
+			return creator.createSegment(newLower, newUpper, segmentPrefixLength);
+		} else if(original.isZero()) {
+			return original;
+		}
+		return creator.createSegment(0, null);
+	}
 	
 	protected static <S extends IPAddressSegment> S removePrefix(S original, boolean zeroed, AddressSegmentCreator<S> creator) {
 		if(original.isPrefixed()) {

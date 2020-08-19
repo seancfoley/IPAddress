@@ -1002,8 +1002,8 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		result.assignPrefixLength(null);
 		return result;
 	}
-	
-	@Override
+
+	@Override @Deprecated
 	public MACAddressSection removePrefixLength() {
 		return removePrefixLength(true);
 	}
@@ -1018,6 +1018,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		if(getPrefixLength() == null) {
 			return this;
 		}
+		return removePrefix(zeroed);
+	}
+
+	private MACAddressSection removePrefix(boolean zeroed) {
 		MACAddressSegment oldSegs[] = getSegmentsInternal();
 		MACAddressSegment newSegs[] = removePrefix(//when we increase the prefix length, we zero out the bits between old and new, and in this case we are always doing that as we go from having one to having none
 				this,
@@ -1054,7 +1058,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		if(adjustment == 0) {
 			return this;
 		}
-		int prefix = getAdjustedPrefix(adjustment, true, true);
+		int prefix = getAdjustedPrefix(adjustment, true, false);
+		if(prefix > getBitCount()) {
+			return removePrefix(zeroed);
+		}
 		return setPrefixLength(prefix, zeroed);
 	}
 
