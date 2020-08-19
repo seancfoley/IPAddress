@@ -922,9 +922,8 @@ static void spanAndMerge(String address1, String address2) {
   System.out.println("Prefix blocks: " + Arrays.asList(result));
 
   IPAddress result2[] = range.spanWithSequentialBlocks();
-  System.out.println("Sequential blocks: " +
+  System.out.println("Sequential blocks: " + Arrays.asList(result2));
 
-  Arrays.asList(result2));
   List<IPAddressSeqRange> rangeList = new ArrayList<>();
   for(IPAddress a : result) {
     IPAddressSeqRange r = a.toSequentialRange();
