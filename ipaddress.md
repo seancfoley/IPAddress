@@ -265,7 +265,7 @@ host name with labels: [a, b, com]
 
 &#8203;
 
-**Format Examples**
+#### Format Examples
 
 Many formats are supported. For instance, the address 1:2:3:0:0:6:: can
 be represented many ways as shown.
@@ -413,7 +413,7 @@ ffff::/104
 
 &#8203;
 
-**Delimited Segments**
+#### Delimited Segments
 
 The subnet formats allow you to specify ranges of values. However, if
 you wish to parse addresses in which values are delimited, then you can
@@ -471,7 +471,7 @@ restrictive.
 
 &#8203;
 
-**Host Name or Address with Port or Service Name**
+#### Host Name or Address with Port or Service Name
 
 For an address or host with port or service name, use `HostName`. IPv6
 addresses with ports should appear as [ipv6Address]:port to resolve
@@ -501,7 +501,7 @@ host: 127.0.0.1 address: 127.0.0.1 port: 80
 
 &#8203;
 
-**IP Version Determination and IPv4/v6 Conversion**
+#### IP Version Determination and IPv4/v6 Conversion
 
 With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` and `isIPv6()` and get the appropriate subclass with
 `toIPv4()` or `toIPv6()`. You can also make use of `isIPv4Convertible()` and `isIPv6Convertible()` to do further conversions if the address is IPv4-mapped, or you can use your own instance of `IPAddressConverter` for some
@@ -528,7 +528,7 @@ mapped to something else, you can override the pair of methods `toIPv4()` and `i
 
 &#8203;
 
-**Prefixed Addresses and toHostAddress()**
+#### Prefixed Addresses and toHostAddress()
 
 This library will parse CIDR prefix IP addresses such as 10.1.2.3/24.
 On its own, that string can be interpreted both as an individual address, or as a prefix block with prefix 10.1.2.  With other libraries, the ambiguity is resolved by the method, function, or class used for parsing.  However, this library uses the same types and methods for both subnets and individual addresses, which can result in much cleaner and more flexible code.
@@ -585,7 +585,7 @@ count: 256
 
 &#8203;
 
-**Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85**
+#### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85
 
 Typically, the segments or other punctuation identify a string as a host
 name, as an IPv4 address, or as an IPv6 address. The parser will also
@@ -629,7 +629,7 @@ However, the string can still be parsed, and the parsed result can be obtained u
 
 &#8203;
 
-**Parse Special Host Names – Reverse DNS Host Name, IPv6 Literal UNC Host Name**
+#### Parse Special Host Names – Reverse DNS Host Name, IPv6 Literal UNC Host Name
 
 A couple of standardized host formats are recognized, namely the reverse
 DNS host format, and the UNC IPv6 literal host format.
@@ -659,7 +659,7 @@ public boolean isReverseDNS()
 
 &#8203;
 
-**Parse IPv6 Zone or Scope ID**
+#### Parse IPv6 Zone or Scope ID
 
 The IPv6 zone or scope ID is recognized, denoted by the ‘%’ character.  It can be retrieved by `IPv6Address.getZone()`.
 ```java
@@ -710,7 +710,7 @@ Each network’s associated creator object is accessible from
 
 &#8203;
 
-**Using your own address classes**
+#### Using your own Address Classes
 
 Users can create their own subclasses of the address and address
 component classes (eg your own subclasses of `IPv6Address`,
@@ -770,7 +770,7 @@ you to set any given prefix length directly such as
 
 &#8203;
 
-**Prefix Length and Equality**
+#### Prefix Length and Equality
 
 In this library, the subnet with prefix length 10.1.2.\*/24 is
 equivalent the non-prefixed address 10.1.2.\* as they both contain the
@@ -796,7 +796,7 @@ segments has the correct number of segments for the address type.
 
 &#8203;
 
-**Host and Network Sections of IP Address**
+#### Host and Network Sections of IP Address
 
 Use `getHostSection()` and `getNetworkSection()` to get the host and network
 sections of an IP address as indicated by prefix length.
@@ -919,7 +919,7 @@ static void spanAndMerge(String address1, String address2) {
     range.getCount() + ": " + range);
 
   IPAddress result[] = range.spanWithPrefixBlocks();
-  System.out.println("Prefix blocks: " + Arrays.*asList*(result));
+  System.out.println("Prefix blocks: " + Arrays.asList(result));
 
   IPAddress result2[] = range.spanWithSequentialBlocks();
   System.out.println("Sequential blocks: " +
@@ -931,10 +931,9 @@ static void spanAndMerge(String address1, String address2) {
     rangeList.add(r);
   }
   IPAddressSeqRange joined[] = IPAddressSeqRange.join(
-  rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+    rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
   System.out.println("Merged prefix blocks back again: " +
-
-  Arrays.asList(joined));
+     Arrays.asList(joined));
   rangeList.clear();
   for(IPAddress a : result2) {
     IPAddressSeqRange r = a.toSequentialRange();
@@ -942,8 +941,8 @@ static void spanAndMerge(String address1, String address2) {
   }
   joined = IPAddressSeqRange.join(
     rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-    System.out.println("Merged sequential blocks back again: " +
-      Arrays.asList(joined));
+  System.out.println("Merged sequential blocks back again: " +
+    Arrays.asList(joined));
 }
 ```
 Output:
@@ -1099,7 +1098,7 @@ Output:
 
 &#8203;
 
-**Partitioning Subnets**
+#### Partitioning Subnets
 
 An address trie accepts individual addresses or CIDR prefix blocks subnets.  While this covers most use-cases, there are IPAddress instances that cannot be added to a trie as-is.  But any subnet can be subdivided or partitioned in various ways.  
 
@@ -1164,7 +1163,7 @@ There are various methods for masking, obtaining subnets, and so on.
 
 &#8203;
 
-**Summary of IP Address Operations**
+#### Summary of IP Address Operations
 
 Here is a summary, a non-exhaustive list, in no specific order, of
 operations for transforming addresses and subnets.  Many of these methods are available not just for address instances, but also for sections, for sequential ranges, and a few are available for segments as well:
@@ -1263,7 +1262,7 @@ operations for transforming addresses and subnets.  Many of these methods are av
 
 &#8203;
 
-**Queries for Prefix Lengths and Prefix Blocks**
+#### Queries for Prefix Lengths and Prefix Blocks
 
 In some cases you may need to know if you have a prefix block subnet,
 such as the /64 block a:&#8203;b:c:d::/64 or the /16 block 1.2.0.0/16, in which
@@ -1302,7 +1301,7 @@ lengths of blocks.
 
 &#8203;
 
-**Iterators, Spliterators and Streams**
+#### Iterators, Spliterators and Streams
 
 Various iterators, spliterators and streams are available for traversing through subnets in different ways.
 
@@ -1343,7 +1342,7 @@ Various iterators, spliterators and streams are available for traversing through
 
 &#8203;
 
-**Mask and Prefix Length Operations**
+#### Mask and Prefix Length Operations
 
 The methods `mask`, `maskNetwork`, `bitwiseOr`, `bitwiseOrNetwork`,
 `removePrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`,
@@ -1374,26 +1373,21 @@ System.out.println("mask with prefix length " + maskWithPrefLen);
 System.out.println("mask " + mask);
 
 IPAddress maskedAddress = address.mask(mask);
-
 System.out.println("address " + address + " masked " + maskedAddress);
 
 // create the subnet
 
-IPAddress subnet =
-address.applyPrefixLength(prefixLength).toPrefixBlock();
+IPAddress subnet = address.applyPrefixLength(prefixLength).toPrefixBlock();
 
 // mask
 
 IPAddress maskedSubnet = subnet.mask(mask);
-
-System.out.println("subnet " + subnet + " masked " +
-maskedSubnet);
+System.out.println("subnet " + subnet + " masked " + maskedSubnet);
 System.out.println("equals: " + maskedAddress.equals(maskedSubnet));
 
 // getLower
 
 IPAddress lowestInSubnet = subnet.getLower();
-
 System.out.println("lowest in subnet " + lowestAddressInSubnet);
 System.out.println("lowest in subnet no prefix " + lowestInSubnet.removePrefixLength(false));
 System.out.println("equals: " + maskedAddress.equals(lowestAddressInSubnet));
@@ -1418,7 +1412,7 @@ prefix removed 1.2.0.0
 
 &#8203;
 
-**Polymorphism**
+#### Polymorphism
 
 Simply change the string "1.2.3.4" in the code above to an IPv6 address
 like a:ffff:&#8203;b:c:d::f and the code works all the same.
@@ -1438,7 +1432,7 @@ prefix removed a::
 
 &#8203;
 
-**Subnetting**
+#### Subnetting
 
 Subnetting can be accomplished using various address manipulation
 methods. Given a prefixed IP address, you can extend the prefix length
@@ -1499,7 +1493,7 @@ Output:
 
 &#8203;
 
-**Trie Operations**
+#### Trie Operations
 
 Most of these operations are methods that operate directly on `AddressTrie` or `AssociativeAddressTrie` instances, but some are available from their associated `AddressTrieSet` or  `AddressTrieMap` instances available from `asSet` or `asMap`, in which case the methods would still be operating on the same backing trie.
 
@@ -1534,7 +1528,7 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 &#8203;
 
-**Trie Iterators, Spliterators, and Streams**
+#### Trie Iterators, Spliterators, and Streams
 
 Most of these traversal methods traverse the nodes, while some traverse the keys/addresses of the nodes, including those iterators and spliterators within `AddressTrieSet` or `AddressTrieMap`.
 
@@ -1580,7 +1574,7 @@ try {
 
 &#8203;
 
-**Various Formats of MAC Addresses**
+#### Various Formats of MAC Addresses
 
 MAC Addresses are expected to be in hexadecimal. However, there is a number of accepted formats for MAC addresses:
 ```
@@ -1613,7 +1607,7 @@ dash ‘-’ character as a separator is ‘|’, like aa|bb-\*-\*-cc-dd-ee.
 
 &#8203;
 
-**Format Examples**
+#### Format Examples
 
 For instance, the address 0a:0b:0c:0d:0e:0f can be represented many
 ways:
@@ -1690,7 +1684,7 @@ ff:0f:aa-ff:*:*:*
 
 &#8203;
 
-**Delimited Segments**
+#### Delimited Segments
 
 The range formats allow you to specify ranges of values. However, if you
 wish to parse addresses in which values are delimited, then you can use
@@ -1706,7 +1700,7 @@ return 4 for the possible combinations: "1:3:4:6:7:8", "1:3:5:6:7:8",
 
 &#8203;
 
-**MAC Address Validation Options**
+#### MAC Address Validation Options
 
 Validation options allow you to restrict the allowed formats.
 
@@ -1734,7 +1728,7 @@ restrictive.
 
 &#8203;
 
-**MAC Address Prefix Lengths**
+#### MAC Address Prefix Lengths
 
 A 'prefix length' in this library is defined generally as the bit-length of
 the foremost portion of the address that is not specific to an individual address
@@ -1810,11 +1804,9 @@ public IPv6Address(IPv6Address prefix, MACAddress eui)
 
 public IPv6Address(IPv6AddressSection section, MACAddress eui)
 
-public IPv6Address(IPv6AddressSection section, MACAddressSection
-eui)
+public IPv6Address(IPv6AddressSection section, MACAddressSection eui)
 
-public IPv6Address(IPv6AddressSection section, MACAddressSection
-eui, CharSequence zone)
+public IPv6Address(IPv6AddressSection section, MACAddressSection eui, CharSequence zone)
 ```
 There are equivalent methods in the class `MACAddress` for producing the
 link local address which has a pre-defined prefix, or for producing the
@@ -2051,7 +2043,7 @@ MAC address only:
 
 &#8203;
 
-**More Details and Examples**
+#### More Details and Examples
 
 `AddressSegmentSeries` objects (such as `Address` and `AddressSection`) have
 methods that produce strings in various formats: `toCanonicalString`,
@@ -2191,7 +2183,7 @@ a:b:c:*::
 
 &#8203;
 
-**UNC Strings**
+#### UNC Strings
 
 The method `toUNCHostName()` produces the UNC IP-literal string.
 ```java
@@ -2211,7 +2203,7 @@ Output:
 
 &#8203;
 
-**DNS Lookup Strings**
+#### DNS Lookup Strings
 
 The method `toReverseDNSLookupString()` will produce a string for DNS
 lookup. If you wish to do a DNS lookup for a subnet rather than a full
@@ -2251,7 +2243,7 @@ Output:
 
 &#8203;
 
-**General String Methods**
+#### General String Methods
 
 The methods `toCanonicalString` and `toCompressedString` are available for
 any address or address section.
@@ -2261,7 +2253,7 @@ address component, including segments and sections.
 
 &#8203;
 
-**Prefix Length Indicator in Strings**
+#### Prefix Length Indicator in Strings
 
 Typically prefix lengths will be added to IP strings. To choose to print
 wildcards `*` and range characters `-` as opposed to using prefix
@@ -2299,7 +2291,7 @@ a:b:c:%:%:%:%:%
 
 &#8203;
 
-**IP Version-dependent Strings**
+#### IP Version-dependent Strings
 
 Some strings are version-dependent:
 ```java
@@ -2321,7 +2313,7 @@ a:b::/64
 
 &#8203;
 
-**Collections of IP Address Strings**
+#### Collections of IP Address Strings
 
 You can produce collections of strings:
 ```java
@@ -2617,7 +2609,7 @@ prefix, while options 2 and 3 do not.
 
 &#8203;
 
-**Configuring Alternative Prefix Length Handling**
+#### Configuring Alternative Prefix Length Handling
 
 To choose one of the non-default prefix length handling options, such as
 the legacy option, you make use of the `PrefixConfiguration` enum type and
