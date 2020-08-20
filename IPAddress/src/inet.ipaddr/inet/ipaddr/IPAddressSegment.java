@@ -625,13 +625,12 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	 * The default behaviour is that the resultant series will have the same prefix length.
 	 * The resultant series will not have a prefix length if {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()} is {@link inet.ipaddr.AddressNetwork.PrefixConfiguration#ALL_PREFIXED_ADDRESSES_ARE_SUBNETS}. 
 	 *
-	 * @param withoutPrefixLength whether the new segment retains the same prefix length
 	 * @return
 	 */
 	public abstract IPAddressSegment toZeroHost();
 
 	/**
-	 * @deprecated use {@link #withoutPrefixLength()} and {@link #toZeroHost()}
+	 * @deprecated use {@link #toZeroHost()} and {@link #withoutPrefixLength()}
 	 * @param zeroed
 	 * @return
 	 */
@@ -773,7 +772,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	 * @return whether this subnet segment contains the given address segment
 	 */
 	protected boolean containsSeg(AddressSegment other) {
-		return this == other || (other.getSegmentValue() >= getSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue());
+		return other.getSegmentValue() >= getSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue();
 	}
 
 	@Override

@@ -365,15 +365,20 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	public IPv4AddressSegment withoutPrefixLength() {
 		return removePrefix(this, false, getSegmentCreator());
 	}
-	
+
+	@Override
+	public boolean prefixContains(IPAddressSegment other, int segmentPrefixLength) {
+		return this == other || (super.prefixContains(other, segmentPrefixLength) && other instanceof IPv4AddressSegment);
+	}
+
 	@Override
 	public boolean prefixEquals(AddressSegment other, int segmentPrefixLength) {
-		return super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv4AddressSegment;
+		return this == other || (super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv4AddressSegment);
 	}
 
 	@Override
 	public boolean contains(AddressSegment other) {
-		return containsSeg(other) && other instanceof IPv4AddressSegment;
+		return this == other || (containsSeg(other) && other instanceof IPv4AddressSegment);
 	}
 	
 	@Override

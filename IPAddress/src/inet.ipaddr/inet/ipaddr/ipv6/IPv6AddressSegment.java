@@ -431,22 +431,18 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	@Override
-	public boolean prefixEquals(IPAddressSegment other) {
-		Integer prefLength = getSegmentPrefixLength();
-		if(prefLength == null) {
-			return equals(other);
-		}
-		return prefixEquals(other, prefLength);
+	public boolean prefixContains(IPAddressSegment other, int segmentPrefixLength) {
+		return this == other || (super.prefixContains(other, segmentPrefixLength) && other instanceof IPv6AddressSegment);
 	}
-	
+
 	@Override
 	public boolean prefixEquals(AddressSegment other, int segmentPrefixLength) {
-		return super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv6AddressSegment;
+		return this == other || (super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv6AddressSegment);
 	}
 	
 	@Override
 	public boolean contains(AddressSegment other) {
-		return containsSeg(other) && other instanceof IPv6AddressSegment;
+		return this == other || (containsSeg(other) && other instanceof IPv6AddressSegment);
 	}
 	
 	@Override
