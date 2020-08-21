@@ -352,8 +352,8 @@ public class Validator implements HostIdentifierStringValidator {
 						}
 					}
 				} else {
-					//no segment separator so far and segmentCount is 0
-					//it could be all addresses like "*", empty "", prefix-only ip address like /64, single segment like 12345, or single segment range like 12345-67890
+					// no segment separator so far and segmentCount is 0
+					// it could be all addresses like "*", empty "", prefix-only ip address like /64, single segment like 12345, or single segment range like 12345-67890
 					int totalCharacterCount = index - strStartIndex;
 					if(totalCharacterCount == 0) {
 						//it is prefix-only or ""
@@ -378,19 +378,19 @@ public class Validator implements HostIdentifierStringValidator {
 					int totalDigits = index - segmentValueStartIndex;
 					int frontTotalDigits = frontLeadingZeroCount + frontDigitCount;
 					if(isMac) {
-						//we handle the double segment format abcdef-abcdef here
+						// we handle the double segment format abcdef-abcdef here
 						if(		(	((totalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT || totalDigits == MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT) && (frontTotalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT || frontWildcardCount > 0)) || 
 									(frontTotalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT && wildcardCount > 0) ||
 									(frontWildcardCount > 0 && wildcardCount > 0)
 								) && !firstSegmentDashedRange) {//checks for *-abcdef and abcdef-* and abcdef-abcdef and *-* two segment addresses
-								//firstSegmentDashedRange means that the range character is '|'
+								// firstSegmentDashedRange means that the range character is '|'
 							AddressSize addressSize = macOptions.addressSize;
 							if(addressSize == AddressSize.EUI64 && totalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT) {
 								throw new AddressStringException(str, "ipaddress.error.too.few.segments");
 							} else if(addressSize == AddressSize.MAC && totalDigits == MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT) {
 								throw new AddressStringException(str, "ipaddress.error.too.many.segments");
 							}
-							//we have aaaaaa-bbbbbb
+							// we have aaaaaa-bbbbbb
 							if(!macOptions.allowSingleDashed) {
 								throw new AddressStringException(str, "ipaddress.mac.error.format");
 							}
@@ -399,14 +399,14 @@ public class Validator implements HostIdentifierStringValidator {
 							currentChar = MACAddress.DASH_SEGMENT_SEPARATOR;
 							checkCharCounts = false; //counted chars already
 						} else if(frontWildcardCount > 0 || wildcardCount > 0) {
-							//either x-* or *-x, we treat these as if they can be expanded to x-*-*-*-*-* or *-*-*-*-*-x
+							// either x-* or *-x, we treat these as if they can be expanded to x-*-*-*-*-* or *-*-*-*-*-x
 							if(!macOptions.allowSingleDashed) {
 								throw new AddressStringException(str, "ipaddress.mac.error.format");
 							}
 							currentChar = MACAddress.DASH_SEGMENT_SEPARATOR;
 						} else {
-							//a string of digits with no segment separator
-							//here we handle abcdefabcdef or abcdefabcdef|abcdefabcdef or abcdefabcdef-abcdefabcdef
+							// a string of digits with no segment separator
+							// here we handle abcdefabcdef or abcdefabcdef|abcdefabcdef or abcdefabcdef-abcdefabcdef
 							if(!baseOptions.allowSingleSegment) {
 								throw new AddressStringException(str, "ipaddress.error.single.segment");
 							}
@@ -517,7 +517,7 @@ public class Validator implements HostIdentifierStringValidator {
 				++index;
 			} else if(currentChar == IPv4Address.SEGMENT_SEPARATOR) {
 				int segCount = parseData.getSegmentCount();
-				//could be mac or ipv4, we handle either one
+				// could be mac or ipv4, we handle either one
 				if(isMac) {
 					if(segCount == 0) {
 						if(!macOptions.allowDotted) {
@@ -849,8 +849,6 @@ public class Validator implements HostIdentifierStringValidator {
 										throw new AddressStringException(str, "ipaddress.error.empty.segment.at.index", index);
 									}
 									rangeFlags |= AddressParseData.KEY_INFERRED_LOWER_BOUNDARY;
-									//front = 0;
-									//isReversed = false;
 								} else if(frontDigitCount > 10) { // 4294967295
 									throw new AddressStringException(str, "ipaddress.error.segment.too.long.at.index", frontLeadingZeroStartIndex);
 								} else {
@@ -1113,8 +1111,6 @@ public class Validator implements HostIdentifierStringValidator {
 									ipv6SpecificOptions.allowZone &&
 									((parseData.getSegmentCount() > 0 && (isEmbeddedIPv4 || ipAddressParseData.getProviderIPVersion() == IPVersion.IPV6) /* at end of IPv6 regular or mixed */) || 
 											isSingleSegmentIPv6(index - segmentValueStartIndex, rangeWildcardIndex >= 0, frontLeadingZeroCount + frontDigitCount, ipv6SpecificOptions) ||
-											//xxx (index - segmentValueStartIndex == IPV6_SINGLE_SEGMENT_DIGIT_COUNT && (rangeWildcardIndex < 0 || frontLeadingZeroCount + frontDigitCount == IPV6_SINGLE_SEGMENT_DIGIT_COUNT) /* at end of ipv6 single segment */) || 
-											// DG		(leadingZeroCount + digitCount == 32 && (rangeWildcardIndex < 0 || frontLeadingZeroCount + frontDigitCount == 32) /* at end of ipv6 single segment */) || 
 											wildcardCount == index && wildcardCount <= MAX_WILDCARDS /* all wildcards so far */)
 									) {
 								//we are not base 85
