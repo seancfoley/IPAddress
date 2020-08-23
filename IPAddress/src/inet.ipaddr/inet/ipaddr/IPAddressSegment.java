@@ -736,7 +736,6 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	 * 
 	 * 
 	 * @param other
-	 * @param prefixLength
 	 * @return
 	 */
 	public boolean prefixContains(IPAddressSegment other) {

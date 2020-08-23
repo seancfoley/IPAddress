@@ -628,7 +628,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	}
 	
 	/**
-	 * Similar to {@link #prefixEquals(Object)}, but instead returns whether the prefix of this address contains the same of the given address,
+	 * Similar to {@link #prefixEquals(IPAddressString)}, but instead returns whether the prefix of this address contains the same of the given address,
 	 * using the prefix length of this address.
 	 * <p>
 	 * In other words, determines if the other address is in one of the same prefix subnets using the prefix length of this address.

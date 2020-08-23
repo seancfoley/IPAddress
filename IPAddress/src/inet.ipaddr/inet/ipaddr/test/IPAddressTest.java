@@ -3166,7 +3166,6 @@ public class IPAddressTest extends TestBase {
 			}
 		}
 		IPAddress backAgain[] = result[0].mergeToPrefixBlocks(result);
-		Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());
 		boolean matches = Arrays.deepEquals(result, backAgain);
 		if(!matches) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));

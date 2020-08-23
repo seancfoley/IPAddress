@@ -350,15 +350,22 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 	 *
 	 */
 	public static class ValueComparator extends AddressComparator {
-		private final boolean compareHighValue;
+		private final boolean compareHighValue, flipSecond;
 		
 		public ValueComparator(boolean compareHighValue) {
 			this(true, compareHighValue);
 		}
 		
 		public ValueComparator(boolean equalsConsistent, boolean compareHighValue) {
+			this(true, compareHighValue, false);
+			//super(equalsConsistent);
+			//this.compareHighValue = compareHighValue;
+		}
+		
+		public ValueComparator(boolean equalsConsistent, boolean compareHighValue, boolean flipSecond) {
 			super(equalsConsistent);
 			this.compareHighValue = compareHighValue;
+			this.flipSecond = flipSecond;
 		}
 		
 		@Override
@@ -377,6 +384,9 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							(segOne.getUpperSegmentValue() - segTwo.getUpperSegmentValue()) : 
 								(segOne.getSegmentValue() - segTwo.getSegmentValue());
 					if(result != 0) {
+						if(flipSecond && compareHigh != compareHighValue) {
+							return -result;
+						}
 						return result;
 					}
 				}

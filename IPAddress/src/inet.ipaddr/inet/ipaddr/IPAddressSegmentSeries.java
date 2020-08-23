@@ -43,8 +43,7 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
 public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, AddressSegmentSeries {
 
 	/**
-	 * Returns the comparator used by IPAddress to sort series by prefix length, such as in calls to {@link IPAddress#mergeToPrefixBlocks(IPAddress...)}
-	 * and {@link IPAddress#mergeToSequentialBlocks(IPAddress...)}
+	 * Returns a comparator to sort series by prefix length.
 	 * 
 	 * @return
 	 */

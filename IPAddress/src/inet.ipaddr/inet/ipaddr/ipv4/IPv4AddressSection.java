@@ -1957,24 +1957,52 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	/**
-	 * Merges this with the list of sections to produce the smallest array of prefix blocks, going from smallest to largest
+	 * Merges this with the list of sections to produce the smallest array of prefix blocks.
+	 * <p>
+	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
 	public IPv4AddressSection[] mergeToPrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
+		checkSectionsMergeable(sections);
 		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 	
+	private void checkSectionsMergeable(IPv4AddressSection sections[]) {
+		for(int i = 0; i < sections.length; i++) {
+			IPv4AddressSection section = sections[i];
+			if(section == null) {
+				continue;
+			}
+			if(section.getSegmentCount() != getSegmentCount()) {
+				throw new SizeMismatchException(this, section);
+			}
+		}
+	}
+
 	/**
-	 * Merges this with the list of sections to produce the smallest array of sequential block subnets, going from smallest to largest
+	 * Merges this with the list of sections to produce the smallest array of sequential block subnets.
+	 * <p>
+	 * The resulting array is sorted by lower address, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
 	public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		checkSectionsMergeable(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 

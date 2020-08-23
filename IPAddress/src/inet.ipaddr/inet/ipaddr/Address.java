@@ -45,6 +45,11 @@ public abstract class Address implements AddressSegmentSeries {
 
 	private static final long serialVersionUID = 4L;
 
+	/**
+	 * @custom.core
+	 * @author sfoley
+	 *
+	 */
 	public static interface AddressValueProvider {
 		
 		int getSegmentCount();

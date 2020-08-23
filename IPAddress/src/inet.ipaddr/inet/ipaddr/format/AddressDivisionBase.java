@@ -1439,5 +1439,15 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			SegmentCreator<T> itemProvider) {
 		return new AddressSegmentSpliterator<T>(splitForIteration, value, upperValue, iteratorProvider, subIteratorProvider, itemProvider);
 	}
+	
+	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, BigInteger networkMask, BigInteger hostMask) {
+		return lowerValue.equals(lowerValue.and(networkMask)) && finalUpperValue.equals(upperValue.or(hostMask));
+	}
+	
+	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, int bitCount, int divisionPrefixLen) {
+		BigInteger networkMask = AddressDivisionGroupingBase.ALL_ONES.shiftLeft(bitCount - divisionPrefixLen);
+		BigInteger hostMask = networkMask.not();
+		return testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask);
+	}
 }
 

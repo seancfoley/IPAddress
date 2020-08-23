@@ -2570,30 +2570,55 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	/**
-	 * Merges this with the list of sections to produce the smallest array of prefix blocks, going from smallest to largest
+	 * Merges this with the list of sections to produce the smallest array of prefix blocks.
+	 * <p>
+	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
 	public IPv6AddressSection[] mergeToPrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException, AddressPositionException {
-		for(int i = 0; i < sections.length; i++) {
-			IPv6AddressSection section = sections[i];
-			if(section.addressSegmentIndex != addressSegmentIndex) {
-				throw new AddressPositionException(section, section.addressSegmentIndex, addressSegmentIndex);
-			}
-		}
+		checkSectionsMergeable(sections);
 		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 	
+	private void checkSectionsMergeable(IPv6AddressSection sections[]) {
+		for(int i = 0; i < sections.length; i++) {
+			IPv6AddressSection section = sections[i];
+			if(section == null) {
+				continue;
+			}
+			if(section.addressSegmentIndex != addressSegmentIndex) {
+				throw new AddressPositionException(section, section.addressSegmentIndex, addressSegmentIndex);
+			}
+			if(section.getSegmentCount() != getSegmentCount()) {
+				throw new SizeMismatchException(this, section);
+			}
+		}
+	}
+
 	/**
 	 * Merges this with the list of sections to produce the smallest array of sequential block subnets, going from smallest to largest
+	 * <p>
+	 * The resulting array is sorted by lower address, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
 	 * @return
 	 */
 	public IPv6AddressSection[] mergeToSequentialBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), true, createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		checkSectionsMergeable(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 

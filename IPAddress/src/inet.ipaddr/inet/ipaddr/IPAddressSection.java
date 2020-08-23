@@ -41,6 +41,7 @@ import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+import inet.ipaddr.AddressComparator.ValueComparator;
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
@@ -1491,7 +1492,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IPAddressSegmentSeries first,
 			IPAddressSegmentSeries sections[],
 			List<IPAddressSegmentSeries> list,
-			boolean checkSize,
 			boolean useBitCountPrefixLengths,
 			Comparator<? super IPAddressSegmentSeries> listOrdering,
 			Function<IPAddressSegmentSeries, Iterator<? extends IPAddressSegmentSeries>> blockIteratorFunc) {
@@ -1510,11 +1510,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(!list.isEmpty()) {
 			return true;
 		}
-		int firstSegmentCount = first.getSegmentCount();
 		for(int i = 0; i < sections.length; i++) {
 			IPAddressSegmentSeries section = sections[i];
-			if(checkSize && section.getSegmentCount() != firstSegmentCount) {
-				throw new SizeMismatchException(first, section);
+			if(section == null) {
+				continue;
 			}
 			block = section.assignMinPrefixForBlock();
 			prefLength = block.getPrefixLength();
@@ -1532,24 +1531,30 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		iterator.forEachRemaining(list::add);
 		for(int i = 0; i < sections.length; i++) {
 			IPAddressSegmentSeries section = sections[i];
+			if(section == null) {
+				continue;
+			}
 			iterator = blockIteratorFunc.apply(section);
 			iterator.forEachRemaining(list::add);
 		}
+		if(list.size() == 1) {
+			return true;
+		}
 		list.sort(listOrdering);
-		return list.size() == 1;
+		return false;
 	}
-	
-	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize, SeriesCreator seriesCreator) {
+
+	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(
+			IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], SeriesCreator seriesCreator) {
 		List<IPAddressSegmentSeries> list = new ArrayList<>();
 		int bitsPerSegment = first.getBitsPerSegment();
 		int bytesPerSegment = first.getBytesPerSegment();
 		int segmentCount = first.getSegmentCount();
-		Comparator<? super IPAddressSegmentSeries> listComparator = mergeListComparator;
 		
-//		iterator must get the segment to iterate on based on prefix Length
-//		it is the segment preceding the prefix length, the segment preceding the first non-full-range
-//		you get that segment index, then you get the iterator for that segment index
-		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, false, listComparator, series -> {
+//			iterator must get the segment to iterate on based on prefix Length
+//			it is the segment preceding the prefix length, the segment preceding the first non-full-range
+//			you get that segment index, then you get the iterator for that segment index
+		boolean singleElement = organizeByMinPrefix(first, sections, list, false, Address.ADDRESS_LOW_VALUE_COMPARATOR, series -> {
 			Integer prefixLength = series.getPrefixLength();
 			int segs = (prefixLength == null) ? series.getSegmentCount() - 1 : 
 				getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
@@ -1559,219 +1564,297 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			list.set(0, list.get(0).withoutPrefixLength());
 			return list;
 		}
-
-		//Now we see if we can match blocks or join them into larger blocks
-		for(int i = 0; i < list.size(); ) {
+		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
+		ValueComparator reverseHighComparator = REVERSE_HIGH_COMPARATOR;
+		
+		int removedCount = 0;
+		int j = list.size() - 1, i = j - 1;
+		top:
+		while(j > 0) {
 			IPAddressSegmentSeries item = list.get(i);
+			IPAddressSegmentSeries otherItem = list.get(j);
+			int compare = reverseHighComparator.compare(item, otherItem);
+			// check for strict containment, case 1:
+			// w   z
+			//  x y
+			if(compare > 0) {
+				removedCount++;
+				int k = j + 1;
+				while(k < list.size() && list.get(k) == null) {
+					k++;
+				}
+				if(k < list.size()) {
+					list.set(j, list.get(k));
+					list.set(k, null);
+				} else {
+					list.set(j, null);
+					j = i;
+					i--;
+				}
+				continue;
+			}
+			// non-strict containment, case 2:
+			// w   z
+			// w   z
+			//
+			// reverse containment, case 3:
+			// w  y
+			// w   z
+			int rcompare = reverseLowComparator.compare(item, otherItem);
+			if(rcompare >= 0) {
+				removedCount++;
+				list.set(i, otherItem);
+				list.set(j, null);
+				j = i;
+				i--;
+				continue;
+			}
+			
+			//IPAddressSegmentSeries item = list.get(i);
 			Integer prefixLen = item.getPrefixLength();
 			int rangeSegmentIndex = (prefixLen == null) ? segmentCount - 1 : 
 				getNetworkSegmentIndex(prefixLen, bytesPerSegment, bitsPerSegment);
-			top:
-			for(int j = i + 1; ; j++) {
-				if(j == list.size()) {
-					//item i could not be merged.  Move on to next item.
-					i++;
-					break;
+			
+			//IPAddressSegmentSeries otherItem = list.get(j);
+			Integer otherPrefixLen = otherItem.getPrefixLength();
+			int otherRangeSegmentIndex = (otherPrefixLen == null) ? segmentCount - 1 : 
+				getNetworkSegmentIndex(otherPrefixLen, bytesPerSegment, bitsPerSegment);
+			boolean checkOverlap = otherRangeSegmentIndex >= rangeSegmentIndex;
+			int lastMatchSegmentIndex;
+			
+			// check for merge, case 4:
+			// w   x
+			//    y     z
+			// becoming:
+			// w        z
+			//
+			IPAddressSegment rangeSegment = item.getSegment(rangeSegmentIndex);
+			IPAddressSegment otherRangeSegment = otherItem.getSegment(rangeSegmentIndex);
+			int rangeItemValue = rangeSegment.getSegmentValue();
+			int otherRangeItemValue = otherRangeSegment.getSegmentValue();
+			int rangeItemUpperValue = rangeSegment.getUpperSegmentValue();
+			int otherRangeItemUpperValue = otherRangeSegment.getUpperSegmentValue();
+			
+			if(checkOverlap) {
+				// if in same, we want to see if there is overlap, and if so, later we want to see if preceding segs match
+				lastMatchSegmentIndex = rangeSegmentIndex - 1;
+				boolean overlaps = otherRangeItemValue <= rangeItemUpperValue || rangeItemUpperValue + 1 == otherRangeItemValue;
+				if(!overlaps) {
+					j = i;
+					i--;
+					continue;
 				}
-				IPAddressSegmentSeries otherItem = list.get(j);
-				Integer otherPrefixLen = otherItem.getPrefixLength();
-				int otherRangeSegmentIndex = (otherPrefixLen == null) ? segmentCount - 1 : 
-					getNetworkSegmentIndex(otherPrefixLen, bytesPerSegment, bitsPerSegment);
-				boolean checkOverlap = otherRangeSegmentIndex >= rangeSegmentIndex;
-				int lastMatchSegmentIndex;
-				
-				IPAddressSegment rangeSegment = item.getSegment(rangeSegmentIndex);
-				IPAddressSegment otherRangeSegment = otherItem.getSegment(rangeSegmentIndex);
-				int rangeItemValue = rangeSegment.getSegmentValue();
-				int otherRangeItemValue = otherRangeSegment.getSegmentValue();
-				int rangeItemUpperValue = rangeSegment.getUpperSegmentValue();
-				int otherRangeItemUpperValue = otherRangeSegment.getUpperSegmentValue();
-				
-				if(checkOverlap) {
-					// if in same, we want to see if there is overlap, and if so, later we want to see if preceding segs match
-					lastMatchSegmentIndex = rangeSegmentIndex - 1;
-					if(otherRangeSegment.contains(rangeSegment)) {
-						//our comparator, which first sorts by prefix length and then by count, ensures that the only possible containment is by otherItemSegment containing itemSegment
-						checkOverlap = false;
-					} else {
-						boolean overlaps = otherRangeItemValue <= rangeItemUpperValue && otherRangeItemUpperValue >= rangeItemValue;
-						if(!overlaps) {
-							//check if they are consecutive
-							if(rangeItemValue >= otherRangeItemValue) {
-								overlaps = otherRangeItemUpperValue + 1 == rangeItemValue;
-							} else {
-								overlaps = rangeItemUpperValue + 1 == otherRangeItemValue;
-							}
-							if(!overlaps) {
-								continue;
-							}
-						}
-					}
-				} else {
-					// else if in preceding segment, we simply want to see if the current address has preceding segment contained within the other, later we want to see if preceding segs match
-					lastMatchSegmentIndex = otherRangeSegmentIndex - 1;
-					IPAddressSegment itemSegment = item.getSegment(otherRangeSegmentIndex);
-					IPAddressSegment otherItemSegment = otherItem.getSegment(otherRangeSegmentIndex);
-					if(!otherItemSegment.contains(itemSegment)) {
-						continue;
-					}
-				} 
-				//check initial segments
-				for(int k = lastMatchSegmentIndex; k >= 0; k--) {
-					IPAddressSegment itemSegment = item.getSegment(k);
-					IPAddressSegment otherItemSegment = otherItem.getSegment(k);
-					int val = itemSegment.getSegmentValue();
-					int otherVal = otherItemSegment.getSegmentValue();
-					if(val != otherVal) {
-						continue top;
-					}
+			} else {
+				// else if in preceding segment, we simply want to see if the current address has preceding segment contained within the other, later we want to see if preceding segs match
+				lastMatchSegmentIndex = otherRangeSegmentIndex - 1;
+				IPAddressSegment itemSegment = item.getSegment(otherRangeSegmentIndex);
+				IPAddressSegment otherItemSegment = otherItem.getSegment(otherRangeSegmentIndex);
+				if(!otherItemSegment.contains(itemSegment)) {
+					j = i;
+					i--;
+					continue;
 				}
-				
-				if(checkOverlap) {
-					//here we must insert a new item in the right place
-					IPAddressSegmentSeries joinedItem = seriesCreator.apply(item, rangeSegmentIndex, Math.min(rangeItemValue, otherRangeItemValue), Math.max(rangeItemUpperValue, otherRangeItemUpperValue));
-					joinedItem = joinedItem.assignMinPrefixForBlock();
-					if(j == list.size() - 1) {
-						list.set(j, joinedItem);
-					} else {
-						int k = j + 1;
-						for(; k < list.size(); k++) {
-							IPAddressSegmentSeries furtherItem = list.get(k);
-							if(listComparator.compare(furtherItem, joinedItem) < 0) {
-								list.set(k - 1, furtherItem);
-							} else {
-								list.set(k - 1, joinedItem);
-								break;
-							}
-						}
-						if(k == list.size()) {
-							list.set(k - 1, joinedItem);
-						}
-					}
+			}
+			
+			//check initial segments
+			for(int k = lastMatchSegmentIndex; k >= 0; k--) {
+				IPAddressSegment itemSegment = item.getSegment(k);
+				IPAddressSegment otherItemSegment = otherItem.getSegment(k);
+				int val = itemSegment.getSegmentValue();
+				int otherVal = otherItemSegment.getSegmentValue();
+				if(val != otherVal) {
+					j = i;
+					i--;
+					continue top;
 				}
-				
-				//we just merged item i with some other item later on in the list.  Remove it and try next item in list.
-				list.remove(i);
-				break;
+			}
+			
+			IPAddressSegmentSeries joinedItem = seriesCreator.apply(item, rangeSegmentIndex,
+					rangeItemValue,
+					//Math.min(rangeItemValue, otherRangeItemValue),
+					Math.max(rangeItemUpperValue, otherRangeItemUpperValue));
+			joinedItem = joinedItem.assignMinPrefixForBlock();
+			
+			list.set(i, joinedItem);
+			removedCount++;
+			int k = j + 1;
+			while(k < list.size() && list.get(k) == null) {
+				k++;
+			}
+			if(k < list.size()) {
+				list.set(j, list.get(k));
+				list.set(k, null);
+			} else {
+				list.set(j, null);
+				j = i;
+				i--;
 			}
 		}
-
-		for(int n = 0; n < list.size(); n++) {
+		if(removedCount > 0) {
+			int newSize = list.size() - removedCount;
+			for(int k = 0, l = 0; k < newSize; k++, l++) {
+				while(list.get(l) == null && l < newSize) {
+					l++;
+				}
+				list.set(k, list.get(l).withoutPrefixLength());
+			}
+			int last = list.size();
+			while(removedCount-- > 0) {
+				list.remove(--last);
+			}
+		} else for(int n = 0; n < list.size(); n++) {
 			list.set(n, list.get(n).withoutPrefixLength());
 		}
 		return list;
 	}
 	
+	private static final ValueComparator REVERSE_LOW_COMPARATOR = new ValueComparator(true, false, true);
+	private static final ValueComparator REVERSE_HIGH_COMPARATOR = new ValueComparator(true, true, true);
+	
 	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize) {
-		List<IPAddressSegmentSeries> list = new ArrayList<>();
-		Comparator<? super IPAddressSegmentSeries> listComparator = mergeListComparator;
-		boolean singleElement = organizeByMinPrefix(first, sections, list, checkSize, true, listComparator, IPAddressSegmentSeries::prefixBlockIterator);
+		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length + 1);
+		boolean singleElement = organizeByMinPrefix(first, sections, list, true, Address.ADDRESS_LOW_VALUE_COMPARATOR, IPAddressSegmentSeries::prefixBlockIterator);
 		if(singleElement) {
 			return list;
 		}
-
+		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
+		ValueComparator reverseHighComparator = REVERSE_HIGH_COMPARATOR;
 		int bitCount = first.getBitCount();
 		int bitsPerSegment = first.getBitsPerSegment();
 		int bytesPerSegment = first.getBytesPerSegment();
-		
-		//Now we see if we can match blocks or join them into larger blocks
-		for(int i = 0; i < list.size(); ) {
-			IPAddressSegmentSeries item = list.get(i);
-			Integer prefixLen = item.getPrefixLength();
-			int bitToCheck = (prefixLen == null) ? bitCount - 1 : prefixLen - 1;
-			top:
-			for(int j = i + 1; ; j++) {
-				if(j == list.size()) {
-					//item i could not be merged.  Move on to next item.
-					i++;
-					break;
-				}
-				IPAddressSegmentSeries otherItem = list.get(j);
-				Integer otherPrefixLen = otherItem.getPrefixLength();
-				boolean checkLastBit = otherPrefixLen == null || otherPrefixLen >= bitCount || (prefixLen != null && otherPrefixLen >= prefixLen);
-				int matchBitIndex = checkLastBit ? bitToCheck : otherPrefixLen;
-				//if prefix length is 0, lastMatchSegmentIndex would be -1 here.  But if prefix length is 0 we would never reach this point, because singleElement is true.
-				int lastMatchSegmentIndex, lastBitSegmentIndex;
-				if(matchBitIndex == 0) {
-					lastMatchSegmentIndex = lastBitSegmentIndex = 0;
-				} else {
-					lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
-					lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
-				}
-				IPAddressSegment itemSegment = item.getSegment(lastMatchSegmentIndex);
-				IPAddressSegment otherItemSegment = otherItem.getSegment(lastMatchSegmentIndex);
-				int itemSegmentValue = itemSegment.getSegmentValue();
-				int otherItemSegmentValue = otherItemSegment.getSegmentValue();
-				if(checkLastBit) {
-					int segmentLastBitIndex = bitsPerSegment - 1;
-					if(lastBitSegmentIndex == lastMatchSegmentIndex) {
-						int segmentBitToCheck = bitToCheck % bitsPerSegment;
-						int shift = segmentLastBitIndex - segmentBitToCheck;
-						itemSegmentValue >>>= shift;
-						otherItemSegmentValue >>>= shift;
-					} else {
-						int itemBitValue = item.getSegment(lastBitSegmentIndex).getSegmentValue();
-						int otherItemBitalue = otherItem.getSegment(lastBitSegmentIndex).getSegmentValue();
 
-						//we will make space for the last bit so we can do a single comparison
-						itemSegmentValue = (itemSegmentValue << 1) | (itemBitValue >>> segmentLastBitIndex);
-						otherItemSegmentValue = (otherItemSegmentValue << 1) | (otherItemBitalue >>> segmentLastBitIndex);
-					}
-					if(itemSegmentValue == otherItemSegmentValue) {
-						//they are an exact match.  We will just remove the first from the list, presuming the initial segments match
-						checkLastBit = false;
-					} else {
-						itemSegmentValue ^= 1;//the ^ 1 flips the first bit
-						if(itemSegmentValue != otherItemSegmentValue) {
-							//neither an exact match nor a match when flipping the bit, so move on
-							continue;
-						} //else we will merge these two into a single prefix block, presuming the initial segments match
-					}
+		//Now we see if we can match blocks or join them into larger blocks
+		int removedCount = 0;
+		int j = list.size() - 1, i = j - 1;
+		top:
+		while(j > 0) {
+			IPAddressSegmentSeries item = list.get(i);
+			IPAddressSegmentSeries otherItem = list.get(j);
+			int compare = reverseHighComparator.compare(item, otherItem);
+			// check for strict containment, case 1:
+			// w   z
+			//  x y
+			if(compare > 0) {
+				removedCount++;
+				int k = j + 1;
+				while(k < list.size() && list.get(k) == null) {
+					k++;
+				}
+				if(k < list.size()) {
+					list.set(j, list.get(k));
+					list.set(k, null);
 				} else {
-					//compare up to the prefix length of otherItem, which has a shorter prefix length, we are checking for a match
-					int otherSegmentPrefixLen = getSegmentPrefixLength(otherItem.getBitsPerSegment(), otherPrefixLen, lastMatchSegmentIndex);
-					int shift = bitsPerSegment - otherSegmentPrefixLen;
-					itemSegmentValue >>>= shift;
-					otherItemSegmentValue >>>= shift;
-					if(itemSegmentValue != otherItemSegmentValue) {
-						continue;
-					}
-					//they match
+					list.set(j, null);
+					j = i;
+					i--;
 				}
-				//check initial segments
-				for(int k = lastMatchSegmentIndex - 1; k >= 0; k--) {
-					itemSegment = item.getSegment(k);
-					otherItemSegment = otherItem.getSegment(k);
-					int val = itemSegment.getSegmentValue();
-					int otherVal = otherItemSegment.getSegmentValue();
-					if(val != otherVal) {
-						continue top;
-					}
+				continue;
+			}
+			// non-strict containment, case 2:
+			// w   z
+			// w   z
+			//
+			// reverse containment, case 3:
+			// w  y
+			// w   z
+			int rcompare = reverseLowComparator.compare(item, otherItem);
+			if(rcompare >= 0) {
+				removedCount++;
+				list.set(i, otherItem);
+				list.set(j, null);
+				j = i;
+				i--;
+				continue;
+			}
+			// check for merge, case 4:
+			// w   x
+			//      y   z
+			// where x and y adjacent, becoming:
+			// w        z
+			//
+			Integer prefixLen = item.getPrefixLength();
+			Integer otherPrefixLen = otherItem.getPrefixLength();
+			if(!Objects.equals(prefixLen, otherPrefixLen)) {
+				j = i;
+				i--;
+				continue;
+			}
+			int matchBitIndex = (prefixLen == null) ? bitCount - 1 : prefixLen - 1;
+			int lastMatchSegmentIndex, lastBitSegmentIndex;
+			if(matchBitIndex == 0) {
+				lastMatchSegmentIndex = lastBitSegmentIndex = 0;
+			} else {
+				lastMatchSegmentIndex = getNetworkSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+				lastBitSegmentIndex = getHostSegmentIndex(matchBitIndex, bytesPerSegment, bitsPerSegment);
+			}
+			IPAddressSegment itemSegment = item.getSegment(lastMatchSegmentIndex);
+			IPAddressSegment otherItemSegment = otherItem.getSegment(lastMatchSegmentIndex);
+			int itemSegmentValue = itemSegment.getSegmentValue();
+			int otherItemSegmentValue = otherItemSegment.getSegmentValue();
+			int segmentLastBitIndex = bitsPerSegment - 1;
+			if(lastBitSegmentIndex == lastMatchSegmentIndex) {
+				int segmentBitToCheck = matchBitIndex % bitsPerSegment;
+				int shift = segmentLastBitIndex - segmentBitToCheck;
+				itemSegmentValue >>>= shift;
+				otherItemSegmentValue >>>= shift;
+			} else {
+				int itemBitValue = item.getSegment(lastBitSegmentIndex).getSegmentValue();
+				int otherItemBitalue = otherItem.getSegment(lastBitSegmentIndex).getSegmentValue();
+
+				//we will make space for the last bit so we can do a single comparison
+				itemSegmentValue = (itemSegmentValue << 1) | (itemBitValue >>> segmentLastBitIndex);
+				otherItemSegmentValue = (otherItemSegmentValue << 1) | (otherItemBitalue >>> segmentLastBitIndex);
+			}
+			if(itemSegmentValue != otherItemSegmentValue) {
+				itemSegmentValue ^= 1;//the ^ 1 flips the first bit
+				if(itemSegmentValue != otherItemSegmentValue) {
+					//neither an exact match nor a match when flipping the bit, so move on
+					j = i;
+					i--;
+					continue;
+				} //else we will merge these two into a single prefix block, presuming the initial segments match
+			}
+			//check initial segments
+			for(int k = lastMatchSegmentIndex - 1; k >= 0; k--) {
+				itemSegment = item.getSegment(k);
+				otherItemSegment = otherItem.getSegment(k);
+				int val = itemSegment.getSegmentValue();
+				int otherVal = otherItemSegment.getSegmentValue();
+				if(val != otherVal) {
+					j = i;
+					i--;
+					continue top;
 				}
-				if(checkLastBit) { // we are merging two items
-					IPAddressSegmentSeries joinedItem = otherItem.toPrefixBlock(bitToCheck);
-					// now insert the new item in the right spot
-					if(j == list.size() - 1) {
-						list.set(j, joinedItem);
-					} else {
-						int k = j + 1;
-						for(; k < list.size(); k++) {
-							IPAddressSegmentSeries furtherItem = list.get(k);
-							if(listComparator.compare(furtherItem, joinedItem) < 0) {
-								list.set(k - 1, furtherItem);
-							} else {
-								list.set(k - 1, joinedItem);
-								break;
-							}
-						}
-						if(k == list.size()) {
-							list.set(k - 1, joinedItem);
-						}
-					}
+			}
+			IPAddressSegmentSeries joinedItem = otherItem.toPrefixBlock(matchBitIndex);
+			list.set(i, joinedItem);
+			removedCount++;
+			int k = j + 1;
+			while(k < list.size() && list.get(k) == null) {
+				k++;
+			}
+			if(k < list.size()) {
+				list.set(j, list.get(k));
+				list.set(k, null);
+			} else {
+				list.set(j, null);
+				j = i;
+				i--;
+			}
+		}
+		if(removedCount > 0) {
+			int newSize = list.size() - removedCount;
+			for(int k = 0, l = 0; k < newSize; k++, l++) {
+				while(list.get(l) == null && l < newSize) {
+					l++;
 				}
-				//we just merged item i with some other item later on in the list.  Remove it and try next item in list.
-				list.remove(i);
-				break;
+				if(k != l) {
+					list.set(k, list.get(l));
+				}
+			}
+			int last = list.size();
+			while(removedCount-- > 0) {
+				list.remove(--last);
 			}
 		}
 		return list;

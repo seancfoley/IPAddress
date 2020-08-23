@@ -204,21 +204,13 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	boolean includesMax();
 	
 	/**
+	 * whether this address item represents all possible values attainable by an address item of this type
+	 * 
 	 * @return whether this address item represents all possible values attainable by an address item of this type,
 	 * or in other words, both includesZero() and includesMax() return true
 	 */
 	default boolean isFullRange() {
 		return includesZero() && includesMax();
-	}
-	
-	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, BigInteger networkMask, BigInteger hostMask) {
-		return lowerValue.equals(lowerValue.and(networkMask)) && finalUpperValue.equals(upperValue.or(hostMask));
-	}
-	
-	static boolean testRange(BigInteger lowerValue, BigInteger upperValue, BigInteger finalUpperValue, int bitCount, int divisionPrefixLen) {
-		BigInteger networkMask = AddressDivisionGroupingBase.ALL_ONES.shiftLeft(bitCount - divisionPrefixLen);
-		BigInteger hostMask = networkMask.not();
-		return testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask);
 	}
 
 	/**
@@ -235,7 +227,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 			return isFullRange();
 		}
 		BigInteger upper = getUpperValue();
-		return testRange(getValue(), upper, upper, getBitCount(), divisionPrefixLen);
+		return AddressDivisionBase.testRange(getValue(), upper, upper, getBitCount(), divisionPrefixLen);
 	}
 	
 	/**
@@ -252,7 +244,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 			return isFullRange();
 		}
 		BigInteger lower = getValue(), upper = getUpperValue();
-		return testRange(lower, lower, upper, getBitCount(), divisionPrefixLen);
+		return AddressDivisionBase.testRange(lower, lower, upper, getBitCount(), divisionPrefixLen);
 	}
 	
 	/**

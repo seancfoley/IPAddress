@@ -342,8 +342,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	protected abstract IPAddress convertArg(IPAddress arg) throws AddressConversionException;
 	
 	/**
-	 * Finds the lowest and highest single-valued address from the given addresses and subnets,
-	 * and then calls the given BiFunction with the lowest as first argument and the highest as second.
+	 * Finds the lowest and highest single-valued address from the given addresses and subnets and this one,
+	 * calling the given BiFunction with the lowest as first argument and the highest as second.
 	 * It returns the result returned from the call to the BiFunction.
 	 * <p>
 	 * For instance, given the IPv4 addresses 1.2.0.0/16 and 1.3.4.5, the lowest is 1.2.0.0 and the highest is 1.3.4.5.
@@ -353,10 +353,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
 	 * This can be useful for methods that require a range as input, 
-	 * like {@link IPAddress#spanWithPrefixBlocks(IPAddress), IPAddress#spanWithSequentialBlocks(IPAddress), 
-	 * IPAddress#coverWithPrefixBlock(IPAddress), or IPAddress#toSequentialRange(IPAddress).<p>
-	 * For instance, to cover multiple addresses with a prefix block:<br>
+	 * like {@link IPAddress#spanWithPrefixBlocks(IPAddress)}, {@link IPAddress#spanWithSequentialBlocks(IPAddress)}, 
+	 * {@link IPAddress#coverWithPrefixBlock(IPAddress)}, or {@link IPAddress#toSequentialRange(IPAddress)}.<p>
+	 * For instance, to cover multiple addresses with a prefix block:<br><code>
 	 * IPAddress coveringAddress = address0.applyToBounds(IPAddress::coverWithPrefixBlock, address1, address2, address3, ...);
+	 * </code>
 	 */
 	public <V> V applyToBounds(BiFunction<? super IPAddress, ? super IPAddress, V> func, IPAddress ...series) {
 		AddressComparator lowComparator = Address.ADDRESS_LOW_VALUE_COMPARATOR;
@@ -614,10 +615,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
-	 * When you have multiple subnets, create a range from lowest to highest with:
+	 * When you have multiple subnets, create a range from lowest to highest with:<br>
 	 * <code>
 	 * IPAddressSeqRange range = subnet0.applyToBounds(IPAddress::toSequentialRange, subnet1, subnet2, ...);
 	 * </code>
+	 * <p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @param other
@@ -1443,10 +1445,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
-	 * When you have multiple subnets, cover with:
+	 * When you have multiple subnets, cover with:<br>
 	 * <code>
 	 * IPAddress block = subnet0.applyToBounds(IPAddress::coverWithPrefixBlock, subnet1, subnet2, ...);
-	 * </code>
+	 * </code><p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 */
 	public abstract IPAddress coverWithPrefixBlock(IPAddress other) throws AddressConversionException;
@@ -1461,10 +1463,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * From the list of returned subnets you can recover the original range (this to other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * <p>
-	 * When you have multiple subnets, span with:
+	 * When you have multiple subnets, span with:<br>
 	 * <code>
 	 * IPAddress blocks[] = subnet0.applyToBounds(IPAddress::spanWithPrefixBlocks, subnet1, subnet2, ...);
-	 * </code>
+	 * </code><p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @param other
@@ -1487,10 +1489,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * <p>
-	 * When you have multiple subnets, span with:
+	 * When you have multiple subnets, span with:<br>
 	 * <code>
 	 * IPAddress blocks[] = subnet0.applyToBounds(IPAddress::spanWithSequentialBlocks, subnet1, subnet2, ...);
-	 * </code>
+	 * </code><p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @param other
@@ -1517,10 +1519,10 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * If the other address is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()}
 	 * <p>
-	 * When you have multiple subnets, span with:
+	 * When you have multiple subnets, span with:<br>
 	 * <code>
 	 * IPAddressSeqRange range = subnet0.applyToBounds(IPAddress::spanWithRange, subnet1, subnet2, ...);
-	 * </code>
+	 * </code><p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
 	 * @deprecated use {@link #toSequentialRange(IPAddress)}
@@ -1538,7 +1540,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If any other address in the list is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
-	 * The result is sorted from single address to smallest blocks to largest blocks.
+	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @throws AddressConversionException
 	 * @param addresses the addresses to merge with this
@@ -1549,7 +1556,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[]) {
 		return IPAddressSection.getMergedPrefixBlocks(first, sections, false);
 	}
-	
+
 	/**
 	 * Merges this with the list of subnets to produce the smallest list of block subnets that are sequential.
 	 * <p>
@@ -1564,7 +1571,13 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If any other address in the list is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
-	 * The result is sorted from smallest blocks (possibly single address) to largest blocks.
+	 * The resulting array is sorted by lower address, regardless of the size of each prefix block.
+	 * <p>
+	 * Since version 5.3.2 this is a change from previous behaviour, 
+	 * where the result was sorted from single address to smallest blocks to largest blocks.
+	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
+	 * 
 	 * 
 	 * @throws AddressConversionException
 	 * @param addresses the addresses to merge with this
@@ -1573,7 +1586,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException;
 	
 	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
-		return IPAddressSection.getMergedSequentialBlocks(first, sections, false, createSeriesCreator(creator, first.getMaxSegmentValue()));
+		return IPAddressSection.getMergedSequentialBlocks(first, sections, createSeriesCreator(creator, first.getMaxSegmentValue()));
 	}
 	
 	/**
