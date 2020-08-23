@@ -10,6 +10,8 @@
 	<property name="jarExtension" value=".jar"/>
 	<property name="module" value="/inet.ipaddr" />
 	<property name="src_location" value="${rootOffset}/src${module}" />
+	<property name="jdk_src_location" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_231.jdk/Contents/Home/src.zip" />
+	<property name="jdk_link" value="https://docs.oracle.com/javase/8/docs/api/" />
 	<property name="bin_location" value="${rootOffset}/bin" />
 	<property name="rootPackage" value="inet.ipaddr"/>
 	<property name="rootPackagePath" value="inet/ipaddr"/>
@@ -92,7 +94,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		    <fileset dir="${rootjavadocdir}" includes="**/*"/>
 		</delete>
 		<!-- these packages used internally - ${rootPackage}.format.validate -->
-		<javadoc sourcepath="${src_location}" destdir="${rootjavadocdir}"
+		<javadoc sourcepath="${src_location}:${jdk_src_location}" destdir="${rootjavadocdir}"
 			packagenames="${rootPackage}, ${rootPackage}.format, ${rootPackage}.format.util,
 				${rootPackage}.format.standard, ${rootPackage}.format.large, ${rootPackage}.format.string,
 				${rootPackage}.format.util.sql, ${rootPackage}.ipv6, ${rootPackage}.ipv4, ${rootPackage}.mac"
@@ -105,11 +107,15 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			>
 			<doclet name="tools.doclets.formats.html.FunctionalDoclet"
 				path="${functional_doclet_dir}/dist/FunctionalDoclet.jar">
-				 <param name="-tag" value="custom.core:a:Core" />
+				<param name="-tag" value="custom.core:a:Core" />
+				<param name="-tag" value="implNote:a" />
+				<param name="-tag" value="implSpec:a" />
+				<param name="-tag" value="apiNote:a" />
 			</doclet>
 			<classpath>
 				<pathelement location="${bin_location}"/>
 			</classpath>
+			<link href="${jdk_link}"/>
 		</javadoc>
 	</target>
 	
