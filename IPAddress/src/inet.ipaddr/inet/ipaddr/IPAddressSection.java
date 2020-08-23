@@ -1610,12 +1610,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				continue;
 			}
 			
-			//IPAddressSegmentSeries item = list.get(i);
 			Integer prefixLen = item.getPrefixLength();
 			int rangeSegmentIndex = (prefixLen == null) ? segmentCount - 1 : 
 				getNetworkSegmentIndex(prefixLen, bytesPerSegment, bitsPerSegment);
 			
-			//IPAddressSegmentSeries otherItem = list.get(j);
 			Integer otherPrefixLen = otherItem.getPrefixLength();
 			int otherRangeSegmentIndex = (otherPrefixLen == null) ? segmentCount - 1 : 
 				getNetworkSegmentIndex(otherPrefixLen, bytesPerSegment, bitsPerSegment);
@@ -1669,9 +1667,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				}
 			}
 			
-			IPAddressSegmentSeries joinedItem = seriesCreator.apply(item, rangeSegmentIndex,
+			IPAddressSegmentSeries joinedItem = seriesCreator.apply(
+					item,
+					rangeSegmentIndex,
 					rangeItemValue,
-					//Math.min(rangeItemValue, otherRangeItemValue),
 					Math.max(rangeItemUpperValue, otherRangeItemUpperValue));
 			joinedItem = joinedItem.assignMinPrefixForBlock();
 			
