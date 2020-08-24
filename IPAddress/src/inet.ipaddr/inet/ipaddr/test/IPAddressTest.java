@@ -3165,11 +3165,46 @@ public class IPAddressTest extends TestBase {
 				addFailure(new Failure("merged addr " + addr + " is prefixed", addr));
 			}
 		}
+		
 		IPAddress backAgain[] = result[0].mergeToPrefixBlocks(result);
 		boolean matches = Arrays.deepEquals(result, backAgain);
 		if(!matches) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
 		}
+		backAgain = result[result.length - 1].mergeToPrefixBlocks(result);
+		matches = Arrays.deepEquals(result, backAgain);
+		if(!matches) {
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
+		}
+		if(result.length > 2) {
+			backAgain = result[result.length / 2].mergeToPrefixBlocks(result);
+			matches = Arrays.deepEquals(result, backAgain);
+			if(!matches) {
+				addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result) + " and " + Arrays.asList(backAgain), addr1));
+			}
+		}
+		
+		
+		backAgain = result2[0].mergeToSequentialBlocks(result2);
+		//Arrays.sort(result2, IPAddressSegmentSeries.getPrefixLenComparator());//TODO remove
+		matches = Arrays.deepEquals(result2, backAgain);
+		if(!matches) {
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result2) + " and " + Arrays.asList(backAgain), addr1));
+		}
+		backAgain = result2[result2.length - 1].mergeToSequentialBlocks(result2);
+		matches = Arrays.deepEquals(result2, backAgain);
+		if(!matches) {
+			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result2) + " and " + Arrays.asList(backAgain), addr1));
+		}
+		if(result2.length > 2) {
+			backAgain = result2[result2.length / 2].mergeToSequentialBlocks(result2);
+			matches = Arrays.deepEquals(result2, backAgain);
+			if(!matches) {
+				addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result2) + " and " + Arrays.asList(backAgain), addr1));
+			}
+		}
+		
+		
 		List<IPAddressSeqRange> rangeList = new ArrayList<>();
 		for(IPAddress a : result) {
 			IPAddressSeqRange range = a.toSequentialRange();
