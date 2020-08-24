@@ -1546,14 +1546,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 
 	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(
 			IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], SeriesCreator seriesCreator) {
-		List<IPAddressSegmentSeries> list = new ArrayList<>();
+		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>();
 		int bitsPerSegment = first.getBitsPerSegment();
 		int bytesPerSegment = first.getBytesPerSegment();
 		int segmentCount = first.getSegmentCount();
 		
-//			iterator must get the segment to iterate on based on prefix Length
-//			it is the segment preceding the prefix length, the segment preceding the first non-full-range
-//			you get that segment index, then you get the iterator for that segment index
+		// iterator must get the segment to iterate on based on prefix Length
+		// it is the segment preceding the prefix length, the segment preceding the first non-full-range
+		// you get that segment index, then you get the iterator for that segment index
 		boolean singleElement = organizeByMinPrefix(first, sections, list, false, Address.ADDRESS_LOW_VALUE_COMPARATOR, series -> {
 			Integer prefixLength = series.getPrefixLength();
 			int segs = (prefixLength == null) ? series.getSegmentCount() - 1 : 
@@ -1609,6 +1609,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				i--;
 				continue;
 			}
+
+			//check for overlap
 			
 			Integer prefixLen = item.getPrefixLength();
 			int rangeSegmentIndex = (prefixLen == null) ? segmentCount - 1 : 
@@ -1617,45 +1619,31 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			Integer otherPrefixLen = otherItem.getPrefixLength();
 			int otherRangeSegmentIndex = (otherPrefixLen == null) ? segmentCount - 1 : 
 				getNetworkSegmentIndex(otherPrefixLen, bytesPerSegment, bitsPerSegment);
-			boolean checkOverlap = otherRangeSegmentIndex >= rangeSegmentIndex;
-			int lastMatchSegmentIndex;
 			
-			// check for merge, case 4:
-			// w   x
-			//    y     z
-			// becoming:
-			// w        z
-			//
-			IPAddressSegment rangeSegment = item.getSegment(rangeSegmentIndex);
-			IPAddressSegment otherRangeSegment = otherItem.getSegment(rangeSegmentIndex);
-			int rangeItemValue = rangeSegment.getSegmentValue();
-			int otherRangeItemValue = otherRangeSegment.getSegmentValue();
-			int rangeItemUpperValue = rangeSegment.getUpperSegmentValue();
-			int otherRangeItemUpperValue = otherRangeSegment.getUpperSegmentValue();
-			
-			if(checkOverlap) {
-				// if in same, we want to see if there is overlap, and if so, later we want to see if preceding segs match
-				lastMatchSegmentIndex = rangeSegmentIndex - 1;
-				boolean overlaps = otherRangeItemValue <= rangeItemUpperValue || rangeItemUpperValue + 1 == otherRangeItemValue;
-				if(!overlaps) {
-					j = i;
-					i--;
-					continue;
-				}
-			} else {
-				// else if in preceding segment, we simply want to see if the current address has preceding segment contained within the other, later we want to see if preceding segs match
-				lastMatchSegmentIndex = otherRangeSegmentIndex - 1;
-				IPAddressSegment itemSegment = item.getSegment(otherRangeSegmentIndex);
-				IPAddressSegment otherItemSegment = otherItem.getSegment(otherRangeSegmentIndex);
-				if(!otherItemSegment.contains(itemSegment)) {
-					j = i;
-					i--;
-					continue;
-				}
+			// check for overlap in the non-full range segment,
+			// which must be the same segment in both, otherwise it cannot be overlap,
+			// it can only be containment
+			// eg 1.a-b.*.* and 1.2.3.* must have a < 2 < b and that means 1.a-b.*.* contains 1.2.3.*)
+			if(rangeSegmentIndex != otherRangeSegmentIndex) {
+				j = i;
+				i--;
+				continue;
 			}
 			
-			//check initial segments
-			for(int k = lastMatchSegmentIndex; k >= 0; k--) {
+			IPAddressSegment rangeSegment = item.getSegment(rangeSegmentIndex);
+			IPAddressSegment otherRangeSegment = otherItem.getSegment(rangeSegmentIndex);
+			int otherRangeItemValue = otherRangeSegment.getSegmentValue();
+			int rangeItemUpperValue = rangeSegment.getUpperSegmentValue();
+			
+			//check for overlapping range in the range segment
+			if(rangeItemUpperValue < otherRangeItemValue && rangeItemUpperValue + 1 != otherRangeItemValue) {
+				j = i;
+				i--;
+				continue;
+			}
+			
+			// now check all previous segments match
+			for(int k = rangeSegmentIndex - 1; k >= 0; k--) {
 				IPAddressSegment itemSegment = item.getSegment(k);
 				IPAddressSegment otherItemSegment = otherItem.getSegment(k);
 				int val = itemSegment.getSegmentValue();
@@ -1666,12 +1654,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					continue top;
 				}
 			}
-			
 			IPAddressSegmentSeries joinedItem = seriesCreator.apply(
 					item,
 					rangeSegmentIndex,
-					rangeItemValue,
-					Math.max(rangeItemUpperValue, otherRangeItemUpperValue));
+					rangeSegment.getSegmentValue(),
+					Math.max(rangeItemUpperValue, otherRangeSegment.getUpperSegmentValue()));
 			joinedItem = joinedItem.assignMinPrefixForBlock();
 			
 			list.set(i, joinedItem);
@@ -1692,7 +1679,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(removedCount > 0) {
 			int newSize = list.size() - removedCount;
 			for(int k = 0, l = 0; k < newSize; k++, l++) {
-				while(list.get(l) == null && l < newSize) {
+				while(list.get(l) == null) {
 					l++;
 				}
 				list.set(k, list.get(l).withoutPrefixLength());
@@ -1844,7 +1831,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(removedCount > 0) {
 			int newSize = list.size() - removedCount;
 			for(int k = 0, l = 0; k < newSize; k++, l++) {
-				while(list.get(l) == null && l < newSize) {
+				while(list.get(l) == null) {
 					l++;
 				}
 				if(k != l) {
