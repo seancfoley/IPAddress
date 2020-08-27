@@ -2574,9 +2574,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * Since version 5.3.2 this is a change from previous behaviour, 
-	 * where the result was sorted from single address to smallest blocks to largest blocks.
-	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * In version 5.3.1 and earlier, the result was sorted from single address to smallest blocks to largest blocks.
+	 * For that ordering, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
 	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
@@ -2608,9 +2607,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 * <p>
 	 * The resulting array is sorted by lower address, regardless of the size of each prefix block.
 	 * <p>
-	 * Since version 5.3.2 this is a change from previous behaviour, 
-	 * where the result was sorted from single address to smallest blocks to largest blocks.
-	 * To regain the previous result order, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
+	 * In version 5.3.1 and earlier, the result was sorted from single address to smallest blocks to largest blocks.
+	 * For that ordering, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
 	 * <code>Arrays.sort(result, IPAddressSegmentSeries.getPrefixLenComparator());</code>
 	 * 
 	 * @param sections the sections to merge with this
