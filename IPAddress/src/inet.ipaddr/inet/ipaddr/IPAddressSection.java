@@ -81,10 +81,7 @@ import inet.ipaddr.ipv6.IPv6AddressSegment;
 public abstract class IPAddressSection extends IPAddressDivisionGrouping implements IPAddressSegmentSeries, AddressSection {
 	
 	private static final long serialVersionUID = 4L;
-	private static final IPAddressStringDivisionSeries EMPTY_PARTS[];
-	static {
-		EMPTY_PARTS = new IPAddressStringDivisionSeries[0];
-	}
+	private static final IPAddressStringDivisionSeries EMPTY_PARTS[] = new IPAddressStringDivisionSeries[0];
 	
 	/* caches objects to avoid recomputing them */
 	protected static class PrefixCache {
@@ -1622,7 +1619,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			
 			// check for overlap in the non-full range segment,
 			// which must be the same segment in both, otherwise it cannot be overlap,
-			// it can only be containment
+			// it can only be containment.
+			// The one with the earlier range segment can only contain the other, there cannot be overlap.
 			// eg 1.a-b.*.* and 1.2.3.* must have a < 2 < b and that means 1.a-b.*.* contains 1.2.3.*)
 			if(rangeSegmentIndex != otherRangeSegmentIndex) {
 				j = i;
