@@ -363,6 +363,7 @@ public static void main(String[] args) {
     "ffff:0000:0000:0000:0000:0000:0000:0000/104",
     "ffff::/104",
     "ffff::0.0.0.0/104",
+    "0b1111111111111111::/104",
     "=q{+M|w0(OeO5^EGP660/104"
   };
 
@@ -379,10 +380,11 @@ public static void main(String[] args) {
 
   String hostFormats[] = {
     "[ffff::]/104",
-    "ffff:0:0:0:0:0:0:0]/104",
+    "[ffff:0:0:0:0:0:0:0]/104",
     "[ffff:0000:0000:0000:0000:0000:0000:0000]/104",
     "[ffff::]/104",
     "[ffff::0.0.0.0]/104",
+    "[0b1111111111111111::]/104",
     "[=q{+M|w0(OeO5^EGP660]/104",
     "[ffff:0:0:0:0:0:0-ff:*]",
     "[ffff::0-ff:*]",
@@ -397,6 +399,8 @@ public static void main(String[] args) {
 ```
 Output:
 ```
+ffff::/104
+ffff::/104
 ffff::/104
 ffff::/104
 ffff::/104
