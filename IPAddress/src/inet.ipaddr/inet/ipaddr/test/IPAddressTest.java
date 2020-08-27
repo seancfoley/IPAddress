@@ -48,7 +48,6 @@ import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSegment;
-import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
@@ -1270,6 +1269,7 @@ public class IPAddressTest extends TestBase {
 		
 	}
 
+	@SuppressWarnings("deprecation")
 	void testSplit(String address, int bits, String network, String networkNoRange, String networkWithPrefix, int networkStringCount, String host, int hostStringCount) {
 		try {
 			IPAddressString w = createAddress(address);
@@ -2898,6 +2898,7 @@ public class IPAddressTest extends TestBase {
 		testRangeExtendImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testRangeExtendImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr, addr2;
 		IPAddressSeqRange range, range2;
@@ -2947,6 +2948,7 @@ public class IPAddressTest extends TestBase {
 		testRangeJoinImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testRangeJoinImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
@@ -2977,6 +2979,7 @@ public class IPAddressTest extends TestBase {
 		testRangeIntersectImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testRangeIntersectImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
@@ -3002,6 +3005,7 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testRangeSubtract(String lower1, String higher1, String lower2, String higher2, 
 			String ...resultPairs) {
 		IPAddress addr = createAddress(lower1).getAddress();

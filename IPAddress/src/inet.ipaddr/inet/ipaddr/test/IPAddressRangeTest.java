@@ -881,6 +881,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangeCount(this, w, w2, number);
 	}
 	
+	@SuppressWarnings("deprecation")
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, BigInteger number) {
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
@@ -890,6 +891,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testBase.incrementTestCount();
 	}
 	
+	@SuppressWarnings("deprecation")
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
 		if(!testBase.fullTest && number > COUNT_LIMIT) {
 			return;
@@ -940,6 +942,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangePrefixCount(this, w, w2, prefixLength, number);
 	}
 	
+	@SuppressWarnings("deprecation")
 	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
 		if(!testBase.fullTest && number > COUNT_LIMIT) {
 			return;
