@@ -69,6 +69,8 @@ The library was intended to satisfy the following primary goals:
 
       - range using inet\_aton format: `0x1.0x2.0x0-0xffff`
 
+      - with CIDR network prefix length using binary format: `0b1.0b10.0b0.0b0/16`
+
       - SQL-style single wildcards to end segments: `1.2.___.___`
 
       - IPv4 mapped IPv6: `::ffff:1.2.0.0/112`
@@ -76,6 +78,8 @@ The library was intended to satisfy the following primary goals:
       - Hexadecimal values: `0x01020000-0x0102ffff`
 
       - Octal values: `000100400000-000100577777`
+      
+      - Binary values: `0b00000001000000100000000000000000-0b00000001000000101111111111111111`
 
   - **Allow the separation of address parsing from host parsing**. In some cases you may have an address, in others you may have a host name, in some cases either one, so this supports all three options
     (for instance, when validating invalid input "1.2.3.a" as an address
@@ -161,6 +165,8 @@ above, and others:
     `[bracketed]:port`, `::1:service`, and so on
 
   - Hex values
+  
+  - Binary values
 
   - IPv6 base 85 values
 
@@ -290,6 +296,7 @@ public static void main(String[] args) {
     "0001:0002:0003:0000:0000:0006:0000:0000",
     "1:2:3::6:0.0.0.0",
     "1:2:3:0:0:6::",
+    "0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::",
     "008JQWOV7O(=61h*;$LC",
     "0x00010002000300000000000600000000"
   };
@@ -302,16 +309,19 @@ public static void main(String[] args) {
     "[0001:0002:0003:0000:0000:0006:0000:0000]",
     "[1:2:3::6:0.0.0.0]",
     "[1:2:3:0:0:6::]",
+    "[0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::]",
     "[008JQWOV7O(=61h*;$LC]",
     "[0x00010002000300000000000600000000]",
     "0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
     "1-2-3-0-0-6-0-0.ipv6-literal.net"
-  }
+  };
   parseHost(hostFormats);
 }
 ```
 Output:
 ```
+1:2:3::6:0:0
+1:2:3::6:0:0
 1:2:3::6:0:0
 1:2:3::6:0:0
 1:2:3::6:0:0
@@ -585,7 +595,7 @@ count: 256
 
 &#8203;
 
-#### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85
+#### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85, Binary
 
 Typically, the segments or other punctuation identify a string as a host
 name, as an IPv4 address, or as an IPv6 address. The parser will also
@@ -599,13 +609,15 @@ digits are presumed decimal unless preceded by 0x for hexadecimal or 0
 for octal, as is consistent with the inet_aton routine. For IPv6, 32
 digits are considered hexadecimal and the preceding 0x is optional.
 ```java
-IPAddressString ipAddressString = new
-IPAddressString("4)+k&C\#VzJ4br\>0wv%Yp"); // base 85
+IPAddressString ipAddressString = new IPAddressString("4)+k&C#VzJ4br>0wv%Yp"); // base 85
 IPAddress address = ipAddressString.getAddress();
 System.out.println(address);
 
-ipAddressString = new
-IPAddressString("108000000000000000080800200c417a"); // hex IPv6
+ipAddressString = new IPAddressString("108000000000000000080800200c417a"); // hex IPv6
+address = ipAddressString.getAddress();
+System.out.println(address);
+
+ipAddressString = new IPAddressString("0b00010000100000000000000000000000000000000000000000000000000000000000000000001000000010000000000000100000000011000100000101111010"); // binary IPv6
 address = ipAddressString.getAddress();
 System.out.println(address);
 
@@ -616,12 +628,18 @@ System.out.println(address);
 ipAddressString = new IPAddressString("000100401404"); // octal IPv4
 address = ipAddressString.getAddress();
 System.out.println(address);
+
+ipAddressString = new IPAddressString("0b00000001000000100000001100000100"); // binary IPv4
+address = ipAddressString.getAddress();
+System.out.println(address);
 ```
 Output:
 ```
 1080::8:800:200c:417a
 1080::8:800:200c:417a
-1.2.3.4  
+1080::8:800:200c:417a
+1.2.3.4
+1.2.3.4
 1.2.3.4
 ```
 When parsing a range of single-segment values, it might not be possible to represent the range as a series of segments of range values, which is what is needed to be represented by an `IPv6Address` of 8 segment ranges, or an `IPv4Address` of 4 segment ranges.
@@ -634,15 +652,13 @@ However, the string can still be parsed, and the parsed result can be obtained u
 A couple of standardized host formats are recognized, namely the reverse
 DNS host format, and the UNC IPv6 literal host format.
 ```java
-HostName hostName = new
-HostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa");
+HostName hostName = new HostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa");
 System.out.println(hostName.asAddress());
 
 hostName = new HostName("4.3.2.1.in-addr.arpa");
 System.out.println(hostName.asAddress());
 
-hostName = new
-HostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net");  
+hostName = new HostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net");  
 System.out.println(hostName.asAddress());
 ```
 Output:
