@@ -27,11 +27,14 @@ Done.
 To update the gh-pages docs
 ---------------------------
 
-Thankfully this is much easier than before, no more odt, no more docx.  The master file is now the file ipaddress.md in the repo.  You have two options:
+Thankfully this is much easier than before, no more odt, no more docx.  
+The master file is now the file ipaddress.md in the repo.  
 
-1. Make edits directly in github.  https://github.com/seancfoley/IPAddress/edit/gh-pages/ipaddress.md
+You have two options:
 
-2. Check out the repo gh-pages branch, then use Atom to edit.  Use the markdown preview using Ctl-Shift-M.
+Option 1. Make edits directly in github.  https://github.com/seancfoley/IPAddress/edit/gh-pages/ipaddress.md
+
+Option 2. Check out the repo gh-pages branch, then use Atom to edit.  Use the markdown preview using Ctl-Shift-M.
 
 
 
@@ -57,8 +60,8 @@ B Github
 4. Use build.xml to first "create javadoc", then after to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
 NOTE: Currently we have had to separate javadoc creation from the creation of dist jar or maven, see notes in build.xml for the reason.
 You need the project at compile level 9 with a jre >= 9 (last time used 11).
-Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
-Then switch over the job to jre >= 9.  Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
+a. Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
+b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
 5. Commit and push the changes (pom, bnd, build, dist jar).
 
@@ -93,6 +96,8 @@ Use your sonatype user/pw.
 It may take about 10 minutes.
 
 12. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
+
+D Bintray
 
 13. bintray - create version using the button, then add date and version number 5.3.1 (description can be skipped)
 Then go to the version, select upload files at the top
