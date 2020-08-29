@@ -55,7 +55,7 @@
 
 The library was intended to satisfy the following primary goals:
 
-  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for the extensive list)
+  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for an extensive list)
 
   - **Parsing and representation of subnets**, either those specified by network prefix length or those specified with ranges of segment values. For example, all strings in the list below represent the same IPv4 subnet:
 
@@ -96,7 +96,7 @@ The library was intended to satisfy the following primary goals:
     representations (when you consider hex capitalization, ipv6
     compression, and leading zeros, the various IPv4 and IPv6 formats,
     and combinations of all the above), although there are generally a
-    handful of commonly used formats. Generating these strings, can help when searching or matching
+    handful of commonly used formats. Generating these strings can help when searching or matching
     addresses in databases or text.
 
   - **Support parsing of all common MAC Address** formats in usage and
@@ -107,7 +107,7 @@ The library was intended to satisfy the following primary goals:
   - **Integration of IPv4 Address with IPv6** through common address
     conversions
 
-  - **Polymorphism** is a key goal.  The library maintains an address framework of interfaces and abstract classes that allow most library functionality to be independent of address type of version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
+  - **Polymorphism** is a key goal.  The library maintains an address framework of interfaces and abstract classes that allow most library functionality to be independent of address type or version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
     non-version-specific code to validate addresses, connect to
     addresses, produce address strings, mask addresses, etc. You can
     make use of the address framework which is agnostic towards address
@@ -1212,6 +1212,8 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **mergeToPrefixBlocks**, **mergeToSequentialBlocks**: Given a list of
     addresses or subnets, merges them into the minimal list of prefix
     block subnets or sequential block subnets
+    
+  - **toSequentialRange**: converts an IP address or subnet to the associated address range ranging from the lowest to highest value of the address or subnet.  The `isSequential` method of `IPAddress` indicates if both objects represent the same set of addresses.
 
   - **join**: Given a list of address ranges, merges them into the
     minimal list of address ranges
@@ -1235,13 +1237,12 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **withoutPrefixLength**: Convert to the same address but with no
     prefix length
 
-  - **removePrefixLength**, **adjustPrefixLength**, **setPrefixLength**: Add, remove or adjust prefix lengths by the indicated values. There are variants with a
+  - **adjustPrefixLength**, **setPrefixLength**: Add, remove or adjust prefix lengths by the indicated values. There are variants with a
     boolean argument to control whether extended prefix lengths have
     zeros for the added bits, or whether the bits retain their values
     from when they were on the other side of the prefix boundary. The
     default behavior when extending or shortening a prefix length is to insert zeros
-    in the bits added to the prefix or removed from the prefix. `removePrefixLength` is like `withoutPrefixLength` but
-    will convert the former host bits to zero.  
+    in the bits added to the prefix or removed from the prefix. 
 
     When reconstituting the result,
     if the initial host bits have been changed to zero or remain zero, while the remaining host bits are zero or cover the full range, then the result will be a prefix block, just like when parsing strings with zero hosts or creating addresses or sections with zero hosts.
@@ -1364,8 +1365,7 @@ Various iterators, spliterators and streams are available for traversing through
 #### Mask and Prefix Length Operations
 
 The methods `mask`, `maskNetwork`, `bitwiseOr`, `bitwiseOrNetwork`,
-`removePrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`,
-`applyPrefixLength`, and `setPrefixLength` allow you to apply and adjust
+`withoutPrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`, and `setPrefixLength` allow you to apply and adjust
 prefix lengths, and to apply masks, to individual addresses/sections and subnets.
 
 When applying an operation to a subnet, the operation is applied to
