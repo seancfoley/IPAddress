@@ -38,7 +38,7 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
-import inet.ipaddr.mac.MACAddressSection.AddressCache;
+import inet.ipaddr.mac.MACAddressSection.MACAddressCache;
 
 /**
  * A MAC address, or a collection of multiple MAC addresses.  Each segment can represent a single value or a range of values.
@@ -81,7 +81,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT = 3;
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_BIT_COUNT = ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT * BITS_PER_SEGMENT;
 	
-	transient AddressCache sectionCache;
+	transient MACAddressCache sectionCache;
 	
 	/**
 	 * Constructs a MAC address.

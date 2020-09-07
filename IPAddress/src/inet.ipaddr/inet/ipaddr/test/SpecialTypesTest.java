@@ -21,7 +21,10 @@ package inet.ipaddr.test;
 import java.math.BigInteger;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
@@ -37,6 +40,8 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.ipv6.IPv6Address;
+import inet.ipaddr.ipv6.IPv6Address.IPv6Zone;
 import inet.ipaddr.mac.MACAddress;
 
 
@@ -671,5 +676,29 @@ public class SpecialTypesTest extends TestBase {
 		testLoopback("1.2.3.4", false);
 		testLoopback("::", false);
 		testLoopback("1:2:3:4:1:2:3:4", false);
+		
+		try {
+			Enumeration<NetworkInterface> nifs = NetworkInterface.getNetworkInterfaces();
+			IPv6Address ipv6Address = createAddress("1:2:3:4:1:2:3:4").getAddress().toIPv6();
+			if(nifs.hasMoreElements()) {
+				NetworkInterface nif = nifs.nextElement();
+				Inet6Address inetAddr = Inet6Address.getByAddress(null, ipv6Address.getBytes(), nif);
+				//Inet6Address inetAddr = Inet6Address.getByAddress("1:2:3:4:1:2:3:4", null, nif);
+				IPv6Address address = new IPv6Address(inetAddr);
+				address = address.setPrefixLength(64, false);
+				Inet6Address backAgain = address.toInetAddress();
+				NetworkInterface nifAgain = backAgain.getScopedInterface();
+				if(nif != nifAgain) {
+					addFailure(new Failure("failed: " + inetAddr + " and " + backAgain, address));
+				}
+				//System.out.println("" + inetAddr);
+				//System.out.println("" + backAgain);
+			}
+			// TODO Also construct using only the network interface (not the Inet6Address)
+			// get a new Inet6Address, get the netowrk interface, ensure it is the same object
+			// Step through the code to confirm
+		} catch (SocketException | UnknownHostException e) {
+			e.printStackTrace();
+		}
 	}
 }

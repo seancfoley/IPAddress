@@ -42,7 +42,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
-import inet.ipaddr.ipv4.IPv4AddressSection.AddressCache;
+import inet.ipaddr.ipv4.IPv4AddressSection.IPv4AddressCache;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection;
 import inet.ipaddr.ipv6.IPv6Address;
@@ -82,7 +82,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public static final int MAX_VALUE = 0xffffffff;
 	public static final String REVERSE_DNS_SUFFIX = ".in-addr.arpa";
 	
-	transient AddressCache sectionCache;
+	transient IPv4AddressCache sectionCache;
 
 	/**
 	 * Constructs an IPv4 address or subnet.
@@ -151,7 +151,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @param inet4Address the java.net address object
 	 */
 	public IPv4Address(Inet4Address inet4Address, Integer networkPrefixLength) {
-		this(inet4Address.getAddress(), networkPrefixLength);
+		this(inet4Address, inet4Address.getAddress(), networkPrefixLength);
 	}
 	
 	/**
@@ -160,7 +160,12 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 * @param inet4Address the java.net address object
 	 */
 	public IPv4Address(Inet4Address inet4Address) {
-		this(inet4Address.getAddress());
+		this(inet4Address, inet4Address.getAddress(), null);
+	}
+	
+	private IPv4Address(Inet4Address inet4Address, byte[] bytes, Integer networkPrefixLength) throws AddressValueException {
+		super(thisAddress -> ((IPv4Address) thisAddress).getAddressCreator().createSection(bytes, 0, bytes.length, IPv4Address.SEGMENT_COUNT, networkPrefixLength));
+		getSection().setInetAddress(inet4Address);
 	}
 	
 	/**

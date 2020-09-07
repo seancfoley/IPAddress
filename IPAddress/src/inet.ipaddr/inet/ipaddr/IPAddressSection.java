@@ -202,6 +202,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return getSegmentCount() * getBytesPerSegment();
 	}
 
+	@Override
+	protected byte[] getBytesInternal() {
+		return super.getBytesInternal();
+	}
+
 	public static int bitsPerSegment(IPVersion version) {
 		return IPAddressSegment.getBitCount(version);
 	}
@@ -2752,19 +2757,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return true;
 	}
-	
+
 	InetAddress toInetAddress(IPAddress address) {
 		InetAddress result;
 		if(hasNoValueCache() || (result = valueCache.inetAddress) == null) {
-			valueCache.inetAddress = result = address.toInetAddressImpl(getBytes());
-		}
-		return result;
-	}
-	
-	InetAddress toUpperInetAddress(IPAddress address) {
-		InetAddress result;
-		if(hasNoValueCache() || (result = valueCache.upperInetAddress) == null) {
-			valueCache.upperInetAddress = result = address.toInetAddressImpl(getUpperBytes());
+			valueCache.inetAddress = result = address.toInetAddressImpl();
 		}
 		return result;
 	}

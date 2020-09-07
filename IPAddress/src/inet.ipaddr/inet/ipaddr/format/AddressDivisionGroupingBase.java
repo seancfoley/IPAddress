@@ -86,7 +86,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		public BigInteger value, upperValue;
 		
 		/* only used when address section is full section owned by an address */
-		public InetAddress inetAddress, upperInetAddress;
+		public InetAddress inetAddress;
 	}
 	
 	protected transient ValueCache valueCache;
@@ -329,6 +329,15 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		}
 		return false;
 	}
+	
+	// only called from constructors, no locking is necessary
+	protected void setInetAddress(InetAddress addr) {
+		if(valueCache == null) {
+			valueCache = new ValueCache();
+		}
+		valueCache.inetAddress = addr;
+	}
+	
 
 	@Override
 	public boolean isPrefixed() {

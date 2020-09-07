@@ -467,4 +467,12 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 		}
 		return 0;
 	}
+	
+	protected static int toUnsignedStringLength(int value, int radix) {
+		return IPAddressSegment.toUnsignedStringLength(value, radix);
+	}
+	
+	protected static StringBuilder toUnsignedString(int value, int radix, StringBuilder appendable) {
+		return IPAddressSegment.toUnsignedString(value, radix, appendable);
+	}
 }

@@ -20,6 +20,8 @@ package inet.ipaddr.ipv6;
 
 import java.io.Serializable;
 import java.net.Inet6Address;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -30,6 +32,7 @@ import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.ipv4.IPv4AddressSection;
+import inet.ipaddr.ipv6.IPv6Address.IPv6Zone;
 import inet.ipaddr.ipv6.IPv6AddressSection.EmbeddedIPv6AddressSection;
 import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressSection;
@@ -72,12 +75,27 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			private transient IPv6AddressSegment segmentPrefixCache[][][];
 			private transient IPv6AddressSegment allPrefixedCache[];
 			
+			private static final int MAX_ZONE_ENTRIES = 100;
+
+			@SuppressWarnings("serial")
+			private transient LinkedHashMap<String, IPv6Zone> zoneInterfaceCache = new LinkedHashMap<String, IPv6Zone>(16, 0.75f, true) {
+				
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<String, IPv6Zone> eldest) {
+					return size() > MAX_ZONE_ENTRIES;
+				}
+			};
+			
+			private transient IPv6Zone scopedZoneCache[] = new IPv6Zone[256];
+	
 			void clear() {
 				segmentCache = null;
 				allPrefixedCache = null;
 				segmentPrefixCache = null;
 				ZERO_PREFIX_SEGMENT = null;
 				ALL_RANGE_SEGMENT = null;
+				scopedZoneCache = new IPv6Zone[256];
+				zoneInterfaceCache.clear();
 			}
 		}
 		
@@ -393,14 +411,6 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 		
 		@Override
-		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[], CharSequence zone) {
-			if(zone == null || zone.length() == 0) {
-				return createAddressInternal(segments);
-			}
-			return createAddressInternal(createSectionInternal(segments), zone);
-		}
-		
-		@Override
 		protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
 			return super.createAddressInternal(segments);
 		}
@@ -410,7 +420,50 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			if(zone == null || zone.length() == 0) {
 				return createAddress(section);
 			}
-			return new IPv6Address(section, zone, false);
+			String zoneStr = zone.toString().trim();
+			if(zoneStr.length() == 0) {
+				return createAddress(section);
+			}
+			IPv6Zone zoneObj = getCacheZoneObj(zoneStr);
+			return createAddress(section, zoneObj);
+		}
+
+		private IPv6Zone getCacheZoneObj(String zoneStr) {
+			int scope = IPv6Zone.checkIfScope(zoneStr);
+			IPv6Zone zoneObj;
+			if(scope >= 0) {
+				if(scope < cache.scopedZoneCache.length) {
+					zoneObj = cache.scopedZoneCache[scope];
+					if(zoneObj == null) {
+						zoneObj = new IPv6Zone(scope);
+						cache.scopedZoneCache[scope] = zoneObj;
+					}
+				} else {
+					zoneObj = new IPv6Zone(scope);
+				}
+				zoneObj.zoneStr = zoneStr;
+			} else {
+				zoneObj = cache.zoneInterfaceCache.get(zoneStr);
+				if(zoneObj == null) {
+					zoneObj = new IPv6Zone(zoneStr);
+					cache.zoneInterfaceCache.put(zoneStr, zoneObj);
+				}
+			}
+			return zoneObj;
+		}
+		
+		public IPv6Address createAddress(IPv6AddressSegment segments[], IPv6Zone zone) {
+			if(zone == null) {
+				return createAddressInternal(segments);
+			}
+			return createAddress(createSectionInternal(segments), zone);
+		}
+		
+		public IPv6Address createAddress(IPv6AddressSection section, IPv6Zone zone) {
+			if(zone == null) {
+				return createAddress(section);
+			}
+			return new IPv6Address(section, zone);
 		}
 		
 		@Override
@@ -420,13 +473,6 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			return result;
 		}
 		
-		public IPv6Address createAddress(IPv6AddressSection section, CharSequence zone) {
-			if(zone == null || zone.length() == 0) {
-				return createAddress(section);
-			}
-			return new IPv6Address(section, zone);
-		}
-
 		@Override
 		public IPv6Address createAddress(IPv6AddressSection section) {
 			return new IPv6Address(section);

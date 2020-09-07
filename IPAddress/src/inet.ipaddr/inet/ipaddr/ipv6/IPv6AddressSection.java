@@ -19,6 +19,8 @@
 package inet.ipaddr.ipv6;
 
 import java.math.BigInteger;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -163,7 +165,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		public String uncString;
 	}
 
-	static class AddressCache extends SectionCache<IPv6Address> {}
+	static class IPv6AddressCache extends SectionCache<IPv6Address> {
+		public Inet6Address inetAddress;
+	}
 	
 	private static IPv6AddressCreator creators[] = new IPv6AddressCreator[IPv6Address.SEGMENT_COUNT];
 
@@ -554,6 +558,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		super.initCachedValues(prefixLen, network, cachedNetworkPrefix, cachedMinPrefix, cachedEquivalentPrefix, cachedCount, zeroSegments, zeroRanges);
 		this.zeroSegments = zeroSegments;
 		this.zeroRanges = zeroRanges;
+	}
+	
+	@Override
+	protected void setInetAddress(InetAddress addr) {
+		super.setInetAddress(addr);
 	}
 
 	@Override
@@ -1842,6 +1851,11 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			bytes[byteIndex + 1] = (byte) val;
 		}
 		return bytes;
+	}
+	
+	@Override
+	protected byte[] getBytesInternal() {
+		return super.getBytesInternal();
 	}
 
 	/**

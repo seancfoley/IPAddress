@@ -109,7 +109,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		public String spaceDelimitedString;
 	}
 	
-	static class AddressCache extends SectionCache<MACAddress> {}
+	static class MACAddressCache extends SectionCache<MACAddress> {}
 	
 	private static MACAddressCreator creators[][] = new MACAddressCreator[2][MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT];
 	
@@ -921,13 +921,13 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		}
 		
 		MACAddress result = null;
-		AddressCache cache = addr.sectionCache;
+		MACAddressCache cache = addr.sectionCache;
 		if(cache == null || (result = lowest ? cache.lower : cache.upper) == null) {
 			synchronized(this) {
 				cache = addr.sectionCache;
 				boolean create = (cache == null);
 				if(create) {
-					cache = addr.sectionCache = new AddressCache();
+					cache = addr.sectionCache = new MACAddressCache();
 				} else {
 					if(lowest) {
 						create = (result = cache.lower) == null;

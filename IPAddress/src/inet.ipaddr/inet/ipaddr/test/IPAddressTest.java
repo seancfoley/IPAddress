@@ -3190,7 +3190,6 @@ public class IPAddressTest extends TestBase {
 		
 		
 		backAgain = result2[0].mergeToSequentialBlocks(result2);
-		//Arrays.sort(result2, IPAddressSegmentSeries.getPrefixLenComparator());//TODO remove
 		matches = Arrays.deepEquals(result2, backAgain);
 		if(!matches) {
 			addFailure(new Failure("merge mismatch merging " + addr1 + " and " + addr2 + " into " + Arrays.asList(result2) + " and " + Arrays.asList(backAgain), addr1));

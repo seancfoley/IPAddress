@@ -579,7 +579,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If this consists of just a single address and not a subnet, this is equivalent to {@link #toInetAddress()}
 	 */
 	public InetAddress toUpperInetAddress() {
-		return getSection().toUpperInetAddress(this);
+		return getUpper().toInetAddress();
 	}
 	
 	/**
@@ -589,9 +589,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().toInetAddress(this);
 	}
 
-	protected InetAddress toInetAddressImpl(byte bytes[]) {
+	protected InetAddress toInetAddressImpl() {
 		try {
-			return InetAddress.getByAddress(bytes);
+			return InetAddress.getByAddress(getSection().getBytesInternal());
 		} catch(UnknownHostException e) { /* will never reach here */ return null; }
 	}
 	

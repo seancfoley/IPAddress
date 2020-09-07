@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -46,8 +47,8 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
-import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.format.validate.Validator;
 import inet.ipaddr.ipv4.IPv4Address;
@@ -56,7 +57,7 @@ import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
-import inet.ipaddr.ipv6.IPv6AddressSection.AddressCache;
+import inet.ipaddr.ipv6.IPv6AddressSection.IPv6AddressCache;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCache;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCollection;
@@ -75,7 +76,14 @@ import inet.ipaddr.mac.MACAddressSegment;
  * <p>
  * To construct one from a {@link java.lang.String} use 
  * {@link inet.ipaddr.IPAddressString#toAddress()} or  {@link inet.ipaddr.IPAddressString#getAddress()}, {@link inet.ipaddr.IPAddressString#toHostAddress()} or {@link inet.ipaddr.IPAddressString#getHostAddress()}
- * 
+ * <p>
+ * An IPv6 address can have an associated zone, typically either a network interface name or a positive integer.
+ * An IPv6 zone distinguishes two IPv6 addresses that are the same.
+ * <ul>
+ * <li>They are used with link-local addresses fe80::/10 to distinguish two interfaces to the link-local network, this is known as the zone id.
+ * </li><li>They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
+ * </li></ul>
+ * A zone that consists of a scope id is called a scoped zone.
  * @custom.core
  * @author sfoley
  */
@@ -124,19 +132,151 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * 
 	 * A zone that consists of a scope id is called a scoped zone.
 	 */
-	private final String zone;
+	private final IPv6Zone zone;
 
-	protected static class ValueCache {
-		public Inet6Address inetAddress, upperInetAddress;
+	/**
+	 * A reference to a scope identifier or a network interface.
+	 * <p>
+	 * An IPv6 zone distinguishes two IPv6 addresses that are the same.
+	 * They are used with link-local addresses fe80::/10 to distinguish two interfaces to the link-local network, this is known as the zone id.
+	 * They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
+	 * <p>
+	 * A zone that consists of a scope id is called a scoped zone.
+	 * 
+	 * @author scfoley
+	 *
+	 */
+	public static class IPv6Zone {
+		String zoneStr;
+		private int scopeId;
+		private NetworkInterface networkInterface;
+		private Boolean isScopeId, isNetworkInterface;
+		
+		IPv6Zone(String zoneStr) {
+			if(zoneStr == null) {
+				throw new NullPointerException();
+			}
+			this.zoneStr = zoneStr.trim();
+		}
+		
+		IPv6Zone(int scopeId) {
+			if(scopeId < 0) {
+				throw new IllegalArgumentException();
+			}
+			this.scopeId = scopeId;
+			isScopeId = Boolean.TRUE;
+			isNetworkInterface = Boolean.FALSE;
+		}
+		
+		IPv6Zone(NetworkInterface networkInterface) {
+			if(networkInterface == null) {
+				throw new NullPointerException();
+			}
+			this.networkInterface = networkInterface;
+			isScopeId = Boolean.FALSE;
+			isNetworkInterface = Boolean.TRUE;
+		}
+		
+		/**
+		 * Whether this zone represents an existing network interface.
+		 * 
+		 * @return
+		 */
+		public boolean isExistingNetworkIntf() {
+			if(isNetworkInterface != null) {
+				return isNetworkInterface;
+			}
+			if(isScopeId()) {
+				return false;
+			}
+			String zoneStr = this.zoneStr;
+			try {
+				networkInterface = NetworkInterface.getByName(zoneStr);
+				isNetworkInterface = Boolean.TRUE;
+				return true;
+	        } catch (SocketException e) {
+	        	return false;
+	        }
+		}
+		
+		static int checkIfScope(String zoneStr) {
+			long digits = 0;
+			for(int i = 0, len = zoneStr.length(); i < len; i++) {
+				char c = zoneStr.charAt(i);
+				int digit = Character.digit(c, 10);
+				if(digit < 0) {
+					return -1;
+				}
+				digits = (digits * 10) + digit;
+				if(digits > Integer.MAX_VALUE) {
+					return -1;
+				}
+			}
+			return (int) digits;
+		}
+
+		public boolean isScopeId() {
+			if(isScopeId != null) {
+				return isScopeId;
+			}
+			int scopeId = checkIfScope(zoneStr);
+			if(scopeId < 0) {
+				isScopeId = Boolean.FALSE;
+				return false;
+			}
+			this.scopeId = scopeId;
+			isScopeId = Boolean.TRUE;
+			isNetworkInterface = Boolean.FALSE;
+			return true;
+		}
+		
+		@Override
+		public int hashCode() {
+			return toString().hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof IPv6Zone && toString().equals(o.toString());
+		}
+		
+		public String getName() {
+			if(zoneStr == null) {
+				if(isExistingNetworkIntf()) {
+					zoneStr = networkInterface.getName();
+				} else {
+					zoneStr = IPv6AddressSegment.toUnsignedString(scopeId, 10,
+							new StringBuilder(IPv6AddressSegment.toUnsignedStringLength(scopeId, 10))).toString();
+				}
+			}
+			return zoneStr;
+		}
+	
+		@Override
+		public String toString() {
+			return getName();
+		}
 	}
-	
-	private transient ValueCache valueCache;
-	
+
 	private transient IPv6StringCache stringCache;
 	
-	transient AddressCache addressCache;
+	transient IPv6AddressCache addressCache;
 
 	IPv6Address(IPv6AddressSection section, CharSequence zone, boolean checkZone) throws AddressValueException {
+		this(section, checkZone ? 
+					checkZone(zone) : 
+					(zone != null && zone.length() > 0 ? 
+							new IPv6Zone(zone.toString()) :
+							null));
+	}
+	
+	/**
+	 * Constructs an IPv6 address or subnet.
+	 * @throws AddressValueException if segment count is not 8 or zone is invalid
+	 * @param section
+	 * @param zone
+	 */
+	public IPv6Address(IPv6AddressSection section, IPv6Zone zone) throws AddressValueException {
 		super(section);
 		if(section.getSegmentCount() != SEGMENT_COUNT) {
 			throw new AddressValueException("ipaddress.error.ipv6.invalid.segment.count", section.getSegmentCount());
@@ -144,28 +284,25 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(section.addressSegmentIndex != 0) {
 			throw new AddressPositionException(section.addressSegmentIndex);
 		}
-		if(checkZone) {
-			this.zone = checkZone(zone);
-		} else if(zone != null && zone.length() > 0) {
-			this.zone = zone.toString();
-		} else {
-			this.zone = null;
-		}
+		this.zone = zone;
 	}
 	
 	/**
+	 * @deprecated use {@link #IPv6Address(IPv6AddressSection, IPv6Zone)}
 	 * @throws AddressValueException if segment count is not 8 or zone is invalid
 	 * @param section
 	 * @param zone
 	 */
+	@Deprecated
 	public IPv6Address(IPv6AddressSection section, CharSequence zone) throws AddressValueException {
 		this(section, zone, true);
 	}
 	
+
 	public IPv6Address(IPv6AddressSection section) throws AddressValueException {
 		this(section, (CharSequence) null);
 	}
-	
+
 	/**
 	 * Constructs an IPv6 address or subnet.
 	 * @throws AddressValueException if segment count is not 8
@@ -189,21 +326,36 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	/**
 	 * Constructs an IPv6 address or a set of addresses.
+	 * 
+	 * @deprecated {@link #IPv6Address(IPv6AddressSegment[], IPv6Zone)}
 	 * @param segments the address segments
 	 * @param zone the zone or scope id
 	 * 
 	 * @throws AddressValueException if segment count is not 8 or the zone invalid
 	 */
+	@Deprecated
 	public IPv6Address(IPv6AddressSegment[] segments, CharSequence zone) throws AddressValueException {
+		this(segments, checkZone(zone));
+	}
+
+	/**
+	 * Constructs an IPv6 address or a set of addresses.
+	 * 
+	 * @param segments the address segments
+	 * @param zone the zone or scope id
+	 * 
+	 * @throws AddressValueException if segment count is not 8 or the zone invalid
+	 */
+	public IPv6Address(IPv6AddressSegment[] segments, IPv6Zone zone) throws AddressValueException {
 		this(segments, null, zone);
 	}
 
-	private IPv6Address(IPv6AddressSegment[] segments, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
+	private IPv6Address(IPv6AddressSegment[] segments, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
 		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(segments, networkPrefixLength));
 		if(segments.length != SEGMENT_COUNT) {
 			throw new AddressValueException("ipaddress.error.ipv6.invalid.segment.count", segments.length);
 		}
-		this.zone = checkZone(zone);
+		this.zone = zone;
 	}
 
 	/**
@@ -212,7 +364,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param inet6Address the java.net address object
 	 */
 	public IPv6Address(Inet6Address inet6Address) {
-		this(inet6Address.getAddress(), getZone(inet6Address));
+		this(inet6Address, inet6Address.getAddress(), null, getZone(inet6Address));
 	}
 	
 	/**
@@ -221,9 +373,30 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param inet6Address the java.net address object
 	 */
 	public IPv6Address(Inet6Address inet6Address, Integer networkPrefixLength) {
-		this(inet6Address.getAddress(), networkPrefixLength, getZone(inet6Address));
+		this(inet6Address, inet6Address.getAddress(), networkPrefixLength, getZone(inet6Address));
+	}
+	
+	private IPv6Address(Inet6Address inet6Address, byte[] bytes, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(bytes, 0, bytes.length, IPv6Address.SEGMENT_COUNT, networkPrefixLength));
+		this.zone = zone;
+		getSection().setInetAddress(inet6Address);
 	}
 
+	/**
+	 * Constructs an IPv6 address.
+	 * <p>
+	 * The byte array can be a 16 byte IPv6 address, but may have additional zero-valued bytes, or it may be fewer than 16 bytes.
+	 *
+	 * @deprecated use {@link #IPv6Address(byte[], IPv6Zone)}
+	 * @throws AddressValueException if bytes not equivalent to a 16 byte address
+	 * @param bytes the 16 byte IPv6 address in network byte order - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
+	 * @throws AddressValueException if byte range invalid or zone invalid
+	 */
+	@Deprecated
+	public IPv6Address(byte[] bytes, CharSequence zone) throws AddressValueException {
+		this(bytes, checkZone(zone));
+	}
+	
 	/**
 	 * Constructs an IPv6 address.
 	 * <p>
@@ -233,7 +406,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param bytes the 16 byte IPv6 address in network byte order - if longer than 16 bytes the additional bytes must be zero (and are ignored), if shorter than 16 bytes then the bytes are sign-extended to 16 bytes.
 	 * @throws AddressValueException if byte range invalid or zone invalid
 	 */
-	public IPv6Address(byte[] bytes, CharSequence zone) throws AddressValueException {
+	public IPv6Address(byte[] bytes, IPv6Zone zone) throws AddressValueException {
 		this(bytes, null, zone);
 	}
 	
@@ -308,7 +481,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @throws AddressValueException if val is invalid
 	 */
 	public IPv6Address(BigInteger val) throws AddressValueException {
-		this(val, null, null);
+		this(val, null, (IPv6Zone) null);
 	}
 	
 	/**
@@ -326,7 +499,24 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @throws AddressValueException if val is invalid
 	 */
 	public IPv6Address(BigInteger val, Integer networkPrefixLength) throws AddressValueException {
-		this(val, networkPrefixLength, null);
+		this(val, networkPrefixLength, (IPv6Zone) null);
+	}
+	
+	/**
+	 * Constructs an IPv6 address.
+	 * <p>
+	 * The byte representation from {@link BigInteger#toByteArray()} is used, and the byte array follows the rules according to {@link #IPv6Address(byte[])}.
+	 * Either it must be exactly 16 bytes, or if larger then any extra bytes must be significant leading zeros, 
+	 * or if smaller it is sign-extended to the required 16 byte length.
+	 * <p>
+	 * @deprecated use {@link #IPv6Address(BigInteger, IPv6Zone)}
+	 * @param val
+	 * @param zone
+	 * @throws AddressValueException if val is invalid or if zone is invalid
+	 */
+	@Deprecated
+	public IPv6Address(BigInteger val, CharSequence zone) throws AddressValueException {
+		this(val, checkZone(zone));
 	}
 	
 	/**
@@ -340,8 +530,26 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param zone
 	 * @throws AddressValueException if val is invalid or if zone is invalid
 	 */
-	public IPv6Address(BigInteger val, CharSequence zone) throws AddressValueException {
+	public IPv6Address(BigInteger val, IPv6Zone zone) throws AddressValueException {
 		this(val, null, zone);
+	}
+	
+	/**
+	 * Constructs an IPv6 address or subnet.
+	 * <p>
+	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
+	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
+	 * <p>
+	 * 
+	 * @deprecated use {@link #IPv6Address(BigInteger, Integer, IPv6Zone)}
+	 * @param val must be an IPv6 address value
+	 * @param networkPrefixLength the CIDR prefix length, which can be null for no prefix length
+	 * @param zone the zone or scope id
+	 * @throws AddressValueException if value is outside the range of potential values, or if zone is invalid
+	 */
+	@Deprecated
+	public IPv6Address(BigInteger val, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {	
+		this(val, networkPrefixLength, checkZone(zone));
 	}
 	
 	/**
@@ -356,18 +564,18 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param zone the zone or scope id
 	 * @throws AddressValueException if value is outside the range of potential values, or if zone is invalid
 	 */
-	public IPv6Address(BigInteger val, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {	
+	public IPv6Address(BigInteger val, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {	
 		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSectionInternal(val.toByteArray(), IPv6Address.SEGMENT_COUNT, networkPrefixLength, false));
-		this.zone = checkZone(zone);
+		this.zone = zone;
 	}
 	
-	private IPv6Address(byte[] bytes, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
+	private IPv6Address(byte[] bytes, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
 		this(bytes, 0, bytes.length, networkPrefixLength, zone);
 	}
 	
-	private IPv6Address(byte[] bytes, int byteStartIndex, int byteEndIndex, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
+	private IPv6Address(byte[] bytes, int byteStartIndex, int byteEndIndex, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
 		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(bytes, byteStartIndex, byteEndIndex, IPv6Address.SEGMENT_COUNT, networkPrefixLength));
-		this.zone = checkZone(zone);
+		this.zone = zone;
 	}
 
 	/**
@@ -421,17 +629,30 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * Constructs an IPv6 address.
 	 *
+	 * @deprecated use {@link #IPv6Address(SegmentValueProvider, SegmentValueProvider, IPv6Zone)}
 	 * @param lowerValueProvider supplies the 2 byte lower values for each segment
 	 * @param upperValueProvider supplies the 2 byte upper values for each segment
 	 * @throws AddressValueException if zone is invalid
 	 */
+	@Deprecated
 	public IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, CharSequence zone) throws AddressValueException {
+		this(lowerValueProvider, upperValueProvider, checkZone(zone));
+	}
+	
+	/**
+	 * Constructs an IPv6 address.
+	 *
+	 * @param lowerValueProvider supplies the 2 byte lower values for each segment
+	 * @param upperValueProvider supplies the 2 byte upper values for each segment
+	 * @throws AddressValueException if zone is invalid
+	 */
+	public IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, IPv6Zone zone) throws AddressValueException {
 		this(lowerValueProvider, upperValueProvider, null, zone);
 	}
 	
-	private IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength, CharSequence zone) throws AddressValueException {
+	private IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
 		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createFullSectionInternal(lowerValueProvider, upperValueProvider, networkPrefixLength));
-		this.zone = checkZone(zone);
+		this.zone = zone;
 	}
 	
 	/**
@@ -503,10 +724,26 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @param eui
 	 */
 	public IPv6Address(IPv6AddressSection section, MACAddressSection eui) throws IncompatibleAddressException, AddressValueException  {
-		this(section, eui, null);
+		this(section, eui, (IPv6Zone) null);
 	}
 	
 	/**
+	 * Constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address and an IPv6 address section network prefix.
+	 * 
+	 * @deprecated use {@link #IPv6Address(IPv6AddressSection, MACAddressSection, IPv6Zone)}
+	 * @param section
+	 * @param eui
+	 * @param zone
+	 * @throws IncompatibleAddressException  if the MACAddress is an 8 byte MAC address incompatible with EUI-64 IPv6 format
+	 * @throws AddressValueException  if the MACAddress or IPv6 sections are the wrong size or structure, or if zone is invalid
+	 */
+	@Deprecated
+	public IPv6Address(IPv6AddressSection section, MACAddressSection eui, CharSequence zone) throws IncompatibleAddressException, AddressValueException  {
+		this(section, eui, checkZone(zone));
+	}
+	
+	/**
+	 * Constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address and an IPv6 address section network prefix.
 	 * 
 	 * @param section
 	 * @param eui
@@ -514,20 +751,24 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @throws IncompatibleAddressException  if the MACAddress is an 8 byte MAC address incompatible with EUI-64 IPv6 format
 	 * @throws AddressValueException  if the MACAddress or IPv6 sections are the wrong size or structure, or if zone is invalid
 	 */
-	public IPv6Address(IPv6AddressSection section, MACAddressSection eui, CharSequence zone) throws IncompatibleAddressException, AddressValueException  {
+	public IPv6Address(IPv6AddressSection section, MACAddressSection eui, IPv6Zone zone) throws IncompatibleAddressException, AddressValueException  {
 		super(thisAddress -> toFullEUI64Section(section, eui, ((IPv6Address) thisAddress).getDefaultCreator(), ((IPv6Address) thisAddress).getMACNetwork().getAddressCreator()));
-		this.zone = checkZone(zone);
+		this.zone = zone;
 	}
 	
-	private static String checkZone(CharSequence zone) throws AddressValueException {
-		if(zone == null || zone.length() == 0) {
+	static IPv6Zone checkZone(CharSequence zone) throws AddressValueException {
+		if(zone == null) {
 			return null;
 		}
-		int invalidIndex = Validator.validateZone(zone);
+		String zoneStr = zone.toString().trim();
+		if(zone.length() == 0) {
+			return null;
+		}
+		int invalidIndex = Validator.validateZone(zoneStr);
 		if(invalidIndex >= 0) {
 			throw new AddressValueException("ipaddress.error.invalid.zone", invalidIndex);
 		}
-		return zone.toString();
+		return new IPv6Zone(zoneStr);
 	}
 
 	IPv6AddressCreator getDefaultCreator() {
@@ -546,36 +787,33 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			@Override
 			protected IPv6Address createAddressInternal(IPv6AddressSegment segments[]) {
 				IPv6AddressCreator creator = getDefaultCreator();
-				return creator.createAddressInternal(segments, zone); /* address creation */
+				return creator.createAddress(segments, zone); /* address creation */
 			}
 
 			@Override
 			public IPv6Address createAddress(IPv6AddressSection section) {
 				IPv6AddressCreator creator = getDefaultCreator();
-				return creator.createAddressInternal(section, zone); /* address creation */
+				return creator.createAddress(section, zone); /* address creation */
 			}
 		};
 		creator.useSegmentCache = defaultCreator.useSegmentCache;
 		return creator;
 	}
 
-	private static CharSequence getZone(Inet6Address inet6Address) {
+	private static IPv6Zone getZone(Inet6Address inet6Address) {
 		NetworkInterface networkInterface = inet6Address.getScopedInterface();
-		String zone = null;
-		if(networkInterface == null) {
-			int scopeId = inet6Address.getScopeId();
-			if(scopeId != 0) {
-				zone = Integer.toString(scopeId);
-			}
-		} else {
-			zone = networkInterface.getName();
+		if(networkInterface != null) {
+			return new IPv6Zone(networkInterface);
 		}
-		return zone;
+		int scopeId = inet6Address.getScopeId();
+		if(scopeId != 0) {
+			return new IPv6Zone(scopeId);
+		}
+		return null;
 	}
 
 	private static IPv6AddressSection toFullEUI64Section(IPv6AddressSection section, MACAddressSection eui, IPv6AddressCreator creator, MACAddressCreator macCreator) throws AddressValueException, IncompatibleAddressException {
 		boolean euiIsExtended = eui.isExtended();
-		
 		if(eui.addressSegmentIndex != 0) {
 			throw new AddressPositionException(eui, eui.addressSegmentIndex);
 		}
@@ -807,13 +1045,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	void cache(IPv6Address lower, IPv6Address upper) {
 		if((lower != null || upper != null) && getSection().getSingleLowestOrHighestSection() == null) {
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
-			AddressCache cache = addressCache;
+			IPv6AddressCache cache = addressCache;
 			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
 				synchronized(this) {
 					cache = addressCache;
 					boolean create = (cache == null);
 					if(create) {
-						addressCache = cache = new AddressCache();
+						addressCache = cache = new IPv6AddressCache();
 						cache.lower = lower;
 						cache.upper = upper;
 					} else {
@@ -838,14 +1076,14 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return null;
 		}
 		IPv6Address result = null;
-		AddressCache cache = addressCache;
+		IPv6AddressCache cache = addressCache;
 		if(cache == null || 
 			(result = lowest ? (excludeZeroHost ? cache.lowerNonZeroHost : cache.lower) : cache.upper) == null) {
 			synchronized(this) {
 				cache = addressCache;
 				boolean create = (cache == null);
 				if(create) {
-					addressCache = cache = new AddressCache();
+					addressCache = cache = new IPv6AddressCache();
 				} else {
 					if(lowest) {
 						if(excludeZeroHost) {
@@ -1356,7 +1594,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return null;
 		}
 		//if they have the same zone, then use it in the intersection, otherwise ignore the zones
-		IPv6AddressCreator creator = Objects.equals(zone, otherAddr.zone) ? getCreator() : getDefaultCreator();
+		IPv6AddressCreator creator = isSameZone(otherAddr) ? getCreator() : getDefaultCreator();
 		IPv6Address result = creator.createAddress(section);
 		return result;
 	}
@@ -1605,8 +1843,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address coverWithPrefixBlock(IPAddress other) throws AddressConversionException {
 		return IPv6AddressSection.coverWithPrefixBlock(
-				this,
-				convertArg(other),
+				this.removeZone(),
+				convertArg(other).removeZone(),
 				IPv6Address::getLower,
 				IPv6Address::getUpper, 
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare);
@@ -1623,15 +1861,15 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			return spanWithPrefixBlocks(this);
 		}
 		@SuppressWarnings("unchecked")
-		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(true);
+		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) removeZone().spanWithBlocks(true);
 		return list.toArray(new IPv6Address[list.size()]);
 	}
 	
 	@Override
 	public IPv6Address[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningPrefixBlocks(
-				this,
-				convertArg(other),
+				this.removeZone(),
+				convertArg(other).removeZone(),
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
@@ -1650,18 +1888,18 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address[] spanWithSequentialBlocks() throws AddressConversionException {
 		if(isSequential()) {
-			return new IPv6Address[] { withoutPrefixLength() };
+			return new IPv6Address[] { withoutPrefixLength().removeZone() };
 		}
 		@SuppressWarnings("unchecked")
-		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) spanWithBlocks(false);
+		ArrayList<IPv6Address> list = (ArrayList<IPv6Address>) removeZone().spanWithBlocks(false);
 		return list.toArray(new IPv6Address[list.size()]);
 	}
 
 	@Override
 	public IPv6Address[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningSequentialBlocks(
-				this,
-				convertArg(other),
+				this.removeZone(),
+				convertArg(other).removeZone(),
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
 				Address.ADDRESS_LOW_VALUE_COMPARATOR::compare,
@@ -1679,9 +1917,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
 		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
-			addresses[i] = convertArg(addresses[i]);
+			addresses[i] = convertArg(addresses[i]).removeZone();
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(removeZone(), addresses);
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 	
@@ -1689,9 +1927,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
 		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
-			addresses[i] = convertArg(addresses[i]);
+			addresses[i] = convertArg(addresses[i]).removeZone();
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, addresses, getDefaultCreator());
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(removeZone(), addresses, getDefaultCreator());
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 
@@ -1705,16 +1943,51 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	/**
-	 * The zone or scope id, which is typically appended to an address with a '%', eg fe80::71a3:2b00:ddd3:753f%16
+	 * The zone or scope id string, which as a string is typically appended to an address with a '%', eg fe80::71a3:2b00:ddd3:753f%16
 	 * 
-	 * If there is no zone or scope id, returns null
+	 * If there is no zone or scope id, returns null.
+	 * <p>
+	 * See {@link #getIPv6Zone()}
 	 * 
 	 * @return
 	 */
 	public String getZone() {
-		return zone;
+		return getZoneString();
+	}
+
+	/**
+	 * Returns a new address with the same address values but with the supplied zone.
+	 * If the supplied zone is null, equivalent to calling {@link #removeZone()}
+	 * 
+	 * @param newZone
+	 * @return
+	 */
+	public IPv6Address setZone(IPv6Zone newZone) {
+		if(newZone == null) {
+			return removeZone();
+		}
+		return getDefaultCreator().createAddress(getSection(), newZone); /* address creation */
 	}
 	
+	/**
+	 * Returns the zone or scope id, consisting of a network interface name or a positive integer scope identifier.
+	 * 
+	 * If there is no zone or scope id, returns null
+	 * <p>
+	 * An IPv6 zone distinguishes two IPv6 addresses that are the same.
+	 * They are used with link-local addresses fe80::/10 and distinguishes two interfaces to the link-local network, this is known as the zone id.
+	 * They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
+	 * 
+	 * A zone that consists of a scope id is called a scoped zone.
+	 * 
+	 * See {@link #getZone()}
+	 * 
+	 * @return
+	 */
+	public IPv6Zone getIPv6Zone() {
+		return zone;
+	}
+
 	/**
 	 * Returns the equivalent address but with no zone.
 	 * 
@@ -1728,10 +2001,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	protected boolean hasNoValueCache() {
-		if(valueCache == null) {
+		if(addressCache == null) {
 			synchronized(this) {
-				if(valueCache == null) {
-					valueCache = new ValueCache();
+				if(addressCache == null) {
+					addressCache = new IPv6AddressCache();
 					return true;
 				}
 			}
@@ -1744,8 +2017,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public Inet6Address toInetAddress() {
 		if(hasZone()) {
 			Inet6Address result;
-			if(hasNoValueCache() || (result = valueCache.inetAddress) == null) {
-				valueCache.inetAddress = result = (Inet6Address) toInetAddressImpl(getBytes());
+			if(hasNoValueCache() || (result = addressCache.inetAddress) == null) {
+				addressCache.inetAddress = result = (Inet6Address) toInetAddressImpl();
 			}
 			return result;
 		}
@@ -1754,31 +2027,31 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public Inet6Address toUpperInetAddress() {
-		if(hasZone()) {
-			Inet6Address result;
-			if(hasNoValueCache() || (result = valueCache.upperInetAddress) == null) {
-				valueCache.upperInetAddress = result = toInetAddressImpl(getUpperBytes());
-			}
-			return result;
-		}
 		return (Inet6Address) super.toUpperInetAddress();
 	}
-	
+
 	@Override
-	protected Inet6Address toInetAddressImpl(byte bytes[]) {
+	protected Inet6Address toInetAddressImpl() {
 		InetAddress result;
 		try {
+			byte bytes[] = getSection().getBytesInternal();
 			if(hasZone()) {
-				try {
-					int scopeId = Integer.valueOf(zone);
-					result = Inet6Address.getByAddress(null, bytes, scopeId);
-				} catch(NumberFormatException e) {
-					//there is no related function that takes a string as third arg. Only other one takes a NetworkInterface.  we don't want to be looking up network interface objects.
-					//public static Inet6Address getByAddress(String host, byte[] addr, NetworkInterface nif) 
-				
-					//so we must go back to a string, even though we have the bytes available to us.  There appears to be no other alternative.
-					// when interface name is not known as an interface on the current host, this throws UnknownHostException
-					result = InetAddress.getByName(toNormalizedString());
+				if(zone.isScopeId()) {
+					result = Inet6Address.getByAddress(null, bytes, zone.scopeId);
+				} else if(zone.isExistingNetworkIntf()) {
+					result = Inet6Address.getByAddress(null, bytes, zone.networkInterface);
+				} else {
+					// When the original zone was provided as a string, we use that here.
+					// There is no related function that takes a string as third arg, so we reconstruct the address string.
+					//
+					// When interface name is not known as an interface on the current host, this throws UnknownHostException
+					//
+					// We need to drop the prefix, and we also need to use the lower address so no wildcards
+					//
+					// Note that this call to getLower() assumes we want the lower address.  
+					// Since toUpperInetAddress calls getUpper().toInetAddress, this works.
+					IPv6Address adjusted = getLower().withoutPrefixLength();
+					result = InetAddress.getByName(adjusted.toNormalizedString());
 				}
 			} else {
 				result = InetAddress.getByAddress(bytes);
@@ -1803,22 +2076,20 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public int hashCode() {
 		int result = super.hashCode();
 		if(hasZone()) {
-			result *= zone.hashCode();
+			result *= zone.getName().hashCode();
 		}
 		return result;
 	}
 	
 	@Override
 	public boolean isSameAddress(Address other) {
-		if(other instanceof IPv6Address && super.isSameAddress(other)) {
-			//must check the zone too
-			IPv6Address otherIPv6Address = (IPv6Address) other;
-			String otherZone = otherIPv6Address.zone;
-			return Objects.equals(zone, otherZone);
-		}
-		return false;
+		return other instanceof IPv6Address && super.isSameAddress(other) && isSameZone((IPv6Address) other);
 	}
 	
+	private boolean isSameZone(IPv6Address otherIPv6Address) {
+		return Objects.equals(zone, otherIPv6Address.zone);
+	}
+
 	/**
 	 * 
 	 * @param other
@@ -1829,11 +2100,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(super.contains(other)) {
 			//must check the zone too
 			if(other != this) {
-				if(zone != null) {
+				if(hasZone()) {
 					//if it has a zone, then it does not contain addresses from other zones
-					IPv6Address otherIPv6Address = (IPv6Address) other;
-					String otherZone = otherIPv6Address.zone;
-					return Objects.equals(zone, otherZone);
+					return isSameZone((IPv6Address) other);
 				}
 			}
 			return true;
@@ -2058,7 +2327,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		String result;
 		if(hasNoStringCache() || (result = (with0xPrefix ? stringCache.hexStringPrefixed : stringCache.hexString)) == null) {
 			if(hasZone()) {
-				result = getSection().toHexString(with0xPrefix, zone);
+				result = getSection().toHexString(with0xPrefix, zone.getName());
 				if(with0xPrefix) {
 					stringCache.hexStringPrefixed = result;
 				} else {
@@ -2071,12 +2340,16 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return result;
 	}
 	
+	private String getZoneString() {
+		return hasZone() ? zone.getName() : null;
+	}
+	
 	@Override
 	public String toBinaryString() throws IncompatibleAddressException {
 		String result;
 		if(hasNoStringCache() || (result = stringCache.binaryString) == null) {
 			if(hasZone()) {
-				result = getSection().toBinaryString(zone);
+				result = getSection().toBinaryString(zone.getName());
 				stringCache.binaryString = result;
 			} else {
 				result = getSection().toBinaryString();//the cache is shared so no need to update it here
@@ -2090,7 +2363,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		String result;
 		if(hasNoStringCache() || (result = stringCache.segmentedBinaryString) == null) {
 			if(hasZone()) {
-				result = getSection().toSegmentedBinaryString(zone);
+				result = getSection().toSegmentedBinaryString(zone.getName());
 				stringCache.segmentedBinaryString = result;
 			} else {
 				result = getSection().toSegmentedBinaryString();//the cache is shared so no need to update it here
@@ -2104,7 +2377,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		String result;
 		if(hasNoStringCache() || (result = (with0Prefix ? stringCache.octalStringPrefixed : stringCache.octalString)) == null) {
 			if(hasZone()) {
-				result = getSection().toOctalString(with0Prefix, zone);
+				result = getSection().toOctalString(with0Prefix, zone.getName());
 				if(with0Prefix) {
 					stringCache.octalStringPrefixed = result;
 				} else {
@@ -2140,11 +2413,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public String toNormalizedString(IPStringOptions params) {
-		return getSection().toNormalizedString(params, zone);
+		return getSection().toNormalizedString(params, getZoneString());
 	}
 	
 	public String toNormalizedString(IPv6StringOptions params) {
-		return getSection().toNormalizedString(params, zone);
+		return getSection().toNormalizedString(params, getZoneString());
 	}
 
 	/**
@@ -2183,8 +2456,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			//we do the same for any such characters appearing in the zone itself as well
 			//see https://blogs.msdn.microsoft.com/oldnewthing/20100915-00/?p=12863/
 			String newZone;
-			if(zone != null) {
-				newZone = zone.replace(IPv6Address.ZONE_SEPARATOR, IPv6Address.UNC_ZONE_SEPARATOR).replace(IPv6Address.SEGMENT_SEPARATOR, IPv6Address.UNC_SEGMENT_SEPARATOR);
+			if(hasZone()) {
+				newZone = zone.getName().replace(IPv6Address.ZONE_SEPARATOR, IPv6Address.UNC_ZONE_SEPARATOR).replace(IPv6Address.SEGMENT_SEPARATOR, IPv6Address.UNC_SEGMENT_SEPARATOR);
 			} else {
 				newZone = null;
 			}
@@ -2217,7 +2490,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	public IPAddressPartStringCollection toStringCollection(IPv6StringBuilderOptions opts) {
-		IPv6StringCollection coll = getSection().toStringCollection(opts, zone);
+		IPv6StringCollection coll = getSection().toStringCollection(opts, getZoneString());
 		IPv4Address ipv4Addr = getConverted(opts);
 		if(ipv4Addr != null) {
 			IPAddressPartStringCollection ipv4StringCollection = ipv4Addr.toStringCollection(opts.ipv4ConverterOptions);

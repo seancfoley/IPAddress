@@ -19,6 +19,7 @@
 package inet.ipaddr.ipv4;
 
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -107,7 +108,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		public String hexString;
 	}
 	
-	static class AddressCache extends SectionCache<IPv4Address> {}
+	static class IPv4AddressCache extends SectionCache<IPv4Address> {}
 	
 	transient IPv4StringCache stringCache;
 	
@@ -354,16 +355,21 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return getSection(index, endIndex, this, getAddressCreator());
 	}
 	
+	@Override
+	protected void setInetAddress(InetAddress addr) {
+		super.setInetAddress(addr);
+	}
+	
 	void cache(IPv4Address thisAddr, IPv4Address lower, IPv4Address upper) {
 		if((lower != null || upper != null) && getSingleLowestOrHighestSection(this) == null) {
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
-			AddressCache cache = thisAddr.sectionCache;
+			IPv4AddressCache cache = thisAddr.sectionCache;
 			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
 				synchronized(this) {
 					cache = thisAddr.sectionCache;
 					boolean create = (cache == null);
 					if(create) {
-						thisAddr.sectionCache = cache = new AddressCache();
+						thisAddr.sectionCache = cache = new IPv4AddressCache();
 						cache.lower = lower;
 						cache.upper = upper;
 					} else {
@@ -459,14 +465,14 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			return null;
 		}
 		IPv4Address result = null;
-		AddressCache cache = addr.sectionCache;
+		IPv4AddressCache cache = addr.sectionCache;
 		if(cache == null || 
 				(result = lowest ? (excludeZeroHost ? cache.lowerNonZeroHost : cache.lower) : cache.upper) == null) {
 			synchronized(this) {
 				cache = addr.sectionCache;
 				boolean create = (cache == null);
 				if(create) {
-					cache = addr.sectionCache = new AddressCache();
+					cache = addr.sectionCache = new IPv4AddressCache();
 				} else {
 					if(lowest) {
 						if(excludeZeroHost) {
@@ -1299,7 +1305,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return bytes;
 	}
-	
+
 	@Override
 	public boolean isIPv4() {
 		return true;

@@ -159,6 +159,7 @@ public abstract class IPAddressNetwork<
 			return createAddress(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix));
 		}
 
+		// used by IPAddressGenerator
 		public T createAddress(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix, CharSequence zone) {
 			return createAddressInternal(createFullSectionInternal(lowerValueProvider, upperValueProvider, prefix), zone);
 		}
@@ -173,6 +174,7 @@ public abstract class IPAddressNetwork<
 			return createAddress(createSection(bytes, byteStartIndex, byteEndIndex, getAddressSegmentCount(), prefix));
 		}
 
+		//use by IPAddressGenerator
 		public T createAddress(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix, CharSequence zone) {
 			return createAddressInternal(createSection(bytes, byteStartIndex, byteEndIndex, getAddressSegmentCount(), prefix), zone);
 		}
