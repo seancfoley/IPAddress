@@ -20,6 +20,7 @@ package inet.ipaddr.ipv6;
 
 import java.io.Serializable;
 import java.net.Inet6Address;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -94,8 +95,12 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				segmentPrefixCache = null;
 				ZERO_PREFIX_SEGMENT = null;
 				ALL_RANGE_SEGMENT = null;
+				IPv6Zone scopedZoneCache2[] = scopedZoneCache;
 				scopedZoneCache = new IPv6Zone[256];
-				zoneInterfaceCache.clear();
+				Arrays.fill(scopedZoneCache2, null);
+				synchronized(zoneInterfaceCache) {
+					zoneInterfaceCache.clear();
+				}
 			}
 		}
 		
@@ -443,10 +448,12 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				}
 				zoneObj.zoneStr = zoneStr;
 			} else {
-				zoneObj = cache.zoneInterfaceCache.get(zoneStr);
-				if(zoneObj == null) {
-					zoneObj = new IPv6Zone(zoneStr);
-					cache.zoneInterfaceCache.put(zoneStr, zoneObj);
+				synchronized(cache.zoneInterfaceCache) {
+					zoneObj = cache.zoneInterfaceCache.get(zoneStr);
+					if(zoneObj == null) {
+						zoneObj = new IPv6Zone(zoneStr);
+						cache.zoneInterfaceCache.put(zoneStr, zoneObj);
+					}
 				}
 			}
 			return zoneObj;
