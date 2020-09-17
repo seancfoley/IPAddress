@@ -136,7 +136,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * @param interfaceAddr
 	 */
 	public HostName(InterfaceAddress interfaceAddr) {
-		this(interfaceAddr.getAddress(), (int) interfaceAddr.getNetworkPrefixLength());
+		this(interfaceAddr.getAddress(), IPAddressNetwork.cacheBits(interfaceAddr.getNetworkPrefixLength()));
 	}
 	
 	/**
