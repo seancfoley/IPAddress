@@ -24,6 +24,7 @@ import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
@@ -619,7 +620,26 @@ public abstract class IPAddressNetwork<
 			}
 			return null;
 		}
-	
+		
+		public IPAddress from(InetAddress inetAddress, Integer prefixLength) {
+			if(inetAddress instanceof Inet4Address) {
+				return getIPv4Creator().createAddress((Inet4Address) inetAddress, prefixLength);
+			} else if(inetAddress instanceof Inet6Address) {
+				return getIPv6Creator().createAddress((Inet6Address) inetAddress, prefixLength);
+			}
+			return null;
+		}
+		
+		public IPAddress from(InterfaceAddress interfaceAddress) {
+			InetAddress inetAddress = interfaceAddress.getAddress();
+			if(inetAddress instanceof Inet4Address) {
+				return getIPv4Creator().createAddress((Inet4Address) inetAddress, cacheBits(interfaceAddress.getNetworkPrefixLength()));
+			} else if(inetAddress instanceof Inet6Address) {
+				return getIPv6Creator().createAddress((Inet6Address) inetAddress, cacheBits(interfaceAddress.getNetworkPrefixLength()));
+			}
+			return null;
+		}
+		
 		public IPAddress from(byte bytes[]) {
 			return from(bytes, 0, bytes.length, null, null);
 		}
