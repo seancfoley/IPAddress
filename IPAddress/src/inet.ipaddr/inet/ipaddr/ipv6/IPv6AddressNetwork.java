@@ -23,6 +23,9 @@ import java.net.Inet6Address;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -86,6 +89,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 					return size() > MAX_ZONE_ENTRIES;
 				}
 			};
+			private ReadWriteLock zoneInterfaceCacheLock = new ReentrantReadWriteLock();
 			
 			private transient IPv6Zone scopedZoneCache[] = new IPv6Zone[256];
 	
@@ -98,9 +102,10 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				IPv6Zone scopedZoneCache2[] = scopedZoneCache;
 				scopedZoneCache = new IPv6Zone[256];
 				Arrays.fill(scopedZoneCache2, null);
-				synchronized(zoneInterfaceCache) {
-					zoneInterfaceCache.clear();
-				}
+				Lock lock = zoneInterfaceCacheLock.writeLock();
+				lock.lock();
+				zoneInterfaceCache.clear();
+				lock.unlock();
 			}
 		}
 		
@@ -448,12 +453,20 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 				}
 				zoneObj.zoneStr = zoneStr;
 			} else {
-				synchronized(cache.zoneInterfaceCache) {
+				Lock readLock = cache.zoneInterfaceCacheLock.readLock();
+				readLock.lock();
+				zoneObj = cache.zoneInterfaceCache.get(zoneStr);
+				readLock.unlock();
+				if(zoneObj == null) {
+					IPv6Zone newZoneObj = new IPv6Zone(zoneStr);
+					Lock writeLock = cache.zoneInterfaceCacheLock.writeLock();
+					writeLock.lock();
 					zoneObj = cache.zoneInterfaceCache.get(zoneStr);
 					if(zoneObj == null) {
-						zoneObj = new IPv6Zone(zoneStr);
+						zoneObj = newZoneObj;
 						cache.zoneInterfaceCache.put(zoneStr, zoneObj);
 					}
+					writeLock.unlock();
 				}
 			}
 			return zoneObj;
