@@ -74,7 +74,7 @@ If something goes wrong, move the tag: https://stackoverflow.com/questions/80445
 
 C Maven
 
-7. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created.
+7. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created (in the dir mavenlib).
 
 The signing will create a batch file to do the signing.  Running gpg directly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
 
@@ -100,7 +100,8 @@ It may take about 10 minutes.
 D Bintray
 
 13. bintray - create version using the button, then add date and version number 5.3.1 (description can be skipped)
-Then go to the version, select upload files at the top
+Then go to the version (eg https://bintray.com/seancfoley/ipaddress/com.github.seancfoley%3Aipaddress/5.3.2), 
+select upload files at the top
 com/github/seancfoley/ipaddress/5.3.1 is target folder
 select pom, javadoc, source, main jar
 Probably best to just grab from maven central
