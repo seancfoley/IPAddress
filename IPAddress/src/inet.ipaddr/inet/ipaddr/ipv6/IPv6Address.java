@@ -25,6 +25,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -135,13 +136,25 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	private final IPv6Zone zone;
 
 	/**
-	 * A reference to a scope identifier or a network interface.
+	 * A reference to a scope id by number or a network interface by name.
 	 * <p>
 	 * An IPv6 zone distinguishes two IPv6 addresses that are the same.
 	 * They are used with link-local addresses fe80::/10 to distinguish two interfaces to the link-local network, this is known as the zone id.
 	 * They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
 	 * <p>
 	 * A zone that consists of a scope id is called a scoped zone.
+	 * <p>
+	 * An IPv6 zone will reference an interface by a scoped identifier number or by interface name based on how it was constructed.
+	 * If constructed with a numeric identifier, whether integer or string, it will always reference by scoped identifier.
+	 * Otherwise, it will always reference by interface name.
+	 * <p>
+	 * Once constructed, it will always reference using the same method, either interface name or scope id.  
+	 * To reference by the other method you must use a different IPv6Zone instance.
+	 * <p>
+	 * Even though it will always reference using the same method, 
+	 * you can use the IPv6Zone instance to look up the scope id if the instance references by interface name,
+	 * or to look up the associated interface if the instance references by scope id.
+	 * 
 	 * 
 	 * @author scfoley
 	 *
@@ -150,53 +163,196 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		String zoneStr;
 		private int scopeId;
 		private NetworkInterface networkInterface;
-		private Boolean isScopeId, isNetworkInterface;
+		private Boolean referencesInterface;
 		
-		IPv6Zone(String zoneStr) {
+		/**
+		 * Constructs a zone that will use a scope identifier with the address if the given string
+		 * is a non-negative integer, indicated by a sequence of decimal digits.
+		 * Otherwise, the string will be presumed to be the name of an interface.
+		 * To create an InetAddress by pairing this zone with an IPv6Address instance,
+		 * the interface name must reference an existing interface, otherwise the InetAddress cannot be created.
+		 * <p>
+		 * See {@link java.net.NetworkInterface}  to get a list of existing interfaces or to look up interfaces by name.
+		 * 
+		 * @param scopeId
+		 */
+		public IPv6Zone(String zoneStr) {
 			if(zoneStr == null) {
 				throw new NullPointerException();
 			}
 			this.zoneStr = zoneStr.trim();
+			scopeId = -1;
 		}
 		
-		IPv6Zone(int scopeId) {
+		/**
+		 * Constructs a zone that will use a scope identifier with the address.
+		 * 
+		 * @param scopeId
+		 */
+		public IPv6Zone(int scopeId) {
 			if(scopeId < 0) {
 				throw new IllegalArgumentException();
 			}
 			this.scopeId = scopeId;
-			isScopeId = Boolean.TRUE;
-			isNetworkInterface = Boolean.FALSE;
+			referencesInterface = Boolean.FALSE;
 		}
 		
-		IPv6Zone(NetworkInterface networkInterface) {
+		/**
+		 * Constructs a zone that will use an interface name with the address.
+		 * 
+		 * @param scopeId
+		 */
+		public IPv6Zone(NetworkInterface networkInterface) {
 			if(networkInterface == null) {
 				throw new NullPointerException();
 			}
 			this.networkInterface = networkInterface;
-			isScopeId = Boolean.FALSE;
-			isNetworkInterface = Boolean.TRUE;
+			referencesInterface = Boolean.TRUE;
+			scopeId = -1;
 		}
 		
 		/**
-		 * Whether this zone represents an existing network interface.
+		 * Whether this zone references a network interface.
 		 * 
 		 * @return
 		 */
-		public boolean isExistingNetworkIntf() {
-			if(isNetworkInterface != null) {
-				return isNetworkInterface;
+		public boolean referencesIntf() {
+			if(referencesInterface == null) {
+				scopeId = checkIfScope(zoneStr);
+				referencesInterface = scopeId < 0;
 			}
-			if(isScopeId()) {
-				return false;
-			}
-			String zoneStr = this.zoneStr;
+			return referencesInterface;
+		}
+		
+		/**
+		 * Whether this zone references a scope identifier.
+		 * 
+		 * @return
+		 */
+		public boolean referencesScopeId() {
+			return !referencesIntf();
+		}
+
+		/**
+		 * If this zone references a network interface, returns that interface, 
+		 * or null if no interface with the given name exists on the system.
+		 * 
+		 * If this zone references a scope id, returns the associated interface.
+		 * 
+		 * @return
+		 */
+		public NetworkInterface getAssociatedIntf() {
 			try {
-				networkInterface = NetworkInterface.getByName(zoneStr);
-				isNetworkInterface = Boolean.TRUE;
-				return true;
-	        } catch (SocketException e) {
-	        	return false;
-	        }
+				if(referencesIntf()) {
+					if(networkInterface == null) {
+						networkInterface = NetworkInterface.getByName(zoneStr);
+					}
+				} else {
+					if(networkInterface == null) {
+						Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+						top:
+						while(interfaces.hasMoreElements()) {
+							NetworkInterface nif = interfaces.nextElement();
+							Enumeration<InetAddress> addrs = nif.getInetAddresses();
+							while(addrs.hasMoreElements()) {
+								InetAddress addr = addrs.nextElement();
+								if(addr instanceof Inet6Address) {
+									Inet6Address inetAddr = (Inet6Address) addr;
+									if(inetAddr.getScopeId() == scopeId) {
+										networkInterface = nif;
+										break top;
+									}
+								}
+							}
+						}
+					}
+				}
+			} catch(SocketException e) {}
+			return networkInterface;
+		}
+		
+		/**
+		 * Returns the MAC address of the associated interface
+		 * 
+		 * @return
+		 */
+		public MACAddress getAssociatedIntfMacAddr() {
+			NetworkInterface intf = getAssociatedIntf();
+			try {
+				if(intf != null) {
+					byte bytes[] = intf.getHardwareAddress();
+					if(bytes != null) {
+						return new MACAddress(bytes);
+					}
+				}
+			} catch(SocketException e) {}
+			return null;
+		}
+
+		/**
+		 * If this zone references a scoped identifier, returns that identifier.
+		 * <p>
+		 * If this zone references a network interface, returns the scope identifier for the addresses of that interface,
+		 * or -1 if the referenced interface cannot be found on the system, or no single scope identifier was assigned.
+		 * 
+		 * @return
+		 */
+		public int getAssociatedScopeId() {
+			if(referencesIntf()) {
+				if(scopeId == -1) {
+					NetworkInterface nif = getAssociatedIntf();
+					if(nif != null) {
+						Enumeration<InetAddress> addrs = nif.getInetAddresses();
+						int newScopeId = -1;
+						while(addrs.hasMoreElements()) {
+							InetAddress addr = addrs.nextElement();
+							if(addr instanceof Inet6Address) {
+								Inet6Address inetAddr = (Inet6Address) addr;
+								int sid = inetAddr.getScopeId();
+								if(sid != 0) {
+									if(newScopeId != -1 && sid != newScopeId) {
+										// multiple scope ids for the interface
+										newScopeId = -1;
+										break;
+									}
+									newScopeId = sid;
+								}
+							}
+						}
+						if(newScopeId != -1) {
+							this.scopeId = newScopeId;
+						}
+					}
+				}
+			}
+			return scopeId;
+		}
+		
+		@Override
+		public int hashCode() {
+			return toString().hashCode();
+		}
+		
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof IPv6Zone && toString().equals(o.toString());
+		}
+		
+		public String getName() {
+			if(zoneStr == null) {
+				if(referencesIntf()) {
+					zoneStr = networkInterface.getName();
+				} else {
+					zoneStr = IPv6AddressSegment.toUnsignedString(scopeId, 10,
+							new StringBuilder(IPv6AddressSegment.toUnsignedStringLength(scopeId, 10))).toString();
+				}
+			}
+			return zoneStr;
+		}
+	
+		@Override
+		public String toString() {
+			return getName();
 		}
 		
 		static int checkIfScope(String zoneStr) {
@@ -213,48 +369,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				}
 			}
 			return (int) digits;
-		}
-
-		public boolean isScopeId() {
-			if(isScopeId != null) {
-				return isScopeId;
-			}
-			int scopeId = checkIfScope(zoneStr);
-			if(scopeId < 0) {
-				isScopeId = Boolean.FALSE;
-				return false;
-			}
-			this.scopeId = scopeId;
-			isScopeId = Boolean.TRUE;
-			isNetworkInterface = Boolean.FALSE;
-			return true;
-		}
-		
-		@Override
-		public int hashCode() {
-			return toString().hashCode();
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			return o instanceof IPv6Zone && toString().equals(o.toString());
-		}
-		
-		public String getName() {
-			if(zoneStr == null) {
-				if(isExistingNetworkIntf()) {
-					zoneStr = networkInterface.getName();
-				} else {
-					zoneStr = IPv6AddressSegment.toUnsignedString(scopeId, 10,
-							new StringBuilder(IPv6AddressSegment.toUnsignedStringLength(scopeId, 10))).toString();
-				}
-			}
-			return zoneStr;
-		}
-	
-		@Override
-		public String toString() {
-			return getName();
 		}
 	}
 
@@ -1444,7 +1558,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public boolean isLinkLocal() {
 		IPv6AddressSegment firstSeg = getSegment(0);
-		return (isMulticast() && firstSeg.matchesWithMask(2, 0xf)) ||
+		return (isMulticast() && firstSeg.matchesWithMask(2, 0xf)) || // ffx2::/16
 				//1111 1110 10 .... fe8x currently only in use
 				firstSeg.matchesWithPrefixMask(0xfe80, 10);
 	}
@@ -1454,9 +1568,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public boolean isSiteLocal() {
 		IPv6AddressSegment firstSeg = getSegment(0);
-		return (isMulticast() && firstSeg.matchesWithMask(5, 0xf)) || 
+		return (isMulticast() && firstSeg.matchesWithMask(5, 0xf)) ||  // ffx5::/16
 				//1111 1110 11 ...
-				firstSeg.matchesWithPrefixMask(0xfec0, 10); //deprecated RFC 3879
+				firstSeg.matchesWithPrefixMask(0xfec0, 10); // deprecated RFC 3879
 	}
 	
 	public boolean isUniqueLocal() {
@@ -2012,10 +2126,24 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return false;
 	}
 	
-	//we need to cache the address in here and not in the address section if there is a zone
+	/**
+	 * Converts the lowest value of this address and the associated zone to an Inet6Address. 
+	 * <p> 
+	 * This will return null if this IPv6 Address has a zone (available from {@link #getIPv6Zone()}),
+	 * that zone references a network interface ({@link IPv6Zone#referencesInterface} is true) 
+	 * and that network interface (from {@link IPv6Zone#getAssociatedIntf()}) is an IPv4-only interface,
+	 * or that interface is not entirely link-local and this address is link-local, 
+	 * or that interface is not entirely site-local and this address is site-local.
+	 * <p>
+	 * In those 3 cases, {@link Inet6Address#getByAddress(String, byte[], NetworkInterface)} will throw UnknownHostException 
+	 * when constructed with the same network interface, 
+	 * ie <code>Inet6Address.getByAddress(null, this.getBytes(), this.getIPv6Zone().getAssociatedIntf())</code> will throw UnknownHostException
+	 * <p>
+	 */
 	@Override
 	public Inet6Address toInetAddress() {
 		if(hasZone()) {
+			//we cache the address in here and not in the address section if there is a zone
 			Inet6Address result;
 			if(hasNoValueCache() || (result = addressCache.inetAddress) == null) {
 				addressCache.inetAddress = result = (Inet6Address) toInetAddressImpl();
@@ -2036,10 +2164,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		try {
 			byte bytes[] = getSection().getBytesInternal();
 			if(hasZone()) {
-				if(zone.isScopeId()) {
-					result = Inet6Address.getByAddress(null, bytes, zone.scopeId);
-				} else if(zone.isExistingNetworkIntf()) {
-					result = Inet6Address.getByAddress(null, bytes, zone.networkInterface);
+				if(zone.referencesScopeId()) {
+					result = Inet6Address.getByAddress(null, bytes, zone.getAssociatedScopeId());
+				} else if(zone.referencesIntf() && zone.getAssociatedIntf() != null) {
+					result = Inet6Address.getByAddress(null, bytes, zone.getAssociatedIntf());
 				} else {
 					// When the original zone was provided as a string, we use that here.
 					// There is no related function that takes a string as third arg, so we reconstruct the address string.
