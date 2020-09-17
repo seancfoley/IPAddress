@@ -19,12 +19,17 @@
 package inet.ipaddr.test;
 
 import java.math.BigInteger;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.Objects;
 
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressStringParameters.RangeParameters;
@@ -33,6 +38,7 @@ import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.IPAddressNetwork.IPAddressGenerator;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
@@ -40,6 +46,7 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6Address.IPv6Zone;
 import inet.ipaddr.mac.MACAddress;
@@ -425,6 +432,258 @@ public class SpecialTypesTest extends TestBase {
 		return segCount.pow(segmentCount);
 	}
 	
+	private void testNetworkIntf() {
+		try {
+			Enumeration<NetworkInterface> nifs = NetworkInterface.getNetworkInterfaces();
+			if(!nifs.hasMoreElements()) {
+				System.out.println("warning: no network interface available to run network interfaces test");
+			} else while(nifs.hasMoreElements()) {
+				NetworkInterface nif = nifs.nextElement();
+				IPv6Address ipv6Address = createAddress("1:2:3:4:1:2:3:4").getAddress().toIPv6();
+				
+				try {
+					// If I use a link local or site local address here, 
+					// then it will see if the network interface nif has link local or site local too
+					// and throw if not
+					// In other words, a link-local address can only be paired with link-local interface
+					// A non link-local or site-local address can be paired with any interface
+					//
+					// UNLESS the interface is only IPv4, in which case it will throw
+					Inet6Address inetAddr = Inet6Address.getByAddress(null, ipv6Address.getBytes(), nif);
+					IPv6Address address = new IPv6Address(inetAddr);
+					IPv6Zone addressZone = address.getIPv6Zone();
+					address = address.setPrefixLength(64, false);
+					Inet6Address backAgain = address.toInetAddress();
+					NetworkInterface nifAgain = backAgain.getScopedInterface();
+					if(nif != nifAgain) {
+						addFailure(new Failure("failed: " + inetAddr + " and " + backAgain, address));
+					}
+					
+					IPv6Address ipv6Address2 = createAddress("1:2:3:4:1:2:3:2%" + nif.getName()).getAddress().toIPv6();
+					IPv6Zone zone2 = ipv6Address2.getIPv6Zone();
+					IPv6Address ipv6Address3 = createAddress("1:2:3:4:1:2:3:3%" + nif.getName()).getAddress().toIPv6();
+					IPv6Zone zone3 = ipv6Address2.getIPv6Zone();
+					if(zone2 != zone3) {
+						addFailure(new Failure("failed zones: " + zone2 + " and " + zone3, ipv6Address2));
+					}
+					Inet6Address inet2 = ipv6Address2.toInetAddress();
+					Inet6Address inet3 = ipv6Address3.toInetAddress();
+					NetworkInterface nif2 = inet2.getScopedInterface();
+					NetworkInterface nif3 = inet3.getScopedInterface();
+					if(nif2 != nif3) {
+						addFailure(new Failure("failed nifs: " + nif2 + " and " + nif3, ipv6Address2));
+					}
+
+					boolean showMe = false;
+					//boolean showMe = true;
+					if(showMe) {
+						System.out.println("nif: " + nif);	
+						System.out.println("Addresses:");
+					}
+					Enumeration<InetAddress> addrs = nif.getInetAddresses();
+					while(addrs.hasMoreElements()) {
+						InetAddress next = addrs.nextElement();
+						if(showMe) System.out.println(nif + ": " + next);
+						if(next instanceof Inet6Address) {
+							String hostAddrStr = next.getHostAddress();
+							IPv6Address ipv6AddressIntf = createAddress(hostAddrStr).getAddress().toIPv6();
+							IPv6Zone zone = ipv6AddressIntf.getIPv6Zone();
+							if(!zone.getAssociatedIntf().getName().equals(nif.getName())) {
+								addFailure(new Failure("associated nif mismatch: " + zone.getAssociatedIntf() + " and " + nif, ipv6AddressIntf));
+							}
+							Inet6Address inetIntf = ipv6AddressIntf.toInetAddress();
+							if(zone.getAssociatedScopeId() != inetIntf.getScopeId()) {
+								addFailure(new Failure("associated nif scoped id mismatch: " + zone.getAssociatedScopeId() + " and " + inetIntf.getScopeId(), ipv6AddressIntf));
+							}
+							if(!zone.getAssociatedIntf().getName().equals(inetIntf.getScopedInterface().getName())) {
+								addFailure(new Failure("associated nif mismatch: " + zone.getAssociatedIntf() + " and " + nif, ipv6AddressIntf));
+							}
+							
+							// we now check whether the IPv6 zone references the interface or the id
+							// and create a new IPv6Address that references the other
+							// and see if they match interfaces and scope ids
+							IPv6Zone sameZone = new IPv6Zone(zone.getName());
+							IPv6Address sameAddress = new IPv6Address(ipv6AddressIntf.getBytes(), sameZone);
+							if(!sameAddress.equals(ipv6AddressIntf)) {// equal because both zones should be considered equal
+								addFailure(new Failure("scope vs intf mismatch: " + sameAddress + " and " + ipv6AddressIntf, ipv6AddressIntf));
+							}
+							
+							if(zone.referencesIntf()) {
+								// do the same check as above but with the interface itself, not the name
+								sameZone = new IPv6Zone(nif);
+								sameAddress = new IPv6Address(ipv6AddressIntf.getBytes(), sameZone);
+								if(!sameAddress.equals(ipv6AddressIntf)) {// equal because both zones should be considered equal
+									addFailure(new Failure("scope vs intf mismatch: " + sameAddress + " and " + ipv6AddressIntf, ipv6AddressIntf));
+								}
+								
+								int scopeId = zone.getAssociatedScopeId();
+								if(scopeId >= 0) {
+									IPv6Zone newZone = new IPv6Zone(scopeId);
+									IPv6Address newAddress = new IPv6Address(ipv6AddressIntf.getBytes(), newZone);
+									NetworkInterface newIntf = newZone.getAssociatedIntf();
+									if(!newIntf.getName().equals(zone.getAssociatedIntf().getName())) {
+										addFailure(new Failure("scope vs intf mismatch: " + newIntf + " and " + zone.getAssociatedIntf(), ipv6AddressIntf));
+									} else if(newAddress.equals(ipv6AddressIntf)) {// not equal because zones not considered the same
+										addFailure(new Failure("scope vs intf mismatch: " + newAddress + " and " + ipv6AddressIntf, ipv6AddressIntf));
+									}
+								} else {
+									System.out.println("no scope id: " + next);	
+								}
+								
+							} else if(zone.referencesScopeId()) {
+								// do the same check as above but with the scope id itself, not the string of the scope id
+								sameZone = new IPv6Zone(zone.getAssociatedScopeId());
+								sameAddress = new IPv6Address(ipv6AddressIntf.getBytes(), sameZone);
+								if(!sameAddress.equals(ipv6AddressIntf)) {// equal because both zones should be considered equal
+									addFailure(new Failure("scope vs intf mismatch: " + sameAddress + " and " + ipv6AddressIntf, ipv6AddressIntf));
+								}
+								
+								NetworkInterface newIntf = zone.getAssociatedIntf();
+								IPv6Zone newZone = new IPv6Zone(newIntf);
+								IPv6Address newAddress = new IPv6Address(ipv6AddressIntf.getBytes(), newZone);
+								int newScopeId = newZone.getAssociatedScopeId();
+								if(newScopeId != zone.getAssociatedScopeId()) {
+									addFailure(new Failure("scope vs intf mismatch: " + newScopeId + " and " + zone.getAssociatedScopeId(), ipv6AddressIntf));
+								} else if(newAddress.equals(ipv6AddressIntf)) {// not equal because zones not considered the same
+									addFailure(new Failure("scope vs intf mismatch: " + newAddress + " and " + ipv6AddressIntf, ipv6AddressIntf));
+								}
+							}
+							
+							byte nifBytes[] = nif.getHardwareAddress();
+							if(nifBytes != null) {
+								byte macBytes[] = addressZone.getAssociatedIntfMacAddr().getBytes();
+								if(!Arrays.equals(nifBytes, macBytes)) {
+									addFailure(new Failure("bytes mismatch: " + Arrays.asList(nifBytes) + " and " + Arrays.asList(macBytes), address));
+								}
+							}
+						}
+					}
+					
+					List<InterfaceAddress> intfAddresses = nif.getInterfaceAddresses();
+					if(showMe) System.out.println("Interface addresses:");
+					for(InterfaceAddress i : intfAddresses) {
+						String ifaceAddrStr = i.toString();
+						int index = ifaceAddrStr.indexOf('/');
+						int nextIndex = ifaceAddrStr.indexOf('[', index + 1);
+						int andNextIndex = ifaceAddrStr.indexOf(']', nextIndex + 1);
+						String prefixedAddr = ifaceAddrStr.substring(index + 1, nextIndex);
+						IPAddress intAddress = new IPAddressString(prefixedAddr).getAddress();
+						if(intAddress.getNetworkPrefixLength() != i.getNetworkPrefixLength()) {
+							addFailure(new Failure("prefix len mismatch: " + intAddress.getNetworkPrefixLength() + " and " + i.getNetworkPrefixLength(), intAddress));
+						}
+						IPAddressGenerator g = new IPAddressGenerator();
+						IPAddress generated = g.from(i.getAddress(), (int) i.getNetworkPrefixLength());
+						if(!generated.equals(intAddress) || 
+								!Objects.equals(generated.getNetworkPrefixLength(), intAddress.getNetworkPrefixLength())) {
+							addFailure(new Failure("addr mismatch: " + generated + " and " + intAddress, intAddress));
+						}
+						HostName host = new HostName(i);
+						if(!intAddress.equals(host.asAddress()) || 
+								!Objects.equals(host.asAddress().getNetworkPrefixLength(), intAddress.getNetworkPrefixLength())) {
+							addFailure(new Failure("addr mismatch: " + host.asAddress() + " and " + intAddress, intAddress));
+						}
+						if(intAddress.isIPv6()) {
+							IPv6Address v6Addr = intAddress.toIPv6();
+							String zoneStr = v6Addr.getZone();
+							if(!zoneStr.equals(nif.getName())) {
+								addFailure(new Failure("zone mismatch: " + zoneStr + " and " + nif.getName(), intAddress));
+							}
+						} else {
+							IPv4Address v4Addr = intAddress.toIPv4();
+							Inet4Address ba = (Inet4Address) i.getBroadcast();
+							if(ba != null) {
+								IPAddress broadcastAddress2 = new IPv4Address(ba);
+								int bIndex = ifaceAddrStr.indexOf('/', nextIndex + 1);
+								String broadcast = ifaceAddrStr.substring(bIndex + 1, andNextIndex);
+								IPAddress broadcastAddress = new IPAddressString(broadcast).getAddress();
+								if(!broadcastAddress.equals(v4Addr.toBroadcastAddress())) {
+									addFailure(new Failure("broadcast mismatch: " + broadcastAddress + " and " + v4Addr.toBroadcastAddress(), intAddress));
+								}
+								if(!broadcastAddress.equals(broadcastAddress2)) {
+									addFailure(new Failure("broadcast mismatch: " + broadcastAddress + " and " + broadcastAddress2, intAddress));
+								}
+							}
+						}
+	//					Addresses:
+	//					name:awdl0 (awdl0): /fe80:0:0:0:2836:85ff:fe53:10f3%awdl0
+	//					Interface addresses:
+	//					name:awdl0 (awdl0): /fe80:0:0:0:2836:85ff:fe53:10f3%awdl0/64 [null] 
+	
+	//				Addresses:
+	//					name:en0 (en0): /fe80:0:0:0:1c4e:3804:7c4b:fe0%en0
+	//					name:en0 (en0): /192.168.1.165
+	//				Interface addresses:
+	//					name:en0 (en0): /fe80:0:0:0:1c4e:3804:7c4b:fe0%en0/64 [null]
+	//					name:en0 (en0): /192.168.1.165/24 [/192.168.1.255]
+						
+	//					 public String toString() {
+	//					        return address + "/" + maskLength + " [" + broadcast + "]";
+	//					    }
+						if(showMe) System.out.println("interface address: " + i.toString());
+					}
+					if(showMe) System.out.println();
+				} catch (UnknownHostException e) {
+					System.out.println("testNetworkIntf(): Skipping interface " + nif);
+				}
+			}
+			IPv6Address ipv6Address4 = createAddress("1:2:3:4:1:2:3:2%4").getAddress().toIPv6();
+			IPv6Zone zone4 = ipv6Address4.getIPv6Zone();
+			IPv6Address ipv6Address5 = createAddress("1:2:3:4:1:2:3:3%5").getAddress().toIPv6();
+			IPv6Zone zone5 = ipv6Address5.getIPv6Zone();
+			if(zone4 == zone5) {
+				addFailure(new Failure("failed intfs: " + zone4 + " and " + zone5, ipv6Address4));
+			}
+			IPv6Address ipv6Address44 = createAddress("1:2:3:4:1:2:3:2%4").getAddress().toIPv6();
+			IPv6Zone zone44 = ipv6Address44.getIPv6Zone();
+			if(zone4 != zone44) {
+				addFailure(new Failure("failed intfs: " + zone4 + " and " + zone44, ipv6Address4));
+			}
+			Inet6Address inet4 = ipv6Address4.toInetAddress();
+			Inet6Address inet5 = ipv6Address5.toInetAddress();
+			NetworkInterface nif4 = inet4.getScopedInterface();
+			NetworkInterface nif5 = inet5.getScopedInterface();
+			Inet6Address inet44 = ipv6Address44.toInetAddress();
+			NetworkInterface nif44 = inet44.getScopedInterface();
+			if(nif5 != null || nif4 != null || nif44 != null) {
+				addFailure(new Failure("failed null intfs: " + nif4 + " and " + nif5 + " and " + nif44, ipv6Address4));
+			}
+			int id4 = inet4.getScopeId();
+			int id44 = inet44.getScopeId();
+			int id5 = inet5.getScopeId();
+			if(id4 != 4 || id5 != 5 || id44 != 4) {
+				addFailure(new Failure("failed scope ids: " + id4 + " and " + id5 + " and " + id44, ipv6Address4));
+			}
+			
+			
+			String bla = "b";
+			IPv6Address ipv6Address6 = createAddress("1:2:3:4:1:2:3:2%" + bla).getAddress().toIPv6();
+			IPv6Zone zone6 = ipv6Address6.getIPv6Zone();
+			if(!zone6.getName().equals(bla)) {
+				addFailure(new Failure("failed zone name: " + zone6.getName(), ipv6Address6));
+			}
+			Inet6Address inet6 = ipv6Address6.toInetAddress();
+			if(inet6 != null) {
+				addFailure(new Failure("failed null: " + inet6, ipv6Address6));
+			}
+			
+			
+			
+			IPv6Address ipv6Address99 = createAddress("1:2:3:4:1:2:3:2%99").getAddress().toIPv6();
+			Inet6Address inet99 = ipv6Address99.toInetAddress();
+			NetworkInterface nif99 = inet99.getScopedInterface();
+			if(nif99 != null) {
+				addFailure(new Failure("failed null intf 99: " + nif99, ipv6Address99));
+			}
+			int id99 = inet99.getScopeId();
+			if(id99 != 99) {
+				addFailure(new Failure("failed scope id: " + id99 + ", expected 99", ipv6Address99));
+			}
+		} catch (SocketException e) {
+			e.printStackTrace();
+			addFailure(new Failure("unexpected exception: " + e));
+		}
+	}
+	
 	@Override
 	void runTest()
 	{
@@ -677,28 +936,6 @@ public class SpecialTypesTest extends TestBase {
 		testLoopback("::", false);
 		testLoopback("1:2:3:4:1:2:3:4", false);
 		
-		try {
-			Enumeration<NetworkInterface> nifs = NetworkInterface.getNetworkInterfaces();
-			IPv6Address ipv6Address = createAddress("1:2:3:4:1:2:3:4").getAddress().toIPv6();
-			if(nifs.hasMoreElements()) {
-				NetworkInterface nif = nifs.nextElement();
-				Inet6Address inetAddr = Inet6Address.getByAddress(null, ipv6Address.getBytes(), nif);
-				//Inet6Address inetAddr = Inet6Address.getByAddress("1:2:3:4:1:2:3:4", null, nif);
-				IPv6Address address = new IPv6Address(inetAddr);
-				address = address.setPrefixLength(64, false);
-				Inet6Address backAgain = address.toInetAddress();
-				NetworkInterface nifAgain = backAgain.getScopedInterface();
-				if(nif != nifAgain) {
-					addFailure(new Failure("failed: " + inetAddr + " and " + backAgain, address));
-				}
-				//System.out.println("" + inetAddr);
-				//System.out.println("" + backAgain);
-			}
-			// TODO Also construct using only the network interface (not the Inet6Address)
-			// get a new Inet6Address, get the netowrk interface, ensure it is the same object
-			// Step through the code to confirm
-		} catch (SocketException | UnknownHostException e) {
-			e.printStackTrace();
-		}
+		testNetworkIntf();
 	}
 }
