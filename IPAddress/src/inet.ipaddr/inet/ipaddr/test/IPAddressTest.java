@@ -3518,6 +3518,7 @@ public class IPAddressTest extends TestBase {
 			super(bytes, prefixLength);
 		}
 		
+		@SuppressWarnings("deprecation")
 		public MyIPv6Address(MyIPv6AddressSection section, CharSequence zone) {
 			super(section, zone);
 		}
