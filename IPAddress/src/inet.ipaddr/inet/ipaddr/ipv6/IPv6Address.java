@@ -1972,6 +1972,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address[] spanWithPrefixBlocks() {
 		if(isSequential()) {
+			if(isSinglePrefixBlock()) {
+				return new IPv6Address[] {removeZone()};
+			}
 			return spanWithPrefixBlocks(this);
 		}
 		@SuppressWarnings("unchecked")
@@ -1982,7 +1985,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address[] spanWithPrefixBlocks(IPAddress other) throws AddressConversionException {
 		return IPAddress.getSpanningPrefixBlocks(
-				this.removeZone(),
+				removeZone(),
 				convertArg(other).removeZone(),
 				IPv6Address::getLower,
 				IPv6Address::getUpper,
@@ -2029,21 +2032,39 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
-		addresses = addresses.clone();
-		for(int i = 0; i < addresses.length; i++) {
-			addresses[i] = convertArg(addresses[i]).removeZone();
+		if(addresses.length == 0) {
+			if(isSinglePrefixBlock()) {
+				return new IPv6Address[] {removeZone()};
+			}
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(removeZone(), addresses);
+		IPAddress[] converted = getConverted(addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(converted);
 		return blocks.toArray(new IPv6Address[blocks.size()]);
+	}
+
+	private IPAddress[] getConverted(IPAddress... addresses) {
+		IPAddress converted[] = new IPAddress[addresses.length + 1];
+		for(int i = 0, j = 1; i < addresses.length; i = j++) {
+			converted[j] = convertArg(addresses[i]).removeZone();
+		}
+		converted[0] = removeZone();
+		return converted;
 	}
 	
 	@Override
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
+		if(addresses.length == 0) {
+			if(isSequential()) {
+				return new IPv6Address[] {removeZone()};
+			}
+		}
 		addresses = addresses.clone();
 		for(int i = 0; i < addresses.length; i++) {
 			addresses[i] = convertArg(addresses[i]).removeZone();
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(removeZone(), addresses, getDefaultCreator());
+		
+		IPAddress[] converted = getConverted(addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getDefaultCreator());
 		return blocks.toArray(new IPv6Address[blocks.size()]);
 	}
 

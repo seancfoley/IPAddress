@@ -234,6 +234,29 @@ public abstract class IPAddressNetwork<
 		public abstract T createAddress(R section);
 
 		protected abstract int getAddressSegmentCount();
+		
+		public T createSequentialBlockAddress(IPAddressSegmentSeries address, int index, int lowerVal, int upperVal) {
+			S[] segments = createSequentialBlockSegments(address, index, lowerVal, upperVal);
+			return createAddressInternal(segments);
+		}
+
+		public R createSequentialBlockSection(IPAddressSegmentSeries series, int index, int lowerVal, int upperVal) {
+			S[] segments = createSequentialBlockSegments(series, index, lowerVal, upperVal);
+			return createSectionInternal(segments);
+		}
+
+		private S[] createSequentialBlockSegments(IPAddressSegmentSeries series, int index, int lowerVal, int upperVal) {
+			S segments[] = createSegmentArray(series.getSegmentCount());
+			series.getSegments(0, index, segments, 0);
+			segments[index] = createSegment(lowerVal, upperVal, null);
+			if(++index < segments.length) {
+				S allRangeSegment = createSegment(0, getMaxValuePerSegment(), null);
+				do {
+					segments[index] = allRangeSegment;
+				} while(++index < segments.length);
+			}
+			return segments;
+		}
 	}
 
 	private IPAddressCreator<T, R, E, S, J> creator;

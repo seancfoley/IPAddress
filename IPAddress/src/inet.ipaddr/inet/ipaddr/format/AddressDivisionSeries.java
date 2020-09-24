@@ -226,4 +226,22 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 		}
 		return true;
 	}
+	
+	/**
+	 * Gets the minimal segment index for which all following segments are full-range blocks.
+	 * <p>
+	 * The segment at this index is not a full-range block unless all segments are full-range.
+	 * The segment at this index and all following segments form a sequential range.
+	 * For the full series to be sequential, the preceding segments must be single-valued.
+	 * 
+	 * @return
+	 */
+	default int getSequentialBlockIndex() {
+		int segCount = getDivisionCount();
+		if(segCount == 0) {
+			return 0;
+		}
+		for(segCount--; segCount > 0 && getDivision(segCount).isFullRange(); segCount--);
+		return segCount;
+	}
 }

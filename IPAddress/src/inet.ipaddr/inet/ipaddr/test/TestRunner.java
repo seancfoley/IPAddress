@@ -654,7 +654,6 @@ public class TestRunner extends TestBase implements AddressCreator {
 			long perfStartTime = startTime;
 			for(int i = 0; i < 10; i++) {
 				failures.add(testAll());
-				//long endTime = System.currentTimeMillis();
 				long endTime = System.nanoTime();
 				long totalTime = endTime - perfStartTime;
 				perf.addTime(totalTime);

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import inet.ipaddr.Address;
 import inet.ipaddr.Address.SegmentValueProvider;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.AddressSegmentSeries;
@@ -48,6 +49,7 @@ import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
@@ -3229,6 +3231,45 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	void testMergeSingles(String addrStr) {
+		IPAddressString resultStr = createAddress(addrStr);
+		IPAddress addr = resultStr.getAddress();
+		Iterator<? extends IPAddress> iter = addr.iterator();
+		ArrayList<IPAddress> addrs = new ArrayList<>();
+		while(iter.hasNext()) {
+			addrs.add(iter.next());
+		}
+		Collections.shuffle(addrs);
+		IPAddress[] arr = addrs.toArray(new IPAddress[addrs.size()]);
+		IPAddress first = addrs.get(addrs.size() / 2);
+		IPAddress[] result = first.mergeToPrefixBlocks(arr);
+		if(result.length != 1) {
+			addFailure(new Failure("merged addresses " + Arrays.asList(result) + " is not " + addrStr, addr));
+		} else if(!addr.equals(result[0])){
+			addFailure(new Failure("merged address " + result[0] + " is not " + addrStr, addr));
+		}
+		IPAddressSegmentSeries merged2[] = getMergedPrefixBlocksAltMerge(arr);
+		IPAddressSegmentSeries merged3[] = getMergedPrefixBlocksAltRange(arr);
+		IPAddressSegmentSeries merged4[] = getMergedPrefixBlocksAltRange2(arr);
+		if(merged2.length != 1 || !result[0].equals(merged2[0])) {
+			addFailure(new Failure("merge prefix mismatch merging, expected " + result + " got " + Arrays.asList(merged2), result[0]));
+		}
+		if(merged3.length != 1 || !result[0].equals(merged3[0])) {
+			addFailure(new Failure("merge prefix mismatch merging, expected " + result + " got " + Arrays.asList(merged3), result[0]));
+		}
+		if(merged4.length != 1 || !result[0].equals(merged4[0])) {
+			addFailure(new Failure("merge prefix mismatch merging, expected " + result + " got " + Arrays.asList(merged4), result[0]));
+		}
+		result = addrs.get(addrs.size() / 2).mergeToSequentialBlocks(arr);
+		if(result.length != 1) {
+			addFailure(new Failure("merged addresses " + Arrays.asList(result) + " is not " + addrStr, addr));
+		} else if(!addr.equals(result[0])){
+			addFailure(new Failure("merged address " + result[0] + " is not " + addrStr, addr));
+		}
+		
+		incrementTestCount();
+	}
+	
 	void testMergeRange(String result, String ... addresses) {
 		testMerge(result, false, addresses);
 	}
@@ -3244,7 +3285,92 @@ public class IPAddressTest extends TestBase {
 	void testMerge2(String result, String result2, String ... addresses) {
 		testMerge2(result, result2, true, addresses);
 	}
+
+	protected static IPAddressSegmentSeries[] getMergedPrefixBlocksAlt(IPAddressSegmentSeries mergedBlocks[]) {
+		List<IPAddressSegmentSeries> result = new ArrayList<>(mergedBlocks.length << 3);
+		for(IPAddressSegmentSeries series : mergedBlocks) {
+			result.addAll(Arrays.asList(series.spanWithPrefixBlocks()));
+		}
+		return result.toArray(new IPAddress[result.size()]);
+	}
 	
+	protected static IPAddressSegmentSeries[] getMergedPrefixBlocksAltRange(IPAddress addresses[]) {
+		ArrayList<IPAddressSeqRange> ranges = new ArrayList<>();
+		for(IPAddress addr : addresses) {
+			Iterator<? extends IPAddress> iter = addr.sequentialBlockIterator();
+			while(iter.hasNext()) {
+				IPAddressSeqRange next = iter.next().toSequentialRange();
+				ranges.add(next);
+			}
+		}
+		IPAddressSeqRange joined[] = IPAddressSeqRange.join(ranges.toArray(new IPAddressSeqRange[ranges.size()]));
+		ArrayList<IPAddressSegmentSeries> result = new ArrayList<>();
+		for(IPAddressSeqRange range : joined) {
+			IPAddress joins[] = range.spanWithPrefixBlocks();
+			for(IPAddress join : joins) {
+				result.add(join);
+			}
+		}
+		return result.toArray(new IPAddressSegmentSeries[result.size()]);
+	}
+	
+	protected static IPAddressSegmentSeries[] getMergedPrefixBlocksAltRange2(IPAddress addresses[]) {
+		ArrayList<IPAddressSeqRange> ranges = new ArrayList<>(addresses.length << 3);
+		for(IPAddress addr : addresses) {
+			Iterator<? extends IPAddress> iter = addr.sequentialBlockIterator();
+			while(iter.hasNext()) {
+				IPAddressSeqRange next = iter.next().toSequentialRange();
+				ranges.add(next);
+			}
+		}
+		ranges.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
+		for(int i = 0; i < ranges.size(); i++) {
+			IPAddressSeqRange one = ranges.get(i);
+			if(one == null) {
+				continue;
+			}
+			for(int j = i + 1; j < ranges.size(); j++) {
+				IPAddressSeqRange two = ranges.get(j);
+				if(two == null) {
+					continue;
+				}
+				IPAddressSeqRange joined = one.join(two);
+				if(joined == null) {
+					continue;
+				}
+				ranges.set(j, null);
+				ranges.set(i, joined);
+				one = joined;
+				i = -1;
+				break;
+			}
+		}
+		
+		ArrayList<IPAddressSegmentSeries> result = new ArrayList<>(ranges.size());
+		for(int i = 0; i < ranges.size(); i++) {
+			IPAddressSeqRange one = ranges.get(i);
+			if(one == null) {
+				continue;
+			}
+			IPAddress joins[] = one.spanWithPrefixBlocks();
+			for(IPAddress join : joins) {
+				result.add(join);
+			}
+		}
+		return result.toArray(new IPAddressSegmentSeries[result.size()]);
+	}
+	
+	protected static IPAddressSegmentSeries[] getMergedPrefixBlocksAltMerge(IPAddress addresses[]) {
+		return getMergedPrefixBlocksAlt(addresses[0].mergeToSequentialBlocks(addresses));
+	}
+	
+	static IPAddress[] join(IPAddress addresses[], IPAddress another) {
+		IPAddress result[] = new IPAddress[addresses.length + 1];
+		System.arraycopy(addresses,  0,  result, 0,  addresses.length);
+		result[addresses.length] = another;
+		return result;
+	}
+		
 	void testMerge(String result, boolean prefix, String ... addresses) {
 		IPAddressString resultStr = createAddress(result);
 		IPAddressString string2 = createAddress(addresses[0]);
@@ -3254,7 +3380,22 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = prefix ? addr2.mergeToPrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
+		IPAddress merged[] = addr2.mergeToSequentialBlocks(mergers);
+		if(prefix) {
+			IPAddressSegmentSeries merged2[] = getMergedPrefixBlocksAlt(merged);
+			IPAddressSegmentSeries merged3[] = getMergedPrefixBlocksAltRange(join(mergers, addr2));
+			IPAddressSegmentSeries merged4[] = getMergedPrefixBlocksAltRange(join(mergers, addr2));
+			merged = addr2.mergeToPrefixBlocks(mergers);
+			if(merged2.length != 1 || !resultAddr.equals(merged2[0])) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged2), resultAddr));
+			}
+			if(merged3.length != 1 || !resultAddr.equals(merged3[0])) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged3), resultAddr));
+			}
+			if(merged4.length != 1 || !resultAddr.equals(merged4[0])) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged4), resultAddr));
+			}
+		}
 		if(merged.length != 1 || !resultAddr.equals(merged[0])) {
 			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + result + " got " + Arrays.asList(merged), resultAddr));
 		}
@@ -3284,7 +3425,15 @@ public class IPAddressTest extends TestBase {
 		for(int i = 0; i < mergers.length; i++) {
 			mergers[i] = createAddress(addresses[i + 1]).getAddress();
 		}
-		IPAddress merged[] = prefix ? addr2.mergeToPrefixBlocks(mergers) : addr2.mergeToSequentialBlocks(mergers);
+		
+		IPAddress merged[], seqMerged[] = addr2.mergeToSequentialBlocks(mergers);
+		
+		if(prefix) {
+			merged = addr2.mergeToPrefixBlocks(mergers);
+		} else {
+			merged = seqMerged;
+		}
+		
 		HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
 		HashSet<IPAddress> expected = new HashSet<IPAddress>();
 		expected.add(resultAddr);
@@ -3292,6 +3441,22 @@ public class IPAddressTest extends TestBase {
 		if(!all.equals(expected)) {
 			addFailure(new Failure("merge " + (prefix ? "prefix" : "range") + " mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + all, resultAddr));
 		}
+		
+		if(prefix) {
+			IPAddressSegmentSeries merged2[] = getMergedPrefixBlocksAlt(merged);
+			IPAddressSegmentSeries merged3[] = getMergedPrefixBlocksAltRange(join(mergers, addr2));
+			IPAddressSegmentSeries merged4[] = getMergedPrefixBlocksAltRange2(join(mergers, addr2));
+			if(merged2.length != 2 || !Arrays.equals(merged, merged2)) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + Arrays.asList(merged2), resultAddr));
+			}
+			if(merged3.length != 2 || !Arrays.equals(merged, merged3)) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + Arrays.asList(merged3), resultAddr));
+			}
+			if(merged4.length != 2 || !Arrays.equals(merged, merged4)) {
+				addFailure(new Failure("merge prefix mismatch merging " +  Arrays.asList(addresses) + " expected " + expected + " got " + Arrays.asList(merged4), resultAddr));
+			}
+		}
+		
 		for(IPAddress m : merged) {
 			if(prefix) {
 				if(!m.isPrefixed() || !m.isPrefixBlock()) {

@@ -1187,20 +1187,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return result;
 	}
 	
-	protected static <R extends IPAddressSection, S extends IPAddressSegment> SeriesCreator createSeriesCreator(IPAddressCreator<?, R, ?, S, ?> creator, int maxSegmentValue) {
-		S allRangeSegment = creator.createSegment(0, maxSegmentValue, null);
-		SeriesCreator seriesCreator = (series, index, lowerVal, upperVal) -> {
-			S segments[] = creator.createSegmentArray(series.getSegmentCount());
-			series.getSegments(0, index, segments, 0);
-			segments[index] = creator.createSegment(lowerVal, upperVal, null);
-			while(++index < segments.length) {
-				segments[index] = allRangeSegment;
-			}
-			return creator.createSectionInternal(segments);
-		};
-		return seriesCreator;
-	}
-	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R[] getSpanningSequentialBlocks(
 			R first,
 			R other,
@@ -1213,8 +1199,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(result != null) {
 			return result;
 		}
-		SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
-		TriFunction<R, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
+		TriFunction<R, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, creator::createSequentialBlockSection);
 		List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
 		return blocks.toArray(creator.createSectionArray(blocks.size()));
 	}
@@ -1489,88 +1474,22 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return comparison;
 	};
-	
-	private static boolean organizeByMinPrefix(
-			IPAddressSegmentSeries first,
-			IPAddressSegmentSeries sections[],
-			List<IPAddressSegmentSeries> list,
-			boolean useBitCountPrefixLengths,
-			Comparator<? super IPAddressSegmentSeries> listOrdering,
-			Function<IPAddressSegmentSeries, Iterator<? extends IPAddressSegmentSeries>> blockIteratorFunc) {
-		int bitCount = first.getBitCount();
-		IPAddressSegmentSeries block = first.assignMinPrefixForBlock();
-		int prefLength = block.getPrefixLength();
-		if(useBitCountPrefixLengths || prefLength < bitCount) {
-			first = block;
-			if(prefLength == 0) {
-				list.add(first);
-			}
-		}
-		if(bitCount == 0 && list.isEmpty()) {
-			list.add(first);
-		}
-		if(!list.isEmpty()) {
-			return true;
-		}
-		for(int i = 0; i < sections.length; i++) {
-			IPAddressSegmentSeries section = sections[i];
-			if(section == null) {
-				continue;
-			}
-			block = section.assignMinPrefixForBlock();
-			prefLength = block.getPrefixLength();
-			if(useBitCountPrefixLengths || prefLength < bitCount) {
-				sections[i] = block;
-				if(prefLength == 0 && list.isEmpty()) {
-					list.add(block);
-				}
-			}
-		}
-		if(!list.isEmpty()) {
-			return true;
-		}
-		Iterator<? extends IPAddressSegmentSeries> iterator = blockIteratorFunc.apply(first);
-		iterator.forEachRemaining(list::add);
-		for(int i = 0; i < sections.length; i++) {
-			IPAddressSegmentSeries section = sections[i];
-			if(section == null) {
-				continue;
-			}
-			iterator = blockIteratorFunc.apply(section);
-			iterator.forEachRemaining(list::add);
-		}
-		if(list.size() == 1) {
-			return true;
-		}
-		list.sort(listOrdering);
-		return false;
-	}
 
-	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(
-			IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], SeriesCreator seriesCreator) {
-		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>();
-		int bitsPerSegment = first.getBitsPerSegment();
-		int bytesPerSegment = first.getBytesPerSegment();
-		int segmentCount = first.getSegmentCount();
-		
-		// iterator must get the segment to iterate on based on prefix Length
-		// it is the segment preceding the prefix length, the segment preceding the first non-full-range
-		// you get that segment index, then you get the iterator for that segment index
-		boolean singleElement = organizeByMinPrefix(first, sections, list, false, Address.ADDRESS_LOW_VALUE_COMPARATOR, series -> {
-			Integer prefixLength = series.getPrefixLength();
-			int segs = (prefixLength == null) ? series.getSegmentCount() - 1 : 
-				getNetworkSegmentIndex(prefixLength, bytesPerSegment, bitsPerSegment);
-			return series.blockIterator(segs);
-		});
+	private static final ValueComparator REVERSE_LOW_COMPARATOR = new ValueComparator(true, false, true);
+	private static final ValueComparator REVERSE_HIGH_COMPARATOR = new ValueComparator(true, true, true);
+
+	protected static List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries sections[], SeriesCreator seriesCreator) {
+		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length << 1);
+		boolean singleElement = organizeSequentialMerge(sections, list);
 		if(singleElement) {
 			list.set(0, list.get(0).withoutPrefixLength());
 			return list;
 		}
 		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
 		ValueComparator reverseHighComparator = REVERSE_HIGH_COMPARATOR;
-		
 		int removedCount = 0;
 		int j = list.size() - 1, i = j - 1;
+		int ithRangeSegmentIndex = -1, jthRangeSegmentIndex = -1;
 		top:
 		while(j > 0) {
 			IPAddressSegmentSeries item = list.get(i);
@@ -1588,10 +1507,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				if(k < list.size()) {
 					list.set(j, list.get(k));
 					list.set(k, null);
+					jthRangeSegmentIndex = -1;
 				} else {
 					list.set(j, null);
 					j = i;
 					i--;
+					jthRangeSegmentIndex = ithRangeSegmentIndex;
+					ithRangeSegmentIndex = -1;
 				}
 				continue;
 			}
@@ -1609,32 +1531,36 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				list.set(j, null);
 				j = i;
 				i--;
+				jthRangeSegmentIndex = ithRangeSegmentIndex;
+				ithRangeSegmentIndex = -1;
 				continue;
 			}
 
 			//check for overlap
 			
-			Integer prefixLen = item.getPrefixLength();
-			int rangeSegmentIndex = (prefixLen == null) ? segmentCount - 1 : 
-				getNetworkSegmentIndex(prefixLen, bytesPerSegment, bitsPerSegment);
-			
-			Integer otherPrefixLen = otherItem.getPrefixLength();
-			int otherRangeSegmentIndex = (otherPrefixLen == null) ? segmentCount - 1 : 
-				getNetworkSegmentIndex(otherPrefixLen, bytesPerSegment, bitsPerSegment);
-			
+			if(ithRangeSegmentIndex < 0) {
+				ithRangeSegmentIndex = item.getSequentialBlockIndex();
+			}
+			if(jthRangeSegmentIndex < 0) {
+				jthRangeSegmentIndex = otherItem.getSequentialBlockIndex();
+			}
+
 			// check for overlap in the non-full range segment,
 			// which must be the same segment in both, otherwise it cannot be overlap,
 			// it can only be containment.
 			// The one with the earlier range segment can only contain the other, there cannot be overlap.
-			// eg 1.a-b.*.* and 1.2.3.* must have a < 2 < b and that means 1.a-b.*.* contains 1.2.3.*)
-			if(rangeSegmentIndex != otherRangeSegmentIndex) {
+			// eg 1.a-b.*.* and 1.2.3.* overlap in range segment 2 must have a <= 2 <= b and that means 1.a-b.*.* contains 1.2.3.*
+			if(ithRangeSegmentIndex != jthRangeSegmentIndex) {
+			//if(rangeSegmentIndex != otherRangeSegmentIndex) {
 				j = i;
 				i--;
+				jthRangeSegmentIndex = ithRangeSegmentIndex;
+				ithRangeSegmentIndex = -1;
 				continue;
 			}
 			
-			IPAddressSegment rangeSegment = item.getSegment(rangeSegmentIndex);
-			IPAddressSegment otherRangeSegment = otherItem.getSegment(rangeSegmentIndex);
+			IPAddressSegment rangeSegment = item.getSegment(ithRangeSegmentIndex);
+			IPAddressSegment otherRangeSegment = otherItem.getSegment(ithRangeSegmentIndex);
 			int otherRangeItemValue = otherRangeSegment.getSegmentValue();
 			int rangeItemUpperValue = rangeSegment.getUpperSegmentValue();
 			
@@ -1642,11 +1568,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			if(rangeItemUpperValue < otherRangeItemValue && rangeItemUpperValue + 1 != otherRangeItemValue) {
 				j = i;
 				i--;
+				//jthRangeSegmentIndex = ithRangeSegmentIndex;
+				ithRangeSegmentIndex = -1;
 				continue;
 			}
 			
 			// now check all previous segments match
-			for(int k = rangeSegmentIndex - 1; k >= 0; k--) {
+			for(int k = ithRangeSegmentIndex - 1; k >= 0; k--) {
 				IPAddressSegment itemSegment = item.getSegment(k);
 				IPAddressSegment otherItemSegment = otherItem.getSegment(k);
 				int val = itemSegment.getSegmentValue();
@@ -1654,17 +1582,24 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				if(val != otherVal) {
 					j = i;
 					i--;
+					ithRangeSegmentIndex = -1;
 					continue top;
 				}
 			}
 			IPAddressSegmentSeries joinedItem = seriesCreator.apply(
 					item,
-					rangeSegmentIndex,
+					ithRangeSegmentIndex,
 					rangeSegment.getSegmentValue(),
 					Math.max(rangeItemUpperValue, otherRangeSegment.getUpperSegmentValue()));
-			joinedItem = joinedItem.assignMinPrefixForBlock();
-			
 			list.set(i, joinedItem);
+			if(joinedItem.getSegment(ithRangeSegmentIndex).isFullRange()) {
+				if(ithRangeSegmentIndex == 0) {
+					list.clear();
+					list.add(joinedItem);
+					return list;
+				}
+				ithRangeSegmentIndex--;
+			}
 			removedCount++;
 			int k = j + 1;
 			while(k < list.size() && list.get(k) == null) {
@@ -1673,10 +1608,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			if(k < list.size()) {
 				list.set(j, list.get(k));
 				list.set(k, null);
+				jthRangeSegmentIndex = -1;
 			} else {
 				list.set(j, null);
 				j = i;
 				i--;
+				jthRangeSegmentIndex = ithRangeSegmentIndex;
+				ithRangeSegmentIndex = -1;
 			}
 		}
 		if(removedCount > 0) {
@@ -1697,17 +1635,15 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return list;
 	}
 	
-	private static final ValueComparator REVERSE_LOW_COMPARATOR = new ValueComparator(true, false, true);
-	private static final ValueComparator REVERSE_HIGH_COMPARATOR = new ValueComparator(true, true, true);
-	
-	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries first, IPAddressSegmentSeries sections[], boolean checkSize) {
-		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length + 1);
-		boolean singleElement = organizeByMinPrefix(first, sections, list, true, Address.ADDRESS_LOW_VALUE_COMPARATOR, IPAddressSegmentSeries::prefixBlockIterator);
+	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries sections[]) {
+		ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length << 3);
+		boolean singleElement = organizeSequentially(sections, list);
 		if(singleElement) {
 			return list;
 		}
 		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
 		ValueComparator reverseHighComparator = REVERSE_HIGH_COMPARATOR;
+		IPAddressSegmentSeries first = sections[0];
 		int bitCount = first.getBitCount();
 		int bitsPerSegment = first.getBitsPerSegment();
 		int bytesPerSegment = first.getBytesPerSegment();
@@ -1842,11 +1778,94 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				}
 			}
 			int last = list.size();
-			while(removedCount-- > 0) {
+			while(removedCount-- > 0) { // could use subList here 
 				list.remove(--last);
 			}
 		}
 		return list;
+	}
+	
+	private static boolean organizeSequentially(IPAddressSegmentSeries sections[], List<IPAddressSegmentSeries> list) {
+		List<IPAddressSegmentSeries> sequentialList = null;
+		for(int i = 0; i < sections.length; i++) {
+			IPAddressSegmentSeries section = sections[i];
+			if(section == null) {
+				continue;
+			}
+			if(!section.isSequential()) {
+				if(sequentialList == null) {
+					sequentialList = new ArrayList<>(sections.length);
+					for(int j = 0; j < i; j++) {
+						IPAddressSegmentSeries series = sections[j];
+						if(series != null) {
+							sequentialList.add(series);
+						}
+					}
+				}
+				Iterator<? extends IPAddressSegmentSeries> iterator = section.sequentialBlockIterator();
+				while(iterator.hasNext()) {
+					sequentialList.add(iterator.next());
+				}
+			} else if(sequentialList != null) {
+				sequentialList.add(section);
+			}
+		}
+		if(sequentialList == null) {
+			for(int i = 0; i < sections.length; i++) {
+				IPAddressSegmentSeries series = sections[i];
+				if(series != null) {
+					if(series.isSinglePrefixBlock()) {
+						list.add(series);
+					} else {
+						IPAddressSegmentSeries span[] = series.spanWithPrefixBlocks();
+						for(int k = 0; k < span.length; k++) {
+							list.add(span[k]);
+						}
+					}
+				}
+			}
+		} else for(int j = 0; j < sequentialList.size(); j++) {
+			IPAddressSegmentSeries series = sequentialList.get(j);
+			if(series.isSinglePrefixBlock()) {
+				list.add(series);
+			} else {
+				IPAddressSegmentSeries span[] = series.spanWithPrefixBlocks();
+				for(int k = 0; k < span.length; k++) {
+					list.add(span[k]);
+				}
+			}
+		}
+		if(list.size() == 1) {
+			return true;
+		}
+		list.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
+		return false;
+	}
+	
+	private static boolean organizeSequentialMerge(IPAddressSegmentSeries sections[], List<IPAddressSegmentSeries> list) {
+		for(int i = 0; i < sections.length; i++) {
+			IPAddressSegmentSeries section = sections[i];
+			if(section == null) {
+				continue;
+			}
+			if(section.isSequential()) {
+				list.add(section);
+			} else {
+				Iterator<? extends IPAddressSegmentSeries> iterator = section.sequentialBlockIterator();
+				while(iterator.hasNext()) {
+					list.add(iterator.next());
+				}
+			}
+		}
+		if(list.size() == 1) {
+			return true;
+		}
+		list.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
+		return false;
+	}
+
+	protected List<? extends IPAddressSegmentSeries> spanWithBlocks(boolean prefixBlocks) {
+		return IPAddress.spanWithBlocks(this, prefixBlocks);
 	}
 
 	protected static <T extends IPAddress, R extends IPAddressSection, S extends IPAddressSegment> R[] subtract(
@@ -2522,28 +2541,23 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		
 	@Override
 	public Iterator<? extends IPAddressSection> sequentialBlockIterator() {
-		return blockIterator(getSequentialDivisionIndex());
+		return blockIterator(getSequentialBlockIndex());
 	}
 
 	@Override
 	public AddressComponentSpliterator<? extends IPAddressSection> sequentialBlockSpliterator() {
-		return blockSpliterator(getSequentialDivisionIndex());
+		return blockSpliterator(getSequentialBlockIndex());
 	}
 
 	@Override
 	public Stream<? extends IPAddressSection> sequentialBlockStream() {
-		return blockStream(getSequentialDivisionIndex());
+		return blockStream(getSequentialBlockIndex());
 	}
 		
 	@Override
 	public BigInteger getSequentialBlockCount() {
-		int sequentialSegCount = getSequentialDivisionIndex();
+		int sequentialSegCount = getSequentialBlockIndex();
 		return getPrefixCount(sequentialSegCount * getBitsPerSegment());
-	}
-	
-	@Override
-	protected int getSequentialDivisionIndex() {
-		return super.getSequentialDivisionIndex();
 	}
 
 	// this iterator function used by sequential ranges

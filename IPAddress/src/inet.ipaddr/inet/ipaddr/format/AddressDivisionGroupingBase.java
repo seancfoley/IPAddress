@@ -662,19 +662,6 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		}
 		return true;
 	}
-	
-	/**
-	 * Gets the minimal index for which preceding divisions must be non-multiple for the whole grouping to be sequential
-	 * @return
-	 */
-	protected int getSequentialDivisionIndex() {
-		int segCount = getDivisionCount();
-		if(segCount == 0) {
-			return 0;
-		}
-		for(segCount--; segCount > 0 && getDivision(segCount).isFullRange(); segCount--);
-		return segCount;
-	}
 
 	protected static void checkSubnet(AddressDivisionSeries series, int prefixLength) throws PrefixLenException {
 		if(prefixLength < 0 || prefixLength > series.getBitCount()) {

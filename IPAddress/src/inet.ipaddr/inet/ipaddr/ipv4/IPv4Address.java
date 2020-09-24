@@ -948,6 +948,9 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	@Override
 	public IPv4Address[] spanWithPrefixBlocks() {
 		if(isSequential()) {
+			if(isSinglePrefixBlock()) {
+				return new IPv4Address[] {this};
+			}
 			return spanWithPrefixBlocks(this);
 		}
 		@SuppressWarnings("unchecked")
@@ -1005,21 +1008,34 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 
 	@Override
 	public IPv4Address[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException {
-		addresses = addresses.clone();
-		for(int i = 0; i < addresses.length; i++) {
-			addresses[i] = convertArg(addresses[i]);
+		if(addresses.length == 0) {
+			if(isSinglePrefixBlock()) {
+				return new IPv4Address[] {this};
+			}
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, addresses);
+		IPAddress[] converted = getConverted(addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(converted);
 		return blocks.toArray(new IPv4Address[blocks.size()]);
+	}
+	
+	private IPAddress[] getConverted(IPAddress... addresses) {
+		IPAddress converted[] = new IPAddress[addresses.length + 1];
+		for(int i = 0, j = 1; i < addresses.length; i = j++) {
+			converted[j] = convertArg(addresses[i]);
+		}
+		converted[0] = this;
+		return converted;
 	}
 	
 	@Override
 	public IPv4Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
-		addresses = addresses.clone();
-		for(int i = 0; i < addresses.length; i++) {
-			addresses[i] = convertArg(addresses[i]);
+		if(addresses.length == 0) {
+			if(isSequential()) {
+				return new IPv4Address[] {this};
+			}
 		}
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, addresses, getAddressCreator());
+		IPAddress[] converted = getConverted(addresses);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator());
 		return blocks.toArray(new IPv4Address[blocks.size()]);
 	}
 

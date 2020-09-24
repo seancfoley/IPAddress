@@ -2520,6 +2520,24 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	/**
+	 * Produces an array of prefix blocks that spans the same set of values.
+	 * <p>
+	 * Unlike {@link #spanWithPrefixBlocks(IPv6AddressSection)} this method only includes blocks that are a part of this section.
+	 */
+	@Override
+	public IPv6AddressSection[] spanWithPrefixBlocks() {
+		if(isSequential()) {
+			if(isSinglePrefixBlock()) {
+				return new IPv6AddressSection[] {this};
+			}
+			return spanWithPrefixBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv6AddressSection> list = (ArrayList<IPv6AddressSection>) spanWithBlocks(true);
+		return list.toArray(new IPv6AddressSection[list.size()]);
+	}
+	
+	/**
 	 * Produces the list of prefix block subnets that span from this series to the given series.
 	 * 
 	 * @param other
@@ -2549,6 +2567,23 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	@Deprecated
 	public IPv6AddressSection[] spanWithRangedSegments(IPv6AddressSection other) {
 		return spanWithSequentialBlocks(other);
+	}
+	
+	/**
+	 * Produces an array of blocks that are sequential that cover the same set of sections as this.
+	 * <p>
+	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
+	 * <p>
+	 * Unlike {@link #spanWithSequentialBlocks(IPv6AddressSection)} this method only includes values that are a part of this section.
+	 */
+	@Override
+	public IPv6AddressSection[] spanWithSequentialBlocks() throws AddressConversionException {
+		if(isSequential()) {
+			return new IPv6AddressSection[] { withoutPrefixLength() };
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv6AddressSection> list = (ArrayList<IPv6AddressSection>) spanWithBlocks(false);
+		return list.toArray(new IPv6AddressSection[list.size()]);
 	}
 	
 	/**
@@ -2597,8 +2632,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv6AddressSection[] mergeToPrefixBlocks(IPv6AddressSection ...sections) throws SizeMismatchException, AddressPositionException {
 		checkSectionsMergeable(sections);
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
+		IPv6AddressSection[] converted = getCloned(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(converted);
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
+	}
+
+	private IPv6AddressSection[] getCloned(IPv6AddressSection... sections) {
+		IPv6AddressSection converted[] = new IPv6AddressSection[sections.length + 1];
+		System.arraycopy(sections, 0, converted, 1, sections.length);
+		converted[0] = this;
+		return converted;
 	}
 	
 	private void checkSectionsMergeable(IPv6AddressSection sections[]) {
@@ -2630,7 +2673,8 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv6AddressSection[] mergeToSequentialBlocks(IPv6AddressSection ...sections) throws SizeMismatchException {
 		checkSectionsMergeable(sections);
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		IPv6AddressSection[] converted = getCloned(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
 		return blocks.toArray(new IPv6AddressSection[blocks.size()]);
 	}
 

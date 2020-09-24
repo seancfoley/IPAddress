@@ -139,7 +139,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 		}
 
 		@Override
-		public long getMaxValuePerSegment() {
+		public int getMaxValuePerSegment() {
 			return IPv6Address.MAX_VALUE_PER_SEGMENT;
 		}
 		

@@ -94,10 +94,21 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	IPAddressSegmentSeries assignPrefixForSingleBlock();
 
 	/**
-	 * Returns the minimal-size prefix block that covers all the addresses in this series.
+	 * Returns the minimal-size prefix block that covers all the values in this series.
 	 * The resulting block will have a larger series count than this, unless this series is already a prefix block.
 	 */
 	IPAddressSegmentSeries coverWithPrefixBlock();
+
+	/**
+	 * Produces an array of prefix blocks that spans the same set of values.
+	 */
+	IPAddressSegmentSeries[] spanWithPrefixBlocks();
+
+	/**
+	 * Produces an array of blocks that are sequential that cover the same set of values.
+	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
+	 */
+	IPAddressSegmentSeries[] spanWithSequentialBlocks();
 
 	/**
 	 * If this series has a prefix length, returns the subnet block for that prefix. If this series has no prefix length, this series is returned.
@@ -178,20 +189,20 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	IPAddressSection getNetworkSection(int networkPrefixLength, boolean withPrefixLength);
-	
+
 	/**
 	 * This produces a string with no compressed segments and all segments of full length,
 	 * which is 4 characters for IPv6 segments and 3 characters for IPv4 segments.
 	 */
 	String toFullString();
-	
+
 	/**
 	 * Returns a string with a CIDR prefix length if this section has a network prefix length.
 	 * For IPv6, the host section will be compressed with ::, for IPv4 the host section will be zeros.
 	 * @return
 	 */
 	String toPrefixLengthString();
-	
+
 	/**
 	 * Produces a consistent subnet string.
 	 * 
@@ -199,25 +210,25 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * In the case of IPv6, a prefix will be used and the host section will be compressed with ::.
 	 */
 	String toSubnetString();
-	
+
 	/**
 	 * This produces a string similar to the normalized string and avoids the CIDR prefix.
 	 * CIDR addresses will be shown with wildcards and ranges instead of using the CIDR prefix notation.
 	 */
 	String toNormalizedWildcardString();
-	
+
 	/**
 	 * This produces a string similar to the canonical string and avoids the CIDR prefix.
 	 * Addresses with a network prefix length will be shown with wildcards and ranges instead of using the CIDR prefix length notation.
 	 * IPv6 addresses will be compressed according to the canonical representation.
 	 */
 	String toCanonicalWildcardString();
-	
+
 	/**
 	 * This is similar to toNormalizedWildcardString, avoiding the CIDR prefix, but with compression as well.
 	 */
 	String toCompressedWildcardString();
-	
+
 	/**
 	 * This is the same as the string from toNormalizedWildcardString except that 
 	 * it uses {@link IPAddress#SEGMENT_SQL_WILDCARD} instead of {@link IPAddress#SEGMENT_WILDCARD} and also uses {@link IPAddress#SEGMENT_SQL_SINGLE_WILDCARD}
@@ -253,8 +264,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * If this section represents a range of values outside of the network prefix length, then this is printed as a range of two hex values.
 	 */
 	String toOctalString(boolean with0Prefix) throws IncompatibleAddressException;
-	
-	
+
 	IPAddressPartStringCollection toStringCollection(IPStringBuilderOptions options);
 	
 	/**
@@ -264,22 +274,22 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return
 	 */
 	String toNormalizedString(IPStringOptions stringOptions);
-	
+
 	@Override
 	IPAddressNetwork<?,?,?,?,?> getNetwork();
-	
+
 	@Override
 	IPAddressSection getSection();
 
 	@Override
 	IPAddressSection getSection(int index);
-	
+
 	@Override
 	IPAddressSection getSection(int index, int endIndex);
 
 	@Override
 	IPAddressSegment getSegment(int index);
-	
+
 	@Override
 	IPAddressSegment[] getSegments();
 
@@ -302,13 +312,13 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	 * @return the lowest IP address series whose host is non-zero, or null if no such address section exists.
 	 */
 	IPAddressSegmentSeries getLowerNonZeroHost();
-	
+
 	@Override
 	IPAddressSegmentSeries getLower();
-	
+
 	@Override
 	IPAddressSegmentSeries getUpper();
-	
+
 	@Override
 	Iterable<? extends IPAddressSegmentSeries> getIterable();
 
@@ -332,7 +342,7 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 
 	@Override
 	Iterator<? extends IPAddressSegmentSeries> prefixBlockIterator();
-	
+
 	@Override
 	AddressComponentSpliterator<? extends IPAddressSegmentSeries> prefixBlockSpliterator();
 

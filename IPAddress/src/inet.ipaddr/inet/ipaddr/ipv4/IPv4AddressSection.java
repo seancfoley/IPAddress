@@ -60,6 +60,7 @@ import inet.ipaddr.format.util.IPAddressPartStringSubCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4AddressSectionStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4StringBuilder;
+import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 
@@ -1905,6 +1906,24 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	/**
+	 * Produces an array of prefix blocks that spans the same set of values.
+	 * <p>
+	 * Unlike {@link #spanWithPrefixBlocks(IPv6AddressSection)} this method only includes blocks that are a part of this section.
+	 */
+	@Override
+	public IPv4AddressSection[] spanWithPrefixBlocks() {
+		if(isSequential()) {
+			if(isSinglePrefixBlock()) {
+				return new IPv4AddressSection[] {this};
+			}
+			return spanWithPrefixBlocks(this);
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv4AddressSection> list = (ArrayList<IPv4AddressSection>) spanWithBlocks(true);
+		return list.toArray(new IPv4AddressSection[list.size()]);
+	}
+
+	/**
 	 * Produces the list of prefix block subnets that span from this series to the given series.
 	 * 
 	 * @param other
@@ -1931,6 +1950,23 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	@Deprecated
 	public IPv4AddressSection[] spanWithRangedSegments(IPv4AddressSection other) {
 		return spanWithSequentialBlocks(other);
+	}
+
+	/**
+	 * Produces an array of blocks that are sequential that cover the same set of sections as this.
+	 * <p>
+	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
+	 * <p>
+	 * Unlike {@link #spanWithSequentialBlocks(IPv6AddressSection)} this method only includes values that are a part of this section.
+	 */
+	@Override
+	public IPv4AddressSection[] spanWithSequentialBlocks() throws AddressConversionException {
+		if(isSequential()) {
+			return new IPv4AddressSection[] { withoutPrefixLength() };
+		}
+		@SuppressWarnings("unchecked")
+		ArrayList<IPv4AddressSection> list = (ArrayList<IPv4AddressSection>) spanWithBlocks(false);
+		return list.toArray(new IPv4AddressSection[list.size()]);
 	}
 	
 	/**
@@ -1976,8 +2012,16 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv4AddressSection[] mergeToPrefixBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
 		checkSectionsMergeable(sections);
-		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(this, sections.clone(), true);
+		IPv4AddressSection converted[] = getCloned(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedPrefixBlocks(converted);
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
+	}
+	
+	private IPv4AddressSection[] getCloned(IPv4AddressSection... sections) {
+		IPv4AddressSection converted[] = new IPv4AddressSection[sections.length + 1];
+		System.arraycopy(sections, 0, converted, 1, sections.length);
+		converted[0] = this;
+		return converted;
 	}
 	
 	private void checkSectionsMergeable(IPv4AddressSection sections[]) {
@@ -2006,7 +2050,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 */
 	public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
 		checkSectionsMergeable(sections);
-		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(this, sections.clone(), createSeriesCreator(getAddressCreator(), getMaxSegmentValue()));
+		IPv4AddressSection converted[] = getCloned(sections);
+		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
 		return blocks.toArray(new IPv4AddressSection[blocks.size()]);
 	}
 

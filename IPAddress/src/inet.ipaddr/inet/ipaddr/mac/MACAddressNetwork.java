@@ -85,7 +85,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		}
 
 		@Override
-		public long getMaxValuePerSegment() {
+		public int getMaxValuePerSegment() {
 			return MACAddress.MAX_VALUE_PER_SEGMENT;
 		}
 		

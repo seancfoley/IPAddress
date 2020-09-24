@@ -101,7 +101,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 		}
 		
 		@Override
-		public long getMaxValuePerSegment() {
+		public int getMaxValuePerSegment() {
 			return IPv4Address.MAX_VALUE_PER_SEGMENT;
 		}
 		
