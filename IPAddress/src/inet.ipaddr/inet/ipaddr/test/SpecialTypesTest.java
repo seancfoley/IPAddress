@@ -623,7 +623,7 @@ public class SpecialTypesTest extends TestBase {
 					}
 					if(showMe) System.out.println();
 				} catch (UnknownHostException e) {
-					System.out.println("testNetworkIntf(): Skipping interface " + nif);
+					//System.out.println("testNetworkIntf(): Skipping interface " + nif);
 				}
 			}
 			IPv6Address ipv6Address4 = createAddress("1:2:3:4:1:2:3:2%4").getAddress().toIPv6();

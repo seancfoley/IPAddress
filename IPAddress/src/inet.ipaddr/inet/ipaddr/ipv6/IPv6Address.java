@@ -18,6 +18,7 @@
 
 package inet.ipaddr.ipv6;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -159,10 +160,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * @author scfoley
 	 *
 	 */
-	public static class IPv6Zone {
+	public static class IPv6Zone implements Serializable {
+
+		private static final long serialVersionUID = 1L;
+		
 		String zoneStr;
 		private int scopeId;
-		private NetworkInterface networkInterface;
+		private transient NetworkInterface networkInterface;
 		private Boolean referencesInterface;
 		
 		/**
@@ -209,6 +213,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			this.networkInterface = networkInterface;
 			referencesInterface = Boolean.TRUE;
 			scopeId = -1;
+			zoneStr = networkInterface.getName();
 		}
 		
 		/**
