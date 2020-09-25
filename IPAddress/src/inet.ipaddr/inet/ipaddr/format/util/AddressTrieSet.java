@@ -259,6 +259,13 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 		return trie.contains((E) o);
 	}
 
+	/**
+	 * Adds the given single address or prefix block subnet to this set.
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
+	 * <p>
+	 * See {@link AddressTrie}
+	 */
 	@Override
 	public boolean add(E e) {
 		return trie.add(e);

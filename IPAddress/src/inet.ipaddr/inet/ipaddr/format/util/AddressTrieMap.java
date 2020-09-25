@@ -418,6 +418,13 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 		return trie.get((K) key);
 	}
 
+	/**
+	 * Maps the given single address or prefix block subnet to the given value in the map.
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
+	 * <p>
+	 * See {@link AssociativeAddressTrie}
+	 */
 	@Override
 	public V put(K key, V value) {
 		return trie.put(key, value);

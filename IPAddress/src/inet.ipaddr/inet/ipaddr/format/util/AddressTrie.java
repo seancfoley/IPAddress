@@ -1665,6 +1665,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return totalCount;
 	}
+	
 	@Override
 	public boolean add(E addr) {
 		addr = checkBlockOrAddress(addr, true);
@@ -2430,6 +2431,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return subRoot.getParent();
 	}
 
+	/**
+	 * Returns a comparator for the trie order
+	 * 
+	 * @return
+	 */
 	public Comparator<E> getComparator() {
 		return comparator();
 	}
@@ -2623,6 +2629,9 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return result;
 	}
 
+	/**
+	 * Returns whether the given argument is a trie with a set of nodes that equal the set of nodes in this trie
+	 */
 	@Override
 	public boolean equals(Object o) {
 		return o instanceof AddressTrie && super.equals(o);
@@ -2659,6 +2668,13 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				this.<Indents>containingFirstAllNodeIterator(true));
 	}
 
+	/**
+	 * Produces a visual representation of the given tries joined by a single root node, with one node per line.
+	 * 
+	 * @param withNonAddedKeys
+	 * @param tries
+	 * @return
+	 */
 	public static String toString(boolean withNonAddedKeys, AddressTrie<?> ...tries) {
 		StringBuilder builder = new StringBuilder('\n' + BinaryTreeNode.NON_ADDED_NODE_CIRCLE);
 		String topLabel =  ' ' + Address.SEGMENT_WILDCARD_STR;

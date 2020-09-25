@@ -44,10 +44,10 @@ import inet.ipaddr.ipv6.IPv6Address;
  * When removing nodes, non-added nodes are removed automatically whenever they are no longer needed,
  * which is when an added node has less than two added sub-nodes.
  * <p>
- * You cannot create nodes directly, instead they are created indirectly by tree operations or by cloning existing nodes.
+ * BinaryTreeNode objects have a read-only API, in the sense that they cannot be constructed directly.
+ * Instead they are created indirectly by tree operations or by cloning existing nodes.
  * <p>
- * BinaryTreeNode objects have a read-only API.  This is because they are managed by trees.  
- * They can be used to traverse the structure of a tree. 
+ * The API does allow you to remove them from trees, or to clone them.  They can also be used to traverse a tree. 
  * <p>
  * Nodes have various properties: the key, parent node, lower sub-node, upper sub-node, "added" property, and size.  
  * The "added" property can change if the node changes status following tree operations.
@@ -514,6 +514,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	}
 
 	/**
+	 * Gets the key used for placing the node in the tree.
 	 * 
 	 * @return the key used for placing the node in the tree.
 	 */
@@ -530,6 +531,11 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 		return parent == null;
 	}
 
+	/**
+	 * Gets the node from which this node is a direct child node, or null if this is the root.
+	 * 
+	 * @return
+	 */
 	public BinaryTreeNode<E> getParent() {
 		return parent;
 	}
@@ -539,7 +545,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	}
 
 	/**
-	 * Gets the node whose key is largest in value
+	 * Gets the direct child node whose key is largest in value
 	 * 
 	 * @return
 	 */
@@ -548,7 +554,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	}
 
 	/**
-	 * Gets the node whose key is smallest in value
+	 * Gets the direct child node whose key is smallest in value
 	 * 
 	 * @return
 	 */
@@ -749,7 +755,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	}
 
 	/**
-	 * Removes this node and all sub-nodes, after which isEmpty() will return true.
+	 * Removes this node and all sub-nodes from the tree, after which isEmpty() will return true.
 	 */
 	public void clear() {
 		replaceThis(null);
@@ -2286,6 +2292,13 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 		}
 	}
 
+	/**
+	 * Returns a visual representation of the sub-tree with this node as root, with one node per line.
+	 * 
+	 * @param withNonAddedKeys whether to show nodes that are not added nodes
+	 * @param withSizes whether to include the counts of added nodes in each sub-tree
+	 * @return
+	 */
 	public String toTreeString(boolean withNonAddedKeys, boolean withSizes) {
 		StringBuilder builder = new StringBuilder("\n");
 		printTree(builder, new Indents(), withNonAddedKeys, withSizes, this.<Indents>containingFirstAllNodeIterator(true));
@@ -2338,6 +2351,10 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 		}
 	}
 
+	/**
+	 * Returns a visual representation of this node including the key, with an open circle indicating this node is not an added node,
+	 * a closed circle indicating this node is an added node.
+	 */
 	@Override
 	public String toString() {
 		return (isAdded() ? ADDED_NODE_CIRCLE + ' ' : NON_ADDED_NODE_CIRCLE + ' ') + getNodeIdentifier();

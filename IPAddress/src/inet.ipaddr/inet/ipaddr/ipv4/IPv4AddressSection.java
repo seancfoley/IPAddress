@@ -60,7 +60,6 @@ import inet.ipaddr.format.util.IPAddressPartStringSubCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4AddressSectionStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection.IPv4StringBuilder;
-import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 
@@ -1908,7 +1907,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	/**
 	 * Produces an array of prefix blocks that spans the same set of values.
 	 * <p>
-	 * Unlike {@link #spanWithPrefixBlocks(IPv6AddressSection)} this method only includes blocks that are a part of this section.
+	 * Unlike {@link #spanWithPrefixBlocks(IPv4AddressSection)} this method only includes blocks that are a part of this section.
 	 */
 	@Override
 	public IPv4AddressSection[] spanWithPrefixBlocks() {
@@ -1957,7 +1956,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * <p>
 	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
 	 * <p>
-	 * Unlike {@link #spanWithSequentialBlocks(IPv6AddressSection)} this method only includes values that are a part of this section.
+	 * Unlike {@link #spanWithSequentialBlocks(IPv4AddressSection)} this method only includes values that are a part of this section.
 	 */
 	@Override
 	public IPv4AddressSection[] spanWithSequentialBlocks() throws AddressConversionException {

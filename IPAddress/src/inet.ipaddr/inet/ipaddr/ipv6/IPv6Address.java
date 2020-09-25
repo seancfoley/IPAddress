@@ -85,6 +85,7 @@ import inet.ipaddr.mac.MACAddressSegment;
  * <li>They are used with link-local addresses fe80::/10 to distinguish two interfaces to the link-local network, this is known as the zone id.
  * </li><li>They are used with site-local addresses to distinguish sites, using the site id, also known as the scope id.
  * </li></ul>
+ * <p>
  * A zone that consists of a scope id is called a scoped zone.
  * @custom.core
  * @author sfoley
@@ -157,6 +158,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 * or to look up the associated interface if the instance references by scope id.
 	 * 
 	 * 
+	 * @custom.core
 	 * @author scfoley
 	 *
 	 */
@@ -170,15 +172,18 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		private Boolean referencesInterface;
 		
 		/**
-		 * Constructs a zone that will use a scope identifier with the address if the given string
-		 * is a non-negative integer, indicated by a sequence of decimal digits.
-		 * Otherwise, the string will be presumed to be the name of an interface.
+		 * Constructs a zone that will use the given zone string, 
+		 * either a non-negative integer indicating a scope identifier, 
+		 * or the name of a network interface.
+		 * <p>
+		 * A scope identifier is indicated by a sequence of decimal digits.
+		 * <p>
 		 * To create an InetAddress by pairing this zone with an IPv6Address instance,
-		 * the interface name must reference an existing interface, otherwise the InetAddress cannot be created.
+		 * an interface name must reference an existing interface, otherwise the InetAddress cannot be created.
 		 * <p>
 		 * See {@link java.net.NetworkInterface}  to get a list of existing interfaces or to look up interfaces by name.
 		 * 
-		 * @param scopeId
+		 * @param zoneStr
 		 */
 		public IPv6Zone(String zoneStr) {
 			if(zoneStr == null) {
@@ -204,7 +209,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		/**
 		 * Constructs a zone that will use an interface name with the address.
 		 * 
-		 * @param scopeId
+		 * @param networkInterface
 		 */
 		public IPv6Zone(NetworkInterface networkInterface) {
 			if(networkInterface == null) {
@@ -446,7 +451,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * Constructs an IPv6 address or a set of addresses.
 	 * 
-	 * @deprecated {@link #IPv6Address(IPv6AddressSegment[], IPv6Zone)}
+	 * @deprecated use {@link #IPv6Address(IPv6AddressSegment[], IPv6Zone)}
 	 * @param segments the address segments
 	 * @param zone the zone or scope id
 	 * 
@@ -748,7 +753,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * Constructs an IPv6 address.
 	 *
-	 * @deprecated use {@link #IPv6Address(SegmentValueProvider, SegmentValueProvider, IPv6Zone)}
+	 * @deprecated use {@link #IPv6Address(Address.SegmentValueProvider, Address.SegmentValueProvider, IPv6Zone)}
 	 * @param lowerValueProvider supplies the 2 byte lower values for each segment
 	 * @param upperValueProvider supplies the 2 byte upper values for each segment
 	 * @throws AddressValueException if zone is invalid

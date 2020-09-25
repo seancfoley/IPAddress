@@ -124,6 +124,9 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 		return null;
 	}
 
+	/**
+	 * Removes all added nodes from the tree, after which {@link #isEmpty()} will return true
+	 */
 	public void clear() {
 		getRoot().clear();
 	}
