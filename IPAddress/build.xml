@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.3.2"/>
+	<property name="version" value="5.3.3"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
