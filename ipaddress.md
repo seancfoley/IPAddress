@@ -55,7 +55,7 @@
 
 The library was intended to satisfy the following primary goals:
 
-  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for the extensive list)
+  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for an extensive list)
 
   - **Parsing and representation of subnets**, either those specified by network prefix length or those specified with ranges of segment values. For example, all strings in the list below represent the same IPv4 subnet:
 
@@ -69,6 +69,8 @@ The library was intended to satisfy the following primary goals:
 
       - range using inet\_aton format: `0x1.0x2.0x0-0xffff`
 
+      - with CIDR network prefix length using binary format: `0b1.0b10.0b0.0b0/16`
+
       - SQL-style single wildcards to end segments: `1.2.___.___`
 
       - IPv4 mapped IPv6: `::ffff:1.2.0.0/112`
@@ -76,6 +78,8 @@ The library was intended to satisfy the following primary goals:
       - Hexadecimal values: `0x01020000-0x0102ffff`
 
       - Octal values: `000100400000-000100577777`
+      
+      - Binary values: `0b00000001000000100000000000000000-0b00000001000000101111111111111111`
 
   - **Allow the separation of address parsing from host parsing**. In some cases you may have an address, in others you may have a host name, in some cases either one, so this supports all three options
     (for instance, when validating invalid input "1.2.3.a" as an address
@@ -92,7 +96,7 @@ The library was intended to satisfy the following primary goals:
     representations (when you consider hex capitalization, ipv6
     compression, and leading zeros, the various IPv4 and IPv6 formats,
     and combinations of all the above), although there are generally a
-    handful of commonly used formats. Generating these strings, can help when searching or matching
+    handful of commonly used formats. Generating these strings can help when searching or matching
     addresses in databases or text.
 
   - **Support parsing of all common MAC Address** formats in usage and
@@ -103,7 +107,7 @@ The library was intended to satisfy the following primary goals:
   - **Integration of IPv4 Address with IPv6** through common address
     conversions
 
-  - **Polymorphism** is a key goal.  The library maintains an address framework of interfaces and abstract classes that allow most library functionality to be independent of address type of version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
+  - **Polymorphism** is a key goal.  The library maintains an address framework of interfaces and abstract classes that allow most library functionality to be independent of address type or version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
     non-version-specific code to validate addresses, connect to
     addresses, produce address strings, mask addresses, etc. You can
     make use of the address framework which is agnostic towards address
@@ -161,6 +165,8 @@ above, and others:
     `[bracketed]:port`, `::1:service`, and so on
 
   - Hex values
+  
+  - Binary values
 
   - IPv6 base 85 values
 
@@ -290,6 +296,7 @@ public static void main(String[] args) {
     "0001:0002:0003:0000:0000:0006:0000:0000",
     "1:2:3::6:0.0.0.0",
     "1:2:3:0:0:6::",
+    "0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::",
     "008JQWOV7O(=61h*;$LC",
     "0x00010002000300000000000600000000"
   };
@@ -302,16 +309,19 @@ public static void main(String[] args) {
     "[0001:0002:0003:0000:0000:0006:0000:0000]",
     "[1:2:3::6:0.0.0.0]",
     "[1:2:3:0:0:6::]",
+    "[0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::]",
     "[008JQWOV7O(=61h*;$LC]",
     "[0x00010002000300000000000600000000]",
     "0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
     "1-2-3-0-0-6-0-0.ipv6-literal.net"
-  }
+  };
   parseHost(hostFormats);
 }
 ```
 Output:
 ```
+1:2:3::6:0:0
+1:2:3::6:0:0
 1:2:3::6:0:0
 1:2:3::6:0:0
 1:2:3::6:0:0
@@ -353,6 +363,7 @@ public static void main(String[] args) {
     "ffff:0000:0000:0000:0000:0000:0000:0000/104",
     "ffff::/104",
     "ffff::0.0.0.0/104",
+    "0b1111111111111111::/104",
     "=q{+M|w0(OeO5^EGP660/104"
   };
 
@@ -369,10 +380,11 @@ public static void main(String[] args) {
 
   String hostFormats[] = {
     "[ffff::]/104",
-    "ffff:0:0:0:0:0:0:0]/104",
+    "[ffff:0:0:0:0:0:0:0]/104",
     "[ffff:0000:0000:0000:0000:0000:0000:0000]/104",
     "[ffff::]/104",
     "[ffff::0.0.0.0]/104",
+    "[0b1111111111111111::]/104",
     "[=q{+M|w0(OeO5^EGP660]/104",
     "[ffff:0:0:0:0:0:0-ff:*]",
     "[ffff::0-ff:*]",
@@ -387,6 +399,8 @@ public static void main(String[] args) {
 ```
 Output:
 ```
+ffff::/104
+ffff::/104
 ffff::/104
 ffff::/104
 ffff::/104
@@ -585,7 +599,7 @@ count: 256
 
 &#8203;
 
-#### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85
+#### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85, Binary
 
 Typically, the segments or other punctuation identify a string as a host
 name, as an IPv4 address, or as an IPv6 address. The parser will also
@@ -599,13 +613,15 @@ digits are presumed decimal unless preceded by 0x for hexadecimal or 0
 for octal, as is consistent with the inet_aton routine. For IPv6, 32
 digits are considered hexadecimal and the preceding 0x is optional.
 ```java
-IPAddressString ipAddressString = new
-IPAddressString("4)+k&C\#VzJ4br\>0wv%Yp"); // base 85
+IPAddressString ipAddressString = new IPAddressString("4)+k&C#VzJ4br>0wv%Yp"); // base 85
 IPAddress address = ipAddressString.getAddress();
 System.out.println(address);
 
-ipAddressString = new
-IPAddressString("108000000000000000080800200c417a"); // hex IPv6
+ipAddressString = new IPAddressString("108000000000000000080800200c417a"); // hex IPv6
+address = ipAddressString.getAddress();
+System.out.println(address);
+
+ipAddressString = new IPAddressString("0b00010000100000000000000000000000000000000000000000000000000000000000000000001000000010000000000000100000000011000100000101111010"); // binary IPv6
 address = ipAddressString.getAddress();
 System.out.println(address);
 
@@ -616,12 +632,18 @@ System.out.println(address);
 ipAddressString = new IPAddressString("000100401404"); // octal IPv4
 address = ipAddressString.getAddress();
 System.out.println(address);
+
+ipAddressString = new IPAddressString("0b00000001000000100000001100000100"); // binary IPv4
+address = ipAddressString.getAddress();
+System.out.println(address);
 ```
 Output:
 ```
 1080::8:800:200c:417a
 1080::8:800:200c:417a
-1.2.3.4  
+1080::8:800:200c:417a
+1.2.3.4
+1.2.3.4
 1.2.3.4
 ```
 When parsing a range of single-segment values, it might not be possible to represent the range as a series of segments of range values, which is what is needed to be represented by an `IPv6Address` of 8 segment ranges, or an `IPv4Address` of 4 segment ranges.
@@ -634,15 +656,13 @@ However, the string can still be parsed, and the parsed result can be obtained u
 A couple of standardized host formats are recognized, namely the reverse
 DNS host format, and the UNC IPv6 literal host format.
 ```java
-HostName hostName = new
-HostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa");
+HostName hostName = new HostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa");
 System.out.println(hostName.asAddress());
 
 hostName = new HostName("4.3.2.1.in-addr.arpa");
 System.out.println(hostName.asAddress());
 
-hostName = new
-HostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net");  
+hostName = new HostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net");  
 System.out.println(hostName.asAddress());
 ```
 Output:
@@ -1192,6 +1212,8 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **mergeToPrefixBlocks**, **mergeToSequentialBlocks**: Given a list of
     addresses or subnets, merges them into the minimal list of prefix
     block subnets or sequential block subnets
+    
+  - **toSequentialRange**: converts an IP address or subnet to the associated address range ranging from the lowest to highest value of the address or subnet.  The `isSequential` method of `IPAddress` indicates if both objects represent the same set of addresses.
 
   - **join**: Given a list of address ranges, merges them into the
     minimal list of address ranges
@@ -1215,13 +1237,12 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **withoutPrefixLength**: Convert to the same address but with no
     prefix length
 
-  - **removePrefixLength**, **adjustPrefixLength**, **setPrefixLength**: Add, remove or adjust prefix lengths by the indicated values. There are variants with a
+  - **adjustPrefixLength**, **setPrefixLength**: Add, remove or adjust prefix lengths by the indicated values. There are variants with a
     boolean argument to control whether extended prefix lengths have
     zeros for the added bits, or whether the bits retain their values
     from when they were on the other side of the prefix boundary. The
     default behavior when extending or shortening a prefix length is to insert zeros
-    in the bits added to the prefix or removed from the prefix. `removePrefixLength` is like `withoutPrefixLength` but
-    will convert the former host bits to zero.  
+    in the bits added to the prefix or removed from the prefix. 
 
     When reconstituting the result,
     if the initial host bits have been changed to zero or remain zero, while the remaining host bits are zero or cover the full range, then the result will be a prefix block, just like when parsing strings with zero hosts or creating addresses or sections with zero hosts.
@@ -1344,8 +1365,7 @@ Various iterators, spliterators and streams are available for traversing through
 #### Mask and Prefix Length Operations
 
 The methods `mask`, `maskNetwork`, `bitwiseOr`, `bitwiseOrNetwork`,
-`removePrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`,
-`applyPrefixLength`, and `setPrefixLength` allow you to apply and adjust
+`withoutPrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`, and `setPrefixLength` allow you to apply and adjust
 prefix lengths, and to apply masks, to individual addresses/sections and subnets.
 
 When applying an operation to a subnet, the operation is applied to
