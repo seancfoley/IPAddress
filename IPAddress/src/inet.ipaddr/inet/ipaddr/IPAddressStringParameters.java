@@ -379,6 +379,13 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			public BuilderBase allowUnlimitedLeadingZeros(boolean allow) {
 				return (BuilderBase) super.allowUnlimitedLeadingZeros(allow);
 			}
+			
+			protected static void setMixedParentInst(IPv6AddressStringParameters.Builder parent, IPv4AddressStringParameters.Builder embedded) {
+				BuilderBase base = embedded;
+				base.setMixedParent(parent);
+			}
+			
+			protected void setMixedParent(IPv6AddressStringParameters.Builder parent) {}
 		}
 
 		public abstract IPAddressNetwork<?, ?, ?, ?, ?> getNetwork();

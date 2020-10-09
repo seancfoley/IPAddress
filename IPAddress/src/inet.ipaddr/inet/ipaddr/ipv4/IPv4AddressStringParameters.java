@@ -171,7 +171,8 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		
 		IPv6AddressStringParameters.Builder mixedParent;
 		
-		public void setMixedParent(IPv6AddressStringParameters.Builder parent) {
+		@Override
+		protected void setMixedParent(IPv6AddressStringParameters.Builder parent) {
 			mixedParent = parent;
 		}
 		

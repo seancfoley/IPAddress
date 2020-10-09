@@ -229,7 +229,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 						allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).allowIPv6(false);
 				embeddedIPv4OptionsBuilder.getIPv6AddressParametersBuilder().allowZone = allowZone;
 			}
-			embeddedIPv4OptionsBuilder.getIPv4AddressParametersBuilder().setMixedParent(this);
+			setMixedParentInst(this, embeddedIPv4OptionsBuilder.getIPv4AddressParametersBuilder());
 			return embeddedIPv4OptionsBuilder;
 		}
 		
@@ -245,6 +245,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 
 		@Override
 		public Builder allowBinary(boolean allow) {
+			getEmbeddedIPv4AddressParametersBuilder().allowBinary(allow);
 			super.allowBinary(allow);
 			return this;
 		}
