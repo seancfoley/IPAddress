@@ -167,23 +167,36 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			</manifest>
 			<fileset refid="ipaddress.jar.contents" />
 		</jar>
-		<echo message ="Class files included: ${toString:ipaddress.jar.contents}" />
+		<echo message ="class files included: ${toString:ipaddress.jar.contents}" />
 	</target>
 	
-	<target name="create bnd jar" depends="create class jar">
-		<property name="bndloc" location="${rootdistdir}/bndipaddress${jarExtension}" />
+	<target name="create bnd">
+		<property name="bndfile" location="${rootdistdir}/ipaddress.bnd" />
+		<concat destfile="${bndfile}">#-classpath: ./bin/
+-classpath: classes.jar
+Bundle-SymbolicName: com.github.seancfoley.ipaddress
+ver: ${version}
+Bundle-Version: ${version}
+Export-Package: *;version=${version}</concat>
+		<fixcrlf file="${bndfile}" eol="lf"/>
+		<echo message="created ${bndfile}"/>
+	</target>
+	
+	<target name="create bnd jar" depends="create class jar, create bnd">
 		<taskdef resource="aQute/bnd/ant/taskdef.properties"/>
 		<bnd eclipse="false" failok="false" exceptions="true"
-			files="ipaddress.bnd"
+			files="${bndfile}"
 			output="${rootdistdir}/bndout.jar"/>
 		<unzip src="${rootdistdir}/bndout.jar" dest="${rootdistdir}">
 		  <patternset>
 		    <include name="META-INF/MANIFEST.MF"/>
 		  </patternset>
 		</unzip>
+		<!--
 		<fileset id="ipaddress.manifest" dir="${rootdistdir}">
 			<include name="META_INF/MANIFEST.MF" />
 		</fileset>
+		-->
 	 </target>
 	
 	<!-- javadoc is needed but was split off to be done separately, see comments above for the reason -->
@@ -216,7 +229,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 	<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
 	<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />	
 			
-	<target name="create maven artifacts" depends="create dist jar">
+	<target name="create maven artifacts" depends="create dist jar, create pom">
 		
 		<mkdir dir="${rootdistdir}/mavenlib"/>
 		
@@ -232,10 +245,67 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 			<fileset refid="ipaddress.src" />
 			<fileset refid="ipaddress.src.properties" />
 		</jar>
-		
-		<copy file="pom.xml" todir="${rootdistdir}/mavenlib" />
 	</target>
 
+	<target name="create pom">
+		<property name="pomfile" location="${rootdistdir}/mavenlib/pom.xml" />
+		<concat destfile="${pomfile}"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.github.seancfoley</groupId>
+  <artifactId>ipaddress</artifactId>
+    <version>${version}</version>
+  <packaging>jar</packaging>
+
+  <name>IPAddress</name>
+  <description>Library for handling IP addresses, both IPv4 and IPv6</description>
+  <url>https://seancfoley.github.io/IPAddress/</url>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Sean C Foley</name>
+      <email>seancfoley@yahoo.com</email>
+      <organization></organization>
+      <organizationUrl>https://seancfoley.github.io/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/seancfoley/IPAddress.git</connection>
+    <developerConnection>scm:git:ssh://github.com:seancfoley/IPAddress.git</developerConnection>
+    <url>https://github.com/seancfoley/IPAddress/tree/master</url>
+  </scm>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <issueManagement>
+    <url>https://github.com/seancfoley/IPAddress/issues</url>
+    <system>github</system>
+  </issueManagement>
+</project>]]></concat>
+		<fixcrlf file="${pomfile}" eol="lf"/>
+		<echo message="created ${pomfile}"/>
+	</target>
+	
 	<target name="sign maven artifacts" depends="create maven artifacts">
 		<echo>
 			Running gpg from a JVM directly causes the JVM to hang, so run these from a cmd prompt,

@@ -53,17 +53,20 @@ B Github
 
 1. Edit the release "version" property in build.xml
 
-2. Edit the release "version" property in pom.xml
-
-3. Edit the release "version" property in ipaddress.bnd
-
-4. Use build.xml to first "create javadoc", then after to "create dist jar" and replace the checked-in file IPAddress.jar with the dist jar created.
-NOTE: Currently we have had to separate javadoc creation from the creation of dist jar or maven, see notes in build.xml for the reason.
+NOTE: Currently we've had to separate javadoc creation from the creation of dist jar or maven, 
+see notes in build.xml for the reason.
 You need the project at compile level 9 with a jre >= 9 (last time used 11).
 a. Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
-b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
+b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  
+Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-5. Commit and push the changes (pom, bnd, build, dist jar).
+2. Use build.xml to first "create javadoc"
+
+3. Use build.xml to "create dist jar"
+
+4. Replace the checked-in file IPAddress.jar with the dist jar created.
+
+5. Commit and push the changes (build.xml and IPAddress.jar).
 
 6. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
