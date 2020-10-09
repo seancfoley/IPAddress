@@ -4429,6 +4429,8 @@ public class IPAddressTest extends TestBase {
 
 		testMatches(true, "::0b1111111111111111:1", "::ffff:1");
 		testMatches(true, "0b1111111111111111:1::/64", "ffff:1::/64");
+		testMatches(true, "::0b1111111111111111:1:0", "::0b1111111111111111:0b0.0b1.0b0.0b0");
+		
 
 		ipv6test(false, "::0b11111111111111111:1"); // one digit too many
 		ipv6test(false, "::0b111111111111111:1"); // one digit too few
