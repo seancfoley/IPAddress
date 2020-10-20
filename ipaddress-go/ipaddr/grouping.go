@@ -9,7 +9,7 @@ type boolSetting struct {
 }
 
 type valueCache struct {
-	cachedCount, cachedPrefixCount big.Int // use BitLen() or len(x.Bits()) to check if set, or maybe check for 0
+	cachedCount, cachedPrefixCount big.Int // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
 	lowerBytes, upperBytes         []byte  // TODO use net.IP for the same in address
 	isMultiple                     boolSetting
 }
@@ -142,7 +142,7 @@ func (section AddressSection) ToIPv4AddressSection() IPv4AddressSection {
 //
 // An IPAddress section has segments, which are divisions of equal length and size
 type IPAddressSection struct {
-	AddressSection
+	AddressSection //TODO you need the same indirection as swith address addressInternal
 }
 
 func (section IPAddressSection) ToIPAddressSection() IPAddressSection {
@@ -170,7 +170,7 @@ func (section IPAddressSection) ToIPv4AddressSection() IPv4AddressSection {
 // IPv6AddressSection represents a section of an IPv6 address comprising 0 to 8 IPv6 address segments.
 // The zero values is a section with zero segments.
 type IPv6AddressSection struct {
-	IPAddressSection
+	IPAddressSection //TODO you need the same indirection as swith address ipAddressInternal
 }
 
 func (section IPv6AddressSection) ToIPv6AddressSection() IPv6AddressSection {

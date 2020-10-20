@@ -25,7 +25,7 @@ func (addr Address) hasNoDivisions() bool {
 
 func (addr Address) ToIPAddress() IPAddress {
 	if addr.section.matchesIPv4Address() || addr.section.matchesIPv6Address() {
-		return IPAddress{addr}
+		return IPAddress{addressInternal{addr}}
 	}
 	return IPAddress{}
 }
@@ -38,11 +38,15 @@ func (addr Address) ToIPv4Address() IPv4Address {
 	return addr.ToIPAddress().ToIPv4Address()
 }
 
+type addressInternal struct {
+	Address
+}
+
 //
 //
 //
 type IPAddress struct {
-	Address
+	addressInternal
 }
 
 func (addr IPAddress) ToAddress() Address {
@@ -74,5 +78,6 @@ type ipAddressInternal struct {
 	IPAddress
 }
 
-// TODO make sure everything in IPv4 and IPv6 is "overridden" so we never expose a zero value with 0 segments
+// TODO make sure everything in IPv4 and IPv6 is "overridden", in the sense all methods will check for no divisions and
+// create the default zero-segments if necessary, so we never expose a zero value with 0 segments
 // The zero values of everythign else will have sections with no segments

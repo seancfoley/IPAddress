@@ -38,9 +38,21 @@ func main() {
 	grouping.GetDivisionCount()
 	//grouping.hasNoDivisions()
 
+	builder := ipaddr.IPAddressStringParametersBuilder{}
+	params := builder.AllowAll(false).ToParams()
+	fmt.Printf("%+v\n", params)
+
+	//params := ipaddr.ipAddressStringParameters{}
+	////fmt.Printf("%+v\n", params)
+	//init := ipaddr.IPAddressStringParametersBuilder{}
+	//params2 := init.AllowAll(false).ToParams()
+	//params = *params2
+	//_ = params
+	////fmt.Printf("%+v\n", params)
+
 	addr := ipaddr.IPv6Address{}
 	addr.ToAddress()
-	getDoc()
+	_ = getDoc()
 }
 
 // go install golang.org/x/tools/cmd/godoc
