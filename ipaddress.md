@@ -1,3 +1,10 @@
+IPAddress
+==============
+
+***Java library for handling IP addresses and subnets, both IPv4 and IPv6***
+
+by Sean C Foley
+
 ## Contents
 
 [Contents](#contents)
@@ -78,7 +85,7 @@ The library was intended to satisfy the following primary goals:
       - Hexadecimal values: `0x01020000-0x0102ffff`
 
       - Octal values: `000100400000-000100577777`
-      
+
       - Binary values: `0b00000001000000100000000000000000-0b00000001000000101111111111111111`
 
   - **Allow the separation of address parsing from host parsing**. In some cases you may have an address, in others you may have a host name, in some cases either one, so this supports all three options
@@ -165,7 +172,7 @@ above, and others:
     `[bracketed]:port`, `::1:service`, and so on
 
   - Hex values
-  
+
   - Binary values
 
   - IPv6 base 85 values
@@ -1212,7 +1219,7 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **mergeToPrefixBlocks**, **mergeToSequentialBlocks**: Given a list of
     addresses or subnets, merges them into the minimal list of prefix
     block subnets or sequential block subnets
-    
+
   - **toSequentialRange**: converts an IP address or subnet to the associated address range ranging from the lowest to highest value of the address or subnet.  The `isSequential` method of `IPAddress` indicates if both objects represent the same set of addresses.
 
   - **join**: Given a list of address ranges, merges them into the
@@ -1242,7 +1249,7 @@ operations for transforming addresses and subnets.  Many of these methods are av
     zeros for the added bits, or whether the bits retain their values
     from when they were on the other side of the prefix boundary. The
     default behavior when extending or shortening a prefix length is to insert zeros
-    in the bits added to the prefix or removed from the prefix. 
+    in the bits added to the prefix or removed from the prefix.
 
     When reconstituting the result,
     if the initial host bits have been changed to zero or remain zero, while the remaining host bits are zero or cover the full range, then the result will be a prefix block, just like when parsing strings with zero hosts or creating addresses or sections with zero hosts.
