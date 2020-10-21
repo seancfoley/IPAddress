@@ -192,14 +192,12 @@ public class Validator implements HostIdentifierStringValidator {
 					(ipv6SpecificOptions.allowBinary && totalDigits == IPV6_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||  // 128 binary chars with 0b
 					(isRange && totalDigits == 0 && (frontTotalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT ||
 						(ipv6SpecificOptions.allowBinary && frontTotalDigits == IPV6_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2)));
-		if(backIsIpv6) {
-			if(isRange && totalDigits != 0) {
-				boolean frontIsIpv6 = frontTotalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT ||
-							(ipv6SpecificOptions.allowBinary && frontTotalDigits == IPV6_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||
-							frontTotalDigits == 0;
-				if(!frontIsIpv6) {
-					throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
-				}
+		if(backIsIpv6 && isRange && totalDigits != 0) {
+			boolean frontIsIpv6 = frontTotalDigits == IPV6_SINGLE_SEGMENT_DIGIT_COUNT ||
+						(ipv6SpecificOptions.allowBinary && frontTotalDigits == IPV6_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||
+						frontTotalDigits == 0;
+			if(!frontIsIpv6) {
+				throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 			}
 		}
 		return backIsIpv6;
@@ -223,14 +221,12 @@ public class Validator implements HostIdentifierStringValidator {
 				(ipv4SpecificOptions.allowBinary && totalDigits == IPV4_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||
 				(isRange && totalDigits == 0 && (frontTotalDigits <= IPV4_SINGLE_SEGMENT_OCTAL_DIGIT_COUNT ||
 					(ipv4SpecificOptions.allowBinary && frontTotalDigits == IPV4_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2)));
-		if(backIsIpv4) {
-			if(isRange && totalDigits != 0) {
-				boolean frontIsIpv4 = frontNonZeroDigits <= IPV4_SINGLE_SEGMENT_OCTAL_DIGIT_COUNT ||
-							(ipv4SpecificOptions.allowBinary && frontTotalDigits == IPV4_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||
-							frontTotalDigits == 0;
-				if(!frontIsIpv4) {
-					throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
-				}
+		if(backIsIpv4 && isRange && totalDigits != 0) {
+			boolean frontIsIpv4 = frontNonZeroDigits <= IPV4_SINGLE_SEGMENT_OCTAL_DIGIT_COUNT ||
+						(ipv4SpecificOptions.allowBinary && frontTotalDigits == IPV4_BINARY_SINGLE_SEGMENT_DIGIT_COUNT + 2) ||
+						frontTotalDigits == 0;
+			if(!frontIsIpv4) {
+				throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 			}
 		}
 		return backIsIpv4;
