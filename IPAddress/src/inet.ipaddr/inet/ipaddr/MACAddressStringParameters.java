@@ -111,7 +111,7 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 		private boolean allowColonDelimited = DEFAULT_ALLOW_COLON_DELIMITED;
 		private boolean allowDotted = DEFAULT_ALLOW_DOTTED;
 		private boolean allowSpaceDelimited = DEFAULT_ALLOW_SPACE_DELIMITED;
-		private AddressSize allAddresses;
+		private AddressSize allAddresses = AddressSize.ANY;
 		private MACAddressNetwork network;
 
 		MACAddressStringFormatParameters.Builder formatBuilder;
