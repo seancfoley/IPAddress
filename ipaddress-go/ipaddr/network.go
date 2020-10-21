@@ -11,3 +11,9 @@ type IPv4AddressNetwork struct {
 }
 
 var DefaultIPv4Network IPv4AddressNetwork
+
+type MACAddressNetwork struct {
+	//TODO address creator interface
+}
+
+var DefaultMACNetwork MACAddressNetwork

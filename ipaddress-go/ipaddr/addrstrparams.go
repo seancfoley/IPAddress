@@ -34,6 +34,7 @@ type RangeParameters interface {
 
 var _ AddressStringFormatParameters = &addressStringFormatParameters{}
 var _ AddressStringParameters = &addressStringParameters{}
+var _ RangeParameters = &rangeParameters{}
 
 type rangeParameters struct {
 	noWildcard, noValueRange, noReverseRange, noSingleWildcard, noInferredBoundary bool
@@ -91,22 +92,6 @@ func ToRangeParamsBuilder(rangeParams RangeParameters) *RangeParametersBuilder {
 		}}
 	}
 }
-
-//func (rpb *RangeParametersBuilder) FromParams(rangeParams RangeParameters) *RangeParametersBuilder {
-//	rpb.rangeParameters = ToRangeParamsBuilder(rangeParams).rangeParameters
-//	//if rp, ok := rangeParams.(*rangeParameters); ok {
-//	//	rpb.rangeParameters = *rp
-//	//} else {
-//	//	rpb.rangeParameters = rangeParameters{
-//	//		noWildcard:         !rangeParams.AllowsWildcard(),
-//	//		noValueRange:       !rangeParams.AllowsRangeSeparator(),
-//	//		noReverseRange:     !rangeParams.AllowsReverseRange(),
-//	//		noSingleWildcard:   !rangeParams.AllowsSingleWildcard(),
-//	//		noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
-//	//	}
-//	//}
-//	return rpb
-//}
 
 // If this builder was obtained by a call to IPv4AddressStringParametersBuilder.GetRangeParametersBuilder(), returns the IPv4AddressStringParametersBuilder
 func (rp *RangeParametersBuilder) GetIPv4ParentBuilder() *IPv4AddressStringParametersBuilder {
@@ -258,7 +243,7 @@ func ToAddressStringFormatParamsBuilder(params AddressStringFormatParameters) *A
 	return &result
 }
 
-func (params *AddressStringFormatParamsBuilder) ToParams() *addressStringFormatParameters {
+func (params *AddressStringFormatParamsBuilder) ToParams() AddressStringFormatParameters {
 	result := &params.addressStringFormatParameters
 	result.rangeParams = *params.rangeParamsBuilder.ToParams().(*rangeParameters)
 	return result

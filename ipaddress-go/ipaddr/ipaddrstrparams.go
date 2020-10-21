@@ -8,19 +8,18 @@ func buildParams(orig IPAddressStringParameters) IPAddressStringParameters {
 	if _, ok := orig.(*ipAddressStringParameters); ok {
 		return orig
 	}
-	builder := IPAddressStringParametersBuilder{}
 	origIPv4 := orig.GetIPv4Parameters()
 	origIPv4Range := origIPv4.GetRangeParameters()
 	origIPv6 := orig.GetIPv6Parameters()
 	origIPv6Range := origIPv6.GetRangeParameters()
 	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
 	origMixedIPv4Range := origMixedIPv4.GetRangeParameters()
-	return builder.
+	return IPAddressStringParametersBuilder{}.
 		// general settings
-		AllowIPv6(orig.AllowIPv6()).
-		AllowIPv4(orig.AllowIPv4()).
-		MakeEmptyLoopback(orig.EmptyIsLoopback()).
-		AllowMask(orig.AllowMask()).
+		AllowIPv6(orig.AllowsIPv6()).
+		AllowIPv4(orig.AllowsIPv4()).
+		SetEmptyLoopback(orig.EmptyIsLoopback()).
+		AllowMask(orig.AllowsMask()).
 		AllowPrefixOnly(orig.AllowsPrefixOnly()).
 		AllowPrefix(orig.AllowsPrefix()).
 		AllowEmpty(orig.AllowsEmpty()).
@@ -102,9 +101,9 @@ type IPAddressStringParameters interface {
 	AllowsPrefixOnly() bool
 	AllowsPrefix() bool
 	EmptyIsLoopback() bool
-	AllowMask() bool //TODO rename these 3 as "Allows" with the 's'
-	AllowIPv4() bool
-	AllowIPv6() bool
+	AllowsMask() bool
+	AllowsIPv4() bool
+	AllowsIPv6() bool
 	GetIPv4Parameters() IPv4AddressStringParameters
 	GetIPv6Parameters() IPv6AddressStringParameters
 }
@@ -212,15 +211,15 @@ func (params *ipAddressStringParameters) EmptyIsLoopback() bool {
 	return !params.emptyIsNotLoopback
 }
 
-func (params *ipAddressStringParameters) AllowMask() bool {
+func (params *ipAddressStringParameters) AllowsMask() bool {
 	return !params.noMask
 }
 
-func (params *ipAddressStringParameters) AllowIPv4() bool {
+func (params *ipAddressStringParameters) AllowsIPv4() bool {
 	return !params.noIPv6
 }
 
-func (params *ipAddressStringParameters) AllowIPv6() bool {
+func (params *ipAddressStringParameters) AllowsIPv6() bool {
 	return !params.noIPv4
 }
 
@@ -253,11 +252,10 @@ func toIPAddressStringParamsBuilder(params IPAddressStringParameters, isMixed bo
 			noPrefixOnly:       !params.AllowsPrefixOnly(),
 			emptyIsNotLoopback: !params.EmptyIsLoopback(),
 			noPrefix:           !params.AllowsPrefix(),
-			noMask:             !params.AllowMask(),
-			noIPv6:             !params.AllowIPv6(),
-			noIPv4:             !params.AllowIPv4(),
+			noMask:             !params.AllowsMask(),
+			noIPv6:             !params.AllowsIPv6(),
+			noIPv4:             !params.AllowsIPv4(),
 		}
-
 	}
 	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
 	result.ipv4Builder = *ToIPv4AddressStringParamsBuilder(params.GetIPv4Parameters())
@@ -304,7 +302,7 @@ func (builder *IPAddressStringParametersBuilder) AllowAll(allow bool) *IPAddress
 	return builder
 }
 
-func (builder *IPAddressStringParametersBuilder) MakeEmptyLoopback(allow bool) *IPAddressStringParametersBuilder {
+func (builder *IPAddressStringParametersBuilder) SetEmptyLoopback(allow bool) *IPAddressStringParametersBuilder {
 	builder.params.emptyIsNotLoopback = !allow
 	return builder
 }
@@ -401,7 +399,7 @@ func (builder *IPAddressStringFormatParametersBuilder) GetParentBuilder() *IPAdd
 
 func (builder *IPAddressStringFormatParametersBuilder) ToParams() IPAddressStringFormatParameters {
 	result := &builder.ipParams
-	result.addressStringFormatParameters = *builder.AddressStringFormatParamsBuilder.ToParams()
+	result.addressStringFormatParameters = *builder.AddressStringFormatParamsBuilder.ToParams().(*addressStringFormatParameters)
 	return result
 }
 
@@ -712,6 +710,38 @@ func (builder *IPv4AddressStringParametersBuilder) SetNetwork(network *IPv4Addre
 	return builder
 }
 
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.no_inet_aton_joinedSegments = !allow
+	builder.params.no_inet_aton_octal = !allow
+	builder.params.no_inet_aton_hex = !allow
+	builder.allowUnlimitedLeadingZeros(allow)
+	return builder
+}
+
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_hex(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.no_inet_aton_hex = !allow
+	return builder
+}
+
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_octal(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.no_inet_aton_octal = !allow
+	return builder
+}
+
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_leading_zeros(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.no_inet_aton_leading_zeros = !allow
+	return builder
+}
+
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_joinedSegments(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.no_inet_aton_joinedSegments = !allow
+	return builder
+}
+
+func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_single_segment_mask(allow bool) *IPv4AddressStringParametersBuilder {
+	builder.params.inet_aton_single_segment_mask = allow
+	return builder
+}
 func (builder *IPv4AddressStringParametersBuilder) AllowWildcardedSeparator(allow bool) *IPv4AddressStringParametersBuilder {
 	builder.allowWildcardedSeparator(allow)
 	return builder
@@ -744,38 +774,5 @@ func (builder *IPv4AddressStringParametersBuilder) AllowPrefixLengthLeadingZeros
 
 func (builder *IPv4AddressStringParametersBuilder) AllowBinary(allow bool) *IPv4AddressStringParametersBuilder {
 	builder.allowBinary(allow)
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.no_inet_aton_joinedSegments = !allow
-	builder.params.no_inet_aton_octal = !allow
-	builder.params.no_inet_aton_hex = !allow
-	builder.allowUnlimitedLeadingZeros(allow)
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_hex(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.no_inet_aton_hex = !allow
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_octal(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.no_inet_aton_octal = !allow
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_leading_zeros(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.no_inet_aton_leading_zeros = !allow
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_joinedSegments(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.no_inet_aton_joinedSegments = !allow
-	return builder
-}
-
-func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton_single_segment_mask(allow bool) *IPv4AddressStringParametersBuilder {
-	builder.params.inet_aton_single_segment_mask = allow
 	return builder
 }
