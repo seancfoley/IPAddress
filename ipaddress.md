@@ -1466,8 +1466,7 @@ and insert bits for an extended prefix and new subnet of the previous
 address block, as shown in the following example.
 ```java
 int originalPrefix = 18, adjustment = 4;
-IPAddress address = new IPAddressString("207.0.64.0").
-  getAddress();
+IPAddress address = new IPAddressString("207.0.64.0").getAddress();
 IPAddress address2 = address.setPrefixLength(originalPrefix);
 IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
 IPAddress subnet1 = address2.adjustPrefixLength(adjustment); // extend the prefix length
