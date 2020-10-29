@@ -1,6 +1,6 @@
 package ipaddr
 
-type AddressSize string
+type AddressSize string //TODO rename to MACAddressSize
 
 const (
 	MAC   AddressSize = "MAC"

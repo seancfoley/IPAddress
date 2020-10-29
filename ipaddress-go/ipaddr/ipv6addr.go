@@ -7,6 +7,8 @@ const (
 	IPv6BitsPerSegment             = 16
 	IPv6BytesPerSegment            = 2
 	IPv6SegmentCount               = 8
+	IPv6MixedReplacedSegmentCount  = 2
+	IPv6MixedOriginalSegmentCount  = 6
 	IPv6ByteCount                  = 16
 	IPv6BitCount                   = 128
 	IPv6DefaultTextualRadix        = 16
@@ -18,7 +20,12 @@ const (
 	IPv6UncZoneSeparator    = 's'
 	IPv6UncRangeSeparator   = AlternativeRangeSeparator
 	IPv6UncSuffix           = ".ipv6-literal.net"
+
+	IPv6SegmentMaxChars    = 4
+	IPv6SegmentBitsPerChar = 4
 )
+
+type Zone string
 
 //
 //

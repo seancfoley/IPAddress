@@ -7,7 +7,7 @@ type SegInt = uint16
 type DivInt = uint64
 
 type divisionValuesBase interface { // shared by standard and large divisions
-	GetBitCount() int
+	GetBitCount() BitCount
 
 	GetByteCount() int
 }
@@ -29,11 +29,27 @@ type AddressDivision struct {
 	divisionValues
 }
 
+//TODO we can enforce that any divisionValues in a IPv4 or IPv6 segment is also a segmentValues
+// We can do this by ensuring that on construction of the divisionValues in NewAddressDivision by checking bit count (not magnitude)
+// AddressBitsDivision does that.
+// The difference in golang here is we can end up converting any division to be part of an ipv4 or ipv6 address.
+// In Java you cannot go from AddressBitsDivision to IPv4 addresses.  Here you can.
+
+type segmentValues interface {
+	// GetSegmentValue gets the lower value for the division
+	GetSegmentValue() SegInt
+
+	// GetUpperSegmentValue gets the upper value for the division
+	GetUpperSegmentValue() SegInt
+
+	GetSegmentPrefixLength() PrefixLen
+}
+
 func (div AddressDivision) ToIPAddressSegment() IPAddressSegment {
 	if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
 		return IPAddressSegment{}
 	}
-	return IPAddressSegment{div}
+	return IPAddressSegment{addressDivisionInternal{div}}
 }
 
 func (div AddressDivision) ToIPv4AddressSegment() IPv4AddressSegment {
@@ -44,7 +60,7 @@ func (div AddressDivision) ToIPv6AddressSegment() IPv6AddressSegment {
 	return div.ToIPAddressSegment().ToIPv6AddressSegment()
 }
 
-func (div AddressDivision) GetBitCount() int {
+func (div AddressDivision) GetBitCount() BitCount {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -76,8 +92,28 @@ func (div AddressDivision) GetUpperDivisionValue() DivInt {
 	return vals.GetUpperDivisionValue()
 }
 
-type IPAddressSegment struct {
+type addressDivisionInternal struct {
 	AddressDivision
+}
+
+type IPAddressSegment struct {
+	addressDivisionInternal
+}
+
+func (div AddressDivision) GetSegmentValue() SegInt {
+	vals := div.divisionValues.(segmentValues)
+	if vals == nil {
+		return 0
+	}
+	return vals.GetSegmentValue()
+}
+
+func (div AddressDivision) GetUpperSegmentValue() SegInt {
+	vals := div.divisionValues.(segmentValues)
+	if vals == nil {
+		return 0
+	}
+	return vals.GetUpperSegmentValue()
 }
 
 func (seg IPAddressSegment) ToAddressDivision() AddressDivision {

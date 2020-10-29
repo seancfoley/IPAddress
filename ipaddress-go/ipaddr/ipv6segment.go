@@ -6,7 +6,7 @@ type ipv6SegmentValues struct {
 	prefLen    PrefixLen
 }
 
-func (seg ipv6SegmentValues) GetBitCount() int {
+func (seg ipv6SegmentValues) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
 }
 
@@ -26,7 +26,20 @@ func (seg ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
+func (seg ipv6SegmentValues) GetSegmentPrefixLength() PrefixLen {
+	return seg.prefLen
+}
+
+func (seg ipv6SegmentValues) GetSegmentValue() SegInt {
+	return SegInt(seg.value)
+}
+
+func (seg ipv6SegmentValues) GetUpperSegmentValue() SegInt {
+	return SegInt(seg.upperValue)
+}
+
 var _ divisionValues = ipv6SegmentValues{}
+var _ segmentValues = ipv6SegmentValues{}
 
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal
@@ -34,7 +47,7 @@ type IPv6AddressSegment struct {
 
 // We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
 
-func (seg IPv6AddressSegment) GetBitCount() int {
+func (seg IPv6AddressSegment) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
 }
 
@@ -75,11 +88,19 @@ func NewIPv6RangeSegment(val, upperVal uint16) IPv6AddressSegment {
 }
 
 func NewIPv6PrefixSegment(val, upperVal uint16, prefixLen PrefixLen) IPv6AddressSegment {
-	return IPv6AddressSegment{ipAddressSegmentInternal{IPAddressSegment{AddressDivision{
-		ipv6SegmentValues{
-			value:      val,
-			upperValue: upperVal,
-			prefLen:    prefixLen,
+	return IPv6AddressSegment{
+		ipAddressSegmentInternal{
+			IPAddressSegment{
+				addressDivisionInternal{
+					AddressDivision{
+						ipv6SegmentValues{
+							value:      val,
+							upperValue: upperVal,
+							prefLen:    prefixLen,
+						},
+					},
+				},
+			},
 		},
-	}}}}
+	}
 }

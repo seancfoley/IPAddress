@@ -11,6 +11,7 @@ const (
 	IPv4MaxValuePerSegment  = 0xff
 	IPv4MaxValue            = 0xffffffff
 	IPv4ReverseDnsSuffix    = ".in-addr.arpa"
+	IPv4SegmentMaxChars     = 3
 )
 
 //

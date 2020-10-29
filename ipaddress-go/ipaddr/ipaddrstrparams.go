@@ -14,7 +14,8 @@ func buildParams(orig IPAddressStringParameters) IPAddressStringParameters {
 	origIPv6Range := origIPv6.GetRangeParameters()
 	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
 	origMixedIPv4Range := origMixedIPv4.GetRangeParameters()
-	return IPAddressStringParametersBuilder{}.
+	params := IPAddressStringParametersBuilder{}
+	return params.
 		// general settings
 		AllowIPv6(orig.AllowsIPv6()).
 		AllowIPv4(orig.AllowsIPv4()).
@@ -152,6 +153,9 @@ type IPv6AddressStringParameters interface {
 	AllowsBase85() bool
 
 	// The parameters that will be used for embedded mixed addresses if AllowsMixed() is true
+	GetMixedParameters() IPAddressStringParameters
+
+	// The IPv4 part of the IPAddressStringParameters returned by GetMixedParameters(), which is the part that matters most
 	GetEmbeddedIPv4AddressParams() IPv4AddressStringParameters
 
 	// The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
@@ -447,6 +451,10 @@ func (params *ipv6AddressStringParameters) AllowsZone() bool {
 
 func (params *ipv6AddressStringParameters) AllowsBase85() bool {
 	return !params.noBase85
+}
+
+func (params *ipv6AddressStringParameters) GetMixedParameters() IPAddressStringParameters {
+	return params.embeddedParams
 }
 
 func (params *ipv6AddressStringParameters) GetEmbeddedIPv4AddressParams() IPv4AddressStringParameters {

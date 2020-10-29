@@ -2,7 +2,12 @@ package ipaddr
 
 import "math/big"
 
-type PrefixLen *int
+type BitCount int
+
+type PrefixLen *BitCount
+
+type Port *int
+type Service string
 
 type boolSetting struct {
 	value, isSet bool
@@ -10,7 +15,7 @@ type boolSetting struct {
 
 type valueCache struct {
 	cachedCount, cachedPrefixCount big.Int // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
-	lowerBytes, upperBytes         []byte  // TODO use net.IP for the same in address
+	lowerBytes, upperBytes         []byte  // TODO cache net.IP  in address, much like we cache InetAddress in Java
 	isMultiple                     boolSetting
 }
 
@@ -38,7 +43,7 @@ func (grouping AddressDivisionGrouping) hasNoDivisions() bool {
 // ToAddressSection converts to an address section.
 // If the conversion cannot happen due to division size or count, the result will be the zero value.
 func (grouping AddressDivisionGrouping) ToAddressSection() AddressSection {
-	bitCount := 0
+	var bitCount BitCount
 	for i, div := range grouping.divisions { // all divisions must be equal size and have an exact number of bytes
 		if i == 0 {
 			bitCount = div.GetBitCount()
@@ -80,12 +85,12 @@ func (section AddressSection) GetSegmentCount() int {
 	return section.GetDivisionCount()
 }
 
-func (section AddressSection) matchesSection(segmentCount, segmentBitCount int) bool {
+func (section AddressSection) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
 	divLen := len(section.divisions)
 	return divLen <= segmentCount && (divLen == 0 || section.GetDivision(0).GetBitCount() == segmentBitCount)
 }
 
-func (section AddressSection) matchesAddress(segmentCount, segmentBitCount int) bool {
+func (section AddressSection) matchesAddress(segmentCount int, segmentBitCount BitCount) bool {
 	return len(section.divisions) == segmentCount && section.GetDivision(0).GetBitCount() == segmentBitCount
 }
 
