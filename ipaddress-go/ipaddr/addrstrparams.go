@@ -30,6 +30,9 @@ type RangeParameters interface {
 
 	// whether a missing range value before or after a '-' is allowed to denote the mininum or maximum potential value
 	AllowsInferredBoundary() bool
+
+	// returns true if no wildcards or range separators allowed
+	IsNoRange() bool
 }
 
 var _ AddressStringFormatParameters = &addressStringFormatParameters{}
@@ -39,6 +42,26 @@ var _ RangeParameters = &rangeParameters{}
 type rangeParameters struct {
 	noWildcard, noValueRange, noReverseRange, noSingleWildcard, noInferredBoundary bool
 }
+
+var ( //TODO rename, these stay public but not all capitals, MixedCase instead
+	NO_RANGE RangeParameters = &rangeParameters{
+		noWildcard:         true,
+		noValueRange:       true,
+		noReverseRange:     true,
+		noSingleWildcard:   true,
+		noInferredBoundary: true,
+	}
+
+	// use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3
+	WILDCARD_ONLY RangeParameters = &rangeParameters{
+		noValueRange:     true,
+		noReverseRange:   true,
+		noSingleWildcard: true,
+	}
+
+	// use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff::
+	WILDCARD_AND_RANGE RangeParameters = &rangeParameters{}
+)
 
 // whether no wildcards or range characters allowed
 func (rp *rangeParameters) IsNoRange() bool {
@@ -144,19 +167,19 @@ func (rp *RangeParametersBuilder) AllowSingleWildcard(allow bool) *RangeParamete
 //TODO need godocs comments for each param, copy over from Java
 
 type addressStringParameters struct {
-	noAllowEmpty, noAllowAll, noAllowSingleSegment bool
+	noEmpty, noAll, noSingleSegment bool
 }
 
 func (params *addressStringParameters) AllowsEmpty() bool {
-	return !params.noAllowEmpty
+	return !params.noEmpty
 }
 
 func (params *addressStringParameters) AllowsSingleSegment() bool {
-	return !params.noAllowSingleSegment
+	return !params.noSingleSegment
 }
 
 func (params *addressStringParameters) AllowsAll() bool {
-	return !params.noAllowAll
+	return !params.noAll
 }
 
 // AddressStringParametersBuilder builds an AddressStringParameters
@@ -170,9 +193,9 @@ func ToAddressStringParamsBuilder(params AddressStringParameters) *AddressString
 		result.addressStringParameters = *p
 	} else {
 		result.addressStringParameters = addressStringParameters{
-			noAllowEmpty:         !params.AllowsEmpty(),
-			noAllowAll:           !params.AllowsAll(),
-			noAllowSingleSegment: !params.AllowsSingleSegment(),
+			noEmpty:         !params.AllowsEmpty(),
+			noAll:           !params.AllowsAll(),
+			noSingleSegment: !params.AllowsSingleSegment(),
 		}
 	}
 	return &result
@@ -183,15 +206,15 @@ func (builder *AddressStringParametersBuilder) ToParams() AddressStringParameter
 }
 
 func (builder *AddressStringParametersBuilder) allowEmpty(allow bool) {
-	builder.noAllowEmpty = !allow
+	builder.noEmpty = !allow
 }
 
 func (builder *AddressStringParametersBuilder) allowAll(allow bool) {
-	builder.noAllowAll = !allow
+	builder.noAll = !allow
 }
 
 func (builder *AddressStringParametersBuilder) allowSingleSegment(allow bool) {
-	builder.noAllowSingleSegment = !allow
+	builder.noSingleSegment = !allow
 }
 
 //

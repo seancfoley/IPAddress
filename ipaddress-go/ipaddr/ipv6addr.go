@@ -27,6 +27,12 @@ const (
 
 type Zone string
 
+func (zone Zone) IsEmpty() bool {
+	return zone == ""
+}
+
+const noZone Zone = ""
+
 //
 //
 //

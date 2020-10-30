@@ -18,6 +18,10 @@ func (version IPVersion) isIPv4() bool {
 	return version == IPv4
 }
 
+func (version IPVersion) isUnknown() bool {
+	return version == UNKNOWN_VERSION
+}
+
 //
 //
 //

@@ -194,7 +194,7 @@ var defaultEmbeddedBuilder IPAddressStringParametersBuilder
 var defaultEmbeddedParams *ipAddressStringParameters
 
 // ipAddressStringParameters has parameters for parsing IP address strings
-// They are immutable and must be constructed using an IPAddressStringParametersBuilder
+// They are immutable and can be constructed using an IPAddressStringParametersBuilder
 type ipAddressStringParameters struct {
 	addressStringParameters
 	ipv4Params ipv4AddressStringParameters
@@ -241,6 +241,8 @@ type IPAddressStringParametersBuilder struct {
 	AddressStringParametersBuilder
 	ipv4Builder IPv4AddressStringParametersBuilder
 	ipv6Builder IPv6AddressStringParametersBuilder
+
+	parent *HostNameParametersBuilder
 }
 
 func ToIPAddressStringParamsBuilder(params IPAddressStringParameters) *IPAddressStringParametersBuilder {
