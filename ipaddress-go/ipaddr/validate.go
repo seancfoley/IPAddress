@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var extendedDigits = []uint64{ //TODO soon change to bytes, it makes more sense to convert to a uint64 in the code than to retrieve more from memory
+var extendedDigits = []byte{
 	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
 	'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
 	'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -15,11 +15,11 @@ var extendedDigits = []uint64{ //TODO soon change to bytes, it makes more sense 
 	';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}',
 	'~'}
 
-var chars [int('z') + 1]uint64         //TODO change to bytes, it makes more sense to convert to a uint64 in the code
-var extendedChars [int('~') + 1]uint64 //TODO change to bytes
+var chars [int('z') + 1]byte
+var extendedChars [int('~') + 1]byte
 
 func init() {
-	i := uint64(0)
+	i := byte(0)
 	for c := '0'; i < 10; i, c = i+1, c+1 {
 		chars[c] = i
 	}
@@ -27,14 +27,12 @@ func init() {
 		chars[c] = i
 		chars[c2] = i
 	}
-	extLen := uint64(len(extendedDigits))
+	extLen := byte(len(extendedDigits))
 	for i = 0; i < extLen; i++ {
 		c := extendedDigits[i]
 		extendedChars[c] = i
 	}
 }
-
-//var PREFIX_CACHE [IPv6BitCount + 1]*ParsedHostIdentifierStringQualifier //TODO rename
 
 // Interface for validation and parsing of host identifier strings
 type HostIdentifierStringValidator interface {
@@ -466,7 +464,7 @@ func validateAddress(
 		// evaluate the character
 		if currentChar <= '9' && currentChar >= '0' {
 			if hasDigits {
-				currentValueHex = currentValueHex<<4 | charArray[currentChar]
+				currentValueHex = currentValueHex<<4 | uint64(charArray[currentChar])
 			} else {
 				if currentChar == '0' {
 					if leadingWithZero {
@@ -476,12 +474,12 @@ func validateAddress(
 					}
 				} else {
 					hasDigits = true
-					currentValueHex = currentValueHex<<4 | charArray[currentChar]
+					currentValueHex = currentValueHex<<4 | uint64(charArray[currentChar])
 				}
 			}
 			index++
 		} else if currentChar >= 'a' && currentChar <= 'f' {
-			currentValueHex = currentValueHex<<4 | charArray[currentChar]
+			currentValueHex = currentValueHex<<4 | uint64(charArray[currentChar])
 			hasDigits = true
 			index++
 		} else if currentChar == IPv4SegmentSeparator {
@@ -1101,7 +1099,7 @@ func validateAddress(
 						ipAddressParseData.setQualifierIndex(index + 1)
 					} else if currentChar >= 'A' && currentChar <= 'F' { // this is not paired with 'a' to 'f' because these are not canonical and hence not part of the fast path
 						index++
-						currentValueHex = (currentValueHex << 4) | charArray[currentChar]
+						currentValueHex = (currentValueHex << 4) | uint64(charArray[currentChar])
 						hasDigits = true
 						uppercase = true
 					} else {
@@ -3118,7 +3116,7 @@ func switchValue10(currentHexValue uint64, s string, digitCount int) (result uin
 
 func parseLong2(s string, start, end int) uint64 {
 	charArray := chars
-	result := charArray[s[start]]
+	result := uint64(charArray[s[start]])
 	for start++; start < end; start++ {
 		c := s[start]
 		if c == '1' {
@@ -3132,27 +3130,27 @@ func parseLong2(s string, start, end int) uint64 {
 
 func parseLong8(s string, start, end int) uint64 {
 	charArray := chars
-	result := charArray[s[start]]
+	result := uint64(charArray[s[start]])
 	for start++; start < end; start++ {
-		result = (result << 3) | charArray[s[start]]
+		result = (result << 3) | uint64(charArray[s[start]])
 	}
 	return result
 }
 
 func parseLong10(s string, start, end int) uint64 {
 	charArray := chars
-	result := charArray[s[start]]
+	result := uint64(charArray[s[start]])
 	for start++; start < end; start++ {
-		result = (result * 10) + charArray[s[start]]
+		result = (result * 10) + uint64(charArray[s[start]])
 	}
 	return result
 }
 
 func parseLong16(s string, start, end int) uint64 {
 	charArray := chars
-	result := charArray[s[start]]
+	result := uint64(charArray[s[start]])
 	for start++; start < end; start++ {
-		result = (result << 4) | charArray[s[start]]
+		result = (result << 4) | uint64(charArray[s[start]])
 	}
 	return result
 }
