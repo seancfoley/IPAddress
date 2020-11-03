@@ -19,6 +19,13 @@ type valueCache struct {
 	isMultiple                     boolSetting
 }
 
+//TODO I think you want to have pointer receivers, because suppose you assign valueCache at some point, then it will be lost most likely
+//Now, that does ont prevent the user from copying these on his own, but hey, what can ya do?
+//BUT that also means AddressSection cannot have a copy either!  And you really wanted them all to be the same object with on deferering amongst the hierarchy
+// WHICH means that you should make AddressDivisionGrouping contain a pointer to its contents
+// this means all functions must then have a check for it being nil, but that is probably the best option
+// AND then it doesn't matter if copied or not!
+
 type AddressDivisionGrouping struct {
 	divisions    []AddressDivision
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths

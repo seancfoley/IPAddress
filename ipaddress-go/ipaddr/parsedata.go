@@ -525,13 +525,13 @@ func (parseData *IPAddressParseData) getQualifier() *ParsedHostIdentifierStringQ
 	return &parseData.qualifier
 }
 
-func (parseData *IPAddressParseData) getQualifierIndex() int {
-	return parseData.qualifierIndex
-}
-
 //func (parseData *IPAddressParseData) setQualifier(val *ParsedHostIdentifierStringQualifier) {
 //	parseData.qualifier = val
 //}
+
+func (parseData *IPAddressParseData) getQualifierIndex() int {
+	return parseData.qualifierIndex
+}
 
 func (parseData *IPAddressParseData) clearQualifier() {
 	parseData.qualifierIndex = -1

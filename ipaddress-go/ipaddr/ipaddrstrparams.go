@@ -1,12 +1,8 @@
 package ipaddr
 
-// TODO in IPAddressString we will pass in one of these IPAddressStringParameters, we will type check for *ipAddressStringParameters, and use that
-// If the type check fails we will convert to *ipAddressStringParameters on the spot, althugh maybe we could just use the IPAddressStringParameters
-
-//TODO you will need this later for testing and examples
-func buildParams(orig IPAddressStringParameters) IPAddressStringParameters {
-	if _, ok := orig.(*ipAddressStringParameters); ok {
-		return orig
+func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters {
+	if params, ok := orig.(*ipAddressStringParameters); ok {
+		return params
 	}
 	origIPv4 := orig.GetIPv4Parameters()
 	origIPv4Range := origIPv4.GetRangeParameters()
@@ -14,8 +10,8 @@ func buildParams(orig IPAddressStringParameters) IPAddressStringParameters {
 	origIPv6Range := origIPv6.GetRangeParameters()
 	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
 	origMixedIPv4Range := origMixedIPv4.GetRangeParameters()
-	params := IPAddressStringParametersBuilder{}
-	return params.
+	paramsBuilder := IPAddressStringParametersBuilder{}
+	return paramsBuilder.
 		// general settings
 		AllowIPv6(orig.AllowsIPv6()).
 		AllowIPv4(orig.AllowsIPv4()).
@@ -94,7 +90,7 @@ func buildParams(orig IPAddressStringParameters) IPAddressStringParameters {
 		GetIPv4ParentBuilder().
 		GetParentBuilder().
 		//
-		ToParams()
+		ToParams().(*ipAddressStringParameters)
 }
 
 type IPAddressStringParameters interface {
@@ -110,8 +106,6 @@ type IPAddressStringParameters interface {
 }
 
 var _ IPAddressStringParameters = &ipAddressStringParameters{}
-var _ IPv4AddressStringParameters = &ipv4AddressStringParameters{}
-var _ IPv6AddressStringParameters = &ipv6AddressStringParameters{}
 
 type IPv4AddressStringParameters interface {
 	IPAddressStringFormatParameters
@@ -140,6 +134,8 @@ type IPv4AddressStringParameters interface {
 	GetNetwork() *IPv4AddressNetwork // TODO you'd want to avoid exposing the default IPv6AddressNetwork, you might want to copy, or use an interface, or something.  But only applies with anonymous fields of public types.
 }
 
+var _ IPv4AddressStringParameters = &ipv4AddressStringParameters{}
+
 type IPv6AddressStringParameters interface {
 	IPAddressStringFormatParameters
 
@@ -161,6 +157,8 @@ type IPv6AddressStringParameters interface {
 	// The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
 	GetNetwork() *IPv6AddressNetwork // TODO you'd want to avoid exposing the default IPv6AddressNetwork, you might want to copy, or use an interface, or something
 }
+
+var _ IPv6AddressStringParameters = &ipv6AddressStringParameters{}
 
 type IPAddressStringFormatParameters interface {
 	AddressStringFormatParameters
@@ -225,6 +223,17 @@ func (params *ipAddressStringParameters) AllowsIPv4() bool {
 
 func (params *ipAddressStringParameters) AllowsIPv6() bool {
 	return !params.noIPv4
+}
+
+func (params *ipAddressStringParameters) inferVersion() IPVersion {
+	if params.AllowsIPv6() {
+		if !params.AllowsIPv4() {
+			return IPv6
+		}
+	} else if params.AllowsIPv4() {
+		return IPv4
+	}
+	return UNKNOWN_VERSION
 }
 
 func (params *ipAddressStringParameters) GetIPv4Parameters() IPv4AddressStringParameters {

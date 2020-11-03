@@ -13,6 +13,10 @@ type AddressStringException interface { //TODO a new name, without "Exception", 
 	HostIdentifierException
 }
 
+type IncompatibleAddressException interface { //TODO a new name, without "Exception", but not til later
+	error
+}
+
 //TODO split into two types, one without index nested inside other with index
 type addressStringException struct {
 	// the string being parsed
@@ -42,24 +46,32 @@ type wrappedErr struct {
 
 	// wrapper
 	err err
+
+	str string
 }
 
 func (wrappedErr *wrappedErr) Error() string {
-	return wrappedErr.err.Error() + ": " + wrappedErr.cause.Error()
+	str := wrappedErr.str
+	if len(str) > 0 {
+		return str
+	}
+	str = wrappedErr.err.Error() + ": " + wrappedErr.cause.Error()
+	wrappedErr.str = str
+	return str
 }
 
-// errorf returns a formatted error
-func errorf(format string, a ...interface{}) err {
+// Errorf returns a formatted error
+func Errorf(format string, a ...interface{}) err {
 	return err(fmt.Sprintf(format, a...))
 }
 
-// wrapErrf wraps the given error, but only if it is not nil.
-func wrapErrf(err error, format string, a ...interface{}) error {
+// WrapErrf wraps the given error, but only if it is not nil.
+func WrapErrf(err error, format string, a ...interface{}) error {
 	return wrapper(true, err, format, a...)
 }
 
-// wrapToErrf is like wrapErrf but always returns an error
-func wrapToErrf(err error, format string, a ...interface{}) error {
+// WrapToErrf is like wrapErrf but always returns an error
+func WrapToErrf(err error, format string, a ...interface{}) error {
 	return wrapper(false, err, format, a...)
 }
 
@@ -68,65 +80,85 @@ func wrapper(nilIfFirstNil bool, err error, format string, a ...interface{}) err
 		if nilIfFirstNil {
 			return nil
 		}
-		return errorf(format, a...)
+		return Errorf(format, a...)
 	}
 	return &wrappedErr{
 		cause: err,
-		err:   errorf(format, a...),
+		err:   Errorf(format, a...),
 	}
 }
 
 type mergedErr struct {
-	merged []interface{}
-	format string
+	mergedErrs []error
+	str        string
 }
 
-func (merged *mergedErr) Error() string {
-	return fmt.Sprintf(merged.format, merged.merged...)
+func (merged *mergedErr) Error() (str string) {
+	str = merged.str
+	if len(str) > 0 {
+		return
+	}
+	mergedErrs := merged.mergedErrs
+	errLen := len(mergedErrs)
+	strs := make([]string, errLen)
+	totalLen := 0
+	for i, err := range mergedErrs {
+		str := err.Error()
+		strs[i] = str
+		totalLen += len(str)
+	}
+	format := strings.Builder{}
+	format.Grow(totalLen + errLen*2)
+	format.WriteString(strs[0])
+	for _, str := range strs[1:] {
+		format.WriteString(", ")
+		format.WriteString(str)
+	}
+	str = format.String()
+	merged.str = str
+	return
 }
 
 // mergeErrs merges an existing error with a new one
-func mergeErrs(err error, format string, a ...interface{}) error {
-	newErr := errorf(format, a...)
+func MergeErrs(err error, format string, a ...interface{}) error {
+	newErr := Errorf(format, a...)
 	if err == nil {
 		return newErr
 	}
+	var merged []error
 	if merge, isMergedErr := err.(*mergedErr); isMergedErr {
-		merge.merged = append(merge.merged, newErr)
-		merge.format += ", %s"
-		return merge
+		merged = append(append([]error(nil), merge.mergedErrs...), newErr)
+	} else {
+		merged = []error{err, newErr}
 	}
-	return &mergedErr{merged: []interface{}{err, newErr}, format: "%s, %s"}
+	return &mergedErr{mergedErrs: merged}
 }
 
 // mergeErrors merges multiple errors
-func mergeAllErrs(errs ...error) error {
-	var all []interface{}
+func MergeAllErrs(errs ...error) error {
+	var all []error
+	allLen := len(errs)
+	if allLen <= 1 {
+		if allLen == 0 {
+			return nil
+		}
+		return errs[0]
+	}
 	for _, err := range errs {
 		if err != nil {
 			if merge, isMergedErr := err.(*mergedErr); isMergedErr {
-				all = append(all, merge.merged...)
+				all = append(all, merge.mergedErrs...)
 			} else {
 				all = append(all, err)
 			}
 		}
 	}
-	allLen := len(all)
-	if allLen == 0 {
-		return nil
+	allLen = len(all)
+	if allLen <= 1 {
+		if allLen == 0 {
+			return nil
+		}
+		return all[0]
 	}
-	if allLen == 1 {
-		return all[0].(error)
-	}
-	format := strings.Builder{}
-	format.Grow(allLen * 4)
-	format.WriteString("%s")
-	allLen--
-	for ; allLen >= 10; allLen -= 10 {
-		format.WriteString(tenMerges)
-	}
-	format.WriteString(tenMerges[:allLen*4])
-	return &mergedErr{merged: all, format: format.String()}
+	return &mergedErr{mergedErrs: all}
 }
-
-const tenMerges = ", %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"

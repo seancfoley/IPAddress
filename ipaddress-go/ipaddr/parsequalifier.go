@@ -1,31 +1,5 @@
 package ipaddr
 
-type IPAddressProvider interface {
-	//TODO IPAddressProvider
-}
-
-type MACAddressProvider interface {
-	//TODO MACAddressProvider
-}
-
-// TODO note that the way that you save substrings for segments in Java is perfect for go, so your address creator interfaces will keep it
-
-type ParsedIPAddress struct {
-	IPAddressParseData
-
-	//TODO ParsedIPAddress
-
-	options    IPAddressStringParameters
-	originator HostIdentifierString
-	//values TranslatedResult<?,?>  //TODO
-	skipContains *bool
-	//maskers, mixedMaskers []Masker//TODO
-}
-
-func (parseData *ParsedIPAddress) getIPAddressParseData() *IPAddressParseData {
-	return &parseData.IPAddressParseData
-}
-
 type EmbeddedAddress struct {
 	isUNCIPv6Literal, isReverseDNS bool
 
@@ -35,8 +9,9 @@ type EmbeddedAddress struct {
 }
 
 var (
-	NO_EMBEDDED_ADDRESS *EmbeddedAddress                     = &EmbeddedAddress{}
-	NO_QUALIFIER        *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
+	// used by hosts
+	NO_EMBEDDED_ADDRESS *EmbeddedAddress = &EmbeddedAddress{}
+	//NO_QUALIFIER        *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
 )
 
 type ParsedHost struct { //TODO this needs its own file
@@ -106,6 +81,7 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefixLength(othe
 
 }
 
+//TODO this might end up not being used
 func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefix(other *ParsedHostIdentifierStringQualifier) {
 	parsedQual.overridePrefixLength(other)
 	parsedQual.overrideMask(other)

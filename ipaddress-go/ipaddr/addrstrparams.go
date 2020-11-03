@@ -31,7 +31,8 @@ type RangeParameters interface {
 	// whether a missing range value before or after a '-' is allowed to denote the mininum or maximum potential value
 	AllowsInferredBoundary() bool
 
-	// returns true if no wildcards or range separators allowed
+	//TODO move this out of the interface, the interface is something implemented by users, this is used by us
+	// returns true if no wildcards or range separators allowed, which means AllowsWildcard(), AllowsRangeSeparator() and AllowsSingleWildcard() are all false
 	IsNoRange() bool
 }
 
@@ -129,6 +130,15 @@ func (rp *RangeParametersBuilder) GetIPv4ParentBuilder() *IPv4AddressStringParam
 func (rp *RangeParametersBuilder) GetIPv6ParentBuilder() *IPv6AddressStringParametersBuilder {
 	parent := rp.parent
 	if p, ok := parent.(*IPv6AddressStringParametersBuilder); ok {
+		return p
+	}
+	return nil
+}
+
+// If this builder was obtained by a call to IPv6AddressStringParametersBuilder.GetRangeParametersBuilder(), returns the IPv6AddressStringParametersBuilder
+func (rp *RangeParametersBuilder) GetMACParentBuilder() *MACAddressStringFormatParametersBuilder {
+	parent := rp.parent
+	if p, ok := parent.(*MACAddressStringFormatParametersBuilder); ok {
 		return p
 	}
 	return nil

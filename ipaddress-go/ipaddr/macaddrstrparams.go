@@ -1,5 +1,45 @@
 package ipaddr
 
+func convertMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
+	if params, ok := orig.(*macAddressStringParameters); ok {
+		return params
+	}
+	origFormat := orig.GetFormatParameters()
+	formatRange := origFormat.GetRangeParameters()
+	paramsBuilder := MACAddressStringParametersBuilder{}
+	return paramsBuilder.
+		// general settings
+		SetAddressSize(orig.AddressSize()).
+		AllowDashed(orig.AllowsDashed()).
+		AllowSingleDashed(orig.AllowsSingleDashed()).
+		AllowColonDelimited(orig.AllowsColonDelimited()).
+		AllowDotted(orig.AllowsDotted()).
+		AllowSpaceDelimited(orig.AllowsSpaceDelimited()).
+		SetNetwork(orig.GetNetwork()).
+		AllowEmpty(orig.AllowsEmpty()).
+		AllowSingleSegment(orig.AllowsSingleSegment()).
+		AllowAll(orig.AllowsAll()).
+		//
+		// format parameters
+		GetFormatParametersBuilder().
+		AllowShortSegments(origFormat.AllowsShortSegments()).
+		AllowWildcardedSeparator(origFormat.AllowsWildcardedSeparator()).
+		AllowLeadingZeros(origFormat.AllowsLeadingZeros()).
+		AllowUnlimitedLeadingZeros(origFormat.AllowsUnlimitedLeadingZeros()).
+		//
+		// ranges
+		GetRangeParametersBuilder().
+		AllowWildcard(formatRange.AllowsWildcard()).
+		AllowRangeSeparator(formatRange.AllowsRangeSeparator()).
+		AllowReverseRange(formatRange.AllowsReverseRange()).
+		AllowInferredBoundary(formatRange.AllowsInferredBoundary()).
+		AllowSingleWildcard(formatRange.AllowsSingleWildcard()).
+		GetMACParentBuilder().
+		GetParentBuilder().
+		//
+		ToParams().(*macAddressStringParameters)
+}
+
 type AddressSize string //TODO rename to MACAddressSize
 
 const (
@@ -21,13 +61,14 @@ type MACAddressStringParameters interface {
 	GetFormatParameters() MACAddressStringFormatParameters
 }
 
+var _ MACAddressStringParameters = &macAddressStringParameters{}
+
 type MACAddressStringFormatParameters interface {
 	AddressStringFormatParameters
 
 	AllowsShortSegments() bool
 }
 
-var _ MACAddressStringParameters = &macAddressStringParameters{}
 var _ MACAddressStringFormatParameters = &macAddressStringFormatParameters{}
 
 // ipAddressStringParameters has parameters for parsing IP address strings
@@ -118,7 +159,7 @@ func (builder *MACAddressStringParametersBuilder) ToParams() MACAddressStringPar
 	return &result
 }
 
-func (builder *MACAddressStringParametersBuilder) GetMACAddressFormatParametersBuilder() (result *MACAddressStringFormatParametersBuilder) {
+func (builder *MACAddressStringParametersBuilder) GetFormatParametersBuilder() (result *MACAddressStringFormatParametersBuilder) {
 	result = &builder.formatBuilder
 	result.parent = builder
 	return
@@ -206,6 +247,10 @@ func ToMACAddressStringFormatParamsBuilder(params MACAddressStringFormatParamete
 	}
 	result.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(params)
 	return &result
+}
+
+func (builder *MACAddressStringFormatParametersBuilder) GetParentBuilder() *MACAddressStringParametersBuilder {
+	return builder.parent
 }
 
 func (builder *MACAddressStringFormatParametersBuilder) ToParams() MACAddressStringFormatParameters {
