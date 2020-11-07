@@ -1,21 +1,66 @@
 package ipaddr
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
-type HostIdentifierException interface { //TODO a new name, without "Exception", but not til later
+//TODO at the end of the day, not so sure there is any reason to have my own interfaces, unless they had methods in addition to Error()
+//and as far as I know they do not, although I could potentially expose the parsed string or the string index or both.
+// Maybe I resurrect HostIdentifierException and use it everywhere?  Since I don't need separate errors?
+
+type AddressStringException interface {
 	error
 }
 
-type AddressStringException interface { //TODO a new name, without "Exception", but not til later
-	HostIdentifierException
+type HostNameException interface {
+	error
+
+	GetAddrErr() AddressStringException //returns the underlying address error, or nil
 }
 
-type IncompatibleAddressException interface { //TODO a new name, without "Exception", but not til later
-	error
+type hostAddressErr struct {
+	nested AddressStringException
 }
+
+func (a *hostAddressErr) GetAddrErr() AddressStringException {
+	return a.nested
+}
+
+func (a *hostAddressErr) Error() string {
+	//TODO i18n -
+	return "ipaddress.host.error.invalid" + ": " + a.nested.Error()
+}
+
+//TODO split into two types, one without index nested inside other with index
+// first step is to convert the err = followed by return into a method call that returns nil, err
+// then you will have two of those, and you can then do the switcheroo in there
+type hostNameException struct {
+	// the string being parsed
+	str,
+
+	// key to look up the error message
+	key string
+}
+
+type hostNameIndexErr struct {
+	hostNameException
+
+	// byte index location in string of the error
+	index int
+}
+
+func (a *hostNameException) GetAddrErr() AddressStringException {
+	return nil
+}
+
+func (a *hostNameException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+// TODO xxxxx think about replacing interfaces above with these xxxx
 
 //TODO split into two types, one without index nested inside other with index
 type addressStringException struct {
@@ -24,9 +69,6 @@ type addressStringException struct {
 
 	// key to look up the error message
 	key string
-
-	// byte index location in string of the error
-	index int
 }
 
 func (a *addressStringException) Error() string {
@@ -34,10 +76,11 @@ func (a *addressStringException) Error() string {
 	return a.key
 }
 
-type err string
+type addressStringIndexErr struct {
+	addressStringException
 
-func (err err) Error() string {
-	return string(err)
+	// byte index location in string of the error
+	index int
 }
 
 type wrappedErr struct {
@@ -45,7 +88,7 @@ type wrappedErr struct {
 	cause error
 
 	// wrapper
-	err err
+	err error
 
 	str string
 }
@@ -61,8 +104,8 @@ func (wrappedErr *wrappedErr) Error() string {
 }
 
 // Errorf returns a formatted error
-func Errorf(format string, a ...interface{}) err {
-	return err(fmt.Sprintf(format, a...))
+func Errorf(format string, a ...interface{}) error {
+	return errors.New(fmt.Sprintf(format, a...))
 }
 
 // WrapErrf wraps the given error, but only if it is not nil.

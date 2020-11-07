@@ -1,5 +1,27 @@
 package ipaddr
 
+func convertHostParams(orig HostNameParameters) *hostNameParameters {
+	if params, ok := orig.(*hostNameParameters); ok {
+		return params
+	}
+
+	paramsBuilder := HostNameParametersBuilder{}
+	return paramsBuilder.
+		// general settings
+		AllowIPAddress(orig.AllowsIPAddress()).
+		AllowBracketedIPv6(orig.AllowsBracketedIPv6()).
+		AllowBracketedIPv4(orig.AllowsBracketedIPv4()).
+		SetEmptyLoopback(orig.EmptyIsLoopback()).
+		AllowPort(orig.AllowsPort()).
+		AllowService(orig.AllowsService()).
+		ExpectPort(orig.ExpectsPort()).
+		AllowEmpty(orig.AllowsEmpty()).
+		NormalizeToLowercase(orig.NormalizesToLowercase()).
+		SetIPAddressParameters(orig.GetIPAddressParameters()).
+		//
+		ToParams().(*hostNameParameters)
+}
+
 type HostNameParameters interface {
 	AllowsEmpty() bool
 	EmptyIsLoopback() bool
@@ -86,7 +108,7 @@ func ToHostNameParametersBuilder(params HostNameParameters) *HostNameParametersB
 			expectPort:         params.ExpectsPort(),
 		}
 	}
-	result.ipAddressBuilder = *ToIPAddressStringParamsBuilder(params.GetIPAddressParameters())
+	result.SetIPAddressParameters(params.GetIPAddressParameters())
 	return &result
 }
 
@@ -104,6 +126,11 @@ func (builder *HostNameParametersBuilder) GetIPAddressParametersBuilder() (resul
 	result = &builder.ipAddressBuilder
 	result.parent = builder
 	return
+}
+
+func (builder *HostNameParametersBuilder) SetIPAddressParameters(params IPAddressStringParameters) *HostNameParametersBuilder {
+	builder.ipAddressBuilder = *ToIPAddressStringParamsBuilder(params)
+	return builder
 }
 
 func (builder *HostNameParametersBuilder) AllowEmpty(allow bool) *HostNameParametersBuilder {

@@ -63,6 +63,7 @@ func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddress
 	// but I am tempted.  you would need to stop passing params around so much and get it when needed in the parsing code.
 	// But consider that few use them, and even fewer would not use the builder,
 	////and even for those, they could convert to the builder-based one on their own
+	// and even with lazy conversion, you might end up converting all the time
 	return &IPAddressString{str: str, params: convertIPAddrParams(params)}
 }
 
@@ -80,6 +81,10 @@ func (ipAddrStr *IPAddressString) getParams() *ipAddressStringParameters {
 		ipAddrStr.params = params
 	}
 	return params
+}
+
+func (ipAddrStr *IPAddressString) GetValidationOptions() IPAddressStringParameters {
+	return ipAddrStr.getParams()
 }
 
 func (addrStr *IPAddressString) ToNormalizedString() string {

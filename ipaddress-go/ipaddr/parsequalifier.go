@@ -10,21 +10,25 @@ type EmbeddedAddress struct {
 
 var (
 	// used by hosts
-	NO_EMBEDDED_ADDRESS *EmbeddedAddress = &EmbeddedAddress{}
-	//NO_QUALIFIER        *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
+	NO_EMBEDDED_ADDRESS *EmbeddedAddress                     = &EmbeddedAddress{}
+	NO_QUALIFIER        *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
 )
 
 type ParsedHost struct { //TODO this needs its own file
 	normalizedLabels []string
-	separatorIndices []int
+	separatorIndices []int // can be nil
 	normalizedFlags  []bool
 
-	labelsQualifier *ParsedHostIdentifierStringQualifier
+	labelsQualifier ParsedHostIdentifierStringQualifier
 	service         string
 
 	embeddedAddress *EmbeddedAddress
 
 	host, originalStr string
+}
+
+func (host *ParsedHost) getQualifier() *ParsedHostIdentifierStringQualifier {
+	return &host.labelsQualifier
 }
 
 type ParsedMACAddress struct {
@@ -48,12 +52,13 @@ func cacheBits(i int) PrefixLen {
 }
 
 type ParsedHostIdentifierStringQualifier struct {
-	//if there is a prefix length for the address, this will be its numeric value
-	networkPrefixLength PrefixLen //non-nil for a prefix-only address, sometimes non-nil for IPv4, IPv6
 
 	//if there is a port for the host, this will be its numeric value
 	port    Port    //non-nil for a host with port
 	service Service //non-nil for host with a service instead of a port
+
+	//if there is a prefix length for the address, this will be its numeric value
+	networkPrefixLength PrefixLen //non-nil for a prefix-only address, sometimes non-nil for IPv4, IPv6
 
 	// If instead of a prefix length a mask was provided, this is the mask.
 	// We can also have both a prefix length and mask if one is added when merging qualifiers  */'
@@ -66,25 +71,34 @@ type ParsedHostIdentifierStringQualifier struct {
 	zone Zone
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) overrideMask(other *ParsedHostIdentifierStringQualifier) {
-	if other.mask != nil {
-		parsedQual.mask = other.mask
-	}
-
+func (parsedQual *ParsedHostIdentifierStringQualifier) clearPortOrService() {
+	parsedQual.port = nil
+	parsedQual.service = ""
 }
 
-//TODO make these types private later
-func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefixLength(other *ParsedHostIdentifierStringQualifier) {
-	if other.networkPrefixLength != nil {
-		parsedQual.networkPrefixLength = other.networkPrefixLength
-	}
-
-}
-
+//func (parsedQual *ParsedHostIdentifierStringQualifier) overrideMask(other *ParsedHostIdentifierStringQualifier) {
+//	if other.mask != nil {
+//		parsedQual.mask = other.mask
+//	}
+//}
+//
+////TODO make these types private later
+//func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefixLength(other *ParsedHostIdentifierStringQualifier) {
+//	if other.networkPrefixLength != nil {
+//		parsedQual.networkPrefixLength = other.networkPrefixLength
+//	}
+//
+//}
+//
 //TODO this might end up not being used
-func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefix(other *ParsedHostIdentifierStringQualifier) {
-	parsedQual.overridePrefixLength(other)
-	parsedQual.overrideMask(other)
+//func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefix(other *ParsedHostIdentifierStringQualifier) {
+//	parsedQual.overridePrefixLength(other)
+//	parsedQual.overrideMask(other)
+//}
+
+func (parsedQual *ParsedHostIdentifierStringQualifier) clearPrefixOrMask() {
+	parsedQual.networkPrefixLength = nil
+	parsedQual.mask = nil
 }
 
 func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) {
@@ -105,10 +119,10 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) getMaskLower() *IPAddress
 	if parsedQual.mergedMask != nil {
 		return parsedQual.mergedMask
 	}
-	//if parsedQual.mask != nil {
-	//TODO parsedQual.mask != nil
-	//return parsedQual.mask.getValForMask();
-	//}
+	if parsedQual.mask != nil {
+		//TODO parsedQual.mask != nil
+		//return parsedQual.mask.getValForMask();
+	}
 	return nil
 }
 

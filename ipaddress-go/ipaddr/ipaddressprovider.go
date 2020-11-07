@@ -79,6 +79,16 @@ var (
 	EMPTY_PROVIDER   = &ipAddrProvider{isEmpty: true, ipType: EMPTY}
 )
 
+// TODO progress
+// - Move towards address creation - need ipaddress provider types fleshed out, and in particular ParsedIPAddress
+//	- parsedipaddress will need the start of the ip address creator interfaces
+// - Then the mask stuff in parseQualifier can be done, which depends on address creation
+// - then IPAddressString and HostName can be fleshed out
+// - then you can link up the ip address creator interfaces with the address types
+// - here you might start putting in validation tests that check for parsing errors
+// - then you can do the string methods in the address sections and addresses and segments
+// - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
+
 //TODO your provider types can be similar, you can have a base type that has all the methods that are "default" in Java
 //With Java you added a lot of stuff to IPAddressProvider, here you can start with the basics, maybe you don't want to add the contains and prefixEquals and prefixContains shortcuts
 

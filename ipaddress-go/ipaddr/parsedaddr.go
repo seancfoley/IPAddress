@@ -12,7 +12,7 @@ type ParsedIPAddress struct {
 	options    IPAddressStringParameters
 	originator HostIdentifierString
 	//values TranslatedResult<?,?>  //TODO
-	skipContains *bool
+	//skipContains *bool
 	//maskers, mixedMaskers []Masker//TODO
 }
 
