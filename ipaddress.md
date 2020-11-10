@@ -2472,14 +2472,10 @@ To check whether an IP address is contained by a subnet:
 ```java
 IPAddress address = new
 IPAddressString("1.2.0.0/16").getAddress();  
-System.out.println(address.contains(new
-IPAddressString("1.2.3.4").getAddress()));  
-System.out.println(address.contains(new
-IPAddressString("1.2.3.0/24").getAddress()));  
-System.out.println(address.contains(new
-IPAddressString("1.2.3.0/25").getAddress()));  
-System.out.println(address.contains(new
-IPAddressString("1.1.0.0").getAddress()));
+System.out.println(address.contains(new IPAddressString("1.2.3.4").getAddress()));  
+System.out.println(address.contains(new IPAddressString("1.2.3.0/24").getAddress()));  
+System.out.println(address.contains(new IPAddressString("1.2.3.0/25").getAddress()));  
+System.out.println(address.contains(new IPAddressString("1.1.0.0").getAddress()));
 ```
 Output:
 ```
@@ -2489,8 +2485,10 @@ true
 false
 ```
 The contains method is not restricted to IP addresses or IP address
-prefixed addresses. There is a contains method for every Address or
-AddressSection.
+prefixed addresses. There is a contains method for every `Address` or
+`AddressSection`.
+
+`IPAddressString` has a `contains` methods as well, and also some additional containment methods, `prefixContains` and `prefixEquals`.  These `IPAddressString` containment methods can have superior performance checking containment when starting from strings, because in many cases containment can be determined by looking at the strings alone, avoiding address object creation and numeric comparisons.
 
 For checking containment of an address or subnet in a large number of subnets, or to check containment of a large number of addresses or subnets in a subnet, use the address trie data structure, using one of the subclasses of AddressTrie.
 
