@@ -2470,8 +2470,7 @@ Select rows from table where column1 like 1.2.%.%
 
 To check whether an IP address is contained by a subnet:
 ```java
-IPAddress address = new
-IPAddressString("1.2.0.0/16").getAddress();  
+IPAddress address = new IPAddressString("1.2.0.0/16").getAddress();  
 System.out.println(address.contains(new IPAddressString("1.2.3.4").getAddress()));  
 System.out.println(address.contains(new IPAddressString("1.2.3.0/24").getAddress()));  
 System.out.println(address.contains(new IPAddressString("1.2.3.0/25").getAddress()));  
