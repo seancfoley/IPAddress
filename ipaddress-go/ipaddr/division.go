@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 // SegInt is an unsigned integer type for holding generic segment values, which are unsigned byte for MAC or IPv4 and two unsigned bytes for IPv6.
 type SegInt = uint16
 
@@ -27,6 +29,8 @@ type divisionValues interface {
 
 type AddressDivision struct {
 	divisionValues
+
+	// TODO we will have more fields, such as cached strings and bytes
 }
 
 //TODO we can enforce that any divisionValues in a IPv4 or IPv6 segment is also a segmentValues
@@ -45,22 +49,35 @@ type segmentValues interface {
 	GetSegmentPrefixLength() PrefixLen
 }
 
-func (div AddressDivision) ToIPAddressSegment() IPAddressSegment {
-	if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
-		return IPAddressSegment{}
+func (div *AddressDivision) ToIPAddressSegment() *IPAddressSegment {
+	if div == nil {
+		return nil
+	} else if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
+		return nil
 	}
-	return IPAddressSegment{addressDivisionInternal{div}}
+	return (*IPAddressSegment)(unsafe.Pointer(div))
+	//return IPAddressSegment{addressDivisionInternal{div}}
 }
 
-func (div AddressDivision) ToIPv4AddressSegment() IPv4AddressSegment {
-	return div.ToIPAddressSegment().ToIPv4AddressSegment()
+func (div *AddressDivision) ToIPv4AddressSegment() *IPv4AddressSegment {
+	if div == nil {
+		return nil
+	} else if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment {
+		return nil
+	}
+	return (*IPv4AddressSegment)(unsafe.Pointer(div))
 }
 
-func (div AddressDivision) ToIPv6AddressSegment() IPv6AddressSegment {
-	return div.ToIPAddressSegment().ToIPv6AddressSegment()
+func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
+	if div == nil {
+		return nil
+	} else if bitCount := div.GetBitCount(); bitCount != IPv6BitsPerSegment {
+		return nil
+	}
+	return (*IPv6AddressSegment)(unsafe.Pointer(div))
 }
 
-func (div AddressDivision) GetBitCount() BitCount {
+func (div *AddressDivision) GetBitCount() BitCount {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -68,7 +85,7 @@ func (div AddressDivision) GetBitCount() BitCount {
 	return vals.GetBitCount()
 }
 
-func (div AddressDivision) GetByteCount() int {
+func (div *AddressDivision) GetByteCount() int {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -76,7 +93,7 @@ func (div AddressDivision) GetByteCount() int {
 	return vals.GetByteCount()
 }
 
-func (div AddressDivision) GetDivisionValue() DivInt {
+func (div *AddressDivision) GetDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -84,7 +101,7 @@ func (div AddressDivision) GetDivisionValue() DivInt {
 	return vals.GetDivisionValue()
 }
 
-func (div AddressDivision) GetUpperDivisionValue() DivInt {
+func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -100,7 +117,7 @@ type IPAddressSegment struct {
 	addressDivisionInternal
 }
 
-func (div AddressDivision) GetSegmentValue() SegInt {
+func (div *AddressDivision) GetSegmentValue() SegInt {
 	vals := div.divisionValues.(segmentValues)
 	if vals == nil {
 		return 0
@@ -108,7 +125,7 @@ func (div AddressDivision) GetSegmentValue() SegInt {
 	return vals.GetSegmentValue()
 }
 
-func (div AddressDivision) GetUpperSegmentValue() SegInt {
+func (div *AddressDivision) GetUpperSegmentValue() SegInt {
 	vals := div.divisionValues.(segmentValues)
 	if vals == nil {
 		return 0
@@ -116,29 +133,35 @@ func (div AddressDivision) GetUpperSegmentValue() SegInt {
 	return vals.GetUpperSegmentValue()
 }
 
-func (seg IPAddressSegment) ToAddressDivision() AddressDivision {
-	return seg.AddressDivision
+func (seg *IPAddressSegment) ToAddressDivision() *AddressDivision {
+	return &seg.AddressDivision
 }
 
-func (seg IPAddressSegment) ToIPAddressSegment() IPAddressSegment {
+func (seg *IPAddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	return seg
 }
 
-func (seg IPAddressSegment) ToIPv4AddressSegment() IPv4AddressSegment {
-	if bitCount := seg.GetBitCount(); bitCount != IPv4BitsPerSegment {
-		return IPv4AddressSegment{}
+func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
+	if seg == nil {
+		return nil
+	} else if bitCount := seg.GetBitCount(); bitCount != IPv4BitsPerSegment {
+		return nil
 	}
-	return IPv4AddressSegment{ipAddressSegmentInternal{seg}}
+	return (*IPv4AddressSegment)(unsafe.Pointer(seg))
+	//return IPv4AddressSegment{ipAddressSegmentInternal{seg}}
 }
 
-func (seg IPAddressSegment) ToIPv6AddressSegment() IPv6AddressSegment {
-	if bitCount := seg.GetBitCount(); bitCount != IPv6BitsPerSegment {
-		return IPv6AddressSegment{}
+func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
+	if seg == nil {
+		return nil
+	} else if bitCount := seg.GetBitCount(); bitCount != IPv6BitsPerSegment {
+		return nil
 	}
-	return IPv6AddressSegment{ipAddressSegmentInternal{seg}}
+	return (*IPv6AddressSegment)(unsafe.Pointer(seg))
+	//return IPv6AddressSegment{ipAddressSegmentInternal{seg}}
 }
 
-func (seg IPAddressSegment) GetDivisionPrefixLength() PrefixLen {
+func (seg *IPAddressSegment) GetDivisionPrefixLength() PrefixLen {
 	vals := seg.divisionValues
 	if vals == nil {
 		return nil

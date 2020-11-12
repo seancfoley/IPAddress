@@ -2209,7 +2209,7 @@ func parseEncodedZone(
 	ipVersion IPVersion) (err AddressStringException) {
 	var result strings.Builder
 	var zone string
-	for i := index; i < endIndex; i++ { //TODO add an option and check for empty zone (i == endIndex), up til now we allowed it
+	for i := index; i < endIndex; i++ { //TODO add an option and check for empty zone (i == endIndex), up til now we allowed it (check both %/ and %)
 		c := fullAddr[i]
 		//we are in here when we have a square bracketed host like [::1]
 		//not if we have a HostName with no brackets
@@ -2649,7 +2649,7 @@ func chooseIPAddressProvider(
 					return
 				}
 				//return new MaskCreator(networkPrefixLength, version, validationOptions);
-				res = &MaskCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, networkPrefixLength: networkPrefixLength, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions, ipAddrProvider: ipAddrProvider{ipType: PREFIX_ONLY}}}}
+				res = &MaskCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, networkPrefixLength: networkPrefixLength, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions}}}
 				return
 			} else {
 				//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
@@ -2666,7 +2666,7 @@ func chooseIPAddressProvider(
 			}
 		} else { //isAll
 			//We also need the AllCreator to use the equivalent prefix length, much like in ParsedIPAddress
-			res = &AllCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions, ipAddrProvider: ipAddrProvider{ipType: ALL}}},
+			res = &AllCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions}},
 				originator: originator, qualifier: *qualifier}
 			//qualifier, version, originator, validationOptions);
 			return

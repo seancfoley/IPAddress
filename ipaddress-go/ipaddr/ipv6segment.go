@@ -47,48 +47,48 @@ type IPv6AddressSegment struct {
 
 // We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
 
-func (seg IPv6AddressSegment) GetBitCount() BitCount {
+func (seg *IPv6AddressSegment) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
 }
 
-func (seg IPv6AddressSegment) GetByteCount() int {
+func (seg *IPv6AddressSegment) GetByteCount() int {
 	return IPv6BytesPerSegment
 }
 
-func (seg IPv6AddressSegment) ToAddressDivision() AddressDivision {
+func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
 	vals := seg.divisionValues
 	if vals == nil {
 		seg.divisionValues = ipv6SegmentValues{}
 	}
-	return seg.AddressDivision
+	return &seg.AddressDivision
 }
 
-func (seg IPv6AddressSegment) ToIPAddressSegment() IPAddressSegment {
+func (seg IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	vals := seg.divisionValues
 	if vals == nil {
 		seg.divisionValues = ipv6SegmentValues{}
 	}
-	return seg.IPAddressSegment
+	return &seg.IPAddressSegment
 }
 
-func (seg IPv6AddressSegment) ToIPv6AddressSegment() IPv6AddressSegment {
+func (seg *IPv6AddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 	return seg
 }
 
-func (seg IPv6AddressSegment) ToIPv4AddressSegment() IPv4AddressSegment {
-	return IPv4AddressSegment{}
+func (seg *IPv6AddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
+	return nil
 }
 
-func NewIPv6Segment(val uint16) IPv6AddressSegment {
+func NewIPv6Segment(val uint16) *IPv6AddressSegment {
 	return NewIPv6RangeSegment(val, val)
 }
 
-func NewIPv6RangeSegment(val, upperVal uint16) IPv6AddressSegment {
+func NewIPv6RangeSegment(val, upperVal uint16) *IPv6AddressSegment {
 	return NewIPv6PrefixSegment(val, val, nil)
 }
 
-func NewIPv6PrefixSegment(val, upperVal uint16, prefixLen PrefixLen) IPv6AddressSegment {
-	return IPv6AddressSegment{
+func NewIPv6PrefixSegment(val, upperVal uint16, prefixLen PrefixLen) *IPv6AddressSegment {
+	return &IPv6AddressSegment{
 		ipAddressSegmentInternal{
 			IPAddressSegment{
 				addressDivisionInternal{

@@ -25,20 +25,32 @@ func (addr IPv4Address) init() {
 	if addr.hasNoDivisions() {
 		div := NewIPv4Segment(0).ToAddressDivision()
 		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []AddressDivision{div, div, div, div}}}
+			divisions: []*AddressDivision{div, div, div, div}}}
 	}
 }
 
-func (addr IPv4Address) ToAddress() Address {
-	addr.init()
-	return addr.Address
+func (addr *IPv4Address) IsIPv4() bool {
+	return true
 }
 
-func (addr IPv4Address) ToIPAddress() IPAddress {
-	addr.init()
-	return addr.IPAddress
+func (addr *IPv4Address) IsIPv6() bool {
+	return false
 }
 
-func (addr IPv4Address) ToIPv4Address() IPv4Address {
+func (addr *IPv4Address) GetIPVersion() IPVersion {
+	return IPv4
+}
+
+func (addr *IPv4Address) ToAddress() *Address {
+	addr.init()
+	return &addr.Address
+}
+
+func (addr *IPv4Address) ToIPAddress() *IPAddress {
+	addr.init()
+	return &addr.IPAddress
+}
+
+func (addr *IPv4Address) ToIPv4Address() *IPv4Address {
 	return addr
 }

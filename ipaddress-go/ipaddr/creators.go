@@ -131,10 +131,10 @@ package ipaddr
 //	abstract CachedIPAddresses<?> createAddresses();
 //}
 
-type VersionedAddressCreator struct {
-	ipAddrProvider
-	parameters IPAddressStringParameters
-}
+//type VersionedAddressCreator struct {
+//	ipAddrProvider
+//	parameters IPAddressStringParameters
+//}
 
 //static abstract class VersionedAddressCreator extends CachedAddressCreator {
 //		private static final long serialVersionUID = 4L;
@@ -184,14 +184,14 @@ type VersionedAddressCreator struct {
 //
 //		abstract IPAddress createVersionedAddress(IPVersion version);
 //	}
-
-type AdjustedAddressCreator struct {
-	VersionedAddressCreator
-
-	adjustedVersion     IPVersion
-	networkPrefixLength PrefixLen
-}
-
+//
+//type AdjustedAddressCreator struct {
+//	VersionedAddressCreator
+//
+//	adjustedVersion     IPVersion
+//	networkPrefixLength PrefixLen
+//}
+//
 //static abstract class AdjustedAddressCreator extends VersionedAddressCreator {
 //	private static final long serialVersionUID = 4L;
 //	protected final IPVersion adjustedVersion;
@@ -341,15 +341,10 @@ func (mc *MaskCreator) getType() IPType {
 //					createVersionedMask(adjustedVersion, getProviderNetworkPrefixLength(), false));
 //		}
 //	}
-
-type LoopbackCreator struct {
-	VersionedAddressCreator
-}
-
-func (lc *LoopbackCreator) getType() IPType {
-	//TODO in Java we call InetAddress.getLoopbackAddress() to get hte proper version, need to check for similar in go
-	return EMPTY
-}
+//
+//type LoopbackCreator struct {
+//	VersionedAddressCreator
+//}
 
 //static class LoopbackCreator extends VersionedAddressCreator {
 //		private static final long serialVersionUID = 4L;

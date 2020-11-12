@@ -14,6 +14,10 @@ type AddressStringException interface {
 	error
 }
 
+type IncompatibleAddressException interface {
+	error
+}
+
 type HostNameException interface {
 	error
 

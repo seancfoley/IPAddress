@@ -44,20 +44,32 @@ func (addr IPv6Address) init() {
 	if addr.hasNoDivisions() {
 		div := NewIPv6Segment(0).ToAddressDivision()
 		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []AddressDivision{div, div, div, div, div, div, div, div}}}
+			divisions: []*AddressDivision{div, div, div, div, div, div, div, div}}}
 	}
 }
 
-func (addr IPv6Address) ToAddress() Address {
-	addr.init()
-	return addr.Address
+func (addr *IPv6Address) IsIPv4() bool {
+	return false
 }
 
-func (addr IPv6Address) ToIPAddress() IPAddress {
-	addr.init()
-	return addr.IPAddress
+func (addr *IPv6Address) IsIPv6() bool {
+	return true
 }
 
-func (addr IPv6Address) ToIPv6Address() IPv6Address {
+func (addr *IPv6Address) GetIPVersion() IPVersion {
+	return IPv6
+}
+
+func (addr *IPv6Address) ToAddress() *Address {
+	addr.init()
+	return &addr.Address
+}
+
+func (addr *IPv6Address) ToIPAddress() *IPAddress {
+	addr.init()
+	return &addr.IPAddress
+}
+
+func (addr *IPv6Address) ToIPv6Address() *IPv6Address {
 	return addr
 }

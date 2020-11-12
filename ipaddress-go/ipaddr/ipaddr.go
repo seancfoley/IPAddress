@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 type IPVersion string
 
 const (
@@ -22,6 +24,20 @@ func (version IPVersion) isUnknown() bool {
 	return version == UNKNOWN_VERSION
 }
 
+//returns an index starting from 0 with UNKNOWN_VERSION being the highest
+func (version IPVersion) index() int {
+	if version.isIPv4() {
+		return 0
+	} else if version.isIPv6() {
+		return 1
+	}
+	return 2
+}
+
+func (version IPVersion) String() string {
+	return string(version)
+}
+
 //
 //
 //
@@ -29,28 +45,61 @@ type IPAddress struct {
 	addressInternal
 }
 
-func (addr IPAddress) ToAddress() Address {
-	return addr.Address
+func (addr *IPAddress) ToAddress() *Address {
+	if addr == nil {
+		return nil
+	}
+	return &addr.Address
 }
 
-func (addr IPAddress) ToIPAddress() IPAddress {
+func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
 
-func (addr IPAddress) ToIPv6Address() IPv6Address {
-	section := addr.section
-	if section.matchesIPv6Address() {
-		return IPv6Address{ipAddressInternal{addr}}
-	}
-	return IPv6Address{}
+func (addr *IPAddress) IsIPv4() bool {
+	return addr.section.matchesIPv4Address()
 }
 
-func (addr IPAddress) ToIPv4Address() IPv4Address {
-	section := addr.section
-	if section.matchesIPv4Address() {
-		return IPv4Address{ipAddressInternal{addr}}
+func (addr *IPAddress) IsIPv6() bool {
+	return addr.section.matchesIPv6Address()
+}
+
+func (addr *IPAddress) GetIPVersion() IPVersion {
+	if addr.IsIPv4() {
+		return IPv4
 	}
-	return IPv4Address{}
+	return IPv6
+}
+
+func (addr *IPAddress) GetSection() *IPAddressSection {
+	return addr.section.ToIPAddressSection()
+}
+
+func (addr *IPAddress) GetNetworkPrefixLength() PrefixLen {
+	return addr.GetSection().GetNetworkPrefixLength()
+}
+
+func (addr *IPAddress) ToIPv6Address() *IPv6Address {
+	if addr != nil {
+		if addr.IsIPv6() {
+			return (*IPv6Address)(unsafe.Pointer(addr))
+			//return (*IPv6Address)unsafe.Pointer((uintptr(unsafe.Pointer(addr)) + unsafe.Offsetof(addr.addressInternal))_
+			//return IPv6Address{ipAddressInternal{addr}}
+		}
+	}
+	return nil
+	//return IPv6Address{}
+}
+
+func (addr *IPAddress) ToIPv4Address() *IPv4Address {
+	if addr != nil {
+		if addr.IsIPv4() {
+			return (*IPv4Address)(unsafe.Pointer(addr))
+			//return IPv4Address{ipAddressInternal{addr}}
+		}
+	}
+	return nil
+	//return IPv4Address{}
 }
 
 // necessary to avoid direct access to IPAddress, which when a zero value, has no segments, not compatible with zero value for ivp4 or ipv6
