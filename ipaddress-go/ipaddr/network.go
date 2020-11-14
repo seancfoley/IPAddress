@@ -14,6 +14,10 @@ type IPAddressNetwork interface {
 	GetIPAddressCreator() IPAddressCreator
 
 	GetLoopback() *IPAddress
+
+	GetNetworkIPAddress(PrefixLen) *IPAddress
+
+	GetNetworkMask(PrefixLen, bool) *IPAddress
 }
 
 type IPAddressCreator interface {
@@ -46,6 +50,24 @@ func (network *IPv6AddressNetwork) GetAddressCreator() AddressCreator {
 }
 
 func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
+	//TODO
+	return nil
+}
+
+func (network *IPv6AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
+	return network.GetNetworkIPv6Address(prefLen).ToIPAddress()
+}
+
+func (network *IPv6AddressNetwork) GetNetworkMask(prefLen PrefixLen, withPrefixLength bool) *IPAddress {
+	return network.GetNetworkIPv6Mask(prefLen, withPrefixLength).ToIPAddress()
+}
+
+func (network *IPv6AddressNetwork) GetNetworkIPv6Address(prefLen PrefixLen) *IPv6Address {
+	//TODO
+	return nil
+}
+
+func (network *IPv6AddressNetwork) GetNetworkIPv6Mask(prefLen PrefixLen, withPrefixLength bool) *IPv6Address {
 	//TODO
 	return nil
 }
@@ -87,6 +109,24 @@ func (network *IPv4AddressNetwork) GetAddressCreator() AddressCreator {
 }
 
 func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
+	//TODO
+	return nil
+}
+
+func (network *IPv4AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
+	return network.GetNetworkIPv4Address(prefLen).ToIPAddress()
+}
+
+func (network *IPv4AddressNetwork) GetNetworkMask(prefLen PrefixLen, withPrefixLength bool) *IPAddress {
+	return network.GetNetworkIPv4Mask(prefLen, withPrefixLength).ToIPAddress()
+}
+
+func (network *IPv4AddressNetwork) GetNetworkIPv4Address(prefLen PrefixLen) *IPv4Address {
+	//TODO
+	return nil
+}
+
+func (network *IPv4AddressNetwork) GetNetworkIPv4Mask(prefLen PrefixLen, withPrefixLength bool) *IPv4Address {
 	//TODO
 	return nil
 }

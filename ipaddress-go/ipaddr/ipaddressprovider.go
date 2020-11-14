@@ -2,6 +2,66 @@ package ipaddr
 
 import "sync"
 
+/*
+package main
+
+import (
+	"fmt"
+)
+
+type foo interface {
+	bar() int
+}
+
+type x struct {
+	x int
+}
+
+func (*x) bar() int {
+	return 1
+}
+
+type y struct {
+	x int
+}
+
+func (*y) bar() int {
+	return 2
+}
+
+type z struct {
+	x int
+}
+
+func (z) bar() int {
+	return 1
+}
+
+func main() {
+	one := x{1}
+	same := x{1}
+
+	two := y{1}
+
+	var foo1, foo2 foo = &one, &two
+	var foo3 = &one
+	var foosame = &same
+
+	fmt.Println("interfaces equal, types different", foo1 == foo2)
+	fmt.Println("interfaces equal, same pointer ", foo1 == foo3)
+	fmt.Println("interfaces equal, types same, values same, not same pointer ", foo1 == foosame)
+	fmt.Println("structs equal, types same, values same", one == same)
+
+	onez := z{1}
+	samez := z{1}
+	var foo1z, foosamez foo = onez, samez
+	fmt.Println("interfaces equal, types same, values same, not pointer ", foo1z == foosamez)
+
+}
+
+// https://stackoverflow.com/questions/34245932/checking-equality-of-interface#34246225
+*/
+
 // All IP address strings corresponds to exactly one of these types.
 // In cases where there is no corresponding default IPAddress value (INVALID, ALL, and possibly EMPTY), these types can be used for comparison.
 // EMPTY means a zero-length string (useful for validation, we can set validation to allow empty strings) that has no corresponding IPAddress value (validation options allow you to map empty to the loopback)
@@ -31,7 +91,7 @@ const (
 	EMPTY
 	IPV4
 	IPV6
-	PREFIX_ONLY
+	//PREFIX_ONLY
 	ALL
 )
 
@@ -92,8 +152,6 @@ type IPAddressProvider interface {
 	isProvidingIPv4() bool
 
 	isProvidingIPv6() bool
-
-	isProvidingPrefixOnly() bool
 
 	isProvidingAllAddresses() bool
 
@@ -246,10 +304,6 @@ func (p *ipAddrProvider) isProvidingIPv6() bool {
 	return false
 }
 
-func (p *ipAddrProvider) isProvidingPrefixOnly() bool {
-	return false
-}
-
 func (p *ipAddrProvider) isProvidingAllAddresses() bool {
 	return false
 }
@@ -302,16 +356,6 @@ func providerCompare(p, other IPAddressProvider) (res int, err IncompatibleAddre
 		}
 	}
 	var thisType, otherType IPType = p.getType(), other.getType()
-	if thisType == UNINITIALIZED_TYPE {
-		if otherType == UNINITIALIZED_TYPE {
-			return
-		}
-		res = -1
-		return
-	} else if otherType == UNINITIALIZED_TYPE {
-		res = 1
-		return
-	}
 	res = int(thisType - otherType)
 	return
 }
@@ -340,9 +384,11 @@ func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddre
 		if otherValue != nil {
 			// TODO equals, but also, think about struct ==, would be nice if that worked!
 			// But won't with cache, UNLESS I make it so ALL addresses the same have same cache ALWAYS, which is possible!
-			// But you gotta be careful, once you support it you don't want to renege
+			// Actually no, not possible, you would need a cache for every address, not every segment.  Too many.
+			//
+			// You gotta be careful, once you support it you don't want to renege
 			// Seems common to have "equal" methods. eg https://godoc.org/bytes#Equal
-			// There are vays, namely spearate the stuff for comparison: https://stackoverflow.com/questions/47134293/compare-structs-except-one-field-golang
+			// There are vays, namely separate the stuff for comparison: https://stackoverflow.com/questions/47134293/compare-structs-except-one-field-golang
 			// BUT note that == does not work on slices!  But it does work on arrays.  And you will likely use slices in sections.
 			//https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
 			//res = value.equals(otherValue)
@@ -423,9 +469,7 @@ type CachedAddressProvider struct {
 
 	values CachedIPAddresses
 
-	//TODO you must assign the addressCreator when created as nested
-
-	// addressCreator creates both host address and address with prefix/mask
+	// addressCreator creates two addresses, the host address and address with prefix/mask, at the same time
 	addressCreator func() CachedIPAddresses
 	created        atomicFlag
 	createLock     sync.Mutex
@@ -505,7 +549,7 @@ func (cached *CachedAddressProvider) isProvidingIPv6() bool {
 type VersionedAddressCreator struct {
 	CachedAddressProvider
 
-	//TODO you must assign the versionedAddressCreator and options when created as nested
+	adjustedVersion IPVersion
 
 	versionedAddressCreator func(IPVersion) *IPAddress
 	createdVersioned        [2]atomicFlag
@@ -516,6 +560,26 @@ type VersionedAddressCreator struct {
 
 func (versioned *VersionedAddressCreator) getParameters() IPAddressStringParameters {
 	return versioned.parameters
+}
+
+func (versioned *VersionedAddressCreator) isProvidingIPAddress() bool {
+	return versioned.adjustedVersion != UNKNOWN_VERSION
+}
+
+func (versioned *VersionedAddressCreator) isProvidingIPv4() bool {
+	return versioned.adjustedVersion == IPv4
+}
+
+func (versioned *VersionedAddressCreator) isProvidingIPv6() bool {
+	return versioned.adjustedVersion == IPv6
+}
+
+func (versioned *VersionedAddressCreator) getProviderIPVersion() IPVersion {
+	return versioned.adjustedVersion
+}
+
+func (versioned *VersionedAddressCreator) getType() IPType {
+	return fromVersion(versioned.adjustedVersion)
 }
 
 func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressException) {
@@ -541,7 +605,6 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	// In Go the default will be IPv4
 	// There is another option I wanted to add, was in the validator code, I think allow empty zone with prefix like %/
 	var preferIPv6 bool
-	var addrCreator func() CachedIPAddresses
 	ipv6WithZoneLoop := func() *IPAddress {
 		network := options.GetIPv6Parameters().GetNetwork()
 		creator := network.GetIPAddressCreator()
@@ -556,35 +619,42 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	double := func(one *IPAddress) CachedIPAddresses {
 		return CachedIPAddresses{one, one}
 	}
+	var addrCreator func() CachedIPAddresses
+	var version IPVersion
 	if len(zone) > 0 && preferIPv6 {
 		addrCreator = func() CachedIPAddresses { return double(ipv6WithZoneLoop()) }
+		version = IPv6
 	} else if preferIPv6 {
 		addrCreator = func() CachedIPAddresses { return double(ipv6Loop()) }
+		version = IPv6
 	} else {
 		addrCreator = func() CachedIPAddresses { return double(ipv4Loop()) }
+		version = IPv4
 	}
 	cached := CachedAddressProvider{addressCreator: addrCreator}
+	versionedAddressCreator := func(version IPVersion) *IPAddress {
+		if cached.hasCachedAddresses() {
+			addr := cached.values.address
+			if version == addr.GetIPVersion() {
+				return addr
+			}
+		}
+		if version.isIPv4() {
+			return ipv4Loop()
+		} else if version.isIPv6() {
+			if len(zone) > 0 {
+				return ipv6WithZoneLoop()
+			}
+			return ipv6Loop()
+		}
+		return nil
+	}
 	return &LoopbackCreator{
 		VersionedAddressCreator: VersionedAddressCreator{
-			parameters:            options,
-			CachedAddressProvider: cached,
-			versionedAddressCreator: func(version IPVersion) *IPAddress {
-				if cached.hasCachedAddresses() {
-					addr := cached.values.address
-					if version == addr.GetIPVersion() {
-						return addr
-					}
-				}
-				if version.isIPv4() {
-					return ipv4Loop()
-				} else if version.isIPv6() {
-					if len(zone) > 0 {
-						return ipv6WithZoneLoop()
-					}
-					return ipv6Loop()
-				}
-				return nil
-			},
+			adjustedVersion:         version,
+			parameters:              options,
+			CachedAddressProvider:   cached,
+			versionedAddressCreator: versionedAddressCreator,
 		},
 		zone: zone,
 	}
@@ -611,26 +681,7 @@ func (loop *LoopbackCreator) getProviderNetworkPrefixLength() PrefixLen {
 type AdjustedAddressCreator struct {
 	VersionedAddressCreator
 
-	//TODO you must assign the networkPrefixLength (could be nil) and in some cases the adjustedVersion
-
-	adjustedVersion     IPVersion
 	networkPrefixLength PrefixLen
-}
-
-func (adjusted *AdjustedAddressCreator) isProvidingIPAddress() bool {
-	return adjusted.adjustedVersion != UNKNOWN_VERSION
-}
-
-func (adjusted *AdjustedAddressCreator) isProvidingIPv4() bool {
-	return adjusted.adjustedVersion == IPv4
-}
-
-func (adjusted *AdjustedAddressCreator) isProvidingIPv6() bool {
-	return adjusted.adjustedVersion == IPv6
-}
-
-func (adjusted *AdjustedAddressCreator) getProviderIPVersion() IPVersion {
-	return adjusted.adjustedVersion
 }
 
 func (adjusted *AdjustedAddressCreator) getProviderNetworkPrefixLength() PrefixLen {
@@ -651,8 +702,216 @@ func (adjusted *AdjustedAddressCreator) getProviderHostAddress() (*IPAddress, In
 	return adjusted.VersionedAddressCreator.getProviderHostAddress()
 }
 
-//TODO next: your other providers (All, mask, empty), culminating in parsedIPAddress
-// next on the list is the versioned creator, then All, mask, empty, then parsedIPAddress
+// TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
+// INside this function we will handle the cases where it is still not determined, and that will be based on our new rules
+// involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
+//			(b) this behaviour can be overridden by a string parameters option
+
+func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *MaskCreator {
+	// TODO use the option for  preferred loopback also for preferred mask, do the same in Java
+	// TODO also, consider the idea of preflen < 32 defaulting to IPv4, >= 32 IPv6
+	// Drop "prefix only" type - it was never a good idea anyway!  Better to prefer one over the other.
+
+	var preferIPv6 bool
+
+	if adjustedVersion == UNKNOWN_VERSION {
+		if preferIPv6 {
+			adjustedVersion = IPv6
+		} else {
+			adjustedVersion = IPv4
+		}
+	}
+	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
+		if version == IPv4 {
+			network := options.GetIPv4Parameters().GetNetwork()
+			if withPrefixLength {
+				return network.GetNetworkIPAddress(prefLen)
+			}
+			return network.GetNetworkMask(prefLen, false)
+		} else if version == IPv6 {
+			network := options.GetIPv6Parameters().GetNetwork()
+			if withPrefixLength {
+				return network.GetNetworkIPAddress(prefLen)
+			}
+			return network.GetNetworkMask(prefLen, false)
+		}
+		return nil
+	}
+	versionedAddressCreator := func(version IPVersion) *IPAddress {
+		return createVersionedMask(version, networkPrefixLength, true)
+	}
+	addrCreator := func() CachedIPAddresses {
+		prefLen := networkPrefixLength
+		return CachedIPAddresses{
+			address:     createVersionedMask(adjustedVersion, prefLen, true),
+			hostAddress: createVersionedMask(adjustedVersion, prefLen, false),
+		}
+	}
+	cached := CachedAddressProvider{addressCreator: addrCreator}
+	return &MaskCreator{
+		AdjustedAddressCreator{
+			networkPrefixLength: networkPrefixLength,
+			VersionedAddressCreator: VersionedAddressCreator{
+				adjustedVersion:         adjustedVersion,
+				parameters:              options,
+				CachedAddressProvider:   cached,
+				versionedAddressCreator: versionedAddressCreator,
+			},
+		},
+	}
+}
+
+type MaskCreator struct {
+	AdjustedAddressCreator
+}
+
+// TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
+// INside this function we will handle the cases where it is still not determined, and that will be based on our new rules
+// involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
+//			(b) this behaviour can be overridden by a string parameters option
+
+func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) *AllCreator {
+	// TODO use the option for  preferred loopback also for preferred mask, do the same in Java
+	// TODO also, consider the idea of preflen < 32 defaulting to IPv4, >= 32 IPv6
+	// Drop "prefix only" type - it was never a good idea anyway!  Better to prefer one over the other.
+
+	var preferIPv6 bool
+	if adjustedVersion == UNKNOWN_VERSION {
+		// TODO do we defer to a version for "*"?  I prefer not.  I like it as is.
+		// But we do use the adjusting rules (not this block) and we use the prefix length rules (this block).
+		if preferIPv6 { // TODO this amounts to checkign the prefix length
+			adjustedVersion = IPv6
+		} else {
+			adjustedVersion = IPv4
+		}
+	}
+	var addrCreator func() CachedIPAddresses
+	if *qualifier == *NO_QUALIFIER {
+		addrCreator = func() CachedIPAddresses {
+			addr := createAllAddress(adjustedVersion, NO_QUALIFIER, originator, options)
+			return CachedIPAddresses{addr, addr}
+		}
+	} else {
+		addrCreator = func() CachedIPAddresses {
+			addr := createAllAddress(adjustedVersion, qualifier, originator, options)
+			if qualifier.zone == "" {
+				hostAddr := createAllAddress(adjustedVersion, NO_QUALIFIER, originator, options)
+				return CachedIPAddresses{addr, hostAddr}
+			}
+			qualifier2 := ParsedHostIdentifierStringQualifier{zone: qualifier.zone}
+			hostAddr := createAllAddress(adjustedVersion, &qualifier2, originator, options)
+			return CachedIPAddresses{addr, hostAddr}
+		}
+	}
+	cached := CachedAddressProvider{addressCreator: addrCreator}
+	return &AllCreator{
+		AdjustedAddressCreator: AdjustedAddressCreator{
+			networkPrefixLength: qualifier.getEquivalentPrefixLength(),
+			VersionedAddressCreator: VersionedAddressCreator{
+				adjustedVersion:       adjustedVersion,
+				parameters:            options,
+				CachedAddressProvider: cached,
+				versionedAddressCreator: func(version IPVersion) *IPAddress {
+					return createAllAddress(version, qualifier, originator, options)
+				},
+			},
+		},
+		originator: originator,
+		qualifier:  *qualifier,
+	}
+}
+
+type AllCreator struct {
+	AdjustedAddressCreator
+
+	originator HostIdentifierString
+	qualifier  ParsedHostIdentifierStringQualifier //TODO copy the original to here
+}
+
+func (all *AllCreator) getType() IPType {
+	if !all.adjustedVersion.isUnknown() {
+		return fromVersion(all.adjustedVersion)
+	}
+	return ALL
+}
+
+func (all *AllCreator) isProvidingAllAddresses() bool {
+	return all.adjustedVersion == UNKNOWN_VERSION
+}
+
+func (all *AllCreator) getProviderNetworkPrefixLength() PrefixLen {
+	return all.qualifier.getEquivalentPrefixLength()
+}
+
+func (all *AllCreator) getProviderMask() *IPAddress {
+	return all.qualifier.getMaskLower()
+}
+
+// TODO the ones below later
+//		@Override
+//		public Boolean contains(IPAddressProvider otherProvider) {
+//			if(otherProvider.isInvalid()) {
+//				return Boolean.FALSE;
+//			} else if(adjustedVersion == null) {
+//				return Boolean.TRUE;
+//			}
+//			return adjustedVersion == otherProvider.getProviderIPVersion();
+//		}
+//		@Override
+//		public IPAddressSeqRange getProviderSeqRange() {
+//			if(isProvidingAllAddresses()) {
+//				return null;
+//			}
+//			IPAddress mask = getProviderMask();
+//			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
+//				// we must apply the mask
+//				IPAddress all = ParsedIPAddress.createAllAddress(adjustedVersion, ParsedHost.NO_QUALIFIER, null, options);
+//				IPAddress upper = all.getUpper().mask(mask);
+//				IPAddress lower = all.getLower();
+//				return lower.toSequentialRange(upper);
+//			}
+//			return super.getProviderSeqRange();
+//		}
+//
+//		@Override
+//		public boolean isSequential() {
+//			return !isProvidingAllAddresses();
+//		}
+//
+//		@Override
+//		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
+//			if(isProvidingAllAddresses()) {
+//				return null;
+//			}
+//			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.isIPv4() ?
+//					options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
+//			IPAddress mask = getProviderMask();
+//			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
+//				// there is a mask
+//				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLength(false);
+//				if(hostMaskPrefixLen == null) { // not a host mask
+//					throw new IncompatibleAddressException(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
+//				}
+//				IPAddress hostMask = network.getHostMask(hostMaskPrefixLen);
+//				return hostMask.toPrefixBlock();
+//			}
+//			IPAddressDivisionSeries grouping;
+//			if(adjustedVersion.isIPv4()) {
+//				grouping = new IPAddressDivisionGrouping(new IPAddressBitsDivision[] {
+//							new IPAddressBitsDivision(0, IPv4Address.MAX_VALUE, IPv4Address.BIT_COUNT, IPv4Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())
+//						}, network);
+//			} else if(adjustedVersion.isIPv6()) {
+//				byte upperBytes[] = new byte[16];
+//				Arrays.fill(upperBytes, (byte) 0xff);
+//				grouping = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] {new IPAddressLargeDivision(new byte[IPv6Address.BYTE_COUNT], upperBytes, IPv6Address.BIT_COUNT, IPv6Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())}, network);
+//			} else {
+//				grouping = null;
+//			}
+//			return grouping;
+//		}
+//	}
+
+//TODO next: ParsedIPAddress
 
 // TODO progress
 // - Move towards address creation - need ipaddress provider types fleshed out, and in particular ParsedIPAddress

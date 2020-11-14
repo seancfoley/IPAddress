@@ -77,15 +77,7 @@ func (ip XIPv6) toIP() XIP {
 	}
 }
 
-//So there ya have it.  Now we can also implement any old interface, like IPAddressSegmentSeries and IPAddressDivisionSeries.
-
-//TODO try out creating a couple of the interfaces, maybe the above two, just need to see if we can "override" methods in interfaces too
-//same as the way we override getDiv above
 //TODO run godoc on this, see what happens
-
-//TODO constructors?  Could be tricky figuring out how to map the constructor code.
-//frankly, might have to just have a bunch of "NewIPv6" methods.  Actually, with the new structure that hides internal structure of IPs,
-//the NewIPV6 methods should be fine
 
 //godoc:  godoc -http ":8080"
 //Or

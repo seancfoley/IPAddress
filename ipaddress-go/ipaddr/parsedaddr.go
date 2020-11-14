@@ -51,3 +51,12 @@ func (parseData *ParsedIPAddress) getType() IPType {
 func (parseData *ParsedIPAddress) getIPAddressParseData() *IPAddressParseData {
 	return &parseData.IPAddressParseData
 }
+
+func createAllAddress(
+	version IPVersion,
+	qualifier *ParsedHostIdentifierStringQualifier,
+	originator HostIdentifierString,
+	options IPAddressStringParameters) *IPAddress {
+	//TODO
+	return nil
+}

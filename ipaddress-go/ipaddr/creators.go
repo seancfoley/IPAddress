@@ -11,7 +11,9 @@ package ipaddr
 //
 // 2. it's clecer but easy to get confused with that, another technique is function pointers
 //
-// 3. another way is a dup method of same name in higher rtype that calls down to the lower, so lower does not have to call up
+// 3. another way is a dup method of same name in higher type that calls down to the lower, so lower does not have to call up
+// Kinda like overriding and works fine when calling from the higher
+// Sub has x(), Base has x(), sub x calls Base x
 //	This one is natural
 //
 // both 1,2 require "New" methods, 3 does not
@@ -249,17 +251,6 @@ package ipaddr
 //	}
 //}
 
-type MaskCreator struct {
-	AdjustedAddressCreator
-}
-
-func (mc *MaskCreator) getType() IPType {
-	if !mc.adjustedVersion.isUnknown() {
-		return fromVersion(mc.adjustedVersion)
-	}
-	return PREFIX_ONLY
-}
-
 //static class MaskCreator extends AdjustedAddressCreator {
 //
 //
@@ -420,19 +411,19 @@ func (mc *MaskCreator) getType() IPType {
 //		}
 //	}
 
-type AllCreator struct {
-	AdjustedAddressCreator
-
-	originator HostIdentifierString
-	qualifier  ParsedHostIdentifierStringQualifier //TODO copy the original to here
-}
-
-func (all *AllCreator) getType() IPType {
-	if !all.adjustedVersion.isUnknown() {
-		return fromVersion(all.adjustedVersion)
-	}
-	return ALL
-}
+//type AllCreator struct {
+//	AdjustedAddressCreator
+//
+//	originator HostIdentifierString
+//	qualifier  ParsedHostIdentifierStringQualifier //TODO copy the original to here
+//}
+//
+//func (all *AllCreator) getType() IPType {
+//	if !all.adjustedVersion.isUnknown() {
+//		return fromVersion(all.adjustedVersion)
+//	}
+//	return ALL
+//}
 
 //static class AllCreator extends AdjustedAddressCreator {
 //	private static final long serialVersionUID = 4L;
