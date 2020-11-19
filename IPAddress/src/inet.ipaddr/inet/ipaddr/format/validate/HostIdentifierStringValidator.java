@@ -44,7 +44,6 @@ public interface HostIdentifierStringValidator {
 	/**
 	 * 
 	 * @param fromString
-	 * @param stringChars optional, the characters to be parsed.  If null, fromString.toString() is used.
 	 * @return
 	 * @throws AddressStringException
 	 */

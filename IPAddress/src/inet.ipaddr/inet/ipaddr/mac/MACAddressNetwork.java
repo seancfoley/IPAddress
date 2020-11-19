@@ -198,7 +198,7 @@ public class MACAddressNetwork extends AddressNetwork<MACAddressSegment> {
 		}
 
 		@Override
-		protected MACAddressSegment createSegmentInternal(int lower, int upper, Integer segmentPrefixLength,
+		protected MACAddressSegment createRangeSegmentInternal(int lower, int upper, Integer segmentPrefixLength,
 				CharSequence addressStr, int originalLower, int originalUpper, boolean isStandardString,
 				boolean isStandardRangeString, int lowerStringStartIndex, int lowerStringEndIndex,
 				int upperStringEndIndex) {

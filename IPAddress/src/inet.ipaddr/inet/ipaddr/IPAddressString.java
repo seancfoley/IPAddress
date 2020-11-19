@@ -993,7 +993,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * or a format that does not match the provided version, then this method throws {@link AddressStringException}.
 	 * <p>
 	 * @param version the address version that this address should represent.
-	 * @return
+	 * @return the address or null if the parsed address version does not match
 	 * @throws AddressStringException
 	 * @throws IncompatibleAddressException address in proper format cannot be converted to an address: for masks inconsistent with associated address range, or ipv4 mixed segments that cannot be joined into ipv6 segments
 	 */

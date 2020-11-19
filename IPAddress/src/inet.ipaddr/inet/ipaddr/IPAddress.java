@@ -472,13 +472,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	@Override
 	public abstract IPAddress incrementBoundary(long increment) throws AddressValueException;
 	
-	public boolean isIPv4() {
-		return getSection().isIPv4();
-	}
+	public abstract boolean isIPv4();
 	
-	public boolean isIPv6() {
-		return getSection().isIPv6();
-	}
+	public abstract boolean isIPv6();
 	
 	@Override
 	public IPVersion getIPVersion() {

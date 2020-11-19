@@ -137,6 +137,18 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 			return address;
 		}
+		
+		boolean hasLowerSection() {
+			return lowerSection != null;
+		}
+		
+		boolean hasHostAddress() {
+			return hostAddress != null;
+		}
+		
+		boolean hasAddress() {
+			return address != null;
+		}
 
 		@Override
 		public T getHostAddress() {
@@ -144,7 +156,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				return getAddress();
 			}
 			if(hostAddress == null) {
-				hostAddress = getCreator().createAddressInternal(hostSection, getQualifier().getZone(), null);
+				hostAddress = getCreator().createAddressInternal(hostSection, getZone(), null);
 			}
 			return hostAddress;
 		}
@@ -157,7 +169,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			return getQualifier().getZone();
 		}
 		
-		boolean withoutAddresses() {
+		boolean withoutSections() {
 			return section == null;
 		}
 		
@@ -226,12 +238,12 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return options;
 	}
 
-	void createAddresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
+	void createSections(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		IPVersion version = getProviderIPVersion();
 		if(version.isIPv4()) {
-			createIPv4Addresses(doAddress, doRangeBoundaries, withUpper);
+			createIPv4Sections(doAddress, doRangeBoundaries, withUpper);
 		} else if(version.isIPv6()) {
-			createIPv6Addresses(doAddress, doRangeBoundaries, withUpper);
+			createIPv6Sections(doAddress, doRangeBoundaries, withUpper);
 		}
 	}
 
@@ -242,13 +254,14 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			synchronized(this) {
 				val = values;
 				if(val == null || val.range == null) {
-					if(val != null && !val.withoutAddresses() && val.withoutAddressException()) {
+					if(val != null && !val.withoutSections() && val.withoutAddressException()) {
 						val.range = val.getAddress().toSequentialRange();
 					} else {
-						createAddresses(false, true, true);
+						createSections(false, true, true);
 						val = values;
+						// creates lower, upper, then range from the two
 						val.createRange();
-						if(doneTranslating()) {
+						if(isDoneTranslating()) {
 							releaseSegmentData();
 						}
 					}
@@ -258,20 +271,21 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return val.range;
 	}
 
-	// this is for parsed addresses which are masks in and of themselves
-	// with masks, only the lower value matters
+	// This is for parsed addresses which are masks in and of themselves.
+	// With masks, only the lower value matters.
 	IPAddress getValForMask() {
 		TranslatedResult<?,?> val = values;
-		if(val == null || val.lowerSection == null) {
+		if(val == null || !val.hasLowerSection()) {
 			synchronized(this) {
 				val = values;
-				if(val == null || val.lowerSection == null) {
-					createAddresses(false, true, false);
+				if(val == null || !val.hasLowerSection()) {
+					createSections(false, true, false);
 					val = values;
 					releaseSegmentData(); // As a mask value, we can release our data sooner, there will be no request for address or division grouping
 				}
 			}
 		}
+		// requests for masks are single-threaded, so locking no longer required
 		return val.getValForMask();
 	}
 	
@@ -281,24 +295,39 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return getQualifier().getMaskLower();
 	}
 
-	boolean doneTranslating() {
+	boolean isDoneTranslating() {
 		TranslatedResult<?,?> val = values;
-		return !val.withoutAddresses() /* address sections created */ && 
+		return !val.withoutSections() /* address sections created */ && 
 				(val.withoutAddressException() /* range can be created from sections */
 						|| !val.withoutRange() /* range already created (from sections or boundaries) */) &&
 				!val.withoutGrouping();
 	}
 
-	TranslatedResult<?,?> getCachedAddresses()  {
+	TranslatedResult<?,?> getCachedAddresses(boolean forHostAddr)  {
 		TranslatedResult<?,?> val = values;
-		if(val == null || val.withoutAddresses()) {
+		if(val == null || val.withoutSections()) {
 			synchronized(this) {
 				val = values;
-				if(val == null || val.withoutAddresses()) {
-					createAddresses(true, false, false);
+				if(val == null || val.withoutSections()) {
+					createSections(true, false, false);
 					val = values;
-					if(doneTranslating()) {
+					if(isDoneTranslating()) {
 						releaseSegmentData();
+					}
+				} 
+				if(forHostAddr) {
+					val.getHostAddress();
+				} else {
+					val.getAddress();
+				}
+			}
+		} else {
+			if(forHostAddr ? !val.hasHostAddress() : !val.hasAddress()) {
+				synchronized(this) {
+					if(forHostAddr) {
+						val.getHostAddress();
+					} else {
+						val.getAddress();
 					}
 				}
 			}
@@ -306,6 +335,39 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return val;
 	}
 
+	@Override
+	public IPAddress getProviderHostAddress() throws IncompatibleAddressException {
+		TranslatedResult<?,?> addrs = getCachedAddresses(true);
+		if(addrs.mixedException != null) {
+			throw addrs.mixedException;
+		} else if(addrs.joinHostException != null) {
+			throw addrs.joinHostException;
+		}
+		return addrs.getHostAddress();
+	}
+	
+	@Override
+	public IPAddress getProviderAddress() throws IncompatibleAddressException {
+		TranslatedResult<?,?> addrs = getCachedAddresses(false);
+		if(addrs.mixedException != null) {
+			throw addrs.mixedException;
+		} else if(addrs.maskException != null) {
+			throw addrs.maskException;
+		} else if(addrs.joinAddressException != null) {
+			throw addrs.joinAddressException;
+		}
+		return addrs.getAddress();
+	}
+	
+	@Override
+	public IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException {
+		IPVersion thisVersion = getProviderIPVersion();
+		if(!version.equals(thisVersion)) {
+			return null;
+		}
+		return getProviderAddress();
+	}
+	
 	@Override
 	public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
 		TranslatedResult<?,?> val = values;
@@ -316,13 +378,13 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				return grouping;
 			}
 		}		
-		if(val == null || (val.withoutAddresses() && val.withoutRange())) {
+		if(val == null || (val.withoutSections() && val.withoutRange())) {
 			// we need the bit lengths and maskers that are calculated when constructing,
 			// so we construct here since not done already
 			synchronized(this) {
 				val = values;
-				if(val == null || (val.withoutAddresses() && val.withoutRange())) {
-					createAddresses(true, false, false); // create addresses
+				if(val == null || (val.withoutSections() && val.withoutRange())) {
+					createSections(true, false, false); // create addresses
 				}
 			}
 		}
@@ -647,7 +709,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						grouping = new IPAddressDivisionGrouping(divs, network);
 					}
 					val.series = grouping;
-					if(doneTranslating()) {
+					if(isDoneTranslating()) {
 						releaseSegmentData();
 					}
 				}
@@ -1397,7 +1459,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		TranslatedResult<?,?> val = values;
 		if(val != null) {
 			// check address first
-			if(!val.withoutAddresses()) {
+			if(!val.withoutSections()) {
 				// address already there, use it if we can
 				if(val.withoutAddressException()) {
 					return val.getAddress().isSequential();
@@ -1409,44 +1471,11 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 		}
 		// neither address nor grouping is there, create the address
-		val = getCachedAddresses();
+		val = getCachedAddresses(false);
 		if(val.withoutAddressException()) {
 			return val.getAddress().isSequential();
 		}
 		return groupingIsSequential();
-	}
-	
-	@Override
-	public IPAddress getProviderHostAddress() throws IncompatibleAddressException {
-		TranslatedResult<?,?> addrs = getCachedAddresses();
-		if(addrs.mixedException != null) {
-			throw addrs.mixedException;
-		} else if(addrs.joinHostException != null) {
-			throw addrs.joinHostException;
-		}
-		return addrs.getHostAddress();
-	}
-	
-	@Override
-	public IPAddress getProviderAddress() throws IncompatibleAddressException {
-		TranslatedResult<?,?> addrs = getCachedAddresses();
-		if(addrs.mixedException != null) {
-			throw addrs.mixedException;
-		} else if(addrs.maskException != null) {
-			throw addrs.maskException;
-		} else if(addrs.joinAddressException != null) {
-			throw addrs.joinAddressException;
-		}
-		return addrs.getAddress();
-	}
-	
-	@Override
-	public IPAddress getProviderAddress(IPVersion version) throws IncompatibleAddressException {
-		IPVersion thisVersion = getProviderIPVersion();
-		if(!version.equals(thisVersion)) {
-			return null;
-		}
-		return getProviderAddress();
 	}
 	
 	// skips contains checking for addresses already parsed - 
@@ -2204,7 +2233,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			int compressedCount = IPv6Address.SEGMENT_COUNT - segmentCount;
 			int compressedIndex = addressParseData.getConsecutiveSeparatorSegmentIndex();
 			return ParsedAddressGrouping.isPrefixSubnet(
-					(segmentIndex) -> {
+					segmentIndex -> {
 						if(segmentIndex >= compressedIndex) {
 							if(segmentIndex - compressedIndex < compressedCount) {
 								return 0;
@@ -2213,7 +2242,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						}
 						return (int) getValue(segmentIndex, AddressParseData.KEY_LOWER, segmentData);
 					},
-					(segmentIndex) -> {
+					segmentIndex -> {
 						if(segmentIndex >= compressedIndex) {
 							if(segmentIndex - compressedIndex < compressedCount) {
 								return 0;
@@ -2232,8 +2261,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 		//we do not enter this method with parse data from inet_aton or single segment strings, so the cast to int is fine
 		return ParsedAddressGrouping.isPrefixSubnet(
-				(segmentIndex) -> (int) getValue(segmentIndex, AddressParseData.KEY_LOWER, segmentData),
-				(segmentIndex) -> (int) getValue(segmentIndex, AddressParseData.KEY_UPPER, segmentData),
+				segmentIndex -> (int) getValue(segmentIndex, AddressParseData.KEY_LOWER, segmentData),
+				segmentIndex -> (int) getValue(segmentIndex, AddressParseData.KEY_UPPER, segmentData),
 				segmentCount,
 				bytesPerSegment,
 				bitsPerSegment,
@@ -2263,11 +2292,11 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		return segments;
 	}
 
-	private void createIPv4Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
+	private void createIPv4Sections(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
-			mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
+			mask = null; // we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 		}
 		boolean hasMask = mask != null;
 		AddressParseData addrParseData = getAddressParseData();
@@ -2593,7 +2622,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		}
 	}
 
-	private void createIPv6Addresses(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
+	private void createIPv6Sections(boolean doAddress, boolean doRangeBoundaries, boolean withUpper) throws IncompatibleAddressException {
 		ParsedHostIdentifierStringQualifier qualifier = getQualifier();
 		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
@@ -3012,9 +3041,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					}
 					if(!isRange) {
 						if(doHostSegment) {
-							hostSegments[normalizedSegmentIndex] = createSegment(originalOneLower, originalTwoLower, null, creator);
+							hostSegments[normalizedSegmentIndex] = createIPv6Segment(originalOneLower, originalTwoLower, null, creator);
 						}
-						segments[normalizedSegmentIndex] = createSegment(
+						segments[normalizedSegmentIndex] = createIPv6Segment(
 								oneLower,
 								twoLower,
 								segmentPrefixLength,
@@ -3022,7 +3051,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					} else {
 						// this can throw IncompatibleAddressException
 						if(doHostSegment) {
-							hostSegments[normalizedSegmentIndex] = createSegment(
+							hostSegments[normalizedSegmentIndex] = createIPv6RangeSegment(
 									finalResult,
 									ipv4Range,
 									originalOneLower,
@@ -3032,7 +3061,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 									null,
 									creator);
 						}
-						segments[normalizedSegmentIndex] = createSegment(
+						segments[normalizedSegmentIndex] = createIPv6RangeSegment(
 								finalResult,
 								ipv4Range,
 								oneLower,
@@ -3048,7 +3077,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						if(doAddress) {
 							lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex);
 						} // else segments already allocated
-						lowerSegments[normalizedSegmentIndex] = createSegment(
+						lowerSegments[normalizedSegmentIndex] = createIPv6Segment(
 								oneLower,
 								twoLower,
 								segmentPrefixLength,
@@ -3059,7 +3088,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					if(withUpper) {
 						if(isRange) {
 							upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex);
-							upperSegments[normalizedSegmentIndex] = createSegment(
+							upperSegments[normalizedSegmentIndex] = createIPv6Segment(
 									oneUpper,
 									twoUpper,
 									segmentPrefixLength, // we must keep prefix length for upper to get prefix subnet creation
@@ -3198,7 +3227,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	/*
 	 * create an IPv6 segment by joining two IPv4 segments
 	 */
-	private IPv6AddressSegment createSegment(int value1, int value2, Integer segmentPrefixLength, IPv6AddressCreator creator) {
+	private IPv6AddressSegment createIPv6Segment(int value1, int value2, Integer segmentPrefixLength, IPv6AddressCreator creator) {
 		int value = (value1 << IPv4Address.BITS_PER_SEGMENT) | value2;
 		IPv6AddressSegment result = creator.createSegment(value, segmentPrefixLength);
 		return result;
@@ -3207,7 +3236,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	/*
 	 * create an IPv6 segment by joining two IPv4 segments
 	 */
-	private IPv6AddressSegment createSegment(
+	private static IPv6AddressSegment createIPv6RangeSegment(
 			TranslatedResult<?,?> finalResult,
 			AddressItem item,
 			int upperRangeLower,
@@ -3261,7 +3290,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(!useFlags) {
 			result = creator.createSegment(lower, upper, segmentPrefixLength);
 		} else {
-			result = creator.createSegmentInternal(
+			result = creator.createRangeSegmentInternal(
 				lower,
 				upper,
 				segmentPrefixLength,

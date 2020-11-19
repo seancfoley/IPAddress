@@ -107,24 +107,15 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 		overrideMask(other);
 	}
 	
-	private static Integer cacheBits(int i) {
-		return ParsedAddressGrouping.cache(i);
-	}
-	
 	void merge(ParsedHostIdentifierStringQualifier other) {
-		if(networkPrefixLength == null) {
+		if(networkPrefixLength == null || 
+				(other.networkPrefixLength != null && other.networkPrefixLength < networkPrefixLength)) {
 			networkPrefixLength = other.networkPrefixLength;
-		} else {
-			if(other.networkPrefixLength != null) {
-				networkPrefixLength = cacheBits(Math.min(networkPrefixLength, other.networkPrefixLength));
-			}
 		}
 		if(mask == null) {
 			mask = other.mask;
-		} else {
-			if(other.mask != null) {
-				mergedMask = getMaskLower().mask(other.getMaskLower());
-			}
+		} else if(other.mask != null) {
+			mergedMask = getMaskLower().mask(other.getMaskLower());
 		}
 	}
 
@@ -177,7 +168,8 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 			} else if(mask.isProvidingIPv4()) {
 				return IPVersion.IPV4;
 			}
-		} else if (zone != null) {
+		} 
+		if (zone != null) {
 			return IPVersion.IPV6;
 		}
 		return null;

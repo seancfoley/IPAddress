@@ -1460,6 +1460,16 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return this;
 	}
 	
+	@Override
+	public boolean isIPv4() {
+		return false;
+	}
+	
+	@Override
+	public boolean isIPv6() {
+		return true;
+	}
+	
 	/**
 	 * Determines whether this address can be converted to IPv4. 
 	 * Override this method to convert in your own way.

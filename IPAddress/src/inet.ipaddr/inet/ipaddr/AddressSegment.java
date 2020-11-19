@@ -119,7 +119,7 @@ public interface AddressSegment extends AddressComponent, AddressGenericDivision
 
 	/**
 	 * Analogous to {@link java.math.BigInteger#testBit},
-	 * Computes (this &amp; (1 &lt;&lt; n)) != 0)
+	 * Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
 	 * 
 	 * @see AddressSegmentSeries#testBit(int)
 	 * @see #isOneBit(int)

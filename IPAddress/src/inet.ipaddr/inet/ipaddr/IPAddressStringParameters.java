@@ -99,10 +99,8 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			if(!allowIPv4) {
 				return IPVersion.IPV6;
 			}
-		} else {
-			if(allowIPv4) {
+		} else if(allowIPv4) {
 				return IPVersion.IPV4;
-			}
 		}
 		return null;
 	}

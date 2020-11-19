@@ -271,7 +271,7 @@ class ParsedMACAddress extends MACAddressParseData implements MACAddressProvider
 		if(!useFlags) {
 			result = creator.createSegment(lower, upper, null);
 		} else {
-			result = creator.createSegmentInternal(
+			result = creator.createRangeSegmentInternal(
 				lower,
 				upper,
 				null,

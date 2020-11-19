@@ -231,7 +231,7 @@ class AddressParseData implements Serializable {
 		return segmentData[(segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator];
 	}
 	
-	void setIndexFlags(int segmentIndex,
+	void set7IndexFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
@@ -250,7 +250,7 @@ class AddressParseData implements Serializable {
 		segmentData[baseIndex | indexIndicator6] = value6;
 	}
 	
-	void setIndexFlags(int segmentIndex,
+	void set8IndexFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
@@ -271,7 +271,7 @@ class AddressParseData implements Serializable {
 		segmentData[baseIndex | indexIndicator7] = value7;
 	}
 	
-	void setIndexValuesFlags(int segmentIndex,
+	void set8Index4ValuesFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
@@ -307,7 +307,7 @@ class AddressParseData implements Serializable {
 		segmentData[index | 1] = (int) (value11 & 0xffffffff);
 	}
 	
-	void setIndexValuesFlags(int segmentIndex,
+	void set7Index4ValuesFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
@@ -340,7 +340,7 @@ class AddressParseData implements Serializable {
 		segmentData[index | 1] = (int) (value10 & 0xffffffff);
 	}
 	
-	void setIndexValuesFlags(int segmentIndex,
+	void set8Index2ValuesFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
@@ -366,7 +366,7 @@ class AddressParseData implements Serializable {
 		segmentData[baseIndex | indexIndicator7] = value7;
 	}
 	
-	void setIndexValuesFlags(int segmentIndex,
+	void set7Index2ValuesFlags(int segmentIndex,
 			int indexIndicator0, int value0,
 			int indexIndicator1, int value1,
 			int indexIndicator2, int value2,
