@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 const (
 	IPv4SegmentSeparator    = '.'
 	IPv4BitsPerSegment      = 8
@@ -16,7 +18,8 @@ const (
 
 //
 //
-//
+// IPv4Address is an IPv4 address, or a subnet of multiple IPv4 addresses.  Each segment can represent a single value or a range of values.
+// The zero value is 0.0.0.0
 type IPv4Address struct {
 	ipAddressInternal
 }
@@ -24,9 +27,19 @@ type IPv4Address struct {
 func (addr IPv4Address) init() {
 	if addr.hasNoDivisions() {
 		div := NewIPv4Segment(0).ToAddressDivision()
-		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []*AddressDivision{div, div, div, div}}}
+		addr.section = AddressSection{
+			addressSectionInternal{
+				addressDivisionGroupingInternal{
+					divisions: []*AddressDivision{div, div, div, div},
+				},
+			},
+		}
 	}
+}
+
+func (addr *IPv4Address) GetSegment(index int) *IPv4AddressSegment {
+	addr.init()
+	return addr.ipAddressInternal.GetSegment(index).ToIPv4AddressSegment()
 }
 
 func (addr *IPv4Address) IsIPv4() bool {
@@ -43,14 +56,24 @@ func (addr *IPv4Address) GetIPVersion() IPVersion {
 
 func (addr *IPv4Address) ToAddress() *Address {
 	addr.init()
-	return &addr.Address
+	return (*Address)(unsafe.Pointer(addr))
+	//return &addr.Address
 }
 
 func (addr *IPv4Address) ToIPAddress() *IPAddress {
 	addr.init()
-	return &addr.IPAddress
+	return (*IPAddress)(unsafe.Pointer(addr))
+	//return &addr.IPAddress
 }
 
-func (addr *IPv4Address) ToIPv4Address() *IPv4Address {
-	return addr
+func (addr *IPv4Address) IsIPv6Convertible() bool {
+	//TODO conversion
+	return false
+}
+
+func (addr *IPv4Address) ToIPv6Address() *IPv6Address {
+	//addr.init()
+	//TODO conversion
+	//return &addr.IPAddress
+	return nil
 }

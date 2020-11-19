@@ -13,27 +13,35 @@ const (
 	SegmentSqlSingleWildcard   = '_'
 )
 
-//
-//
-//
-type Address struct {
+type addressInternal struct {
 	section AddressSection
 	zone    string
 }
 
-func (addr *Address) getBytes() []byte {
+func (addr *addressInternal) GetSection() *AddressSection {
+	return &addr.section
+}
+
+func (addr *addressInternal) GetSegment(index int) *AddressSegment {
+	return addr.GetSection().GetSegment(index)
+}
+
+func (addr *addressInternal) getBytes() []byte {
 	return addr.section.getBytes()
 }
 
-func (addr *Address) hasNoDivisions() bool {
+func (addr *addressInternal) hasNoDivisions() bool {
 	return addr.section.hasNilDivisions()
+}
+
+type Address struct {
+	addressInternal
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {
 	if addr == nil {
 		return nil
-	}
-	if addr.section.matchesIPv4Address() || addr.section.matchesIPv6Address() {
+	} else if addr.section.matchesIPv4Address() || addr.section.matchesIPv6Address() {
 		return (*IPAddress)(unsafe.Pointer(addr))
 	}
 	return nil
@@ -42,8 +50,7 @@ func (addr *Address) ToIPAddress() *IPAddress {
 func (addr *Address) ToIPv6Address() *IPv6Address {
 	if addr == nil {
 		return nil
-	}
-	if addr.section.matchesIPv6Address() {
+	} else if addr.section.matchesIPv6Address() {
 		return (*IPv6Address)(unsafe.Pointer(addr))
 	}
 	return nil
@@ -52,15 +59,19 @@ func (addr *Address) ToIPv6Address() *IPv6Address {
 func (addr *Address) ToIPv4Address() *IPv4Address {
 	if addr == nil {
 		return nil
-	}
-	if addr.section.matchesIPv4Address() {
+	} else if addr.section.matchesIPv4Address() {
 		return (*IPv4Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
-type addressInternal struct {
-	Address
+func (addr *Address) ToMACAddress() *MACAddress {
+	if addr == nil {
+		return nil
+	} else if addr.section.matchesMACAddress() {
+		return (*MACAddress)(unsafe.Pointer(addr))
+	}
+	return nil
 }
 
 // EARLIER THOUGHTS, JUST KEEPING THEM AROUND IN CASE I FORGET THE REASONING,

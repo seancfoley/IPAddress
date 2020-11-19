@@ -64,6 +64,19 @@ func (a *hostNameException) Error() string {
 	return a.key
 }
 
+// TODO not so sure I need another exception type, but at the same time, distinguishing between errors would be nice
+
+type incompatibleAddressException struct {
+
+	// key to look up the error message
+	key string
+}
+
+func (a *incompatibleAddressException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
 // TODO xxxxx think about replacing interfaces above with these xxxx
 
 //TODO split into two types, one without index nested inside other with index

@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 const (
 	IPv6SegmentSeparator           = ':'
 	IPv6ZoneSeparator              = '%'
@@ -35,7 +37,8 @@ const noZone Zone = ""
 
 //
 //
-//
+// IPv6Address is an IPv6 address, or a subnet of multiple IPv6 addresses.  Each segment can represent a single value or a range of values.
+// The zero value is ::
 type IPv6Address struct {
 	ipAddressInternal
 }
@@ -43,9 +46,19 @@ type IPv6Address struct {
 func (addr IPv6Address) init() {
 	if addr.hasNoDivisions() {
 		div := NewIPv6Segment(0).ToAddressDivision()
-		addr.section = AddressSection{AddressDivisionGrouping{
-			divisions: []*AddressDivision{div, div, div, div, div, div, div, div}}}
+		addr.section = AddressSection{
+			addressSectionInternal{
+				addressDivisionGroupingInternal{
+					divisions: []*AddressDivision{div, div, div, div, div, div, div, div},
+				},
+			},
+		}
 	}
+}
+
+func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
+	addr.init()
+	return addr.ipAddressInternal.GetSegment(index).ToIPv6AddressSegment()
 }
 
 func (addr *IPv6Address) IsIPv4() bool {
@@ -62,14 +75,21 @@ func (addr *IPv6Address) GetIPVersion() IPVersion {
 
 func (addr *IPv6Address) ToAddress() *Address {
 	addr.init()
-	return &addr.Address
+	return (*Address)(unsafe.Pointer(addr))
 }
 
 func (addr *IPv6Address) ToIPAddress() *IPAddress {
 	addr.init()
-	return &addr.IPAddress
+	return (*IPAddress)(unsafe.Pointer(addr))
 }
 
-func (addr *IPv6Address) ToIPv6Address() *IPv6Address {
-	return addr
+func (addr *IPv6Address) IsIPv4Convertible() bool {
+	//TODO conversion
+	return false
+}
+
+func (addr *IPv6Address) ToIPv4Address() *IPv4Address {
+	//addr.init()
+	//TODO conversion
+	return nil
 }

@@ -2649,7 +2649,7 @@ func chooseIPAddressProvider(
 					return
 				}
 				//return new MaskCreator(networkPrefixLength, version, validationOptions);
-				res = &MaskCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, networkPrefixLength: networkPrefixLength, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions}}}
+				res = &MaskCreator{AdjustedAddressCreator: AdjustedAddressCreator{networkPrefixLength: networkPrefixLength, VersionedAddressCreator: VersionedAddressCreator{adjustedVersion: version, parameters: validationOptions}}}
 				return
 			} else {
 				//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
@@ -2666,7 +2666,7 @@ func chooseIPAddressProvider(
 			}
 		} else { //isAll
 			//We also need the AllCreator to use the equivalent prefix length, much like in ParsedIPAddress
-			res = &AllCreator{AdjustedAddressCreator: AdjustedAddressCreator{adjustedVersion: version, VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions}},
+			res = &AllCreator{AdjustedAddressCreator: AdjustedAddressCreator{VersionedAddressCreator: VersionedAddressCreator{adjustedVersion: version, parameters: validationOptions}},
 				originator: originator, qualifier: *qualifier}
 			//qualifier, version, originator, validationOptions);
 			return

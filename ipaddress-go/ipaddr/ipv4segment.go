@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 type ipv4SegmentValues struct {
 	value      uint8
 	upperValue uint8
@@ -70,7 +72,7 @@ func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
 	if vals == nil {
 		seg.divisionValues = ipv4SegmentValues{}
 	}
-	return &seg.AddressDivision
+	return (*AddressDivision)(unsafe.Pointer(seg))
 }
 
 func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
@@ -81,36 +83,30 @@ func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	if vals == nil {
 		seg.divisionValues = ipv4SegmentValues{}
 	}
-	return &seg.IPAddressSegment
-}
-
-func (seg *IPv4AddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
-	return seg
-}
-
-func (seg *IPv4AddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
-	return nil
+	return (*IPAddressSegment)(unsafe.Pointer(seg))
 }
 
 func NewIPv4Segment(val uint8) *IPv4AddressSegment {
-	return NewIPv4RangeSegment(val, val)
+	return NewIPv4RangePrefixSegment(val, val, nil)
 }
 
 func NewIPv4RangeSegment(val, upperVal uint8) *IPv4AddressSegment {
-	return NewIPv4PrefixSegment(val, val, nil)
+	return NewIPv4RangePrefixSegment(val, val, nil)
 }
 
-func NewIPv4PrefixSegment(val, upperVal uint8, prefixLen PrefixLen) *IPv4AddressSegment {
+func NewIPv4PrefixSegment(val uint8, prefixLen PrefixLen) *IPv4AddressSegment {
+	return NewIPv4RangePrefixSegment(val, val, prefixLen)
+}
+
+func NewIPv4RangePrefixSegment(val, upperVal uint8, prefixLen PrefixLen) *IPv4AddressSegment {
 	return &IPv4AddressSegment{
 		ipAddressSegmentInternal{
-			IPAddressSegment{
+			addressSegmentInternal{
 				addressDivisionInternal{
-					AddressDivision{
-						ipv4SegmentValues{
-							value:      val,
-							upperValue: upperVal,
-							prefLen:    prefixLen,
-						},
+					ipv4SegmentValues{
+						value:      val,
+						upperValue: upperVal,
+						prefLen:    prefixLen,
 					},
 				},
 			},

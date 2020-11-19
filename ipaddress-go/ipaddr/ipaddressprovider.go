@@ -608,7 +608,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	ipv6WithZoneLoop := func() *IPAddress {
 		network := options.GetIPv6Parameters().GetNetwork()
 		creator := network.GetIPAddressCreator()
-		return creator.createAddressInternal(network.GetLoopback().getBytes(), zone)
+		return creator.createAddressInternalFromBytes(network.GetLoopback().getBytes(), zone)
 	}
 	ipv6Loop := func() *IPAddress {
 		return options.GetIPv6Parameters().GetNetwork().GetLoopback()

@@ -23,7 +23,7 @@ func (a *atomicFlag) unset() {
 	atomic.StoreUint32(&a.val, 0)
 }
 
-type BitCount int
+type BitCount uint16
 
 type PrefixLen *BitCount
 
@@ -66,13 +66,13 @@ type valueCache struct {
 // ALSO conside zero values!  Cannot assign it right away! But zero value needs no caching!
 // OK, it is perfect as is.  Just make sure you create a cache obj and assign it on creation of grouping
 
-type AddressDivisionGrouping struct {
+type addressDivisionGroupingInternal struct {
 	divisions    []*AddressDivision
 	prefixLength PrefixLen   // must align with the divisions if they store prefix lengths
 	cache        *valueCache // assigned on creation, except for zero-value groupings, in which it is not needed
 }
 
-func (grouping *AddressDivisionGrouping) getBytes() []byte {
+func (grouping *addressDivisionGroupingInternal) getBytes() []byte {
 	if grouping.hasNilDivisions() {
 		//TODO been thinking about returning nil?  Kinda makes sense, not specifying divisions not the same as specifying 0 divisions
 		//arr := [0]byte{}
@@ -86,17 +86,23 @@ func (grouping *AddressDivisionGrouping) getBytes() []byte {
 
 // hasNilDivisions() returns whether this grouping is the zero grouping,
 // which is what you get when contructing a grouping or section with no divisions
-func (grouping *AddressDivisionGrouping) hasNilDivisions() bool {
+func (grouping *addressDivisionGroupingInternal) hasNilDivisions() bool {
 	return grouping.divisions == nil
 }
 
-func (grouping *AddressDivisionGrouping) GetDivisionCount() int {
+func (grouping *addressDivisionGroupingInternal) GetDivisionCount() int {
 	return len(grouping.divisions)
 }
 
-// GetDivision returns the division or panics if the index is negative, matches or exceeds the number of divisions
-func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision {
+// TODO think about the panic a bit more, do we want an error?  do slices panic with bad indices?
+
+// GetDivision returns the division or panics if the index is negative or it is too large
+func (grouping *addressDivisionGroupingInternal) GetDivision(index int) *AddressDivision {
 	return grouping.divisions[index]
+}
+
+type AddressDivisionGrouping struct {
+	addressDivisionGroupingInternal
 }
 
 // ToAddressSection converts to an address section.
@@ -117,7 +123,6 @@ func (grouping *AddressDivisionGrouping) ToAddressSection() *AddressSection {
 		}
 	}
 	return (*AddressSection)(unsafe.Pointer(grouping))
-	//return AddressSection{grouping}
 }
 
 func (grouping *AddressDivisionGrouping) ToIPAddressSection() *IPAddressSection {
@@ -144,93 +149,146 @@ func (grouping *AddressDivisionGrouping) ToIPv4AddressSection() *IPv4AddressSect
 	return section.ToIPv4AddressSection()
 }
 
+func (grouping *AddressDivisionGrouping) ToMACAddressSection() *MACAddressSection {
+	section := grouping.ToAddressSection()
+	if section == nil {
+		return nil
+	}
+	return section.ToMACAddressSection()
+}
+
 //////////////////////////////////////////////////////////////////
 //
 //
 //
-type AddressSection struct {
-	AddressDivisionGrouping
+type addressSectionInternal struct {
+	addressDivisionGroupingInternal
 }
 
-func (section *AddressSection) GetSegmentCount() int {
+func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
+	return section.GetDivision(index).ToAddressSegment()
+}
+
+func (section *addressSectionInternal) GetSegmentCount() int {
 	return section.GetDivisionCount()
 }
 
-func (section *AddressSection) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
+func (section *addressSectionInternal) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
 	divLen := len(section.divisions)
 	return divLen <= segmentCount && (divLen == 0 || section.GetDivision(0).GetBitCount() == segmentBitCount)
 }
 
-func (section *AddressSection) matchesAddress(segmentCount int, segmentBitCount BitCount) bool {
+func (section *addressSectionInternal) matchesAddress(segmentCount int, segmentBitCount BitCount) bool {
 	return len(section.divisions) == segmentCount && section.GetDivision(0).GetBitCount() == segmentBitCount
 }
 
-func (section *AddressSection) matchesIPv6Section() bool {
+func (section *addressSectionInternal) matchesIPv6Section() bool {
 	return section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment)
 }
 
-func (section *AddressSection) matchesIPv4Section() bool {
+func (section *addressSectionInternal) matchesIPv4Section() bool {
 	return section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment)
 }
 
-func (section *AddressSection) matchesIPv6Address() bool {
+func (section *addressSectionInternal) matchesIPSection() bool {
+	return section.matchesIPv6Section() || section.matchesIPv4Section()
+}
+
+func (section *addressSectionInternal) matchesMACSection() bool {
+	return section.matchesSection(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
+}
+
+func (section *addressSectionInternal) matchesIPv6Address() bool {
 	return section.matchesAddress(IPv6SegmentCount, IPv6BitsPerSegment)
 }
 
-func (section *AddressSection) matchesIPv4Address() bool {
+func (section *addressSectionInternal) matchesIPv4Address() bool {
 	return section.matchesAddress(IPv4SegmentCount, IPv4BitsPerSegment)
 }
 
-func (section *AddressSection) ToAddressDivisionGrouping() AddressDivisionGrouping {
-	return section.AddressDivisionGrouping
+func (section *addressSectionInternal) matchesMACAddress() bool {
+	return section.matchesAddress(MediaAccessControlSegmentCount, MACBitsPerSegment) ||
+		section.matchesAddress(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
 }
 
-func (section *AddressSection) ToAddressSection() *AddressSection {
-	return section
+func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
+}
+
+//
+//
+//
+//
+type AddressSection struct {
+	addressSectionInternal
 }
 
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
-	if section == nil {
+	if section == nil || !section.matchesIPSection() {
 		return nil
-	}
-	divCount := section.GetDivisionCount()
-	if divCount > 0 {
-		bc := section.GetDivision(0).GetBitCount()
-		if divCount <= IPv4SegmentCount {
-			if bc != IPv4BitsPerSegment && bc != IPv6BitsPerSegment {
-				return nil
-			}
-		} else if divCount <= IPv6SegmentCount {
-			if bc != IPv6BitsPerSegment {
-				return nil
-			}
-		} else {
-			return nil
-		}
 	}
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
 func (section *AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	if section == nil {
-		return nil
-	} else if divCount := section.GetDivisionCount(); divCount != IPv6SegmentCount {
-		return nil
-	} else if section.GetDivision(0).GetBitCount() != IPv6BitsPerSegment {
+	if section == nil || !section.matchesIPv6Section() {
 		return nil
 	}
 	return (*IPv6AddressSection)(unsafe.Pointer(section))
 }
 
 func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	if section == nil {
-		return nil
-	} else if divCount := section.GetDivisionCount(); divCount != IPv4SegmentCount {
-		return nil
-	} else if section.GetDivision(0).GetBitCount() != IPv4BitsPerSegment {
+	if section == nil || !section.matchesIPv4Section() {
 		return nil
 	}
 	return (*IPv4AddressSection)(unsafe.Pointer(section))
+}
+
+func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
+	if section == nil || !section.matchesMACSection() {
+		return nil
+	}
+	return (*MACAddressSection)(unsafe.Pointer(section))
+}
+
+//
+//
+//
+//
+type ipAddressSectionInternal struct {
+	addressSectionInternal
+}
+
+func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment {
+	return section.GetDivision(index).ToIPAddressSegment()
+}
+
+func (section *ipAddressSectionInternal) IsIPv4() bool {
+	return section.matchesIPv4Section()
+}
+
+func (section *ipAddressSectionInternal) IsIPv6() bool {
+	return section.matchesIPv6Section()
+}
+
+func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
+	if section.IsIPv4() {
+		return IPv4
+	}
+	return IPv6
+}
+
+func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
+	return section.prefixLength
+}
+
+func (section *ipAddressSectionInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
+	return nil
+	//return addr.GetSection().GetBlockMaskPrefixLength() TODO
+}
+
+func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
+	return (*AddressSection)(unsafe.Pointer(section))
 }
 
 //
@@ -238,46 +296,16 @@ func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 //
 // An IPAddress section has segments, which are divisions of equal length and size
 type IPAddressSection struct {
-	AddressSection //TODO you need the same indirection as swith address addressInternal
-}
-
-func (section *IPAddressSection) ToIPAddressSection() *IPAddressSection {
-	return section
-}
-
-func (section *IPAddressSection) GetSegment(index int) *IPAddressSegment {
-	return section.GetDivision(index).ToIPAddressSegment()
-}
-
-func (section *IPAddressSection) IsIPv4() bool {
-	return section.matchesIPv4Address()
-}
-
-func (section *IPAddressSection) IsIPv6() bool {
-	return section.matchesIPv6Address()
-}
-
-func (section *IPAddressSection) GetIPVersion() IPVersion {
-	if section.IsIPv4() {
-		return IPv4
-	}
-	return IPv6
-}
-
-func (section *IPAddressSection) GetNetworkPrefixLength() PrefixLen {
-	return section.prefixLength
+	ipAddressSectionInternal
 }
 
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 	if section == nil {
 		return nil
-	}
-	if section.matchesIPv6Section() {
+	} else if section.matchesIPv6Section() {
 		return (*IPv6AddressSection)(unsafe.Pointer(section))
-		//return IPv6AddressSection{section}
 	}
 	return nil
-	//return IPv6AddressSection{}
 }
 
 func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
@@ -286,20 +314,22 @@ func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	}
 	if section.matchesIPv4Section() {
 		return (*IPv4AddressSection)(unsafe.Pointer(section))
-		//return IPv4AddressSection{section}
 	}
 	return nil
-	//return IPv4AddressSection{}
 }
 
 // IPv6AddressSection represents a section of an IPv6 address comprising 0 to 8 IPv6 address segments.
 // The zero values is a section with zero segments.
 type IPv6AddressSection struct {
-	IPAddressSection //TODO you need the same indirection as swith address ipAddressInternal
+	ipAddressSectionInternal
 }
 
-func (section *IPv6AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	return section
+func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
+	return section.GetDivision(index).ToIPv6AddressSegment()
+}
+
+func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
 func (section *IPv6AddressSection) IsIPv4() bool {
@@ -317,11 +347,15 @@ func (section *IPv6AddressSection) GetIPVersion() IPVersion {
 // IPv4AddressSection represents a section of an IPv4 address comprising 0 to 4 IPv4 address segments.
 // The zero values is a section with zero segments.
 type IPv4AddressSection struct {
-	IPAddressSection
+	ipAddressSectionInternal
 }
 
-func (section *IPv4AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	return section
+func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
+	return section.GetDivision(index).ToIPv4AddressSegment()
+}
+
+func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
 func (section *IPv4AddressSection) IsIPv4() bool {
@@ -334,4 +368,30 @@ func (section *IPv4AddressSection) IsIPv6() bool {
 
 func (section *IPv4AddressSection) GetIPVersion() IPVersion {
 	return IPv4
+}
+
+//
+//
+//
+//
+//
+//
+//
+type macAddressSectionInternal struct {
+	addressSectionInternal
+}
+
+func (section *macAddressSectionInternal) GetSegment(index int) *MACAddressSegment {
+	return section.GetDivision(index).ToMACAddressSegment()
+}
+
+//func (section *ipAddressSectionInternal) GetIPVersion() IPVersion (TODO need the MAC equivalent, butcannot remember if there is a MAC equivalent)
+//	if section.IsIPv4() {
+//		return IPv4
+//	}
+//	return IPv6
+//}
+
+type MACAddressSection struct {
+	macAddressSectionInternal
 }
