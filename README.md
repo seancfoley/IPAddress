@@ -14,7 +14,7 @@ Library for handling IP addresses and subnets, both IPv4 and IPv6
 - OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
 
-As a Java library, it is also interoperable with Kotlin, Scala, Groovy and Clojure.
+As a [Java](https://www.oracle.com/java/) library, it is also interoperable with [Kotlin](https://kotlinlang.org/), [Scala](https://scala-lang.org/), [Groovy](http://www.groovy-lang.org/) and [Clojure](https://clojure.org/).
 
 [Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
 
