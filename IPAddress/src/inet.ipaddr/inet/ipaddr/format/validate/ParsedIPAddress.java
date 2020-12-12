@@ -189,7 +189,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			//we need to add zone in order to reuse the lower and upper
 			rangeLower = getCreator().createAddressInternal(lowerSection, getZone(), null);
 			rangeUpper = upperSection == null ? rangeLower : getCreator().createAddressInternal(upperSection, getZone(), null);
-			return range = rangeLower.toSequentialRange(rangeUpper);
+			return range = rangeLower.spanWithRange(rangeUpper);
 		}
 		
 		// when this is used, the host address, regular address, and range boundaries are not used

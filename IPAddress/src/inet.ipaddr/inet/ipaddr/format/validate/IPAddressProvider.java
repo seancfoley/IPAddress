@@ -816,7 +816,7 @@ public interface IPAddressProvider extends Serializable {
 				IPAddress all = ParsedIPAddress.createAllAddress(adjustedVersion, ParsedHost.NO_QUALIFIER, null, options);
 				IPAddress upper = all.getUpper().mask(mask);
 				IPAddress lower = all.getLower();
-				return lower.toSequentialRange(upper);
+				return lower.spanWithRange(upper);
 			}
 			return super.getProviderSeqRange();
 		}
