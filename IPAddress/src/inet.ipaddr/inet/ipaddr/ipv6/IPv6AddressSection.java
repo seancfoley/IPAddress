@@ -635,7 +635,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 						}
 					}
 					if(create) {
-						result = getLowestOrHighestSection(
+						result = createLowestOrHighestSection(
 								this,
 								getAddressCreator(), 
 								this::segmentsNonZeroHostIterator, 

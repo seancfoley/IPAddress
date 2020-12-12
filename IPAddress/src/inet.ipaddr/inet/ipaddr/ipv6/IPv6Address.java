@@ -2044,7 +2044,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 				getDefaultCreator());
 	}
 
-	@Deprecated
 	@Override
 	public IPv6AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
 		return toSequentialRange(other);
@@ -2232,6 +2231,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	@Override
+	@Deprecated
 	public IPv6AddressSeqRange toSequentialRange(IPAddress other) {
 		return new IPv6AddressSeqRange(this, convertArg(other));
 	}
