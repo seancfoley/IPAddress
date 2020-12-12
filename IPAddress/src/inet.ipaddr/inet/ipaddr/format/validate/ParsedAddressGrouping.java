@@ -309,7 +309,7 @@ public class ParsedAddressGrouping {
 		int prefixedSegment = getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 		int i = prefixedSegment;
 		if(i < segmentCount) {
-			int segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
+			int segmentPrefixLength = getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i);
 			do {
 				//we want to see if there is a sequence of zeros followed by a sequence of full-range bits from the prefix onwards
 				//once we start seeing full range bits, the remained of the section must be full range
