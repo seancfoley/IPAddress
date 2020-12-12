@@ -176,13 +176,13 @@ func (parseData *AddressParseData) getRadix(segmentIndex, indexIndicator int) ui
 	return radix
 }
 
-func (parseData *AddressParseData) getBitLength(segmentIndex int) uint16 {
+func (parseData *AddressParseData) getBitLength(segmentIndex int) BitCount {
 	segmentData := parseData.getSegmentData()
 	bitLength := (segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|KEY_BIT_SIZE_INDEX] & KEY_BIT_SIZE) >> BIT_SIZE_SHIFT
-	return uint16(bitLength)
+	return BitCount(bitLength)
 }
 
-func (parseData *AddressParseData) setBitLength(segmentIndex int, length uint16) {
+func (parseData *AddressParseData) setBitLength(segmentIndex int, length BitCount) {
 	segmentData := parseData.getSegmentData()
 	segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|KEY_BIT_SIZE_INDEX] |= ((uint32(length) << BIT_SIZE_SHIFT) & KEY_BIT_SIZE)
 }

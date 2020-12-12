@@ -32,6 +32,7 @@ func (addr *MACAddress) init() {
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
 					divisions: []*AddressDivision{div, div, div, div},
+					cache:     &valueCache{addrType: macAddrType},
 				},
 			},
 		}

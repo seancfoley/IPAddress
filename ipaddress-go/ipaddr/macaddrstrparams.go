@@ -57,7 +57,7 @@ type MACAddressStringParameters interface {
 	AllowsColonDelimited() bool
 	AllowsDotted() bool
 	AllowsSpaceDelimited() bool
-	GetNetwork() *MACAddressNetwork
+	GetNetwork() *MACAddressNetwork //TODO remove, since we will no longer use address creators
 	GetFormatParameters() MACAddressStringFormatParameters
 }
 

@@ -1,6 +1,6 @@
 package ipaddr
 
-func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters {
+func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters { //note this is a duplicate of getPrivateParams which calls ToIPAddressStringParamsBuilder(orig).ToParams()
 	if params, ok := orig.(*ipAddressStringParameters); ok {
 		return params
 	}

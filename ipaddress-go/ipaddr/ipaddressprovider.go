@@ -134,6 +134,8 @@ type IPAddressProvider interface {
 	//}
 	//
 
+	getProviderSeqRange() *IPAddressSeqRange
+
 	getProviderMask() *IPAddress
 
 	// TODO getDivisionGrouping
@@ -278,6 +280,10 @@ func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddre
 
 func (p *ipAddrProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
 	return nil, nil
+}
+
+func (p *ipAddrProvider) getProviderSeqRange() *IPAddressSeqRange {
+	return nil
 }
 
 func (p *ipAddrProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressException) {
@@ -504,6 +510,14 @@ func (cached *CachedAddressProvider) getProviderHostAddress() (*IPAddress, Incom
 
 func (cached *CachedAddressProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
 	return cached.getCachedAddresses().getAddress(), nil
+}
+
+func (cached *CachedAddressProvider) getProviderSeqRange() *IPAddressSeqRange {
+	addr, _ := cached.getProviderAddress()
+	if addr != nil {
+		return addr.ToSequentialRange()
+	}
+	return nil
 }
 
 func (cached *CachedAddressProvider) hasCachedAddresses() bool {
@@ -857,21 +871,22 @@ func (all *AllCreator) getProviderMask() *IPAddress {
 //			}
 //			return adjustedVersion == otherProvider.getProviderIPVersion();
 //		}
-//		@Override
-//		public IPAddressSeqRange getProviderSeqRange() {
-//			if(isProvidingAllAddresses()) {
-//				return null;
-//			}
-//			IPAddress mask = getProviderMask();
-//			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
-//				// we must apply the mask
-//				IPAddress all = ParsedIPAddress.createAllAddress(adjustedVersion, ParsedHost.NO_QUALIFIER, null, options);
-//				IPAddress upper = all.getUpper().mask(mask);
-//				IPAddress lower = all.getLower();
-//				return lower.toSequentialRange(upper);
-//			}
-//			return super.getProviderSeqRange();
-//		}
+
+func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
+	if all.isProvidingAllAddresses() {
+		return nil
+	}
+	mask := all.getProviderMask()
+	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil {
+		// we must apply the mask
+		all := createAllAddress(all.adjustedVersion, NO_QUALIFIER, nil, all.parameters)
+		upper := all.GetUpper().Mask(mask)
+		lower := all.GetLower()
+		return lower.SpanWithRange(upper)
+	}
+	return all.CachedAddressProvider.getProviderSeqRange()
+}
+
 //
 //		@Override
 //		public boolean isSequential() {

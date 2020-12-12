@@ -2,9 +2,19 @@ package ipaddr
 
 import "unsafe"
 
+//TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
+// So far I have decided against it, and instead used the unsigned types to save space
+// I think you just need to be careful with arithmetic
+
+type IPv4SegInt uint8
+
+func ToIPv4SegInt(val SegInt) IPv4SegInt {
+	return IPv4SegInt(val)
+}
+
 type ipv4SegmentValues struct {
-	value      uint8
-	upperValue uint8
+	value      IPv4SegInt
+	upperValue IPv4SegInt
 	prefLen    PrefixLen
 }
 
@@ -16,11 +26,11 @@ func (seg ipv4SegmentValues) GetByteCount() int {
 	return IPv4BytesPerSegment
 }
 
-func (seg ipv4SegmentValues) GetDivisionValue() DivInt {
+func (seg ipv4SegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg ipv4SegmentValues) GetUpperDivisionValue() DivInt {
+func (seg ipv4SegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
@@ -28,9 +38,27 @@ func (seg ipv4SegmentValues) getDivisionPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
-func (seg ipv4SegmentValues) GetSegmentPrefixLength() PrefixLen {
-	return seg.prefLen
+func (seg ipv4SegmentValues) getLower() (divisionValues, *divCache) {
+	return newIPv4SegmentValues(seg.value, seg.value, seg.prefLen)
 }
+
+func (seg ipv4SegmentValues) getUpper() (divisionValues, *divCache) {
+	return newIPv4SegmentValues(seg.upperValue, seg.upperValue, seg.prefLen)
+}
+
+func newIPv4SegmentValues(value, upperValue IPv4SegInt, prefLen PrefixLen) (*ipv4SegmentValues, *divCache) {
+	//TODO caching, we will share cache and share the values when values match to cache
+	return &ipv4SegmentValues{
+			value:      value,
+			upperValue: upperValue,
+			prefLen:    prefLen,
+		},
+		&divCache{}
+}
+
+//func (seg ipv4SegmentValues) GetSegmentPrefixLength() PrefixLen {
+//	return seg.prefLen
+//}
 
 func (seg ipv4SegmentValues) GetSegmentValue() SegInt {
 	return SegInt(seg.value)
@@ -65,14 +93,11 @@ func (seg *IPv4AddressSegment) GetByteCount() int {
 }
 
 func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
-	if seg == nil {
-		return nil
-	}
-	vals := seg.divisionValues
-	if vals == nil {
-		seg.divisionValues = ipv4SegmentValues{}
-	}
-	return (*AddressDivision)(unsafe.Pointer(seg))
+	return seg.ToIPAddressSegment().ToAddressDivision()
+}
+
+func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
+	return seg.ToIPAddressSegment().ToAddressSegment()
 }
 
 func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
@@ -86,28 +111,26 @@ func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	return (*IPAddressSegment)(unsafe.Pointer(seg))
 }
 
-func NewIPv4Segment(val uint8) *IPv4AddressSegment {
+func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {
 	return NewIPv4RangePrefixSegment(val, val, nil)
 }
 
-func NewIPv4RangeSegment(val, upperVal uint8) *IPv4AddressSegment {
+func NewIPv4RangeSegment(val, upperVal IPv4SegInt) *IPv4AddressSegment {
 	return NewIPv4RangePrefixSegment(val, val, nil)
 }
 
-func NewIPv4PrefixSegment(val uint8, prefixLen PrefixLen) *IPv4AddressSegment {
+func NewIPv4PrefixSegment(val IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
 	return NewIPv4RangePrefixSegment(val, val, prefixLen)
 }
 
-func NewIPv4RangePrefixSegment(val, upperVal uint8, prefixLen PrefixLen) *IPv4AddressSegment {
+func NewIPv4RangePrefixSegment(val, upperVal IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
+	vals, cache := newIPv4SegmentValues(val, upperVal, prefixLen)
 	return &IPv4AddressSegment{
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
 				addressDivisionInternal{
-					ipv4SegmentValues{
-						value:      val,
-						upperValue: upperVal,
-						prefLen:    prefixLen,
-					},
+					divisionValues: vals,
+					cache:          cache,
 				},
 			},
 		},

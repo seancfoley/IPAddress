@@ -26,10 +26,10 @@ func main() {
 	//If you have an interface field, in which case you are inheriting those methods but you must assign to the interface fro the methods to work,
 	//then you must also override each such method
 
-	seg.GetDivisionValue()
+	seg.GetSegmentValue()
 
 	//seg.getSplitSegments()
-	//fmt.Printf("\n%v\n", seg.GetDivisionValue())
+	//fmt.Printf("\n%v\n", seg.getDivisionValue())
 	//fmt.Printf("%v\n", seg.GetSegmentValue())
 	fmt.Printf("%v\n", seg.GetBitCount())
 	fmt.Printf("%v\n", seg.GetByteCount())
@@ -52,6 +52,12 @@ func main() {
 
 	addr := ipaddr.IPv6Address{}
 	addr.ToAddress()
+
+	//addrStr := ipaddr.IPAddressString{}
+	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)
+	pAddr := addrStr.GetAddress()
+	fmt.Printf("%v\n", *pAddr)
+
 	_ = getDoc()
 }
 

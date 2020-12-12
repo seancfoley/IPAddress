@@ -2,9 +2,15 @@ package ipaddr
 
 import "unsafe"
 
+type MACSegInt uint8 //TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
+
+func ToMACSegInt(val SegInt) MACSegInt {
+	return MACSegInt(val)
+}
+
 type macSegmentValues struct {
-	value      uint8
-	upperValue uint8
+	value      MACSegInt
+	upperValue MACSegInt
 }
 
 func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
@@ -19,21 +25,18 @@ func (seg macSegmentValues) GetByteCount() int {
 	return MACBytesPerSegment
 }
 
-func (seg macSegmentValues) GetDivisionValue() DivInt {
+func (seg macSegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg macSegmentValues) GetUpperDivisionValue() DivInt {
+func (seg macSegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
 func (seg macSegmentValues) getDivisionPrefixLength() PrefixLen {
+	//TODO for MAC this needs to be changed to getMinPrefixLengthForBlock
 	return nil
 }
-
-//func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
-//	return seg.prefLen
-//}
 
 func (seg macSegmentValues) GetSegmentValue() SegInt {
 	return SegInt(seg.value)
@@ -43,15 +46,21 @@ func (seg macSegmentValues) GetUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
+func (seg macSegmentValues) getLower() (divisionValues, *divCache) {
+	return newMACSegmentValues(seg.value, seg.value)
+}
+
+func (seg macSegmentValues) getUpper() (divisionValues, *divCache) {
+	return newMACSegmentValues(seg.upperValue, seg.upperValue)
+}
+
+func newMACSegmentValues(value, upperValue MACSegInt) (*macSegmentValues, *divCache) {
+	//TODO caching, we will share cache and share the values when values match to cache
+	return &macSegmentValues{value: value, upperValue: upperValue}, &divCache{}
+}
+
 var _ divisionValues = macSegmentValues{}
 var _ segmentValues = macSegmentValues{}
-
-//TODO make this use pointers to, just like sections and addresses, because we will have cached data too,
-//isSinglePrefixBlock, cachedString,
-//	protected transient String cachedWildcardString;
-//	private transient byte[] lowerBytes, upperBytes;
-// Now, since the parsing will populate the cachedString, we could move it out of the cached data, which is stuff that is populate on the fly
-// But remember, that is a bad idea, we want to allow copying, so anything that is not always created right away must go to cache object
 
 type MACAddressSegment struct {
 	addressSegmentInternal
@@ -68,29 +77,29 @@ func (seg *MACAddressSegment) GetByteCount() int {
 }
 
 func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
+	return seg.ToAddressSegment().ToAddressDivision()
+}
+
+func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	if seg == nil {
 		return nil
 	}
 	vals := seg.divisionValues
 	if vals == nil {
-		seg.divisionValues = ipv4SegmentValues{}
+		seg.divisionValues = macSegmentValues{}
 	}
-	return (*AddressDivision)(unsafe.Pointer(seg))
+	return (*AddressSegment)(unsafe.Pointer(seg))
 }
 
-func NewMACSegment(val uint8) *MACAddressSegment {
+func NewMACSegment(val MACSegInt) *MACAddressSegment {
 	return NewMACRangeSegment(val, val)
 }
 
-func NewMACRangeSegment(val, upperVal uint8) *MACAddressSegment {
+func NewMACRangeSegment(val, upperVal MACSegInt) *MACAddressSegment {
+	vals, cache := newMACSegmentValues(val, upperVal)
 	return &MACAddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{
-				macSegmentValues{
-					value:      val,
-					upperValue: upperVal,
-				},
-			},
+			addressDivisionInternal{divisionValues: vals, cache: cache},
 		},
 	}
 }

@@ -2,9 +2,15 @@ package ipaddr
 
 import "unsafe"
 
+type IPv6SegInt uint16 //TODO consider changing to int32 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
+
+func ToIPv6SegInt(val SegInt) IPv6SegInt {
+	return IPv6SegInt(val)
+}
+
 type ipv6SegmentValues struct {
-	value      uint16
-	upperValue uint16
+	value      IPv6SegInt
+	upperValue IPv6SegInt
 	prefLen    PrefixLen
 }
 
@@ -16,19 +22,15 @@ func (seg ipv6SegmentValues) GetByteCount() int {
 	return IPv6BytesPerSegment
 }
 
-func (seg ipv6SegmentValues) GetDivisionValue() DivInt {
+func (seg ipv6SegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg ipv6SegmentValues) GetUpperDivisionValue() DivInt {
+func (seg ipv6SegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
 func (seg ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
-	return seg.prefLen
-}
-
-func (seg ipv6SegmentValues) GetSegmentPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
@@ -38,6 +40,24 @@ func (seg ipv6SegmentValues) GetSegmentValue() SegInt {
 
 func (seg ipv6SegmentValues) GetUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
+}
+
+func (seg ipv6SegmentValues) getLower() (divisionValues, *divCache) {
+	return newIPv6SegmentValues(seg.value, seg.value, seg.prefLen)
+}
+
+func (seg ipv6SegmentValues) getUpper() (divisionValues, *divCache) {
+	return newIPv6SegmentValues(seg.upperValue, seg.upperValue, seg.prefLen)
+}
+
+func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) (*ipv6SegmentValues, *divCache) {
+	//TODO caching, we will share cache and share the values when values match to cache
+	return &ipv6SegmentValues{
+			value:      value,
+			upperValue: upperValue,
+			prefLen:    prefLen,
+		},
+		&divCache{}
 }
 
 var _ divisionValues = ipv6SegmentValues{}
@@ -58,11 +78,11 @@ func (seg *IPv6AddressSegment) GetByteCount() int {
 }
 
 func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
-	vals := seg.divisionValues
-	if vals == nil {
-		seg.divisionValues = ipv6SegmentValues{}
-	}
-	return (*AddressDivision)(unsafe.Pointer(seg))
+	return seg.ToIPAddressSegment().ToAddressDivision()
+}
+
+func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {
+	return seg.ToIPAddressSegment().ToAddressSegment()
 }
 
 func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
@@ -73,29 +93,24 @@ func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	return (*IPAddressSegment)(unsafe.Pointer(seg))
 }
 
-func NewIPv6Segment(val uint16) *IPv6AddressSegment {
+func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {
 	return NewIPv6RangePrefixSegment(val, val, nil)
 }
 
-func NewIPv6RangeSegment(val, upperVal uint16) *IPv6AddressSegment {
+func NewIPv6RangeSegment(val, upperVal IPv6SegInt) *IPv6AddressSegment {
 	return NewIPv6RangePrefixSegment(val, val, nil)
 }
 
-func NewIPv6PrefixSegment(val uint16, prefixLen PrefixLen) *IPv6AddressSegment {
+func NewIPv6PrefixSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
 	return NewIPv6RangePrefixSegment(val, val, prefixLen)
 }
 
-func NewIPv6RangePrefixSegment(val, upperVal uint16, prefixLen PrefixLen) *IPv6AddressSegment {
+func NewIPv6RangePrefixSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
+	vals, cache := newIPv6SegmentValues(val, upperVal, prefixLen)
 	return &IPv6AddressSegment{
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
-				addressDivisionInternal{
-					ipv6SegmentValues{
-						value:      val,
-						upperValue: upperVal,
-						prefLen:    prefixLen,
-					},
-				},
+				addressDivisionInternal{divisionValues: vals, cache: cache},
 			},
 		},
 	}

@@ -13,14 +13,25 @@ const (
 	SegmentSqlSingleWildcard   = '_'
 )
 
+type SegmentValueProvider func(segmentIndex int) SegInt
+
 type addressInternal struct {
 	section AddressSection
 	zone    string
+	cache   *addressCache
 }
 
 func (addr *addressInternal) GetSection() *AddressSection {
 	return &addr.section
 }
+
+//func (addr *addressInternal) getConverter() IPAddressConverter {
+//	return addr.cache.network.(IPAddressNetwork).GetConverter()
+//}
+
+//func (addr *addressInternal) GetSegmentX(index int) AddressSegmentX {
+//	return addr.GetSection().GetSegmentX(index)
+//}
 
 func (addr *addressInternal) GetSegment(index int) *AddressSegment {
 	return addr.GetSection().GetSegment(index)
@@ -36,6 +47,22 @@ func (addr *addressInternal) hasNoDivisions() bool {
 
 type Address struct {
 	addressInternal
+}
+
+func (addr *Address) GetLower() *Address {
+	section := addr.section.GetLower()
+	if section == &addr.section {
+		return addr
+	}
+	return &Address{addressInternal{section: *section, zone: addr.zone, cache: &addressCache{}}}
+}
+
+func (addr *Address) GetUpper() *Address {
+	section := addr.section.GetUpper()
+	if section == &addr.section {
+		return addr
+	}
+	return &Address{addressInternal{section: *section, zone: addr.zone, cache: &addressCache{}}}
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {
@@ -155,8 +182,6 @@ func (addr *Address) ToMACAddress() *MACAddress {
 		}
 	}
 */
-//xxx OK, so that means, if you have a pointer receiver, there is no way to upscale and end up with the same pointer
-//xxx So let us stick to avoiding pointers
 //xxx Now, back to here
 //xxx Does it make sense to use a pointer as a stand-in to mean "no address"
 //xxx or should we use zero values?

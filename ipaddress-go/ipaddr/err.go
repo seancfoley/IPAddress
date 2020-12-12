@@ -67,6 +67,8 @@ func (a *hostNameException) Error() string {
 // TODO not so sure I need another exception type, but at the same time, distinguishing between errors would be nice
 
 type incompatibleAddressException struct {
+	// the value
+	str,
 
 	// key to look up the error message
 	key string

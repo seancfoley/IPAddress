@@ -50,23 +50,17 @@ func (addr IPv6Address) init() {
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
 					divisions: []*AddressDivision{div, div, div, div, div, div, div, div},
+					cache:     &valueCache{addrType: ipv6AddrType},
 				},
 			},
 		}
+		addr.cache = &addressCache{}
 	}
 }
 
 func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
 	addr.init()
 	return addr.ipAddressInternal.GetSegment(index).ToIPv6AddressSegment()
-}
-
-func (addr *IPv6Address) IsIPv4() bool {
-	return false
-}
-
-func (addr *IPv6Address) IsIPv6() bool {
-	return true
 }
 
 func (addr *IPv6Address) GetIPVersion() IPVersion {
@@ -83,13 +77,39 @@ func (addr *IPv6Address) ToIPAddress() *IPAddress {
 	return (*IPAddress)(unsafe.Pointer(addr))
 }
 
-func (addr *IPv6Address) IsIPv4Convertible() bool {
-	//TODO conversion
-	return false
+//func (addr *IPv6Address) IsIPv4Convertible() bool {
+//	addr.init()
+//	return addr.getConverter().IsIPv4Convertible(addr.ToIPAddress())
+//}
+//
+//func (addr *IPv6Address) ToIPv4Address() *IPv4Address {
+//	addr.init()
+//	return addr.getConverter().ToIPv4(addr.ToIPAddress())
+//}
+
+func (addr *IPv6Address) Mask(other *IPv6Address) *IPv6Address {
+	//TODO mask (handle nil gracefully, return nil)
+	return nil
 }
 
-func (addr *IPv6Address) ToIPv4Address() *IPv4Address {
-	//addr.init()
-	//TODO conversion
-	return nil
+func (addr *IPv6Address) SpanWithRange(other *IPv6Address) *IPv6AddressSeqRange {
+	addr.init()
+	return NewIPv6SeqRange(addr, other)
+}
+
+func (addr *IPv6Address) GetLower() *IPv6Address {
+	addr.init()
+	return addr.ToAddress().GetLower().ToIPv6Address()
+}
+
+func (addr *IPv6Address) GetUpper() *IPv6Address {
+	addr.init()
+	return addr.ToAddress().GetUpper().ToIPv6Address()
+}
+
+func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
+	if addr == nil {
+		return nil
+	}
+	return NewIPv6SeqRange(addr.GetLower(), addr.GetUpper())
 }

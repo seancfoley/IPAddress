@@ -1,7 +1,7 @@
 package ipaddr
 
 type AddressSegmentCreator interface {
-	createSegmentArray(length int) []*AddressDivision
+	//createSegmentArray(length int) []*addressDivisionInternal
 
 	createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision
 
@@ -20,6 +20,8 @@ type AddressSegmentCreator interface {
 	createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision
 	//
 	//createRangePrefixSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision
+
+	getMaxValuePerSegment() SegInt
 }
 
 type ParsedAddressCreator interface {
