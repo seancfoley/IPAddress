@@ -363,13 +363,13 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	void cache(IPv4Address thisAddr, IPv4Address lower, IPv4Address upper) {
 		if((lower != null || upper != null) && getSingleLowestOrHighestSection(this) == null) {
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
-			IPv4AddressCache cache = thisAddr.sectionCache;
+			IPv4AddressCache cache = thisAddr.addressCache;
 			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
 				synchronized(this) {
-					cache = thisAddr.sectionCache;
+					cache = thisAddr.addressCache;
 					boolean create = (cache == null);
 					if(create) {
-						thisAddr.sectionCache = cache = new IPv4AddressCache();
+						thisAddr.addressCache = cache = new IPv4AddressCache();
 						cache.lower = lower;
 						cache.upper = upper;
 					} else {
@@ -409,6 +409,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
+		//TODO remove this placeholder xxx;
 		IPv4AddressSection result = getSingleLowestOrHighestSection(this);
 		if(result == null) {
 			SectionCache<IPv4AddressSection> cache = sectionCache;
@@ -430,7 +431,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 						}
 					}
 					if(create) {
-						result = getLowestOrHighestSection(
+						result = createLowestOrHighestSection(
 								this,
 								getAddressCreator(), 
 								this::segmentsNonZeroHostIterator,
@@ -458,6 +459,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	IPv4Address getLowestOrHighest(IPv4Address addr, boolean lowest, boolean excludeZeroHost) {
+		//TODO remove this placeholder xxx;
 		IPv4AddressSection sectionResult = getLowestOrHighestSection(lowest, excludeZeroHost);
 		if(sectionResult == this) {
 			return addr;
@@ -465,14 +467,14 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			return null;
 		}
 		IPv4Address result = null;
-		IPv4AddressCache cache = addr.sectionCache;
+		IPv4AddressCache cache = addr.addressCache;
 		if(cache == null || 
 				(result = lowest ? (excludeZeroHost ? cache.lowerNonZeroHost : cache.lower) : cache.upper) == null) {
 			synchronized(this) {
-				cache = addr.sectionCache;
+				cache = addr.addressCache;
 				boolean create = (cache == null);
 				if(create) {
-					cache = addr.sectionCache = new IPv4AddressCache();
+					cache = addr.addressCache = new IPv4AddressCache();
 				} else {
 					if(lowest) {
 						if(excludeZeroHost) {

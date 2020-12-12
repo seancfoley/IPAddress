@@ -32,7 +32,7 @@ import inet.ipaddr.ipv4.IPv4AddressAssociativeTrie.IPv4AssociativeTrieNode;
 /**
  * An IPv4 address trie.
  * 
- * See {@link AddressTrie}  for more details.
+ * See {@link AddressTrie} for more details.
  * 
  * @author scfoley
  *

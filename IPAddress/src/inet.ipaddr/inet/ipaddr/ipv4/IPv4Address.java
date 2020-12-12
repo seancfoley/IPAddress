@@ -82,7 +82,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public static final int MAX_VALUE = 0xffffffff;
 	public static final String REVERSE_DNS_SUFFIX = ".in-addr.arpa";
 	
-	transient IPv4AddressCache sectionCache;
+	transient IPv4AddressCache addressCache;
 
 	/**
 	 * Constructs an IPv4 address or subnet.
@@ -383,6 +383,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 */
 	@Override
 	public boolean isIPv6Convertible() {
+		//TODO make the converter come from the network, like in golang
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.isIPv6Convertible(this);
 	}
@@ -404,10 +405,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return conv.toIPv6(this);
 	}
 
-	private IPv4Address getLowestOrHighest(boolean lowest, boolean excludeZeroHost) {
-		return getSection().getLowestOrHighest(this, lowest, excludeZeroHost);
-	}
-	
 	/**
 	 * The broadcast address has the same prefix but a host that is all 1 bits.
 	 * If this address or subnet is not prefixed, this returns the address of all 1 bits, the "max" address.
@@ -434,17 +431,17 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address getLowerNonZeroHost() {
-		return getLowestOrHighest(true, true);
+		return getSection().getLowestOrHighest(this, true, true);
 	}
 	
 	@Override
 	public IPv4Address getLower() {
-		return getLowestOrHighest(true, false);
+		return getSection().getLowestOrHighest(this, true, false);
 	}
 	
 	@Override
 	public IPv4Address getUpper() {
-		return getLowestOrHighest(false, false);
+		return getSection().getLowestOrHighest(this, false, false);
 	}
 	
 	/**
@@ -1010,7 +1007,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				getAddressCreator());
 	}
 	
-	@Deprecated
 	@Override
 	public IPv4AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
 		return toSequentialRange(other);
@@ -1060,6 +1056,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	@Deprecated
 	public IPv4AddressSeqRange toSequentialRange(IPAddress other) {
 		return new IPv4AddressSeqRange(this, convertArg(other));
 	}
