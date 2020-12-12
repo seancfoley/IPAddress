@@ -343,8 +343,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// if searching for a floor/lower, and the nearest node is above addr, then we must backtrack to get below
 		// if searching for a ceiling/higher, and the nearest node is below addr, then we must backtrack to get above
 		TrieNode<E> backtrackNode;
-		//boolean backtrack;
-
+		
 		// contains:  
 
 		// A linked list of the tree elements, from largest to smallest, 
@@ -1602,19 +1601,20 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	}
 
 	private static int numberOfLeadingZerosShort(int i) {
-		if (i == 0)
-			return 16;
-		int n = 1;
-		if (i >>> 8 == 0) { n +=  8; i <<=  8; }
-		if (i >>> 12 == 0) { n +=  4; i <<=  4; }
-		if (i >>> 14 == 0) { n +=  2; i <<=  2; }
-		n -= i >>> 15;
-		return n;
+		int half = i >>> 8;
+		if(half == 0) {
+			return 8 + numberOfLeadingZerosByte(i & 0xff);
+		}
+		return numberOfLeadingZerosByte(half);
 	}
 
 	private static int numberOfLeadingZerosByte(int i) {
-		if (i == 0)
-			return 8;
+		if (i <= 0) {
+			if(i == 0){
+				return 8;
+			}
+			return 0;
+		}
 		int n = 1;
 		if (i >>> 4 == 0) { n +=  4; i <<=  4; }
 		if (i >>> 6 == 0) { n +=  2; i <<=  2; }
