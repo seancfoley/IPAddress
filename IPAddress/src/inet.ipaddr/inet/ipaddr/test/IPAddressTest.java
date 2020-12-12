@@ -3875,15 +3875,15 @@ public class IPAddressTest extends TestBase {
 			boolean expectedIsSequential, 
 			long expectedLower, long expectedExtendedLower, 
 			long expectedUpper, long expectedExtendedUpper) {
-		ExtendedMasker masker = ParsedIPAddress.maskRange(
+		ExtendedMasker masker = ParsedIPAddress.maskExtendedRange(
 				value, extendedValue, 
 				upperValue, extendedUpperValue, 
 				maskValue, extendedMaskValue, 
 				maxValue, extendedMaxValue);
 		long lowerResult = masker.getMaskedLower(value, maskValue);
 		long upperResult = masker.getMaskedUpper(upperValue, maskValue);
-		long extendedLowerResult = masker.getExtendedLowerMasked(extendedValue, extendedMaskValue);
-		long extendedUpperResult = masker.getExtendedUpperMasked(extendedUpperValue, extendedMaskValue);
+		long extendedLowerResult = masker.getExtendedMaskedLower(extendedValue, extendedMaskValue);
+		long extendedUpperResult = masker.getExtendedMaskedUpper(extendedUpperValue, extendedMaskValue);
 		boolean isSequential = masker.isSequential();
 		if(masker.isSequential() != expectedIsSequential || 
 				lowerResult != expectedLower || upperResult != expectedUpper ||

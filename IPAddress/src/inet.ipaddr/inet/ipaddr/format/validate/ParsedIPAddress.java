@@ -1018,6 +1018,32 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			return masker.getMaskedUpper(upperValue, maskValue);
 		}
 	}
+	
+	/**
+	 * @deprecated use maskExtendedRange
+	 * 
+	 * @param value
+	 * @param extendedValue
+	 * @param upperValue
+	 * @param extendedUpperValue
+	 * @param maskValue
+	 * @param extendedMaskValue
+	 * @param maxValue
+	 * @param extendedMaxValue
+	 * @return
+	 */
+	@Deprecated
+	public static ExtendedMasker maskRange(
+			long value, long extendedValue, 
+			long upperValue, long extendedUpperValue, 
+			long maskValue, long extendedMaskValue, 
+			long maxValue, long extendedMaxValue) {
+		return maskExtendedRange(value, extendedValue, 
+				upperValue, extendedUpperValue, 
+				maskValue, extendedMaskValue, 
+				maxValue, extendedMaxValue);
+	}
+			
 
 	public static ExtendedMasker maskExtendedRange(
 			long value, long extendedValue, 
