@@ -614,9 +614,11 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
+	 * @deprecated use {@link #spanWithRange(IPAddress)}
 	 * @param other
 	 * @return
 	 */
+	@Deprecated
 	public abstract IPAddressSeqRange toSequentialRange(IPAddress other) throws AddressConversionException;
 	
 	public boolean matches(IPAddressString otherString) {
@@ -1508,11 +1510,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * </code><p>
 	 * See {@link #applyToBounds(java.util.function.BiFunction, IPAddress...)}
 	 * 
-	 * @deprecated use {@link #toSequentialRange(IPAddress)}
 	 * @param other
 	 * @return
 	 */
-	@Deprecated
 	public abstract IPAddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException;
 	
 	/**

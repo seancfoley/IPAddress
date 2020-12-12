@@ -762,7 +762,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return AddressDivisionGrouping.getSegmentPrefixLength(bitsPerSegment, segmentPrefixedBits);
 	}
 
-	protected static <R extends IPAddressSection, S extends IPAddressSegment> R getLowestOrHighestSection(
+	protected static <R extends IPAddressSection, S extends IPAddressSegment> R createLowestOrHighestSection(
 			R section,
 			IPAddressCreator<?, R, ?, S, ?> creator,
 			Supplier<Iterator<S[]>> nonZeroHostIteratorSupplier,

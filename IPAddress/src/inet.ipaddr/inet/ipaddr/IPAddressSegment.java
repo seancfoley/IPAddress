@@ -318,7 +318,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	
 	protected static <S extends IPAddressSegment> S getLowestOrHighest(S original, AddressSegmentCreator<S> segmentCreator, boolean lowest) {
 		boolean isAllSubnets = original.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
-		if(!original.isMultiple() && !(isAllSubnets  && original.isPrefixed())) {
+		if(!original.isMultiple() && !(isAllSubnets && original.isPrefixed())) {
 			return original;
 		}
 		return segmentCreator.createSegment(lowest ? original.getSegmentValue() : original.getUpperSegmentValue(), 
