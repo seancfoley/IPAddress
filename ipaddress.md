@@ -1463,9 +1463,10 @@ address block, as shown in the following example.
 int originalPrefix = 18, adjustment = 4;
 IPAddress address = new IPAddressString("207.0.64.0").getAddress();
 IPAddress address2 = address.setPrefixLength(originalPrefix);
-IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
+System.out.println(address2);
 IPAddress subnet1 = address2.adjustPrefixLength(adjustment); // extend the prefix length
 System.out.println(subnet1);
+IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
 IPAddress subnet2 =
   subnet1.bitwiseOrNetwork(prefixExtension,
     originalPrefix + adjustment); // adjust the extended prefix  
