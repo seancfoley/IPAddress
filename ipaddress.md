@@ -1282,11 +1282,6 @@ operations for transforming addresses and subnets.  Many of these methods are av
   - **toIPv4**, **toIPv6**, **toEUI**: Use either standard or customized address
     conversions to go from one address version/type to another
 
-  - **iterator**: iterates through the individual addresses of a subnet
-
-  - **prefixBlockIterator**: iterates through the individual prefix
-    block subnets of a larger subnet
-
 &#8203;
 
 #### Queries for Prefix Lengths and Prefix Blocks
@@ -1340,8 +1335,8 @@ Various iterators, spliterators and streams are available for traversing through
     address. Use `getNonZeroHostCount` to get the iterated count.
 
   - **prefixBlockIterator**, **prefixBlockSpliterator**, **prefixBlockStream**: If the subnet has a prefix length, then
-    this traverses through the prefixes, with each traversed item being
-    the prefix block for each prefix. If no prefix length, same as
+    this traverses through the prefix blocks subnets for that prefix length within the larger subnet, with each traversed item being
+    a prefix block. If no prefix length, same as
     `iterator`/`spliterator`/`stream`. Use `getPrefixCount` to get the count.
 
   - **prefixIterator**, **prefixSpliterator**, **prefixStream**: If the subnet has a prefix length, then this
