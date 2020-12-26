@@ -138,6 +138,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	protected IPv4AddressSection(IPv4AddressSegment[] segments, boolean cloneSegments, Integer networkPrefixLength, boolean singleOnly) throws AddressValueException {
 		this(segments, cloneSegments, networkPrefixLength == null /* only need to check segment prefixes if not applying a prefix */);
 		if(networkPrefixLength != null) {
+			if(networkPrefixLength < 0) {
+				throw new PrefixLenException(networkPrefixLength);
+			}
 			int max = segments.length << 3;
 			if(networkPrefixLength > max) {
 				if(networkPrefixLength > IPv4Address.BIT_COUNT) {
@@ -157,9 +160,9 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 						getBitsPerSegment(),
 						getBytesPerSegment(),
 						network.getAddressCreator(), 
-						!singleOnly && isPrefixSubnet(segments, networkPrefixLength, network, false) ? IPv4AddressSegment::toNetworkSegment : IPv4AddressSegment::toPrefixedSegment);
-				cachedPrefixLength = networkPrefixLength;
+						!singleOnly && isPrefixSubnetSegs(segments, networkPrefixLength, network, false) ? IPv4AddressSegment::toNetworkSegment : IPv4AddressSegment::toPrefixedSegment);
 			}
+			cachedPrefixLength = networkPrefixLength;
 		} 
 	}
 	
@@ -168,9 +171,10 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	IPv4AddressSection(IPv4AddressSegment segments[], boolean cloneSegments, boolean normalizeSegments) throws AddressValueException {
+		//super(segments, cloneSegments, normalizeSegments);
 		super(segments, cloneSegments, true);
 		if(normalizeSegments && isPrefixed()) {
-			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), getBitsPerSegment(), getBytesPerSegment(), IPv4AddressSegment::toPrefixNormalizedSeg);
+			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), IPv4Address.BITS_PER_SEGMENT, IPv4Address.BYTES_PER_SEGMENT, IPv4AddressSegment::toPrefixNormalizedSeg);
 		}
 		if(segments.length > IPv4Address.SEGMENT_COUNT) {
 			throw new AddressValueException(segments.length);
@@ -197,7 +201,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			if(networkPrefixLength > IPv4Address.BIT_COUNT) {
 				throw new PrefixLenException(networkPrefixLength);
 			}
-			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnetSegs(segs, networkPrefixLength, network, false)) {
 				setPrefixedSegments(
 						network,
 						networkPrefixLength,
@@ -253,7 +257,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			if(segs.length > 0) {
 				PrefixConfiguration prefConf = network.getPrefixConfiguration();
 				if(prefConf.zeroHostsAreSubnets()) {
-					if(isPrefixSubnet(segs, networkPrefixLength, network, false) && !singleOnly) {
+					if(isPrefixSubnetSegs(segs, networkPrefixLength, network, false) && !singleOnly) {
 						setPrefixedSegments(
 								network,
 								networkPrefixLength,
@@ -315,7 +319,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			if(networkPrefixLength > IPv4Address.BIT_COUNT) {
 				throw new PrefixLenException(networkPrefixLength);
 			}
-			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnetSegs(segs, networkPrefixLength, network, false)) {
 				setPrefixedSegments(
 						network,
 						networkPrefixLength,

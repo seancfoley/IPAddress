@@ -257,9 +257,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 						getBitsPerSegment(),
 						getBytesPerSegment(),
 						network.getAddressCreator(), 
-						!singleOnly && isPrefixSubnet(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
-				cachedPrefixLength = networkPrefixLength;
+						!singleOnly && isPrefixSubnetSegs(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
 			}
+			cachedPrefixLength = networkPrefixLength;
 		} //else the cached prefix has already been set to the proper value
 	}
 	
@@ -270,10 +270,10 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, boolean normalizeSegments) throws AddressValueException {
 		super(segments, cloneSegments, true);
 		if(normalizeSegments && isPrefixed()) {
-			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), getBitsPerSegment(), getBytesPerSegment(), IPv6AddressSegment::toPrefixNormalizedSeg);
+			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), IPv6Address.BITS_PER_SEGMENT, IPv6Address.BYTES_PER_SEGMENT, IPv6AddressSegment::toPrefixNormalizedSeg);
 		}
 		this.addressSegmentIndex = startIndex;
-		if(startIndex < 0 || startIndex > IPv6Address.SEGMENT_COUNT) {
+		if(startIndex < 0) {
 			throw new AddressPositionException(startIndex);
 		} else if(startIndex + segments.length > IPv6Address.SEGMENT_COUNT) {
 			//we throw address value exception because too many segments
@@ -301,7 +301,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			if(networkPrefixLength < 0 || networkPrefixLength > IPv6Address.BIT_COUNT) {
 				throw new PrefixLenException(networkPrefixLength);
 			}
-			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnetSegs(segs, networkPrefixLength, network, false)) {
 				setPrefixedSegments(
 					network,
 					networkPrefixLength,
@@ -357,7 +357,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 			if(segs.length > 0) {
 				if(network.getPrefixConfiguration().zeroHostsAreSubnets() && !singleOnly) {
-					if(isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+					if(isPrefixSubnetSegs(segs, networkPrefixLength, network, false)) {
 						setPrefixedSegments(
 							network,
 							networkPrefixLength,
@@ -449,7 +449,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			if(networkPrefixLength < 0 || networkPrefixLength > IPv6Address.BIT_COUNT) {
 				throw new PrefixLenException(networkPrefixLength);
 			}
-			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnet(segs, networkPrefixLength, network, false)) {
+			if(network.getPrefixConfiguration().zeroHostsAreSubnets() && isPrefixSubnetSegs(segs, networkPrefixLength, network, false)) {
 				setPrefixedSegments(
 					network,
 					networkPrefixLength,
