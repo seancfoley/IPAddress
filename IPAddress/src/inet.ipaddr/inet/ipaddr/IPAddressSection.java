@@ -99,9 +99,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	private transient BigInteger cachedNonzeroHostCount;
 	
 	protected IPAddressSection(IPAddressSegment segments[], boolean cloneSegments, boolean checkSegs) {
-		super(cloneSegments ? segments.clone() : segments, checkSegs);
-		if(checkSegs) {//the segment array is populated, so we need to check the prefixes within to get the prefix length
-			//we also must check the network does not change across segments
+		super(cloneSegments ? segments.clone() : segments, false);
+		if(checkSegs) {// the segment array is populated, so we need to check the prefixes within to get the prefix length
+			// we also must check the network does not change across segments
 			IPAddressNetwork<?, ?, ?, ?, ?> network = getNetwork();
 			Integer previousSegmentPrefix = null;
 			int bitsPerSegment = getBitsPerSegment();
@@ -306,7 +306,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
 	 */
 	//For explicit prefix config this always returns false.  For all prefix subnets config this always returns true if the prefix length does not extend beyond the address end
-	protected static boolean isPrefixSubnet(IPAddressSegment sectionSegments[], Integer networkPrefixLength, IPAddressNetwork<?, ?, ?, ?, ?> network, boolean fullRangeOnly) {
+	protected static boolean isPrefixSubnetSegs(IPAddressSegment sectionSegments[], Integer networkPrefixLength, IPAddressNetwork<?, ?, ?, ?, ?> network, boolean fullRangeOnly) {
 		int segmentCount = sectionSegments.length;
 		if(segmentCount == 0) {
 			return false;
