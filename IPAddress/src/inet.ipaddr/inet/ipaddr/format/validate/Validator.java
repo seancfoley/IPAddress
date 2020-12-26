@@ -105,8 +105,7 @@ public class Validator implements HostIdentifierStringValidator {
 	static final MaskCreator MASK_CACHE[][] = new MaskCreator[3][];
 	private static final LoopbackCreator LOOPBACK_CACHE = new LoopbackCreator(IPAddressString.DEFAULT_VALIDATION_OPTIONS);
 	private static final ParsedHost DEFAULT_EMPTY_HOST = new ParsedHost("", EMPTY_INDICES, null, ParsedHost.NO_QUALIFIER);
-	private static final IPAddressStringParameters DEFAULT_PREFIX_OPTIONS = new IPAddressStringParameters.Builder().toParams();
-
+	
 	public static final HostIdentifierStringValidator VALIDATOR = new Validator();
 	
 	//note we allow single segment and mixed here, as well as base 85, as well as all * but we interpret that as IPv6, as well as ranges
@@ -130,7 +129,7 @@ public class Validator implements HostIdentifierStringValidator {
 	private Validator() {}
 
 	@Override
-	public IPAddressProvider validateAddress(IPAddressString fromString) throws AddressStringException {
+	public IPAddressProvider validateIPAddressStr(IPAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		IPAddressStringParameters validationOptions = fromString.getValidationOptions();
 		ParsedIPAddress pa = new ParsedIPAddress(fromString, str, validationOptions);
@@ -140,7 +139,7 @@ public class Validator implements HostIdentifierStringValidator {
 	}
 
 	@Override
-	public MACAddressProvider validateAddress(MACAddressString fromString) throws AddressStringException {
+	public MACAddressProvider validateMACAddressStr(MACAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		MACAddressStringParameters validationOptions = fromString.getValidationOptions();
 		ParsedMACAddress pa = new ParsedMACAddress(fromString, str);
@@ -1957,31 +1956,21 @@ public class Validator implements HostIdentifierStringValidator {
 			}
 		}
 	}
-	
-	@Override
-	public int validatePrefix(CharSequence fullAddr, IPVersion version) throws AddressStringException {
-		return validatePrefixImpl(fullAddr, version);
-	}
-
-	static int validatePrefixImpl(CharSequence fullAddr, IPVersion version) throws AddressStringException {
-		ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, null, DEFAULT_PREFIX_OPTIONS, null, 0, fullAddr.length(), version);
-		if(qualifier == null) {
-			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.invalidCIDRPrefix");
-		}
-		return qualifier.getNetworkPrefixLength();
-	}
 
 /* 
-	Here is the call tree for validating qualifiers of either hosts or addresses:
+	Here are the call trees for hosts and addresses and their qualifiers.
+	Addresses can be embedded in hosts, either directly or as special host names.  
+	Addresses can be embedded in other addresse as masks or mixed IPv6/v4.
 
 	validateHost
+		-> validateIPAddress/validateAddress
 		-> parseHostQualifier for addresses with [], parsing the part inside the []
 			-> parsePortOrService handles as port
 			-> parsePrefix
 				-> validatePrefix
 					-> parseValidatedPrefix
 					-> parsePortOrService (see above)
-				or handles as mask
+				-> validateIPAddress (mask)
 			-> parseZone
 				-> parsePrefix (see above)
 				or handles as zone
@@ -1992,16 +1981,23 @@ public class Validator implements HostIdentifierStringValidator {
 			-> parsePrefix (see above)
 			-> parseZone (see above)
 		-> checkSpecialHosts for domains that map to addresses
+			-> validateIPAddress
 			-> parseAddressQualifier (see above)
 		-> parseHostAddressQualifier
 			-> parsePrefix (see above)
 			-> parseEncodedZone
 				-> parsePrefix (see above)
 	
-	validateAddressImpl
+	validateIPAddressString
+		-> validateIPAddress (see above)
+			-> validateIPAddress (recursive for mixed)
 		-> parseAddressQualifier for addresses (see above)
+		
+	validatePrefixLenString
+		-> validatePrefix
 	
-	Note: we never allow a mask/port combo.  It would get very hairy if we did, since port looks a lot like an ipv6 segment
+	Note: we never allow a mask/port combo.  It would get very hairy if we did, since port looks a lot like an ipv6 segment.
+		Doesn't make a lot of logical sense anyway.
 	
 	
 	
@@ -2039,6 +2035,15 @@ public class Validator implements HostIdentifierStringValidator {
    Problem with '.' is if it follows IPv4
 	 */
 	
+	@Override
+	public int validatePrefixLenString(CharSequence fullAddr, IPVersion version) throws AddressStringException {
+		ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, null, IPAddressString.DEFAULT_VALIDATION_OPTIONS, null, 0, fullAddr.length(), version);
+		if(qualifier == null) {
+			throw new AddressStringException(fullAddr.toString(), "ipaddress.error.invalidCIDRPrefix");
+		}
+		return qualifier.getNetworkPrefixLength();
+	}
+
 	private static ParsedHostIdentifierStringQualifier parsePortOrService(
 			final CharSequence fullAddr,
 			final CharSequence zone,
@@ -3026,13 +3031,9 @@ public class Validator implements HostIdentifierStringValidator {
 	//So we will follow rfc 1035 and in addition allow the underscore.
 	
 	@Override
-	public ParsedHost validateHost(HostName fromHost) throws HostNameException {
+	public ParsedHost validateHostName(final HostName fromHost) throws HostNameException {
 		final String str = fromHost.toString();
 		HostNameParameters validationOptions = fromHost.getValidationOptions();
-		return validateHost(fromHost, str, validationOptions);
-	}
-
-	private static ParsedHost validateHost(final HostName fromHost, final String str, HostNameParameters validationOptions) throws HostNameException {
 		int addrLen = str.length();
 		if(addrLen > MAX_HOST_LENGTH) {
 			throw new HostNameException(str, "ipaddress.host.error.invalid.length");
