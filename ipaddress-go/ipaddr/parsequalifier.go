@@ -51,6 +51,12 @@ func cacheBits(i int) PrefixLen {
 	return PrefixLen(&bits)
 }
 
+func cacheBitcount(i BitCount) PrefixLen {
+	//TODO caching
+	bits := i
+	return PrefixLen(&bits)
+}
+
 type ParsedHostIdentifierStringQualifier struct {
 
 	//if there is a port for the host, this will be its numeric value
@@ -173,5 +179,5 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) inferVersion(validationOp
 	if parsedQual.zone != "" {
 		return IPv6
 	}
-	return UNKNOWN_VERSION
+	return INDETERMINATE_VERSION
 }

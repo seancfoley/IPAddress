@@ -1,8 +1,11 @@
 package ipaddr
 
-import "unsafe"
+import (
+	//"net"
+	"unsafe"
+)
 
-// SegInt is an integer type for holding generic segment values.  It is at least as large as IPv6SegInt, IPv4SegInt, MACSegInt
+// SegInt is an integer type for holding generic address segment values.  It is at least as large as all address segment values: IPv6SegInt, IPv4SegInt, MACSegInt
 type SegInt = uint32
 
 const SegIntSize = 32
@@ -33,14 +36,24 @@ const SegIntSize = 32
 // The difference in golang here is we can end up converting any division to be part of an ipv4 or ipv6 address.
 // In Java you cannot go from AddressBitsDivision to IPv4 addresses.  Here you can.
 
-type segmentValues interface {
-	// GetSegmentValue gets the lower value for the division
-	GetSegmentValue() SegInt
+//type segmentValues interface {
+//	// GetSegmentValue gets the lower value for the division
+//	GetSegmentValue() SegInt
+//
+//	// GetUpperSegmentValue gets the upper value for the division
+//	GetUpperSegmentValue() SegInt
+//}
 
-	// GetUpperSegmentValue gets the upper value for the division
-	GetUpperSegmentValue() SegInt
+type wrappedDivisionValues struct {
+	divisionValues
+}
 
-	//GetSegmentPrefixLength() PrefixLen
+func (segvals wrappedDivisionValues) GetSegmentValue() SegInt {
+	return SegInt(segvals.getDivisionValue())
+}
+
+func (segvals wrappedDivisionValues) GetUpperSegmentValue() SegInt {
+	return SegInt(segvals.getUpperDivisionValue())
 }
 
 type addressSegmentInternal struct {
@@ -56,7 +69,8 @@ func (div *addressSegmentInternal) GetSegmentValue() SegInt {
 	if vals == nil {
 		return 0
 	}
-	return vals.(segmentValues).GetSegmentValue()
+	//return vals.(segmentValues).GetSegmentValue()
+	return vals.getSegmentValue()
 }
 
 func (div *addressSegmentInternal) GetUpperSegmentValue() SegInt {
@@ -64,7 +78,8 @@ func (div *addressSegmentInternal) GetUpperSegmentValue() SegInt {
 	if vals == nil {
 		return 0
 	}
-	return vals.(segmentValues).GetUpperSegmentValue()
+	//return vals.(segmentValues).GetUpperSegmentValue()
+	return vals.getUpperSegmentValue()
 }
 
 func (div *addressSegmentInternal) IsMultiple() bool {
@@ -72,12 +87,13 @@ func (div *addressSegmentInternal) IsMultiple() bool {
 	if vals == nil {
 		return false
 	}
-	segvals := vals.(segmentValues)
-	return segvals.GetSegmentValue() != segvals.GetUpperSegmentValue()
+	//segvals := vals.(segmentValues)
+	//return segvals.GetSegmentValue() != segvals.GetUpperSegmentValue()
+	return vals.getSegmentValue() != vals.getUpperSegmentValue()
 }
 
-func (div *addressSegmentInternal) GetMaxValue() SegInt {
-	return ^(^SegInt(0) << div.GetBitCount())
+func (seg *addressSegmentInternal) GetMaxSegmentValue() SegInt {
+	return ^(^SegInt(0) << seg.GetBitCount())
 }
 
 /**
@@ -113,7 +129,7 @@ func (div *addressSegmentInternal) isMax() bool {
  * @return whether this item includes the maximum possible value within its range
  */
 func (div *addressSegmentInternal) IncludesMax() bool {
-	return div.GetUpperSegmentValue() == div.GetMaxValue()
+	return div.GetUpperSegmentValue() == div.GetMaxSegmentValue()
 }
 
 /**
@@ -122,7 +138,7 @@ func (div *addressSegmentInternal) IncludesMax() bool {
  * @return whether this address item represents all possible values attainable by an address item of this type,
  * or in other words, both includesZero() and includesMax() return true
  */
-func (div *addressSegmentInternal) isFullRange() bool {
+func (div *addressSegmentInternal) IsFullRange() bool {
 	return div.IncludesZero() && div.IncludesMax()
 }
 
@@ -155,19 +171,28 @@ func (div *addressSegmentInternal) isOneBit(segmentBitIndex BitCount) bool {
 //xxx but in this code we do not know if we are ipv4, so getLower needs to return it
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
-	vals, cache := seg.getLower()
+	vals := seg.divisionValues
+	var newVals divisionValues
+	if vals != nil {
+		newVals = seg.deriveNew(seg.GetDivisionValue(), seg.GetDivisionValue(), seg.getDivisionPrefixLength())
+	}
 	return &AddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: vals, cache: cache},
+			addressDivisionInternal{divisionValues: newVals},
 		},
 	}
 }
 
 func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
-	vals, cache := seg.getUpper()
+	//vals, cache := seg.getUpper()
+	vals := seg.divisionValues
+	var newVals divisionValues
+	if vals != nil {
+		newVals = seg.deriveNew(seg.GetDivisionValue(), seg.GetDivisionValue(), seg.getDivisionPrefixLength())
+	}
 	return &AddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: vals, cache: cache},
+			addressDivisionInternal{divisionValues: newVals},
 		},
 	}
 }
@@ -268,6 +293,10 @@ func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
 
+func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
+	return seg.GetSegmentPrefixLength() != nil
+}
+
 func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
 	vals := seg.divisionValues
 	if vals == nil {
@@ -305,6 +334,44 @@ func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 	}
 	return (*IPv6AddressSegment)(unsafe.Pointer(seg))
 }
+
+// moved to AddressDivision
+//func (seg *IPAddressSegment) toNetworkSegment(segmentPrefixLength PrefixLen, withPrefixLength bool) *IPAddressSegment {
+//	vals := seg.divisionValues
+//	if vals == nil {
+//		return seg
+//	}
+//	lower := seg.GetSegmentValue()
+//	upper := seg.GetUpperSegmentValue()
+//	var newLower, newUpper SegInt
+//	hasPrefLen := segmentPrefixLength != nil
+//	if hasPrefLen {
+//		mask := ^SegInt(0) << (seg.GetBitCount() - *segmentPrefixLength)
+//		newLower = lower & mask
+//		newUpper = upper | ^mask
+//		if !withPrefixLength {
+//			segmentPrefixLength = nil
+//		}
+//		if PrefixEquals(segmentPrefixLength, seg.getDivisionPrefixLength()) &&
+//			newLower == lower && newUpper == upper {
+//			return seg
+//		}
+//	} else {
+//		withPrefixLength = false
+//		segmentPrefixLength = nil
+//		if seg.getDivisionPrefixLength() == nil {
+//			return seg
+//		}
+//	}
+//	newVals := seg.deriveNew(DivInt(newLower), DivInt(newUpper), segmentPrefixLength)
+//	return &IPAddressSegment{
+//		ipAddressSegmentInternal{
+//			addressSegmentInternal{
+//				addressDivisionInternal{divisionValues: newVals},
+//			},
+//		},
+//	}
+//}
 
 //func (seg *IPAddressSegment) GetDivisionPrefixLength() PrefixLen {
 //	vals := seg.divisionValues

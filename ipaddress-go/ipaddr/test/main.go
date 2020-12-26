@@ -56,7 +56,7 @@ func main() {
 	//addrStr := ipaddr.IPAddressString{}
 	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)
 	pAddr := addrStr.GetAddress()
-	fmt.Printf("%v\n", *pAddr)
+	fmt.Printf("%+v\n", *pAddr)
 
 	_ = getDoc()
 }

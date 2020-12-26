@@ -1,13 +1,7 @@
 package ipaddr
 
-/**
- * Returns the index of the segment containing the last byte within the network prefix
- * When networkPrefixLength is zero (so there are no segments containing bytes within the network prefix), returns -1
- *
- * @param networkPrefixLength
- * @param byteLength
- * @return
- */
+// getNetworkSegmentIndex returns the index of the segment containing the last byte within the network prefix
+// When networkPrefixLength is zero (so there are no segments containing bytes within the network prefix), returns -1
 func getNetworkSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount) int {
 	if bytesPerSegment > 1 {
 		if bytesPerSegment == 2 {
@@ -303,15 +297,17 @@ func isPrefixSubnet(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	segmentMaxValue SegInt,
-	networkPrefixLength PrefixLen,
+	prefLen BitCount,
+	//networkPrefixLength BitCount,
 	fullRangeOnly bool) bool {
-	if networkPrefixLength == nil {
-		return false
-	}
-	prefLen := *networkPrefixLength
+	//if networkPrefixLength == nil {
+	//	return false
+	//}
+	//prefLen := *networkPrefixLength
 	zero := BitCount(0)
 	if prefLen < 0 {
-		networkPrefixLength = &zero
+		prefLen = 0
+		//networkPrefixLength = &zero
 	} else {
 		var totalBitCount BitCount
 		if bitsPerSegment == 8 {

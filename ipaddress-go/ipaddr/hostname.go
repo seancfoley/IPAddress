@@ -42,13 +42,18 @@ func (host *HostName) ToNormalizedString() string {
 //	return nil
 //}
 
-func (host *HostName) GetAddress() *Address {
+func (host *HostName) GetAddress() *IPAddress {
 	return nil
 }
 
 //
 // error can be AddressStringException or IncompatibleAddressException
-func (host *HostName) ToAddress() (*Address, error) {
+func (host *HostName) ToAddress() (*IPAddress, error) {
 	//TODO HostName
 	return nil, nil
+}
+
+func (host *HostName) ToHostAddress() (*Address, error) {
+	addr, err := host.ToAddress()
+	return addr.ToAddress(), err
 }

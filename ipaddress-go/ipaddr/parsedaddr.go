@@ -10,6 +10,9 @@ import (
 type TranslatedResult struct {
 	CachedIPAddresses
 
+	qualifier  *ParsedHostIdentifierStringQualifier
+	originator HostIdentifierString
+
 	//TODO later consider if perhaps the address and section should be embedded here - PROBABLY NOT, because TranslatedResult is likely embedded already in ParsedIPAddress and we want to throw away the parsing stuff
 
 	//TODO range parsing not so hard to add, because it is in the same parsing function as sections.
@@ -28,17 +31,16 @@ type TranslatedResult struct {
 	//series IPAddressDivisionSeries // TODO division grouping creation
 
 	creator ParsedIPAddressCreator
-
-	parsed *ParsedIPAddress // In java this is the outer instance of the nested TranslatedResult
 }
 
 func (res *TranslatedResult) getAddress() *IPAddress {
 	if res.address == nil {
 		// If an address is present we use it to construct the range.
 		// So we need only share the boundaries when they were constructed first.
-		//if(range == null) { TODO range parsing
-		res.address = res.creator.createAddressInternalFromSection(res.section, res.getZone(), res.parsed.originator)
+		//if(range == null) {
+		res.address = res.creator.createAddressInternalFromSection(res.section, res.getZone(), res.originator)
 		//} else {
+		// TODO this just caches the lower and upper since we know them already, which we can do by just inserting them instead of another creator func
 		//	address = getCreator().createAddressInternal(section, getZone(), originator, rangeLower, rangeUpper);
 		//}
 	}
@@ -46,7 +48,7 @@ func (res *TranslatedResult) getAddress() *IPAddress {
 }
 
 func (res *TranslatedResult) getZone() Zone {
-	return res.parsed.getQualifier().getZone()
+	return res.qualifier.getZone()
 }
 
 func (res *TranslatedResult) hasLowerSection() bool {
@@ -193,6 +195,8 @@ func (parseData *ParsedIPAddress) createSections(doAddress, doRangeBoundaries, w
 	} else if version.isIPv6() {
 		parseData.createIPv6Sections(doAddress, doRangeBoundaries, withUpper)
 	}
+	// assign other elements needed for address creation
+	parseData.valuesx.originator, parseData.valuesx.qualifier = parseData.originator, parseData.getQualifier()
 }
 
 func (parseData *ParsedIPAddress) getProviderSeqRange() *IPAddressSeqRange {
@@ -635,7 +639,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 				IPv4BytesPerSegment,
 				IPv4BitsPerSegment,
 				IPv4MaxValuePerSegment,
-				prefixLength,
+				*prefixLength,
 				//network.getPrefixConfiguration(),
 				false)
 			if isPrefixSub {
@@ -1207,7 +1211,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				IPv6BytesPerSegment,
 				IPv6BitsPerSegment,
 				IPv6MaxValuePerSegment,
-				prefixLength,
+				*prefixLength,
 				//network.getPrefixConfiguration(),
 				false)
 			if isPrefixSub {
@@ -1256,7 +1260,7 @@ func checkExpandedValues(section *IPAddressSection, start, end int) bool {
 			start++
 			seg = section.GetSegment(start)
 			if lastWasRange {
-				if !seg.isFullRange() {
+				if !seg.IsFullRange() {
 					return true
 				}
 			} else {

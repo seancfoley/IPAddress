@@ -8,10 +8,21 @@ func ToIPv6SegInt(val SegInt) IPv6SegInt {
 	return IPv6SegInt(val)
 }
 
+//TODO caching of ipv6SegmentValues
+
+func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
+	return &ipv6SegmentValues{
+		value:      value,
+		upperValue: upperValue,
+		prefLen:    prefLen,
+	}
+}
+
 type ipv6SegmentValues struct {
 	value      IPv6SegInt
 	upperValue IPv6SegInt
 	prefLen    PrefixLen
+	cache      divCache
 }
 
 func (seg ipv6SegmentValues) GetBitCount() BitCount {
@@ -34,34 +45,33 @@ func (seg ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
-func (seg ipv6SegmentValues) GetSegmentValue() SegInt {
+func (seg ipv6SegmentValues) getSegmentValue() SegInt {
 	return SegInt(seg.value)
 }
 
-func (seg ipv6SegmentValues) GetUpperSegmentValue() SegInt {
+func (seg ipv6SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-func (seg ipv6SegmentValues) getLower() (divisionValues, *divCache) {
+//func (seg ipv6SegmentValues) getLower() (divisionValues, *divCache) {
+//	return newIPv6SegmentValues(seg.value, seg.value, seg.prefLen)
+//}
+//
+//func (seg ipv6SegmentValues) getUpper() (divisionValues, *divCache) {
+//	return newIPv6SegmentValues(seg.upperValue, seg.upperValue, seg.prefLen)
+//}
+
+func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(seg.value, seg.value, seg.prefLen)
 }
 
-func (seg ipv6SegmentValues) getUpper() (divisionValues, *divCache) {
-	return newIPv6SegmentValues(seg.upperValue, seg.upperValue, seg.prefLen)
-}
-
-func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) (*ipv6SegmentValues, *divCache) {
-	//TODO caching, we will share cache and share the values when values match to cache
-	return &ipv6SegmentValues{
-			value:      value,
-			upperValue: upperValue,
-			prefLen:    prefLen,
-		},
-		&divCache{}
+func (seg ipv6SegmentValues) getCache() *divCache {
+	return &seg.cache
 }
 
 var _ divisionValues = ipv6SegmentValues{}
-var _ segmentValues = ipv6SegmentValues{}
+
+//var _ segmentValues = ipv6SegmentValues{}
 
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal
@@ -106,11 +116,10 @@ func NewIPv6PrefixSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegme
 }
 
 func NewIPv6RangePrefixSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
-	vals, cache := newIPv6SegmentValues(val, upperVal, prefixLen)
 	return &IPv6AddressSegment{
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
-				addressDivisionInternal{divisionValues: vals, cache: cache},
+				addressDivisionInternal{newIPv6SegmentValues(val, upperVal, prefixLen)},
 			},
 		},
 	}

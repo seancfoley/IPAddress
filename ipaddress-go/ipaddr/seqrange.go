@@ -5,6 +5,11 @@ import (
 	"unsafe"
 )
 
+// TODO what will be the nil sequential range?  An unversioned range, much like with addresses
+// ie it will have nil top and bottom
+// a nil address has a grouping with no segments
+// so a nil range will have no range boundaries, it will be empty
+
 type ipAddressSeqRangeInternal struct {
 	lower, upper *IPAddress
 	cachedCount  big.Int

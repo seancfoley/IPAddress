@@ -7,9 +7,9 @@ type IPVersion string
 const (
 	PrefixLenSeparator = '/'
 
-	UNKNOWN_VERSION IPVersion = ""
-	IPv4            IPVersion = "IPv4"
-	IPv6            IPVersion = "IPv6"
+	INDETERMINATE_VERSION IPVersion = ""
+	IPv4                  IPVersion = "IPv4"
+	IPv6                  IPVersion = "IPv6"
 )
 
 func (version IPVersion) isIPv6() bool {
@@ -20,11 +20,11 @@ func (version IPVersion) isIPv4() bool {
 	return version == IPv4
 }
 
-func (version IPVersion) isUnknown() bool {
-	return version == UNKNOWN_VERSION
+func (version IPVersion) isIndeterminate() bool {
+	return version == INDETERMINATE_VERSION
 }
 
-//returns an index starting from 0 with UNKNOWN_VERSION being the highest
+//returns an index starting from 0 with INDETERMINATE_VERSION being the highest
 func (version IPVersion) index() int {
 	if version.isIPv4() {
 		return 0
@@ -62,27 +62,50 @@ func (addr *ipAddressInternal) isIPv6() bool {
 	return addr.section.matchesIPv6Address()
 }
 
-func (addr *ipAddressInternal) GetIPVersion() IPVersion {
+func (addr *ipAddressInternal) getIPVersion() IPVersion {
 	if addr.isIPv4() {
 		return IPv4
+	} else if addr.isIPv6() {
+		return IPv6
 	}
-	return IPv6
+	return INDETERMINATE_VERSION
 }
 
-func (addr *ipAddressInternal) GetSection() *IPAddressSection {
-	return addr.section.ToIPAddressSection()
-}
+//func (addr *ipAddressInternal) getSection() *IPAddressSection {
+//	return addr.section.ToIPAddressSection()
+//}
 
 func (addr *ipAddressInternal) GetNetworkPrefixLength() PrefixLen {
-	return addr.GetSection().GetNetworkPrefixLength()
+	section := addr.section
+	if section == nil {
+		return nil
+	}
+	return section.ToIPAddressSection().GetNetworkPrefixLength()
 }
 
 func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
-	return addr.GetSection().GetBlockMaskPrefixLength(network)
+	section := addr.section
+	if section == nil {
+		return nil
+	}
+	return section.ToIPAddressSection().GetBlockMaskPrefixLength(network)
 }
 
 func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
-	return addr.GetSection().GetSegment(index)
+	return addr.getSegment(index).ToIPAddressSegment()
+}
+
+var zeroIPAddr *IPAddress
+
+func init() {
+	zeroIPAddr = &IPAddress{
+		ipAddressInternal{
+			addressInternal{
+				section: &AddressSection{},
+				cache:   &addressCache{},
+			},
+		},
+	}
 }
 
 //
@@ -93,20 +116,36 @@ type IPAddress struct {
 	ipAddressInternal
 }
 
+func (addr *IPAddress) init() *IPAddress {
+	if addr.section == nil {
+		return zeroIPAddr // this has a zero section
+	}
+	return addr
+}
+
 func (addr *IPAddress) GetLower() *IPAddress {
-	return addr.ToAddress().GetLower().ToIPAddress()
+	addr = addr.init()
+	return addr.getLower().ToIPAddress()
 }
 
 func (addr *IPAddress) GetUpper() *IPAddress {
-	return addr.ToAddress().GetUpper().ToIPAddress()
+	addr = addr.init()
+	return addr.getUpper().ToIPAddress()
 }
 
 func (addr *IPAddress) IsIPv4() bool {
+	addr = addr.init()
 	return addr.isIPv4()
 }
 
 func (addr *IPAddress) IsIPv6() bool {
+	addr = addr.init()
 	return addr.isIPv6()
+}
+
+func (addr *IPAddress) GetIPVersion() IPVersion {
+	addr = addr.init()
+	return addr.getIPVersion()
 }
 
 // this makes no sense in the golang world, since it cannot be customized since not virtual
@@ -122,6 +161,7 @@ func (addr *IPAddress) IsIPv6() bool {
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 	if addr != nil {
+		addr = addr.init()
 		if addr.isIPv6() {
 			return (*IPv6Address)(unsafe.Pointer(addr))
 		}
@@ -133,6 +173,7 @@ func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 
 func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 	if addr != nil {
+		addr = addr.init()
 		if addr.isIPv4() {
 			return (*IPv4Address)(unsafe.Pointer(addr))
 		}
@@ -213,47 +254,3 @@ func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 // TODO make sure everything in IPv4 and IPv6 is "overridden", in the sense all methods will check for no divisions and
 // create the default zero-segments if necessary, so we never expose a zero value with 0 segments
 // The zero values of everythign else will have sections with no segments
-
-// IDEAS for replacing virtual methods:
-// 1. one way around it is the use of interfaces, where you pass things down on construction of higher type,
-// providing a pathway back into the higher type
-// in fact, that is sort of clever, a lower type has an interface pointing to itself, but that interface can be substituted
-//
-// 2. it's clever but easy to get confused with that. Another technique is function pointers
-//
-// 3. another way is a dup method of same name in higher type that calls down to the lower, so lower does not have to call up
-// Kinda like overriding and works fine when calling from the higher
-// Sub has x(), Base has x(), sub x calls Base x
-//	This one is natural
-//
-// both 1,2 require "New" methods, 3 does not
-
-//package main
-//
-//
-//type Foo interface {
-//	foo()
-//	bla()
-//}
-//
-//type B struct {
-//}
-//
-//func (B) foo() {
-//}
-//
-//type C struct { Works
-//	B
-//}
-//type C struct { Also Works!
-//	*B
-//}
-//
-//func (*C) bla() {
-//}
-//
-//func main() {
-//	var f Foo = &C{}
-//	f.bla()
-//	f.foo()
-//}

@@ -1,61 +1,6 @@
 package ipaddr
 
-// A string that is used to identify a network host.
-
-type HostIdentifierString interface {
-
-	//static final char SEGMENT_VALUE_DELIMITER = ',';
-
-	// provides a normalized String representation for the host identified by this HostIdentifierString instance
-	ToNormalizedString() string
-
-	//Validate() HostIdentifierException
-
-	GetAddress() *Address
-
-	ToAddress() (*Address, error)
-}
-
-var (
-	_ HostIdentifierString = &IPAddressString{}
-	_ HostIdentifierString = &MACAddressString{}
-)
-
-var defaultMACAddrParameters *macAddressStringParameters = &macAddressStringParameters{}
-
-// NewIPAddressString constructs an IPAddressString that will parse the given string according to the given parameters
-func NewMACAddressString(str string, params MACAddressStringParameters) *MACAddressString {
-	return &MACAddressString{str: str, params: convertMACParams(params)}
-}
-
-type MACAddressString struct { //TODO needs its own file
-	str    string
-	params *macAddressStringParameters // when nil, defaultParameters is used
-}
-
-func (addrStr *MACAddressString) getParams() *macAddressStringParameters {
-	params := addrStr.params
-	if params == nil {
-		params = defaultMACAddrParameters
-		addrStr.params = params
-	}
-	return params
-}
-
-func (addrStr *MACAddressString) ToNormalizedString() string {
-	//TODO MACAddressString
-	return ""
-}
-
-func (addrStr *MACAddressString) GetAddress() *Address {
-	//TODO MACAddressString
-	return nil
-}
-
-func (addrStr *MACAddressString) ToAddress() (*Address, error) {
-	//TODO MACAddressString
-	return nil, nil
-}
+import "sync"
 
 // NewIPAddressString constructs an IPAddressString that will parse the given string according to the given parameters
 func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddressString {
@@ -76,16 +21,18 @@ func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddress
 var defaultIPAddrParameters *ipAddressStringParameters = &ipAddressStringParameters{}
 
 type IPAddressString struct {
-	str             string
-	params          *ipAddressStringParameters // when nil, default parameters is used, never access this field directly
-	addressProvider IPAddressProvider
+	str    string
+	params *ipAddressStringParameters // when nil, default parameters is used, never access this field directly
+	lock   *CreationLock              // when nil, default lock is used, never access this field directly
+
+	addressProvider   IPAddressProvider
+	validateException AddressStringException
 }
 
 func (ipAddrStr *IPAddressString) getParams() *ipAddressStringParameters {
 	params := ipAddrStr.params
 	if params == nil {
 		params = defaultIPAddrParameters
-		ipAddrStr.params = params
 	}
 	return params
 }
@@ -99,13 +46,8 @@ func (addrStr *IPAddressString) ToNormalizedString() string {
 	return ""
 }
 
-//TODO we do want the three validate functions, they allow validation without address object creation
-//func (addrStr *IPAddressString) Validate() HostIdentifierException {
-//	return nil
-//}
-
 func (addrStr *IPAddressString) GetAddress() *IPAddress {
-	if addrStr.addressProvider == nil || !addrStr.addressProvider.isInvalid() { // Avoid the exception the second time with this check
+	if addrStr.addressProvider == nil || !addrStr.addressProvider.isInvalid() {
 		addr, _ := addrStr.ToAddress() /* note the exception is cached, it is not lost forever */
 		return addr
 	}
@@ -114,10 +56,25 @@ func (addrStr *IPAddressString) GetAddress() *IPAddress {
 
 //
 // error can be AddressStringException or IncompatibleAddressException
-func (addrStr *IPAddressString) ToAddress() (*IPAddress, error) {
-	//addrStr.validate() //call validate so that we throw consistently, cover type == INVALID, and ensure the addressProvider exists
-	return addrStr.addressProvider.getProviderAddress()
+func (addrStr *IPAddressString) ToAddress() (addr *IPAddress, err error) {
+	//call validate for consistent error, cover type == INVALID, and ensure the addressProvider exists
+	err = addrStr.validate(INDETERMINATE_VERSION)
+	if err == nil {
+		addr, err = addrStr.addressProvider.getProviderAddress()
+	}
+	return
 }
+
+// error can be AddressStringException or IncompatibleAddressException
+func (addrStr *IPAddressString) ToHostAddress() (*Address, error) {
+	addr, err := addrStr.ToAddress()
+	return addr.ToAddress(), err
+}
+
+//TODO we do want the three validate functions, they allow validation without address object creation
+//func (addrStr *IPAddressString) Validate() HostIdentifierException {
+//	return nil
+//}
 
 ///**
 //	 * Validates that this string is a valid IPv4 address, and if not, throws an exception with a descriptive message indicating why it is not.
@@ -180,28 +137,34 @@ func (addrStr *IPAddressString) ToAddress() (*IPAddress, error) {
 //		return false;
 //	}
 //
-//	protected HostIdentifierStringValidator getValidator() {
-//		return Validator.VALIDATOR;
-//	}
-//
-//	private void validate(IPVersion version) throws AddressStringException {
-//		if(isValidated(version)) {
-//			return;
-//		}
-//		synchronized(this) {
-//			if(isValidated(version)) {
-//				return;
-//			}
-//			//we know nothing about this address.  See what it is.
-//			try {
-//				addressProvider = getValidator().validateAddress(this);
-//			} catch(AddressStringException e) {
-//				validateException = e;
-//				addressProvider = IPAddressProvider.INVALID_PROVIDER;
-//				throw e;
-//			}
-//		}
-//	}
+
+var (
+	validator  strValidator
+	globalLock sync.Mutex
+)
+
+func (addrStr *IPAddressString) validate(version IPVersion) AddressStringException {
+	lock := addrStr.lock // nil for zero-value IPAddressString
+	if lock == nil || !lock.isCreated() {
+		creationFunc := func() {
+			addressProvider, err := validator.validateIPAddressStr(addrStr) //strValidator and HostIdentifierStringValidator
+			if err != nil {
+				addrStr.addressProvider = INVALID_PROVIDER
+				addrStr.validateException = err
+			} else {
+				addrStr.addressProvider = addressProvider
+			}
+		}
+		if lock == nil {
+			globalLock.Lock()
+			creationFunc()
+			globalLock.Unlock()
+		} else {
+			lock.create(creationFunc)
+		}
+	}
+	return addrStr.validateException
+}
 
 func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
 	if p, ok := orig.(*ipAddressStringParameters); ok {

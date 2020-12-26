@@ -35,18 +35,6 @@ func init() {
 	}
 }
 
-// Interface for validation and parsing of host identifier strings
-type HostIdentifierStringValidator interface {
-
-	//validateHost(fromHost HostName ) ParsedHost, HostNameException;
-
-	//validateIPAddress(fromString IPAddressString) (IPAddressProvider, AddressStringException)
-
-	//validateMACAddress(fromString MACAddressString) (MACAddressProvider, AddressStringException)
-
-	validatePrefix(fullAddr string, version IPVersion) (int, AddressStringException)
-}
-
 const ( //TODO rename not public
 	LONG_SIZE                               = 64
 	MAX_HOST_LENGTH                         = 253
@@ -127,7 +115,9 @@ func isSingleSegmentIPv4(
 	return
 }
 
-func validateIPAddressString(fromString *IPAddressString) (prov IPAddressProvider, err AddressStringException) {
+type strValidator struct{}
+
+func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov IPAddressProvider, err AddressStringException) {
 	str := fromString.str
 	validationOptions := fromString.getParams()
 	pa := ParsedIPAddress{
@@ -143,7 +133,7 @@ func validateIPAddressString(fromString *IPAddressString) (prov IPAddressProvide
 	return chooseIPAddressProvider(fromString, str, validationOptions, &pa)
 }
 
-func validateMACAddressString(fromString *MACAddressString) (MACAddressProvider, AddressStringException) {
+func (strValidator) validateMACAddressStr(fromString *MACAddressString) (MACAddressProvider, AddressStringException) {
 	str := fromString.str
 	validationOptions := fromString.getParams()
 	pa := ParsedMACAddress{
@@ -1751,6 +1741,18 @@ func validateAddress(
 	return nil
 }
 
+func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (prefixLen PrefixLen, err AddressStringException) {
+	var qualifier ParsedHostIdentifierStringQualifier
+	isPrefix, err := validatePrefix(fullAddr, noZone, defaultIPAddrParameters, nil,
+		&qualifier, 0, len(fullAddr), version)
+	if !isPrefix {
+		err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefix"}
+	} else {
+		prefixLen = qualifier.getNetworkPrefixLength()
+	}
+	return
+}
+
 func parsePortOrService(
 	fullAddr string,
 	zone Zone,
@@ -1883,7 +1885,7 @@ func parseValidatedPrefix(
 		leadingZeros--
 		digitCount++
 	}
-	asIPv4 := ipVersion.isUnknown() && ipVersion.isIPv4()
+	asIPv4 := ipVersion.isIndeterminate() && ipVersion.isIPv4()
 	//tryCache := false
 	if asIPv4 {
 		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLengthLeadingZeros() {
@@ -1979,7 +1981,7 @@ func validatePrefix(
 		//	zone, validationOptions, res, prefixEndIndex-index /* digitCount */, leadingZeros, ipVersion)
 		err = parseValidatedPrefix(result, fullAddr,
 			zone, validationOptions, res, prefixEndIndex-index /* digitCount */, leadingZeros, ipVersion)
-		//if perr != nil {
+		//if perr != nil {  delete later, just kept it because golang ended up looking differen than Java due to the "overriding" code we did away with in golang
 		//	err = perr
 		//	//return
 		//}
@@ -2077,7 +2079,10 @@ func parsePrefix(
 		//check for a mask
 		//check if we need a new validation options for the mask
 		maskOptions := toMaskOptions(validationOptions, ipVersion)
-		pa := &ParsedIPAddress{IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: fullAddr}}, options: maskOptions}
+		pa := &ParsedIPAddress{
+			IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: fullAddr}},
+			options:            maskOptions,
+		}
 		err = validateIPAddress(maskOptions, fullAddr, index, endIndex, pa.getIPAddressParseData(), false)
 		if err != nil {
 			err = WrapErrf(err, "ipaddress.error.invalidCIDRPrefixOrMask")
@@ -2108,7 +2113,7 @@ func parsePrefix(
 			!validationOptions.GetIPv4Parameters().Allows_inet_aton_single_segment_mask() { //1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
 			err = &addressStringException{str: fullAddr, key: "ipaddress.error.mask.single.segment"}
 			return
-		} else if !ipVersion.isUnknown() && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6()) {
+		} else if !ipVersion.isIndeterminate() && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6()) {
 			//note that this also covers the cases of non-standard addresses in the mask, ie mask neither ipv4 or ipv6
 			err = &addressStringException{str: fullAddr, key: "ipaddress.error.ipMismatch"}
 			return
@@ -2272,7 +2277,7 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 	ipVersion IPVersion) (res IPAddressStringParameters) {
 	//We must provide options that do not allow a mask with wildcards or ranges
 	var builder *IPAddressStringParametersBuilder
-	if ipVersion.isUnknown() || ipVersion.isIPv6() {
+	if ipVersion.isIndeterminate() || ipVersion.isIPv6() {
 		ipv6Options := validationOptions.GetIPv6Parameters()
 		if !ipv6Options.GetRangeParameters().IsNoRange() {
 			builder = ToIPAddressStringParamsBuilder(validationOptions)
@@ -2285,7 +2290,7 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NO_RANGE)
 		}
 	}
-	if ipVersion.isUnknown() || ipVersion.isIPv4() {
+	if ipVersion.isIndeterminate() || ipVersion.isIPv4() {
 		ipv4Options := validationOptions.GetIPv4Parameters()
 		if !ipv4Options.GetRangeParameters().IsNoRange() {
 			if builder == nil {
@@ -2617,13 +2622,13 @@ func chooseIPAddressProvider(
 	parseData *ParsedIPAddress) (res IPAddressProvider, err AddressStringException) {
 	qualifier := parseData.getQualifier()
 	version := parseData.getProviderIPVersion()
-	if version.isUnknown() {
+	if version.isIndeterminate() {
 		version = qualifier.inferVersion(validationOptions)
 		optionsVersion := validationOptions.inferVersion()
-		if version.isUnknown() {
+		if version.isIndeterminate() {
 			version = optionsVersion
 			parseData.setVersion(version)
-		} else if !optionsVersion.isUnknown() && version != optionsVersion {
+		} else if !optionsVersion.isIndeterminate() && version != optionsVersion {
 			var key string
 			if version.isIPv6() {
 				key = "ipaddress.error.ipv6"
@@ -3333,27 +3338,14 @@ func parseLong16(s string, start, end int) uint64 {
 
 //So we will follow rfc 1035 and in addition allow the underscore.
 
-func validateHost(fromHost *HostName) (*ParsedHost, HostNameException) {
-	str := fromHost.str
-	validationOptions := fromHost.getParams()
-	return validateHostName(fromHost, str, validationOptions)
-}
-
-const ( //TODO mvove upwards and rename
-	MAX_PREFIX = IPv6BitCount //the largest allowed value x for a /x prefix following an address or host name
-	//public static final int MAX_PREFIX_CHARS = Integer.toString(MAX_PREFIX).length();
-	SMTP_IPV6_IDENTIFIER = "IPv6:"
-	IPvFUTURE            = 'v'
-)
-
 var (
 	IPvFUTURE_UPPERCASE = byte(unicode.ToUpper(rune(IPvFUTURE)))
 	DEFAULT_EMPTY_HOST  = &ParsedHost{} //TODO call functions in the default empty host to avoid data race or locking
 )
 
-//private static final IPAddressStringParameters DEFAULT_PREFIX_OPTIONS = new IPAddressStringParameters.Builder().toParams();
-
-func validateHostName(fromHost *HostName, str string, validationOptions HostNameParameters) (parsedHost *ParsedHost, err HostNameException) {
+func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost, err HostNameException) {
+	str := fromHost.str
+	validationOptions := fromHost.getParams()
 	addrLen := len(str)
 	if addrLen > MAX_HOST_LENGTH {
 		err = &hostNameException{str: str, key: "ipaddress.host.error.invalid.length"}
@@ -3594,8 +3586,11 @@ func validateHostName(fromHost *HostName, str string, validationOptions HostName
 		//TODO see what happens when you move this out (what vars it needs from closure)
 		provider, addrErr, hostErr := func() (provider IPAddressProvider, addrErr AddressStringException, hostErr HostNameException) {
 			//				try {
-			pa := ParsedIPAddress{IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
-				options: addressOptions, originator: fromHost}
+			pa := ParsedIPAddress{
+				IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
+				options:            addressOptions,
+				originator:         fromHost,
+			}
 			hostQualifier := parsedHost.getQualifier()
 			//var addrQualifier ParsedHostIdentifierStringQualifier
 			//var hostQualifier ParsedHostIdentifierStringQualifier
@@ -3792,8 +3787,15 @@ func validateHostName(fromHost *HostName, str string, validationOptions HostName
 							addrErr = parseAddressQualifier(str, addressOptions, nil, pa.getIPAddressParseData(), endIndex)
 						}
 						if firstTrySucceeded = addrErr == nil; !firstTrySucceeded {
-							pa = ParsedIPAddress{IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
-								options: addressOptions, originator: fromHost}
+							pa = ParsedIPAddress{
+								IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
+								options:            addressOptions,
+								originator:         fromHost,
+								//valuesx: TranslatedResult{
+								//	originator: fromHost,
+								//},
+
+							}
 							if expectPort {
 								// we tried with port first, now we try as IPv6 no port
 								hostQualifier.clearPortOrService()
@@ -3857,7 +3859,7 @@ func validateHostName(fromHost *HostName, str string, validationOptions HostName
 		addressIsEmpty,
 		qualifierIndex,
 		len(str),
-		UNKNOWN_VERSION)
+		INDETERMINATE_VERSION)
 	if addrErr != nil {
 		err = wrapAddrErr(addrErr)
 		return

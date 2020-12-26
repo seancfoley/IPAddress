@@ -1,7 +1,5 @@
 package ipaddr
 
-import "sync"
-
 /*
 package main
 
@@ -106,33 +104,7 @@ type IPAddressProvider interface {
 
 	getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressException)
 
-	//TODO isSequential
-	//isSequential() bool
-	//
-	//default boolean isSequential() {
-	//	try {
-	//		IPAddress addr = getProviderAddress();
-	//		if(addr != null) {
-	//			return addr.isSequential();
-	//		}
-	//	} catch(IncompatibleAddressException e) {}
-	//	return false;
-	//}
-
-	// TODO what will be the nil sequential range?  An unversioned range, much like with addresses NO
-	// ie it will have nil top and bottom
-	// a nil address has a grouping with no segments
-	// so a nil range will have no range boundaries, it will be empty
-
-	//TODO getProviderSeqRange
-	//default IPAddressSeqRange getProviderSeqRange() {
-	//	IPAddress addr = getProviderAddress();
-	//	if(addr != null) {
-	//		return addr.toSequentialRange();
-	//	}
-	//	return null;
-	//}
-	//
+	isSequential() bool
 
 	getProviderSeqRange() *IPAddressSeqRange
 
@@ -274,6 +246,10 @@ func (p *ipAddrProvider) getType() IPType {
 	return UNINITIALIZED_TYPE
 }
 
+func (p *ipAddrProvider) isSequential() bool {
+	return false
+}
+
 func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
 	return nil, nil
 }
@@ -295,7 +271,7 @@ func (p *ipAddrProvider) getProviderMask() *IPAddress {
 }
 
 func (p *ipAddrProvider) getProviderIPVersion() IPVersion {
-	return UNKNOWN_VERSION
+	return INDETERMINATE_VERSION
 }
 
 func (p *ipAddrProvider) isProvidingIPAddress() bool {
@@ -444,8 +420,8 @@ func (p *nullProvider) providerEquals(other IPAddressProvider) (bool, Incompatib
 
 var (
 	INVALID_PROVIDER = &nullProvider{isInvalidVal: true, ipType: INVALID}
-	NO_TYPE_PROVIDER = &nullProvider{isUninitializedVal: true, ipType: UNINITIALIZED_TYPE}
-	EMPTY_PROVIDER   = &nullProvider{isEmpty: true, ipType: EMPTY}
+	//NO_TYPE_PROVIDER = &nullProvider{isUninitializedVal: true, ipType: UNINITIALIZED_TYPE}
+	EMPTY_PROVIDER = &nullProvider{isEmpty: true, ipType: EMPTY}
 )
 
 type CachedIPAddresses struct {
@@ -477,8 +453,8 @@ type CachedAddressProvider struct {
 
 	// addressCreator creates two addresses, the host address and address with prefix/mask, at the same time
 	addressCreator func() CachedIPAddresses
-	created        atomicFlag
-	createLock     sync.Mutex
+
+	CreationLock
 }
 
 //TODO do not forget you also need these two in all top level classes, including ParsedIPAddress, the mask, all and empty providers
@@ -520,18 +496,23 @@ func (cached *CachedAddressProvider) getProviderSeqRange() *IPAddressSeqRange {
 	return nil
 }
 
+func (cached *CachedAddressProvider) isSequential() bool {
+	addr, _ := cached.getProviderAddress()
+	if addr != nil {
+		return addr.IsSequential()
+	}
+	return false
+}
+
 func (cached *CachedAddressProvider) hasCachedAddresses() bool {
-	return cached.addressCreator == nil || cached.created.isSet()
+	return cached.addressCreator == nil || cached.isCreated()
 }
 
 func (cached *CachedAddressProvider) getCachedAddresses() *CachedIPAddresses {
-	if cached.addressCreator != nil && !cached.created.isSet() {
-		cached.createLock.Lock()
-		if !cached.created.isSet() {
+	if cached.addressCreator != nil && !cached.isCreated() {
+		cached.create(func() {
 			cached.values = cached.addressCreator()
-			cached.created.set()
-		}
-		cached.createLock.Unlock()
+		})
 	}
 	return &cached.values
 }
@@ -543,7 +524,7 @@ func (cached *CachedAddressProvider) getProviderNetworkPrefixLength() (p PrefixL
 
 func (cached *CachedAddressProvider) getProviderIPVersion() IPVersion {
 	addr, _ := cached.getProviderAddress()
-	return addr.GetIPVersion()
+	return addr.getIPVersion()
 }
 
 func (cached *CachedAddressProvider) getType() IPType {
@@ -566,7 +547,7 @@ type VersionedAddressCreator struct {
 	adjustedVersion IPVersion
 
 	versionedAddressCreator func(IPVersion) *IPAddress
-	createdVersioned        [2]atomicFlag
+	createdVersioned        [2]CreationLock
 	versionedValues         [2]*IPAddress
 
 	parameters IPAddressStringParameters
@@ -577,7 +558,7 @@ func (versioned *VersionedAddressCreator) getParameters() IPAddressStringParamet
 }
 
 func (versioned *VersionedAddressCreator) isProvidingIPAddress() bool {
-	return versioned.adjustedVersion != UNKNOWN_VERSION
+	return versioned.adjustedVersion != INDETERMINATE_VERSION
 }
 
 func (versioned *VersionedAddressCreator) isProvidingIPv4() bool {
@@ -598,16 +579,13 @@ func (versioned *VersionedAddressCreator) getType() IPType {
 
 func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressException) {
 	index := version.index()
-	if index >= UNKNOWN_VERSION.index() {
+	if index >= INDETERMINATE_VERSION.index() {
 		return
 	}
-	if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isSet() {
-		versioned.createLock.Lock()
-		if !versioned.createdVersioned[index].isSet() {
+	if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isCreated() {
+		versioned.createdVersioned[index].create(func() {
 			versioned.versionedValues[index] = versioned.versionedAddressCreator(version)
-			versioned.createdVersioned[index].set()
-		}
-		versioned.createLock.Unlock()
+		})
 	}
 	addr = versioned.versionedValues[index]
 	return
@@ -615,7 +593,7 @@ func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion)
 
 func newLoopbackCreator(options IPAddressStringParameters, zone string) *LoopbackCreator {
 	// TODO an option to set preferred loopback here in IPAddressStringParameters, do the same in Java
-	// the option will set one of three options, IPv4, IPv6, or UNKNOWN_VERSION which is the default
+	// the option will set one of three options, IPv4, IPv6, or INDETERMINATE_VERSION which is the default
 	// In Go the default will be IPv4
 	// There is another option I wanted to add, was in the validator code, I think allow empty zone with prefix like %/
 	var preferIPv6 bool
@@ -728,7 +706,7 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 
 	var preferIPv6 bool
 
-	if adjustedVersion == UNKNOWN_VERSION {
+	if adjustedVersion == INDETERMINATE_VERSION {
 		if preferIPv6 {
 			adjustedVersion = IPv6
 		} else {
@@ -790,7 +768,7 @@ func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersi
 	// Drop "prefix only" type - it was never a good idea anyway!  Better to prefer one over the other.
 
 	var preferIPv6 bool
-	if adjustedVersion == UNKNOWN_VERSION {
+	if adjustedVersion == INDETERMINATE_VERSION {
 		// TODO do we defer to a version for "*"?  I prefer not.  I like it as is.
 		// But we do use the adjusting rules (not this block) and we use the prefix length rules (this block).
 		if preferIPv6 { // TODO this amounts to checkign the prefix length
@@ -843,14 +821,14 @@ type AllCreator struct {
 }
 
 func (all *AllCreator) getType() IPType {
-	if !all.adjustedVersion.isUnknown() {
+	if !all.adjustedVersion.isIndeterminate() {
 		return fromVersion(all.adjustedVersion)
 	}
 	return ALL
 }
 
 func (all *AllCreator) isProvidingAllAddresses() bool {
-	return all.adjustedVersion == UNKNOWN_VERSION
+	return all.adjustedVersion == INDETERMINATE_VERSION
 }
 
 func (all *AllCreator) getProviderNetworkPrefixLength() PrefixLen {

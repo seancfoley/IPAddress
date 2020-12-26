@@ -1,41 +1,11 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
-	"net"
 	"sync"
-	"sync/atomic"
 	"unsafe"
 )
-
-// A flag is set just once by just one goroutine
-type atomicFlag struct {
-	val uint32
-}
-
-func (a *atomicFlag) isSet() bool {
-	return atomic.LoadUint32(&a.val) > 0
-}
-
-func (a *atomicFlag) set() {
-	atomic.StoreUint32(&a.val, 1)
-}
-
-func (a *atomicFlag) unset() {
-	atomic.StoreUint32(&a.val, 0)
-}
-
-type BitCount int16 // using signed integers allows for easier arithmetic, avoiding bugs
-
-type PrefixLen *BitCount
-
-type Port *int // using signed integers allows for easier arithmetic, avoiding bugs
-type Service string
-
-// Allows for 3 different boolean values: not set, set to true, set to false (Similar to Boolean in Java which is null, true, false)
-type boolSetting struct {
-	value, isSet bool
-}
 
 type prefixLenSetting struct {
 	value PrefixLen
@@ -44,11 +14,6 @@ type prefixLenSetting struct {
 
 type stringCache struct {
 	string1, string2 string
-}
-
-type addressCache struct {
-	ip           net.IPAddr // lower converted
-	lower, upper *addressInternal
 }
 
 type groupingCache struct {
@@ -165,8 +130,9 @@ type valueCache struct {
 // OK, it is perfect as is.  Just make sure you create a cache obj and assign it on creation of grouping
 
 type addressDivisionGroupingInternal struct {
-	divisions    []*AddressDivision
-	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
+	divisions           []*AddressDivision
+	prefixLength        PrefixLen // must align with the divisions if they store prefix lengths
+	addressSegmentIndex uint8
 
 	//TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
 	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed, there is nothing to cache
@@ -369,7 +335,7 @@ func (grouping *addressDivisionGroupingInternal) prefixesAlign() bool {
 //	That is a good idea.  Maybe it could even supercede the other checks?  If there is a netowrk?
 
 func (grouping *addressDivisionGroupingInternal) getBytes() []byte {
-	if grouping.hasNilDivisions() {
+	if grouping.hasNoDivisions() {
 		//TODO been thinking about returning nil?  Kinda makes sense, not specifying divisions not the same as specifying 0 divisions
 		//arr := [0]byte{}
 		//return arr[:]
@@ -380,10 +346,36 @@ func (grouping *addressDivisionGroupingInternal) getBytes() []byte {
 	return nil
 }
 
+// Returns whether the series represents a range of values that are sequential.
+// Generally, this means that any division covering a range of values must be followed by divisions that are full range, covering all values.
+func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
+	count := grouping.GetDivisionCount()
+	if count > 1 {
+		for i := 0; i < count; i++ {
+			if grouping.GetDivision(i).isMultiple() {
+				for i++; i < count; i++ {
+					if !grouping.GetDivision(i).IsFullRange() {
+						return false
+					}
+				}
+				return true
+			}
+		}
+	}
+	return true
+
+}
+
+//// hasNilDivisions() returns whether this grouping is the zero grouping,
+//// which is what you get when contructing a grouping or section with no divisions
+//func (grouping *addressDivisionGroupingInternal) hasNilDivisions() bool {
+//	return grouping.divisions == nil
+//}
+
 // hasNilDivisions() returns whether this grouping is the zero grouping,
 // which is what you get when contructing a grouping or section with no divisions
-func (grouping *addressDivisionGroupingInternal) hasNilDivisions() bool {
-	return grouping.divisions == nil
+func (grouping *addressDivisionGroupingInternal) hasNoDivisions() bool {
+	return len(grouping.divisions) == 0
 }
 
 func (grouping *addressDivisionGroupingInternal) GetDivisionCount() int { //TODO make non-public so not exposed in IPv4/6/MAC
@@ -461,6 +453,20 @@ type addressSectionInternal struct {
 	addressDivisionGroupingInternal
 }
 
+func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
+	if section.GetDivisionCount() == 0 {
+		return 0
+	}
+	return section.GetDivision(0).GetBitCount()
+}
+
+func (section *addressSectionInternal) GetBytesPerSegment() int {
+	if section.GetDivisionCount() == 0 {
+		return 0
+	}
+	return section.GetDivision(0).GetByteCount()
+}
+
 func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
 	return section.GetDivision(index).ToAddressSegment()
 }
@@ -490,21 +496,21 @@ func (section *addressSectionInternal) matchesAddress(segmentCount int, segmentB
 func (section *addressSectionInternal) matchesIPv6Section() bool {
 	//xxxx all the cache access must check for nil first, all cache access must go through methods xxx
 	cache := section.cache
-	return cache.addrType.isIPv6() ||
+	return cache == nil || cache.addrType.isIPv6() ||
 		(cache.addrType.isIndeterminate() &&
 			section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
 }
 
 func (section *addressSectionInternal) matchesIPv4Section() bool {
 	cache := section.cache
-	return cache.addrType.isIPv4() ||
+	return cache == nil || cache.addrType.isIPv4() ||
 		(cache.addrType.isIndeterminate() &&
 			section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign())
 }
 
 func (section *addressSectionInternal) matchesIPSection() bool {
 	cache := section.cache
-	return cache.addrType.isIP() ||
+	return cache == nil || cache.addrType.isIP() ||
 		(cache.addrType.isIndeterminate() &&
 			(section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) || section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment)) &&
 			section.prefixesAlign())
@@ -512,18 +518,20 @@ func (section *addressSectionInternal) matchesIPSection() bool {
 
 func (section *addressSectionInternal) getAddrType() addrType {
 	cache := section.cache
-	if cache.addrType.isIPv4() {
-		return ipv4AddrType
-	} else if cache.addrType.isIPv6() {
-		return ipv6AddrType
-	}
-	divLen := section.GetDivisionCount()
-	if divLen > 0 {
-		bc := section.GetDivision(0).GetBitCount()
-		if bc == IPv4BitsPerSegment {
+	if cache != nil {
+		if cache.addrType.isIPv4() {
 			return ipv4AddrType
-		} else if bc == IPv6BitsPerSegment {
+		} else if cache.addrType.isIPv6() {
 			return ipv6AddrType
+		}
+		divLen := section.GetDivisionCount()
+		if divLen > 0 {
+			bc := section.GetDivision(0).GetBitCount()
+			if bc == IPv4BitsPerSegment {
+				return ipv4AddrType
+			} else if bc == IPv6BitsPerSegment {
+				return ipv6AddrType
+			}
 		}
 	}
 	return noAddrType
@@ -532,17 +540,17 @@ func (section *addressSectionInternal) getAddrType() addrType {
 func (section *addressSectionInternal) matchesMACSection() bool {
 	// note that any MAC section is also an ExtendedUniqueIdentifier64, so no need to check section.matchesSection(MediaAccessControlSegmentCount, MACBitsPerSegment)
 	cache := section.cache
-	return cache.addrType.isMAC() || section.matchesSection(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
+	return cache == nil || cache.addrType.isMAC() || section.matchesSection(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
 }
 
 func (section *addressSectionInternal) matchesIPv6Address() bool {
 	cache := section.cache
-	return cache.addrType.isIPv6() && section.matchesAddress(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign()
+	return cache != nil && (section.matchesAddress(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
 }
 
 func (section *addressSectionInternal) matchesIPv4Address() bool {
 	cache := section.cache
-	return cache.addrType.isIPv4() && section.matchesAddress(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign()
+	return cache != nil && (section.matchesAddress(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign())
 }
 
 func (section *addressSectionInternal) matchesMACAddress() bool {
@@ -564,8 +572,7 @@ type AddressSection struct {
 
 func (section *AddressSection) getLowestOrHighestSection(lowest bool) (result *AddressSection) {
 	if !section.IsMultiple() {
-		result = section
-		return
+		return section
 	}
 	cache := section.cache
 	cache.RLock()
@@ -664,7 +671,9 @@ func (section *AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 		return nil
 	}
 	cache := section.cache
-	cache.addrType = ipv6AddrType
+	if cache != nil {
+		cache.addrType = ipv6AddrType
+	}
 	return (*IPv6AddressSection)(unsafe.Pointer(section))
 }
 
@@ -673,7 +682,9 @@ func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 		return nil
 	}
 	cache := section.cache
-	cache.addrType = ipv4AddrType
+	if cache != nil {
+		cache.addrType = ipv4AddrType
+	}
 	return (*IPv4AddressSection)(unsafe.Pointer(section))
 }
 
@@ -682,7 +693,9 @@ func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
 		return nil
 	}
 	cache := section.cache
-	cache.addrType = macAddrType
+	if cache != nil {
+		cache.addrType = macAddrType
+	}
 	return (*MACAddressSection)(unsafe.Pointer(section))
 }
 
@@ -698,16 +711,8 @@ func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment
 	return section.GetDivision(index).ToIPAddressSegment()
 }
 
-func (section *ipAddressSectionInternal) IsIPv4() bool {
-	return section.matchesIPv4Section()
-}
-
-func (section *ipAddressSectionInternal) IsIPv6() bool {
-	return section.matchesIPv6Section()
-}
-
 func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
-	if section.IsIPv4() {
+	if section.matchesIPv4Section() {
 		return IPv4
 	}
 	return IPv6
@@ -726,12 +731,54 @@ func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }
 
+func (section *ipAddressSectionInternal) initPrefix(bitsPerSegment BitCount) error {
+	var previousSegmentPrefix PrefixLen
+	segCount := section.GetSegmentCount()
+	for i := 0; i < segCount; i++ {
+		div := section.GetDivision(i)
+		if div == nil {
+			//TODO throw new NullPointerException(getMessage("ipaddress.error.null.segment"));
+			return &addressException{"ipaddress.error.null.segment"}
+		} else if section.GetDivision(i).GetBitCount() != bitsPerSegment {
+			return &addressException{"ipaddress.error.mismatched.bit.size"}
+		}
+		segment := section.GetSegment(i)
+
+		//Across an address prefixes are:
+		//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+		//or IPv4: ...(null).(1 to 8).(0)...
+		segPrefix := segment.GetSegmentPrefixLength()
+		if previousSegmentPrefix == nil {
+			if segPrefix != nil {
+				section.prefixLength = getNetworkPrefixLength(bitsPerSegment, *segPrefix, i)
+				//break
+			}
+		} else if segPrefix == nil || *segPrefix != 0 {
+			//return &inconsistentPrefixException(segments[i-1], segment, segPrefix)
+			return &inconsistentPrefixException{str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix), key: "ipaddress.error.inconsistent.prefixes"}
+		}
+		previousSegmentPrefix = segPrefix
+	}
+	//if(previousSegmentPrefix == nil) { no need for this now since prefix length always set
+	//	cachedPrefixLength = NO_PREFIX_LENGTH;
+	//}
+	return nil
+}
+
 //
 //
 //
 // An IPAddress section has segments, which are divisions of equal length and size
 type IPAddressSection struct {
 	ipAddressSectionInternal
+}
+
+func (section *IPAddressSection) IsIPv4() bool {
+	return section.matchesIPv4Section()
+}
+
+func (section *IPAddressSection) IsIPv6() bool {
+	return section.matchesIPv6Section()
 }
 
 func (section *IPAddressSection) GetLower() *IPAddressSection {
@@ -761,8 +808,7 @@ func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	if section == nil {
 		return nil
-	}
-	if section.matchesIPv4Section() {
+	} else if section.matchesIPv4Section() {
 		cache := section.cache
 		cache.addrType = ipv4AddrType
 		return (*IPv4AddressSection)(unsafe.Pointer(section))
@@ -775,6 +821,160 @@ func BitsPerSegment(version IPVersion) BitCount {
 		return IPv4BitsPerSegment
 	}
 	return IPv6BitsPerSegment
+}
+
+func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection, singleOnly bool, boundaryBits, maxBits BitCount) (err AddressValueException) {
+	//if prefixLength != nil {
+	prefLen := *prefixLength
+	if prefLen < 0 {
+		return &prefixLenException{prefixLen: prefLen, key: "ipaddress.error.prefixSize"}
+		//throw new PrefixLenException(networkPrefixLength);
+	} else if prefLen > boundaryBits {
+		if prefLen > maxBits {
+			return &prefixLenException{prefixLen: prefLen, key: "ipaddress.error.prefixSize"}
+			//throw new PrefixLenException(networkPrefixLength);
+		}
+		prefLen = boundaryBits
+		prefixLength = &boundaryBits
+	}
+	if len(segments) > 0 {
+		segsPrefLen := res.prefixLength
+		if segsPrefLen != nil {
+			sp := *segsPrefLen
+			if sp < prefLen { //if the segments have a shorter prefix length, then use that
+				prefLen = sp
+				prefixLength = segsPrefLen
+			}
+		}
+		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
+		if !singleOnly && isPrefixSubnetSegs(segments, prefLen, false) {
+			segProducer = (*AddressDivision).toPrefixedNetworkDivision
+		} else {
+			segProducer = (*AddressDivision).toPrefixedDivision
+		}
+		setPrefixedSegments(
+			prefLen,
+			res.divisions,
+			res.GetBitsPerSegment(),
+			res.GetBytesPerSegment(),
+			segProducer)
+	}
+	res.prefixLength = prefixLength
+	//} // else prefixLength has already been set to the proper value
+	return
+}
+
+// Starting from the first host bit according to the prefix, if the section is a sequence of zeros in both low and high values,
+// followed by a sequence where low values are zero and high values are 1, then the section is a subnet prefix.
+//
+// Note that this includes sections where hosts are all zeros, or sections where hosts are full range of values,
+// so the sequence of zeros can be empty and the sequence of where low values are zero and high values are 1 can be empty as well.
+// However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
+func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength BitCount, fullRangeOnly bool) bool {
+	segmentCount := len(sectionSegments)
+	if segmentCount == 0 {
+		return false
+	}
+	seg := sectionSegments[0]
+	//SegmentValueProvider func(segmentIndex int) SegInt
+	return isPrefixSubnet(
+		func(segmentIndex int) SegInt {
+			return sectionSegments[segmentIndex].ToAddressSegment().GetSegmentValue()
+		},
+		func(segmentIndex int) SegInt {
+			return sectionSegments[segmentIndex].ToAddressSegment().GetUpperSegmentValue()
+		},
+		//segmentIndex -> sectionSegments[segmentIndex].getSegmentValue(),
+		//segmentIndex -> sectionSegments[segmentIndex].getUpperSegmentValue(),
+		segmentCount,
+		seg.GetByteCount(),
+		seg.GetBitCount(),
+		seg.ToAddressSegment().GetMaxSegmentValue(),
+		//SegInt(seg.GetMaxValue()),
+		networkPrefixLength,
+		fullRangeOnly)
+}
+
+func setPrefixedSegments(
+	sectionPrefixBits BitCount,
+	segments []*AddressDivision,
+	segmentBitCount BitCount,
+	segmentByteCount int,
+	segProducer func(*AddressDivision, PrefixLen) *AddressDivision) {
+	var i int
+	if sectionPrefixBits != 0 {
+		i = getNetworkSegmentIndex(sectionPrefixBits, segmentByteCount, segmentBitCount)
+	}
+	for ; i < len(segments); i++ {
+		pref := getPrefixedSegmentPrefixLength(segmentBitCount, sectionPrefixBits, i)
+		if pref != nil {
+			segments[i] = segProducer(segments[i], pref)
+		}
+	}
+}
+
+func normalizePrefixBoundary(
+	sectionPrefixBits BitCount,
+	segments []*AddressDivision,
+	segmentBitCount BitCount,
+	segmentByteCount int,
+	segmentCreator func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision) {
+	//we've already verified segment prefixes.  We simply need to check the case where the prefix is at a segment boundary,
+	//whether the network side has the correct prefix
+	networkSegmentIndex := getNetworkSegmentIndex(sectionPrefixBits, segmentByteCount, segmentBitCount)
+	if networkSegmentIndex >= 0 {
+		segment := segments[networkSegmentIndex].ToIPAddressSegment()
+		if !segment.IsPrefixed() {
+			segments[networkSegmentIndex] = segmentCreator(segment.GetSegmentValue(), segment.GetUpperSegmentValue(), cacheBitcount(segmentBitCount))
+		}
+	}
+}
+
+func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueException) {
+	if startIndex < 0 {
+		err = &addressPositionException{val: startIndex, key: "ipaddress.error.invalid.position"}
+		return
+	}
+	segsLen := len(segments)
+	if startIndex+segsLen > IPv6SegmentCount {
+		err = &addressValueException{val: startIndex + segsLen, key: "ipaddress.error.exceeds.size"}
+		return
+	}
+	//if cloneSegments { //TODO this is likely not necessary because for public you will need to convert from []*IPv6AddressSegment to []*AddressDivision before calling this func
+	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
+	//}
+	res = &IPv6AddressSection{
+		ipAddressSectionInternal{
+			addressSectionInternal{
+				addressDivisionGroupingInternal{
+					divisions:           segments,
+					cache:               &valueCache{addrType: ipv6AddrType},
+					addressSegmentIndex: uint8(startIndex),
+				},
+			},
+		},
+	}
+	err = res.initPrefix(IPv6BitsPerSegment)
+	if err != nil {
+		return
+	}
+	prefLen := res.prefixLength
+	if normalizeSegments && prefLen != nil {
+		normalizePrefixBoundary(*prefLen, segments, IPv6BitsPerSegment, IPv6BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
+			return NewIPv6RangePrefixSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
+		})
+	}
+	return
+}
+
+//protected IPv6AddressSection(IPv6AddressSegment[] segments, int startIndex, boolean cloneSegments, Integer networkPrefixLength, boolean singleOnly) throws AddressValueException {
+
+func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueException) {
+	res, err = newIPv6AddressSection(segments, startIndex /*cloneSegments,*/, prefixLength == nil)
+	if err != nil {
+		err = assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<4), IPv6BitCount)
+	}
+	return
 }
 
 // IPv6AddressSection represents a section of an IPv6 address comprising 0 to 8 IPv6 address segments.
@@ -804,16 +1004,53 @@ func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPv6AddressSection) IsIPv4() bool {
-	return false
-}
-
-func (section *IPv6AddressSection) IsIPv6() bool {
-	return true
-}
-
 func (section *IPv6AddressSection) GetIPVersion() IPVersion {
 	return IPv6
+}
+
+func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueException) {
+	//if startIndex < 0 {
+	//	err = &addressPositionException{val: startIndex, key: "ipaddress.error.invalid.position"}
+	//	return
+	//}
+	segsLen := len(segments)
+	if segsLen > IPv4SegmentCount {
+		err = &addressValueException{val: segsLen, key: "ipaddress.error.exceeds.size"}
+		return
+	}
+	//if cloneSegments { //TODO this is likely not necessary because for public you will need to convert from []*IPv4AddressSegment to []*AddressDivision before calling this func
+	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
+	//}
+	res = &IPv4AddressSection{
+		ipAddressSectionInternal{
+			addressSectionInternal{
+				addressDivisionGroupingInternal{
+					divisions: segments,
+					cache:     &valueCache{addrType: ipv4AddrType},
+					//addressSegmentIndex: uint8(startIndex),
+				},
+			},
+		},
+	}
+	err = res.initPrefix(IPv4BitsPerSegment)
+	if err != nil {
+		return
+	}
+	prefLen := res.prefixLength
+	if normalizeSegments && prefLen != nil {
+		normalizePrefixBoundary(*prefLen, segments, IPv4BitsPerSegment, IPv4BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
+			return NewIPv4RangePrefixSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToAddressDivision()
+		})
+	}
+	return
+}
+
+func newIPv4AddressSectionSingle(segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {
+	res, err = newIPv4AddressSection(segments /*cloneSegments,*/, prefixLength == nil)
+	if err == nil && prefixLength != nil {
+		err = assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<3), IPv4BitCount)
+	}
+	return
 }
 
 // IPv4AddressSection represents a section of an IPv4 address comprising 0 to 4 IPv4 address segments.
@@ -843,14 +1080,6 @@ func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPv4AddressSection) IsIPv4() bool {
-	return true
-}
-
-func (section *IPv4AddressSection) IsIPv6() bool {
-	return false
-}
-
 func (section *IPv4AddressSection) GetIPVersion() IPVersion {
 	return IPv4
 }
@@ -870,7 +1099,7 @@ func (section *macAddressSectionInternal) GetSegment(index int) *MACAddressSegme
 	return section.GetDivision(index).ToMACAddressSegment()
 }
 
-//func (section *ipAddressSectionInternal) GetIPVersion() IPVersion (TODO need the MAC equivalent, butcannot remember if there is a MAC equivalent)
+//func (section *ipAddressSectionInternal) GetIPVersion() IPVersion (TODO need the MAC equivalent (ie EUI 64 or MAC 48, butcannot remember if there is a MAC equivalent)
 //	if section.IsIPv4() {
 //		return IPv4
 //	}

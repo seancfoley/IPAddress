@@ -13,7 +13,7 @@ const DivIntSize = 64
 type divisionValuesBase interface { // shared by standard and large divisions
 	GetBitCount() BitCount
 
-	GetByteCount() int
+	GetByteCount() int // TODO maybe drop this and instead derive from GetBitCount like GetMaxValue() and GetMaxSegmentValue()
 }
 
 // DivisionValues represents divisions with values that are 64 bits or less
@@ -30,9 +30,17 @@ type divisionValues interface {
 	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
 	getDivisionPrefixLength() PrefixLen
 
-	getLower() (divisionValues, *divCache)
+	// getSegmentValue gets the lower value truncated to a SegInt
+	getSegmentValue() SegInt
 
-	getUpper() (divisionValues, *divCache)
+	// getUpperSegmentValue gets the upper value truncated to a SegInt
+	getUpperSegmentValue() SegInt
+
+	// deriveNew produces a new division with the same bit count as the old
+	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
+
+	// getCache returns a cache for this divisions which cache their values, or nil otherwise
+	getCache() *divCache
 }
 
 type divCache struct {
@@ -42,14 +50,22 @@ type divCache struct {
 	cachedString, cachedWildcardString string
 	isSinglePrefixBlock                boolSetting
 
-	// I decided it makes no sense to do this, so network will go
+	// I decided it makes no sense to do this, so network will go away
 	//network                            AddressNetwork // never nil // equivalent to overriding getNetwork(), ToIPvX(), IsIPvxConvertible(), etc, in Java, allows you to supply your own conversion
 }
 
+//TODO everything must become a Stringer, following the pattern of toString() in Java
+
 type addressDivisionInternal struct {
 	divisionValues
+}
 
-	cache *divCache
+func (div *addressDivisionInternal) isPrefixed() bool {
+	vals := div.divisionValues
+	if vals == nil {
+		return false
+	}
+	return div.getDivisionPrefixLength() != nil
 }
 
 func (div *addressDivisionInternal) GetBitCount() BitCount {
@@ -66,6 +82,10 @@ func (div *addressDivisionInternal) GetByteCount() int {
 		return 0
 	}
 	return vals.GetByteCount()
+}
+
+func (div *addressDivisionInternal) GetMaxValue() DivInt {
+	return ^(^DivInt(0) << div.GetBitCount())
 }
 
 func (div *addressDivisionInternal) isMultiple() bool {
@@ -163,12 +183,88 @@ func (div *AddressDivision) IncludesMax() bool {
  * @return whether this address item represents all possible values attainable by an address item of this type,
  * or in other words, both includesZero() and includesMax() return true
  */
-func (div *AddressDivision) isFullRange() bool {
+func (div *AddressDivision) IsFullRange() bool {
 	return div.IncludesZero() && div.IncludesMax()
 }
 
+func (div *AddressDivision) toPrefixedDivision(divPrefixLength PrefixLen) *AddressDivision {
+	hasPrefLen := divPrefixLength != nil
+	bitCount := div.GetBitCount()
+	if hasPrefLen {
+		prefBits := *divPrefixLength
+		if prefBits < 0 {
+			prefBits = 0
+		} else if prefBits > bitCount {
+			prefBits = bitCount
+		}
+		if div.isPrefixed() && prefBits == *div.getDivisionPrefixLength() {
+			return div
+		}
+	} else {
+		return div
+	}
+	lower := div.GetDivisionValue()
+	upper := div.GetUpperDivisionValue()
+
+	newVals := div.deriveNew(lower, upper, divPrefixLength)
+	return &AddressDivision{addressDivisionInternal{divisionValues: newVals}}
+}
+
+func (div *AddressDivision) toPrefixedNetworkDivision(divPrefixLength PrefixLen) *AddressDivision {
+	return div.toNetworkDivision(divPrefixLength, true)
+}
+
+func (div *AddressDivision) toNetworkDivision(divPrefixLength PrefixLen, withPrefixLength bool) *AddressDivision {
+	vals := div.divisionValues
+	if vals == nil {
+		return div
+	}
+	lower := div.GetDivisionValue()
+	upper := div.GetUpperDivisionValue()
+	var newLower, newUpper DivInt
+	hasPrefLen := divPrefixLength != nil
+	if hasPrefLen {
+		prefBits := *divPrefixLength
+		bitCount := div.GetBitCount()
+		if prefBits < 0 {
+			prefBits = 0
+		} else if prefBits > bitCount {
+			prefBits = bitCount
+		}
+		mask := ^DivInt(0) << (bitCount - prefBits)
+		newLower = lower & mask
+		newUpper = upper | ^mask
+		if !withPrefixLength {
+			divPrefixLength = nil
+		}
+		if PrefixEquals(divPrefixLength, div.getDivisionPrefixLength()) &&
+			newLower == lower && newUpper == upper {
+			return div
+		}
+	} else {
+		withPrefixLength = false
+		divPrefixLength = nil
+		if div.getDivisionPrefixLength() == nil {
+			return div
+		}
+	}
+	newVals := div.deriveNew(DivInt(newLower), DivInt(newUpper), divPrefixLength)
+	return &AddressDivision{addressDivisionInternal{divisionValues: newVals}}
+}
+
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	if _, ok := div.divisionValues.(segmentValues); ok {
+	//if _, ok := div.divisionValues.(segmentValues); ok {
+	//	return (*AddressSegment)(unsafe.Pointer(div))
+	//} else if div.GetBitCount() <= SegIntSize {
+	//	return &AddressSegment{
+	//		addressSegmentInternal{
+	//			addressDivisionInternal{
+	//				wrappedDivisionValues{div.divisionValues},
+	//			},
+	//		},
+	//	}
+	//}
+	if div.GetBitCount() <= SegIntSize {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil

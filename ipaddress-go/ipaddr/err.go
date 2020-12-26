@@ -66,6 +66,16 @@ func (a *hostNameException) Error() string {
 
 // TODO not so sure I need another exception type, but at the same time, distinguishing between errors would be nice
 
+type addressException struct {
+	// key to look up the error message
+	key string
+}
+
+func (a *addressException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
 type incompatibleAddressException struct {
 	// the value
 	str,
@@ -95,12 +105,68 @@ func (a *addressStringException) Error() string {
 	return a.key
 }
 
+type AddressValueException interface {
+	error
+}
+
+type addressValueException struct {
+	// the value
+	val int
+
+	// key to look up the error message
+	key string
+}
+
+func (a *addressValueException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+type addressPositionException struct {
+	// the value
+	val int
+
+	// key to look up the error message
+	key string
+}
+
+func (a *addressPositionException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+type inconsistentPrefixException struct {
+	str,
+
+	// key to look up the error message
+	key string
+}
+
+func (a *inconsistentPrefixException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+type prefixLenException struct {
+	prefixLen BitCount
+
+	// key to look up the error message
+	key string
+}
+
+func (a *prefixLenException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
 type addressStringIndexErr struct {
 	addressStringException
 
 	// byte index location in string of the error
 	index int
 }
+
+///////////////////////////////////////////////
 
 type wrappedErr struct {
 	// root cause
@@ -120,6 +186,10 @@ func (wrappedErr *wrappedErr) Error() string {
 	str = wrappedErr.err.Error() + ": " + wrappedErr.cause.Error()
 	wrappedErr.str = str
 	return str
+}
+
+func newError(str string) error {
+	return errors.New(str)
 }
 
 // Errorf returns a formatted error

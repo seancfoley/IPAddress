@@ -8,9 +8,16 @@ func ToMACSegInt(val SegInt) MACSegInt {
 	return MACSegInt(val)
 }
 
+//TODO caching, we will share cache and share the values when values match to cache
+
+func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
+	return &macSegmentValues{value: value, upperValue: upperValue}
+}
+
 type macSegmentValues struct {
 	value      MACSegInt
 	upperValue MACSegInt
+	cache      divCache
 }
 
 func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
@@ -38,29 +45,33 @@ func (seg macSegmentValues) getDivisionPrefixLength() PrefixLen {
 	return nil
 }
 
-func (seg macSegmentValues) GetSegmentValue() SegInt {
+func (seg macSegmentValues) getSegmentValue() SegInt {
 	return SegInt(seg.value)
 }
 
-func (seg macSegmentValues) GetUpperSegmentValue() SegInt {
+func (seg macSegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-func (seg macSegmentValues) getLower() (divisionValues, *divCache) {
+func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(seg.value, seg.value)
 }
 
-func (seg macSegmentValues) getUpper() (divisionValues, *divCache) {
-	return newMACSegmentValues(seg.upperValue, seg.upperValue)
+func (seg macSegmentValues) getCache() *divCache {
+	return &seg.cache
 }
 
-func newMACSegmentValues(value, upperValue MACSegInt) (*macSegmentValues, *divCache) {
-	//TODO caching, we will share cache and share the values when values match to cache
-	return &macSegmentValues{value: value, upperValue: upperValue}, &divCache{}
-}
+//func (seg macSegmentValues) getLower() (divisionValues, *divCache) {
+//	return newMACSegmentValues(seg.value, seg.value)
+//}
+//
+//func (seg macSegmentValues) getUpper() (divisionValues, *divCache) {
+//	return newMACSegmentValues(seg.upperValue, seg.upperValue)
+//}
 
 var _ divisionValues = macSegmentValues{}
-var _ segmentValues = macSegmentValues{}
+
+//var _ segmentValues = macSegmentValues{}
 
 type MACAddressSegment struct {
 	addressSegmentInternal
@@ -96,10 +107,9 @@ func NewMACSegment(val MACSegInt) *MACAddressSegment {
 }
 
 func NewMACRangeSegment(val, upperVal MACSegInt) *MACAddressSegment {
-	vals, cache := newMACSegmentValues(val, upperVal)
 	return &MACAddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: vals, cache: cache},
+			addressDivisionInternal{newMACSegmentValues(val, upperVal)},
 		},
 	}
 }
