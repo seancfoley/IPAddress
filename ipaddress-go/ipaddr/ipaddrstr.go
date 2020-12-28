@@ -145,7 +145,7 @@ var (
 
 func (addrStr *IPAddressString) validate(version IPVersion) AddressStringException {
 	lock := addrStr.lock // nil for zero-value IPAddressString
-	if lock == nil || !lock.isCreated() {
+	if lock == nil || !lock.isItemCreated() {
 		creationFunc := func() {
 			addressProvider, err := validator.validateIPAddressStr(addrStr) //strValidator and HostIdentifierStringValidator
 			if err != nil {

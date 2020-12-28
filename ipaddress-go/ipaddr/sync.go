@@ -23,21 +23,21 @@ func (a *atomicFlag) unset() {
 }
 
 type CreationLock struct {
-	createdx    atomicFlag // to check if created //TODO rename back to createdx and createLockx
-	createLockx sync.Mutex // acquire to create
+	created    atomicFlag // to check if created
+	createLock sync.Mutex // acquire to create
 }
 
-func (lock *CreationLock) isCreated() bool {
-	return lock.createdx.isSet()
+func (lock *CreationLock) isItemCreated() bool {
+	return lock.created.isSet()
 }
 
 func (lock *CreationLock) create(creator func()) (ret bool) {
-	lock.createLockx.Lock()
-	if !lock.isCreated() {
+	lock.createLock.Lock()
+	if !lock.isItemCreated() {
 		creator()
 		ret = true
-		lock.createdx.set()
+		lock.created.set()
 	}
-	lock.createLockx.Unlock()
+	lock.createLock.Unlock()
 	return
 }

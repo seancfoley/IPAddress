@@ -218,11 +218,11 @@ func (params *ipAddressStringParameters) AllowsMask() bool {
 }
 
 func (params *ipAddressStringParameters) AllowsIPv4() bool {
-	return !params.noIPv6
+	return !params.noIPv4
 }
 
 func (params *ipAddressStringParameters) AllowsIPv6() bool {
-	return !params.noIPv4
+	return !params.noIPv6
 }
 
 func (params *ipAddressStringParameters) inferVersion() IPVersion {
@@ -465,7 +465,11 @@ func (params *ipv6AddressStringParameters) AllowsBase85() bool {
 }
 
 func (params *ipv6AddressStringParameters) GetMixedParameters() IPAddressStringParameters {
-	return params.embeddedParams
+	var result *ipAddressStringParameters = params.embeddedParams
+	if result == nil {
+		result = defaultEmbeddedParams
+	}
+	return result
 }
 
 func (params *ipv6AddressStringParameters) GetEmbeddedIPv4AddressParams() IPv4AddressStringParameters {

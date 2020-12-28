@@ -44,6 +44,12 @@ type IPv4Address struct {
 	ipAddressInternal
 }
 
+func (addr IPv4Address) String() string {
+	address := addr.init()
+	//TODO a different default string
+	return address.String()
+}
+
 func (addr *IPv4Address) ToAddress() *Address {
 	addr = addr.init()
 	return (*Address)(unsafe.Pointer(addr))
@@ -83,6 +89,7 @@ func (addr *IPv4Address) Mask(other *IPv4Address) *IPv4Address {
 
 func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange {
 	addr = addr.init()
+	other = other.init()
 	return NewIPv4SeqRange(addr, other)
 }
 

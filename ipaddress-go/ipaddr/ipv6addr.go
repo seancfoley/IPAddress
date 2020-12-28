@@ -51,14 +51,6 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
 	}
 }
 
-/*
-type addressInternal struct {
-	section AddressSection
-	zone    Zone
-	cache   *addressCache
-}
-*/
-
 var zeroIPv6 *IPv6Address
 
 func init() {
@@ -74,6 +66,12 @@ func init() {
 // The zero value is ::
 type IPv6Address struct {
 	ipAddressInternal
+}
+
+func (addr IPv6Address) String() string {
+	address := addr.init()
+	//TODO a different default string
+	return address.addressInternal.String()
 }
 
 func (addr *IPv6Address) ToAddress() *Address {
@@ -106,16 +104,6 @@ func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
 func (addr *IPv6Address) GetIPVersion() IPVersion {
 	return IPv6
 }
-
-//func (addr *IPv6Address) IsIPv4Convertible() bool {
-//	addr.init()
-//	return addr.getConverter().IsIPv4Convertible(addr.ToIPAddress())
-//}
-//
-//func (addr *IPv6Address) ToIPv4Address() *IPv4Address {
-//	addr.init()
-//	return addr.getConverter().ToIPv4(addr.ToIPAddress())
-//}
 
 func (addr *IPv6Address) Mask(other *IPv6Address) *IPv6Address {
 	addr = addr.init()

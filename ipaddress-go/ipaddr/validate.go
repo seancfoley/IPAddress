@@ -125,7 +125,10 @@ func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov IPAd
 		options:            validationOptions,
 		IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
 	}
-	validateIPAddress(validationOptions, str, 0, len(str), pa.getIPAddressParseData(), false)
+	err = validateIPAddress(validationOptions, str, 0, len(str), pa.getIPAddressParseData(), false)
+	if err != nil {
+		return
+	}
 	err = parseAddressQualifier(str, validationOptions, nil, pa.getIPAddressParseData(), len(str))
 	if err != nil {
 		return
@@ -133,12 +136,16 @@ func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov IPAd
 	return chooseIPAddressProvider(fromString, str, validationOptions, &pa)
 }
 
-func (strValidator) validateMACAddressStr(fromString *MACAddressString) (MACAddressProvider, AddressStringException) {
+func (strValidator) validateMACAddressStr(fromString *MACAddressString) (prov MACAddressProvider, err AddressStringException) {
 	str := fromString.str
 	validationOptions := fromString.getParams()
 	pa := ParsedMACAddress{
 		originator:          fromString,
 		MACAddressParseData: MACAddressParseData{AddressParseData: AddressParseData{str: str}},
+	}
+	err = validateMACAddress(validationOptions, str, 0, len(str), pa.getMACAddressParseData())
+	if err != nil {
+		return
 	}
 	addressParseData := pa.getAddressParseData()
 	return chooseMACAddressProvider(fromString, validationOptions, &pa, addressParseData)

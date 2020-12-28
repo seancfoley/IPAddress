@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"net"
 	"unsafe"
 )
@@ -20,7 +21,7 @@ type SegmentValueProvider func(segmentIndex int) SegInt
 
 type addressCache struct {
 	ip           net.IPAddr // lower converted (cloned when returned)
-	lower, upper *addressInternal
+	lower, upper *Address
 }
 
 type addressInternal struct {
@@ -38,6 +39,13 @@ type addressInternal struct {
 //}
 
 //TODO do a similar addr init with all of these (similr to ipv4/6, but will return the nil section instead
+
+func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
+	if addr.zone != noZone {
+		return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
+	}
+	return fmt.Sprintf("%v", addr.section)
+}
 
 func (addr *addressInternal) IsSequential() bool {
 	if addr.section == nil {
@@ -103,6 +111,11 @@ func (addr *Address) init() *Address {
 		return zeroAddr // this has a zero section
 	}
 	return addr
+}
+
+func (addr *Address) String() string {
+	addr = addr.init()
+	return addr.addressInternal.String()
 }
 
 func (addr *Address) GetLower() *Address {

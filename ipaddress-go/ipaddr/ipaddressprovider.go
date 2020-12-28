@@ -505,11 +505,11 @@ func (cached *CachedAddressProvider) isSequential() bool {
 }
 
 func (cached *CachedAddressProvider) hasCachedAddresses() bool {
-	return cached.addressCreator == nil || cached.isCreated()
+	return cached.addressCreator == nil || cached.isItemCreated()
 }
 
 func (cached *CachedAddressProvider) getCachedAddresses() *CachedIPAddresses {
-	if cached.addressCreator != nil && !cached.isCreated() {
+	if cached.addressCreator != nil && !cached.isItemCreated() {
 		cached.create(func() {
 			cached.values = cached.addressCreator()
 		})
@@ -582,7 +582,7 @@ func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion)
 	if index >= INDETERMINATE_VERSION.index() {
 		return
 	}
-	if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isCreated() {
+	if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isItemCreated() {
 		versioned.createdVersioned[index].create(func() {
 			versioned.versionedValues[index] = versioned.versionedAddressCreator(version)
 		})

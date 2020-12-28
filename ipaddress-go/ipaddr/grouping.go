@@ -173,6 +173,10 @@ func (grouping *addressDivisionGroupingInternal) IsMultiple() bool {
 	return isMult.value
 }
 
+func (grouping addressDivisionGroupingInternal) String() string {
+	return fmt.Sprintf("%v", grouping.divisions)
+}
+
 //xxxxx
 //consider 1:2:* mac
 //it gets pref length 16
@@ -569,6 +573,10 @@ func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivis
 type AddressSection struct {
 	addressSectionInternal
 }
+
+//func (section *AddressSection) String() string {
+//	return section.addressSectionInternal.String()
+//}
 
 func (section *AddressSection) getLowestOrHighestSection(lowest bool) (result *AddressSection) {
 	if !section.IsMultiple() {

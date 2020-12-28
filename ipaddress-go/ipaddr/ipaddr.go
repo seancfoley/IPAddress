@@ -24,7 +24,7 @@ func (version IPVersion) isIndeterminate() bool {
 	return version == INDETERMINATE_VERSION
 }
 
-//returns an index starting from 0 with INDETERMINATE_VERSION being the highest
+// returns an index starting from 0 with INDETERMINATE_VERSION being the highest
 func (version IPVersion) index() int {
 	if version.isIPv4() {
 		return 0
@@ -121,6 +121,20 @@ func (addr *IPAddress) init() *IPAddress {
 		return zeroIPAddr // this has a zero section
 	}
 	return addr
+}
+
+func (addr IPAddress) String() string {
+	address := addr.init()
+	if address != &addr {
+		addr = *address
+	}
+	if addr.section.cache != nil {
+		addrType := addr.section.cache.addrType
+		_ = addrType
+		//TODO a different default string
+	}
+
+	return addr.addressInternal.String()
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {

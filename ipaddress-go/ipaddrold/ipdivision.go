@@ -59,12 +59,12 @@ type IPAddressDivision struct {
 	ipAddressDivisionInternal
 }
 
-// GetDivisionValue gets the lower value for the division
+// getDivisionValue gets the lower value for the division
 func (d *IPAddressDivision) GetDivisionValue() DivInt {
 	return d.getDivisionValue()
 }
 
-// GetUpperDivisionValue gets the upper value for the division
+// getUpperDivisionValue gets the upper value for the division
 func (d *IPAddressDivision) GetUpperDivisionValue() DivInt {
 	return d.getUpperDivisionValue()
 }

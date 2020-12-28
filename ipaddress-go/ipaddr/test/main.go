@@ -51,12 +51,29 @@ func main() {
 	////fmt.Printf("%+v\n", params)
 
 	addr := ipaddr.IPv6Address{}
-	addr.ToAddress()
+	fmt.Printf("%+v\n", addr)
+	fmt.Printf("%+v\n", &addr)
+
+	addr4 := ipaddr.IPv4Address{}
+	addr2 := addr4.ToIPAddress()
+	fmt.Printf("%+v\n", addr2)
+	//fmt.Printf("%+v\n", &addr2)
 
 	//addrStr := ipaddr.IPAddressString{}
 	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)
 	pAddr := addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
+	fmt.Printf("%+v\n", pAddr)
+
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b", nil)
+	pAddr = addrStr.GetAddress()
+	fmt.Printf("%+v\n", *pAddr)
+	fmt.Printf("%+v\n", pAddr)
+
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:1.2.3.4", nil)
+	pAddr = addrStr.GetAddress()
+	fmt.Printf("%+v\n", *pAddr)
+	fmt.Printf("%+v\n", pAddr)
 
 	_ = getDoc()
 }

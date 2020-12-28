@@ -15,18 +15,13 @@ type TranslatedResult struct {
 
 	//TODO later consider if perhaps the address and section should be embedded here - PROBABLY NOT, because TranslatedResult is likely embedded already in ParsedIPAddress and we want to throw away the parsing stuff
 
-	//TODO range parsing not so hard to add, because it is in the same parsing function as sections.
-	// BUT the code for managing the various parsed values in here is copied frmo Java and includes the groupings
-	// so maybe it's better to do ranges and groupings at the same time
-
-	rangeLower, rangeUpper *IPAddress
-
 	section, hostSection,
 	lowerSection, upperSection *IPAddressSection
 
 	joinHostException, joinAddressException /* inet_aton, single seg */, mixedException, maskException IncompatibleAddressException
 
-	rng *IPAddressSeqRange
+	rangeLower, rangeUpper *IPAddress
+	rng                    *IPAddressSeqRange
 
 	//series IPAddressDivisionSeries // TODO division grouping creation
 
@@ -35,14 +30,14 @@ type TranslatedResult struct {
 
 func (res *TranslatedResult) getAddress() *IPAddress {
 	if res.address == nil {
-		// If an address is present we use it to construct the range.
+		// If an address is present, we use it to construct the range.
 		// So we need only share the boundaries when they were constructed first.
-		//if(range == null) {
-		res.address = res.creator.createAddressInternalFromSection(res.section, res.getZone(), res.originator)
-		//} else {
-		// TODO this just caches the lower and upper since we know them already, which we can do by just inserting them instead of another creator func
-		//	address = getCreator().createAddressInternal(section, getZone(), originator, rangeLower, rangeUpper);
-		//}
+		addr := res.creator.createAddressInternalFromSection(res.section, res.getZone(), res.originator)
+		if res.rng != nil {
+			addr.cache.lower = res.rangeLower.ToAddress()
+			addr.cache.upper = res.rangeUpper.ToAddress()
+		}
+		res.address = addr
 	}
 	return res.address
 }
@@ -1043,6 +1038,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 	}
 	prefLength := getPrefixLength(qualifier)
 	if mixed {
+		//TODO need to make this range work xxxx
 		ipv4Range := parseData.mixedParsedAddress.getProviderSeqRange().ToIPv4SequentialRange()
 		if hasMask && parseData.mixedMaskers == nil {
 			parseData.mixedMaskers = make([]Masker, IPv4SegmentCount)

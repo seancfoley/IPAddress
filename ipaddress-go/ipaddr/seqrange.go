@@ -42,8 +42,13 @@ func (rng *IPAddressSeqRange) ToIPv6SequentialRange() *IPv6AddressSeqRange {
 }
 
 func NewIPv4SeqRange(one, two *IPv4Address) *IPv4AddressSeqRange {
-	//TODO do the same as in java constructors - call a new func shared between ipv4/v6
-	return nil
+	//TODO compare to ensure lower is the lowest one
+	return &IPv4AddressSeqRange{
+		ipAddressSeqRangeInternal{
+			lower: one.ToIPAddress(),
+			upper: two.ToIPAddress(),
+		},
+	}
 }
 
 type IPv4AddressSeqRange struct {

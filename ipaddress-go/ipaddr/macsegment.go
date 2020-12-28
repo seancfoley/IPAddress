@@ -8,8 +8,6 @@ func ToMACSegInt(val SegInt) MACSegInt {
 	return MACSegInt(val)
 }
 
-//TODO caching, we will share cache and share the values when values match to cache
-
 func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
 	return &macSegmentValues{value: value, upperValue: upperValue}
 }

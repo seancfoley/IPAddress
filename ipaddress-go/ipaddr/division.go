@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"sync"
 	"unsafe"
 )
@@ -58,6 +59,51 @@ type divCache struct {
 
 type addressDivisionInternal struct {
 	divisionValues
+}
+
+func (div *addressDivisionInternal) String() string {
+	if div.isMultiple() {
+		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.GetUpperDivisionValue())
+	}
+	return fmt.Sprintf("%x", div.getDivisionValue())
+	/*
+		We will have  default radix, which starts as hex, but when we switch to ipv4 section and gain ipv4 addr type,
+		each division will have default radix reset to 10
+		but that will require locking so the default radix will be part of the cache and use the cache lock
+
+		The downside is this means that this would mean that the result of this method can change after conversion to ipv4 and back again
+
+		So maybe you don't want to do that
+
+		If you do not, then maybe you want to change the java side too to always use hex by default, even for IPv4?
+		Well, that remains to be seen, because the way strings work is a bit different
+		IPv4Segment instances override the parent behaviour.  So it's not the same, and only applies to IPAddressBitsDivision.
+
+		So no I am thinking, no switcheroo, just stick to hex
+
+		@Override
+			public String toString() {
+				int radix = getDefaultTextualRadix();
+				IPStringOptions opts;
+				switch(radix) {
+				case 8:
+					opts = OCTAL_PARAMS;
+					break;
+				case 16:
+					opts = HEX_PARAMS;
+					break;
+				case 10:
+					opts = DECIMAL_PARAMS;
+					break;
+				default:
+					opts = new IPStringOptions.Builder(radix).setWildcards(new Wildcards(IPAddress.RANGE_SEPARATOR_STR)).toOptions();
+					break;
+				}
+				StringBuilder builder = new StringBuilder(34);
+				toParams(opts).appendSingleDivision(this, builder);
+				return builder.toString();
+			}
+	*/
 }
 
 func (div *addressDivisionInternal) isPrefixed() bool {

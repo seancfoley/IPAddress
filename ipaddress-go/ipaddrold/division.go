@@ -39,7 +39,7 @@ type largeDivisionValues interface {
 type divisionValues interface {
 	largeDivisionValues
 
-	// GetDivisionValue gets the lower value for the division
+	// getDivisionValue gets the lower value for the division
 	GetDivisionValue() DivInt
 
 	GetUpperDivisionValue() DivInt
@@ -183,12 +183,12 @@ type AddressDivision struct {
 	addressDivisionInternal
 }
 
-// GetDivisionValue gets the lower value for the division
+// getDivisionValue gets the lower value for the division
 func (d *AddressDivision) GetDivisionValue() DivInt {
 	return d.getDivisionValue()
 }
 
-// GetUpperDivisionValue gets the upper value for the division
+// getUpperDivisionValue gets the upper value for the division
 func (d *AddressDivision) GetUpperDivisionValue() DivInt {
 	return d.getUpperDivisionValue()
 }
