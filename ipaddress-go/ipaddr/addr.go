@@ -30,16 +30,6 @@ type addressInternal struct {
 	cache   *addressCache
 }
 
-//func (addr *addressInternal) getSection() *AddressSection {
-//	return addr.section
-//}
-
-//func (addr *addressInternal) getConverter() IPAddressConverter {
-//	return addr.cache.network.(IPAddressNetwork).GetConverter()
-//}
-
-//TODO do a similar addr init with all of these (similr to ipv4/6, but will return the nil section instead
-
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
 	if addr.zone != noZone {
 		return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
@@ -129,12 +119,16 @@ func (addr *Address) GetUpper() *Address {
 }
 
 func (addr *Address) IsIPv4() bool {
-	addr = addr.init()
+	if addr == nil || addr.section == nil {
+		return false
+	}
 	return addr.section.matchesIPv4Address()
 }
 
 func (addr *Address) IsIPv6() bool {
-	addr = addr.init()
+	if addr == nil || addr.section == nil {
+		return false
+	}
 	return addr.section.matchesIPv6Address()
 }
 

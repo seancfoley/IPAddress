@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"net"
 
 	//ip_addr_old "github.com/seancfoley/ipaddress/ipaddress-go/ipaddrold"
 	//"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
@@ -50,14 +51,40 @@ func main() {
 	//_ = params
 	////fmt.Printf("%+v\n", params)
 
+	i := -1
+	var b byte = byte(i)
+	fmt.Printf("byte is %+v\n", b)
+
+	var slc []int
+	fmt.Printf("%+v\n", slc) // expecting []
+	fmt.Printf("%v\n", slc)  // expecting []
+	fmt.Printf("%s\n", slc)  // expecting []
+
 	addr := ipaddr.IPv6Address{}
 	fmt.Printf("%+v\n", addr)
 	fmt.Printf("%+v\n", &addr)
 
 	addr4 := ipaddr.IPv4Address{}
+	fmt.Printf("%+v\n", addr4)
 	addr2 := addr4.ToIPAddress()
 	fmt.Printf("%+v\n", addr2)
 	//fmt.Printf("%+v\n", &addr2)
+
+	addr5 := ipaddr.IPAddress{} // expecting []
+	fmt.Printf("%+v\n", addr5)
+	addr5Upper := addr5.GetUpper()
+	fmt.Printf("%+v\n", addr5Upper) // expecting []
+	addr6 := addr5Upper.ToIPv4Address()
+	fmt.Printf("%+v\n", addr6) // expecting <nil>
+
+	addrSection := ipaddr.AddressSection{}
+	fmt.Printf("%+v\n", addrSection) // expecting []
+
+	ipAddrSection := ipaddr.IPAddressSection{}
+	fmt.Printf("%+v\n", ipAddrSection) // expecting []
+
+	ipv4AddrSection := ipaddr.IPv4AddressSection{}
+	fmt.Printf("%+v\n", ipv4AddrSection) // expecting []
 
 	//addrStr := ipaddr.IPAddressString{}
 	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)
@@ -70,12 +97,48 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b%eth0", nil)
+	pAddr = addrStr.GetAddress()
+	fmt.Printf("%+v\n", *pAddr)
+	fmt.Printf("%+v\n", pAddr)
+
 	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:1.2.3.4", nil)
 	pAddr = addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
+	ipv4Addr, _ := ipaddr.NewIPv4AddressFromIP([]byte{1, 0, 1, 0})
+	fmt.Printf("%+v\n", ipv4Addr)
+	fmt.Printf("%+v\n", *ipv4Addr)
+
+	ipv4Addr, ipv4Err := ipaddr.NewIPv4AddressFromIP([]byte{1, 1, 0, 1, 0})
+	fmt.Printf("%+v %+v\n", ipv4Addr, ipv4Err)
+
+	ipv6Addr, ipv6Err := ipaddr.NewIPv6AddressFromIP(net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc})
+	fmt.Printf("%+v %+v\n", ipv6Addr, ipv6Err)
+	fmt.Printf("%+v\n", *ipv6Addr)
+
+	ip := net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
+	foo(ip)
+	foo2(ip)
+	foo3(net.IPAddr{IP: ip})
+
+	bytes := []byte{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
+	foo(bytes)
+	foo2(bytes)
+	foo3(net.IPAddr{IP: bytes})
+
 	_ = getDoc()
+}
+
+func foo(bytes []byte) {
+	fmt.Printf("%v\n", bytes)
+}
+func foo2(bytes net.IP) {
+	fmt.Printf("%v\n", bytes)
+}
+func foo3(bytes net.IPAddr) {
+	fmt.Printf("%v\n", bytes)
 }
 
 // go install golang.org/x/tools/cmd/godoc

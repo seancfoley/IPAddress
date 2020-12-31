@@ -1,6 +1,9 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"net"
+	"unsafe"
+)
 
 const (
 	IPv6SegmentSeparator           = ':'
@@ -49,6 +52,64 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
 			},
 		},
 	}
+}
+
+func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueException) {
+	section, err := NewIPv6AddressSectionFromSegmentedBytes(bytes, IPv6SegmentCount)
+	if err == nil {
+		addr = NewIPv6Address(section)
+	}
+	return
+}
+
+func NewIPv6AddressFromPrefixedIP(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+	section, err := NewIPv6AddressSectionFromPrefixedBytes(bytes, IPv6SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv6Address(section)
+	}
+	return
+}
+
+func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err AddressValueException) {
+	addr, err = NewIPv6AddressFromIP(ipAddr.IP)
+	if err == nil {
+		addr.zone = Zone(ipAddr.Zone)
+	}
+	return
+}
+
+func NewIPv6AddressFromValues(vals SegmentValueProvider) (addr *IPv6Address) {
+	section := NewIPv6AddressSectionFromValues(vals, IPv4SegmentCount)
+	addr = NewIPv6Address(section)
+	return
+}
+
+func NewIPv6AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+	section, err := NewIPv6AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv6Address(section)
+	}
+	return
+}
+
+func NewIPv6AddressFromRangeValues(vals, upperVals SegmentValueProvider) (addr *IPv6Address) {
+	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
+	addr = NewIPv6Address(section)
+	return
+}
+
+func NewIPv6AddressFromPrefixedRangeValues(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+	section, err := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv6Address(section)
+	}
+	return
+}
+
+func NewIPv4AddressFromZonedRangeValues(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
+	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
+	addr = NewIPv6AddressZoned(section, zone)
+	return
 }
 
 var zeroIPv6 *IPv6Address

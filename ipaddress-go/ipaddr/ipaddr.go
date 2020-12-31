@@ -45,7 +45,7 @@ func (version IPVersion) String() string {
 //	addressInternal
 //}
 
-// necessary to avoid direct access to IPAddress, which when a zero value, has no segments, not compatible with zero value for ivp4 or ipv6
+// necessary to avoid direct access to IPAddress
 type ipAddressInternal struct {
 	addressInternal
 }
@@ -54,11 +54,21 @@ func (addr *ipAddressInternal) ToAddress() *Address {
 	return (*Address)(unsafe.Pointer(addr))
 }
 
+// isIPv4() returns whether this matches an IPv4 address.
+// It needs to match an IPv4 section and also have 4 segments.
 func (addr *ipAddressInternal) isIPv4() bool {
+	if addr.section == nil {
+		return false
+	}
 	return addr.section.matchesIPv4Address()
 }
 
+// isIPv6() returns whether this matches an IPv6 address.
+// It needs to match an IPv6 section and also have 8 segments.
 func (addr *ipAddressInternal) isIPv6() bool {
+	if addr.section == nil {
+		return false
+	}
 	return addr.section.matchesIPv6Address()
 }
 
@@ -110,8 +120,9 @@ func init() {
 
 //
 //
-//
-//
+// IPAddress represents an IPAddress, either IPv4 or IPv6.
+// Only the zero-value IPAddress can be neither IPv4 or IPv6.
+// The zero value has no segments, which is not compatible with zero value for ivp4 or ipv6.
 type IPAddress struct {
 	ipAddressInternal
 }
@@ -124,17 +135,13 @@ func (addr *IPAddress) init() *IPAddress {
 }
 
 func (addr IPAddress) String() string {
-	address := addr.init()
-	if address != &addr {
-		addr = *address
-	}
-	if addr.section.cache != nil {
-		addrType := addr.section.cache.addrType
-		_ = addrType
-		//TODO a different default string
-	}
-
-	return addr.addressInternal.String()
+	//address := addr.init()
+	//if address.section.cache != nil {
+	//	addrType := address.section.cache.addrType
+	//	_ = addrType
+	//	//TODO a different default string if we know we are IPv4 or IPv6.  But we must do full check, same as when calling ToIPvxAddress() or ToIPvxAddressSection(), so that the result of this is consistent.
+	//}
+	return addr.init().ipAddressInternal.String()
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {
@@ -148,12 +155,16 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 }
 
 func (addr *IPAddress) IsIPv4() bool {
-	addr = addr.init()
+	if addr == nil {
+		return false
+	}
 	return addr.isIPv4()
 }
 
 func (addr *IPAddress) IsIPv6() bool {
-	addr = addr.init()
+	if addr == nil {
+		return false
+	}
 	return addr.isIPv6()
 }
 
@@ -175,7 +186,7 @@ func (addr *IPAddress) GetIPVersion() IPVersion {
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 	if addr != nil {
-		addr = addr.init()
+		//addr = addr.init()
 		if addr.isIPv6() {
 			return (*IPv6Address)(unsafe.Pointer(addr))
 		}
@@ -187,7 +198,7 @@ func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 
 func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 	if addr != nil {
-		addr = addr.init()
+		//addr = addr.init()
 		if addr.isIPv4() {
 			return (*IPv4Address)(unsafe.Pointer(addr))
 		}
@@ -197,26 +208,26 @@ func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 }
 
 func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
-	if addr.IsIPv4() {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
-			return addr.ToIPv4Address().SpanWithRange(oth).ToIPAddressSeqRange()
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
-	} else if addr.IsIPv6() {
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
 		if oth := other.ToIPv6Address(); oth != nil {
-			return addr.ToIPv6Address().SpanWithRange(oth).ToIPAddressSeqRange()
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
 	}
 	return nil
 }
 
 func (addr *IPAddress) Mask(other *IPAddress) *IPAddress {
-	if addr.IsIPv4() {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
-			return addr.ToIPv4Address().Mask(oth).ToIPAddress()
+			return thisAddr.Mask(oth).ToIPAddress()
 		}
-	} else if addr.IsIPv6() {
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
 		if oth := other.ToIPv6Address(); oth != nil {
-			return addr.ToIPv6Address().Mask(oth).ToIPAddress()
+			return thisAddr.Mask(oth).ToIPAddress()
 		}
 	}
 	return nil

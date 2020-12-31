@@ -1,6 +1,9 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"net"
+	"unsafe"
+)
 
 const (
 	IPv4SegmentSeparator    = '.'
@@ -16,6 +19,8 @@ const (
 	IPv4SegmentMaxChars     = 3
 )
 
+// TODO there are 3 other categories: []byte, uint32, SegmentValueProvider
+
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return &IPv4Address{
 		ipAddressInternal{
@@ -25,6 +30,50 @@ func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 			},
 		},
 	}
+}
+
+func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueException) {
+	section, err := NewIPv4AddressSectionFromSegmentedBytes(bytes, IPv4SegmentCount)
+	if err == nil {
+		addr = NewIPv4Address(section)
+	}
+	return
+}
+
+func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+	section, err := NewIPv4AddressSectionFromPrefixedBytes(bytes, IPv4SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv4Address(section)
+	}
+	return
+}
+
+func NewIPv4AddressFromValues(vals SegmentValueProvider) (addr *IPv4Address) {
+	section := NewIPv4AddressSectionFromValues(vals, IPv4SegmentCount)
+	addr = NewIPv4Address(section)
+	return
+}
+
+func NewIPv4AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+	section, err := NewIPv4AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv4Address(section)
+	}
+	return
+}
+
+func NewIPv4AddressFromRangeValues(vals, upperVals SegmentValueProvider) (addr *IPv4Address) {
+	section := NewIPv4AddressSectionFromRangeValues(vals, upperVals, IPv4SegmentCount)
+	addr = NewIPv4Address(section)
+	return
+}
+
+func NewIPv4AddressFromPrefixedRangeValues(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+	section, err := NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	if err == nil {
+		addr = NewIPv4Address(section)
+	}
+	return
 }
 
 var zeroIPv4 *IPv4Address
@@ -47,7 +96,7 @@ type IPv4Address struct {
 func (addr IPv4Address) String() string {
 	address := addr.init()
 	//TODO a different default string
-	return address.String()
+	return address.ipAddressInternal.String()
 }
 
 func (addr *IPv4Address) ToAddress() *Address {
@@ -78,7 +127,7 @@ func (addr *IPv4Address) GetIPVersion() IPVersion {
 
 func (addr *IPv4Address) Mask(other *IPv4Address) *IPv4Address {
 	addr = addr.init()
-	//TODO mask (handle nil gracefully, return nil)
+	//TODO mask
 	return nil
 }
 

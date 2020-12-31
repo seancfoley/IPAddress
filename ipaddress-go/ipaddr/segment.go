@@ -44,17 +44,17 @@ const SegIntSize = 32
 //	GetUpperSegmentValue() SegInt
 //}
 
-type wrappedDivisionValues struct {
-	divisionValues
-}
-
-func (segvals wrappedDivisionValues) GetSegmentValue() SegInt {
-	return SegInt(segvals.getDivisionValue())
-}
-
-func (segvals wrappedDivisionValues) GetUpperSegmentValue() SegInt {
-	return SegInt(segvals.getUpperDivisionValue())
-}
+//type wrappedDivisionValues struct {
+//	divisionValues
+//}
+//
+//func (segvals wrappedDivisionValues) GetSegmentValue() SegInt {
+//	return SegInt(segvals.getDivisionValue())
+//}
+//
+//func (segvals wrappedDivisionValues) GetUpperSegmentValue() SegInt {
+//	return SegInt(segvals.getUpperDivisionValue())
+//}
 
 type addressSegmentInternal struct {
 	addressDivisionInternal
