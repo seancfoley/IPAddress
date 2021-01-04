@@ -92,13 +92,13 @@ func NewIPv6AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength Pr
 	return
 }
 
-func NewIPv6AddressFromRangeValues(vals, upperVals SegmentValueProvider) (addr *IPv6Address) {
+func NewIPv6AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv6Address) {
 	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
 	addr = NewIPv6Address(section)
 	return
 }
 
-func NewIPv6AddressFromPrefixedRangeValues(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
 	section, err := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
 	if err == nil {
 		addr = NewIPv6Address(section)
@@ -106,7 +106,7 @@ func NewIPv6AddressFromPrefixedRangeValues(vals, upperVals SegmentValueProvider,
 	return
 }
 
-func NewIPv4AddressFromZonedRangeValues(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
+func NewIPv4AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
 	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
 	addr = NewIPv6AddressZoned(section, zone)
 	return
@@ -127,6 +127,14 @@ func init() {
 // The zero value is ::
 type IPv6Address struct {
 	ipAddressInternal
+}
+
+func (section *IPv6Address) GetBitCount() BitCount {
+	return IPv6BitCount
+}
+
+func (section *IPv6Address) GetByteCount() int {
+	return IPv6ByteCount
 }
 
 func (addr IPv6Address) String() string {
@@ -185,6 +193,26 @@ func (addr *IPv6Address) GetLower() *IPv6Address {
 func (addr *IPv6Address) GetUpper() *IPv6Address {
 	addr = addr.init()
 	return addr.getUpper().ToIPv6Address()
+}
+
+func (addr *IPv6Address) GetBytes() net.IP {
+	addr = addr.init()
+	return addr.section.GetBytes()
+}
+
+func (addr *IPv6Address) CopyBytes(bytes net.IP) net.IP {
+	addr = addr.init()
+	return addr.section.CopyBytes(bytes)
+}
+
+func (addr *IPv6Address) GetUpperBytes() net.IP {
+	addr = addr.init()
+	return addr.section.GetUpperBytes()
+}
+
+func (addr *IPv6Address) CopyUpperBytes(bytes net.IP) net.IP {
+	addr = addr.init()
+	return addr.section.CopyUpperBytes(bytes)
 }
 
 func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {

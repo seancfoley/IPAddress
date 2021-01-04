@@ -10,8 +10,9 @@ func creationIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
 					divisions: segments,
-					cache:     &valueCache{addrType: ipv4AddrType},
+					cache:     &valueCache{},
 					//addressSegmentIndex: uint8(startIndex),
+					addrType: ipv4Type,
 				},
 			},
 		},
@@ -33,7 +34,7 @@ func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, 
 	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
 	//}
 	res = creationIPv4Section(segments)
-	err = res.initPrefix(IPv4BitsPerSegment)
+	err = res.init(IPv4BitsPerSegment)
 	if err != nil {
 		return
 	}
@@ -85,9 +86,11 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 			err = assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
 		}
 		if err == nil {
-			bytes = append(make([]byte, 0, len(bytes)), bytes...) // copy
+			bytes = append(make([]byte, 0, len(bytes)), bytes...) // copy //TODO make sure you only create segmentCount (bytes may be longer, I believe we always chop off the top, see toSegments)
 			res.cache.lowerBytes = bytes
-			res.cache.upperBytes = bytes
+			if !res.isMultiple {
+				res.cache.upperBytes = bytes
+			}
 		}
 	}
 	return
@@ -111,7 +114,7 @@ func NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
-	segments := createSegments(
+	segments, isMultiple := createSegments(
 		//S segments[],
 		vals, upperVals,
 		segmentCount,
@@ -121,6 +124,7 @@ func NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 		prefixLength)
 	//if err == nil {
 	res = creationIPv4Section(segments)
+	res.isMultiple = isMultiple
 	if prefixLength != nil {
 		err = assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv4BitCount)
 	}

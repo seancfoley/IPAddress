@@ -38,85 +38,111 @@ func (section *addressSectionInternal) GetSegmentCount() int {
 	return section.GetDivisionCount()
 }
 
+func (section *addressSectionInternal) GetBitCount() BitCount {
+	divLen := len(section.divisions)
+	if divLen == 0 {
+		return 0
+	}
+	return section.GetDivision(0).GetBitCount() * BitCount(section.GetSegmentCount())
+}
+
+func (section *addressSectionInternal) GetByteCount() int {
+	return int((section.GetBitCount() + 7) >> 3)
+}
+
 func (section *addressSectionInternal) ToPrefixBlock() *AddressSection {
 	//TODO ToPrefixBlock
 	return nil
 }
 
-func (section *addressSectionInternal) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
-	divLen := len(section.divisions)
-	return divLen <= segmentCount && (divLen == 0 || section.GetDivision(0).GetBitCount() == segmentBitCount)
-}
+//func (section *addressSectionInternal) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
+//	divLen := len(section.divisions)
+//	return divLen <= segmentCount && (divLen == 0 || section.GetDivision(0).GetBitCount() == segmentBitCount)
+//}
+//
+//func (section *addressSectionInternal) matchesAddress(segmentCount int, segmentBitCount BitCount) bool {
+//	return len(section.divisions) == segmentCount && section.GetDivision(0).GetBitCount() == segmentBitCount
+//}
 
-func (section *addressSectionInternal) matchesAddress(segmentCount int, segmentBitCount BitCount) bool {
-	return len(section.divisions) == segmentCount && section.GetDivision(0).GetBitCount() == segmentBitCount
-}
+//func (section *addressSectionInternal) matchesIPv6Section() bool {
+//	//xxxx all the cache access must check for nil first, all cache access must go through methods xxx
+//	cache := section.cache
+//	return cache == nil || cache.addrType.isIPv6()
+//	//|| (cache.addrType.isNil() &&
+//	//		section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
+//}
+//
+//func (section *addressSectionInternal) matchesIPv4Section() bool {
+//	cache := section.cache
+//	return cache == nil || cache.addrType.isIPv4() ||
+//		(cache.addrType.isNil() &&
+//			section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign())
+//}
+//
+//func (section *addressSectionInternal) matchesIPSection() bool {
+//	cache := section.cache
+//	return cache == nil || cache.addrType.isIP() ||
+//		(cache.addrType.isNil() &&
+//			(section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) || section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment)) &&
+//			section.prefixesAlign())
+//}
 
 func (section *addressSectionInternal) matchesIPv6Section() bool {
 	//xxxx all the cache access must check for nil first, all cache access must go through methods xxx
-	cache := section.cache
-	return cache == nil || cache.addrType.isIPv6() ||
-		(cache.addrType.isIndeterminate() &&
-			section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
+	//cache := section.cache
+	return section.addrType.isIPv6() || section.addrType.isNil()
+	//|| (cache.addrType.isNil() &&
+	//		section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
 }
 
 func (section *addressSectionInternal) matchesIPv4Section() bool {
-	cache := section.cache
-	return cache == nil || cache.addrType.isIPv4() ||
-		(cache.addrType.isIndeterminate() &&
-			section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign())
+	return section.addrType.isIPv4() || section.addrType.isNil()
 }
 
 func (section *addressSectionInternal) matchesIPSection() bool {
-	cache := section.cache
-	return cache == nil || cache.addrType.isIP() ||
-		(cache.addrType.isIndeterminate() &&
-			(section.matchesSection(IPv4SegmentCount, IPv4BitsPerSegment) || section.matchesSection(IPv6SegmentCount, IPv6BitsPerSegment)) &&
-			section.prefixesAlign())
-}
-
-func (section *addressSectionInternal) getAddrType() addrType {
-	cache := section.cache
-	if cache != nil {
-		//TODO locking
-		if cache.addrType.isIPv4() {
-			return ipv4AddrType
-		} else if cache.addrType.isIPv6() {
-			return ipv6AddrType
-		}
-		divLen := section.GetDivisionCount()
-		if divLen > 0 {
-			bc := section.GetDivision(0).GetBitCount()
-			if bc == IPv4BitsPerSegment {
-				return ipv4AddrType
-			} else if bc == IPv6BitsPerSegment {
-				return ipv6AddrType
-			}
-		}
-	}
-	return noAddrType
+	return section.addrType.isIP() || section.addrType.isNil()
 }
 
 func (section *addressSectionInternal) matchesMACSection() bool {
-	// note that any MAC section is also an ExtendedUniqueIdentifier64, so no need to check section.matchesSection(MediaAccessControlSegmentCount, MACBitsPerSegment)
-	cache := section.cache
-	return cache == nil || cache.addrType.isMAC() || section.matchesSection(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
+	return section.addrType.isMAC() || section.addrType.isNil()
 }
 
 func (section *addressSectionInternal) matchesIPv6Address() bool {
-	cache := section.cache
-	return cache != nil && (section.matchesAddress(IPv6SegmentCount, IPv6BitsPerSegment) && section.prefixesAlign())
+	return section.addrType.isIPv6() && section.GetSegmentCount() == IPv6SegmentCount
 }
 
 func (section *addressSectionInternal) matchesIPv4Address() bool {
-	cache := section.cache
-	return cache != nil && (section.matchesAddress(IPv4SegmentCount, IPv4BitsPerSegment) && section.prefixesAlign())
+	return section.addrType.isIPv4() && section.GetSegmentCount() == IPv4SegmentCount
 }
 
 func (section *addressSectionInternal) matchesMACAddress() bool {
-	return section.matchesAddress(MediaAccessControlSegmentCount, MACBitsPerSegment) ||
-		section.matchesAddress(ExtendedUniqueIdentifier64SegmentCount, MACBitsPerSegment)
+	segCount := section.GetSegmentCount()
+	return section.addrType.isMAC() &&
+		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
 }
+
+//func (section *addressSectionInternal) getAddrType() addrType {
+//	cache := section.cache
+//	if cache != nil {
+//		xxx
+//		//TODO locking
+//		if cache.addrType.isIPv4() {
+//			return ipv4AddrType
+//		} else if cache.addrType.isIPv6() {
+//			return ipv6AddrType
+//		}
+//		divLen := section.GetDivisionCount()
+//		if divLen > 0 {
+//			bc := section.GetDivision(0).GetBitCount()
+//			if bc == IPv4BitsPerSegment {
+//				return ipv4AddrType
+//			} else if bc == IPv6BitsPerSegment {
+//				return ipv6AddrType
+//			}
+//		}
+//	}
+//	return noAddrType
+//}
 
 func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
 	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
@@ -207,8 +233,9 @@ func (section *AddressSection) createLowestOrHighestSectionCacheLocked(
 	}
 	result = &AddressSection{addressSectionInternal{addressDivisionGroupingInternal{
 		divisions:    segs,
-		prefixLength: section.getPrefixLengthCacheLocked(),
-		cache:        &valueCache{addrType: section.cache.addrType},
+		prefixLength: section.prefixLength,
+		cache:        &valueCache{},
+		addrType:     section.addrType,
 	}}}
 	return
 }
@@ -225,8 +252,9 @@ func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
 	if section == nil || !section.matchesIPSection() {
 		return nil
 	}
-	cache := section.cache
-	cache.addrType = section.getAddrType()
+	//cache := section.cache
+	//xxx
+	//cache.addrType = section.getAddrType()
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
@@ -234,10 +262,11 @@ func (section *AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 	if section == nil || !section.matchesIPv6Section() {
 		return nil
 	}
-	cache := section.cache
-	if cache != nil {
-		cache.addrType = ipv6AddrType
-	}
+	//cache := section.cache
+	//if cache != nil {
+	//	xxx
+	//	cache.addrType = ipv6AddrType
+	//}
 	return (*IPv6AddressSection)(unsafe.Pointer(section))
 }
 
@@ -245,10 +274,11 @@ func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	if section == nil || !section.matchesIPv4Section() {
 		return nil
 	}
-	cache := section.cache
-	if cache != nil {
-		cache.addrType = ipv4AddrType
-	}
+	//cache := section.cache
+	//if cache != nil {
+	//	xxx
+	//	cache.addrType = ipv4AddrType
+	//}
 	return (*IPv4AddressSection)(unsafe.Pointer(section))
 }
 
@@ -256,9 +286,10 @@ func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
 	if section == nil || !section.matchesMACSection() {
 		return nil
 	}
-	cache := section.cache
-	if cache != nil {
-		cache.addrType = macAddrType
-	}
+	//cache := section.cache
+	//if cache != nil {
+	//	xxx
+	//	cache.addrType = macAddrType
+	//}
 	return (*MACAddressSection)(unsafe.Pointer(section))
 }

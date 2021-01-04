@@ -38,9 +38,10 @@ func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
 }
 
 // error returned for nil sements, segments with invalid bit size, or inconsistent prefixes
-func (section *ipAddressSectionInternal) initPrefix(bitsPerSegment BitCount) error {
+func (section *ipAddressSectionInternal) init(bitsPerSegment BitCount) error {
 	var previousSegmentPrefix PrefixLen
 	segCount := section.GetSegmentCount()
+	isMultiple := false
 	for i := 0; i < segCount; i++ {
 		div := section.GetDivision(i)
 		if div == nil {
@@ -55,6 +56,10 @@ func (section *ipAddressSectionInternal) initPrefix(bitsPerSegment BitCount) err
 		//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 		//or IPv4: ...(null).(1 to 8).(0)...
 		segPrefix := segment.GetSegmentPrefixLength()
+		if !isMultiple && segment.isMultiple() {
+			isMultiple = true
+			section.isMultiple = true
+		}
 		if previousSegmentPrefix == nil {
 			if segPrefix != nil {
 				section.prefixLength = getNetworkPrefixLength(bitsPerSegment, *segPrefix, i)
@@ -81,17 +86,11 @@ type IPAddressSection struct {
 }
 
 func (section *IPAddressSection) IsIPv4() bool {
-	if section == nil {
-		return false
-	}
-	return section.matchesIPv4Section()
+	return section != nil && section.matchesIPv4Section()
 }
 
 func (section *IPAddressSection) IsIPv6() bool {
-	if section == nil {
-		return false
-	}
-	return section.matchesIPv6Section()
+	return section != nil && section.matchesIPv6Section()
 }
 
 func (section *IPAddressSection) GetLower() *IPAddressSection {
@@ -111,8 +110,6 @@ func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 	if section == nil {
 		return nil
 	} else if section.matchesIPv6Section() {
-		cache := section.cache
-		cache.addrType = ipv6AddrType //TODO locking.  I think you want to assign addrType inside matchesIPv6Section
 		return (*IPv6AddressSection)(unsafe.Pointer(section))
 	}
 	return nil
@@ -122,8 +119,6 @@ func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	if section == nil {
 		return nil
 	} else if section.matchesIPv4Section() {
-		cache := section.cache
-		cache.addrType = ipv4AddrType //TODO locking - I think you want to assign addrType inside matchesIPv4Section
 		return (*IPv4AddressSection)(unsafe.Pointer(section))
 	}
 	return nil
@@ -151,7 +146,8 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 		prefLen = boundaryBits
 		prefixLength = &boundaryBits
 	}
-	if len(segments) > 0 {
+	segLen := len(segments)
+	if segLen > 0 {
 		segsPrefLen := res.prefixLength
 		if segsPrefLen != nil {
 			sp := *segsPrefLen
@@ -161,17 +157,21 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			}
 		}
 		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
-		if !singleOnly && isPrefixSubnetSegs(segments, prefLen, false) {
+		applyPrefixSubnet := !singleOnly && isPrefixSubnetSegs(segments, prefLen, false)
+		if applyPrefixSubnet {
 			segProducer = (*AddressDivision).toPrefixedNetworkDivision
 		} else {
 			segProducer = (*AddressDivision).toPrefixedDivision
 		}
-		setPrefixedSegments(
+		applyPrefixToSegments(
 			prefLen,
 			res.divisions,
 			res.GetBitsPerSegment(),
 			res.GetBytesPerSegment(),
 			segProducer)
+		if applyPrefixSubnet && !res.isMultiple {
+			res.isMultiple = res.GetSegment(segLen - 1).isMultiple()
+		}
 	}
 	res.prefixLength = prefixLength
 	//} // else prefixLength has already been set to the proper value
@@ -209,7 +209,7 @@ func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength 
 		fullRangeOnly)
 }
 
-func setPrefixedSegments(
+func applyPrefixToSegments(
 	sectionPrefixBits BitCount,
 	segments []*AddressDivision,
 	segmentBitCount BitCount,
@@ -344,7 +344,7 @@ func createSegments(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	creator AddressSegmentCreator,
-	prefixLength PrefixLen) (segments []*AddressDivision) {
+	prefixLength PrefixLen) (segments []*AddressDivision, isMultiple bool) {
 	//int bytesPerSegment,
 	//int bitsPerSegment,
 	////AddressNetwork<S> network,
@@ -352,6 +352,7 @@ func createSegments(
 	//AddressSegmentCreator<S> creator = network.getAddressCreator();
 	//int segmentCount = segments.length;
 	segments = make([]*AddressDivision, segmentCount)
+	//isMultiple := false
 	for segmentIndex := 0; segmentIndex < segmentCount; segmentIndex++ {
 		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		var value, value2 SegInt = 0, 0
@@ -362,6 +363,10 @@ func createSegments(
 			value = lowerValueProvider(segmentIndex)
 			if upperValueProvider != nil {
 				value2 = upperValueProvider(segmentIndex)
+				if !isMultiple && value2 != value {
+					isMultiple = true
+
+				}
 			} else {
 				value2 = value
 			}

@@ -49,7 +49,7 @@ type divCache struct {
 
 	lowerBytes, upperBytes             []byte
 	cachedString, cachedWildcardString string
-	isSinglePrefixBlock                boolSetting
+	isSinglePrefixBlock                boolSetting //TODO init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
 
 	// I decided it makes no sense to do this, so network will go away
 	//network                            AddressNetwork // never nil // equivalent to overriding getNetwork(), ToIPvX(), IsIPvxConvertible(), etc, in Java, allows you to supply your own conversion
@@ -299,7 +299,7 @@ func (div *AddressDivision) toNetworkDivision(divPrefixLength PrefixLen, withPre
 }
 
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	//if _, ok := div.divisionValues.(segmentValues); ok {
+	//if _, ok := div.divisionValues.(segmentValues); ok { got rid of segmentValues since not really needed
 	//	return (*AddressSegment)(unsafe.Pointer(div))
 	//} else if div.GetBitCount() <= SegIntSize {
 	//	return &AddressSegment{

@@ -30,6 +30,20 @@ type addressInternal struct {
 	cache   *addressCache
 }
 
+func (addr *addressInternal) GetBitCount() BitCount {
+	if addr.section == nil {
+		return 0
+	}
+	return addr.section.GetBitCount()
+}
+
+func (addr *addressInternal) GetByteCount() int {
+	if addr.section == nil {
+		return 0
+	}
+	return addr.section.GetByteCount()
+}
+
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
 	if addr.zone != noZone {
 		return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
@@ -48,8 +62,38 @@ func (addr *addressInternal) getSegment(index int) *AddressSegment {
 	return addr.section.GetSegment(index)
 }
 
-func (addr *addressInternal) getBytes() []byte {
-	return addr.section.getBytes()
+func (addr *addressInternal) GetBytes() net.IP {
+	if addr.section == nil {
+		return emptyBytes
+	}
+	return addr.section.GetBytes()
+}
+
+func (addr *addressInternal) CopyBytes(bytes net.IP) net.IP {
+	if addr.section == nil {
+		if bytes != nil {
+			return bytes
+		}
+		return emptyBytes
+	}
+	return addr.section.CopyBytes(bytes)
+}
+
+func (addr *addressInternal) GetUpperBytes() net.IP {
+	if addr.section == nil {
+		return emptyBytes
+	}
+	return addr.section.GetUpperBytes()
+}
+
+func (addr *addressInternal) CopyUpperBytes(bytes net.IP) net.IP {
+	if addr.section == nil {
+		if bytes != nil {
+			return bytes
+		}
+		return emptyBytes
+	}
+	return addr.section.CopyUpperBytes(bytes)
 }
 
 func (addr *addressInternal) getLower() *Address {

@@ -600,7 +600,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	ipv6WithZoneLoop := func() *IPAddress {
 		network := options.GetIPv6Parameters().GetNetwork()
 		creator := network.GetIPAddressCreator()
-		return creator.createAddressInternalFromBytes(network.GetLoopback().getBytes(), zone)
+		return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
 	}
 	ipv6Loop := func() *IPAddress {
 		return options.GetIPv6Parameters().GetNetwork().GetLoopback()
@@ -904,9 +904,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //		}
 //	}
 
-//TODO next: ParsedIPAddress
-
-// TODO progress
+// TODO NEXT NOW progress
 // - Move towards address creation - need ipaddress provider types fleshed out, and in particular ParsedIPAddress
 //	- parsedipaddress will need the start of the ip address creator interfaces
 // - Then the mask stuff in parseQualifier can be done, which depends on address creation
