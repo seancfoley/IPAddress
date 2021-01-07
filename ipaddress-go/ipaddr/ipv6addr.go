@@ -85,10 +85,8 @@ func NewIPv6AddressFromValues(vals SegmentValueProvider) (addr *IPv6Address) {
 }
 
 func NewIPv6AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
-	section, err := NewIPv6AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
-	if err == nil {
-		addr = NewIPv6Address(section)
-	}
+	section := NewIPv6AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	addr = NewIPv6Address(section)
 	return
 }
 
@@ -99,10 +97,8 @@ func NewIPv6AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv6Ad
 }
 
 func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
-	section, err := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
-	if err == nil {
-		addr = NewIPv6Address(section)
-	}
+	section := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	addr = NewIPv6Address(section)
 	return
 }
 
@@ -193,6 +189,16 @@ func (addr *IPv6Address) GetLower() *IPv6Address {
 func (addr *IPv6Address) GetUpper() *IPv6Address {
 	addr = addr.init()
 	return addr.getUpper().ToIPv6Address()
+}
+
+func (addr *IPv6Address) ToPrefixBlock() *IPv6Address {
+	addr = addr.init()
+	return addr.ToIPAddress().ToPrefixBlock().ToIPv6Address()
+}
+
+func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
+	addr = addr.init()
+	return addr.ToIPAddress().ToPrefixBlockLen(prefLen).ToIPv6Address()
 }
 
 func (addr *IPv6Address) GetBytes() net.IP {

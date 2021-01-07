@@ -96,28 +96,27 @@ func (addr *addressInternal) CopyUpperBytes(bytes net.IP) net.IP {
 	return addr.section.CopyUpperBytes(bytes)
 }
 
-func (addr *addressInternal) getLower() *Address {
-	//TODO cache the result in the addressCache
-	section := addr.section.GetLower()
+func (addr *addressInternal) checkIdentity(section *AddressSection) *Address {
 	if section == addr.section {
 		return addr.toAddress()
 	}
 	return &Address{addressInternal{section: section, zone: addr.zone, cache: &addressCache{}}}
+}
+
+func (addr *addressInternal) getLower() *Address {
+	//TODO cache the result in the addressCache
+	return addr.checkIdentity(addr.section.GetLower())
 }
 
 func (addr *addressInternal) getUpper() *Address {
 	//TODO cache the result in the addressCache
-	section := addr.section.GetUpper()
-	if section == addr.section {
-		return addr.toAddress()
-	}
-	return &Address{addressInternal{section: section, zone: addr.zone, cache: &addressCache{}}}
+	return addr.checkIdentity(addr.section.GetUpper())
 }
 
 func (addr *addressInternal) toAddress() *Address {
-	if addr == nil {
-		return nil
-	}
+	//if addr == nil {
+	//	return nil
+	//}
 	return (*Address)(unsafe.Pointer(addr))
 }
 
@@ -142,7 +141,7 @@ type Address struct {
 
 func (addr *Address) init() *Address {
 	if addr.section == nil {
-		return zeroAddr // this has a zero section
+		return zeroAddr // this has a zero section rather that a nil section
 	}
 	return addr
 }

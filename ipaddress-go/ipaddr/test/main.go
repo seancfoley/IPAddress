@@ -70,6 +70,13 @@ func main() {
 	fmt.Printf("%+v\n", addr2)
 	//fmt.Printf("%+v\n", &addr2)
 
+	ipv4Prefixed := addr4.ToPrefixBlockLen(16)
+	fmt.Printf("16 block is %+v\n", ipv4Prefixed)
+	fmt.Printf("lower is %+v\n", ipv4Prefixed.GetLower())
+	fmt.Printf("upper is %+v\n", ipv4Prefixed.GetUpper())
+	fmt.Printf("lower is %+v\n", ipv4Prefixed.GetLower())
+	fmt.Printf("upper is %+v\n", ipv4Prefixed.GetUpper())
+
 	addr5 := ipaddr.IPAddress{} // expecting []
 	fmt.Printf("%+v\n", addr5)
 	addr5Upper := addr5.GetUpper()
@@ -91,6 +98,9 @@ func main() {
 	pAddr := addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
+
+	ipv4Prefixed2 := pAddr.ToPrefixBlockLen(19)
+	fmt.Printf("19 block is %+v\n", ipv4Prefixed2)
 
 	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b", nil)
 	pAddr = addrStr.GetAddress()
@@ -118,28 +128,33 @@ func main() {
 	fmt.Printf("%+v %+v\n", ipv6Addr, ipv6Err)
 	fmt.Printf("%+v\n", *ipv6Addr)
 
-	ip := net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
-	foo(ip)
-	foo2(ip)
-	foo3(net.IPAddr{IP: ip})
+	ipv6Prefixed := ipv6Addr.ToPrefixBlockLen(32)
+	fmt.Printf("32 block is %+v\n", ipv6Prefixed)
+	ipv6Prefixed = ipv6Addr.ToPrefixBlockLen(40)
+	fmt.Printf("40 block is %+v\n", ipv6Prefixed)
 
-	bytes := []byte{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
-	foo(bytes)
-	foo2(bytes)
-	foo3(net.IPAddr{IP: bytes})
+	//ip := net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
+	//foo(ip)
+	//foo2(ip)
+	//foo3(net.IPAddr{IP: ip})
+
+	//bytes := []byte{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
+	//foo(bytes)
+	//foo2(bytes)
+	//foo3(net.IPAddr{IP: bytes})
 
 	_ = getDoc()
 }
 
-func foo(bytes []byte) {
-	fmt.Printf("%v\n", bytes)
-}
-func foo2(bytes net.IP) {
-	fmt.Printf("%v\n", bytes)
-}
-func foo3(bytes net.IPAddr) {
-	fmt.Printf("%v\n", bytes)
-}
+//func foo(bytes []byte) {
+//	fmt.Printf("%v\n", bytes)
+//}
+//func foo2(bytes net.IP) {
+//	fmt.Printf("%v\n", bytes)
+//}
+//func foo3(bytes net.IPAddr) {
+//	fmt.Printf("%v\n", bytes)
+//}
 
 // go install golang.org/x/tools/cmd/godoc
 // cd /Users/scfoley@us.ibm.com/goworkspace/bin

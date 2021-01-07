@@ -12,6 +12,10 @@ type addressSectionInternal struct {
 	addressDivisionGroupingInternal
 }
 
+func (section *addressSectionInternal) toAddressSection() *AddressSection {
+	return (*AddressSection)(unsafe.Pointer(section))
+}
+
 func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
 	if section.GetDivisionCount() == 0 {
 		return 0
@@ -50,10 +54,70 @@ func (section *addressSectionInternal) GetByteCount() int {
 	return int((section.GetBitCount() + 7) >> 3)
 }
 
-func (section *addressSectionInternal) ToPrefixBlock() *AddressSection {
-	//TODO ToPrefixBlock
-	return nil
-}
+//func (section *addressSectionInternal) ToPrefixBlock() *AddressSection {
+//	xxx
+//	//TODO ToPrefixBlock
+//	return nil
+//}
+
+//func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *AddressSection {
+//	xxxxx
+//	bitCount := section.GetBitCount()
+//	if prefLen < 0 {
+//		prefLen = 0
+//	} else {
+//		if prefLen > bitCount {
+//			prefLen = bitCount
+//		}
+//	}
+//	segCount := section.GetSegmentCount()
+//	if segCount == 0 {
+//		return section.toAddressSection()
+//	}
+//	segmentByteCount := section.GetBytesPerSegment()
+//	segmentBitCount := section.GetBitsPerSegment()
+//	prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+//	if prefixedSegmentIndex >= segCount {
+//		if prefLen == bitCount {
+//			last := section.GetSegment(segCount - 1).ToIPAddressSegment()
+//			segPrefLength := last.GetSegmentPrefixLength()
+//			if segPrefLength != nil && *segPrefLength == segmentBitCount {
+//				return section.toAddressSection()
+//			}
+//		} else { // prefLen > bitCount
+//			return section.toAddressSection()
+//		}
+//	} else {
+//		segPrefLength := *getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex)
+//		seg := section.GetSegment(prefixedSegmentIndex).ToIPAddressSegment()
+//		segPref := seg.GetSegmentPrefixLength()
+//		if segPref != nil && *segPref == segPrefLength && seg.ContainsPrefixBlock(segPrefLength) {
+//			i := prefixedSegmentIndex + 1
+//			for ; i < segCount; i++ {
+//				seg = section.GetSegment(i).ToIPAddressSegment()
+//				if !seg.IsFullRange() {
+//					break
+//				}
+//			}
+//			if i == segCount {
+//				return section.toAddressSection()
+//			}
+//		}
+//	}
+//	newSegs := createSegmentArray(segCount)
+//	if prefLen > 0 {
+//		prefixedSegmentIndex = getNetworkSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+//		copy(newSegs, section.divisions[:prefixedSegmentIndex])
+//	} else {
+//		prefixedSegmentIndex = 0
+//	}
+//	for i := prefixedSegmentIndex; i < segCount; i++ {
+//		segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, i)
+//		oldSeg := section.divisions[i]
+//		newSegs[i] = oldSeg.ToIPAddressSegment().ToPrefixedNetworkSegment(segPrefLength).ToAddressDivision()
+//	}
+//	return createIPSection(newSegs, &prefLen, section.addrType, section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+//}
 
 //func (section *addressSectionInternal) matchesSection(segmentCount int, segmentBitCount BitCount) bool {
 //	divLen := len(section.divisions)
@@ -148,6 +212,21 @@ func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivis
 	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
 }
 
+func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8, isMultiple bool) *AddressSection {
+	return &AddressSection{
+		addressSectionInternal{
+			addressDivisionGroupingInternal{
+				divisions:           segments,
+				prefixLength:        prefixLength,
+				addrType:            addrType,
+				addressSegmentIndex: startIndex,
+				isMultiple:          isMultiple,
+				cache:               &valueCache{},
+			},
+		},
+	}
+}
+
 //
 //
 //
@@ -165,11 +244,12 @@ func (section *AddressSection) getLowestOrHighestSection(lowest bool) (result *A
 		return section
 	}
 	cache := section.cache
+	sectionCache := &cache.sectionCache
 	cache.RLock()
 	if lowest {
-		result = cache.sectionCache.lower
+		result = sectionCache.lower
 	} else {
-		result = cache.sectionCache.upper
+		result = sectionCache.upper
 	}
 	cache.RUnlock()
 	if result != nil {
@@ -177,67 +257,35 @@ func (section *AddressSection) getLowestOrHighestSection(lowest bool) (result *A
 	}
 	cache.Lock()
 	if lowest {
-		result = cache.sectionCache.lower
+		result = sectionCache.lower
+		if result == nil {
+			result = section.createLowestOrHighestSectionCacheLocked(lowest)
+			sectionCache.lower = result
+		}
 	} else {
-		result = cache.sectionCache.upper
-	}
-	if result == nil {
-		//var segProducer func(int) *addressDivisionInternal
-		//if lowest {
-		//	segProducer = func(i int) *addressDivisionInternal { return section.GetSegment(i).GetLower() }
-		//} else {
-		//	segProducer = func(i int) *addressDivisionInternal { return section.GetSegment(i).GetUpper() }
-		//}
-
-		//TODO TODO TODO here here here shows how I got here, I need to get back to ipv6 address creation in parsedipaddress
-		//xxxx I should probably get rid of the network , you cannot assume you know which version or type, and thus it cannot be assigned or used xxxx
-		//xxxx I wanted that for doing ipv4/6 conversion - need a better way (creating your own types is not so useful anyway)
-		//	maybe just supply a converter?
-		//And we were thinking about conversion becquse of the ToIpv6 method
-		//But also we had a method with IPAddress in signature for SpanWithRange
-		//xxxx I also need to think about the prefix alignment issue after all this resolved
-		//Back to the issue of conversion -
-		//	Maybe we allow all kinds
-		//Or maybe none at all
-		//Maybe the behind the scenes conversion needs to go
-		//Maybe you keep network but not to use the creators!
-		//	Yes!
-		//	Certainly do not use the creators
-		//I think it should not be the network object
-		//But still, you store a converter for a single conversion?  naw
-		//it makes no sense
-
-		result = section.createLowestOrHighestSectionCacheLocked(
-			//section.cache.sectionCache.network.GetAddressCreator().(IPAddressCreator),
-			//segProducer,
-			lowest)
+		result = sectionCache.upper
+		if result == nil {
+			result = section.createLowestOrHighestSectionCacheLocked(lowest)
+			sectionCache.upper = result
+		}
 	}
 	cache.Unlock()
-
 	return
 }
 
-func (section *AddressSection) createLowestOrHighestSectionCacheLocked(
-	//creator IPAddressCreator,
-	//segProducer func(int) *addressDivisionInternal,
-	lowest bool) (result *AddressSection) {
-
+func (section *AddressSection) createLowestOrHighestSectionCacheLocked(lowest bool) *AddressSection {
 	segmentCount := section.GetSegmentCount()
 	segs := createSegmentArray(segmentCount)
-	for i := 0; i < segmentCount; i++ {
-		if lowest {
+	if lowest {
+		for i := 0; i < segmentCount; i++ {
 			segs[i] = section.GetSegment(i).GetLower().ToAddressDivision()
-		} else {
+		}
+	} else {
+		for i := 0; i < segmentCount; i++ {
 			segs[i] = section.GetSegment(i).GetUpper().ToAddressDivision()
 		}
 	}
-	result = &AddressSection{addressSectionInternal{addressDivisionGroupingInternal{
-		divisions:    segs,
-		prefixLength: section.prefixLength,
-		cache:        &valueCache{},
-		addrType:     section.addrType,
-	}}}
-	return
+	return createSection(segs, section.prefixLength, section.addrType, section.addressSegmentIndex, false)
 }
 
 func (section *AddressSection) GetLower() *AddressSection {
@@ -247,6 +295,130 @@ func (section *AddressSection) GetLower() *AddressSection {
 func (section *AddressSection) GetUpper() *AddressSection {
 	return section.getLowestOrHighestSection(false)
 }
+
+func (section *AddressSection) ToPrefixBlock() *AddressSection {
+	prefixLength := section.GetPrefixLength()
+	if prefixLength == nil {
+		return section
+	}
+	return section.toPrefixBlockLen(*prefixLength)
+}
+
+func (section *AddressSection) toPrefixBlockLen(prefLen BitCount) *AddressSection {
+	bitCount := section.GetBitCount()
+	if prefLen < 0 {
+		prefLen = 0
+	} else {
+		if prefLen > bitCount {
+			prefLen = bitCount
+		}
+	}
+	segCount := section.GetSegmentCount()
+	if segCount == 0 {
+		return section
+	}
+	segmentByteCount := section.GetBytesPerSegment()
+	segmentBitCount := section.GetBitsPerSegment()
+	existingPrefixLength := section.GetPrefixLength()
+	prefixMatches := existingPrefixLength != nil && *existingPrefixLength == prefLen
+	if prefixMatches {
+		prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+		if prefixedSegmentIndex >= segCount {
+			return section
+		}
+		segPrefLength := *getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex)
+		seg := section.GetSegment(prefixedSegmentIndex)
+		if seg.containsPrefixBlock(segPrefLength) {
+			i := prefixedSegmentIndex + 1
+			for ; i < segCount; i++ {
+				seg = section.GetSegment(i)
+				if !seg.IsFullRange() {
+					break
+				}
+			}
+			if i == segCount {
+				return section
+			}
+		}
+	}
+	prefixedSegmentIndex := 0
+	newSegs := createSegmentArray(segCount)
+	if prefLen > 0 {
+		prefixedSegmentIndex = getNetworkSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+		copy(newSegs, section.divisions[:prefixedSegmentIndex])
+	}
+	for i := prefixedSegmentIndex; i < segCount; i++ {
+		segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, i)
+		oldSeg := section.divisions[i]
+		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
+	}
+	//TODO caching of prefLen?  we should map it to a global array - check what we have in the validation code
+	return createSection(newSegs, &prefLen, section.addrType, section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+}
+
+//func (section *AddressSection) toPrefixBlockLen(prefLen BitCount) *AddressSection {
+//	bitCount := section.GetBitCount()
+//	if prefLen < 0 {
+//		prefLen = 0
+//	} else {
+//		if prefLen > bitCount {
+//			prefLen = bitCount
+//		}
+//	}
+//	segCount := section.GetSegmentCount()
+//	if segCount == 0 {
+//		return section
+//	}
+//
+//	segmentByteCount := section.GetBytesPerSegment()
+//	segmentBitCount := section.GetBitsPerSegment()
+//	prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+//	if prefixedSegmentIndex >= segCount {
+//		if prefLen == bitCount {
+//			last := section.GetSegment(segCount - 1)
+//			existingPrefLength := last.getSegmentPrefixLength()
+//			if existingPrefLength != nil && *existingPrefLength == segmentBitCount {
+//				return section
+//			}
+//		} else { // prefLen > bitCount
+//			return section
+//		}
+//	} else {
+//		segPrefLength := *getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex)
+//
+//		seg := section.GetSegment(prefixedSegmentIndex)
+//		existingPrefLength := seg.GetSegmentPrefixLength()
+//
+//		//mostly it is this containsPrefixBlock we care about - we could also compare the prefix in one fell swoop, not per segment
+//
+//		if existingPrefLength != nil && *existingPrefLength == segPrefLength && seg.containsPrefixBlock(segPrefLength) {
+//			i := prefixedSegmentIndex + 1
+//			for ; i < segCount; i++ {
+//				seg = section.GetSegment(i)
+//				if !seg.IsFullRange() {
+//					break
+//				}
+//			}
+//			if i == segCount {
+//				return section
+//			}
+//		}
+//	}
+//	newSegs := createSegmentArray(segCount)
+//	if prefLen > 0 {
+//		prefixedSegmentIndex = getNetworkSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
+//		copy(newSegs, section.divisions[:prefixedSegmentIndex])
+//	} else {
+//		prefixedSegmentIndex = 0
+//	}
+//	for i := prefixedSegmentIndex; i < segCount; i++ {
+//		segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, i)
+//		oldSeg := section.divisions[i]
+//		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
+//	}
+//	//TODO caching of prefLen?  we should map it to a global array - check what we have in the validation code
+//	return createSection(newSegs, &prefLen, section.addrType, section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+//}
 
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
 	if section == nil || !section.matchesIPSection() {

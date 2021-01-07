@@ -147,17 +147,17 @@ func (a *inconsistentPrefixException) Error() string {
 	return a.key
 }
 
-type prefixLenException struct {
-	prefixLen BitCount
-
-	// key to look up the error message
-	key string
-}
-
-func (a *prefixLenException) Error() string {
-	//TODO i18n -
-	return a.key
-}
+//type prefixLenException struct {
+//	prefixLen BitCount
+//
+//	// key to look up the error message
+//	key string
+//}
+//
+//func (a *prefixLenException) Error() string {
+//	//TODO i18n -
+//	return a.key
+//}
 
 type addressStringIndexErr struct {
 	addressStringException

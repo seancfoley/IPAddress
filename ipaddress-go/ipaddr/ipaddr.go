@@ -54,6 +54,20 @@ func (addr *ipAddressInternal) ToAddress() *Address {
 	return (*Address)(unsafe.Pointer(addr))
 }
 
+func (addr *ipAddressInternal) toIPAddress() *IPAddress {
+	return (*IPAddress)(unsafe.Pointer(addr))
+}
+
+//func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddress {
+//	sec := section.toAddressSection()
+//	if sec == addr.section {
+//		return addr.toIPAddress()
+//	}
+//	return &IPAddress{ipAddressInternal{addressInternal{
+//		section: sec, zone: addr.zone, cache: &addressCache{},
+//	}}}
+//}
+
 // isIPv4() returns whether this matches an IPv4 address.
 // It needs to match an IPv4 section and also have 4 segments.
 func (addr *ipAddressInternal) isIPv4() bool {
@@ -154,6 +168,20 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 	return addr.getUpper().ToIPAddress()
 }
 
+func (addr *IPAddress) ToPrefixBlock() *IPAddress {
+	addr = addr.init()
+	prefixLength := addr.GetNetworkPrefixLength()
+	if prefixLength == nil {
+		return addr
+	}
+	return addr.ToPrefixBlockLen(*prefixLength)
+}
+
+func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
+	addr = addr.init()
+	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen)).ToIPAddress()
+}
+
 func (addr *IPAddress) IsIPv4() bool {
 	if addr == nil {
 		return false
@@ -232,38 +260,6 @@ func (addr *IPAddress) Mask(other *IPAddress) *IPAddress {
 	}
 	return nil
 }
-
-//xxxxxxxx how to override conversion? xxxxxx
-//- somehow get a converter into the cache?  But cache is per ipaddress
-//- pass in a coverter func?  But do you want to do that everywhere? ie mask, span, etc?
-//- put it in network obj?  But how do we customize network obj?
-//- somehow like java where you can override with your type?
-//- so far passing in arg seems the primary option, maybe you can pass in a single arg that encapsulates addr and converter?
-//OR pass in converter with "New"
-//Makes more sense to add to "New" of network
-//I think perhaps user constructs their own network, then constructs addrs with that
-//you really want to point to only one shared thing
-//But that is tricky.  You kinda want something associated with the type and not every instance
-//Maybe I do New through the network.  Which I already do really with the creators.
-//	Yes.
-//	I like that.
-//	TODO converters: So, how bout the details?
-//   User constructs an ipv4 network, wants to define ipv6 conversion,
-//	calls setConverter on the network object, converted implements our converter interface, the converter must define : isIPv4Convertible(*IPAddress), isIPv6Convertible(*IPAddress), toIPv6(*IPAddress), toIPv4(*IPAddress)
-//	And the network, which is an interface (probably, not sure, we need it to supply its own creator and so on), must satisfy getCreator, and the creator for that network will always associate any addresses creaed with the same network
-//	This also allows you to associate the network of anything created by the converter by simply making toIPv6 to use a creator from  your own ipv6 network.
-//	In other words, the converter will be aware of its associated network objects and use their creators.
-//	When a creator creates an ip address, it will insert the associated network into the cache of the address.
-//	When a method like mask or span has an IPAddress arg, it will grab the converter from that network obj to do the conversion.
-//	So it all works.  Yay.
-
-//TODO I need to NOT use my own ipv6/ipv4/mac converters directly!  Must use an interface.
-// BUT this is a problem with the "internal" methods.  We cannot allow access to the arrays and other things intended to be "internal"
-// But that is OK!  the internal methods use "New"/consructor methods accessible only to me.
-// So others cannot use it.  But others must be able to implement.
-// I think you expose them all and you "expect" users to obey the rules.
-//
-// In any case, we must allow uses to create their own creators so we must use interfaces.
 
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {

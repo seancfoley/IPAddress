@@ -52,7 +52,7 @@ func (seg macSegmentValues) getUpperSegmentValue() SegInt {
 }
 
 func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return newMACSegmentValues(seg.value, seg.value)
+	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
 func (seg macSegmentValues) getCache() *divCache {

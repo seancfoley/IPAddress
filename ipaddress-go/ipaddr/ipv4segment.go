@@ -71,7 +71,7 @@ func (seg ipv4SegmentValues) getDivisionPrefixLength() PrefixLen {
 }
 
 func (seg ipv4SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return newIPv4SegmentValues(seg.value, seg.value, seg.prefLen)
+	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen)
 }
 
 func (seg ipv4SegmentValues) getCache() *divCache {

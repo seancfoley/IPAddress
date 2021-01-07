@@ -55,10 +55,8 @@ func NewIPv4AddressFromValues(vals SegmentValueProvider) (addr *IPv4Address) {
 }
 
 func NewIPv4AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
-	section, err := NewIPv4AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
-	if err == nil {
-		addr = NewIPv4Address(section)
-	}
+	section := NewIPv4AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	addr = NewIPv4Address(section)
 	return
 }
 
@@ -69,10 +67,8 @@ func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Ad
 }
 
 func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
-	section, err := NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
-	if err == nil {
-		addr = NewIPv4Address(section)
-	}
+	section := NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	addr = NewIPv4Address(section)
 	return
 }
 
@@ -158,6 +154,16 @@ func (addr *IPv4Address) GetLower() *IPv4Address {
 func (addr *IPv4Address) GetUpper() *IPv4Address {
 	addr = addr.init()
 	return addr.getUpper().ToIPv4Address()
+}
+
+func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
+	addr = addr.init()
+	return addr.ToIPAddress().ToPrefixBlock().ToIPv4Address()
+}
+
+func (addr *IPv4Address) ToPrefixBlockLen(prefLen BitCount) *IPv4Address {
+	addr = addr.init()
+	return addr.ToIPAddress().ToPrefixBlockLen(prefLen).ToIPv4Address()
 }
 
 func (addr *IPv4Address) GetBytes() net.IP {

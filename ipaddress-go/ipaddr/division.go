@@ -14,7 +14,7 @@ const DivIntSize = 64
 type divisionValuesBase interface { // shared by standard and large divisions
 	GetBitCount() BitCount
 
-	GetByteCount() int // TODO maybe drop this and instead derive from GetBitCount like GetMaxValue() and GetMaxSegmentValue()
+	GetByteCount() int
 }
 
 // DivisionValues represents divisions with values that are 64 bits or less
@@ -63,7 +63,7 @@ type addressDivisionInternal struct {
 
 func (div *addressDivisionInternal) String() string {
 	if div.isMultiple() {
-		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.GetUpperDivisionValue())
+		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.getUpperDivisionValue())
 	}
 	return fmt.Sprintf("%x", div.getDivisionValue())
 	/*
@@ -107,11 +107,61 @@ func (div *addressDivisionInternal) String() string {
 }
 
 func (div *addressDivisionInternal) isPrefixed() bool {
+	return div.getDivisionPrefixLength() != nil
+}
+
+// return whether the division range includes the block of values for the given prefix length
+func (div *addressDivisionInternal) containsPrefixBlock(divisionPrefixLen BitCount) bool {
+	return div.isPrefixBlockVals(div.getDivisionValue(), div.getUpperDivisionValue(), divisionPrefixLen)
+}
+
+// Returns whether the division range includes the block of values for its prefix length
+func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
+	if divisionPrefixLen == 0 {
+		return divisionValue == 0 && upperValue == div.GetMaxValue()
+	}
+	bitCount := div.GetBitCount()
+	var ones DivInt = ^DivInt(0)
+	var divisionBitMask DivInt = ^(ones << bitCount)
+	var divisionPrefixMask DivInt = ones << (bitCount - divisionPrefixLen)
+	var divisionNonPrefixMask DivInt = ^divisionPrefixMask
+	return testRange(divisionValue,
+		upperValue,
+		upperValue,
+		divisionPrefixMask&divisionBitMask,
+		divisionNonPrefixMask)
+}
+
+// Returns whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen
+func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
+	if divisionPrefixLen == 0 {
+		return divisionValue == 0 && upperValue == div.GetMaxValue()
+	}
+	bitCount := div.GetBitCount()
+	var ones DivInt = ^DivInt(0)
+	var divisionBitMask DivInt = ^(ones << bitCount)
+	var divisionPrefixMask DivInt = ones << (bitCount - divisionPrefixLen)
+	var divisionNonPrefixMask DivInt = ^divisionPrefixMask
+	return testRange(divisionValue,
+		divisionValue,
+		upperValue,
+		divisionPrefixMask&divisionBitMask,
+		divisionNonPrefixMask)
+}
+
+// return whether the division range includes the block of values for the division prefix length,
+// or false if the division has no prefix length
+func (div *addressDivisionInternal) isPrefixBlock() bool {
+	prefLen := div.getDivisionPrefixLength()
+	return prefLen != nil && div.containsPrefixBlock(*prefLen)
+}
+
+func (div *addressDivisionInternal) getDivisionPrefixLength() PrefixLen {
 	vals := div.divisionValues
 	if vals == nil {
-		return false
+		return nil
 	}
-	return div.getDivisionPrefixLength() != nil
+	return vals.getDivisionPrefixLength()
 }
 
 func (div *addressDivisionInternal) GetBitCount() BitCount {
@@ -142,7 +192,7 @@ func (div *addressDivisionInternal) isMultiple() bool {
 	return vals.getDivisionValue() != vals.getUpperDivisionValue()
 }
 
-func (div *addressDivisionInternal) GetDivisionValue() DivInt {
+func (div *addressDivisionInternal) getDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -150,7 +200,7 @@ func (div *addressDivisionInternal) GetDivisionValue() DivInt {
 	return vals.getDivisionValue()
 }
 
-func (div *addressDivisionInternal) GetUpperDivisionValue() DivInt {
+func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -163,21 +213,13 @@ type AddressDivision struct {
 }
 
 // Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
-//func (div *AddressDivision) getDivisionValue() DivInt {
-//	vals := div.divisionValues
-//	if vals == nil {
-//		return 0
-//	}
-//	return vals.getDivisionValue()
-//}
-//
-//func (div *AddressDivision) getUpperDivisionValue() DivInt {
-//	vals := div.divisionValues
-//	if vals == nil {
-//		return 0
-//	}
-//	return vals.getUpperDivisionValue()
-//}
+func (div *AddressDivision) GetDivisionValue() DivInt {
+	return div.getDivisionValue()
+}
+
+func (div *AddressDivision) GetUpperDivisionValue() DivInt {
+	return div.getUpperDivisionValue()
+}
 
 func (div *AddressDivision) IsMultiple() bool {
 	return div.isMultiple()
@@ -330,4 +372,8 @@ func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
 
 func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
 	return div.ToAddressSegment().ToMACAddressSegment()
+}
+
+func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask DivInt) bool {
+	return lowerValue == (lowerValue&networkMask) && finalUpperValue == (upperValue|hostMask)
 }

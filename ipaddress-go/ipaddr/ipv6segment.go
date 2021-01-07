@@ -62,7 +62,7 @@ func (seg ipv6SegmentValues) getUpperSegmentValue() SegInt {
 //}
 
 func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return newIPv6SegmentValues(seg.value, seg.value, seg.prefLen)
+	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
 func (seg ipv6SegmentValues) getCache() *divCache {

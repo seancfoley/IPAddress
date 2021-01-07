@@ -60,6 +60,10 @@ type addressSegmentInternal struct {
 	addressDivisionInternal
 }
 
+func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
+	return (*AddressSegment)(unsafe.Pointer(seg))
+}
+
 func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(seg))
 }
@@ -171,10 +175,13 @@ func (div *addressSegmentInternal) isOneBit(segmentBitIndex BitCount) bool {
 //xxx but in this code we do not know if we are ipv4, so getLower needs to return it
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
+	if !seg.isMultiple() {
+		return seg.toAddressSegment()
+	}
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNew(seg.GetDivisionValue(), seg.GetDivisionValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNew(seg.getDivisionValue(), seg.getDivisionValue(), seg.getDivisionPrefixLength())
 	}
 	return &AddressSegment{
 		addressSegmentInternal{
@@ -184,11 +191,14 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 }
 
 func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
+	if !seg.isMultiple() {
+		return seg.toAddressSegment()
+	}
 	//vals, cache := seg.getUpper()
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNew(seg.GetDivisionValue(), seg.GetDivisionValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNew(seg.getUpperDivisionValue(), seg.getUpperDivisionValue(), seg.getDivisionPrefixLength())
 	}
 	return &AddressSegment{
 		addressSegmentInternal{
@@ -315,6 +325,33 @@ type IPAddressSegment struct {
 
 //func (seg *IPAddressSegment) ToIPAddressSegment() *IPAddressSegment {
 //	return seg
+//}
+
+func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
+	return seg.containsPrefixBlock(divisionPrefixLen)
+}
+
+func (seg *IPAddressSegment) IsPrefixBlock() bool {
+	return seg.isPrefixBlock()
+}
+
+func (seg *IPAddressSegment) IsPrefixed() bool {
+	return seg.isPrefixed()
+}
+
+func (seg *IPAddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
+	return seg.ToAddressDivision().toPrefixedNetworkDivision(segmentPrefixLength).ToIPAddressSegment()
+}
+
+func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, withPrefixLength bool) *IPAddressSegment {
+	return seg.ToAddressDivision().toNetworkDivision(segmentPrefixLength, withPrefixLength).ToIPAddressSegment()
+}
+
+//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
+//	if isHostChangedByPrefix(bits) {
+//		return super.toHostSegment(bits, getSegmentCreator())
+//	}
+//	return this
 //}
 
 func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
