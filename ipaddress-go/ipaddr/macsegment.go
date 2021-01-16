@@ -55,6 +55,10 @@ func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) d
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
+func (seg macSegmentValues) deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
+}
+
 func (seg macSegmentValues) getCache() *divCache {
 	return &seg.cache
 }

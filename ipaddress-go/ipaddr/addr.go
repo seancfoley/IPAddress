@@ -147,8 +147,11 @@ func (addr *Address) init() *Address {
 }
 
 func (addr *Address) String() string {
-	addr = addr.init()
-	return addr.addressInternal.String()
+	return addr.init().addressInternal.String()
+}
+
+func (addr *Address) GetSection() *AddressSection {
+	return addr.init().section
 }
 
 func (addr *Address) GetLower() *Address {

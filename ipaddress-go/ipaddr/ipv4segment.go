@@ -74,6 +74,10 @@ func (seg ipv4SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) 
 	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen)
 }
 
+func (seg ipv4SegmentValues) deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen)
+}
+
 func (seg ipv4SegmentValues) getCache() *divCache {
 	return &seg.cache
 }

@@ -402,7 +402,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 					masker := parseData.maskers[i]
 					if masker == nil {
 						var maxValue uint64 = ^(^uint64(0) << bits)
-						masker = maskRangeWithMax(lower, upper, divMask, maxValue)
+						masker = maskRange(lower, upper, divMask, maxValue)
 						if !masker.IsSequential() {
 							if finalResult.maskException == nil {
 								finalResult.maskException = &incompatibleAddressException{
@@ -515,7 +515,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			masker = parseData.maskers[i]
 			maskInt := uint64(mask.GetSegment(normalizedSegmentIndex).GetSegmentValue())
 			if masker == nil {
-				masker = maskRangeWithMax(lower, upper, maskInt, uint64(creator.getMaxValuePerSegment()))
+				masker = maskRange(lower, upper, maskInt, uint64(creator.getMaxValuePerSegment()))
 				parseData.maskers[i] = masker
 				if !masker.IsSequential() && finalResult.maskException == nil {
 					finalResult.maskException = &incompatibleAddressException{
@@ -813,7 +813,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 								// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
 								maxValue := ^(^DivInt(0) << bits)
 								//long maxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << bits);
-								masker = maskRangeWithMax(lower, upper, maskVal, maxValue)
+								masker = maskRange(lower, upper, maskVal, maxValue)
 								if !masker.IsSequential() {
 									if finalResult.maskException == nil {
 										finalResult.maskException = &incompatibleAddressException{
@@ -960,7 +960,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			masker = parseData.maskers[i]
 			maskInt := uint64(mask.GetSegment(normalizedSegmentIndex).GetSegmentValue())
 			if masker == nil {
-				masker = maskRangeWithMax(lower, upper, maskInt, uint64(creator.getMaxValuePerSegment()))
+				masker = maskRange(lower, upper, maskInt, uint64(creator.getMaxValuePerSegment()))
 				parseData.maskers[i] = masker
 				if !masker.IsSequential() && finalResult.maskException == nil {
 					finalResult.maskException = &incompatibleAddressException{
@@ -1038,7 +1038,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 	}
 	prefLength := getPrefixLength(qualifier)
 	if mixed {
-		//TODO need to make this range work xxxx
+		//TODO need to make getProviderSeqRange work xxxx
 		ipv4Range := parseData.mixedParsedAddress.getProviderSeqRange().ToIPv4SequentialRange()
 		if hasMask && parseData.mixedMaskers == nil {
 			parseData.mixedMaskers = make([]Masker, IPv4SegmentCount)
@@ -1069,7 +1069,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				lstringLower := uint64(oneLower)
 				lstringUpper := uint64(oneUpper)
 				if masker == nil {
-					masker = maskRangeWithMax(lstringLower, lstringUpper, shiftedMask, IPv4MaxValuePerSegment)
+					masker = maskRange(lstringLower, lstringUpper, shiftedMask, IPv4MaxValuePerSegment)
 					parseData.mixedMaskers[m] = masker
 					if !masker.IsSequential() && finalResult.maskException == nil {
 						finalResult.maskException = &incompatibleAddressException{
@@ -1084,7 +1084,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				lstringUpper = uint64(twoUpper)
 				masker = parseData.mixedMaskers[m+1]
 				if masker == nil {
-					masker = maskRangeWithMax(lstringLower, lstringUpper, maskInt, IPv4MaxValuePerSegment)
+					masker = maskRange(lstringLower, lstringUpper, maskInt, IPv4MaxValuePerSegment)
 					parseData.mixedMaskers[m+1] = masker
 					if !masker.IsSequential() && finalResult.maskException == nil {
 						finalResult.maskException = &incompatibleAddressException{
@@ -1174,7 +1174,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				finalResult.joinHostException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
 			}
 		}
-		result = creator.createPrefixedSectionInternal(segments, prefLength)
+		result = creator.createPrefixedSectionInternal(segments, prefLength, false)
 		finalResult.section = result
 		if checkExpandedValues(result, expandedStart, expandedEnd) {
 			finalResult.joinAddressException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
@@ -1222,10 +1222,10 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			}
 		}
 		if lowerSegments != nil {
-			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).GetLower() // getLower needed for all prefix subnet config
+			finalResult.lowerSection = creator.createPrefixedSectionInternal(lowerSegments, prefLength, true).GetLower() // getLower needed for all prefix subnet config
 		}
 		if upperSegments != nil {
-			section := creator.createPrefixedSectionInternal(upperSegments, prefLength)
+			section := creator.createPrefixedSectionInternal(upperSegments, prefLength, false)
 			if isPrefixSub {
 				section = section.ToPrefixBlock()
 			}
@@ -1380,7 +1380,7 @@ func createFullRangeSegment(
 		maskInt := DivInt(*mask)
 		lstringLower := uint64(stringLower)
 		lstringUpper := uint64(stringUpper)
-		masker := maskRangeWithMax(lstringLower, lstringUpper, maskInt, uint64(creator.getMaxValuePerSegment()))
+		masker := maskRange(lstringLower, lstringUpper, maskInt, uint64(creator.getMaxValuePerSegment()))
 		if !masker.IsSequential() {
 			err = &incompatibleAddressException{
 				str: maskString(lstringLower, lstringUpper, maskInt),
@@ -1406,307 +1406,6 @@ func createAllAddress(
 	options IPAddressStringParameters) *IPAddress {
 	//TODO
 	return nil
-}
-
-func maskExtendedRange(
-	value, extendedValue,
-	upperValue, extendedUpperValue,
-	maskValue, extendedMaskValue,
-	maxValue, extendedMaxValue uint64) ExtendedMasker {
-
-	//algorithm:
-	//here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-	//then we find the highest bit in the mask that is 1 that is the same or below highestDifferingBitInRange (if such a bit exists)
-	//
-	//this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-	//if this latter bit exists, then any bit below it in the mask must be 1 to include the entire range.
-
-	//
-	//long extendedDiffering = extendedValue ^ extendedUpperValue;
-	//if(extendedDiffering == 0) {
-	//	// the top is single-valued so just need to check the lower part
-	//	Masker masker = maskRangeWithMax(value, upperValue, maskValue, maxValue);
-	//	if(masker == DEFAULT_MASKER) {
-	//		return DEFAULT_MASKER;
-	//	}
-	//	if(masker instanceof FullRangeMasker) {
-	//		int fullRangeBit = ((FullRangeMasker) masker).fullRangeBit;
-	//		WrappedMasker cache[] = masker.isSequential() ? WRAPPED_SEQUENTIAL_FULL_RANGE_MASKERS : WRAPPED_FULL_RANGE_MASKERS;
-	//		WrappedMasker result = cache[fullRangeBit];
-	//		if(result == null) {
-	//			cache[fullRangeBit] = result = new WrappedMasker(masker);
-	//		}
-	//		return result;
-	//	}
-	//	return new WrappedMasker(masker);
-	//}
-	//if(extendedValue > extendedUpperValue) {
-	//	throw new IllegalArgumentException("value > upper value");
-	//}
-	//if((maskValue == maxValue && extendedMaskValue == extendedMaxValue /* all ones mask */) ||
-	//		(maskValue == 0 && extendedMaskValue == 0 /* all zeros mask */)) {
-	//	return DEFAULT_MASKER;
-	//}
-	//int highestDifferingBitInRange = Long.numberOfLeadingZeros(extendedDiffering);
-	//long extendedDifferingMasked = extendedMaskValue & (~0L >>> highestDifferingBitInRange);
-	//int highestDifferingBitMasked;
-	//if(extendedDifferingMasked != 0) {
-	//	boolean differingIsLowestBit = (extendedDifferingMasked == 1);
-	//	highestDifferingBitMasked = Long.numberOfLeadingZeros(extendedDifferingMasked);
-	//	boolean maskedIsSequential;
-	//	long hostMask = ~0L >>> (highestDifferingBitMasked + 1);
-	//	if(!differingIsLowestBit) { // Anything below highestDifferingBitMasked in the mask must be ones.
-	//		//for the first mask bit that is 1, all bits that follow must also be 1
-	//		maskedIsSequential = (extendedMaskValue & hostMask) == hostMask && maskValue == maxValue; //check if all ones below
-	//	} else {
-	//		maskedIsSequential = maskValue == maxValue;
-	//	}
-	//	if(value == 0 && extendedValue == 0 &&
-	//			upperValue == maxValue && extendedUpperValue == extendedMaxValue) {
-	//		// full range
-	//		if(maskedIsSequential) {
-	//			return DEFAULT_MASKER;
-	//		} else {
-	//			return DEFAULT_NON_SEQUENTIAL_MASKER;
-	//		}
-	//	}
-	//	if(highestDifferingBitMasked > highestDifferingBitInRange) {
-	//		if(maskedIsSequential) {
-	//			// We need to check that the range is larger enough that when chopping off the top it remains sequential
-	//
-	//			// Note: a count of 2 in the extended could equate to a count of 2 total!
-	//			// upper: xxxxxxx1 00000000
-	//			// lower: xxxxxxx0 11111111
-	//			// Or, it could be everything:
-	//			// upper: xxxxxxx1 11111111
-	//			// lower: xxxxxxx0 00000000
-	//			// So for that reason, we need to check the full count here and not just extended
-	//
-	//			int shift = Long.SIZE - highestDifferingBitMasked; // highestDifferingBitMasked > 0 so shift < 64 which is required for long left shift
-	//			BigInteger countRequiredForSequential = ONE_SHIFTED_EXTENDED[shift];
-	//			if(countRequiredForSequential == null) {
-	//				countRequiredForSequential = ONE_SHIFTED_EXTENDED[shift] = BigInteger.valueOf(1L << shift).shiftLeft(Long.SIZE);
-	//			}
-	//			BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-	//			BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-	//			BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-	//			maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
-	//		}
-	//		ExtendedFullRangeMasker cache[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-	//		ExtendedFullRangeMasker result = cache[highestDifferingBitMasked];
-	//		if(result == null) {
-	//			cache[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
-	//		}
-	//		return result;
-	//	} else if(!maskedIsSequential) {
-	//		BigInteger bigHostMask = HOST_MASK_EXTENDED[highestDifferingBitMasked];
-	//		if(bigHostMask == null) {
-	//			bigHostMask = BigInteger.valueOf(hostMask);
-	//			bigHostMask = bigHostMask.shiftLeft(Long.SIZE);
-	//			byte b = (byte) 0xff;
-	//			bigHostMask = bigHostMask.or(new BigInteger(1, new byte[] {b, b, b, b, b, b, b, b}));
-	//			HOST_MASK_EXTENDED[highestDifferingBitMasked] = bigHostMask;
-	//		}
-	//		BigInteger bigHostZeroed = NETWORK_MASK_EXTENDED[highestDifferingBitMasked];
-	//		if(bigHostZeroed == null) {
-	//			bigHostZeroed = NETWORK_MASK_EXTENDED[highestDifferingBitMasked] = bigHostMask.not();
-	//		}
-	//		BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-	//		BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-	//		BigInteger upperToBeMaskedBig = upperBig.and(bigHostZeroed);
-	//		BigInteger lowerToBeMaskedBig = lowerBig.or(bigHostMask);
-	//		BigInteger maskBig = new BigInteger(1, toBytesSizeAdjusted(maskValue, extendedMaskValue, 16));
-	//		for(int nextBit = 128 - (highestDifferingBitMasked + 1) - 1; nextBit >= 0; nextBit--) {
-	//			if(maskBig.testBit(nextBit)) {
-	//				BigInteger candidate = upperToBeMaskedBig.setBit(nextBit);
-	//				if(candidate.compareTo(upperBig) <= 0) {
-	//					upperToBeMaskedBig = candidate;
-	//				}
-	//				candidate = lowerToBeMaskedBig.clearBit(nextBit);
-	//				if(candidate.compareTo(lowerBig) >= 0) {
-	//					lowerToBeMaskedBig = candidate;
-	//				}
-	//			} //else
-	//			// keep our upperToBeMaskedBig bit as 0
-	//			// keep our lowerToBeMaskedBig bit as 1
-	//		}
-	//		return new ExtendedSpecificValueMasker(
-	//				lowerToBeMaskedBig.shiftRight(Long.SIZE).longValue(),
-	//				lowerToBeMaskedBig.longValue(),
-	//				upperToBeMaskedBig.shiftRight(Long.SIZE).longValue(),
-	//				upperToBeMaskedBig.longValue());
-	//	}
-	//	return DEFAULT_MASKER;
-	//
-	//}
-	//// When masking, the top becomes single-valued.
-	//
-	//// We go to the lower values to find highestDifferingBitMasked.
-	//
-	//// At this point, the highest differing bit in the lower range is 0
-	//// and the highestDifferingBitMasked is the first 1 bit in the lower mask
-	//
-	//if(maskValue == 0) {
-	//	// the mask zeroes out everything,
-	//	return DEFAULT_MASKER;
-	//}
-	//boolean maskedIsSequential = true;
-	//int highestDifferingBitMaskedLow = Long.numberOfLeadingZeros(maskValue);
-	//if(maskValue != maxValue && highestDifferingBitMaskedLow < Long.SIZE - 1) {
-	//	//for the first mask bit that is 1, all bits that follow must also be 1
-	//	long hostMask = ~0L >>> (highestDifferingBitMaskedLow + 1); // this shift of since case of highestDifferingBitMaskedLow of 64 and 63 taken care of, so the shift is < 64
-	//	maskedIsSequential = (maskValue & hostMask) == hostMask; //check if all ones below
-	//}
-	//if(maskedIsSequential) {
-	//	// Note: a count of 2 in the lower values could equate to a count of everything in the full range:
-	//	// upper: xxxxxx10 00000000
-	//	// lower: xxxxxxx0 11111111
-	//	// Another example:
-	//	// upper: xxxxxxx1 00000001
-	//	// lower: xxxxxxx0 00000000
-	//	// So for that reason, we need to check the full count here and not just lower values
-	//
-	//	// We need to check that the range is larger enough that when chopping off the top it remains sequential
-	//	BigInteger countRequiredForSequential;
-	//	if(highestDifferingBitMaskedLow == 0) {
-	//		countRequiredForSequential = ONE_EXTENDED;
-	//	} else if(highestDifferingBitMaskedLow == 1) { // need this case because 1 << 63 is a negative number
-	//		countRequiredForSequential = HIGH_BIT;
-	//	} else {
-	//		int shift = Long.SIZE - highestDifferingBitMaskedLow;
-	//		countRequiredForSequential = ONE_SHIFTED[shift];
-	//		if(countRequiredForSequential == null) {
-	//			countRequiredForSequential = ONE_SHIFTED[shift] = BigInteger.valueOf(1L << shift);
-	//		}
-	//	}
-	//	BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-	//	BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-	//	BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-	//	maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
-	//}
-	//highestDifferingBitMasked = highestDifferingBitMaskedLow + Long.SIZE;
-	//ExtendedFullRangeMasker cache[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-	//ExtendedFullRangeMasker result = cache[highestDifferingBitMasked];
-	//if(result == null) {
-	//	cache[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
-	//}
-	//return result;
-
-	return nil
-}
-
-//func maskRange(value, upperValue, maskValue uint64) Masker {
-//	return maskRangeWithMax(value, upperValue, maskValue, 0xffffffffffffffff)
-//}
-
-func maskRangeWithMax(value, upperValue, maskValue, maxValue uint64) Masker {
-	//if(value == upperValue) {
-	//	return DEFAULT_MASKER;
-	//}
-	//if(value > upperValue) {
-	//	throw new IllegalArgumentException("value > upper value");
-	//}
-	//if(maskValue == 0 || maskValue == maxValue) {
-	//	return DEFAULT_MASKER;
-	//}
-	//
-	////algorithm:
-	////here we find the highest bit that is part of the range, highestDifferingBitInRange (ie changes from lower to upper)
-	////then we find the highest bit in the mask that is 1 that is the same or below highestDifferingBitInRange (if such a bit exists)
-	//
-	////this gives us the highest bit that is part of the masked range (ie changes from lower to upper after applying the mask)
-	////if this latter bit exists, then any bit below it in the mask must be 1 to remain sequential.
-	//
-	//long differing = value ^ upperValue;
-	//if(differing != 1) {
-	//	int highestDifferingBitInRange = Long.numberOfLeadingZeros(differing);
-	//	long maskMask = ~0L >>> highestDifferingBitInRange;
-	//	long differingMasked = maskValue & maskMask;
-	//	boolean foundDiffering = (differingMasked != 0);
-	//	if(foundDiffering) {
-	//		// Anything below highestDifferingBitMasked in the mask must be ones.
-	//		// Also, if we have masked out any 1 bit in the original, then anything that we do not mask out that follows must be all 1s
-	//		int highestDifferingBitMasked = Long.numberOfLeadingZeros(differingMasked); // first one bit in the mask covering the range
-	//		long hostMask = (highestDifferingBitMasked == Long.SIZE - 1) ? 0 : ~0L >>> (highestDifferingBitMasked + 1);//for the first mask bit that is 1, all bits that follow must also be 1
-	//		boolean maskedIsSequential = (maskValue & hostMask) == hostMask;
-	//		if(maxValue == -1 &&
-	//				(!maskedIsSequential || highestDifferingBitMasked > highestDifferingBitInRange)) {
-	//			int highestOneBit = Long.numberOfLeadingZeros(upperValue);
-	//			// note we know highestOneBit < 64, otherwise differing would be 1 or 0
-	//			maxValue = ~0L >>> highestOneBit;
-	//		}
-	//		if(value == 0 && upperValue == maxValue) {
-	//			// full range
-	//			if(maskedIsSequential) {
-	//				return DEFAULT_MASKER;
-	//			} else {
-	//				return DEFAULT_NON_SEQUENTIAL_MASKER;
-	//			}
-	//		}
-	//		if(highestDifferingBitMasked > highestDifferingBitInRange) {
-	//			if(maskedIsSequential) {
-	//				// the count will determine if the masked range is sequential
-	//				if(highestDifferingBitMasked < Long.SIZE - 1) {
-	//					long count = upperValue - value + 1;
-	//
-	//					// if original range is 0xxxx to 1xxxx and our mask starts with a single 0 so the mask is 01111,
-	//					// then our new range covers 4 bits at most (could be less).
-	//					// If the range covers 4 bits, we need to know if that range covers the same count of values as 0000 to 1111.
-	//					// If so, the resulting range is not disjoint.
-	//					// How do we know the range is disjoint otherwise?  We know because it has the values 1111 and 0000.
-	//					// In order to go from 0xxxx to 1xxxx you must cross the consecutive values 01111 and 10000.
-	//					// These values are consecutive in the original range (ie 01111 is followed by 10000) but in the new range
-	//					// they are farthest apart and we need the entire range to fill the gap between them.
-	//					// That count of values for the entire range is 1111 - 0000 + 1 = 10000
-	//					// So in this example, the first bit in the original range is bit 0, highestDifferingBitMasked is 1,
-	//					// and the range must cover 2 to the power of (5 - 1),
-	//					// or 2 to the power of bit count - highestDifferingBitMasked, or 1 shifted by that much.
-	//
-	//					long countRequiredForSequential = 1L << (Long.SIZE - highestDifferingBitMasked);
-	//					if(count < countRequiredForSequential) {
-	//						// the resulting masked values are disjoint, not sequential
-	//						maskedIsSequential = false;
-	//					}
-	//				} // else count of 2 is good enough, even if the masked range does not cover both values, then the result is a single value, which is also sequential
-	//				// another way of looking at it: when the range is just two, we do not need to see if the masked range covers all values in between, as there is no values in between
-	//			}
-	//			// The range part of the values will go from 0 to the mask itself.
-	//			// This is because we know that if the range is 0xxxx... to 1yyyy..., then 01111... and 10000... are also in the range,
-	//			// since that is the only way to transition from 0xxxx... to 1yyyy...
-	//			// Because the mask has no 1 bit at the top bit, then we know that when masking with those two values 01111... and 10000...
-	//			// we get the mask itself and 00000 as the result.
-	//			FullRangeMasker cache[] = maskedIsSequential ? SEQUENTIAL_FULL_RANGE_MASKERS : FULL_RANGE_MASKERS;
-	//			FullRangeMasker result = cache[highestDifferingBitMasked];
-	//			if(result == null) {
-	//				cache[highestDifferingBitMasked] = result = new FullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
-	//			}
-	//			return result;
-	//		} else if(!maskedIsSequential) {
-	//			long hostZeroed = ~hostMask;
-	//			long upperToBeMasked = upperValue & hostZeroed;
-	//			long lowerToBeMasked = value | hostMask;
-	//			// we find a value in the range that will produce the highest and lowest values when masked
-	//			for(long nextBit = (1 << (Long.SIZE - (highestDifferingBitMasked + 1) - 1)); nextBit != 0; nextBit >>>= 1) {
-	//				// check if the bit in the mask is 1
-	//				if((maskValue & nextBit) != 0) {
-	//					long candidate = upperToBeMasked | nextBit;
-	//					if(candidate <= upperValue) {
-	//						upperToBeMasked = candidate;
-	//					}
-	//					candidate = lowerToBeMasked & ~nextBit;
-	//					if(candidate >= value) {
-	//						lowerToBeMasked = candidate;
-	//					}
-	//				} //else
-	//					// keep our upperToBeMasked bit as 0
-	//					// keep our lowerToBeMasked bit as 1
-	//			}
-	//			return new SpecificValueMasker(lowerToBeMasked, upperToBeMasked);
-	//		} // else fall through to default masker
-	//	}
-	//}
-	//return DEFAULT_MASKER;
-	return defaultMasker
 }
 
 func getPrefixLength(qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
@@ -1738,64 +1437,3 @@ func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, 
 func getSegmentVersionedPrefixLength(segmentIndex int, version IPVersion, qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
 	return getQualifierSegmentPrefixLength(segmentIndex, BitsPerSegment(version), qualifier)
 }
-
-type Masker interface {
-	// GetMaskedLower provides the lowest masked value, which is not necessarily the lowest value masked
-	GetMaskedLower(value, maskValue DivInt) DivInt
-
-	// GetMaskedUpper provides the highest masked value, which is not necessarily the highest value masked
-	GetMaskedUpper(upperValue, maskValue DivInt) DivInt
-
-	// IsSequential returns whether masking all values in the range results in a sequential set of values
-	IsSequential() bool
-}
-
-type ExtendedMasker interface {
-	Masker
-
-	GetExtendedMaskedLower(extendedValue, extendedMaskValue DivInt) DivInt
-
-	GetExtendedMaskedUpper(extendedUpperValue, extendedMaskValue DivInt) DivInt
-}
-
-var (
-	defaultMasker              ExtendedMasker = extendedMaskerBase{maskerBase{true}}
-	defaultNonSequentialMasker ExtendedMasker = extendedMaskerBase{}
-)
-
-type maskerBase struct {
-	isSequentialVal bool
-}
-
-func (masker maskerBase) GetMaskedLower(value, maskValue DivInt) DivInt {
-	return value & maskValue
-}
-
-func (masker maskerBase) GetMaskedUpper(upperValue, maskValue DivInt) DivInt {
-	return upperValue & maskValue
-}
-
-func (masker maskerBase) IsSequential() bool {
-	return masker.isSequentialVal
-}
-
-var _ Masker = maskerBase{}
-
-type extendedMaskerBase struct {
-	maskerBase
-}
-
-func (masker maskerBase) GetExtendedMaskedLower(extendedValue, extendedMaskValue DivInt) DivInt {
-	return extendedValue & extendedMaskValue
-}
-
-func (masker maskerBase) GetExtendedMaskedUpper(extendedUpperValue, extendedMaskValue DivInt) DivInt {
-	return extendedUpperValue & extendedMaskValue
-}
-
-var _ ExtendedMasker = extendedMaskerBase{}
-var _ Masker = extendedMaskerBase{}
-
-//TODO the remaining maskers, which is not so hard.  All of them have a nested maskerBase.  They can also all have pointer receivers if you want.
-
-var _ Masker = maskerBase{}

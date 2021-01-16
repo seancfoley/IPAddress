@@ -144,7 +144,7 @@ func (grouping *addressDivisionGroupingInternal) IsMultiple() bool {
 	//if !isMult.isSet {
 	//	//go in reverse order, with prefixes, multiple values are more likely to show up in last segment
 	//	for i := grouping.GetDivisionCount() - 1; i >= 0; i-- {
-	//		if div := grouping.GetDivision(i); div.isMultiple() {
+	//		if div := grouping.getDivision(i); div.isMultiple() {
 	//			cache.isMultiple.value = true
 	//			isMult.value = true
 	//			break
@@ -158,7 +158,7 @@ func (grouping *addressDivisionGroupingInternal) IsMultiple() bool {
 
 func (grouping addressDivisionGroupingInternal) GetBitCount() (res BitCount) {
 	for i := 0; i < grouping.GetDivisionCount(); i++ {
-		res += grouping.GetDivision(i).GetBitCount()
+		res += grouping.getDivision(i).GetBitCount()
 	}
 	return
 }
@@ -185,7 +185,7 @@ func (grouping addressDivisionGroupingInternal) String() string {
 //		bitsSoFar, prefixBits := BitCount(0), BitCount(0)
 //		hasPrefix := false
 //		for i := 0; i < count; i++ {
-//			div := grouping.GetDivision(i)
+//			div := grouping.getDivision(i)
 //			divPrefLen := div.getDivisionPrefixLength() //TODO for MAC this needs to be changed to getMinPrefixLengthForBlock (optimize it to check for full range or single value first )
 //			if hasPrefix = divPrefLen != nil; hasPrefix {
 //				divPrefBits := *divPrefLen
@@ -212,23 +212,6 @@ func (grouping addressDivisionGroupingInternal) String() string {
 // Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
 func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 	return grouping.prefixLength
-	//cache := grouping.cache
-	//if cache == nil {
-	//	// zero-valued grouping (no divisions)
-	//	return nil
-	//}
-	////TODO maybe prefix len will always be assigned?  So no locking required?  That is what I am trying to do in Java
-	//xxx
-	//cache.RLock()
-	//prefLen := cache.cachedPrefixLen
-	//cache.RUnlock()
-	//if prefLen.isSet {
-	//	return prefLen.value
-	//}
-	//cache.Lock()
-	//result := grouping.getPrefixLengthCacheLocked()
-	//cache.Unlock()
-	//return result
 }
 
 //// prefixesAlign returns whether the prefix of each division align with each other, which is a requirement for IPv4/6
@@ -236,11 +219,11 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 //func (grouping *addressDivisionGroupingInternal) prefixesAlign() bool {
 //	count := grouping.GetDivisionCount()
 //	for i := 0; i < count; i++ {
-//		div := grouping.GetDivision(i)
+//		div := grouping.getDivision(i)
 //		divPrefLen := div.getDivisionPrefixLength() //TODO for MAC this needs to be changed to getMinPrefixLengthForBlock (optimize it to check for full range or single value first )
 //		if divPrefLen != nil {
 //			for j := i + 1; j < count; j++ {
-//				div = grouping.GetDivision(j)
+//				div = grouping.getDivision(j)
 //				divPrefLen = div.getDivisionPrefixLength()
 //				if divPrefLen == nil || *divPrefLen != 0 {
 //					return false
@@ -250,50 +233,6 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 //	}
 //	return true
 //}
-
-//xxxx think about isAligned - does it jive with the fact you can switch back and forth from ipv4 to mac?
-//xxxx only if the rule is enforced
-//xxxx and you cannot really enforce it, or can you?  yes you can
-//xxxx for ipv4/6 we enforce , for mac we never change a prefix unless it is set explicitly
-//xxxx but you CANNOT enforce the rule that an ipv4 segment returns true for isAligned and mac returns false
-//xxxx so it needs to go
-//xxxx so where does it come from in the code above?
-//xxxx it needs to be set somewhere, sort of
-//xxxx or do I just keep going to the end of the segments?  Maybe I do
-//xxxx and Maybe I add another check when converting to ip sections
-//remember that we only infer mac prefix length on creation
-//I think perhaps you allow segments to provide any old prefix length and on mac they do not always jive with the whole section
-//In fact, taht is also true with others, only when you convert to ipsection is that rule enforced
-//What about cached strings?  does not apply since we have no fancy strings with groupings, the cached strings are not used I think otherwise
-//
-//All in all, I think maybe you remove isAligned (so you check all segs), and you only check alignment when converting to IPAddressSection
-//Yeah, in fact, prefix len will be set already in most cases when constructing
-//But you cannot really use prefix len as an indicator that they are aligned
-//But you are already checking bit lengths when converting upwards, and this does not even apply to Address, or maybe it does
-//
-//What about cached strings when going mac to ipv4?
-//I am strarting to think you cannot allow mac to ipv4 or ipv4 to mac
-//It only applies to sections anyway!
-//Maybe you can apply a "hint", ie IPVersion or type or something
-//Yeah
-//This only applies to cached stuff, maybe only strings, do you really need to worry about this?
-//KISS
-//I think you are leaning towards no alignment in method above, remove alignment everywhere
-//And you check for it when converting to IPAddressSection or IPAddress, and perhaps you have a cached flag indicating it!  Yeah.
-//As for using mac for ipv4 or vice versa, it applies only to sections, and really only to strings
-//BUt there are scenarios, what if I contructed IPv4 from 4 mac segments?  Probably fine.  But I do need the prefix check.
-//What if I used it as a mac section first, so I cached a bunch of strings?
-//You may need to have a type/version flag that is set during conversion (if not already set)
-//Or you could put that flag in the string cache
-//What about lower/upper, which are sections already and have their own strings?
-//Maybe you need to prvent ipv4 to mac to ipv4
-//OH, there is also network!  that might be the clincher.  I've thought about clearing out the cache, making some of it version dependent, etc
-//Maybe you can check the network version? That is an indicator for everything else.  In fact, you could set the network if it is nil.
-//	That is a good idea.  Maybe it could even supercede the other checks?  If there is a netowrk?
-//
-//
-//
-//
 
 // CopyBytes gets the value for the lowest address in the range represented by this address division grouping.
 //
@@ -358,14 +297,14 @@ func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, uppe
 		if addrType.isIPv4() {
 			bytes, upperBytes = make([]byte, divisionCount), make([]byte, divisionCount)
 			for i := 0; i < divisionCount; i++ {
-				seg := grouping.GetDivision(i).ToAddressSegment()
+				seg := grouping.getDivision(i).ToAddressSegment()
 				bytes[i], upperBytes[i] = byte(seg.GetSegmentValue()), byte(seg.GetUpperSegmentValue())
 			}
 		} else if addrType.isIPv6() {
 			byteCount := divisionCount << 1
 			bytes, upperBytes = make([]byte, byteCount), make([]byte, byteCount)
 			for i := 0; i < divisionCount; i++ {
-				seg := grouping.GetDivision(i).ToAddressSegment()
+				seg := grouping.getDivision(i).ToAddressSegment()
 				byteIndex := i << 1
 				val, upperVal := seg.GetSegmentValue(), seg.GetUpperSegmentValue()
 				bytes[byteIndex], upperBytes[byteIndex] = byte(val>>8), byte(upperVal>>8)
@@ -375,7 +314,7 @@ func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, uppe
 		} else {
 			byteCount := grouping.GetByteCount()
 			for k, byteIndex, bitIndex := divisionCount-1, byteCount-1, BitCount(8); k >= 0; k-- {
-				div := grouping.GetDivision(k)
+				div := grouping.getDivision(k)
 				val, upperVal := div.GetDivisionValue(), div.GetUpperDivisionValue()
 				divBits := div.GetBitCount()
 				for divBits > 0 {
@@ -407,9 +346,9 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	count := grouping.GetDivisionCount()
 	if count > 1 {
 		for i := 0; i < count; i++ {
-			if grouping.GetDivision(i).isMultiple() {
+			if grouping.getDivision(i).isMultiple() {
 				for i++; i < count; i++ {
-					if !grouping.GetDivision(i).IsFullRange() {
+					if !grouping.getDivision(i).IsFullRange() {
 						return false
 					}
 				}
@@ -420,13 +359,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	return true
 }
 
-//// hasNilDivisions() returns whether this grouping is the zero grouping,
-//// which is what you get when contructing a grouping or section with no divisions
-//func (grouping *addressDivisionGroupingInternal) hasNilDivisions() bool {
-//	return grouping.divisions == nil
-//}
-
-// hasNilDivisions() returns whether this grouping is the zero grouping,
+// hasNoDivisions() returns whether this grouping is the zero grouping,
 // which is what you get when contructing a grouping or section with no divisions
 func (grouping *addressDivisionGroupingInternal) hasNoDivisions() bool {
 	return len(grouping.divisions) == 0
@@ -436,10 +369,10 @@ func (grouping *addressDivisionGroupingInternal) GetDivisionCount() int { //TODO
 	return len(grouping.divisions)
 }
 
-// TODO think about the panic a bit more, do we want an error?  do slices panic with bad indices?
+// TODO think about the panic a bit more, do we want an error?  do slices panic with bad indices?  Could return nil instead
 
-// GetDivision returns the division or panics if the index is negative or it is too large
-func (grouping *addressDivisionGroupingInternal) GetDivision(index int) *AddressDivision { //TODO make non-public so not exposed in IPv4/6/MAC
+// getDivision returns the division or panics if the index is negative or it is too large
+func (grouping *addressDivisionGroupingInternal) getDivision(index int) *AddressDivision { //TODO make non-public so not exposed in IPv4/6/MAC
 	return grouping.divisions[index]
 }
 
@@ -497,6 +430,10 @@ func (grouping *AddressDivisionGrouping) ToMACAddressSection() *MACAddressSectio
 		return nil
 	}
 	return section.ToMACAddressSection()
+}
+
+func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision {
+	return grouping.getDivision(index)
 }
 
 func getBytesCopy(bytes, cached []byte) []byte {

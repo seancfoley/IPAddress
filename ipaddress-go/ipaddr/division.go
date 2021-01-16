@@ -21,15 +21,18 @@ type divisionValuesBase interface { // shared by standard and large divisions
 type divisionValues interface {
 	divisionValuesBase
 
+	// getDivisionPrefixLength provides the prefix length
+	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
+	getDivisionPrefixLength() PrefixLen
+
 	// getDivisionValue gets the lower value for the division
 	getDivisionValue() DivInt
 
 	// getUpperDivisionValue gets the upper value for the division
 	getUpperDivisionValue() DivInt
 
-	// getDivisionPrefixLength provides the prefix length
-	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
-	getDivisionPrefixLength() PrefixLen
+	// deriveNew produces a new division with the same bit count as the old
+	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
 
 	// getSegmentValue gets the lower value truncated to a SegInt
 	getSegmentValue() SegInt
@@ -38,7 +41,7 @@ type divisionValues interface {
 	getUpperSegmentValue() SegInt
 
 	// deriveNew produces a new division with the same bit count as the old
-	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
+	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
 
 	// getCache returns a cache for this divisions which cache their values, or nil otherwise
 	getCache() *divCache
@@ -56,6 +59,10 @@ type divCache struct {
 }
 
 //TODO everything must become a Stringer, following the pattern of toString() in Java
+
+func createAddressDivision(vals divisionValues) *AddressDivision {
+	return &AddressDivision{addressDivisionInternal{divisionValues: vals}}
+}
 
 type addressDivisionInternal struct {
 	divisionValues
@@ -295,7 +302,8 @@ func (div *AddressDivision) toPrefixedDivision(divPrefixLength PrefixLen) *Addre
 	upper := div.GetUpperDivisionValue()
 
 	newVals := div.deriveNew(lower, upper, divPrefixLength)
-	return &AddressDivision{addressDivisionInternal{divisionValues: newVals}}
+	return createAddressDivision(newVals)
+
 }
 
 func (div *AddressDivision) toPrefixedNetworkDivision(divPrefixLength PrefixLen) *AddressDivision {
@@ -325,8 +333,7 @@ func (div *AddressDivision) toNetworkDivision(divPrefixLength PrefixLen, withPre
 		if !withPrefixLength {
 			divPrefixLength = nil
 		}
-		if PrefixEquals(divPrefixLength, div.getDivisionPrefixLength()) &&
-			newLower == lower && newUpper == upper {
+		if divsSame(divPrefixLength, div.getDivisionPrefixLength(), newLower, lower, newUpper, upper) {
 			return div
 		}
 	} else {
@@ -336,22 +343,11 @@ func (div *AddressDivision) toNetworkDivision(divPrefixLength PrefixLen, withPre
 			return div
 		}
 	}
-	newVals := div.deriveNew(DivInt(newLower), DivInt(newUpper), divPrefixLength)
-	return &AddressDivision{addressDivisionInternal{divisionValues: newVals}}
+	newVals := div.deriveNew(newLower, newUpper, divPrefixLength)
+	return createAddressDivision(newVals)
 }
 
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	//if _, ok := div.divisionValues.(segmentValues); ok { got rid of segmentValues since not really needed
-	//	return (*AddressSegment)(unsafe.Pointer(div))
-	//} else if div.GetBitCount() <= SegIntSize {
-	//	return &AddressSegment{
-	//		addressSegmentInternal{
-	//			addressDivisionInternal{
-	//				wrappedDivisionValues{div.divisionValues},
-	//			},
-	//		},
-	//	}
-	//}
 	if div.GetBitCount() <= SegIntSize {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
@@ -376,4 +372,9 @@ func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
 
 func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask DivInt) bool {
 	return lowerValue == (lowerValue&networkMask) && finalUpperValue == (upperValue|hostMask)
+}
+
+func divsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
+	return PrefixEquals(onePref, twoPref) &&
+		oneVal == twoVal && oneUpperVal == twoUpperVal
 }

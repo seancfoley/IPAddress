@@ -77,7 +77,7 @@ func (a *addressException) Error() string {
 }
 
 type incompatibleAddressException struct {
-	// the value
+	// the value, can be nil
 	str,
 
 	// key to look up the error message
@@ -147,17 +147,29 @@ func (a *inconsistentPrefixException) Error() string {
 	return a.key
 }
 
-//type prefixLenException struct {
-//	prefixLen BitCount
-//
-//	// key to look up the error message
-//	key string
-//}
-//
-//func (a *prefixLenException) Error() string {
-//	//TODO i18n -
-//	return a.key
-//}
+type sizeMismatchException struct {
+	str,
+
+	// key to look up the error message
+	key string
+}
+
+func (a *sizeMismatchException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+type prefixLenException struct {
+	prefixLen BitCount
+
+	// key to look up the error message
+	key string
+}
+
+func (a *prefixLenException) Error() string {
+	//TODO i18n -
+	return a.key
+}
 
 type addressStringIndexErr struct {
 	addressStringException

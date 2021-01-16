@@ -1,9 +1,37 @@
 package ipaddr
 
 import (
-	"fmt"
 	"unsafe"
 )
+
+func createIPSection(segments []*AddressDivision, addrType addrType, startIndex uint8) *IPAddressSection {
+	return &IPAddressSection{
+		ipAddressSectionInternal{
+			addressSectionInternal{
+				addressDivisionGroupingInternal{
+					divisions:           segments,
+					cache:               &valueCache{},
+					addrType:            addrType,
+					addressSegmentIndex: startIndex,
+				},
+			},
+		},
+	}
+}
+
+func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
+	res = createIPSection(segments, from.addrType, from.addressSegmentIndex)
+	res.init()
+	return
+}
+
+func deriveIPAddressSectionSingle(from *IPAddressSection, segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPAddressSection) {
+	res = deriveIPAddressSection(from, segments)
+	if prefixLength != nil && !singleOnly {
+		assignPrefixSubnet(prefixLength, segments, res)
+	}
+	return
+}
 
 //
 //
@@ -14,14 +42,16 @@ type ipAddressSectionInternal struct {
 }
 
 func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment {
-	return section.GetDivision(index).ToIPAddressSegment()
+	return section.getDivision(index).ToIPAddressSegment()
 }
 
 func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
-	if section.matchesIPv4Section() {
+	if section.addrType.isIPv4() {
 		return IPv4
+	} else if section.addrType.isIPv6() {
+		return IPv6
 	}
-	return IPv6
+	return INDETERMINATE_VERSION
 }
 
 func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
@@ -37,63 +67,26 @@ func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }
 
-// error returned for nil sements, or inconsistent prefixes
-func (section *ipAddressSectionInternal) init(bitsPerSegment BitCount) error {
-	var previousSegmentPrefix PrefixLen
-	segCount := section.GetSegmentCount()
-	isMultiple := false
-	for i := 0; i < segCount; i++ {
-		div := section.GetDivision(i)
-		if div == nil {
-			//TODO throw new NullPointerException(getMessage("ipaddress.error.null.segment"));
-			return &addressException{"ipaddress.error.null.segment"}
-		}
-		//else if section.GetDivision(i).GetBitCount() != bitsPerSegment { // unnecessary since we can control the division type
-		//	return &addressException{"ipaddress.error.mismatched.bit.size"}
-		//}
-		segment := section.GetSegment(i)
-
-		//Across an address prefixes are:
-		//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
-		//or IPv4: ...(null).(1 to 8).(0)...
-		segPrefix := segment.GetSegmentPrefixLength()
-		if !isMultiple && segment.isMultiple() {
-			isMultiple = true
-			section.isMultiple = true
-		}
-		if previousSegmentPrefix == nil {
-			if segPrefix != nil {
-				section.prefixLength = getNetworkPrefixLength(bitsPerSegment, *segPrefix, i)
-				//break
-			}
-		} else if segPrefix == nil || *segPrefix != 0 {
-			//return &inconsistentPrefixException(segments[i-1], segment, segPrefix)
-			return &inconsistentPrefixException{str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix), key: "ipaddress.error.inconsistent.prefixes"}
-		}
-		previousSegmentPrefix = segPrefix
+func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPrefix bool) (*IPAddressSection, error) {
+	if other.GetSegmentCount() < section.GetSegmentCount() {
+		return nil, &sizeMismatchException{str: "ipaddress.error.sizeMismatch"}
 	}
-	//if(previousSegmentPrefix == nil) { no need for this now since prefix length always set
-	//	cachedPrefixLength = NO_PREFIX_LENGTH;
-	//}
-	return nil
+	var prefLen PrefixLen
+	if retainPrefix {
+		prefLen = section.GetPrefixLength()
+	}
+	return getSubnetSegments(
+		section.toIPAddressSection(),
+		prefLen,
+		true,
+		section.getDivision,
+		func(i int) SegInt { return other.GetSegment(i).GetSegmentValue() },
+		false)
 }
 
-//func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8, isMultiple bool) *IPAddressSection {
-//	return &IPAddressSection{
-//		ipAddressSectionInternal{
-//			addressSectionInternal{
-//				addressDivisionGroupingInternal{
-//					divisions:           segments,
-//					prefixLength:        prefixLength,
-//					addrType:            addrType,
-//					addressSegmentIndex: startIndex,
-//					isMultiple:          isMultiple,
-//					cache:               &valueCache{},
-//				},
-//			},
-//		},
-//	}
-//}
+func (section *addressSectionInternal) toIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
+}
 
 //
 //
@@ -101,86 +94,6 @@ func (section *ipAddressSectionInternal) init(bitsPerSegment BitCount) error {
 // An IPAddress section has segments, which are divisions of equal length and size
 type IPAddressSection struct {
 	ipAddressSectionInternal
-}
-
-func (section *IPAddressSection) IsIPv4() bool {
-	return section != nil && section.matchesIPv4Section()
-}
-
-func (section *IPAddressSection) IsIPv6() bool {
-	return section != nil && section.matchesIPv6Section()
-}
-
-func (section *IPAddressSection) GetLower() *IPAddressSection {
-	return section.ToAddressSection().GetLower().ToIPAddressSection()
-}
-
-func (section *IPAddressSection) GetUpper() *IPAddressSection {
-	return section.ToAddressSection().GetUpper().ToIPAddressSection()
-}
-
-func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {
-	return section.ToAddressSection().ToPrefixBlock().ToIPAddressSection()
-}
-
-func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSection {
-	return section.ToAddressSection().toPrefixBlockLen(prefLen).ToIPAddressSection()
-	//xxx
-	//bitCount := section.GetBitCount()
-	//if prefLen < 0 {
-	//	prefLen = 0
-	//} else {
-	//	if prefLen > bitCount {
-	//		prefLen = bitCount
-	//	}
-	//}
-	//segCount := section.GetSegmentCount()
-	//if segCount == 0 {
-	//	return section
-	//}
-	//segmentByteCount := section.GetBytesPerSegment()
-	//segmentBitCount := section.GetBitsPerSegment()
-	//prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
-	//if prefixedSegmentIndex >= segCount {
-	//	if prefLen == bitCount {
-	//		last := section.GetSegment(segCount - 1)
-	//		segPrefLength := last.GetSegmentPrefixLength()
-	//		if segPrefLength != nil && *segPrefLength == segmentBitCount {
-	//			return section
-	//		}
-	//	} else { // prefLen > bitCount
-	//		return section
-	//	}
-	//} else {
-	//	segPrefLength := *getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex)
-	//	seg := section.GetSegment(prefixedSegmentIndex)
-	//	segPref := seg.GetSegmentPrefixLength()
-	//	if segPref != nil && *segPref == segPrefLength && seg.ContainsPrefixBlock(segPrefLength) {
-	//		i := prefixedSegmentIndex + 1
-	//		for ; i < segCount; i++ {
-	//			seg = section.GetSegment(i)
-	//			if !seg.IsFullRange() {
-	//				break
-	//			}
-	//		}
-	//		if i == segCount {
-	//			return section
-	//		}
-	//	}
-	//}
-	//newSegs := createSegmentArray(segCount)
-	//if prefLen > 0 {
-	//	prefixedSegmentIndex = getNetworkSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
-	//	copy(newSegs, section.divisions[:prefixedSegmentIndex])
-	//} else {
-	//	prefixedSegmentIndex = 0
-	//}
-	//for i := prefixedSegmentIndex; i < segCount; i++ {
-	//	segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, i)
-	//	oldSeg := section.divisions[i]
-	//	newSegs[i] = oldSeg.ToIPAddressSegment().ToPrefixedNetworkSegment(segPrefLength).ToAddressDivision()
-	//}
-	//return createIPSection(newSegs, &prefLen, section.addrType, section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
 }
 
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
@@ -201,11 +114,88 @@ func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	return nil
 }
 
+func (section *IPAddressSection) IsIPv4() bool {
+	return section != nil && section.matchesIPv4Section()
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (section *IPAddressSection) GetSubSection(index, endIndex int) *IPAddressSection {
+	return section.getSubSection(index, endIndex).ToIPAddressSection()
+}
+
+// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+func (section *IPAddressSection) ForEachSegment(callback func(index int, segment *IPAddressSegment) (stop bool)) {
+	section.visitSegments(
+		func(index int, div *AddressDivision) bool {
+			return callback(index, div.ToIPAddressSegment())
+		},
+		section.GetSegmentCount())
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPAddressSection) CopySubSegments(start, end int, segs []*IPAddressSegment) (count int) {
+	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPAddressSection) CopySegments(segs []*IPAddressSegment) (count int) {
+	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
+func (section *IPAddressSection) GetSegments() (res []*IPAddressSegment) {
+	res = make([]*IPAddressSegment, section.GetSegmentCount())
+	section.CopySegments(res)
+	return
+}
+
+func (section *IPAddressSection) IsIPv6() bool {
+	return section != nil && section.matchesIPv6Section()
+}
+
+func (section *IPAddressSection) GetLower() *IPAddressSection {
+	return section.getLowestOrHighestSection(true).ToIPAddressSection()
+}
+
+func (section *IPAddressSection) GetUpper() *IPAddressSection {
+	return section.getLowestOrHighestSection(false).ToIPAddressSection()
+}
+
+func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {
+	return section.toPrefixBlock().ToIPAddressSection()
+}
+
+func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSection {
+	return section.toPrefixBlockLen(prefLen).ToIPAddressSection()
+}
+
 func BitsPerSegment(version IPVersion) BitCount {
 	if version == IPv4 {
 		return IPv4BitsPerSegment
 	}
 	return IPv6BitsPerSegment
+}
+
+func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection) {
+	segLen := len(segments)
+	if segLen > 0 {
+		prefLen := *prefixLength
+		if isPrefixSubnetSegs(segments, prefLen, false) {
+			applyPrefixToSegments(
+				prefLen,
+				res.divisions,
+				res.GetBitsPerSegment(),
+				res.GetBytesPerSegment(),
+				(*AddressDivision).toPrefixedNetworkDivision)
+			if !res.isMultiple {
+				res.isMultiple = res.GetSegment(segLen - 1).isMultiple()
+			}
+		}
+	}
+	return
 }
 
 func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection, singleOnly bool, boundaryBits, maxBits BitCount) {
@@ -380,7 +370,6 @@ func toSegments(
 		missingBytes = 0
 	}
 	segments = createSegmentArray(segmentCount)
-	//boolean allPrefixedAddressesAreSubnets = network.getPrefixConfiguration().allPrefixedAddressesAreSubnets();
 	for i, segmentIndex := 0, 0; i < expectedByteCount; segmentIndex++ {
 		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		var value SegInt
@@ -414,22 +403,13 @@ func toSegments(
 }
 
 func createSegments(
-	//S segments[],
 	lowerValueProvider,
 	upperValueProvider SegmentValueProvider,
 	segmentCount int,
-	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	creator AddressSegmentCreator,
 	prefixLength PrefixLen) (segments []*AddressDivision, isMultiple bool) {
-	//int bytesPerSegment,
-	//int bitsPerSegment,
-	////AddressNetwork<S> network,
-	//Integer prefixLength) {
-	//AddressSegmentCreator<S> creator = network.getAddressCreator();
-	//int segmentCount = segments.length;
 	segments = createSegmentArray(segmentCount)
-	//isMultiple := false
 	for segmentIndex := 0; segmentIndex < segmentCount; segmentIndex++ {
 		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		var value, value2 SegInt = 0, 0
@@ -451,5 +431,83 @@ func createSegments(
 		seg := creator.createSegment(value, value2, segmentPrefixLength)
 		segments[segmentIndex] = seg
 	}
+	return
+}
+
+func getSubnetSegments(
+	original *IPAddressSection,
+	networkPrefixLength PrefixLen,
+	verifyMask bool,
+	segProducer func(int) *AddressDivision,
+	segmentMaskProducer func(int) SegInt,
+	singleOnly bool) (res *IPAddressSection, err error) {
+
+	if networkPrefixLength != nil {
+		prefLen := *networkPrefixLength
+		if prefLen < 0 || prefLen > original.GetBitCount() {
+			err = &prefixLenException{key: "ipaddress.error.prefixSize", prefixLen: prefLen}
+		}
+	}
+	bitsPerSegment := original.GetBitsPerSegment()
+	count := original.GetSegmentCount()
+	for i := 0; i < count; i++ {
+		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
+		seg := segProducer(i)
+		//note that the mask can represent a range (for example a CIDR mask),
+		//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
+		maskValue := segmentMaskProducer(i)
+		origValue, origUpperValue := seg.getSegmentValue(), seg.getUpperSegmentValue()
+		value, upperValue := origValue, origUpperValue
+		if verifyMask {
+			mask64 := uint64(maskValue)
+			val64 := uint64(value)
+			upperVal64 := uint64(upperValue)
+			masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
+			if !masker.IsSequential() {
+				err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+				return
+			}
+			value = SegInt(masker.GetMaskedLower(val64, mask64))
+			upperValue = SegInt(masker.GetMaskedUpper(upperVal64, mask64))
+		} else {
+			value &= maskValue
+			upperValue &= maskValue
+		}
+		if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
+			newSegments := createSegmentArray(count)
+			original.copySubSegmentsToSlice(0, i, newSegments)
+			newSegments[i] = createAddressDivision(seg.deriveNewSeg(value, upperValue, segmentPrefixLength))
+			for i++; i < count; i++ {
+				segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
+				seg = segProducer(i)
+				maskValue = segmentMaskProducer(i)
+				origValue, origUpperValue = seg.getSegmentValue(), seg.getUpperSegmentValue()
+				value, upperValue = origValue, origUpperValue
+				if verifyMask {
+					mask64 := uint64(maskValue)
+					val64 := uint64(value)
+					upperVal64 := uint64(upperValue)
+					masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
+					if !masker.IsSequential() {
+						err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+						return
+					}
+					value = SegInt(masker.GetMaskedLower(val64, mask64))
+					upperValue = SegInt(masker.GetMaskedUpper(upperVal64, mask64))
+				} else {
+					value &= maskValue
+					upperValue &= maskValue
+				}
+				if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
+					newSegments[i] = createAddressDivision(seg.deriveNewSeg(value, upperValue, segmentPrefixLength))
+				} else {
+					newSegments[i] = seg
+				}
+			}
+			res = deriveIPAddressSectionSingle(original, newSegments, networkPrefixLength, singleOnly)
+			return
+		}
+	}
+	res = original
 	return
 }

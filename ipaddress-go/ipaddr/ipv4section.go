@@ -33,8 +33,8 @@ func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, 
 	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
 	//}
 	res = createIPv4Section(segments)
-	err = res.init(IPv4BitsPerSegment)
-	if err != nil {
+	if err = res.init(); err != nil {
+		res = nil
 		return
 	}
 	prefLen := res.prefixLength
@@ -72,7 +72,6 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		segmentCount = len(bytes)
 	}
 	segments, err := toSegments(
-		//S segments[],
 		bytes,
 		segmentCount,
 		IPv4BytesPerSegment,
@@ -112,20 +111,16 @@ func NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 		segmentCount = 0
 	}
 	segments, isMultiple := createSegments(
-		//S segments[],
 		vals, upperVals,
 		segmentCount,
-		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
 		DefaultIPv4Network.GetIPv4AddressCreator(),
 		prefixLength)
-	//if err == nil {
 	res = createIPv4Section(segments)
 	res.isMultiple = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv4BitCount)
 	}
-	//}
 	return
 }
 
@@ -136,23 +131,69 @@ type IPv4AddressSection struct {
 }
 
 func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
-	return section.GetDivision(index).ToIPv4AddressSegment()
+	return section.getDivision(index).ToIPv4AddressSegment()
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (section *IPv4AddressSection) GetSubSection(index, endIndex int) *IPv4AddressSection {
+	return section.getSubSection(index, endIndex).ToIPv4AddressSection()
+}
+
+// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+func (section *IPv4AddressSection) ForEachSegment(callback func(index int, segment *IPv4AddressSegment) (stop bool)) {
+	section.visitSegments(
+		func(index int, div *AddressDivision) bool {
+			return callback(index, div.ToIPv4AddressSegment())
+		},
+		section.GetSegmentCount())
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPv4AddressSection) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {
+	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPv4AddressSection) CopySegments(segs []*IPv4AddressSegment) (count int) {
+	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
+func (section *IPv4AddressSection) GetSegments() (res []*IPv4AddressSegment) {
+	res = make([]*IPv4AddressSegment, section.GetSegmentCount())
+	section.CopySegments(res)
+	return
+}
+
+func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4AddressSection, err error) {
+	return section.MaskPrefixed(other, false)
+}
+
+func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err error) {
+	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv4AddressSection()
+	}
+	return
 }
 
 func (section *IPv4AddressSection) GetLower() *IPv4AddressSection {
-	return section.ToAddressSection().GetLower().ToIPv4AddressSection()
+	return section.getLowestOrHighestSection(true).ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) GetUpper() *IPv4AddressSection {
-	return section.ToAddressSection().GetUpper().ToIPv4AddressSection()
+	return section.getLowestOrHighestSection(false).ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) ToPrefixBlock() *IPv4AddressSection {
-	return section.ToIPAddressSection().ToPrefixBlock().ToIPv4AddressSection()
+	return section.toPrefixBlock().ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv4AddressSection {
-	return section.ToIPAddressSection().ToPrefixBlockLen(prefLen).ToIPv4AddressSection()
+	return section.toPrefixBlockLen(prefLen).ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {

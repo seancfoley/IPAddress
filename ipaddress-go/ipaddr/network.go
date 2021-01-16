@@ -42,6 +42,8 @@ type IPAddressCreator interface {
 	ParsedIPAddressCreator
 
 	createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress
+
+	//createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool)
 	//TODO
 }
 
@@ -150,13 +152,13 @@ func (creator *IPv6AddressCreator) createIPv6RangePrefixSegment(lower, upper IPv
 	return NewIPv6RangePrefixSegment(lower, upper, segmentPrefixLength).ToAddressDivision()
 }
 
-func (creator *IPv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, false)
-	return sec.ToIPAddressSection()
-}
+//func (creator *IPv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
+//	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, false)
+//	return sec.ToIPAddressSection()
+//}
 
-func (creator *IPv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, true)
+func (creator *IPv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) *IPAddressSection {
+	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, singleOnly)
 	return sec.ToIPAddressSection()
 }
 

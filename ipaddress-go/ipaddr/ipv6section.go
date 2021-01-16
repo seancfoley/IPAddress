@@ -33,8 +33,8 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
 	//}
 	res = createIPv6Section(segments, startIndex)
-	err = res.init(IPv6BitsPerSegment)
-	if err != nil {
+	if err = res.init(); err != nil {
+		res = nil
 		return
 	}
 	prefLen := res.prefixLength
@@ -72,7 +72,6 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		segmentCount = len(bytes)
 	}
 	segments, err := toSegments(
-		//S segments[],
 		bytes,
 		segmentCount,
 		IPv6BytesPerSegment,
@@ -88,15 +87,6 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		res.cache.lowerBytes = bytes
 		res.cache.upperBytes = bytes
 	}
-	//if err == nil {
-	//	xxx fix this like in ipv4 xxx
-	//	res, err = newIPv6AddressSectionSingle(segments, 0, prefixLength, singleOnly)
-	//	if err == nil {
-	//		bytes = append(make([]byte, 0, len(bytes)), bytes...) // copy
-	//		res.cache.lowerBytes = bytes
-	//		res.cache.upperBytes = bytes
-	//	}
-	//}
 	return
 }
 
@@ -119,20 +109,16 @@ func NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 		segmentCount = 0
 	}
 	segments, isMultiple := createSegments(
-		//S segments[],
 		vals, upperVals,
 		segmentCount,
-		IPv4BytesPerSegment,
-		IPv4BitsPerSegment,
-		DefaultIPv4Network.GetIPv4AddressCreator(),
+		IPv6BitsPerSegment,
+		DefaultIPv6Network.GetIPv6AddressCreator(),
 		prefixLength)
-	//if err == nil {
 	res = createIPv6Section(segments, 0)
 	res.isMultiple = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv4BitCount)
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv6BitCount)
 	}
-	//}
 	return
 }
 
@@ -143,23 +129,69 @@ type IPv6AddressSection struct {
 }
 
 func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
-	return section.GetDivision(index).ToIPv6AddressSegment()
+	return section.getDivision(index).ToIPv6AddressSegment()
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (section *IPv6AddressSection) GetSubSection(index, endIndex int) *IPv6AddressSection {
+	return section.getSubSection(index, endIndex).ToIPv6AddressSection()
+}
+
+// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
+	section.visitSegments(
+		func(index int, div *AddressDivision) bool {
+			return callback(index, div.ToIPv6AddressSegment())
+		},
+		section.GetSegmentCount())
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPv6AddressSection) CopySubSegments(start, end int, segs []*IPv6AddressSegment) (count int) {
+	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6AddressSegment(); return false }, len(segs))
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (section *IPv6AddressSection) CopySegments(segs []*IPv6AddressSegment) (count int) {
+	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6AddressSegment(); return false }, len(segs))
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
+func (section *IPv6AddressSection) GetSegments() (res []*IPv6AddressSegment) {
+	res = make([]*IPv6AddressSegment, section.GetSegmentCount())
+	section.CopySegments(res)
+	return
+}
+
+func (section *IPv6AddressSection) Mask(other *IPv6AddressSection) (res *IPv6AddressSection, err error) {
+	return section.MaskPrefixed(other, false)
+}
+
+func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err error) {
+	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv6AddressSection()
+	}
+	return
 }
 
 func (section *IPv6AddressSection) GetLower() *IPv6AddressSection {
-	return section.ToAddressSection().GetLower().ToIPv6AddressSection()
+	return section.getLowestOrHighestSection(true).ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) GetUpper() *IPv6AddressSection {
-	return section.ToAddressSection().GetUpper().ToIPv6AddressSection()
+	return section.getLowestOrHighestSection(false).ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) ToPrefixBlock() *IPv6AddressSection {
-	return section.ToIPAddressSection().ToPrefixBlock().ToIPv6AddressSection()
+	return section.toPrefixBlock().ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv6AddressSection {
-	return section.ToIPAddressSection().ToPrefixBlockLen(prefLen).ToIPv6AddressSection()
+	return section.toPrefixBlockLen(prefLen).ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {

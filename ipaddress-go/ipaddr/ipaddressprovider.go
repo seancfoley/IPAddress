@@ -858,8 +858,8 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil {
 		// we must apply the mask
 		all := createAllAddress(all.adjustedVersion, NO_QUALIFIER, nil, all.parameters)
-		upper := all.GetUpper().Mask(mask)
-		lower := all.GetLower()
+		upper, _ := all.GetUpper().Mask(mask)
+		lower := all.GetLower() //TODO apply the mask? maybe I have this wrong in Java too
 		return lower.SpanWithRange(upper)
 	}
 	return all.CachedAddressProvider.getProviderSeqRange()
@@ -916,3 +916,8 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
 // - things to target: contains() and masking, merge, span, iterators, increment
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
+
+//xxx add masking to ip address classes / sections
+// Check your new GetSection and Get/CopySegments and similar methods, plus mask methods, also added to address classwes
+//IPv4/6Section
+//IPv4/6Address, IPAddress

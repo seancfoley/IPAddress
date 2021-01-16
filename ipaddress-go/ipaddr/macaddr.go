@@ -60,10 +60,9 @@ type MACAddress struct {
 }
 
 func (addr *MACAddress) ToAddress() *Address {
-	if addr == nil {
-		return nil
+	if addr != nil {
+		addr = addr.init()
 	}
-	addr = addr.init()
 	return (*Address)(unsafe.Pointer(addr))
 }
 
@@ -72,13 +71,11 @@ func (addr *MACAddress) init() *MACAddress {
 		return zeroMAC
 	}
 	return addr
-
 }
 
-//func (addr *MACAddress) IsSequential() bool {
-//	addr = addr.init()
-//	return addr.addressInternal.IsSequential()
-//}
+func (addr *MACAddress) GetSection() *MACAddressSection {
+	return addr.init().section.ToMACAddressSection()
+}
 
 func (addr *MACAddress) GetSegment(index int) *MACAddressSegment {
 	addr = addr.init()

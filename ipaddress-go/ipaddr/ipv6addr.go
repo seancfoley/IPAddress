@@ -140,12 +140,16 @@ func (addr IPv6Address) String() string {
 }
 
 func (addr *IPv6Address) ToAddress() *Address {
-	addr = addr.init()
+	if addr != nil {
+		addr = addr.init()
+	}
 	return (*Address)(unsafe.Pointer(addr))
 }
 
 func (addr *IPv6Address) ToIPAddress() *IPAddress {
-	addr = addr.init()
+	if addr != nil {
+		addr = addr.init()
+	}
 	return (*IPAddress)(unsafe.Pointer(addr))
 }
 
@@ -156,10 +160,9 @@ func (addr *IPv6Address) init() *IPv6Address {
 	return addr
 }
 
-//func (addr *IPv6Address) IsSequential() bool {
-//	addr = addr.init()
-//	return addr.isSequential()
-//}
+func (addr *IPv6Address) GetSection() *IPv6AddressSection {
+	return addr.init().section.ToIPv6AddressSection()
+}
 
 func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
 	addr = addr.init()
@@ -170,10 +173,21 @@ func (addr *IPv6Address) GetIPVersion() IPVersion {
 	return IPv6
 }
 
-func (addr *IPv6Address) Mask(other *IPv6Address) *IPv6Address {
+func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address {
+	sec := section.ToAddressSection()
+	if sec == addr.section {
+		return addr
+	}
+	return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
+}
+
+func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err error) {
 	addr = addr.init()
-	//TODO mask (handle nil gracefully, return nil)
-	return nil
+	sect, err := addr.GetSection().Mask(other.GetSection())
+	if err == nil {
+		masked = addr.checkIdentity(sect)
+	}
+	return
 }
 
 func (addr *IPv6Address) SpanWithRange(other *IPv6Address) *IPv6AddressSeqRange {
@@ -206,14 +220,14 @@ func (addr *IPv6Address) GetBytes() net.IP {
 	return addr.section.GetBytes()
 }
 
-func (addr *IPv6Address) CopyBytes(bytes net.IP) net.IP {
-	addr = addr.init()
-	return addr.section.CopyBytes(bytes)
-}
-
 func (addr *IPv6Address) GetUpperBytes() net.IP {
 	addr = addr.init()
 	return addr.section.GetUpperBytes()
+}
+
+func (addr *IPv6Address) CopyBytes(bytes net.IP) net.IP {
+	addr = addr.init()
+	return addr.section.CopyBytes(bytes)
 }
 
 func (addr *IPv6Address) CopyUpperBytes(bytes net.IP) net.IP {

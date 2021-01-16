@@ -95,10 +95,6 @@ func (addr *ipAddressInternal) getIPVersion() IPVersion {
 	return INDETERMINATE_VERSION
 }
 
-//func (addr *ipAddressInternal) getSection() *IPAddressSection {
-//	return addr.section.ToIPAddressSection()
-//}
-
 func (addr *ipAddressInternal) GetNetworkPrefixLength() PrefixLen {
 	section := addr.section
 	if section == nil {
@@ -156,6 +152,10 @@ func (addr IPAddress) String() string {
 	//	//TODO a different default string if we know we are IPv4 or IPv6.  But we must do full check, same as when calling ToIPvxAddress() or ToIPvxAddressSection(), so that the result of this is consistent.
 	//}
 	return addr.init().ipAddressInternal.String()
+}
+
+func (addr *IPAddress) GetSection() *IPAddressSection {
+	return addr.init().section.ToIPAddressSection()
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {
@@ -248,17 +248,27 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
 	return nil
 }
 
-func (addr *IPAddress) Mask(other *IPAddress) *IPAddress {
+// Mask applies the given mask to all addresses represented by this IPAddress.
+// The mask is applied to all individual addresses.
+// Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
+//
+// If the mask is a different version than this, then an error is returned
+//
+// If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
+// that cannot be represented as a contiguous range within each segment, then an error is returned
+func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, error) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
-			return thisAddr.Mask(oth).ToIPAddress()
+			result, err := thisAddr.Mask(oth)
+			return result.ToIPAddress(), err
 		}
 	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
 		if oth := other.ToIPv6Address(); oth != nil {
-			return thisAddr.Mask(oth).ToIPAddress()
+			result, err := thisAddr.Mask(oth)
+			return result.ToIPAddress(), err
 		}
 	}
-	return nil
+	return nil, &incompatibleAddressException{str: "ipaddress.error.ipMismatch"}
 }
 
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {

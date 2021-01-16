@@ -56,6 +56,14 @@ const SegIntSize = 32
 //	return SegInt(segvals.getUpperDivisionValue())
 //}
 
+func createAddressSegment(vals divisionValues) *AddressSegment {
+	return &AddressSegment{
+		addressSegmentInternal{
+			addressDivisionInternal{divisionValues: vals},
+		},
+	}
+}
+
 type addressSegmentInternal struct {
 	addressDivisionInternal
 }
@@ -183,11 +191,7 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	if vals != nil {
 		newVals = seg.deriveNew(seg.getDivisionValue(), seg.getDivisionValue(), seg.getDivisionPrefixLength())
 	}
-	return &AddressSegment{
-		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: newVals},
-		},
-	}
+	return createAddressSegment(newVals)
 }
 
 func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
@@ -200,11 +204,7 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	if vals != nil {
 		newVals = seg.deriveNew(seg.getUpperDivisionValue(), seg.getUpperDivisionValue(), seg.getDivisionPrefixLength())
 	}
-	return &AddressSegment{
-		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: newVals},
-		},
-	}
+	return createAddressSegment(newVals)
 }
 
 type AddressSegment struct {
@@ -308,24 +308,12 @@ func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
 }
 
 func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
-	vals := seg.divisionValues
-	if vals == nil {
-		return nil
-	}
-	return vals.getDivisionPrefixLength()
+	return seg.getDivisionPrefixLength()
 }
 
 type IPAddressSegment struct {
 	ipAddressSegmentInternal
 }
-
-//func (seg *IPAddressSegment) ToAddressDivision() *AddressDivision {
-//	return (*AddressDivision)(unsafe.Pointer(seg))
-//}
-
-//func (seg *IPAddressSegment) ToIPAddressSegment() *IPAddressSegment {
-//	return seg
-//}
 
 func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
 	return seg.containsPrefixBlock(divisionPrefixLen)
@@ -370,6 +358,11 @@ func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 		return nil
 	}
 	return (*IPv6AddressSegment)(unsafe.Pointer(seg))
+}
+
+func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
+	return PrefixEquals(onePref, twoPref) &&
+		oneVal == twoVal && oneUpperVal == twoUpperVal
 }
 
 // moved to AddressDivision
