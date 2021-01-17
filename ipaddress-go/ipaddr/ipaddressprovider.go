@@ -914,7 +914,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: contains() and masking, merge, span, iterators, increment
+// - things to target: contains(), iterators, increment, merge, span,
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 
 //xxx add masking to ip address classes / sections

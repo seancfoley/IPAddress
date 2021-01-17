@@ -48,7 +48,7 @@ func NewMACAddress(section *MACAddressSection) *MACAddress {
 var zeroMAC *MACAddress
 
 func init() {
-	// TODO reinstate
+	// TODO reinstate when all these methods are in place
 	//div := NewMACSegment(0).ToAddressDivision()
 	//segs := []*AddressDivision{div, div, div, div, div, div, div, div}
 	//section, _ := newMACAddressSection(segs, false)
@@ -77,7 +77,39 @@ func (addr *MACAddress) GetSection() *MACAddressSection {
 	return addr.init().section.ToMACAddressSection()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (addr *MACAddress) GetTrailingSection(index int) *MACAddressSection {
+	return addr.GetSection().GetTrailingSection(index)
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (addr *MACAddress) GetSubSection(index, endIndex int) *MACAddressSection {
+	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *MACAddress) CopySubSegments(start, end int, segs []*MACAddressSegment) (count int) {
+	return addr.GetSection().CopySubSegments(start, end, segs)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *MACAddress) CopySegments(segs []*MACAddressSegment) (count int) {
+	return addr.GetSection().CopySegments(segs)
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this address.
+func (addr *MACAddress) GetSegments() []*MACAddressSegment {
+	return addr.GetSection().GetSegments()
+}
+
 func (addr *MACAddress) GetSegment(index int) *MACAddressSegment {
-	addr = addr.init()
-	return addr.getSegment(index).ToMACAddressSegment()
+	return addr.init().getSegment(index).ToMACAddressSegment()
+}
+
+func (addr *MACAddress) ToPrefixBlock() *MACAddress {
+	return addr.init().toPrefixBlock().ToMACAddress()
 }

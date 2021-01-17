@@ -96,7 +96,6 @@ func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, h
 	checkingNetworkFront, checkingHostFront := true, true
 	var checkingNetworkBack, checkingHostBack bool
 	var prefixedSeg int
-	//networkPrefixedSeg, hostPrefixedSeg := count, count
 	prefixedSegPrefixLen := BitCount(0)
 	maxVal := firstSeg.GetMaxSegmentValue()
 	for i := 0; i < count; i++ {
@@ -211,8 +210,18 @@ func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 	return nil
 }
 
-func (section *IPAddressSection) IsIPv4() bool {
+func (section *IPAddressSection) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddressSection()
 	return section != nil && section.matchesIPv4Section()
+}
+
+func (section *IPAddressSection) IsIPv6() bool {
+	return section != nil && section.matchesIPv6Section()
+}
+
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (section *IPAddressSection) GetTrailingSection(index int) *IPAddressSection {
+	return section.GetSubSection(index, section.GetSegmentCount())
 }
 
 // GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex
@@ -247,10 +256,6 @@ func (section *IPAddressSection) GetSegments() (res []*IPAddressSegment) {
 	res = make([]*IPAddressSegment, section.GetSegmentCount())
 	section.CopySegments(res)
 	return
-}
-
-func (section *IPAddressSection) IsIPv6() bool {
-	return section != nil && section.matchesIPv6Section()
 }
 
 func (section *IPAddressSection) GetLower() *IPAddressSection {

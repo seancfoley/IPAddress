@@ -79,13 +79,13 @@ func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err Address
 }
 
 func NewIPv6AddressFromValues(vals SegmentValueProvider) (addr *IPv6Address) {
-	section := NewIPv6AddressSectionFromValues(vals, IPv4SegmentCount)
+	section := NewIPv6AddressSectionFromValues(vals, IPv6SegmentCount)
 	addr = NewIPv6Address(section)
 	return
 }
 
 func NewIPv6AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
-	section := NewIPv6AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	section := NewIPv6AddressSectionFromPrefixedValues(vals, IPv6SegmentCount, prefixLength)
 	addr = NewIPv6Address(section)
 	return
 }
@@ -97,12 +97,12 @@ func NewIPv6AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv6Ad
 }
 
 func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
-	section := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	section := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv6SegmentCount, prefixLength)
 	addr = NewIPv6Address(section)
 	return
 }
 
-func NewIPv4AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
+func NewIPv6AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
 	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
 	addr = NewIPv6AddressZoned(section, zone)
 	return
@@ -164,9 +164,37 @@ func (addr *IPv6Address) GetSection() *IPv6AddressSection {
 	return addr.init().section.ToIPv6AddressSection()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (addr *IPv6Address) GetTrailingSection(index int) *IPv6AddressSection {
+	return addr.GetSection().GetTrailingSection(index)
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (addr *IPv6Address) GetSubSection(index, endIndex int) *IPv6AddressSection {
+	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPv6Address) CopySubSegments(start, end int, segs []*IPv6AddressSegment) (count int) {
+	return addr.GetSection().CopySubSegments(start, end, segs)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPv6Address) CopySegments(segs []*IPv6AddressSegment) (count int) {
+	return addr.GetSection().CopySegments(segs)
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this address.
+func (addr *IPv6Address) GetSegments() []*IPv6AddressSegment {
+	return addr.GetSection().GetSegments()
+}
+
 func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
-	addr = addr.init()
-	return addr.getSegment(index).ToIPv6AddressSegment()
+	return addr.init().getSegment(index).ToIPv6AddressSegment()
 }
 
 func (addr *IPv6Address) GetIPVersion() IPVersion {
@@ -191,48 +219,39 @@ func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err erro
 }
 
 func (addr *IPv6Address) SpanWithRange(other *IPv6Address) *IPv6AddressSeqRange {
-	addr = addr.init()
-	return NewIPv6SeqRange(addr, other)
+	return NewIPv6SeqRange(addr.init(), other.init())
 }
 
 func (addr *IPv6Address) GetLower() *IPv6Address {
-	addr = addr.init()
-	return addr.getLower().ToIPv6Address()
+	return addr.init().getLower().ToIPv6Address()
 }
 
 func (addr *IPv6Address) GetUpper() *IPv6Address {
-	addr = addr.init()
-	return addr.getUpper().ToIPv6Address()
+	return addr.init().getUpper().ToIPv6Address()
 }
 
 func (addr *IPv6Address) ToPrefixBlock() *IPv6Address {
-	addr = addr.init()
-	return addr.ToIPAddress().ToPrefixBlock().ToIPv6Address()
+	return addr.init().toPrefixBlock().ToIPv6Address()
 }
 
 func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
-	addr = addr.init()
-	return addr.ToIPAddress().ToPrefixBlockLen(prefLen).ToIPv6Address()
+	return addr.init().toPrefixBlockLen(prefLen).ToIPv6Address()
 }
 
 func (addr *IPv6Address) GetBytes() net.IP {
-	addr = addr.init()
-	return addr.section.GetBytes()
+	return addr.init().section.GetBytes()
 }
 
 func (addr *IPv6Address) GetUpperBytes() net.IP {
-	addr = addr.init()
-	return addr.section.GetUpperBytes()
+	return addr.init().section.GetUpperBytes()
 }
 
 func (addr *IPv6Address) CopyBytes(bytes net.IP) net.IP {
-	addr = addr.init()
-	return addr.section.CopyBytes(bytes)
+	return addr.init().section.CopyBytes(bytes)
 }
 
 func (addr *IPv6Address) CopyUpperBytes(bytes net.IP) net.IP {
-	addr = addr.init()
-	return addr.section.CopyUpperBytes(bytes)
+	return addr.init().section.CopyUpperBytes(bytes)
 }
 
 func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {

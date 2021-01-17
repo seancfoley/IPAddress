@@ -158,28 +158,49 @@ func (addr *IPAddress) GetSection() *IPAddressSection {
 	return addr.init().section.ToIPAddressSection()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (addr *IPAddress) GetTrailingSection(index int) *IPAddressSection {
+	return addr.GetSection().GetTrailingSection(index)
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (addr *IPAddress) GetSubSection(index, endIndex int) *IPAddressSection {
+	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPAddress) CopySubSegments(start, end int, segs []*IPAddressSegment) (count int) {
+	return addr.GetSection().CopySubSegments(start, end, segs)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPAddress) CopySegments(segs []*IPAddressSegment) (count int) {
+	return addr.GetSection().CopySegments(segs)
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
+func (addr *IPAddress) GetSegments() []*IPAddressSegment {
+	return addr.GetSection().GetSegments()
+}
+
 func (addr *IPAddress) GetLower() *IPAddress {
-	addr = addr.init()
-	return addr.getLower().ToIPAddress()
+	return addr.init().getLower().ToIPAddress()
 }
 
 func (addr *IPAddress) GetUpper() *IPAddress {
-	addr = addr.init()
-	return addr.getUpper().ToIPAddress()
+	return addr.init().getUpper().ToIPAddress()
 }
 
 func (addr *IPAddress) ToPrefixBlock() *IPAddress {
-	addr = addr.init()
-	prefixLength := addr.GetNetworkPrefixLength()
-	if prefixLength == nil {
-		return addr
-	}
-	return addr.ToPrefixBlockLen(*prefixLength)
+	return addr.init().toPrefixBlock().ToIPAddress()
 }
 
 func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
-	addr = addr.init()
-	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen)).ToIPAddress()
+	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
 }
 
 func (addr *IPAddress) IsIPv4() bool {
@@ -197,8 +218,7 @@ func (addr *IPAddress) IsIPv6() bool {
 }
 
 func (addr *IPAddress) GetIPVersion() IPVersion {
-	addr = addr.init()
-	return addr.getIPVersion()
+	return addr.init().getIPVersion()
 }
 
 // this makes no sense in the golang world, since it cannot be customized since not virtual

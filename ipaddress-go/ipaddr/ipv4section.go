@@ -134,6 +134,12 @@ func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
 	return section.getDivision(index).ToIPv4AddressSegment()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (section *IPv4AddressSection) GetTrailingSection(index int) *IPv4AddressSection {
+	return section.GetSubSection(index, section.GetSegmentCount())
+}
+
 //// Gets the subsection from the series starting from the given index and ending just before the give endIndex
 //// The first segment is at index 0.
 func (section *IPv4AddressSection) GetSubSection(index, endIndex int) *IPv4AddressSection {

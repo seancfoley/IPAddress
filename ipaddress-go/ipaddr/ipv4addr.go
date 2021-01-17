@@ -128,9 +128,37 @@ func (addr *IPv4Address) GetSection() *IPv4AddressSection {
 	return addr.init().section.ToIPv4AddressSection()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (addr *IPv4Address) GetTrailingSection(index int) *IPv4AddressSection {
+	return addr.GetSection().GetTrailingSection(index)
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (addr *IPv4Address) GetSubSection(index, endIndex int) *IPv4AddressSection {
+	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPv4Address) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {
+	return addr.GetSection().CopySubSegments(start, end, segs)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *IPv4Address) CopySegments(segs []*IPv4AddressSegment) (count int) {
+	return addr.GetSection().CopySegments(segs)
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this address.
+func (addr *IPv4Address) GetSegments() []*IPv4AddressSegment {
+	return addr.GetSection().GetSegments()
+}
+
 func (addr *IPv4Address) GetSegment(index int) *IPv4AddressSegment {
-	addr = addr.init()
-	return addr.getSegment(index).ToIPv4AddressSegment()
+	return addr.init().getSegment(index).ToIPv4AddressSegment()
 }
 
 func (addr *IPv4Address) GetIPVersion() IPVersion {
@@ -155,49 +183,39 @@ func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err erro
 }
 
 func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange {
-	addr = addr.init()
-	other = other.init()
-	return NewIPv4SeqRange(addr, other)
+	return NewIPv4SeqRange(addr.init(), other.init())
 }
 
 func (addr *IPv4Address) GetLower() *IPv4Address {
-	addr = addr.init()
-	return addr.getLower().ToIPv4Address()
+	return addr.init().getLower().ToIPv4Address()
 }
 
 func (addr *IPv4Address) GetUpper() *IPv4Address {
-	addr = addr.init()
-	return addr.getUpper().ToIPv4Address()
+	return addr.init().getUpper().ToIPv4Address()
 }
 
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
-	addr = addr.init()
-	return addr.ToIPAddress().ToPrefixBlock().ToIPv4Address()
+	return addr.init().toPrefixBlock().ToIPv4Address()
 }
 
 func (addr *IPv4Address) ToPrefixBlockLen(prefLen BitCount) *IPv4Address {
-	addr = addr.init()
-	return addr.ToIPAddress().ToPrefixBlockLen(prefLen).ToIPv4Address()
+	return addr.init().toPrefixBlockLen(prefLen).ToIPv4Address()
 }
 
 func (addr *IPv4Address) GetBytes() net.IP {
-	addr = addr.init()
-	return addr.section.GetBytes()
+	return addr.init().section.GetBytes()
 }
 
 func (addr *IPv4Address) GetUpperBytes() net.IP {
-	addr = addr.init()
-	return addr.section.GetUpperBytes()
+	return addr.init().section.GetUpperBytes()
 }
 
 func (addr *IPv4Address) CopyBytes(bytes net.IP) net.IP {
-	addr = addr.init()
-	return addr.section.CopyBytes(bytes)
+	return addr.init().section.CopyBytes(bytes)
 }
 
 func (addr *IPv4Address) CopyUpperBytes(bytes net.IP) net.IP {
-	addr = addr.init()
-	return addr.section.CopyUpperBytes(bytes)
+	return addr.init().section.CopyUpperBytes(bytes)
 }
 
 func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {

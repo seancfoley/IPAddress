@@ -1,5 +1,7 @@
 package ipaddr
 
+import "math/bits"
+
 // getNetworkSegmentIndex returns the index of the segment containing the last byte within the network prefix
 // When networkPrefixLength is zero (so there are no segments containing bytes within the network prefix), returns -1
 func getNetworkSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount) int {
@@ -68,25 +70,31 @@ func getDivisionPrefixLength(divisionBits, divisionPrefixedBits BitCount) Prefix
 	return nil //all the bits in this segment matter
 }
 
-/**
- * Translates a non-null segment prefix length into an address prefix length.
- * When calling this for the first segment with a non-null prefix length, this gives the overall prefix length.
- * <p>
- * Across an address prefixes are:
- * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
- * or IPv4: ...(null).(1 to 8).(0)...
- */
+// Translates a non-null segment prefix length into an address prefix length.
+// When calling this for the first segment with a non-null prefix length, this gives the overall prefix length.
+//
+// Across an address prefixes are:
+// IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+// or IPv4: ...(null).(1 to 8).(0)...
 func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmentIndex int) PrefixLen {
-	var increment int
+	var increment BitCount
 	if bitsPerSegment == 8 {
-		increment = segmentIndex << 3
+		increment = BitCount(segmentIndex) << 3
 	} else if bitsPerSegment == 16 {
-		increment = segmentIndex << 4
+		increment = BitCount(segmentIndex) << 4
 	} else {
-		increment = segmentIndex * int(bitsPerSegment)
+		increment = BitCount(segmentIndex) * bitsPerSegment
 	}
+	return cache(increment + segmentPrefixLength)
+}
 
-	return cache(BitCount(increment) + segmentPrefixLength)
+func getSegmentBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
+	if bitsPerSegment == 8 {
+		return BitCount(segmentCount) << 3
+	} else if bitsPerSegment == 16 {
+		return BitCount(segmentCount) << 4
+	}
+	return BitCount(segmentCount) * bitsPerSegment
 }
 
 var cachedPrefixLens []PrefixLen
@@ -113,6 +121,8 @@ func cache(i BitCount) PrefixLen {
 	return &bc
 }
 
+// TODO This extended prefix subnet
+//
 //public static boolean isPrefixSubnet(
 //		DivisionValueProvider lowerValueProvider,
 //		DivisionValueProvider lowerExtendedValueProvider,
@@ -350,7 +360,7 @@ func isPrefixSubnet(
 						return false
 					}
 				} else {
-					upperOnes := numberOfTrailingZeros32(^upper)
+					upperOnes := bits.TrailingZeros32(^upper)
 					if upperOnes > 0 {
 						if (upper >> upperOnes) != 0 {
 							return false
@@ -372,14 +382,14 @@ func isPrefixSubnet(
 						return false
 					}
 				} else {
-					lowerZeros := numberOfTrailingZeros32(lower)
+					lowerZeros := BitCount(bits.TrailingZeros32(lower))
 					if lowerZeros < segHostBits {
 						return false
 					}
 					upper := upperValueProvider(i)
-					upperOnes := numberOfTrailingZeros32(^upper)
+					upperOnes := BitCount(bits.TrailingZeros32(^upper))
 					if upperOnes < segHostBits {
-						upperZeros := numberOfTrailingZeros32((upper | (^SegInt(0) << bitsPerSegment)) >> upperOnes)
+						upperZeros := BitCount(bits.TrailingZeros32((upper | (^SegInt(0) << bitsPerSegment)) >> upperOnes))
 						if upperOnes+upperZeros < segHostBits {
 							return false
 						}
@@ -428,105 +438,107 @@ func main() {
 }
 */
 
-func numberOfTrailingZerosi64(i int64) BitCount {
-	return numberOfTrailingZeros64(uint64(i))
-}
+// the methods below not needed because of math.bits
 
-func numberOfTrailingZeros64(i uint64) BitCount {
-	half := uint32(i & 0xffffffff)
-	if half == 0 {
-		return 32 + numberOfLeadingZeros32(uint32(i>>32))
-	}
-	return numberOfLeadingZeros32(half)
-}
-
-func numberOfTrailingZerosi32(i int32) BitCount {
-	return numberOfTrailingZeros32(uint32(i))
-}
-
-func numberOfTrailingZeros32(i uint32) BitCount {
-	if i == 0 {
-		return 32
-	}
-	result := BitCount(31)
-	half := i << 16
-	if half != 0 {
-		result -= 16
-		i = half
-	}
-	half = i << 8
-	if half != 0 {
-		result -= 8
-		i = half
-	}
-	half = i << 4
-	if half != 0 {
-		result -= 4
-		i = half
-	}
-	half = i << 2
-	if half != 0 {
-		result -= 2
-		i = half
-	}
-	return result - BitCount((i<<1)>>31)
-}
-
-func numberOfLeadingZerosi64(i int64) BitCount {
-	return numberOfLeadingZeros64(uint64(i))
-}
-
-func numberOfLeadingZeros64(i uint64) BitCount {
-	half := uint32(i >> 32)
-	if half == 0 {
-		return 32 + numberOfLeadingZeros32(uint32(i))
-	}
-	return numberOfLeadingZeros32(half)
-}
-
-func numberOfLeadingZerosi32(i int32) BitCount {
-	return numberOfLeadingZeros32(uint32(i))
-}
-
-func numberOfLeadingZeros32(i uint32) BitCount {
-	half := uint16(i >> 16)
-	if half == 0 {
-		return 16 + numberOfLeadingZeros16(uint16(i))
-	}
-	return numberOfLeadingZeros16(half)
-}
-
-func numberOfLeadingZerosi16(i int16) BitCount {
-	return numberOfLeadingZeros16(uint16(i))
-}
-
-func numberOfLeadingZeros16(i uint16) BitCount {
-	half := uint8(i >> 8)
-	if half == 0 {
-		return 8 + numberOfLeadingZeros8(uint8(i))
-	}
-	return numberOfLeadingZeros8(half)
-}
-
-func numberOfLeadingZerosi8(i int8) BitCount {
-	return numberOfLeadingZeros8(uint8(i))
-}
-
-func numberOfLeadingZeros8(i uint8) BitCount {
-	if i == 0 {
-		return 8
-	}
-	result := BitCount(1)
-	half := i >> 4
-	if half == 0 {
-		result += 4
-		i <<= 4
-	}
-	half = i >> 6
-	if half == 0 {
-		result += 2
-		i <<= 2
-	}
-	result -= BitCount(i >> 7)
-	return result
-}
+//func numberOfTrailingZerosi64(i int64) BitCount {
+//	return numberOfTrailingZeros64(uint64(i))
+//}
+//
+//func numberOfTrailingZeros64(i uint64) BitCount {
+//	half := uint32(i & 0xffffffff)
+//	if half == 0 {
+//		return 32 + numberOfLeadingZeros32(uint32(i>>32))
+//	}
+//	return numberOfLeadingZeros32(half)
+//}
+//
+//func numberOfTrailingZerosi32(i int32) BitCount {
+//	return numberOfTrailingZeros32(uint32(i))
+//}
+//
+//func numberOfTrailingZeros32(i uint32) BitCount {
+//	if i == 0 {
+//		return 32
+//	}
+//	result := BitCount(31)
+//	half := i << 16
+//	if half != 0 {
+//		result -= 16
+//		i = half
+//	}
+//	half = i << 8
+//	if half != 0 {
+//		result -= 8
+//		i = half
+//	}
+//	half = i << 4
+//	if half != 0 {
+//		result -= 4
+//		i = half
+//	}
+//	half = i << 2
+//	if half != 0 {
+//		result -= 2
+//		i = half
+//	}
+//	return result - BitCount((i<<1)>>31)
+//}
+//
+//func numberOfLeadingZerosi64(i int64) BitCount {
+//	return numberOfLeadingZeros64(uint64(i))
+//}
+//
+//func numberOfLeadingZeros64(i uint64) BitCount {
+//	half := uint32(i >> 32)
+//	if half == 0 {
+//		return 32 + numberOfLeadingZeros32(uint32(i))
+//	}
+//	return numberOfLeadingZeros32(half)
+//}
+//
+//func numberOfLeadingZerosi32(i int32) BitCount {
+//	return numberOfLeadingZeros32(uint32(i))
+//}
+//
+//func numberOfLeadingZeros32(i uint32) BitCount {
+//	half := uint16(i >> 16)
+//	if half == 0 {
+//		return 16 + numberOfLeadingZeros16(uint16(i))
+//	}
+//	return numberOfLeadingZeros16(half)
+//}
+//
+//func numberOfLeadingZerosi16(i int16) BitCount {
+//	return numberOfLeadingZeros16(uint16(i))
+//}
+//
+//func numberOfLeadingZeros16(i uint16) BitCount {
+//	half := uint8(i >> 8)
+//	if half == 0 {
+//		return 8 + numberOfLeadingZeros8(uint8(i))
+//	}
+//	return numberOfLeadingZeros8(half)
+//}
+//
+//func numberOfLeadingZerosi8(i int8) BitCount {
+//	return numberOfLeadingZeros8(uint8(i))
+//}
+//
+//func numberOfLeadingZeros8(i uint8) BitCount {
+//	if i == 0 {
+//		return 8
+//	}
+//	result := BitCount(1)
+//	half := i >> 4
+//	if half == 0 {
+//		result += 4
+//		i <<= 4
+//	}
+//	half = i >> 6
+//	if half == 0 {
+//		result += 2
+//		i <<= 2
+//	}
+//	result -= BitCount(i >> 7)
+//	return result
+//}

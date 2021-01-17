@@ -153,7 +153,7 @@ func (section *addressSectionInternal) GetBitCount() BitCount {
 	if divLen == 0 {
 		return 0
 	}
-	return section.getDivision(0).GetBitCount() * BitCount(section.GetSegmentCount())
+	return getSegmentBitCount(section.getDivision(0).GetBitCount(), section.GetSegmentCount())
 }
 
 func (section *addressSectionInternal) GetByteCount() int {

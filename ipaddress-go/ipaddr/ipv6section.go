@@ -132,6 +132,12 @@ func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
 	return section.getDivision(index).ToIPv6AddressSegment()
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (section *IPv6AddressSection) GetTrailingSection(index int) *IPv6AddressSection {
+	return section.GetSubSection(index, section.GetSegmentCount())
+}
+
 //// Gets the subsection from the series starting from the given index and ending just before the give endIndex
 //// The first segment is at index 0.
 func (section *IPv6AddressSection) GetSubSection(index, endIndex int) *IPv6AddressSection {

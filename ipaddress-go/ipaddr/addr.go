@@ -114,14 +114,19 @@ func (addr *addressInternal) getUpper() *Address {
 }
 
 func (addr *addressInternal) toAddress() *Address {
-	//if addr == nil {
-	//	return nil
-	//}
 	return (*Address)(unsafe.Pointer(addr))
 }
 
 func (addr *addressInternal) hasNoDivisions() bool {
 	return addr.section.hasNoDivisions()
+}
+
+func (addr *addressInternal) toPrefixBlock() *Address {
+	return addr.checkIdentity(addr.section.toPrefixBlock())
+}
+
+func (addr *addressInternal) toPrefixBlockLen(prefLen BitCount) *Address {
+	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen))
 }
 
 var zeroAddr *Address
@@ -154,24 +159,55 @@ func (addr *Address) GetSection() *AddressSection {
 	return addr.init().section
 }
 
+// Gets the subsection from the series starting from the given index
+// The first segment is at index 0.
+func (addr *Address) GetTrailingSection(index int) *AddressSection {
+	return addr.GetSection().GetTrailingSection(index)
+}
+
+//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
+//// The first segment is at index 0.
+func (addr *Address) GetSubSection(index, endIndex int) *AddressSection {
+	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *Address) CopySubSegments(start, end int, segs []*AddressSegment) (count int) {
+	return addr.GetSection().CopySubSegments(start, end, segs)
+}
+
+// CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (addr *Address) CopySegments(segs []*AddressSegment) (count int) {
+	return addr.GetSection().CopySegments(segs)
+}
+
+// GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
+func (addr *Address) GetSegments() []*AddressSegment {
+	return addr.GetSection().GetSegments()
+}
+
 func (addr *Address) GetLower() *Address {
-	addr = addr.init()
-	return addr.getLower()
+	return addr.init().getLower()
 }
 
 func (addr *Address) GetUpper() *Address {
-	addr = addr.init()
-	return addr.getUpper()
+	return addr.init().getUpper()
 }
 
-func (addr *Address) IsIPv4() bool {
+func (addr *Address) ToPrefixBlock() *Address {
+	return addr.init().toPrefixBlock()
+}
+
+func (addr *Address) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddress()
 	if addr == nil || addr.section == nil {
 		return false
 	}
 	return addr.section.matchesIPv4Address()
 }
 
-func (addr *Address) IsIPv6() bool {
+func (addr *Address) IsIPv6() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddress()
 	if addr == nil || addr.section == nil {
 		return false
 	}
