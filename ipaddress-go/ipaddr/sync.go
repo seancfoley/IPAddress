@@ -11,16 +11,20 @@ type atomicFlag struct {
 }
 
 func (a *atomicFlag) isSet() bool {
-	return atomic.LoadUint32(&a.val) > 0
+	return atomic.LoadUint32(&a.val) != 0
+}
+
+func (a *atomicFlag) isSetNoSync() bool {
+	return a.val == 0
 }
 
 func (a *atomicFlag) set() {
 	atomic.StoreUint32(&a.val, 1)
 }
 
-func (a *atomicFlag) unset() {
-	atomic.StoreUint32(&a.val, 0)
-}
+//func (a *atomicFlag) unset() {
+//	atomic.StoreUint32(&a.val, 0)
+//}
 
 type CreationLock struct {
 	created    atomicFlag // to check if created
@@ -33,7 +37,7 @@ func (lock *CreationLock) isItemCreated() bool {
 
 func (lock *CreationLock) create(creator func()) (ret bool) {
 	lock.createLock.Lock()
-	if !lock.isItemCreated() {
+	if !lock.created.isSetNoSync() {
 		creator()
 		ret = true
 		lock.created.set()

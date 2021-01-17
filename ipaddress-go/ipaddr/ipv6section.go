@@ -138,14 +138,14 @@ func (section *IPv6AddressSection) GetSubSection(index, endIndex int) *IPv6Addre
 	return section.getSubSection(index, endIndex).ToIPv6AddressSection()
 }
 
-// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
-	section.visitSegments(
-		func(index int, div *AddressDivision) bool {
-			return callback(index, div.ToIPv6AddressSegment())
-		},
-		section.GetSegmentCount())
-}
+//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+//func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
+//	section.visitSegments(
+//		func(index int, div *AddressDivision) bool {
+//			return callback(index, div.ToIPv6AddressSegment())
+//		},
+//		section.GetSegmentCount())
+//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

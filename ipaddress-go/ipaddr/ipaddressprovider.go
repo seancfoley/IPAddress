@@ -146,7 +146,7 @@ type IPAddressProvider interface {
 	getParameters() IPAddressStringParameters
 }
 
-// TODO add these later
+// TODO optimized contains: add these later
 //	/**
 //	 * An optimized contains that does not need to create address objects to return an answer.
 //	 * Unconventional addresses may require that the address objects are created, in such cases null is returned.

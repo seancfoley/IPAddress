@@ -296,17 +296,17 @@ func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (r
 	}
 	cache := section.cache
 	sectionCache := &cache.sectionCache
-	cache.RLock()
+	cache.cacheLock.RLock()
 	if lowest {
 		result = sectionCache.lower
 	} else {
 		result = sectionCache.upper
 	}
-	cache.RUnlock()
+	cache.cacheLock.RUnlock()
 	if result != nil {
 		return
 	}
-	cache.Lock()
+	cache.cacheLock.Lock()
 	if lowest {
 		result = sectionCache.lower
 		if result == nil {
@@ -320,7 +320,7 @@ func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (r
 			sectionCache.upper = result
 		}
 	}
-	cache.Unlock()
+	cache.cacheLock.Unlock()
 	return
 }
 
@@ -419,14 +419,14 @@ func (section *AddressSection) GetSubSection(index, endIndex int) *AddressSectio
 	return section.getSubSection(index, endIndex)
 }
 
-// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-func (section *AddressSection) ForEachSegment(callback func(index int, segment *AddressSegment) (stop bool)) {
-	section.visitSegments(
-		func(index int, div *AddressDivision) bool {
-			return callback(index, div.ToAddressSegment())
-		},
-		section.GetSegmentCount())
-}
+//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+//func (section *AddressSection) ForEachSegment(callback func(index int, segment *AddressSegment) (stop bool)) {
+//	section.visitSegments(
+//		func(index int, div *AddressDivision) bool {
+//			return callback(index, div.ToAddressSegment())
+//		},
+//		section.GetSegmentCount())
+//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

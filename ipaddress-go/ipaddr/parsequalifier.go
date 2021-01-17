@@ -50,12 +50,10 @@ func cachePorts(i int) Port {
 }
 
 func cacheBits(i int) PrefixLen {
-	//TODO caching
-	bits := BitCount(i)
-	return PrefixLen(&bits)
+	return cacheBitCount(BitCount(i))
 }
 
-func cacheBitcount(i BitCount) PrefixLen {
+func cacheBitCount(i BitCount) PrefixLen {
 	//TODO caching
 	bits := i
 	return PrefixLen(&bits)

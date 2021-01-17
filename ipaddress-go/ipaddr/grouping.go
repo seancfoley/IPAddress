@@ -7,11 +7,6 @@ import (
 	"unsafe"
 )
 
-//type prefixLenSetting struct {
-//	value PrefixLen
-//	isSet bool
-//}
-
 type stringCache struct {
 	string1, string2 string //TODO the various strings will go here
 }
@@ -59,62 +54,63 @@ func (a addrType) isMAC() bool {
 	return a == macType
 }
 
+type maskLenSetting struct {
+	atomicFlag
+	networkMaskLen, hostMaskLen PrefixLen
+}
+
+//type CreationLock struct {
+//	created    atomicFlag // to check if created
+//	createLock sync.Mutex // acquire to create
+//}
+//
+//func (lock *CreationLock) isItemCreated() bool {
+//	return lock.created.isSet()
+//}
+//
+//func (lock *CreationLock) create(creator func()) (ret bool) {
+//	lock.createLock.Lock()
+//	if !lock.isItemCreated() {
+//		creator()
+//		ret = true
+//		lock.created.set()
+//	}
+//	lock.createLock.Unlock()
+//	return
+//}
+
 type valueCache struct {
-	sync.RWMutex
+	//	All writing done after locking the cacheLock.
+	//	Reading can be done by using the read lock of the cachelock,
+	//	or instead using a specific atomic flag covering a specific set of cache fields.
+	cacheLock sync.RWMutex
 
 	cachedCount, cachedPrefixCount big.Int // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
 	//cachedPrefixLen                prefixLenSetting
+
+	cachedMaskLens maskLenSetting
+
 	lowerBytes, upperBytes []byte
 	//isMultiple             boolSetting
 	stringCache  stringCache
 	sectionCache groupingCache
-
-	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MAC.
-	// This is true whether created directly, or created from a low-level grouping or section.
-	// Groupings or sections only acquire an asigned type when converted to a top-level type.
-	// Once a type is assigned, it never changes.
-	//
-	// All derived sections are given the same type as the original derived from.
-	// The one exception is when an IPAddressSection is created directly and is the zero-segment section,
-	// in which cases derived sections must be IPv4 or IPv6.
-	// In general, a grouping derived from any zero-division grouping can become any type.
-	//
-	// All derived sections must maintain a structure matching that type, so that means
-	// the number of segments, the bit-count of each, and the segment prefix alignments must
-	// remain consistent with the type.  If you append or insert segments, the type must be respected.
-	//
-	// When doing an upwards conversion to a grouping or section, if the type is assigned (ie not indeterminate),
-	// then it can be used as a quicker check for whether the upwards conversion is allowed.
-	// Otherwise, the contents of the section must be checked (bit count, segment count, prefix aligment).
-	//
-	// The type assignment allows us to cache strings and any other type-specific data in the grouping.
-	// We can be sure the contents will not become a mismatch to a different type later, since the type cannot be changed.
-	// It also allows for quicker upwards conversions.  It also allows for certain operations to be "virtual"
-	// in the sense that they are consistent with the original created object.
-	//
-	// There is no data cached when the type is not yet assigned that could be inconsistent with the assigned type.
-	// So that means, like in Java, division groupings do not cache strings, nor do address sections, nor do ip address sections,
-	// if they have no assigned type yet.  However, once a type is assigned, then functions at any level may cache type-specific data.
-	//
-	// However, even if the type is assigned we must be careful.
-	// The same function called on a grouping with an assigned type cannot produce a different result
-	// than a function called on the same grouping with no assigned type, to avoid confusion, and to avoid "side-effects".
-	//
-	// So that means type-specific string functions and other functions returning type-specific data will only exist at the top levels,
-	// OR those functions must first attempt to assign a type first.  In general, this really only applies to IPAddressSection,
-	// because we do not know the possible list of all addresses, so avoiding ambiguity is impossible for AddressSection and below,
-	// but we do know all possible IP address types and can figure out which one we are.
-	//
-	//addrType addrType
 }
 
 type addressDivisionGroupingInternal struct {
 	// the non-cache elements are assigned at creation and are immutable
-	divisions           []*AddressDivision
-	prefixLength        PrefixLen // must align with the divisions if they store prefix lengths
-	addrType            addrType
+	divisions    []*AddressDivision
+	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
+	isMultiple   bool
+
+	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MAC,
+	// and determines if an *AddressDivisionGrouping can be converted back to a section of the original type.
+	//
+	// Type-specific functions in IPAddressSection and lower levels, such as functions returning strings,
+	// can rely on this field.
+	addrType addrType
+
+	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
 	addressSegmentIndex uint8
-	isMultiple          bool
 
 	//TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
 	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed, there is nothing to cache
@@ -284,14 +280,14 @@ func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, uppe
 		return emptyBytes, emptyBytes
 	}
 	divisionCount := grouping.GetDivisionCount()
-	cache.RLock()
+	cache.cacheLock.RLock()
 	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	cache.RUnlock()
+	cache.cacheLock.RUnlock()
 	if bytes != nil {
 		return
 	}
 	addrType := grouping.addrType
-	cache.Lock()
+	cache.cacheLock.Lock()
 	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
 	if bytes == nil {
 		if addrType.isIPv4() {
@@ -336,7 +332,7 @@ func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, uppe
 		}
 		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
 	}
-	cache.Unlock()
+	cache.cacheLock.Unlock()
 	return
 }
 

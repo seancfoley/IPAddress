@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	//"net"
 	"unsafe"
 )
 
@@ -9,52 +8,6 @@ import (
 type SegInt = uint32
 
 const SegIntSize = 32
-
-// TODO this is where we go wrong when trying to make AddressSegment an interface
-// We have a division, we want a segment, but we do not know if it conforms to MACAddressSegment or IPAddressSegment
-// or some other type that implements AddressSegment, we need to know what to convert it to
-// So then you might say, why do we need AddressSegment at all?  Why have a ToAddressSegment()?  Just convert to MACAddressSegment or IPAddressSegment directly?
-// And Why not just use AddressDivision where-ever we'd use AddressSegment?
-// Well, you need something to return from GetSegment() in type Address and AddressSection, and there are a few methods like testBit
-// that apply to segments only (ie default methods in the Java AddressSegment interface)
-// Also, segments use different int types than divisions
-// So to be accurate we do need a segment type
-// And I guess it cannot be an interface,
-// there is no way to convert from our struct to an interface without knowing the specific type the interface needs to wrap
-// In other words, interfaces alone cannot be used: we have no abstract methods, we actually need to have a real method,
-// and while the signature could return an interface, the code would have to find a real type for that interface
-// This kinda boils down to having no abstract types or methods, you have to identify a concrete type for every method
-//
-//func (div *AddressDivision) ToAddressSegmentX() AddressSegmentX {
-//	return (AddressSegmentX)(unsafe.Pointer(div))
-//}
-
-//TODO we can enforce that any divisionValues in a IPv4 or IPv6 segment does not have too many bits to be a segmentValues
-// IN other words, if you have a value like 3, it is not a segment value if it is a 64 bit value
-// We can do this by ensuring that on construction of the divisionValues in NewAddressDivision by checking bit count (not magnitude)
-// AddressBitsDivision does that.
-// The difference in golang here is we can end up converting any division to be part of an ipv4 or ipv6 address.
-// In Java you cannot go from AddressBitsDivision to IPv4 addresses.  Here you can.
-
-//type segmentValues interface {
-//	// GetSegmentValue gets the lower value for the division
-//	GetSegmentValue() SegInt
-//
-//	// GetUpperSegmentValue gets the upper value for the division
-//	GetUpperSegmentValue() SegInt
-//}
-
-//type wrappedDivisionValues struct {
-//	divisionValues
-//}
-//
-//func (segvals wrappedDivisionValues) GetSegmentValue() SegInt {
-//	return SegInt(segvals.getDivisionValue())
-//}
-//
-//func (segvals wrappedDivisionValues) GetUpperSegmentValue() SegInt {
-//	return SegInt(segvals.getUpperDivisionValue())
-//}
 
 func createAddressSegment(vals divisionValues) *AddressSegment {
 	return &AddressSegment{
@@ -76,22 +29,24 @@ func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(seg))
 }
 
-func (div *addressSegmentInternal) GetSegmentValue() SegInt {
-	vals := div.divisionValues
+func (seg *addressSegmentInternal) GetSegmentValue() SegInt {
+	vals := seg.divisionValues
 	if vals == nil {
 		return 0
 	}
-	//return vals.(segmentValues).GetSegmentValue()
 	return vals.getSegmentValue()
 }
 
-func (div *addressSegmentInternal) GetUpperSegmentValue() SegInt {
-	vals := div.divisionValues
+func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
+	vals := seg.divisionValues
 	if vals == nil {
 		return 0
 	}
-	//return vals.(segmentValues).GetUpperSegmentValue()
 	return vals.getUpperSegmentValue()
+}
+
+func (seg *addressSegmentInternal) GetMaxValue() SegInt {
+	return ^(^SegInt(0) << seg.GetBitCount())
 }
 
 func (div *addressSegmentInternal) IsMultiple() bool {
@@ -99,8 +54,6 @@ func (div *addressSegmentInternal) IsMultiple() bool {
 	if vals == nil {
 		return false
 	}
-	//segvals := vals.(segmentValues)
-	//return segvals.GetSegmentValue() != segvals.GetUpperSegmentValue()
 	return vals.getSegmentValue() != vals.getUpperSegmentValue()
 }
 
@@ -108,49 +61,28 @@ func (seg *addressSegmentInternal) GetMaxSegmentValue() SegInt {
 	return ^(^SegInt(0) << seg.GetBitCount())
 }
 
-/**
- * Returns whether this item matches the value of zero
- *
- * @return whether this item matches the value of zero
- */
-func (div *addressSegmentInternal) isZero() bool {
+// Returns whether this item matches the value of zero
+func (div *addressSegmentInternal) IsZero() bool { // using SegInt is quicker than deferring to division
 	return !div.IsMultiple() && div.IncludesZero()
 }
 
-/**
- * Returns whether this item includes the value of zero within its range
- *
- * @return whether this item includes the value of zero within its range
- */
-func (div *addressSegmentInternal) IncludesZero() bool {
+// Returns whether this item includes the value of zero within its range
+func (div *addressSegmentInternal) IncludesZero() bool { // using SegInt is quicker than deferring to division
 	return div.GetSegmentValue() == 0
 }
 
-/**
- * Returns whether this item matches the maximum possible value for the address type or version
- *
- * @return whether this item matches the maximum possible value
- */
-func (div *addressSegmentInternal) isMax() bool {
+// Returns whether this item matches the maximum possible value for the address type or version
+func (div *addressSegmentInternal) IsMax() bool { // using SegInt is quicker than deferring to division
 	return !div.IsMultiple() && div.IncludesMax()
 }
 
-/**
- * Returns whether this item includes the maximum possible value for the address type or version within its range
- *
- * @return whether this item includes the maximum possible value within its range
- */
-func (div *addressSegmentInternal) IncludesMax() bool {
+// Returns whether this item includes the maximum possible value for the address type or version within its range
+func (div *addressSegmentInternal) IncludesMax() bool { // using SegInt is quicker than deferring to division
 	return div.GetUpperSegmentValue() == div.GetMaxSegmentValue()
 }
 
-/**
- * whether this address item represents all possible values attainable by an address item of this type
- *
- * @return whether this address item represents all possible values attainable by an address item of this type,
- * or in other words, both includesZero() and includesMax() return true
- */
-func (div *addressSegmentInternal) IsFullRange() bool {
+// Whether this address item represents all possible values attainable by an address item of this type
+func (div *addressSegmentInternal) IsFullRange() bool { // using SegInt is quicker than deferring to division
 	return div.IncludesZero() && div.IncludesMax()
 }
 
@@ -166,21 +98,6 @@ func (div *addressSegmentInternal) isOneBit(segmentBitIndex BitCount) bool {
 	bitCount := div.GetBitCount()
 	return (value & (1 << (bitCount - (segmentBitIndex + 1)))) != 0
 }
-
-//TODO your cache will work by pairing divisionValues / divCache
-// the lookup will match (a) type of ipv4SegmentValues/other (b) 3 values preflen/upper/lower
-// We can simply do a comparison on the interface divisionValues - https://stackoverflow.com/questions/62944464/is-it-possible-to-compare-two-interface-values-in-go
-// Well we could, but, we do return a pointer to ipv4SegmentValues, but maybe that does not matter?
-// Does it compare the pointer? YES ipaddressProvider has test program
-// So it cannot work that way
-// I think you can do a type assertion / type switch though
-// OR maybe we return the cache as part of the getLower call?
-//OR we have it as a follow-up call?
-//Maybe cache goes in the values?  naw, that makes no sense
-
-//xxx figure this out
-//xxx figure out cache we need a NewIPv4SegmentValues(vals) divisionValues, cache
-//xxx but in this code we do not know if we are ipv4, so getLower needs to return it
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	if !seg.isMultiple() {
@@ -210,6 +127,9 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 type AddressSegment struct {
 	addressSegmentInternal
 }
+
+// TODO this works different than sections, and we must be careful with methods returning strings that they remain consistent
+// Methods that use the prefix to print the string must not use any shared fields with AddressSegment and AddressDivision
 
 func (seg *AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	if seg == nil {
@@ -246,173 +166,3 @@ func (seg *AddressSegment) ToMACAddressSegment() *MACAddressSegment {
 	}
 	return (*MACAddressSegment)(unsafe.Pointer(seg))
 }
-
-//type AddressSegmentX interface {
-//}
-
-//
-//func (div *AddressDivision) ToIPAddressSegment() *IPAddressSegment {
-//	if div == nil {
-//		return nil
-//	} else if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
-//		return nil
-//	}
-//	return (*IPAddressSegment)(unsafe.Pointer(div))
-//}
-//
-//func (div *AddressDivision) ToIPv4AddressSegment() *IPv4AddressSegment {
-//	if div == nil {
-//		return nil
-//	} else if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment {
-//		return nil
-//	}
-//	return (*IPv4AddressSegment)(unsafe.Pointer(div))
-//}
-//
-//func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
-//	if div == nil {
-//		return nil
-//	} else if bitCount := div.GetBitCount(); bitCount != IPv6BitsPerSegment {
-//		return nil
-//	}
-//	return (*IPv6AddressSegment)(unsafe.Pointer(div))
-//}
-//
-//func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
-//	if div == nil {
-//		return nil
-//	} else if bitCount := div.GetBitCount(); bitCount != MACBitsPerSegment {
-//		return nil
-//	}
-//	return (*MACAddressSegment)(unsafe.Pointer(div))
-//}
-
-//type ipAddressSegmentInternal struct {
-//	addressDivisionInternal
-//}
-
-//type IPAddressSegment struct {
-//	addressDivisionInternal
-//}
-
-type ipAddressSegmentInternal struct {
-	addressSegmentInternal
-}
-
-func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
-	return (*AddressSegment)(unsafe.Pointer(seg))
-}
-
-func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
-	return seg.GetSegmentPrefixLength() != nil
-}
-
-func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
-	return seg.getDivisionPrefixLength()
-}
-
-type IPAddressSegment struct {
-	ipAddressSegmentInternal
-}
-
-func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
-	return seg.containsPrefixBlock(divisionPrefixLen)
-}
-
-func (seg *IPAddressSegment) IsPrefixBlock() bool {
-	return seg.isPrefixBlock()
-}
-
-func (seg *IPAddressSegment) IsPrefixed() bool {
-	return seg.isPrefixed()
-}
-
-func (seg *IPAddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-	return seg.ToAddressDivision().toPrefixedNetworkDivision(segmentPrefixLength).ToIPAddressSegment()
-}
-
-func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, withPrefixLength bool) *IPAddressSegment {
-	return seg.ToAddressDivision().toNetworkDivision(segmentPrefixLength, withPrefixLength).ToIPAddressSegment()
-}
-
-//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-//	if isHostChangedByPrefix(bits) {
-//		return super.toHostSegment(bits, getSegmentCreator())
-//	}
-//	return this
-//}
-
-func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
-	if seg == nil {
-		return nil
-	} else if bitCount := seg.GetBitCount(); bitCount != IPv4BitsPerSegment {
-		return nil
-	}
-	return (*IPv4AddressSegment)(unsafe.Pointer(seg))
-}
-
-func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
-	if seg == nil {
-		return nil
-	} else if bitCount := seg.GetBitCount(); bitCount != IPv6BitsPerSegment {
-		return nil
-	}
-	return (*IPv6AddressSegment)(unsafe.Pointer(seg))
-}
-
-func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
-	return PrefixEquals(onePref, twoPref) &&
-		oneVal == twoVal && oneUpperVal == twoUpperVal
-}
-
-// moved to AddressDivision
-//func (seg *IPAddressSegment) toNetworkSegment(segmentPrefixLength PrefixLen, withPrefixLength bool) *IPAddressSegment {
-//	vals := seg.divisionValues
-//	if vals == nil {
-//		return seg
-//	}
-//	lower := seg.GetSegmentValue()
-//	upper := seg.GetUpperSegmentValue()
-//	var newLower, newUpper SegInt
-//	hasPrefLen := segmentPrefixLength != nil
-//	if hasPrefLen {
-//		mask := ^SegInt(0) << (seg.GetBitCount() - *segmentPrefixLength)
-//		newLower = lower & mask
-//		newUpper = upper | ^mask
-//		if !withPrefixLength {
-//			segmentPrefixLength = nil
-//		}
-//		if PrefixEquals(segmentPrefixLength, seg.getDivisionPrefixLength()) &&
-//			newLower == lower && newUpper == upper {
-//			return seg
-//		}
-//	} else {
-//		withPrefixLength = false
-//		segmentPrefixLength = nil
-//		if seg.getDivisionPrefixLength() == nil {
-//			return seg
-//		}
-//	}
-//	newVals := seg.deriveNew(DivInt(newLower), DivInt(newUpper), segmentPrefixLength)
-//	return &IPAddressSegment{
-//		ipAddressSegmentInternal{
-//			addressSegmentInternal{
-//				addressDivisionInternal{divisionValues: newVals},
-//			},
-//		},
-//	}
-//}
-
-//func (seg *IPAddressSegment) GetDivisionPrefixLength() PrefixLen {
-//	vals := seg.divisionValues
-//	if vals == nil {
-//		return nil
-//	}
-//	return vals.getDivisionPrefixLength()
-//}
-
-//// Need to prevent direct access to the IPAddressSegment, particularly when zero value
-//// The IPv4 and IPv6 types need to convert the segment to the appropriate zero value with every method call that defers to IPAddressSegment
-//type ipAddressSegmentInternal struct {
-//	IPAddressSegment xxxx
-//}

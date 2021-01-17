@@ -58,9 +58,106 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
 	return section.prefixLength
 }
 
+// GetBlockMaskPrefixLength returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
+// Otherwise, it returns null.
+// A CIDR network mask is an address with all 1s in the network section and then all 0s in the host section.
+// A CIDR host mask is an address with all 0s in the network section and then all 1s in the host section.
+// The prefix length is the length of the network section.
+//
+// Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length of this object,
+// indicating the network and host section of this address.
+// The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host
+// section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
+//
+// This method applies only to the lower value of the range if this section represents multiple values.
 func (section *ipAddressSectionInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
-	// TODO GetBlockMaskPrefixLength is needed for address creation amongst other things
-	return nil
+	cache := section.cache
+	if !cache.cachedMaskLens.isSet() {
+		cache.cacheLock.Lock()
+		if !cache.cachedMaskLens.isSetNoSync() {
+			cache.cachedMaskLens.networkMaskLen,
+				cache.cachedMaskLens.hostMaskLen = section.checkForPrefixMask()
+			cache.cachedMaskLens.set()
+		}
+		cache.cacheLock.Unlock()
+	}
+	if network {
+		return cache.cachedMaskLens.networkMaskLen
+	}
+	return cache.cachedMaskLens.hostMaskLen
+}
+
+func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, hostMaskLen PrefixLen) {
+	count := section.GetSegmentCount()
+	if count == 0 {
+		return
+	}
+	firstSeg := section.GetSegment(0)
+	checkingNetworkFront, checkingHostFront := true, true
+	var checkingNetworkBack, checkingHostBack bool
+	var prefixedSeg int
+	//networkPrefixedSeg, hostPrefixedSeg := count, count
+	prefixedSegPrefixLen := BitCount(0)
+	maxVal := firstSeg.GetMaxSegmentValue()
+	for i := 0; i < count; i++ {
+		seg := section.GetSegment(i)
+		val := seg.GetSegmentValue()
+		if val == 0 {
+			if checkingNetworkFront {
+				prefixedSeg = i
+				checkingNetworkFront, checkingNetworkBack = false, true
+			} else if !checkingHostFront && !checkingNetworkBack {
+				return
+			}
+			checkingHostBack = false
+		} else if val == maxVal {
+			if checkingHostFront {
+				prefixedSeg = i
+				checkingHostFront, checkingHostBack = false, true
+			} else if !checkingHostBack && !checkingNetworkFront {
+				return
+			}
+			checkingNetworkBack = false
+		} else {
+			segNetworkMaskLen, segHostMaskLen := seg.checkForPrefixMask()
+			if segNetworkMaskLen != nil {
+				if checkingNetworkFront {
+					prefixedSegPrefixLen = *segNetworkMaskLen
+					checkingNetworkBack = true
+					prefixedSeg = i
+				} else {
+					return
+				}
+			} else if segHostMaskLen != nil {
+				if checkingHostFront {
+					prefixedSegPrefixLen = *segHostMaskLen
+					checkingHostBack = true
+					prefixedSeg = i
+				} else {
+					return
+				}
+			} else {
+				return
+			}
+			checkingNetworkFront, checkingHostFront = false, false
+		}
+	}
+	if checkingNetworkFront {
+		// all ones
+		networkMaskLen = cache(section.GetBitCount())
+		hostMaskLen = cache(0)
+	} else if checkingHostFront {
+		// all zeros
+		networkMaskLen = cache(section.GetBitCount())
+		networkMaskLen = cache(0)
+	} else if checkingNetworkBack {
+		// ending in zeros, network mask
+		networkMaskLen = getNetworkPrefixLength(firstSeg.GetBitCount(), prefixedSegPrefixLen, prefixedSeg)
+	} else if checkingHostBack {
+		// ending in ones, host mask
+		hostMaskLen = getNetworkPrefixLength(firstSeg.GetBitCount(), prefixedSegPrefixLen, prefixedSeg)
+	}
+	return
 }
 
 func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
@@ -118,20 +215,20 @@ func (section *IPAddressSection) IsIPv4() bool {
 	return section != nil && section.matchesIPv4Section()
 }
 
-//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
-//// The first segment is at index 0.
+// GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex
+// The first segment is at index 0.
 func (section *IPAddressSection) GetSubSection(index, endIndex int) *IPAddressSection {
 	return section.getSubSection(index, endIndex).ToIPAddressSection()
 }
 
-// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-func (section *IPAddressSection) ForEachSegment(callback func(index int, segment *IPAddressSegment) (stop bool)) {
-	section.visitSegments(
-		func(index int, div *AddressDivision) bool {
-			return callback(index, div.ToIPAddressSegment())
-		},
-		section.GetSegmentCount())
-}
+//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+//func (section *IPAddressSection) ForEachSegment(callback func(index int, segment *IPAddressSegment) (stop bool)) {
+//	section.visitSegments(
+//		func(index int, div *AddressDivision) bool {
+//			return callback(index, div.ToIPAddressSegment())
+//		},
+//		section.GetSegmentCount())
+//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
@@ -306,7 +403,7 @@ func normalizePrefixBoundary(
 	if networkSegmentIndex >= 0 {
 		segment := segments[networkSegmentIndex].ToIPAddressSegment()
 		if !segment.IsPrefixed() {
-			segments[networkSegmentIndex] = segmentCreator(segment.GetSegmentValue(), segment.GetUpperSegmentValue(), cacheBitcount(segmentBitCount))
+			segments[networkSegmentIndex] = segmentCreator(segment.GetSegmentValue(), segment.GetUpperSegmentValue(), cacheBitCount(segmentBitCount))
 		}
 	}
 }

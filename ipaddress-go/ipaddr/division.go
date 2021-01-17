@@ -125,7 +125,7 @@ func (div *addressDivisionInternal) containsPrefixBlock(divisionPrefixLen BitCou
 // Returns whether the division range includes the block of values for its prefix length
 func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
 	if divisionPrefixLen == 0 {
-		return divisionValue == 0 && upperValue == div.GetMaxValue()
+		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
 	var ones DivInt = ^DivInt(0)
@@ -142,7 +142,7 @@ func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue 
 // Returns whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen
 func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
 	if divisionPrefixLen == 0 {
-		return divisionValue == 0 && upperValue == div.GetMaxValue()
+		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
 	var ones DivInt = ^DivInt(0)
@@ -187,7 +187,7 @@ func (div *addressDivisionInternal) GetByteCount() int {
 	return vals.GetByteCount()
 }
 
-func (div *addressDivisionInternal) GetMaxValue() DivInt {
+func (div *addressDivisionInternal) getMaxValue() DivInt {
 	return ^(^DivInt(0) << div.GetBitCount())
 }
 
@@ -215,6 +215,73 @@ func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
 	return vals.getUpperDivisionValue()
 }
 
+func (div *addressDivisionInternal) toPrefixedNetworkDivision(divPrefixLength PrefixLen) *AddressDivision {
+	return div.toNetworkDivision(divPrefixLength, true)
+}
+
+func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen, withPrefixLength bool) *AddressDivision {
+	vals := div.divisionValues
+	if vals == nil {
+		return div.toAddressDivision()
+	}
+	lower := div.getDivisionValue()
+	upper := div.getUpperDivisionValue()
+	var newLower, newUpper DivInt
+	hasPrefLen := divPrefixLength != nil
+	if hasPrefLen {
+		prefBits := *divPrefixLength
+		bitCount := div.GetBitCount()
+		if prefBits < 0 {
+			prefBits = 0
+		} else if prefBits > bitCount {
+			prefBits = bitCount
+		}
+		mask := ^DivInt(0) << (bitCount - prefBits)
+		newLower = lower & mask
+		newUpper = upper | ^mask
+		if !withPrefixLength {
+			divPrefixLength = nil
+		}
+		if divsSame(divPrefixLength, div.getDivisionPrefixLength(), newLower, lower, newUpper, upper) {
+			return div.toAddressDivision()
+		}
+	} else {
+		withPrefixLength = false
+		divPrefixLength = nil
+		if div.getDivisionPrefixLength() == nil {
+			return div.toAddressDivision()
+		}
+	}
+	newVals := div.deriveNew(newLower, newUpper, divPrefixLength)
+	return createAddressDivision(newVals)
+}
+
+func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen) *AddressDivision {
+	hasPrefLen := divPrefixLength != nil
+	bitCount := div.GetBitCount()
+	if hasPrefLen {
+		prefBits := *divPrefixLength
+		if prefBits < 0 {
+			prefBits = 0
+		} else if prefBits > bitCount {
+			prefBits = bitCount
+		}
+		if div.isPrefixed() && prefBits == *div.getDivisionPrefixLength() {
+			return div.toAddressDivision()
+		}
+	} else {
+		return div.toAddressDivision()
+	}
+	lower := div.getDivisionValue()
+	upper := div.getUpperDivisionValue()
+	newVals := div.deriveNew(lower, upper, divPrefixLength)
+	return createAddressDivision(newVals)
+}
+
+func (div *addressDivisionInternal) toAddressDivision() *AddressDivision {
+	return (*AddressDivision)(unsafe.Pointer(div))
+}
+
 type AddressDivision struct {
 	addressDivisionInternal
 }
@@ -233,118 +300,32 @@ func (div *AddressDivision) IsMultiple() bool {
 }
 
 func (div *AddressDivision) GetMaxValue() DivInt {
-	return ^(^DivInt(0) << div.GetBitCount())
+	return div.getMaxValue()
 }
 
-/**
- * Returns whether this item matches the value of zero
- *
- * @return whether this item matches the value of zero
- */
+// Returns whether this item matches the value of zero
 func (div *AddressDivision) isZero() bool {
 	return !div.IsMultiple() && div.IncludesZero()
 }
 
-/**
- * Returns whether this item includes the value of zero within its range
- *
- * @return whether this item includes the value of zero within its range
- */
+// Returns whether this item includes the value of zero within its range
 func (div *AddressDivision) IncludesZero() bool {
 	return div.getDivisionValue() == 0
 }
 
-/**
- * Returns whether this item matches the maximum possible value for the address type or version
- *
- * @return whether this item matches the maximum possible value
- */
+// Returns whether this item matches the maximum possible value for the address type or version
 func (div *AddressDivision) IsMax() bool {
 	return !div.IsMultiple() && div.IncludesMax()
 }
 
-/**
- * Returns whether this item includes the maximum possible value for the address type or version within its range
- *
- * @return whether this item includes the maximum possible value within its range
- */
+// Returns whether this item includes the maximum possible value for the address type or version within its range
 func (div *AddressDivision) IncludesMax() bool {
 	return div.getUpperDivisionValue() == div.GetMaxValue()
 }
 
-/**
- * whether this address item represents all possible values attainable by an address item of this type
- *
- * @return whether this address item represents all possible values attainable by an address item of this type,
- * or in other words, both includesZero() and includesMax() return true
- */
+// whether this address item represents all possible values attainable by an address item of this type
 func (div *AddressDivision) IsFullRange() bool {
 	return div.IncludesZero() && div.IncludesMax()
-}
-
-func (div *AddressDivision) toPrefixedDivision(divPrefixLength PrefixLen) *AddressDivision {
-	hasPrefLen := divPrefixLength != nil
-	bitCount := div.GetBitCount()
-	if hasPrefLen {
-		prefBits := *divPrefixLength
-		if prefBits < 0 {
-			prefBits = 0
-		} else if prefBits > bitCount {
-			prefBits = bitCount
-		}
-		if div.isPrefixed() && prefBits == *div.getDivisionPrefixLength() {
-			return div
-		}
-	} else {
-		return div
-	}
-	lower := div.GetDivisionValue()
-	upper := div.GetUpperDivisionValue()
-
-	newVals := div.deriveNew(lower, upper, divPrefixLength)
-	return createAddressDivision(newVals)
-
-}
-
-func (div *AddressDivision) toPrefixedNetworkDivision(divPrefixLength PrefixLen) *AddressDivision {
-	return div.toNetworkDivision(divPrefixLength, true)
-}
-
-func (div *AddressDivision) toNetworkDivision(divPrefixLength PrefixLen, withPrefixLength bool) *AddressDivision {
-	vals := div.divisionValues
-	if vals == nil {
-		return div
-	}
-	lower := div.GetDivisionValue()
-	upper := div.GetUpperDivisionValue()
-	var newLower, newUpper DivInt
-	hasPrefLen := divPrefixLength != nil
-	if hasPrefLen {
-		prefBits := *divPrefixLength
-		bitCount := div.GetBitCount()
-		if prefBits < 0 {
-			prefBits = 0
-		} else if prefBits > bitCount {
-			prefBits = bitCount
-		}
-		mask := ^DivInt(0) << (bitCount - prefBits)
-		newLower = lower & mask
-		newUpper = upper | ^mask
-		if !withPrefixLength {
-			divPrefixLength = nil
-		}
-		if divsSame(divPrefixLength, div.getDivisionPrefixLength(), newLower, lower, newUpper, upper) {
-			return div
-		}
-	} else {
-		withPrefixLength = false
-		divPrefixLength = nil
-		if div.getDivisionPrefixLength() == nil {
-			return div
-		}
-	}
-	newVals := div.deriveNew(newLower, newUpper, divPrefixLength)
-	return createAddressDivision(newVals)
 }
 
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {

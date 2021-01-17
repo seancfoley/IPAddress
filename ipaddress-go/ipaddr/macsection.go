@@ -44,14 +44,14 @@ func (section *MACAddressSection) GetSubSection(index, endIndex int) *MACAddress
 	return section.getSubSection(index, endIndex).ToMACAddressSection()
 }
 
-// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-func (section *MACAddressSection) ForEachSegment(callback func(index int, segment *MACAddressSegment) (stop bool)) {
-	section.visitSegments(
-		func(index int, div *AddressDivision) bool {
-			return callback(index, div.ToMACAddressSegment())
-		},
-		section.GetSegmentCount())
-}
+//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+//func (section *MACAddressSection) ForEachSegment(callback func(index int, segment *MACAddressSegment) (stop bool)) {
+//	section.visitSegments(
+//		func(index int, div *AddressDivision) bool {
+//			return callback(index, div.ToMACAddressSegment())
+//		},
+//		section.GetSegmentCount())
+//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
