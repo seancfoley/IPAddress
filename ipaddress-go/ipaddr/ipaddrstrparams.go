@@ -1,97 +1,97 @@
 package ipaddr
 
-func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters { //note this is a duplicate of getPrivateParams which calls ToIPAddressStringParamsBuilder(orig).ToParams()
-	if params, ok := orig.(*ipAddressStringParameters); ok {
-		return params
-	}
-	origIPv4 := orig.GetIPv4Parameters()
-	origIPv4Range := origIPv4.GetRangeParameters()
-	origIPv6 := orig.GetIPv6Parameters()
-	origIPv6Range := origIPv6.GetRangeParameters()
-	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
-	origMixedIPv4Range := origMixedIPv4.GetRangeParameters()
-	paramsBuilder := IPAddressStringParametersBuilder{}
-	return paramsBuilder.
-		// general settings
-		AllowIPv6(orig.AllowsIPv6()).
-		AllowIPv4(orig.AllowsIPv4()).
-		SetEmptyLoopback(orig.EmptyIsLoopback()).
-		AllowMask(orig.AllowsMask()).
-		AllowPrefixOnly(orig.AllowsPrefixOnly()).
-		AllowPrefix(orig.AllowsPrefix()).
-		AllowEmpty(orig.AllowsEmpty()).
-		AllowSingleSegment(orig.AllowsSingleSegment()).
-		AllowAll(orig.AllowsAll()).
-		//
-		// IPv6 settings
-		GetIPv6AddressParametersBuilder().
-		AllowZone(origIPv6.AllowsZone()).
-		AllowMixed(origIPv6.AllowsMixed()).
-		AllowBase85(origIPv6.AllowsBase85()).
-		AllowBinary(origIPv6.AllowsBinary()).
-		AllowWildcardedSeparator(origIPv6.AllowsWildcardedSeparator()).
-		AllowLeadingZeros(origIPv6.AllowsLeadingZeros()).
-		AllowUnlimitedLeadingZeros(origIPv6.AllowsUnlimitedLeadingZeros()).
-		AllowPrefixesBeyondAddressSize(origIPv6.AllowsPrefixesBeyondAddressSize()).
-		AllowPrefixLengthLeadingZeros(origIPv6.AllowsPrefixLengthLeadingZeros()).
-		//
-		// IPv6 ranges
-		GetRangeParametersBuilder().
-		AllowWildcard(origIPv6Range.AllowsWildcard()).
-		AllowRangeSeparator(origIPv6Range.AllowsRangeSeparator()).
-		AllowReverseRange(origIPv6Range.AllowsReverseRange()).
-		AllowInferredBoundary(origIPv6Range.AllowsInferredBoundary()).
-		AllowSingleWildcard(origIPv6Range.AllowsSingleWildcard()).
-		GetIPv6ParentBuilder().
-		//
-		// mixed-in embedded IPV4 settings (the 1.2.3.4 in a:b:c:d:e:f:1.2.3.4)
-		GetEmbeddedIPv4AddressParametersBuilder().
-		Allow_inet_aton_hex(origMixedIPv4.Allows_inet_aton_hex()).
-		Allow_inet_aton_octal(origMixedIPv4.Allows_inet_aton_octal()).
-		Allow_inet_aton_leading_zeros(origMixedIPv4.Allows_inet_aton_leading_zeros()).
-		Allow_inet_aton_joinedSegments(origMixedIPv4.Allows_inet_aton_joinedSegments()).
-		AllowBinary(origMixedIPv4.AllowsBinary()).
-		AllowUnlimitedLeadingZeros(origMixedIPv4.AllowsUnlimitedLeadingZeros()).
-		AllowWildcardedSeparator(origMixedIPv4.AllowsWildcardedSeparator()).
-		AllowLeadingZeros(origMixedIPv4.AllowsLeadingZeros()).
-		//
-		// embedded IPv4 ranges
-		GetRangeParametersBuilder().
-		AllowWildcard(origMixedIPv4Range.AllowsWildcard()).
-		AllowRangeSeparator(origMixedIPv4Range.AllowsRangeSeparator()).
-		AllowReverseRange(origMixedIPv4Range.AllowsReverseRange()).
-		AllowInferredBoundary(origMixedIPv4Range.AllowsInferredBoundary()).
-		AllowSingleWildcard(origMixedIPv4Range.AllowsSingleWildcard()).
-		GetIPv4ParentBuilder().
-		GetParentBuilder().
-		//
-		//IPv4 settings
-		GetIPv4AddressParametersBuilder().
-		Allow_inet_aton_hex(origIPv4.Allows_inet_aton_hex()).
-		Allow_inet_aton_octal(origIPv4.Allows_inet_aton_octal()).
-		Allow_inet_aton_leading_zeros(origIPv4.Allows_inet_aton_leading_zeros()).
-		Allow_inet_aton_joinedSegments(origIPv4.Allows_inet_aton_joinedSegments()).
-		Allow_inet_aton_single_segment_mask(origIPv4.Allows_inet_aton_single_segment_mask()).
-		AllowPrefixesBeyondAddressSize(origIPv4.AllowsPrefixesBeyondAddressSize()).
-		AllowPrefixLengthLeadingZeros(origIPv4.AllowsPrefixLengthLeadingZeros()).
-		AllowBinary(origIPv4.AllowsBinary()).
-		SetNetwork(origIPv4.GetNetwork()).
-		AllowUnlimitedLeadingZeros(origIPv4.AllowsUnlimitedLeadingZeros()).
-		AllowWildcardedSeparator(origIPv4.AllowsWildcardedSeparator()).
-		AllowLeadingZeros(origIPv4.AllowsLeadingZeros()).
-		//
-		//  IPv4 ranges
-		GetRangeParametersBuilder().
-		AllowWildcard(origIPv4Range.AllowsWildcard()).
-		AllowRangeSeparator(origIPv4Range.AllowsRangeSeparator()).
-		AllowReverseRange(origIPv4Range.AllowsReverseRange()).
-		AllowInferredBoundary(origIPv4Range.AllowsInferredBoundary()).
-		AllowSingleWildcard(origIPv4Range.AllowsSingleWildcard()).
-		GetIPv4ParentBuilder().
-		GetParentBuilder().
-		//
-		ToParams().(*ipAddressStringParameters)
-}
+//func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters { //note this is a duplicate of getPrivateParams which calls ToIPAddressStringParamsBuilder(orig).ToParams()
+//	if params, ok := orig.(*ipAddressStringParameters); ok {
+//		return params
+//	}
+//	origIPv4 := orig.GetIPv4Parameters()
+//	origIPv4Range := origIPv4.GetRangeParameters()
+//	origIPv6 := orig.GetIPv6Parameters()
+//	origIPv6Range := origIPv6.GetRangeParameters()
+//	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
+//	origMixedIPv4Range := origMixedIPv4.GetRangeParameters()
+//	paramsBuilder := IPAddressStringParametersBuilder{}
+//	return paramsBuilder.
+//		// general settings
+//		AllowIPv6(orig.AllowsIPv6()).
+//		AllowIPv4(orig.AllowsIPv4()).
+//		SetEmptyLoopback(orig.EmptyIsLoopback()).
+//		AllowMask(orig.AllowsMask()).
+//		AllowPrefixOnly(orig.AllowsPrefixOnly()).
+//		AllowPrefix(orig.AllowsPrefix()).
+//		AllowEmpty(orig.AllowsEmpty()).
+//		AllowSingleSegment(orig.AllowsSingleSegment()).
+//		AllowAll(orig.AllowsAll()).
+//		//
+//		// IPv6 settings
+//		GetIPv6AddressParametersBuilder().
+//		AllowZone(origIPv6.AllowsZone()).
+//		AllowMixed(origIPv6.AllowsMixed()).
+//		AllowBase85(origIPv6.AllowsBase85()).
+//		AllowBinary(origIPv6.AllowsBinary()).
+//		AllowWildcardedSeparator(origIPv6.AllowsWildcardedSeparator()).
+//		AllowLeadingZeros(origIPv6.AllowsLeadingZeros()).
+//		AllowUnlimitedLeadingZeros(origIPv6.AllowsUnlimitedLeadingZeros()).
+//		AllowPrefixesBeyondAddressSize(origIPv6.AllowsPrefixesBeyondAddressSize()).
+//		AllowPrefixLengthLeadingZeros(origIPv6.AllowsPrefixLengthLeadingZeros()).
+//		//
+//		// IPv6 ranges
+//		GetRangeParametersBuilder().
+//		AllowWildcard(origIPv6Range.AllowsWildcard()).
+//		AllowRangeSeparator(origIPv6Range.AllowsRangeSeparator()).
+//		AllowReverseRange(origIPv6Range.AllowsReverseRange()).
+//		AllowInferredBoundary(origIPv6Range.AllowsInferredBoundary()).
+//		AllowSingleWildcard(origIPv6Range.AllowsSingleWildcard()).
+//		GetIPv6ParentBuilder().
+//		//
+//		// mixed-in embedded IPV4 settings (the 1.2.3.4 in a:b:c:d:e:f:1.2.3.4)
+//		GetEmbeddedIPv4AddressParametersBuilder().
+//		Allow_inet_aton_hex(origMixedIPv4.Allows_inet_aton_hex()).
+//		Allow_inet_aton_octal(origMixedIPv4.Allows_inet_aton_octal()).
+//		Allow_inet_aton_leading_zeros(origMixedIPv4.Allows_inet_aton_leading_zeros()).
+//		Allow_inet_aton_joinedSegments(origMixedIPv4.Allows_inet_aton_joinedSegments()).
+//		AllowBinary(origMixedIPv4.AllowsBinary()).
+//		AllowUnlimitedLeadingZeros(origMixedIPv4.AllowsUnlimitedLeadingZeros()).
+//		AllowWildcardedSeparator(origMixedIPv4.AllowsWildcardedSeparator()).
+//		AllowLeadingZeros(origMixedIPv4.AllowsLeadingZeros()).
+//		//
+//		// embedded IPv4 ranges
+//		GetRangeParametersBuilder().
+//		AllowWildcard(origMixedIPv4Range.AllowsWildcard()).
+//		AllowRangeSeparator(origMixedIPv4Range.AllowsRangeSeparator()).
+//		AllowReverseRange(origMixedIPv4Range.AllowsReverseRange()).
+//		AllowInferredBoundary(origMixedIPv4Range.AllowsInferredBoundary()).
+//		AllowSingleWildcard(origMixedIPv4Range.AllowsSingleWildcard()).
+//		GetIPv4ParentBuilder().
+//		GetParentBuilder().
+//		//
+//		//IPv4 settings
+//		GetIPv4AddressParametersBuilder().
+//		Allow_inet_aton_hex(origIPv4.Allows_inet_aton_hex()).
+//		Allow_inet_aton_octal(origIPv4.Allows_inet_aton_octal()).
+//		Allow_inet_aton_leading_zeros(origIPv4.Allows_inet_aton_leading_zeros()).
+//		Allow_inet_aton_joinedSegments(origIPv4.Allows_inet_aton_joinedSegments()).
+//		Allow_inet_aton_single_segment_mask(origIPv4.Allows_inet_aton_single_segment_mask()).
+//		AllowPrefixesBeyondAddressSize(origIPv4.AllowsPrefixesBeyondAddressSize()).
+//		AllowPrefixLengthLeadingZeros(origIPv4.AllowsPrefixLengthLeadingZeros()).
+//		AllowBinary(origIPv4.AllowsBinary()).
+//		SetNetwork(origIPv4.GetNetwork()).
+//		AllowUnlimitedLeadingZeros(origIPv4.AllowsUnlimitedLeadingZeros()).
+//		AllowWildcardedSeparator(origIPv4.AllowsWildcardedSeparator()).
+//		AllowLeadingZeros(origIPv4.AllowsLeadingZeros()).
+//		//
+//		//  IPv4 ranges
+//		GetRangeParametersBuilder().
+//		AllowWildcard(origIPv4Range.AllowsWildcard()).
+//		AllowRangeSeparator(origIPv4Range.AllowsRangeSeparator()).
+//		AllowReverseRange(origIPv4Range.AllowsReverseRange()).
+//		AllowInferredBoundary(origIPv4Range.AllowsInferredBoundary()).
+//		AllowSingleWildcard(origIPv4Range.AllowsSingleWildcard()).
+//		GetIPv4ParentBuilder().
+//		GetParentBuilder().
+//		//
+//		ToParams().(*ipAddressStringParameters)
+//}
 
 type IPAddressStringParameters interface {
 	AddressStringParameters

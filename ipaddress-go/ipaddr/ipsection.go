@@ -147,7 +147,7 @@ func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, h
 		hostMaskLen = cache(0)
 	} else if checkingHostFront {
 		// all zeros
-		networkMaskLen = cache(section.GetBitCount())
+		hostMaskLen = cache(section.GetBitCount())
 		networkMaskLen = cache(0)
 	} else if checkingNetworkBack {
 		// ending in zeros, network mask
@@ -229,15 +229,6 @@ func (section *IPAddressSection) GetTrailingSection(index int) *IPAddressSection
 func (section *IPAddressSection) GetSubSection(index, endIndex int) *IPAddressSection {
 	return section.getSubSection(index, endIndex).ToIPAddressSection()
 }
-
-//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-//func (section *IPAddressSection) ForEachSegment(callback func(index int, segment *IPAddressSegment) (stop bool)) {
-//	section.visitSegments(
-//		func(index int, div *AddressDivision) bool {
-//			return callback(index, div.ToIPAddressSegment())
-//		},
-//		section.GetSegmentCount())
-//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

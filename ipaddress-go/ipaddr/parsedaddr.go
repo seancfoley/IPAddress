@@ -13,8 +13,6 @@ type TranslatedResult struct {
 	qualifier  *ParsedHostIdentifierStringQualifier
 	originator HostIdentifierString
 
-	//TODO later consider if perhaps the address and section should be embedded here - PROBABLY NOT, because TranslatedResult is likely embedded already in ParsedIPAddress and we want to throw away the parsing stuff
-
 	section, hostSection,
 	lowerSection, upperSection *IPAddressSection
 

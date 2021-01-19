@@ -3695,7 +3695,10 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 						// if there are two prefix lengths, we choose the smaller (larger network)
 						// if two masks, we combine them (if both network masks, this is the same as choosing smaller prefix)
 						addrQualifier := pa.getIPAddressParseData().getQualifier()
-						addrQualifier.merge(hostQualifier)
+						addrErr = addrQualifier.merge(hostQualifier)
+						if addrErr != nil {
+							return
+						}
 						hostQualifier.clearPrefixOrMask()
 						// note it makes no sense to indicate a port or service with a prefix
 					}

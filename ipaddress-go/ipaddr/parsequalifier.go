@@ -61,11 +61,11 @@ func cacheBitCount(i BitCount) PrefixLen {
 
 type ParsedHostIdentifierStringQualifier struct {
 
-	//if there is a port for the host, this will be its numeric value
-	port    Port    //non-nil for a host with port
-	service Service //non-nil for host with a service instead of a port
+	// if there is a port for the host, this will be its numeric value
+	port    Port    // non-nil for a host with port
+	service Service // non-nil for host with a service instead of a port
 
-	//if there is a prefix length for the address, this will be its numeric value
+	// if there is a prefix length for the address, this will be its numeric value
 	networkPrefixLength PrefixLen //non-nil for a prefix-only address, sometimes non-nil for IPv4, IPv6
 
 	// If instead of a prefix length a mask was provided, this is the mask.
@@ -84,13 +84,14 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) clearPortOrService() {
 	parsedQual.service = ""
 }
 
+//TODO this might end up not being used (I think it might not be needed)
 //func (parsedQual *ParsedHostIdentifierStringQualifier) overrideMask(other *ParsedHostIdentifierStringQualifier) {
 //	if other.mask != nil {
 //		parsedQual.mask = other.mask
 //	}
 //}
 //
-////TODO make these types private later
+////TODO make these types private later - this might end up not being used (I think it might not be needed)
 //func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefixLength(other *ParsedHostIdentifierStringQualifier) {
 //	if other.networkPrefixLength != nil {
 //		parsedQual.networkPrefixLength = other.networkPrefixLength
@@ -98,7 +99,7 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) clearPortOrService() {
 //
 //}
 //
-//TODO this might end up not being used
+//TODO this might end up not being used (I think it might not be needed)
 //func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefix(other *ParsedHostIdentifierStringQualifier) {
 //	parsedQual.overridePrefixLength(other)
 //	parsedQual.overrideMask(other)
@@ -109,27 +110,25 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) clearPrefixOrMask() {
 	parsedQual.mask = nil
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) {
+func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) (err error) {
 	if parsedQual.networkPrefixLength == nil ||
 		(other.networkPrefixLength != nil && *other.networkPrefixLength < *parsedQual.networkPrefixLength) {
 		parsedQual.networkPrefixLength = other.networkPrefixLength
 	}
 	if parsedQual.mask == nil {
 		parsedQual.mask = other.mask
+	} else {
+		parsedQual.mergedMask, err = parsedQual.getMaskLower().Mask(other.getMaskLower())
 	}
-	//else {
-	//TODO mask
-	//mergedMask = getMaskLower().mask(other.getMaskLower());
-	//}
+	return
 }
 
 func (parsedQual *ParsedHostIdentifierStringQualifier) getMaskLower() *IPAddress {
-	if parsedQual.mergedMask != nil {
-		return parsedQual.mergedMask
+	if mask := parsedQual.mergedMask; mask != nil {
+		return mask
 	}
-	if parsedQual.mask != nil {
-		//TODO parsedQual.mask != nil
-		//return parsedQual.mask.getValForMask();
+	if mask := parsedQual.mask; mask != nil {
+		return mask.getValForMask()
 	}
 	return nil
 }
@@ -142,11 +141,9 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) getEquivalentPrefixLength
 	pref := parsedQual.getNetworkPrefixLength()
 	if pref == nil {
 		mask := parsedQual.getMaskLower()
-		_ = mask
-		//if mask != nil {
-		//	// TODO this too
-		//	//pref = mask.getBlockMaskPrefixLength(true)
-		//}
+		if mask != nil {
+			pref = mask.GetBlockMaskPrefixLength(true)
+		}
 	}
 	return pref
 }
@@ -169,15 +166,13 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) inferVersion(validationOp
 			!validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize() {
 			return IPv6
 		}
+	} else if mask := parsedQual.mask; mask != nil {
+		if mask.isProvidingIPv6() {
+			return IPv6
+		} else if mask.isProvidingIPv4() {
+			return IPv4
+		}
 	}
-	//else if parsedQual.mask != nil {
-	//TODO
-	//			if mask.isProvidingIPv6() {
-	//				return IPV6;
-	//			} else if mask.isProvidingIPv4() {
-	//				return IPV4;
-	//			}
-	//}
 	if parsedQual.zone != "" {
 		return IPv6
 	}
