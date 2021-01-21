@@ -1,6 +1,10 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"math/big"
+	"net"
+	"unsafe"
+)
 
 const (
 	//IPv4SegmentSeparator             = '.'
@@ -71,6 +75,30 @@ func (addr *MACAddress) init() *MACAddress {
 		return zeroMAC
 	}
 	return addr
+}
+
+func (addr *MACAddress) GetValue() *big.Int {
+	return addr.init().section.GetValue()
+}
+
+func (addr *MACAddress) GetUpperValue() *big.Int {
+	return addr.init().section.GetUpperValue()
+}
+
+func (addr *MACAddress) GetBytes() net.IP {
+	return addr.init().section.GetBytes()
+}
+
+func (addr *MACAddress) GetUpperBytes() net.IP {
+	return addr.init().section.GetUpperBytes()
+}
+
+func (addr *MACAddress) CopyBytes(bytes net.IP) net.IP {
+	return addr.init().section.CopyBytes(bytes)
+}
+
+func (addr *MACAddress) CopyUpperBytes(bytes net.IP) net.IP {
+	return addr.init().section.CopyUpperBytes(bytes)
 }
 
 func (addr *MACAddress) GetSection() *MACAddressSection {

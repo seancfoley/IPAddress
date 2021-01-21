@@ -13,9 +13,6 @@ type stringCache struct {
 
 type groupingCache struct {
 	lower, upper *AddressSection
-
-	// needs to go.  Cannot always know what etwork is, because we have no abstract types and we need concrete types for polymorphism
-	//network AddressNetwork // never nil // equivalent to overriding getNetwork(), ToIPvX(), IsIPvxConvertible(), etc, in Java, allows you to supply your own conversion
 }
 
 type addrType string
@@ -79,9 +76,21 @@ type valueCache struct {
 
 	lowerBytes, upperBytes []byte
 
-	stringCache  stringCache
+	stringCache stringCache
+
 	sectionCache groupingCache
 }
+
+//type addressDivisionGroupingBase struct {
+//	// the non-cache elements are assigned at creation and are immutable
+//	divisions    []*addressDivisionBase
+//	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
+//	isMultiple   bool
+//
+//	// TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
+//	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed, there is nothing to cache
+//	cache *valueCache
+//}
 
 //TODO large division groupings: Methods like isMax iterate through divisions and call isMax() on each.
 // There are others in AddressItem (prefix block checks, getCount()) that work on large division groupings the same as they do on items,
@@ -96,7 +105,7 @@ type valueCache struct {
 // HOW will we do something like isMax?  includesMax?  isFullRange?  iterating though either large or small divisions?
 // TODO NEXT It seems like pushing things into addressDivisionGroupingBase would work.
 // Any methods in addressDivisionGroupingInternal can just use AddressDivision and uint64 as they do now.  Have separate methods in LargeDivGruping.
-// Stuff like isMax() can go into addressDivisionGroupingBase and use more general methods in AddressDivisionBase.
+// Stuff like isMax() can go into addressDivisionGroupingBase and use more general methods in addressDivisionBase.
 // In fact, I think it might work better than in Java.  The interface pattern is quite nice.
 // The only PITA with using the interface pattern vs abstract methods is always handling zero values in which the interface not there.
 // TODO the biggest obstacle is methods like deriveIPAddressSectionSingle and getSubnetSegments which work on the array.
@@ -317,6 +326,36 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 //	return true
 //}
 
+func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {
+	if grouping.hasNoDivisions() {
+		return bigZero()
+	}
+	return bigZero().SetBytes(grouping.getBytes())
+}
+
+func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
+	if grouping.hasNoDivisions() {
+		return bigZero()
+	}
+	return bigZero().SetBytes(grouping.getUpperBytes())
+}
+
+func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
+	if grouping.hasNoDivisions() {
+		return emptyBytes
+	}
+	cached := grouping.getBytes()
+	return append(make([]byte, 0, len(cached)), cached...)
+}
+
+func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
+	if grouping.hasNoDivisions() {
+		return emptyBytes
+	}
+	cached := grouping.getUpperBytes()
+	return append(make([]byte, 0, len(cached)), cached...)
+}
+
 // CopyBytes gets the value for the lowest address in the range represented by this address division grouping.
 //
 // If the value fits in the given slice, the same slice is returned with the value.
@@ -330,16 +369,8 @@ func (grouping *addressDivisionGroupingInternal) CopyBytes(bytes []byte) []byte 
 		}
 		return emptyBytes
 	}
-	cached, _ := grouping.getBytesInternal()
+	cached := grouping.getBytes()
 	return getBytesCopy(bytes, cached)
-}
-
-func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
-	if grouping.hasNoDivisions() {
-		return emptyBytes
-	}
-	cached, _ := grouping.getBytesInternal()
-	return append(make([]byte, 0, len(cached)), cached...)
 }
 
 func (grouping *addressDivisionGroupingInternal) CopyUpperBytes(bytes []byte) []byte {
@@ -349,19 +380,22 @@ func (grouping *addressDivisionGroupingInternal) CopyUpperBytes(bytes []byte) []
 		}
 		return emptyBytes
 	}
-	_, cached := grouping.getBytesInternal()
+	cached := grouping.getUpperBytes()
 	return getBytesCopy(bytes, cached)
 }
 
-func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
-	if grouping.hasNoDivisions() {
-		return emptyBytes
-	}
-	_, cached := grouping.getBytesInternal()
-	return append(make([]byte, 0, len(cached)), cached...)
+func (grouping *addressDivisionGroupingInternal) getBytes() (bytes []byte) {
+	bytes, _ = grouping.getBytesInternal()
+	return
+}
+
+func (grouping *addressDivisionGroupingInternal) getUpperBytes() (bytes []byte) {
+	_, bytes = grouping.getBytesInternal()
+	return
 }
 
 func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, upperBytes []byte) {
+	isMultiple := grouping.IsMultiple()
 	cache := grouping.cache
 	if cache == nil {
 		return emptyBytes, emptyBytes
@@ -377,35 +411,68 @@ func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, uppe
 	cache.cacheLock.Lock()
 	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
 	if bytes == nil {
-		if addrType.isIPv4() {
-			bytes, upperBytes = make([]byte, divisionCount), make([]byte, divisionCount)
+		if addrType.isIPv4() || addrType.isMAC() {
+			bytes = make([]byte, divisionCount)
+			if isMultiple {
+				upperBytes = make([]byte, divisionCount)
+			} else {
+				upperBytes = bytes
+			}
 			for i := 0; i < divisionCount; i++ {
 				seg := grouping.getDivision(i).ToAddressSegment()
-				bytes[i], upperBytes[i] = byte(seg.GetSegmentValue()), byte(seg.GetUpperSegmentValue())
+				bytes[i] = byte(seg.GetSegmentValue())
+				if isMultiple {
+					upperBytes[i] = byte(seg.GetUpperSegmentValue())
+				}
 			}
 		} else if addrType.isIPv6() {
 			byteCount := divisionCount << 1
-			bytes, upperBytes = make([]byte, byteCount), make([]byte, byteCount)
+			bytes = make([]byte, byteCount)
+			if isMultiple {
+				upperBytes = make([]byte, byteCount)
+			} else {
+				upperBytes = bytes
+			}
 			for i := 0; i < divisionCount; i++ {
 				seg := grouping.getDivision(i).ToAddressSegment()
 				byteIndex := i << 1
-				val, upperVal := seg.GetSegmentValue(), seg.GetUpperSegmentValue()
-				bytes[byteIndex], upperBytes[byteIndex] = byte(val>>8), byte(upperVal>>8)
+				val := seg.GetSegmentValue()
+				bytes[byteIndex] = byte(val >> 8)
+				var upperVal SegInt
+				if isMultiple {
+					upperVal = seg.GetUpperSegmentValue()
+					upperBytes[byteIndex] = byte(upperVal >> 8)
+				}
 				nextByteIndex := byteIndex + 1
-				bytes[nextByteIndex], upperBytes[nextByteIndex] = byte(val), byte(upperVal)
+				bytes[nextByteIndex] = byte(val)
+				if isMultiple {
+					upperBytes[nextByteIndex] = byte(upperVal)
+				}
 			}
 		} else {
 			byteCount := grouping.GetByteCount()
+			bytes = make([]byte, byteCount)
+			if isMultiple {
+				upperBytes = make([]byte, byteCount)
+			} else {
+				upperBytes = bytes
+			}
 			for k, byteIndex, bitIndex := divisionCount-1, byteCount-1, BitCount(8); k >= 0; k-- {
 				div := grouping.getDivision(k)
-				val, upperVal := div.GetDivisionValue(), div.GetUpperDivisionValue()
+				val := div.GetDivisionValue()
+				var upperVal DivInt
+				if isMultiple {
+					upperVal = div.GetUpperDivisionValue()
+				}
 				divBits := div.GetBitCount()
 				for divBits > 0 {
 					rbi := 8 - bitIndex
 					bytes[byteIndex] |= byte(val << rbi)
-					upperBytes[byteIndex] |= byte(upperVal << rbi)
 					val >>= bitIndex
-					upperVal >>= bitIndex
+					if isMultiple {
+						upperBytes[byteIndex] |= byte(upperVal << rbi)
+						upperVal >>= bitIndex
+					}
 					if divBits < bitIndex {
 						bitIndex -= divBits
 						break

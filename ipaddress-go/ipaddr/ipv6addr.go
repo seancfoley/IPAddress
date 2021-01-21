@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"net"
 	"unsafe"
 )
@@ -236,6 +237,14 @@ func (addr *IPv6Address) ToPrefixBlock() *IPv6Address {
 
 func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPv6Address()
+}
+
+func (addr *IPv6Address) GetValue() *big.Int {
+	return addr.init().section.GetValue()
+}
+
+func (addr *IPv6Address) GetUpperValue() *big.Int {
+	return addr.init().section.GetUpperValue()
 }
 
 func (addr *IPv6Address) GetBytes() net.IP {

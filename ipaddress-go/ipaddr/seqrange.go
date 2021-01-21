@@ -5,15 +5,18 @@ import (
 	"unsafe"
 )
 
-// TODO what will be the zero IPAddressSeqRange sequential range?  An unversioned range, much like with addresses
+// TODO what will be the zero IPAddressSeqRange sequential range?  An unversioned range, much like with addresses?
 // ie it will have nil top and bottom
 // a nil address has a grouping with no segments
 // so a nil range will have no range boundaries, it will be empty
+// But, an empty section (no segments) has a single value, a value of zero
+// This dovetails nicely with GetValue, with various methods that check for blocks, etc
+// BUT does it have an IP Version?  No...
+// IPAddress zero value exists adn has zero as value, so this will too
+// which means you need the same init() trick as for IPAddress{}
 
-// TODO The other two, what will be their zero ranges?  Do we default to 0.0.0.0 and :: again?
-// But then instead of range of size 0, it has size 1.
-// Still, so does the zero addresses.
-// And it's safer to be handing out zero addresses and not nil pointers.
+// TODO The other two (IPv4/6), what will be their zero ranges?  Do we default to 0.0.0.0 and :: again?
+// Yep.
 
 type ipAddressSeqRangeInternal struct {
 	lower, upper *IPAddress
@@ -24,6 +27,11 @@ type IPAddressSeqRange struct {
 	ipAddressSeqRangeInternal
 }
 
+func (rng *IPAddressSeqRange) GetCount() *big.Int {
+	upper := rng.GetUpperValue()
+	return upper.Sub(upper, rng.GetValue()).Add(upper, bigOne())
+}
+
 func (rng *IPAddressSeqRange) GetLower() *IPAddress {
 	return rng.lower
 }
@@ -31,6 +39,61 @@ func (rng *IPAddressSeqRange) GetLower() *IPAddress {
 func (rng *IPAddressSeqRange) GetUpper() *IPAddress {
 	return rng.upper
 }
+
+//TODO these two, then the remainder of methods in IPAddressSeqRange to do are the ones above these two in the Java IPAddressSeqRange code
+//
+//	func (rng *IPAddressSeqRange) ContainsPrefixBlock(int prefixLen) bool {
+//		return IPAddressSection.containsPrefixBlock(prefixLen, getLower(), getUpper());
+//	}
+//
+//	func (rng *IPAddressSeqRange) ContainsSinglePrefixBlock(int prefixLen) bool {
+//		return IPAddressSection.containsSinglePrefixBlock(prefixLen, getLower(), getUpper());
+//	}
+
+func (rng *IPAddressSeqRange) GetBitCount() BitCount {
+	return rng.GetLower().GetBitCount()
+}
+
+func (rng *IPAddressSeqRange) GetBytes() []byte {
+	return rng.GetLower().GetBytes()
+}
+
+func (rng *IPAddressSeqRange) CopyBytes(bytes []byte) []byte {
+	return rng.GetLower().CopyBytes(bytes)
+}
+
+func (rng *IPAddressSeqRange) GetUpperBytes() []byte {
+	return rng.GetUpper().GetUpperBytes()
+}
+
+func (rng *IPAddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
+	return rng.GetUpper().CopyUpperBytes(bytes)
+}
+
+//TODO these 6 are ready to go once I add the same methods to groupings and addresses
+func (rng *IPAddressSeqRange) GetValue() *big.Int {
+	return rng.GetLower().GetValue()
+}
+
+func (rng *IPAddressSeqRange) GetUpperValue() *big.Int {
+	return rng.GetUpper().GetValue()
+}
+
+//func (rng *IPAddressSeqRange) IsZero() bool {
+//	return rng.IncludesZero() && !rng.IsMultiple()
+//}
+//
+//func (rng *IPAddressSeqRange) IncludesZero() bool {
+//	return rng.GetLower().IsZero()
+//}
+//
+//func (rng *IPAddressSeqRange) IsMax() bool {
+//	return rng.IncludesMax() && !rng.IsMultiple()
+//}
+//
+//func (rng *IPAddressSeqRange) IncludesMax() bool {
+//	return rng.GetUpper().IsMax()
+//}
 
 func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
 	if rng == nil {

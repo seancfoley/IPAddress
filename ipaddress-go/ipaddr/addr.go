@@ -70,6 +70,20 @@ func (addr *addressInternal) getSegment(index int) *AddressSegment {
 	return addr.section.GetSegment(index)
 }
 
+func (addr *addressInternal) GetValue() *big.Int {
+	if addr.section == nil {
+		return bigZero()
+	}
+	return addr.section.GetValue()
+}
+
+func (addr *addressInternal) GetUpperValue() *big.Int {
+	if addr.section == nil {
+		return bigZero()
+	}
+	return addr.section.GetUpperValue()
+}
+
 func (addr *addressInternal) GetBytes() net.IP {
 	if addr.section == nil {
 		return emptyBytes

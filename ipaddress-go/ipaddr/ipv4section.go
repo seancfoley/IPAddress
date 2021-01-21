@@ -136,7 +136,7 @@ func (section *IPv4AddressSection) GetCount() *big.Int {
 		return bigOne()
 	}
 	return section.cacheCount(func() *big.Int {
-		return new(big.Int).SetUint64(section.GetIPv4Count())
+		return bigZero().SetUint64(section.GetIPv4Count())
 	})
 }
 

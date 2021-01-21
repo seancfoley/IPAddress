@@ -533,7 +533,7 @@ func mult(currentResult *big.Int, newResult uint64) *big.Int {
 	if newResult == 1 {
 		return currentResult
 	}
-	newBig := new(big.Int).SetUint64(newResult)
+	newBig := bigZero().SetUint64(newResult)
 	return currentResult.Mul(currentResult, newBig)
 }
 

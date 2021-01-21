@@ -55,7 +55,7 @@ func (seg *addressSegmentInternal) GetCount() *big.Int {
 	if !seg.IsMultiple() {
 		return bigOne()
 	}
-	return new(big.Int).SetUint64(seg.GetValueCount())
+	return bigZero().SetUint64(seg.GetValueCount())
 }
 
 func (seg *addressSegmentInternal) GetMaxValue() SegInt {

@@ -79,7 +79,7 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 	if !div.IsMultiple() {
 		return bigOne()
 	}
-	res := new(big.Int)
+	res := bigZero()
 	if div.isFullRange() {
 		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
 	} else {
