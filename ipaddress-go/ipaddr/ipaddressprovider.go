@@ -923,3 +923,9 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces
 // - finish HostName
+
+// TODO getCount: check getCountImpl(), which calls getCountImpl(int)
+// you want to check if a series is section, then in section check if ip section or mac, then in ip section check if ipv4/6
+// keep going up til you cannot, then do the count.  There are 3 getCountImpl(int one for mac, ipv4, ipv6.
+// There is a getCountImpl() for AddressDivisionSeries using big ints totally
+// The getCountImpl for seq ranges is pretty simple, same with divisions

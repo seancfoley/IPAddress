@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"math/big"
 	"unsafe"
 )
 
@@ -99,7 +100,7 @@ func (section *addressSectionInternal) init() error {
 			//}
 
 			segment := section.GetSegment(i)
-			if !isMultiple && segment.isMultiple() {
+			if !isMultiple && segment.IsMultiple() {
 				isMultiple = true
 				section.isMultiple = true
 			}
@@ -161,19 +162,19 @@ func (section *addressSectionInternal) GetByteCount() int {
 }
 
 func (section *addressSectionInternal) matchesIPv6Section() bool {
-	return section.addrType.isIPv6() || section.addrType.isNil()
+	return section.addrType.isIPv6() || (section.addrType.isNil() && section.hasNoDivisions())
 }
 
 func (section *addressSectionInternal) matchesIPv4Section() bool {
-	return section.addrType.isIPv4() || section.addrType.isNil()
+	return section.addrType.isIPv4() || (section.addrType.isNil() && section.hasNoDivisions())
 }
 
 func (section *addressSectionInternal) matchesIPSection() bool {
-	return section.addrType.isIP() || section.addrType.isNil()
+	return section.addrType.isIP() || (section.addrType.isNil() && section.hasNoDivisions())
 }
 
 func (section *addressSectionInternal) matchesMACSection() bool {
-	return section.addrType.isMAC() || section.addrType.isNil()
+	return section.addrType.isMAC() || (section.addrType.isNil() && section.hasNoDivisions())
 }
 
 func (section *addressSectionInternal) matchesIPv6Address() bool {
@@ -407,6 +408,19 @@ type AddressSection struct {
 	addressSectionInternal
 }
 
+func (section *AddressSection) GetCount() *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetCount()
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetCount()
+	} else if sect := section.ToMACAddressSection(); sect != nil {
+		return sect.GetCount()
+	}
+	return section.cacheCount(section.getBigCount)
+}
+
 // Gets the subsection from the series starting from the given index
 // The first segment is at index 0.
 func (section *AddressSection) GetTrailingSection(index int) *AddressSection {
@@ -418,15 +432,6 @@ func (section *AddressSection) GetTrailingSection(index int) *AddressSection {
 func (section *AddressSection) GetSubSection(index, endIndex int) *AddressSection {
 	return section.getSubSection(index, endIndex)
 }
-
-//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-//func (section *AddressSection) ForEachSegment(callback func(index int, segment *AddressSegment) (stop bool)) {
-//	section.visitSegments(
-//		func(index int, div *AddressDivision) bool {
-//			return callback(index, div.ToAddressSegment())
-//		},
-//		section.GetSegmentCount())
-//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
@@ -463,6 +468,22 @@ func (section *AddressSection) ToPrefixBlockLen(prefLen BitCount) *AddressSectio
 	return section.toPrefixBlockLen(prefLen)
 }
 
+func (section *AddressSection) IsIPAddressSection() bool {
+	return section != nil && section.matchesIPSection()
+}
+
+func (section *AddressSection) IsIPv4AddressSection() bool { //TODO rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+	return section != nil && section.matchesIPv4Section()
+}
+
+func (section *AddressSection) IsIPv6AddressSection() bool {
+	return section != nil && section.matchesIPv6Section()
+}
+
+func (section *AddressSection) IsMACAddressSection() bool {
+	return section != nil && section.matchesMACSection()
+}
+
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
 	if section == nil || !section.matchesIPSection() {
 		return nil
@@ -489,4 +510,68 @@ func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
 		return nil
 	}
 	return (*MACAddressSection)(unsafe.Pointer(section))
+}
+
+// note: only to be used when you already know the total size fits into a long
+func longCount(section *AddressSection, segCount int) uint64 {
+	result := getLongCount(func(index int) uint64 { return section.GetSegment(index).GetValueCount() }, segCount)
+	return result
+}
+
+func getLongCount(segmentCountProvider func(index int) uint64, segCount int) uint64 {
+	if segCount == 0 {
+		return 1
+	}
+	result := segmentCountProvider(0)
+	for i := 1; i < segCount; i++ {
+		result *= segmentCountProvider(i)
+	}
+	return result
+}
+
+func mult(currentResult *big.Int, newResult uint64) *big.Int {
+	if newResult == 1 {
+		return currentResult
+	}
+	newBig := new(big.Int).SetUint64(newResult)
+	return currentResult.Mul(currentResult, newBig)
+}
+
+// only called when isMultiple() is true, so segCount >= 1
+func count(segmentCountProvider func(index int) uint64, segCount, safeMultiplies int, safeLimit uint64) *big.Int {
+	result := bigOne()
+	if segCount == 0 {
+		return result
+	}
+	i := 0
+	for {
+		curResult := segmentCountProvider(i)
+		i++
+		if i == segCount {
+			return mult(result, curResult)
+		}
+		limit := i + safeMultiplies
+		if segCount <= limit {
+			// all multiplies are safe
+			for i < segCount {
+				curResult *= segmentCountProvider(i)
+				i++
+			}
+			return mult(result, curResult)
+		}
+		// do the safe multiplies which cannot overflow
+		for i < limit {
+			curResult *= segmentCountProvider(i)
+			i++
+		}
+		// do as many additional multiplies as current result allows
+		for curResult <= safeLimit {
+			curResult *= segmentCountProvider(i)
+			i++
+			if i == segCount {
+				return mult(result, curResult)
+			}
+		}
+		result = mult(result, curResult)
+	}
 }

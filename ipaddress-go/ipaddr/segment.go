@@ -1,11 +1,13 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
 // SegInt is an integer type for holding generic address segment values.  It is at least as large as all address segment values: IPv6SegInt, IPv4SegInt, MACSegInt
 type SegInt = uint32
+type SegIntCount = uint64
 
 const SegIntSize = 32
 
@@ -43,6 +45,17 @@ func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
 		return 0
 	}
 	return vals.getUpperSegmentValue()
+}
+
+func (seg *addressSegmentInternal) GetValueCount() SegIntCount {
+	return uint64(seg.GetUpperSegmentValue()-seg.GetSegmentValue()) + 1
+}
+
+func (seg *addressSegmentInternal) GetCount() *big.Int {
+	if !seg.IsMultiple() {
+		return bigOne()
+	}
+	return new(big.Int).SetUint64(seg.GetValueCount())
 }
 
 func (seg *addressSegmentInternal) GetMaxValue() SegInt {
@@ -100,7 +113,7 @@ func (div *addressSegmentInternal) isOneBit(segmentBitIndex BitCount) bool {
 }
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
-	if !seg.isMultiple() {
+	if !seg.IsMultiple() {
 		return seg.toAddressSegment()
 	}
 	vals := seg.divisionValues
@@ -112,7 +125,7 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 }
 
 func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
-	if !seg.isMultiple() {
+	if !seg.IsMultiple() {
 		return seg.toAddressSegment()
 	}
 	//vals, cache := seg.getUpper()
@@ -128,8 +141,11 @@ type AddressSegment struct {
 	addressSegmentInternal
 }
 
-// TODO this works different than sections, and we must be careful with methods returning strings that they remain consistent
+// TODO segments work different than sections, and we must be careful with methods returning strings that they remain consistent
+// Unlike with sections, we have no addrType to check, but since segments are printed withut separators, mostly ok,
+// but then there is the radix to worry about, also the prefix to worry about.
 // Methods that use the prefix to print the string must not use any shared fields with AddressSegment and AddressDivision
+// Methods that print strings in hex must not share fields with IPv4AddressSegment
 
 func (seg *AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	if seg == nil {

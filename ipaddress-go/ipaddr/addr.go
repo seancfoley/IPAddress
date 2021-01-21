@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"unsafe"
 )
@@ -42,6 +43,13 @@ func (addr *addressInternal) GetByteCount() int {
 		return 0
 	}
 	return addr.section.GetByteCount()
+}
+
+func (addr *addressInternal) GetCount() *big.Int {
+	if addr.section == nil {
+		return bigOne()
+	}
+	return addr.section.GetCount()
 }
 
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt

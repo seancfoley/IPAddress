@@ -25,9 +25,12 @@ const (
 	ipv4Type addrType = "IPv4" // ipv4 segments
 	ipv6Type addrType = "IPv6" // ipv6 segments
 	macType  addrType = "MAC"  // mac segments
+
 )
 
-var emptyBytes []byte = []byte{}
+var (
+	emptyBytes = []byte{}
+)
 
 func (a addrType) isNil() bool {
 	return a == zeroType
@@ -59,25 +62,10 @@ type maskLenSetting struct {
 	networkMaskLen, hostMaskLen PrefixLen
 }
 
-//type CreationLock struct {
-//	created    atomicFlag // to check if created
-//	createLock sync.Mutex // acquire to create
-//}
-//
-//func (lock *CreationLock) isItemCreated() bool {
-//	return lock.created.isSet()
-//}
-//
-//func (lock *CreationLock) create(creator func()) (ret bool) {
-//	lock.createLock.Lock()
-//	if !lock.isItemCreated() {
-//		creator()
-//		ret = true
-//		lock.created.set()
-//	}
-//	lock.createLock.Unlock()
-//	return
-//}
+type countSetting struct {
+	atomicFlag
+	count big.Int
+}
 
 type valueCache struct {
 	//	All writing done after locking the cacheLock.
@@ -85,15 +73,55 @@ type valueCache struct {
 	//	or instead using a specific atomic flag covering a specific set of cache fields.
 	cacheLock sync.RWMutex
 
-	cachedCount, cachedPrefixCount big.Int // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
-	//cachedPrefixLen                prefixLenSetting
+	cachedCount, cachedPrefixCount countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
 
 	cachedMaskLens maskLenSetting
 
 	lowerBytes, upperBytes []byte
-	//isMultiple             boolSetting
+
 	stringCache  stringCache
 	sectionCache groupingCache
+}
+
+//TODO large division groupings: Methods like isMax iterate through divisions and call isMax() on each.
+// There are others in AddressItem (prefix block checks, getCount()) that work on large division groupings the same as they do on items,
+// by using the full lower and upper of long division groupings.
+// So we want to extend that to larged division groupings here too.
+// We could do that by emulating overriding the way we do for getCount(), but we'd need to know how to tell what we are, necessitating more addrType shenanigans.
+// I was thinking of moving down the divisions array, which seems to be key for methods like isMax which iterates through divisions.
+// Maybe I should still do that.  But that screws up a lot of code I wrote already.
+// I think you need to address this now.
+// We have code that checks addrType and div size to know when we can switch AddressDivision to to segments and ipv4/6/macsegments.
+// That code then defaults to using uint64.  It assumes our divisions are AddressDivision and not something else.
+// HOW will we do something like isMax?  includesMax?  isFullRange?  iterating though either large or small divisions?
+// TODO NEXT It seems like pushing things into addressDivisionGroupingBase would work.
+// Any methods in addressDivisionGroupingInternal can just use AddressDivision and uint64 as they do now.  Have separate methods in LargeDivGruping.
+// Stuff like isMax() can go into addressDivisionGroupingBase and use more general methods in AddressDivisionBase.
+// In fact, I think it might work better than in Java.  The interface pattern is quite nice.
+// The only PITA with using the interface pattern vs abstract methods is always handling zero values in which the interface not there.
+// TODO the biggest obstacle is methods like deriveIPAddressSectionSingle and getSubnetSegments which work on the array.
+// We will be constantly switching to AddressDivisionBase.  ok, maybe not constantly.
+// Still, I think I can make that work, probably better than in Java where I always had to create arrays of correct type.
+// The last question is whether this is all worth it...
+// This is just for base85 and for being able to parse hex or base85 single value ipv6 to a grouping.
+// I think it probably is.  It's really not so bad, just no direct access to the array elements.
+// But I cannot do direct access for sections already anyway.  So nothing new there.
+// Maybe even for infiniband 20-octet addresses?  Not really, that will go into MACAddressSection so falls under addressDivisionGrouping.
+// Still, looks like the cost is low.
+
+func (grouping *addressDivisionGroupingInternal) getBigCount() *big.Int { //TODO getCount() move this to the new addressDivisionBase
+	res := bigOne()
+	count := grouping.GetDivisionCount()
+	if count > 0 {
+		for i := 0; i < count; i++ {
+			div := grouping.getDivision(i)
+			if div.IsMultiple() {
+				divCount := div.GetCount()
+				res.Mul(res, divCount)
+			}
+		}
+	}
+	return res
 }
 
 type addressDivisionGroupingInternal struct {
@@ -112,7 +140,7 @@ type addressDivisionGroupingInternal struct {
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
 	addressSegmentIndex uint8
 
-	//TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
+	// TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
 	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed, there is nothing to cache
 	cache *valueCache
 }
@@ -161,6 +189,65 @@ func (grouping addressDivisionGroupingInternal) GetBitCount() (res BitCount) {
 
 func (grouping addressDivisionGroupingInternal) GetByteCount() BitCount {
 	return (grouping.GetBitCount() + 7) >> 3
+}
+
+func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
+	var bitCount BitCount
+	for i, div := range grouping.divisions { // all divisions must be equal size and have an exact number of bytes
+		if i == 0 {
+			bitCount = div.GetBitCount()
+			if bitCount%8 != 0 || bitCount > SegIntSize {
+				return false
+			}
+		} else if bitCount != div.GetBitCount() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingInternal) cacheCount(counter func() *big.Int) *big.Int {
+	cache := grouping.cache
+	if !cache.cachedCount.isSet() {
+		cache.cacheLock.Lock()
+		if !cache.cachedCount.isSetNoSync() {
+			cache.cachedCount.count = *counter()
+			cache.cachedCount.set()
+		}
+		cache.cacheLock.Unlock()
+	}
+	return &cache.cachedCount.count
+}
+
+func (grouping *addressDivisionGroupingInternal) GetCount() *big.Int {
+	if !grouping.IsMultiple() {
+		return bigOne()
+	} else if section := grouping.toAddressSection(); section != nil {
+		return section.GetCount()
+	}
+	return grouping.cacheCount(grouping.getBigCount)
+}
+
+func (grouping *addressDivisionGroupingInternal) toAddressDivisionGrouping() *AddressDivisionGrouping {
+	return (*AddressDivisionGrouping)(unsafe.Pointer(grouping))
+}
+
+func (grouping *addressDivisionGroupingInternal) toAddressSection() *AddressSection {
+	return grouping.toAddressDivisionGrouping().ToAddressSection()
+}
+
+func (grouping addressDivisionGroupingInternal) matchesIPv6Address() bool {
+	return grouping.addrType.isIPv6() && grouping.GetDivisionCount() == IPv6SegmentCount
+}
+
+func (grouping addressDivisionGroupingInternal) matchesIPv4Address() bool {
+	return grouping.addrType.isIPv4() && grouping.GetDivisionCount() == IPv4SegmentCount
+}
+
+func (grouping addressDivisionGroupingInternal) matchesMACAddress() bool {
+	segCount := grouping.GetDivisionCount()
+	return grouping.addrType.isMAC() &&
+		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
 }
 
 func (grouping addressDivisionGroupingInternal) String() string {
@@ -342,7 +429,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	count := grouping.GetDivisionCount()
 	if count > 1 {
 		for i := 0; i < count; i++ {
-			if grouping.getDivision(i).isMultiple() {
+			if grouping.getDivision(i).IsMultiple() {
 				for i++; i < count; i++ {
 					if !grouping.getDivision(i).IsFullRange() {
 						return false
@@ -376,56 +463,61 @@ type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
 
+func (grouping *AddressDivisionGrouping) IsAddressSection() bool {
+	return grouping != nil && grouping.isAddressSection()
+}
+
+func (grouping *AddressDivisionGrouping) IsIPAddressSection() bool {
+	return grouping.IsAddressSection() && grouping.ToAddressSection().IsIPAddressSection()
+}
+
+func (grouping *AddressDivisionGrouping) IsIPv4AddressSection() bool {
+	return grouping.IsAddressSection() && grouping.ToAddressSection().IsIPv4AddressSection()
+}
+
+func (grouping *AddressDivisionGrouping) IsIPv6AddressSection() bool {
+	return grouping.IsAddressSection() && grouping.ToAddressSection().IsIPv6AddressSection()
+}
+
+func (grouping *AddressDivisionGrouping) IsMACAddressSection() bool {
+	return grouping.IsAddressSection() && grouping.ToAddressSection().IsMACAddressSection()
+}
+
 // ToAddressSection converts to an address section.
 // If the conversion cannot happen due to division size or count, the result will be the zero value.
 func (grouping *AddressDivisionGrouping) ToAddressSection() *AddressSection {
-	if grouping == nil {
+	if grouping == nil || !grouping.isAddressSection() {
 		return nil
-	}
-	var bitCount BitCount
-	for i, div := range grouping.divisions { // all divisions must be equal size and have an exact number of bytes
-		if i == 0 {
-			bitCount = div.GetBitCount()
-			if bitCount%8 != 0 {
-				return nil
-			}
-		} else if bitCount != div.GetBitCount() {
-			return nil
-		}
 	}
 	return (*AddressSection)(unsafe.Pointer(grouping))
 }
 
 func (grouping *AddressDivisionGrouping) ToIPAddressSection() *IPAddressSection {
-	section := grouping.ToAddressSection()
-	if section == nil {
-		return nil
+	if section := grouping.ToAddressSection(); section != nil {
+		return section.ToIPAddressSection()
 	}
-	return section.ToIPAddressSection()
+	return nil
 }
 
 func (grouping *AddressDivisionGrouping) ToIPv6AddressSection() *IPv6AddressSection {
-	section := grouping.ToIPAddressSection()
-	if section == nil {
-		return nil
+	if section := grouping.ToAddressSection(); section != nil {
+		return section.ToIPv6AddressSection()
 	}
-	return section.ToIPv6AddressSection()
+	return nil
 }
 
 func (grouping *AddressDivisionGrouping) ToIPv4AddressSection() *IPv4AddressSection {
-	section := grouping.ToIPAddressSection()
-	if section == nil {
-		return nil
+	if section := grouping.ToAddressSection(); section != nil {
+		return section.ToIPv4AddressSection()
 	}
-	return section.ToIPv4AddressSection()
+	return nil
 }
 
 func (grouping *AddressDivisionGrouping) ToMACAddressSection() *MACAddressSection {
-	section := grouping.ToAddressSection()
-	if section == nil {
-		return nil
+	if section := grouping.ToAddressSection(); section != nil {
+		return section.ToMACAddressSection()
 	}
-	return section.ToMACAddressSection()
+	return nil
 }
 
 func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision {

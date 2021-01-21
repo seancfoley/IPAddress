@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 	"unsafe"
 )
@@ -64,12 +65,31 @@ func createAddressDivision(vals divisionValues) *AddressDivision {
 	return &AddressDivision{addressDivisionInternal{divisionValues: vals}}
 }
 
+//TODO large divisions will work like segments/divs do.  We will make addressDivisionInternal contain addressDivisionBase,
+// and put divisionValues in there.
+// Then we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
+// Most are string-related and byte-related.
+// The byte ones we can probably ignore, we do not (and cannot really) use the same wrapper pattern xxx() calling xxxImpl()
+
 type addressDivisionInternal struct {
 	divisionValues
 }
 
+func (div *addressDivisionInternal) GetCount() *big.Int {
+	if !div.IsMultiple() {
+		return bigOne()
+	}
+	res := new(big.Int)
+	if div.isFullRange() {
+		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
+	} else {
+		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
+	}
+	return res
+}
+
 func (div *addressDivisionInternal) String() string {
-	if div.isMultiple() {
+	if div.IsMultiple() {
 		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.getUpperDivisionValue())
 	}
 	return fmt.Sprintf("%x", div.getDivisionValue())
@@ -191,7 +211,31 @@ func (div *addressDivisionInternal) getMaxValue() DivInt {
 	return ^(^DivInt(0) << div.GetBitCount())
 }
 
-func (div *addressDivisionInternal) isMultiple() bool {
+func (div *addressDivisionInternal) isZero() bool {
+	return !div.IsMultiple() && div.includesZero()
+}
+
+// Returns whether this item includes the value of zero within its range
+func (div *addressDivisionInternal) includesZero() bool {
+	return div.getDivisionValue() == 0
+}
+
+// Returns whether this item matches the maximum possible value for the address type or version
+func (div *addressDivisionInternal) isMax() bool {
+	return !div.IsMultiple() && div.includesMax()
+}
+
+// Returns whether this item includes the maximum possible value for the address type or version within its range
+func (div *addressDivisionInternal) includesMax() bool {
+	return div.getUpperDivisionValue() == div.getMaxValue()
+}
+
+// whether this address item represents all possible values attainable by an address item of this type
+func (div *addressDivisionInternal) isFullRange() bool {
+	return div.includesZero() && div.includesMax()
+}
+
+func (div *addressDivisionInternal) IsMultiple() bool {
 	vals := div.divisionValues
 	if vals == nil {
 		return false
@@ -282,6 +326,13 @@ func (div *addressDivisionInternal) toAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
+func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
+	if div.GetBitCount() <= SegIntSize {
+		return (*AddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
+}
+
 type AddressDivision struct {
 	addressDivisionInternal
 }
@@ -295,44 +346,43 @@ func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	return div.getUpperDivisionValue()
 }
 
-func (div *AddressDivision) IsMultiple() bool {
-	return div.isMultiple()
-}
+//func (div *AddressDivision) IsMultiple() bool {
+//	return div.isMultiple()
+//}
 
 func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()
 }
 
 // Returns whether this item matches the value of zero
-func (div *AddressDivision) isZero() bool {
-	return !div.IsMultiple() && div.IncludesZero()
+func (div *AddressDivision) IsZero() bool {
+	return div.isZero()
 }
 
 // Returns whether this item includes the value of zero within its range
 func (div *AddressDivision) IncludesZero() bool {
-	return div.getDivisionValue() == 0
+	return div.includesZero()
 }
 
 // Returns whether this item matches the maximum possible value for the address type or version
 func (div *AddressDivision) IsMax() bool {
-	return !div.IsMultiple() && div.IncludesMax()
+	return div.isMax()
 }
 
 // Returns whether this item includes the maximum possible value for the address type or version within its range
 func (div *AddressDivision) IncludesMax() bool {
-	return div.getUpperDivisionValue() == div.GetMaxValue()
+	return div.includesMax()
 }
 
 // whether this address item represents all possible values attainable by an address item of this type
 func (div *AddressDivision) IsFullRange() bool {
-	return div.IncludesZero() && div.IncludesMax()
+	return div.isFullRange()
 }
 
+// TODO xxx do the same with the IsAddressSegment() isIPAddressSegment etc as you did with grouping/sections
+
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	if div.GetBitCount() <= SegIntSize {
-		return (*AddressSegment)(unsafe.Pointer(div))
-	}
-	return nil
+	return div.toAddressSegment()
 }
 
 func (div *AddressDivision) ToIPAddressSegment() *IPAddressSegment {

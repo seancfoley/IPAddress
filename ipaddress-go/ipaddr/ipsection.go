@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
@@ -192,6 +193,17 @@ type IPAddressSection struct {
 	ipAddressSectionInternal
 }
 
+func (section *IPAddressSection) GetCount() *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetCount()
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetCount()
+	}
+	return section.cacheCount(section.getBigCount)
+}
+
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 	if section == nil {
 		return nil
@@ -284,7 +296,7 @@ func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res
 				res.GetBytesPerSegment(),
 				(*AddressDivision).toPrefixedNetworkDivision)
 			if !res.isMultiple {
-				res.isMultiple = res.GetSegment(segLen - 1).isMultiple()
+				res.isMultiple = res.GetSegment(segLen - 1).IsMultiple()
 			}
 		}
 	}
@@ -330,7 +342,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			res.GetBytesPerSegment(),
 			segProducer)
 		if applyPrefixSubnet && !res.isMultiple {
-			res.isMultiple = res.GetSegment(segLen - 1).isMultiple()
+			res.isMultiple = res.GetSegment(segLen - 1).IsMultiple()
 		}
 	}
 	res.prefixLength = prefixLength

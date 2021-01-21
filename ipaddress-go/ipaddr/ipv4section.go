@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
@@ -130,6 +131,19 @@ type IPv4AddressSection struct {
 	ipAddressSectionInternal
 }
 
+func (section *IPv4AddressSection) GetCount() *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	}
+	return section.cacheCount(func() *big.Int {
+		return new(big.Int).SetUint64(section.GetIPv4Count())
+	})
+}
+
+func (section *IPv4AddressSection) GetIPv4Count() uint64 {
+	return longCount(section.ToAddressSection(), section.GetSegmentCount())
+}
+
 func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
 	return section.getDivision(index).ToIPv4AddressSegment()
 }
@@ -145,15 +159,6 @@ func (section *IPv4AddressSection) GetTrailingSection(index int) *IPv4AddressSec
 func (section *IPv4AddressSection) GetSubSection(index, endIndex int) *IPv4AddressSection {
 	return section.getSubSection(index, endIndex).ToIPv4AddressSection()
 }
-
-//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
-//func (section *IPv4AddressSection) ForEachSegment(callback func(index int, segment *IPv4AddressSegment) (stop bool)) {
-//	section.visitSegments(
-//		func(index int, div *AddressDivision) bool {
-//			return callback(index, div.ToIPv4AddressSegment())
-//		},
-//		section.GetSegmentCount())
-//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

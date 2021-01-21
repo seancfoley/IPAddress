@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
@@ -126,6 +127,17 @@ func NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 // The zero values is a section with zero segments.
 type IPv6AddressSection struct {
 	ipAddressSectionInternal
+}
+
+func (section *IPv6AddressSection) GetCount() *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	}
+	return section.cacheCount(func() *big.Int {
+		return count(func(index int) uint64 {
+			return section.GetSegment(index).GetValueCount()
+		}, section.GetSegmentCount(), 2, 0x7fffffffffff)
+	})
 }
 
 func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {

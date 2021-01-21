@@ -1,23 +1,9 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
-
-//
-//
-//
-//
-//
-//
-//
-type macAddressSectionInternal struct {
-	addressSectionInternal
-}
-
-func (section *macAddressSectionInternal) GetSegment(index int) *MACAddressSegment {
-	return section.getDivision(index).ToMACAddressSegment()
-}
 
 //func (section *ipAddressSectionInternal) GetIPVersion() IPVersion (TODO need the MAC equivalent (ie EUI 64 or MAC 48, butcannot remember if there is a MAC equivalent)
 //	if section.IsIPv4() {
@@ -27,7 +13,18 @@ func (section *macAddressSectionInternal) GetSegment(index int) *MACAddressSegme
 //}
 
 type MACAddressSection struct {
-	macAddressSectionInternal
+	addressSectionInternal
+}
+
+func (section *MACAddressSection) GetCount() *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	}
+	return section.cacheCount(func() *big.Int {
+		return count(func(index int) uint64 {
+			return section.GetSegment(index).GetValueCount()
+		}, section.GetSegmentCount(), 6, 0x7fffffffffffff)
+	})
 }
 
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
