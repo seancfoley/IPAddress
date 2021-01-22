@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
@@ -56,6 +57,14 @@ func (seg ipv4SegmentValues) GetBitCount() BitCount {
 
 func (seg ipv4SegmentValues) GetByteCount() int {
 	return IPv4BytesPerSegment
+}
+
+func (seg ipv4SegmentValues) getValue() *big.Int {
+	return big.NewInt(int64(seg.value))
+}
+
+func (seg ipv4SegmentValues) getUpperValue() *big.Int {
+	return big.NewInt(int64(seg.upperValue))
 }
 
 func (seg ipv4SegmentValues) getDivisionValue() DivInt {
@@ -155,7 +164,9 @@ func NewIPv4RangePrefixSegment(val, upperVal IPv4SegInt, prefixLen PrefixLen) *I
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
 				addressDivisionInternal{
-					newIPv4SegmentValues(val, upperVal, prefixLen),
+					addressDivisionBase{
+						newIPv4SegmentValues(val, upperVal, prefixLen),
+					},
 				},
 			},
 		},

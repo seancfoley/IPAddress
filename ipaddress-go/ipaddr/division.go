@@ -22,26 +22,32 @@ type divisionValuesBase interface { // shared by standard and large divisions
 type divisionValues interface {
 	divisionValuesBase
 
+	// getValue gets the lower value for a large division
+	getValue() *big.Int
+
+	// getValue gets the upper value for a large division
+	getUpperValue() *big.Int
+
 	// getDivisionPrefixLength provides the prefix length
 	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
 	getDivisionPrefixLength() PrefixLen
 
-	// getDivisionValue gets the lower value for the division
+	// getDivisionValue gets the lower value for a division
 	getDivisionValue() DivInt
 
-	// getUpperDivisionValue gets the upper value for the division
+	// getUpperDivisionValue gets the upper value for a division
 	getUpperDivisionValue() DivInt
 
 	// deriveNew produces a new division with the same bit count as the old
 	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
 
-	// getSegmentValue gets the lower value truncated to a SegInt
+	// getSegmentValue gets the lower value for a segment
 	getSegmentValue() SegInt
 
-	// getUpperSegmentValue gets the upper value truncated to a SegInt
+	// getUpperSegmentValue gets the upper value for a segment
 	getUpperSegmentValue() SegInt
 
-	// deriveNew produces a new division with the same bit count as the old
+	// deriveNew produces a new segment with the same bit count as the old
 	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
 
 	// getCache returns a cache for this divisions which cache their values, or nil otherwise
@@ -53,26 +59,49 @@ type divCache struct {
 
 	lowerBytes, upperBytes             []byte
 	cachedString, cachedWildcardString string
-	isSinglePrefixBlock                boolSetting //TODO init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+	isSinglePrefixBlock                boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+}
 
-	// I decided it makes no sense to do this, so network will go away
-	//network                            AddressNetwork // never nil // equivalent to overriding getNetwork(), ToIPvX(), IsIPvxConvertible(), etc, in Java, allows you to supply your own conversion
+// TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
+// Most are string-related and byte-related.
+// The byte ones we can probably ignore, we do not (and cannot really) use the same wrapper pattern xxx() calling xxxImpl() as in Java.
+
+// addressDivisionBase is a base for both standard and large divisions.
+// Standard divisions are divisions up to 64 bits of length, large are divisions of any length.
+// With standard divisions, you can use GetValue/GetUpperValue and use DivInt integers for the values.
+// For large divisions, you must use big.Int instances.
+type addressDivisionBase struct {
+	divisionValues
+}
+
+func (div *addressDivisionBase) GetValue() *big.Int {
+	vals := div.divisionValues
+	if vals == nil {
+		return bigZero()
+	}
+	return vals.getValue()
+}
+
+func (div *addressDivisionBase) GetUpperValue() *big.Int {
+	vals := div.divisionValues
+	if vals == nil {
+		return bigZero()
+	}
+	return vals.getUpperValue()
+}
+
+func (div *addressDivisionBase) toAddressDivision() *AddressDivision {
+	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
 //TODO everything must become a Stringer, following the pattern of toString() in Java
 
 func createAddressDivision(vals divisionValues) *AddressDivision {
-	return &AddressDivision{addressDivisionInternal{divisionValues: vals}}
+	return &AddressDivision{addressDivisionInternal{addressDivisionBase{divisionValues: vals}}}
 }
 
-//TODO large divisions will work like segments/divs do.  We will make addressDivisionInternal contain addressDivisionBase,
-// and put divisionValues in there.
-// Then we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
-// Most are string-related and byte-related.
-// The byte ones we can probably ignore, we do not (and cannot really) use the same wrapper pattern xxx() calling xxxImpl()
-
 type addressDivisionInternal struct {
-	divisionValues
+	addressDivisionBase
 }
 
 func (div *addressDivisionInternal) GetCount() *big.Int {
@@ -89,6 +118,7 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 }
 
 func (div *addressDivisionInternal) String() string {
+	//xxx
 	if div.IsMultiple() {
 		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.getUpperDivisionValue())
 	}
@@ -148,10 +178,10 @@ func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue 
 		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
-	var ones DivInt = ^DivInt(0)
+	var ones = ^DivInt(0)
 	var divisionBitMask DivInt = ^(ones << bitCount)
 	var divisionPrefixMask DivInt = ones << (bitCount - divisionPrefixLen)
-	var divisionNonPrefixMask DivInt = ^divisionPrefixMask
+	var divisionNonPrefixMask = ^divisionPrefixMask
 	return testRange(divisionValue,
 		upperValue,
 		upperValue,
@@ -165,10 +195,10 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
-	var ones DivInt = ^DivInt(0)
+	var ones = ^DivInt(0)
 	var divisionBitMask DivInt = ^(ones << bitCount)
 	var divisionPrefixMask DivInt = ones << (bitCount - divisionPrefixLen)
-	var divisionNonPrefixMask DivInt = ^divisionPrefixMask
+	var divisionNonPrefixMask = ^divisionPrefixMask
 	return testRange(divisionValue,
 		divisionValue,
 		upperValue,
@@ -345,10 +375,6 @@ func (div *AddressDivision) GetDivisionValue() DivInt {
 func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	return div.getUpperDivisionValue()
 }
-
-//func (div *AddressDivision) IsMultiple() bool {
-//	return div.isMultiple()
-//}
 
 func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()

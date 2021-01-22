@@ -10,9 +10,11 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 		ipAddressSectionInternal{
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
-					divisions: segments,
-					cache:     &valueCache{},
-					addrType:  ipv4Type,
+					addressDivisionGroupingBase: addressDivisionGroupingBase{
+						divisions: standardDivArray{segments},
+						cache:     &valueCache{},
+					},
+					addrType: ipv4Type,
 				},
 			},
 		},

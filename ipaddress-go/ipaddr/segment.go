@@ -14,7 +14,11 @@ const SegIntSize = 32
 func createAddressSegment(vals divisionValues) *AddressSegment {
 	return &AddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{divisionValues: vals},
+			addressDivisionInternal{
+				addressDivisionBase{
+					divisionValues: vals,
+				},
+			},
 		},
 	}
 }

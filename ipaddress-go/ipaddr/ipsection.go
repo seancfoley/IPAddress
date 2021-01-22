@@ -10,8 +10,10 @@ func createIPSection(segments []*AddressDivision, addrType addrType, startIndex 
 		ipAddressSectionInternal{
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
-					divisions:           segments,
-					cache:               &valueCache{},
+					addressDivisionGroupingBase: addressDivisionGroupingBase{
+						divisions: standardDivArray{segments},
+						cache:     &valueCache{},
+					},
 					addrType:            addrType,
 					addressSegmentIndex: startIndex,
 				},
@@ -291,7 +293,7 @@ func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res
 		if isPrefixSubnetSegs(segments, prefLen, false) {
 			applyPrefixToSegments(
 				prefLen,
-				res.divisions,
+				segments,
 				res.GetBitsPerSegment(),
 				res.GetBytesPerSegment(),
 				(*AddressDivision).toPrefixedNetworkDivision)
@@ -337,7 +339,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 		}
 		applyPrefixToSegments(
 			prefLen,
-			res.divisions,
+			segments,
 			res.GetBitsPerSegment(),
 			res.GetBytesPerSegment(),
 			segProducer)

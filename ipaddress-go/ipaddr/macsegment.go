@@ -1,6 +1,9 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"math/big"
+	"unsafe"
+)
 
 type MACSegInt uint8 //TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
 
@@ -28,6 +31,14 @@ func (seg macSegmentValues) GetBitCount() BitCount {
 
 func (seg macSegmentValues) GetByteCount() int {
 	return MACBytesPerSegment
+}
+
+func (seg macSegmentValues) getValue() *big.Int {
+	return big.NewInt(int64(seg.value))
+}
+
+func (seg macSegmentValues) getUpperValue() *big.Int {
+	return big.NewInt(int64(seg.upperValue))
 }
 
 func (seg macSegmentValues) getDivisionValue() DivInt {
@@ -111,7 +122,9 @@ func NewMACSegment(val MACSegInt) *MACAddressSegment {
 func NewMACRangeSegment(val, upperVal MACSegInt) *MACAddressSegment {
 	return &MACAddressSegment{
 		addressSegmentInternal{
-			addressDivisionInternal{newMACSegmentValues(val, upperVal)},
+			addressDivisionInternal{
+				addressDivisionBase{newMACSegmentValues(val, upperVal)},
+			},
 		},
 	}
 }

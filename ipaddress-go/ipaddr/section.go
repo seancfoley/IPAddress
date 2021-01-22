@@ -8,18 +8,17 @@ import (
 
 var zeroSection AddressSection
 
-//var zeroSegs = []*AddressSegment{}
-//var zeroDivs = []*AddressDivision{}
-
 func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8) *AddressSection {
 	return &AddressSection{
 		addressSectionInternal{
 			addressDivisionGroupingInternal{
-				divisions:           segments,
-				prefixLength:        prefixLength,
+				addressDivisionGroupingBase: addressDivisionGroupingBase{
+					divisions:    standardDivArray{segments},
+					prefixLength: prefixLength,
+					cache:        &valueCache{},
+				},
 				addrType:            addrType,
 				addressSegmentIndex: startIndex,
-				cache:               &valueCache{},
 			},
 		},
 	}
@@ -40,7 +39,7 @@ func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLe
 /*
 // TODO MAC will need something like this when calculating prefix length on creation
 //func (grouping *addressDivisionGroupingInternal) getPrefixLengthCacheLocked() PrefixLen {
-//		count := grouping.GetDivisionCount()
+//		count := grouping.getDivisionCount()
 //		bitsSoFar, prefixBits := BitCount(0), BitCount(0)
 //		hasPrefix := false
 //		for i := 0; i < count; i++ {
@@ -128,14 +127,14 @@ func (section *addressSectionInternal) init() error {
 }
 
 func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
-	if section.GetDivisionCount() == 0 {
+	if section.getDivisionCount() == 0 {
 		return 0
 	}
 	return section.getDivision(0).GetBitCount()
 }
 
 func (section *addressSectionInternal) GetBytesPerSegment() int {
-	if section.GetDivisionCount() == 0 {
+	if section.getDivisionCount() == 0 {
 		return 0
 	}
 	return section.getDivision(0).GetByteCount()
@@ -146,11 +145,11 @@ func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
 }
 
 func (section *addressSectionInternal) GetSegmentCount() int {
-	return section.GetDivisionCount()
+	return section.getDivisionCount()
 }
 
 func (section *addressSectionInternal) GetBitCount() BitCount {
-	divLen := len(section.divisions)
+	divLen := section.getDivisionCount()
 	if divLen == 0 {
 		return 0
 	}
@@ -233,13 +232,12 @@ func (section *addressSectionInternal) visitSegments(target func(index int, div 
 	if section.hasNoDivisions() {
 		return
 	}
-	divs := section.divisions
-	count = len(divs)
+	count = section.getDivisionCount()
 	if count > targetLen {
 		count = targetLen
 	}
 	for start := 0; start < count; start++ {
-		if target(start, divs[start]) {
+		if target(start, section.getDivision(start)) {
 			break
 		}
 	}
@@ -254,7 +252,6 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 	if section.hasNoDivisions() {
 		return
 	}
-	divs := section.divisions
 	targetIndex := 0
 	if start < 0 {
 		targetIndex -= start
@@ -264,7 +261,7 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 		}
 	}
 	// how many to copy?
-	sourceLen := len(divs)
+	sourceLen := section.getDivisionCount()
 	if end > sourceLen {
 		end = sourceLen
 	}
@@ -282,7 +279,7 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 	}
 	// now copy
 	for start < end {
-		if target(targetIndex, divs[start]) {
+		if target(targetIndex, section.getDivision(start)) {
 			break
 		}
 		targetIndex++
@@ -389,11 +386,13 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 	newSegs := createSegmentArray(segCount)
 	if prefLen > 0 {
 		prefixedSegmentIndex = getNetworkSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
-		copy(newSegs, section.divisions[:prefixedSegmentIndex])
+		section.copySubDivisions(0, prefixedSegmentIndex, newSegs)
+		//copy(newSegs, section.divisions[:prefixedSegmentIndex])
+
 	}
 	for i := prefixedSegmentIndex; i < segCount; i++ {
 		segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, i)
-		oldSeg := section.divisions[i]
+		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
 	//TODO caching of prefLen?  we should map it to a global array - check what we have in the validation code

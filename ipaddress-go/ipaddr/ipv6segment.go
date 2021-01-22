@@ -1,6 +1,9 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"math/big"
+	"unsafe"
+)
 
 type IPv6SegInt uint16 //TODO consider changing to int32 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
 
@@ -31,6 +34,14 @@ func (seg ipv6SegmentValues) GetBitCount() BitCount {
 
 func (seg ipv6SegmentValues) GetByteCount() int {
 	return IPv6BytesPerSegment
+}
+
+func (seg ipv6SegmentValues) getValue() *big.Int {
+	return big.NewInt(int64(seg.value))
+}
+
+func (seg ipv6SegmentValues) getUpperValue() *big.Int {
+	return big.NewInt(int64(seg.upperValue))
 }
 
 func (seg ipv6SegmentValues) getDivisionValue() DivInt {
@@ -123,7 +134,9 @@ func NewIPv6RangePrefixSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *I
 	return &IPv6AddressSegment{
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
-				addressDivisionInternal{newIPv6SegmentValues(val, upperVal, prefixLen)},
+				addressDivisionInternal{
+					addressDivisionBase{newIPv6SegmentValues(val, upperVal, prefixLen)},
+				},
 			},
 		},
 	}

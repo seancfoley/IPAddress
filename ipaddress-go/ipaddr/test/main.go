@@ -36,7 +36,7 @@ func main() {
 	fmt.Printf("%v\n", seg.GetByteCount())
 
 	grouping := ipaddr.IPv4AddressSection{}
-	grouping.GetDivisionCount()
+	grouping.getDivisionCount()
 	//grouping.hasNoDivisions()
 
 	builder := ipaddr.IPAddressStringParametersBuilder{}

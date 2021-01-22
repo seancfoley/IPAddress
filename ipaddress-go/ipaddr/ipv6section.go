@@ -10,10 +10,12 @@ func createIPv6Section(segments []*AddressDivision, startIndex int) *IPv6Address
 		ipAddressSectionInternal{
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
-					divisions:           segments,
+					addressDivisionGroupingBase: addressDivisionGroupingBase{
+						divisions: standardDivArray{segments},
+						cache:     &valueCache{},
+					},
 					addrType:            ipv6Type,
 					addressSegmentIndex: uint8(startIndex),
-					cache:               &valueCache{},
 				},
 			},
 		},
