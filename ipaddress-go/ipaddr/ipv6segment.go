@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-type IPv6SegInt uint16 //TODO consider changing to int32 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
+type IPv6SegInt uint16
 
 func ToIPv6SegInt(val SegInt) IPv6SegInt {
 	return IPv6SegInt(val)
@@ -26,6 +26,22 @@ type ipv6SegmentValues struct {
 	upperValue IPv6SegInt
 	prefLen    PrefixLen
 	cache      divCache
+}
+
+func (seg ipv6SegmentValues) includesZero() bool {
+	return seg.value == 0
+}
+
+func (seg ipv6SegmentValues) includesMax() bool {
+	return seg.upperValue == 0xffff
+}
+
+func (seg ipv6SegmentValues) isMultiple() bool {
+	return seg.value != seg.upperValue
+}
+
+func (seg ipv6SegmentValues) getCount() *big.Int {
+	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
 func (seg ipv6SegmentValues) GetBitCount() BitCount {
@@ -64,14 +80,6 @@ func (seg ipv6SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-//func (seg ipv6SegmentValues) getLower() (divisionValues, *divCache) {
-//	return newIPv6SegmentValues(seg.value, seg.value, seg.prefLen)
-//}
-//
-//func (seg ipv6SegmentValues) getUpper() (divisionValues, *divCache) {
-//	return newIPv6SegmentValues(seg.upperValue, seg.upperValue, seg.prefLen)
-//}
-
 func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
@@ -86,8 +94,6 @@ func (seg ipv6SegmentValues) getCache() *divCache {
 
 var _ divisionValues = ipv6SegmentValues{}
 
-//var _ segmentValues = ipv6SegmentValues{}
-
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal
 }
@@ -100,6 +106,10 @@ func (seg *IPv6AddressSegment) GetBitCount() BitCount {
 
 func (seg *IPv6AddressSegment) GetByteCount() int {
 	return IPv6BytesPerSegment
+}
+
+func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
+	return 0xffff
 }
 
 func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {

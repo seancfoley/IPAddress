@@ -13,8 +13,8 @@ type addressDivisionGroupingBase struct {
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool
 
-	// TODO rename so you can ensure we always check for nil, which happens with  zero-groupings
-	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed, there is nothing to cache
+	// TODO make sure we always check cache for nil, one way is to change name and check each access
+	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed since there is nothing to cache
 	cache *valueCache
 }
 
@@ -23,6 +23,19 @@ type addressDivisionGroupingBase struct {
 func (grouping *addressDivisionGroupingBase) hasNoDivisions() bool {
 	divisions := grouping.divisions
 	return divisions == nil || divisions.getDivisionCount() == 0
+}
+
+// GetBitCount returns the total number of bits across all divisions
+func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) { //TODO if we end up using this a lot, consider storing it on grouping construction
+	for i := 0; i < grouping.getDivisionCount(); i++ {
+		res += grouping.getDivision(i).GetBitCount()
+	}
+	return
+}
+
+// GetBitCount returns the total number of bytes across all divisions (rounded up)
+func (grouping addressDivisionGroupingBase) GetByteCount() BitCount {
+	return (grouping.GetBitCount() + 7) >> 3
 }
 
 // getDivision returns the division or panics if the index is negative or it is too large
@@ -38,9 +51,31 @@ func (grouping *addressDivisionGroupingBase) getDivisionCount() int {
 	return 0
 }
 
+func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
+	res := bigOne()
+	count := grouping.getDivisionCount()
+	if count > 0 {
+		for i := 0; i < count; i++ {
+			div := grouping.getDivision(i)
+			if div.IsMultiple() {
+				divCount := div.GetCount()
+				res.Mul(res, divCount)
+			}
+		}
+	}
+	return res
+}
+
+func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
+	if !grouping.IsMultiple() {
+		return bigOne()
+	}
+	return grouping.cacheCount(grouping.getBigCount)
+}
+
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
 	cache := grouping.cache
-	if !cache.cachedCount.isSet() {
+	if !cache.cachedCount.isSetNoSync() {
 		cache.cacheLock.Lock()
 		if !cache.cachedCount.isSetNoSync() {
 			cache.cachedCount.count = *counter()

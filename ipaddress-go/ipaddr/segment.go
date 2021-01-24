@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	"math/big"
 	"unsafe"
 )
 
@@ -55,52 +54,8 @@ func (seg *addressSegmentInternal) GetValueCount() SegIntCount {
 	return uint64(seg.GetUpperSegmentValue()-seg.GetSegmentValue()) + 1
 }
 
-func (seg *addressSegmentInternal) GetCount() *big.Int {
-	if !seg.IsMultiple() {
-		return bigOne()
-	}
-	return bigZero().SetUint64(seg.GetValueCount())
-}
-
 func (seg *addressSegmentInternal) GetMaxValue() SegInt {
 	return ^(^SegInt(0) << seg.GetBitCount())
-}
-
-func (div *addressSegmentInternal) IsMultiple() bool {
-	vals := div.divisionValues
-	if vals == nil {
-		return false
-	}
-	return vals.getSegmentValue() != vals.getUpperSegmentValue()
-}
-
-func (seg *addressSegmentInternal) GetMaxSegmentValue() SegInt {
-	return ^(^SegInt(0) << seg.GetBitCount())
-}
-
-// Returns whether this item matches the value of zero
-func (div *addressSegmentInternal) IsZero() bool { // using SegInt is quicker than deferring to division
-	return !div.IsMultiple() && div.IncludesZero()
-}
-
-// Returns whether this item includes the value of zero within its range
-func (div *addressSegmentInternal) IncludesZero() bool { // using SegInt is quicker than deferring to division
-	return div.GetSegmentValue() == 0
-}
-
-// Returns whether this item matches the maximum possible value for the address type or version
-func (div *addressSegmentInternal) IsMax() bool { // using SegInt is quicker than deferring to division
-	return !div.IsMultiple() && div.IncludesMax()
-}
-
-// Returns whether this item includes the maximum possible value for the address type or version within its range
-func (div *addressSegmentInternal) IncludesMax() bool { // using SegInt is quicker than deferring to division
-	return div.GetUpperSegmentValue() == div.GetMaxSegmentValue()
-}
-
-// Whether this address item represents all possible values attainable by an address item of this type
-func (div *addressSegmentInternal) IsFullRange() bool { // using SegInt is quicker than deferring to division
-	return div.IncludesZero() && div.IncludesMax()
 }
 
 // Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.

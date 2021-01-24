@@ -21,9 +21,25 @@ type macSegmentValues struct {
 	cache      divCache
 }
 
-func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
-	return nil
+func (seg macSegmentValues) includesZero() bool {
+	return seg.value == 0
 }
+
+func (seg macSegmentValues) includesMax() bool {
+	return seg.upperValue == 0xff
+}
+
+func (seg macSegmentValues) isMultiple() bool {
+	return seg.value != seg.upperValue
+}
+
+func (seg macSegmentValues) getCount() *big.Int {
+	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
+}
+
+//func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
+//	return nil
+//}
 
 func (seg macSegmentValues) GetBitCount() BitCount {
 	return MACBitsPerSegment
@@ -98,6 +114,10 @@ func (seg *MACAddressSegment) GetBitCount() BitCount {
 
 func (seg *MACAddressSegment) GetByteCount() int {
 	return IPv4BytesPerSegment
+}
+
+func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
+	return 0xff
 }
 
 func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {

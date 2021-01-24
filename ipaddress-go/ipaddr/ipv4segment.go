@@ -5,11 +5,6 @@ import (
 	"unsafe"
 )
 
-//TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
-// So far I have decided against it, and instead used the unsigned types to save space
-// Golang addresses also use unsigned
-// I think you just need to be careful with arithmetic
-
 type IPv4SegInt uint8
 
 func ToIPv4SegInt(val SegInt) IPv4SegInt {
@@ -49,6 +44,22 @@ type ipv4SegmentValues struct {
 	upperValue IPv4SegInt
 	prefLen    PrefixLen
 	cache      divCache
+}
+
+func (seg ipv4SegmentValues) includesZero() bool {
+	return seg.value == 0
+}
+
+func (seg ipv4SegmentValues) includesMax() bool {
+	return seg.upperValue == 0xff
+}
+
+func (seg ipv4SegmentValues) isMultiple() bool {
+	return seg.value != seg.upperValue
+}
+
+func (seg ipv4SegmentValues) getCount() *big.Int {
+	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
 func (seg ipv4SegmentValues) GetBitCount() BitCount {
@@ -99,20 +110,7 @@ func (seg ipv4SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-//func (seg ipv4SegmentValues) GetSegmentPrefixLength() PrefixLen {
-//	return seg.prefLen
-//}
-
 var _ divisionValues = ipv4SegmentValues{}
-
-//var _ segmentValues = ipv4SegmentValues{}
-
-//TODO make this use pointers to, just like sections and addresses, because we will have cached data too,
-//isSinglePrefixBlock, cachedString,
-//	protected transient String cachedWildcardString;
-//	private transient byte[] lowerBytes, upperBytes;
-// Now, since the parsing will populate the cachedString, we could move it out of the cached data, which is stuff that is populate on the fly
-// But remember, that is a bad idea, we want to allow copying, so anything that is not always created right away must go to cache object
 
 type IPv4AddressSegment struct {
 	ipAddressSegmentInternal
@@ -126,6 +124,10 @@ func (seg *IPv4AddressSegment) GetBitCount() BitCount {
 
 func (seg *IPv4AddressSegment) GetByteCount() int {
 	return IPv4BytesPerSegment
+}
+
+func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
+	return 0xff
 }
 
 func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {

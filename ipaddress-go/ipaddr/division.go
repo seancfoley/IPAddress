@@ -47,6 +47,14 @@ type divisionValues interface {
 	// getUpperSegmentValue gets the upper value for a segment
 	getUpperSegmentValue() SegInt
 
+	includesZero() bool
+
+	includesMax() bool
+
+	isMultiple() bool
+
+	getCount() *big.Int
+
 	// deriveNew produces a new segment with the same bit count as the old
 	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
 
@@ -54,44 +62,26 @@ type divisionValues interface {
 	getCache() *divCache
 }
 
+//TODO your generic addressDivision getCount will look like this
+//func (div *addressDivisionBase) GetCount() *big.Int {
+//	if !div.IsMultiple() {
+//		return bigOne()
+//	}
+//	res := bigZero()
+//	if div.isFullRange() {
+//		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
+//	} else {
+//		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
+//	}
+//	return res
+//}
+
 type divCache struct {
 	sync.RWMutex
 
 	lowerBytes, upperBytes             []byte
 	cachedString, cachedWildcardString string
 	isSinglePrefixBlock                boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
-}
-
-// TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
-// Most are string-related and byte-related.
-// The byte ones we can probably ignore, we do not (and cannot really) use the same wrapper pattern xxx() calling xxxImpl() as in Java.
-
-// addressDivisionBase is a base for both standard and large divisions.
-// Standard divisions are divisions up to 64 bits of length, large are divisions of any length.
-// With standard divisions, you can use GetValue/GetUpperValue and use DivInt integers for the values.
-// For large divisions, you must use big.Int instances.
-type addressDivisionBase struct {
-	divisionValues
-}
-
-func (div *addressDivisionBase) GetValue() *big.Int {
-	vals := div.divisionValues
-	if vals == nil {
-		return bigZero()
-	}
-	return vals.getValue()
-}
-
-func (div *addressDivisionBase) GetUpperValue() *big.Int {
-	vals := div.divisionValues
-	if vals == nil {
-		return bigZero()
-	}
-	return vals.getUpperValue()
-}
-
-func (div *addressDivisionBase) toAddressDivision() *AddressDivision {
-	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
 //TODO everything must become a Stringer, following the pattern of toString() in Java
@@ -104,18 +94,24 @@ type addressDivisionInternal struct {
 	addressDivisionBase
 }
 
-func (div *addressDivisionInternal) GetCount() *big.Int {
-	if !div.IsMultiple() {
-		return bigOne()
-	}
-	res := bigZero()
-	if div.isFullRange() {
-		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
-	} else {
-		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
-	}
-	return res
-}
+//func (div *addressDivisionInternal) GetCount() *big.Int {
+//	if !div.IsMultiple() {
+//		return bigOne()
+//	}
+//	res := bigZero()
+//	if div.isFullRange() {
+//		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
+//	} else {
+//		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
+//	}
+//	return res
+//}
+//func (seg *addressSegmentInternal) GetCount() *big.Int {
+//	if !seg.IsMultiple() {
+//		return bigOne()
+//	}
+//	return bigZero().SetUint64(seg.GetValueCount())
+//}
 
 func (div *addressDivisionInternal) String() string {
 	//xxx
@@ -213,64 +209,8 @@ func (div *addressDivisionInternal) isPrefixBlock() bool {
 	return prefLen != nil && div.containsPrefixBlock(*prefLen)
 }
 
-func (div *addressDivisionInternal) getDivisionPrefixLength() PrefixLen {
-	vals := div.divisionValues
-	if vals == nil {
-		return nil
-	}
-	return vals.getDivisionPrefixLength()
-}
-
-func (div *addressDivisionInternal) GetBitCount() BitCount {
-	vals := div.divisionValues
-	if vals == nil {
-		return 0
-	}
-	return vals.GetBitCount()
-}
-
-func (div *addressDivisionInternal) GetByteCount() int {
-	vals := div.divisionValues
-	if vals == nil {
-		return 0
-	}
-	return vals.GetByteCount()
-}
-
 func (div *addressDivisionInternal) getMaxValue() DivInt {
 	return ^(^DivInt(0) << div.GetBitCount())
-}
-
-func (div *addressDivisionInternal) isZero() bool {
-	return !div.IsMultiple() && div.includesZero()
-}
-
-// Returns whether this item includes the value of zero within its range
-func (div *addressDivisionInternal) includesZero() bool {
-	return div.getDivisionValue() == 0
-}
-
-// Returns whether this item matches the maximum possible value for the address type or version
-func (div *addressDivisionInternal) isMax() bool {
-	return !div.IsMultiple() && div.includesMax()
-}
-
-// Returns whether this item includes the maximum possible value for the address type or version within its range
-func (div *addressDivisionInternal) includesMax() bool {
-	return div.getUpperDivisionValue() == div.getMaxValue()
-}
-
-// whether this address item represents all possible values attainable by an address item of this type
-func (div *addressDivisionInternal) isFullRange() bool {
-	return div.includesZero() && div.includesMax()
-}
-
-func (div *addressDivisionInternal) IsMultiple() bool {
-	vals := div.divisionValues
-	if vals == nil {
-		return false
-	}
-	return vals.getDivisionValue() != vals.getUpperDivisionValue()
 }
 
 func (div *addressDivisionInternal) getDivisionValue() DivInt {
@@ -380,32 +320,7 @@ func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()
 }
 
-// Returns whether this item matches the value of zero
-func (div *AddressDivision) IsZero() bool {
-	return div.isZero()
-}
-
-// Returns whether this item includes the value of zero within its range
-func (div *AddressDivision) IncludesZero() bool {
-	return div.includesZero()
-}
-
-// Returns whether this item matches the maximum possible value for the address type or version
-func (div *AddressDivision) IsMax() bool {
-	return div.isMax()
-}
-
-// Returns whether this item includes the maximum possible value for the address type or version within its range
-func (div *AddressDivision) IncludesMax() bool {
-	return div.includesMax()
-}
-
-// whether this address item represents all possible values attainable by an address item of this type
-func (div *AddressDivision) IsFullRange() bool {
-	return div.isFullRange()
-}
-
-// TODO xxx do the same with the IsAddressSegment() isIPAddressSegment etc as you did with grouping/sections
+// TODO xxx do the same with the IsAddressSegment() isIPAddressSegment etc as you did with grouping/sections, you want to reorganize the methods
 
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
 	return div.toAddressSegment()

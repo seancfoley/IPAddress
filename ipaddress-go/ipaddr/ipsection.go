@@ -75,7 +75,7 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
 // This method applies only to the lower value of the range if this section represents multiple values.
 func (section *ipAddressSectionInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
 	cache := section.cache
-	if !cache.cachedMaskLens.isSet() {
+	if !cache.cachedMaskLens.isSetNoSync() {
 		cache.cacheLock.Lock()
 		if !cache.cachedMaskLens.isSetNoSync() {
 			cache.cachedMaskLens.networkMaskLen,
@@ -100,7 +100,7 @@ func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, h
 	var checkingNetworkBack, checkingHostBack bool
 	var prefixedSeg int
 	prefixedSegPrefixLen := BitCount(0)
-	maxVal := firstSeg.GetMaxSegmentValue()
+	maxVal := firstSeg.GetMaxValue()
 	for i := 0; i < count; i++ {
 		seg := section.GetSegment(i)
 		val := seg.GetSegmentValue()
@@ -377,7 +377,7 @@ func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength 
 		segmentCount,
 		seg.GetByteCount(),
 		seg.GetBitCount(),
-		seg.ToAddressSegment().GetMaxSegmentValue(),
+		seg.ToAddressSegment().GetMaxValue(),
 		//SegInt(seg.GetMaxValue()),
 		networkPrefixLength,
 		fullRangeOnly)
