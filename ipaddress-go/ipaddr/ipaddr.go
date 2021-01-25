@@ -115,6 +115,11 @@ func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 	return addr.getSegment(index).ToIPAddressSegment()
 }
 
+// this is here to take advantage of the IsMore in IPAddressSection which is optimized for prefix block subnets
+func (addr *ipAddressInternal) isMore(other *IPAddress) int {
+	return addr.toIPAddress().IsMore(other)
+}
+
 var zeroIPAddr *IPAddress
 
 func init() {
@@ -201,6 +206,11 @@ func (addr *IPAddress) ToPrefixBlock() *IPAddress {
 
 func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
+}
+
+// IsMore returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take advantage of the IsMore in IPAddressSection
+	return addr.GetSection().IsMore(other.GetSection())
 }
 
 func (addr *IPAddress) IsIPv4() bool {

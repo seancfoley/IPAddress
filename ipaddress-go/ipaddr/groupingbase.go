@@ -58,8 +58,7 @@ func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
 		for i := 0; i < count; i++ {
 			div := grouping.getDivision(i)
 			if div.IsMultiple() {
-				divCount := div.GetCount()
-				res.Mul(res, divCount)
+				res.Mul(res, div.GetCount())
 			}
 		}
 	}
@@ -78,12 +77,12 @@ func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int)
 	if !cache.cachedCount.isSetNoSync() {
 		cache.cacheLock.Lock()
 		if !cache.cachedCount.isSetNoSync() {
-			cache.cachedCount.count = *counter()
+			cache.cachedCount.count = counter()
 			cache.cachedCount.set()
 		}
 		cache.cacheLock.Unlock()
 	}
-	return &cache.cachedCount.count
+	return new(big.Int).Set(cache.cachedCount.count)
 }
 
 // IsMultiple returns whether this address or grouping represents more than one address or grouping.
@@ -124,7 +123,7 @@ type maskLenSetting struct {
 
 type countSetting struct {
 	atomicFlag
-	count big.Int
+	count *big.Int
 }
 
 type divArray interface {

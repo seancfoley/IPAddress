@@ -61,6 +61,25 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
 	return section.prefixLength
 }
 
+func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
+	if !section.IsMultiple() {
+		if other.IsMultiple() {
+			return -1
+		}
+		return 0
+	}
+	if !other.IsMultiple() {
+		return 1
+	}
+	// TODO reinstate when I have isSinglePrefixBlock for groupings
+	//if(isSinglePrefixBlock() && other.isSinglePrefixBlock()) {
+	//	int bits = getBitCount() - getPrefixLength();
+	//	int otherBits = other.getBitCount() - other.getPrefixLength();
+	//	return bits - otherBits;
+	//}
+	return section.GetCount().CmpAbs(other.GetCount())
+}
+
 // GetBlockMaskPrefixLength returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
 // Otherwise, it returns null.
 // A CIDR network mask is an address with all 1s in the network section and then all 0s in the host section.
@@ -204,6 +223,10 @@ func (section *IPAddressSection) GetCount() *big.Int {
 		return sect.GetCount()
 	}
 	return section.cacheCount(section.getBigCount)
+}
+
+func (section *IPAddressSection) IsMore(other *IPAddressSection) int {
+	return section.isMore(other)
 }
 
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {

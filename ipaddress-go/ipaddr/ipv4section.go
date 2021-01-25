@@ -142,6 +142,10 @@ func (section *IPv4AddressSection) GetCount() *big.Int {
 	})
 }
 
+func (section *IPv4AddressSection) IsMore(other *IPv4AddressSection) int {
+	return section.isMore(other.ToIPAddressSection())
+}
+
 func (section *IPv4AddressSection) GetIPv4Count() uint64 {
 	return longCount(section.ToAddressSection(), section.GetSegmentCount())
 }

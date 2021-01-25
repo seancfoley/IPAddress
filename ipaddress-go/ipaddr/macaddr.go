@@ -29,24 +29,11 @@ const (
 
 func NewMACAddress(section *MACAddressSection) *MACAddress {
 	return &MACAddress{
-		//ipAddressInternal{
 		addressInternal{
 			section: section.ToAddressSection(),
 			cache:   &addressCache{},
 		},
-		//},
 	}
-	//if addr.hasNoDivisions() {
-	//	div := NewIPv4Segment(0).ToAddressDivision()
-	//	addr.section = AddressSection{
-	//		addressSectionInternal{
-	//			addressDivisionGroupingInternal{
-	//				divisions: []*AddressDivision{div, div, div, div},
-	//				cache:     &valueCache{addrType: macAddrType},
-	//			},
-	//		},
-	//	}
-	//}
 }
 
 var zeroMAC *MACAddress
@@ -140,4 +127,8 @@ func (addr *MACAddress) GetSegment(index int) *MACAddressSegment {
 
 func (addr *MACAddress) ToPrefixBlock() *MACAddress {
 	return addr.init().toPrefixBlock().ToMACAddress()
+}
+
+func (addr *MACAddress) IsMore(other *MACAddress) int {
+	return addr.init().isMore(other.ToAddress())
 }

@@ -234,3 +234,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	addr = addr.init()
 	return NewIPv4SeqRange(addr.GetLower(), addr.GetUpper())
 }
+
+func (addr *IPv4Address) IsMore(other *IPv4Address) int {
+	return addr.init().isMore(other.ToIPAddress())
+}

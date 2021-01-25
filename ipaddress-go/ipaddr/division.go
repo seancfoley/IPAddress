@@ -22,15 +22,15 @@ type divisionValuesBase interface { // shared by standard and large divisions
 type divisionValues interface {
 	divisionValuesBase
 
+	// getDivisionPrefixLength provides the prefix length
+	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
+	getDivisionPrefixLength() PrefixLen
+
 	// getValue gets the lower value for a large division
 	getValue() *big.Int
 
 	// getValue gets the upper value for a large division
 	getUpperValue() *big.Int
-
-	// getDivisionPrefixLength provides the prefix length
-	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
-	getDivisionPrefixLength() PrefixLen
 
 	// getDivisionValue gets the lower value for a division
 	getDivisionValue() DivInt
@@ -47,6 +47,9 @@ type divisionValues interface {
 	// getUpperSegmentValue gets the upper value for a segment
 	getUpperSegmentValue() SegInt
 
+	// deriveNew produces a new segment with the same bit count as the old
+	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
+
 	includesZero() bool
 
 	includesMax() bool
@@ -55,23 +58,20 @@ type divisionValues interface {
 
 	getCount() *big.Int
 
-	// deriveNew produces a new segment with the same bit count as the old
-	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
-
 	// getCache returns a cache for this divisions which cache their values, or nil otherwise
 	getCache() *divCache
 }
 
-//TODO your generic addressDivision getCount will look like this
+//TODO your generic addressDivision getCount (which will work with uint64) will look like this
 //func (div *addressDivisionBase) GetCount() *big.Int {
 //	if !div.IsMultiple() {
 //		return bigOne()
 //	}
 //	res := bigZero()
 //	if div.isFullRange() {
-//		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
+//		res.SetUint64(0xffffffffffffffff).Add(res, bigOneConst())
 //	} else {
-//		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
+//		res.SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
 //	}
 //	return res
 //}
@@ -94,27 +94,7 @@ type addressDivisionInternal struct {
 	addressDivisionBase
 }
 
-//func (div *addressDivisionInternal) GetCount() *big.Int {
-//	if !div.IsMultiple() {
-//		return bigOne()
-//	}
-//	res := bigZero()
-//	if div.isFullRange() {
-//		res.SetUint64(0xffffffffffffffff).Add(res, bigOne())
-//	} else {
-//		res.SetUint64(div.getUpperDivisionValue() - div.getDivisionValue() + 1)
-//	}
-//	return res
-//}
-//func (seg *addressSegmentInternal) GetCount() *big.Int {
-//	if !seg.IsMultiple() {
-//		return bigOne()
-//	}
-//	return bigZero().SetUint64(seg.GetValueCount())
-//}
-
 func (div *addressDivisionInternal) String() string {
-	//xxx
 	if div.IsMultiple() {
 		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.getUpperDivisionValue())
 	}

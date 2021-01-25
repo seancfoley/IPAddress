@@ -420,6 +420,10 @@ func (section *AddressSection) GetCount() *big.Int {
 	return section.cacheCount(section.getBigCount)
 }
 
+func (section *AddressSection) IsMore(other *AddressSection) int {
+	return section.isMore(other.toAddressDivisionGrouping())
+}
+
 // Gets the subsection from the series starting from the given index
 // The first segment is at index 0.
 func (section *AddressSection) GetTrailingSection(index int) *AddressSection {

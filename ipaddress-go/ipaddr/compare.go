@@ -806,8 +806,6 @@ func mapGrouping(series AddressDivisionSeries) int {
 // You should also consider the type checks in Java.  Also bit counts.
 
 /*
-TODO I think I need isMore and getCount first
-
 TODO comparators:
 Start with public int compare(AddressItem one, AddressItem two) {
 Port only equalsConsistent
@@ -840,7 +838,7 @@ AddressItem:
 
 
 // Notes on comparing:
-//We will need a GetLargeDivision I guess, but that kinda wrecks the whole point of doing this
+//We will need a GetLargeDivision in divisiongrouping I guess, but that kinda wrecks the whole point of doing this
 	//Maybe a GetGenericDivision? Seems like the best option.
 	//Add a func to each implementer that returns the more genric type.
 	//WAIT... But you do not really need that, since everything can be converted to AddressDivision
@@ -850,14 +848,6 @@ AddressItem:
 	//GetDivision(index int) *AddressDivision {
 
 
-// Hold on, here is the process:
-// Start off by differentiating between section/address/division (how?  not sure yet, I might need type checks?  If I have an interface for each I can
-// But that interface would have to cover all series/sections, or all addresses, or all divisions/segments.
-// - Go as high as you can, first toAddressSection(), then toIPAddressSection and toMACAddressSection, then if toIPAddressSection do toIPv4AddressSection and toIPv6AddressSection
-// Once you have gone as high as you can go, then you can map to the constant for that type.
-// Then you can compare the type.
-// THen if you have no match, you're done.  If you have a match, call a method that uses the interface type,
-// depending on whether you have a divisionseries or segmentseries, a division or segment.
 
 
 
@@ -865,3 +855,98 @@ AddressItem:
 // which will then be inherited by everything and then you can add it to AddressItem
 
 */
+
+type ComponentComparator interface {
+}
+
+type AddressComparator struct {
+	comp ComponentComparator
+}
+
+//func (comp AddressComparator) compareAddresses(one, two *Address) int {
+//
+//}
+//
+//func (comp AddressComparator) compareItems(one, two AddressItem) int {
+//
+//	xxx ok this cannot work the same way xxxx
+//	xxx seems you need interfaces to cover each:
+//		Address (GetSection - but return value for this differs everywhere),
+//		Grouping,
+//		Division,
+//
+//	addr2, twoIsAddress := two.(*Address)
+//	if addr1, oneIsAddress := one.(*Address); oneIsAddress {
+//		if twoIsAddress {
+//			return comp.compareAddresses(one, two)
+//		}
+//		return -1
+//	} else if twoIsAddress {
+//		return 1
+//	}
+//
+//	div2, twoIsDiv := two.(*addressDivisionBase)
+//	// Hold on, here is the process:
+//	// Start off by differentiating between section/address/division (how?  not sure yet, I might need type checks?
+//	// If I have an interface for each I can
+//	// But that interface would have to cover all series/sections, or all addresses, or all divisions/segments.
+//	// - Go as high as you can, first toAddressSection(), then toIPAddressSection and toMACAddressSection,
+//	// then if toIPAddressSection do toIPv4AddressSection and toIPv6AddressSection
+//	// Once you have gone as high as you can go, then you can map to the constant for that type.
+//	// Then you can compare the type.
+//	// THen if you have no match, you're done.  If you have a match, call a method that uses the interface type,
+//	// depending on whether you have a divisionseries or segmentseries, a division or segment.
+//
+//	//		if(one instanceof AddressDivisionSeries) {
+//	//			if(two instanceof AddressDivisionSeries) {
+//	//				return compare((AddressDivisionSeries) one, (AddressDivisionSeries) two);
+//	//			} else if (equalsConsistent) {
+//	//				return 1;
+//	//			} else if(one.isMultiple()) {
+//	//				AddressDivisionSeries oneSeries = (AddressDivisionSeries) one;
+//	//				if(oneSeries.getDivisionCount() > 0) {
+//	//					return 1;
+//	//				}
+//	//				one = oneSeries.getDivision(0);
+//	//			}
+//	//		}
+//	//		if(one instanceof AddressGenericDivision) {
+//	//			if(two instanceof AddressGenericDivision) {
+//	//				return compare((AddressGenericDivision) one, (AddressGenericDivision) two);
+//	//			} else if (equalsConsistent) {
+//	//				return -1;
+//	//			}
+//	//		} else if(one instanceof IPAddressSeqRange) {
+//	//			if(two instanceof IPAddressSeqRange) {
+//	//				return compare((IPAddressSeqRange) one, (IPAddressSeqRange) two);
+//	//			} else if (equalsConsistent) {
+//	//				if(two instanceof AddressDivisionSeries) {
+//	//					return -1;
+//	//				}
+//	//				return 1;
+//	//			}
+//	//		}
+//	//		if(one == two) {
+//	//			return 0;
+//	//		}
+//	//		if(equalsConsistent) {
+//	//			int bitDiff = one.getBitCount() - two.getBitCount();
+//	//			if(bitDiff != 0) {
+//	//				return bitDiff;
+//	//			}
+//	//		}
+//	//		if(two instanceof AddressDivisionSeries) {
+//	//			//if a series of multiple values over multiple divisions, ranges are not comparable
+//	//			AddressDivisionSeries twoSeries = (AddressDivisionSeries) two;
+//	//			if(two.isMultiple()) {
+//	//				if(twoSeries.getDivisionCount() > 0) {
+//	//					return 1;
+//	//				}
+//	//			}
+//	//			if(one instanceof AddressGenericDivision) {
+//	//				return compare((AddressGenericDivision) one, twoSeries.getDivision(0));
+//	//			}
+//	//			two = twoSeries.getDivision(0);
+//	//		}
+//	//		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
+//}

@@ -28,9 +28,7 @@ func createSegmentArray(length int) []*AddressDivision {
 	return make([]*AddressDivision, length)
 }
 
-// TODO think about the getDivision panic a bit more, do we want an error?  do slices panic with bad indices?  Could return nil instead
-
-// getDivision returns the division or panics if the index is negative or it is too large
+// getDivision returns the division or panics if the index is negative or too large
 func (grouping *addressDivisionGroupingInternal) getDivision(index int) *AddressDivision {
 	return grouping.addressDivisionGroupingBase.getDivision(index).toAddressDivision()
 }
@@ -71,6 +69,19 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 		}
 	}
 	return true
+}
+
+func (grouping *addressDivisionGroupingBase) isMore(other *AddressDivisionGrouping) int {
+	if !grouping.IsMultiple() {
+		if other.IsMultiple() {
+			return -1
+		}
+		return 0
+	}
+	if !other.IsMultiple() {
+		return 1
+	}
+	return grouping.GetCount().CmpAbs(other.GetCount())
 }
 
 func (grouping *addressDivisionGroupingInternal) GetCount() *big.Int {
@@ -433,6 +444,10 @@ func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision
 
 func (grouping *AddressDivisionGrouping) GetDivisionCount() int {
 	return grouping.getDivisionCount()
+}
+
+func (grouping *addressDivisionGroupingBase) IsMore(other *AddressDivisionGrouping) int {
+	return grouping.isMore(other)
 }
 
 type addrType string

@@ -270,3 +270,7 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	addr = addr.init()
 	return NewIPv6SeqRange(addr.GetLower(), addr.GetUpper())
 }
+
+func (addr *IPv6Address) IsMore(other *IPv6Address) int {
+	return addr.init().isMore(other.ToIPAddress())
+}

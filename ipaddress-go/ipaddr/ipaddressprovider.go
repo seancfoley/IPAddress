@@ -917,15 +917,9 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - I think I need the comparator next along with compareTo everywhere, (bytes package has Compare() and Equal())
 //		So do you use Equals or Equal?  Compare or CompareTo?  Probably Equals and CompareTo, but hold on, Compare and Equal are quite common
 //		needed by some of the contains methods such as SeqRange contains, also seq range creation needs compare
-// - I need getCount for the comparator and other count methods too, then the comparator needed for contains()
+// - the comparator needed for contains()
 // - also segment prefixContains and prefixEquals
 // - Equals too is fundamental
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces
 // - finish HostName
-
-// TODO getCount: check getCountImpl(), which calls getCountImpl(int)
-// you want to check if a series is section, then in section check if ip section or mac, then in ip section check if ipv4/6
-// keep going up til you cannot, then do the count.  There are 3 getCountImpl(int one for mac, ipv4, ipv6.
-// There is a getCountImpl() for AddressDivisionSeries using big ints totally
-// The getCountImpl for seq ranges is pretty simple, same with divisions

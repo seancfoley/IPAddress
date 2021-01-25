@@ -52,6 +52,23 @@ func (addr *addressInternal) GetCount() *big.Int {
 	return addr.section.GetCount()
 }
 
+func (addr *addressInternal) IsMultiple() bool {
+	if addr.section == nil {
+		return false
+	}
+	return addr.section.IsMultiple()
+}
+
+func (addr *addressInternal) isMore(other *Address) int {
+	if addr.section == nil {
+		if other.IsMultiple() {
+			return -1
+		}
+		return 0
+	}
+	return addr.section.IsMore(other.GetSection())
+}
+
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
 	if addr.zone != noZone {
 		return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)

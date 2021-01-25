@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"sync"
 	"unsafe"
 )
 
@@ -18,18 +19,57 @@ import (
 // TODO The other two (IPv4/6), what will be their zero ranges?  Do we default to 0.0.0.0 and :: again?
 // Yep.
 
+type rangeCache struct {
+	cacheLock sync.Mutex
+
+	countSetting countSetting
+}
+
 type ipAddressSeqRangeInternal struct {
 	lower, upper *IPAddress
-	cachedCount  big.Int //TODO like other cahces, this needs to be a pointer
+	cache        *rangeCache
 }
 
 type IPAddressSeqRange struct {
 	ipAddressSeqRangeInternal
 }
 
+func (rng *IPAddressSeqRange) setCount() (res *big.Int) {
+	cache := rng.cache
+	if !cache.countSetting.isSetNoSync() {
+		cache.cacheLock.Lock()
+		if !cache.countSetting.isSetNoSync() {
+			upper := rng.GetUpperValue()
+			res = rng.GetValue()
+			upper.Sub(upper, res).Add(upper, bigOneConst())
+			cache.countSetting.count = upper
+			res.Set(upper)
+		}
+		cache.cacheLock.Unlock()
+	}
+	return
+}
+
 func (rng *IPAddressSeqRange) GetCount() *big.Int {
-	upper := rng.GetUpperValue()
-	return upper.Sub(upper, rng.GetValue()).Add(upper, bigOne())
+	res := rng.setCount()
+	if res == nil {
+		// already set
+		res = new(big.Int).Set(rng.cache.countSetting.count)
+	}
+	return res
+}
+
+// IsMore returns whether this range has a large count than the other
+func (rng *IPAddressSeqRange) IsMore(other *IPAddressSeqRange) int {
+	thisCount := rng.setCount()
+	if thisCount == nil {
+		thisCount = rng.cache.countSetting.count
+	}
+	otherCount := other.setCount()
+	if otherCount == nil {
+		otherCount = other.cache.countSetting.count
+	}
+	return thisCount.CmpAbs(otherCount)
 }
 
 func (rng *IPAddressSeqRange) GetLower() *IPAddress {

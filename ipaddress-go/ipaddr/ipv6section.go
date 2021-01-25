@@ -142,6 +142,10 @@ func (section *IPv6AddressSection) GetCount() *big.Int {
 	})
 }
 
+func (section *IPv6AddressSection) IsMore(other *IPv6AddressSection) int {
+	return section.isMore(other.ToIPAddressSection())
+}
+
 func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
 	return section.getDivision(index).ToIPv6AddressSegment()
 }
