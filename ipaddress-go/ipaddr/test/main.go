@@ -133,6 +133,15 @@ func main() {
 	ipv6Prefixed = ipv6Addr.ToPrefixBlockLen(40)
 	fmt.Printf("40 block is %+v\n", ipv6Prefixed)
 
+	addrDown := ipv6Prefixed.ToAddress()
+	fmt.Printf("addr down converted 40 block is %+v\n", addrDown)
+
+	addrUp := addrDown.ToIPv6Address()
+	fmt.Printf("addr up converted 40 block is %+v\n", addrUp)
+
+	addrUpNil := addrDown.ToIPv4Address()
+	fmt.Printf("addr up converted nil is %+v\n", addrUpNil)
+
 	//ip := net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}
 	//foo(ip)
 	//foo2(ip)

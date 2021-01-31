@@ -1,790 +1,5 @@
 package ipaddr
 
-//
-//public abstract class AddressComparator implements Comparator<AddressItem> {
-//
-//	protected final boolean equalsConsistent;
-//
-//	/**
-//	 * @param equalsConsistent when true, those with different types, versions, bit counts, and other identifying characteristics, those cannot have comparison of zero, consistent with equals in the various classes (ranges, divisions, groupings, addresses)
-//	 * 	Otherwise, objects with similar structure and values can have comparison of zero
-//	 */
-//	AddressComparator(boolean equalsConsistent) {
-//		this.equalsConsistent = equalsConsistent;
-//	}
-//
-//	public int compare(Address one, Address two) {
-//		if(one == two) {
-//			return 0;
-//		}
-//		int result = compare(one.getSection(), two.getSection());
-//		if(result == 0 && one instanceof IPv6Address) {
-//			IPv6Address oneIPv6 = (IPv6Address) one;
-//			IPv6Address twoIPv6 = (IPv6Address) two;
-//			result = Objects.compare(oneIPv6.getZone(), twoIPv6.getZone(), Comparator.nullsFirst(String::compareTo));
-//		}
-//		return result;
-//	}
-//
-
-//
-//	public int compare(AddressSection one, AddressSection two) {
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(!one.getClass().equals(two.getClass())) {
-//			int result = mapGrouping(one) - mapGrouping(two);
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		if(one instanceof IPv6AddressSection) {
-//			IPv6AddressSection o1 = (IPv6AddressSection) one;
-//			IPv6AddressSection o2 = (IPv6AddressSection) two;
-//			int result = o2.addressSegmentIndex - o1.addressSegmentIndex;
-//			if(result != 0) {
-//				return result;
-//			}
-//		} else if(one instanceof MACAddressSection) {
-//			MACAddressSection o1 = (MACAddressSection) one;
-//			MACAddressSection o2 = (MACAddressSection) two;
-//			int result = o2.addressSegmentIndex - o1.addressSegmentIndex;
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		return compareParts(one, two);
-//	}
-//
-//	@Override
-//	public int compare(AddressItem one, AddressItem two) {
-//		if(one instanceof AddressDivisionSeries) {
-//			if(two instanceof AddressDivisionSeries) {
-//				return compare((AddressDivisionSeries) one, (AddressDivisionSeries) two);
-//			} else if (equalsConsistent) {
-//				return 1;
-//			} else if(one.isMultiple()) {
-//				AddressDivisionSeries oneSeries = (AddressDivisionSeries) one;
-//				if(oneSeries.getDivisionCount() > 0) {
-//					return 1;
-//				}
-//				one = oneSeries.getDivision(0);
-//			}
-//		}
-//		if(one instanceof AddressGenericDivision) {
-//			if(two instanceof AddressGenericDivision) {
-//				return compare((AddressGenericDivision) one, (AddressGenericDivision) two);
-//			} else if (equalsConsistent) {
-//				return -1;
-//			}
-//		} else if(one instanceof IPAddressSeqRange) {
-//			if(two instanceof IPAddressSeqRange) {
-//				return compare((IPAddressSeqRange) one, (IPAddressSeqRange) two);
-//			} else if (equalsConsistent) {
-//				if(two instanceof AddressDivisionSeries) {
-//					return -1;
-//				}
-//				return 1;
-//			}
-//		}
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(equalsConsistent) {
-//			int bitDiff = one.getBitCount() - two.getBitCount();
-//			if(bitDiff != 0) {
-//				return bitDiff;
-//			}
-//		}
-//		if(two instanceof AddressDivisionSeries) {
-//			//if a series of multiple values over multiple divisions, ranges are not comparable
-//			AddressDivisionSeries twoSeries = (AddressDivisionSeries) two;
-//			if(two.isMultiple()) {
-//				if(twoSeries.getDivisionCount() > 0) {
-//					return 1;
-//				}
-//			}
-//			if(one instanceof AddressGenericDivision) {
-//				return compare((AddressGenericDivision) one, twoSeries.getDivision(0));
-//			}
-//			two = twoSeries.getDivision(0);
-//		}
-//		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
-//	}
-//
-//	public int compare(AddressDivisionSeries one, AddressDivisionSeries two) {
-//		if(one instanceof Address) {
-//			if(two instanceof Address) {
-//				return compare((Address) one, (Address) two);
-//			} else {
-//				if(equalsConsistent) {
-//					return -1;
-//				}
-//				one = ((Address) one).getSection();
-//			}
-//		} else if(two instanceof Address) {
-//			if(equalsConsistent) {
-//				return 1;
-//			}
-//			two = ((Address) two).getSection();
-//		}
-//		if(one instanceof AddressSection && two instanceof AddressSection) {
-//			return compare((AddressSection) one, (AddressSection) two);
-//		}
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(!one.getClass().equals(two.getClass())) {
-//			int result = mapGrouping(one) - mapGrouping(two);
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		return compareParts(one, two);
-//	}
-//
-//	protected static int compareDivBitCounts(AddressDivisionSeries oneSeries, AddressDivisionSeries twoSeries) {
-//		//when this is called we knwo the two series have the same bit-size, we want to check that the divisions
-//		//also have the same bit size (which of course also implies that there are the same number of divisions)
-//		int count = oneSeries.getDivisionCount();
-//		int result = count - twoSeries.getDivisionCount();
-//		if(result == 0) {
-//			for(int i = 0; i < count; i++) {
-//				result = oneSeries.getDivision(i).getBitCount() - twoSeries.getDivision(i).getBitCount();
-//				if(result != 0) {
-//					break;
-//				}
-//			}
-//		}
-//		return result;
-//	}
-//
-//	public int compare(AddressSegment one, AddressSegment two) {
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(!one.getClass().equals(two.getClass())) {
-//			int result = mapDivision(one) - mapDivision(two);
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		return compareValues(one.getUpperSegmentValue(), one.getSegmentValue(), two.getUpperSegmentValue(), two.getSegmentValue());
-//	}
-//
-//	public int compare(IPAddressSeqRange one, IPAddressSeqRange two) {
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(!one.getClass().equals(two.getClass())) {
-//			int result = mapRange(one) - mapRange(two);
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		if(one instanceof IPv4AddressSeqRange && two instanceof IPv4AddressSeqRange) {
-//			IPv4AddressSeqRange gOne = (IPv4AddressSeqRange) one;
-//			IPv4AddressSeqRange gTwo = (IPv4AddressSeqRange) two;
-//			return compareValues(gOne.getUpper().longValue(), gOne.getLower().longValue(), gTwo.getUpper().longValue(), gTwo.getLower().longValue());
-//		}
-//		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
-//	}
-//
-//	public int compare(AddressGenericDivision one, AddressGenericDivision two) {
-//		if(one instanceof AddressSegment && two instanceof AddressSegment) {
-//			return compare((AddressSegment) one, (AddressSegment) two);
-//		}
-//		if(one == two) {
-//			return 0;
-//		}
-//		if(!one.getClass().equals(two.getClass())) {
-//			int result = mapDivision(one) - mapDivision(two);
-//			if(result != 0) {
-//				return result;
-//			}
-//		}
-//		if(equalsConsistent) {
-//			int bitDiff = one.getBitCount() - two.getBitCount();
-//			if(bitDiff != 0) {
-//				return bitDiff;
-//			}
-//		}
-//		if(one instanceof AddressDivision && two instanceof AddressDivision) {
-//			AddressDivision gOne = (AddressDivision) one;
-//			AddressDivision gTwo = (AddressDivision) two;
-//			return compareValues(gOne.getUpperDivisionValue(), gOne.getDivisionValue(), gTwo.getUpperDivisionValue(), gTwo.getDivisionValue());
-//		}
-//		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
-//	}
-//
-//	protected abstract int compareParts(AddressDivisionSeries one, AddressDivisionSeries two);
-//
-//	protected abstract int compareParts(AddressSection one, AddressSection two);
-//
-//	protected abstract int compareValues(BigInteger oneUpper, BigInteger oneLower, BigInteger twoUpper, BigInteger twoLower);
-//
-//	protected abstract int compareValues(long oneUpper, long oneLower, long twoUpper, long twoLower);
-//
-//	protected abstract int compareValues(int oneUpper, int oneLower, int twoUpper, int twoLower);
-//
-//	static int convertResult(long v) {
-//		return v == 0 ? 0 : (v > 0 ? 1 : -1);
-//		//return (v >> 32) | (v & 0x7fffffff);
-//	}
-//
-//	/**
-//	 * ValueComparator is similar to the default comparator CountComparator in the way they treat addresses representing a single address.
-//	 * <p>
-//	 * For individual addresses, it simply compares segment to segment from high to low, so 1.2.3.4 &lt; 1.2.3.5 and 2.2.3.4 &gt; 1.2.3.5.
-//	 * <p>
-//	 * The difference is how they treat addresses representing multiple addresses (ie subnets) like 1::/64 or 1.*.*.*
-//	 * <p>
-//	 * The count comparator considers addresses which represent more individual addresses to be larger.
-//	 * <p>
-//	 * The value comparator goes by either the highest value or the lowest value in the range of represented addresses.
-//	 * <p>
-//	 * So, for instance, consider 1.2.3.4 and 1.0.0.*
-//	 * <br>
-//	 * With count comparator, 1.2.3.4 &lt; 1.2.3.* since the second represents more addresses (ie 1 &lt; 255)
-//	 * <br>
-//	 * With value comparator using the high value, 1.2.3.4 &lt; 1.2.3.* since 1.2.3.4 &lt; 1.2.3.255
-//	 * <br>
-//	 * With value comparator using the low value, 1.2.3.4 &gt; 1.2.3.* since 1.2.3.4 &gt; 1.2.3.0
-//	 *
-//	 * Also see {@link CountComparator}
-//	 *
-//	 * @author sfoley
-//	 *
-//	 */
-//	public static class ValueComparator extends AddressComparator {
-//		private final boolean compareHighValue, flipSecond;
-//
-//		public ValueComparator(boolean compareHighValue) {
-//			this(true, compareHighValue);
-//		}
-//
-//		public ValueComparator(boolean equalsConsistent, boolean compareHighValue) {
-//			this(true, compareHighValue, false);
-//			//super(equalsConsistent);
-//			//this.compareHighValue = compareHighValue;
-//		}
-//
-//		public ValueComparator(boolean equalsConsistent, boolean compareHighValue, boolean flipSecond) {
-//			super(equalsConsistent);
-//			this.compareHighValue = compareHighValue;
-//			this.flipSecond = flipSecond;
-//		}
-//
-//		@Override
-//		protected int compareParts(AddressSection one, AddressSection two) {
-//			int sizeResult = one.getByteCount() - two.getByteCount();
-//			if(sizeResult != 0) {
-//				return sizeResult;
-//			}
-//			boolean compareHigh = compareHighValue;
-//			do {
-//				int segCount = one.getSegmentCount();
-//				for(int i = 0; i < segCount; i++) {
-//					AddressSegment segOne = one.getSegment(i);
-//					AddressSegment segTwo = two.getSegment(i);
-//					int result = compareHigh ?
-//							(segOne.getUpperSegmentValue() - segTwo.getUpperSegmentValue()) :
-//								(segOne.getSegmentValue() - segTwo.getSegmentValue());
-//					if(result != 0) {
-//						if(flipSecond && compareHigh != compareHighValue) {
-//							return -result;
-//						}
-//						return result;
-//					}
-//				}
-//				compareHigh = !compareHigh;
-//			} while(compareHigh != compareHighValue);
-//			return 0;
-//		}
-//
-//		@Override
-//		protected int compareParts(AddressDivisionSeries oneSeries, AddressDivisionSeries twoSeries) {
-//			int sizeResult = oneSeries.getBitCount() - twoSeries.getBitCount();
-//			if(sizeResult != 0) {
-//				return sizeResult;
-//			}
-//			if(equalsConsistent || oneSeries.isMultiple() || twoSeries.isMultiple()) {
-//				int result = compareDivBitCounts(oneSeries, twoSeries);
-//				if(result != 0) {
-//					return result;
-//				}
-//			}
-//			boolean compareHigh = compareHighValue;
-//			AddressDivisionGrouping one, two;
-//			if(oneSeries instanceof AddressDivisionGrouping && twoSeries instanceof AddressDivisionGrouping) {
-//				one = (AddressDivisionGrouping) oneSeries;
-//				 two = (AddressDivisionGrouping) twoSeries;
-//			} else {
-//				one = two = null;
-//			}
-//			do {
-//				int oneSeriesByteCount = oneSeries.getByteCount(), twoSeriesByteCount = twoSeries.getByteCount();
-//				byte oneBytes[] = new byte[oneSeriesByteCount], twoBytes[] = new byte[twoSeriesByteCount];
-//				int oneTotalBitCount, twoTotalBitCount, oneByteCount, twoByteCount, oneByteIndex, twoByteIndex;
-//				oneByteIndex = twoByteIndex = oneByteCount = twoByteCount = oneTotalBitCount = twoTotalBitCount = 0;
-//
-//				int oneBitCount, twoBitCount, oneIndex, twoIndex;
-//				oneBitCount = twoBitCount = oneIndex = twoIndex = 0;
-//				long oneValue, twoValue;
-//				oneValue = twoValue = 0;
-//				while(oneIndex < oneSeries.getDivisionCount() || twoIndex < twoSeries.getDivisionCount()) {
-//					if(one != null) {
-//						if(oneBitCount == 0) {
-//							AddressDivision oneCombo = one.getDivision(oneIndex++);
-//							oneBitCount = oneCombo.getBitCount();
-//							oneValue = compareHigh ? oneCombo.getUpperDivisionValue() : oneCombo.getDivisionValue();
-//						}
-//						if(twoBitCount == 0) {
-//							AddressDivision twoCombo = two.getDivision(twoIndex++);
-//							twoBitCount = twoCombo.getBitCount();
-//							twoValue = compareHigh ? twoCombo.getUpperDivisionValue() : twoCombo.getDivisionValue();
-//						}
-//					} else {
-//						if(oneBitCount == 0) {
-//							if(oneByteCount == 0) {
-//								AddressGenericDivision oneCombo = oneSeries.getDivision(oneIndex++);
-//								oneBytes = compareHigh ? oneCombo.getUpperBytes(oneBytes) : oneCombo.getBytes(oneBytes);
-//								oneTotalBitCount = oneCombo.getBitCount();
-//								oneByteCount = oneCombo.getByteCount();
-//								oneByteIndex = 0;
-//							}
-//							//put some or all of the bytes into a long
-//							int count = Long.BYTES - 1;
-//							oneValue = 0;
-//							if(count < oneByteCount) {
-//								oneBitCount = count << 3;
-//								oneTotalBitCount -= oneBitCount;
-//								oneByteCount -= count;
-//								while(count-- > 0) {
-//									oneValue = (oneValue << Byte.SIZE) | oneBytes[++oneByteIndex];
-//								}
-//							} else {
-//								int shortCount = oneByteCount - 1;
-//								int lastBitsCount = oneTotalBitCount - (shortCount << 3);
-//								while(shortCount-- > 0) {
-//									oneValue = (oneValue << Byte.SIZE) | oneBytes[++oneByteIndex];
-//								}
-//								oneValue = (oneValue << lastBitsCount) | (oneBytes[++oneByteIndex] >>> (Byte.SIZE - lastBitsCount));
-//								oneBitCount = oneTotalBitCount;
-//								oneTotalBitCount = oneByteCount = 0;
-//							}
-//						}
-//						if(twoBitCount == 0) {
-//							if(twoByteCount == 0) {
-//								AddressGenericDivision twoCombo = twoSeries.getDivision(twoIndex++);
-//								twoBytes = compareHigh ? twoCombo.getUpperBytes(twoBytes) : twoCombo.getBytes(twoBytes);
-//								twoTotalBitCount = twoCombo.getBitCount();
-//								twoByteCount = twoCombo.getByteCount();
-//								twoByteIndex = 0;
-//							}
-//							//put some or all of the bytes into a long
-//							int count = Long.BYTES - 1;
-//							twoValue = 0;
-//							if(count < twoByteCount) {
-//								twoBitCount = count << 3;
-//								twoTotalBitCount -= twoBitCount;
-//								twoByteCount -= count;
-//								while(count-- > 0) {
-//									twoValue = (twoValue << Byte.SIZE) | oneBytes[++twoByteIndex];
-//								}
-//							} else {
-//								int shortCount = twoByteCount - 1;
-//								int lastBitsCount = twoTotalBitCount - (shortCount << 3);
-//								while(shortCount-- > 0) {
-//									twoValue = (twoValue << Byte.SIZE) | oneBytes[++twoByteIndex];
-//								}
-//								twoValue = (twoValue << lastBitsCount) | (oneBytes[++twoByteIndex] >>> (Byte.SIZE - lastBitsCount));
-//								twoBitCount = twoTotalBitCount;
-//								twoTotalBitCount = twoByteCount = 0;
-//							}
-//						}
-//					}
-//					long oneResultValue = oneValue, twoResultValue = twoValue;
-//					if(twoBitCount == oneBitCount) {
-//						//no adjustment required, compare the values straight up
-//						oneBitCount = twoBitCount = 0;
-//					} else {
-//						int diffBits = twoBitCount - oneBitCount;
-//						if(diffBits > 0) {
-//							twoResultValue >>= diffBits;
-//							twoValue &= ~(~0L << diffBits);//difference in bytes must be less than 8 for this this shift to work per the java spec
-//							twoBitCount = diffBits;
-//							oneBitCount = 0;
-//						} else {
-//							diffBits = -diffBits;
-//							oneResultValue >>= diffBits;
-//							oneValue &= ~(~0L << diffBits);
-//							oneBitCount = diffBits;
-//							twoBitCount = 0;
-//						}
-//					}
-//					long result = oneResultValue - twoResultValue;
-//					if(result != 0) {
-//						return convertResult(result);
-//					}
-//				}
-//				compareHigh = !compareHigh;
-//			} while(compareHigh != compareHighValue);
-//			return 0;
-//		}
-//
-//		@Override
-//		protected int compareValues(BigInteger oneUpper, BigInteger oneLower, BigInteger twoUpper, BigInteger twoLower) {
-//			int result;
-//			if(compareHighValue) {
-//				result = oneUpper.compareTo(twoUpper);
-//				if(result == 0) {
-//					result = oneLower.compareTo(twoLower);
-//				}
-//			} else {
-//				result = oneLower.compareTo(twoLower);
-//				if(result == 0) {
-//					result = oneUpper.compareTo(twoUpper);
-//				}
-//			}
-//			return convertResult(result);
-//		}
-//
-//		@Override
-//		protected int compareValues(long oneUpper, long oneLower, long twoUpper, long twoLower) {
-//			long result;
-//			if(compareHighValue) {
-//				result = oneUpper - twoUpper;
-//				if(result == 0) {
-//					result = oneLower - twoLower;
-//				}
-//			} else {
-//				result = oneLower - twoLower;
-//				if(result == 0) {
-//					result = oneUpper - twoUpper;
-//				}
-//			}
-//			return convertResult(result);
-//		}
-//
-//		@Override
-//		protected int compareValues(int oneUpper, int oneLower, int twoUpper, int twoLower) {
-//			int result;
-//			if(compareHighValue) {
-//				result = oneUpper - twoUpper;
-//				if(result == 0) {
-//					result = oneLower - twoLower;
-//				}
-//			} else {
-//				result = oneLower - twoLower;
-//				if(result == 0) {
-//					result = oneUpper - twoUpper;
-//				}
-//			}
-//			return result;
-//		}
-//	}
-//
-//	/**
-//	 * CountComparator first compares two address items by count, first by bit count for dissimilar items, {@link AddressItem#getBitCount()}, then by count of values for similar items, ({@link AddressItem#getCount()}) and if both match,
-//	 * defers to the address item values for comparison.
-//	 *
-//	 * Also see {@link ValueComparator}
-//	 *
-//	 * @author sfoley
-//	 *
-//	 */
-//	public static class CountComparator extends AddressComparator {
-//
-//		public CountComparator() {
-//			this(true);
-//		}
-//
-//		public CountComparator(boolean equalsConsistent) {
-//			super(equalsConsistent);
-//		}
-//
-//		private static int compareCount(AddressDivisionSeries one, AddressDivisionSeries two) {
-//			return one.isMore(two);
-//		}
-//
-//		@Override
-//		protected int compareParts(AddressSection one, AddressSection two) {
-//			int result = one.getBitCount() - two.getBitCount();
-//			if(result == 0) {
-//				result = compareCount(one, two);
-//				if(result == 0) {
-//					result = compareEqualSizedSections(one, two);
-//				}
-//			}
-//			return result;
-//		}
-//
-//		@Override
-//		protected int compareParts(AddressDivisionSeries one, AddressDivisionSeries two) {
-//			int result = one.getBitCount() - two.getBitCount();
-//			if(result == 0) {
-//				result = compareCount(one, two);
-//				if(result == 0) {
-//					result = compareSegmentGroupings(one, two);
-//				}
-//			}
-//			return result;
-//		}
-//
-//		private int compareSegmentGroupings(AddressDivisionSeries oneSeries, AddressDivisionSeries twoSeries) {
-//			AddressDivisionGrouping one, two;
-//			if(oneSeries instanceof AddressDivisionGrouping && twoSeries instanceof AddressDivisionGrouping) {
-//				one = (AddressDivisionGrouping) oneSeries;
-//				two = (AddressDivisionGrouping) twoSeries;
-//			} else {
-//				one = two = null;
-//			}
-//			if(equalsConsistent || oneSeries.isMultiple() || twoSeries.isMultiple()) {
-//				int result = compareDivBitCounts(oneSeries, twoSeries);
-//				if(result != 0) {
-//					return result;
-//				}
-//			}
-//			int oneSeriesByteCount = oneSeries.getByteCount(), twoSeriesByteCount = twoSeries.getByteCount();
-//			byte oneUpperBytes[] = new byte[oneSeriesByteCount], oneLowerBytes[] = new byte[oneSeriesByteCount],
-//					twoUpperBytes[] = new byte[twoSeriesByteCount], twoLowerBytes[] = new byte[twoSeriesByteCount];
-//			int oneTotalBitCount, twoTotalBitCount, oneByteCount, twoByteCount, oneByteIndex, twoByteIndex;
-//			oneByteIndex = twoByteIndex = oneByteCount = twoByteCount = oneTotalBitCount = twoTotalBitCount = 0;
-//
-//			int oneBitCount, twoBitCount, oneIndex, twoIndex;
-//			oneBitCount = twoBitCount = oneIndex = twoIndex = 0;
-//			long oneUpper, oneLower, twoUpper, twoLower;
-//			oneUpper = oneLower = twoUpper = twoLower = 0;
-//			while(oneIndex < oneSeries.getDivisionCount() || twoIndex < twoSeries.getDivisionCount()) {
-//				if(one != null) {
-//					if(oneBitCount == 0) {
-//						AddressDivision oneCombo = one.getDivision(oneIndex++);
-//						oneBitCount = oneCombo.getBitCount();
-//						oneUpper = oneCombo.getUpperDivisionValue();
-//						oneLower = oneCombo.getDivisionValue();
-//					}
-//					if(twoBitCount == 0) {
-//						AddressDivision twoCombo = two.getDivision(twoIndex++);
-//						twoBitCount = twoCombo.getBitCount();
-//						twoUpper = twoCombo.getUpperDivisionValue();
-//						twoLower = twoCombo.getDivisionValue();
-//					}
-//				} else {
-//					if(oneBitCount == 0) {
-//						if(oneByteCount == 0) {
-//							AddressGenericDivision oneCombo = oneSeries.getDivision(oneIndex++);
-//							oneUpperBytes = oneCombo.getUpperBytes(oneUpperBytes);
-//							oneLowerBytes = oneCombo.getBytes(oneLowerBytes);
-//							oneTotalBitCount = oneCombo.getBitCount();
-//							oneByteCount = oneCombo.getByteCount();
-//							oneByteIndex = 0;
-//						}
-//
-//						//put some or all of the bytes into a long
-//						int count = Long.BYTES - 1;
-//						oneUpper = oneLower = 0;
-//						if(count < oneByteCount) {
-//							oneBitCount = count << 3;
-//							oneTotalBitCount -= oneBitCount;
-//							oneByteCount -= count;
-//							while(count-- > 0) {
-//								byte upperByte = oneUpperBytes[++oneByteIndex];
-//								byte lowerByte = oneLowerBytes[oneByteIndex];
-//								oneUpper = (oneUpper << Byte.SIZE) | upperByte;
-//								oneLower = (oneLower << Byte.SIZE) | lowerByte;
-//							}
-//						} else {
-//							int shortCount = oneByteCount - 1;
-//							int lastBitsCount = oneTotalBitCount - (shortCount << 3);
-//							while(shortCount-- > 0) {
-//								byte upperByte = oneUpperBytes[++oneByteIndex];
-//								byte lowerByte = oneLowerBytes[oneByteIndex];
-//								oneUpper = (oneUpper << Byte.SIZE) | upperByte;
-//								oneLower = (oneLower << Byte.SIZE) | lowerByte;
-//							}
-//							byte upperByte = oneUpperBytes[++oneByteIndex];
-//							byte lowerByte = oneLowerBytes[oneByteIndex];
-//							oneUpper = (oneUpper << lastBitsCount) | (upperByte>>> (Byte.SIZE - lastBitsCount));
-//							oneLower = (oneLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
-//							oneBitCount = oneTotalBitCount;
-//							oneTotalBitCount = oneByteCount = 0;
-//						}
-//					}
-//					if(twoBitCount == 0) {
-//						if(twoByteCount == 0) {
-//							AddressGenericDivision twoCombo = twoSeries.getDivision(twoIndex++);
-//							twoUpperBytes = twoCombo.getUpperBytes(twoUpperBytes);
-//							twoLowerBytes = twoCombo.getBytes(twoLowerBytes);
-//							twoTotalBitCount = twoCombo.getBitCount();
-//							twoByteCount = twoCombo.getByteCount();
-//							twoByteIndex = 0;
-//						}
-//
-//						//put some or all of the bytes into a long
-//						int count = Long.BYTES - 1;
-//						twoUpper = twoLower = 0;
-//						if(count < twoByteCount) {
-//							twoBitCount = count << 3;
-//							twoTotalBitCount -= twoBitCount;
-//							twoByteCount -= count;
-//							while(count-- > 0) {
-//								byte upperByte = twoUpperBytes[++twoByteIndex];
-//								byte lowerByte = twoLowerBytes[twoByteIndex];
-//								twoUpper = (twoUpper << Byte.SIZE) | upperByte;
-//								twoLower = (twoLower << Byte.SIZE) | lowerByte;
-//							}
-//						} else {
-//							int shortCount = twoByteCount - 1;
-//							int lastBitsCount = twoTotalBitCount - (shortCount << 3);
-//							while(shortCount-- > 0) {
-//								byte upperByte = twoUpperBytes[++twoByteIndex];
-//								byte lowerByte = twoLowerBytes[twoByteIndex];
-//								twoUpper = (twoUpper << Byte.SIZE) | upperByte;
-//								twoLower = (twoLower << Byte.SIZE) | lowerByte;
-//							}
-//							byte upperByte = twoUpperBytes[++twoByteIndex];
-//							byte lowerByte = twoLowerBytes[twoByteIndex];
-//							twoUpper = (twoUpper << lastBitsCount) | (upperByte>>> (Byte.SIZE - lastBitsCount));
-//							twoLower = (twoLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
-//							twoBitCount = twoTotalBitCount;
-//							twoTotalBitCount = twoByteCount = 0;
-//						}
-//					}
-//				}
-//
-//				long oneResultUpper = oneUpper, oneResultLower = oneLower, twoResultUpper = twoUpper, twoResultLower = twoLower;
-//				if(twoBitCount == oneBitCount) {
-//					//no adjustment required, compare the values straight up
-//					oneBitCount = twoBitCount = 0;
-//				} else {
-//					int diffBits = twoBitCount - oneBitCount;
-//					if(diffBits > 0) {
-//						twoResultUpper >>>= diffBits;//look at the high bits only (we are comparing left to right, high to low)
-//						twoResultLower >>>= diffBits;
-//						long mask = ~(~0L << diffBits);
-//						twoUpper &= mask;
-//						twoLower &= mask;
-//						twoBitCount = diffBits;
-//						oneBitCount = 0;
-//					} else {
-//						diffBits = -diffBits;
-//						oneResultUpper >>>= diffBits;
-//						oneResultLower >>>= diffBits;
-//						long mask = ~(~0L << diffBits);
-//						oneUpper &= mask;
-//						oneLower &= mask;
-//						oneBitCount = diffBits;
-//						twoBitCount = 0;
-//					}
-//				}
-//				int result = compareValues(oneResultUpper, oneResultLower, twoResultUpper, twoResultLower);
-//				if(result != 0) {
-//					return result;
-//				}
-//			}
-//			return 0;
-//		}
-//
-//		protected int compareEqualSizedSections(AddressSection one, AddressSection two) {
-//			int segCount = one.getSegmentCount();
-//			for(int i = 0; i < segCount; i++) {
-//				AddressSegment segOne = one.getSegment(i);
-//				AddressSegment segTwo = two.getSegment(i);
-//				int oneUpper = segOne.getUpperSegmentValue();
-//				int twoUpper = segTwo.getUpperSegmentValue();
-//				int oneLower = segOne.getSegmentValue();
-//				int twoLower = segTwo.getSegmentValue();
-//				int result = compareValues(oneUpper, oneLower, twoUpper, twoLower);
-//				if(result != 0) {
-//					return result;
-//				}
-//			}
-//			return 0;
-//		}
-//
-//		@Override
-//		protected int compareValues(int oneUpper, int oneLower, int twoUpper, int twoLower) {
-//			int result = (oneUpper - oneLower) - (twoUpper - twoLower);
-//			if(result == 0) {
-//				//the size of the range is the same, so just compare either upper or lower values
-//				result = oneLower - twoLower;
-//			}
-//			return result;
-//		}
-//
-//		@Override
-//		protected int compareValues(long oneUpper, long oneLower, long twoUpper, long twoLower) {
-//			long result = (oneUpper - oneLower) - (twoUpper - twoLower);
-//			if(result == 0) {
-//				//the size of the range is the same, so just compare either upper or lower values
-//				result = oneLower - twoLower;
-//
-//			} //else the size of the range is the same, so just compare either upper or lower values
-//			return convertResult(result);
-//		}
-//
-//		@Override
-//		protected int compareValues(BigInteger oneUpper, BigInteger oneLower, BigInteger twoUpper, BigInteger twoLower) {
-//			BigInteger oneCount = oneUpper.subtract(oneLower);
-//			BigInteger twoCount = twoUpper.subtract(twoLower);
-//			int result = oneCount.compareTo(twoCount);
-//			if(result == 0) {
-//				result = oneLower.compareTo(twoLower);
-//			}
-//			return result;
-//		}
-//	}
-//}
-
-func mapGrouping(series AddressDivisionSeries) int {
-	//		if(series instanceof IPv6AddressSection) {
-	//			return 6;
-	//		} else if(series instanceof IPv6v4MixedAddressSection) {
-	//			return 5;
-	//		} else if(series instanceof IPv4AddressSection) {
-	//			return 4;
-	//		} else if(series instanceof MACAddressSection) {
-	//			return 3;
-	//		} else if(series instanceof IPAddressDivisionGrouping) {
-	//			return -1;
-	//		} else if(series instanceof IPAddressLargeDivisionGrouping) {
-	//			return -2;
-	//		} else if(series instanceof AddressDivisionGrouping) {
-	//			return -3;
-	//		}
-	return 0
-}
-
-//
-//	private static int mapDivision(AddressGenericDivision div) {
-//		if(div instanceof MACAddressSegment) {
-//			return 1;
-//		} else if(div instanceof IPv4JoinedSegments) {
-//			return 2;
-//		} else if(div instanceof IPv4AddressSegment) {
-//			return 3;
-//		} else if(div instanceof IPv6AddressSegment) {
-//			return 4;
-//		} else if(div instanceof IPAddressLargeDivision) {
-//			return -1;
-//		} else if(div instanceof IPAddressBitsDivision) {
-//			return -2;
-//		} else if(div instanceof AddressBitsDivision) {
-//			return -3;
-//		}
-//		return 0;
-//	}
-//
-//	private static int mapRange(IPAddressSeqRange range) {
-//		if(range instanceof IPv4AddressSeqRange) {
-//			return 1;
-//		} else if(range instanceof IPv6AddressSeqRange) {
-//			return 2;
-//		}
-//		return 0;
-//	}
-
 // TODO on java side, all address items are comparable and implement Comparable<AddressItem>
 // IPAddressString implements Comparable<IPAddressString>
 // TODO the key will be to ensuring eveything implements AddressItem with: var _ AddressItem = x
@@ -836,117 +51,252 @@ AddressItem:
 	CopyUpperBytes(bytes []byte) []byte
 	GetCount()
 
-
-// Notes on comparing:
-//We will need a GetLargeDivision in divisiongrouping I guess, but that kinda wrecks the whole point of doing this
-	//Maybe a GetGenericDivision? Seems like the best option.
-	//Add a func to each implementer that returns the more genric type.
-	//WAIT... But you do not really need that, since everything can be converted to AddressDivision
-	//So you can pass in as an AddressItem, then you can do type assertions,
-	//with each type you can then convert to AddressDivisionSeries
-
-	//GetDivision(index int) *AddressDivision {
-
-
-
-
-
 // TODO addressSegmentInternal, addressSectionInternal, addressInternal will all have CompareTo(AddressItem)
 // which will then be inherited by everything and then you can add it to AddressItem
 
 */
 
-type ComponentComparator interface {
+type componentComparator interface {
+	// TODO value and count versions of this interface, then have a singleton for each
+	compareSectionParts(one, two *AddressSection) int
+
+	/*
+		inside will want this to check if we can use longs
+		addrGroup1 := one.(AddressDivisionGroupingType)
+			addrGroup2 := one.(AddressDivisionGroupingType)
+			oneGrp := addrGroup1.ToAddressDivisionGrouping()
+			twoGrp := addrGroup2.ToAddressDivisionGrouping()
+	*/
+	compareParts(one, two AddressDivisionSeries) int
 }
 
 type AddressComparator struct {
-	comp ComponentComparator
+	componentComparator
 }
 
-//func (comp AddressComparator) compareAddresses(one, two *Address) int {
-//
-//}
-//
-//func (comp AddressComparator) compareItems(one, two AddressItem) int {
-//
-//	xxx ok this cannot work the same way xxxx
-//	xxx seems you need interfaces to cover each:
-//		Address (GetSection - but return value for this differs everywhere),
-//		Grouping,
-//		Division,
-//
-//	addr2, twoIsAddress := two.(*Address)
-//	if addr1, oneIsAddress := one.(*Address); oneIsAddress {
-//		if twoIsAddress {
-//			return comp.compareAddresses(one, two)
-//		}
-//		return -1
-//	} else if twoIsAddress {
-//		return 1
-//	}
-//
-//	div2, twoIsDiv := two.(*addressDivisionBase)
-//	// Hold on, here is the process:
-//	// Start off by differentiating between section/address/division (how?  not sure yet, I might need type checks?
-//	// If I have an interface for each I can
-//	// But that interface would have to cover all series/sections, or all addresses, or all divisions/segments.
-//	// - Go as high as you can, first toAddressSection(), then toIPAddressSection and toMACAddressSection,
-//	// then if toIPAddressSection do toIPv4AddressSection and toIPv6AddressSection
-//	// Once you have gone as high as you can go, then you can map to the constant for that type.
-//	// Then you can compare the type.
-//	// THen if you have no match, you're done.  If you have a match, call a method that uses the interface type,
-//	// depending on whether you have a divisionseries or segmentseries, a division or segment.
-//
-//	//		if(one instanceof AddressDivisionSeries) {
-//	//			if(two instanceof AddressDivisionSeries) {
-//	//				return compare((AddressDivisionSeries) one, (AddressDivisionSeries) two);
-//	//			} else if (equalsConsistent) {
-//	//				return 1;
-//	//			} else if(one.isMultiple()) {
-//	//				AddressDivisionSeries oneSeries = (AddressDivisionSeries) one;
-//	//				if(oneSeries.getDivisionCount() > 0) {
-//	//					return 1;
-//	//				}
-//	//				one = oneSeries.getDivision(0);
-//	//			}
-//	//		}
-//	//		if(one instanceof AddressGenericDivision) {
-//	//			if(two instanceof AddressGenericDivision) {
-//	//				return compare((AddressGenericDivision) one, (AddressGenericDivision) two);
-//	//			} else if (equalsConsistent) {
-//	//				return -1;
-//	//			}
-//	//		} else if(one instanceof IPAddressSeqRange) {
-//	//			if(two instanceof IPAddressSeqRange) {
-//	//				return compare((IPAddressSeqRange) one, (IPAddressSeqRange) two);
-//	//			} else if (equalsConsistent) {
-//	//				if(two instanceof AddressDivisionSeries) {
-//	//					return -1;
-//	//				}
-//	//				return 1;
-//	//			}
-//	//		}
-//	//		if(one == two) {
-//	//			return 0;
-//	//		}
-//	//		if(equalsConsistent) {
-//	//			int bitDiff = one.getBitCount() - two.getBitCount();
-//	//			if(bitDiff != 0) {
-//	//				return bitDiff;
-//	//			}
-//	//		}
-//	//		if(two instanceof AddressDivisionSeries) {
-//	//			//if a series of multiple values over multiple divisions, ranges are not comparable
-//	//			AddressDivisionSeries twoSeries = (AddressDivisionSeries) two;
-//	//			if(two.isMultiple()) {
-//	//				if(twoSeries.getDivisionCount() > 0) {
-//	//					return 1;
-//	//				}
-//	//			}
-//	//			if(one instanceof AddressGenericDivision) {
-//	//				return compare((AddressGenericDivision) one, twoSeries.getDivision(0));
-//	//			}
-//	//			two = twoSeries.getDivision(0);
-//	//		}
-//	//		return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
-//}
+const (
+	ipv4type          = 4
+	ipv6type          = 6
+	mactype           = 3
+	iptype            = 2
+	sectype           = 1
+	largegroupingtype = -2
+	groupingtype      = -3
+)
+
+func mapGrouping(series AddressDivisionSeries) int {
+	if grouping, ok := series.(AddressDivisionGroupingType); ok {
+		group := grouping.ToAddressDivisionGrouping()
+		if group.IsIPv6AddressSection() {
+			return ipv6type
+			//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
+			//		return 5;
+			//	}
+		} else if group.IsIPv4AddressSection() {
+			return ipv4type
+		} else if group.IsMACAddressSection() {
+			return mactype
+		} else if group.IsIPAddressSection() {
+			return iptype
+		} else if group.isAddressSection() {
+			return sectype
+		}
+		return groupingtype
+	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO
+	//	return -2;
+	//}
+	return 0
+}
+
+func mapSection(section AddressSectionType) int {
+	sect := section.ToAddressSection()
+	if sect.IsIPv6AddressSection() {
+		return ipv6type
+		//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
+		//		return 5;
+		//	}
+	} else if sect.IsIPv4AddressSection() {
+		return ipv4type
+	} else if sect.IsMACAddressSection() {
+		return mactype
+	} else if sect.IsIPAddressSection() {
+		return iptype
+	}
+	return sectype
+}
+
+func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
+	oneAddr := one.ToAddress()
+	twoAddr := two.ToAddress()
+	result := comp.CompareAddressSections(oneAddr.GetSection(), twoAddr.GetSection())
+	if result == 0 {
+		if oneIPv6 := oneAddr.ToIPv6Address(); oneIPv6 != nil {
+			twoIPv6 := twoAddr.ToIPv6Address()
+			oneZone := oneIPv6.zone
+			twoZone := twoIPv6.zone
+			if oneZone == twoZone {
+				return 0
+			} else if oneZone < twoZone {
+				return -1
+			}
+			return 1
+		}
+	}
+	return result
+}
+
+func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType) int {
+	result := mapSection(one) - mapSection(two)
+	if result != 0 {
+		return result
+	}
+	oneSec := one.ToAddressSection()
+	twoSec := two.ToAddressSection()
+	if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
+		twoIPv6 := twoSec.ToIPv6AddressSection()
+		result = int(oneIPv6.addressSegmentIndex) - int(twoIPv6.addressSegmentIndex)
+		if result != 0 {
+			return result
+		}
+	}
+	if oneMAC := oneSec.ToMACAddressSection(); oneMAC != nil {
+		twoMAC := twoSec.ToMACAddressSection()
+		result = int(oneMAC.addressSegmentIndex) - int(twoMAC.addressSegmentIndex)
+		if result != 0 {
+			return result
+		}
+	}
+	return comp.compareSectionParts(oneSec, twoSec)
+}
+
+func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int {
+	if addrSeries1, ok := one.(AddressType); ok {
+		if addrSeries2, ok := two.(AddressType); ok {
+			return comp.CompareAddresses(addrSeries1, addrSeries2)
+		}
+		return -1
+	} else if _, ok := two.(AddressType); ok {
+		return 1
+	}
+	if addrSection1, ok := one.(AddressSectionType); ok {
+		if addrSection2, ok := two.(AddressSectionType); ok {
+			return comp.CompareAddressSections(addrSection1, addrSection2)
+		}
+	}
+	result := mapGrouping(one) - mapGrouping(two)
+	if result != 0 {
+		return result
+	}
+	return comp.compareParts(one, two)
+}
+
+func (comp AddressComparator) CompareSegments(one, two AddressGenericSegment) int {
+	//TODO
+	return 0
+}
+
+func (comp AddressComparator) CompareDivisions(one, two AddressGenericDivision) int {
+	if addrSeg1, ok := one.(AddressGenericSegment); ok {
+		if addrSeg2, ok := two.(AddressGenericSegment); ok {
+			return comp.CompareSegments(addrSeg1, addrSeg2)
+		}
+	}
+
+	//if(!one.getClass().equals(two.getClass())) {
+	//	int result = mapDivision(one) - mapDivision(two);
+	//	if(result != 0) {
+	//		return result;
+	//	}
+	//}
+	//if(equalsConsistent) {
+	//	int bitDiff = one.getBitCount() - two.getBitCount();
+	//	if(bitDiff != 0) {
+	//		return bitDiff;
+	//	}
+	//}
+	//if(one instanceof AddressDivision && two instanceof AddressDivision) {
+	//	AddressDivision gOne = (AddressDivision) one;
+	//	AddressDivision gTwo = (AddressDivision) two;
+	//	return compareValues(gOne.getUpperDivisionValue(), gOne.getDivisionValue(), gTwo.getUpperDivisionValue(), gTwo.getDivisionValue());
+	//}
+	//return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
+
+	// TODO next xxx
+	//		2a check for AddressGenericSegment with type assertion
+	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
+	//		2b compare division types (ie mapDivision)
+	//		2c check bit diff
+	//		2d check for AddressStandardDivision with type assertion
+	//			// then use compareValue on all 4 u64 division values, one low/high, two low/high
+	//		2e  use compareValue on all 4 bigint division values, one low/high, two low/high
+	return 0
+}
+
+func (comp AddressComparator) CompareRanges(one, two *IPAddressSeqRange) int {
+	//TODO
+	return 0
+}
+
+func (comp AddressComparator) Compare(one, two AddressItem) int {
+	//TODO NEXT the types are ready, time to code...  use same methods as in Java
+	// 1. use type assertion with AddressDivisionSeries (DONE), covering all addresses and all groupings, including large
+	// 		if true, you want to split off to AddressDivisionSeries
+	//		1a check for addresses with AddressType(DONE) type assertion
+	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use generic compare(Address one, two))
+	//		1b check for addresSections, using type assertion with AddressSectionType (DONE)
+	//			the use mapping to compare address sections (map to type with type switch and ints, then if both same type, use generic compare(AddressSection one, two))
+	//		1c compare division series types
+	//		1d compare division series for general case when 1c types the same
+	//				this checks for both AddressDivisionGroupingType (DONE), so we can use longs,
+	//				if either not, then we use bytes and AddressDivisionSeries
+	// 2. type assertion for AddressGenericDivision (DONE), covering all divisions, including large
+	//		2a check for AddressGenericSegment ( DONE) with type assertion
+	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
+	//		2b compare division types (ie mapDivision)
+	//		2c check bit diff
+	//		2d check for AddressStandardDivision ( DONE) with type assertion
+	//			// then use compareValue on all 4 u64 division values, one low/high, two low/high
+	//		2e  use compareValue on all 4 bigint division values, one low/high, two low/high
+	// 3. Go for IPAddressSeqRange
+	// 4. compare bit counts
+	//
+	// So we need:
+	// AddressDivisionSeries (split off all division groupings including large)
+	// AddressType to convert to Address
+	// AddressSectionType to convert to AddressSection
+	// AddressDivisionGroupingType (all standard divisons) so we can grab longs when comparing divisions
+	// AddressGenericDivision (all divisions including large)
+	// AddressGenericSegment to convert to AddressSegment
+	// AddressStandardDivision so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
+	// IPAddressSeqRangeType (split off all ranges)
+	if divSeries1, ok := one.(AddressDivisionSeries); ok {
+		if divSeries2, ok := two.(AddressDivisionSeries); ok {
+			return comp.CompareSeries(divSeries1, divSeries2)
+		} else {
+			return 1
+		}
+	} else if div1, ok := one.(AddressGenericDivision); ok {
+		if div2, ok := two.(AddressGenericDivision); ok {
+			return comp.CompareDivisions(div1, div2)
+		} else {
+			return -1
+		}
+	} else if rng1, ok := one.(*IPAddressSeqRange); ok {
+		if rng2, ok := two.(*IPAddressSeqRange); ok {
+			return comp.CompareRanges(rng1, rng2)
+		} else if _, ok := two.(AddressDivisionSeries); ok {
+			return -1
+		}
+		return 1
+	}
+	// we've covered all known address items for one, so check two
+	if _, ok := two.(AddressDivisionSeries); ok {
+		return -1
+	} else if _, ok := two.(AddressGenericDivision); ok {
+		return 1
+	} else if _, ok := two.(*IPAddressSeqRange); ok {
+		return -1
+	}
+	// neither are a known AddressItem type
+	return int(one.GetBitCount() - two.GetBitCount())
+}

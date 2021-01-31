@@ -120,9 +120,9 @@ func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 	return 0xff
 }
 
-func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToAddressSegment().ToAddressDivision()
-}
+//func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
+//	return seg.ToAddressSegment().ToAddressDivision() xxx
+//}
 
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	if seg == nil {

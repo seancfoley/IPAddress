@@ -127,14 +127,14 @@ func (section *addressSectionInternal) init() error {
 }
 
 func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
-	if section.getDivisionCount() == 0 {
+	if section.GetDivisionCount() == 0 {
 		return 0
 	}
 	return section.getDivision(0).GetBitCount()
 }
 
 func (section *addressSectionInternal) GetBytesPerSegment() int {
-	if section.getDivisionCount() == 0 {
+	if section.GetDivisionCount() == 0 {
 		return 0
 	}
 	return section.getDivision(0).GetByteCount()
@@ -145,11 +145,11 @@ func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
 }
 
 func (section *addressSectionInternal) GetSegmentCount() int {
-	return section.getDivisionCount()
+	return section.GetDivisionCount()
 }
 
 func (section *addressSectionInternal) GetBitCount() BitCount {
-	divLen := section.getDivisionCount()
+	divLen := section.GetDivisionCount()
 	if divLen == 0 {
 		return 0
 	}
@@ -160,35 +160,35 @@ func (section *addressSectionInternal) GetByteCount() int {
 	return int((section.GetBitCount() + 7) >> 3)
 }
 
-func (section *addressSectionInternal) matchesIPv6Section() bool {
-	return section.addrType.isIPv6() || (section.addrType.isNil() && section.hasNoDivisions())
-}
+//func (section *addressSectionInternal) matchesIPv6Section() bool {
+//	return section.addrType.isIPv6() || (section.addrType.isNil() && section.hasNoDivisions())
+//}
+//
+//func (section *addressSectionInternal) matchesIPv4Section() bool {
+//	return section.addrType.isIPv4() || (section.addrType.isNil() && section.hasNoDivisions())
+//}
+//
+//func (section *addressSectionInternal) matchesIPSection() bool {
+//	return section.addrType.isIP() || (section.addrType.isNil() && section.hasNoDivisions())
+//}
+//
+//func (section *addressSectionInternal) matchesMACSection() bool {
+//	return section.addrType.isMAC() || (section.addrType.isNil() && section.hasNoDivisions())
+//}
 
-func (section *addressSectionInternal) matchesIPv4Section() bool {
-	return section.addrType.isIPv4() || (section.addrType.isNil() && section.hasNoDivisions())
-}
+//func (section *addressSectionInternal) matchesIPv6Address() bool {
+//	return section.addrType.isIPv6() && section.GetSegmentCount() == IPv6SegmentCount
+//}
+//
+//func (section *addressSectionInternal) matchesIPv4Address() bool {
+//	return section.addrType.isIPv4() && section.GetSegmentCount() == IPv4SegmentCount
+//}
 
-func (section *addressSectionInternal) matchesIPSection() bool {
-	return section.addrType.isIP() || (section.addrType.isNil() && section.hasNoDivisions())
-}
-
-func (section *addressSectionInternal) matchesMACSection() bool {
-	return section.addrType.isMAC() || (section.addrType.isNil() && section.hasNoDivisions())
-}
-
-func (section *addressSectionInternal) matchesIPv6Address() bool {
-	return section.addrType.isIPv6() && section.GetSegmentCount() == IPv6SegmentCount
-}
-
-func (section *addressSectionInternal) matchesIPv4Address() bool {
-	return section.addrType.isIPv4() && section.GetSegmentCount() == IPv4SegmentCount
-}
-
-func (section *addressSectionInternal) matchesMACAddress() bool {
-	segCount := section.GetSegmentCount()
-	return section.addrType.isMAC() &&
-		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
-}
+//func (section *addressSectionInternal) matchesMACAddress() bool {
+//	segCount := section.GetSegmentCount()
+//	return section.addrType.isMAC() &&
+//		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
+//}
 
 // Gets the subsection from the series starting from the given index and ending just before the give endIndex
 // The first segment is at index 0.
@@ -232,7 +232,7 @@ func (section *addressSectionInternal) visitSegments(target func(index int, div 
 	if section.hasNoDivisions() {
 		return
 	}
-	count = section.getDivisionCount()
+	count = section.GetDivisionCount()
 	if count > targetLen {
 		count = targetLen
 	}
@@ -261,7 +261,7 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 		}
 	}
 	// how many to copy?
-	sourceLen := section.getDivisionCount()
+	sourceLen := section.GetDivisionCount()
 	if end > sourceLen {
 		end = sourceLen
 	}
@@ -475,7 +475,7 @@ func (section *AddressSection) IsIPAddressSection() bool {
 	return section != nil && section.matchesIPSection()
 }
 
-func (section *AddressSection) IsIPv4AddressSection() bool { //TODO rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+func (section *AddressSection) IsIPv4AddressSection() bool { //TODO maybe rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
 	return section != nil && section.matchesIPv4Section()
 }
 
@@ -488,31 +488,35 @@ func (section *AddressSection) IsMACAddressSection() bool {
 }
 
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
-	if section == nil || !section.matchesIPSection() {
-		return nil
+	if section.IsIPAddressSection() {
+		return (*IPAddressSection)(unsafe.Pointer(section))
 	}
-	return (*IPAddressSection)(unsafe.Pointer(section))
+	return nil
 }
 
 func (section *AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	if section == nil || !section.matchesIPv6Section() {
-		return nil
+	if section.IsIPv6AddressSection() {
+		return (*IPv6AddressSection)(unsafe.Pointer(section))
 	}
-	return (*IPv6AddressSection)(unsafe.Pointer(section))
+	return nil
 }
 
 func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	if section == nil || !section.matchesIPv4Section() {
-		return nil
+	if section.IsIPv4AddressSection() {
+		return (*IPv4AddressSection)(unsafe.Pointer(section))
 	}
-	return (*IPv4AddressSection)(unsafe.Pointer(section))
+	return nil
 }
 
 func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
-	if section == nil || !section.matchesMACSection() {
-		return nil
+	if section.IsMACAddressSection() {
+		return (*MACAddressSection)(unsafe.Pointer(section))
 	}
-	return (*MACAddressSection)(unsafe.Pointer(section))
+	return nil
+}
+
+func (section *AddressSection) ToAddressSection() *AddressSection {
+	return section
 }
 
 // note: only to be used when you already know the total size fits into a long

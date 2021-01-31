@@ -194,8 +194,24 @@ func (addr *IPv6Address) GetSegments() []*IPv6AddressSegment {
 	return addr.GetSection().GetSegments()
 }
 
+// GetSegment returns the segment at the given index
 func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
 	return addr.init().getSegment(index).ToIPv6AddressSegment()
+}
+
+// GetSegmentCount returns the segment count
+func (addr *IPv6Address) GetSegmentCount() int {
+	return addr.GetDivisionCount()
+}
+
+// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
+func (addr *IPv6Address) GetGenericDivision(index int) AddressGenericDivision {
+	return addr.init().getDivision(index)
+}
+
+// GetDivisionCount returns the segment count
+func (addr *IPv6Address) GetDivisionCount() int {
+	return addr.init().GetDivisionCount()
 }
 
 func (addr *IPv6Address) GetIPVersion() IPVersion {

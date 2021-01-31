@@ -137,29 +137,33 @@ func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, wit
 	return seg.toNetworkDivision(segmentPrefixLength, withPrefixLength).ToIPAddressSegment()
 }
 
-//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment { TODO
+//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment { TODO ToHostSegment
 //	if isHostChangedByPrefix(bits) {
 //		return super.toHostSegment(bits, getSegmentCreator())
 //	}
 //	return this
 //}
 
+func (seg *IPAddressSegment) IsIPv4AddressSegment() bool { //TODO maybe rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+	return seg != nil && seg.matchesIPv4Segment()
+}
+
+func (seg *IPAddressSegment) IsIPv6AddressSegment() bool {
+	return seg != nil && seg.matchesIPv6Segment()
+}
+
 func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
-	if seg == nil {
-		return nil
-	} else if bitCount := seg.GetBitCount(); bitCount != IPv4BitsPerSegment {
-		return nil
+	if seg.IsIPv4AddressSegment() {
+		return (*IPv4AddressSegment)(unsafe.Pointer(seg))
 	}
-	return (*IPv4AddressSegment)(unsafe.Pointer(seg))
+	return nil
 }
 
 func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
-	if seg == nil {
-		return nil
-	} else if bitCount := seg.GetBitCount(); bitCount != IPv6BitsPerSegment {
-		return nil
+	if seg.IsIPv6AddressSegment() {
+		return (*IPv6AddressSegment)(unsafe.Pointer(seg))
 	}
-	return (*IPv6AddressSegment)(unsafe.Pointer(seg))
+	return nil
 }
 
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {

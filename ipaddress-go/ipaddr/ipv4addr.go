@@ -158,8 +158,24 @@ func (addr *IPv4Address) GetSegments() []*IPv4AddressSegment {
 	return addr.GetSection().GetSegments()
 }
 
+// GetSegment returns the segment at the given index
 func (addr *IPv4Address) GetSegment(index int) *IPv4AddressSegment {
 	return addr.init().getSegment(index).ToIPv4AddressSegment()
+}
+
+// GetSegmentCount returns the segment count
+func (addr *IPv4Address) GetSegmentCount() int {
+	return addr.GetDivisionCount()
+}
+
+// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
+func (addr *IPv4Address) GetGenericDivision(index int) AddressGenericDivision {
+	return addr.init().getDivision(index)
+}
+
+// GetDivisionCount returns the segment count
+func (addr *IPv4Address) GetDivisionCount() int {
+	return addr.init().getDivisionCount()
 }
 
 func (addr *IPv4Address) GetIPVersion() IPVersion {

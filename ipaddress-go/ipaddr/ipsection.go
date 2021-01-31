@@ -229,19 +229,23 @@ func (section *IPAddressSection) IsMore(other *IPAddressSection) int {
 	return section.isMore(other)
 }
 
+func (section *IPAddressSection) IsIPv4AddressSection() bool {
+	return section != nil && section.matchesIPv4Section()
+}
+
+func (section *IPAddressSection) IsIPv6AddressSection() bool {
+	return section != nil && section.matchesIPv6Section()
+}
+
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	if section == nil {
-		return nil
-	} else if section.matchesIPv6Section() {
+	if section.IsIPv6AddressSection() {
 		return (*IPv6AddressSection)(unsafe.Pointer(section))
 	}
 	return nil
 }
 
 func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	if section == nil {
-		return nil
-	} else if section.matchesIPv4Section() {
+	if section.IsIPv4AddressSection() {
 		return (*IPv4AddressSection)(unsafe.Pointer(section))
 	}
 	return nil

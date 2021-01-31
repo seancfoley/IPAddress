@@ -276,8 +276,12 @@ func (div *addressDivisionInternal) toAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
+func (div *addressDivisionInternal) isAddressSegment() bool {
+	return div.GetBitCount() <= SegIntSize
+}
+
 func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
-	if div.GetBitCount() <= SegIntSize {
+	if div.isAddressSegment() {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
@@ -300,7 +304,25 @@ func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()
 }
 
-// TODO xxx do the same with the IsAddressSegment() isIPAddressSegment etc as you did with grouping/sections, you want to reorganize the methods
+func (div *AddressDivision) IsAddressSegment() bool {
+	return div != nil && div.isAddressSegment()
+}
+
+func (div *AddressDivision) IsIPAddressSegment() bool {
+	return div.ToAddressSegment().IsIPAddressSegment()
+}
+
+func (div *AddressDivision) IsIPv4AddressSegment() bool {
+	return div.ToAddressSegment().IsIPv4AddressSegment()
+}
+
+func (div *AddressDivision) IsIPv6AddressSegment() bool {
+	return div.ToAddressSegment().IsIPv6AddressSegment()
+}
+
+func (div *AddressDivision) IsMACAddressSegment() bool {
+	return div.ToAddressSegment().IsMACAddressSegment()
+}
 
 func (div *AddressDivision) ToAddressSegment() *AddressSegment {
 	return div.toAddressSegment()
@@ -320,6 +342,10 @@ func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
 
 func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
 	return div.ToAddressSegment().ToMACAddressSegment()
+}
+
+func (div *AddressDivision) ToAddressDivision() *AddressDivision {
+	return div
 }
 
 func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask DivInt) bool {

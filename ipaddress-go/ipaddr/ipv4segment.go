@@ -130,9 +130,9 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
 
-func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToIPAddressSegment().ToAddressDivision()
-}
+//func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
+//	return seg.ToIPAddressSegment().ToAddressDivision() xxx
+//}
 
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()

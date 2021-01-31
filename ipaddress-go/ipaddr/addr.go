@@ -160,6 +160,17 @@ func (addr *addressInternal) hasNoDivisions() bool {
 	return addr.section.hasNoDivisions()
 }
 
+func (addr *addressInternal) getDivision(index int) *AddressDivision {
+	return addr.section.getDivision(index)
+}
+
+func (addr *addressInternal) getDivisionCount() int {
+	if addr.section == nil {
+		return 0
+	}
+	return addr.section.GetDivisionCount()
+}
+
 func (addr *addressInternal) toPrefixBlock() *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlock())
 }
@@ -168,15 +179,36 @@ func (addr *addressInternal) toPrefixBlockLen(prefLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen))
 }
 
-var zeroAddr *Address
+// isIPv4() returns whether this matches an IPv4 address.
+// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+func (addr *addressInternal) isIPv4() bool {
+	return addr != nil && addr.section != nil && addr.section.matchesIPv4Address()
+}
 
-func init() {
-	zeroAddr = &Address{
-		addressInternal{
-			section: &AddressSection{},
-			cache:   &addressCache{},
-		},
-	}
+// isIPv6() returns whether this matches an IPv6 address.
+// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+func (addr *addressInternal) isIPv6() bool {
+	return addr != nil && addr.section != nil && addr.section.matchesIPv6Address()
+}
+
+// isIPv6() returns whether this matches an IPv6 address.
+// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+func (addr *addressInternal) isMAC() bool {
+	return addr != nil && addr.section != nil && addr.section.matchesMACAddress()
+}
+
+// isIP() returns whether this matches an IP address.
+// It must be IPv4, IPv6, or the zero IPAddress which has no segments
+// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+func (addr *addressInternal) isIP() bool {
+	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddress())
+}
+
+var zeroAddr = &Address{
+	addressInternal{
+		section: &AddressSection{},
+		cache:   &addressCache{},
+	},
 }
 
 type Address struct {
@@ -227,6 +259,26 @@ func (addr *Address) GetSegments() []*AddressSegment {
 	return addr.GetSection().GetSegments()
 }
 
+// GetSegment returns the segment at the given index
+func (addr *Address) GetSegment(index int) *AddressSegment {
+	return addr.getSegment(index)
+}
+
+// GetSegmentCount returns the segment count
+func (addr *Address) GetSegmentCount() int {
+	return addr.getDivisionCount()
+}
+
+// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
+func (addr *Address) GetGenericDivision(index int) AddressGenericDivision {
+	return addr.getDivision(index)
+}
+
+// GetDivision returns the segment count
+func (addr *Address) GetDivisionCount() int {
+	return addr.getDivisionCount()
+}
+
 func (addr *Address) GetLower() *Address {
 	return addr.init().getLower()
 }
@@ -239,65 +291,46 @@ func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
 }
 
-func (addr *Address) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddress()
-	if addr == nil || addr.section == nil {
-		return false
-	}
-	return addr.section.matchesIPv4Address()
+func (addr *Address) IsIPv4() bool {
+	return addr.isIPv4()
 }
 
-func (addr *Address) IsIPv6() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddress()
-	if addr == nil || addr.section == nil {
-		return false
-	}
-	return addr.section.matchesIPv6Address()
+func (addr *Address) IsIPv6() bool {
+	return addr.isIPv6()
+}
+
+func (addr *Address) IsMAC() bool {
+	return addr.isMAC()
+}
+
+func (addr *Address) ToAddress() *Address {
+	return addr
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {
-	if addr == nil {
-		return nil
-	} else {
-		addr = addr.init()
-		if addr.hasNoDivisions() /* the zero IPAddress */ ||
-			addr.section.matchesIPv4Address() || addr.section.matchesIPv6Address() {
-			return (*IPAddress)(unsafe.Pointer(addr))
-		}
+	if addr.isIP() {
+		return (*IPAddress)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv6Address() *IPv6Address {
-	if addr == nil {
-		return nil
-	} else {
-		addr = addr.init()
-		if addr.section.matchesIPv6Address() {
-			return (*IPv6Address)(unsafe.Pointer(addr))
-		}
+	if addr.isIPv6() {
+		return (*IPv6Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv4Address() *IPv4Address {
-	if addr == nil {
-		return nil
-	} else {
-		addr = addr.init()
-		if addr.section.matchesIPv4Address() {
-			return (*IPv4Address)(unsafe.Pointer(addr))
-		}
+	if addr.isIPv4() {
+		return (*IPv4Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToMACAddress() *MACAddress {
-	if addr == nil {
-		return nil
-	} else {
-		addr = addr.init()
-		if addr.section.matchesMACAddress() {
-			return (*MACAddress)(unsafe.Pointer(addr))
-		}
+	if addr.isMAC() {
+		return (*MACAddress)(addr)
 	}
 	return nil
 }

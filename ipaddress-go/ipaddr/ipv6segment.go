@@ -112,9 +112,9 @@ func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 	return 0xffff
 }
 
-func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToIPAddressSegment().ToAddressDivision()
-}
+//func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
+//	return seg.ToIPAddressSegment().ToAddressDivision() xxx
+//}
 
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()

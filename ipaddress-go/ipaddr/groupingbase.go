@@ -27,15 +27,15 @@ func (grouping *addressDivisionGroupingBase) hasNoDivisions() bool {
 
 // GetBitCount returns the total number of bits across all divisions
 func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) { //TODO if we end up using this a lot, consider storing it on grouping construction
-	for i := 0; i < grouping.getDivisionCount(); i++ {
+	for i := 0; i < grouping.GetDivisionCount(); i++ {
 		res += grouping.getDivision(i).GetBitCount()
 	}
 	return
 }
 
 // GetBitCount returns the total number of bytes across all divisions (rounded up)
-func (grouping addressDivisionGroupingBase) GetByteCount() BitCount {
-	return (grouping.GetBitCount() + 7) >> 3
+func (grouping addressDivisionGroupingBase) GetByteCount() int {
+	return (int(grouping.GetBitCount()) + 7) >> 3
 }
 
 // getDivision returns the division or panics if the index is negative or it is too large
@@ -43,7 +43,11 @@ func (grouping *addressDivisionGroupingBase) getDivision(index int) *addressDivi
 	return grouping.divisions.getDivision(index)
 }
 
-func (grouping *addressDivisionGroupingBase) getDivisionCount() int {
+func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) AddressGenericDivision {
+	return grouping.getDivision(index)
+}
+
+func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 	divisions := grouping.divisions
 	if divisions != nil {
 		return divisions.getDivisionCount()
@@ -53,7 +57,7 @@ func (grouping *addressDivisionGroupingBase) getDivisionCount() int {
 
 func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
 	res := bigOne()
-	count := grouping.getDivisionCount()
+	count := grouping.GetDivisionCount()
 	if count > 0 {
 		for i := 0; i < count; i++ {
 			div := grouping.getDivision(i)

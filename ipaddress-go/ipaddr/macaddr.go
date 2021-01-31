@@ -121,8 +121,24 @@ func (addr *MACAddress) GetSegments() []*MACAddressSegment {
 	return addr.GetSection().GetSegments()
 }
 
+// GetSegment returns the segment at the given index
 func (addr *MACAddress) GetSegment(index int) *MACAddressSegment {
 	return addr.init().getSegment(index).ToMACAddressSegment()
+}
+
+// GetSegmentCount returns the segment/division count
+func (addr *MACAddress) GetSegmentCount() int {
+	return addr.GetDivisionCount()
+}
+
+// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
+func (addr *MACAddress) GetGenericDivision(index int) AddressGenericDivision {
+	return addr.init().getDivision(index)
+}
+
+// GetDivision returns the segment count, implementing the interface AddressDivisionSeries
+func (addr *MACAddress) GetDivisionCount() int {
+	return addr.init().getDivisionCount()
 }
 
 func (addr *MACAddress) ToPrefixBlock() *MACAddress {

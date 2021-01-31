@@ -51,39 +51,11 @@ type ipAddressInternal struct {
 }
 
 func (addr *ipAddressInternal) ToAddress() *Address {
-	return (*Address)(unsafe.Pointer(addr))
+	return (*Address)(addr)
 }
 
 func (addr *ipAddressInternal) toIPAddress() *IPAddress {
 	return (*IPAddress)(unsafe.Pointer(addr))
-}
-
-//func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddress {
-//	sec := section.toAddressSection()
-//	if sec == addr.section {
-//		return addr.toIPAddress()
-//	}
-//	return &IPAddress{ipAddressInternal{addressInternal{
-//		section: sec, zone: addr.zone, cache: &addressCache{},
-//	}}}
-//}
-
-// isIPv4() returns whether this matches an IPv4 address.
-// It needs to match an IPv4 section and also have 4 segments.
-func (addr *ipAddressInternal) isIPv4() bool {
-	if addr.section == nil {
-		return false
-	}
-	return addr.section.matchesIPv4Address()
-}
-
-// isIPv6() returns whether this matches an IPv6 address.
-// It needs to match an IPv6 section and also have 8 segments.
-func (addr *ipAddressInternal) isIPv6() bool {
-	if addr.section == nil {
-		return false
-	}
-	return addr.section.matchesIPv6Address()
 }
 
 func (addr *ipAddressInternal) getIPVersion() IPVersion {
@@ -120,17 +92,13 @@ func (addr *ipAddressInternal) isMore(other *IPAddress) int {
 	return addr.toIPAddress().IsMore(other)
 }
 
-var zeroIPAddr *IPAddress
-
-func init() {
-	zeroIPAddr = &IPAddress{
-		ipAddressInternal{
-			addressInternal{
-				section: &AddressSection{},
-				cache:   &addressCache{},
-			},
+var zeroIPAddr = &IPAddress{
+	ipAddressInternal{
+		addressInternal{
+			section: &AddressSection{},
+			cache:   &addressCache{},
 		},
-	}
+	},
 }
 
 //
@@ -192,6 +160,26 @@ func (addr *IPAddress) GetSegments() []*IPAddressSegment {
 	return addr.GetSection().GetSegments()
 }
 
+// GetSegment returns the segment at the given index
+func (addr *IPAddress) GetSegment(index int) *IPAddressSegment {
+	return addr.getSegment(index).ToIPAddressSegment()
+}
+
+// GetSegmentCount returns the segment count
+func (addr *IPAddress) GetSegmentCount() int {
+	return addr.GetDivisionCount()
+}
+
+// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
+func (addr *IPAddress) GetGenericDivision(index int) AddressGenericDivision {
+	return addr.getDivision(index)
+}
+
+// GetDivision returns the segment count
+func (addr *IPAddress) GetDivisionCount() int {
+	return addr.getDivisionCount()
+}
+
 func (addr *IPAddress) GetLower() *IPAddress {
 	return addr.init().getLower().ToIPAddress()
 }
@@ -214,53 +202,27 @@ func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take ad
 }
 
 func (addr *IPAddress) IsIPv4() bool {
-	if addr == nil {
-		return false
-	}
 	return addr.isIPv4()
 }
 
 func (addr *IPAddress) IsIPv6() bool {
-	if addr == nil {
-		return false
-	}
 	return addr.isIPv6()
 }
 
 func (addr *IPAddress) GetIPVersion() IPVersion {
-	return addr.init().getIPVersion()
+	return addr.getIPVersion()
 }
 
-// this makes no sense in the golang world, since it cannot be customized since not virtual
-// gave a lot of thought to this, you cannot stick a converted object in each and every address,
-// and so there really is no way to do this internally
-//func (addr *IPAddress) IsIPv6Convertible() bool {
-//	return addr.getConverter().IsIPv6Convertible(addr)
-//}
-//
-//func (addr *IPAddress) IsIPv4Convertible() bool {
-//	return addr.getConverter().IsIPv4Convertible(addr)
-//}
-
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
-	if addr != nil {
-		//addr = addr.init()
-		if addr.isIPv6() {
-			return (*IPv6Address)(unsafe.Pointer(addr))
-		}
-		//TODO consider allowing IPv4-mapped, see waht golang does, but consider we might not be ipv4 or ipv6 if zero-valued
-		//return addr.cache.network.(IPAddressNetwork).GetConverter().ToIPv6(addr)
+	if addr.IsIPv6() {
+		return (*IPv6Address)(addr)
 	}
 	return nil
 }
 
 func (addr *IPAddress) ToIPv4Address() *IPv4Address {
-	if addr != nil {
-		//addr = addr.init()
-		if addr.isIPv4() {
-			return (*IPv4Address)(unsafe.Pointer(addr))
-		}
-		//return addr.cache.network.(IPAddressNetwork).GetConverter().ToIPv4(addr)
+	if addr.IsIPv4() {
+		return (*IPv4Address)(addr)
 	}
 	return nil
 }
