@@ -85,13 +85,13 @@ func main() {
 	fmt.Printf("%+v\n", addr6) // expecting <nil>
 
 	addrSection := ipaddr.AddressSection{}
-	fmt.Printf("%+v\n", addrSection) // expecting []
+	fmt.Printf("%+v\n", addrSection) // expecting [] or <nil>
 
 	ipAddrSection := ipaddr.IPAddressSection{}
-	fmt.Printf("%+v\n", ipAddrSection) // expecting []
+	fmt.Printf("%+v\n", ipAddrSection) // expecting [] or <nil>
 
 	ipv4AddrSection := ipaddr.IPv4AddressSection{}
-	fmt.Printf("%+v\n", ipv4AddrSection) // expecting []
+	fmt.Printf("%+v\n", ipv4AddrSection) // expecting [] or <nil>
 
 	//addrStr := ipaddr.IPAddressString{}
 	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)

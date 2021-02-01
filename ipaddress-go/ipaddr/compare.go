@@ -1,73 +1,30 @@
 package ipaddr
 
-// TODO on java side, all address items are comparable and implement Comparable<AddressItem>
-// IPAddressString implements Comparable<IPAddressString>
-// TODO the key will be to ensuring eveything implements AddressItem with: var _ AddressItem = x
+import "math/big"
+
 //
-// public int compare(AddressGenericDivision one, AddressGenericDivision two) {
-// public int compare(AddressSegment one, AddressSegment two) {
+//// TODO addressSegmentInternal, addressSectionInternal, addressInternal will all have CompareTo(AddressItem)
+//// which will then be inherited by everything and then you can add it to AddressItem
+//
 
-// public int compare(IPAddressSeqRange one, IPAddressSeqRange two) {
-
-// public int compare(AddressDivisionSeries one, AddressDivisionSeries two) {
-// public int compare(AddressSection one, AddressSection two) {
-
-// public int compare(Address one, Address two) {
-
-// covers everything, including IPAddressSeqRange
-// public int compare(AddressItem one, AddressItem two) {
-
-// You need interfaces to cover everything.  YOu need methods like GetSegmentValue() SegInt to do it.
-// You should also consider the type checks in Java.  Also bit counts.
-
-/*
-TODO comparators:
-Start with public int compare(AddressItem one, AddressItem two) {
-Port only equalsConsistent
-Use the same type checks to separate (instead of instanceof use type assertion)
-XXXXX how do I handle the virtual calls?  With interface inversion,
-xxxxx see IDEAS for replacing virtual methods
-use the interface technique
-
-struct AddressComparator {
-	typeComp TypedComparator
-}
-
-TypedComparator is interface, either ValueComparator or CountComparator
-
-TypedComparator interface {
-//	protected abstract int compareParts(AddressDivisionSeries one, AddressDivisionSeries two);
-//	protected abstract int compareParts(AddressSection one, AddressSection two);
-//	protected abstract int compareValues(BigInteger oneUpper, BigInteger oneLower, BigInteger twoUpper, BigInteger twoLower);
-//	protected abstract int compareValues(long oneUpper, long oneLower, long twoUpper, long twoLower);
-//	protected abstract int compareValues(int oneUpper, int oneLower, int twoUpper, int twoLower);
-}
-
-Need to use interfaces everywhere now for all args
-
-	Need
-AddressItem:
-	CopyBytes(bytes []byte) []byte
-	CopyUpperBytes(bytes []byte) []byte
-	GetCount()
-
-// TODO addressSegmentInternal, addressSectionInternal, addressInternal will all have CompareTo(AddressItem)
-// which will then be inherited by everything and then you can add it to AddressItem
-
-*/
+var (
+	CountComparator            = AddressComparator{countComparator{}}
+	HighValueComparator        = AddressComparator{valueComparator{compareHighValue: true}}
+	LowValueComparator         = AddressComparator{valueComparator{}}
+	ReverseHighValueComparator = AddressComparator{valueComparator{compareHighValue: true, flipSecond: true}}
+	ReverseLowValueComparator  = AddressComparator{valueComparator{flipSecond: true}}
+)
 
 type componentComparator interface {
-	// TODO value and count versions of this interface, then have a singleton for each
 	compareSectionParts(one, two *AddressSection) int
 
-	/*
-		inside will want this to check if we can use longs
-		addrGroup1 := one.(AddressDivisionGroupingType)
-			addrGroup2 := one.(AddressDivisionGroupingType)
-			oneGrp := addrGroup1.ToAddressDivisionGrouping()
-			twoGrp := addrGroup2.ToAddressDivisionGrouping()
-	*/
 	compareParts(one, two AddressDivisionSeries) int
+
+	compareSegValues(oneUpper, oneLower, twoUpper, twoLower SegInt) int
+
+	compareValues(oneUpper, oneLower, twoUpper, twoLower uint64) int
+
+	compareLargeValues(oneUpper, oneLower, twoUpper, twoLower *big.Int) int
 }
 
 type AddressComparator struct {
@@ -75,52 +32,106 @@ type AddressComparator struct {
 }
 
 const (
-	ipv4type          = 4
-	ipv6type          = 6
-	mactype           = 3
-	iptype            = 2
-	sectype           = 1
-	largegroupingtype = -2
-	groupingtype      = -3
+	ipv6sectype          = 7
+	ipv4sectype          = 5
+	ipsectype            = 4
+	macsectype           = 3
+	sectype              = 1
+	largegroupingtype    = -2
+	standardgroupingtype = -3
 )
+
+const (
+	ipv6segtype     = 6
+	ipv4segtype     = 5
+	ipsegtype       = 4
+	macsegtype      = 3
+	segtype         = 1
+	largedivtype    = -2
+	standarddivtype = 0
+)
+
+const (
+	ipv6rangetype = 2
+	ipv4rangetype = 1
+	iprangetype   = 0
+)
+
+func mapDivision(genericDiv AddressGenericDivision) int {
+	if div, ok := genericDiv.(AddressStandardDivision); ok {
+		addrDiv := div.ToAddressDivision()
+		if addrDiv.IsIPv6AddressSegment() {
+			return ipv6segtype
+		} else if addrDiv.IsIPv4AddressSegment() {
+			return ipv4segtype
+		} else if addrDiv.IsMACAddressSegment() {
+			return macsegtype
+		} else if addrDiv.IsIPAddressSegment() {
+			return ipsegtype
+		} else if addrDiv.IsAddressSegment() {
+			return segtype
+		} //} else if(div instanceof IPv4JoinedSegments) {
+		//	return 2;
+		return standarddivtype
+		//} else if(div instanceof IPAddressBitsDivision) {
+		//	return -2;
+		//} else if(div instanceof AddressBitsDivision) {
+		//	return -3;
+		//}
+	}
+	//else if(div instanceof IPAddressLargeDivision) {
+	//	return -1;
+	//}
+	return standarddivtype
+}
 
 func mapGrouping(series AddressDivisionSeries) int {
 	if grouping, ok := series.(AddressDivisionGroupingType); ok {
 		group := grouping.ToAddressDivisionGrouping()
 		if group.IsIPv6AddressSection() {
-			return ipv6type
+			return ipv6sectype
 			//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
 			//		return 5;
 			//	}
 		} else if group.IsIPv4AddressSection() {
-			return ipv4type
+			return ipv4sectype
 		} else if group.IsMACAddressSection() {
-			return mactype
+			return macsectype
 		} else if group.IsIPAddressSection() {
-			return iptype
+			return ipsectype
 		} else if group.isAddressSection() {
 			return sectype
 		}
-		return groupingtype
+		return standardgroupingtype
 	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO
 	//	return -2;
 	//}
 	return 0
 }
 
+func mapRange(rngType IPAddressSeqRangeType) int {
+	rng := rngType.ToIPAddressSeqRange()
+	if rng.IsIPv4SequentialRange() {
+		return ipv4rangetype
+	} else if rng.IsIPv6SequentialRange() {
+		return ipv6rangetype
+	}
+	return iprangetype
+}
+
 func mapSection(section AddressSectionType) int {
 	sect := section.ToAddressSection()
 	if sect.IsIPv6AddressSection() {
-		return ipv6type
+		return ipv6sectype
 		//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
 		//		return 5;
 		//	}
 	} else if sect.IsIPv4AddressSection() {
-		return ipv4type
+		return ipv4sectype
 	} else if sect.IsMACAddressSection() {
-		return mactype
+		return macsectype
 	} else if sect.IsIPAddressSection() {
-		return iptype
+		return ipsectype
 	}
 	return sectype
 }
@@ -190,58 +201,59 @@ func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int 
 	return comp.compareParts(one, two)
 }
 
-func (comp AddressComparator) CompareSegments(one, two AddressGenericSegment) int {
-	//TODO
-	return 0
+func (comp AddressComparator) CompareSegments(one, two AddressStandardSegment) int {
+	result := mapDivision(one) - mapDivision(two)
+	if result != 0 {
+		return result
+	}
+	return comp.compareSegValues(one.GetUpperSegmentValue(), one.GetSegmentValue(), two.GetUpperSegmentValue(), two.GetSegmentValue())
 }
 
 func (comp AddressComparator) CompareDivisions(one, two AddressGenericDivision) int {
-	if addrSeg1, ok := one.(AddressGenericSegment); ok {
-		if addrSeg2, ok := two.(AddressGenericSegment); ok {
+	if addrSeg1, ok := one.(AddressStandardSegment); ok {
+		if addrSeg2, ok := two.(AddressStandardSegment); ok {
 			return comp.CompareSegments(addrSeg1, addrSeg2)
 		}
 	}
-
-	//if(!one.getClass().equals(two.getClass())) {
-	//	int result = mapDivision(one) - mapDivision(two);
-	//	if(result != 0) {
-	//		return result;
-	//	}
-	//}
-	//if(equalsConsistent) {
-	//	int bitDiff = one.getBitCount() - two.getBitCount();
-	//	if(bitDiff != 0) {
-	//		return bitDiff;
-	//	}
-	//}
-	//if(one instanceof AddressDivision && two instanceof AddressDivision) {
-	//	AddressDivision gOne = (AddressDivision) one;
-	//	AddressDivision gTwo = (AddressDivision) two;
-	//	return compareValues(gOne.getUpperDivisionValue(), gOne.getDivisionValue(), gTwo.getUpperDivisionValue(), gTwo.getDivisionValue());
-	//}
-	//return compareValues(one.getUpperValue(), one.getValue(), two.getUpperValue(), two.getValue());
-
-	// TODO next xxx
-	//		2a check for AddressGenericSegment with type assertion
-	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
-	//		2b compare division types (ie mapDivision)
-	//		2c check bit diff
-	//		2d check for AddressStandardDivision with type assertion
-	//			// then use compareValue on all 4 u64 division values, one low/high, two low/high
-	//		2e  use compareValue on all 4 bigint division values, one low/high, two low/high
-	return 0
+	result := mapDivision(one) - mapDivision(two)
+	if result != 0 {
+		return result
+	}
+	result = int(one.GetBitCount()) - int(two.GetBitCount())
+	if result != 0 {
+		return result
+	}
+	if addrDiv1, ok := one.(AddressStandardDivision); ok {
+		if addrDiv2, ok := two.(AddressStandardDivision); ok {
+			div1 := addrDiv1.ToAddressDivision()
+			div2 := addrDiv2.ToAddressDivision()
+			return comp.compareValues(div1.GetUpperDivisionValue(), div1.getDivisionValue(), div2.getUpperDivisionValue(), div2.getDivisionValue())
+		}
+	}
+	return comp.compareLargeValues(one.GetUpperValue(), one.GetValue(), two.GetUpperValue(), two.GetValue())
 }
 
-func (comp AddressComparator) CompareRanges(one, two *IPAddressSeqRange) int {
-	//TODO
-	return 0
+func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int {
+	r1Type := mapRange(one)
+	result := r1Type - mapRange(two)
+	if result != 0 {
+		return result
+	}
+	if r1Type == ipv4rangetype {
+		r1 := one.ToIPAddressSeqRange().ToIPv4SequentialRange()
+		r2 := two.ToIPAddressSeqRange().ToIPv4SequentialRange()
+		return comp.compareValues(uint64(r1.GetUpper().IntValue()), uint64(r1.GetLower().IntValue()), uint64(r2.GetUpper().IntValue()), uint64(r2.GetLower().IntValue()))
+	}
+	r1 := one.ToIPAddressSeqRange()
+	r2 := two.ToIPAddressSeqRange()
+	return comp.compareLargeValues(r1.GetUpperValue(), r1.GetValue(), r2.GetUpperValue(), r2.GetValue())
 }
 
 func (comp AddressComparator) Compare(one, two AddressItem) int {
-	//TODO NEXT the types are ready, time to code...  use same methods as in Java
-	// 1. use type assertion with AddressDivisionSeries (DONE), covering all addresses and all groupings, including large
-	// 		if true, you want to split off to AddressDivisionSeries
-	//		1a check for addresses with AddressType(DONE) type assertion
+	// Comparison works as follows:
+	// 1. use type assertion with AddressDivisionSeries, covering all addresses and all groupings, including large
+	// 		if true, we split off to AddressDivisionSeries
+	//		1a check for addresses with AddressType type assertion
 	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use generic compare(Address one, two))
 	//		1b check for addresSections, using type assertion with AddressSectionType (DONE)
 	//			the use mapping to compare address sections (map to type with type switch and ints, then if both same type, use generic compare(AddressSection one, two))
@@ -249,12 +261,12 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	//		1d compare division series for general case when 1c types the same
 	//				this checks for both AddressDivisionGroupingType (DONE), so we can use longs,
 	//				if either not, then we use bytes and AddressDivisionSeries
-	// 2. type assertion for AddressGenericDivision (DONE), covering all divisions, including large
-	//		2a check for AddressGenericSegment ( DONE) with type assertion
+	// 2. type assertion for AddressGenericDivision, covering all divisions, including large
+	//		2a check for AddressStandardSegment with type assertion
 	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
 	//		2b compare division types (ie mapDivision)
 	//		2c check bit diff
-	//		2d check for AddressStandardDivision ( DONE) with type assertion
+	//		2d check for AddressStandardDivisionwith type assertion
 	//			// then use compareValue on all 4 u64 division values, one low/high, two low/high
 	//		2e  use compareValue on all 4 bigint division values, one low/high, two low/high
 	// 3. Go for IPAddressSeqRange
@@ -266,7 +278,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// AddressSectionType to convert to AddressSection
 	// AddressDivisionGroupingType (all standard divisons) so we can grab longs when comparing divisions
 	// AddressGenericDivision (all divisions including large)
-	// AddressGenericSegment to convert to AddressSegment
+	// AddressStandardSegment to convert to AddressSegment
 	// AddressStandardDivision so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
 	// IPAddressSeqRangeType (split off all ranges)
 	if divSeries1, ok := one.(AddressDivisionSeries); ok {
@@ -281,8 +293,8 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		} else {
 			return -1
 		}
-	} else if rng1, ok := one.(*IPAddressSeqRange); ok {
-		if rng2, ok := two.(*IPAddressSeqRange); ok {
+	} else if rng1, ok := one.(IPAddressSeqRangeType); ok {
+		if rng2, ok := two.(IPAddressSeqRangeType); ok {
 			return comp.CompareRanges(rng1, rng2)
 		} else if _, ok := two.(AddressDivisionSeries); ok {
 			return -1
@@ -294,9 +306,563 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		return -1
 	} else if _, ok := two.(AddressGenericDivision); ok {
 		return 1
-	} else if _, ok := two.(*IPAddressSeqRange); ok {
+	} else if _, ok := two.(IPAddressSeqRangeType); ok {
 		return -1
 	}
 	// neither are a known AddressItem type
 	return int(one.GetBitCount() - two.GetBitCount())
+}
+
+type valueComparator struct {
+	compareHighValue, flipSecond bool
+}
+
+func (comp valueComparator) compareSectionParts(one, two *AddressSection) int {
+	sizeResult := one.GetByteCount() - two.GetByteCount()
+	if sizeResult != 0 {
+		return sizeResult
+	}
+	compareHigh := comp.compareHighValue
+	for {
+		segCount := one.GetSegmentCount()
+		for i := 0; i < segCount; i++ {
+			segOne := one.GetSegment(i)
+			segTwo := two.GetSegment(i)
+			var s1, s2 SegInt
+			if compareHigh {
+				s1 = segOne.GetUpperSegmentValue()
+				s2 = segTwo.GetUpperSegmentValue()
+			} else {
+				s1 = segOne.GetSegmentValue()
+				s2 = segTwo.GetUpperSegmentValue()
+			}
+			if s1 != s2 {
+				var result int
+				if s1 > s2 {
+					result = 1
+				} else {
+					result = -1
+				}
+				if comp.flipSecond && compareHigh != comp.compareHighValue {
+					result = -result
+				}
+				return result
+			}
+		}
+		compareHigh = !compareHigh
+		if compareHigh == comp.compareHighValue {
+			break
+		}
+	}
+	return 0
+}
+
+func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSeries) int {
+	sizeResult := int(oneSeries.GetBitCount() - twoSeries.GetBitCount())
+	if sizeResult != 0 {
+		return sizeResult
+	}
+	//if(equalsConsistent || oneSeries.isMultiple() || twoSeries.isMultiple()) {
+	result := compareDivBitCounts(oneSeries, twoSeries)
+	if result != 0 {
+		return result
+	}
+	//}
+	compareHigh := comp.compareHighValue
+	var one, two *AddressDivisionGrouping
+	if o, ok := oneSeries.(AddressDivisionGroupingType); ok {
+		if t, ok := twoSeries.(AddressDivisionGroupingType); ok {
+			one = o.ToAddressDivisionGrouping()
+			two = t.ToAddressDivisionGrouping()
+		}
+	}
+	oneSeriesByteCount := oneSeries.GetByteCount()
+	twoSeriesByteCount := twoSeries.GetByteCount()
+	oneBytes := make([]byte, oneSeriesByteCount)
+	twoBytes := make([]byte, twoSeriesByteCount)
+	for {
+		var oneByteCount, twoByteCount, oneByteIndex, twoByteIndex, oneIndex, twoIndex int
+		var oneBitCount, twoBitCount, oneTotalBitCount, twoTotalBitCount BitCount
+		var oneValue, twoValue uint64
+		for oneIndex < oneSeries.GetDivisionCount() || twoIndex < twoSeries.GetDivisionCount() {
+			if one != nil {
+				if oneBitCount == 0 {
+					oneCombo := one.GetDivision(oneIndex)
+					oneIndex++
+					oneBitCount = oneCombo.GetBitCount()
+					if compareHigh {
+						oneValue = oneCombo.getUpperDivisionValue()
+					} else {
+						oneValue = oneCombo.getDivisionValue()
+					}
+				}
+				if twoBitCount == 0 {
+					twoCombo := two.GetDivision(twoIndex)
+					twoIndex++
+					twoBitCount = twoCombo.GetBitCount()
+					if compareHigh {
+						twoValue = twoCombo.getUpperDivisionValue()
+					} else {
+						twoValue = twoCombo.getDivisionValue()
+					}
+				}
+			} else {
+				if oneBitCount == 0 {
+					if oneByteCount == 0 {
+						oneCombo := oneSeries.GetGenericDivision(oneIndex)
+						oneIndex++
+						if compareHigh {
+							oneBytes = oneCombo.CopyUpperBytes(oneBytes)
+						} else {
+							oneBytes = oneCombo.CopyBytes(oneBytes)
+						}
+						oneTotalBitCount = oneCombo.GetBitCount()
+						oneByteCount = oneCombo.GetByteCount()
+						oneByteIndex = 0
+					}
+					//put some or all of the bytes into a long
+					count := 8
+					oneValue = 0
+					if count < oneByteCount {
+						oneBitCount = BitCount(count) << 3
+						oneTotalBitCount -= oneBitCount
+						oneByteCount -= count
+						for count > 0 {
+							count--
+							oneByteIndex++
+							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
+						}
+					} else {
+						shortCount := oneByteCount - 1
+						lastBitsCount := oneTotalBitCount - (BitCount(shortCount) << 3)
+						for shortCount > 0 {
+							shortCount--
+							oneByteIndex++
+							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
+						}
+						oneByteIndex++
+						oneValue = (oneValue << lastBitsCount) | uint64(oneBytes[oneByteIndex]>>(8-lastBitsCount))
+						oneBitCount = oneTotalBitCount
+						oneTotalBitCount = 0
+						oneByteCount = 0
+					}
+				}
+				if twoBitCount == 0 {
+					if twoByteCount == 0 {
+						twoCombo := twoSeries.GetGenericDivision(twoIndex)
+						twoIndex++
+						if compareHigh {
+							twoBytes = twoCombo.CopyUpperBytes(twoBytes)
+						} else {
+							twoBytes = twoCombo.CopyBytes(twoBytes)
+						}
+						twoTotalBitCount = twoCombo.GetBitCount()
+						twoByteCount = twoCombo.GetByteCount()
+						twoByteIndex = 0
+					}
+					//put some or all of the bytes into a long
+					count := 8
+					twoValue = 0
+					if count < twoByteCount {
+						twoBitCount = BitCount(count) << 3
+						twoTotalBitCount -= twoBitCount
+						twoByteCount -= count
+						for count > 0 {
+							count--
+							twoByteIndex++
+							twoValue = (twoValue << 8) | uint64(oneBytes[twoByteIndex])
+						}
+					} else {
+						shortCount := twoByteCount - 1
+						lastBitsCount := twoTotalBitCount - (BitCount(shortCount) << 3)
+						for shortCount > 0 {
+							shortCount--
+							twoByteIndex++
+							twoValue = (twoValue << 8) | uint64(oneBytes[twoByteIndex])
+						}
+						twoByteIndex++
+						twoValue = (twoValue << lastBitsCount) | uint64(oneBytes[twoByteIndex]>>(8-lastBitsCount))
+						twoBitCount = twoTotalBitCount
+						twoTotalBitCount = 0
+						twoByteCount = 0
+					}
+				}
+			}
+			oneResultValue := oneValue
+			twoResultValue := twoValue
+			if twoBitCount == oneBitCount {
+				//no adjustment required, compare the values straight up
+				oneBitCount = 0
+				twoBitCount = 0
+			} else {
+				diffBits := twoBitCount - oneBitCount
+				if diffBits > 0 {
+					twoResultValue >>= diffBits
+					twoValue &= ^(^uint64(0) << diffBits)
+					twoBitCount = diffBits
+					oneBitCount = 0
+				} else {
+					diffBits = -diffBits
+					oneResultValue >>= diffBits
+					oneValue &= ^(^uint64(0) << diffBits)
+					oneBitCount = diffBits
+					twoBitCount = 0
+				}
+			}
+			if oneResultValue != twoResultValue {
+				if oneResultValue > twoResultValue {
+					return 1
+				}
+				return -1
+			}
+		}
+		compareHigh = !compareHigh
+		if compareHigh == comp.compareHighValue {
+			break
+		}
+	}
+	return 0
+}
+
+func (comp valueComparator) compareSegValues(oneUpper, oneLower, twoUpper, twoLower SegInt) int {
+	if comp.compareHighValue {
+		if oneUpper == twoUpper {
+			if oneLower == twoLower {
+				return 0
+			} else if oneLower > twoLower {
+				return 1
+			}
+		} else if oneUpper > twoUpper {
+			return 1
+		}
+	} else {
+		if oneLower == twoLower {
+			if oneUpper == twoUpper {
+				return 0
+			} else if oneUpper > twoUpper {
+				return 1
+			}
+		} else if oneLower > twoLower {
+			return 1
+		}
+	}
+	return -1
+}
+
+func (comp valueComparator) compareValues(oneUpper, oneLower, twoUpper, twoLower uint64) int {
+	if comp.compareHighValue {
+		if oneUpper == twoUpper {
+			if oneLower == twoLower {
+				return 0
+			} else if oneLower > twoLower {
+				return 1
+			}
+		} else if oneUpper > twoUpper {
+			return 1
+		}
+	} else {
+		if oneLower == twoLower {
+			if oneUpper == twoUpper {
+				return 0
+			} else if oneUpper > twoUpper {
+				return 1
+			}
+		} else if oneLower > twoLower {
+			return 1
+		}
+	}
+	return -1
+}
+
+func (comp valueComparator) compareLargeValues(oneUpper, oneLower, twoUpper, twoLower *big.Int) int {
+	var result int
+	if comp.compareHighValue {
+		result = oneUpper.CmpAbs(twoUpper)
+		if result == 0 {
+			result = oneLower.CmpAbs(twoLower)
+		}
+	} else {
+		result = oneLower.CmpAbs(twoLower)
+		if result == 0 {
+			result = oneUpper.CmpAbs(twoUpper)
+		}
+	}
+	return result
+}
+
+type countComparator struct{}
+
+func (comp countComparator) compareSectionParts(one, two *AddressSection) int {
+	result := int(one.GetBitCount() - two.GetBitCount())
+	if result == 0 {
+		result = compareCount(one, two)
+		if result == 0 {
+			result = comp.compareEqualSizedSections(one, two)
+		}
+	}
+	return result
+}
+
+func (comp countComparator) compareEqualSizedSections(one, two *AddressSection) int {
+	segCount := one.GetSegmentCount()
+	for i := 0; i < segCount; i++ {
+		segOne := one.GetSegment(i)
+		segTwo := two.GetSegment(i)
+		oneUpper := segOne.GetUpperSegmentValue()
+		twoUpper := segTwo.GetUpperSegmentValue()
+		oneLower := segOne.GetSegmentValue()
+		twoLower := segTwo.GetSegmentValue()
+		result := comp.compareSegValues(oneUpper, oneLower, twoUpper, twoLower)
+		if result != 0 {
+			return result
+		}
+	}
+	return 0
+}
+
+func (comp countComparator) compareParts(one, two AddressDivisionSeries) int {
+	result := int(one.GetBitCount() - two.GetBitCount())
+	if result == 0 {
+		result = compareCount(one, two)
+		if result == 0 {
+			result = comp.compareDivisionGroupings(one, two)
+		}
+	}
+	return result
+}
+
+func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries AddressDivisionSeries) int {
+	var one, two *AddressDivisionGrouping
+	if o, ok := oneSeries.(AddressDivisionGroupingType); ok {
+		if t, ok := twoSeries.(AddressDivisionGroupingType); ok {
+			one = o.ToAddressDivisionGrouping()
+			two = t.ToAddressDivisionGrouping()
+		}
+	}
+	result := compareDivBitCounts(oneSeries, twoSeries)
+	if result != 0 {
+		return result
+	}
+
+	oneSeriesByteCount := oneSeries.GetByteCount()
+	twoSeriesByteCount := twoSeries.GetByteCount()
+
+	oneUpperBytes := make([]byte, oneSeriesByteCount)
+	oneLowerBytes := make([]byte, oneSeriesByteCount)
+	twoUpperBytes := make([]byte, twoSeriesByteCount)
+	twoLowerBytes := make([]byte, twoSeriesByteCount)
+
+	var oneByteCount, twoByteCount, oneByteIndex, twoByteIndex, oneIndex, twoIndex int
+	var oneBitCount, twoBitCount, oneTotalBitCount, twoTotalBitCount BitCount
+	var oneUpper, oneLower, twoUpper, twoLower uint64
+	for oneIndex < oneSeries.GetDivisionCount() || twoIndex < twoSeries.GetDivisionCount() {
+		if one != nil {
+			if oneBitCount == 0 {
+				oneCombo := one.getDivision(oneIndex)
+				oneIndex++
+				oneBitCount = oneCombo.GetBitCount()
+				oneUpper = oneCombo.getUpperDivisionValue()
+				oneLower = oneCombo.getDivisionValue()
+			}
+			if twoBitCount == 0 {
+				twoCombo := two.getDivision(twoIndex)
+				twoIndex++
+				twoBitCount = twoCombo.GetBitCount()
+				twoUpper = twoCombo.getUpperDivisionValue()
+				twoLower = twoCombo.getDivisionValue()
+			}
+		} else {
+			if oneBitCount == 0 {
+				if oneByteCount == 0 {
+					oneCombo := oneSeries.GetGenericDivision(oneIndex)
+					oneIndex++
+					oneUpperBytes = oneCombo.CopyUpperBytes(oneUpperBytes)
+					oneLowerBytes = oneCombo.CopyBytes(oneLowerBytes)
+					oneTotalBitCount = oneCombo.GetBitCount()
+					oneByteCount = oneCombo.GetByteCount()
+					oneByteIndex = 0
+				}
+				//put some or all of the bytes into a uint64
+				count := 8
+				oneUpper = 0
+				oneLower = 0
+				if count < oneByteCount {
+					oneBitCount = BitCount(count << 3)
+					oneTotalBitCount -= oneBitCount
+					oneByteCount -= count
+					for count > 0 {
+						count--
+						oneByteIndex++
+						upperByte := oneUpperBytes[oneByteIndex]
+						lowerByte := oneLowerBytes[oneByteIndex]
+						oneUpper = (oneUpper << 1) | uint64(upperByte)
+						oneLower = (oneLower << 1) | uint64(lowerByte)
+					}
+				} else {
+					shortCount := oneByteCount - 1
+					lastBitsCount := oneTotalBitCount - (BitCount(shortCount) << 3)
+					for shortCount > 0 {
+						shortCount--
+						oneByteIndex++
+						upperByte := oneUpperBytes[oneByteIndex]
+						lowerByte := oneLowerBytes[oneByteIndex]
+						oneUpper = (oneUpper << 8) | uint64(upperByte)
+						oneLower = (oneLower << 8) | uint64(lowerByte)
+					}
+					oneByteIndex++
+					upperByte := oneUpperBytes[oneByteIndex]
+					lowerByte := oneLowerBytes[oneByteIndex]
+					oneUpper = (oneUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
+					oneLower = (oneLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
+					oneBitCount = oneTotalBitCount
+					oneTotalBitCount = 0
+					oneByteCount = 0
+				}
+			}
+			if twoBitCount == 0 {
+				if twoByteCount == 0 {
+					twoCombo := twoSeries.GetGenericDivision(twoIndex)
+					twoIndex++
+					twoUpperBytes = twoCombo.CopyUpperBytes(twoUpperBytes)
+					twoLowerBytes = twoCombo.CopyBytes(twoLowerBytes)
+					twoTotalBitCount = twoCombo.GetBitCount()
+					twoByteCount = twoCombo.GetByteCount()
+					twoByteIndex = 0
+				}
+				//put some or all of the bytes into a long
+				count := 8
+				twoUpper = 0
+				twoLower = 0
+				if count < twoByteCount {
+					twoBitCount = BitCount(count << 3)
+					twoTotalBitCount -= twoBitCount
+					twoByteCount -= count
+					for count > 0 {
+						count--
+						twoByteIndex++
+						upperByte := twoUpperBytes[twoByteIndex]
+						lowerByte := twoLowerBytes[twoByteIndex]
+						twoUpper = (twoUpper << 8) | uint64(upperByte)
+						twoLower = (twoLower << 8) | uint64(lowerByte)
+					}
+				} else {
+					shortCount := twoByteCount - 1
+					lastBitsCount := twoTotalBitCount - (BitCount(shortCount) << 3)
+					for shortCount > 0 {
+						shortCount--
+						twoByteIndex++
+						upperByte := twoUpperBytes[twoByteIndex]
+						lowerByte := twoLowerBytes[twoByteIndex]
+						twoUpper = (twoUpper << 8) | uint64(upperByte)
+						twoLower = (twoLower << 8) | uint64(lowerByte)
+					}
+					twoByteIndex++
+					upperByte := twoUpperBytes[twoByteIndex]
+					lowerByte := twoLowerBytes[twoByteIndex]
+					twoUpper = (twoUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
+					twoLower = (twoLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
+					twoBitCount = twoTotalBitCount
+					twoTotalBitCount = 0
+					twoByteCount = 0
+				}
+			}
+		}
+		oneResultUpper := oneUpper
+		oneResultLower := oneLower
+		twoResultUpper := twoUpper
+		twoResultLower := twoLower
+		if twoBitCount == oneBitCount {
+			//no adjustment required, compare the values straight up
+			oneBitCount = 0
+			twoBitCount = 0
+		} else {
+			diffBits := twoBitCount - oneBitCount
+			if diffBits > 0 {
+				twoResultUpper >>= diffBits //look at the high bits only (we are comparing left to right, high to low)
+				twoResultLower >>= diffBits
+				mask := ^(^uint64(0) << diffBits)
+				twoUpper &= mask
+				twoLower &= mask
+				twoBitCount = diffBits
+				oneBitCount = 0
+			} else {
+				diffBits = -diffBits
+				oneResultUpper >>= diffBits
+				oneResultLower >>= diffBits
+				mask := ^(^uint64(0) << diffBits)
+				oneUpper &= mask
+				oneLower &= mask
+				oneBitCount = diffBits
+				twoBitCount = 0
+			}
+		}
+		result := comp.compareValues(oneResultUpper, oneResultLower, twoResultUpper, twoResultLower)
+		if result != 0 {
+			return result
+		}
+	}
+	return 0
+}
+
+func (countComparator) compareSegValues(oneUpper, oneLower, twoUpper, twoLower SegInt) int {
+	size1 := oneUpper - oneLower
+	size2 := twoUpper - twoLower
+	if size1 == size2 {
+		//the size of the range is the same, so just compare either upper or lower values
+		if oneLower == twoLower {
+			return 0
+		} else if oneLower > twoLower {
+			return 1
+		}
+	} else if size1 > size2 {
+		return 1
+	}
+	return -1
+}
+
+func (countComparator) compareValues(oneUpper, oneLower, twoUpper, twoLower uint64) int {
+	size1 := oneUpper - oneLower
+	size2 := twoUpper - twoLower
+	if size1 == size2 {
+		//the size of the range is the same, so just compare either upper or lower values
+		if oneLower == twoLower {
+			return 0
+		} else if oneLower > twoLower {
+			return 1
+		}
+	} else if size1 > size2 {
+		return 1
+	}
+	return -1
+}
+
+func (countComparator) compareLargeValues(oneUpper, oneLower, twoUpper, twoLower *big.Int) (result int) {
+	oneUpper.Sub(oneUpper, oneLower)
+	twoUpper.Sub(twoUpper, twoLower)
+	result = oneUpper.Cmp(twoUpper)
+	if result == 0 {
+		//the size of the range is the same, so just compare either upper or lower values
+		result = oneLower.Cmp(twoLower)
+	}
+	return
+}
+
+func compareDivBitCounts(oneSeries, twoSeries AddressDivisionSeries) int {
+	//when this is called we know the two series have the same bit-size, we want to check that the divisions
+	//also have the same bit size (which of course also implies that there are the same number of divisions)
+	count := oneSeries.GetDivisionCount()
+	result := count - twoSeries.GetDivisionCount()
+	if result == 0 {
+		for i := 0; i < count; i++ {
+			result = int(oneSeries.GetGenericDivision(i).GetBitCount() - twoSeries.GetGenericDivision(i).GetBitCount())
+			if result != 0 {
+				break
+			}
+		}
+	}
+	return result
+}
+
+func compareCount(one, two AddressDivisionSeries) int {
+	return one.IsMore(two)
 }

@@ -59,14 +59,24 @@ func (addr *addressInternal) IsMultiple() bool {
 	return addr.section.IsMultiple()
 }
 
-func (addr *addressInternal) isMore(other *Address) int {
+//func (addr *addressInternal) isMore(other *Address) int {
+//	if addr.section == nil {
+//		if other.IsMultiple() {
+//			return -1
+//		}
+//		return 0
+//	}
+//	return addr.section.IsMore(other.GetSection())
+//}
+
+func (addr *addressInternal) IsMore(other AddressDivisionSeries) int {
 	if addr.section == nil {
 		if other.IsMultiple() {
 			return -1
 		}
 		return 0
 	}
-	return addr.section.IsMore(other.GetSection())
+	return addr.section.IsMore(other)
 }
 
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
@@ -101,14 +111,30 @@ func (addr *addressInternal) GetUpperValue() *big.Int {
 	return addr.section.GetUpperValue()
 }
 
-func (addr *addressInternal) GetBytes() net.IP {
+func (addr *addressInternal) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *addressInternal) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *addressInternal) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *addressInternal) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (addr *addressInternal) GetBytes() []byte {
 	if addr.section == nil {
 		return emptyBytes
 	}
 	return addr.section.GetBytes()
 }
 
-func (addr *addressInternal) CopyBytes(bytes net.IP) net.IP {
+func (addr *addressInternal) CopyBytes(bytes []byte) []byte {
 	if addr.section == nil {
 		if bytes != nil {
 			return bytes
@@ -118,14 +144,14 @@ func (addr *addressInternal) CopyBytes(bytes net.IP) net.IP {
 	return addr.section.CopyBytes(bytes)
 }
 
-func (addr *addressInternal) GetUpperBytes() net.IP {
+func (addr *addressInternal) GetUpperBytes() []byte {
 	if addr.section == nil {
 		return emptyBytes
 	}
 	return addr.section.GetUpperBytes()
 }
 
-func (addr *addressInternal) CopyUpperBytes(bytes net.IP) net.IP {
+func (addr *addressInternal) CopyUpperBytes(bytes []byte) []byte {
 	if addr.section == nil {
 		if bytes != nil {
 			return bytes
@@ -206,8 +232,9 @@ func (addr *addressInternal) isIP() bool {
 
 var zeroAddr = &Address{
 	addressInternal{
-		section: &AddressSection{},
-		cache:   &addressCache{},
+		section: zeroSection,
+		//section: &AddressSection{},
+		cache: &addressCache{},
 	},
 }
 
@@ -298,7 +325,9 @@ func (addr *Address) IsIPv4() bool {
 func (addr *Address) IsIPv6() bool {
 	return addr.isIPv6()
 }
-
+func (addr *Address) IsIP() bool {
+	return addr.isIP()
+}
 func (addr *Address) IsMAC() bool {
 	return addr.isMAC()
 }

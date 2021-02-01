@@ -58,6 +58,75 @@ func (div *addressDivisionBase) GetUpperValue() *big.Int {
 	return vals.getUpperValue()
 }
 
+func (div *addressDivisionBase) GetBytes() []byte {
+	if div.divisionValues == nil {
+		return emptyBytes
+	}
+	cached := div.getBytes()
+	return append(make([]byte, 0, len(cached)), cached...)
+}
+
+func (div *addressDivisionBase) GetUpperBytes() []byte {
+	if div.divisionValues == nil {
+		return emptyBytes
+	}
+	cached := div.getUpperBytes()
+	return append(make([]byte, 0, len(cached)), cached...)
+}
+
+func (div *addressDivisionBase) CopyBytes(bytes []byte) []byte {
+	if div.divisionValues == nil {
+		if bytes != nil {
+			return bytes
+		}
+		return emptyBytes
+	}
+	cached := div.getBytes()
+	return getBytesCopy(bytes, cached)
+}
+
+func (div *addressDivisionBase) CopyUpperBytes(bytes []byte) []byte {
+	if div.divisionValues == nil {
+		if bytes != nil {
+			return bytes
+		}
+		return emptyBytes
+	}
+	cached := div.getUpperBytes()
+	return getBytesCopy(bytes, cached)
+}
+
+func (div *addressDivisionBase) getBytes() (bytes []byte) {
+	bytes, _ = div.getBytesInternal()
+	return
+}
+
+func (div *addressDivisionBase) getUpperBytes() (bytes []byte) {
+	_, bytes = div.getBytesInternal()
+	return
+}
+
+func (div *addressDivisionBase) getBytesInternal() (bytes, upperBytes []byte) {
+	cache := div.getCache()
+	if cache == nil {
+		return div.calcBytesInternal()
+	}
+	cache.cacheLock.RLock()
+	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
+	cache.cacheLock.RUnlock()
+	if bytes != nil {
+		return
+	}
+	cache.cacheLock.Lock()
+	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
+	if bytes == nil {
+		bytes, upperBytes = div.calcBytesInternal()
+		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
+	}
+	cache.cacheLock.Unlock()
+	return
+}
+
 func (div *addressDivisionBase) GetCount() *big.Int {
 	if !div.IsMultiple() {
 		return bigOne()

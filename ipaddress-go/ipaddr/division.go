@@ -16,6 +16,26 @@ type divisionValuesBase interface { // shared by standard and large divisions
 	GetBitCount() BitCount
 
 	GetByteCount() int
+
+	// getValue gets the lower value for a large division
+	getValue() *big.Int
+
+	// getValue gets the upper value for a large division
+	getUpperValue() *big.Int
+
+	includesZero() bool
+
+	includesMax() bool
+
+	isMultiple() bool
+
+	getCount() *big.Int
+
+	// convert lower and upper values to byte arrays
+	calcBytesInternal() (bytes, upperBytes []byte)
+
+	// getCache returns a cache for those divisions which cache their values, or nil otherwise
+	getCache() *divCache
 }
 
 // DivisionValues represents divisions with values that are 64 bits or less
@@ -25,12 +45,6 @@ type divisionValues interface {
 	// getDivisionPrefixLength provides the prefix length
 	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
 	getDivisionPrefixLength() PrefixLen
-
-	// getValue gets the lower value for a large division
-	getValue() *big.Int
-
-	// getValue gets the upper value for a large division
-	getUpperValue() *big.Int
 
 	// getDivisionValue gets the lower value for a division
 	getDivisionValue() DivInt
@@ -49,17 +63,6 @@ type divisionValues interface {
 
 	// deriveNew produces a new segment with the same bit count as the old
 	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
-
-	includesZero() bool
-
-	includesMax() bool
-
-	isMultiple() bool
-
-	getCount() *big.Int
-
-	// getCache returns a cache for this divisions which cache their values, or nil otherwise
-	getCache() *divCache
 }
 
 //TODO your generic addressDivision getCount (which will work with uint64) will look like this
@@ -76,8 +79,38 @@ type divisionValues interface {
 //	return res
 //}
 
+//TODO your generic addressDivision calcBytesInternal (which will work with uint64) will look like this
+//func (div *addressDivisionInternal) calcBytesInternal() (bytes, upperBytes []byte) {
+//	isMultiple := div.IsMultiple()
+//	byteCount := div.GetByteCount()
+//	bytes = make([]byte, byteCount)
+//	val := div.getDivisionValue()
+//	var upperVal DivInt
+//	if isMultiple {
+//		upperBytes = make([]byte, byteCount)
+//		upperVal = div.getUpperDivisionValue()
+//	} else {
+//		upperBytes = bytes
+//	}
+//	bitCount := div.GetBitCount()
+//	byteIndex := byteCount - 1
+//	for {
+//		bytes[byteIndex] |= byte(val)
+//		val >>= 8
+//		if isMultiple {
+//			upperBytes[byteIndex] = byte(upperVal)
+//			upperVal >>= 8
+//		}
+//		if bitCount <= 8 {
+//			return
+//		}
+//		bitCount -= 8
+//		byteIndex--
+//	}
+//}
+
 type divCache struct {
-	sync.RWMutex
+	cacheLock sync.RWMutex
 
 	lowerBytes, upperBytes             []byte
 	cachedString, cachedWildcardString string

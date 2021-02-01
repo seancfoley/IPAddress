@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-var zeroSection AddressSection
+var zeroSection = createSection(zeroDivs, nil, zeroType, 0)
 
 func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8) *AddressSection {
 	return &AddressSection{
@@ -205,7 +205,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 		if thisSegmentCount == 0 {
 			return section.toAddressSection()
 		}
-		return &zeroSection
+		return zeroSection
 	}
 	if index == 0 && endIndex == thisSegmentCount {
 		return section.toAddressSection()
@@ -420,9 +420,9 @@ func (section *AddressSection) GetCount() *big.Int {
 	return section.cacheCount(section.getBigCount)
 }
 
-func (section *AddressSection) IsMore(other *AddressSection) int {
-	return section.isMore(other.toAddressDivisionGrouping())
-}
+//func (section *AddressSection) IsMore(other *AddressSection) int {
+//	return section.isMore(other.toAddressDivisionGrouping())
+//}
 
 // Gets the subsection from the series starting from the given index
 // The first segment is at index 0.

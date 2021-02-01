@@ -90,11 +90,11 @@ type IPv4Address struct {
 	ipAddressInternal
 }
 
-func (section *IPv4Address) GetBitCount() BitCount {
+func (addr *IPv4Address) GetBitCount() BitCount {
 	return IPv4BitCount
 }
 
-func (section *IPv4Address) GetByteCount() int {
+func (addr *IPv4Address) GetByteCount() int {
 	return IPv4ByteCount
 }
 
@@ -211,6 +211,14 @@ func (addr *IPv4Address) GetUpper() *IPv4Address {
 	return addr.init().getUpper().ToIPv4Address()
 }
 
+func (addr *IPv4Address) IntValue() uint32 {
+	return addr.GetSection().IntValue()
+}
+
+func (addr *IPv4Address) UpperIntValue() uint32 {
+	return addr.GetSection().UpperIntValue()
+}
+
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
 	return addr.init().toPrefixBlock().ToIPv4Address()
 }
@@ -227,19 +235,35 @@ func (addr *IPv4Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *IPv4Address) GetBytes() net.IP {
+func (addr *IPv4Address) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPv4Address) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPv4Address) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPv4Address) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (addr *IPv4Address) GetBytes() []byte {
 	return addr.init().section.GetBytes()
 }
 
-func (addr *IPv4Address) GetUpperBytes() net.IP {
+func (addr *IPv4Address) GetUpperBytes() []byte {
 	return addr.init().section.GetUpperBytes()
 }
 
-func (addr *IPv4Address) CopyBytes(bytes net.IP) net.IP {
+func (addr *IPv4Address) CopyBytes(bytes []byte) []byte {
 	return addr.init().section.CopyBytes(bytes)
 }
 
-func (addr *IPv4Address) CopyUpperBytes(bytes net.IP) net.IP {
+func (addr *IPv4Address) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
@@ -251,6 +275,6 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	return NewIPv4SeqRange(addr.GetLower(), addr.GetUpper())
 }
 
-func (addr *IPv4Address) IsMore(other *IPv4Address) int {
-	return addr.init().isMore(other.ToIPAddress())
-}
+//func (addr *IPv4Address) IsMore(other *IPv4Address) int {
+//	return addr.init().isMore(other.ToIPAddress())
+//}

@@ -263,19 +263,35 @@ func (addr *IPv6Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *IPv6Address) GetBytes() net.IP {
+func (addr *IPv6Address) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPv6Address) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPv6Address) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPv6Address) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (addr *IPv6Address) GetBytes() []byte {
 	return addr.init().section.GetBytes()
 }
 
-func (addr *IPv6Address) GetUpperBytes() net.IP {
+func (addr *IPv6Address) GetUpperBytes() []byte {
 	return addr.init().section.GetUpperBytes()
 }
 
-func (addr *IPv6Address) CopyBytes(bytes net.IP) net.IP {
+func (addr *IPv6Address) CopyBytes(bytes []byte) []byte {
 	return addr.init().section.CopyBytes(bytes)
 }
 
-func (addr *IPv6Address) CopyUpperBytes(bytes net.IP) net.IP {
+func (addr *IPv6Address) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
@@ -287,6 +303,6 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	return NewIPv6SeqRange(addr.GetLower(), addr.GetUpper())
 }
 
-func (addr *IPv6Address) IsMore(other *IPv6Address) int {
-	return addr.init().isMore(other.ToIPAddress())
-}
+//func (addr *IPv6Address) IsMore(other *IPv6Address) int {
+//	return addr.init().isMore(other.ToIPAddress())
+//}

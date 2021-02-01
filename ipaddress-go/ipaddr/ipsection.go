@@ -61,7 +61,8 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
 	return section.prefixLength
 }
 
-func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
+func (section *ipAddressSectionInternal) IsMore(other AddressDivisionSeries) int {
+	//func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
 	if !section.IsMultiple() {
 		if other.IsMultiple() {
 			return -1
@@ -225,9 +226,9 @@ func (section *IPAddressSection) GetCount() *big.Int {
 	return section.cacheCount(section.getBigCount)
 }
 
-func (section *IPAddressSection) IsMore(other *IPAddressSection) int {
-	return section.isMore(other)
-}
+//func (section *IPAddressSection) IsMore(other *IPAddressSection) int {
+//	return section.isMore(other)
+//}
 
 func (section *IPAddressSection) IsIPv4AddressSection() bool {
 	return section != nil && section.matchesIPv4Section()

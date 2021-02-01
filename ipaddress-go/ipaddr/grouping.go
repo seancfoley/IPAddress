@@ -54,6 +54,12 @@ func (grouping *addressDivisionGroupingInternal) copyDivisions(divs []*AddressDi
 }
 
 func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
+	if grouping == nil {
+		return false
+	}
+	if grouping.matchesAddrSection() {
+		return true
+	}
 	var bitCount BitCount
 	count := grouping.GetDivisionCount()
 	// all divisions must be equal size and have an exact number of bytes
@@ -71,7 +77,7 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 	return true
 }
 
-func (grouping *addressDivisionGroupingBase) isMore(other *AddressDivisionGrouping) int {
+func (grouping *addressDivisionGroupingInternal) IsMore(other AddressDivisionSeries) int { // the GetCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
 	if !grouping.IsMultiple() {
 		if other.IsMultiple() {
 			return -1
@@ -101,57 +107,51 @@ func (grouping *addressDivisionGroupingInternal) toAddressSection() *AddressSect
 	return grouping.toAddressDivisionGrouping().ToAddressSection()
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPv6Address() bool {
-	return section.addrType.isIPv6() // no need to check segment count because addresses cannot be constructed with incorrect segment count
+func (grouping *addressDivisionGroupingInternal) matchesIPv6Address() bool {
+	return grouping.addrType.isIPv6() // no need to check segment count because addresses cannot be constructed with incorrect segment count
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPv4Address() bool {
-	return section.addrType.isIPv4() // no need to check segment count because addresses cannot be constructed with incorrect segment count
+func (grouping *addressDivisionGroupingInternal) matchesIPv4Address() bool {
+	return grouping.addrType.isIPv4() // no need to check segment count because addresses cannot be constructed with incorrect segment count
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPv6Section() bool {
-	return section.addrType.isIPv6() || (section.addrType.isNil() && section.hasNoDivisions())
+func (grouping *addressDivisionGroupingInternal) matchesIPAddress() bool {
+	return grouping.matchesIPSection() // no need to check segment count because addresses cannot be constructed with incorrect segment count (note the zero IPAddress has zero segments)
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPv4Section() bool {
-	return section.addrType.isIPv4() || (section.addrType.isNil() && section.hasNoDivisions())
+func (grouping *addressSectionInternal) matchesMACAddress() bool {
+	return grouping.addrType.isMAC()
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPSection() bool {
-	return section.addrType.isIP() || (section.addrType.isNil() && section.hasNoDivisions())
+func (grouping *addressDivisionGroupingInternal) matchesAddrSection() bool {
+	return !grouping.addrType.isNil() || grouping.hasNoDivisions()
 }
 
-func (section *addressDivisionGroupingInternal) matchesIPAddress() bool {
-	return section.matchesIPSection() // no need to check segment count because addresses cannot be constructed with incorrect segment count
+func (grouping *addressDivisionGroupingInternal) matchesIPv6Section() bool {
+	return grouping.addrType.isIPv6() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
 }
 
-func (section *addressDivisionGroupingInternal) matchesMACSection() bool {
-	return section.addrType.isMAC() || (section.addrType.isNil() && section.hasNoDivisions())
+func (grouping *addressDivisionGroupingInternal) matchesIPv4Section() bool {
+	return grouping.addrType.isIPv4() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
 }
 
-func (section *addressSectionInternal) matchesMACAddress() bool {
-	return section.addrType.isMAC()
-	//segCount := section.GetSegmentCount()
-	//return section.addrType.isMAC() &&
-	//	(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
+func (grouping *addressDivisionGroupingInternal) matchesIPSection() bool {
+	return grouping.addrType.isIP() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
 }
 
-//func (grouping addressDivisionGroupingInternal) matchesIPv6Address() bool {
-//	return grouping.addrType.isIPv6() && grouping.GetDivisionCount() == IPv6SegmentCount
-//}
-//
-//func (grouping addressDivisionGroupingInternal) matchesIPv4Address() bool {
-//	return grouping.addrType.isIPv4() && grouping.GetDivisionCount() == IPv4SegmentCount
-//}
+func (grouping *addressDivisionGroupingInternal) matchesMACSection() bool {
+	return grouping.addrType.isMAC() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
+}
 
-//func (grouping addressDivisionGroupingInternal) matchesMACAddress() bool {
-//	segCount := grouping.GetDivisionCount()
-//	return grouping.addrType.isMAC() &&
-//		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
-//}
+func (grouping *addressDivisionGroupingInternal) init() *addressDivisionGroupingInternal {
+	if grouping.divisions == nil {
+		return &zeroSection.addressDivisionGroupingInternal
+	}
+	return grouping
+}
 
 func (grouping addressDivisionGroupingInternal) String() string {
-	return fmt.Sprintf("%v", grouping.divisions)
+	return fmt.Sprintf("%v", grouping.init().divisions)
 }
 
 //// getPrefixLengthCacheLocked calculates prefix length
@@ -487,9 +487,9 @@ func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision
 //	return grouping.getDivisionCount()
 //}
 
-func (grouping *AddressDivisionGrouping) IsMore(other *AddressDivisionGrouping) int {
-	return grouping.isMore(other)
-}
+//func (grouping *AddressDivisionGrouping) IsMore(other *AddressDivisionGrouping) int {
+//	return grouping.isMore(other)
+//}
 
 type addrType string
 

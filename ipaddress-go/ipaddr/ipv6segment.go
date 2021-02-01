@@ -80,6 +80,16 @@ func (seg ipv6SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
+func (seg ipv6SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
+	bytes = []byte{byte(seg.value >> 8), byte(seg.value)}
+	if seg.isMultiple() {
+		upperBytes = []byte{byte(seg.upperValue >> 8), byte(seg.upperValue)}
+	} else {
+		upperBytes = bytes
+	}
+	return
+}
+
 func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }

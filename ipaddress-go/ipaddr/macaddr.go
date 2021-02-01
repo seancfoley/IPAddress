@@ -72,19 +72,35 @@ func (addr *MACAddress) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *MACAddress) GetBytes() net.IP {
+func (addr *MACAddress) GetHardwareAddr() net.HardwareAddr {
+	return addr.GetBytes()
+}
+
+func (addr *MACAddress) CopyHardwareAddr(bytes net.HardwareAddr) net.HardwareAddr {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *MACAddress) GetUpperHardwareAddr() net.HardwareAddr {
+	return addr.GetUpperBytes()
+}
+
+func (addr *MACAddress) CopyUpperHardwareAddr(bytes net.HardwareAddr) net.HardwareAddr {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (addr *MACAddress) GetBytes() []byte {
 	return addr.init().section.GetBytes()
 }
 
-func (addr *MACAddress) GetUpperBytes() net.IP {
+func (addr *MACAddress) GetUpperBytes() []byte {
 	return addr.init().section.GetUpperBytes()
 }
 
-func (addr *MACAddress) CopyBytes(bytes net.IP) net.IP {
+func (addr *MACAddress) CopyBytes(bytes []byte) []byte {
 	return addr.init().section.CopyBytes(bytes)
 }
 
-func (addr *MACAddress) CopyUpperBytes(bytes net.IP) net.IP {
+func (addr *MACAddress) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
@@ -145,6 +161,6 @@ func (addr *MACAddress) ToPrefixBlock() *MACAddress {
 	return addr.init().toPrefixBlock().ToMACAddress()
 }
 
-func (addr *MACAddress) IsMore(other *MACAddress) int {
-	return addr.init().isMore(other.ToAddress())
-}
+//func (addr *MACAddress) IsMore(other *MACAddress) int {
+//	return addr.init().isMore(other.ToAddress())
+//}

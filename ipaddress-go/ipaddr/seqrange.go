@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"net"
 	"sync"
 	"unsafe"
 )
@@ -10,11 +11,67 @@ type rangeCache struct {
 	cacheLock sync.Mutex
 
 	countSetting countSetting
+	isMultiple   bool // set on construction
 }
 
 type ipAddressSeqRangeInternal struct {
 	lower, upper *IPAddress
 	cache        *rangeCache
+}
+
+func (rng *ipAddressSeqRangeInternal) IsMultiple() bool {
+	if rng.lower == nil {
+		return false
+	}
+	return rng.cache.isMultiple
+}
+
+func (rng *ipAddressSeqRangeInternal) setCount() (res *big.Int) {
+	cache := rng.cache
+	if !cache.countSetting.isSetNoSync() {
+		cache.cacheLock.Lock()
+		if !cache.countSetting.isSetNoSync() {
+			upper := rng.upper.GetValue()
+			res = rng.lower.GetValue()
+			upper.Sub(upper, res).Add(upper, bigOneConst())
+			cache.countSetting.count = upper
+			res.Set(upper)
+		}
+		cache.cacheLock.Unlock()
+	}
+	return
+}
+
+func (rng *ipAddressSeqRangeInternal) GetCount() *big.Int {
+	if !rng.IsMultiple() {
+		return bigOne()
+	}
+	res := rng.setCount()
+	if res == nil {
+		// already set
+		res = new(big.Int).Set(rng.cache.countSetting.count)
+	}
+	return res
+}
+
+// IsMore returns whether this range has a large count than the other
+func (rng *ipAddressSeqRangeInternal) IsMore(other *IPAddressSeqRange) int {
+	if !rng.IsMultiple() {
+		if other.IsMultiple() {
+			return -1
+		}
+		return 0
+	}
+	thisCount := rng.setCount()
+	if thisCount == nil {
+		thisCount = rng.cache.countSetting.count
+	}
+	other = other.init()
+	otherCount := other.setCount()
+	if otherCount == nil {
+		otherCount = other.cache.countSetting.count
+	}
+	return thisCount.CmpAbs(otherCount)
 }
 
 type IPAddressSeqRange struct {
@@ -28,47 +85,6 @@ func (rng *IPAddressSeqRange) init() *IPAddressSeqRange {
 		return zeroRange
 	}
 	return rng
-}
-
-func (rng *IPAddressSeqRange) setCount() (res *big.Int) {
-	cache := rng.cache
-	if !cache.countSetting.isSetNoSync() {
-		cache.cacheLock.Lock()
-		if !cache.countSetting.isSetNoSync() {
-			upper := rng.GetUpperValue()
-			res = rng.GetValue()
-			upper.Sub(upper, res).Add(upper, bigOneConst())
-			cache.countSetting.count = upper
-			res.Set(upper)
-		}
-		cache.cacheLock.Unlock()
-	}
-	return
-}
-
-func (rng *IPAddressSeqRange) GetCount() *big.Int {
-	rng = rng.init()
-	res := rng.setCount()
-	if res == nil {
-		// already set
-		res = new(big.Int).Set(rng.cache.countSetting.count)
-	}
-	return res
-}
-
-// IsMore returns whether this range has a large count than the other
-func (rng *IPAddressSeqRange) IsMore(other *IPAddressSeqRange) int {
-	rng = rng.init()
-	thisCount := rng.setCount()
-	if thisCount == nil {
-		thisCount = rng.cache.countSetting.count
-	}
-	other = other.init()
-	otherCount := other.setCount()
-	if otherCount == nil {
-		otherCount = other.cache.countSetting.count
-	}
-	return thisCount.CmpAbs(otherCount)
 }
 
 func (rng *IPAddressSeqRange) GetLower() *IPAddress {
@@ -95,6 +111,22 @@ func (rng *IPAddressSeqRange) GetBitCount() BitCount {
 
 func (rng *IPAddressSeqRange) GetByteCount() int {
 	return rng.GetLower().GetByteCount()
+}
+
+func (addr *IPAddressSeqRange) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPAddressSeqRange) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPAddressSeqRange) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPAddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
 }
 
 func (rng *IPAddressSeqRange) GetBytes() []byte {
@@ -146,22 +178,24 @@ func (rng *IPAddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	return rng
 }
 
+func (rng *IPAddressSeqRange) IsIPv4SequentialRange() bool { // returns false when lower is nil
+	return rng != nil && rng.GetLower().IsIPv4()
+}
+
+func (rng *IPAddressSeqRange) IsIPv6SequentialRange() bool { // returns false when lower is nil
+	return rng != nil && rng.GetLower().IsIPv6()
+}
+
 func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
-	if rng == nil {
-		return nil
-	}
-	if rng.GetLower().IsIPv4() { // returns false when lower is nil
-		return (*IPv4AddressSeqRange)(unsafe.Pointer(rng))
+	if rng.IsIPv4SequentialRange() {
+		return (*IPv4AddressSeqRange)(rng)
 	}
 	return nil
 }
 
 func (rng *IPAddressSeqRange) ToIPv6SequentialRange() *IPv6AddressSeqRange {
-	if rng == nil {
-		return nil
-	}
-	if rng.GetLower().IsIPv6() { // returns false when lower is nil
-		return (*IPv6AddressSeqRange)(unsafe.Pointer(rng))
+	if rng.IsIPv6SequentialRange() {
+		return (*IPv6AddressSeqRange)(rng)
 	}
 	return nil
 }
@@ -199,6 +233,38 @@ func (rng *IPv4AddressSeqRange) GetUpper() *IPv4Address {
 	return rng.init().upper.ToIPv4Address()
 }
 
+func (addr *IPv4AddressSeqRange) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPv4AddressSeqRange) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPv4AddressSeqRange) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPv4AddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (rng *IPv4AddressSeqRange) GetBytes() []byte {
+	return rng.GetLower().GetBytes()
+}
+
+func (rng *IPv4AddressSeqRange) CopyBytes(bytes []byte) []byte {
+	return rng.GetLower().CopyBytes(bytes)
+}
+
+func (rng *IPv4AddressSeqRange) GetUpperBytes() []byte {
+	return rng.GetUpper().GetUpperBytes()
+}
+
+func (rng *IPv4AddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
+	return rng.GetUpper().CopyUpperBytes(bytes)
+}
+
 func (rng *IPv4AddressSeqRange) GetValue() *big.Int {
 	return rng.GetLower().GetValue()
 }
@@ -212,7 +278,7 @@ func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 }
 
 func newSeqRange(one, two *IPAddress) *IPAddressSeqRange {
-	//TODO compare to ensure lower is the lowest one
+	//TODO compare to ensure lower is the lowest one, also set isMultiple when you do the comparison
 	return &IPAddressSeqRange{
 		ipAddressSeqRangeInternal{
 			lower: one,
@@ -253,6 +319,38 @@ func (rng *IPv6AddressSeqRange) GetLower() *IPv6Address {
 
 func (rng *IPv6AddressSeqRange) GetUpper() *IPv6Address {
 	return rng.init().upper.ToIPv6Address()
+}
+
+func (addr *IPv6AddressSeqRange) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPv6AddressSeqRange) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPv6AddressSeqRange) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPv6AddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (rng *IPv6AddressSeqRange) GetBytes() []byte {
+	return rng.GetLower().GetBytes()
+}
+
+func (rng *IPv6AddressSeqRange) CopyBytes(bytes []byte) []byte {
+	return rng.GetLower().CopyBytes(bytes)
+}
+
+func (rng *IPv6AddressSeqRange) GetUpperBytes() []byte {
+	return rng.GetUpper().GetUpperBytes()
+}
+
+func (rng *IPv6AddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
+	return rng.GetUpper().CopyUpperBytes(bytes)
 }
 
 func (rng *IPv6AddressSeqRange) GetValue() *big.Int {

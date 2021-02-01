@@ -78,6 +78,16 @@ func (seg macSegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
+func (seg macSegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
+	bytes = []byte{byte(seg.value)}
+	if seg.isMultiple() {
+		upperBytes = []byte{byte(seg.upperValue)}
+	} else {
+		upperBytes = bytes
+	}
+	return
+}
+
 func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }

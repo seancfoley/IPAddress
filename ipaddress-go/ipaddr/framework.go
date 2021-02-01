@@ -1,22 +1,36 @@
 package ipaddr
 
+import (
+	"math/big"
+	"net"
+)
+
 type AddressItem interface {
-	//CopyBytes(bytes []byte) []byte
-	//CopyUpperBytes(bytes []byte) []byte
+	CopyBytes(bytes []byte) []byte
+	CopyUpperBytes(bytes []byte) []byte
+	GetBytes() []byte
+	GetUpperBytes() []byte
+	IsMultiple() bool
+	GetCount() *big.Int
 	GetByteCount() int
 	GetBitCount() BitCount
-
 	GetValue() *BigDivInt
-
 	GetUpperValue() *BigDivInt
 }
 
-type AddressComponentRange interface {
-	AddressItem
-}
+// probably does not apply to golang because ranged values are always more specific, I'd have to add new methods with standard return values
+// But I am keeping IPAddressRange
+//type AddressComponentRange interface {
+//
+//	//AddressItem
+//}
 
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
-	AddressComponentRange
+	//AddressComponentRange
+
+	//TODO add these two
+	//toHexString
+	//toNormalizedString
 }
 
 //
@@ -46,6 +60,8 @@ type AddressStandardDivision interface {
 	ToAddressDivision() *AddressDivision
 }
 
+//TODO ensure all framework structs X are checked on this page with a _ intf = &X{} which will assert it satisfies all necessary interfaces down to AddressItem
+
 var (
 	_ AddressStandardDivision = &AddressDivision{}
 	_ AddressStandardDivision = &AddressSegment{}
@@ -56,7 +72,7 @@ var (
 )
 
 // euqivalent to AddressSegment on Java side, serves as common interface to all segments
-type AddressGenericSegment interface {
+type AddressStandardSegment interface {
 	AddressItem
 	AddressStringDivision
 
@@ -65,10 +81,10 @@ type AddressGenericSegment interface {
 }
 
 var (
-	_ AddressGenericSegment = &AddressSegment{}
-	_ AddressGenericSegment = &IPv6AddressSegment{}
-	_ AddressGenericSegment = &MACAddressSegment{}
-	_ AddressGenericSegment = &IPv4AddressSegment{}
+	_ AddressStandardSegment = &AddressSegment{}
+	_ AddressStandardSegment = &IPv6AddressSegment{}
+	_ AddressStandardSegment = &MACAddressSegment{}
+	_ AddressStandardSegment = &IPv4AddressSegment{}
 )
 
 //
@@ -86,13 +102,14 @@ type AddressDivisionSeries interface {
 	AddressItem
 	AddressStringDivisionSeries
 
+	IsMore(AddressDivisionSeries) int
 	GetGenericDivision(index int) AddressGenericDivision
 	GetDivisionCount() int
 }
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
 	AddressComponent
-	//AddressDivisionSeries
+	AddressDivisionSeries
 }
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above
@@ -105,7 +122,14 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 // addresses and address ranges
 
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
-	AddressComponentRange
+	//AddressComponentRange
+
+	// TODO maybe you want a generic GetLowerIPAddress() *IPAddress and GetUpperIPAddress() *IPAddress
+
+	CopyIP(bytes net.IP) net.IP
+	CopyUpperIP(bytes net.IP) net.IP
+	GetIP() net.IP
+	GetUpperIP() net.IP
 }
 
 // Represents any standard address division grouping that can be converted to/from AddressDivisionGrouping,
@@ -143,10 +167,20 @@ type AddressType interface {
 
 var (
 	_ AddressType = &Address{}
-	_ AddressType = &IPAddress{}
-	_ AddressType = &IPv4Address{}
-	_ AddressType = &IPv6Address{}
 	_ AddressType = &MACAddress{}
+)
+
+type IPAddressType interface {
+	AddressType
+	IPAddressRange
+
+	ToIPAddress() *IPAddress
+}
+
+var (
+	_ IPAddressType = &IPAddress{}
+	_ IPAddressType = &IPv4Address{}
+	_ IPAddressType = &IPv6Address{}
 )
 
 type IPAddressSeqRangeType interface {

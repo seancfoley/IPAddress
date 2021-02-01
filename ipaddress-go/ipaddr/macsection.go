@@ -27,9 +27,9 @@ func (section *MACAddressSection) GetCount() *big.Int {
 	})
 }
 
-func (section *MACAddressSection) IsMore(other *MACAddressSection) int {
-	return section.isMore(other.ToAddressDivisionGrouping())
-}
+//func (section *MACAddressSection) IsMore(other *MACAddressSection) int {
+//	return section.isMore(other.ToAddressDivisionGrouping())
+//}
 
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 	return section.getDivision(index).ToMACAddressSegment()

@@ -1,6 +1,9 @@
 package ipaddr
 
-import "unsafe"
+import (
+	"net"
+	"unsafe"
+)
 
 type IPVersion string
 
@@ -88,15 +91,20 @@ func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 }
 
 // this is here to take advantage of the IsMore in IPAddressSection which is optimized for prefix block subnets
-func (addr *ipAddressInternal) isMore(other *IPAddress) int {
+//func (addr *ipAddressInternal) isMore(other *IPAddress) int {
+//	return addr.toIPAddress().IsMore(other)
+//}
+func (addr *ipAddressInternal) IsMore(other AddressDivisionSeries) int {
 	return addr.toIPAddress().IsMore(other)
 }
 
-var zeroIPAddr = &IPAddress{
+var zeroIPAddr = &IPAddress{ //TODO maybe this should have a zero-length slice of segs, and not a nil slice, or maybe not, maybe it should be consistent with AddressSection{}
 	ipAddressInternal{
 		addressInternal{
-			section: &AddressSection{},
-			cache:   &addressCache{},
+			section: zeroSection,
+			//section: createSection(make([]*AddressDivision, 0), nil, zeroType, 0),
+			//section: &AddressSection{},
+			cache: &addressCache{},
 		},
 	},
 }
@@ -196,9 +204,10 @@ func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
 }
 
-// IsMore returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
-func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take advantage of the IsMore in IPAddressSection
-	return addr.GetSection().IsMore(other.GetSection())
+//// IsMore returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPAddress) IsMore(other AddressDivisionSeries) int { // this is here to take advantage of the IsMore in IPAddressSection
+	//func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take advantage of the IsMore in IPAddressSection
+	return addr.GetSection().IsMore(other)
 }
 
 func (addr *IPAddress) IsIPv4() bool {
@@ -211,6 +220,26 @@ func (addr *IPAddress) IsIPv6() bool {
 
 func (addr *IPAddress) GetIPVersion() IPVersion {
 	return addr.getIPVersion()
+}
+
+func (addr *IPAddress) GetIP() net.IP {
+	return addr.GetBytes()
+}
+
+func (addr *IPAddress) CopyIP(bytes net.IP) net.IP {
+	return addr.CopyBytes(bytes)
+}
+
+func (addr *IPAddress) GetUpperIP() net.IP {
+	return addr.GetUpperBytes()
+}
+
+func (addr *IPAddress) CopyUpperIP(bytes net.IP) net.IP {
+	return addr.CopyUpperBytes(bytes)
+}
+
+func (addr *IPAddress) ToIPAddress() *IPAddress {
+	return addr
 }
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {

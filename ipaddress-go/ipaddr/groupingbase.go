@@ -69,6 +69,19 @@ func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
 	return res
 }
 
+func (grouping *addressDivisionGroupingBase) IsMore(other AddressDivisionSeries) int {
+	if !grouping.IsMultiple() {
+		if other.IsMultiple() {
+			return -1
+		}
+		return 0
+	}
+	if !other.IsMultiple() {
+		return 1
+	}
+	return grouping.GetCount().CmpAbs(other.GetCount())
+}
+
 func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
 	if !grouping.IsMultiple() {
 		return bigOne()
@@ -106,6 +119,7 @@ type valueCache struct {
 	cachedMaskLens maskLenSetting
 
 	lowerBytes, upperBytes []byte
+	cachedLowerVal         uint32
 
 	stringCache stringCache
 
@@ -138,6 +152,9 @@ type divArray interface {
 	fmt.Stringer
 }
 
+var zeroDivs = make([]*AddressDivision, 0)
+var zeroStandardDivArray = standardDivArray{zeroDivs}
+
 type standardDivArray struct {
 	divisions []*AddressDivision
 }
@@ -158,6 +175,13 @@ func (grouping standardDivArray) copyDivisions(divs []*AddressDivision) (count i
 	return copy(divs, grouping.divisions)
 }
 
+func (grouping standardDivArray) init() standardDivArray {
+	if grouping.divisions == nil {
+		return zeroStandardDivArray
+	}
+	return grouping
+}
+
 func (grouping standardDivArray) String() string {
-	return fmt.Sprintf("%v", grouping.divisions)
+	return fmt.Sprintf("%v", grouping.init().divisions)
 }
