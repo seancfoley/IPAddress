@@ -7,8 +7,6 @@ import (
 
 // TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
 // Most are string-related and byte-related.
-// The byte ones we can probably ignore, we do not (and cannot really) use the same wrapper pattern xxx() calling xxxImpl() as in Java.
-
 // addressDivisionBase is a base for both standard and large divisions.
 // Standard divisions are divisions up to 64 bits of length, large are divisions of any length.
 // With standard divisions, you can use GetValue/GetUpperValue and use DivInt integers for the values.
@@ -172,6 +170,10 @@ func (div *addressDivisionBase) IsMultiple() bool {
 		return false
 	}
 	return vals.isMultiple()
+}
+
+func (div *addressDivisionBase) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(div, item)
 }
 
 func (div *addressDivisionBase) toAddressDivision() *AddressDivision {

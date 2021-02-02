@@ -231,6 +231,10 @@ func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
 	return bigZero().SetBytes(grouping.getUpperBytes())
 }
 
+func (grouping *addressDivisionGroupingInternal) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(grouping, item)
+}
+
 func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
 	if grouping.hasNoDivisions() {
 		return emptyBytes
@@ -260,8 +264,7 @@ func (grouping *addressDivisionGroupingInternal) CopyBytes(bytes []byte) []byte 
 		}
 		return emptyBytes
 	}
-	cached := grouping.getBytes()
-	return getBytesCopy(bytes, cached)
+	return getBytesCopy(bytes, grouping.getBytes())
 }
 
 func (grouping *addressDivisionGroupingInternal) CopyUpperBytes(bytes []byte) []byte {
@@ -271,113 +274,96 @@ func (grouping *addressDivisionGroupingInternal) CopyUpperBytes(bytes []byte) []
 		}
 		return emptyBytes
 	}
-	cached := grouping.getUpperBytes()
-	return getBytesCopy(bytes, cached)
+	return getBytesCopy(bytes, grouping.getUpperBytes())
 }
 
 func (grouping *addressDivisionGroupingInternal) getBytes() (bytes []byte) {
-	bytes, _ = grouping.getBytesInternal()
+	bytes, _ = grouping.getCachedBytes(grouping.calcBytes)
 	return
 }
 
 func (grouping *addressDivisionGroupingInternal) getUpperBytes() (bytes []byte) {
-	_, bytes = grouping.getBytesInternal()
+	_, bytes = grouping.getCachedBytes(grouping.calcBytes)
 	return
 }
 
-func (grouping *addressDivisionGroupingInternal) getBytesInternal() (bytes, upperBytes []byte) {
-	isMultiple := grouping.IsMultiple()
-	cache := grouping.cache
-	if cache == nil {
-		return emptyBytes, emptyBytes
-	}
-	divisionCount := grouping.GetDivisionCount()
-	cache.cacheLock.RLock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	cache.cacheLock.RUnlock()
-	if bytes != nil {
-		return
-	}
+func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes []byte) {
 	addrType := grouping.addrType
-	cache.cacheLock.Lock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	if bytes == nil {
-		if addrType.isIPv4() || addrType.isMAC() {
-			bytes = make([]byte, divisionCount)
-			if isMultiple {
-				upperBytes = make([]byte, divisionCount)
-			} else {
-				upperBytes = bytes
-			}
-			for i := 0; i < divisionCount; i++ {
-				seg := grouping.getDivision(i).ToAddressSegment()
-				bytes[i] = byte(seg.GetSegmentValue())
-				if isMultiple {
-					upperBytes[i] = byte(seg.GetUpperSegmentValue())
-				}
-			}
-		} else if addrType.isIPv6() {
-			byteCount := divisionCount << 1
-			bytes = make([]byte, byteCount)
-			if isMultiple {
-				upperBytes = make([]byte, byteCount)
-			} else {
-				upperBytes = bytes
-			}
-			for i := 0; i < divisionCount; i++ {
-				seg := grouping.getDivision(i).ToAddressSegment()
-				byteIndex := i << 1
-				val := seg.GetSegmentValue()
-				bytes[byteIndex] = byte(val >> 8)
-				var upperVal SegInt
-				if isMultiple {
-					upperVal = seg.GetUpperSegmentValue()
-					upperBytes[byteIndex] = byte(upperVal >> 8)
-				}
-				nextByteIndex := byteIndex + 1
-				bytes[nextByteIndex] = byte(val)
-				if isMultiple {
-					upperBytes[nextByteIndex] = byte(upperVal)
-				}
-			}
+	divisionCount := grouping.GetDivisionCount()
+	isMultiple := grouping.IsMultiple()
+	if addrType.isIPv4() || addrType.isMAC() {
+		bytes = make([]byte, divisionCount)
+		if isMultiple {
+			upperBytes = make([]byte, divisionCount)
 		} else {
-			byteCount := grouping.GetByteCount()
-			bytes = make([]byte, byteCount)
+			upperBytes = bytes
+		}
+		for i := 0; i < divisionCount; i++ {
+			seg := grouping.getDivision(i).ToAddressSegment()
+			bytes[i] = byte(seg.GetSegmentValue())
 			if isMultiple {
-				upperBytes = make([]byte, byteCount)
-			} else {
-				upperBytes = bytes
+				upperBytes[i] = byte(seg.GetUpperSegmentValue())
 			}
-			for k, byteIndex, bitIndex := divisionCount-1, byteCount-1, BitCount(8); k >= 0; k-- {
-				div := grouping.getDivision(k)
-				val := div.GetDivisionValue()
-				var upperVal DivInt
+		}
+	} else if addrType.isIPv6() {
+		byteCount := divisionCount << 1
+		bytes = make([]byte, byteCount)
+		if isMultiple {
+			upperBytes = make([]byte, byteCount)
+		} else {
+			upperBytes = bytes
+		}
+		for i := 0; i < divisionCount; i++ {
+			seg := grouping.getDivision(i).ToAddressSegment()
+			byteIndex := i << 1
+			val := seg.GetSegmentValue()
+			bytes[byteIndex] = byte(val >> 8)
+			var upperVal SegInt
+			if isMultiple {
+				upperVal = seg.GetUpperSegmentValue()
+				upperBytes[byteIndex] = byte(upperVal >> 8)
+			}
+			nextByteIndex := byteIndex + 1
+			bytes[nextByteIndex] = byte(val)
+			if isMultiple {
+				upperBytes[nextByteIndex] = byte(upperVal)
+			}
+		}
+	} else {
+		byteCount := grouping.GetByteCount()
+		bytes = make([]byte, byteCount)
+		if isMultiple {
+			upperBytes = make([]byte, byteCount)
+		} else {
+			upperBytes = bytes
+		}
+		for k, byteIndex, bitIndex := divisionCount-1, byteCount-1, BitCount(8); k >= 0; k-- {
+			div := grouping.getDivision(k)
+			val := div.GetDivisionValue()
+			var upperVal DivInt
+			if isMultiple {
+				upperVal = div.GetUpperDivisionValue()
+			}
+			divBits := div.GetBitCount()
+			for divBits > 0 {
+				rbi := 8 - bitIndex
+				bytes[byteIndex] |= byte(val << rbi)
+				val >>= bitIndex
 				if isMultiple {
-					upperVal = div.GetUpperDivisionValue()
+					upperBytes[byteIndex] |= byte(upperVal << rbi)
+					upperVal >>= bitIndex
 				}
-				divBits := div.GetBitCount()
-				for divBits > 0 {
-					rbi := 8 - bitIndex
-					bytes[byteIndex] |= byte(val << rbi)
-					val >>= bitIndex
-					if isMultiple {
-						upperBytes[byteIndex] |= byte(upperVal << rbi)
-						upperVal >>= bitIndex
-					}
-					if divBits < bitIndex {
-						bitIndex -= divBits
-						break
-					} else {
-						divBits -= bitIndex
-						bitIndex = 8
-						byteIndex--
-					}
+				if divBits < bitIndex {
+					bitIndex -= divBits
+					break
+				} else {
+					divBits -= bitIndex
+					bitIndex = 8
+					byteIndex--
 				}
 			}
 		}
-		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
 	}
-	cache.cacheLock.Unlock()
 	return
 }
 

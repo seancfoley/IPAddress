@@ -16,6 +16,7 @@ type AddressItem interface {
 	GetBitCount() BitCount
 	GetValue() *BigDivInt
 	GetUpperValue() *BigDivInt
+	CompareTo(item AddressItem) int
 }
 
 // probably does not apply to golang because ranged values are always more specific, I'd have to add new methods with standard return values

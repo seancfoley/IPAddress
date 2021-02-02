@@ -230,6 +230,10 @@ func (addr *addressInternal) isIP() bool {
 	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddress())
 }
 
+func (addr *addressInternal) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
 var zeroAddr = &Address{
 	addressInternal{
 		section: zeroSection,

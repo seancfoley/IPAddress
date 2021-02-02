@@ -2,13 +2,11 @@ package ipaddr
 
 import "math/big"
 
-//
-//// TODO addressSegmentInternal, addressSectionInternal, addressInternal will all have CompareTo(AddressItem)
-//// which will then be inherited by everything and then you can add it to AddressItem
-//
-
 var (
-	CountComparator            = AddressComparator{countComparator{}}
+	// Compares by count first, then by value
+	CountComparator = AddressComparator{countComparator{}}
+
+	// Compare by value first, whether low or high or both
 	HighValueComparator        = AddressComparator{valueComparator{compareHighValue: true}}
 	LowValueComparator         = AddressComparator{valueComparator{}}
 	ReverseHighValueComparator = AddressComparator{valueComparator{compareHighValue: true, flipSecond: true}}
@@ -362,12 +360,10 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 	if sizeResult != 0 {
 		return sizeResult
 	}
-	//if(equalsConsistent || oneSeries.isMultiple() || twoSeries.isMultiple()) {
 	result := compareDivBitCounts(oneSeries, twoSeries)
 	if result != 0 {
 		return result
 	}
-	//}
 	compareHigh := comp.compareHighValue
 	var one, two *AddressDivisionGrouping
 	if o, ok := oneSeries.(AddressDivisionGroupingType); ok {
@@ -510,6 +506,12 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 				}
 			}
 			if oneResultValue != twoResultValue {
+				if comp.flipSecond && compareHigh != comp.compareHighValue {
+					if oneResultValue > twoResultValue {
+						return -1
+					}
+					return 1
+				}
 				if oneResultValue > twoResultValue {
 					return 1
 				}
@@ -530,7 +532,9 @@ func (comp valueComparator) compareSegValues(oneUpper, oneLower, twoUpper, twoLo
 			if oneLower == twoLower {
 				return 0
 			} else if oneLower > twoLower {
-				return 1
+				if !comp.flipSecond {
+					return 1
+				}
 			}
 		} else if oneUpper > twoUpper {
 			return 1
@@ -540,7 +544,9 @@ func (comp valueComparator) compareSegValues(oneUpper, oneLower, twoUpper, twoLo
 			if oneUpper == twoUpper {
 				return 0
 			} else if oneUpper > twoUpper {
-				return 1
+				if !comp.flipSecond {
+					return 1
+				}
 			}
 		} else if oneLower > twoLower {
 			return 1
@@ -555,7 +561,9 @@ func (comp valueComparator) compareValues(oneUpper, oneLower, twoUpper, twoLower
 			if oneLower == twoLower {
 				return 0
 			} else if oneLower > twoLower {
-				return 1
+				if !comp.flipSecond {
+					return 1
+				}
 			}
 		} else if oneUpper > twoUpper {
 			return 1
@@ -565,7 +573,9 @@ func (comp valueComparator) compareValues(oneUpper, oneLower, twoUpper, twoLower
 			if oneUpper == twoUpper {
 				return 0
 			} else if oneUpper > twoUpper {
-				return 1
+				if !comp.flipSecond {
+					return 1
+				}
 			}
 		} else if oneLower > twoLower {
 			return 1
@@ -580,11 +590,17 @@ func (comp valueComparator) compareLargeValues(oneUpper, oneLower, twoUpper, two
 		result = oneUpper.CmpAbs(twoUpper)
 		if result == 0 {
 			result = oneLower.CmpAbs(twoLower)
+			if comp.flipSecond {
+				result = -result
+			}
 		}
 	} else {
 		result = oneLower.CmpAbs(twoLower)
 		if result == 0 {
 			result = oneUpper.CmpAbs(twoUpper)
+			if comp.flipSecond {
+				result = -result
+			}
 		}
 	}
 	return result

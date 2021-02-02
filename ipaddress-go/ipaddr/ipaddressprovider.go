@@ -913,13 +913,18 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: contains(), iterators, increment, merge, span, getCount()
-// - I think I need the comparator next along with compareTo everywhere, (bytes package has Compare() and Equal())
+// - things to target: contains()/equals(), iterators, increment, merge, span
+// - I think next is Contains and Equals now that comparator done
 //		So do you use Equals or Equal?  Compare or CompareTo?  Probably Equals and CompareTo, but hold on, Compare and Equal are quite common
 //		needed by some of the contains methods such as SeqRange contains, also seq range creation needs compare
-// - the comparator needed for contains()
+// https://golang.org/pkg/bytes/ Compare and Equal
+// https://golang.org/pkg/strings/
+// https://golang.org/pkg/reflect/ DeepEqual
+// https://golang.org/pkg/math/big/ Cmp
+// https://gist.github.com/asukakenji/ac8a05644a2e98f1d5ea8c299541fce9
+// Those are funcs, not methods.  So, maybe stick with Equals and CompareTo
+//
 // - also segment prefixContains and prefixEquals
-// - Equals too is fundamental
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces
 // - finish HostName

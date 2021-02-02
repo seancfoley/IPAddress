@@ -216,29 +216,31 @@ func (section *IPv4AddressSection) UpperIntValue() uint32 {
 func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 	if lower {
 		cache := section.cache
-		cache.cacheLock.RLock()
-		cachedInt := cache.cachedLowerVal
-		cache.cacheLock.RUnlock()
-		if cachedInt == 0xffffffff {
-			cache.cacheLock.Lock()
-			cachedInt = cache.cachedLowerVal
+		if cache != nil {
+			cache.cacheLock.RLock()
+			cachedInt := cache.cachedLowerVal
+			cache.cacheLock.RUnlock()
 			if cachedInt == 0xffffffff {
-				segCount := section.GetSegmentCount()
-				if segCount != 0 {
-					result = section.GetSegment(0).GetSegmentValue()
-					if segCount != 1 {
-						bitsPerSegment := section.GetBitsPerSegment()
-						for i := 1; i < segCount; i++ {
-							seg := section.GetSegment(i)
-							result = (result << bitsPerSegment) | seg.GetSegmentValue()
+				cache.cacheLock.Lock()
+				cachedInt = cache.cachedLowerVal
+				if cachedInt == 0xffffffff {
+					segCount := section.GetSegmentCount()
+					if segCount != 0 {
+						result = section.GetSegment(0).GetSegmentValue()
+						if segCount != 1 {
+							bitsPerSegment := section.GetBitsPerSegment()
+							for i := 1; i < segCount; i++ {
+								seg := section.GetSegment(i)
+								result = (result << bitsPerSegment) | seg.GetSegmentValue()
+							}
 						}
 					}
+					cache.cachedLowerVal = result
 				}
-				cache.cachedLowerVal = result
+				cache.cacheLock.Unlock()
+			} else {
+				result = cachedInt
 			}
-			cache.cacheLock.Unlock()
-		} else {
-			result = cachedInt
 		}
 	} else {
 		segCount := section.GetSegmentCount()

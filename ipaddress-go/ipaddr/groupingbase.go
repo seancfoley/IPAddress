@@ -90,7 +90,7 @@ func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
 }
 
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache
+	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
 	if !cache.cachedCount.isSetNoSync() {
 		cache.cacheLock.Lock()
 		if !cache.cachedCount.isSetNoSync() {
@@ -100,6 +100,27 @@ func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int)
 		cache.cacheLock.Unlock()
 	}
 	return new(big.Int).Set(cache.cachedCount.count)
+}
+
+func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (bytes, upperBytes []byte)) (bytes, upperBytes []byte) {
+	cache := grouping.cache
+	if cache == nil {
+		return emptyBytes, emptyBytes
+	}
+	cache.cacheLock.RLock()
+	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
+	cache.cacheLock.RUnlock()
+	if bytes != nil {
+		return
+	}
+	cache.cacheLock.Lock()
+	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
+	if bytes == nil {
+		bytes, upperBytes = calcBytes()
+		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
+	}
+	cache.cacheLock.Unlock()
+	return
 }
 
 // IsMultiple returns whether this address or grouping represents more than one address or grouping.
