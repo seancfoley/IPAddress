@@ -13,13 +13,6 @@ var (
 type addressDivisionGroupingInternal struct {
 	addressDivisionGroupingBase
 
-	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MAC,
-	// and determines if an *AddressDivisionGrouping can be converted back to a section of the original type.
-	//
-	// Type-specific functions in IPAddressSection and lower levels, such as functions returning strings,
-	// can rely on this field.
-	addrType addrType
-
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
 	addressSegmentIndex uint8
 }
@@ -108,11 +101,11 @@ func (grouping *addressDivisionGroupingInternal) toAddressSection() *AddressSect
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6Address() bool {
-	return grouping.addrType.isIPv6() // no need to check segment count because addresses cannot be constructed with incorrect segment count
+	return grouping.getAddrType().isIPv6() // no need to check segment count because addresses cannot be constructed with incorrect segment count
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv4Address() bool {
-	return grouping.addrType.isIPv4() // no need to check segment count because addresses cannot be constructed with incorrect segment count
+	return grouping.getAddrType().isIPv4() // no need to check segment count because addresses cannot be constructed with incorrect segment count
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPAddress() bool {
@@ -120,27 +113,31 @@ func (grouping *addressDivisionGroupingInternal) matchesIPAddress() bool {
 }
 
 func (grouping *addressSectionInternal) matchesMACAddress() bool {
-	return grouping.addrType.isMAC()
+	return grouping.getAddrType().isMAC()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesAddrSection() bool {
-	return !grouping.addrType.isNil() || grouping.hasNoDivisions()
+	return !grouping.getAddrType().isNil() || grouping.hasNoDivisions()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6Section() bool {
-	return grouping.addrType.isIPv6() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
+	addrType := grouping.getAddrType()
+	return addrType.isIPv6() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv4Section() bool {
-	return grouping.addrType.isIPv4() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
+	addrType := grouping.getAddrType()
+	return addrType.isIPv4() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPSection() bool {
-	return grouping.addrType.isIP() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
+	addrType := grouping.getAddrType()
+	return addrType.isIP() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesMACSection() bool {
-	return grouping.addrType.isMAC() || (grouping.addrType.isNil() && grouping.hasNoDivisions())
+	addrType := grouping.getAddrType()
+	return addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
 func (grouping *addressDivisionGroupingInternal) init() *addressDivisionGroupingInternal {
@@ -179,7 +176,7 @@ func (grouping addressDivisionGroupingInternal) String() string {
 //					break
 //				}
 //			}
-//			bitsSoFar += div.GetBitCount()
+//			bitsSoFar += div.getBitCount()
 //		}
 //		if hasPrefix {
 //			res := &prefixBits
@@ -256,7 +253,7 @@ func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
 // If the value fits in the given slice, the same slice is returned with the value.
 // Otherwise, a new slice is allocated and returned with the value.
 //
-// You can use GetBitCount() to determine the required array length for the bytes.
+// You can use getBitCount() to determine the required array length for the bytes.
 func (grouping *addressDivisionGroupingInternal) CopyBytes(bytes []byte) []byte {
 	if grouping.hasNoDivisions() {
 		if bytes != nil {
@@ -288,7 +285,7 @@ func (grouping *addressDivisionGroupingInternal) getUpperBytes() (bytes []byte) 
 }
 
 func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes []byte) {
-	addrType := grouping.addrType
+	addrType := grouping.getAddrType()
 	divisionCount := grouping.GetDivisionCount()
 	isMultiple := grouping.IsMultiple()
 	if addrType.isIPv4() || addrType.isMAC() {
@@ -380,6 +377,27 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 					}
 				}
 				return true
+			}
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingType) bool {
+	// For an identity comparison need to access the *addressDivisionGroupingBase or something
+	//otherSection := other.to
+	//if section.toAddressSection() == otherSection {
+	//	return true
+	//}
+	matchesStructure, count := grouping.matchesStructure(other)
+	if !matchesStructure || count != other.GetDivisionCount() {
+		return false
+	} else {
+		for i := 0; i < count; i++ {
+			one := grouping.GetGenericDivision(i)
+			two := other.GetGenericDivision(i)
+			if !one.Equals(two) { //this checks the division types and also the bit counts
+				return false
 			}
 		}
 	}

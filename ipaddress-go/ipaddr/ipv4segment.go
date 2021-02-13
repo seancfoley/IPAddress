@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"unsafe"
 )
 
 type IPv4SegInt uint8
@@ -46,6 +45,10 @@ type ipv4SegmentValues struct {
 	cache      divCache
 }
 
+func (seg ipv4SegmentValues) getAddrType() addrType {
+	return ipv4Type
+}
+
 func (seg ipv4SegmentValues) includesZero() bool {
 	return seg.value == 0
 }
@@ -62,11 +65,11 @@ func (seg ipv4SegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-func (seg ipv4SegmentValues) GetBitCount() BitCount {
+func (seg ipv4SegmentValues) getBitCount() BitCount {
 	return IPv4BitsPerSegment
 }
 
-func (seg ipv4SegmentValues) GetByteCount() int {
+func (seg ipv4SegmentValues) getByteCount() int {
 	return IPv4BytesPerSegment
 }
 
@@ -122,11 +125,20 @@ func (seg ipv4SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 
 var _ divisionValues = ipv4SegmentValues{}
 
+var zeroIPv4Seg = NewIPv4Segment(0)
+
 type IPv4AddressSegment struct {
 	ipAddressSegmentInternal
 }
 
-// We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
+func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
+	if seg.divisionValues == nil {
+		return zeroIPv4Seg
+	}
+	return seg
+}
+
+// We must override getBitCount, getByteCount and others for the case when we construct as the zero value and there are no divisionValues
 
 func (seg *IPv4AddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment
@@ -140,10 +152,6 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
 
-//func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
-//	return seg.ToIPAddressSegment().ToAddressDivision() xxx
-//}
-
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }
@@ -152,11 +160,7 @@ func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	if seg == nil {
 		return nil
 	}
-	vals := seg.divisionValues
-	if vals == nil {
-		seg.divisionValues = ipv4SegmentValues{}
-	}
-	return (*IPAddressSegment)(unsafe.Pointer(seg))
+	return (*IPAddressSegment)(seg.init())
 }
 
 func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {

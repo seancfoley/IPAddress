@@ -99,6 +99,10 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
+	pAddr = addrStr.GetAddress() // test getting it a second time from the cache
+	fmt.Printf("%+v\n", *pAddr)
+	fmt.Printf("%+v\n", pAddr)
+
 	ipv4Prefixed2 := pAddr.ToPrefixBlockLen(19)
 	fmt.Printf("19 block is %+v\n", ipv4Prefixed2)
 

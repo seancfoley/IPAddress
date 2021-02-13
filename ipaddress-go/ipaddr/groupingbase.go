@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -13,9 +14,20 @@ type addressDivisionGroupingBase struct {
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool
 
+	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MAC,
+	// and determines if an *AddressDivisionGrouping can be converted back to a section of the original type.
+	//
+	// Type-specific functions in IPAddressSection and lower levels, such as functions returning strings,
+	// can rely on this field.
+	addrType addrType
+
 	// TODO make sure we always check cache for nil, one way is to change name and check each access
 	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed since there is nothing to cache
 	cache *valueCache
+}
+
+func (grouping *addressDivisionGroupingBase) getAddrType() addrType {
+	return grouping.addrType
 }
 
 // hasNoDivisions() returns whether this grouping is the zero grouping,
@@ -55,6 +67,33 @@ func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 	return 0
 }
 
+func (grouping *addressDivisionGroupingBase) matchesStructure(other GenericGroupingType) (matches bool, count int) {
+	count = grouping.GetDivisionCount()
+	if count != other.GetDivisionCount() {
+		return
+	} else if grouping.getAddrType() != other.getAddrType() {
+		return
+	}
+	matches = true
+	return
+}
+
+func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) bool {
+	matches, count := grouping.matchesStructure(other)
+	if !matches || count != other.GetDivisionCount() {
+		return false
+	} else {
+		for i := 0; i < count; i++ {
+			one := grouping.GetGenericDivision(i)
+			two := other.GetGenericDivision(i)
+			if !one.Equals(two) { //this checks the division types and also the bit counts
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
 	res := bigOne()
 	count := grouping.GetDivisionCount()
@@ -91,14 +130,20 @@ func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
 
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
 	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
-	if !cache.cachedCount.isSetNoSync() {
-		cache.cacheLock.Lock()
-		if !cache.cachedCount.isSetNoSync() {
-			cache.cachedCount.count = counter()
-			cache.cachedCount.set()
-		}
-		cache.cacheLock.Unlock()
+	count := cache.cachedCount
+	if count == nil {
+		count = &countSetting{counter()}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 	}
+	//if cache.cachedCount.isNotSetNoSync() {
+	//	cache.cacheLock.Lock()
+	//	if cache.cachedCount.isNotSetNoSync() {
+	//		cache.cachedCount.count = counter()
+	//		cache.cachedCount.set()
+	//	}
+	//	cache.cacheLock.Unlock()
+	//}
 	return new(big.Int).Set(cache.cachedCount.count)
 }
 
@@ -135,9 +180,9 @@ type valueCache struct {
 	//	or instead using a specific atomic flag covering a specific set of cache fields.
 	cacheLock sync.RWMutex
 
-	cachedCount, cachedPrefixCount countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
+	cachedCount, cachedPrefixCount *countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
 
-	cachedMaskLens maskLenSetting
+	cachedMaskLens *maskLenSetting
 
 	lowerBytes, upperBytes []byte
 	cachedLowerVal         uint32
@@ -156,12 +201,12 @@ type groupingCache struct {
 }
 
 type maskLenSetting struct {
-	atomicFlag
+	//x                           atomicFlag
 	networkMaskLen, hostMaskLen PrefixLen
 }
 
 type countSetting struct {
-	atomicFlag
+	//x     atomicFlag
 	count *big.Int
 }
 

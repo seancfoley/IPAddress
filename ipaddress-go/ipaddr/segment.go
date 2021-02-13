@@ -26,6 +26,37 @@ type addressSegmentInternal struct {
 	addressDivisionInternal
 }
 
+//func (seg *addressSegmentInternal) Equals(otherDiv AddressStandardDivision) bool {
+//	matches, addrType := seg.matchesStructure(otherDiv)
+//	if !matches {
+//		return false
+//	}
+//	var other AddressStandardSegment
+//	if addrType.isNil() {
+//		if otherSeg, ok := otherDiv.(AddressStandardSegment); ok {
+//			other = otherSeg
+//
+//		} else {
+//			return false
+//		}
+//	} else {
+//		other = otherDiv.(AddressStandardSegment)
+//	}
+//	xxxx
+//	return other.GetSegmentValue() >= seg.GetSegmentValue() &&
+//		other.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
+//}
+
+func (seg *addressSegmentInternal) Contains(other AddressStandardSegment) (res bool) {
+	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase or *addressSegmentInternal from AddressStandardSegment
+	if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
+		otherSeg := other.ToAddressSegment()
+		res = otherSeg.GetSegmentValue() >= seg.GetSegmentValue() &&
+			otherSeg.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
+	}
+	return
+}
+
 func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
@@ -86,7 +117,7 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNew(seg.getDivisionValue(), seg.getDivisionValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNewSeg(seg.GetSegmentValue(), seg.GetSegmentValue(), seg.getDivisionPrefixLength())
 	}
 	return createAddressSegment(newVals)
 }
@@ -95,32 +126,12 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	if !seg.IsMultiple() {
 		return seg.toAddressSegment()
 	}
-	//vals, cache := seg.getUpper()
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNew(seg.getUpperDivisionValue(), seg.getUpperDivisionValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNewSeg(seg.GetUpperSegmentValue(), seg.GetUpperSegmentValue(), seg.getDivisionPrefixLength())
 	}
 	return createAddressSegment(newVals)
-}
-
-func (seg *addressSegmentInternal) matchesIPSegment() bool {
-	if bitCount := seg.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
-		return false
-	}
-	return true
-}
-
-func (seg *addressSegmentInternal) matchesIPv4Segment() bool {
-	return seg.GetBitCount() == IPv4BitsPerSegment
-}
-
-func (seg *addressSegmentInternal) matchesIPv6Segment() bool {
-	return seg.GetBitCount() == IPv6BitsPerSegment
-}
-
-func (seg *addressSegmentInternal) matchesMACSegment() bool {
-	return seg.GetBitCount() == MACBitsPerSegment
 }
 
 type AddressSegment struct {
@@ -175,4 +186,13 @@ func (seg *AddressSegment) ToMACAddressSegment() *MACAddressSegment {
 		return (*MACAddressSegment)(unsafe.Pointer(seg))
 	}
 	return nil
+}
+
+func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
+	return seg
+}
+
+func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
+	return PrefixEquals(onePref, twoPref) &&
+		oneVal == twoVal && oneUpperVal == twoUpperVal
 }

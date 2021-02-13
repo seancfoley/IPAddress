@@ -267,6 +267,14 @@ func (addr *IPv4Address) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
+func (addr *IPv4Address) Contains(other AddressType) bool {
+	return addr.init().contains(other)
+}
+
+func (addr *IPv4Address) Equals(other AddressType) bool {
+	return addr.init().equals(other)
+}
+
 func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	if addr == nil {
 		return nil

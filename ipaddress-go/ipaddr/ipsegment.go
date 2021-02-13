@@ -144,7 +144,7 @@ func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, wit
 //	return this
 //}
 
-func (seg *IPAddressSegment) IsIPv4AddressSegment() bool { //TODO maybe rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {
 	return seg != nil && seg.matchesIPv4Segment()
 }
 
@@ -164,9 +164,4 @@ func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 		return (*IPv6AddressSegment)(unsafe.Pointer(seg))
 	}
 	return nil
-}
-
-func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
-	return PrefixEquals(onePref, twoPref) &&
-		oneVal == twoVal && oneUpperVal == twoUpperVal
 }

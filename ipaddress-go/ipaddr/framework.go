@@ -34,59 +34,19 @@ type AddressComponent interface { //AddressSegment and above, AddressSegmentSeri
 	//toNormalizedString
 }
 
-//
-//
-// divisions
+type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
+	//AddressComponentRange
 
-type AddressStringDivision interface {
+	// TODO maybe you want a generic GetLowerIPAddress() *IPAddress and GetUpperIPAddress() *IPAddress in here?
+	// Just to be able to get lower and upper through the interface?
+	// Once again, downside is this pollute method-set, confuses with GetLower and GetUpper, so probably not.
+	// This interface might not be all that useful
+
+	CopyIP(bytes net.IP) net.IP
+	CopyUpperIP(bytes net.IP) net.IP
+	GetIP() net.IP
+	GetUpperIP() net.IP
 }
-
-type IPAddressStringDivision interface {
-	AddressStringDivision
-}
-
-// AddressGenericDivision serves as common interface to all divisions, including large divisions (> 64 bits)
-type AddressGenericDivision interface {
-	AddressItem
-	AddressStringDivision
-	// TODO seems I need something in here to make this division-specific (right now any address item satisfies the interface)
-	// addressDivisionBase has nothing, check Java large and base
-	// getDefaultTextualRadix()? getDigitCount(int radix)? getMaxDigitCount()? getWildcardString()?
-}
-
-// Represents any standard address division, all of which can be converted to/from AddressDivision
-type AddressStandardDivision interface {
-	AddressGenericDivision
-
-	ToAddressDivision() *AddressDivision
-}
-
-//TODO ensure all framework structs X are checked on this page with a _ intf = &X{} which will assert it satisfies all necessary interfaces down to AddressItem
-
-var (
-	_ AddressStandardDivision = &AddressDivision{}
-	_ AddressStandardDivision = &AddressSegment{}
-	_ AddressStandardDivision = &IPAddressSegment{}
-	_ AddressStandardDivision = &IPv4AddressSegment{}
-	_ AddressStandardDivision = &IPv6AddressSegment{}
-	_ AddressStandardDivision = &MACAddressSegment{}
-)
-
-// euqivalent to AddressSegment on Java side, serves as common interface to all segments
-type AddressStandardSegment interface {
-	AddressItem
-	AddressStringDivision
-
-	GetSegmentValue() SegInt
-	GetUpperSegmentValue() SegInt
-}
-
-var (
-	_ AddressStandardSegment = &AddressSegment{}
-	_ AddressStandardSegment = &IPv6AddressSegment{}
-	_ AddressStandardSegment = &MACAddressSegment{}
-	_ AddressStandardSegment = &IPv4AddressSegment{}
-)
 
 //
 //
@@ -117,26 +77,19 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	AddressSegmentSeries
 }
 
-//
-//
-//
-// addresses and address ranges
+// GenericGroupingType represents any division grouping
+type GenericGroupingType interface {
+	AddressDivisionSeries
 
-type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
-	//AddressComponentRange
+	getAddrType() addrType
 
-	// TODO maybe you want a generic GetLowerIPAddress() *IPAddress and GetUpperIPAddress() *IPAddress
-
-	CopyIP(bytes net.IP) net.IP
-	CopyUpperIP(bytes net.IP) net.IP
-	GetIP() net.IP
-	GetUpperIP() net.IP
+	Equals(GenericGroupingType) bool
 }
 
-// Represents any standard address division grouping that can be converted to/from AddressDivisionGrouping,
-// including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
+// AddressDivisionGroupingType represents any standard division grouping (divisions are 64 bits or less)
+// including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
 type AddressDivisionGroupingType interface {
-	AddressDivisionSeries
+	GenericGroupingType
 
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
 }
@@ -145,9 +98,13 @@ var (
 	_ AddressDivisionGroupingType = &AddressDivisionGrouping{}
 )
 
+// AddressSectionType represents any address section
+// that can be converted to/from the base type AddressSection,
+// including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
 type AddressSectionType interface {
 	AddressDivisionGroupingType
 
+	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection
 }
 
@@ -159,10 +116,13 @@ var (
 	_ AddressSectionType = &MACAddressSection{}
 )
 
-// Represents any address, all of which can be converted to/from Address, including IPAddress, IPv4Address, IPv6Address, and MACAddress
+// AddressType represents any address, all of which can be represented by Address,
+// including IPAddress, IPv4Address, IPv6Address, and MACAddress
 type AddressType interface {
 	AddressDivisionSeries
 
+	Equals(AddressType) bool
+	Contains(AddressType) bool
 	ToAddress() *Address
 }
 
@@ -187,6 +147,8 @@ var (
 type IPAddressSeqRangeType interface {
 	IPAddressRange
 
+	ContainsRange(other IPAddressSeqRangeType) bool
+	Contains(IPAddressType) bool
 	ToIPAddressSeqRange() *IPAddressSeqRange
 }
 
@@ -201,17 +163,14 @@ var (
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
 //TODO think some more about using the names GenericAddress and AddressGenericDivisionGrouping or GenericAddressDivisionGrouping
 // to be consistent with AddressGenericDivision
+// In fact, all the names need thought, to balance:
+// 1. consistency with Java
+// 2. distinguish the new interfaces that span the class hierarchies in Java
+// 3. try to keep names short a la go style
+// 4. try to remain descriptive
+// 5. rename interfaces in Java too if it helps (1)
 
 //Logically AddressDivisionSeries would be implemened only by AddressDivisionGrouping
 //AddressSegmentSeries by AddressSection and Address

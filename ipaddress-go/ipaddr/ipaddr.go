@@ -238,6 +238,14 @@ func (addr *IPAddress) CopyUpperIP(bytes net.IP) net.IP {
 	return addr.CopyUpperBytes(bytes)
 }
 
+func (addr *IPAddress) Contains(other AddressType) bool {
+	return addr.init().contains(other)
+}
+
+func (addr *IPAddress) Equals(other AddressType) bool {
+	return addr.init().equals(other)
+}
+
 func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }

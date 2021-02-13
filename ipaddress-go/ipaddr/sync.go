@@ -1,10 +1,5 @@
 package ipaddr
 
-import (
-	"sync"
-	"sync/atomic"
-)
-
 // write barrier - we want to read a memory location
 // barrier flushes all pipelines and write caches for other processors
 // so we read the authentic value
@@ -40,47 +35,96 @@ import (
 //		unlock
 //	end if
 
-// A flag is set just once by just one goroutine
-type atomicFlag struct {
-	val uint32
-}
+//// A flag is set just once by just one goroutine
+//type atomicFlag struct {
+//	val uint32
+//}
+//
+////func (a *atomicFlag) isSet() bool {
+////	return atomic.LoadUint32(&a.val) != 0
+////}
+//
+//func (a *atomicFlag) isSetNoSync() bool {
+//	return a.val != 0
+//}
+//
+//func (a *atomicFlag) isNotSetNoSync() bool {
+//	return a.val == 0
+//}
+//
+//func (a *atomicFlag) set() {
+//	/* TODO this can become non-atomic.
+//	think about our pattern that we use everywhere
+//	field b
+//	field val
+//
+//	if b // non-atomic
+//		lock
+//			if b // non-atomic
+//			set val
+//			set !b // atomic?
+//		unlock
+//	end if
+//	return val
+//
+//	We can never have an invalid "val" in memory.
+//	Unless the write to b were reordered to before the setting of val
+//	We don't care if we read an invalid b
+//	It just makes us init the thing twice
+//	We do care if
+//	1. somehow b could be flipped before val is set
+//	Or
+//	2. if our read of val was reordered to happen before we check b
+//
+//	I guess those those two things can happen
+//	I guess that means we atomic read b?
+//	What if val were obtained through b?  that would work
+//
+//	But hold on, doOnce has the same problem, it must ensure whatever is done by the func f,
+//	we see those effects if we see the changed bool.
+//	This suggests we are good for 1.
+//
+//	https://preshing.com/20130618/atomic-vs-non-atomic-operations/
+//
+//	I don't know, seems as though I have read everywhere that you need atomic on both the read and write.
+//	But I think you can use an atomic pointer perhaps.  That eliminates the double var problem,
+//	if you are getting the memory with the var you want from the synchronized var.
+//
+//	So, that would once again required an update to this code.
+//
+//	It would be similar to sync.Value
+//	Except that the read need to be atomic
+//
+//	Either that or use teh doOnce pattern which uses atomics on both.
+//
+//	*/
+//	atomic.StoreUint32(&a.val, 1)
+//}
 
-func (a *atomicFlag) isSet() bool {
-	return atomic.LoadUint32(&a.val) != 0
-}
-
-func (a *atomicFlag) isSetNoSync() bool {
-	return a.val == 0
-}
-
-func (a *atomicFlag) set() {
-	atomic.StoreUint32(&a.val, 1)
-}
-
-func (a *atomicFlag) setNoSync() {
-	a.val = 1
-}
+//func (a *atomicFlag) setNoSync() {
+//	a.val = 1
+//}
 
 //func (a *atomicFlag) unset() {
 //	atomic.StoreUint32(&a.val, 0)
 //}
 
-type CreationLock struct {
-	created    atomicFlag // to check if created
-	createLock sync.Mutex // acquire to create
-}
-
-func (lock *CreationLock) isItemCreated() bool {
-	return lock.created.isSetNoSync()
-}
-
-func (lock *CreationLock) create(creator func()) (ret bool) {
-	lock.createLock.Lock()
-	if !lock.created.isSetNoSync() {
-		creator()
-		ret = true
-		lock.created.set()
-	}
-	lock.createLock.Unlock()
-	return
-}
+//type CreationLock struct { //xxx get rid of this, then get rid of this file xxxx
+//	created    atomicFlag // to check if created
+//	createLock sync.Mutex // acquire to create
+//}
+//
+//func (lock *CreationLock) isItemCreated() bool {
+//	return lock.created.isSetNoSync()
+//}
+//
+//func (lock *CreationLock) create(creator func()) (ret bool) {
+//	lock.createLock.Lock()
+//	if lock.created.isNotSetNoSync() {
+//		creator()
+//		ret = true
+//		lock.created.set()
+//	}
+//	lock.createLock.Unlock()
+//	return
+//}

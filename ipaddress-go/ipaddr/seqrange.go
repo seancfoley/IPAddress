@@ -4,14 +4,15 @@ import (
 	"math/big"
 	"net"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
 type rangeCache struct {
 	cacheLock sync.Mutex
 
-	countSetting countSetting
-	isMultiple   bool // set on construction
+	cachedCount *countSetting
+	isMultiple  bool // set on construction
 }
 
 type ipAddressSeqRangeInternal struct {
@@ -28,19 +29,50 @@ func (rng *ipAddressSeqRangeInternal) IsMultiple() bool {
 
 func (rng *ipAddressSeqRangeInternal) setCount() (res *big.Int) {
 	cache := rng.cache
-	if !cache.countSetting.isSetNoSync() {
-		cache.cacheLock.Lock()
-		if !cache.countSetting.isSetNoSync() {
-			upper := rng.upper.GetValue()
-			res = rng.lower.GetValue()
-			upper.Sub(upper, res).Add(upper, bigOneConst())
-			cache.countSetting.count = upper
-			res.Set(upper)
-		}
-		cache.cacheLock.Unlock()
+	count := cache.cachedCount
+	if count == nil {
+		upper := rng.upper.GetValue()
+		res = rng.lower.GetValue()
+		upper.Sub(upper, res).Add(upper, bigOneConst())
+		count = &countSetting{upper}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
+		res.Set(upper)
 	}
+	//if cache.countSetting.isNotSetNoSync() {
+	//	cache.cacheLock.Lock()
+	//	if cache.countSetting.isNotSetNoSync() {
+	//		upper := rng.upper.GetValue()
+	//		res = rng.lower.GetValue()
+	//		upper.Sub(upper, res).Add(upper, bigOneConst())
+	//		cache.countSetting.count = upper
+	//		res.Set(upper)
+	//	}
+	//	cache.cacheLock.Unlock()
+	//}
 	return
 }
+
+/*
+func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
+	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
+	count := cache.cachedCount
+	if count == nil {
+		count = &countSetting{counter()}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
+	}
+	//if cache.cachedCount.isNotSetNoSync() {
+	//	cache.cacheLock.Lock()
+	//	if cache.cachedCount.isNotSetNoSync() {
+	//		cache.cachedCount.count = counter()
+	//		cache.cachedCount.set()
+	//	}
+	//	cache.cacheLock.Unlock()
+	//}
+	return new(big.Int).Set(cache.cachedCount.count)
+}
+*/
 
 func (rng *ipAddressSeqRangeInternal) GetCount() *big.Int {
 	if !rng.IsMultiple() {
@@ -49,7 +81,7 @@ func (rng *ipAddressSeqRangeInternal) GetCount() *big.Int {
 	res := rng.setCount()
 	if res == nil {
 		// already set
-		res = new(big.Int).Set(rng.cache.countSetting.count)
+		res = new(big.Int).Set(rng.cache.cachedCount.count)
 	}
 	return res
 }
@@ -64,14 +96,31 @@ func (rng *ipAddressSeqRangeInternal) IsMore(other *IPAddressSeqRange) int {
 	}
 	thisCount := rng.setCount()
 	if thisCount == nil {
-		thisCount = rng.cache.countSetting.count
+		thisCount = rng.cache.cachedCount.count
 	}
 	other = other.init()
 	otherCount := other.setCount()
 	if otherCount == nil {
-		otherCount = other.cache.countSetting.count
+		otherCount = other.cache.cachedCount.count
 	}
 	return thisCount.CmpAbs(otherCount)
+}
+
+func (rng *ipAddressSeqRangeInternal) contains(other IPAddressType) bool {
+	otherAddr := other.ToIPAddress()
+	return compareLowIPAddressValues(otherAddr.GetLower(), rng.lower) >= 0 &&
+		compareLowIPAddressValues(otherAddr.GetUpper(), rng.upper) <= 0
+}
+
+func (rng *ipAddressSeqRangeInternal) equals(other IPAddressSeqRangeType) bool {
+	otherRng := other.ToIPAddressSeqRange()
+	return rng.lower.Equals(otherRng.GetLower()) && rng.upper.Equals(otherRng.GetUpper())
+}
+
+func (rng *ipAddressSeqRangeInternal) containsRange(other IPAddressSeqRangeType) bool {
+	otherRange := other.ToIPAddressSeqRange()
+	return compareLowIPAddressValues(otherRange.GetLower(), rng.lower) >= 0 &&
+		compareLowIPAddressValues(otherRange.GetUpper(), rng.upper) <= 0
 }
 
 type IPAddressSeqRange struct {
@@ -143,6 +192,18 @@ func (rng *IPAddressSeqRange) GetUpperBytes() []byte {
 
 func (rng *IPAddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
 	return rng.GetUpper().CopyUpperBytes(bytes)
+}
+
+func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
+	return rng.init().contains(other)
+}
+
+func (rng *IPAddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
+	return rng.containsRange(other)
+}
+
+func (rng *IPAddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
+	return rng.init().equals(other)
 }
 
 //TODO these 7 are ready to go once I add the same methods to groupings and addresses
@@ -273,12 +334,49 @@ func (rng *IPv4AddressSeqRange) GetUpperValue() *big.Int {
 	return rng.GetUpper().GetValue()
 }
 
+func (rng *IPv4AddressSeqRange) Contains(other IPAddressType) bool {
+	return rng.init().contains(other)
+}
+
+func (rng *IPv4AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
+	return rng.containsRange(other)
+}
+
+func (rng *IPv4AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
+	return rng.init().equals(other)
+}
+
 func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
 }
 
+func compareLowValues(one, two *Address) int {
+	return LowValueComparator.CompareAddresses(one, two)
+}
+
+func compareLowIPAddressValues(one, two *IPAddress) int {
+	return LowValueComparator.CompareAddresses(one, two)
+}
+
 func newSeqRange(one, two *IPAddress) *IPAddressSeqRange {
 	//TODO compare to ensure lower is the lowest one, also set isMultiple when you do the comparison
+	/*
+		boolean f;
+				if((f = first.contains(other)) || other.contains(first)) {
+					T addr = f ? prefixLenRemover.apply(first) : prefixLenRemover.apply(other);
+					lower = getLower.apply(addr);
+					upper = getUpper.apply(addr);
+				} else {
+					T firstLower = getLower.apply(first);
+					T otherLower = getLower.apply(other);
+					T firstUpper = getUpper.apply(first);
+					T otherUpper = getUpper.apply(other);
+					T lower = compareLowValues(firstLower, otherLower) > 0 ? otherLower : firstLower;
+					T upper = compareLowValues(firstUpper, otherUpper) < 0 ? otherUpper : firstUpper;
+					this.lower = prefixLenRemover.apply(lower);
+					this.upper = prefixLenRemover.apply(upper);
+				}
+	*/
 	return &IPAddressSeqRange{
 		ipAddressSeqRangeInternal{
 			lower: one,
@@ -359,6 +457,18 @@ func (rng *IPv6AddressSeqRange) GetValue() *big.Int {
 
 func (rng *IPv6AddressSeqRange) GetUpperValue() *big.Int {
 	return rng.GetUpper().GetValue()
+}
+
+func (rng *IPv6AddressSeqRange) Contains(other IPAddressType) bool {
+	return rng.init().contains(other)
+}
+
+func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
+	return rng.containsRange(other)
+}
+
+func (rng *IPv6AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
+	return rng.init().equals(other)
 }
 
 func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {

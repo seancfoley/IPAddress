@@ -8,7 +8,10 @@ type HostIdentifierString interface {
 	// provides a normalized String representation for the host identified by this HostIdentifierString instance
 	ToNormalizedString() string
 
-	ToHostAddress() (*Address, error)
+	//ToHostAddress() (*Address, error)
+
+	//TODO either you add ToAddress and GetAddress with slightly different names or you make this for IPAddress only
+	//I think the latter makes more sense, drop the MACAddressString
 }
 
 var (

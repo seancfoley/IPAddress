@@ -29,7 +29,7 @@ func (div *addressDivisionBase) GetBitCount() BitCount {
 	if vals == nil {
 		return 0
 	}
-	return vals.GetBitCount()
+	return vals.getBitCount()
 }
 
 func (div *addressDivisionBase) GetByteCount() int {
@@ -37,7 +37,7 @@ func (div *addressDivisionBase) GetByteCount() int {
 	if vals == nil {
 		return 0
 	}
-	return vals.GetByteCount()
+	return vals.getByteCount()
 }
 
 func (div *addressDivisionBase) GetValue() *big.Int {
@@ -176,6 +176,40 @@ func (div *addressDivisionBase) CompareTo(item AddressItem) int {
 	return CountComparator.Compare(div, item)
 }
 
+func (div *addressDivisionBase) matchesStructure(other AddressGenericDivision) (res bool, addrType addrType) {
+	addrType = div.getAddrType()
+	if addrType != other.getAddrType() || addrType.isNil() && div.GetBitCount() != other.GetBitCount() {
+		return
+	}
+	res = true
+	return
+}
+
+func (div *addressDivisionBase) Equals(other AddressGenericDivision) (res bool) {
+	// TODO an identity/pointer comparison which requires we grab the *addressDivisionBase from AddressGenericDivision
+	matches, _ := div.matchesStructure(other)
+	if div.isMultiple() {
+		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),
+			div.GetUpperValue(), other.GetUpperValue())
+	} else if other.IsMultiple() {
+		return false
+	}
+	return bigDivValSame(div.GetValue(), other.GetValue())
+}
+
 func (div *addressDivisionBase) toAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(div))
+}
+
+func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {
+	return PrefixEquals(onePref, twoPref) &&
+		oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
+}
+
+func bigDivValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {
+	return oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
+}
+
+func bigDivValSame(oneVal, twoVal *big.Int) bool {
+	return oneVal.CmpAbs(twoVal) == 0
 }

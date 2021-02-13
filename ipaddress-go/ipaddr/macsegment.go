@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"unsafe"
 )
 
 type MACSegInt uint8 //TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
@@ -21,6 +20,10 @@ type macSegmentValues struct {
 	cache      divCache
 }
 
+func (seg macSegmentValues) getAddrType() addrType {
+	return macType
+}
+
 func (seg macSegmentValues) includesZero() bool {
 	return seg.value == 0
 }
@@ -37,15 +40,11 @@ func (seg macSegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-//func (seg macSegmentValues) GetSegmentPrefixLength() PrefixLen {
-//	return nil
-//}
-
-func (seg macSegmentValues) GetBitCount() BitCount {
+func (seg macSegmentValues) getBitCount() BitCount {
 	return MACBitsPerSegment
 }
 
-func (seg macSegmentValues) GetByteCount() int {
+func (seg macSegmentValues) getByteCount() int {
 	return MACBytesPerSegment
 }
 
@@ -100,23 +99,22 @@ func (seg macSegmentValues) getCache() *divCache {
 	return &seg.cache
 }
 
-//func (seg macSegmentValues) getLower() (divisionValues, *divCache) {
-//	return newMACSegmentValues(seg.value, seg.value)
-//}
-//
-//func (seg macSegmentValues) getUpper() (divisionValues, *divCache) {
-//	return newMACSegmentValues(seg.upperValue, seg.upperValue)
-//}
-
 var _ divisionValues = macSegmentValues{}
 
-//var _ segmentValues = macSegmentValues{}
+var zeroMACSeg = NewMACSegment(0)
 
 type MACAddressSegment struct {
 	addressSegmentInternal
 }
 
-// We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
+func (seg *MACAddressSegment) init() *MACAddressSegment {
+	if seg.divisionValues == nil {
+		return zeroMACSeg
+	}
+	return seg
+}
+
+// We must override getBitCount, getByteCount and others for the case when we construct as the zero value
 
 func (seg *MACAddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment
@@ -130,19 +128,11 @@ func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 	return 0xff
 }
 
-//func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
-//	return seg.ToAddressSegment().ToAddressDivision() xxx
-//}
-
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	if seg == nil {
 		return nil
 	}
-	vals := seg.divisionValues
-	if vals == nil {
-		seg.divisionValues = macSegmentValues{}
-	}
-	return (*AddressSegment)(unsafe.Pointer(seg))
+	return (*AddressSegment)(seg.init())
 }
 
 func NewMACSegment(val MACSegInt) *MACAddressSegment {

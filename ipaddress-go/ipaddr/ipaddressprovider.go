@@ -1,5 +1,10 @@
 package ipaddr
 
+import (
+	"sync/atomic"
+	"unsafe"
+)
+
 /*
 package main
 
@@ -139,7 +144,7 @@ type IPAddressProvider interface {
 
 	isInvalid() bool
 
-	isUninitialized() bool
+	//isUninitialized() bool
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
@@ -298,9 +303,9 @@ func (p *ipAddrProvider) isInvalid() bool {
 	return false
 }
 
-func (p *ipAddrProvider) isUninitialized() bool {
-	return false
-}
+//func (p *ipAddrProvider) isUninitialized() bool {
+//	return false
+//}
 
 func (p *ipAddrProvider) isProvidingMixedIPv6() bool {
 	return false
@@ -390,17 +395,18 @@ func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddre
 type nullProvider struct {
 	ipAddrProvider
 
-	ipType                                    IPType
-	isInvalidVal, isUninitializedVal, isEmpty bool
+	ipType                IPType
+	isInvalidVal, isEmpty bool
+	//isInvalidVal, isUninitializedVal, isEmpty bool
 }
 
 func (p *nullProvider) isInvalid() bool {
 	return p.isInvalidVal
 }
 
-func (p *nullProvider) isUninitialized() bool {
-	return p.isUninitializedVal
-}
+//func (p *nullProvider) isUninitialized() bool {
+//	return p.isUninitializedVal
+//}
 
 func (p *nullProvider) isProvidingEmpty() bool {
 	return p.isEmpty
@@ -424,18 +430,19 @@ var (
 	EMPTY_PROVIDER = &nullProvider{isEmpty: true, ipType: EMPTY}
 )
 
-type CachedIPAddresses struct {
-	//address is 1.2.0.0/16 and hostAddress is 1.2.3.4 for the string 1.2.3.4/16
-	address, hostAddress *IPAddress
-}
-
-func (cached *CachedIPAddresses) getAddress() *IPAddress {
-	return cached.address
-}
-
-func (cached *CachedIPAddresses) getHostAddress() *IPAddress {
-	return cached.hostAddress
-}
+//type CachedIPAddresses struct {
+//
+//	//address is 1.2.0.0/16 and hostAddress is 1.2.3.4 for the string 1.2.3.4/16
+//	address, hostAddress *IPAddress
+//}
+//
+//func (cached *CachedIPAddresses) getAddress() *IPAddress {
+//	return cached.address
+//}
+//
+//func (cached *CachedIPAddresses) getHostAddress() *IPAddress {
+//	return cached.hostAddress
+//}
 
 ///**
 //	 * Wraps an IPAddress for IPAddressString in the cases where no parsing is provided, the address exists already
@@ -443,18 +450,27 @@ func (cached *CachedIPAddresses) getHostAddress() *IPAddress {
 //	 * @return
 //	 */
 func getProviderFor(address, hostAddress *IPAddress) IPAddressProvider {
-	return &CachedAddressProvider{values: CachedIPAddresses{address, hostAddress}}
+	return &CachedAddressProvider{address: address, hostAddress: hostAddress}
 }
 
 type CachedAddressProvider struct {
 	ipAddrProvider
 
-	values CachedIPAddresses
-
 	// addressCreator creates two addresses, the host address and address with prefix/mask, at the same time
-	addressCreator func() CachedIPAddresses
+	//addressCreator func() CachedIPAddresses
+	addressCreator func() (address, hostAddress *IPAddress)
 
-	CreationLock
+	//xxx must make this a pointer I think even though in some cases we jsut provide it off the bar, no sync required xxx
+	//xxx but in the cases we do not, need to synhronize atomically on a ptr to the data we create
+	//xxxx
+
+	//xxx
+	//cachedValues  CachedIPAddresses
+	//createdValues *CachedIPAddresses
+
+	address, hostAddress *IPAddress
+
+	//CreationLock
 }
 
 //TODO do not forget you also need these two in all top level classes, including ParsedIPAddress, the mask, all and empty providers
@@ -480,14 +496,6 @@ func (cached *CachedAddressProvider) getVersionedAddress(version IPVersion) (*IP
 	return cached.getProviderAddress()
 }
 
-func (cached *CachedAddressProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
-	return cached.getCachedAddresses().getHostAddress(), nil
-}
-
-func (cached *CachedAddressProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
-	return cached.getCachedAddresses().getAddress(), nil
-}
-
 func (cached *CachedAddressProvider) getProviderSeqRange() *IPAddressSeqRange {
 	addr, _ := cached.getProviderAddress()
 	if addr != nil {
@@ -504,17 +512,50 @@ func (cached *CachedAddressProvider) isSequential() bool {
 	return false
 }
 
-func (cached *CachedAddressProvider) hasCachedAddresses() bool {
-	return cached.addressCreator == nil || cached.isItemCreated()
+//func (cached *CachedAddressProvider) hasCachedAddresses() bool {
+//	return cached.addressCreator == nil || cached.isItemCreated()
+//}
+
+func (cached *CachedAddressProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
+	res := cached.hostAddress
+	if res == nil {
+		_, res = cached.getCachedAddresses()
+	}
+	return res, nil
+	//return cached.getCachedAddresses().getHostAddress(), nil
 }
 
-func (cached *CachedAddressProvider) getCachedAddresses() *CachedIPAddresses {
-	if cached.addressCreator != nil && !cached.isItemCreated() {
-		cached.create(func() {
-			cached.values = cached.addressCreator()
-		})
+func (cached *CachedAddressProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
+	res := cached.address
+	if res == nil {
+		res, _ = cached.getCachedAddresses()
 	}
-	return &cached.values
+	return res, nil
+	//return cached.getCachedAddresses().getAddress(), nil
+}
+
+func (cached *CachedAddressProvider) getCachedAddresses() (address, hostAddress *IPAddress) {
+	if cached.addressCreator == nil {
+		address, hostAddress = cached.addressCreator()
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cached.address))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(address))
+		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cached.hostAddress))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(hostAddress))
+	}
+	return
+	//xxx
+	/*
+		networkMaskLen, hostMaskLen := section.checkForPrefixMask()
+			res := &maskLenSetting{networkMaskLen, hostMaskLen}
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedMaskLens))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	*/
+	//if cached.addressCreator != nil && !cached.isItemCreated() {
+	//	cached.create(func() {
+	//		cached.values = cached.addressCreator()
+	//	})
+	//}
+	//return &cached.values
 }
 
 func (cached *CachedAddressProvider) getProviderNetworkPrefixLength() (p PrefixLen) {
@@ -547,8 +588,9 @@ type VersionedAddressCreator struct {
 	adjustedVersion IPVersion
 
 	versionedAddressCreator func(IPVersion) *IPAddress
-	createdVersioned        [2]CreationLock
-	versionedValues         [2]*IPAddress
+
+	//createdVersioned [2]CreationLock
+	versionedValues [2]*IPAddress
 
 	parameters IPAddressStringParameters
 }
@@ -582,11 +624,23 @@ func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion)
 	if index >= INDETERMINATE_VERSION.index() {
 		return
 	}
-	if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isItemCreated() {
-		versioned.createdVersioned[index].create(func() {
-			versioned.versionedValues[index] = versioned.versionedAddressCreator(version)
-		})
+	if versioned.versionedAddressCreator != nil {
+		cached := versioned.versionedValues[index]
+		if cached == nil {
+			res := versioned.versionedAddressCreator(version)
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&versioned.versionedValues[index]))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+		}
 	}
+
+	//xxxx
+	//if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isItemCreated() {
+	//	versioned.createdVersioned[index].create(func() {
+	//		xxxx
+	//		versioned.versionedValues[index] = versioned.versionedAddressCreator(version)
+	//	})
+	//}
+
 	addr = versioned.versionedValues[index]
 	return
 }
@@ -608,25 +662,25 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	ipv4Loop := func() *IPAddress {
 		return options.GetIPv4Parameters().GetNetwork().GetLoopback()
 	}
-	double := func(one *IPAddress) CachedIPAddresses {
-		return CachedIPAddresses{one, one}
+	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
+		return one, one
 	}
-	var addrCreator func() CachedIPAddresses
+	var addrCreator func() (address, hostAddress *IPAddress)
 	var version IPVersion
 	if len(zone) > 0 && preferIPv6 {
-		addrCreator = func() CachedIPAddresses { return double(ipv6WithZoneLoop()) }
+		addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneLoop()) }
 		version = IPv6
 	} else if preferIPv6 {
-		addrCreator = func() CachedIPAddresses { return double(ipv6Loop()) }
+		addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Loop()) }
 		version = IPv6
 	} else {
-		addrCreator = func() CachedIPAddresses { return double(ipv4Loop()) }
+		addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Loop()) }
 		version = IPv4
 	}
 	cached := CachedAddressProvider{addressCreator: addrCreator}
 	versionedAddressCreator := func(version IPVersion) *IPAddress {
-		if cached.hasCachedAddresses() {
-			addr := cached.values.address
+		addr := cached.address
+		if addr != nil {
 			if version == addr.GetIPVersion() {
 				return addr
 			}
@@ -732,12 +786,10 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 	versionedAddressCreator := func(version IPVersion) *IPAddress {
 		return createVersionedMask(version, networkPrefixLength, true)
 	}
-	addrCreator := func() CachedIPAddresses {
+	addrCreator := func() (address, hostAddress *IPAddress) {
 		prefLen := networkPrefixLength
-		return CachedIPAddresses{
-			address:     createVersionedMask(adjustedVersion, prefLen, true),
-			hostAddress: createVersionedMask(adjustedVersion, prefLen, false),
-		}
+		return createVersionedMask(adjustedVersion, prefLen, true),
+			createVersionedMask(adjustedVersion, prefLen, false)
 	}
 	cached := CachedAddressProvider{addressCreator: addrCreator}
 	return &MaskCreator{
@@ -778,22 +830,22 @@ func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersi
 			adjustedVersion = IPv4
 		}
 	}
-	var addrCreator func() CachedIPAddresses
+	var addrCreator func() (address, hostAddress *IPAddress)
 	if *qualifier == *NO_QUALIFIER {
-		addrCreator = func() CachedIPAddresses {
+		addrCreator = func() (*IPAddress, *IPAddress) { //(address, hostAddress *IPAddress)
 			addr := createAllAddress(adjustedVersion, NO_QUALIFIER, originator, options)
-			return CachedIPAddresses{addr, addr}
+			return addr, addr
 		}
 	} else {
-		addrCreator = func() CachedIPAddresses {
+		addrCreator = func() (address, hostAddress *IPAddress) {
 			addr := createAllAddress(adjustedVersion, qualifier, originator, options)
 			if qualifier.zone == "" {
 				hostAddr := createAllAddress(adjustedVersion, NO_QUALIFIER, originator, options)
-				return CachedIPAddresses{addr, hostAddr}
+				return addr, hostAddr
 			}
 			qualifier2 := ParsedHostIdentifierStringQualifier{zone: qualifier.zone}
 			hostAddr := createAllAddress(adjustedVersion, &qualifier2, originator, options)
-			return CachedIPAddresses{addr, hostAddr}
+			return addr, hostAddr
 		}
 	}
 	cached := CachedAddressProvider{addressCreator: addrCreator}
@@ -914,17 +966,15 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
 // - things to target: contains()/equals(), iterators, increment, merge, span
-// - I think next is Contains and Equals now that comparator done
-//		So do you use Equals or Equal?  Compare or CompareTo?  Probably Equals and CompareTo, but hold on, Compare and Equal are quite common
-//		needed by some of the contains methods such as SeqRange contains, also seq range creation needs compare
-// https://golang.org/pkg/bytes/ Compare and Equal
-// https://golang.org/pkg/strings/
-// https://golang.org/pkg/reflect/ DeepEqual
-// https://golang.org/pkg/math/big/ Cmp
-// https://gist.github.com/asukakenji/ac8a05644a2e98f1d5ea8c299541fce9
-// Those are funcs, not methods.  So, maybe stick with Equals and CompareTo
-//
+// TODO iterators next after equals/contains? looks like iterators is next
+// - need to hook up mac address string and host name to the parser
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces
 // - finish HostName
+// - check notes.txt in Java for functionality table
+
+/*
+equals() in HostName calls matches(HostName)
+TODO Equals() for  HostName
+*/

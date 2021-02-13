@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -12,9 +13,9 @@ func createIPSection(segments []*AddressDivision, addrType addrType, startIndex 
 				addressDivisionGroupingInternal{
 					addressDivisionGroupingBase: addressDivisionGroupingBase{
 						divisions: standardDivArray{segments},
+						addrType:  addrType,
 						cache:     &valueCache{},
 					},
-					addrType:            addrType,
 					addressSegmentIndex: startIndex,
 				},
 			},
@@ -23,7 +24,7 @@ func createIPSection(segments []*AddressDivision, addrType addrType, startIndex 
 }
 
 func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
-	res = createIPSection(segments, from.addrType, from.addressSegmentIndex)
+	res = createIPSection(segments, from.getAddrType(), from.addressSegmentIndex)
 	res.init()
 	return
 }
@@ -49,9 +50,10 @@ func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment
 }
 
 func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
-	if section.addrType.isIPv4() {
+	addrType := section.getAddrType()
+	if addrType.isIPv4() {
 		return IPv4
-	} else if section.addrType.isIPv6() {
+	} else if addrType.isIPv6() {
 		return IPv6
 	}
 	return INDETERMINATE_VERSION
@@ -98,14 +100,12 @@ func (section *ipAddressSectionInternal) GetBlockMaskPrefixLength(network bool) 
 	if cache == nil {
 		return nil
 	}
-	if !cache.cachedMaskLens.isSetNoSync() {
-		cache.cacheLock.Lock()
-		if !cache.cachedMaskLens.isSetNoSync() {
-			cache.cachedMaskLens.networkMaskLen,
-				cache.cachedMaskLens.hostMaskLen = section.checkForPrefixMask()
-			cache.cachedMaskLens.set()
-		}
-		cache.cacheLock.Unlock()
+	cachedMaskLens := cache.cachedMaskLens
+	if cachedMaskLens == nil {
+		networkMaskLen, hostMaskLen := section.checkForPrefixMask()
+		res := &maskLenSetting{networkMaskLen, hostMaskLen}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedMaskLens))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
 	if network {
 		return cache.cachedMaskLens.networkMaskLen

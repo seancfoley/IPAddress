@@ -15,9 +15,9 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 				addressDivisionGroupingBase: addressDivisionGroupingBase{
 					divisions:    standardDivArray{segments},
 					prefixLength: prefixLength,
+					addrType:     addrType,
 					cache:        &valueCache{},
 				},
-				addrType:            addrType,
 				addressSegmentIndex: startIndex,
 			},
 		},
@@ -54,7 +54,7 @@ func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLe
 //					break
 //				}
 //			}
-//			bitsSoFar += div.GetBitCount()
+//			bitsSoFar += div.getBitCount()
 //		}
 //		if hasPrefix {
 //			res := &prefixBits
@@ -94,7 +94,7 @@ func (section *addressSectionInternal) init() error {
 			// unnecessary since we can control the division type
 			// new ipv4/6 sections are created from ipv4/6segment while derived sections come from existing segments
 			// in all cases, no way to insert mimatched divisions
-			//else if section.getDivision(i).GetBitCount() != bitsPerSegment {
+			//else if section.getDivision(i).getBitCount() != bitsPerSegment {
 			//	return &addressException{"ipaddress.error.mismatched.bit.size"}
 			//}
 
@@ -217,7 +217,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)
 	}
 	newStartIndex := section.addressSegmentIndex + uint8(index)
-	addrType := section.addrType
+	addrType := section.getAddrType()
 	if !section.IsMultiple() {
 		return createSection(segs, newPrefLen, addrType, newStartIndex)
 	}
@@ -334,7 +334,7 @@ func (section *addressSectionInternal) createLowestOrHighestSectionCacheLocked(l
 			segs[i] = section.GetSegment(i).GetUpper().ToAddressDivision()
 		}
 	}
-	return createSection(segs, section.prefixLength, section.addrType, section.addressSegmentIndex)
+	return createSection(segs, section.prefixLength, section.getAddrType(), section.addressSegmentIndex)
 }
 
 func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
@@ -396,7 +396,27 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
 	//TODO caching of prefLen?  we should map it to a global array - check what we have in the validation code
-	return createMultipleSection(newSegs, &prefLen, section.addrType, section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+	return createMultipleSection(newSegs, &prefLen, section.getAddrType(), section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+}
+
+func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
+	otherSection := other.ToAddressSection()
+	if section.toAddressSection() == otherSection {
+		return true
+	}
+	//check if they are comparable first
+	matches, count := section.matchesStructure(other)
+	if !matches || count != other.GetDivisionCount() {
+		return false
+	} else {
+		for i := count - 1; i >= 0; i-- {
+			seg := section.GetSegment(i)
+			if !seg.Contains(otherSection.GetSegment(i)) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 //

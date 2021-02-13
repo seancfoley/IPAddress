@@ -295,6 +295,24 @@ func (addr *IPv6Address) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
+func (addr *IPv6Address) Contains(other AddressType) bool {
+	return addr.init().contains(other)
+	//addr = addr.init()
+	//if addr.contains(other) {
+	//	return addr.isSameZone(other.ToAddress().ToIPv6Address())
+	//}
+	//return false
+}
+
+func (addr *IPv6Address) Equals(other AddressType) bool {
+	return addr.init().equals(other)
+	//addr = addr.init()
+	//if addr.equals(other) {
+	//	return addr.isSameZone(other.ToAddress().ToIPv6Address())
+	//}
+	//return false
+}
+
 func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	if addr == nil {
 		return nil

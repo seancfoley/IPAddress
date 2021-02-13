@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"unsafe"
 )
 
 type IPv6SegInt uint16
@@ -28,6 +27,10 @@ type ipv6SegmentValues struct {
 	cache      divCache
 }
 
+func (seg ipv6SegmentValues) getAddrType() addrType {
+	return ipv6Type
+}
+
 func (seg ipv6SegmentValues) includesZero() bool {
 	return seg.value == 0
 }
@@ -44,11 +47,11 @@ func (seg ipv6SegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-func (seg ipv6SegmentValues) GetBitCount() BitCount {
+func (seg ipv6SegmentValues) getBitCount() BitCount {
 	return IPv6BitsPerSegment
 }
 
-func (seg ipv6SegmentValues) GetByteCount() int {
+func (seg ipv6SegmentValues) getByteCount() int {
 	return IPv6BytesPerSegment
 }
 
@@ -104,11 +107,20 @@ func (seg ipv6SegmentValues) getCache() *divCache {
 
 var _ divisionValues = ipv6SegmentValues{}
 
+var zeroIPv6Seg = NewIPv6Segment(0)
+
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal
 }
 
-// We must override GetBitCount, GetByteCount and others for the case when we construct as the zero value
+func (seg *IPv6AddressSegment) init() *IPv6AddressSegment {
+	if seg.divisionValues == nil {
+		return zeroIPv6Seg
+	}
+	return seg
+}
+
+// We must override getBitCount, getByteCount and others for the case when we construct as the zero value
 
 func (seg *IPv6AddressSegment) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
@@ -122,20 +134,15 @@ func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 	return 0xffff
 }
 
-//func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
-//	return seg.ToIPAddressSegment().ToAddressDivision() xxx
-//}
-
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }
 
 func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
-	vals := seg.divisionValues
-	if vals == nil {
-		seg.divisionValues = ipv6SegmentValues{}
+	if seg == nil {
+		return nil
 	}
-	return (*IPAddressSegment)(unsafe.Pointer(seg))
+	return (*IPAddressSegment)(seg.init())
 }
 
 func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {

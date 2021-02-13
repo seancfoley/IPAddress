@@ -161,6 +161,14 @@ func (addr *MACAddress) ToPrefixBlock() *MACAddress {
 	return addr.init().toPrefixBlock().ToMACAddress()
 }
 
+func (addr *MACAddress) Contains(other AddressType) bool {
+	return addr.init().contains(other)
+}
+
+func (addr *MACAddress) Equals(other AddressType) bool {
+	return addr.init().equals(other)
+}
+
 //func (addr *MACAddress) IsMore(other *MACAddress) int {
 //	return addr.init().isMore(other.ToAddress())
 //}

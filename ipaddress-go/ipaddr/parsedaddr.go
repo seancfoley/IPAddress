@@ -8,7 +8,8 @@ import (
 // TODO note that the way that you save substrings for segments in Java is perfect for go and slices, so your address creator interfaces will keep it
 
 type TranslatedResult struct {
-	CachedIPAddresses
+	//CachedIPAddresses
+	address, hostAddress *IPAddress
 
 	qualifier  *ParsedHostIdentifierStringQualifier
 	originator HostIdentifierString
@@ -19,7 +20,8 @@ type TranslatedResult struct {
 	joinHostException, joinAddressException /* inet_aton, single seg */, mixedException, maskException IncompatibleAddressException
 
 	rangeLower, rangeUpper *IPAddress
-	rng                    *IPAddressSeqRange
+
+	rng *IPAddressSeqRange
 
 	//series IPAddressDivisionSeries // TODO division grouping creation
 
@@ -768,10 +770,10 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 							var extendedMaskVal uint64
 							extendedCount := missingSegmentCount - 3
 							for k := 0; k < extendedCount; k++ {
-								extendedMaskVal = (extendedMaskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).getDivisionValue()
+								extendedMaskVal = (extendedMaskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).GetDivisionValue()
 							}
 							for k := extendedCount; k <= missingSegmentCount; k++ {
-								maskVal = (maskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).getDivisionValue()
+								maskVal = (maskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).GetDivisionValue()
 							}
 							if cachedMasker == nil {
 								// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
@@ -805,7 +807,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 						} else {
 							masker := parseData.maskers[i]
 							for k := 0; k <= missingSegmentCount; k++ {
-								maskVal = (maskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).getDivisionValue()
+								maskVal = (maskVal << bitsPerSegment) | mask.GetSegment(normalizedSegmentIndex+k).GetDivisionValue()
 							}
 							if masker == nil {
 								// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)

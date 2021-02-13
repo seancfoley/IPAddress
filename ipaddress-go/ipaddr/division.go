@@ -13,9 +13,9 @@ type DivInt = uint64
 const DivIntSize = 64
 
 type divisionValuesBase interface { // shared by standard and large divisions
-	GetBitCount() BitCount
+	getBitCount() BitCount
 
-	GetByteCount() int
+	getByteCount() int
 
 	// getValue gets the lower value for a large division
 	getValue() *big.Int
@@ -36,6 +36,8 @@ type divisionValuesBase interface { // shared by standard and large divisions
 
 	// getCache returns a cache for those divisions which cache their values, or nil otherwise
 	getCache() *divCache
+
+	getAddrType() addrType
 }
 
 // DivisionValues represents divisions with values that are 64 bits or less
@@ -65,24 +67,10 @@ type divisionValues interface {
 	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
 }
 
-//TODO your generic addressDivision getCount (which will work with uint64) will look like this
-//func (div *addressDivisionBase) GetCount() *big.Int {
-//	if !div.IsMultiple() {
-//		return bigOne()
-//	}
-//	res := bigZero()
-//	if div.isFullRange() {
-//		res.SetUint64(0xffffffffffffffff).Add(res, bigOneConst())
-//	} else {
-//		res.SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
-//	}
-//	return res
-//}
-
 //TODO your generic addressDivision calcBytesInternal (which will work with uint64) will look like this
 //func (div *addressDivisionInternal) calcBytesInternal() (bytes, upperBytes []byte) {
 //	isMultiple := div.IsMultiple()
-//	byteCount := div.GetByteCount()
+//	byteCount := div.getByteCount()
 //	bytes = make([]byte, byteCount)
 //	val := div.getDivisionValue()
 //	var upperVal DivInt
@@ -92,7 +80,7 @@ type divisionValues interface {
 //	} else {
 //		upperBytes = bytes
 //	}
-//	bitCount := div.GetBitCount()
+//	bitCount := div.getBitCount()
 //	byteIndex := byteCount - 1
 //	for {
 //		bytes[byteIndex] |= byte(val)
@@ -127,11 +115,18 @@ type addressDivisionInternal struct {
 	addressDivisionBase
 }
 
+func (div *addressDivisionInternal) getAddrType() addrType {
+	if div.divisionValues == nil {
+		return zeroType
+	}
+	return div.divisionValues.getAddrType()
+}
+
 func (div *addressDivisionInternal) String() string {
 	if div.IsMultiple() {
-		return fmt.Sprintf("%x-%x", div.getDivisionValue(), div.getUpperDivisionValue())
+		return fmt.Sprintf("%x-%x", div.GetDivisionValue(), div.GetUpperDivisionValue())
 	}
-	return fmt.Sprintf("%x", div.getDivisionValue())
+	return fmt.Sprintf("%x", div.GetDivisionValue())
 	/*
 		We will have  default radix, which starts as hex, but when we switch to ipv4 section and gain ipv4 addr type,
 		each division will have default radix reset to 10
@@ -178,7 +173,7 @@ func (div *addressDivisionInternal) isPrefixed() bool {
 
 // return whether the division range includes the block of values for the given prefix length
 func (div *addressDivisionInternal) containsPrefixBlock(divisionPrefixLen BitCount) bool {
-	return div.isPrefixBlockVals(div.getDivisionValue(), div.getUpperDivisionValue(), divisionPrefixLen)
+	return div.isPrefixBlockVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), divisionPrefixLen)
 }
 
 // Returns whether the division range includes the block of values for its prefix length
@@ -226,7 +221,7 @@ func (div *addressDivisionInternal) getMaxValue() DivInt {
 	return ^(^DivInt(0) << div.GetBitCount())
 }
 
-func (div *addressDivisionInternal) getDivisionValue() DivInt {
+func (div *addressDivisionInternal) GetDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -234,7 +229,7 @@ func (div *addressDivisionInternal) getDivisionValue() DivInt {
 	return vals.getDivisionValue()
 }
 
-func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
+func (div *addressDivisionInternal) GetUpperDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -251,8 +246,8 @@ func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen,
 	if vals == nil {
 		return div.toAddressDivision()
 	}
-	lower := div.getDivisionValue()
-	upper := div.getUpperDivisionValue()
+	lower := div.GetDivisionValue()
+	upper := div.GetUpperDivisionValue()
 	var newLower, newUpper DivInt
 	hasPrefLen := divPrefixLength != nil
 	if hasPrefLen {
@@ -299,22 +294,77 @@ func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen
 	} else {
 		return div.toAddressDivision()
 	}
-	lower := div.getDivisionValue()
-	upper := div.getUpperDivisionValue()
+	lower := div.GetDivisionValue()
+	upper := div.GetUpperDivisionValue()
 	newVals := div.deriveNew(lower, upper, divPrefixLength)
 	return createAddressDivision(newVals)
+}
+
+func (div *addressDivisionInternal) GetCount() *big.Int {
+	if !div.IsMultiple() {
+		return bigOne()
+	}
+	if div.IsFullRange() {
+		res := bigZero()
+		return res.SetUint64(0xffffffffffffffff).Add(res, bigOneConst())
+	}
+	return bigZero().SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
+}
+
+func (div *addressDivisionInternal) Equals(other AddressGenericDivision) bool {
+	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase from AddressGenericDivision
+	if otherDiv, ok := other.(AddressStandardDivision); ok {
+		if div.IsMultiple() {
+			if other.IsMultiple() {
+				matches, _ := div.matchesStructure(other)
+				return matches && divValsSame(div.GetDivisionValue(), otherDiv.GetDivisionValue(),
+					div.GetUpperDivisionValue(), otherDiv.GetUpperDivisionValue())
+			} else {
+				return false
+			}
+		} else if other.IsMultiple() {
+			return false
+		} else {
+			matches, _ := div.matchesStructure(other)
+			return matches && divValSame(div.GetDivisionValue(), otherDiv.GetDivisionValue())
+		}
+	}
+	return div.addressDivisionBase.Equals(other)
+}
+
+func (div *addressDivisionInternal) matchesIPSegment() bool {
+	return div.divisionValues == nil || div.getAddrType().isIP()
+	//if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
+	//return false
+	//}
+	//return true
+}
+
+func (div *addressDivisionInternal) matchesIPv4Segment() bool {
+	return div.divisionValues != nil && div.getAddrType().isIPv4()
+	//return seg.GetBitCount() == IPv4BitsPerSegment
+}
+
+func (div *addressDivisionInternal) matchesIPv6Segment() bool {
+	return div.divisionValues != nil && div.getAddrType().isIPv6()
+	//return seg.getBitCount() == IPv6BitsPerSegment
+}
+
+func (div *addressDivisionInternal) matchesMACSegment() bool {
+	return div.divisionValues != nil && div.getAddrType().isMAC()
+	//return seg.getBitCount() == MACBitsPerSegment
+}
+
+func (div *addressDivisionInternal) matchesSegment() bool {
+	return div.GetBitCount() <= SegIntSize
 }
 
 func (div *addressDivisionInternal) toAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
-func (div *addressDivisionInternal) isAddressSegment() bool {
-	return div.GetBitCount() <= SegIntSize
-}
-
 func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
-	if div.isAddressSegment() {
+	if div.matchesSegment() {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
@@ -325,56 +375,71 @@ type AddressDivision struct {
 }
 
 // Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
-func (div *AddressDivision) GetDivisionValue() DivInt {
-	return div.getDivisionValue()
-}
-
-func (div *AddressDivision) GetUpperDivisionValue() DivInt {
-	return div.getUpperDivisionValue()
-}
+//func (div *AddressDivision) GetDivisionValue() DivInt {
+//	return div.getDivisionValue()
+//}
+//
+//func (div *AddressDivision) GetUpperDivisionValue() DivInt {
+//	return div.getUpperDivisionValue()
+//}
 
 func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()
 }
 
 func (div *AddressDivision) IsAddressSegment() bool {
-	return div != nil && div.isAddressSegment()
+	return div != nil && div.matchesSegment()
 }
 
 func (div *AddressDivision) IsIPAddressSegment() bool {
-	return div.ToAddressSegment().IsIPAddressSegment()
+	return div != nil && div.matchesIPSegment()
 }
 
 func (div *AddressDivision) IsIPv4AddressSegment() bool {
-	return div.ToAddressSegment().IsIPv4AddressSegment()
+	return div != nil && div.matchesIPv4Segment()
 }
 
 func (div *AddressDivision) IsIPv6AddressSegment() bool {
-	return div.ToAddressSegment().IsIPv6AddressSegment()
+	return div != nil && div.matchesIPv6Segment()
 }
 
 func (div *AddressDivision) IsMACAddressSegment() bool {
-	return div.ToAddressSegment().IsMACAddressSegment()
-}
-
-func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	return div.toAddressSegment()
+	return div != nil && div.matchesMACSegment()
 }
 
 func (div *AddressDivision) ToIPAddressSegment() *IPAddressSegment {
-	return div.ToAddressSegment().ToIPAddressSegment()
+	if div.IsIPAddressSegment() {
+		return (*IPAddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
 }
 
 func (div *AddressDivision) ToIPv4AddressSegment() *IPv4AddressSegment {
-	return div.ToAddressSegment().ToIPv4AddressSegment()
+	if div.IsIPv4AddressSegment() {
+		return (*IPv4AddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
 }
 
 func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
-	return div.ToAddressSegment().ToIPv6AddressSegment()
+	if div.IsIPv6AddressSegment() {
+		return (*IPv6AddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
 }
 
 func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
-	return div.ToAddressSegment().ToMACAddressSegment()
+	if div.IsMACAddressSegment() {
+		return (*MACAddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
+}
+
+func (div *AddressDivision) ToAddressSegment() *AddressSegment {
+	if div.IsAddressSegment() {
+		return (*AddressSegment)(unsafe.Pointer(div))
+	}
+	return nil
 }
 
 func (div *AddressDivision) ToAddressDivision() *AddressDivision {
@@ -388,4 +453,12 @@ func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask Di
 func divsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
+}
+
+func divValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
+	return oneVal == twoVal && oneUpperVal == twoUpperVal
+}
+
+func divValSame(oneVal, twoVal DivInt) bool {
+	return oneVal == twoVal
 }

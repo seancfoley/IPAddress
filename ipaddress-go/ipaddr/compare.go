@@ -225,7 +225,7 @@ func (comp AddressComparator) CompareDivisions(one, two AddressGenericDivision) 
 		if addrDiv2, ok := two.(AddressStandardDivision); ok {
 			div1 := addrDiv1.ToAddressDivision()
 			div2 := addrDiv2.ToAddressDivision()
-			return comp.compareValues(div1.GetUpperDivisionValue(), div1.getDivisionValue(), div2.getUpperDivisionValue(), div2.getDivisionValue())
+			return comp.compareValues(div1.GetUpperDivisionValue(), div1.GetDivisionValue(), div2.GetUpperDivisionValue(), div2.GetDivisionValue())
 		}
 	}
 	return comp.compareLargeValues(one.GetUpperValue(), one.GetValue(), two.GetUpperValue(), two.GetValue())
@@ -387,9 +387,9 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 					oneIndex++
 					oneBitCount = oneCombo.GetBitCount()
 					if compareHigh {
-						oneValue = oneCombo.getUpperDivisionValue()
+						oneValue = oneCombo.GetUpperDivisionValue()
 					} else {
-						oneValue = oneCombo.getDivisionValue()
+						oneValue = oneCombo.GetDivisionValue()
 					}
 				}
 				if twoBitCount == 0 {
@@ -397,9 +397,9 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 					twoIndex++
 					twoBitCount = twoCombo.GetBitCount()
 					if compareHigh {
-						twoValue = twoCombo.getUpperDivisionValue()
+						twoValue = twoCombo.GetUpperDivisionValue()
 					} else {
-						twoValue = twoCombo.getDivisionValue()
+						twoValue = twoCombo.GetDivisionValue()
 					}
 				}
 			} else {
@@ -677,15 +677,15 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 				oneCombo := one.getDivision(oneIndex)
 				oneIndex++
 				oneBitCount = oneCombo.GetBitCount()
-				oneUpper = oneCombo.getUpperDivisionValue()
-				oneLower = oneCombo.getDivisionValue()
+				oneUpper = oneCombo.GetUpperDivisionValue()
+				oneLower = oneCombo.GetDivisionValue()
 			}
 			if twoBitCount == 0 {
 				twoCombo := two.getDivision(twoIndex)
 				twoIndex++
 				twoBitCount = twoCombo.GetBitCount()
-				twoUpper = twoCombo.getUpperDivisionValue()
-				twoLower = twoCombo.getDivisionValue()
+				twoUpper = twoCombo.GetUpperDivisionValue()
+				twoLower = twoCombo.GetDivisionValue()
 			}
 		} else {
 			if oneBitCount == 0 {
