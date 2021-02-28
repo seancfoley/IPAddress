@@ -25,12 +25,12 @@ import java.util.stream.Stream;
 
 import inet.ipaddr.AddressComparator.CountComparator;
 import inet.ipaddr.AddressComparator.ValueComparator;
-import inet.ipaddr.format.AddressDivisionSeries;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork;
 
+//TODO I think you need an isIPAddress or isIPv4/6() in here and maybe toIPAddress(), to allow others to avoid casting
 /**
  * An address, or a collection of multiple addresses.  Each segment can represent a single value or a range of values.
  * <p>
@@ -348,11 +348,6 @@ public abstract class Address implements AddressSegmentSeries {
 	@Override
 	public BigInteger getBlockCount(int segmentCount) {
 		return getSection().getBlockCount(segmentCount);
-	}
-
-	@Override
-	public int isMore(AddressDivisionSeries other) {
-		return getSection().isMore(other);
 	}
 
 	@Override
