@@ -28,6 +28,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.format.AddressDivisionGroupingBase.AddressStringParams;
 import inet.ipaddr.format.AddressDivisionGroupingBase.IPAddressStringParams;
+import inet.ipaddr.format.large.IPAddressLargeDivision;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
@@ -65,23 +66,49 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 
 	protected static final char[] DIGITS = {
-        '0' , '1' , '2' , '3' , '4' , '5' ,
-        '6' , '7' , '8' , '9' , 'a' , 'b' ,
-        'c' , 'd' , 'e' , 'f' , 'g' , 'h' ,
-        'i' , 'j' , 'k' , 'l' , 'm' , 'n' ,
-        'o' , 'p' , 'q' , 'r' , 's' , 't' ,
-        'u' , 'v' , 'w' , 'x' , 'y' , 'z'
+		'0', '1', '2', '3', '4', '5',
+		'6', '7', '8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f', 'g', 'h',
+		'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't',
+		'u', 'v', 'w', 'x', 'y', 'z',
     };
-
-	protected static final char[] UPPERCASE_DIGITS = {
-        '0' , '1' , '2' , '3' , '4' , '5' ,
-        '6' , '7' , '8' , '9' , 'A' , 'B' ,
-        'C' , 'D' , 'E' , 'F' , 'G' , 'H' ,
-        'I' , 'J' , 'K' , 'L' , 'M' , 'N' ,
-        'O' , 'P' , 'Q' , 'R' , 'S' , 'T' ,
-        'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'
-    };
-
+	
+	public static final char[] EXTENDED_DIGITS = {
+		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 
+		'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 
+		'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
+		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 
+		'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 
+		'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-', 
+		';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}', 
+		'~' };
+	
+	protected static final char[] UPPERCASE_DIGITS = IPAddressLargeDivision.EXTENDED_DIGITS; 
+	
+	protected static final char[] DOUBLE_DIGITS_DEC = {
+		'0', '0', '0', '1', '0', '2', '0', '3', '0', '4',
+		'0', '5', '0', '6', '0', '7', '0', '8', '0', '9',
+		'1', '0', '1', '1', '1', '2', '1', '3', '1', '4',
+		'1', '5', '1', '6', '1', '7', '1', '8', '1', '9',
+		'2', '0', '2', '1', '2', '2', '2', '3', '2', '4',
+		'2', '5', '2', '6', '2', '7', '2', '8', '2', '9',
+		'3', '0', '3', '1', '3', '2', '3', '3', '3', '4',
+		'3', '5', '3', '6', '3', '7', '3', '8', '3', '9',
+		'4', '0', '4', '1', '4', '2', '4', '3', '4', '4',
+		'4', '5', '4', '6', '4', '7', '4', '8', '4', '9',
+		'5', '0', '5', '1', '5', '2', '5', '3', '5', '4',
+		'5', '5', '5', '6', '5', '7', '5', '8', '5', '9',
+		'6', '0', '6', '1', '6', '2', '6', '3', '6', '4',
+		'6', '5', '6', '6', '6', '7', '6', '8', '6', '9',
+		'7', '0', '7', '1', '7', '2', '7', '3', '7', '4',
+		'7', '5', '7', '6', '7', '7', '7', '8', '7', '9',
+		'8', '0', '8', '1', '8', '2', '8', '3', '8', '4',
+		'8', '5', '8', '6', '8', '7', '8', '8', '8', '9',
+		'9', '0', '9', '1', '9', '2', '9', '3', '9', '4',
+		'9', '5', '9', '6', '9', '7', '9', '8', '9', '9',
+	};
+	
 	private static TreeMap<Long, Integer> maxDigitMap = new TreeMap<Long, Integer>();
 
 	private static TreeMap<Long, BigInteger> radixPowerMap = new TreeMap<Long, BigInteger>();
@@ -700,15 +727,16 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		return -1;
 	}
 	
-	protected static StringBuilder toUnsignedString(long value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
-		if(value > 0xffff || !toUnsignedStringFast((int) value, radix, choppedDigits, uppercase, dig, appendable)) {
-			toUnsignedString(value, radix, choppedDigits, dig, appendable);
+	protected static StringBuilder toUnsignedStringCased(long value, int radix, int choppedDigits, boolean uppercase, StringBuilder appendable) {
+		if(value > 0xffff || !toUnsignedStringFastChopped((int) value, radix, choppedDigits, uppercase, appendable)) {
+			toUnsignedStringSlow(value, radix, choppedDigits, uppercase, appendable);
 		}
 		return appendable;
 	}
 	
-	private static boolean toUnsignedStringFast(int value, int radix, int choppedDigits, boolean uppercase, char dig[], StringBuilder appendable) {
-		if(toUnsignedStringFast(value, radix, uppercase, dig, appendable)) {
+	// callers ensure value <= 0xffff
+	private static boolean toUnsignedStringFastChopped(int value, int radix, int choppedDigits, boolean uppercase, StringBuilder appendable) {
+		if(toUnsignedStringFast(value, radix, uppercase, appendable)) {
 			if(choppedDigits > 0) {
 				appendable.setLength(appendable.length() - choppedDigits);
 			}
@@ -717,53 +745,73 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		return false;
 	}
 
-	private static boolean toUnsignedStringFast(int value, int radix, boolean uppercase, char dig[], StringBuilder appendable) {
+	private static char[] getDigits(boolean uppercase, int radix) {
+		if(uppercase || radix > 36) {
+			return UPPERCASE_DIGITS;
+		}
+		return DIGITS;
+	}
+	
+	// callers ensure value <= 0xffff
+	private static boolean toUnsignedStringFast(int value, int radix, boolean uppercase, StringBuilder appendable) {
 		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
-			if(value == 0) {
-				appendable.append('0');
-			} else {
-				appendable.append('1');
-			}
+			appendable.append(value == 0 ? '0' : '1');
 			return true;
 		}
 		int quotient, remainder; //we iterate on //value == quotient * radix + remainder
 		if(radix == 10) {
-			//this needs value2 <= 0xffff (ie 16 bits or less)
+			// we know value <= 0xffff (ie 16 bits or less)
 			if(value < 10) {
+				char dig[] = getDigits(uppercase, radix);
 				appendable.append(dig[value]);
 				return true;
 			} else if(value < 100) {
-				appendable.append("  ");
+				char dig[] = DOUBLE_DIGITS_DEC;
+				int digIndex = value << 1;
+				appendable.append(dig[digIndex]);
+				appendable.append(dig[digIndex + 1]);
+				return true;
+			} else if(value < 200) {
+				int index = appendable.length();
+				appendable.append("127");
+				if(value != 127) {
+					char dig[] = DOUBLE_DIGITS_DEC;
+					index++;
+					int digIndex = (value - 100) << 1;
+					appendable.setCharAt(index, dig[digIndex]);
+					appendable.setCharAt(index + 1, dig[digIndex + 1]);
+				}
+				return true;
+			} else if(value < 300) {
+				int index = appendable.length();
+				appendable.append("255");
+				if(value != 255) {
+					char dig[] = DOUBLE_DIGITS_DEC;
+					index++;
+					int digIndex = (value - 200) << 1;
+					appendable.setCharAt(index, dig[digIndex]);
+					appendable.setCharAt(index + 1, dig[digIndex + 1]);
+				}
+				return true;
 			} else if(value < 1000) {
-				if(value == 127) {
-					appendable.append("127");
-					return true;
-				}
-				if(value == 255) {
-					appendable.append("255");
-					return true;
-				}
 				appendable.append("   ");
 			} else if(value < 10000) {
 				appendable.append("    ");
 			} else {
 				appendable.append("     ");
 			}
+			char dig[] = DIGITS;
 			int index = appendable.length();
-			do {
-				//value == quotient * 10 + remainder
-				quotient = (value * 0xcccd) >>> 19; //floor of n/10 is floor of ((0xcccd * n / 2 ^ 16) / 2 ^ 3)
+			do { //value == quotient * 10 + remainder
+				quotient = (value * 0xcccd) >>> 19; //floor of n/10 is same as floor of ((0xcccd * n / 2^16) / 2^3)
 				remainder = value - ((quotient << 3) + (quotient << 1)); //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
 				appendable.setCharAt(--index, dig[remainder]);
 				value = quotient;
 	        } while(value != 0);
 			return true;
-	    }
-		if(radix == 16) {
-			if(value < 0xa) {
-				appendable.append(dig[value]);
-				return true;
-			} else if(value < 0x10) {
+	    } else if(radix == 16) {
+			if(value < 0x10) {
+				char dig[] = getDigits(uppercase, radix);
 				appendable.append(dig[value]);
 				return true;
 			} else if(value < 0x100) {
@@ -777,16 +825,16 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				}
 				appendable.append("    ");
 			}
+			char dig[] = getDigits(uppercase, radix);
 			int index = appendable.length();
 			do {//value2 == quotient * 16 + remainder
-				quotient = value >>> 4;
-				remainder = value - (quotient << 4);
+				remainder = value & 15;
+				value >>>= 4;
 				appendable.setCharAt(--index, dig[remainder]);
-				value = quotient;
 			} while(value != 0);
 			return true;
-		}
-		if(radix == 8) {
+		} else if(radix == 8) {
+			char dig[] = DIGITS;
 			if(value < 010) {
 				appendable.append(dig[value]);
 				return true;
@@ -802,58 +850,59 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				appendable.append("      ");
 			}
 			int index = appendable.length();
-			do {//value2 == quotient * 16 + remainder
-				quotient = value >>> 3;
-				remainder = value - (quotient << 3);
+			do {//value2 == quotient * 8 + remainder
+				remainder = value & 7;
+				value >>>= 3;
 				appendable.setCharAt(--index, dig[remainder]);
-				value = quotient;
 			} while(value != 0);
 			return true;
-		}
-		if(radix == 2) {
-			//count the number of digits
+		} else if(radix == 2) {
 			//note that we already know value != 0 and that value <= 0xffff
-			//and we use both of those facts
-			int digitCount = 15;
-			int val = value;
-			if (val >>> 8 == 0) { 
-				digitCount -=  8;
+			int digitIndex;
+			if (value >>> 8 == 0) {
+				if(value == 0xff) {
+					appendable.append("11111111");
+					return true;
+				} else if (value >>> 4 == 0) {
+					digitIndex = 4;
+				} else {
+					digitIndex = 8;
+				}
 			} else {
-				val >>>= 8;
+				if(value == 0xffff) {
+					appendable.append("1111111111111111");
+					return true;
+				} else if (value >>> 4 == 0) {
+					digitIndex = 12;
+				} else {
+					digitIndex = 16;
+				}
 			}
-			if (val >>> 4 == 0) {
-				digitCount -=  4;
-			} else {
-				val >>>= 4;
+			while(--digitIndex > 0) {
+				int digit = (value >>> digitIndex) & 1;
+				if(digit == 1) {
+					appendable.append('1');
+					while(--digitIndex > 0) {
+						digit = (value >>> digitIndex) & 1;
+						appendable.append(digit == 0 ? '0' : '1');
+					}
+					break;
+				}
 			}
-			if (val >>> 2 == 0) {
-				digitCount -= 2;
-			} else {
-				val >>>= 2;
-			}
-			//at this point, if (val & 2) != 0 we have undercounted the digit count by 1
-			//either way, we start with the first digit '1' and adjust the digit count accordingly
-			if((val & 2) == 0) {
-				--digitCount;
-			}
-			appendable.append('1');
-			while(digitCount > 0) {
-				char c = dig[(value >>> --digitCount) & 1];
-				appendable.append(c);
-			}
+			appendable.append((value & 1) == 0 ? '0' : '1');
 			return true;
 		}
 		return false;
 	}
 	
-	private static void toUnsignedString(
+	private static void toUnsignedStringSlow(
 			long value,
 			int radix,
 			int choppedDigits,
-			char dig[],
+			boolean uppercase,
 			StringBuilder appendable) {
 		int front = appendable.length();
-		appendDigits(value, radix, choppedDigits, dig, appendable);
+		appendDigits(value, radix, choppedDigits, uppercase, appendable);
 		int back = appendable.length() - 1;
 		while(front < back) {
 			char frontChar = appendable.charAt(front);
@@ -866,11 +915,12 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			long value,
 			int radix,
 			int choppedDigits,
-			char dig[],
+			boolean uppercase,
 			StringBuilder appendable) {
 		boolean useInts = value <= Integer.MAX_VALUE;
 		int value2 = useInts ? (int) value : radix;
 		int index;
+		char dig[] = getDigits(uppercase, radix);
 		while(value2 >= radix) {
 			if(useInts) {
 				int val2 = value2;
