@@ -799,6 +799,8 @@ public class IPAddressTest extends TestBase {
 		Integer otherMaskPrefix = address.getBlockMaskPrefixLength(!network);
 		if(maskPrefix != Math.min(prefixBits, address.getBitCount()) || otherMaskPrefix != null) {
 			addFailure(new Failure("failed mask", address));
+			maskPrefix = address.getBlockMaskPrefixLength(network);
+			otherMaskPrefix = address.getBlockMaskPrefixLength(!network);
 			return false;
 		}
 		if(network) {
@@ -871,7 +873,7 @@ public class IPAddressTest extends TestBase {
 					if(prefixStr == null || !prefixStr.equals(originalChoppedStr)) {
 						maskStr2 = createAddress(maskStr);
 						maskStr2.convertToPrefixLength();
-						addFailure(new Failure("failed mask converstion " + prefixStr, maskStr2));
+						addFailure(new Failure("failed mask conversion " + prefixStr, maskStr2));
 						return false;
 					}
 				}
