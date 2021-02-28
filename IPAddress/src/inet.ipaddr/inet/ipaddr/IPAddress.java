@@ -1281,7 +1281,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		if(result != null) {
 			return result;
 		}
-		//SeriesCreator seriesCreator = createSeriesCreator(creator, first.getMaxSegmentValue());
 		SeriesCreator seriesCreator = creator::createSequentialBlockAddress;
 		TriFunction<T, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, seriesCreator);
 		List<IPAddressSegmentSeries> blocks = IPAddressSection.applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
