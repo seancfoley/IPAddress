@@ -553,6 +553,11 @@ public class TestRunner extends TestBase implements AddressCreator {
 		};
 		int count = 0;
 		while(count < ordering.length) {
+			// 4.26 GB to run battery, testing if segment caching is the big culprit?
+			// the answer is no, it accounts for 0.2 GB
+//			Address.defaultIpv4Network().setSegmentCaching(false);
+//			Address.defaultIpv6Network().setSegmentCaching(false);
+//			Address.defaultMACNetwork().setSegmentCaching(false);
 			showMessage("");
 			PrefixConfiguration prefConf = ordering[count++];
 			TestBase.prefixConfiguration = prefConf;
