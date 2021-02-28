@@ -49,17 +49,16 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
 		int bitCount = getBitCount();
-		byte bytes[] = new byte[(bitCount + 7) >> 3];
-		int byteIndex = bytes.length - 1, bitIndex = 8;
+		byte bytes[] = new byte[getByteCount()];
+		int byteIndex = bytes.length - 1;
 		long segmentValue = low ? getDivisionValue() : getUpperDivisionValue();
 		while(true) {
-			bytes[byteIndex] |= segmentValue << (8 - bitIndex);
-			segmentValue >>= bitIndex;
-			if(bitCount <= bitIndex) {
+			bytes[byteIndex] |= segmentValue;
+			segmentValue >>= 8;
+			if(bitCount <= 8) {
 				return bytes;
 			}
-			bitCount -= bitIndex;
-			bitIndex = 8;
+			bitCount -= 8;
 			byteIndex--;
 		}
 	}
@@ -74,6 +73,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 
 	@Override
 	public int getMinPrefixLengthForBlock() {
+		//TODO check for single value and/or full range first
 		int result = getBitCount();
 		int lowerZeros = Long.numberOfTrailingZeros(getDivisionValue());
 		if(lowerZeros != 0) {
@@ -195,9 +195,10 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		if(divisionPrefixLen == 0) {
 			return divisionValue == 0 && upperValue == getMaxValue();
 		}
+		int bitCount = getBitCount();
 		long ones = ~0L;
-		long divisionBitMask = ~(ones << getBitCount());
-		long divisionPrefixMask = ones << (getBitCount() - divisionPrefixLen);
+		long divisionBitMask = ~(ones << bitCount);
+		long divisionPrefixMask = ones << (bitCount - divisionPrefixLen);
 		long divisionNonPrefixMask = ~divisionPrefixMask;
 		return testRange(divisionValue,
 				upperValue,
@@ -214,8 +215,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	 */
 	protected boolean isSinglePrefixBlock(long divisionValue, long upperValue, int divisionPrefixLen) {
 		long ones = ~0L;
-		long divisionBitMask = ~(ones << getBitCount());
-		long divisionPrefixMask = ones << (getBitCount() - divisionPrefixLen);
+		int bitCount = getBitCount();
+		long divisionBitMask = ~(ones << bitCount);
+		long divisionPrefixMask = ones << (bitCount - divisionPrefixLen);
 		long divisionNonPrefixMask = ~divisionPrefixMask;
 		return testRange(divisionValue,
 				divisionValue,
@@ -562,25 +564,25 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	protected int getUpperStringLength(int radix) {
 		return toUnsignedStringLength(getUpperDivisionValue(), radix);
 	}
-	
+
 	@Override
 	protected void getLowerString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getDivisionValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedStringCased(getDivisionValue(), radix, 0, uppercase, appendable);
 	}
 	
 	@Override
 	protected void getUpperString(int radix, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getUpperDivisionValue(), radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedStringCased(getUpperDivisionValue(), radix, 0, uppercase, appendable);
 	}
 	
 	@Override
 	protected void getUpperStringMasked(int radix, boolean uppercase, StringBuilder appendable) {
 		getUpperString(radix, uppercase, appendable);
 	}
-	
+
 	@Override
 	protected void getLowerString(int radix, int rangeDigits, boolean uppercase, StringBuilder appendable) {
-		toUnsignedString(getDivisionValue(), radix, rangeDigits, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedStringCased(getDivisionValue(), radix, rangeDigits, uppercase, appendable);
 	}
 	
 	@Override
