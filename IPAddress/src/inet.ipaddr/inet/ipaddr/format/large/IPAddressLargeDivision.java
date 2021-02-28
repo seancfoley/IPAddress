@@ -50,16 +50,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	public static final char EXTENDED_DIGITS_RANGE_SEPARATOR = Address.ALTERNATIVE_RANGE_SEPARATOR;
 	public static final String EXTENDED_DIGITS_RANGE_SEPARATOR_STR = String.valueOf(EXTENDED_DIGITS_RANGE_SEPARATOR);
 	
-	public static final char[] EXTENDED_DIGITS = {
-			 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 
-			 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 
-			 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
-			 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 
-			 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 
-			 'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-', 
-			 ';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}', 
-			 '~' };
-	
 	private static final long serialVersionUID = 4L;
 	
 	private final BigInteger value, upperValue, maxValue, upperValueMasked;
@@ -418,20 +408,19 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			if(!highest) {
 				getLeadingZeros(digitCount - toUnsignedStringLength(longVal, intRadix), builder);
 			}
-			toUnsignedString(longVal, intRadix, choppedDigits, uppercase, dig, builder);
+			toUnsignedStringCased(longVal, intRadix, choppedDigits, uppercase, builder);
 		} else {
-			int halfCount = digitCount >>> 1;
-			if(halfCount > choppedDigits) {
+			if(digitCount > choppedDigits) {
+				int halfCount = digitCount >>> 1;
 				BigInteger radixPower = getRadixPower(radix, halfCount);
 				BigInteger highLow[] = val.divideAndRemainder(radixPower);
 				BigInteger high = highLow[0];
 				BigInteger low = highLow[1];
 				if(highest && high.equals(BigInteger.ZERO)) {
+					// only do low
 					toDefaultStringRecursive(low, radix, uppercase, choppedDigits, halfCount, dig, true, builder);
 				} else {
-					if(digitCount > choppedDigits) {
-						toDefaultStringRecursive(high, radix, uppercase, Math.max(0,  choppedDigits - halfCount), digitCount - halfCount, dig, highest, builder);
-					}
+					toDefaultStringRecursive(high, radix, uppercase, Math.max(0,  choppedDigits - halfCount), digitCount - halfCount, dig, highest, builder);
 					toDefaultStringRecursive(low, radix, uppercase, choppedDigits, halfCount, dig, false, builder);
 				}
 			}
