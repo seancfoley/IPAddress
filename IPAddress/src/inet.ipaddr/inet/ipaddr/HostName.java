@@ -32,6 +32,7 @@ import inet.ipaddr.format.validate.HostIdentifierStringValidator;
 import inet.ipaddr.format.validate.ParsedHost;
 import inet.ipaddr.format.validate.ParsedHostIdentifierStringQualifier;
 import inet.ipaddr.format.validate.Validator;
+import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
@@ -57,6 +58,7 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 public class HostName implements HostIdentifierString, Comparable<HostName> {
 
 	private static final long serialVersionUID = 4L;
+	private static  IPAddress EMPTY_ADDRS[] = new IPAddress[0];
 	
 	public static final char LABEL_SEPARATOR = '.';
 	public static final char IPV6_START_BRACKET = '[', IPV6_END_BRACKET = ']';
@@ -76,9 +78,8 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 
 	private HostNameException validationException;
 
-	/* The address if this host represents an ip address, or the address obtained when this host is resolved. */
-	IPAddress resolvedAddress;
-	private boolean resolvedIsNull;
+	/* The address if this host represents an ip address, or the addresses obtained when this host is resolved. */
+	IPAddress resolvedAddresses[];
 	
 	/* validation options */
 	final HostNameParameters validationOptions;
@@ -113,7 +114,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 */
 	public HostName(InetSocketAddress inetSocketAddr) {
 		if(!inetSocketAddr.isUnresolved()) {
-			resolvedAddress = toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS);
+			resolvedAddresses = new IPAddress[] {toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS)};
 		}
 		// we will parse and normalize as usual
 		// there is no way to know if we are getting a host name string here or an ip address literal without parsing it ourselves
@@ -230,8 +231,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		synchronized(this) {
 			if(parsedHost != null) {
 				return;
-			}
-			if(validationException != null) {
+			} else if(validationException != null) {
 				throw validationException;
 			}
 			try {
@@ -254,8 +254,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isValid() {
 		if(parsedHost != null) {
 			return true;
-		}
-		if(validationException != null) {
+		} else if(validationException != null) {
 			return false;
 		}
 		try {
@@ -273,7 +272,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * @return whether this represents or resolves to the localhost host or a loopback address
 	 */
 	public boolean resolvesToSelf() {
-		return isSelf() || (getAddress() != null && resolvedAddress.isLoopback());
+		return isSelf() || (getAddress() != null && resolvedAddresses[0].isLoopback());
 	}
 	
 	/**
@@ -337,13 +336,21 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		return result;
 	}
 	
-	private static CharSequence translateReserved(IPv6Address addr, String str) {
+	private static void translateReserved(IPv6Address addr, String str, StringBuilder builder) {
+	//private static CharSequence translateReserved(IPv6Address addr, String str, StringBuilder builder) {
 		//This is particularly targeted towards the zone
+//		if(!addr.hasZone()) {
+//			return str;
+//		}
 		if(!addr.hasZone()) {
-			return str;
+			builder.append(str);
+			return;
+			//return str;
 		}
+		
 		int index = str.indexOf(IPv6Address.ZONE_SEPARATOR);
-		StringBuilder translated = new StringBuilder(((str.length() - index) * 3) + index);
+		StringBuilder translated = builder;
+		//StringBuilder translated = new StringBuilder(((str.length() - index) * 3) + index);
 		translated.append(str, 0, index);
 		translated.append("%25");
 		for(int i = index + 1; i < str.length(); i++) {
@@ -355,7 +362,8 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				translated.append(c);
 			}
 		}
-		return translated;
+		//return translated;
+		return;
 	}
 	
 	private static String toNormalizedString(IPAddress addr, int port) {
@@ -382,7 +390,8 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				 */
 				Integer networkPrefixLength = parsedHost.getEquivalentPrefixLength();
 				if(networkPrefixLength != null) {
-					builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
+					builder.append(IPAddress.PREFIX_LEN_SEPARATOR);
+					IPAddressSegment.toUnsignedString(networkPrefixLength, 10, builder);
 				} else {
 					IPAddress mask = parsedHost.getMask();
 					if(mask != null) {
@@ -405,20 +414,22 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 	
 	private static void toNormalizedString(int port, StringBuilder builder) {
-		builder.append(PORT_SEPARATOR).append(port);
+		builder.append(PORT_SEPARATOR);
+		IPAddressSegment.toUnsignedString(port, 10, builder);
 	}
 	
 	private static void toNormalizedString(IPAddress addr, boolean wildcard, StringBuilder builder) {
 		if(addr.isIPv6()) {
 			if(!wildcard && addr.isPrefixed()) {//prefix needs to be outside the brackets
+				builder.append(IPV6_START_BRACKET);
 				String normalized = addr.toNormalizedString();
 				int index = normalized.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
-				CharSequence translated = translateReserved(addr.toIPv6(), normalized.substring(0, index));
-				builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET).append(normalized.substring(index));
+				translateReserved(addr.toIPv6(), normalized.substring(0, index), builder);
+				builder.append(IPV6_END_BRACKET).append(normalized.substring(index));
 			} else {
-				String normalized = addr.toNormalizedWildcardString();
-				CharSequence translated = translateReserved(addr.toIPv6(), normalized);
-				builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET);
+				builder.append(IPV6_START_BRACKET);
+				translateReserved(addr.toIPv6(), addr.toNormalizedWildcardString(), builder);
+				builder.append(IPV6_END_BRACKET);
 			}
 		} else {
 			builder.append(wildcard ? addr.toNormalizedWildcardString() : addr.toNormalizedString());
@@ -454,8 +465,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public String[] getNormalizedLabels() {
 		if(isValid()) {
 			return parsedHost.getNormalizedLabels();
-		}
-		if(host.length() == 0) {
+		} else if(host.length() == 0) {
 			return new String[0];
 		}
 		return new String[] {host};
@@ -493,24 +503,26 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 		if(isValid()) {
 			if(host.isValid()) {
-				if(isAddressString()) {
-					return host.isAddressString()
-							&& asAddressString().equals(host.asAddressString())
-							&& Objects.equals(getPort(), host.getPort())
-							&& Objects.equals(getService(), host.getService());
+				ParsedHost parsedHost = this.parsedHost;
+				ParsedHost otherParsedHost = host.parsedHost;
+				if(parsedHost.isAddressString()) {
+					return otherParsedHost.isAddressString()
+							&& parsedHost.asGenericAddressString().equals(otherParsedHost.asGenericAddressString())
+							&& Objects.equals(parsedHost.getPort(), otherParsedHost.getPort())
+							&& Objects.equals(parsedHost.getService(), otherParsedHost.getService());
 				}
-				if(host.isAddressString()) {
+				if(otherParsedHost.isAddressString()) {
 					return false;
 				}
 				String thisHost = parsedHost.getHost();
-				String otherHost = host.parsedHost.getHost();
+				String otherHost = otherParsedHost.getHost();
 				if(!thisHost.equals(otherHost)) {
 					return false;
 				}
-				return Objects.equals(parsedHost.getEquivalentPrefixLength(), host.parsedHost.getEquivalentPrefixLength()) &&
-						Objects.equals(parsedHost.getMask(), host.parsedHost.getMask()) &&
-						Objects.equals(parsedHost.getPort(), host.parsedHost.getPort()) &&
-						Objects.equals(parsedHost.getService(), host.parsedHost.getService());
+				return Objects.equals(parsedHost.getEquivalentPrefixLength(), otherParsedHost.getEquivalentPrefixLength()) &&
+						Objects.equals(parsedHost.getMask(), otherParsedHost.getMask()) &&
+						Objects.equals(parsedHost.getPort(), otherParsedHost.getPort()) &&
+						Objects.equals(parsedHost.getService(), otherParsedHost.getService());
 			}
 			return false;
 		}
@@ -521,9 +533,11 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public int compareTo(HostName other) {
 		if(isValid()) {
 			if(other.isValid()) {
-				if(isAddressString()) {
-					if(other.isAddressString()) {
-						int result = asAddressString().compareTo(other.asAddressString());
+				ParsedHost parsedHost = this.parsedHost;
+				ParsedHost otherParsedHost = other.parsedHost;
+				if(parsedHost.isAddressString()) {
+					if(otherParsedHost.isAddressString()) {
+						int result = parsedHost.asGenericAddressString().compareTo(otherParsedHost.asGenericAddressString());
 						if(result != 0) {
 							return result;
 						}
@@ -531,12 +545,12 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 					} else {
 						return -1;
 					}
-				} else if(other.isAddressString()) {
+				} else if(otherParsedHost.isAddressString()) {
 					return 1;
 				} else {
 					//both are non-address hosts
 					String normalizedLabels[] = parsedHost.getNormalizedLabels();
-					String otherNormalizedLabels[] = other.parsedHost.getNormalizedLabels();
+					String otherNormalizedLabels[] = otherParsedHost.getNormalizedLabels();
 					int oneLen = normalizedLabels.length;
 					int twoLen = otherNormalizedLabels.length;
 					for(int i = 1, minLen = Math.min(oneLen, twoLen); i <= minLen; i++) {
@@ -553,7 +567,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 					
 					//keep in mind that hosts can has masks/prefixes or ports, but not both
 					Integer networkPrefixLength = parsedHost.getEquivalentPrefixLength();
-					Integer otherPrefixLength = other.parsedHost.getEquivalentPrefixLength();
+					Integer otherPrefixLength = otherParsedHost.getEquivalentPrefixLength();
 					if(networkPrefixLength != null) {
 						if(otherPrefixLength != null) {
 							if(networkPrefixLength.intValue() != otherPrefixLength.intValue()) {
@@ -568,7 +582,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 							return -1;
 						}
 						IPAddress mask = parsedHost.getMask();
-						IPAddress otherMask = other.parsedHost.getMask();
+						IPAddress otherMask = otherParsedHost.getMask();
 						if(mask != null) {
 							if(otherMask != null) {
 								int ret = mask.compareTo(otherMask);
@@ -590,7 +604,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				
 				//two equivalent address strings or two equivalent hosts, now check port and service names
 				Integer portOne = parsedHost.getPort();
-				Integer portTwo = other.parsedHost.getPort();
+				Integer portTwo = otherParsedHost.getPort();
 				if(portOne != null) {
 					if(portTwo != null) {
 						int ret = portOne - portTwo;
@@ -604,7 +618,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 					return -1;
 				}
 				String serviceOne = parsedHost.getService();
-				String serviceTwo = other.parsedHost.getService();
+				String serviceTwo = otherParsedHost.getService();
 				if(serviceOne != null) {
 					if(serviceTwo != null) {
 						int ret = serviceOne.compareTo(serviceTwo);
@@ -626,11 +640,12 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		}
 		return toString().compareTo(other.toString());
 	}
-	
+
+	@Deprecated
 	public boolean isAddress(IPVersion version) {
 		return isValid() && parsedHost.isAddressString() && parsedHost.asAddress(version) != null;
 	}
-	
+
 	/**
 	 * Returns whether this host name is a string representing an valid specific IP address or subnet.
 	 * 
@@ -639,7 +654,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isAddress() {
 		return isAddressString() && parsedHost.asAddress() != null; 
 	}
-	
+
 	/**
 	 * Returns whether this host name is a string representing an IP address or subnet.
 	 * 
@@ -648,7 +663,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	public boolean isAddressString() {
 		return isValid() && parsedHost.isAddressString();
 	}
-	
+
 	/**
 	 * Whether the address represents the set all all valid IP addresses (as opposed to an empty string, a specific address, a prefix length, or an invalid format).
 	 * 
@@ -742,6 +757,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	/**
 	 * If this represents an ip address, returns that address.  Otherwise, returns null.  
 	 * Note that translation includes prefix lengths and IPv6 zones.
+	 * <p>
 	 * This does not resolve addresses or return resolved addresses.
 	 * Call {@link #toAddress()} or {@link #getAddress()} to get the resolved address.
 	 * <p>
@@ -764,6 +780,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	public IPAddress asAddress(IPVersion version) {
 		if(isAddress(version)) {
 			return parsedHost.asAddress(version);
@@ -864,7 +881,21 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	}
 
 	/**
-	 * If this represents an ip address, returns that address.
+	 * Similar to {@link #toAddress()}, however in the case where the host is resolved,
+	 * this method returns all resolved addresses rather than the primary resolved address.
+	 * In the cases where {@link #toAddress()} returns null, this returns an empty array,
+	 * and in the cases where this host represents an IP address, this method returns an array of length 1 with that address.
+	 * 
+	 * @return
+	 * @throws UnknownHostException
+	 * @throws HostNameException
+	 */
+	public IPAddress[] toAllAddresses() throws UnknownHostException, HostNameException {
+		return toAddresses();
+	}
+	
+	/**
+	 * If this represents an IP address, returns that address.
 	 * If this represents a host, returns the resolved ip address of that host.
 	 * Otherwise, returns null, but only for strings that are considered valid address strings but cannot be converted to address objects.
 	 * 
@@ -876,55 +907,66 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 */
 	@Override
 	public IPAddress toAddress() throws UnknownHostException, HostNameException {
-		IPAddress addr = resolvedAddress;
-		if(addr == null && !resolvedIsNull) {
+		IPAddress addrs[] = toAddresses();
+		return addrs.length == 0 ? null : addrs[0];
+	}
+	
+	
+	private IPAddress[] toAddresses() throws UnknownHostException, HostNameException {
+		IPAddress addrs[] = resolvedAddresses;
+		if(addrs == null) {
 			//note that validation handles empty address resolution
 			validate();
 			synchronized(this) {
-				addr = resolvedAddress;
-				if(addr == null && !resolvedIsNull) {
+				addrs = resolvedAddresses;
+				if(addrs == null) {
 					if(parsedHost.isAddressString()) {
-						addr = parsedHost.asAddress();
-						resolvedIsNull = (addr == null);
+						addrs = new IPAddress[] {parsedHost.asAddress()};
 						//note there is no need to apply prefix or mask here, it would have been applied to the address already
 					} else {
 						String strHost = parsedHost.getHost();
 						if(strHost.length() == 0 && !validationOptions.emptyIsLoopback) {
-							addr = null;
-							resolvedIsNull = true;
+							addrs = EMPTY_ADDRS;
 						} else {
 							//Note we do not set resolvedIsNull, so we will attempt to resolve again if the previous attempt threw an exception
-							InetAddress inetAddress = InetAddress.getByName(strHost);
-							byte bytes[] = inetAddress.getAddress();
-							Integer networkPrefixLength = parsedHost.getNetworkPrefixLength();
-							if(networkPrefixLength == null) {
-								IPAddress mask = parsedHost.getMask();
-								if(mask != null) {
-									byte maskBytes[] = mask.getBytes();
-									if(maskBytes.length != bytes.length) {
-										throw new HostNameException(host, "ipaddress.error.ipMismatch");
+							InetAddress inetAddresses[] = InetAddress.getAllByName(strHost);
+							addrs = new IPAddress[inetAddresses.length];
+							for(int j = 0; j < inetAddresses.length; j++) {
+								InetAddress inetAddress = inetAddresses[j];
+								byte bytes[] = inetAddress.getAddress();
+								Integer networkPrefixLength = parsedHost.getNetworkPrefixLength();
+								if(networkPrefixLength == null) {
+									IPAddress mask = parsedHost.getMask();
+									if(mask != null) {
+										byte maskBytes[] = mask.getBytes();
+										if(maskBytes.length == bytes.length) {
+											for(int i = 0; i < bytes.length; i++) {
+												bytes[i] &= maskBytes[i];
+											}
+											networkPrefixLength = mask.getBlockMaskPrefixLength(true);
+										}
 									}
-									for(int i = 0; i < bytes.length; i++) {
-										bytes[i] &= maskBytes[i];
+								}
+								IPAddressStringParameters addressParams = validationOptions.addressOptions;
+								if(bytes.length == IPv6Address.BYTE_COUNT) {
+									IPv6AddressCreator creator = addressParams.getIPv6Parameters().getNetwork().getAddressCreator();
+									addrs[j] = creator.createAddressInternal(bytes, networkPrefixLength, null, this); /* address creation */
+								} else {
+									if(networkPrefixLength != null && networkPrefixLength > IPv4Address.BIT_COUNT) {
+										networkPrefixLength = IPAddressSection.cacheBits(IPv4Address.BIT_COUNT);
 									}
-									networkPrefixLength = mask.getBlockMaskPrefixLength(true);
+									IPv4AddressCreator creator = addressParams.getIPv4Parameters().getNetwork().getAddressCreator();
+									addrs[j] = creator.createAddressInternal(bytes, networkPrefixLength, this); /* address creation */
 								}
 							}
-							IPAddressStringParameters addressParams = validationOptions.addressOptions;
-							if(bytes.length == IPv6Address.BYTE_COUNT) {
-								IPv6AddressCreator creator = addressParams.getIPv6Parameters().getNetwork().getAddressCreator();
-								addr = creator.createAddressInternal(bytes, networkPrefixLength, null, this); /* address creation */
-							} else {
-								IPv4AddressCreator creator = addressParams.getIPv4Parameters().getNetwork().getAddressCreator();
-								addr = creator.createAddressInternal(bytes, networkPrefixLength, this); /* address creation */
-							}
+							
 						}
 					}
-					resolvedAddress = addr;
+					resolvedAddresses = addrs;
 				}
 			}
 		}
-		return addr;
+		return addrs;
 	}
 
 	/**
