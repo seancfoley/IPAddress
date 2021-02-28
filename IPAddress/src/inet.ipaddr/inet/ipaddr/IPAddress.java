@@ -250,7 +250,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			if(hostStr.equals(inetAddress.getHostAddress())) {
 				//we got back the address, so the host is me
 				host = new HostName(hostStr, new ParsedHost(hostStr, getProvider()));
-				host.resolvedAddress = this;
+				host.resolvedAddresses = new IPAddress[] {this};
 			} else {
 				//the reverse lookup succeeded in finding a host string
 				//we might not be the default resolved address for the host, so we don't set that field
