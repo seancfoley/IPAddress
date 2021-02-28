@@ -653,7 +653,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	var preferIPv6 bool
 	ipv6WithZoneLoop := func() *IPAddress {
 		network := options.GetIPv6Parameters().GetNetwork()
-		creator := network.GetIPAddressCreator()
+		creator := network.GetIPv6AddressCreator()
 		return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
 	}
 	ipv6Loop := func() *IPAddress {
@@ -965,7 +965,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: contains()/equals(), iterators, increment, merge, span
+// - things to target: iterators, increment, merge, span, string generation
 // TODO iterators next after equals/contains? looks like iterators is next
 // - need to hook up mac address string and host name to the parser
 // - also segment prefixContains and prefixEquals
@@ -973,8 +973,3 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - finish off the ip address creator interfaces
 // - finish HostName
 // - check notes.txt in Java for functionality table
-
-/*
-equals() in HostName calls matches(HostName)
-TODO Equals() for  HostName
-*/

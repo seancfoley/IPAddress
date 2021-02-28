@@ -188,10 +188,12 @@ func (grouping addressDivisionGroupingInternal) String() string {
 //	return prefLen.value
 //}
 
-// IsMultiple returns whether this address or grouping represents more than one address or grouping.
-// Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
 func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 	return grouping.prefixLength
+}
+
+func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
+	return grouping.prefixLength != nil
 }
 
 //// prefixesAlign returns whether the prefix of each division align with each other, which is a requirement for IPv4/6

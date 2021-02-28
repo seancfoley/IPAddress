@@ -161,6 +161,10 @@ func (addr *IPv6Address) init() *IPv6Address {
 	return addr
 }
 
+func (addr *IPv6Address) HasZone() bool {
+	return addr.zone != noZone
+}
+
 func (addr *IPv6Address) GetSection() *IPv6AddressSection {
 	return addr.init().section.ToIPv6AddressSection()
 }
@@ -296,21 +300,11 @@ func (addr *IPv6Address) CopyUpperBytes(bytes []byte) []byte {
 }
 
 func (addr *IPv6Address) Contains(other AddressType) bool {
-	return addr.init().contains(other)
-	//addr = addr.init()
-	//if addr.contains(other) {
-	//	return addr.isSameZone(other.ToAddress().ToIPv6Address())
-	//}
-	//return false
+	return addr.init().contains(other) // the base method handles zone too
 }
 
 func (addr *IPv6Address) Equals(other AddressType) bool {
-	return addr.init().equals(other)
-	//addr = addr.init()
-	//if addr.equals(other) {
-	//	return addr.isSameZone(other.ToAddress().ToIPv6Address())
-	//}
-	//return false
+	return addr.init().equals(other) // the base method handles zone too
 }
 
 func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
@@ -319,6 +313,10 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	}
 	addr = addr.init()
 	return NewIPv6SeqRange(addr.GetLower(), addr.GetUpper())
+}
+
+func (addr *IPv6Address) ToAddressString() *IPAddressString {
+	return addr.init().ToIPAddress().ToAddressString()
 }
 
 //func (addr *IPv6Address) IsMore(other *IPv6Address) int {

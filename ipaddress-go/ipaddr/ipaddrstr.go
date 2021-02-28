@@ -124,9 +124,10 @@ func (addrStr *IPAddressString) Validate() AddressStringException {
 
 func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressStringException {
 	err := addrStr.Validate()
-	if version == INDETERMINATE_VERSION {
+	if err != nil {
 		return err
-	} else {
+	} else if version != INDETERMINATE_VERSION {
+		addrStr = addrStr.init()
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.isIPv4() {
 			if !addrVersion.isIPv4() {
@@ -195,7 +196,7 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 	}
 	if addrStr.IsValid() {
 		if other.IsValid() {
-			//Boolean directResult = addressProvider.parsedEquals(other.addressProvider); TODO fast track
+			//Boolean directResult = addressProvider.parsedEquals(other.addressProvider); TODO implement the fast track, but for now not needed
 			//if(directResult != null) {
 			//	return directResult.booleanValue();
 			//}

@@ -11,7 +11,8 @@ import (
 type rangeCache struct {
 	cacheLock sync.Mutex
 
-	cachedCount *countSetting
+	//cachedCount *countSetting
+	cachedCount *big.Int
 	isMultiple  bool // set on construction
 }
 
@@ -34,7 +35,7 @@ func (rng *ipAddressSeqRangeInternal) setCount() (res *big.Int) {
 		upper := rng.upper.GetValue()
 		res = rng.lower.GetValue()
 		upper.Sub(upper, res).Add(upper, bigOneConst())
-		count = &countSetting{upper}
+		count = upper
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 		res.Set(upper)
@@ -81,7 +82,7 @@ func (rng *ipAddressSeqRangeInternal) GetCount() *big.Int {
 	res := rng.setCount()
 	if res == nil {
 		// already set
-		res = new(big.Int).Set(rng.cache.cachedCount.count)
+		res = new(big.Int).Set(rng.cache.cachedCount)
 	}
 	return res
 }
@@ -96,12 +97,12 @@ func (rng *ipAddressSeqRangeInternal) IsMore(other *IPAddressSeqRange) int {
 	}
 	thisCount := rng.setCount()
 	if thisCount == nil {
-		thisCount = rng.cache.cachedCount.count
+		thisCount = rng.cache.cachedCount
 	}
 	other = other.init()
 	otherCount := other.setCount()
 	if otherCount == nil {
-		otherCount = other.cache.cachedCount.count
+		otherCount = other.cache.cachedCount
 	}
 	return thisCount.CmpAbs(otherCount)
 }

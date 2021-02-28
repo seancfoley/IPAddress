@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"net"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -123,6 +124,20 @@ func (addr *IPAddress) init() *IPAddress {
 		return zeroIPAddr // this has a zero section
 	}
 	return addr
+}
+
+func (addr *IPAddress) getProvider() IPAddressProvider {
+	return nil
+	//TODO
+	/*
+		if(isPrefixed()) {
+					if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
+						return IPAddressProvider.getProviderFor(this, withoutPrefixLength());
+					}
+					return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLength());
+				}
+				return IPAddressProvider.getProviderFor(this, this);
+	*/
 }
 
 func (addr IPAddress) String() string {
@@ -309,6 +324,38 @@ func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 		}
 	}
 	return nil
+}
+
+// Generates an IPAddressString object for this IPAddress object.
+//
+// This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
+//
+// In general, users are intended to create IPAddress objects from IPAddressString objects,
+// while the reverse direction is generally not all that useful, except under specific circumstances.
+//
+// Not all IPAddressString objects can be converted to IPAddress objects,
+// as is the case with IPAddressString objects corresponding to the types INVALID, EMPTY and ALL
+//
+// So it may be useful to store a set of address strings as a collection of IPAddressString objects,
+// rather than IPAddress objects.
+func (addr *IPAddress) ToAddressString() *IPAddressString {
+	addr = addr.init()
+	res := addr.cache.fromString
+	if res == nil {
+		str := NewIPAddressString(addr.ToCanonicalString(), nil)
+		dataLoc := &addr.cache.fromString
+		//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.fromString))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+		return str
+	}
+	return (*IPAddressString)(res)
+}
+
+func IPAddressEquals(one, two *IPAddress) bool {
+	if one == nil {
+		return two == nil
+	}
+	return two != nil && one.Equals(two)
 }
 
 // TODO make sure everything in IPv4 and IPv6 is "overridden", in the sense all methods will check for no divisions and

@@ -1,49 +1,5 @@
 package ipaddr
 
-type EmbeddedAddress struct {
-	isUNCIPv6Literal, isReverseDNS bool
-
-	addressStringException AddressStringException
-
-	addressProvider IPAddressProvider
-}
-
-var (
-	// used by hosts
-	NO_EMBEDDED_ADDRESS *EmbeddedAddress                     = &EmbeddedAddress{}
-	NO_QUALIFIER        *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
-)
-
-type ParsedHost struct { //TODO this needs its own file
-	normalizedLabels []string
-	separatorIndices []int // can be nil
-	normalizedFlags  []bool
-
-	labelsQualifier ParsedHostIdentifierStringQualifier
-	service         string
-
-	embeddedAddress *EmbeddedAddress
-
-	host, originalStr string
-}
-
-func (host *ParsedHost) getQualifier() *ParsedHostIdentifierStringQualifier {
-	return &host.labelsQualifier
-}
-
-type ParsedMACAddress struct { //TODO this needs to go somehwere else, what did I do with ParsedIPAddress?
-	MACAddressParseData
-
-	//TODO ParsedMACAddress
-
-	originator HostIdentifierString
-	//address *MACAddress //TODO
-}
-
-func (parseData *ParsedMACAddress) getMACAddressParseData() *MACAddressParseData {
-	return &parseData.MACAddressParseData
-}
-
 func cachePorts(i int) Port {
 	//TODO caching
 	return Port(&i)
@@ -59,11 +15,11 @@ func cacheBitCount(i BitCount) PrefixLen {
 	return PrefixLen(&bits)
 }
 
-type ParsedHostIdentifierStringQualifier struct {
+type ParsedHostIdentifierStringQualifier struct { //TODO rename to non-public
 
 	// if there is a port for the host, this will be its numeric value
 	port    Port    // non-nil for a host with port
-	service Service // non-nil for host with a service instead of a port
+	service Service // non-empty for host with a service instead of a port
 
 	// if there is a prefix length for the address, this will be its numeric value
 	networkPrefixLength PrefixLen //non-nil for a prefix-only address, sometimes non-nil for IPv4, IPv6

@@ -1856,7 +1856,7 @@ func parsePortOrService(
 			return
 		}
 		res.zone = zone
-		res.port = &port
+		res.port = cachePorts(port)
 		//res = &ParsedHostIdentifierStringQualifier{zone: zone, port: &port}
 		return
 	} else if !validationOptions.AllowsService() {
@@ -3347,7 +3347,7 @@ func parseLong16(s string, start, end int) uint64 {
 
 var (
 	IPvFUTURE_UPPERCASE = byte(unicode.ToUpper(rune(IPvFUTURE)))
-	DEFAULT_EMPTY_HOST  = &ParsedHost{} //TODO call functions in the default empty host to avoid data race or locking
+	DEFAULT_EMPTY_HOST  = &ParsedHost{parsedHostCache: &parsedHostCache{}} //TODO call functions in the default empty host to avoid data race or locking
 )
 
 func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost, err HostNameException) {
@@ -3580,7 +3580,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 		  isPossiblyIPv6: something like f:: or f:1, the former IPv6 and the latter a host "f" with port 1.  Such strings can be valid addresses or hosts.
 		  If it parses as an address, we do not treat as host.
 	*/
-	parsedHost = &ParsedHost{originalStr: str}
+	parsedHost = &ParsedHost{originalStr: str, parsedHostCache: &parsedHostCache{}}
 	addressOptions := validationOptions.GetIPAddressParameters()
 	//		try {
 	isIPAddress := squareBracketed || tryIPv4 || tryIPv6
@@ -3853,7 +3853,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 			parsedHost.labelsQualifier.clearPortOrService()
 			//fall though and evaluate as a host
 		} else {
-			parsedHost.embeddedAddress = &EmbeddedAddress{addressProvider: provider}
+			parsedHost.embeddedAddress.addressProvider = provider
 			return
 		}
 	}
@@ -3947,8 +3947,9 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 			addrQualifier = NO_QUALIFIER
 		}
 		embeddedAddr := checkSpecialHosts(str, addrLen, addrQualifier)
+		hasEmbeddedAddr := embeddedAddr.addressProvider == nil
 		//AddressStringException embeddedException = null;
-		if isSpecialOnlyIndex >= 0 && (embeddedAddr == nil || embeddedAddr.addressStringException != nil) {
+		if isSpecialOnlyIndex >= 0 && (!hasEmbeddedAddr || embeddedAddr.addressStringException != nil) {
 			if embeddedAddr.addressStringException != nil {
 				//TODO need to do someting with embeddedAddr.addressStringException, wrap it in the error or something
 				err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, isSpecialOnlyIndex}
@@ -3959,7 +3960,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 		}
 		parsedHost.separatorIndices = separatorIndices
 		parsedHost.normalizedFlags = normalizedFlags
-		if embeddedAddr == nil {
+		if !hasEmbeddedAddr {
 			if !isNotNormalized {
 				parsedHost.host = str
 			}
@@ -3973,7 +3974,8 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 	return
 }
 
-func checkSpecialHosts(str string, addrLen int, hostQualifier *ParsedHostIdentifierStringQualifier) (emb *EmbeddedAddress) {
+func checkSpecialHosts(str string, addrLen int, hostQualifier *ParsedHostIdentifierStringQualifier) (emb EmbeddedAddress) {
+	// TODO special hosts
 	//		try {
 	//			String suffix = IPv6Address.UNC_SUFFIX;
 	//			//note that by using addrLen we are omitting any terminating prefix

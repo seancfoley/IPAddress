@@ -16,15 +16,20 @@ type BitCount int16 // using signed integers allows for easier arithmetic and de
 func PrefixEquals(one, two PrefixLen) bool {
 	if one == nil {
 		return two == nil
-	} else if two == nil {
-		return false
 	}
-	return *one == *two
+	return two != nil && *one == *two
 }
 
 type PrefixLen *BitCount
 
 type Port *int // using signed integers allows for easier arithmetic and decrement bugs
+
+func PortEquals(one, two Port) bool {
+	if one == nil {
+		return two == nil
+	}
+	return two != nil && *one == *two
+}
 
 type Service string
 

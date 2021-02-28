@@ -419,6 +419,39 @@ func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	return true
 }
 
+//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
+// we also want toCanonicalWildcardString and ToNormalizedWildcardString
+// the code will need to check the addrtype in the section,
+// and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
+func (section *addressSectionInternal) ToCanonicalString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSectionInternal) ToCanonicalWildcardString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSectionInternal) ToNormalizedString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSectionInternal) ToNormalizedWildcardString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSectionInternal) GetSegmentStrings() []string {
+	count := section.GetSegmentCount()
+	res := make([]string, count)
+	for i := 0; i < count; i++ {
+		res[i] = section.GetSegment(i).String()
+	}
+	return res
+}
+
 //
 //
 //

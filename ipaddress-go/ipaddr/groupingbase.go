@@ -132,7 +132,7 @@ func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int)
 	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
 	count := cache.cachedCount
 	if count == nil {
-		count = &countSetting{counter()}
+		count = counter()
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 	}
@@ -144,7 +144,7 @@ func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int)
 	//	}
 	//	cache.cacheLock.Unlock()
 	//}
-	return new(big.Int).Set(cache.cachedCount.count)
+	return new(big.Int).Set(cache.cachedCount)
 }
 
 func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (bytes, upperBytes []byte)) (bytes, upperBytes []byte) {
@@ -175,12 +175,11 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 }
 
 type valueCache struct {
-	//	All writing done after locking the cacheLock.
-	//	Reading can be done by using the read lock of the cachelock,
-	//	or instead using a specific atomic flag covering a specific set of cache fields.
+	//	Cache lock is used for some fields, but not all, some use atomic reads/writes of pointers
 	cacheLock sync.RWMutex
 
-	cachedCount, cachedPrefixCount *countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
+	//cachedCount, cachedPrefixCount *countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
+	cachedCount, cachedPrefixCount *big.Int
 
 	cachedMaskLens *maskLenSetting
 
@@ -201,14 +200,13 @@ type groupingCache struct {
 }
 
 type maskLenSetting struct {
-	//x                           atomicFlag
 	networkMaskLen, hostMaskLen PrefixLen
 }
 
-type countSetting struct {
-	//x     atomicFlag
-	count *big.Int
-}
+//type countSetting struct { //TODO just use big.Int, no need for this struct
+//	//x     atomicFlag
+//	count *big.Int
+//}
 
 type divArray interface {
 	getDivision(index int) *addressDivisionBase

@@ -8,7 +8,6 @@ import (
 // TODO note that the way that you save substrings for segments in Java is perfect for go and slices, so your address creator interfaces will keep it
 
 type TranslatedResult struct {
-	//CachedIPAddresses
 	address, hostAddress *IPAddress
 
 	qualifier  *ParsedHostIdentifierStringQualifier

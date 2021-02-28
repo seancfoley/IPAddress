@@ -13,6 +13,7 @@ const (
 	RangeSeparator             = '-'
 	AlternativeRangeSeparator  = '\u00bb'
 	SegmentWildcard            = '*'
+	SegmentWildcardStr         = string(SegmentWildcard)
 	AlternativeSegmentWildcard = '¿'
 	SegmentSqlWildcard         = '%'
 	SegmentSqlSingleWildcard   = '_'
@@ -23,6 +24,10 @@ type SegmentValueProvider func(segmentIndex int) SegInt
 type addressCache struct {
 	ip           net.IPAddr // lower converted (cloned when returned)
 	lower, upper *Address
+	//fromString   *HostIdentifierString xxxxx
+	fromString unsafe.Pointer
+	//fromString *IPAddressString
+	fromHost *HostName
 }
 
 type addressInternal struct {
@@ -53,10 +58,18 @@ func (addr *addressInternal) GetCount() *big.Int {
 }
 
 func (addr *addressInternal) IsMultiple() bool {
+	return addr.section != nil && addr.section.IsMultiple()
+}
+
+func (addr *addressInternal) IsPrefixed() bool {
+	return addr.section != nil && addr.section.IsPrefixed()
+}
+
+func (addr *addressInternal) GetPrefixLength() PrefixLen {
 	if addr.section == nil {
-		return false
+		return nil
 	}
-	return addr.section.IsMultiple()
+	return addr.section.GetPrefixLength()
 }
 
 //func (addr *addressInternal) isMore(other *Address) int {
@@ -266,6 +279,51 @@ func (addr *addressInternal) isSameZone(other AddressType) bool {
 	return addr.zone == other.ToAddress().zone
 }
 
+//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
+// we also want toCanonicalWildcardString
+// the code will need to check the addrtype in the section, in fact, the code should just defer to the section,
+// although that's a bit problematic for ipv6.  So for ipv6, we need to scale up to ipv6 inside the address code,
+// unfortunately, although this is just as messy for the java side where we had to make a special override for ipv6 everywhere
+// And let's face it, we need to override all methods in addresses for the init() calls anyway
+func (addr *addressInternal) ToCanonicalString() string {
+	//TODO
+	return ""
+}
+
+func (addr *addressInternal) ToCanonicalWildcardString() string {
+	//TODO
+	return ""
+}
+
+func (addr *addressInternal) ToNormalizedString() string {
+	//TODO
+	return ""
+}
+
+func (addr *addressInternal) ToNormalizedWildcardString() string {
+	//TODO
+	return ""
+}
+
+//
+//
+//protected abstract IPAddressStringParameters createFromStringParams();
+//
+//	protected IPAddressStringParameters createFromStringParams() {
+//		return new IPAddressStringParameters.Builder().
+//				getIPv4AddressParametersBuilder().setNetwork(getNetwork()).getParentBuilder().
+//				getIPv6AddressParametersBuilder().setNetwork(getIPv6Network()).getParentBuilder().toParams();
+//	}
+//
+//	protected IPAddressStringParameters createFromStringParams() {
+//		return new IPAddressStringParameters.Builder().
+//				getIPv4AddressParametersBuilder().setNetwork(getIPv4Network()).getParentBuilder().
+//				getIPv6AddressParametersBuilder().setNetwork(getNetwork()).getParentBuilder().toParams();
+//	}
+//protected IPAddressString getAddressfromString() {
+//	return (IPAddressString) fromString;
+//}
+
 var zeroAddr = &Address{
 	addressInternal{
 		section: zeroSection,
@@ -359,6 +417,15 @@ func (addr *Address) GetUpper() *Address {
 
 func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
+}
+
+func (addr *Address) ToAddressString() HostIdentifierString {
+	if addr.isIP() {
+		return addr.toAddress().ToIPAddress().ToAddressString()
+	} else if addr.isMAC() {
+		return addr.toAddress().ToMACAddress().ToAddressString()
+	}
+	return nil
 }
 
 func (addr *Address) IsIPv4() bool {

@@ -1,5 +1,7 @@
 package ipaddr
 
+import "unsafe"
+
 type AddressNetwork interface {
 	GetAddressCreator() AddressCreator
 }
@@ -27,7 +29,7 @@ type AddressCreator interface {
 type IPAddressNetwork interface {
 	AddressNetwork
 
-	GetIPAddressCreator() IPAddressCreator
+	//GetIPAddressCreator() IPAddressCreator
 
 	GetLoopback() *IPAddress
 
@@ -61,9 +63,9 @@ func (network *IPv6AddressNetwork) GetIPv6AddressCreator() *IPv6AddressCreator {
 	return &network.creator
 }
 
-func (network *IPv6AddressNetwork) GetIPAddressCreator() IPAddressCreator {
-	return network.GetIPv6AddressCreator()
-}
+//func (network *IPv6AddressNetwork) GetIPAddressCreator() IPAddressCreator {
+//	return network.GetIPv6AddressCreator()
+//}
 
 func (network *IPv6AddressNetwork) GetAddressCreator() AddressCreator {
 	return network.GetIPv6AddressCreator()
@@ -175,7 +177,11 @@ func (creator *IPv6AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 
 func (creator *IPv6AddressCreator) createAddressInternalFromSection(
 	section *IPAddressSection, zone Zone, originator HostIdentifierString) *IPAddress {
-	return NewIPv6AddressZoned(section.ToIPv6AddressSection(), zone).ToIPAddress()
+	res := NewIPv6AddressZoned(section.ToIPv6AddressSection(), zone).ToIPAddress()
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator.(*IPAddressString))
+	}
+	return res
 }
 
 //
@@ -193,9 +199,9 @@ func (network *IPv4AddressNetwork) GetIPv4AddressCreator() *IPv4AddressCreator {
 	return &network.creator
 }
 
-func (network *IPv4AddressNetwork) GetIPAddressCreator() IPAddressCreator {
-	return network.GetIPv4AddressCreator()
-}
+//func (network *IPv4AddressNetwork) GetIPAddressCreator() IPAddressCreator {
+//	return network.GetIPv4AddressCreator()
+//}
 
 func (network *IPv4AddressNetwork) GetAddressCreator() AddressCreator {
 	return network.GetIPv4AddressCreator()
@@ -312,7 +318,11 @@ func (creator *IPv4AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 
 func (creator *IPv4AddressCreator) createAddressInternalFromSection(
 	section *IPAddressSection, zone Zone, originator HostIdentifierString) *IPAddress {
-	return NewIPv4Address(section.ToIPv4AddressSection()).ToIPAddress()
+	res := NewIPv4Address(section.ToIPv4AddressSection()).ToIPAddress()
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator.(*IPAddressString))
+	}
+	return res
 }
 
 //
@@ -394,4 +404,13 @@ func (creator *MACAddressCreator) createMACPrefixSegment(value MACSegInt, segmen
 
 func (creator *MACAddressCreator) createMACRangePrefixSegment(lower, upper MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
 	return NewMACRangeSegment(lower, upper).ToAddressDivision()
+}
+
+func (creator *MACAddressCreator) createAddressInternalFromSection(
+	section *MACAddressSection, originator HostIdentifierString) *MACAddress {
+	res := NewMACAddress(section)
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator.(*MACAddressString))
+	}
+	return res
 }

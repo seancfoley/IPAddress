@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"math/big"
 	"net"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -167,6 +168,18 @@ func (addr *MACAddress) Contains(other AddressType) bool {
 
 func (addr *MACAddress) Equals(other AddressType) bool {
 	return addr.init().equals(other)
+}
+
+func (addr *MACAddress) ToAddressString() *MACAddressString {
+	addr = addr.init()
+	res := addr.cache.fromString
+	if res == nil {
+		str := NewMACAddressString(addr.ToCanonicalString(), nil)
+		dataLoc := &addr.cache.fromString
+		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+		return str
+	}
+	return (*MACAddressString)(res)
 }
 
 //func (addr *MACAddress) IsMore(other *MACAddress) int {
