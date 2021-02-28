@@ -185,14 +185,15 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		int segCount = lower.getSegmentCount();
 		Integer prefLengths[] = new Integer[segCount];
 		int shifts[] = new int[segCount];
-		for(int i = 0; i < segCount; i++) {
+		int networkSegIndex = 0;
+		if(prefLength > 0) {
+			networkSegIndex = getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment);
+		}
+		for(int i = networkSegIndex; i < segCount; i++) {
 			Integer segPrefLength = ParsedAddressGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, prefLength, i);
 			prefLengths[i] = segPrefLength;
-			if(segPrefLength != null) {
-				shifts[i] = bitsPerSegment - segPrefLength;
-			}
+			shifts[i] = bitsPerSegment - segPrefLength;
 		}
-		int networkSegIndex = getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment);
 		int hostSegIndex = getHostSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment);
 		return iterator(
 				lower,
