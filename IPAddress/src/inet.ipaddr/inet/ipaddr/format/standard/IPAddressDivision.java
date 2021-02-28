@@ -179,6 +179,10 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 
 	@Override
 	protected boolean isSinglePrefixBlock(long segmentValue, long upperValue, int divisionPrefixLen) {
+		if(divisionPrefixLen == 0) {
+			//is full range?
+			return segmentValue == 0 && upperValue == getMaxValue();
+		}
 		return testRange(segmentValue,
 				segmentValue,
 				upperValue,
@@ -309,7 +313,7 @@ public abstract class IPAddressDivision extends AddressDivision implements IPAdd
 		long upperValue = getUpperDivisionValue();
 		long mask = getDivisionNetworkMask(getDivisionPrefixLength());
 		upperValue &= mask;
-		toUnsignedString(upperValue, radix, 0, uppercase, uppercase ? UPPERCASE_DIGITS : DIGITS, appendable);
+		toUnsignedStringCased(upperValue, radix, 0, uppercase, appendable);
 	}
 	
 	@Override
