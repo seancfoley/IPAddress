@@ -1363,90 +1363,21 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				this::getUpper,
 				prefixLength);
 	}
-
-	private static BigInteger multiply(long result1, long result2) {
-		if(result1 <= 0xb504f333) {
-			if(result1 == 1) {
-				return BigInteger.valueOf(result2);
-			}
-			if(result2 <= 0xb504f333) {
-				if(result2 == 1) {
-					return BigInteger.valueOf(result1);
-				}
-				return BigInteger.valueOf(result1 * result2);
-			}
-		} else if(result2 == 1) {
-			return BigInteger.valueOf(result1);
+	
+	@Override
+	protected BigInteger getCountImpl(int segCount) {
+		if(!isMultiple()) {
+			return BigInteger.ONE;
 		}
-		return BigInteger.valueOf(result1).multiply(BigInteger.valueOf(result2));
+		BigInteger result = getCountIPv6(i -> getSegment(i).getValueCount(), segCount);
+		return result;
 	}
 	
-	private static BigInteger getCount(IntUnaryOperator segmentValueCountProvider, int segCount) {
+	private static BigInteger getCountIPv6(IntUnaryOperator segmentValueCountProvider, int segCount) {
 		if(segCount < 0) {
 			throw new IllegalArgumentException();
 		}
-		if(segCount == 0) {
-			return BigInteger.ONE;
-		}
-		long result1 = segmentValueCountProvider.applyAsInt(0);
-		int limit = Math.min(segCount,  3);
-		for(int i = 1; i < limit; i++) {
-			int nextValue = segmentValueCountProvider.applyAsInt(i);
-			if(result1 == 1) {
-				result1 = nextValue;
-			} else if(nextValue != 1) {
-				result1 *= nextValue;
-			}
-		}
-		if(segCount <= 3) {
-			return BigInteger.valueOf(result1);
-		}
-		long result2 = segmentValueCountProvider.applyAsInt(3);
-		limit = Math.min(segCount,  6);
-		for(int i = 4; i < limit; i++) {
-			int nextValue = segmentValueCountProvider.applyAsInt(i);
-			if(result2 == 1) {
-				result2 = nextValue;
-			} else if(nextValue != 1) {
-				result2 *= nextValue;
-			}
-		}
-		if(segCount <= 6) {
-			return multiply(result1, result2);
-		}
-		long result3 = segmentValueCountProvider.applyAsInt(6);
-		if(segCount > 7) {
-			int nextValue = segmentValueCountProvider.applyAsInt(7);
-			if(result3 == 1) {
-				result3 = nextValue;
-			} else if(nextValue != 1) {
-				result3 *= nextValue;
-			}
-		}
-		if(result3 <= 0xb504f333) {
-			if(result3 == 1) {
-				return multiply(result1, result2);
-			}
-			if(result2 <= 0xb504f333) {
-				result2 *= result3;
-				return multiply(result1, result2);
-			}
-			if(result1 <= 0xb504f333) {
-				result1 *= result3;
-				return multiply(result1, result2);
-			}
-		} else if(result2 <= 0xb504f333) {
-			if(result2 == 1) {
-				return multiply(result1, result3);
-			}
-			if(result1 <= 0xb504f333) {
-				result1 *= result2;
-				return multiply(result1, result3);
-			}
-		} else if(result1 == 1) {
-			return multiply(result2, result3);
-		}
-		return multiply(result1, result2).multiply(BigInteger.valueOf(result3));
+		return count(segmentValueCountProvider, segCount, 2, 0x7fffffffffffL);
 	}
 	
 	@Override
@@ -1454,7 +1385,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		if(includesZeroHost(prefixLength)) {
 			if(isMultiple()) {
 				int prefixedSegment = getNetworkSegmentIndex(prefixLength, getBytesPerSegment(), getBitsPerSegment());
-				BigInteger zeroHostCount = getCount(i -> {
+				BigInteger zeroHostCount = getCountIPv6(i -> {
 					if(i == prefixedSegment) {
 						IPAddressSegment seg = getSegment(i);
 						int shift = seg.getBitCount() - getPrefixedSegmentPrefixLength(getBitsPerSegment(), prefixLength, i);
@@ -1469,15 +1400,6 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 		}
 		return BigInteger.ZERO;
-	}
-	
-	@Override
-	protected BigInteger getCountImpl(int segCount) {
-		if(!isMultiple()) {
-			return BigInteger.ONE;
-		}
-		BigInteger result = getCount(i -> getSegment(i).getValueCount(), segCount);
-		return result;
 	}
 	
 	@Override
@@ -1496,7 +1418,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			int networkSegmentIndex = getNetworkSegmentIndex(prefixLength, getBytesPerSegment(), getBitsPerSegment());
 			int hostSegmentIndex = getHostSegmentIndex(prefixLength, getBytesPerSegment(), getBitsPerSegment());
 			boolean hasPrefixedSegment = (networkSegmentIndex == hostSegmentIndex);
-			return getCount(i -> {
+			return getCountIPv6(i -> {
 				if(hasPrefixedSegment && i == networkSegmentIndex) {
 					return getSegment(i).getPrefixValueCount();
 				}
@@ -2375,7 +2297,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	/**
 	 * Equivalent to {@link #mask(IPv6AddressSection, boolean)} with the second argument as false.
 	 */
-	public IPv6AddressSection mask(IPv6AddressSection mask) throws IncompatibleAddressException {
+	public IPv6AddressSection mask(IPv6AddressSection mask) throws IncompatibleAddressException, SizeMismatchException {
 		return mask(mask, false);
 	}
 	
