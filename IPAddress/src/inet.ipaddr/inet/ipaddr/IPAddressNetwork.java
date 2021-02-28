@@ -103,36 +103,36 @@ public abstract class IPAddressNetwork<
 		}
 		
 		protected abstract R[] createSectionArray(int length);
-		
+
 		@Override
 		protected abstract R createSectionInternal(S segments[]);
-		
+
 		protected abstract R createEmbeddedSectionInternal(IPAddressSection encompassingSection, S segments[]);
-		
+
 		@Override
 		protected R createPrefixedSectionInternal(S segments[], Integer prefix) {
 			return createPrefixedSectionInternal(segments, prefix, false);
 		}
-		
+
 		@Override
 		protected abstract R createPrefixedSectionInternal(S segments[], Integer prefix, boolean singleOnly);
-		
+
 		public abstract R createFullSectionInternal(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefix);
 
 		public abstract R createSection(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefix);
 
 		public abstract R createSection(byte bytes[], Integer prefix);
-		
+
 		public abstract R createSection(S segments[], Integer networkPrefixLength);
-		
+
 		public abstract R createSection(S segments[]);
-		
+
 		protected abstract T[] createAddressArray(int length);
-		
+
 		public T createAddress(S segments[]) {
 			return createAddress(createSection(segments));
 		}
-		
+
 		public T createAddress(S segments[], Integer prefix) {
 			return createAddress(createSection(segments, prefix));
 		}
