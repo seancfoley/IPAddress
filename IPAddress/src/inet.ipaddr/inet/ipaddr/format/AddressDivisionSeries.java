@@ -162,7 +162,7 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 			for(int i = 0; i < count; i++) {
 				AddressGenericDivision div = getDivision(i);
 				if(div.isMultiple()) {
-					BigInteger divCount = getDivision(i).getCount();
+					BigInteger divCount = div.getCount();
 					result = result.multiply(divCount);
 				}
 			}
