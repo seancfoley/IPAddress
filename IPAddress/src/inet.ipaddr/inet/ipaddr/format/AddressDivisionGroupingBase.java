@@ -165,7 +165,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	}
 	
 	/**
-	 * Gets the value for the lowest address in the range represented by this address division.
+	 * Gets the value for the lowest address in the range represented by this address division grouping.
 	 * <p>
 	 * If the value fits in the specified array, the same array is returned with the value.  
 	 * Otherwise, a new array is allocated and returned with the value.
@@ -180,7 +180,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	 */
 	@Override
 	public byte[] getBytes(byte bytes[], int index) {
-		return getBytesCopy(bytes, index, getBytesInternal(), getBitCount());
+		return getBytesCopy(bytes, index, getBytesInternal());
 	}
 	
 	/**
@@ -191,15 +191,15 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		return getBytes(bytes, 0);
 	}
 
-	private static byte[] getBytesCopy(byte[] bytes, int startIndex, byte[] cached, int bitCount) {
-		int byteCount = (bitCount + 7) >> 3;
+	private static byte[] getBytesCopy(byte[] bytes, int startIndex, byte[] cached) {
+		int byteCount = cached.length;
 		if(bytes == null || bytes.length < byteCount + startIndex) {
 			if(startIndex > 0) {
 				byte bytes2[] = new byte[byteCount + startIndex];
 				if(bytes != null) {
 					System.arraycopy(bytes, 0, bytes2, 0, Math.min(startIndex, bytes.length));
 				}
-				System.arraycopy(cached, 0, bytes2, startIndex, cached.length);
+				System.arraycopy(cached, 0, bytes2, startIndex, byteCount);
 				return bytes2;
 			}
 			return cached.clone();
@@ -254,7 +254,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	 */
 	@Override
 	public byte[] getUpperBytes(byte bytes[], int index) {
-		return getBytesCopy(bytes, index, getUpperBytesInternal(), getBitCount());
+		return getBytesCopy(bytes, index, getUpperBytesInternal());
 	}
 	
 	/**
