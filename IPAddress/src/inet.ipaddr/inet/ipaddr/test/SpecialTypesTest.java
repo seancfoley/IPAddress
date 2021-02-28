@@ -173,6 +173,8 @@ public class SpecialTypesTest extends TestBase {
 		} else if(addressAll.compareTo(address) != 0) {
 			addFailure(new Failure("no match " + address, addressAll));
 		} else if(!addressAll.getCount().equals(count)) {
+			IPAddress x = createAddress("*", ADDRESS_OPTIONS).getAddress(version);
+			x.getCount();
 			addFailure(new Failure("no count match ", addressAll));
 		} else {
 			addressAll = hostAll.asAddress(version);
