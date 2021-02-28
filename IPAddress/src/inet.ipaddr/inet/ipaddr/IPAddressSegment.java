@@ -183,7 +183,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	public boolean isPrefixBlock() {
 		return (isPrefixed() && getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) || super.isPrefixBlock();
 	}
-	
+
 	protected boolean isNetworkChangedByPrefix(Integer bits, boolean withPrefixLength) {
 		boolean hasBits = (bits != null);
 		if(hasBits && (bits < 0 || bits > getBitCount())) {
@@ -223,13 +223,13 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	protected <S extends IPAddressSegment> S toNetworkSegment(Integer segmentPrefixLength, boolean withPrefixLength, AddressSegmentCreator<S> creator) {
 		int newLower = getSegmentValue();
 		int newUpper = getUpperSegmentValue();
-		if(segmentPrefixLength != null) {
+		boolean hasPrefLen = segmentPrefixLength != null;
+		if(hasPrefLen) {
 			int mask = getSegmentNetworkMask(segmentPrefixLength);
 			newLower &= mask;
 			newUpper |= getSegmentHostMask(segmentPrefixLength);
 		}
-		boolean hasBits = (segmentPrefixLength != null);
-		withPrefixLength &= hasBits;
+		withPrefixLength = withPrefixLength && hasPrefLen;
 		if(newLower != newUpper) {
 			//note that the case where our segmentPrefix is less than the requested prefix bits has already been accounted for in isNetworkChangedByPrefix
 			//so we are not handling that here
@@ -818,7 +818,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	}
 	
 	protected static StringBuilder toUnsignedString(int value, int radix, StringBuilder appendable) {
-		return toUnsignedString(value, radix, 0, false, DIGITS, appendable);
+		return toUnsignedStringCased(value, radix, 0, false, appendable);
 	}
 
 	void setStandardString(
