@@ -77,10 +77,10 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 	private static int mapGrouping(AddressDivisionSeries series) {
 		if(series instanceof IPv6AddressSection) {
 			return 6;
-		} else if(series instanceof IPv6v4MixedAddressSection) {
-			return 5;
 		} else if(series instanceof IPv4AddressSection) {
 			return 4;
+		} else if(series instanceof IPv6v4MixedAddressSection) {
+			return 5;
 		} else if(series instanceof MACAddressSection) {
 			return 3;
 		} else if(series instanceof IPAddressDivisionGrouping) {
@@ -94,14 +94,14 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 	}
 	
 	private static int mapDivision(AddressGenericDivision div) {
-		if(div instanceof MACAddressSegment) {
+		if(div instanceof IPv6AddressSegment) {
+			return 4;
+		} else if(div instanceof IPv4AddressSegment) {
+			return 3;
+		} else if(div instanceof MACAddressSegment) {
 			return 1;
 		} else if(div instanceof IPv4JoinedSegments) {
 			return 2;
-		} else if(div instanceof IPv4AddressSegment) {
-			return 3;
-		} else if(div instanceof IPv6AddressSegment) {
-			return 4;
 		} else if(div instanceof IPAddressLargeDivision) {
 			return -1;
 		} else if(div instanceof IPAddressBitsDivision) {
@@ -178,6 +178,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 					return -1;
 				} 
 				return 1;
+			}
+		}
+		if (equalsConsistent) {
+			if(two instanceof AddressDivisionSeries) {
+				return -1;
+			} else if(two instanceof AddressGenericDivision) {
+				return 1;
+			} else if(two instanceof IPAddressSeqRange) {
+				return -1;
 			}
 		}
 		if(one == two) {
@@ -358,8 +367,6 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 		
 		public ValueComparator(boolean equalsConsistent, boolean compareHighValue) {
 			this(true, compareHighValue, false);
-			//super(equalsConsistent);
-			//this.compareHighValue = compareHighValue;
 		}
 		
 		public ValueComparator(boolean equalsConsistent, boolean compareHighValue, boolean flipSecond) {
@@ -411,13 +418,13 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			AddressDivisionGrouping one, two;
 			if(oneSeries instanceof AddressDivisionGrouping && twoSeries instanceof AddressDivisionGrouping) {
 				one = (AddressDivisionGrouping) oneSeries;
-				 two = (AddressDivisionGrouping) twoSeries;
+				two = (AddressDivisionGrouping) twoSeries;
 			} else {
 				one = two = null;
 			}
+			int oneSeriesByteCount = oneSeries.getByteCount(), twoSeriesByteCount = twoSeries.getByteCount();
+			byte oneBytes[] = new byte[oneSeriesByteCount], twoBytes[] = new byte[twoSeriesByteCount];
 			do {
-				int oneSeriesByteCount = oneSeries.getByteCount(), twoSeriesByteCount = twoSeries.getByteCount();
-				byte oneBytes[] = new byte[oneSeriesByteCount], twoBytes[] = new byte[twoSeriesByteCount];
 				int oneTotalBitCount, twoTotalBitCount, oneByteCount, twoByteCount, oneByteIndex, twoByteIndex;
 				oneByteIndex = twoByteIndex = oneByteCount = twoByteCount = oneTotalBitCount = twoTotalBitCount = 0;
 				
@@ -518,6 +525,9 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 					}
 					long result = oneResultValue - twoResultValue;
 					if(result != 0) {
+						if(flipSecond && compareHigh != compareHighValue) {
+							result = -result;
+						}
 						return convertResult(result);
 					}
 				}
@@ -533,11 +543,17 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 				result = oneUpper.compareTo(twoUpper);
 				if(result == 0) {
 					result = oneLower.compareTo(twoLower);
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			} else {
 				result = oneLower.compareTo(twoLower);
 				if(result == 0) {
 					result = oneUpper.compareTo(twoUpper);
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			}
 			return convertResult(result);
@@ -550,11 +566,17 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 				result = oneUpper - twoUpper;
 				if(result == 0) {
 					result = oneLower - twoLower;
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			} else {
 				result = oneLower - twoLower;
 				if(result == 0) {
 					result = oneUpper - twoUpper;
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			}
 			return convertResult(result);
@@ -567,11 +589,17 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 				result = oneUpper - twoUpper;
 				if(result == 0) {
 					result = oneLower - twoLower;
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			} else {
 				result = oneLower - twoLower;
 				if(result == 0) {
 					result = oneUpper - twoUpper;
+					if(flipSecond) {
+						result = -result;
+					}
 				}
 			}
 			return result;
@@ -619,13 +647,13 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			if(result == 0) {
 				result = compareCount(one, two);
 				if(result == 0) {
-					result = compareSegmentGroupings(one, two);
+					result = compareDivisionGroupings(one, two);
 				}
 			}
 			return result;
 		}
 		
-		private int compareSegmentGroupings(AddressDivisionSeries oneSeries, AddressDivisionSeries twoSeries) {
+		private int compareDivisionGroupings(AddressDivisionSeries oneSeries, AddressDivisionSeries twoSeries) {
 			AddressDivisionGrouping one, two;
 			if(oneSeries instanceof AddressDivisionGrouping && twoSeries instanceof AddressDivisionGrouping) {
 				one = (AddressDivisionGrouping) oneSeries;
@@ -698,7 +726,7 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							}
 							byte upperByte = oneUpperBytes[++oneByteIndex];
 							byte lowerByte = oneLowerBytes[oneByteIndex];
-							oneUpper = (oneUpper << lastBitsCount) | (upperByte>>> (Byte.SIZE - lastBitsCount));
+							oneUpper = (oneUpper << lastBitsCount) | (upperByte >>> (Byte.SIZE - lastBitsCount));
 							oneLower = (oneLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
 							oneBitCount = oneTotalBitCount;
 							oneTotalBitCount = oneByteCount = 0;
@@ -738,7 +766,7 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							}
 							byte upperByte = twoUpperBytes[++twoByteIndex];
 							byte lowerByte = twoLowerBytes[twoByteIndex];
-							twoUpper = (twoUpper << lastBitsCount) | (upperByte>>> (Byte.SIZE - lastBitsCount));
+							twoUpper = (twoUpper << lastBitsCount) | (upperByte >>> (Byte.SIZE - lastBitsCount));
 							twoLower = (twoLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
 							twoBitCount = twoTotalBitCount;
 							twoTotalBitCount = twoByteCount = 0;
@@ -808,13 +836,18 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 
 		@Override
 		protected int compareValues(long oneUpper, long oneLower, long twoUpper, long twoLower) {
-			long result = (oneUpper - oneLower) - (twoUpper - twoLower);
-			if(result == 0) {
-				//the size of the range is the same, so just compare either upper or lower values
-				result = oneLower - twoLower;
-				
-			} //else the size of the range is the same, so just compare either upper or lower values
-			return convertResult(result);
+			long size1 = oneUpper - oneLower;
+			long size2 = twoUpper - twoLower;
+			if(size1 == size2) {
+				if(oneLower == twoLower) {
+					return 0;
+				} else if(oneLower > twoLower) {
+					return 1;
+				}
+			} else if(size1 > size2) {
+				return 1;
+			}
+			return -1;
 		}
 		
 		@Override
