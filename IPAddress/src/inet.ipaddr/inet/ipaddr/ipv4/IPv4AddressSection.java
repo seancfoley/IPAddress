@@ -113,7 +113,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	transient IPv4StringCache stringCache;
 	
 	private transient SectionCache<IPv4AddressSection> sectionCache;
-
+	private transient int cachedLowerVal = -1;
+	
 	/**
 	 * Constructs a single segment section.
 	 * 
@@ -413,7 +414,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	private IPv4AddressSection getLowestOrHighestSection(boolean lowest, boolean excludeZeroHost) {
-		//TODO remove this placeholder xxx;
 		IPv4AddressSection result = getSingleLowestOrHighestSection(this);
 		if(result == null) {
 			SectionCache<IPv4AddressSection> cache = sectionCache;
@@ -463,7 +463,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	IPv4Address getLowestOrHighest(IPv4Address addr, boolean lowest, boolean excludeZeroHost) {
-		//TODO remove this placeholder xxx;
 		IPv4AddressSection sectionResult = getLowestOrHighestSection(lowest, excludeZeroHost);
 		if(sectionResult == this) {
 			return addr;
@@ -539,11 +538,38 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	private int getIntValue(boolean lower) {
-		int segCount = getSegmentCount();
 		int result = 0;
-		for(int i = 0; i < segCount; i++) {
-			IPv4AddressSegment seg = getSegment(i);
-			result = (result << getBitsPerSegment()) | (lower ? seg.getSegmentValue() : seg.getUpperSegmentValue());
+		if(lower) {
+			int cachedInt = this.cachedLowerVal;
+			if(cachedInt == -1) {
+				int segCount = getSegmentCount();
+				if(segCount != 0) {
+					result = getSegment(0).getSegmentValue();
+					if(segCount != 1) {
+						int bitsPerSegment = getBitsPerSegment();
+						for(int i = 1; i < segCount; i++) {
+							IPv4AddressSegment seg = getSegment(i);
+							result = (result << bitsPerSegment) | seg.getSegmentValue();
+						}
+					}
+					
+				}
+				this.cachedLowerVal = result;
+			} else {
+				result = cachedInt;
+			}
+		} else {
+			int segCount = getSegmentCount();
+			if(segCount != 0) {
+				result = getSegment(0).getSegmentValue();
+				if(segCount != 1) {
+					int bitsPerSegment = getBitsPerSegment();
+					for(int i = 1; i < segCount; i++) {
+						IPv4AddressSegment seg = getSegment(i);
+						result = (result << bitsPerSegment) | seg.getUpperSegmentValue();
+					}
+				}
+			}
 		}
 		return result;
 	}
@@ -1712,7 +1738,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @return
 	 * @throws IncompatibleAddressException
 	 */
-	public IPv4AddressSection mask(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
+	public IPv4AddressSection mask(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
 		checkMaskSectionCount(mask);
 		return getSubnetSegments(
 				this,
@@ -1727,7 +1753,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	/**
 	 * Equivalent to {@link #mask(IPv4AddressSection, boolean)} with the second argument as false.
 	 */
-	public IPv4AddressSection mask(IPv4AddressSection mask) throws IncompatibleAddressException {
+	public IPv4AddressSection mask(IPv4AddressSection mask) throws IncompatibleAddressException, SizeMismatchException {
 		return mask(mask, false);
 	}
 	
