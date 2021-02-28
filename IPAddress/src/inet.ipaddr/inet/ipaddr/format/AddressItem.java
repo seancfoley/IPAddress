@@ -56,6 +56,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 
 	/**
 	 * The count of possible distinct values for this AddressComponent.  If not multiple, this is 1.
+	 * Note that an AddressDivisionSeries with no divisions or AddressSection with no segments has a single value of 0.
 	 * 
 	 * For instance, if this is the ip address series subnet 0::/64, then the count is 2 to the power of 64.
 	 * 
@@ -260,6 +261,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	default int getMinPrefixLengthForBlock() {
 		int result = getBitCount();
 		BigInteger lower = getValue(), upper = getUpperValue();
+		//TODO check for single value first
 		int longBits = Long.SIZE;
 		do {
 			long low = lower.longValue();
