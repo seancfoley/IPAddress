@@ -58,7 +58,7 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
  * <p>
  *  @author sfoley
  */
-public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*implements AddressDivisionSeries , Comparable<AddressDivisionGrouping>*/ {
+public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 
 	private static final long serialVersionUID = 4L;
 	
@@ -235,6 +235,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 	
 	protected static long getLongCount(IntUnaryOperator countProvider, int segCount) {
 		if(segCount == 0) {
+			// groupings with no divisions have the single value 0
 			return 1;
 		}
 		long result = countProvider.applyAsInt(0);
@@ -430,7 +431,11 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 		Integer oldPrefix = original.getPrefixLength();
 		if(oldPrefix != null) {
 			segments = segments.clone();
-			for(int i = 0; i < segments.length; i++) {
+			int networkSegIndex = 0;
+			if(oldPrefix > 0) {
+				networkSegIndex = getNetworkSegmentIndex(oldPrefix, original.getBytesPerSegment(), segmentBitCount);
+			}
+			for(int i = networkSegIndex; i < segments.length; i++) {
 				Integer oldPref = getPrefixedSegmentPrefixLength(segmentBitCount, oldPrefix, i);
 				segments[i] = prefixSetter.apply(segments[i], oldPref, null);
 			}
@@ -1405,6 +1410,51 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase /*imple
 					addrCreator.getNetwork(),
 					prefixLength);
 		return createIteratedSection(newSegs, addrCreator, prefixLength);
+	}
+	
+	protected static BigInteger count(IntUnaryOperator segmentValueCountProvider, int segCount, int safeMultiplies, long safeLimit) {
+		int i = 0;
+		BigInteger result = BigInteger.ONE;
+		if(segCount == 0) {
+			return result;
+		}
+		while(true) {
+			long curResult = segmentValueCountProvider.applyAsInt(i++);
+			if(i == segCount) {
+				return mult(result, curResult);
+			}
+			int limit = i + safeMultiplies;
+			if(segCount <= limit) {
+				// all multiplies are safe
+				while(i < segCount) {
+					curResult *= segmentValueCountProvider.applyAsInt(i++);
+				}
+				return mult(result, curResult);
+			}
+			// do the safe multiplies which cannot overflow
+			while(i < limit) {
+				curResult *= segmentValueCountProvider.applyAsInt(i++);
+			}
+			// do as many additional multiplies as current result allows
+			while(curResult <= safeLimit) {
+				curResult *= segmentValueCountProvider.applyAsInt(i++);
+				if(i == segCount) {
+					return mult(result, curResult);
+				}
+			}
+			result = mult(result, curResult);
+		}
+	}
+	
+	private static BigInteger mult(BigInteger currentResult, long newResult) {
+		if(newResult == 1) {
+			return currentResult;
+		}
+		BigInteger newBig = BigInteger.valueOf(newResult);
+		if(currentResult == BigInteger.ONE) {
+			return newBig;
+		}
+		return currentResult.multiply(newBig);
 	}
 	
 	protected static <R extends AddressSection, S extends AddressSegment> R getSection(
