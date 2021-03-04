@@ -90,10 +90,10 @@ func (seg *ipAddressSegmentInternal) GetTrailingBitCount(network bool) BitCount 
 	val := seg.GetSegmentValue()
 	if network {
 		//trailing zeros
-		return BitCount(bits.TrailingZeros32(val | (^SegInt(0) << seg.GetBitCount())))
+		return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << seg.GetBitCount()))))
 	}
 	// trailing ones
-	return BitCount(bits.TrailingZeros32(^val))
+	return BitCount(bits.TrailingZeros32(uint32(^val)))
 }
 
 //	GetLeadingBitCount returns the number of consecutive leading one or zero bits.
@@ -106,10 +106,10 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(network bool) BitCount {
 	val := seg.GetSegmentValue()
 	if network {
 		//leading ones
-		return BitCount(bits.LeadingZeros32(^val&seg.GetMaxValue())) - extraLeading
+		return BitCount(bits.LeadingZeros32(uint32(^val&seg.GetMaxValue()))) - extraLeading
 	}
 	// leading zeros
-	return BitCount(bits.LeadingZeros32(val)) - extraLeading
+	return BitCount(bits.LeadingZeros32(uint32(val))) - extraLeading
 
 }
 

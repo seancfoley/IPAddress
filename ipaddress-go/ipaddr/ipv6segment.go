@@ -97,7 +97,11 @@ func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) 
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
-func (seg ipv6SegmentValues) deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg ipv6SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(val), prefLen)
+}
+
+func (seg ipv6SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
@@ -132,6 +136,22 @@ func (seg *IPv6AddressSegment) GetByteCount() int {
 
 func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 	return 0xffff
+}
+
+func (seg *IPv6AddressSegment) Iterator() IPv6SegmentIterator {
+	return ipv6SegmentIterator{seg.iterator()}
+}
+
+func (seg *IPv6AddressSegment) PrefixBlockIterator() IPv6SegmentIterator {
+	return ipv6SegmentIterator{seg.prefixBlockIterator()}
+}
+
+func (seg *IPv6AddressSegment) PrefixedBlockIterator(segmentPrefixLen BitCount) IPv6SegmentIterator {
+	return ipv6SegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
+}
+
+func (seg *IPv6AddressSegment) PrefixIterator() IPv6SegmentIterator {
+	return ipv6SegmentIterator{seg.prefixIterator()}
 }
 
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {

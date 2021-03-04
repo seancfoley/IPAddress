@@ -1,25 +1,10 @@
 package ipaddr
 
-func cachePorts(i int) Port {
-	//TODO caching
-	return Port(&i)
-}
-
-func cacheBits(i int) PrefixLen {
-	return cacheBitCount(BitCount(i))
-}
-
-func cacheBitCount(i BitCount) PrefixLen {
-	//TODO caching
-	bits := i
-	return PrefixLen(&bits)
-}
-
 type ParsedHostIdentifierStringQualifier struct { //TODO rename to non-public
 
 	// if there is a port for the host, this will be its numeric value
-	port    Port    // non-nil for a host with port
-	service Service // non-empty for host with a service instead of a port
+	port    Port   // non-nil for a host with port
+	service string // non-empty for host with a service instead of a port
 
 	// if there is a prefix length for the address, this will be its numeric value
 	networkPrefixLength PrefixLen //non-nil for a prefix-only address, sometimes non-nil for IPv4, IPv6
@@ -112,7 +97,7 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) getPort() Port {
 	return parsedQual.port
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getService() Service {
+func (parsedQual *ParsedHostIdentifierStringQualifier) getService() string {
 	return parsedQual.service
 }
 

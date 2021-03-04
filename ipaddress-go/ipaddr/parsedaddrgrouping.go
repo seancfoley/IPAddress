@@ -360,7 +360,7 @@ func isPrefixSubnet(
 						return false
 					}
 				} else {
-					upperOnes := bits.TrailingZeros32(^upper)
+					upperOnes := bits.TrailingZeros64(^uint64(upper))
 					if upperOnes > 0 {
 						if (upper >> upperOnes) != 0 {
 							return false
@@ -382,14 +382,14 @@ func isPrefixSubnet(
 						return false
 					}
 				} else {
-					lowerZeros := BitCount(bits.TrailingZeros32(lower))
+					lowerZeros := BitCount(bits.TrailingZeros64(uint64(lower)))
 					if lowerZeros < segHostBits {
 						return false
 					}
 					upper := upperValueProvider(i)
-					upperOnes := BitCount(bits.TrailingZeros32(^upper))
+					upperOnes := BitCount(bits.TrailingZeros64(^uint64(upper)))
 					if upperOnes < segHostBits {
-						upperZeros := BitCount(bits.TrailingZeros32((upper | (^SegInt(0) << bitsPerSegment)) >> upperOnes))
+						upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<bitsPerSegment)) >> upperOnes))
 						if upperOnes+upperZeros < segHostBits {
 							return false
 						}

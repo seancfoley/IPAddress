@@ -136,6 +136,14 @@ func (host *HostName) IsAddress() bool {
 	return false
 }
 
+func (host *HostName) AsAddress() *IPAddress {
+	if host.IsAddress() {
+		addr, _ := host.parsedHost.asAddress()
+		return addr
+	}
+	return nil
+}
+
 func (host *HostName) IsAllAddresses() bool {
 	host = host.init()
 	return host.IsValid() && host.parsedHost.getAddressProvider().isProvidingAllAddresses()
@@ -265,7 +273,7 @@ func (host *HostName) GetPort() Port {
 	return nil
 }
 
-func (host *HostName) GetService() Service {
+func (host *HostName) GetService() string {
 	host = host.init()
 	if host.IsValid() {
 		return host.parsedHost.getService()
@@ -278,89 +286,58 @@ func (host *HostName) ToNormalizedString() string {
 	host = host.init()
 	str := host.normalizedString
 	if str == nil {
-		//str = host.ToNormalizedString(false) TODO next
+		newStr := host.toNormalizedString(false)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.normalizedString))
+		str = &newStr
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 	}
 	return *str
 }
 
-//
-//private String toNormalizedWildcardString() {//used by hashCode
-//	String result = normalizedWildcardString;
-//	if(result == null) {
-//		normalizedWildcardString = result = toNormalizedString(true);
-//	}
-//	return result;
-//}
-//
-func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) {
-	//This is particularly targeted towards the zone
-	if !addr.HasZone() {
-		builder.WriteString(str)
-		return
-		//return str;
-	}
-	index := strings.IndexByte(str, IPv6ZoneSeparator)
-	//var translated strings.Builder
-	var translated *strings.Builder = builder
-	//translated.Grow(((len(str) - index) * 3) + index)
-	translated.WriteString(str[0:index])
-	translated.WriteString("%25")
-	for i := index + 1; i < len(str); i++ {
-		c := str[i]
-		if isReserved(c) {
-			translated.WriteByte('%')
-			toUnsignedString(uint64(c), 16, translated)
+func (host *HostName) toNormalizedString(wildcard bool) string {
+	if host.IsValid() {
+		var builder strings.Builder
+		if host.IsAddress() {
+			toNormalizedString(host.AsAddress(), wildcard, &builder)
+		} else if host.IsAddressString() {
+			builder.WriteString(host.AsAddressString().ToNormalizedString())
 		} else {
-			translated.WriteByte(c)
+			builder.WriteString(host.parsedHost.getHost())
+			/*
+			 * If prefix or mask is supplied and there is an address, it is applied directly to the address provider, so
+			 * we need only check for those things here
+			 *
+			 * Also note that ports and prefix/mask cannot appear at the same time, so this does not interfere with the port code below.
+			 */
+			networkPrefixLength := host.parsedHost.getEquivalentPrefixLength()
+			if networkPrefixLength != nil {
+				builder.WriteByte(PrefixLenSeparator)
+				toUnsignedString(uint64(*networkPrefixLength), 10, &builder)
+				//builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
+			} else {
+				mask := host.parsedHost.getMask()
+				if mask != nil {
+					builder.WriteByte(PrefixLenSeparator)
+					builder.WriteString(mask.ToNormalizedString())
+					//builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(mask.toNormalizedString())
+				}
+			}
 		}
+		port := host.parsedHost.getPort()
+		if port != nil {
+			toNormalizedPortString(*port, &builder)
+		} else {
+			service := host.parsedHost.getService()
+			if service != "" {
+				builder.WriteByte(PortSeparator)
+				builder.WriteString(string(service))
+				//builder.append(PORT_SEPARATOR).append(service)
+			}
+		}
+		return builder.String()
 	}
-	//return translated.String()
+	return host.str
 }
-
-//
-//private String toNormalizedString(boolean wildcard) {
-//	if(isValid()) {
-//		StringBuilder builder = new StringBuilder();
-//		if(isAddress()) {
-//			toNormalizedString(asAddress(), wildcard, builder);
-//		} else if(isAddressString()) {
-//			builder.append(asAddressString().toNormalizedString());
-//		} else {
-//			builder.append(parsedHost.getHost());
-//			/*
-//			 * If prefix or mask is supplied and there is an address, it is applied directly to the address provider, so
-//			 * we need only check for those things here
-//			 *
-//			 * Also note that ports and prefix/mask cannot appear at the same time, so this does not interfere with the port code below.
-//			 */
-//			Integer networkPrefixLength = parsedHost.getEquivalentPrefixLength();
-//			if(networkPrefixLength != null) {
-//				builder.append(IPAddress.PREFIX_LEN_SEPARATOR);
-//				IPAddressSegment.toUnsignedString(networkPrefixLength, 10, builder);
-//				//builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
-//			} else {
-//				IPAddress mask = parsedHost.getMask();
-//				if(mask != null) {
-//					builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(mask.toNormalizedString());
-//				}
-//			}
-//		}
-//		Integer port = parsedHost.getPort();
-//		if(port != null) {
-//			toNormalizedString(port, builder);
-//		} else {
-//			String service = parsedHost.getService();
-//			if(service != null) {
-//				builder.append(PORT_SEPARATOR).append(service);
-//			}
-//		}
-//		return builder.toString();
-//	}
-//	return host;
-//}
-//
 
 func toNormalizedPortString(port int, builder *strings.Builder) {
 	builder.WriteByte(PortSeparator)
@@ -571,6 +548,40 @@ TODO isUNCIPv6Literal and isReverseDNS
 // TODO java code has methods which provide InetSocketAddress, InetAddress, etc and/or take as constructor, so do the same for go types
 
 // TODO compareTo
+
+//
+//private String toNormalizedWildcardString() {//used by hashCode
+//	String result = normalizedWildcardString;
+//	if(result == null) {
+//		normalizedWildcardString = result = toNormalizedString(true);
+//	}
+//	return result;
+//}
+//
+func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) {
+	//This is particularly targeted towards the zone
+	if !addr.HasZone() {
+		builder.WriteString(str)
+		return
+		//return str;
+	}
+	index := strings.IndexByte(str, IPv6ZoneSeparator)
+	//var translated strings.Builder
+	var translated *strings.Builder = builder
+	//translated.Grow(((len(str) - index) * 3) + index)
+	translated.WriteString(str[0:index])
+	translated.WriteString("%25")
+	for i := index + 1; i < len(str); i++ {
+		c := str[i]
+		if isReserved(c) {
+			translated.WriteByte('%')
+			toUnsignedString(uint64(c), 16, translated)
+		} else {
+			translated.WriteByte(c)
+		}
+	}
+	//return translated.String()
+}
 
 func getPrivateHostParams(orig HostNameParameters) *hostNameParameters {
 	if p, ok := orig.(*hostNameParameters); ok {

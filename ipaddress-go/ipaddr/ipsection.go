@@ -610,7 +610,7 @@ func getSubnetSegments(
 		if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
 			newSegments := createSegmentArray(count)
 			original.copySubSegmentsToSlice(0, i, newSegments)
-			newSegments[i] = createAddressDivision(seg.deriveNewSeg(value, upperValue, segmentPrefixLength))
+			newSegments[i] = createAddressDivision(seg.deriveNewMultiSeg(value, upperValue, segmentPrefixLength))
 			for i++; i < count; i++ {
 				segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
 				seg = segProducer(i)
@@ -633,7 +633,7 @@ func getSubnetSegments(
 					upperValue &= maskValue
 				}
 				if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
-					newSegments[i] = createAddressDivision(seg.deriveNewSeg(value, upperValue, segmentPrefixLength))
+					newSegments[i] = createAddressDivision(seg.deriveNewMultiSeg(value, upperValue, segmentPrefixLength))
 				} else {
 					newSegments[i] = seg
 				}

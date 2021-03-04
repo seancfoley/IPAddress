@@ -159,6 +159,17 @@ func main() {
 	//foo2(bytes)
 	//foo3(net.IPAddr{IP: bytes})
 
+	fmt.Printf("iterate a segment:\n")
+	iter := addrUp.GetSegment(ipaddr.IPv6SegmentCount - 1).PrefixedBlockIterator(5)
+	for iter.HasNext() {
+		fmt.Printf("%v ", iter.Next())
+	}
+	fmt.Printf("\niterate another segment:\n")
+	iter = addrUp.GetSegment(ipaddr.IPv6SegmentCount - 1).PrefixedBlockIterator(0)
+	for iter.HasNext() {
+		fmt.Printf("%v ", iter.Next())
+	}
+
 	_ = getDoc()
 }
 

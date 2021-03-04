@@ -226,12 +226,12 @@ func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 				if cachedInt == 0xffffffff {
 					segCount := section.GetSegmentCount()
 					if segCount != 0 {
-						result = section.GetSegment(0).GetSegmentValue()
+						result = uint32(section.GetSegment(0).GetSegmentValue())
 						if segCount != 1 {
 							bitsPerSegment := section.GetBitsPerSegment()
 							for i := 1; i < segCount; i++ {
 								seg := section.GetSegment(i)
-								result = (result << bitsPerSegment) | seg.GetSegmentValue()
+								result = (result << bitsPerSegment) | uint32(seg.GetSegmentValue())
 							}
 						}
 					}
@@ -245,12 +245,12 @@ func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 	} else {
 		segCount := section.GetSegmentCount()
 		if segCount != 0 {
-			result = section.GetSegment(0).GetUpperSegmentValue()
+			result = uint32(section.GetSegment(0).GetUpperSegmentValue())
 			if segCount != 1 {
 				bitsPerSegment := section.GetBitsPerSegment()
 				for i := 1; i < segCount; i++ {
 					seg := section.GetSegment(i)
-					result = (result << bitsPerSegment) | seg.GetUpperSegmentValue()
+					result = (result << bitsPerSegment) | uint32(seg.GetUpperSegmentValue())
 				}
 			}
 		}

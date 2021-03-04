@@ -91,7 +91,11 @@ func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) d
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
-func (seg macSegmentValues) deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg macSegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+	return newMACSegmentValues(MACSegInt(val), MACSegInt(val))
+}
+
+func (seg macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
@@ -126,6 +130,18 @@ func (seg *MACAddressSegment) GetByteCount() int {
 
 func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 	return 0xff
+}
+
+func (seg *MACAddressSegment) Iterator() MACSegmentIterator {
+	return macSegmentIterator{seg.iterator()}
+}
+
+func (seg *MACAddressSegment) prefixBlockIterator(segmentPrefixLen BitCount) MACSegmentIterator {
+	return macSegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
+}
+
+func (seg *MACAddressSegment) prefixIterator(segmentPrefixLen BitCount) MACSegmentIterator {
+	return macSegmentIterator{seg.prefixedIterator(segmentPrefixLen)}
 }
 
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {

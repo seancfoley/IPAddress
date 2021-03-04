@@ -40,6 +40,14 @@ type divisionValuesBase interface { // shared by standard and large divisions
 	getAddrType() addrType
 }
 
+type deriver interface {
+	// deriveNew produces a new segment with the same bit count as the old
+	deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
+
+	// deriveNew produces a new segment with the same bit count as the old
+	deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues
+}
+
 // DivisionValues represents divisions with values that are 64 bits or less
 type divisionValues interface {
 	divisionValuesBase
@@ -63,8 +71,7 @@ type divisionValues interface {
 	// getUpperSegmentValue gets the upper value for a segment
 	getUpperSegmentValue() SegInt
 
-	// deriveNew produces a new segment with the same bit count as the old
-	deriveNewSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
+	deriver
 }
 
 //TODO your generic addressDivision calcBytesInternal (which will work with uint64) will look like this

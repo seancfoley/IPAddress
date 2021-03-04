@@ -181,7 +181,7 @@ var (
 // the embedding is really only a convenience, you could literally list every method in every interface
 // Still, it's a PITA
 //
-// do not see the need for this, since I am doing away with IPAddressDivision
+// do not see the need for this interface, since I am doing away with IPAddressDivision
 //type IPAddressGenericDivision interface { // IPAddressDivision, IPAddressLargeDivision
 //	AddressGenericDivision
 //	IPAddressStringDivision

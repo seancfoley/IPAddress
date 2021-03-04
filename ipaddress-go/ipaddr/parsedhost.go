@@ -32,16 +32,13 @@ type parsedHostCache struct {
 }
 
 type ParsedHost struct {
-	//normalizedLabels []string
 	separatorIndices []int // can be nil
 	normalizedFlags  []bool
 
 	labelsQualifier ParsedHostIdentifierStringQualifier
-	service         Service
 
 	embeddedAddress EmbeddedAddress
 
-	//host, originalStr string
 	originalStr string
 
 	*parsedHostCache
@@ -59,12 +56,8 @@ func (host *ParsedHost) getPort() Port {
 	return host.labelsQualifier.getPort()
 }
 
-func (host *ParsedHost) getService() Service {
-	serv := host.service
-	if serv == "" {
-		serv = host.labelsQualifier.getService()
-	}
-	return serv
+func (host *ParsedHost) getService() string {
+	return host.labelsQualifier.getService()
 }
 
 func (host *ParsedHost) getNetworkPrefixLength() PrefixLen {

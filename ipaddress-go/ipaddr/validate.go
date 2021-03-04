@@ -1873,7 +1873,8 @@ func parsePortOrService(
 		return
 	}
 	res.zone = zone
-	res.service = Service(fullAddr[index:endIndex])
+	res.service = fullAddr[index:endIndex]
+	//res.service = Service(fullAddr[index:endIndex])
 	//res = &ParsedHostIdentifierStringQualifier{zone: zone, service: Service(fullAddr[index:endIndex])}xx
 	return
 }

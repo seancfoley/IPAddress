@@ -967,9 +967,13 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
 // - things to target: iterators, increment, merge, span, string generation
 // TODO iterators next after equals/contains? looks like iterators is next
-// - need to hook up mac address string and host name to the parser
+// segment iterators done
+// sections and addresses: iterator, prefixIterator, prefixBlockIterator, segmentsIterator,
+// ip sections and addresses: blockIterator(int), sequentialBlockIterator
+//
+// - need to hook up mac address string to the parser
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces
-// - finish HostName
+// - finish HostName (now it's mostly done, just a few methods left)
 // - check notes.txt in Java for functionality table

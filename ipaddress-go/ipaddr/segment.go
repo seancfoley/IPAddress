@@ -5,10 +5,9 @@ import (
 )
 
 // SegInt is an integer type for holding generic address segment values.  It is at least as large as all address segment values: IPv6SegInt, IPv4SegInt, MACSegInt
-type SegInt = uint32
-type SegIntCount = uint64
-
-const SegIntSize = 32
+type SegInt = uint32      // must be at least uint16 to handle IPv6, and no larger than 64 because we use bits.TrailingZeros64.  IP address segment code uses bits.TrailingZeros32 and bits.LeadingZeros32.
+const SegIntSize = 32     // must match the bit count of SegInt
+type SegIntCount = uint64 // must be able to hold: (max value of SegInt) + 1
 
 func createAddressSegment(vals divisionValues) *AddressSegment {
 	return &AddressSegment{
@@ -25,27 +24,6 @@ func createAddressSegment(vals divisionValues) *AddressSegment {
 type addressSegmentInternal struct {
 	addressDivisionInternal
 }
-
-//func (seg *addressSegmentInternal) Equals(otherDiv AddressStandardDivision) bool {
-//	matches, addrType := seg.matchesStructure(otherDiv)
-//	if !matches {
-//		return false
-//	}
-//	var other AddressStandardSegment
-//	if addrType.isNil() {
-//		if otherSeg, ok := otherDiv.(AddressStandardSegment); ok {
-//			other = otherSeg
-//
-//		} else {
-//			return false
-//		}
-//	} else {
-//		other = otherDiv.(AddressStandardSegment)
-//	}
-//	xxxx
-//	return other.GetSegmentValue() >= seg.GetSegmentValue() &&
-//		other.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
-//}
 
 func (seg *addressSegmentInternal) Contains(other AddressStandardSegment) (res bool) {
 	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase or *addressSegmentInternal from AddressStandardSegment
@@ -81,14 +59,6 @@ func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
 	return vals.getUpperSegmentValue()
 }
 
-//func (seg *addressSegmentInternal) GetDivisionValue() DivInt {
-//	return seg.getDivisionValue()
-//}
-//
-//func (seg *addressSegmentInternal) GetUpperDivisionValue() DivInt {
-//	return seg.getUpperDivisionValue()
-//}
-
 func (seg *addressSegmentInternal) GetValueCount() SegIntCount {
 	return uint64(seg.GetUpperSegmentValue()-seg.GetSegmentValue()) + 1
 }
@@ -117,7 +87,7 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNewSeg(seg.GetSegmentValue(), seg.GetSegmentValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetSegmentValue(), seg.getDivisionPrefixLength())
 	}
 	return createAddressSegment(newVals)
 }
@@ -129,20 +99,66 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	vals := seg.divisionValues
 	var newVals divisionValues
 	if vals != nil {
-		newVals = seg.deriveNewSeg(seg.GetUpperSegmentValue(), seg.GetUpperSegmentValue(), seg.getDivisionPrefixLength())
+		newVals = seg.deriveNewMultiSeg(seg.GetUpperSegmentValue(), seg.GetUpperSegmentValue(), seg.getDivisionPrefixLength())
 	}
 	return createAddressSegment(newVals)
+}
+
+func (seg *addressSegmentInternal) iterator() SegmentIterator {
+	return seg.segmentIterator(seg.getDivisionPrefixLength(), false, false)
+}
+
+func (seg *addressSegmentInternal) iter(withPrefix bool) SegmentIterator {
+	var segPrefLen PrefixLen
+	if withPrefix {
+		segPrefLen = seg.getDivisionPrefixLength()
+	}
+	return seg.segmentIterator(segPrefLen, false, false)
+}
+
+func (seg *addressSegmentInternal) prefixBlockIterator() SegmentIterator {
+	return seg.segmentIterator(seg.getDivisionPrefixLength(), true, true)
+}
+
+func (seg *addressSegmentInternal) prefixedBlockIterator(segPrefLen BitCount) SegmentIterator {
+	return seg.segmentIterator(cacheBitCount(segPrefLen), true, true)
+}
+
+func (seg *addressSegmentInternal) prefixIterator() SegmentIterator {
+	return seg.segmentIterator(seg.getDivisionPrefixLength(), true, false)
+}
+
+func (seg *addressSegmentInternal) prefixedIterator(segPrefLen BitCount) SegmentIterator {
+	return seg.segmentIterator(cacheBitCount(segPrefLen), true, false)
+}
+
+func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefixIterator, isBlockIterator bool) SegmentIterator {
+	vals := seg.divisionValues
+	if vals == nil {
+		return segIterator(seg,
+			0,
+			0,
+			0,
+			nil,
+			nil,
+			false,
+			false,
+		)
+	}
+	return segIterator(seg,
+		seg.getSegmentValue(),
+		seg.getUpperSegmentValue(),
+		seg.getBitCount(),
+		vals,
+		segPrefLen,
+		isPrefixIterator,
+		isBlockIterator,
+	)
 }
 
 type AddressSegment struct {
 	addressSegmentInternal
 }
-
-// TODO segments work different than sections, and we must be careful with methods returning strings that they remain consistent
-// Unlike with sections, we have no addrType to check, but since segments are printed withut separators, mostly ok,
-// but then there is the radix to worry about, also the prefix to worry about.
-// Methods that use the prefix to print the string must not use any shared fields with AddressSegment and AddressDivision
-// Methods that print strings in hex must not share fields with IPv4AddressSegment
 
 func (seg *AddressSegment) IsIPAddressSegment() bool {
 	return seg != nil && seg.matchesIPSegment()
