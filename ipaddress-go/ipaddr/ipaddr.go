@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"net"
 	"sync/atomic"
 	"unsafe"
@@ -225,16 +226,12 @@ func (addr *IPAddress) IsMore(other AddressDivisionSeries) int { // this is here
 	return addr.GetSection().IsMore(other)
 }
 
-func (addr *IPAddress) IsIPv4() bool {
-	return addr.isIPv4()
+func (addr *IPAddress) GetValue() *big.Int {
+	return addr.init().section.GetValue()
 }
 
-func (addr *IPAddress) IsIPv6() bool {
-	return addr.isIPv6()
-}
-
-func (addr *IPAddress) GetIPVersion() IPVersion {
-	return addr.getIPVersion()
+func (addr *IPAddress) GetUpperValue() *big.Int {
+	return addr.init().section.GetUpperValue()
 }
 
 func (addr *IPAddress) GetIP() net.IP {
@@ -253,12 +250,40 @@ func (addr *IPAddress) CopyUpperIP(bytes net.IP) net.IP {
 	return addr.CopyUpperBytes(bytes)
 }
 
+func (addr *IPAddress) GetBytes() []byte {
+	return addr.init().section.GetBytes()
+}
+
+func (addr *IPAddress) GetUpperBytes() []byte {
+	return addr.init().section.GetUpperBytes()
+}
+
+func (addr *IPAddress) CopyBytes(bytes []byte) []byte {
+	return addr.init().section.CopyBytes(bytes)
+}
+
+func (addr *IPAddress) CopyUpperBytes(bytes []byte) []byte {
+	return addr.init().section.CopyUpperBytes(bytes)
+}
+
 func (addr *IPAddress) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }
 
 func (addr *IPAddress) Equals(other AddressType) bool {
 	return addr.init().equals(other)
+}
+
+func (addr *IPAddress) IsIPv4() bool {
+	return addr.isIPv4()
+}
+
+func (addr *IPAddress) IsIPv6() bool {
+	return addr.isIPv6()
+}
+
+func (addr *IPAddress) GetIPVersion() IPVersion {
+	return addr.getIPVersion()
 }
 
 func (addr *IPAddress) ToIPAddress() *IPAddress {

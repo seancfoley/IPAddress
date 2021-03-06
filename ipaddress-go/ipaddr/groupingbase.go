@@ -94,7 +94,57 @@ func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) b
 	return true
 }
 
-func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
+func (grouping *addressDivisionGroupingBase) IsZero() bool {
+	divCount := grouping.GetDivisionCount()
+	for i := 0; i < divCount; i++ {
+		if !grouping.getDivision(i).IsZero() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingBase) IncludesZero() bool {
+	divCount := grouping.GetDivisionCount()
+	for i := 0; i < divCount; i++ {
+		if !grouping.getDivision(i).IncludesZero() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingBase) IsMax() bool {
+	divCount := grouping.GetDivisionCount()
+	for i := 0; i < divCount; i++ {
+		if !grouping.getDivision(i).IsMax() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingBase) IncludesMax() bool {
+	divCount := grouping.GetDivisionCount()
+	for i := 0; i < divCount; i++ {
+		if !grouping.getDivision(i).IncludesMax() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingBase) IsFullRange() bool {
+	divCount := grouping.GetDivisionCount()
+	for i := 0; i < divCount; i++ {
+		if !grouping.getDivision(i).IsFullRange() {
+			return false
+		}
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingBase) getCountBig() *big.Int {
 	res := bigOne()
 	count := grouping.GetDivisionCount()
 	if count > 0 {
@@ -103,6 +153,45 @@ func (grouping *addressDivisionGroupingBase) getBigCount() *big.Int {
 			if div.IsMultiple() {
 				res.Mul(res, div.GetCount())
 			}
+		}
+	}
+	return res
+}
+
+func (grouping *addressDivisionGroupingBase) getPrefixCountBig() *big.Int {
+	prefixLen := grouping.prefixLength
+	if prefixLen == nil {
+		return grouping.getCountBig()
+	}
+	return grouping.getPrefixCountLenBig(*prefixLen)
+}
+
+func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitCount) *big.Int {
+	if prefixLen <= 0 {
+		return bigOne()
+	} else if prefixLen >= grouping.GetBitCount() {
+		return grouping.getCountBig()
+	}
+	res := bigOne()
+	if grouping.IsMultiple() {
+		divisionCount := grouping.GetDivisionCount()
+		divPrefixLength := prefixLen
+		for i := 0; i < divisionCount; i++ {
+			div := grouping.getDivision(i)
+			divBitCount := div.getBitCount()
+			if div.IsMultiple() {
+				var divCount *big.Int
+				if divPrefixLength < divBitCount {
+					divCount = div.GetPrefixCount(divPrefixLength)
+				} else {
+					divCount = div.GetCount()
+				}
+				res.Mul(res, divCount)
+			}
+			if divPrefixLength <= divBitCount {
+				break
+			}
+			divPrefixLength -= divBitCount
 		}
 	}
 	return res
@@ -122,29 +211,55 @@ func (grouping *addressDivisionGroupingBase) IsMore(other AddressDivisionSeries)
 }
 
 func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
-	if !grouping.IsMultiple() {
-		return bigOne()
-	}
-	return grouping.cacheCount(grouping.getBigCount)
+	return grouping.cacheCount(grouping.getCountBig)
+}
+
+func (grouping *addressDivisionGroupingBase) GetPrefixCount() *big.Int {
+	return grouping.cachePrefixCount(grouping.getPrefixCountBig)
+}
+
+func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	return grouping.calcCount(func() *big.Int { return grouping.getPrefixCountLenBig(prefixLen) })
 }
 
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
 	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
 	count := cache.cachedCount
 	if count == nil {
-		count = counter()
+		count = grouping.calcCount(counter)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 	}
-	//if cache.cachedCount.isNotSetNoSync() {
-	//	cache.cacheLock.Lock()
-	//	if cache.cachedCount.isNotSetNoSync() {
-	//		cache.cachedCount.count = counter()
-	//		cache.cachedCount.set()
-	//	}
-	//	cache.cacheLock.Unlock()
-	//}
 	return new(big.Int).Set(cache.cachedCount)
+}
+
+func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) *big.Int {
+	if !grouping.IsMultiple() {
+		return bigOne()
+	}
+	return counter()
+}
+
+func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *big.Int) *big.Int {
+	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
+	count := cache.cachedPrefixCount
+	if count == nil {
+		count = grouping.calcPrefixCount(counter)
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedPrefixCount))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
+	}
+	return new(big.Int).Set(cache.cachedPrefixCount)
+}
+
+func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big.Int) *big.Int {
+	if !grouping.IsMultiple() {
+		return bigOne()
+	}
+	prefixLen := grouping.prefixLength
+	if prefixLen == nil || *prefixLen >= grouping.GetBitCount() {
+		return grouping.GetCount()
+	}
+	return counter()
 }
 
 func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (bytes, upperBytes []byte)) (bytes, upperBytes []byte) {

@@ -26,6 +26,15 @@ func (grouping *addressDivisionGroupingInternal) getDivision(index int) *Address
 	return grouping.addressDivisionGroupingBase.getDivision(index).toAddressDivision()
 }
 
+// getDivision returns the divisions slice, only to be used internally
+func (grouping *addressDivisionGroupingInternal) getDivisionsInternal() []*AddressDivision {
+	divsArray := grouping.divisions
+	if divsArray != nil {
+		return divsArray.(standardDivArray).divisions
+	}
+	return nil
+}
+
 // copySubDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (grouping *addressDivisionGroupingInternal) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {
@@ -89,7 +98,21 @@ func (grouping *addressDivisionGroupingInternal) GetCount() *big.Int {
 	} else if section := grouping.toAddressSection(); section != nil {
 		return section.GetCount()
 	}
-	return grouping.cacheCount(grouping.getBigCount)
+	return grouping.addressDivisionGroupingBase.GetCount()
+}
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixCount() *big.Int {
+	if section := grouping.toAddressSection(); section != nil {
+		return section.GetCount()
+	}
+	return grouping.addressDivisionGroupingBase.GetPrefixCount()
+}
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if section := grouping.toAddressSection(); section != nil {
+		return section.GetPrefixCountLen(prefixLen)
+	}
+	return grouping.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
 }
 
 func (grouping *addressDivisionGroupingInternal) toAddressDivisionGrouping() *AddressDivisionGrouping {
@@ -239,7 +262,7 @@ func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
 		return emptyBytes
 	}
 	cached := grouping.getBytes()
-	return append(make([]byte, 0, len(cached)), cached...)
+	return cloneBytes(cached)
 }
 
 func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
@@ -247,7 +270,7 @@ func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
 		return emptyBytes
 	}
 	cached := grouping.getUpperBytes()
-	return append(make([]byte, 0, len(cached)), cached...)
+	return cloneBytes(cached)
 }
 
 // CopyBytes gets the value for the lowest address in the range represented by this address division grouping.
@@ -496,40 +519,3 @@ func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision
 //func (grouping *AddressDivisionGrouping) IsMore(other *AddressDivisionGrouping) int {
 //	return grouping.isMore(other)
 //}
-
-type addrType string
-
-const (
-	zeroType addrType = ""     // no segments
-	ipv4Type addrType = "IPv4" // ipv4 segments
-	ipv6Type addrType = "IPv6" // ipv6 segments
-	macType  addrType = "MAC"  // mac segments
-)
-
-func (a addrType) isNil() bool {
-	return a == zeroType
-}
-
-func (a addrType) isIPv4() bool {
-	return a == ipv4Type
-}
-
-func (a addrType) isIPv6() bool {
-	return a == ipv6Type
-}
-
-func (a addrType) isIP() bool {
-	return a.isIPv4() || a.isIPv6()
-}
-
-func (a addrType) isMAC() bool {
-	return a == macType
-}
-
-func getBytesCopy(bytes, cached []byte) []byte {
-	if bytes == nil || len(bytes) < len(cached) {
-		return append(make([]byte, 0, len(cached)), cached...)
-	}
-	copy(bytes, cached)
-	return bytes
-}

@@ -57,6 +57,20 @@ func (addr *addressInternal) GetCount() *big.Int {
 	return addr.section.GetCount()
 }
 
+func (addr *addressInternal) GetPrefixCount() *big.Int {
+	if addr.section == nil {
+		return bigOne()
+	}
+	return addr.section.GetPrefixCount()
+}
+
+func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if addr.section == nil {
+		return bigOne()
+	}
+	return addr.section.GetPrefixCountLen(prefixLen)
+}
+
 func (addr *addressInternal) IsMultiple() bool {
 	return addr.section != nil && addr.section.IsMultiple()
 }
@@ -191,6 +205,49 @@ func (addr *addressInternal) getUpper() *Address {
 	return addr.checkIdentity(addr.section.GetUpper())
 }
 
+func (addr *addressInternal) IsZero() bool {
+	section := addr.section
+	if section == nil {
+		return true
+	}
+	return section.IsZero()
+}
+
+func (addr *addressInternal) IncludesZero() bool {
+	section := addr.section
+	if section == nil {
+		return true
+	}
+	return section.IncludesZero()
+}
+
+func (addr *addressInternal) IsMax() bool {
+	section := addr.section
+	if section == nil {
+		// when no bits, the only value 0 is the max value too
+		return true
+	}
+	return section.IsMax()
+}
+
+func (addr *addressInternal) IncludesMax() bool {
+	section := addr.section
+	if section == nil {
+		// when no bits, the only value 0 is the max value too
+		return true
+	}
+	return section.IncludesMax()
+}
+
+func (addr *addressInternal) IsFullRange() bool {
+	section := addr.section
+	if section == nil {
+		// when no bits, the only value 0 is the max value too
+		return true
+	}
+	return section.IsFullRange()
+}
+
 func (addr *addressInternal) toAddress() *Address {
 	return (*Address)(unsafe.Pointer(addr))
 }
@@ -277,6 +334,13 @@ func (addr *addressInternal) equals(other AddressType) bool {
 
 func (addr *addressInternal) isSameZone(other AddressType) bool {
 	return addr.zone == other.ToAddress().zone
+}
+
+func (addr *addressInternal) getAddrType() addrType {
+	if addr.section == nil {
+		return zeroType
+	}
+	return addr.section.addrType
 }
 
 //TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString

@@ -17,13 +17,35 @@ type MACAddressSection struct {
 }
 
 func (section *MACAddressSection) GetCount() *big.Int {
-	if !section.IsMultiple() {
-		return bigOne()
-	}
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
 			return section.GetSegment(index).GetValueCount()
 		}, section.GetSegmentCount(), 6, 0x7fffffffffffff)
+	})
+}
+
+func (section *MACAddressSection) GetPrefixCount() *big.Int {
+	return section.cachePrefixCount(func() *big.Int {
+		return section.GetPrefixCountLen(*section.GetPrefixLength())
+	})
+}
+
+func (section *MACAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if prefixLen <= 0 {
+		return bigOne()
+	} else if bc := section.GetBitCount(); prefixLen >= bc {
+		return section.GetCount()
+	}
+	networkSegmentIndex := getNetworkSegmentIndex(prefixLen, section.GetBytesPerSegment(), section.GetBitsPerSegment())
+	hostSegmentIndex := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), section.GetBitsPerSegment())
+	return section.calcCount(func() *big.Int {
+		return count(func(index int) uint64 {
+			if (networkSegmentIndex == hostSegmentIndex) && index == networkSegmentIndex {
+				segmentPrefixLength := getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), prefixLen, index)
+				return getPrefixValueCount(section.GetSegment(index).ToAddressSegment(), *segmentPrefixLength)
+			}
+			return section.GetSegment(index).GetValueCount()
+		}, networkSegmentIndex+1, 6, 0x7fffffffffffff)
 	})
 }
 
@@ -84,4 +106,8 @@ func (section *MACAddressSection) ToPrefixBlock() *MACAddressSection {
 
 func (section *MACAddressSection) ToPrefixBlockLen(prefLen BitCount) *MACAddressSection {
 	return section.toPrefixBlockLen(prefLen).ToMACAddressSection()
+}
+
+func (section *MACAddressSection) Iterator() MACSectionIterator {
+	return macSectionIterator{section.sectionIterator(macType.getCreator(), nil)}
 }

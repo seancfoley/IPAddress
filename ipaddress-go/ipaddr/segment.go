@@ -176,6 +176,10 @@ func (seg *AddressSegment) IsMACAddressSegment() bool {
 	return seg != nil && seg.matchesMACSegment()
 }
 
+func (seg *AddressSegment) Iterator() SegmentIterator {
+	return seg.iterator()
+}
+
 func (seg *AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	if seg.IsIPAddressSegment() {
 		return (*IPAddressSegment)(unsafe.Pointer(seg))
@@ -211,4 +215,9 @@ func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
+}
+
+func getPrefixValueCount(segment *AddressSegment, segmentPrefixLength BitCount) SegIntCount {
+	shiftAdjustment := segment.GetBitCount() - segmentPrefixLength
+	return (segment.GetUpperSegmentValue() >> shiftAdjustment) - (segment.GetSegmentValue() >> shiftAdjustment) + 1
 }

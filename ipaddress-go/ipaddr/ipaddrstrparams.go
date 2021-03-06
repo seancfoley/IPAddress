@@ -154,6 +154,7 @@ type IPv6AddressStringParameters interface {
 	// The IPv4 part of the IPAddressStringParameters returned by GetMixedParameters(), which is the part that matters most
 	GetEmbeddedIPv4AddressParams() IPv4AddressStringParameters
 
+	//TODO this needs to go, no longer using address creators
 	// The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
 	GetNetwork() *IPv6AddressNetwork // TODO you'd want to avoid exposing the default IPv6AddressNetwork, you might want to copy, or use an interface, or something
 }
@@ -447,7 +448,7 @@ type ipv6AddressStringParameters struct {
 
 	noMixed, noZone, noBase85 bool
 
-	network *IPv6AddressNetwork
+	network *IPv6AddressNetwork //TODO this needs to go, no longer using address creators
 
 	embeddedParams *ipAddressStringParameters
 }
@@ -476,7 +477,7 @@ func (params *ipv6AddressStringParameters) GetEmbeddedIPv4AddressParams() IPv4Ad
 	return params.embeddedParams.GetIPv4Parameters()
 }
 
-func (params *ipv6AddressStringParameters) GetNetwork() *IPv6AddressNetwork {
+func (params *ipv6AddressStringParameters) GetNetwork() *IPv6AddressNetwork { //TODO this needs to go, no longer using address creators
 	if params.network == nil {
 		return &DefaultIPv6Network
 	}

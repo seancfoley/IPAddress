@@ -1,7 +1,11 @@
 package ipaddr
 
-type SegmentIterator interface {
+type iteratorBase interface {
 	HasNext() bool
+}
+
+type SegmentIterator interface {
+	iteratorBase
 	Next() *AddressSegment
 }
 
@@ -167,8 +171,21 @@ func segIterator(
 	}
 }
 
+type IPSegmentIterator interface {
+	iteratorBase
+	Next() *IPAddressSegment
+}
+
+type ipSegmentIterator struct {
+	SegmentIterator
+}
+
+func (iter ipSegmentIterator) Next() *IPAddressSegment {
+	return iter.SegmentIterator.Next().ToIPAddressSegment()
+}
+
 type IPv4SegmentIterator interface {
-	HasNext() bool
+	iteratorBase
 	Next() *IPv4AddressSegment
 }
 
@@ -181,7 +198,7 @@ func (iter ipv4SegmentIterator) Next() *IPv4AddressSegment {
 }
 
 type IPv6SegmentIterator interface {
-	HasNext() bool
+	iteratorBase
 	Next() *IPv6AddressSegment
 }
 
@@ -194,7 +211,7 @@ func (iter ipv6SegmentIterator) Next() *IPv6AddressSegment {
 }
 
 type MACSegmentIterator interface {
-	HasNext() bool
+	iteratorBase
 	Next() *MACAddressSegment
 }
 

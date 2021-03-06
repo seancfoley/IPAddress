@@ -219,14 +219,30 @@ type IPAddressSection struct {
 }
 
 func (section *IPAddressSection) GetCount() *big.Int {
-	if !section.IsMultiple() {
-		return bigOne()
-	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetCount()
 	} else if sect := section.ToIPv6AddressSection(); sect != nil {
 		return sect.GetCount()
 	}
-	return section.cacheCount(section.getBigCount)
+	return section.addressDivisionGroupingBase.GetCount()
+}
+
+func (section *IPAddressSection) GetPrefixCount() *big.Int {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetPrefixCount()
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetPrefixCount()
+	}
+	return section.addressDivisionGroupingBase.GetPrefixCount()
+}
+
+func (section *IPAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetPrefixCountLen(prefixLen)
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetPrefixCountLen(prefixLen)
+	}
+	return section.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
 }
 
 func (section *IPAddressSection) IsIPv4AddressSection() bool {
@@ -304,6 +320,10 @@ func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {
 
 func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSection {
 	return section.toPrefixBlockLen(prefLen).ToIPAddressSection()
+}
+
+func (section *IPAddressSection) Iterator() IPSectionIterator {
+	return ipSectionIterator{section.sectionIterator(section.getAddrType().getCreator(), nil)}
 }
 
 func BitsPerSegment(version IPVersion) BitCount {

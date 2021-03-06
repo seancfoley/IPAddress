@@ -395,8 +395,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
-	//TODO caching of prefLen?  we should map it to a global array - check what we have in the validation code
-	return createMultipleSection(newSegs, &prefLen, section.getAddrType(), section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+	return createMultipleSection(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
 }
 
 func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
@@ -452,6 +451,73 @@ func (section *addressSectionInternal) GetSegmentStrings() []string {
 	return res
 }
 
+// used by iterator() and nonZeroHostIterator() in section classes
+func (section *addressSectionInternal) sectionIterator(
+	creator ParsedAddressCreator, /* nil for zero sections */
+	excludeFunc func([]*AddressDivision) bool) SectionIterator {
+	if creator == nil { // zero section, all other sections have a creator associated
+		return &singleSectionIterator{original: section.toAddressSection()}
+	}
+	isMult := section.IsMultiple()
+	useOriginal := !isMult
+	var original *AddressSection
+	if useOriginal {
+		if excludeFunc != nil {
+			divs := section.getDivisionsInternal()
+			if !excludeFunc(divs) {
+				original = section.toAddressSection()
+			}
+		} else {
+			original = section.toAddressSection()
+		}
+	}
+	var iterator SegmentsIterator
+	if !useOriginal {
+		iterator = allSegmentsIterator(
+			section.GetSegmentCount(),
+			nil,
+			func(index int) SegmentIterator { return section.GetSegment(index).iterator() },
+			excludeFunc)
+	}
+	return sectIterator(
+		useOriginal,
+		original,
+		creator,
+		iterator,
+		section.prefixLength)
+}
+
+// TODO NEXT uncomment and continue the various iterator work after your prefix count code is done everywhere, see bottom of sectiterator.go for summary of remainig work, basically I got the basic iterators done everywhere except in seq ranges, and no other iterators done but the framework is ready for all of them
+//func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreator, /* nil for zero sections */ isBlockIterator bool) SectionIterator {
+//		prefLength := section.prefixLength
+//		if(prefLength == nil || *prefLength > section.GetBitCount()) {
+//			return section.sectionIterator(creator, nil);
+//		}
+//		//IPv4AddressCreator creator = getAddressCreator();
+//		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : longPrefixCount(prefLength) == 1;
+//		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getPrefixCount().equals(BigInteger.ONE);
+//
+//		int networkSegIndex = getNetworkSegmentIndex(prefLength, getBytesPerSegment(), getBitsPerSegment());
+//		int hostSegIndex = getHostSegmentIndex(prefLength, getBytesPerSegment(), getBitsPerSegment());
+//		int segCount = getSegmentCount();
+//		return iterator(
+//				useOriginal,
+//				this,
+//				creator,
+//				useOriginal ?
+//						null :
+//						segmentsIterator(
+//							segCount,
+//							creator,
+//							null, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
+//							index -> getSegment(index).iterator(),
+//							null,
+//							networkSegIndex,
+//							hostSegIndex,
+//							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
+//				prefLength);
+//	}
+
 //
 //
 //
@@ -461,16 +527,38 @@ type AddressSection struct {
 }
 
 func (section *AddressSection) GetCount() *big.Int {
-	if !section.IsMultiple() {
-		return bigOne()
-	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetCount()
 	} else if sect := section.ToIPv6AddressSection(); sect != nil {
 		return sect.GetCount()
 	} else if sect := section.ToMACAddressSection(); sect != nil {
 		return sect.GetCount()
 	}
-	return section.cacheCount(section.getBigCount)
+	return section.addressDivisionGroupingBase.GetCount()
+}
+
+func (section *AddressSection) GetPrefixCount() *big.Int {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetPrefixCount()
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetPrefixCount()
+	} else if sect := section.ToMACAddressSection(); sect != nil {
+		return sect.GetPrefixCount()
+	}
+	return section.addressDivisionGroupingBase.GetPrefixCount()
+}
+
+func (section *AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if !section.IsMultiple() {
+		return bigOne()
+	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetPrefixCountLen(prefixLen)
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetPrefixCountLen(prefixLen)
+	} else if sect := section.ToMACAddressSection(); sect != nil {
+		return sect.GetPrefixCountLen(prefixLen)
+	}
+	return section.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
 }
 
 //func (section *AddressSection) IsMore(other *AddressSection) int {
@@ -572,66 +660,6 @@ func (section *AddressSection) ToAddressSection() *AddressSection {
 	return section
 }
 
-// note: only to be used when you already know the total size fits into a long
-func longCount(section *AddressSection, segCount int) uint64 {
-	result := getLongCount(func(index int) uint64 { return section.GetSegment(index).GetValueCount() }, segCount)
-	return result
-}
-
-func getLongCount(segmentCountProvider func(index int) uint64, segCount int) uint64 {
-	if segCount == 0 {
-		return 1
-	}
-	result := segmentCountProvider(0)
-	for i := 1; i < segCount; i++ {
-		result *= segmentCountProvider(i)
-	}
-	return result
-}
-
-func mult(currentResult *big.Int, newResult uint64) *big.Int {
-	if newResult == 1 {
-		return currentResult
-	}
-	newBig := bigZero().SetUint64(newResult)
-	return currentResult.Mul(currentResult, newBig)
-}
-
-// only called when isMultiple() is true, so segCount >= 1
-func count(segmentCountProvider func(index int) uint64, segCount, safeMultiplies int, safeLimit uint64) *big.Int {
-	result := bigOne()
-	if segCount == 0 {
-		return result
-	}
-	i := 0
-	for {
-		curResult := segmentCountProvider(i)
-		i++
-		if i == segCount {
-			return mult(result, curResult)
-		}
-		limit := i + safeMultiplies
-		if segCount <= limit {
-			// all multiplies are safe
-			for i < segCount {
-				curResult *= segmentCountProvider(i)
-				i++
-			}
-			return mult(result, curResult)
-		}
-		// do the safe multiplies which cannot overflow
-		for i < limit {
-			curResult *= segmentCountProvider(i)
-			i++
-		}
-		// do as many additional multiplies as current result allows
-		for curResult <= safeLimit {
-			curResult *= segmentCountProvider(i)
-			i++
-			if i == segCount {
-				return mult(result, curResult)
-			}
-		}
-		result = mult(result, curResult)
-	}
+func (section *AddressSection) Iterator() SectionIterator {
+	return section.sectionIterator(section.getAddrType().getCreator(), nil)
 }

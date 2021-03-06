@@ -24,7 +24,7 @@ func PrefixEquals(one, two PrefixLen) bool {
 	return two != nil && *one == *two
 }
 
-type PrefixLen *BitCount
+type PrefixLen *BitCount //TODO ensure you check for negative prefix lens everywhere
 
 func cacheBitCount(i BitCount) PrefixLen {
 	//TODO caching

@@ -61,7 +61,7 @@ func (div *addressDivisionBase) GetBytes() []byte {
 		return emptyBytes
 	}
 	cached := div.getBytes()
-	return append(make([]byte, 0, len(cached)), cached...)
+	return cloneBytes(cached)
 }
 
 func (div *addressDivisionBase) GetUpperBytes() []byte {
@@ -69,7 +69,7 @@ func (div *addressDivisionBase) GetUpperBytes() []byte {
 		return emptyBytes
 	}
 	cached := div.getUpperBytes()
-	return append(make([]byte, 0, len(cached)), cached...)
+	return cloneBytes(cached)
 }
 
 func (div *addressDivisionBase) CopyBytes(bytes []byte) []byte {
@@ -130,6 +130,24 @@ func (div *addressDivisionBase) GetCount() *big.Int {
 		return bigOne()
 	}
 	return div.getCount()
+}
+
+// The count of the number of distinct values within the prefix part of the address item, the bits that appear within the prefix length.
+func (div *addressDivisionBase) GetPrefixCount(prefixLength BitCount) *big.Int {
+	if prefixLength < 0 {
+		return bigOne()
+	}
+	bitCount := div.GetBitCount()
+	if prefixLength >= bitCount {
+		return div.GetCount()
+	}
+	ushiftAdjustment := uint(bitCount - prefixLength)
+	lower := div.GetValue()
+	upper := div.GetUpperValue()
+	upper.Rsh(upper, ushiftAdjustment)
+	lower.Rsh(lower, ushiftAdjustment)
+	upper.Sub(upper, lower).Add(upper, bigOneConst())
+	return upper
 }
 
 func (div *addressDivisionBase) IsZero() bool {

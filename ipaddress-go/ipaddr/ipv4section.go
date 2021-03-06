@@ -86,7 +86,7 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
 		}
-		bytes = append(make([]byte, 0, len(bytes)), bytes...) // copy //TODO make sure you only create segmentCount (bytes may be longer, I believe we always chop off the top, see toSegments)
+		bytes = cloneBytes(bytes) //TODO make sure you only create segmentCount (bytes may be longer, I believe we always chop off the top, see toSegments)
 		res.cache.lowerBytes = bytes
 		if !res.isMultiple {
 			res.cache.upperBytes = bytes
@@ -134,12 +134,42 @@ type IPv4AddressSection struct {
 }
 
 func (section *IPv4AddressSection) GetCount() *big.Int {
-	if !section.IsMultiple() {
-		return bigOne()
-	}
 	return section.cacheCount(func() *big.Int {
 		return bigZero().SetUint64(section.GetIPv4Count())
 	})
+}
+
+func (section *IPv4AddressSection) GetPrefixCount() *big.Int {
+	return section.cachePrefixCount(func() *big.Int {
+		return bigZero().SetUint64(section.GetIPv4PrefixCount())
+	})
+}
+
+func (section *IPv4AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	if prefixLen <= 0 {
+		return bigOne()
+	} else if bc := section.GetBitCount(); prefixLen > bc {
+		prefixLen = bc
+	}
+	return section.calcCount(func() *big.Int { return new(big.Int).SetUint64(section.GetIPv4PrefixCountLen(prefixLen)) })
+}
+
+//This was added so count available as a long and not as BigInteger
+func (section *IPv4AddressSection) GetIPv4PrefixCountLen(prefixLength BitCount) uint64 {
+	if !section.IsMultiple() {
+		return 1
+	} else if prefixLength >= section.GetBitCount() {
+		return section.GetIPv4Count()
+	}
+	return longPrefixCount(section.ToAddressSection(), prefixLength)
+}
+
+func (section *IPv4AddressSection) GetIPv4PrefixCount() uint64 {
+	prefixLength := section.GetPrefixLength()
+	if prefixLength == nil {
+		return section.GetIPv4Count()
+	}
+	return section.GetIPv4PrefixCountLen(*prefixLength)
 }
 
 //func (section *IPv4AddressSection) IsMore(other *IPv4AddressSection) int {
@@ -147,6 +177,9 @@ func (section *IPv4AddressSection) GetCount() *big.Int {
 //}
 
 func (section *IPv4AddressSection) GetIPv4Count() uint64 {
+	if !section.IsMultiple() {
+		return 1
+	}
 	return longCount(section.ToAddressSection(), section.GetSegmentCount())
 }
 
@@ -220,10 +253,10 @@ func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 			cache.cacheLock.RLock()
 			cachedInt := cache.cachedLowerVal
 			cache.cacheLock.RUnlock()
-			if cachedInt == 0xffffffff {
+			if cachedInt == 0 && !section.IsZero() {
 				cache.cacheLock.Lock()
 				cachedInt = cache.cachedLowerVal
-				if cachedInt == 0xffffffff {
+				if cachedInt == 0 {
 					segCount := section.GetSegmentCount()
 					if segCount != 0 {
 						result = uint32(section.GetSegment(0).GetSegmentValue())
@@ -264,6 +297,10 @@ func (section *IPv4AddressSection) ToPrefixBlock() *IPv4AddressSection {
 
 func (section *IPv4AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv4AddressSection {
 	return section.toPrefixBlockLen(prefLen).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
+	return ipv4SectionIterator{section.sectionIterator(ipv4Type.getCreator(), nil)}
 }
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {

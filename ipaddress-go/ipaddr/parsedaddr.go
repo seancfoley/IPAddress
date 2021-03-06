@@ -357,7 +357,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 		return
 	}
 	finalResult := &parseData.valuesx
-	finalResult.creator = parseData.getIPv4AddressCreator()
+	finalResult.creator = creator
 
 	expandedSegments := (missingCount <= 0)
 	var expandedStart, expandedEnd int = -1, -1
@@ -648,7 +648,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			}
 		}
 		if lowerSegments != nil {
-			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).GetLower()
+			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).ToIPAddressSection()
 		}
 		if upperSegments != nil {
 			section := creator.createPrefixedSectionInternal(upperSegments, prefLength)
@@ -685,7 +685,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 		return
 	}
 	finalResult := &parseData.valuesx
-	finalResult.creator = parseData.getIPv6AddressCreator()
+	finalResult.creator = creator
 	mixed := parseData.isProvidingMixedIPv6()
 
 	normalizedSegmentIndex := 0
@@ -1173,7 +1173,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				finalResult.joinHostException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
 			}
 		}
-		result = creator.createPrefixedSectionInternal(segments, prefLength, false)
+		result = creator.createPrefixedSectionInternal(segments, prefLength)
 		finalResult.section = result
 		if checkExpandedValues(result, expandedStart, expandedEnd) {
 			finalResult.joinAddressException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
@@ -1221,10 +1221,10 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			}
 		}
 		if lowerSegments != nil {
-			finalResult.lowerSection = creator.createPrefixedSectionInternal(lowerSegments, prefLength, true).GetLower() // getLower needed for all prefix subnet config
+			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).ToIPAddressSection()
 		}
 		if upperSegments != nil {
-			section := creator.createPrefixedSectionInternal(upperSegments, prefLength, false)
+			section := creator.createPrefixedSectionInternal(upperSegments, prefLength)
 			if isPrefixSub {
 				section = section.ToPrefixBlock()
 			}
