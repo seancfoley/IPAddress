@@ -239,6 +239,10 @@ func (section *IPv6AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv6Addre
 	return section.toPrefixBlockLen(prefLen).ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) WithoutPrefixLength() *IPv6AddressSection {
+	return section.withoutPrefixLength().ToIPv6AddressSection()
+}
+
 func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
 	return ipv6SectionIterator{section.sectionIterator(ipv6Type.getCreator(), nil)}
 }

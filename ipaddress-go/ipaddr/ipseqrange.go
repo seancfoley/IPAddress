@@ -74,7 +74,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixCount(prefixLen BitCount) *big.In
 		lower := ipv4Range.GetLower()
 		upperAdjusted := upper.IntValue() >> shiftAdjustment
 		lowerAdjusted := lower.IntValue() >> shiftAdjustment
-		result := upperAdjusted - lowerAdjusted + 1
+		result := int64(upperAdjusted) - int64(lowerAdjusted) + 1
 		return new(big.Int).SetInt64(result)
 	}
 	upper := rng.upper.GetValue()

@@ -219,5 +219,5 @@ func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperV
 
 func getPrefixValueCount(segment *AddressSegment, segmentPrefixLength BitCount) SegIntCount {
 	shiftAdjustment := segment.GetBitCount() - segmentPrefixLength
-	return (segment.GetUpperSegmentValue() >> shiftAdjustment) - (segment.GetSegmentValue() >> shiftAdjustment) + 1
+	return SegIntCount(segment.GetUpperSegmentValue()>>shiftAdjustment) - SegIntCount(segment.GetSegmentValue()>>shiftAdjustment) + 1
 }

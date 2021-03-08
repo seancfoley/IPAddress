@@ -332,6 +332,10 @@ func (addr *addressInternal) equals(other AddressType) bool {
 		addr.isSameZone(other)
 }
 
+func (addr *addressInternal) withoutPrefixLength() *Address {
+	return addr.checkIdentity(addr.section.withoutPrefixLength())
+}
+
 func (addr *addressInternal) isSameZone(other AddressType) bool {
 	return addr.zone == other.ToAddress().zone
 }
@@ -481,6 +485,10 @@ func (addr *Address) GetUpper() *Address {
 
 func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
+}
+
+func (addr *Address) WithoutPrefixLength() *Address {
+	return addr.init().withoutPrefixLength()
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

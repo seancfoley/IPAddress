@@ -20,6 +20,18 @@ func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
 	return seg.GetSegmentPrefixLength() != nil
 }
 
+func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
+	return seg.isPrefixBlock()
+}
+
+func (seg *ipAddressSegmentInternal) withoutPrefixLength() *IPAddressSegment {
+	if seg.IsPrefixed() {
+		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
+		return createAddressDivision(vals).ToIPAddressSegment()
+	}
+	return seg.toIPAddressSegment()
+}
+
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
 	prefixLength := seg.GetSegmentPrefixLength()
 	if prefixLength == nil {
@@ -121,20 +133,16 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(network bool) BitCount {
 
 }
 
+func (seg *ipAddressSegmentInternal) toIPAddressSegment() *IPAddressSegment {
+	return (*IPAddressSegment)(unsafe.Pointer(seg))
+}
+
 type IPAddressSegment struct {
 	ipAddressSegmentInternal
 }
 
 func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
 	return seg.containsPrefixBlock(divisionPrefixLen)
-}
-
-func (seg *IPAddressSegment) IsPrefixBlock() bool {
-	return seg.isPrefixBlock()
-}
-
-func (seg *IPAddressSegment) IsPrefixed() bool {
-	return seg.isPrefixed()
 }
 
 func (seg *IPAddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
@@ -166,6 +174,10 @@ func (seg *IPAddressSegment) PrefixedBlockIterator(segmentPrefixLen BitCount) IP
 
 func (seg *IPAddressSegment) PrefixIterator() IPSegmentIterator {
 	return ipSegmentIterator{seg.prefixIterator()}
+}
+
+func (seg *IPAddressSegment) WithoutPrefixLength() *IPAddressSegment {
+	return seg.withoutPrefixLength()
 }
 
 func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {

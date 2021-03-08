@@ -220,6 +220,10 @@ func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
 }
 
+func (addr *IPAddress) WithoutPrefixLength() *IPAddress {
+	return addr.withoutPrefixLength().ToIPAddress()
+}
+
 //// IsMore returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *IPAddress) IsMore(other AddressDivisionSeries) int { // this is here to take advantage of the IsMore in IPAddressSection
 	//func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take advantage of the IsMore in IPAddressSection

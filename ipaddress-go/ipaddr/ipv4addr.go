@@ -227,6 +227,10 @@ func (addr *IPv4Address) ToPrefixBlockLen(prefLen BitCount) *IPv4Address {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPv4Address()
 }
 
+func (addr *IPv4Address) WithoutPrefixLength() *IPv4Address {
+	return addr.init().withoutPrefixLength().ToIPv4Address()
+}
+
 func (addr *IPv4Address) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }

@@ -172,6 +172,10 @@ func (seg *IPv4AddressSegment) PrefixIterator() IPv4SegmentIterator {
 	return ipv4SegmentIterator{seg.prefixIterator()}
 }
 
+func (seg *IPv4AddressSegment) WithoutPrefixLength() *IPv4AddressSegment {
+	return seg.withoutPrefixLength().ToIPv4AddressSegment()
+}
+
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }

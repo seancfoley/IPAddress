@@ -49,6 +49,10 @@ func (section *MACAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int
 	})
 }
 
+func (section *MACAddressSection) WithoutPrefixLength() *MACAddressSection {
+	return section.withoutPrefixLength().ToMACAddressSection()
+}
+
 //func (section *MACAddressSection) IsMore(other *MACAddressSection) int {
 //	return section.isMore(other.ToAddressDivisionGrouping())
 //}

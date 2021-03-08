@@ -259,6 +259,10 @@ func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPv6Address()
 }
 
+func (addr *IPv6Address) WithoutPrefixLength() *IPv6Address {
+	return addr.init().withoutPrefixLength().ToIPv6Address()
+}
+
 func (addr *IPv6Address) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }

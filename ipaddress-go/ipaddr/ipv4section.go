@@ -299,6 +299,10 @@ func (section *IPv4AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv4Addre
 	return section.toPrefixBlockLen(prefLen).ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) WithoutPrefixLength() *IPv4AddressSection {
+	return section.withoutPrefixLength().ToIPv4AddressSection()
+}
+
 func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
 	return ipv4SectionIterator{section.sectionIterator(ipv4Type.getCreator(), nil)}
 }

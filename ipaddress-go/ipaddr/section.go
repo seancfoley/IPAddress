@@ -160,36 +160,6 @@ func (section *addressSectionInternal) GetByteCount() int {
 	return int((section.GetBitCount() + 7) >> 3)
 }
 
-//func (section *addressSectionInternal) matchesIPv6Section() bool {
-//	return section.addrType.isIPv6() || (section.addrType.isNil() && section.hasNoDivisions())
-//}
-//
-//func (section *addressSectionInternal) matchesIPv4Section() bool {
-//	return section.addrType.isIPv4() || (section.addrType.isNil() && section.hasNoDivisions())
-//}
-//
-//func (section *addressSectionInternal) matchesIPSection() bool {
-//	return section.addrType.isIP() || (section.addrType.isNil() && section.hasNoDivisions())
-//}
-//
-//func (section *addressSectionInternal) matchesMACSection() bool {
-//	return section.addrType.isMAC() || (section.addrType.isNil() && section.hasNoDivisions())
-//}
-
-//func (section *addressSectionInternal) matchesIPv6Address() bool {
-//	return section.addrType.isIPv6() && section.GetSegmentCount() == IPv6SegmentCount
-//}
-//
-//func (section *addressSectionInternal) matchesIPv4Address() bool {
-//	return section.addrType.isIPv4() && section.GetSegmentCount() == IPv4SegmentCount
-//}
-
-//func (section *addressSectionInternal) matchesMACAddress() bool {
-//	segCount := section.GetSegmentCount()
-//	return section.addrType.isMAC() &&
-//		(segCount == MediaAccessControlSegmentCount || segCount == ExtendedUniqueIdentifier64SegmentCount)
-//}
-
 // Gets the subsection from the series starting from the given index and ending just before the give endIndex
 // The first segment is at index 0.
 func (section *addressSectionInternal) getSubSection(index, endIndex int) *AddressSection {
@@ -398,6 +368,13 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 	return createMultipleSection(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
 }
 
+func (section *addressSectionInternal) withoutPrefixLength() *AddressSection {
+	if !section.IsPrefixed() {
+		return section.toAddressSection()
+	}
+	return createSection(section.getDivisionsInternal(), nil, section.getAddrType(), section.addressSegmentIndex)
+}
+
 func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	otherSection := other.ToAddressSection()
 	if section.toAddressSection() == otherSection {
@@ -487,6 +464,7 @@ func (section *addressSectionInternal) sectionIterator(
 		section.prefixLength)
 }
 
+//xxx
 // TODO NEXT uncomment and continue the various iterator work after your prefix count code is done everywhere, see bottom of sectiterator.go for summary of remainig work, basically I got the basic iterators done everywhere except in seq ranges, and no other iterators done but the framework is ready for all of them
 //func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreator, /* nil for zero sections */ isBlockIterator bool) SectionIterator {
 //		prefLength := section.prefixLength

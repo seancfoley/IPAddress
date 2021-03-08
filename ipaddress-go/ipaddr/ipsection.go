@@ -63,6 +63,10 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {
 	return section.prefixLength
 }
 
+func (section *ipAddressSectionInternal) WithoutPrefixLength() *IPAddressSection {
+	return section.withoutPrefixLength().ToIPAddressSection()
+}
+
 func (section *ipAddressSectionInternal) IsMore(other AddressDivisionSeries) int {
 	//func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
 	if !section.IsMultiple() {
@@ -206,7 +210,7 @@ func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPre
 		false)
 }
 
-func (section *addressSectionInternal) toIPAddressSection() *IPAddressSection {
+func (section *ipAddressSectionInternal) toIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 

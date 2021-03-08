@@ -162,6 +162,10 @@ func (addr *MACAddress) ToPrefixBlock() *MACAddress {
 	return addr.init().toPrefixBlock().ToMACAddress()
 }
 
+func (addr *MACAddress) WithoutPrefixLength() *MACAddress {
+	return addr.init().withoutPrefixLength().ToMACAddress()
+}
+
 func (addr *MACAddress) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }
