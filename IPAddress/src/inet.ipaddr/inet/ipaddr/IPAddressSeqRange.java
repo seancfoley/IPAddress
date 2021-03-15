@@ -903,12 +903,61 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 
 	@Override
 	public boolean containsPrefixBlock(int prefixLen) {
-		return IPAddressSection.containsPrefixBlock(prefixLen, getLower(), getUpper());
+		IPAddressSection.checkSubnet(lower, prefixLen);
+		int divCount = lower.getDivisionCount();
+		int bitsPerSegment = lower.getBitsPerSegment();
+		int i = getHostSegmentIndex(prefixLen, lower.getBytesPerSegment(), bitsPerSegment);
+		if(i < divCount) {
+			IPAddressSegment div = lower.getSegment(i);
+			IPAddressSegment upperDiv = upper.getSegment(i);
+			int segmentPrefixLength = IPAddressSection.getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i);
+			if(!div.containsPrefixBlock(div.getSegmentValue(), upperDiv.getSegmentValue(), segmentPrefixLength)) {
+				return false;
+			}
+			for(++i; i < divCount; i++) {
+				div = lower.getSegment(i);
+				upperDiv = upper.getSegment(i);
+				//is full range?
+				if(!div.includesZero() || !upperDiv.includesMax()) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	@Override
 	public boolean containsSinglePrefixBlock(int prefixLen) {
-		return IPAddressSection.containsSinglePrefixBlock(prefixLen, getLower(), getUpper());
+		IPAddressSection.checkSubnet(lower, prefixLen);
+		int prevBitCount = 0;
+		int divCount = lower.getDivisionCount();
+		for(int i = 0; i < divCount; i++) {
+			IPAddressSegment div = lower.getSegment(i);
+			IPAddressSegment upperDiv = upper.getSegment(i);
+			int bitCount = div.getBitCount();
+			int totalBitCount = bitCount + prevBitCount;
+			if(prefixLen >= totalBitCount) {
+				if(!div.isSameValues(upperDiv)) {
+					return false;
+				}
+			} else  {
+				int divPrefixLen = Math.max(0, prefixLen - prevBitCount);
+				if(!div.containsSinglePrefixBlock(div.getSegmentValue(), upperDiv.getSegmentValue(), divPrefixLen)) {
+					return false;
+				}
+				for(++i; i < divCount; i++) {
+					div = lower.getSegment(i);
+					upperDiv = upper.getSegment(i);
+					//is full range?
+					if(!div.includesZero() || !upperDiv.includesMax()) {
+						return false;
+					}
+				}
+				return true;
+			}
+			prevBitCount = totalBitCount;
+		}
+		return true;
 	}
 	
 	@Override
