@@ -26,6 +26,9 @@ type addressDivisionGroupingBase struct {
 	cache *valueCache
 }
 
+// TODO for large will need to add methods in java AddressItem (porting those same methods in AddressItem using BigINteger to use big.int should do it):
+// isSinglePrefixBlock, isPrefixBlock, containsPrefixBlock(int), containsSinglePrefixBlock(int), getMinPrefixLengthForBlock() bitcount, getPrefixLengthForSingleBlock() prefixlen
+
 func (grouping *addressDivisionGroupingBase) getAddrType() addrType {
 	return grouping.addrType
 }
@@ -142,6 +145,24 @@ func (grouping *addressDivisionGroupingBase) IsFullRange() bool {
 		}
 	}
 	return true
+}
+
+/**
+ * Gets the minimal segment index for which all following segments are full-range blocks.
+ * <p>
+ * The segment at this index is not a full-range block unless all segments are full-range.
+ * The segment at this index and all following segments form a sequential range.
+ * For the full series to be sequential, the preceding segments must be single-valued.
+ *
+ * @return
+ */
+func (grouping *addressDivisionGroupingBase) GetSequentialBlockIndex() int {
+	segCount := grouping.GetDivisionCount()
+	if segCount > 0 {
+		for segCount--; segCount > 0 && grouping.getDivision(segCount).IsFullRange(); segCount-- {
+		}
+	}
+	return segCount
 }
 
 func (grouping *addressDivisionGroupingBase) getCountBig() *big.Int {
@@ -324,7 +345,7 @@ type maskLenSetting struct {
 //}
 
 type divArray interface {
-	getDivision(index int) *addressDivisionBase
+	getDivision(index int) *addressDivisionBase // TODO if this returned an interface, maybe it would be more useful, could move more stuff into groupingbase from grouping
 
 	getDivisionCount() int
 

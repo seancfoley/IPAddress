@@ -88,7 +88,7 @@ func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmen
 	return cache(increment + segmentPrefixLength)
 }
 
-func getSegmentBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
+func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	if bitsPerSegment == 8 {
 		return BitCount(segmentCount) << 3
 	} else if bitsPerSegment == 16 {
@@ -97,14 +97,15 @@ func getSegmentBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	return BitCount(segmentCount) * bitsPerSegment
 }
 
-var cachedPrefixLens []PrefixLen
+var cachedPrefixLens = initPrefLens()
 
-func init() {
-	cachedPrefixLens = make([]PrefixLen, IPv6BitCount+1)
+func initPrefLens() []PrefixLen {
+	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
 	for i := 0; i <= IPv6BitCount; i++ {
 		bc := BitCount(i)
-		cachedPrefixLens[i] = &bc
+		cachedPrefLens[i] = &bc
 	}
+	return cachedPrefLens
 }
 
 func cache(i BitCount) PrefixLen {

@@ -124,8 +124,14 @@ func segIterator(
 	isPrefixIterator, isBlockIterator bool) SegmentIterator {
 	var shiftAdjustment BitCount
 	var shiftMask, upperShiftMask SegInt
+	if segmentPrefixLength == nil {
+		isPrefixIterator = false // prefixBlockIterator() in which seg has no prefix
+		isBlockIterator = false
+	}
 	if isPrefixIterator {
-		shiftAdjustment = bitCount - *segmentPrefixLength
+		prefLen := *segmentPrefixLength
+		prefLen = checkBitCount(bitCount, prefLen)
+		shiftAdjustment = bitCount - prefLen
 		shiftMask = ^SegInt(0) << shiftAdjustment
 		upperShiftMask = ^shiftMask
 	}
@@ -182,6 +188,14 @@ type ipSegmentIterator struct {
 
 func (iter ipSegmentIterator) Next() *IPAddressSegment {
 	return iter.SegmentIterator.Next().ToIPAddressSegment()
+}
+
+type WrappedIPSegmentIterator struct {
+	IPSegmentIterator
+}
+
+func (iter WrappedIPSegmentIterator) Next() *AddressSegment {
+	return iter.IPSegmentIterator.Next().ToAddressSegment()
 }
 
 type IPv4SegmentIterator interface {

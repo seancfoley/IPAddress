@@ -131,6 +131,10 @@ type IPv6AddressSection struct {
 	ipAddressSectionInternal
 }
 
+func (section *IPv6AddressSection) GetIPVersion() IPVersion {
+	return IPv6
+}
+
 func (section *IPv6AddressSection) GetCount() *big.Int {
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
@@ -183,7 +187,7 @@ func (section *IPv6AddressSection) GetSubSection(index, endIndex int) *IPv6Addre
 	return section.getSubSection(index, endIndex).ToIPv6AddressSection()
 }
 
-//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true
+//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true TODO not sure about this, still considering adding it (here and in Java), it allows you to avoid panics by not going past end of segment array
 //func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
 //	section.visitSegments(
 //		func(index int, div *AddressDivision) bool {
@@ -247,10 +251,22 @@ func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
 	return ipv6SectionIterator{section.sectionIterator(ipv6Type.getCreator(), nil)}
 }
 
-func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
-	return (*IPAddressSection)(unsafe.Pointer(section))
+func (section *IPv6AddressSection) PrefixIterator() IPv6SectionIterator {
+	return ipv6SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
 }
 
-func (section *IPv6AddressSection) GetIPVersion() IPVersion {
-	return IPv6
+func (section *IPv6AddressSection) PrefixBlockIterator() IPv6SectionIterator {
+	return ipv6SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+}
+
+func (section *IPv6AddressSection) BlockIterator(segmentCount int) IPv6SectionIterator {
+	return ipv6SectionIterator{section.blockIterator(section.getAddrType().getCreator(), segmentCount)}
+}
+
+func (section *IPv6AddressSection) SequentialBlockIterator() IPv6SectionIterator {
+	return ipv6SectionIterator{section.sequentialBlockIterator(section.getAddrType().getCreator())}
+}
+
+func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
 }

@@ -82,7 +82,7 @@ func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivis
 // error returned for nil sements, or inconsistent prefixes
 func (section *addressSectionInternal) init() error {
 	segCount := section.GetSegmentCount()
-	if segCount == 0 {
+	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen
 		isMultiple := false
 		bitsPerSegment := section.GetBitsPerSegment()
@@ -153,11 +153,19 @@ func (section *addressSectionInternal) GetBitCount() BitCount {
 	if divLen == 0 {
 		return 0
 	}
-	return getSegmentBitCount(section.getDivision(0).GetBitCount(), section.GetSegmentCount())
+	return getSegmentsBitCount(section.getDivision(0).GetBitCount(), section.GetSegmentCount())
 }
 
 func (section *addressSectionInternal) GetByteCount() int {
 	return int((section.GetBitCount() + 7) >> 3)
+}
+
+func (section *addressSectionInternal) GetMaxSegmentValue() SegInt {
+	divLen := section.GetDivisionCount()
+	if divLen == 0 {
+		return 0
+	}
+	return section.GetSegment(0).GetMaxValue()
 }
 
 // Gets the subsection from the series starting from the given index and ending just before the give endIndex
@@ -365,7 +373,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
-	return createMultipleSection(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.isMultiple || prefLen < bitCount)
+	return createMultipleSection(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.IsMultiple() || prefLen < bitCount)
 }
 
 func (section *addressSectionInternal) withoutPrefixLength() *AddressSection {
@@ -438,18 +446,24 @@ func (section *addressSectionInternal) sectionIterator(
 	isMult := section.IsMultiple()
 	useOriginal := !isMult
 	var original *AddressSection
+	var iterator SegmentsIterator
 	if useOriginal {
 		if excludeFunc != nil {
 			divs := section.getDivisionsInternal()
 			if !excludeFunc(divs) {
 				original = section.toAddressSection()
+			} else {
+				useOriginal = false
+				iterator = allSegmentsIterator(
+					section.GetSegmentCount(),
+					nil,
+					func(index int) SegmentIterator { return section.GetSegment(index).iterator() },
+					excludeFunc)
 			}
 		} else {
 			original = section.toAddressSection()
 		}
-	}
-	var iterator SegmentsIterator
-	if !useOriginal {
+	} else {
 		iterator = allSegmentsIterator(
 			section.GetSegmentCount(),
 			nil,
@@ -464,37 +478,124 @@ func (section *addressSectionInternal) sectionIterator(
 		section.prefixLength)
 }
 
-//xxx
-// TODO NEXT uncomment and continue the various iterator work after your prefix count code is done everywhere, see bottom of sectiterator.go for summary of remainig work, basically I got the basic iterators done everywhere except in seq ranges, and no other iterators done but the framework is ready for all of them
-//func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreator, /* nil for zero sections */ isBlockIterator bool) SectionIterator {
-//		prefLength := section.prefixLength
-//		if(prefLength == nil || *prefLength > section.GetBitCount()) {
-//			return section.sectionIterator(creator, nil);
-//		}
-//		//IPv4AddressCreator creator = getAddressCreator();
-//		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : longPrefixCount(prefLength) == 1;
-//		boolean useOriginal = isBlockIterator ? isSinglePrefixBlock() : getPrefixCount().equals(BigInteger.ONE);
-//
-//		int networkSegIndex = getNetworkSegmentIndex(prefLength, getBytesPerSegment(), getBitsPerSegment());
-//		int hostSegIndex = getHostSegmentIndex(prefLength, getBytesPerSegment(), getBitsPerSegment());
-//		int segCount = getSegmentCount();
-//		return iterator(
-//				useOriginal,
-//				this,
-//				creator,
-//				useOriginal ?
-//						null :
-//						segmentsIterator(
-//							segCount,
-//							creator,
-//							null, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
-//							index -> getSegment(index).iterator(),
-//							null,
-//							networkSegIndex,
-//							hostSegIndex,
-//							isBlockIterator ? index -> getSegment(index).prefixBlockIterator() : index -> getSegment(index).prefixIterator()),
-//				prefLength);
-//	}
+func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreator /* nil for zero sections */, isBlockIterator bool) SectionIterator {
+	prefLen := section.prefixLength
+	if prefLen == nil {
+		return section.sectionIterator(creator, nil)
+	}
+	prefLength := *prefLen
+	if prefLength > section.GetBitCount() {
+		return section.sectionIterator(creator, nil)
+	} else if creator == nil { // zero section, all other sections have a creator associated
+		return &singleSectionIterator{original: section.toAddressSection()}
+	}
+	var useOriginal bool
+	if isBlockIterator {
+		useOriginal = section.IsSinglePrefixBlock()
+	} else {
+		useOriginal = section.GetPrefixCount().CmpAbs(bigOneConst()) == 0
+	}
+	bitsPerSeg := section.GetBitsPerSegment()
+	bytesPerSeg := section.GetBytesPerSegment()
+	networkSegIndex := getNetworkSegmentIndex(prefLength, bytesPerSeg, bitsPerSeg)
+	hostSegIndex := getHostSegmentIndex(prefLength, bytesPerSeg, bitsPerSeg)
+	segCount := section.GetSegmentCount()
+	var iterator SegmentsIterator
+	if !useOriginal {
+		var hostSegIteratorProducer func(index int) SegmentIterator
+		if isBlockIterator {
+			hostSegIteratorProducer = func(index int) SegmentIterator {
+				return section.GetSegment(index).prefixBlockIterator()
+			}
+		} else {
+			hostSegIteratorProducer = func(index int) SegmentIterator {
+				return section.GetSegment(index).prefixIterator()
+			}
+		}
+		iterator = segmentsIterator(
+			segCount,
+			nil, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
+			func(index int) SegmentIterator { return section.GetSegment(index).iterator() },
+			nil,
+			networkSegIndex,
+			hostSegIndex,
+			hostSegIteratorProducer)
+	}
+	return sectIterator(
+		useOriginal,
+		section.toAddressSection(),
+		creator,
+		iterator,
+		prefLen)
+}
+
+// TODO NEXT
+// count code is done everywhere, see bottom of sectiterator.go for summary of remainig work,
+// basically I got the basic iterators done everywhere except in seq ranges,
+// and no other iterators done but the framework is ready for all of them
+// TODO seq range iterators
+//	prefixIterator built from the prefixBlockIterator
+//	prefixBlockIterator and regular iterator use the same megafunc
+// TODO all the address iterators corresponding to these section iterators
+
+//xxx blcok iterators next xxx;
+
+//TODO thinking ahead, for address iteratros, do we wrap section iterators, or do the same as java and copy the section iterators
+// well we do use createAddressInternal, so what does that buy us?  it just uses createPrefixedSectionInternal
+// section uses createPrefixedSectionInternal
+// so it seems we gain nothing?  I think we may want to wrap.
+// In reality, in java nad here, copying is not a lot of extra code.  It's the segments iterator that does all the work.
+// AH BUT for when you want to use the original, then, there is a motivation!  That is when it is better.
+// So let's do it the same as Java.
+
+func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
+	for i := 0; i < segmentCount; i++ {
+		if section.GetSegment(i).IsMultiple() {
+			return true
+		}
+	}
+	return false
+}
+
+func (section *addressSectionInternal) blockIterator(creator ParsedAddressCreator /* nil for zero sections */, segmentCount int) SectionIterator {
+	if segmentCount < 0 {
+		segmentCount = 0
+	}
+	allSegsCount := section.GetSegmentCount()
+	if segmentCount >= allSegsCount {
+		return section.sectionIterator(creator, nil)
+	}
+	useOriginal := !section.isMultipleTo(segmentCount)
+	var iterator SegmentsIterator
+	if !useOriginal {
+		var hostSegIteratorProducer func(index int) SegmentIterator
+		hostSegIteratorProducer = func(index int) SegmentIterator {
+			return section.GetSegment(index).identityIterator()
+		}
+		segIteratorProducer := func(index int) SegmentIterator {
+			return section.GetSegment(index).iterator()
+		}
+		iterator = segmentsIterator(
+			allSegsCount,
+			//creator,
+			nil, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
+			segIteratorProducer,
+			nil,
+			segmentCount-1,
+			segmentCount,
+			hostSegIteratorProducer)
+	}
+	return sectIterator(
+		useOriginal,
+		section.toAddressSection(),
+		creator,
+		iterator,
+		section.GetPrefixLength())
+}
+
+func (section *addressSectionInternal) sequentialBlockIterator(creator ParsedAddressCreator /* nil for zero sections */) SectionIterator {
+	return section.blockIterator(creator, section.GetSequentialBlockIndex())
+}
 
 //
 //
@@ -502,6 +603,27 @@ func (section *addressSectionInternal) sectionIterator(
 //
 type AddressSection struct {
 	addressSectionInternal
+}
+
+func (section *AddressSection) ContainsPrefixBlock(prefixLen BitCount) bool {
+	prefixLen = checkSubnet(section, prefixLen)
+	divCount := section.GetSegmentCount()
+	bitsPerSegment := section.GetBitsPerSegment()
+	i := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), bitsPerSegment)
+	if i < divCount {
+		div := section.GetSegment(i)
+		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
+		if !div.ContainsPrefixBlock(*segmentPrefixLength) {
+			return false
+		}
+		for i++; i < divCount; i++ {
+			div = section.GetSegment(i)
+			if !div.IsFullRange() {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (section *AddressSection) GetCount() *big.Int {
@@ -640,4 +762,12 @@ func (section *AddressSection) ToAddressSection() *AddressSection {
 
 func (section *AddressSection) Iterator() SectionIterator {
 	return section.sectionIterator(section.getAddrType().getCreator(), nil)
+}
+
+func (section *AddressSection) PrefixIterator() SectionIterator {
+	return section.prefixIterator(section.getAddrType().getCreator(), false)
+}
+
+func (section *AddressSection) PrefixBlockIterator() SectionIterator {
+	return section.prefixIterator(section.getAddrType().getCreator(), true)
 }

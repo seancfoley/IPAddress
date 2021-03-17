@@ -109,13 +109,13 @@ func NewIPv6AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone Zon
 	return
 }
 
-var zeroIPv6 *IPv6Address
+var zeroIPv6 = initZeroIPv6()
 
-func init() {
+func initZeroIPv6() *IPv6Address {
 	div := NewIPv6Segment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div, div, div, div, div}
 	section, _ := newIPv6AddressSection(segs, 0, false)
-	zeroIPv6 = NewIPv6Address(section)
+	return NewIPv6Address(section)
 }
 
 //
@@ -126,32 +126,26 @@ type IPv6Address struct {
 	ipAddressInternal
 }
 
-func (section *IPv6Address) GetBitCount() BitCount {
+func (addr *IPv6Address) GetBitCount() BitCount {
 	return IPv6BitCount
 }
 
-func (section *IPv6Address) GetByteCount() int {
+func (addr *IPv6Address) GetByteCount() int {
 	return IPv6ByteCount
+}
+
+func (addr *IPv6Address) GetBitsPerSegment() BitCount {
+	return IPv6BitsPerSegment
+}
+
+func (addr *IPv6Address) GetBytesPerSegment() int {
+	return IPv6BytesPerSegment
 }
 
 func (addr IPv6Address) String() string {
 	address := addr.init()
 	//TODO a different default string
 	return address.addressInternal.String()
-}
-
-func (addr *IPv6Address) ToAddress() *Address {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*Address)(unsafe.Pointer(addr))
-}
-
-func (addr *IPv6Address) ToIPAddress() *IPAddress {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*IPAddress)(unsafe.Pointer(addr))
 }
 
 func (addr *IPv6Address) init() *IPv6Address {
@@ -263,6 +257,22 @@ func (addr *IPv6Address) WithoutPrefixLength() *IPv6Address {
 	return addr.init().withoutPrefixLength().ToIPv6Address()
 }
 
+func (addr *IPv6Address) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return addr.init().ipAddressInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (addr *IPv6Address) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return addr.init().ipAddressInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (addr *IPv6Address) GetMinPrefixLengthForBlock() BitCount {
+	return addr.init().ipAddressInternal.GetMinPrefixLengthForBlock()
+}
+
+func (addr *IPv6Address) GetPrefixLengthForSingleBlock() PrefixLen {
+	return addr.init().ipAddressInternal.GetPrefixLengthForSingleBlock()
+}
+
 func (addr *IPv6Address) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }
@@ -311,18 +321,54 @@ func (addr *IPv6Address) Equals(other AddressType) bool {
 	return addr.init().equals(other) // the base method handles zone too
 }
 
+func (addr *IPv6Address) GetMaxSegmentValue() SegInt {
+	return addr.init().getMaxSegmentValue()
+}
+
+func (addr *IPv6Address) WithoutZone() *IPv6Address {
+	if addr.HasZone() {
+		return NewIPv6Address(addr.GetSection())
+	}
+	return addr
+}
+
 func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	if addr == nil {
 		return nil
 	}
-	addr = addr.init()
-	return NewIPv6SeqRange(addr.GetLower(), addr.GetUpper())
+	addr = addr.init().WithoutPrefixLength().WithoutZone()
+	return newSeqRangeUnchecked(
+		addr.GetLower().ToIPAddress(),
+		addr.GetUpper().ToIPAddress(),
+		addr.IsMultiple()).ToIPv6SequentialRange()
 }
 
 func (addr *IPv6Address) ToAddressString() *IPAddressString {
 	return addr.init().ToIPAddress().ToAddressString()
 }
 
+func (addr *IPv6Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesZeroHostLen(networkPrefixLength)
+}
+
+func (addr *IPv6Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
 //func (addr *IPv6Address) IsMore(other *IPv6Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}
+
+func (addr *IPv6Address) ToAddress() *Address {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*Address)(unsafe.Pointer(addr))
+}
+
+func (addr *IPv6Address) ToIPAddress() *IPAddress {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*IPAddress)(unsafe.Pointer(addr))
+}

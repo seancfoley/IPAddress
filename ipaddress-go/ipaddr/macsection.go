@@ -115,3 +115,11 @@ func (section *MACAddressSection) ToPrefixBlockLen(prefLen BitCount) *MACAddress
 func (section *MACAddressSection) Iterator() MACSectionIterator {
 	return macSectionIterator{section.sectionIterator(macType.getCreator(), nil)}
 }
+
+func (section *MACAddressSection) PrefixIterator() MACSectionIterator {
+	return macSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+}
+
+func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
+	return macSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+}

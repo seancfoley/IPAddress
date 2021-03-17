@@ -37,38 +37,43 @@ type addressInternal struct {
 }
 
 func (addr *addressInternal) GetBitCount() BitCount {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return 0
 	}
-	return addr.section.GetBitCount()
+	return section.GetBitCount()
 }
 
 func (addr *addressInternal) GetByteCount() int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return 0
 	}
-	return addr.section.GetByteCount()
+	return section.GetByteCount()
 }
 
 func (addr *addressInternal) GetCount() *big.Int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return bigOne()
 	}
-	return addr.section.GetCount()
+	return section.GetCount()
 }
 
 func (addr *addressInternal) GetPrefixCount() *big.Int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return bigOne()
 	}
-	return addr.section.GetPrefixCount()
+	return section.GetPrefixCount()
 }
 
 func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return bigOne()
 	}
-	return addr.section.GetPrefixCountLen(prefixLen)
+	return section.GetPrefixCountLen(prefixLen)
 }
 
 func (addr *addressInternal) IsMultiple() bool {
@@ -86,6 +91,40 @@ func (addr *addressInternal) GetPrefixLength() PrefixLen {
 	return addr.section.GetPrefixLength()
 }
 
+func (addr *addressInternal) IsSinglePrefixBlock() bool {
+	prefLen := addr.GetPrefixLength()
+	return prefLen != nil && addr.section.IsSinglePrefixBlock()
+}
+
+func (addr *addressInternal) IsPrefixBlock() bool {
+	prefLen := addr.GetPrefixLength()
+	return prefLen != nil && addr.section.IsPrefixBlock()
+}
+
+func (addr *addressInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return addr.section == nil || addr.section.ContainsPrefixBlock(prefixLen)
+}
+
+func (addr *addressInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return addr.section == nil || addr.section.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (addr *addressInternal) GetMinPrefixLengthForBlock() BitCount {
+	section := addr.section
+	if section == nil {
+		return 0
+	}
+	return section.GetMinPrefixLengthForBlock()
+}
+
+func (addr *addressInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+	section := addr.section
+	if section == nil {
+		return cache(0)
+	}
+	return section.GetPrefixLengthForSingleBlock()
+}
+
 //func (addr *addressInternal) isMore(other *Address) int {
 //	if addr.section == nil {
 //		if other.IsMultiple() {
@@ -97,13 +136,14 @@ func (addr *addressInternal) GetPrefixLength() PrefixLen {
 //}
 
 func (addr *addressInternal) IsMore(other AddressDivisionSeries) int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		if other.IsMultiple() {
 			return -1
 		}
 		return 0
 	}
-	return addr.section.IsMore(other)
+	return section.IsMore(other)
 }
 
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
@@ -114,28 +154,47 @@ func (addr addressInternal) String() string { // using non-pointer receiver make
 }
 
 func (addr *addressInternal) IsSequential() bool {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return true
 	}
-	return addr.section.IsSequential()
+	return section.IsSequential()
 }
 
 func (addr *addressInternal) getSegment(index int) *AddressSegment {
 	return addr.section.GetSegment(index)
 }
 
+func (addr *addressInternal) GetBitsPerSegment() BitCount {
+	section := addr.section
+	if section == nil {
+		return 0
+	}
+	return section.GetBitsPerSegment()
+}
+
+func (addr *addressInternal) GetBytesPerSegment() int {
+	section := addr.section
+	if section == nil {
+		return 0
+	}
+	return section.GetBytesPerSegment()
+}
+
 func (addr *addressInternal) GetValue() *big.Int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return bigZero()
 	}
-	return addr.section.GetValue()
+	return section.GetValue()
 }
 
 func (addr *addressInternal) GetUpperValue() *big.Int {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return bigZero()
 	}
-	return addr.section.GetUpperValue()
+	return section.GetUpperValue()
 }
 
 func (addr *addressInternal) GetIP() net.IP {
@@ -155,37 +214,45 @@ func (addr *addressInternal) CopyUpperIP(bytes net.IP) net.IP {
 }
 
 func (addr *addressInternal) GetBytes() []byte {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return emptyBytes
 	}
-	return addr.section.GetBytes()
+	return section.GetBytes()
 }
 
 func (addr *addressInternal) CopyBytes(bytes []byte) []byte {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		if bytes != nil {
 			return bytes
 		}
 		return emptyBytes
 	}
-	return addr.section.CopyBytes(bytes)
+	return section.CopyBytes(bytes)
 }
 
 func (addr *addressInternal) GetUpperBytes() []byte {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		return emptyBytes
 	}
-	return addr.section.GetUpperBytes()
+	return section.GetUpperBytes()
 }
 
 func (addr *addressInternal) CopyUpperBytes(bytes []byte) []byte {
-	if addr.section == nil {
+	section := addr.section
+	if section == nil {
 		if bytes != nil {
 			return bytes
 		}
 		return emptyBytes
 	}
-	return addr.section.CopyUpperBytes(bytes)
+	return section.CopyUpperBytes(bytes)
+}
+
+func (addr *addressInternal) getMaxSegmentValue() SegInt {
+	return addr.section.GetMaxSegmentValue()
 }
 
 func (addr *addressInternal) checkIdentity(section *AddressSection) *Address {
@@ -491,6 +558,10 @@ func (addr *Address) WithoutPrefixLength() *Address {
 	return addr.init().withoutPrefixLength()
 }
 
+func (addr *Address) GetMaxSegmentValue() SegInt {
+	return addr.init().getMaxSegmentValue()
+}
+
 func (addr *Address) ToAddressString() HostIdentifierString {
 	if addr.isIP() {
 		return addr.toAddress().ToIPAddress().ToAddressString()
@@ -519,29 +590,43 @@ func (addr *Address) ToAddress() *Address {
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {
-	if addr.isIP() {
+	if addr != nil && addr.isIP() {
 		return (*IPAddress)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv6Address() *IPv6Address {
-	if addr.isIPv6() {
+	if addr != nil && addr.isIPv6() {
 		return (*IPv6Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv4Address() *IPv4Address {
-	if addr.isIPv4() {
+	if addr != nil && addr.isIPv4() {
 		return (*IPv4Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToMACAddress() *MACAddress {
-	if addr.isMAC() {
+	if addr != nil && addr.isMAC() {
 		return (*MACAddress)(addr)
 	}
 	return nil
+}
+
+// no type checking
+func addrValsSame(one, two *Address) bool {
+	count := one.GetSegmentCount()
+	for i := 0; i < count; i++ {
+		oneSeg := one.GetSegment(i)
+		twoSeg := two.GetSegment(i)
+		if segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
+			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
+			return false
+		}
+	}
+	return true
 }

@@ -57,11 +57,7 @@ func bigOne() *big.Int {
 	return big.NewInt(1)
 }
 
-var one *big.Int
-
-func init() {
-	one = bigOne()
-}
+var one = bigOne()
 
 func bigOneConst() *big.Int {
 	return one

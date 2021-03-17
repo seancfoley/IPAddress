@@ -67,25 +67,27 @@ func (section *ipAddressSectionInternal) WithoutPrefixLength() *IPAddressSection
 	return section.withoutPrefixLength().ToIPAddressSection()
 }
 
-func (section *ipAddressSectionInternal) IsMore(other AddressDivisionSeries) int {
-	//func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
-	if !section.IsMultiple() {
-		if other.IsMultiple() {
-			return -1
-		}
-		return 0
-	}
-	if !other.IsMultiple() {
-		return 1
-	}
-	// TODO reinstate when I have isSinglePrefixBlock for groupings
-	//if(isSinglePrefixBlock() && other.isSinglePrefixBlock()) {
-	//	int bits = getBitCount() - getPrefixLength();
-	//	int otherBits = other.getBitCount() - other.getPrefixLength();
-	//	return bits - otherBits;
-	//}
-	return section.GetCount().CmpAbs(other.GetCount())
-}
+//func (section *ipAddressSectionInternal) IsMore(other AddressDivisionSeries) int {
+//	//func (section *ipAddressSectionInternal) isMore(other *IPAddressSection) int {
+//	if !section.IsMultiple() {
+//		if other.IsMultiple() {
+//			return -1
+//		}
+//		return 0
+//	}
+//	if !other.IsMultiple() {
+//		return 1
+//	}
+//	if otherGrouping, ok := other.(AddressDivisionGroupingType); ok { Without caching, this is no faster
+//		otherSeries := otherGrouping.ToAddressDivisionGrouping()
+//		if section.IsSinglePrefixBlock() && otherSeries.IsSinglePrefixBlock() {
+//			bits := section.GetBitCount() - section.GetPrefixLength()
+//			otherBits := other.GetBitCount() - otherSeries.GetPrefixLength()
+//			return bits - otherBits
+//		}
+//	}
+//	return section.GetCount().CmpAbs(other.GetCount())
+//}
 
 // GetBlockMaskPrefixLength returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
 // Otherwise, it returns null.
@@ -189,8 +191,64 @@ func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, h
 	return
 }
 
-func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
-	return (*AddressSection)(unsafe.Pointer(section))
+func (section *ipAddressSectionInternal) IncludesZeroHost() bool {
+	networkPrefixLength := section.GetPrefixLength()
+	return networkPrefixLength != nil && section.IncludesZeroHostLen(*networkPrefixLength)
+}
+
+func (section *ipAddressSectionInternal) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
+	networkPrefixLength = checkSubnet(section, networkPrefixLength)
+	bitsPerSegment := section.GetBitsPerSegment()
+	bytesPerSegment := section.GetBytesPerSegment()
+	prefixedSegmentIndex := getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
+	divCount := section.GetSegmentCount()
+	for i := prefixedSegmentIndex; i < divCount; i++ {
+		div := section.GetSegment(i)
+		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
+		if segmentPrefixLength != nil {
+			mask := div.GetSegmentHostMask(*segmentPrefixLength)
+			if (mask & div.GetSegmentValue()) != 0 {
+				return false
+			}
+			for i++; i < divCount; i++ {
+				div = section.GetSegment(i)
+				if !div.includesZero() {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (section *ipAddressSectionInternal) IncludesMaxHost() bool {
+	networkPrefixLength := section.GetPrefixLength()
+	return networkPrefixLength != nil && section.IncludesMaxHostLen(*networkPrefixLength)
+}
+
+func (section *ipAddressSectionInternal) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
+	networkPrefixLength = checkSubnet(section, networkPrefixLength)
+	bitsPerSegment := section.GetBitsPerSegment()
+	bytesPerSegment := section.GetBytesPerSegment()
+	prefixedSegmentIndex := getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
+	divCount := section.GetSegmentCount()
+	for i := prefixedSegmentIndex; i < divCount; i++ {
+		div := section.GetSegment(i)
+		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
+		if segmentPrefixLength != nil {
+			mask := div.GetSegmentHostMask(*segmentPrefixLength)
+			if (mask & div.getUpperSegmentValue()) != mask {
+				return false
+			}
+			for i++; i < divCount; i++ {
+				div = section.GetSegment(i)
+				if !div.includesMax() {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPrefix bool) (*IPAddressSection, error) {
@@ -208,6 +266,10 @@ func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPre
 		section.getDivision,
 		func(i int) SegInt { return other.GetSegment(i).GetSegmentValue() },
 		false)
+}
+
+func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
+	return (*AddressSection)(unsafe.Pointer(section))
 }
 
 func (section *ipAddressSectionInternal) toIPAddressSection() *IPAddressSection {
@@ -328,6 +390,22 @@ func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSe
 
 func (section *IPAddressSection) Iterator() IPSectionIterator {
 	return ipSectionIterator{section.sectionIterator(section.getAddrType().getCreator(), nil)}
+}
+
+func (section *IPAddressSection) PrefixIterator() IPSectionIterator {
+	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+}
+
+func (section *IPAddressSection) PrefixBlockIterator() IPSectionIterator {
+	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+}
+
+func (section *IPAddressSection) BlockIterator(segmentCount int) IPSectionIterator {
+	return ipSectionIterator{section.blockIterator(section.getAddrType().getCreator(), segmentCount)}
+}
+
+func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
+	return ipSectionIterator{section.sequentialBlockIterator(section.getAddrType().getCreator())}
 }
 
 func BitsPerSegment(version IPVersion) BitCount {

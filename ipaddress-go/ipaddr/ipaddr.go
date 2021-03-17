@@ -43,13 +43,6 @@ func (version IPVersion) String() string {
 	return string(version)
 }
 
-//
-//
-//
-//type IPAddress struct {
-//	addressInternal
-//}
-
 // necessary to avoid direct access to IPAddress
 type ipAddressInternal struct {
 	addressInternal
@@ -78,6 +71,30 @@ func (addr *ipAddressInternal) GetNetworkPrefixLength() PrefixLen {
 		return nil
 	}
 	return section.ToIPAddressSection().GetNetworkPrefixLength()
+}
+
+func (addr *ipAddressInternal) IncludesZeroHost() bool {
+	section := addr.section
+	if section == nil {
+		return false
+	}
+	return section.ToIPAddressSection().IncludesZeroHost()
+}
+
+func (addr *ipAddressInternal) includesZeroHostLen(networkPrefixLength BitCount) bool {
+	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
+}
+
+func (addr *ipAddressInternal) includesMaxHost() bool {
+	section := addr.section
+	if section == nil {
+		return false
+	}
+	return section.ToIPAddressSection().IncludesMaxHost()
+}
+
+func (addr *ipAddressInternal) includesMaxHostLen(networkPrefixLength BitCount) bool {
+	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
 }
 
 func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
@@ -295,14 +312,14 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 }
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
-	if addr.IsIPv6() {
+	if addr != nil && addr.IsIPv6() {
 		return (*IPv6Address)(addr)
 	}
 	return nil
 }
 
 func (addr *IPAddress) ToIPv4Address() *IPv4Address {
-	if addr.IsIPv4() {
+	if addr != nil && addr.IsIPv4() {
 		return (*IPv4Address)(addr)
 	}
 	return nil
@@ -344,6 +361,10 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, error) {
 	return nil, &incompatibleAddressException{str: "ipaddress.error.ipMismatch"}
 }
 
+func (addr *IPAddress) GetMaxSegmentValue() SegInt {
+	return addr.init().getMaxSegmentValue()
+}
+
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {
@@ -353,6 +374,10 @@ func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 		}
 	}
 	return nil
+}
+
+func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
+	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.IsMultiple())
 }
 
 // Generates an IPAddressString object for this IPAddress object.
@@ -378,6 +403,14 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 		return str
 	}
 	return (*IPAddressString)(res)
+}
+
+func (addr *IPAddress) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesZeroHostLen(networkPrefixLength)
+}
+
+func (addr *IPAddress) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesMaxHostLen(networkPrefixLength)
 }
 
 func IPAddressEquals(one, two *IPAddress) bool {

@@ -103,7 +103,7 @@ func (grouping *addressDivisionGroupingInternal) GetCount() *big.Int {
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixCount() *big.Int {
 	if section := grouping.toAddressSection(); section != nil {
-		return section.GetCount()
+		return section.GetPrefixCount()
 	}
 	return grouping.addressDivisionGroupingBase.GetPrefixCount()
 }
@@ -217,6 +217,126 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 
 func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
 	return grouping.prefixLength != nil
+}
+
+//TODO eventually when supporting large divisions,
+//might move containsPrefixBlock(prefixLen BitCount), containsSinglePrefixBlock(prefixLen BitCount),
+// GetMinPrefixLengthForBlock, and GetPrefixLengthForSingleBlock into groupingBase code
+// IsPrefixBlock, IsSinglePrefixBlock
+// which looks straightforward since none deal with DivInt, instead they all call into divisionValues interface
+
+func (grouping *addressDivisionGroupingInternal) containsPrefixBlock(prefixLen BitCount) bool {
+	if section := grouping.toAddressSection(); section != nil {
+		return section.ContainsPrefixBlock(prefixLen)
+	}
+	prefixLen = checkSubnet(grouping, prefixLen)
+	divisionCount := grouping.GetDivisionCount()
+	var prevBitCount BitCount
+	for i := 0; i < divisionCount; i++ {
+		division := grouping.getDivision(i)
+		bitCount := division.GetBitCount()
+		totalBitCount := bitCount + prevBitCount
+		if prefixLen < totalBitCount {
+			divPrefixLen := prefixLen - prevBitCount
+			if !division.containsPrefixBlock(divPrefixLen) {
+				return false
+			}
+			for i++; i < divisionCount; i++ {
+				division = grouping.getDivision(i)
+				if !division.IsFullRange() {
+					return false
+				}
+			}
+			return true
+		}
+		prevBitCount = totalBitCount
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	prefixLen = checkSubnet(grouping, prefixLen)
+	divisionCount := grouping.GetDivisionCount()
+	var prevBitCount BitCount
+	for i := 0; i < divisionCount; i++ {
+		division := grouping.getDivision(i)
+		bitCount := division.getBitCount()
+		totalBitCount := bitCount + prevBitCount
+		if prefixLen >= totalBitCount {
+			if division.isMultiple() {
+				return false
+			}
+		} else {
+			divPrefixLen := prefixLen - prevBitCount
+			if !division.ContainsSinglePrefixBlock(divPrefixLen) {
+				return false
+			}
+			for i++; i < divisionCount; i++ {
+				division = grouping.getDivision(i)
+				if !division.IsFullRange() {
+					return false
+				}
+			}
+			return true
+		}
+		prevBitCount = totalBitCount
+	}
+	return true
+}
+
+func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with getPrefixLengthForSingleBlock
+	prefLen := grouping.GetPrefixLength()
+	return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
+}
+
+func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with getMinPrefixLengthForBlock
+	prefLen := grouping.GetPrefixLength()
+	return prefLen != nil && grouping.containsPrefixBlock(*prefLen)
+}
+
+func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() BitCount {
+	// TODO  maybe we should cache this value as in Java, although not clear why cached in Java (maybe because it is hard to calculate)
+	count := grouping.GetDivisionCount()
+	totalPrefix := grouping.GetBitCount()
+	for i := count - 1; i >= 0; i-- {
+		div := grouping.getDivision(i)
+		segBitCount := div.getBitCount()
+		segPrefix := div.GetMinPrefixLengthForBlock()
+		if segPrefix == segBitCount {
+			break
+		} else {
+			totalPrefix -= segBitCount
+			if segPrefix != 0 {
+				totalPrefix += segPrefix
+				break
+			}
+		}
+	}
+	return totalPrefix
+}
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+	count := grouping.GetDivisionCount()
+	var totalPrefix BitCount
+	for i := 0; i < count; i++ {
+		div := grouping.getDivision(i)
+		divPrefix := div.GetPrefixLengthForSingleBlock()
+		if divPrefix == nil {
+			return nil
+		}
+		divPrefLen := *divPrefix
+		totalPrefix += divPrefLen
+		if divPrefLen < div.GetBitCount() {
+			//remaining segments must be full range or we return nil
+			for i++; i < count; i++ {
+				laterDiv := grouping.getDivision(i)
+				if !laterDiv.IsFullRange() {
+					return nil
+				}
+			}
+		}
+	}
+	return cache(totalPrefix)
 }
 
 //// prefixesAlign returns whether the prefix of each division align with each other, which is a requirement for IPv4/6
@@ -419,7 +539,7 @@ func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingTyp
 		return false
 	} else {
 		for i := 0; i < count; i++ {
-			one := grouping.GetGenericDivision(i)
+			one := grouping.getDivision(i)
 			two := other.GetGenericDivision(i)
 			if !one.Equals(two) { //this checks the division types and also the bit counts
 				return false
@@ -440,6 +560,10 @@ func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingTyp
 
 type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
+}
+
+func (grouping *AddressDivisionGrouping) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return grouping.containsPrefixBlock(prefixLen)
 }
 
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,

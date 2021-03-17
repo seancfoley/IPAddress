@@ -170,7 +170,49 @@ func main() {
 		fmt.Printf("%v ", iter.Next())
 	}
 
-	_ = getDoc()
+	addrStrPref := ipaddr.NewIPAddressString("1.2-11.0.0/15", nil)
+	pAddr = addrStrPref.GetAddress()
+	newIter := pAddr.GetSection().PrefixBlockIterator()
+	fmt.Printf("\nto iterate: %+v", pAddr)
+	fmt.Printf("\niterate prefix blocks (prefix len 15):\n")
+	for newIter.HasNext() {
+		fmt.Printf("%v ", newIter.Next())
+	}
+	addrStrPref = ipaddr.NewIPAddressString("1.2-11.0.0/16", nil)
+	pAddr = addrStrPref.GetAddress()
+	fmt.Printf("\nto iterate: %+v", pAddr)
+	newIter = pAddr.GetSection().BlockIterator(2)
+	fmt.Printf("\niterate a section's first two blocks:\n")
+	for newIter.HasNext() {
+		fmt.Printf("%v ", newIter.Next())
+	}
+	newIter = pAddr.GetSection().SequentialBlockIterator()
+	fmt.Printf("\nsequential iterator:\n")
+	for newIter.HasNext() {
+		fmt.Printf("%v ", newIter.Next())
+	}
+
+	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4", nil)
+	addrStrPref2 := ipaddr.NewIPAddressString("1.2.4.1", nil)
+	rng := addrStrPref1.GetAddress().ToIPv4Address().SpanWithRange(addrStrPref2.GetAddress().ToIPv4Address())
+	riter := rng.Iterator()
+	fmt.Printf("\nsequential range iterator:\n")
+	for riter.HasNext() {
+		fmt.Printf("%v ", riter.Next())
+	}
+	riter = rng.PrefixBlockIterator(28)
+	fmt.Printf("\nsequential range pref block iterator:\n")
+	for riter.HasNext() {
+		fmt.Printf("%v ", riter.Next())
+	}
+
+	rangiter := rng.PrefixIterator(28)
+	fmt.Printf("\nsequential range pref iterator:\n")
+	for rangiter.HasNext() {
+		fmt.Printf("%v ", rangiter.Next())
+	}
+
+	//_ = getDoc()
 }
 
 //func foo(bytes []byte) {

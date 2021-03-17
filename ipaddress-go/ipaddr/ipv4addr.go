@@ -73,13 +73,13 @@ func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefi
 	return
 }
 
-var zeroIPv4 *IPv4Address
+var zeroIPv4 = initZeroIPv4()
 
-func init() {
+func initZeroIPv4() *IPv4Address {
 	div := NewIPv4Segment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div}
 	section, _ := newIPv4AddressSection(segs, false)
-	zeroIPv4 = NewIPv4Address(section)
+	return NewIPv4Address(section)
 }
 
 //
@@ -98,24 +98,18 @@ func (addr *IPv4Address) GetByteCount() int {
 	return IPv4ByteCount
 }
 
+func (addr *IPv4Address) GetBitsPerSegment() BitCount {
+	return IPv4BitsPerSegment
+}
+
+func (addr *IPv4Address) GetBytesPerSegment() int {
+	return IPv4BytesPerSegment
+}
+
 func (addr IPv4Address) String() string {
 	address := addr.init()
 	//TODO a different default string
 	return address.ipAddressInternal.String()
-}
-
-func (addr *IPv4Address) ToAddress() *Address {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*Address)(unsafe.Pointer(addr))
-}
-
-func (addr *IPv4Address) ToIPAddress() *IPAddress {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*IPAddress)(unsafe.Pointer(addr))
 }
 
 func (addr *IPv4Address) init() *IPv4Address {
@@ -231,6 +225,22 @@ func (addr *IPv4Address) WithoutPrefixLength() *IPv4Address {
 	return addr.init().withoutPrefixLength().ToIPv4Address()
 }
 
+func (addr *IPv4Address) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return addr.init().ipAddressInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (addr *IPv4Address) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return addr.init().ipAddressInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (addr *IPv4Address) GetMinPrefixLengthForBlock() BitCount {
+	return addr.init().ipAddressInternal.GetMinPrefixLengthForBlock()
+}
+
+func (addr *IPv4Address) GetPrefixLengthForSingleBlock() PrefixLen {
+	return addr.init().ipAddressInternal.GetPrefixLengthForSingleBlock()
+}
+
 func (addr *IPv4Address) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }
@@ -279,18 +289,44 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 	return addr.init().equals(other)
 }
 
+func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
+	return addr.init().getMaxSegmentValue()
+}
+
 func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	if addr == nil {
 		return nil
 	}
-	addr = addr.init()
-	return NewIPv4SeqRange(addr.GetLower(), addr.GetUpper())
+	addr = addr.init().WithoutPrefixLength()
+	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.IsMultiple()).ToIPv4SequentialRange()
 }
 
 func (addr *IPv4Address) ToAddressString() *IPAddressString {
 	return addr.init().ToIPAddress().ToAddressString()
 }
 
+func (addr *IPv4Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesZeroHostLen(networkPrefixLength)
+}
+
+func (addr *IPv4Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
+	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
 //func (addr *IPv4Address) IsMore(other *IPv4Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}
+
+func (addr *IPv4Address) ToAddress() *Address {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*Address)(unsafe.Pointer(addr))
+}
+
+func (addr *IPv4Address) ToIPAddress() *IPAddress {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*IPAddress)(unsafe.Pointer(addr))
+}

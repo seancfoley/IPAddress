@@ -24,6 +24,13 @@ func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
 	return seg.isPrefixBlock()
 }
 
+func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
+	if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+		return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+	}
+	return false
+}
+
 func (seg *ipAddressSegmentInternal) withoutPrefixLength() *IPAddressSegment {
 	if seg.IsPrefixed() {
 		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
@@ -178,6 +185,18 @@ func (seg *IPAddressSegment) PrefixIterator() IPSegmentIterator {
 
 func (seg *IPAddressSegment) WithoutPrefixLength() *IPAddressSegment {
 	return seg.withoutPrefixLength()
+}
+
+func (seg *IPAddressSegment) GetSegmentNetworkMask(bits BitCount) SegInt {
+	bc := seg.GetBitCount()
+	bits = checkBitCount(bits, bc)
+	return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
+}
+
+func (seg *IPAddressSegment) GetSegmentHostMask(bits BitCount) SegInt {
+	bc := seg.GetBitCount()
+	bits = checkBitCount(bits, bc)
+	return ^(^SegInt(0) << (bc - bits))
 }
 
 func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {

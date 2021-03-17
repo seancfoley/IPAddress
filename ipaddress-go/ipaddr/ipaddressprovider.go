@@ -892,17 +892,6 @@ func (all *AllCreator) getProviderMask() *IPAddress {
 	return all.qualifier.getMaskLower()
 }
 
-// TODO the ones below later
-//		@Override
-//		public Boolean contains(IPAddressProvider otherProvider) {
-//			if(otherProvider.isInvalid()) {
-//				return Boolean.FALSE;
-//			} else if(adjustedVersion == null) {
-//				return Boolean.TRUE;
-//			}
-//			return adjustedVersion == otherProvider.getProviderIPVersion();
-//		}
-
 func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	if all.isProvidingAllAddresses() {
 		return nil
@@ -918,6 +907,17 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	return all.CachedAddressProvider.getProviderSeqRange()
 }
 
+// TODO the ones below later
+//		@Override
+//		public Boolean contains(IPAddressProvider otherProvider) {
+//			if(otherProvider.isInvalid()) {
+//				return Boolean.FALSE;
+//			} else if(adjustedVersion == null) {
+//				return Boolean.TRUE;
+//			}
+//			return adjustedVersion == otherProvider.getProviderIPVersion();
+//		}
+//
 //
 //		@Override
 //		public boolean isSequential() {
@@ -965,7 +965,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: iterators, increment, merge, span, string generation
+// - things to target: iterators, increment, merge, span, cover, string generation
 // TODO iterators next after equals/contains? looks like iterators is next
 // segment iterators done
 // sections and addresses: iterator, prefixIterator, prefixBlockIterator, segmentsIterator,
@@ -977,3 +977,22 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - finish off the ip address creator interfaces
 // - finish HostName (now it's mostly done, just a few methods left)
 // - check notes.txt in Java for functionality table
+
+//
+// let's do them all
+//
+// containsPrefixBlock(int
+// containsSinglePrefixBlock(int
+// getMinPrefixLengthForBlock()
+// getPrefixLengthForSingleBlock()
+//
+// those go everywhere, were in AddressItem.  The AddressItem implementations should go into divisionbase code.
+//
+// isSinglePrefixBlock
+// isPrefixBlock
+
+// isSinglePrefixBlock is in AddressDivisionSeries
+//
+// implemented in IPAddressSection and IPAddressDivisionGrouping
+// containsPrefixBlock(int also implemented in IPAddressSection and IPAddressDivisionGrouping
+// and containsSinglePrefixBlock(int in IPAddressDivisionGrouping and AddressDivisionGrouping

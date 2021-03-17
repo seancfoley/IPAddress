@@ -16,6 +16,10 @@ type IPv4AddressSeqRange struct {
 	ipAddressSeqRangeInternal
 }
 
+func (rng IPv4AddressSeqRange) String() string {
+	return rng.init().ipAddressSeqRangeInternal.String()
+}
+
 func (rng *IPv4AddressSeqRange) init() *IPv4AddressSeqRange {
 	if rng.lower == nil {
 		return zeroIPv4Range
@@ -89,6 +93,26 @@ func (rng *IPv4AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool 
 
 func (rng *IPv4AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
 	return rng.init().equals(other)
+}
+
+func (rng *IPv4AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return rng.init().ipAddressSeqRangeInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (rng *IPv4AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (rng *IPv4AddressSeqRange) Iterator() IPv4AddrIterator {
+	return ipv4AddressIterator{rng.init().iterator()}
+}
+
+func (rng *IPv4AddressSeqRange) PrefixBlockIterator(prefLength BitCount) IPv4AddrIterator {
+	return &ipv4AddressIterator{rng.init().prefixBlockIterator(prefLength)}
+}
+
+func (rng *IPv4AddressSeqRange) PrefixIterator(prefLength BitCount) IPv4AddressSeqRangeIterator {
+	return &ipv4RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
 func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {

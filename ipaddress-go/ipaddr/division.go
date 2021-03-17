@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"math/big"
+	"math/bits"
 	"sync"
 	"unsafe"
 )
@@ -190,10 +191,13 @@ func (div *addressDivisionInternal) containsPrefixBlock(divisionPrefixLen BitCou
 
 // Returns whether the division range includes the block of values for its prefix length
 func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
-	if divisionPrefixLen == 0 {
+	if divisionPrefixLen <= 0 {
 		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
+	if divisionPrefixLen >= bitCount {
+		return true
+	}
 	var ones = ^DivInt(0)
 	var divisionBitMask DivInt = ^(ones << bitCount)
 	var divisionPrefixMask DivInt = ones << (bitCount - divisionPrefixLen)
@@ -220,6 +224,55 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 		upperValue,
 		divisionPrefixMask&divisionBitMask,
 		divisionNonPrefixMask)
+}
+
+func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return div.isPrefixBlockVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
+}
+
+func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return div.isSinglePrefixBlock(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
+}
+
+func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
+	result := div.GetBitCount()
+	if !div.IsMultiple() {
+		return result
+	} else if div.IsFullRange() {
+		return 0
+	}
+	lowerZeros := bits.TrailingZeros64(uint64(div.getDivisionValue()))
+	if lowerZeros != 0 {
+		upperOnes := bits.TrailingZeros64(^div.getUpperDivisionValue())
+		if upperOnes != 0 {
+			var prefixedBitCount int
+			if lowerZeros < upperOnes {
+				prefixedBitCount = lowerZeros
+			} else {
+				prefixedBitCount = upperOnes
+			}
+			result -= BitCount(prefixedBitCount)
+		}
+	}
+	return result
+}
+
+func (div *addressDivisionInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+	divPrefix := div.GetMinPrefixLengthForBlock()
+	lowerValue := div.GetDivisionValue()
+	upperValue := div.GetUpperDivisionValue()
+	bitCount := div.GetBitCount()
+	if divPrefix == bitCount {
+		if lowerValue == upperValue {
+			return cache(divPrefix)
+		}
+	} else {
+		shift := bitCount - divPrefix
+		if lowerValue>>shift == upperValue>>shift {
+			return cache(divPrefix)
+		}
+	}
+	return nil
 }
 
 // return whether the division range includes the block of values for the division prefix length,

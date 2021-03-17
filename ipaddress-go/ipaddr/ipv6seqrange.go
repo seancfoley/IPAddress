@@ -7,6 +7,8 @@ import (
 )
 
 func NewIPv6SeqRange(one, two *IPv6Address) *IPv6AddressSeqRange {
+	one = one.WithoutZone()
+	two = two.WithoutZone()
 	return newSeqRange(one.ToIPAddress(), two.ToIPAddress()).ToIPv6SequentialRange()
 }
 
@@ -14,6 +16,10 @@ var zeroIPv6Range = NewIPv6SeqRange(zeroIPv6, zeroIPv6)
 
 type IPv6AddressSeqRange struct {
 	ipAddressSeqRangeInternal
+}
+
+func (rng IPv6AddressSeqRange) String() string {
+	return rng.init().ipAddressSeqRangeInternal.String()
 }
 
 func (rng *IPv6AddressSeqRange) init() *IPv6AddressSeqRange {
@@ -89,6 +95,26 @@ func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool 
 
 func (rng *IPv6AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
 	return rng.init().equals(other)
+}
+
+func (rng *IPv6AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return rng.init().ipAddressSeqRangeInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (rng *IPv6AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (rng *IPv6AddressSeqRange) Iterator() IPv6AddressIterator {
+	return ipv6AddressIterator{rng.init().iterator()}
+}
+
+func (rng *IPv6AddressSeqRange) PrefixBlockIterator(prefLength BitCount) IPv6AddressIterator {
+	return &ipv6AddressIterator{rng.init().prefixBlockIterator(prefLength)}
+}
+
+func (rng *IPv6AddressSeqRange) PrefixIterator(prefLength BitCount) IPv6AddressSeqRangeIterator {
+	return &ipv6RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
 func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {

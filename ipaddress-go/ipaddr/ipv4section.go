@@ -133,6 +133,10 @@ type IPv4AddressSection struct {
 	ipAddressSectionInternal
 }
 
+func (section *IPv4AddressSection) GetIPVersion() IPVersion {
+	return IPv4
+}
+
 func (section *IPv4AddressSection) GetCount() *big.Int {
 	return section.cacheCount(func() *big.Int {
 		return bigZero().SetUint64(section.GetIPv4Count())
@@ -307,10 +311,14 @@ func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
 	return ipv4SectionIterator{section.sectionIterator(ipv4Type.getCreator(), nil)}
 }
 
-func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
-	return (*IPAddressSection)(unsafe.Pointer(section))
+func (section *IPv4AddressSection) PrefixIterator() IPv4SectionIterator {
+	return ipv4SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
 }
 
-func (section *IPv4AddressSection) GetIPVersion() IPVersion {
-	return IPv4
+func (section *IPv4AddressSection) PrefixBlockIterator() IPv4SectionIterator {
+	return ipv4SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+}
+
+func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
 }

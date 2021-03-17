@@ -12,8 +12,8 @@ const (
 	MACBitsPerSegment  = 8
 	MACBytesPerSegment = 1
 	//IPv4SegmentCount                 = 4
-	//IPv4ByteCount                    = 4
-	//IPv4BitCount             = 32
+	//MACByteCount                    = 4
+	//MACBitCount             = 32
 	MACDefaultTextualRadix      = 16
 	MACMaxValuePerSegment       = 0xff
 	MACMaxValuePerDottedSegment = 0xffff
@@ -37,9 +37,10 @@ func NewMACAddress(section *MACAddressSection) *MACAddress {
 	}
 }
 
-var zeroMAC *MACAddress
+var zeroMAC = initMACZero()
 
-func init() {
+func initMACZero() *MACAddress {
+	return nil
 	// TODO reinstate when all these methods are in place
 	//div := NewMACSegment(0).ToAddressDivision()
 	//segs := []*AddressDivision{div, div, div, div, div, div, div, div}
@@ -49,6 +50,22 @@ func init() {
 
 type MACAddress struct {
 	addressInternal
+}
+
+func (addr *MACAddress) GetBitCount() BitCount {
+	return addr.init().addressInternal.GetBitCount()
+}
+
+func (addr *MACAddress) GetByteCount() int {
+	return addr.init().addressInternal.GetByteCount()
+}
+
+func (addr *MACAddress) GetBitsPerSegment() BitCount {
+	return MACBitsPerSegment
+}
+
+func (addr *MACAddress) GetBytesPerSegment() int {
+	return MACBytesPerSegment
 }
 
 func (addr *MACAddress) ToAddress() *Address {
@@ -166,12 +183,32 @@ func (addr *MACAddress) WithoutPrefixLength() *MACAddress {
 	return addr.init().withoutPrefixLength().ToMACAddress()
 }
 
+func (addr *MACAddress) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return addr.init().addressInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (addr *MACAddress) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return addr.init().addressInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (addr *MACAddress) GetMinPrefixLengthForBlock() BitCount {
+	return addr.init().addressInternal.GetMinPrefixLengthForBlock()
+}
+
+func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen {
+	return addr.init().addressInternal.GetPrefixLengthForSingleBlock()
+}
+
 func (addr *MACAddress) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }
 
 func (addr *MACAddress) Equals(other AddressType) bool {
 	return addr.init().equals(other)
+}
+
+func (addr *MACAddress) GetMaxSegmentValue() SegInt {
+	return addr.init().getMaxSegmentValue()
 }
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {

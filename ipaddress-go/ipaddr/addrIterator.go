@@ -1,7 +1,7 @@
 package ipaddr
 
 type AddressIterator interface {
-	HasNext() bool
+	iteratorBase
 	Next() *Address
 }
 
@@ -43,14 +43,29 @@ func addrIterator(
 	if useOriginal {
 		return &singleAddrIterator{original: original}
 	}
+	var zone Zone
+	if original != nil {
+		zone = original.zone
+	}
 	return multiAddrIterator{
 		multiSectionIterator: &multiSectionIterator{
 			creator:      creator,
 			iterator:     iterator,
 			prefixLength: prefixLength,
 		},
-		zone: original.zone,
+		zone: zone,
 	}
+}
+
+// this one is used by the sequential ranges
+func rangeAddrIterator(
+	original *IPAddress,
+	creator ParsedAddressCreator,
+	iterator SegmentsIterator) AddressIterator {
+	if original != nil {
+		return addrIterator(true, original.ToAddress(), creator, iterator, nil)
+	}
+	return addrIterator(false, nil, creator, iterator, nil)
 }
 
 type IPAddressIterator interface {

@@ -124,7 +124,7 @@ func allSegmentsIterator(
 func segmentsIterator(
 	divCount int,
 	segSupplier func() []*AddressDivision,
-	segIteratorProducer func(int) SegmentIterator,
+	segIteratorProducer func(int) SegmentIterator, // unused at this time, since we do not have a public segments iterator
 	excludeFunc func([]*AddressDivision) bool, // can be nil
 	networkSegmentIndex,
 	hostSegmentIndex int,
@@ -143,6 +143,23 @@ func segmentsIterator(
 	}
 	iterator.init()
 	return iterator
+}
+
+// this iterator function used by sequential ranges
+func rangeSegmentsIterator(
+	divCount int,
+	segIteratorProducer func(int) SegmentIterator,
+	networkSegmentIndex,
+	hostSegmentIndex int,
+	prefixedSegIteratorProducer func(int) SegmentIterator) SegmentsIterator {
+	return segmentsIterator(
+		divCount,
+		nil,
+		segIteratorProducer,
+		nil,
+		networkSegmentIndex,
+		hostSegmentIndex,
+		prefixedSegIteratorProducer)
 }
 
 type SectionIterator interface {
@@ -255,18 +272,3 @@ func (iter macSectionIterator) Next() *MACAddressSection {
 func createIteratedSection(creator ParsedAddressCreator, next []*AddressDivision, prefixLength PrefixLen) *AddressSection {
 	return creator.createPrefixedSectionInternalSingle(next, prefixLength)
 }
-
-////////
-
-// TODO continue with section and address iterators, need to hook up them all to the methods in here
-// address blockIterator combines addrIterator with segmentsIterator
-// address prefixIterator the same, covering both prefix and prefix block
-// section blockIterator combines sectIterator with segmentsIterator
-// section prefixIterator the same, covering both prefix and prefix block
-//
-// So that covers them all for ipv4/6 (2 pref iterators, 1 block)
-// mac has just the two pref iterators
-// sequential range iterator uses segmentsIterator, and in fact the prefix and prefix block iterators use it too
-//
-// this baby is at the core of them all!
-//

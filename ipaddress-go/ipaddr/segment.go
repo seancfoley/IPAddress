@@ -108,13 +108,17 @@ func (seg *addressSegmentInternal) iterator() SegmentIterator {
 	return seg.segmentIterator(seg.getDivisionPrefixLength(), false, false)
 }
 
-func (seg *addressSegmentInternal) iter(withPrefix bool) SegmentIterator {
-	var segPrefLen PrefixLen
-	if withPrefix {
-		segPrefLen = seg.getDivisionPrefixLength()
-	}
-	return seg.segmentIterator(segPrefLen, false, false)
+func (seg *addressSegmentInternal) identityIterator() SegmentIterator {
+	return &singleSegmentIterator{original: seg.toAddressSegment()}
 }
+
+//func (seg *addressSegmentInternal) iter(withPrefix bool) SegmentIterator { TODO might not need this
+//	var segPrefLen PrefixLen
+//	if withPrefix {
+//		segPrefLen = seg.getDivisionPrefixLength()
+//	}
+//	return seg.segmentIterator(segPrefLen, false, false)
+//}
 
 func (seg *addressSegmentInternal) prefixBlockIterator() SegmentIterator {
 	return seg.segmentIterator(seg.getDivisionPrefixLength(), true, true)
@@ -215,6 +219,10 @@ func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
+}
+
+func segValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
+	return oneVal == twoVal && oneUpperVal == twoUpperVal
 }
 
 func getPrefixValueCount(segment *AddressSegment, segmentPrefixLength BitCount) SegIntCount {
