@@ -388,24 +388,44 @@ func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSe
 	return section.toPrefixBlockLen(prefLen).ToIPAddressSection()
 }
 
+//func (section *IPAddressSection) Iterator() IPSectionIterator {
+//	return ipSectionIterator{section.sectionIterator(section.getAddrType().getCreator(), nil)}
+//}
+//
+//func (section *IPAddressSection) PrefixIterator() IPSectionIterator {
+//	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+//}
+//
+//func (section *IPAddressSection) PrefixBlockIterator() IPSectionIterator {
+//	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+//}
+//
+//func (section *IPAddressSection) BlockIterator(segmentCount int) IPSectionIterator {
+//	return ipSectionIterator{section.blockIterator(section.getAddrType().getCreator(), segmentCount)}
+//}
+//
+//func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
+//	return ipSectionIterator{section.sequentialBlockIterator(section.getAddrType().getCreator())}
+//}
+
 func (section *IPAddressSection) Iterator() IPSectionIterator {
-	return ipSectionIterator{section.sectionIterator(section.getAddrType().getCreator(), nil)}
+	return ipSectionIterator{section.sectionIterator(nil)}
 }
 
 func (section *IPAddressSection) PrefixIterator() IPSectionIterator {
-	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+	return ipSectionIterator{section.prefixIterator(false)}
 }
 
 func (section *IPAddressSection) PrefixBlockIterator() IPSectionIterator {
-	return ipSectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+	return ipSectionIterator{section.prefixIterator(true)}
 }
 
 func (section *IPAddressSection) BlockIterator(segmentCount int) IPSectionIterator {
-	return ipSectionIterator{section.blockIterator(section.getAddrType().getCreator(), segmentCount)}
+	return ipSectionIterator{section.blockIterator(segmentCount)}
 }
 
 func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
-	return ipSectionIterator{section.sequentialBlockIterator(section.getAddrType().getCreator())}
+	return ipSectionIterator{section.sequentialBlockIterator()}
 }
 
 func BitsPerSegment(version IPVersion) BitCount {
@@ -439,13 +459,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 	prefLen := *prefixLength
 	if prefLen < 0 {
 		prefLen = 0
-		//return &prefixLenException{prefixLen: prefLen, key: "ipaddress.error.prefixSize"}
-		//throw new PrefixLenException(networkPrefixLength);
 	} else if prefLen > boundaryBits {
-		//if prefLen > maxBits {
-		//	return &prefixLenException{prefixLen: prefLen, key: "ipaddress.error.prefixSize"}
-		//	//throw new PrefixLenException(networkPrefixLength);
-		//}
 		prefLen = boundaryBits
 		prefixLength = &boundaryBits
 	}

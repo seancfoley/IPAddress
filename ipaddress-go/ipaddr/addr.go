@@ -19,6 +19,16 @@ const (
 	SegmentSqlSingleWildcard   = '_'
 )
 
+func createAddress(section *AddressSection, zone Zone) *Address {
+	return &Address{
+		addressInternal{
+			section: section,
+			zone:    zone,
+			cache:   &addressCache{},
+		},
+	}
+}
+
 type SegmentValueProvider func(segmentIndex int) SegInt
 
 type addressCache struct {
@@ -334,6 +344,10 @@ func (addr *addressInternal) getDivisionCount() int {
 	return addr.section.GetDivisionCount()
 }
 
+func (addr *addressInternal) getDivisionsInternal() []*AddressDivision {
+	return addr.section.getDivisionsInternal()
+}
+
 func (addr *addressInternal) toPrefixBlock() *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlock())
 }
@@ -414,6 +428,125 @@ func (addr *addressInternal) getAddrType() addrType {
 	return addr.section.addrType
 }
 
+// equivalent to section.sectionIterator
+func (addr *addressInternal) addrIterator(excludeFunc func([]*AddressDivision) bool) AddressIterator {
+	useOriginal := !addr.IsMultiple()
+	original := addr.toAddress()
+	var iterator SegmentsIterator
+	if useOriginal {
+		if excludeFunc != nil && excludeFunc(addr.getDivisionsInternal()) {
+			original = nil // the single-valued iterator starts out empty
+		}
+	} else {
+		address := addr.toAddress()
+		iterator = allSegmentsIterator(
+			addr.getDivisionCount(),
+			nil,
+			func(index int) SegmentIterator { return address.getSegment(index).iterator() },
+			excludeFunc)
+	}
+	return addrIterator(
+		useOriginal,
+		original,
+		false,
+		iterator)
+}
+
+func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterator {
+	prefLen := addr.GetPrefixLength()
+	if prefLen == nil {
+		return addr.addrIterator(nil)
+	}
+	var useOriginal bool
+	if isBlockIterator {
+		useOriginal = addr.IsSinglePrefixBlock()
+	} else {
+		useOriginal = addr.GetPrefixCount().CmpAbs(bigOneConst()) == 0
+	}
+	prefLength := *prefLen
+	bitsPerSeg := addr.GetBitsPerSegment()
+	bytesPerSeg := addr.GetBytesPerSegment()
+	networkSegIndex := getNetworkSegmentIndex(prefLength, bytesPerSeg, bitsPerSeg)
+	hostSegIndex := getHostSegmentIndex(prefLength, bytesPerSeg, bitsPerSeg)
+	segCount := addr.getDivisionCount()
+	var iterator SegmentsIterator
+	address := addr.toAddress()
+	if !useOriginal {
+		var hostSegIteratorProducer func(index int) SegmentIterator
+		if isBlockIterator {
+			hostSegIteratorProducer = func(index int) SegmentIterator {
+				return address.GetSegment(index).prefixBlockIterator()
+			}
+		} else {
+			hostSegIteratorProducer = func(index int) SegmentIterator {
+				return address.GetSegment(index).prefixIterator()
+			}
+		}
+		iterator = segmentsIterator(
+			segCount,
+			nil, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
+			func(index int) SegmentIterator { return address.GetSegment(index).iterator() },
+			nil,
+			networkSegIndex,
+			hostSegIndex,
+			hostSegIteratorProducer)
+	}
+	if isBlockIterator {
+		return addrIterator(
+			useOriginal,
+			address,
+			prefLength < addr.GetBitCount(),
+			iterator)
+	}
+	return prefixAddrIterator(
+		useOriginal,
+		address,
+		iterator)
+}
+
+func (addr *addressInternal) blockIterator(segmentCount int) AddressIterator {
+	if segmentCount < 0 {
+		segmentCount = 0
+	}
+	allSegsCount := addr.getDivisionCount()
+	if segmentCount >= allSegsCount {
+		return addr.addrIterator(nil)
+	}
+	useOriginal := !addr.section.isMultipleTo(segmentCount)
+	address := addr.toAddress()
+	var iterator SegmentsIterator
+	if !useOriginal {
+		var hostSegIteratorProducer func(index int) SegmentIterator
+		hostSegIteratorProducer = func(index int) SegmentIterator {
+			return address.GetSegment(index).identityIterator()
+		}
+		segIteratorProducer := func(index int) SegmentIterator {
+			return address.GetSegment(index).iterator()
+		}
+		iterator = segmentsIterator(
+			allSegsCount,
+			nil, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
+			segIteratorProducer,
+			nil,
+			segmentCount-1,
+			segmentCount,
+			hostSegIteratorProducer)
+	}
+	return addrIterator(
+		useOriginal,
+		address,
+		addr.section.isMultipleFrom(segmentCount),
+		iterator)
+}
+
+func (addr *addressInternal) sequentialBlockIterator() AddressIterator {
+	return addr.blockIterator(addr.getSequentialBlockIndex())
+}
+
+func (addr *addressInternal) getSequentialBlockIndex() int {
+	return addr.section.GetSequentialBlockIndex()
+}
+
 //TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
 // we also want toCanonicalWildcardString
 // the code will need to check the addrtype in the section, in fact, the code should just defer to the section,
@@ -439,25 +572,6 @@ func (addr *addressInternal) ToNormalizedWildcardString() string {
 	//TODO
 	return ""
 }
-
-//
-//
-//protected abstract IPAddressStringParameters createFromStringParams();
-//
-//	protected IPAddressStringParameters createFromStringParams() {
-//		return new IPAddressStringParameters.Builder().
-//				getIPv4AddressParametersBuilder().setNetwork(getNetwork()).getParentBuilder().
-//				getIPv6AddressParametersBuilder().setNetwork(getIPv6Network()).getParentBuilder().toParams();
-//	}
-//
-//	protected IPAddressStringParameters createFromStringParams() {
-//		return new IPAddressStringParameters.Builder().
-//				getIPv4AddressParametersBuilder().setNetwork(getIPv4Network()).getParentBuilder().
-//				getIPv6AddressParametersBuilder().setNetwork(getNetwork()).getParentBuilder().toParams();
-//	}
-//protected IPAddressString getAddressfromString() {
-//	return (IPAddressString) fromString;
-//}
 
 var zeroAddr = &Address{
 	addressInternal{
@@ -560,6 +674,18 @@ func (addr *Address) WithoutPrefixLength() *Address {
 
 func (addr *Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
+}
+
+func (addr *Address) Iterator() AddressIterator {
+	return addr.addrIterator(nil)
+}
+
+func (addr *Address) PrefixIterator() AddressIterator {
+	return addr.prefixIterator(false)
+}
+
+func (addr *Address) PrefixBlockIterator() AddressIterator {
+	return addr.prefixIterator(true)
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

@@ -365,6 +365,26 @@ func (addr *IPAddress) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
 
+func (addr *IPAddress) Iterator() IPAddressIterator {
+	return ipAddrIterator{addr.init().addrIterator(nil)}
+}
+
+func (addr *IPAddress) PrefixIterator() IPAddressIterator {
+	return ipAddrIterator{addr.init().prefixIterator(false)}
+}
+
+func (addr *IPAddress) PrefixBlockIterator() IPAddressIterator {
+	return ipAddrIterator{addr.init().prefixIterator(true)}
+}
+
+func (addr *IPAddress) BlockIterator(segmentCount int) IPAddressIterator {
+	return ipAddrIterator{addr.init().blockIterator(segmentCount)}
+}
+
+func (addr *IPAddress) SequentialBlockIterator() IPAddressIterator {
+	return ipAddrIterator{addr.init().sequentialBlockIterator()}
+}
+
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {
@@ -377,6 +397,7 @@ func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 }
 
 func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
+	// no prefix, no zone
 	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.IsMultiple())
 }
 
@@ -398,7 +419,6 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 	if res == nil {
 		str := NewIPAddressString(addr.ToCanonicalString(), nil)
 		dataLoc := &addr.cache.fromString
-		//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.fromString))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str
 	}

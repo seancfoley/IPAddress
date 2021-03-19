@@ -23,18 +23,11 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 
 // error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
 func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueException) {
-	//if startIndex < 0 {
-	//	err = &addressPositionException{val: startIndex, key: "ipaddress.error.invalid.position"}
-	//	return
-	//}
 	segsLen := len(segments)
 	if segsLen > IPv4SegmentCount {
 		err = &addressValueException{val: segsLen, key: "ipaddress.error.exceeds.size"}
 		return
 	}
-	//if cloneSegments { //TODO this is likely not necessary because for public you will need to convert from []*IPv4AddressSegment to []*AddressDivision before calling this func
-	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
-	//}
 	res = createIPv4Section(segments)
 	if err = res.init(); err != nil {
 		res = nil
@@ -176,10 +169,6 @@ func (section *IPv4AddressSection) GetIPv4PrefixCount() uint64 {
 	return section.GetIPv4PrefixCountLen(*prefixLength)
 }
 
-//func (section *IPv4AddressSection) IsMore(other *IPv4AddressSection) int {
-//	return section.isMore(other.ToIPAddressSection())
-//}
-
 func (section *IPv4AddressSection) GetIPv4Count() uint64 {
 	if !section.IsMultiple() {
 		return 1
@@ -273,6 +262,8 @@ func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 						}
 					}
 					cache.cachedLowerVal = result
+				} else {
+					result = cachedInt
 				}
 				cache.cacheLock.Unlock()
 			} else {
@@ -308,15 +299,23 @@ func (section *IPv4AddressSection) WithoutPrefixLength() *IPv4AddressSection {
 }
 
 func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
-	return ipv4SectionIterator{section.sectionIterator(ipv4Type.getCreator(), nil)}
+	return ipv4SectionIterator{section.sectionIterator(nil)}
 }
 
 func (section *IPv4AddressSection) PrefixIterator() IPv4SectionIterator {
-	return ipv4SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+	return ipv4SectionIterator{section.prefixIterator(false)}
 }
 
 func (section *IPv4AddressSection) PrefixBlockIterator() IPv4SectionIterator {
-	return ipv4SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+	return ipv4SectionIterator{section.prefixIterator(true)}
+}
+
+func (section *IPv4AddressSection) BlockIterator(segmentCount int) IPv4SectionIterator {
+	return ipv4SectionIterator{section.blockIterator(segmentCount)}
+}
+
+func (section *IPv4AddressSection) SequentialBlockIterator() IPv4SectionIterator {
+	return ipv4SectionIterator{section.sequentialBlockIterator()}
 }
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {

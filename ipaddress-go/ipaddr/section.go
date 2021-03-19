@@ -71,12 +71,17 @@ type addressSectionInternal struct {
 	addressDivisionGroupingInternal
 }
 
-func (section *addressSectionInternal) toAddressSection() *AddressSection {
-	return (*AddressSection)(unsafe.Pointer(section))
-}
-
-func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
-	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
+// error returned for nil sements, or inconsistent prefixes
+func (section *addressSectionInternal) initMultiple() {
+	segCount := section.GetSegmentCount()
+	for i := segCount - 1; i >= 0; i-- {
+		segment := section.GetSegment(i)
+		if segment.IsMultiple() {
+			section.isMultiple = true
+			return
+		}
+	}
+	return
 }
 
 // error returned for nil sements, or inconsistent prefixes
@@ -87,18 +92,11 @@ func (section *addressSectionInternal) init() error {
 		isMultiple := false
 		bitsPerSegment := section.GetBitsPerSegment()
 		for i := 0; i < segCount; i++ {
-			div := section.getDivision(i)
-			if div == nil {
+			segment := section.GetSegment(i)
+			if segment == nil {
 				return &addressException{"ipaddress.error.null.segment"}
 			}
-			// unnecessary since we can control the division type
-			// new ipv4/6 sections are created from ipv4/6segment while derived sections come from existing segments
-			// in all cases, no way to insert mimatched divisions
-			//else if section.getDivision(i).getBitCount() != bitsPerSegment {
-			//	return &addressException{"ipaddress.error.mismatched.bit.size"}
-			//}
 
-			segment := section.GetSegment(i)
 			if !isMultiple && segment.IsMultiple() {
 				isMultiple = true
 				section.isMultiple = true
@@ -437,31 +435,13 @@ func (section *addressSectionInternal) GetSegmentStrings() []string {
 }
 
 // used by iterator() and nonZeroHostIterator() in section classes
-func (section *addressSectionInternal) sectionIterator(
-	creator ParsedAddressCreator, /* nil for zero sections */
-	excludeFunc func([]*AddressDivision) bool) SectionIterator {
-	if creator == nil { // zero section, all other sections have a creator associated
-		return &singleSectionIterator{original: section.toAddressSection()}
-	}
-	isMult := section.IsMultiple()
-	useOriginal := !isMult
-	var original *AddressSection
+func (section *addressSectionInternal) sectionIterator(excludeFunc func([]*AddressDivision) bool) SectionIterator {
+	useOriginal := !section.IsMultiple()
+	var original = section.toAddressSection()
 	var iterator SegmentsIterator
 	if useOriginal {
-		if excludeFunc != nil {
-			divs := section.getDivisionsInternal()
-			if !excludeFunc(divs) {
-				original = section.toAddressSection()
-			} else {
-				useOriginal = false
-				iterator = allSegmentsIterator(
-					section.GetSegmentCount(),
-					nil,
-					func(index int) SegmentIterator { return section.GetSegment(index).iterator() },
-					excludeFunc)
-			}
-		} else {
-			original = section.toAddressSection()
+		if excludeFunc != nil && excludeFunc(section.getDivisionsInternal()) {
+			original = nil // the single-valued iterator starts out empty
 		}
 	} else {
 		iterator = allSegmentsIterator(
@@ -473,22 +453,16 @@ func (section *addressSectionInternal) sectionIterator(
 	return sectIterator(
 		useOriginal,
 		original,
-		creator,
-		iterator,
-		section.prefixLength)
+		false,
+		iterator)
 }
 
-func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreator /* nil for zero sections */, isBlockIterator bool) SectionIterator {
+func (section *addressSectionInternal) prefixIterator(isBlockIterator bool) SectionIterator {
 	prefLen := section.prefixLength
 	if prefLen == nil {
-		return section.sectionIterator(creator, nil)
+		return section.sectionIterator(nil)
 	}
 	prefLength := *prefLen
-	if prefLength > section.GetBitCount() {
-		return section.sectionIterator(creator, nil)
-	} else if creator == nil { // zero section, all other sections have a creator associated
-		return &singleSectionIterator{original: section.toAddressSection()}
-	}
 	var useOriginal bool
 	if isBlockIterator {
 		useOriginal = section.IsSinglePrefixBlock()
@@ -521,49 +495,26 @@ func (section *addressSectionInternal) prefixIterator(creator ParsedAddressCreat
 			hostSegIndex,
 			hostSegIteratorProducer)
 	}
-	return sectIterator(
+	if isBlockIterator {
+		return sectIterator(
+			useOriginal,
+			section.toAddressSection(),
+			prefLength < section.GetBitCount(),
+			iterator)
+	}
+	return prefixSectIterator(
 		useOriginal,
 		section.toAddressSection(),
-		creator,
-		iterator,
-		prefLen)
+		iterator)
 }
 
-// TODO NEXT
-// count code is done everywhere, see bottom of sectiterator.go for summary of remainig work,
-// basically I got the basic iterators done everywhere except in seq ranges,
-// and no other iterators done but the framework is ready for all of them
-// TODO seq range iterators
-//	prefixIterator built from the prefixBlockIterator
-//	prefixBlockIterator and regular iterator use the same megafunc
-// TODO all the address iterators corresponding to these section iterators
-
-//xxx blcok iterators next xxx;
-
-//TODO thinking ahead, for address iteratros, do we wrap section iterators, or do the same as java and copy the section iterators
-// well we do use createAddressInternal, so what does that buy us?  it just uses createPrefixedSectionInternal
-// section uses createPrefixedSectionInternal
-// so it seems we gain nothing?  I think we may want to wrap.
-// In reality, in java nad here, copying is not a lot of extra code.  It's the segments iterator that does all the work.
-// AH BUT for when you want to use the original, then, there is a motivation!  That is when it is better.
-// So let's do it the same as Java.
-
-func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
-	for i := 0; i < segmentCount; i++ {
-		if section.GetSegment(i).IsMultiple() {
-			return true
-		}
-	}
-	return false
-}
-
-func (section *addressSectionInternal) blockIterator(creator ParsedAddressCreator /* nil for zero sections */, segmentCount int) SectionIterator {
+func (section *addressSectionInternal) blockIterator(segmentCount int) SectionIterator {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
 	allSegsCount := section.GetSegmentCount()
 	if segmentCount >= allSegsCount {
-		return section.sectionIterator(creator, nil)
+		return section.sectionIterator(nil)
 	}
 	useOriginal := !section.isMultipleTo(segmentCount)
 	var iterator SegmentsIterator
@@ -577,7 +528,6 @@ func (section *addressSectionInternal) blockIterator(creator ParsedAddressCreato
 		}
 		iterator = segmentsIterator(
 			allSegsCount,
-			//creator,
 			nil, //when no prefix we defer to other iterator, when there is one we use the whole original section in the encompassing iterator and not just the original segments
 			segIteratorProducer,
 			nil,
@@ -588,13 +538,39 @@ func (section *addressSectionInternal) blockIterator(creator ParsedAddressCreato
 	return sectIterator(
 		useOriginal,
 		section.toAddressSection(),
-		creator,
-		iterator,
-		section.GetPrefixLength())
+		section.isMultipleFrom(segmentCount),
+		iterator)
 }
 
-func (section *addressSectionInternal) sequentialBlockIterator(creator ParsedAddressCreator /* nil for zero sections */) SectionIterator {
-	return section.blockIterator(creator, section.GetSequentialBlockIndex())
+func (section *addressSectionInternal) sequentialBlockIterator() SectionIterator {
+	return section.blockIterator(section.GetSequentialBlockIndex())
+}
+
+func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
+	for i := 0; i < segmentCount; i++ {
+		if section.GetSegment(i).IsMultiple() {
+			return true
+		}
+	}
+	return false
+}
+
+func (section *addressSectionInternal) isMultipleFrom(segmentCount int) bool {
+	segTotal := section.GetSegmentCount()
+	for i := segmentCount; i < segTotal; i++ {
+		if section.GetSegment(i).IsMultiple() {
+			return true
+		}
+	}
+	return false
+}
+
+func (section *addressSectionInternal) toAddressSection() *AddressSection {
+	return (*AddressSection)(unsafe.Pointer(section))
+}
+
+func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
 }
 
 //
@@ -716,7 +692,7 @@ func (section *AddressSection) IsIPAddressSection() bool {
 	return section != nil && section.matchesIPSection()
 }
 
-func (section *AddressSection) IsIPv4AddressSection() bool { //TODO maybe rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+func (section *AddressSection) IsIPv4AddressSection() bool {
 	return section != nil && section.matchesIPv4Section()
 }
 
@@ -761,13 +737,13 @@ func (section *AddressSection) ToAddressSection() *AddressSection {
 }
 
 func (section *AddressSection) Iterator() SectionIterator {
-	return section.sectionIterator(section.getAddrType().getCreator(), nil)
+	return section.sectionIterator(nil)
 }
 
 func (section *AddressSection) PrefixIterator() SectionIterator {
-	return section.prefixIterator(section.getAddrType().getCreator(), false)
+	return section.prefixIterator(false)
 }
 
 func (section *AddressSection) PrefixBlockIterator() SectionIterator {
-	return section.prefixIterator(section.getAddrType().getCreator(), true)
+	return section.prefixIterator(true)
 }
