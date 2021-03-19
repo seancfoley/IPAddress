@@ -23,14 +23,15 @@ const (
 // TODO there is 1 other categories:  uint32
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
-	return &IPv4Address{
-		ipAddressInternal{
-			addressInternal{
-				section: section.ToAddressSection(),
-				cache:   &addressCache{},
-			},
-		},
-	}
+	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()
+	//return &IPv4Address{
+	//	ipAddressInternal{
+	//		addressInternal{
+	//			section: section.ToAddressSection(),
+	//			cache:   &addressCache{},
+	//		},
+	//	},
+	//}
 }
 
 func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueException) {
@@ -289,6 +290,9 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 	return addr.init().equals(other)
 }
 
+//TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?
+// Because the type checks can be avoided, so can section segment counts, etc
+
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
@@ -311,6 +315,26 @@ func (addr *IPv4Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool 
 
 func (addr *IPv4Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
+func (addr *IPv4Address) Iterator() IPv4AddrIterator {
+	return ipv4AddressIterator{addr.init().addrIterator(nil)}
+}
+
+func (addr *IPv4Address) PrefixIterator() IPv4AddrIterator {
+	return ipv4AddressIterator{addr.init().prefixIterator(false)}
+}
+
+func (addr *IPv4Address) PrefixBlockIterator() IPv4AddrIterator {
+	return ipv4AddressIterator{addr.init().prefixIterator(true)}
+}
+
+func (addr *IPv4Address) BlockIterator(segmentCount int) IPv4AddrIterator {
+	return ipv4AddressIterator{addr.init().blockIterator(segmentCount)}
+}
+
+func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
+	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
 //func (addr *IPv4Address) IsMore(other *IPv4Address) int {

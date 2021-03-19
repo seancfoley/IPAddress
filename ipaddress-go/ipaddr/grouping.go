@@ -295,7 +295,8 @@ func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note f
 }
 
 func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() BitCount {
-	// TODO  maybe we should cache this value as in Java, although not clear why cached in Java (maybe because it is hard to calculate)
+	// TODO  maybe we should cache this value, like we do in Java,
+	// although not clear why cached in Java (maybe because it is hard to calculate)
 	count := grouping.GetDivisionCount()
 	totalPrefix := grouping.GetBitCount()
 	for i := count - 1; i >= 0; i-- {
@@ -549,15 +550,6 @@ func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingTyp
 	return true
 }
 
-//
-//func (grouping *addressDivisionGroupingInternal) GetDivision(index int) *AddressDivision {
-//	return grouping.getDivision(index)
-//}
-//
-//func (grouping *addressDivisionGroupingInternal) GetDivisionCount() int {
-//	return grouping.getDivisionCount()
-//}
-
 type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
@@ -630,16 +622,3 @@ func (grouping *AddressDivisionGrouping) ToAddressDivisionGrouping() *AddressDiv
 func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision {
 	return grouping.getDivision(index)
 }
-
-//func (grouping *AddressDivisionGrouping) GetGenericDivision(index int) AddressGenericDivision {
-//	return grouping.getDivision(index)
-//}
-//
-//func (grouping *AddressDivisionGrouping) GetDivisionCount() int {
-//	xxx
-//	return grouping.getDivisionCount()
-//}
-
-//func (grouping *AddressDivisionGrouping) IsMore(other *AddressDivisionGrouping) int {
-//	return grouping.isMore(other)
-//}

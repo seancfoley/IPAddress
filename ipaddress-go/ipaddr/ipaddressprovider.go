@@ -965,12 +965,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: iterators, increment, merge, span, cover, string generation
-// TODO iterators next after equals/contains? looks like iterators is next
-// segment iterators done
-// sections and addresses: iterator, prefixIterator, prefixBlockIterator, segmentsIterator,
-// ip sections and addresses: blockIterator(int), sequentialBlockIterator
-//
+// - things to target: increment, setting prefixes, merge, span, cover, string generation
 // - need to hook up mac address string to the parser
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
@@ -978,21 +973,5 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - finish HostName (now it's mostly done, just a few methods left)
 // - check notes.txt in Java for functionality table
 
-//
-// let's do them all
-//
-// containsPrefixBlock(int
-// containsSinglePrefixBlock(int
-// getMinPrefixLengthForBlock()
-// getPrefixLengthForSingleBlock()
-//
-// those go everywhere, were in AddressItem.  The AddressItem implementations should go into divisionbase code.
-//
-// isSinglePrefixBlock
-// isPrefixBlock
-
-// isSinglePrefixBlock is in AddressDivisionSeries
-//
-// implemented in IPAddressSection and IPAddressDivisionGrouping
-// containsPrefixBlock(int also implemented in IPAddressSection and IPAddressDivisionGrouping
-// and containsSinglePrefixBlock(int in IPAddressDivisionGrouping and AddressDivisionGrouping
+//xxx
+//so now what?  strings?  yes

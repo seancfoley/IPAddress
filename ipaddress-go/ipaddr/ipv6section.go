@@ -32,9 +32,6 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 		err = &addressValueException{val: startIndex + segsLen, key: "ipaddress.error.exceeds.size"}
 		return
 	}
-	//if cloneSegments { //TODO this is likely not necessary because for public you will need to convert from []*IPv6AddressSegment to []*AddressDivision before calling this func
-	//	segments = append(make([]*AddressDivision, 0, segsLen), segments...)
-	//}
 	res = createIPv6Section(segments, startIndex)
 	if err = res.init(); err != nil {
 		res = nil
@@ -50,8 +47,8 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 }
 
 func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueException) {
-	res, err = newIPv6AddressSection(segments, startIndex /*cloneSegments,*/, prefixLength == nil)
-	if err != nil && prefixLength != nil {
+	res, err = newIPv6AddressSection(segments, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
+	if err == nil && prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<4), IPv6BitCount)
 	}
 	return
@@ -248,23 +245,23 @@ func (section *IPv6AddressSection) WithoutPrefixLength() *IPv6AddressSection {
 }
 
 func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
-	return ipv6SectionIterator{section.sectionIterator(ipv6Type.getCreator(), nil)}
+	return ipv6SectionIterator{section.sectionIterator(nil)}
 }
 
 func (section *IPv6AddressSection) PrefixIterator() IPv6SectionIterator {
-	return ipv6SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), false)}
+	return ipv6SectionIterator{section.prefixIterator(false)}
 }
 
 func (section *IPv6AddressSection) PrefixBlockIterator() IPv6SectionIterator {
-	return ipv6SectionIterator{section.prefixIterator(section.getAddrType().getCreator(), true)}
+	return ipv6SectionIterator{section.prefixIterator(true)}
 }
 
 func (section *IPv6AddressSection) BlockIterator(segmentCount int) IPv6SectionIterator {
-	return ipv6SectionIterator{section.blockIterator(section.getAddrType().getCreator(), segmentCount)}
+	return ipv6SectionIterator{section.blockIterator(segmentCount)}
 }
 
 func (section *IPv6AddressSection) SequentialBlockIterator() IPv6SectionIterator {
-	return ipv6SectionIterator{section.sequentialBlockIterator(section.getAddrType().getCreator())}
+	return ipv6SectionIterator{section.sequentialBlockIterator()}
 }
 
 func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {

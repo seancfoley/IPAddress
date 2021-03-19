@@ -44,15 +44,16 @@ func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
-	return &IPv6Address{
-		ipAddressInternal{
-			addressInternal{
-				section: section.ToAddressSection(),
-				zone:    zone,
-				cache:   &addressCache{},
-			},
-		},
-	}
+	return createAddress(section.ToAddressSection(), zone).ToIPv6Address()
+	//return &IPv6Address{
+	//	ipAddressInternal{
+	//		addressInternal{
+	//			section: section.ToAddressSection(),
+	//			zone:    zone,
+	//			cache:   &addressCache{},
+	//		},
+	//	},
+	//}
 }
 
 func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueException) {
@@ -353,6 +354,26 @@ func (addr *IPv6Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool 
 
 func (addr *IPv6Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
+func (addr *IPv6Address) Iterator() IPv6AddressIterator {
+	return ipv6AddressIterator{addr.init().addrIterator(nil)}
+}
+
+func (addr *IPv6Address) PrefixIterator() IPv6AddressIterator {
+	return ipv6AddressIterator{addr.init().prefixIterator(false)}
+}
+
+func (addr *IPv6Address) PrefixBlockIterator() IPv6AddressIterator {
+	return ipv6AddressIterator{addr.init().prefixIterator(true)}
+}
+
+func (addr *IPv6Address) BlockIterator(segmentCount int) IPv6AddressIterator {
+	return ipv6AddressIterator{addr.init().blockIterator(segmentCount)}
+}
+
+func (addr *IPv6Address) SequentialBlockIterator() IPv6AddressIterator {
+	return ipv6AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
 //func (addr *IPv6Address) IsMore(other *IPv6Address) int {

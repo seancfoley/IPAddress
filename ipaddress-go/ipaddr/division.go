@@ -399,25 +399,18 @@ func (div *addressDivisionInternal) Equals(other AddressGenericDivision) bool {
 
 func (div *addressDivisionInternal) matchesIPSegment() bool {
 	return div.divisionValues == nil || div.getAddrType().isIP()
-	//if bitCount := div.GetBitCount(); bitCount != IPv4BitsPerSegment && bitCount != IPv6BitsPerSegment {
-	//return false
-	//}
-	//return true
 }
 
 func (div *addressDivisionInternal) matchesIPv4Segment() bool {
 	return div.divisionValues != nil && div.getAddrType().isIPv4()
-	//return seg.GetBitCount() == IPv4BitsPerSegment
 }
 
 func (div *addressDivisionInternal) matchesIPv6Segment() bool {
 	return div.divisionValues != nil && div.getAddrType().isIPv6()
-	//return seg.getBitCount() == IPv6BitsPerSegment
 }
 
 func (div *addressDivisionInternal) matchesMACSegment() bool {
 	return div.divisionValues != nil && div.getAddrType().isMAC()
-	//return seg.getBitCount() == MACBitsPerSegment
 }
 
 func (div *addressDivisionInternal) matchesSegment() bool {

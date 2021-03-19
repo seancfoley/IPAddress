@@ -211,6 +211,18 @@ func (addr *MACAddress) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
 
+func (addr *MACAddress) Iterator() MACAddressIterator {
+	return macAddressIterator{addr.addrIterator(nil)}
+}
+
+func (addr *MACAddress) PrefixIterator() MACAddressIterator {
+	return macAddressIterator{addr.prefixIterator(false)}
+}
+
+func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
+	return macAddressIterator{addr.prefixIterator(true)}
+}
+
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
