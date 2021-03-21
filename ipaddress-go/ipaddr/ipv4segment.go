@@ -11,26 +11,6 @@ func ToIPv4SegInt(val SegInt) IPv4SegInt {
 }
 
 func newIPv4SegmentValues(value, upperValue IPv4SegInt, prefLen PrefixLen) *ipv4SegmentValues {
-	// caching, we will share cache and share the values when values match to cache
-	//xxx not sure i like returnig a cache
-	//xxx the cache is at different level
-	//if we return a cache to sorrespond to a set of values,
-	//then that means cache is determined by those values and should be in here?
-	//but I guess we deermined cache is the same regardless of structure?
-	//
-	//
-	//- makes sense to keep the interface stuff simple
-	//- cache code can be shared
-	//- but the interfaces know if/how to do the caching
-	//
-	//DO same as java
-	//caching is not just one thing , there is the seg cache and also each thing in the divCache
-	//in java they are cached in different places
-	//In java, you cache the segs, and inside the segs are the div cache stuff
-	//so here, put the div cache inside the cached segs and the code to put stuff in that cache is shared
-	//so add a getCache()
-	//xxxxxxxxxxxxxxxxx add getCache() xxxxx
-
 	return &ipv4SegmentValues{
 		value:      value,
 		upperValue: upperValue,
@@ -45,79 +25,79 @@ type ipv4SegmentValues struct {
 	cache      divCache
 }
 
-func (seg ipv4SegmentValues) getAddrType() addrType {
+func (seg *ipv4SegmentValues) getAddrType() addrType {
 	return ipv4Type
 }
 
-func (seg ipv4SegmentValues) includesZero() bool {
+func (seg *ipv4SegmentValues) includesZero() bool {
 	return seg.value == 0
 }
 
-func (seg ipv4SegmentValues) includesMax() bool {
+func (seg *ipv4SegmentValues) includesMax() bool {
 	return seg.upperValue == 0xff
 }
 
-func (seg ipv4SegmentValues) isMultiple() bool {
+func (seg *ipv4SegmentValues) isMultiple() bool {
 	return seg.value != seg.upperValue
 }
 
-func (seg ipv4SegmentValues) getCount() *big.Int {
+func (seg *ipv4SegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-func (seg ipv4SegmentValues) getBitCount() BitCount {
+func (seg *ipv4SegmentValues) getBitCount() BitCount {
 	return IPv4BitsPerSegment
 }
 
-func (seg ipv4SegmentValues) getByteCount() int {
+func (seg *ipv4SegmentValues) getByteCount() int {
 	return IPv4BytesPerSegment
 }
 
-func (seg ipv4SegmentValues) getValue() *big.Int {
+func (seg *ipv4SegmentValues) getValue() *big.Int {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg ipv4SegmentValues) getUpperValue() *big.Int {
+func (seg *ipv4SegmentValues) getUpperValue() *big.Int {
 	return big.NewInt(int64(seg.upperValue))
 }
 
-func (seg ipv4SegmentValues) getDivisionValue() DivInt {
+func (seg *ipv4SegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg ipv4SegmentValues) getUpperDivisionValue() DivInt {
+func (seg *ipv4SegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
-func (seg ipv4SegmentValues) getDivisionPrefixLength() PrefixLen {
+func (seg *ipv4SegmentValues) getDivisionPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
-func (seg ipv4SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv4SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen)
 }
 
-func (seg ipv4SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv4SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
 	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(val), prefLen)
 }
 
-func (seg ipv4SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv4SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return newIPv4SegmentValues(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen)
 }
 
-func (seg ipv4SegmentValues) getCache() *divCache {
+func (seg *ipv4SegmentValues) getCache() *divCache {
 	return &seg.cache
 }
 
-func (seg ipv4SegmentValues) getSegmentValue() SegInt {
+func (seg *ipv4SegmentValues) getSegmentValue() SegInt {
 	return SegInt(seg.value)
 }
 
-func (seg ipv4SegmentValues) getUpperSegmentValue() SegInt {
+func (seg *ipv4SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-func (seg ipv4SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
+func (seg *ipv4SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	bytes = []byte{byte(seg.value)}
 	if seg.isMultiple() {
 		upperBytes = []byte{byte(seg.upperValue)}
@@ -127,7 +107,7 @@ func (seg ipv4SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	return
 }
 
-var _ divisionValues = ipv4SegmentValues{}
+var _ divisionValues = &ipv4SegmentValues{}
 
 var zeroIPv4Seg = NewIPv4Segment(0)
 

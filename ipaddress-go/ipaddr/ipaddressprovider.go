@@ -5,66 +5,6 @@ import (
 	"unsafe"
 )
 
-/*
-package main
-
-import (
-	"fmt"
-)
-
-type foo interface {
-	bar() int
-}
-
-type x struct {
-	x int
-}
-
-func (*x) bar() int {
-	return 1
-}
-
-type y struct {
-	x int
-}
-
-func (*y) bar() int {
-	return 2
-}
-
-type z struct {
-	x int
-}
-
-func (z) bar() int {
-	return 1
-}
-
-func main() {
-	one := x{1}
-	same := x{1}
-
-	two := y{1}
-
-	var foo1, foo2 foo = &one, &two
-	var foo3 = &one
-	var foosame = &same
-
-	fmt.Println("interfaces equal, types different", foo1 == foo2)
-	fmt.Println("interfaces equal, same pointer ", foo1 == foo3)
-	fmt.Println("interfaces equal, types same, values same, not same pointer ", foo1 == foosame)
-	fmt.Println("structs equal, types same, values same", one == same)
-
-	onez := z{1}
-	samez := z{1}
-	var foo1z, foosamez foo = onez, samez
-	fmt.Println("interfaces equal, types same, values same, not pointer ", foo1z == foosamez)
-
-}
-
-// https://stackoverflow.com/questions/34245932/checking-equality-of-interface#34246225
-*/
-
 // All IP address strings corresponds to exactly one of these types.
 // In cases where there is no corresponding default IPAddress value (INVALID, ALL, and possibly EMPTY), these types can be used for comparison.
 // EMPTY means a zero-length string (useful for validation, we can set validation to allow empty strings) that has no corresponding IPAddress value (validation options allow you to map empty to the loopback)
@@ -969,9 +909,18 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - need to hook up mac address string to the parser
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
-// - finish off the ip address creator interfaces
+// - finish off the ip address creator interfaces (not sure if you need much here)
 // - finish HostName (now it's mostly done, just a few methods left)
 // - check notes.txt in Java for functionality table
 
+// done so far: most of parsing and params, most of HostName, most of seq ranges, a lot of framework,
+// comparators, iterators, a lot of the basic funcs for prefixes and indexes, bytes functions,
+// address structure
+
+// things for later: tries, string collections, base85
+
+// not doing: streams, spliterators
+
 //xxx
-//so now what?  strings?  yes
+//so now what?  string generation?  yes
+// probably not so bad

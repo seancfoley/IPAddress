@@ -8,15 +8,16 @@ import (
 )
 
 const (
-	HexPrefix                  = "0x"
-	OctalPrefix                = "0"
-	RangeSeparator             = '-'
-	AlternativeRangeSeparator  = '\u00bb'
-	SegmentWildcard            = '*'
-	SegmentWildcardStr         = string(SegmentWildcard)
-	AlternativeSegmentWildcard = '¿'
-	SegmentSqlWildcard         = '%'
-	SegmentSqlSingleWildcard   = '_'
+	HexPrefix                       = "0x"
+	OctalPrefix                     = "0"
+	RangeSeparator             byte = '-'
+	RangeSeparatorStr               = string(RangeSeparator)
+	AlternativeRangeSeparator  byte = '\u00bb'
+	SegmentWildcard            byte = '*'
+	SegmentWildcardStr              = string(SegmentWildcard)
+	AlternativeSegmentWildcard byte = '¿'
+	SegmentSqlWildcard         byte = '%'
+	SegmentSqlSingleWildcard   byte = '_'
 )
 
 func createAddress(section *AddressSection, zone Zone) *Address {

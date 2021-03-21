@@ -12,6 +12,24 @@ func ToIPv6SegInt(val SegInt) IPv6SegInt {
 
 //TODO caching of ipv6SegmentValues
 
+// https://www.tapirgames.com/blog/golang-interface-implementation
+/*
+type _interface struct {
+	dynamicTypeInfo *_implementation
+	dynamicValue    unsafe.Pointer // unsafe.Pointer means
+	                               // *ArbitraryType in Go.
+}
+For the official Go compiler and runtime, a non-nil dynamicValue field value may store
+the address of the dynamic value if the dynamic type is not a pointer type, or
+the dynamic value itself if the dynamic type is a pointer type.
+Surely, it is not essential to make the exception for pointer dynamic values.
+This is just a compiler optimization. We can get why it is an optimization in following sections.
+(BTW, about more current and future optimizations in the official interface implementation, please read this article.)
+*/
+// If ipv6SegmentValues implements divisionValues by pointer, then it will stick that pointer in the interface var
+// So there is really no reason to make ipv6SegmentValues use non-pointer method receivers
+// Cuz it will already by dereferencing at least one pointer through the interface, might as well be that one
+
 func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
 	return &ipv6SegmentValues{
 		value:      value,
@@ -27,63 +45,63 @@ type ipv6SegmentValues struct {
 	cache      divCache
 }
 
-func (seg ipv6SegmentValues) getAddrType() addrType {
+func (seg *ipv6SegmentValues) getAddrType() addrType {
 	return ipv6Type
 }
 
-func (seg ipv6SegmentValues) includesZero() bool {
+func (seg *ipv6SegmentValues) includesZero() bool {
 	return seg.value == 0
 }
 
-func (seg ipv6SegmentValues) includesMax() bool {
+func (seg *ipv6SegmentValues) includesMax() bool {
 	return seg.upperValue == 0xffff
 }
 
-func (seg ipv6SegmentValues) isMultiple() bool {
+func (seg *ipv6SegmentValues) isMultiple() bool {
 	return seg.value != seg.upperValue
 }
 
-func (seg ipv6SegmentValues) getCount() *big.Int {
+func (seg *ipv6SegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-func (seg ipv6SegmentValues) getBitCount() BitCount {
+func (seg *ipv6SegmentValues) getBitCount() BitCount {
 	return IPv6BitsPerSegment
 }
 
-func (seg ipv6SegmentValues) getByteCount() int {
+func (seg *ipv6SegmentValues) getByteCount() int {
 	return IPv6BytesPerSegment
 }
 
-func (seg ipv6SegmentValues) getValue() *big.Int {
+func (seg *ipv6SegmentValues) getValue() *big.Int {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg ipv6SegmentValues) getUpperValue() *big.Int {
+func (seg *ipv6SegmentValues) getUpperValue() *big.Int {
 	return big.NewInt(int64(seg.upperValue))
 }
 
-func (seg ipv6SegmentValues) getDivisionValue() DivInt {
+func (seg *ipv6SegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg ipv6SegmentValues) getUpperDivisionValue() DivInt {
+func (seg *ipv6SegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
-func (seg ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
+func (seg *ipv6SegmentValues) getDivisionPrefixLength() PrefixLen {
 	return seg.prefLen
 }
 
-func (seg ipv6SegmentValues) getSegmentValue() SegInt {
+func (seg *ipv6SegmentValues) getSegmentValue() SegInt {
 	return SegInt(seg.value)
 }
 
-func (seg ipv6SegmentValues) getUpperSegmentValue() SegInt {
+func (seg *ipv6SegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-func (seg ipv6SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
+func (seg *ipv6SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	bytes = []byte{byte(seg.value >> 8), byte(seg.value)}
 	if seg.isMultiple() {
 		upperBytes = []byte{byte(seg.upperValue >> 8), byte(seg.upperValue)}
@@ -93,23 +111,23 @@ func (seg ipv6SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	return
 }
 
-func (seg ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
-func (seg ipv6SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv6SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(val), prefLen)
 }
 
-func (seg ipv6SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg *ipv6SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
-func (seg ipv6SegmentValues) getCache() *divCache {
+func (seg *ipv6SegmentValues) getCache() *divCache {
 	return &seg.cache
 }
 
-var _ divisionValues = ipv6SegmentValues{}
+var _ divisionValues = &ipv6SegmentValues{}
 
 var zeroIPv6Seg = NewIPv6Segment(0)
 

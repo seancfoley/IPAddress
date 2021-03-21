@@ -20,64 +20,64 @@ type macSegmentValues struct {
 	cache      divCache
 }
 
-func (seg macSegmentValues) getAddrType() addrType {
+func (seg *macSegmentValues) getAddrType() addrType {
 	return macType
 }
 
-func (seg macSegmentValues) includesZero() bool {
+func (seg *macSegmentValues) includesZero() bool {
 	return seg.value == 0
 }
 
-func (seg macSegmentValues) includesMax() bool {
+func (seg *macSegmentValues) includesMax() bool {
 	return seg.upperValue == 0xff
 }
 
-func (seg macSegmentValues) isMultiple() bool {
+func (seg *macSegmentValues) isMultiple() bool {
 	return seg.value != seg.upperValue
 }
 
-func (seg macSegmentValues) getCount() *big.Int {
+func (seg *macSegmentValues) getCount() *big.Int {
 	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
 }
 
-func (seg macSegmentValues) getBitCount() BitCount {
+func (seg *macSegmentValues) getBitCount() BitCount {
 	return MACBitsPerSegment
 }
 
-func (seg macSegmentValues) getByteCount() int {
+func (seg *macSegmentValues) getByteCount() int {
 	return MACBytesPerSegment
 }
 
-func (seg macSegmentValues) getValue() *big.Int {
+func (seg *macSegmentValues) getValue() *big.Int {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg macSegmentValues) getUpperValue() *big.Int {
+func (seg *macSegmentValues) getUpperValue() *big.Int {
 	return big.NewInt(int64(seg.upperValue))
 }
 
-func (seg macSegmentValues) getDivisionValue() DivInt {
+func (seg *macSegmentValues) getDivisionValue() DivInt {
 	return DivInt(seg.value)
 }
 
-func (seg macSegmentValues) getUpperDivisionValue() DivInt {
+func (seg *macSegmentValues) getUpperDivisionValue() DivInt {
 	return DivInt(seg.upperValue)
 }
 
-func (seg macSegmentValues) getDivisionPrefixLength() PrefixLen {
+func (seg *macSegmentValues) getDivisionPrefixLength() PrefixLen {
 	//TODO for MAC this needs to be changed to getMinPrefixLengthForBlock
 	return nil
 }
 
-func (seg macSegmentValues) getSegmentValue() SegInt {
+func (seg *macSegmentValues) getSegmentValue() SegInt {
 	return SegInt(seg.value)
 }
 
-func (seg macSegmentValues) getUpperSegmentValue() SegInt {
+func (seg *macSegmentValues) getUpperSegmentValue() SegInt {
 	return SegInt(seg.upperValue)
 }
 
-func (seg macSegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
+func (seg *macSegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	bytes = []byte{byte(seg.value)}
 	if seg.isMultiple() {
 		upperBytes = []byte{byte(seg.upperValue)}
@@ -87,23 +87,23 @@ func (seg macSegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	return
 }
 
-func (seg macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
-func (seg macSegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(val))
 }
 
-func (seg macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
-func (seg macSegmentValues) getCache() *divCache {
+func (seg *macSegmentValues) getCache() *divCache {
 	return &seg.cache
 }
 
-var _ divisionValues = macSegmentValues{}
+var _ divisionValues = &macSegmentValues{}
 
 var zeroMACSeg = NewMACSegment(0)
 
