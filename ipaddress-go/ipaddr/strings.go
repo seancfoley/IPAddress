@@ -98,20 +98,6 @@ func toUnsignedStringFast(value uint16, radix int, uppercase bool, appendable *s
 			return true
 		}
 		dig := getDigits(uppercase, radix)
-
-		//var res [4]byte
-		//i := 4
-		//for { //value2 == quotient * 16 + remainder
-		//	i--
-		//	remainder := value & 15
-		//	value >>= 4
-		//	res[i] = dig[remainder]
-		//	if value == 0 {
-		//		break
-		//	}
-		//}
-		//appendable.Write(res[i:])
-
 		shift := 12
 		for shift > 0 {
 			index := (value >> shift) & 15

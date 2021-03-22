@@ -52,6 +52,7 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 //
 // division series
 type AddressStringDivisionSeries interface {
+	GetDivisionCount() int
 }
 
 type IPAddressStringDivisionSeries interface {
@@ -65,7 +66,6 @@ type AddressDivisionSeries interface {
 
 	IsMore(AddressDivisionSeries) int
 	GetGenericDivision(index int) AddressGenericDivision
-	GetDivisionCount() int
 }
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries

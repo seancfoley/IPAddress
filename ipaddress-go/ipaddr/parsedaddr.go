@@ -1403,7 +1403,7 @@ func createAllAddress(
 	qualifier *ParsedHostIdentifierStringQualifier,
 	originator HostIdentifierString,
 	options IPAddressStringParameters) *IPAddress {
-	//TODO
+	//TODO create all address
 	return nil
 }
 

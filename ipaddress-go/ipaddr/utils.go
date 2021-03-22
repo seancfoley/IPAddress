@@ -2,6 +2,10 @@ package ipaddr
 
 import "math/big"
 
+func cloneInts(orig []int) []int {
+	return append(make([]int, 0, len(orig)), orig...)
+}
+
 func cloneDivs(orig []*AddressDivision) []*AddressDivision {
 	return append(make([]*AddressDivision, 0, len(orig)), orig...)
 }

@@ -1,14 +1,5 @@
 package ipaddr
 
-import "strings"
-
-// An object for writing an address part string in a specific format.
-type AddressDivisionWriter interface {
-	appendDivision(builder *strings.Builder, div AddressStringDivision) *strings.Builder
-
-	getDivisionStringLength(div AddressStringDivision) int
-}
-
 // Wildcards specifies the wildcards to use when constructing a address string
 type Wildcards interface {
 	// if this returns an empty string, then the default separator RangeSeparatorStr is used
@@ -61,12 +52,12 @@ func (wildcards *WildcardsBuilder) ToWildcards() Wildcards {
 	return &res
 }
 
-type StringOptionsBase struct {
-	// This is an object representing the string options converted to an object.
-	// It can write a supplied division using those params.
-	//Use this field if the options to params conversion is not dependent on the address part so it can be reused
-	cachedParams AddressDivisionWriter
-}
+//type StringOptionsBase struct {
+//	// This is an object representing the string options converted to an object.
+//	// It can write a supplied division using those params.
+//	//Use this field if the options to params conversion is not dependent on the address part so it can be reused
+//	cachedParams addressDivisionWriter
+//}
 
 // Represents a clear way to create a specific type of string.
 type StringOptions interface {
@@ -91,7 +82,7 @@ type StringOptions interface {
 }
 
 type stringOptions struct {
-	StringOptionsBase
+	//StringOptionsBase
 
 	wildcards Wildcards
 
@@ -106,6 +97,8 @@ type stringOptions struct {
 	reverse     bool
 	splitDigits bool
 	uppercase   bool
+
+	cached *addressStringParams
 }
 
 func (w *stringOptions) GetWildcards() Wildcards {
@@ -261,6 +254,9 @@ type ipStringOptions struct {
 	addrSuffix     string
 	wildcardOption WildcardOption // default is WILDCARDS_NETWORK_ONLY
 	zoneSeparator  byte           // default is IPv6ZoneSeparator
+
+	cachedIPAddr *ipAddressStringParams
+	cachedAddr   *addressStringParams
 }
 
 // .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
@@ -393,6 +389,8 @@ type IPv6StringOptions interface {
 	GetCompressOptions() CompressOptions
 
 	IsMixed() bool
+
+	from(addr *IPv6AddressSection) *ipv6StringParams
 }
 
 // Provides a clear way to create a specific type of IPv6 address string.
@@ -528,38 +526,6 @@ func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 	return &res
 }
 
-//TODO params conversion.  IPv4 params conversion is a static method in IPAddressSection.java line 2857
-//private IPv6StringParams from(IPv6AddressSection addr) {
-//	IPv6StringParams result = new IPv6StringParams();
-//	if(compressOptions != null) {
-//		boolean makeMixed = makeMixed();
-//		int vals[] = addr.getCompressIndexAndCount(compressOptions, makeMixed);
-//		if(vals != null) {
-//			int maxIndex = vals[0];
-//			int maxCount = vals[1];
-//			result.firstCompressedSegmentIndex = maxIndex;
-//			result.nextUncompressedIndex = maxIndex + maxCount;
-//			result.hostCompressed = compressOptions.rangeSelection.compressHost() &&
-//					addr.isPrefixed() &&
-//					(result.nextUncompressedIndex >
-//						getHostSegmentIndex(addr.getNetworkPrefixLength(), IPv6Address.BYTES_PER_SEGMENT, IPv6Address.BITS_PER_SEGMENT));
-//		}
-//	}
-//	result.expandSegments(expandSegments);
-//	result.setWildcardOption(wildcardOption);
-//	result.setWildcards(wildcards);
-//	result.setSeparator(separator);
-//	result.setAddressSuffix(addrSuffix);
-//	result.setAddressLabel(addrLabel);
-//	result.setReverse(reverse);
-//	result.setSplitDigits(splitDigits);
-//	result.setZoneSeparator(zoneSeparator);
-//	result.setUppercase(uppercase);
-//	result.setRadix(base);
-//	result.setSegmentStrPrefix(segmentStrPrefix);
-//	return result;
-//}
-
 type CompressionChoiceOptions string
 
 const (
@@ -617,6 +583,7 @@ type CompressOptions interface {
 
 type compressOptions struct {
 	compressSingle bool
+
 	rangeSelection CompressionChoiceOptions
 
 	//options for addresses with an ipv4 section

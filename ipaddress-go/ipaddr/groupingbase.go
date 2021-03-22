@@ -322,6 +322,8 @@ type valueCache struct {
 	lowerBytes, upperBytes []byte
 	cachedLowerVal         uint32
 
+	zeroVals *zeroRangeCache
+
 	stringCache stringCache
 
 	sectionCache groupingCache
@@ -333,6 +335,10 @@ type stringCache struct {
 
 type groupingCache struct {
 	lower, upper *AddressSection
+}
+
+type zeroRangeCache struct {
+	zeroSegments, zeroRangeSegments RangeList
 }
 
 type maskLenSetting struct {
