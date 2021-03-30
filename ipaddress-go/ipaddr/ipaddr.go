@@ -109,6 +109,10 @@ func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 	return addr.getSegment(index).ToIPAddressSegment()
 }
 
+func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
+	return addr.GetSegment(index)
+}
+
 // this is here to take advantage of the IsMore in IPAddressSection which is optimized for prefix block subnets
 //func (addr *ipAddressInternal) isMore(other *IPAddress) int {
 //	return addr.toIPAddress().IsMore(other)

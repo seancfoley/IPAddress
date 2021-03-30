@@ -72,11 +72,13 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
+	expectedByteCount := segmentCount << 1
 	segments, err := toSegments(
 		bytes,
 		segmentCount,
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
+		expectedByteCount,
 		DefaultIPv6Network.GetIPv6AddressCreator(),
 		prefixLength)
 	if err == nil {
@@ -84,9 +86,11 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
 		}
-		bytes = cloneBytes(bytes) // copy //TODO make sure you only create segmentCount (bytes may be longer, I believe we always chop off the top, see toSegments)
-		res.cache.lowerBytes = bytes
-		res.cache.upperBytes = bytes
+		if expectedByteCount == len(bytes) {
+			bytes = cloneBytes(bytes) // copy
+			res.cache.lowerBytes = bytes
+			res.cache.upperBytes = bytes
+		}
 	}
 	return
 }
@@ -389,6 +393,50 @@ func (section *IPv6AddressSection) getZeroSegments(includeRanges bool) RangeList
 
 func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
+}
+
+// ToCanonicalString produces a canonical string.
+//
+//If this section has a prefix length, it will be included in the string.
+func (section *IPv6AddressSection) ToCanonicalString() string {
+	//TODO caching
+	//return section.toNormalizedString(ipv6CanonicalParams)
+	return ""
+}
+
+func (section *IPv6AddressSection) toNormalizedString(stringOptions IPv6StringOptions) string {
+	return section.toNormalizedZonedString(stringOptions, noZone)
+}
+
+func (section *IPv6AddressSection) toNormalizedZonedString(stringOptions IPv6StringOptions, zone Zone) string {
+	//IPv6StringParams stringParams;
+	//if(options.isCacheable()) { // the isCacheable call is key and determines if the IPv6StringParams can be shared
+	//	IPAddressStringWriter<?> cachedParams = (IPAddressStringWriter<?>) getCachedv6Params(options);
+	//	if(cachedParams == null) {
+	//		stringParams = options.from(this);
+	//		if(options.makeMixed()) {
+	//			IPv6v4MixedParams mixedParams = new IPv6v4MixedParams(stringParams, options.ipv4Opts);
+	//			setCachedv6Params(options, mixedParams);
+	//			return toNormalizedMixedString(mixedParams, zone);
+	//		} else {
+	//			setCachedv6Params(options, stringParams);
+	//		}
+	//	} else {
+	//		if(cachedParams instanceof IPv6v4MixedParams) {
+	//			return toNormalizedMixedString((IPv6v4MixedParams) cachedParams, zone);
+	//		}
+	//		stringParams = (IPv6StringParams) cachedParams;
+	//	}
+	//} else {
+	//	//no caching is possible due to the compress options
+	//	stringParams = options.from(this);
+	//	if(options.makeMixed() && stringParams.nextUncompressedIndex <= IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex) {//the mixed section is not compressed
+	//		return toNormalizedMixedString(new IPv6v4MixedParams(stringParams, options.ipv4Opts), zone);
+	//	}
+	//}
+	//return stringParams.toZonedString(this, zone);
+	//return toNormalizedString(stringOptions, section)
+	return ""
 }
 
 type Range struct {

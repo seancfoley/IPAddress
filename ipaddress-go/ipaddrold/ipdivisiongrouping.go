@@ -4,9 +4,8 @@ package ipaddrold
 //	return grouping
 //}
 
-type ipaddressDivisionGroupingInternal struct { //TODO rename with capital A
-	addressDivisionGroupingInternal //TODO rename with capital A
-	//TODO add a few methods: getZeroRangeSegments, getZeroSegments, getZeroSegments(bool), includesZeroHost
+type ipaddressDivisionGroupingInternal struct {
+	addressDivisionGroupingInternal
 }
 
 func (grouping *ipaddressDivisionGroupingInternal) ToDivisionGrouping() *AddressDivisionGrouping {

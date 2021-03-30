@@ -298,7 +298,7 @@ func (host *HostName) toNormalizedString(wildcard bool) string {
 	if host.IsValid() {
 		var builder strings.Builder
 		if host.IsAddress() {
-			toNormalizedString(host.AsAddress(), wildcard, &builder)
+			toNormalizedHostString(host.AsAddress(), wildcard, &builder)
 		} else if host.IsAddressString() {
 			builder.WriteString(host.AsAddressString().ToNormalizedString())
 		} else {
@@ -344,7 +344,7 @@ func toNormalizedPortString(port int, builder *strings.Builder) {
 	toUnsignedString(uint64(port), 10, builder)
 }
 
-func toNormalizedString(addr *IPAddress, wildcard bool, builder *strings.Builder) {
+func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Builder) {
 	if addr.isIPv6() {
 		if !wildcard && addr.IsPrefixed() { // prefix needs to be outside the brackets
 			normalized := addr.ToNormalizedString()
@@ -376,7 +376,7 @@ func toNormalizedString(addr *IPAddress, wildcard bool, builder *strings.Builder
 
 func toNormalizedAddrPortString(addr *IPAddress, port int) string {
 	builder := strings.Builder{}
-	toNormalizedString(addr, false, &builder)
+	toNormalizedHostString(addr, false, &builder)
 	toNormalizedPortString(port, &builder)
 	return builder.String()
 }

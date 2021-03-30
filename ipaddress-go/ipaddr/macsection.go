@@ -123,3 +123,13 @@ func (section *MACAddressSection) PrefixIterator() MACSectionIterator {
 func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 	return macSectionIterator{section.prefixIterator(true)}
 }
+
+// ToCanonicalString produces a canonical string.
+//
+//If this section has a prefix length, it will be included in the string.
+func (section *MACAddressSection) ToCanonicalString() string {
+	//TODO caching
+	//
+	return ""
+	//return section.toNormalizedString(canonicalParams)
+}

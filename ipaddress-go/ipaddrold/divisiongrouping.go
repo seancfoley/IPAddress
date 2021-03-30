@@ -138,7 +138,7 @@ func (grouping *AddressDivisionGrouping) GetDivisionCount() int {
 	return len(grouping.divisions)
 }
 
-// GetDivision returns the division at the given index, or nil if the index is out of bounds.
+// getDivision returns the division at the given index, or nil if the index is out of bounds.
 func (grouping *AddressDivisionGrouping) GetDivision(index int) (seg *AddressDivision) {
 	if grouping.checkIndex(index) {
 		seg = grouping.divisions[index].ToDivision()
@@ -158,17 +158,13 @@ func checkIndex(index, count int) bool {
 	return index >= 0 && index < count
 }
 
-//func (grouping *AddressDivisionGrouping) ToDivisionGrouping() *AddressDivisionGrouping {
-//	return grouping
-//}
-
-//TODO duplication of functionality in methods: it seems to make more sense that you do not expose
+//Note duplication of functionality in methods: it seems to make more sense that you do not expose
 //A-GetSegment() and GetDivision() on the same type
 //-maybe for GetValue() it is different because of interfac AddressItem which we expect to use
 //B-ToDivision, ToIPDivision, ToIPSegment could potentially be in an interface, but if not, having ToIPDivision on IPAddressDivision returning the equivalent of "this" is unnecessary
 //Maybe in a given interface you could add to the interface ToDivision, and then when you have the division you can access all the ToXXX() methods
 //This might make more sense with sections
-// That would be AddressDivisionSeries returning AddressDivision or AddressGenericDivision from GetDivision and also having ToAddressDivisionGrouping
+// That would be AddressDivisionSeries returning AddressDivision or AddressGenericDivision from getDivision and also having ToAddressDivisionGrouping
 // That would be IPAddressDivisionSeries returning IPAddressDivision or IPAddressGenericDivision from GetIPDivision and also having ToIPAddressDivisionGrouping
 // That would also have AddressGenericDivision with ToAddressDivision
 // That would also have IPAddressGenericDivision with ToIPAddressDivision

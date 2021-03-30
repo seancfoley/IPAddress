@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"unsafe"
 )
 
 // TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
@@ -12,8 +11,36 @@ import (
 // With standard divisions, you can use GetValue/GetUpperValue and use DivInt integers for the values.
 // For large divisions, you must use big.Int instances.
 
+type divisionValuesBase interface { // shared by standard and large divisions
+	getBitCount() BitCount
+
+	getByteCount() int
+
+	// getValue gets the lower value for a large division
+	getValue() *big.Int
+
+	// getValue gets the upper value for a large division
+	getUpperValue() *big.Int
+
+	includesZero() bool
+
+	includesMax() bool
+
+	isMultiple() bool
+
+	getCount() *big.Int
+
+	// convert lower and upper values to byte arrays
+	calcBytesInternal() (bytes, upperBytes []byte)
+
+	// getCache returns a cache for those divisions which cache their values, or nil otherwise
+	getCache() *divCache
+
+	getAddrType() addrType
+}
+
 type addressDivisionBase struct {
-	divisionValues
+	divisionValues //TODO this is not quite right.  Should be divisionValuesBase.  Not sure the best route here.  Seems either type assertions or double field.  Or leave as is and do type assertions in large divs only.
 }
 
 func (div *addressDivisionBase) getDivisionPrefixLength() PrefixLen {
@@ -190,13 +217,17 @@ func (div *addressDivisionBase) IsMultiple() bool {
 	return vals.isMultiple()
 }
 
-func (div *addressDivisionBase) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(div, item)
+func (div *addressDivisionBase) getAddrType() addrType {
+	vals := div.divisionValues
+	if vals == nil {
+		return zeroType
+	}
+	return vals.getAddrType()
 }
 
 func (div *addressDivisionBase) matchesStructure(other AddressGenericDivision) (res bool, addrType addrType) {
 	addrType = div.getAddrType()
-	if addrType != other.getAddrType() || addrType.isNil() && div.GetBitCount() != other.GetBitCount() {
+	if addrType != other.getAddrType() || (addrType.isNil() && (div.GetBitCount() != other.GetBitCount())) {
 		return
 	}
 	res = true
@@ -213,10 +244,6 @@ func (div *addressDivisionBase) Equals(other AddressGenericDivision) (res bool) 
 		return false
 	}
 	return bigDivValSame(div.GetValue(), other.GetValue())
-}
-
-func (div *addressDivisionBase) toAddressDivision() *AddressDivision {
-	return (*AddressDivision)(unsafe.Pointer(div))
 }
 
 func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {

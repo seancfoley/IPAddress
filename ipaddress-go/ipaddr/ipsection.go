@@ -49,6 +49,10 @@ func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment
 	return section.getDivision(index).ToIPAddressSegment()
 }
 
+func (section *ipAddressSectionInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
+	return section.GetSegment(index)
+}
+
 func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
 	addrType := section.getAddrType()
 	if addrType.isIPv4() {
@@ -566,10 +570,11 @@ func toSegments(
 	segmentCount int,
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
+	expectedByteCount int,
 	creator AddressSegmentCreator,
 	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueException) {
-	//int segmentCount = segments.length;
-	expectedByteCount := segmentCount * bytesPerSegment
+
+	//expectedByteCount := segmentCount * bytesPerSegment
 
 	//We allow two formats of bytes:
 	//1. two's complement: top bit indicates sign.  Ranging over all 16-byte lengths gives all addresses, from both positive and negative numbers
@@ -593,7 +598,6 @@ func toSegments(
 
 	//First we handle the situation where we have too many bytes.  Extra bytes can be all zero-bits, or they can be the negative sign extension of all one-bits.
 	if missingBytes < 0 {
-		//endIndex := byteLen - 1
 		expectedStartIndex := byteLen - expectedByteCount
 		higherStartIndex := expectedStartIndex - 1
 		expectedExtendedValue := bytes[higherStartIndex]

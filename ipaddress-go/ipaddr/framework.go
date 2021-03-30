@@ -6,16 +6,33 @@ import (
 )
 
 type AddressItem interface {
+	IsMultiple() bool
+
+	GetValue() *BigDivInt
+	GetUpperValue() *BigDivInt
+
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
 	GetBytes() []byte
 	GetUpperBytes() []byte
-	IsMultiple() bool
+
 	GetCount() *big.Int
+
 	GetByteCount() int
 	GetBitCount() BitCount
-	GetValue() *BigDivInt
-	GetUpperValue() *BigDivInt
+
+	IsFullRange() bool
+	IncludesZero() bool
+	IncludesMax() bool
+	IsZero() bool
+	IsMax() bool
+
+	ContainsPrefixBlock(BitCount) bool
+	ContainsSinglePrefixBlock(BitCount) bool
+	GetPrefixLengthForSingleBlock() PrefixLen
+	GetMinPrefixLengthForBlock() BitCount
+	// GetPrefixCount(int) TODO, I think this is the last one for AddressItem
+
 	CompareTo(item AddressItem) int
 }
 
@@ -29,9 +46,8 @@ type AddressItem interface {
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
 	//AddressComponentRange
 
-	//TODO add these two
-	//toHexString
-	//toNormalizedString
+	ToHexString(bool) string
+	ToNormalizedString() string
 }
 
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
@@ -48,11 +64,16 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	GetUpperIP() net.IP
 }
 
+// TODO as discussed in stringparams.go
+// Likely you will eventually merge AddressStringDivisionSeries with AddressDivisionSeries
+// Likely you will merge AddressStringDivision into AddressGenericDivision too
+
 //
 //
 // division series
 type AddressStringDivisionSeries interface {
 	GetDivisionCount() int
+	//GetStringDivision(index int) AddressStringDivision // useful for string generation
 }
 
 type IPAddressStringDivisionSeries interface {
@@ -64,17 +85,44 @@ type AddressDivisionSeries interface {
 	AddressItem
 	AddressStringDivisionSeries
 
+	IsPrefixBlock() bool
+
+	IsPrefixed() bool
+
+	GetPrefixLength() PrefixLen
+
 	IsMore(AddressDivisionSeries) int
-	GetGenericDivision(index int) AddressGenericDivision
+
+	GetGenericDivision(index int) AddressGenericDivision // useful for comparisons
 }
+
+// IPAddressDivisionSeries serves as a common interface to all IP division groupings (including large) and IP addresses
+type IPAddressDivisionSeries interface {
+	AddressDivisionSeries
+
+	GetGenericIPDivision(index int) IPAddressGenericDivision // useful for comparisons
+}
+
+var (
+	_ IPAddressDivisionSeries = &IPAddressSection{}
+	_ IPAddressDivisionSeries = &IPv4AddressSection{}
+	_ IPAddressDivisionSeries = &IPv6AddressSection{}
+	_ IPAddressDivisionSeries = &IPAddress{}
+	_ IPAddressDivisionSeries = &IPv4Address{}
+	_ IPAddressDivisionSeries = &IPv6Address{}
+)
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
 	AddressComponent
 	AddressDivisionSeries
+
+	ToCanonicalString() string
 }
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above
 	AddressSegmentSeries
+
+	GetGenericIPDivision(index int) IPAddressGenericDivision
 }
 
 // GenericGroupingType represents any division grouping
@@ -119,7 +167,8 @@ var (
 // AddressType represents any address, all of which can be represented by Address,
 // including IPAddress, IPv4Address, IPv6Address, and MACAddress
 type AddressType interface {
-	AddressDivisionSeries
+	//AddressDivisionSeries
+	AddressSegmentSeries
 
 	Equals(AddressType) bool
 	Contains(AddressType) bool

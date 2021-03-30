@@ -49,9 +49,9 @@ func cachePorts(i int) Port {
 //type Service string
 
 // Allows for 3 different boolean values: not set, set to true, set to false (Similar to Boolean in Java which is null, true, false)
-type boolSetting struct {
-	value, isSet bool
-}
+//type boolSetting struct {
+//	value, isSet bool
+//}
 
 func bigOne() *big.Int {
 	return big.NewInt(1)

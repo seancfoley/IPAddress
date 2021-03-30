@@ -76,6 +76,8 @@ type StringOptions interface {
 	// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
 	GetSeparator() byte
 
+	HasSeparator() bool
+
 	GetAddressLabel() string
 
 	GetSegmentStrPrefix() string
@@ -91,7 +93,8 @@ type stringOptions struct {
 	segmentStrPrefix string
 
 	//the segment separator and in the case of split digits, the digit separator
-	separator byte // default is ' ', but it's typically either '.' or ':'
+	separator    byte // default is ' ', but it's typically either '.' or ':'
+	hasSeparator bool
 
 	addrLabel   string
 	reverse     bool
@@ -128,6 +131,10 @@ func (w *stringOptions) GetRadix() int {
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
 func (w *stringOptions) GetSeparator() byte {
 	return w.separator
+}
+
+func (w *stringOptions) HasSeparator() bool {
+	return w.hasSeparator
 }
 
 func (w *stringOptions) GetAddressLabel() string {
@@ -171,6 +178,11 @@ func (w *StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *StringO
 
 func (w *StringOptionsBuilder) SetRadix(base int) *StringOptionsBuilder {
 	w.base = base
+	return w
+}
+
+func (w *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
+	w.hasSeparator = has
 	return w
 }
 
@@ -231,9 +243,17 @@ func (w *WildcardOptionsBuilder) SetWildcardOptions(wildcardOption WildcardOptio
 	return w
 }
 
-func (w *WildcardOptionsBuilder) SetWildcardOption(wildcards Wildcards) *WildcardOptionsBuilder {
+func (w *WildcardOptionsBuilder) SetWildcards(wildcards Wildcards) *WildcardOptionsBuilder {
 	w.wildcards = wildcards
 	return w
+}
+
+func (w *WildcardOptionsBuilder) ToWildcardOptions() WildcardOptions {
+	cpy := w.wildcardOptions
+	if w.wildcards == nil {
+		w.wildcards = DefaultWildcards
+	}
+	return &cpy
 }
 
 type IPStringOptions interface {
@@ -339,9 +359,15 @@ func (w *IPStringOptionsBuilder) SetRadix(base int) *IPStringOptionsBuilder {
 	return w
 }
 
+func (w *IPStringOptionsBuilder) SetHasSeparator(has bool) *IPStringOptionsBuilder {
+	w.StringOptionsBuilder.SetHasSeparator(has)
+	return w
+}
+
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
 func (w *IPStringOptionsBuilder) SetSeparator(separator byte) *IPStringOptionsBuilder {
 	w.StringOptionsBuilder.SetSeparator(separator)
+	w.SetHasSeparator(true)
 	return w
 }
 
@@ -472,6 +498,11 @@ func (builder *IPv6StringOptionsBuilder) SetExpandedSegments(expandSegments bool
 
 func (builder *IPv6StringOptionsBuilder) SetRadix(base int) *IPv6StringOptionsBuilder {
 	builder.IPStringOptionsBuilder.SetRadix(base)
+	return builder
+}
+
+func (builder *IPv6StringOptionsBuilder) SetHasSeparator(has bool) *IPv6StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetHasSeparator(has)
 	return builder
 }
 

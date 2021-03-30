@@ -3,6 +3,7 @@ package ipaddr
 import (
 	//"net"
 	"math/bits"
+	"strings"
 	"unsafe"
 )
 
@@ -17,7 +18,7 @@ func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
-	return seg.GetSegmentPrefixLength() != nil
+	return seg.GetDivisionPrefixLength() != nil
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
@@ -25,7 +26,7 @@ func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
 }
 
 func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
-	if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+	if prefLen := seg.GetDivisionPrefixLength(); prefLen != nil {
 		return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 	}
 	return false
@@ -40,14 +41,14 @@ func (seg *ipAddressSegmentInternal) withoutPrefixLength() *IPAddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
-	prefixLength := seg.GetSegmentPrefixLength()
+	prefixLength := seg.GetDivisionPrefixLength()
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
 	return getPrefixValueCount(seg.toAddressSegment(), *prefixLength)
 }
 
-func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
+func (seg *ipAddressSegmentInternal) GetDivisionPrefixLength() PrefixLen {
 	return seg.getDivisionPrefixLength()
 }
 
@@ -137,7 +138,59 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(network bool) BitCount {
 	}
 	// leading zeros
 	return BitCount(bits.LeadingZeros32(uint32(val))) - extraLeading
+}
 
+func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
+	if seg.IsPrefixed() {
+		upperValue := seg.GetUpperSegmentValue()
+		mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+		upperValue &= mask
+		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
+	} else {
+		seg.getUpperString(radix, uppercase, appendable)
+	}
+}
+
+func (seg *ipAddressSegmentInternal) getStringAsLower() string {
+	return seg.cacheStr(false, seg.getDefaultLowerString)
+}
+
+func (seg *ipAddressSegmentInternal) GetString() string {
+	return seg.cacheStr(false, func() string {
+		if !seg.IsMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
+			return seg.getDefaultLowerString()
+		} else if seg.IsFullRange() {
+			return seg.getDefaultSegmentWildcardString()
+		}
+		upperValue := seg.getUpperSegmentValue()
+		if seg.IsPrefixBlock() {
+			upperValue &= seg.GetSegmentNetworkMask(*seg.getDivisionPrefixLength())
+		}
+		return seg.getDefaultRangeStringVals(seg.getDivisionValue(), DivInt(upperValue), seg.getDefaultTextualRadix())
+	})
+}
+
+func (seg *ipAddressSegmentInternal) GetWildcardString() string {
+	return seg.cacheStr(true, func() string {
+		if !seg.IsPrefixed() || !seg.IsMultiple() {
+			return seg.GetString()
+		} else if seg.IsFullRange() {
+			return seg.getDefaultSegmentWildcardString()
+		}
+		return seg.getDefaultRangeString()
+	})
+}
+
+func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(bits BitCount) SegInt {
+	bc := seg.GetBitCount()
+	bits = checkBitCount(bits, bc)
+	return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
+}
+
+func (seg *ipAddressSegmentInternal) GetSegmentHostMask(bits BitCount) SegInt {
+	bc := seg.GetBitCount()
+	bits = checkBitCount(bits, bc)
+	return ^(^SegInt(0) << (bc - bits))
 }
 
 func (seg *ipAddressSegmentInternal) toIPAddressSegment() *IPAddressSegment {
@@ -185,18 +238,6 @@ func (seg *IPAddressSegment) PrefixIterator() IPSegmentIterator {
 
 func (seg *IPAddressSegment) WithoutPrefixLength() *IPAddressSegment {
 	return seg.withoutPrefixLength()
-}
-
-func (seg *IPAddressSegment) GetSegmentNetworkMask(bits BitCount) SegInt {
-	bc := seg.GetBitCount()
-	bits = checkBitCount(bits, bc)
-	return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
-}
-
-func (seg *IPAddressSegment) GetSegmentHostMask(bits BitCount) SegInt {
-	bc := seg.GetBitCount()
-	bits = checkBitCount(bits, bc)
-	return ^(^SegInt(0) << (bc - bits))
 }
 
 func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {

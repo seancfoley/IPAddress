@@ -192,7 +192,7 @@ func main() {
 		fmt.Printf("%v ", newIter.Next())
 	}
 
-	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4", nil) //TODO reinstate
+	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4", nil)
 	addrStrPref2 := ipaddr.NewIPAddressString("1.2.4.1", nil)
 	rng := addrStrPref1.GetAddress().ToIPv4Address().SpanWithRange(addrStrPref2.GetAddress().ToIPv4Address())
 	riter := rng.Iterator()
@@ -206,7 +206,20 @@ func main() {
 		fmt.Printf("%v ", riter.Next())
 	}
 
-	rangiter := rng.PrefixIterator(28) //TODO reinstate
+	sect := addrStrPref1.GetAddress().ToIPv4Address().GetSection()
+	str := sect.ToCanonicalString()
+	fmt.Printf("\nString is %s", str)
+	addrStrPref6 := ipaddr.NewIPAddressString("1.2.3.4/16", nil)
+	sect = addrStrPref6.GetAddress().ToIPv4Address().GetSection()
+	str = sect.ToCanonicalString()
+	fmt.Printf("\nString with prefix length is %s", str)
+
+	addrStrPref7 := ipaddr.NewIPAddressString("1:2:3:4::/64", nil)
+	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
+	str = ipv6Sect.ToCanonicalString()
+	fmt.Printf("\nIPv6 string with prefix length is %s", str)
+
+	rangiter := rng.PrefixIterator(28)
 	fmt.Printf("\nsequential range pref iterator:\n")
 	for rangiter.HasNext() {
 		fmt.Printf("%v ", rangiter.Next())

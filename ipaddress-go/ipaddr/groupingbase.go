@@ -58,8 +58,18 @@ func (grouping *addressDivisionGroupingBase) getDivision(index int) *addressDivi
 	return grouping.divisions.getDivision(index)
 }
 
+//// GetStringDivision returns the division as a common interface AddressStringDivision,
+//// which allows all division types and aggregated division types to be represented by a single type
+//// that is used for string generation.
+//func (grouping *addressDivisionGroupingBase) GetStringDivision(index int) AddressStringDivision {
+//	return grouping.getDivision(index)
+//}
+
+// GetGenericDivision returns the division as a common interface AddressGenericDivision,
+// which allows all division types and aggregated division types to be represented by a single type,
+// useful for comparisons and other common uses.
 func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) AddressGenericDivision {
-	return grouping.getDivision(index)
+	return grouping.divisions.getGenericDivision(index)
 }
 
 func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
@@ -351,7 +361,12 @@ type maskLenSetting struct {
 //}
 
 type divArray interface {
-	getDivision(index int) *addressDivisionBase // TODO if this returned an interface, maybe it would be more useful, could move more stuff into groupingbase from grouping
+	// TODO if this returned an interface, maybe it would be more useful, could move more stuff into groupingbase from grouping
+	// Or merge it with getGenericDivision
+	// Or make those calls use getGenericDivision instead.
+	getDivision(index int) *addressDivisionBase
+
+	getGenericDivision(index int) AddressGenericDivision
 
 	getDivisionCount() int
 
@@ -371,6 +386,10 @@ func (grouping standardDivArray) getDivisionCount() int {
 
 func (grouping standardDivArray) getDivision(index int) *addressDivisionBase {
 	return (*addressDivisionBase)(unsafe.Pointer(grouping.divisions[index]))
+}
+
+func (grouping standardDivArray) getGenericDivision(index int) AddressGenericDivision {
+	return grouping.divisions[index]
 }
 
 func (grouping standardDivArray) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {

@@ -23,7 +23,11 @@ func createSegmentArray(length int) []*AddressDivision {
 
 // getDivision returns the division or panics if the index is negative or too large
 func (grouping *addressDivisionGroupingInternal) getDivision(index int) *AddressDivision {
-	return grouping.addressDivisionGroupingBase.getDivision(index).toAddressDivision()
+	divsArray := grouping.divisions
+	if divsArray != nil {
+		return divsArray.(standardDivArray).divisions[index]
+	}
+	panic("invalid index") // must be consistent with above code which panics with invalid index
 }
 
 // getDivision returns the divisions slice, only to be used internally
@@ -225,7 +229,7 @@ func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
 // IsPrefixBlock, IsSinglePrefixBlock
 // which looks straightforward since none deal with DivInt, instead they all call into divisionValues interface
 
-func (grouping *addressDivisionGroupingInternal) containsPrefixBlock(prefixLen BitCount) bool {
+func (grouping *addressDivisionGroupingInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
 	if section := grouping.toAddressSection(); section != nil {
 		return section.ContainsPrefixBlock(prefixLen)
 	}
@@ -285,13 +289,13 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 }
 
 func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with getPrefixLengthForSingleBlock
-	prefLen := grouping.GetPrefixLength()
+	prefLen := grouping.GetPrefixLength() //TODO cache this value
 	return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
 }
 
 func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with getMinPrefixLengthForBlock
-	prefLen := grouping.GetPrefixLength()
-	return prefLen != nil && grouping.containsPrefixBlock(*prefLen)
+	prefLen := grouping.GetPrefixLength() //TODO cache this value
+	return prefLen != nil && grouping.ContainsPrefixBlock(*prefLen)
 }
 
 func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() BitCount {
@@ -554,9 +558,9 @@ type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
 
-func (grouping *AddressDivisionGrouping) ContainsPrefixBlock(prefixLen BitCount) bool {
-	return grouping.containsPrefixBlock(prefixLen)
-}
+//func (grouping *AddressDivisionGrouping) ContainsPrefixBlock(prefixLen BitCount) bool {
+//	return grouping.containsPrefixBlock(prefixLen)
+//}
 
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"math/big"
 	"math/bits"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -12,34 +14,6 @@ import (
 type DivInt = uint64
 
 const DivIntSize = 64
-
-type divisionValuesBase interface { // shared by standard and large divisions
-	getBitCount() BitCount
-
-	getByteCount() int
-
-	// getValue gets the lower value for a large division
-	getValue() *big.Int
-
-	// getValue gets the upper value for a large division
-	getUpperValue() *big.Int
-
-	includesZero() bool
-
-	includesMax() bool
-
-	isMultiple() bool
-
-	getCount() *big.Int
-
-	// convert lower and upper values to byte arrays
-	calcBytesInternal() (bytes, upperBytes []byte)
-
-	// getCache returns a cache for those divisions which cache their values, or nil otherwise
-	getCache() *divCache
-
-	getAddrType() addrType
-}
 
 type deriver interface {
 	// deriveNew produces a new segment with the same bit count as the old
@@ -108,9 +82,11 @@ type divisionValues interface {
 type divCache struct {
 	cacheLock sync.RWMutex
 
-	lowerBytes, upperBytes             []byte
-	cachedString, cachedWildcardString string
-	isSinglePrefixBlock                boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+	lowerBytes, upperBytes []byte
+
+	cachedString, cachedWildcardString *string
+
+	//isSinglePrefixBlock boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
 }
 
 //TODO everything must become a Stringer, following the pattern of toString() in Java
@@ -128,6 +104,30 @@ func (div *addressDivisionInternal) getAddrType() addrType {
 		return zeroType
 	}
 	return div.divisionValues.getAddrType()
+}
+
+func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() string) (str string) {
+	cache := div.getCache()
+	var res *string
+	if isWildcard {
+		res = cache.cachedWildcardString
+	} else {
+		res = cache.cachedString
+	}
+	if res == nil {
+		str = stringer()
+		res = &str
+		var dataLoc *unsafe.Pointer
+		if isWildcard {
+			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedWildcardString))
+		} else {
+			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedString))
+		}
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	} else {
+		str = *res
+	}
+	return
 }
 
 func (div *addressDivisionInternal) String() string {
@@ -428,11 +428,266 @@ func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
 	return nil
 }
 
+func (div *addressDivisionInternal) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(div.toAddressDivision(), item)
+}
+
+func (div *addressDivisionInternal) getStringAsLower() string {
+	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+		return seg.getStringAsLower()
+	}
+	return div.cacheStr(false, div.getDefaultLowerString)
+}
+
+func (div *addressDivisionInternal) getString() string {
+	return div.cacheStr(false, func() string {
+		if !div.IsMultiple() {
+			return div.getDefaultLowerString()
+		} else {
+			return div.getDefaultRangeString()
+		}
+	})
+}
+
+func (div *addressDivisionInternal) GetString() string {
+	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+		return seg.GetString()
+	}
+	return div.getString()
+}
+
+func (div *addressDivisionInternal) GetWildcardString() string {
+	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+		return seg.GetWildcardString()
+	}
+	return div.getString() // same string as GetString() when not an IP segment
+}
+
+func (div *addressDivisionInternal) getDefaultRangeStringVals(val1, val2 uint64, radix int) string {
+	return getDefaultRangeStringVals(div, val1, val2, radix)
+}
+
+func (div *addressDivisionInternal) buildDefaultRangeString(radix int) string {
+	return buildDefaultRangeString(div, radix)
+}
+
+func (div *addressDivisionInternal) getLowerStringLength(radix int) int {
+	return toUnsignedStringLength(div.GetDivisionValue(), radix)
+}
+
+func (div *addressDivisionInternal) getUpperStringLength(radix int) int {
+	return toUnsignedStringLength(div.GetUpperDivisionValue(), radix)
+}
+
+func (div *addressDivisionInternal) getLowerString(radix int, uppercase bool, appendable *strings.Builder) {
+	toUnsignedStringCased(div.GetDivisionValue(), radix, 0, uppercase, appendable)
+}
+
+func (div *addressDivisionInternal) getLowerStringChopped(radix int, choppedDigits int, uppercase bool, appendable *strings.Builder) {
+	toUnsignedStringCased(div.GetDivisionValue(), radix, choppedDigits, uppercase, appendable)
+}
+
+func (div *addressDivisionInternal) getUpperString(radix int, uppercase bool, appendable *strings.Builder) {
+	toUnsignedStringCased(div.GetUpperDivisionValue(), radix, 0, uppercase, appendable)
+}
+
+func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
+	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+		seg.getUpperStringMasked(radix, uppercase, appendable)
+	} else {
+		div.getUpperString(radix, uppercase, appendable)
+	}
+}
+
+func (div *addressDivisionInternal) getSplitLowerString(radix int, choppedDigits int, uppercase bool,
+	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) {
+	toSplitUnsignedString(div.GetDivisionValue(), radix, choppedDigits, uppercase, splitDigitSeparator, reverseSplitDigits, stringPrefix, appendable)
+}
+
+func (div *addressDivisionInternal) getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
+	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException {
+	return toUnsignedSplitRangeString(
+		div.GetDivisionValue(),
+		div.GetUpperDivisionValue(),
+		rangeSeparator,
+		wildcard,
+		radix,
+		uppercase,
+		splitDigitSeparator,
+		reverseSplitDigits,
+		stringPrefix,
+		appendable)
+}
+
+func (div *addressDivisionInternal) getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
+	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int {
+	return toUnsignedSplitRangeStringLength(
+		div.GetDivisionValue(),
+		div.GetUpperDivisionValue(),
+		rangeSeparator,
+		wildcard,
+		leadingZeroCount,
+		radix,
+		uppercase,
+		splitDigitSeparator,
+		reverseSplitDigits,
+		stringPrefix)
+}
+
+func (div *addressDivisionInternal) getRangeDigitCount(radix int) int {
+	if !div.IsMultiple() {
+		return 0
+	}
+	if radix == 16 {
+		prefix := div.GetMinPrefixLengthForBlock()
+		bitCount := div.GetBitCount()
+		if prefix < bitCount && div.ContainsSinglePrefixBlock(prefix) {
+			bitsPerCharacter := BitCount(4)
+			if prefix%bitsPerCharacter == 0 {
+				return int((bitCount - prefix) / bitsPerCharacter)
+			}
+		}
+		return 0
+	}
+	value := div.GetDivisionValue()
+	upperValue := div.GetUpperDivisionValue()
+	maxValue := div.getMaxValue()
+	factorRadix := DivInt(radix)
+	factor := factorRadix
+	numDigits := 1
+	for {
+		lowerRemainder := value % factor
+		if lowerRemainder == 0 {
+			//Consider in ipv4 the segment 24_
+			//what does this mean?  It means 240 to 249 (not 240 to 245)
+			//Consider 25_.  It means 250-255.
+			//so the last digit ranges between 0-5 or 0-9 depending on whether the front matches the max possible front of 25.
+			//If the front matches, the back ranges from 0 to the highest value of 255.
+			//if the front does not match, the back must range across all values for the radix (0-9)
+			var max DivInt
+			if maxValue/factor == upperValue/factor {
+				max = maxValue % factor
+			} else {
+				max = factor - 1
+			}
+			upperRemainder := upperValue % factor
+			if upperRemainder == max {
+				//whatever range there is must be accounted entirely by range digits, otherwise the range digits is 0
+				//so here we check if that is the case
+				if upperValue-upperRemainder == value {
+					return numDigits
+				} else {
+					numDigits++
+					factor *= factorRadix
+					continue
+				}
+			}
+		}
+		return 0
+	}
+}
+
+// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
+func (div *addressDivisionInternal) adjustLowerLeadingZeroCount(leadingZeroCount int, radix int) int {
+	return div.adjustLeadingZeroCount(leadingZeroCount, div.GetDivisionValue(), radix)
+}
+
+// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
+func (div *addressDivisionInternal) adjustUpperLeadingZeroCount(leadingZeroCount int, radix int) int {
+	return div.adjustLeadingZeroCount(leadingZeroCount, div.GetUpperDivisionValue(), radix)
+}
+
+func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int, value DivInt, radix int) int {
+	if leadingZeroCount < 0 {
+		width := getDigitCount(value, radix) //static
+		num := div.getMaxDigitCountRadix(radix) - width
+		if num < 0 {
+			return 0
+		}
+		return num
+	}
+	return leadingZeroCount
+}
+
+func (div *addressDivisionInternal) getDigitCount(radix int) int {
+	if !div.IsMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
+		return len(div.GetWildcardString())
+	}
+	return getDigitCount(div.GetUpperDivisionValue(), radix) //static
+}
+
+func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
+	if radix == 10 || radix == 16 {
+		return div.getMaxDigitCount()
+	}
+	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue()) //static
+}
+
+// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
+func (div *addressDivisionInternal) getDefaultTextualRadix() int {
+	addrType := div.getAddrType()
+	if addrType.isIPv4() {
+		return IPv4DefaultTextualRadix
+	}
+	return 16
+}
+
+// returns the number of digits for the maximum possible value of the division when using the default radix
+func (div *addressDivisionInternal) getMaxDigitCount() int {
+	return int((div.GetBitCount() + 7) >> 2) // works for hex chars, the default, but also IPv4 where bitcount of 8 results in result of 3
+}
+
+// A simple string using just the lower value and the default radix.
+func (div *addressDivisionInternal) getDefaultLowerString() string {
+	return toDefaultString(div.GetDivisionValue(), div.getDefaultTextualRadix())
+}
+
+// A simple string using just the lower and upper values and the default radix, separated by the default range character.
+func (div *addressDivisionInternal) getDefaultRangeString() string {
+	return div.getDefaultRangeStringVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), div.getDefaultTextualRadix())
+}
+
+// getDefaultSegmentWildcardString() is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
+//
+// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
+//
+// For instance, generally the '*' is used as a wildcard to denote all possible values for a given segment,
+// but in some cases that character is used for a segment separator.
+//
+// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
+// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
+func (div *addressDivisionInternal) getDefaultSegmentWildcardString() string {
+	if seg := div.toAddressDivision().ToAddressSegment(); seg != nil {
+		return seg.getDefaultSegmentWildcardString()
+	}
+	return "" // for divisions, the width is variable and max values can change, so using wildcards make no sense
+}
+
+// getDefaultRangeSeparatorString() is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
+//
+// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
+//
+//For instance, generally the '-' is used as a range separator, but in some cases that character is used for a segment separator.
+//
+// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
+// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
+func (div *addressDivisionInternal) getDefaultRangeSeparatorString() string {
+	return "-"
+}
+
 type AddressDivision struct {
 	addressDivisionInternal
 }
 
-// Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
+//TODO I cannot recall why I reverted back to GetDivisionValue() in addressDivisionInternal,
+//now it appears in IPv4/6/MAC, confusing those who wonder diff with GetSegmentValue().
+//I am extremely tempted to switch it back.  Maybe wait a bit to see if the reason resurfaces.
+//Maybe you thought there are lots of cases where you have different seg div types and you need a common method?
+//YEAH, that was it, like in div framework, AddressStandardDivision.
+//But still, could use ToAddressDivision first.  Not sure.
+// OK, I really believe it should go back to being hidden.  It is just too confusing otherwise, to have both.
+//
+//Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
 //func (div *AddressDivision) GetDivisionValue() DivInt {
 //	return div.getDivisionValue()
 //}

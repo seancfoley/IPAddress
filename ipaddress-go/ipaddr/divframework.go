@@ -16,8 +16,38 @@ type AddressGenericDivision interface { //TODO rename GenericDivisionType or Gen
 
 	Equals(AddressGenericDivision) bool
 
+	getStringAsLower() string
+	GetString() string
+	GetWildcardString() string
+
+	divStringProvider
 	// to add: getDefaultTextualRadix()? getDigitCount(int radix)? getMaxDigitCount()? getWildcardString()?
 }
+
+var (
+	_ AddressGenericDivision = &AddressDivision{}
+	_ AddressGenericDivision = &AddressSegment{}
+	_ AddressGenericDivision = &MACAddressSegment{}
+)
+
+// AddressGenericDivision serves as common interface to all IP address divisions, including large divisions (> 64 bits)
+type IPAddressGenericDivision interface {
+	AddressGenericDivision
+
+	GetDivisionPrefixLength() PrefixLen
+
+	// Returns whether the division range includes the block of values for its prefix length
+	IsPrefixBlock() bool
+
+	// Returns whether the division range matches the block of values for its prefix length
+	IsSinglePrefixBlock() bool
+}
+
+var (
+	_ IPAddressGenericDivision = &IPAddressSegment{}
+	_ IPAddressGenericDivision = &IPv4AddressSegment{}
+	_ IPAddressGenericDivision = &IPv6AddressSegment{}
+)
 
 // Represents any standard address division, all of which can be converted to/from AddressDivision
 type AddressStandardDivision interface { //TODO rename StandardDivisionType
@@ -43,6 +73,7 @@ var (
 
 // euqivalent to AddressSegment on Java side, serves as common interface to all segments
 type AddressStandardSegment interface { //TODO rename AddressSegmentType
+	AddressComponent
 
 	AddressStandardDivision
 

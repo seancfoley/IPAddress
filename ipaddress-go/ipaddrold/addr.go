@@ -24,18 +24,10 @@ type values interface {
 	getZone() string
 }
 
-//TODO we do need another set of values.  Why?  Because in golang we cannot stop someone from doing IPAddress{}
-//which means we need a default values.
-//Do we need ip address default different from address?  We did for section because we will eventually have IPAddressBitsDivisiongrouping which will need its own values.
-//Since that needs divisions, we ned up with ip division values too (default with a prefix added)
-//We have no such thing for address.  So no need.
-//
-
 //xxx seems we have address division grouping as zero for ipsection along with 0 length divisions xxx
 //shoukd we just go with that?  Either that or single division with 1 byte.  Probably the former is better.
-//TODO next NEXT NEXT
 type addressValues struct {
-	*AddressDivisionGrouping //TODO when assigning default values, assign &AddressDivisionGrouping{} here
+	*AddressDivisionGrouping
 
 	//	*IPv6AddressSection ??? xxx need to figure out what this will be, what section do we get when we do IPAddress{} and what we get when we do Address{} - I suppose AddressDivisionGrouping?
 	//

@@ -67,11 +67,13 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
+	expectedByteCount := segmentCount
 	segments, err := toSegments(
 		bytes,
 		segmentCount,
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
+		expectedByteCount,
 		DefaultIPv4Network.GetIPv4AddressCreator(),
 		prefixLength)
 	if err == nil {
@@ -79,10 +81,12 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
 		}
-		bytes = cloneBytes(bytes) //TODO make sure you only create segmentCount (bytes may be longer, I believe we always chop off the top, see toSegments)
-		res.cache.lowerBytes = bytes
-		if !res.isMultiple {
-			res.cache.upperBytes = bytes
+		if expectedByteCount == len(bytes) {
+			bytes = cloneBytes(bytes)
+			res.cache.lowerBytes = bytes
+			if !res.isMultiple {
+				res.cache.upperBytes = bytes
+			}
 		}
 	}
 	return
@@ -320,4 +324,37 @@ func (section *IPv4AddressSection) SequentialBlockIterator() IPv4SectionIterator
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
+}
+
+var (
+
+	//WildcardOptions allWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL);
+
+	allWildcards        = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).ToWildcardOptions()
+	ipv4CanonicalParams = NewIPv4StringOptionsBuilder().ToOptions()
+
+	//WildcardOptions allSQLWildcards = new WildcardOptions(WildcardOptions.WildcardOption.ALL, new Wildcards(IPAddress.SEGMENT_SQL_WILDCARD_STR, IPAddress.SEGMENT_SQL_SINGLE_WILDCARD_STR));
+//WildcardOptions wildcardsRangeOnlyNetworkOnly = new WildcardOptions(WildcardOptions.WildcardOption.NETWORK_ONLY, new Wildcards(IPAddress.RANGE_SEPARATOR_STR));
+//fullParams = new IPv4StringOptions.Builder().setExpandedSegments(true).setWildcardOptions(wildcardsRangeOnlyNetworkOnly).toOptions();
+//normalizedWildcardParams = new IPv4StringOptions.Builder().setWildcardOptions(allWildcards).toOptions();
+//sqlWildcardParams = new IPv4StringOptions.Builder().setWildcardOptions(allSQLWildcards).toOptions();
+//inetAtonOctalParams = new IPv4StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.OCTAL.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.OCTAL.getSegmentStrPrefix()).toOptions();
+//inetAtonHexParams = new IPv4StringOptions.Builder().setRadix(IPv4Address.inet_aton_radix.HEX.getRadix()).setSegmentStrPrefix(IPv4Address.inet_aton_radix.HEX.getSegmentStrPrefix()).toOptions();
+//canonicalParams = new IPv4StringOptions.Builder().toOptions();
+//reverseDNSParams = new IPv4StringOptions.Builder().setWildcardOptions(allWildcards).setReverse(true).setAddressSuffix(IPv4Address.REVERSE_DNS_SUFFIX).toOptions();
+//segmentedBinaryParams = new IPStringOptions.Builder(2).setSeparator(IPv4Address.SEGMENT_SEPARATOR).setSegmentStrPrefix(IPAddress.BINARY_STR_PREFIX).toOptions();
+)
+
+//TODO instead create the builder
+
+// ToCanonicalString produces a canonical string.
+//
+//If this section has a prefix length, it will be included in the string.
+func (section *IPv4AddressSection) ToCanonicalString() string {
+	//TODO caching
+	return section.toNormalizedString(ipv4CanonicalParams)
+}
+
+func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
+	return toNormalizedString(stringOptions, section)
 }

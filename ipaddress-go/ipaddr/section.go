@@ -401,12 +401,39 @@ func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	return true
 }
 
+func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	prefixLen = checkSubnet(section.toAddressSection(), prefixLen)
+	divCount := section.GetSegmentCount()
+	bitsPerSegment := section.GetBitsPerSegment()
+	i := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), bitsPerSegment)
+	if i < divCount {
+		div := section.GetSegment(i)
+		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
+		if !div.ContainsPrefixBlock(*segmentPrefixLength) {
+			return false
+		}
+		for i++; i < divCount; i++ {
+			div = section.GetSegment(i)
+			if !div.IsFullRange() {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 //TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
 // we also want toCanonicalWildcardString and ToNormalizedWildcardString
 // the code will need to check the addrtype in the section,
 // and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
 func (section *addressSectionInternal) ToCanonicalString() string {
-	//TODO
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	} else if sect := section.toMACAddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	}
 	return ""
 }
 
@@ -416,6 +443,11 @@ func (section *addressSectionInternal) ToCanonicalWildcardString() string {
 }
 
 func (section *addressSectionInternal) ToNormalizedString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSectionInternal) ToHexString(with0xPrefix bool) string {
 	//TODO
 	return ""
 }
@@ -569,6 +601,22 @@ func (section *addressSectionInternal) toAddressSection() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }
 
+func (section *addressSectionInternal) toIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
+}
+
+func (section *addressSectionInternal) toIPv4AddressSection() *IPv4AddressSection {
+	return (*IPv4AddressSection)(unsafe.Pointer(section))
+}
+
+func (section *addressSectionInternal) toIPv6AddressSection() *IPv6AddressSection {
+	return (*IPv6AddressSection)(unsafe.Pointer(section))
+}
+
+func (section *addressSectionInternal) toMACAddressSection() *MACAddressSection {
+	return (*MACAddressSection)(unsafe.Pointer(section))
+}
+
 func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
 	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
 }
@@ -581,26 +629,28 @@ type AddressSection struct {
 	addressSectionInternal
 }
 
-func (section *AddressSection) ContainsPrefixBlock(prefixLen BitCount) bool {
-	prefixLen = checkSubnet(section, prefixLen)
-	divCount := section.GetSegmentCount()
-	bitsPerSegment := section.GetBitsPerSegment()
-	i := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), bitsPerSegment)
-	if i < divCount {
-		div := section.GetSegment(i)
-		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
-		if !div.ContainsPrefixBlock(*segmentPrefixLength) {
-			return false
-		}
-		for i++; i < divCount; i++ {
-			div = section.GetSegment(i)
-			if !div.IsFullRange() {
-				return false
-			}
-		}
-	}
-	return true
-}
+// this was moved down into addressSectionInternal
+//func (section *AddressSection) ContainsPrefixBlock(prefixLen BitCount) bool {
+//	return section.containsPrefixBlock(prefixLen)
+//	//prefixLen = checkSubnet(section, prefixLen)
+//	//divCount := section.GetSegmentCount()
+//	//bitsPerSegment := section.GetBitsPerSegment()
+//	//i := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), bitsPerSegment)
+//	//if i < divCount {
+//	//	div := section.GetSegment(i)
+//	//	segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
+//	//	if !div.ContainsPrefixBlock(*segmentPrefixLength) {
+//	//		return false
+//	//	}
+//	//	for i++; i < divCount; i++ {
+//	//		div = section.GetSegment(i)
+//	//		if !div.IsFullRange() {
+//	//			return false
+//	//		}
+//	//	}
+//	//}
+//	//return true
+//}
 
 func (section *AddressSection) GetCount() *big.Int {
 	if sect := section.ToIPv4AddressSection(); sect != nil {

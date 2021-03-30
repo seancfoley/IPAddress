@@ -566,6 +566,12 @@ func (addr *addressInternal) ToCanonicalWildcardString() string {
 
 func (addr *addressInternal) ToNormalizedString() string {
 	//TODO
+	// if no section, then "0"
+	return ""
+}
+
+func (addr *addressInternal) ToHexString(with0xPrefix bool) string {
+	//TODO
 	return ""
 }
 

@@ -104,6 +104,10 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	return createAddressSegment(newVals)
 }
 
+func (seg *addressSegmentInternal) getDefaultSegmentWildcardString() string {
+	return SegmentWildcardStr
+}
+
 func (seg *addressSegmentInternal) iterator() SegmentIterator {
 	return seg.segmentIterator(seg.getDivisionPrefixLength(), false, false)
 }
@@ -158,6 +162,16 @@ func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefi
 		isPrefixIterator,
 		isBlockIterator,
 	)
+}
+
+func (section *addressSegmentInternal) ToNormalizedString() string {
+	//TODO
+	return ""
+}
+
+func (section *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
+	//TODO
+	return ""
 }
 
 type AddressSegment struct {
