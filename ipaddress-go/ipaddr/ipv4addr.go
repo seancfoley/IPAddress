@@ -337,6 +337,14 @@ func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
 	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPv4Address) ToCanonicalString() string {
+	return addr.init().toCanonicalString()
+}
+
+func (addr *IPv4Address) ToNormalizedString() string {
+	return addr.init().toNormalizedString()
+}
+
 //func (addr *IPv4Address) IsMore(other *IPv4Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}

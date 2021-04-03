@@ -164,14 +164,32 @@ func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefi
 	)
 }
 
-func (section *addressSegmentInternal) ToNormalizedString() string {
-	//TODO
-	return ""
+var (
+	// wildcards differ, for divs we use only range since div size not implicit, here we use both range and *
+	hexParamsSeg     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).ToOptions()
+	decimalParamsSeg = new(IPStringOptionsBuilder).SetRadix(10).ToOptions()
+)
+
+func (seg *addressSegmentInternal) ToNormalizedString() string {
+	radix := seg.getDefaultTextualRadix()
+	var opts IPStringOptions
+	switch radix {
+	case 10:
+		opts = decimalParamsSeg
+	default:
+		opts = macCompressedParams
+	}
+	return seg.toString(opts)
 }
 
-func (section *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
-	//TODO
-	return ""
+func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
+	var opts IPStringOptions
+	if with0xPrefix {
+		opts = hexParamsSeg
+	} else {
+		opts = macCompressedParams
+	}
+	return seg.toString(opts)
 }
 
 type AddressSegment struct {

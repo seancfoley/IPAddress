@@ -175,6 +175,9 @@ func (grouping *addressDivisionGroupingInternal) init() *addressDivisionGrouping
 }
 
 func (grouping addressDivisionGroupingInternal) String() string {
+	if sect := grouping.toAddressSection(); sect != nil {
+		return sect.ToNormalizedString()
+	}
 	return fmt.Sprintf("%v", grouping.init().divisions)
 }
 

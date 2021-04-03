@@ -98,8 +98,6 @@ type StringOptions interface {
 }
 
 type stringOptions struct {
-	//StringOptionsBase
-
 	wildcards Wildcards
 
 	expandSegments   bool
@@ -218,12 +216,7 @@ func (w *StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *StringOptions
 
 func (w *StringOptionsBuilder) ToOptions() StringOptions {
 	res := w.stringOptions
-	if res.base == 0 {
-		res.base = 16
-	}
-	if res.separator == 0 {
-		res.separator = ' '
-	}
+	res.base, res.wildcards, res.separator, _ = getDefaults(res.base, res.wildcards, res.separator, 0)
 	return &res
 }
 
@@ -576,6 +569,7 @@ func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 	}
 	res := builder.ops
 	res.ipStringOptions = *builder.IPStringOptionsBuilder.ToOptions().(*ipStringOptions)
+	res.base, res.wildcards, res.separator, res.zoneSeparator = getDefaults(res.base, res.wildcards, res.separator, res.zoneSeparator)
 	return &res
 }
 

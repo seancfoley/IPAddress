@@ -329,8 +329,8 @@ type valueCache struct {
 
 	cachedMaskLens *maskLenSetting
 
-	lowerBytes, upperBytes []byte
-	cachedLowerVal         uint32
+	lowerBytes, upperBytes         []byte
+	cachedLowerVal, cachedUpperVal *uint32
 
 	zeroVals *zeroRangeCache
 

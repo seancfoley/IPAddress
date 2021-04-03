@@ -406,6 +406,18 @@ func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
 	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.IsMultiple())
 }
 
+func (addr *IPAddress) ToCanonicalString() string {
+	return addr.init().toCanonicalString()
+}
+
+func (addr *IPAddress) ToNormalizedString() string {
+	return addr.init().toNormalizedString()
+}
+
+func (addr *IPAddress) ToNormalizedWildcardString() string {
+	return addr.init().toNormalizedWildcardString()
+}
+
 // Generates an IPAddressString object for this IPAddress object.
 //
 // This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
@@ -422,7 +434,7 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
 	if res == nil {
-		str := NewIPAddressString(addr.ToCanonicalString(), nil)
+		str := NewIPAddressString(addr.toCanonicalString(), nil)
 		dataLoc := &addr.cache.fromString
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str

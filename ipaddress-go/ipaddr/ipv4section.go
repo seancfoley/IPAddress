@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -246,49 +247,52 @@ func (section *IPv4AddressSection) UpperIntValue() uint32 {
 }
 
 func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
-	if lower { //TODO CACHING THIS MIGHT be overkill.  At least use the usual sync pattern.
-		cache := section.cache
-		if cache != nil {
-			cache.cacheLock.RLock()
-			cachedInt := cache.cachedLowerVal
-			cache.cacheLock.RUnlock()
-			if cachedInt == 0 && !section.IsZero() {
-				cache.cacheLock.Lock()
-				cachedInt = cache.cachedLowerVal
-				if cachedInt == 0 {
-					segCount := section.GetSegmentCount()
-					if segCount != 0 {
-						result = uint32(section.GetSegment(0).GetSegmentValue())
-						if segCount != 1 {
-							bitsPerSegment := section.GetBitsPerSegment()
-							for i := 1; i < segCount; i++ {
-								seg := section.GetSegment(i)
-								result = (result << bitsPerSegment) | uint32(seg.GetSegmentValue())
-							}
-						}
-					}
-					cache.cachedLowerVal = result
-				} else {
-					result = cachedInt
-				}
-				cache.cacheLock.Unlock()
-			} else {
-				result = cachedInt
-			}
-		} //TODO the else
+	segCount := section.GetSegmentCount()
+	if segCount == 0 {
+		return 0
+	}
+	cache := section.cache
+	var val *uint32
+	if lower {
+		val = cache.cachedLowerVal
 	} else {
-		segCount := section.GetSegmentCount()
-		if segCount != 0 {
-			result = uint32(section.GetSegment(0).GetUpperSegmentValue())
-			if segCount != 1 {
-				bitsPerSegment := section.GetBitsPerSegment()
-				for i := 1; i < segCount; i++ {
-					seg := section.GetSegment(i)
-					result = (result << bitsPerSegment) | uint32(seg.GetUpperSegmentValue())
-				}
+		val = cache.cachedUpperVal
+	}
+	if val != nil {
+		return *val
+	}
+	if segCount == 4 {
+		if lower {
+			result = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
+				(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
+				(uint32(section.GetSegment(2).GetSegmentValue()) << 8) |
+				uint32(section.GetSegment(3).GetSegmentValue())
+		} else {
+			result = (uint32(section.GetSegment(0).GetUpperSegmentValue()) << 24) |
+				(uint32(section.GetSegment(1).GetUpperSegmentValue()) << 16) |
+				(uint32(section.GetSegment(2).GetUpperSegmentValue()) << 8) |
+				uint32(section.GetSegment(3).GetUpperSegmentValue())
+		}
+	} else {
+		result = uint32(section.GetSegment(0).GetUpperSegmentValue())
+		bitsPerSegment := section.GetBitsPerSegment()
+		for i := 1; i < segCount; i++ {
+			result = (result << bitsPerSegment)
+			seg := section.GetSegment(i)
+			if lower {
+				result |= uint32(seg.GetSegmentValue())
+			} else {
+				result |= uint32(seg.GetUpperSegmentValue())
 			}
 		}
 	}
+	var dataLoc *unsafe.Pointer
+	if lower {
+		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedLowerVal))
+	} else {
+		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedUpperVal))
+	}
+	atomic.StorePointer(dataLoc, unsafe.Pointer(&result))
 	return result
 }
 
@@ -348,10 +352,15 @@ func (section *IPv4AddressSection) ToCanonicalString() string {
 	return section.toNormalizedString(ipv4CanonicalParams)
 }
 
+// ToCanonicalString produces a canonical string.
+//
+//If this section has a prefix length, it will be included in the string.
+func (section *IPv4AddressSection) ToNormalizedString() string {
+	return section.ToCanonicalString()
+}
+
 //TODO NEXT
-// 1. Do normalized and canonical everywhere, including addresses
-// 2. Let's get the default Stringer() working wch uses canonical and normalized
-// 3. figure out the caching/locking pattern
+// 3. figure out the caching/locking pattern - cacheStr for divs is a model
 // 4. do the rest of the string methods
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {

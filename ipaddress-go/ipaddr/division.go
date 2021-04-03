@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	"fmt"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -86,6 +85,8 @@ type divCache struct {
 
 	cachedString, cachedWildcardString *string
 
+	//TODO maybe the default string (certainly), hex string, normalized string (see cacheStr)
+
 	//isSinglePrefixBlock boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
 }
 
@@ -108,6 +109,9 @@ func (div *addressDivisionInternal) getAddrType() addrType {
 
 func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() string) (str string) {
 	cache := div.getCache()
+	if cache == nil {
+		return "0"
+	}
 	var res *string
 	if isWildcard {
 		res = cache.cachedWildcardString
@@ -130,55 +134,86 @@ func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() st
 	return
 }
 
-func (div *addressDivisionInternal) String() string {
-	if div.IsMultiple() {
-		return fmt.Sprintf("%x-%x", div.GetDivisionValue(), div.GetUpperDivisionValue())
+var (
+	// wildcards differ, here we use only range since div size not implicit
+	octalParamsDiv   = new(IPStringOptionsBuilder).SetRadix(8).SetSegmentStrPrefix(OctalPrefix).SetWildcards(rangeWildcard).ToOptions()
+	hexParamsDiv     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).SetWildcards(rangeWildcard).ToOptions()
+	decimalParamsDiv = new(IPStringOptionsBuilder).SetRadix(10).SetWildcards(rangeWildcard).ToOptions()
+)
+
+func (div *addressDivisionInternal) String() string { // this can be moved to addressDivisionBase when we have ContainsPrefixBlock and similar methods implemented for big.Int in the base
+	radix := div.getDefaultTextualRadix()
+	var opts IPStringOptions
+	switch radix {
+	case 16:
+		opts = hexParamsDiv
+	case 10:
+		opts = decimalParamsDiv
+	case 8:
+		opts = octalParamsDiv
+	default:
+		opts = new(IPStringOptionsBuilder).SetRadix(radix).SetWildcards(rangeWildcard).ToOptions()
 	}
-	return fmt.Sprintf("%x", div.GetDivisionValue())
-	/*
-			We will have  default radix, which starts as hex, but when we switch to ipv4 section and gain ipv4 addr type,
-			each division will have default radix reset to 10
-			but that will require locking so the default radix will be part of the cache and use the cache lock
-
-			The downside is this means that this would mean that the result of this method can change after conversion to ipv4 and back again
-
-			So maybe you don't want to do that
-
-			If you do not, then maybe you want to change the java side too to always use hex by default, even for IPv4?
-			Well, that remains to be seen, because the way strings work is a bit different
-			IPv4Segment instances override the parent behaviour.  So it's not the same, and only applies to IPAddressBitsDivision.
-
-			So no I am thinking, no switcheroo, just stick to hex
-
-		TODO now we've added addrType to divisions, that settles it.  We need to check addrType and scale up
-		given the address type, otherwise use hex.  In fact, could just stick to hex and scale up for ipv4 only.
-
-				@Override
-				public String toString() {
-					int radix = getDefaultTextualRadix();
-					IPStringOptions opts;
-					switch(radix) {
-					case 8:
-						opts = OCTAL_PARAMS;
-						break;
-					case 16:
-						opts = HEX_PARAMS;
-						break;
-					case 10:
-						opts = DECIMAL_PARAMS;
-						break;
-					default:
-						opts = new IPStringOptions.Builder(radix).setWildcards(new Wildcards(IPAddress.RANGE_SEPARATOR_STR)).toOptions();
-						break;
-					}
-					StringBuilder builder = new StringBuilder(34);
-					toParams(opts).appendSingleDivision(this, builder);
-					return builder.toString();
-				}
-
-
-	*/
+	return div.toString(opts)
 }
+
+func (div *addressDivisionInternal) toString(opts IPStringOptions) string {
+	builder := strings.Builder{}
+	params := toParams(opts)
+	builder.Grow(params.getDivisionStringLength(div))
+	params.appendDivision(&builder, div)
+	return builder.String()
+}
+
+//func (div *addressDivisionInternal) String() string {
+//	if div.IsMultiple() {
+//		return fmt.Sprintf("%x-%x", div.GetDivisionValue(), div.GetUpperDivisionValue())
+//	}
+//	return fmt.Sprintf("%x", div.GetDivisionValue())
+//	/*
+//			We will have  default radix, which starts as hex, but when we switch to ipv4 section and gain ipv4 addr type,
+//			each division will have default radix reset to 10
+//			but that will require locking so the default radix will be part of the cache and use the cache lock
+//
+//			The downside is this means that this would mean that the result of this method can change after conversion to ipv4 and back again
+//
+//			So maybe you don't want to do that
+//
+//			If you do not, then maybe you want to change the java side too to always use hex by default, even for IPv4?
+//			Well, that remains to be seen, because the way strings work is a bit different
+//			IPv4Segment instances override the parent behaviour.  So it's not the same, and only applies to IPAddressBitsDivision.
+//
+//			So no I am thinking, no switcheroo, just stick to hex
+//
+//		 now we've added addrType to divisions, that settles it.  We need to check addrType and scale up
+//		given the address type, otherwise use hex.  In fact, could just stick to hex and scale up for ipv4 only.
+//
+//				@Override
+//				public String toString() {
+//					int radix = getDefaultTextualRadix();
+//					IPStringOptions opts;
+//					switch(radix) {
+//					case 8:
+//						opts = OCTAL_PARAMS;
+//						break;
+//					case 16:
+//						opts = HEX_PARAMS;
+//						break;
+//					case 10:
+//						opts = DECIMAL_PARAMS;
+//						break;
+//					default:
+//						opts = new IPStringOptions.Builder(radix).setWildcards(new Wildcards(IPAddress.RANGE_SEPARATOR_STR)).toOptions();
+//						break;
+//					}
+//					StringBuilder builder = new StringBuilder(34);
+//					toParams(opts).appendSingleDivision(this, builder);
+//					return builder.toString();
+//				}
+//
+//
+//	*/
+//}
 
 func (div *addressDivisionInternal) isPrefixed() bool {
 	return div.getDivisionPrefixLength() != nil
@@ -621,15 +656,6 @@ func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
 		return div.getMaxDigitCount()
 	}
 	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue()) //static
-}
-
-// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
-func (div *addressDivisionInternal) getDefaultTextualRadix() int {
-	addrType := div.getAddrType()
-	if addrType.isIPv4() {
-		return IPv4DefaultTextualRadix
-	}
-	return 16
 }
 
 // returns the number of digits for the maximum possible value of the division when using the default radix

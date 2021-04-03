@@ -433,17 +433,17 @@ func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
 }
 
 var (
+	rangeWildcard                 = new(WildcardsBuilder).ToWildcards()
 	allWildcards                  = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).ToOptions()
-	wildcardsRangeOnlyNetworkOnly = new(WildcardOptionsBuilder).SetWildcards(new(WildcardsBuilder).ToWildcards()).ToOptions()
+	wildcardsRangeOnlyNetworkOnly = new(WildcardOptionsBuilder).SetWildcards(rangeWildcard).ToOptions()
 	allSQLWildcards               = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).SetWildcards(
 		new(WildcardsBuilder).SetWildcard(SegmentSqlWildcardStr).SetSingleWildcard(SegmentSqlSingleWildcardStr).ToWildcards()).ToOptions()
 
-	hexParams              = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
-	hexPrefixedParams      = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(HexPrefix).ToOptions()
-	octalParams            = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
-	octalPrefixedParams    = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(OctalPrefix).ToOptions()
-	binaryParams           = new(IPStringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
-	canonicalSegmentParams = new(IPStringOptionsBuilder).SetRadix(10).SetSeparator(' ').ToOptions()
+	hexParams           = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
+	hexPrefixedParams   = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(HexPrefix).ToOptions()
+	octalParams         = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
+	octalPrefixedParams = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(OctalPrefix).ToOptions()
+	binaryParams        = new(IPStringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
 )
 
 func BitsPerSegment(version IPVersion) BitCount {

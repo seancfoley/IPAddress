@@ -11,7 +11,6 @@ const (
 	//IPv4SegmentSeparator             = '.'
 	MACBitsPerSegment  = 8
 	MACBytesPerSegment = 1
-	//IPv4SegmentCount                 = 4
 	//MACByteCount                    = 4
 	//MACBitCount             = 32
 	MACDefaultTextualRadix      = 16
@@ -229,6 +228,14 @@ func (addr *MACAddress) PrefixIterator() MACAddressIterator {
 
 func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
 	return macAddressIterator{addr.prefixIterator(true)}
+}
+
+func (addr *MACAddress) ToCanonicalString() string {
+	return addr.init().toCanonicalString()
+}
+
+func (addr *MACAddress) ToNormalizedString() string {
+	return addr.init().toNormalizedString()
 }
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {

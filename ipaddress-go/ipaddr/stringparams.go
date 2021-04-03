@@ -688,6 +688,15 @@ func (params *addressStringParams) appendSingleDivision(seg AddressGenericDivisi
 	return 0
 }
 
+func (params *addressStringParams) getDivisionStringLength(seg AddressGenericDivision) int {
+	return params.appendSingleDivision(seg, nil)
+}
+
+func (params *addressStringParams) appendDivision(builder *strings.Builder, seg AddressGenericDivision) *strings.Builder {
+	params.appendSingleDivision(seg, builder)
+	return builder
+}
+
 func (params *addressStringParams) appendSegment(segmentIndex int, builder *strings.Builder, part AddressDivisionSeries) int {
 	div := part.GetGenericDivision(segmentIndex)
 	writer := stringWriter{div}
@@ -730,15 +739,6 @@ func (params *addressStringParams) appendZoned(builder *strings.Builder, addr Ad
 
 func (params *addressStringParams) append(builder *strings.Builder, addr AddressDivisionSeries) *strings.Builder {
 	return params.appendZoned(builder, addr, noZone)
-}
-
-func (params *addressStringParams) getDivisionStringLength(seg AddressGenericDivision) int {
-	return params.appendSingleDivision(seg, nil)
-}
-
-func (params *addressStringParams) appendDivision(builder *strings.Builder, seg AddressGenericDivision) *strings.Builder {
-	params.appendSingleDivision(seg, builder)
-	return builder
 }
 
 func (params *addressStringParams) toZonedString(addr AddressDivisionSeries, zone Zone) string {

@@ -145,6 +145,12 @@ func (section *MACAddressSection) ToCanonicalString() string {
 	return section.toNormalizedString(macCanonicalParams)
 }
 
+func (section *MACAddressSection) ToNormalizedString() string {
+	//TODO caching
+	//
+	return section.toNormalizedString(macNormalizedParams)
+}
+
 func (section *MACAddressSection) toNormalizedString(stringOptions StringOptions) string {
 	return toNormalizedMACString(stringOptions, section)
 }

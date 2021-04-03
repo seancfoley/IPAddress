@@ -46,7 +46,7 @@ type AddressItem interface {
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
 	//AddressComponentRange
 
-	ToHexString(bool) string
+	//ToHexString(bool) string TODO reinstate when this is in place everywhere
 	ToNormalizedString() string
 }
 

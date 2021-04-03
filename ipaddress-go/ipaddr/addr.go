@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 	"unsafe"
@@ -161,10 +160,15 @@ func (addr *addressInternal) IsMore(other AddressDivisionSeries) int {
 }
 
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
-	if addr.zone != noZone {
-		return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
+	section := addr.section
+	if section == nil {
+		return "0"
 	}
-	return fmt.Sprintf("%v", addr.section)
+	return addr.toCanonicalString()
+	//if addr.zone != noZone {
+	//	return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
+	//}
+	//return fmt.Sprintf("%v", addr.section)
 }
 
 func (addr *addressInternal) IsSequential() bool {
@@ -557,28 +561,25 @@ func (addr *addressInternal) getSequentialBlockIndex() int {
 // although that's a bit problematic for ipv6.  So for ipv6, we need to scale up to ipv6 inside the address code,
 // unfortunately, although this is just as messy for the java side where we had to make a special override for ipv6 everywhere
 // And let's face it, we need to override all methods in addresses for the init() calls anyway
-func (addr *addressInternal) ToCanonicalString() string {
+func (addr *addressInternal) toCanonicalString() string {
+	return addr.section.toCanonicalString(addr.zone)
+}
+
+func (addr *addressInternal) toCanonicalWildcardString() string {
 	//TODO
 	return ""
 }
 
-func (addr *addressInternal) ToCanonicalWildcardString() string {
+func (addr *addressInternal) toNormalizedString() string {
+	return addr.section.toNormalizedString(addr.zone)
+}
+
+func (addr *addressInternal) toHexString(with0xPrefix bool) string {
 	//TODO
 	return ""
 }
 
-func (addr *addressInternal) ToNormalizedString() string {
-	//TODO
-	// if no section, then "0"
-	return ""
-}
-
-func (addr *addressInternal) ToHexString(with0xPrefix bool) string {
-	//TODO
-	return ""
-}
-
-func (addr *addressInternal) ToNormalizedWildcardString() string {
+func (addr *addressInternal) toNormalizedWildcardString() string {
 	//TODO
 	return ""
 }
@@ -696,6 +697,14 @@ func (addr *Address) PrefixIterator() AddressIterator {
 
 func (addr *Address) PrefixBlockIterator() AddressIterator {
 	return addr.prefixIterator(true)
+}
+
+func (addr *Address) ToCanonicalString() string {
+	return addr.init().toCanonicalString()
+}
+
+func (addr *Address) ToNormalizedString() string {
+	return addr.init().toNormalizedString()
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

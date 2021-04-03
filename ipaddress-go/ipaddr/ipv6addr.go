@@ -377,6 +377,16 @@ func (addr *IPv6Address) SequentialBlockIterator() IPv6AddressIterator {
 	return ipv6AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPv6Address) ToCanonicalString() string {
+	//TODO caching when zoned
+	return addr.init().toCanonicalString()
+}
+
+func (addr *IPv6Address) ToNormalizedString() string {
+	//TODO caching when zoned
+	return addr.init().toNormalizedString()
+}
+
 //func (addr *IPv6Address) IsMore(other *IPv6Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}

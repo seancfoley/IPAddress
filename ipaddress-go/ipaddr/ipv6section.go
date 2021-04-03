@@ -432,18 +432,36 @@ var (
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
 	//TODO caching
-	return section.toNormalizedString(ipv6CanonicalParams)
+	return section.toNormalizedZonedString(ipv6CanonicalParams, noZone)
+}
+
+func (section *IPv6AddressSection) toCanonicalString(zone Zone) string {
+	//TODO caching
+	return section.toNormalizedZonedString(ipv6CanonicalParams, zone)
+}
+
+// ToNormalizedString produces a normalized string.
+//
+//If this section has a prefix length, it will be included in the string.
+func (section *IPv6AddressSection) ToNormalizedString() string {
+	//TODO caching
+	return section.toNormalizedZonedString(ipv6normalizedParams, noZone)
+}
+
+func (section *IPv6AddressSection) toNormalizedString(zone Zone) string {
+	//TODO caching
+	return section.toNormalizedZonedString(ipv6normalizedParams, zone)
 }
 
 // This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
 func (section *IPv6AddressSection) ToMixedString() string {
 	//TODO caching
-	return section.toNormalizedString(mixedParams)
+	return section.toNormalizedZonedString(mixedParams, noZone)
 }
 
-func (section *IPv6AddressSection) toNormalizedString(stringOptions IPv6StringOptions) string {
-	return section.toNormalizedZonedString(stringOptions, noZone)
-}
+//func (section *IPv6AddressSection) toNormalizedStringWithOptions(stringOptions IPv6StringOptions) string {
+//	return section.toNormalizedZonedString(stringOptions, noZone)
+//}
 
 func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOptions, zone Zone) string {
 	var stringParams *ipv6StringParams

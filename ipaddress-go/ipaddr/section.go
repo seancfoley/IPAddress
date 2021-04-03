@@ -426,16 +426,21 @@ func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) b
 // we also want toCanonicalWildcardString and ToNormalizedWildcardString
 // the code will need to check the addrtype in the section,
 // and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
+
 func (section *addressSectionInternal) ToCanonicalString() string {
+	return section.toCanonicalString(noZone)
+}
+
+func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.ToCanonicalString()
+		return sect.toCanonicalString(zone)
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	}
-	// should not reach here
-	return ""
+	// zero section
+	return "0"
 }
 
 func (section *addressSectionInternal) ToCanonicalWildcardString() string {
@@ -444,9 +449,39 @@ func (section *addressSectionInternal) ToCanonicalWildcardString() string {
 }
 
 func (section *addressSectionInternal) ToNormalizedString() string {
+	return section.toNormalizedString(noZone)
+}
+
+func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToNormalizedString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.toNormalizedString(zone)
+	} else if sect := section.toMACAddressSection(); sect != nil {
+		return sect.ToNormalizedString()
+	}
+	// zero section
+	return "0"
+
 	//xxx
-	//TODO
-	return ""
+	//gotta scale up on address side to get the right params
+	//is there a better way?
+	//Almost certainly
+	//Do not pass in the params!  Just the zone.
+	//	So only the methods with zone need scaling up, the non-zoned can call the zoned
+	//xxx
+	//xxx how to handle zone?
+	//xxx for one thing, differnt cache is used
+	//xxx at ipv6 level, must call toZonedString, not toString
+	//xxx which means on address side must call:
+	//
+	//public String toNormalizedString(IPv6StringOptions params) {
+	//	return getSection().toNormalizedString(params, getZoneString());
+	//}
+	//otherwise can call these methods here in section
+	//xxx
+	////TODO
+	//return ""
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) string {
@@ -604,19 +639,19 @@ func (section *addressSectionInternal) toAddressSection() *AddressSection {
 }
 
 func (section *addressSectionInternal) toIPAddressSection() *IPAddressSection {
-	return (*IPAddressSection)(unsafe.Pointer(section))
+	return section.toAddressSection().ToIPAddressSection()
 }
 
 func (section *addressSectionInternal) toIPv4AddressSection() *IPv4AddressSection {
-	return (*IPv4AddressSection)(unsafe.Pointer(section))
+	return section.toAddressSection().ToIPv4AddressSection()
 }
 
 func (section *addressSectionInternal) toIPv6AddressSection() *IPv6AddressSection {
-	return (*IPv6AddressSection)(unsafe.Pointer(section))
+	return section.toAddressSection().ToIPv6AddressSection()
 }
 
 func (section *addressSectionInternal) toMACAddressSection() *MACAddressSection {
-	return (*MACAddressSection)(unsafe.Pointer(section))
+	return section.toAddressSection().ToMACAddressSection()
 }
 
 func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {

@@ -246,6 +246,16 @@ func (div *addressDivisionBase) Equals(other AddressGenericDivision) (res bool) 
 	return bigDivValSame(div.GetValue(), other.GetValue())
 }
 
+// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
+func (div *addressDivisionBase) getDefaultTextualRadix() int {
+	// when we support other division types, there may be more possibilities here
+	addrType := div.getAddrType()
+	if addrType.isIPv4() {
+		return IPv4DefaultTextualRadix
+	}
+	return 16
+}
+
 func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
