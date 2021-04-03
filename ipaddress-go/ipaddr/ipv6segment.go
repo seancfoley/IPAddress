@@ -176,6 +176,90 @@ func (seg *IPv6AddressSegment) WithoutPrefixLength() *IPv6AddressSegment {
 	return seg.withoutPrefixLength().ToIPv6AddressSegment()
 }
 
+// Converts this IPv6 address segment into smaller segments,
+// copying them into the given array starting at the given index.
+//
+// If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
+// then it is not copied.
+func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
+	if !seg.IsMultiple() {
+		bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
+		myPrefix := seg.GetDivisionPrefixLength()
+		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
+		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
+		if index >= 0 && index < boundaryIndex {
+			seg := NewIPv4PrefixSegment(IPv4SegInt(seg.highByte()), highPrefixBits)
+			target(index, seg)
+		}
+		index++
+		if index >= 0 && index < boundaryIndex {
+			seg := NewIPv4PrefixSegment(IPv4SegInt(seg.lowByte()), lowPrefixBits)
+			target(index, seg)
+		}
+	} else {
+		seg.visitSplitSegmentsMultiple(target, boundaryIndex, index)
+	}
+}
+
+func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
+	myPrefix := seg.GetDivisionPrefixLength()
+	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
+	if index >= 0 && index < boundaryIndex {
+		highLower := highByte(seg.GetSegmentValue())
+		highUpper := highByte(seg.GetUpperSegmentValue())
+		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
+		if highLower == highUpper {
+			seg := NewIPv4PrefixSegment(IPv4SegInt(highLower), highPrefixBits)
+			target(index, seg)
+		} else {
+			seg := NewIPv4RangePrefixSegment(IPv4SegInt(highLower), IPv4SegInt(highUpper), highPrefixBits)
+			target(index, seg)
+		}
+	}
+	index++
+	if index >= 0 && index < boundaryIndex {
+		lowLower := lowByte(seg.GetSegmentValue())
+		lowUpper := lowByte(seg.GetUpperSegmentValue())
+		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
+		if lowLower == lowUpper {
+			seg := NewIPv4PrefixSegment(IPv4SegInt(lowLower), lowPrefixBits)
+			target(index, seg)
+		} else {
+			seg := NewIPv4RangePrefixSegment(IPv4SegInt(lowLower), IPv4SegInt(lowUpper), lowPrefixBits)
+			target(index, seg)
+		}
+	}
+}
+
+func (seg *IPv6AddressSegment) highByte() SegInt {
+	return highByte(seg.GetSegmentValue())
+}
+
+func (seg *IPv6AddressSegment) lowByte() SegInt {
+	return lowByte(seg.GetSegmentValue())
+}
+
+func highByte(value SegInt) SegInt {
+	return value >> 8
+}
+
+func lowByte(value SegInt) SegInt {
+	return value & 0xff
+}
+
+// Converts this IPv6 address segment into smaller segments,
+// copying them into the given array starting at the given index
+//
+// If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
+// then it is not copied.
+func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, index int) {
+	seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div }, len(segs), index)
+}
+
+func (seg *IPv6AddressSegment) getSplitSegments(segs []*AddressDivision, index int) {
+	seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
+}
+
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }

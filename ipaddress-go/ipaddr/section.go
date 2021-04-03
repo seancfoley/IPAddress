@@ -8,7 +8,7 @@ import (
 
 var zeroSection = createSection(zeroDivs, nil, zeroType, 0)
 
-func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8) *AddressSection {
+func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
 	return &AddressSection{
 		addressSectionInternal{
 			addressDivisionGroupingInternal{
@@ -24,13 +24,13 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	}
 }
 
-func createMultipleSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8, isMultiple bool) *AddressSection {
+func createMultipleSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType, startIndex)
 	result.isMultiple = isMultiple
 	return result
 }
 
-func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex uint8) *AddressSection {
+func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
 	result := createSection(segments, prefixLength, addrType, startIndex)
 	result.init() // assigns isMultiple
 	return result
@@ -192,7 +192,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	if newPrefLen != nil && index != 0 {
 		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)
 	}
-	newStartIndex := section.addressSegmentIndex + uint8(index)
+	newStartIndex := section.addressSegmentIndex + int8(index)
 	addrType := section.getAddrType()
 	if !section.IsMultiple() {
 		return createSection(segs, newPrefLen, addrType, newStartIndex)
@@ -434,6 +434,7 @@ func (section *addressSectionInternal) ToCanonicalString() string {
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	}
+	// should not reach here
 	return ""
 }
 
@@ -443,6 +444,7 @@ func (section *addressSectionInternal) ToCanonicalWildcardString() string {
 }
 
 func (section *addressSectionInternal) ToNormalizedString() string {
+	//xxx
 	//TODO
 	return ""
 }

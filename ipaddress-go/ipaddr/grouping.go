@@ -14,7 +14,7 @@ type addressDivisionGroupingInternal struct {
 	addressDivisionGroupingBase
 
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
-	addressSegmentIndex uint8
+	addressSegmentIndex int8
 }
 
 func createSegmentArray(length int) []*AddressDivision {

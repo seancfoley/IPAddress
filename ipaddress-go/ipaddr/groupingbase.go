@@ -337,6 +337,9 @@ type valueCache struct {
 	stringCache stringCache
 
 	sectionCache groupingCache
+
+	defaultMixedAddressSection *IPv6v4MixedAddressSection
+	embeddedIPv4Section        *IPv4AddressSection
 }
 
 type stringCache struct {

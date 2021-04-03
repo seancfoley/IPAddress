@@ -26,6 +26,14 @@ const (
 	ExtendedUniqueIdentifier64SegmentCount = 8
 
 	MACSegmentMaxChars = 2
+
+	MACDashSegmentSeparator   = dash
+	MACColonSegmentSeparator  = colon
+	MacSpaceSegmentSeparator  = space
+	MacDottedSegmentSeparator = dot
+
+	MacDashedSegmentRangeSeparator           = '|'
+	MacDashedSegmentRangeSeparatorStr string = string(MacDashedSegmentRangeSeparator)
 )
 
 func NewMACAddress(section *MACAddressSection) *MACAddress {

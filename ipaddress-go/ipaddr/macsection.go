@@ -124,12 +124,27 @@ func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 	return macSectionIterator{section.prefixIterator(true)}
 }
 
+var (
+	canonicalWildcards = new(WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
+
+	macHexParams         = NewMACStringOptionsBuilder().SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	macHexPrefixedParams = NewMACStringOptionsBuilder().SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	macNormalizedParams  = NewMACStringOptionsBuilder().SetExpandedSegments(true).ToOptions()
+	macCanonicalParams   = NewMACStringOptionsBuilder().SetSeparator(MACDashSegmentSeparator).SetExpandedSegments(true).SetWildcards(canonicalWildcards).ToOptions()
+	macCompressedParams  = NewMACStringOptionsBuilder().ToOptions()
+	dottedParams         = NewMACStringOptionsBuilder().SetSeparator(MacDottedSegmentSeparator).SetExpandedSegments(true).ToOptions()
+	spaceDelimitedParams = NewMACStringOptionsBuilder().SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
+)
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *MACAddressSection) ToCanonicalString() string {
 	//TODO caching
 	//
-	return ""
-	//return section.toNormalizedString(canonicalParams)
+	return section.toNormalizedString(macCanonicalParams)
+}
+
+func (section *MACAddressSection) toNormalizedString(stringOptions StringOptions) string {
+	return toNormalizedMACString(stringOptions, section)
 }

@@ -11,6 +11,7 @@ type IPVersion string
 
 const (
 	PrefixLenSeparator = '/'
+	BinaryStrPrefix    = "0b"
 
 	INDETERMINATE_VERSION IPVersion = ""
 	IPv4                  IPVersion = "IPv4"

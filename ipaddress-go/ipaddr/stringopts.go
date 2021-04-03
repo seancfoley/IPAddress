@@ -11,7 +11,7 @@ type Wildcards interface {
 }
 
 type wildcards struct {
-	rangeSeparator, wildcard, singleWildcard string //rangeSeparator cannot be nil, the other two can
+	rangeSeparator, wildcard, singleWildcard string //rangeSeparator cannot be empty, the other two can
 }
 
 func (wildcards *wildcards) GetRangeSeparator() string {
@@ -37,6 +37,16 @@ func (wildcards *WildcardsBuilder) SetRangeSeparator(str string) *WildcardsBuild
 	return wildcards
 }
 
+func (wildcards *WildcardsBuilder) SetWildcard(str string) *WildcardsBuilder {
+	wildcards.wildcard = str
+	return wildcards
+}
+
+func (wildcards *WildcardsBuilder) SetSingleWildcard(str string) *WildcardsBuilder {
+	wildcards.singleWildcard = str
+	return wildcards
+}
+
 func (wildcards *WildcardsBuilder) GetWildcard(str string) *WildcardsBuilder {
 	wildcards.wildcard = str
 	return wildcards
@@ -49,6 +59,10 @@ func (wildcards *WildcardsBuilder) GetSingleWildcard(str string) *WildcardsBuild
 
 func (wildcards *WildcardsBuilder) ToWildcards() Wildcards {
 	res := wildcards.wildcards
+	if res.rangeSeparator == "" {
+		//rangeSeparator cannot be empty
+		res.rangeSeparator = RangeSeparatorStr
+	}
 	return &res
 }
 
@@ -186,7 +200,7 @@ func (w *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
 	return w
 }
 
-// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
+// separates the divisions of the address, typically ':' or '.'
 func (w *StringOptionsBuilder) SetSeparator(separator byte) *StringOptionsBuilder {
 	w.separator = separator
 	return w
@@ -204,6 +218,12 @@ func (w *StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *StringOptions
 
 func (w *StringOptionsBuilder) ToOptions() StringOptions {
 	res := w.stringOptions
+	if res.base == 0 {
+		res.base = 16
+	}
+	if res.separator == 0 {
+		res.separator = ' '
+	}
 	return &res
 }
 
@@ -248,7 +268,7 @@ func (w *WildcardOptionsBuilder) SetWildcards(wildcards Wildcards) *WildcardOpti
 	return w
 }
 
-func (w *WildcardOptionsBuilder) ToWildcardOptions() WildcardOptions {
+func (w *WildcardOptionsBuilder) ToOptions() WildcardOptions {
 	cpy := w.wildcardOptions
 	if w.wildcards == nil {
 		w.wildcards = DefaultWildcards
@@ -424,8 +444,11 @@ type ipv6StringOptions struct {
 	ipStringOptions
 	ipv4Opts IPStringOptions
 
-	//can be null, which means no compression
+	//can be nil, which means no compression
 	compressOptions CompressOptions
+
+	cachedIPv6Addr      *ipv6StringParams
+	cachedMixedIPv6Addr *ipv6v4MixedParams
 }
 
 func (opts *ipv6StringOptions) isCacheable() bool {
@@ -544,8 +567,7 @@ func (builder *IPv6StringOptionsBuilder) SetSplitDigits(splitDigits bool) *IPv6S
 func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 	if builder.makeMixed {
 		if builder.ops.ipv4Opts == nil {
-			ipBuilder := IPStringOptionsBuilder{}
-			builder.ops.ipv4Opts = ipBuilder.SetExpandedSegments(builder.expandSegments).
+			builder.ops.ipv4Opts = NewIPv4StringOptionsBuilder().SetExpandedSegments(builder.expandSegments).
 				SetWildcardOption(builder.ipStringOptions.wildcardOption).
 				SetWildcards(builder.wildcards).ToOptions()
 		}
@@ -634,3 +656,27 @@ func (c *compressOptions) CompressSingle() bool {
 }
 
 var _ CompressOptions = &compressOptions{}
+
+type CompressOptionsBuilder struct {
+	compressOptions
+}
+
+func (builder *CompressOptionsBuilder) SetCompressSingle(compressSingle bool) *CompressOptionsBuilder {
+	builder.compressSingle = compressSingle
+	return builder
+}
+
+func (builder *CompressOptionsBuilder) SetRangeSelection(rangeSelection CompressionChoiceOptions) *CompressOptionsBuilder {
+	builder.rangeSelection = rangeSelection
+	return builder
+}
+
+func (builder *CompressOptionsBuilder) SetMixedOptions(compressMixedOptions MixedCompressionOptions) *CompressOptionsBuilder {
+	builder.compressMixedOptions = compressMixedOptions
+	return builder
+}
+
+func (builder *CompressOptionsBuilder) ToOptions() CompressOptions {
+	res := builder.compressOptions
+	return &res
+}

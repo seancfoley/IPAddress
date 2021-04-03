@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func createIPv6Section(segments []*AddressDivision, startIndex int) *IPv6AddressSection {
+func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6AddressSection {
 	return &IPv6AddressSection{
 		ipAddressSectionInternal{
 			addressSectionInternal{
@@ -16,7 +16,7 @@ func createIPv6Section(segments []*AddressDivision, startIndex int) *IPv6Address
 						cache:     &valueCache{},
 						addrType:  ipv6Type,
 					},
-					addressSegmentIndex: uint8(startIndex),
+					addressSegmentIndex: startIndex,
 				},
 			},
 		},
@@ -33,7 +33,7 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 		err = &addressValueException{val: startIndex + segsLen, key: "ipaddress.error.exceeds.size"}
 		return
 	}
-	res = createIPv6Section(segments, startIndex)
+	res = createIPv6Section(segments, int8(startIndex))
 	if err = res.init(); err != nil {
 		res = nil
 		return
@@ -395,48 +395,272 @@ func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
+var (
+	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS_OR_HOST).ToOptions()
+	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MIXED_PREFERRED).ToOptions()
+	compressAllNoSingles   = new(CompressOptionsBuilder).SetRangeSelection(ZEROS_OR_HOST).ToOptions()
+	compressHostPreferred  = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(HOST_PREFERRED).ToOptions()
+	compressZeros          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS).ToOptions()
+	compressZerosNoSingles = new(CompressOptionsBuilder).SetRangeSelection(ZEROS).ToOptions()
+
+	uncWildcards = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_NETWORK_ONLY).SetWildcards(
+		new(WildcardsBuilder).SetRangeSeparator(IPv6UncRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()).ToOptions()
+	base85Wildcards = new(WildcardsBuilder).SetRangeSeparator(AlternativeRangeSeparatorStr).ToWildcards()
+
+	mixedParams         = NewIPv6StringOptionsBuilder().SetMakeMixed(true).SetCompressOptions(compressMixed).ToOptions()
+	ipv6FullParams      = NewIPv6StringOptionsBuilder().SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
+	ipv6CanonicalParams = NewIPv6StringOptionsBuilder().SetCompressOptions(compressAllNoSingles).ToOptions()
+	uncParams           = NewIPv6StringOptionsBuilder().SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
+				SetAddressSuffix(IPv6UncSuffix).SetWildcardOptions(uncWildcards).ToOptions()
+	iov6CompressedParams         = NewIPv6StringOptionsBuilder().SetCompressOptions(compressAll).ToOptions()
+	ipv6normalizedParams         = NewIPv6StringOptionsBuilder().ToOptions()
+	canonicalWildcardParams      = NewIPv6StringOptionsBuilder().SetWildcardOptions(allWildcards).SetCompressOptions(compressZerosNoSingles).ToOptions()
+	ipv6NormalizedWildcardParams = NewIPv6StringOptionsBuilder().SetWildcardOptions(allWildcards).ToOptions()    //no compression
+	ipv6SqlWildcardParams        = NewIPv6StringOptionsBuilder().SetWildcardOptions(allSQLWildcards).ToOptions() //no compression
+	wildcardCompressedParams     = NewIPv6StringOptionsBuilder().SetWildcardOptions(allWildcards).SetCompressOptions(compressZeros).ToOptions()
+	networkPrefixLengthParams    = NewIPv6StringOptionsBuilder().SetCompressOptions(compressHostPreferred).ToOptions()
+	ipv6ReverseDNSParams         = NewIPv6StringOptionsBuilder().SetReverse(true).SetAddressSuffix(IPv6ReverseDnsSuffix).
+					SetSplitDigits(true).SetExpandedSegments(true).SetSeparator('.').ToOptions()
+	base85Params = new(IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
+			SetWildcards(base85Wildcards).SetZoneSeparator(IPv6AlternativeZoneSeparator).ToOptions()
+	ipv6SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryStrPrefix).
+					SetExpandedSegments(true).ToOptions()
+)
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
 	//TODO caching
-	//return section.toNormalizedString(ipv6CanonicalParams)
-	return ""
+	return section.toNormalizedString(ipv6CanonicalParams)
+}
+
+// This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
+func (section *IPv6AddressSection) ToMixedString() string {
+	//TODO caching
+	return section.toNormalizedString(mixedParams)
 }
 
 func (section *IPv6AddressSection) toNormalizedString(stringOptions IPv6StringOptions) string {
 	return section.toNormalizedZonedString(stringOptions, noZone)
 }
 
-func (section *IPv6AddressSection) toNormalizedZonedString(stringOptions IPv6StringOptions, zone Zone) string {
-	//IPv6StringParams stringParams;
-	//if(options.isCacheable()) { // the isCacheable call is key and determines if the IPv6StringParams can be shared
-	//	IPAddressStringWriter<?> cachedParams = (IPAddressStringWriter<?>) getCachedv6Params(options);
-	//	if(cachedParams == null) {
-	//		stringParams = options.from(this);
-	//		if(options.makeMixed()) {
-	//			IPv6v4MixedParams mixedParams = new IPv6v4MixedParams(stringParams, options.ipv4Opts);
-	//			setCachedv6Params(options, mixedParams);
-	//			return toNormalizedMixedString(mixedParams, zone);
-	//		} else {
-	//			setCachedv6Params(options, stringParams);
-	//		}
-	//	} else {
-	//		if(cachedParams instanceof IPv6v4MixedParams) {
-	//			return toNormalizedMixedString((IPv6v4MixedParams) cachedParams, zone);
-	//		}
-	//		stringParams = (IPv6StringParams) cachedParams;
-	//	}
-	//} else {
-	//	//no caching is possible due to the compress options
-	//	stringParams = options.from(this);
-	//	if(options.makeMixed() && stringParams.nextUncompressedIndex <= IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT - addressSegmentIndex) {//the mixed section is not compressed
-	//		return toNormalizedMixedString(new IPv6v4MixedParams(stringParams, options.ipv4Opts), zone);
-	//	}
+func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOptions, zone Zone) string {
+	var stringParams *ipv6StringParams
+	if options.isCacheable() { // the isCacheable call is key and determines if the IPv6StringParams can be shared
+		opts, hasCache := options.(*ipv6StringOptions)
+		if options.makeMixed() {
+			var mixedParams *ipv6v4MixedParams
+			if hasCache {
+				mixedParams = opts.cachedMixedIPv6Addr
+			}
+			if mixedParams == nil {
+				stringParams = options.from(section)
+				mixedParams := &ipv6v4MixedParams{
+					ipv6Params: stringParams,
+					ipv4Params: toIPParams(options.GetIPv4Opts()),
+				}
+				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedMixedIPv6Addr))
+				atomic.StorePointer(dataLoc, unsafe.Pointer(mixedParams))
+			}
+			return section.toNormalizedMixedString(mixedParams, zone)
+		}
+		if hasCache {
+			stringParams = opts.cachedIPv6Addr
+		}
+		if stringParams == nil {
+			stringParams = options.from(section)
+			if hasCache {
+				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
+				atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
+			}
+		}
+	} else {
+		//no caching is possible due to the compress options
+		stringParams = options.from(section)
+		if options.makeMixed() && stringParams.nextUncompressedIndex <= int(IPv6MixedOriginalSegmentCount-section.addressSegmentIndex) { //the mixed section is not compressed
+			mixedParams := &ipv6v4MixedParams{
+				ipv6Params: stringParams,
+				ipv4Params: toIPParams(options.GetIPv4Opts()),
+			}
+			return section.toNormalizedMixedString(mixedParams, zone)
+		}
+	}
+	return stringParams.toZonedString(section, zone)
+}
+
+func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4MixedParams, zone Zone) string {
+	mixed := section.GetMixedAddressSection()
+	result := mixedParams.toZonedString(mixed, zone)
+	return result
+}
+
+func (section *IPv6AddressSection) GetMixedAddressSection() *IPv6v4MixedAddressSection {
+	cache := section.cache
+	var sect *IPv6v4MixedAddressSection
+	if cache != nil {
+		sect = cache.defaultMixedAddressSection
+	}
+	if sect == nil {
+		sect = newIPv6v4MixedSection(
+			section.createNonMixedSection(),
+			section.GetEmbeddedIPv4AddressSection())
+		if cache != nil {
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.defaultMixedAddressSection))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(sect))
+		}
+	}
+	return sect
+}
+
+// GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
+func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex int) *IPv4AddressSection {
+	addressSegmentIndex := section.addressSegmentIndex
+	if startIndex == (IPv6MixedOriginalSegmentCount-int(addressSegmentIndex))<<1 && endIndex == (section.GetSegmentCount()<<1) {
+		return section.GetEmbeddedIPv4AddressSection()
+	}
+	segments := make([]*AddressDivision, endIndex-startIndex)
+	i := startIndex
+	j := 0
+	bytesPerSegment := section.GetBytesPerSegment()
+	if i%bytesPerSegment == 1 {
+		ipv6Segment := section.GetSegment(i >> 1)
+		i++
+		ipv6Segment.getSplitSegments(segments, j-1)
+		j++
+	}
+	for ; i < endIndex; i, j = i+bytesPerSegment, j+bytesPerSegment {
+		ipv6Segment := section.GetSegment(i >> 1)
+		ipv6Segment.getSplitSegments(segments, j)
+	}
+	res := createIPv4Section(segments)
+	res.init()
+	return res
+}
+
+// Gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
+// which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
+
+func (section *IPv6AddressSection) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
+	cache := section.cache
+	var sect *IPv4AddressSection
+	if cache != nil {
+		sect = cache.embeddedIPv4Section
+	}
+	if sect == nil {
+		nonMixedCount := 0
+		addressSegmentIndex := section.addressSegmentIndex
+		if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
+			nonMixedCount = count
+		}
+		segCount := section.GetSegmentCount()
+		mixedCount := segCount - nonMixedCount
+		lastIndex := segCount - 1
+		var mixed []*AddressDivision
+		if mixedCount == 0 {
+			mixed = []*AddressDivision{}
+		} else if mixedCount == 1 {
+			mixed = make([]*AddressDivision, section.GetBytesPerSegment())
+			last := section.GetSegment(lastIndex)
+			last.getSplitSegments(mixed, 0)
+		} else {
+			bytesPerSeg := section.GetBytesPerSegment()
+			mixed = make([]*AddressDivision, bytesPerSeg<<1)
+			low := section.GetSegment(lastIndex)
+			high := section.GetSegment(lastIndex - 1)
+			high.getSplitSegments(mixed, 0)
+			low.getSplitSegments(mixed, bytesPerSeg)
+		}
+		sect = createIPv4Section(mixed)
+		sect.init()
+		if cache != nil {
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.embeddedIPv4Section))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(sect))
+		}
+	}
+	return sect
+}
+
+func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
+	nonMixedCount := 0
+	addressSegmentIndex := section.addressSegmentIndex
+	if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
+		nonMixedCount = count
+	}
+	mixedCount := section.GetSegmentCount() - nonMixedCount
+	if mixedCount <= 0 {
+		return section
+	}
+	nonMixed := make([]*AddressDivision, nonMixedCount)
+	section.copySubSegmentsToSlice(0, nonMixedCount, nonMixed)
+	res := createIPv6Section(nonMixed, addressSegmentIndex)
+	res.init()
+	return res
+}
+
+func createMixedAddressSection(divisions []*AddressDivision) *IPv6v4MixedAddressSection {
+	return &IPv6v4MixedAddressSection{
+		//ipAddressSectionInternal{
+		//addressSectionInternal{
+		addressDivisionGroupingInternal: addressDivisionGroupingInternal{
+			addressDivisionGroupingBase: addressDivisionGroupingBase{
+				divisions: standardDivArray{divisions},
+				//addrType:  ipv6Type,
+				cache: &valueCache{},
+			},
+		},
+		//},
+		//},
+	}
+}
+
+//private static IPAddressDivision[] createSegments
+func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressSection {
+	//This cannot be public so we can be sure that the prefix lengths amongst the segments jive
+	// also set isMultiple, prefixLength,
+	//This is the first attempt to create a division grouping that has no address type.
+	// So what about down-scaling?  Do we allow it?  No.  Unless we add another address type.  But then we'd need to add a ToMixedSection()
+	// It just seems pointless.
+	ipv6Len := ipv6Section.GetSegmentCount()
+	ipv4Len := ipv4Section.GetSegmentCount()
+	//if(ipv6Len + ((ipv4Len + 1) >> 1) + ipv6Section.addressSegmentIndex > IPv6SegmentCount) {
+	//	throw new AddressValueException(ipv6Section, ipv4Section);
 	//}
-	//return stringParams.toZonedString(this, zone);
-	//return toNormalizedString(stringOptions, section)
-	return ""
+	//func (section *addressSectionInternal) copySubSegmentsToSlice(start, end int, divs []*AddressDivision) (count int) {
+	allSegs := make([]*AddressDivision, ipv6Len+ipv4Len)
+	ipv6Section.copySubSegmentsToSlice(0, ipv6Len, allSegs)
+	ipv4Section.copySubSegmentsToSlice(0, ipv4Len, allSegs[ipv6Len:])
+	section := createMixedAddressSection(allSegs)
+	section.ipv6Section = ipv6Section
+	section.ipv4Section = ipv4Section
+	section.isMultiple = ipv6Section.IsMultiple() || ipv4Section.IsMultiple()
+	if ipv6Section.IsPrefixed() {
+		section.prefixLength = ipv6Section.GetPrefixLength()
+	} else if ipv4Section.IsPrefixed() {
+		section.prefixLength = cache(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLength())
+	}
+	return section
+}
+
+//TODO this can wrap AddressDivisionGrouping I guess
+// but would need to override a few key methods, or maybe we can just assign them right away?
+// Or maybe we do not even have to worry about them
+// Only worry about isPrefixBlock, but even that I do not really need
+// It may very well be that this baby needs no methods whatsoever!
+
+type IPv6v4MixedAddressSection struct {
+	addressDivisionGroupingInternal
+
+	ipv6Section *IPv6AddressSection
+	ipv4Section *IPv4AddressSection
+}
+
+func (sect *IPv6v4MixedAddressSection) GetGenericIPDivision(index int) IPAddressGenericDivision {
+	ipv6Section := sect.ipv6Section
+	if index < ipv6Section.GetSegmentCount() {
+		return ipv6Section.GetSegment(index)
+	}
+	return sect.ipv4Section.GetSegment(index)
 }
 
 type Range struct {

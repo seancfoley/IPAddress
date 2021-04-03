@@ -602,22 +602,25 @@ func NewMACAddressParseData(str string) *MACAddressParseData {
 	return &MACAddressParseData{AddressParseData: AddressParseData{str: str}}
 }
 
-const (
-	MACDashSegmentSeparator  = '-'
-	MACColonSegmentSeparator = ':'
-)
-
 type MACFormat *byte
 
+const (
+	dash  = '-'
+	colon = ':'
+	space = ' '
+	dot   = '.'
+)
+
 var (
-	dash            byte      = MACDashSegmentSeparator
-	colon           byte      = MACColonSegmentSeparator
-	space           byte      = ' '
-	dot             byte      = '.'
-	DASHED          MACFormat = &dash
-	COLON_DELIMITED MACFormat = &colon
-	DOTTED          MACFormat = &dot
-	SPACE_DELIMITED MACFormat = &space
+	dashedByte byte = dash
+	colonByte  byte = colon
+	spaceByte  byte = space
+	dotByte    byte = dot
+
+	DASHED          MACFormat = &dashedByte //TODO more constants to uncapitalize
+	COLON_DELIMITED MACFormat = &colonByte
+	DOTTED          MACFormat = &dotByte
+	SPACE_DELIMITED MACFormat = &spaceByte
 	UNKNOWN_FORMAT  MACFormat
 )
 

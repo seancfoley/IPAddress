@@ -163,14 +163,14 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 	twoSec := two.ToAddressSection()
 	if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
 		twoIPv6 := twoSec.ToIPv6AddressSection()
-		result = int(oneIPv6.addressSegmentIndex) - int(twoIPv6.addressSegmentIndex)
+		result = int(oneIPv6.addressSegmentIndex - twoIPv6.addressSegmentIndex)
 		if result != 0 {
 			return result
 		}
 	}
 	if oneMAC := oneSec.ToMACAddressSection(); oneMAC != nil {
 		twoMAC := twoSec.ToMACAddressSection()
-		result = int(oneMAC.addressSegmentIndex) - int(twoMAC.addressSegmentIndex)
+		result = int(oneMAC.addressSegmentIndex - twoMAC.addressSegmentIndex)
 		if result != 0 {
 			return result
 		}
