@@ -171,25 +171,42 @@ var (
 )
 
 func (seg *addressSegmentInternal) ToNormalizedString() string {
-	radix := seg.getDefaultTextualRadix()
-	var opts IPStringOptions
-	switch radix {
-	case 10:
-		opts = decimalParamsSeg
-	default:
-		opts = macCompressedParams
+	stringer := func() string {
+		switch seg.getDefaultTextualRadix() {
+		case 10:
+			return seg.toString(decimalParamsSeg)
+		default:
+			return seg.toString(macCompressedParams)
+		}
 	}
-	return seg.toString(opts)
+	if seg.divisionValues != nil {
+		if cache := seg.getCache(); cache != nil {
+			return cacheStr(&cache.cachedNormalizedString, stringer)
+		}
+	}
+	return stringer()
 }
 
 func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
-	var opts IPStringOptions
+	var stringer func() string
 	if with0xPrefix {
-		opts = hexParamsSeg
+		stringer = func() string {
+			return seg.toString(hexParamsSeg)
+		}
 	} else {
-		opts = macCompressedParams
+		stringer = func() string {
+			return seg.toString(macCompressedParams)
+		}
 	}
-	return seg.toString(opts)
+	if seg.divisionValues != nil {
+		if cache := seg.getCache(); cache != nil {
+			if with0xPrefix {
+				return cacheStr(&cache.cached0xHexString, stringer)
+			}
+			return cacheStr(&cache.cachedHexString, stringer)
+		}
+	}
+	return stringer()
 }
 
 type AddressSegment struct {

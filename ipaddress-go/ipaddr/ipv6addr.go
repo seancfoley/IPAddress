@@ -45,16 +45,11 @@ func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
-	return createAddress(section.ToAddressSection(), zone).ToIPv6Address()
-	//return &IPv6Address{
-	//	ipAddressInternal{
-	//		addressInternal{
-	//			section: section.ToAddressSection(),
-	//			zone:    zone,
-	//			cache:   &addressCache{},
-	//		},
-	//	},
-	//}
+	result := createAddress(section.ToAddressSection(), zone).ToIPv6Address()
+	if zone != noZone {
+		result.cache.stringCache = &stringCache{}
+	}
+	return result
 }
 
 func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueException) {
@@ -142,12 +137,6 @@ func (addr *IPv6Address) GetBitsPerSegment() BitCount {
 
 func (addr *IPv6Address) GetBytesPerSegment() int {
 	return IPv6BytesPerSegment
-}
-
-func (addr IPv6Address) String() string {
-	address := addr.init()
-	//TODO a different default string
-	return address.addressInternal.String()
 }
 
 func (addr *IPv6Address) init() *IPv6Address {
@@ -377,13 +366,15 @@ func (addr *IPv6Address) SequentialBlockIterator() IPv6AddressIterator {
 	return ipv6AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr IPv6Address) String() string {
+	return addr.init().addressInternal.String()
+}
+
 func (addr *IPv6Address) ToCanonicalString() string {
-	//TODO caching when zoned
 	return addr.init().toCanonicalString()
 }
 
 func (addr *IPv6Address) ToNormalizedString() string {
-	//TODO caching when zoned
 	return addr.init().toNormalizedString()
 }
 

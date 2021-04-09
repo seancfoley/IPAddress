@@ -13,7 +13,7 @@ func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddress
 	} else {
 		p = getPrivateParams(params)
 	}
-	return &IPAddressString{str: str, params: p, ipStringCache: new(ipStringCache)}
+	return &IPAddressString{str: str, params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
 
 var defaultIPAddrParameters = &ipAddressStringParameters{}
@@ -25,18 +25,18 @@ type addrData struct {
 	validateException AddressStringException
 }
 
-type ipStringCache struct {
+type ipAddrStringCache struct {
 	*addrData
 }
 
 type IPAddressString struct {
 	str    string
 	params *ipAddressStringParameters // when nil, default parameters is used, never access this field directly
-	*ipStringCache
+	*ipAddrStringCache
 }
 
 func (ipAddrStr *IPAddressString) init() *IPAddressString {
-	if ipAddrStr.ipStringCache == nil {
+	if ipAddrStr.ipAddrStringCache == nil {
 		return zeroIPAddressString
 	}
 	return ipAddrStr
@@ -64,7 +64,7 @@ func (addrStr *IPAddressString) ToNormalizedString() string {
 // an IPv4 address, an IPv6 address, the address representing all addresses of all types, or an empty string.
 // If this method returns false, and you want more details, call validate() and examine the thrown exception.
 func (addrStr *IPAddressString) IsValid() bool {
-	return addrStr.ipStringCache == nil /* zero address is valid */ ||
+	return addrStr.ipAddrStringCache == nil /* zero address is valid */ ||
 		!addrStr.getAddressProvider().isInvalid()
 }
 

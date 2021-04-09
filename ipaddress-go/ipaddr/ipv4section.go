@@ -14,7 +14,11 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 					addressDivisionGroupingBase: addressDivisionGroupingBase{
 						divisions: standardDivArray{segments},
 						addrType:  ipv4Type,
-						cache:     &valueCache{},
+						cache: &valueCache{
+							stringCache: stringCache{
+								ipxStringCache: &ipxStringCache{},
+							},
+						},
 					},
 				},
 			},
@@ -348,11 +352,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToCanonicalString() string {
-	//TODO caching
-	return section.toNormalizedString(ipv4CanonicalParams)
+	return cacheStr(&section.getStringCache().canonicalString,
+		func() string { return section.toNormalizedString(ipv4CanonicalParams) })
 }
 
-// ToCanonicalString produces a canonical string.
+// ToNormalizedString produces a normalized string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToNormalizedString() string {
@@ -360,8 +364,7 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 }
 
 //TODO NEXT
-// 3. figure out the caching/locking pattern - cacheStr for divs is a model
-// 4. do the rest of the string methods
+// 4. do the rest of the string methods - divs are done.  addresses and sections
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)

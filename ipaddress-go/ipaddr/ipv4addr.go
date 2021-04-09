@@ -107,12 +107,6 @@ func (addr *IPv4Address) GetBytesPerSegment() int {
 	return IPv4BytesPerSegment
 }
 
-func (addr IPv4Address) String() string {
-	address := addr.init()
-	//TODO a different default string
-	return address.ipAddressInternal.String()
-}
-
 func (addr *IPv4Address) init() *IPv4Address {
 	if addr.section == nil {
 		return zeroIPv4
@@ -335,6 +329,10 @@ func (addr *IPv4Address) BlockIterator(segmentCount int) IPv4AddrIterator {
 
 func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
 	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
+}
+
+func (addr IPv4Address) String() string {
+	return addr.init().ipAddressInternal.String()
 }
 
 func (addr *IPv4Address) ToCanonicalString() string {

@@ -13,8 +13,13 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 				addressDivisionGroupingInternal{
 					addressDivisionGroupingBase: addressDivisionGroupingBase{
 						divisions: standardDivArray{segments},
-						cache:     &valueCache{},
-						addrType:  ipv6Type,
+						cache: &valueCache{
+							stringCache: stringCache{
+								ipv6StringCache: &ipv6StringCache{},
+								ipxStringCache:  &ipxStringCache{},
+							},
+						},
+						addrType: ipv6Type,
 					},
 					addressSegmentIndex: startIndex,
 				},
@@ -431,12 +436,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
-	//TODO caching
-	return section.toNormalizedZonedString(ipv6CanonicalParams, noZone)
+	return cacheStr(&section.getStringCache().canonicalString, func() string { return section.toNormalizedZonedString(ipv6CanonicalParams, noZone) })
+
 }
 
 func (section *IPv6AddressSection) toCanonicalString(zone Zone) string {
-	//TODO caching
 	return section.toNormalizedZonedString(ipv6CanonicalParams, zone)
 }
 
@@ -444,12 +448,10 @@ func (section *IPv6AddressSection) toCanonicalString(zone Zone) string {
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToNormalizedString() string {
-	//TODO caching
-	return section.toNormalizedZonedString(ipv6normalizedParams, noZone)
+	return cacheStr(&section.getStringCache().normalizedString, func() string { return section.toNormalizedZonedString(ipv6normalizedParams, noZone) })
 }
 
 func (section *IPv6AddressSection) toNormalizedString(zone Zone) string {
-	//TODO caching
 	return section.toNormalizedZonedString(ipv6normalizedParams, zone)
 }
 

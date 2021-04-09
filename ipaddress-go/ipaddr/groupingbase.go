@@ -342,9 +342,46 @@ type valueCache struct {
 	embeddedIPv4Section        *IPv4AddressSection
 }
 
-type stringCache struct {
-	string1, string2 string //TODO the various strings will go here
+type ipxStringCache struct {
+	normalizedWildcardString,
+	fullString,
+	sqlWildcardString,
+
+	reverseDNSString,
+
+	octalStringPrefixed,
+	octalString,
+	binaryString,
+
+	segmentedBinaryString *string
 }
+
+type ipv6StringCache struct {
+	compressedString,
+	mixedString,
+	compressedWildcardString,
+	canonicalWildcardString,
+	networkPrefixLengthString,
+	base85String *string
+}
+
+type macxStringCache struct {
+	compressedString,
+	dottedString,
+	spaceDelimitedString *string
+}
+
+type stringCache struct {
+	canonicalString, normalizedString, hexString, hexStringPrefixed *string
+
+	*ipv6StringCache
+
+	*ipxStringCache
+
+	*macxStringCache
+}
+
+var zeroStringCache stringCache
 
 type groupingCache struct {
 	lower, upper *AddressSection

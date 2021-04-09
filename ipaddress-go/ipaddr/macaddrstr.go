@@ -14,18 +14,18 @@ type macAddrData struct {
 	validateException AddressStringException
 }
 
-type macStringCache struct {
+type macAddrStringCache struct {
 	*macAddrData
 }
 
 type MACAddressString struct {
 	str    string
 	params *macAddressStringParameters // when nil, defaultParameters is used
-	*macStringCache
+	*macAddrStringCache
 }
 
 func (addrStr *MACAddressString) init() *MACAddressString {
-	if addrStr.macStringCache == nil {
+	if addrStr.macAddrStringCache == nil {
 		return zeroMACAddressString
 	}
 	return addrStr
@@ -74,7 +74,7 @@ func (addrStr *MACAddressString) ToHostAddress() (*Address, error) {
 }
 
 func (addrStr *MACAddressString) IsValid() bool {
-	return addrStr.macStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
+	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
 }
 
 // Two MACAddressString objects are equal if they represent the same set of addresses.

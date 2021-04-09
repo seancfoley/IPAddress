@@ -152,11 +152,16 @@ func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase b
 }
 
 func (seg *ipAddressSegmentInternal) getStringAsLower() string {
-	return seg.cacheStr(false, seg.getDefaultLowerString)
+	if seg.divisionValues != nil {
+		if cache := seg.getCache(); cache != nil {
+			return cacheStr(&cache.cachedString, seg.getDefaultLowerString)
+		}
+	}
+	return seg.getDefaultLowerString()
 }
 
 func (seg *ipAddressSegmentInternal) GetString() string {
-	return seg.cacheStr(false, func() string {
+	stringer := func() string {
 		if !seg.IsMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
 			return seg.getDefaultLowerString()
 		} else if seg.IsFullRange() {
@@ -167,18 +172,30 @@ func (seg *ipAddressSegmentInternal) GetString() string {
 			upperValue &= seg.GetSegmentNetworkMask(*seg.getDivisionPrefixLength())
 		}
 		return seg.getDefaultRangeStringVals(seg.getDivisionValue(), DivInt(upperValue), seg.getDefaultTextualRadix())
-	})
+	}
+	if seg.divisionValues != nil {
+		if cache := seg.getCache(); cache != nil {
+			return cacheStr(&cache.cachedString, stringer)
+		}
+	}
+	return stringer()
 }
 
 func (seg *ipAddressSegmentInternal) GetWildcardString() string {
-	return seg.cacheStr(true, func() string {
+	stringer := func() string {
 		if !seg.IsPrefixed() || !seg.IsMultiple() {
 			return seg.GetString()
 		} else if seg.IsFullRange() {
 			return seg.getDefaultSegmentWildcardString()
 		}
 		return seg.getDefaultRangeString()
-	})
+	}
+	if seg.divisionValues != nil {
+		if cache := seg.getCache(); cache != nil {
+			return cacheStr(&cache.cachedWildcardString, stringer)
+		}
+	}
+	return stringer()
 }
 
 func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(bits BitCount) SegInt {

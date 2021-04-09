@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"math/bits"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"unsafe"
 )
@@ -78,19 +77,17 @@ type divisionValues interface {
 //	}
 //}
 
-type divCache struct {
-	cacheLock sync.RWMutex
-
+type bytesCache struct {
 	lowerBytes, upperBytes []byte
+}
 
-	cachedString, cachedWildcardString *string
+type divCache struct {
+	cachedString, cachedWildcardString, cached0xHexString, cachedHexString, cachedNormalizedString *string
 
-	//TODO maybe the default string (certainly), hex string, normalized string (see cacheStr)
+	cachedBytes *bytesCache
 
 	//isSinglePrefixBlock boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
 }
-
-//TODO everything must become a Stringer, following the pattern of toString() in Java
 
 func createAddressDivision(vals divisionValues) *AddressDivision {
 	return &AddressDivision{addressDivisionInternal{addressDivisionBase{divisionValues: vals}}}
@@ -107,32 +104,54 @@ func (div *addressDivisionInternal) getAddrType() addrType {
 	return div.divisionValues.getAddrType()
 }
 
-func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() string) (str string) {
-	cache := div.getCache()
-	if cache == nil {
-		return "0"
-	}
-	var res *string
-	if isWildcard {
-		res = cache.cachedWildcardString
-	} else {
-		res = cache.cachedString
-	}
-	if res == nil {
-		str = stringer()
-		res = &str
-		var dataLoc *unsafe.Pointer
-		if isWildcard {
-			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedWildcardString))
-		} else {
-			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedString))
-		}
-		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
-	} else {
-		str = *res
-	}
-	return
-}
+//func (div *addressDivisionInternal) cacheStrX(cacher func(*divCache) **string, stringer func() string) (str string) {
+//	cache := div.getCache()
+//	if cache == nil {
+//		return "0"
+//	}
+//	res := cacher(cache)
+//	cachedVal := *res
+//	if cachedVal == nil {
+//		str = stringer()
+//		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(res))
+//		atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
+//	} else {
+//		str = *cachedVal
+//	}
+//	return
+//}
+//
+//func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() string) (str string) {
+//	//xxxx pattern similar to java where we check cache existence first then a particular string xxx
+//	//xxxx I want to pass in a pointer to the string location xxx
+//	//xxxx but the cache might not exist xxx
+//	//xxxx so pass in a func to some other func, the other func chechs the cache and passes to first  func xxx
+//
+//	cache := div.getCache()
+//	if cache == nil {
+//		return "0"
+//	}
+//	var res *string
+//	if isWildcard {
+//		res = cache.cachedWildcardString
+//	} else {
+//		res = cache.cachedString
+//	}
+//	if res == nil {
+//		str = stringer()
+//		res = &str
+//		var dataLoc *unsafe.Pointer
+//		if isWildcard {
+//			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedWildcardString))
+//		} else {
+//			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedString))
+//		}
+//		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+//	} else {
+//		str = *res
+//	}
+//	return
+//}
 
 var (
 	// wildcards differ, here we use only range since div size not implicit
@@ -471,17 +490,26 @@ func (div *addressDivisionInternal) getStringAsLower() string {
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		return seg.getStringAsLower()
 	}
-	return div.cacheStr(false, div.getDefaultLowerString)
+	return div.getStringFromStringer(div.getDefaultLowerString)
 }
 
 func (div *addressDivisionInternal) getString() string {
-	return div.cacheStr(false, func() string {
+	return div.getStringFromStringer(func() string {
 		if !div.IsMultiple() {
 			return div.getDefaultLowerString()
 		} else {
 			return div.getDefaultRangeString()
 		}
 	})
+}
+
+func (div *addressDivisionInternal) getStringFromStringer(stringer func() string) string {
+	if div.divisionValues != nil {
+		if cache := div.getCache(); cache != nil {
+			return cacheStr(&cache.cachedString, stringer)
+		}
+	}
+	return stringer()
 }
 
 func (div *addressDivisionInternal) GetString() string {
@@ -710,7 +738,7 @@ type AddressDivision struct {
 //I am extremely tempted to switch it back.  Maybe wait a bit to see if the reason resurfaces.
 //Maybe you thought there are lots of cases where you have different seg div types and you need a common method?
 //YEAH, that was it, like in div framework, AddressStandardDivision.
-//But still, could use ToAddressDivision first.  Not sure.
+//But still, could use ToAddressDivision first.  So it was not absolutely necessary.
 // OK, I really believe it should go back to being hidden.  It is just too confusing otherwise, to have both.
 //
 //Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
@@ -801,4 +829,16 @@ func divValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
 
 func divValSame(oneVal, twoVal DivInt) bool {
 	return oneVal == twoVal
+}
+
+func cacheStr(cachedString **string, stringer func() string) (str string) {
+	cachedVal := *cachedString
+	if cachedVal == nil {
+		str = stringer()
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(cachedString))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
+	} else {
+		str = *cachedVal
+	}
+	return
 }

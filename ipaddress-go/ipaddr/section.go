@@ -428,19 +428,22 @@ func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) b
 // and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
 
 func (section *addressSectionInternal) ToCanonicalString() string {
-	return section.toCanonicalString(noZone)
-}
-
-func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.toCanonicalString(zone)
+		return sect.ToCanonicalString()
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	}
 	// zero section
 	return "0"
+}
+
+func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
+	if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.toCanonicalString(zone)
+	}
+	return section.ToCanonicalString()
 }
 
 func (section *addressSectionInternal) ToCanonicalWildcardString() string {
@@ -448,40 +451,53 @@ func (section *addressSectionInternal) ToCanonicalWildcardString() string {
 	return ""
 }
 
-func (section *addressSectionInternal) ToNormalizedString() string {
-	return section.toNormalizedString(noZone)
+func (section *addressSectionInternal) getStringCache() *stringCache {
+	if section.hasNoDivisions() {
+		return &zeroStringCache
+	}
+	return &section.cache.stringCache
 }
 
-func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
+//func (section *addressSectionInternal) ToNormalizedString() string {
+//	if sect := section.toIPv4AddressSection(); sect != nil {
+//		return sect.ToNormalizedString()
+//	} else if sect := section.toIPv6AddressSection(); sect != nil {
+//		return sect.toNormalizedString()
+//	} else if sect := section.toMACAddressSection(); sect != nil {
+//		return sect.ToNormalizedString()
+//	}
+//
+//	cacheStr(&section.getStringCache().cachedNormalizedString, func() string {return section.toNormalizedString(noZone)})
+//	xxx
+//	use fake cache if no divisions
+//	do I have to do the cache thing in each sub type?  ugh
+//	we are scaling up because each sub type has their own options/params
+//
+//	so i guess we should only do the caching code line above in each subtype since we are scaling up everywhere
+//	that is what we did with GetCount and cacheCount
+//	xxx
+//
+//	OK, I believe I just need the one liner above in the subtypes, and I need to scale up in here for each string method
+//
+//	return section.toNormalizedString(noZone)
+//}
+
+func (section *addressSectionInternal) ToNormalizedString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.toNormalizedString(zone)
+		return sect.ToNormalizedString()
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	}
-	// zero section
 	return "0"
+}
 
-	//xxx
-	//gotta scale up on address side to get the right params
-	//is there a better way?
-	//Almost certainly
-	//Do not pass in the params!  Just the zone.
-	//	So only the methods with zone need scaling up, the non-zoned can call the zoned
-	//xxx
-	//xxx how to handle zone?
-	//xxx for one thing, differnt cache is used
-	//xxx at ipv6 level, must call toZonedString, not toString
-	//xxx which means on address side must call:
-	//
-	//public String toNormalizedString(IPv6StringOptions params) {
-	//	return getSection().toNormalizedString(params, getZoneString());
-	//}
-	//otherwise can call these methods here in section
-	//xxx
-	////TODO
-	//return ""
+func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
+	if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.toNormalizedString(zone)
+	}
+	return section.ToNormalizedString()
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) string {

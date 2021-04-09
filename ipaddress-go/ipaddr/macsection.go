@@ -12,6 +12,26 @@ import (
 //	return IPv6
 //}
 
+func createMACSection(segments []*AddressDivision) *MACAddressSection {
+	return &MACAddressSection{
+		addressSectionInternal{
+			addressDivisionGroupingInternal{
+				addressDivisionGroupingBase: addressDivisionGroupingBase{
+					divisions: standardDivArray{segments},
+					addrType:  macType,
+					cache: &valueCache{
+						stringCache: stringCache{
+							macxStringCache: &macxStringCache{},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+//TODO the constructors for MAC
+
 type MACAddressSection struct {
 	addressSectionInternal
 }
@@ -140,15 +160,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *MACAddressSection) ToCanonicalString() string {
-	//TODO caching
-	//
-	return section.toNormalizedString(macCanonicalParams)
+	return cacheStr(&section.getStringCache().canonicalString, func() string { return section.toNormalizedString(macCanonicalParams) })
 }
 
 func (section *MACAddressSection) ToNormalizedString() string {
-	//TODO caching
-	//
-	return section.toNormalizedString(macNormalizedParams)
+	return cacheStr(&section.getStringCache().normalizedString, func() string { return section.toNormalizedString(macNormalizedParams) })
 }
 
 func (section *MACAddressSection) toNormalizedString(stringOptions StringOptions) string {

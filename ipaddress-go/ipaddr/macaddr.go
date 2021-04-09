@@ -230,6 +230,10 @@ func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
 	return macAddressIterator{addr.prefixIterator(true)}
 }
 
+func (addr MACAddress) String() string {
+	return addr.init().addressInternal.String()
+}
+
 func (addr *MACAddress) ToCanonicalString() string {
 	return addr.init().toCanonicalString()
 }

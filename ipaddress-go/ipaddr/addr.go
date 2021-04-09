@@ -37,6 +37,9 @@ type SegmentValueProvider func(segmentIndex int) SegInt
 type addressCache struct {
 	ip           net.IPAddr // lower converted (cloned when returned)
 	lower, upper *Address
+
+	stringCache *stringCache
+
 	//fromString   *HostIdentifierString xxxxx
 	fromString unsafe.Pointer
 	//fromString *IPAddressString
@@ -165,10 +168,6 @@ func (addr addressInternal) String() string { // using non-pointer receiver make
 		return "0"
 	}
 	return addr.toCanonicalString()
-	//if addr.zone != noZone {
-	//	return fmt.Sprintf("%v%c%s", addr.section, IPv6ZoneSeparator, addr.zone)
-	//}
-	//return fmt.Sprintf("%v", addr.section)
 }
 
 func (addr *addressInternal) IsSequential() bool {
@@ -555,6 +554,14 @@ func (addr *addressInternal) getSequentialBlockIndex() int {
 	return addr.section.GetSequentialBlockIndex()
 }
 
+func (addr *addressInternal) hasZone() bool {
+	return addr.zone != noZone
+}
+
+func (addr *addressInternal) getStringCache() *stringCache {
+	return addr.cache.stringCache
+}
+
 //TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
 // we also want toCanonicalWildcardString
 // the code will need to check the addrtype in the section, in fact, the code should just defer to the section,
@@ -562,7 +569,11 @@ func (addr *addressInternal) getSequentialBlockIndex() int {
 // unfortunately, although this is just as messy for the java side where we had to make a special override for ipv6 everywhere
 // And let's face it, we need to override all methods in addresses for the init() calls anyway
 func (addr *addressInternal) toCanonicalString() string {
-	return addr.section.toCanonicalString(addr.zone)
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().canonicalString,
+			func() string { return addr.section.toCanonicalString(addr.zone) })
+	}
+	return addr.section.ToCanonicalString()
 }
 
 func (addr *addressInternal) toCanonicalWildcardString() string {
@@ -571,7 +582,11 @@ func (addr *addressInternal) toCanonicalWildcardString() string {
 }
 
 func (addr *addressInternal) toNormalizedString() string {
-	return addr.section.toNormalizedString(addr.zone)
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().canonicalString,
+			func() string { return addr.section.toNormalizedString(addr.zone) })
+	}
+	return addr.section.ToNormalizedString()
 }
 
 func (addr *addressInternal) toHexString(with0xPrefix bool) string {

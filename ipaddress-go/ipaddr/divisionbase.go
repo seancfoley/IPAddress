@@ -2,6 +2,8 @@ package ipaddr
 
 import (
 	"math/big"
+	"sync/atomic"
+	"unsafe"
 )
 
 // TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
@@ -136,20 +138,17 @@ func (div *addressDivisionBase) getBytesInternal() (bytes, upperBytes []byte) {
 	if cache == nil {
 		return div.calcBytesInternal()
 	}
-	cache.cacheLock.RLock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	cache.cacheLock.RUnlock()
-	if bytes != nil {
-		return
-	}
-	cache.cacheLock.Lock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	if bytes == nil {
+	cached := cache.cachedBytes
+	if cached == nil {
 		bytes, upperBytes = div.calcBytesInternal()
-		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
+		cached = &bytesCache{
+			lowerBytes: bytes,
+			upperBytes: upperBytes,
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedBytes))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
 	}
-	cache.cacheLock.Unlock()
-	return
+	return cached.lowerBytes, cached.upperBytes
 }
 
 func (div *addressDivisionBase) GetCount() *big.Int {
