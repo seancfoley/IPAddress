@@ -219,15 +219,15 @@ func (addr *MACAddress) GetMaxSegmentValue() SegInt {
 }
 
 func (addr *MACAddress) Iterator() MACAddressIterator {
-	return macAddressIterator{addr.addrIterator(nil)}
+	return macAddressIterator{addr.init().addrIterator(nil)}
 }
 
 func (addr *MACAddress) PrefixIterator() MACAddressIterator {
-	return macAddressIterator{addr.prefixIterator(false)}
+	return macAddressIterator{addr.init().prefixIterator(false)}
 }
 
 func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
-	return macAddressIterator{addr.prefixIterator(true)}
+	return macAddressIterator{addr.init().prefixIterator(true)}
 }
 
 func (addr MACAddress) String() string {
@@ -241,6 +241,18 @@ func (addr *MACAddress) ToCanonicalString() string {
 func (addr *MACAddress) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
+
+func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toHexString(with0xPrefix)
+}
+
+//func (addr *MACAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+//	return addr.init().toOctalString(with0Prefix)
+//}
+//
+//func (addr *MACAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+//	return addr.init().toBinaryString(with0bPrefix)
+//}
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()

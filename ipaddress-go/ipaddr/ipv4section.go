@@ -382,7 +382,9 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 //	dashed
 //	dotted
 //	space
-//	hex with bool
+//	DONE hex with bool
+//  DONE normalized
+//  DONE canonical
 //
 //IPv4
 //	canonicalWildcard
@@ -395,6 +397,8 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 //	segmentedBinary
 //	sqlWildcard
 //	subnet
+//  DONE normalized
+//  DONE canonical
 //
 //IPv6
 //	base85
@@ -410,12 +414,13 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 //	segmentedBinary
 //	sqlWildcard
 //	subnet
+//  DONE normalized
+//  DONE canonical
 //
 //base IP
-//	binary
-//	octal with bool
-//	hex with bool
-//xxx
+//	DONE binary
+//	DONE octal with bool
+//	DONE hex with bool
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)

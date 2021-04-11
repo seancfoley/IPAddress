@@ -349,14 +349,14 @@ type ipxStringCache struct {
 
 	reverseDNSString,
 
-	octalStringPrefixed,
-	octalString,
-	binaryString,
+	octalString, octalStringPrefixed,
+	binaryString, binaryStringPrefixed,
 
 	segmentedBinaryString *string
 }
 
 type ipv6StringCache struct {
+	normalizedString,
 	compressedString,
 	mixedString,
 	compressedWildcardString,
@@ -366,13 +366,16 @@ type ipv6StringCache struct {
 }
 
 type macxStringCache struct {
+	normalizedString,
 	compressedString,
 	dottedString,
 	spaceDelimitedString *string
 }
 
 type stringCache struct {
-	canonicalString, normalizedString, hexString, hexStringPrefixed *string
+	canonicalString *string
+
+	hexString, hexStringPrefixed *string
 
 	*ipv6StringCache
 

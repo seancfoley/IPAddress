@@ -422,35 +422,6 @@ func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) b
 	return true
 }
 
-//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
-// we also want toCanonicalWildcardString and ToNormalizedWildcardString
-// the code will need to check the addrtype in the section,
-// and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
-
-func (section *addressSectionInternal) ToCanonicalString() string {
-	if sect := section.toIPv4AddressSection(); sect != nil {
-		return sect.ToCanonicalString()
-	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.ToCanonicalString()
-	} else if sect := section.toMACAddressSection(); sect != nil {
-		return sect.ToCanonicalString()
-	}
-	// zero section
-	return "0"
-}
-
-func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
-	if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.toCanonicalString(zone)
-	}
-	return section.ToCanonicalString()
-}
-
-func (section *addressSectionInternal) ToCanonicalWildcardString() string {
-	//TODO
-	return ""
-}
-
 func (section *addressSectionInternal) getStringCache() *stringCache {
 	if section.hasNoDivisions() {
 		return &zeroStringCache
@@ -483,12 +454,42 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 //}
 
 var (
-	hexParams           = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	hexPrefixedParams   = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
-	octalParams         = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	octalPrefixedParams = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
-	binaryParams        = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	hexParams            = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	hexPrefixedParams    = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	octalParams          = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	octalPrefixedParams  = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
+	binaryParams         = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	binaryPrefixedParams = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
+
+//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
+// we also want toCanonicalWildcardString and ToNormalizedWildcardString
+// the code will need to check the addrtype in the section,
+// and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
+
+func (section *addressSectionInternal) ToCanonicalString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	} else if sect := section.toMACAddressSection(); sect != nil {
+		return sect.ToCanonicalString()
+	}
+	// zero section
+	return "0"
+}
+
+func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
+	if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.toCanonicalString(zone)
+	}
+	return section.ToCanonicalString()
+}
+
+func (section *addressSectionInternal) ToCanonicalWildcardString() string {
+	//TODO
+	return ""
+}
 
 func (section *addressSectionInternal) ToNormalizedString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
@@ -509,19 +510,21 @@ func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
-	return cacheStrErr(&section.getStringCache().canonicalString, func() (string, IncompatibleAddressException) { return section.toHexStringZoned(with0xPrefix, noZone) })
+	return cacheStrErr(&section.getStringCache().canonicalString,
+		func() (string, IncompatibleAddressException) { return section.toHexStringZoned(with0xPrefix, noZone) })
 }
 
 func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressException) {
+	if with0xPrefix {
+		return section.toLongStringZoned(zone, hexPrefixedParams)
+	}
+	return section.toLongStringZoned(zone, hexParams)
+}
+
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressException) {
 	isDual, err := section.isDualString()
 	if err != nil {
 		return "", err
-	}
-	var params StringOptions
-	if with0xPrefix {
-		params = hexPrefixedParams
-	} else {
-		params = hexParams
 	}
 	if isDual {
 		sect := section.toAddressSection()

@@ -110,6 +110,38 @@ func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 	return addr.getSegment(index).ToIPAddressSegment()
 }
 
+func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+	if addr.hasZone() {
+		var cacheField **string
+		if with0Prefix {
+			cacheField = &addr.getStringCache().octalStringPrefixed
+		} else {
+			cacheField = &addr.getStringCache().octalString
+		}
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressException) {
+				return addr.section.ToIPAddressSection().toOctalStringZoned(with0Prefix, addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToOctalString(with0Prefix)
+}
+
+func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+	if addr.hasZone() {
+		var cacheField **string
+		if with0bPrefix {
+			cacheField = &addr.getStringCache().binaryStringPrefixed
+		} else {
+			cacheField = &addr.getStringCache().binaryString
+		}
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressException) {
+				return addr.section.ToIPAddressSection().toBinaryStringZoned(with0bPrefix, addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToBinaryString(with0bPrefix)
+}
+
 //func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
 //	return addr.GetSegment(index)
 //}

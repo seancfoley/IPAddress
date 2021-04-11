@@ -272,6 +272,34 @@ func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPre
 		false)
 }
 
+func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+	return cacheStrErr(&section.getStringCache().octalString,
+		func() (string, IncompatibleAddressException) {
+			return section.toOctalStringZoned(with0Prefix, noZone)
+		})
+}
+
+func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, IncompatibleAddressException) {
+	if with0Prefix {
+		return section.toLongStringZoned(zone, octalPrefixedParams)
+	}
+	return section.toLongStringZoned(zone, octalParams)
+}
+
+func (section *ipAddressSectionInternal) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+	return cacheStrErr(&section.getStringCache().binaryString,
+		func() (string, IncompatibleAddressException) {
+			return section.toBinaryStringZoned(with0bPrefix, noZone)
+		})
+}
+
+func (section *ipAddressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zone Zone) (string, IncompatibleAddressException) {
+	if with0bPrefix {
+		return section.toLongStringZoned(zone, binaryPrefixedParams)
+	}
+	return section.toLongStringZoned(zone, binaryParams)
+}
+
 func (section *ipAddressSectionInternal) toNormalizedIPOptsString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
 }

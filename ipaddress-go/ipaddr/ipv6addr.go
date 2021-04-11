@@ -378,6 +378,18 @@ func (addr *IPv6Address) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
 
+func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toOctalString(with0Prefix)
+}
+
+func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toBinaryString(with0bPrefix)
+}
+
 //func (addr *IPv6Address) IsMore(other *IPv6Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}

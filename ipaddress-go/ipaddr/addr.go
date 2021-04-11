@@ -9,6 +9,7 @@ import (
 const (
 	HexPrefix                         = "0x"
 	OctalPrefix                       = "0"
+	BinaryPrefix                      = "0b"
 	RangeSeparator               byte = '-'
 	RangeSeparatorStr                 = string(RangeSeparator)
 	AlternativeRangeSeparator    byte = '\u00bb'
@@ -589,9 +590,20 @@ func (addr *addressInternal) toNormalizedString() string {
 	return addr.section.ToNormalizedString()
 }
 
-func (addr *addressInternal) toHexString(with0xPrefix bool) string {
-	//TODO
-	return ""
+func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	if addr.hasZone() {
+		var cacheField **string
+		if with0xPrefix {
+			cacheField = &addr.getStringCache().hexStringPrefixed
+		} else {
+			cacheField = &addr.getStringCache().hexString
+		}
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressException) {
+				return addr.section.toHexStringZoned(with0xPrefix, addr.zone)
+			})
+	}
+	return addr.section.ToHexString(with0xPrefix)
 }
 
 func (addr *addressInternal) toNormalizedWildcardString() string {
