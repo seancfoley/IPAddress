@@ -109,13 +109,8 @@ func initPrefLens() []PrefixLen {
 }
 
 func cache(i BitCount) PrefixLen {
-	if i >= 0 && int(i) < len(cachedPrefixLens) {
+	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
 		result := cachedPrefixLens[i]
-		if result == nil {
-			bc := BitCount(i)
-			result = &bc
-			cachedPrefixLens[i] = result
-		}
 		return result
 	}
 	bc := BitCount(i)

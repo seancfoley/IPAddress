@@ -76,9 +76,9 @@ type AddressStringDivisionSeries interface {
 	//GetStringDivision(index int) AddressStringDivision // useful for string generation
 }
 
-type IPAddressStringDivisionSeries interface {
-	AddressStringDivisionSeries
-}
+//type IPAddressStringDivisionSeries interface {
+//	AddressStringDivisionSeries
+//}
 
 // AddressDivisionSeries serves as a common interface to all division groupings (including large) and addresses
 type AddressDivisionSeries interface {
@@ -97,20 +97,20 @@ type AddressDivisionSeries interface {
 }
 
 // IPAddressDivisionSeries serves as a common interface to all IP division groupings (including large) and IP addresses
-type IPAddressDivisionSeries interface {
-	AddressDivisionSeries
-
-	GetGenericIPDivision(index int) IPAddressGenericDivision // useful for comparisons
-}
-
-var (
-	_ IPAddressDivisionSeries = &IPAddressSection{}
-	_ IPAddressDivisionSeries = &IPv4AddressSection{}
-	_ IPAddressDivisionSeries = &IPv6AddressSection{}
-	_ IPAddressDivisionSeries = &IPAddress{}
-	_ IPAddressDivisionSeries = &IPv4Address{}
-	_ IPAddressDivisionSeries = &IPv6Address{}
-)
+//type IPAddressDivisionSeries interface {
+//	AddressDivisionSeries
+//
+//	GetGenericIPDivision(index int) IPAddressGenericDivision // useful for comparisons
+//}
+//
+//var (
+//	_ IPAddressDivisionSeries = &IPAddressSection{}
+//	_ IPAddressDivisionSeries = &IPv4AddressSection{}
+//	_ IPAddressDivisionSeries = &IPv6AddressSection{}
+//	_ IPAddressDivisionSeries = &IPAddress{}
+//	_ IPAddressDivisionSeries = &IPv4Address{}
+//	_ IPAddressDivisionSeries = &IPv6Address{}
+//)
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
 	AddressComponent
@@ -119,10 +119,11 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	ToCanonicalString() string
 }
 
+//TODO this might be useful for the merging code, in Java I believe I used it there
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above
 	AddressSegmentSeries
 
-	GetGenericIPDivision(index int) IPAddressGenericDivision
+	//GetGenericIPDivision(index int) IPAddressGenericDivision
 }
 
 // GenericGroupingType represents any division grouping
@@ -136,7 +137,7 @@ type GenericGroupingType interface {
 
 // AddressDivisionGroupingType represents any standard division grouping (divisions are 64 bits or less)
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
-type AddressDivisionGroupingType interface {
+type AddressDivisionGroupingType interface { //TODO rename StandardDivisionGroupingType
 	GenericGroupingType
 
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
@@ -219,7 +220,7 @@ var (
 // 2. distinguish the new interfaces that span the class hierarchies in Java
 // 3. try to keep names short a la go style
 // 4. try to remain descriptive
-// 5. rename interfaces in Java too if it helps (1)
+// 5. rename interfaces in Java too if it helps (1) although I am leaning away from that, at least in the short term
 
 //Logically AddressDivisionSeries would be implemened only by AddressDivisionGrouping
 //AddressSegmentSeries by AddressSection and Address

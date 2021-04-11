@@ -176,7 +176,7 @@ func (div *addressDivisionInternal) String() string { // this can be moved to ad
 	return div.toString(opts)
 }
 
-func (div *addressDivisionInternal) toString(opts IPStringOptions) string {
+func (div *addressDivisionInternal) toString(opts StringOptions) string {
 	builder := strings.Builder{}
 	params := toParams(opts)
 	builder.Grow(params.getDivisionStringLength(div))
@@ -837,6 +837,20 @@ func cacheStr(cachedString **string, stringer func() string) (str string) {
 		str = stringer()
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(cachedString))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
+	} else {
+		str = *cachedVal
+	}
+	return
+}
+
+func cacheStrErr(cachedString **string, stringer func() (string, IncompatibleAddressException)) (str string, err IncompatibleAddressException) {
+	cachedVal := *cachedString
+	if cachedVal == nil {
+		str, err = stringer()
+		if err == nil {
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(cachedString))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
+		}
 	} else {
 		str = *cachedVal
 	}

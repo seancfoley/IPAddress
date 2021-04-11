@@ -364,7 +364,58 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 }
 
 //TODO NEXT
-// 4. do the rest of the string methods - divs are done.  addresses and sections
+// 4. do the rest of the string methods - divs are done.  addresses and sections.  canonical and normalized done.  caches done.
+// When it comes to certain strings that are not overridden... what is the plan?
+// I think you have to upscale for the most part,
+// although the majority of strings are IP only
+// MAybe do the inet aton, to ensure your absence of ipaddressdivisiongrouping is not a problem
+// so you must combine ipstringparams with addressdivisiongrouping
+// OK, I laid the groundwork for inet aton, I made ipstringParams work with addressDivisionSeries
+// So need to create someting like the IPv4JOinedSegments and use that with ipStringParams
+
+//TODO NEXT string methods:
+// You do not need to override in ipv6 to get zones, but you do need a separate method for each in section for addr to call with zone
+// In some cases you do need to override since the strings are different in each, and for ipv6 in particular you typically need to add compression options
+//MAC:
+//	colonDelimited
+//	compressed
+//	dashed
+//	dotted
+//	space
+//	hex with bool
+//
+//IPv4
+//	canonicalWildcard
+//	compressed
+//	compressedWildcard
+//	full
+//	InetAton(radix, segs) //this requires AddressDivisionGrouping
+//	normalizedWildcard
+//	reverseDNS
+//	segmentedBinary
+//	sqlWildcard
+//	subnet
+//
+//IPv6
+//	base85
+//	mixed
+//
+//	canonicalWildcard
+//	compressed
+//	compressedWildcard
+//	full
+//	normalizedWildcard
+//	prefixLength // yeah, I cannot remember putting that in there
+//	reverseDNS
+//	segmentedBinary
+//	sqlWildcard
+//	subnet
+//
+//base IP
+//	binary
+//	octal with bool
+//	hex with bool
+//xxx
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)

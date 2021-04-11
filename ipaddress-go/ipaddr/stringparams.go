@@ -29,11 +29,11 @@ import (
 //	toZonedString(addr IPAddressStringDivisionSeries, zone string) string
 //}
 
-func toNormalizedIPString(opts IPStringOptions, section IPAddressDivisionSeries) string {
+func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) string {
 	return toIPParams(opts).toString(section)
 }
 
-func toNormalizedMACString(opts StringOptions, section AddressDivisionSeries) string {
+func toNormalizedString(opts StringOptions, section AddressDivisionSeries) string {
 	return toParams(opts).toString(section)
 }
 
@@ -769,8 +769,8 @@ func (params *addressStringParams) toString(addr AddressDivisionSeries) string {
 //
 func checkLengths(length int, builder *strings.Builder) {
 	//Note: re-enable this when doing development
-	//				boolean calcMatch = length == builder.length();
-	//				boolean capMatch = length == builder.capacity();
+	//				 calcMatch := length == builder.length();
+	//				 capMatch := length == builder.capacity();
 	//				if(!calcMatch || !capMatch) {
 	//					throw new IllegalStateException("length is " + builder.length() + ", capacity is " + builder.capacity() + ", expected length is " + length);
 	//				}
@@ -866,7 +866,7 @@ func (params *ipAddressStringParams) getAddressSuffixLength() int {
 	return len(suffix)
 }
 
-func (params *ipAddressStringParams) getTrailingSeparatorCount(addr IPAddressDivisionSeries) int {
+func (params *ipAddressStringParams) getTrailingSeparatorCount(addr AddressDivisionSeries) int {
 	count := addr.GetDivisionCount()
 	if count > 0 {
 		return count - 1
@@ -874,19 +874,24 @@ func (params *ipAddressStringParams) getTrailingSeparatorCount(addr IPAddressDiv
 	return 0
 }
 
-func getPrefixIndicatorStringLength(addr IPAddressDivisionSeries) int {
+func getPrefixIndicatorStringLength(addr AddressDivisionSeries) int {
 	if addr.IsPrefixed() {
 		return toUnsignedStringLengthFast(uint16(*addr.GetPrefixLength()), 10) + 1
 	}
 	return 0
 }
 
-func (params *ipAddressStringParams) getSegmentsStringLength(part IPAddressDivisionSeries) int {
+func (params *ipAddressStringParams) getSegmentsStringLength(part AddressDivisionSeries) int {
 	count := 0
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
+		prefLen := part.GetPrefixLength()
 		for i := 0; i < divCount; i++ {
-			count += params.appendSegment(i, nil, part)
+			div := part.GetGenericDivision(i)
+			count += params.appendSegment(i, div, prefLen, nil, part)
+			if prefLen != nil {
+				prefLen = cacheBitCount(*prefLen - div.GetBitCount())
+			}
 		}
 		if params.hasSep {
 			count += divCount - 1 // the number of separators
@@ -895,7 +900,7 @@ func (params *ipAddressStringParams) getSegmentsStringLength(part IPAddressDivis
 	return count
 }
 
-func (params *ipAddressStringParams) getStringLength(addr IPAddressDivisionSeries) int {
+func (params *ipAddressStringParams) getStringLength(addr AddressDivisionSeries) int {
 	count := params.getSegmentsStringLength(addr)
 	if !params.reverse && !params.preferWildcards() {
 		count += getPrefixIndicatorStringLength(addr)
@@ -903,7 +908,7 @@ func (params *ipAddressStringParams) getStringLength(addr IPAddressDivisionSerie
 	return count + params.getAddressSuffixLength() + params.getAddressLabelLength()
 }
 
-func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Builder, addr IPAddressDivisionSeries) *strings.Builder {
+func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Builder, addr AddressDivisionSeries) *strings.Builder {
 	if addr.IsPrefixed() {
 		builder.WriteByte(PrefixLenSeparator)
 		return toUnsignedStringCased(uint64(*addr.GetPrefixLength()), 10, 0, false, builder)
@@ -911,9 +916,10 @@ func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Buil
 	return builder
 }
 
-func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, part IPAddressDivisionSeries) *strings.Builder {
+func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, part AddressDivisionSeries) *strings.Builder {
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
+		prefLen := part.GetPrefixLength()
 		reverse := params.reverse
 		i := 0
 		hasSeparator := params.hasSep
@@ -923,7 +929,11 @@ func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, pa
 			if reverse {
 				segIndex = divCount - i - 1
 			}
-			params.appendSegment(segIndex, builder, part)
+			div := part.GetGenericDivision(segIndex)
+			params.appendSegment(segIndex, div, prefLen, builder, part)
+			if prefLen != nil {
+				prefLen = cacheBitCount(*prefLen - div.GetBitCount())
+			}
 			i++
 			if i == divCount {
 				break
@@ -936,7 +946,7 @@ func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, pa
 	return builder
 }
 
-func (params *ipAddressStringParams) append(builder *strings.Builder, addr IPAddressDivisionSeries, zone Zone) *strings.Builder {
+func (params *ipAddressStringParams) append(builder *strings.Builder, addr AddressDivisionSeries, zone Zone) *strings.Builder {
 	params.appendSuffix(params.appendZone(params.appendSegments(params.appendLabel(builder), addr), zone))
 	if !params.reverse && !params.preferWildcards() {
 		params.appendPrefixIndicator(builder, addr)
@@ -944,14 +954,14 @@ func (params *ipAddressStringParams) append(builder *strings.Builder, addr IPAdd
 	return builder
 }
 
-func (params *ipAddressStringParams) appendSegment(segmentIndex int, builder *strings.Builder, part IPAddressDivisionSeries) int {
-	div := part.GetGenericIPDivision(segmentIndex)
+func (params *ipAddressStringParams) appendSegment(segmentIndex int, div AddressGenericDivision, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) int {
+	//div := part.GetGenericIPDivision(segmentIndex)
 	writer := stringWriter{div}
-	prefixLen := div.GetDivisionPrefixLength()
+	//prefixLen := div.GetDivisionPrefixLength()
 	// consider all the cases in which we need not account for prefix length
 	if params.preferWildcards() ||
-		prefixLen == nil ||
-		*prefixLen >= div.GetBitCount() ||
+		divPrefixLen == nil ||
+		*divPrefixLen >= div.GetBitCount() ||
 		!part.IsPrefixBlock() ||
 		params.isSplitDigits() {
 		return writer.getStandardString(segmentIndex, params, builder)
@@ -959,13 +969,14 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, builder *st
 	// prefix length will have an impact on the string - either we need not print the range at all
 	// because it is equivalent to the prefix length, or we need to adjust the upper value of the
 	// range so that the host is zero when printing the string
-	if div.IsSinglePrefixBlock() {
+	if div.ContainsSinglePrefixBlock(*divPrefixLen) {
+		// if div.IsSinglePrefixBlock() {
 		return writer.getLowerStandardString(segmentIndex, params, builder)
 	}
 	return writer.getPrefixAdjustedRangeString(segmentIndex, params, builder)
 }
 
-func (params *ipAddressStringParams) getZonedStringLength(addr IPAddressDivisionSeries, zone Zone) int {
+func (params *ipAddressStringParams) getZonedStringLength(addr AddressDivisionSeries, zone Zone) int {
 	result := params.getStringLength(addr)
 	if zone != noZone {
 		result += params.getZoneLength(zone)
@@ -973,8 +984,8 @@ func (params *ipAddressStringParams) getZonedStringLength(addr IPAddressDivision
 	return result
 }
 
-func (params *ipAddressStringParams) toZonedString(addr IPAddressDivisionSeries, zone Zone) string {
-	length := params.getZonedStringLength(addr, zone) //TODO cannot do this
+func (params *ipAddressStringParams) toZonedString(addr AddressDivisionSeries, zone Zone) string {
+	length := params.getZonedStringLength(addr, zone)
 	builder := strings.Builder{}
 	builder.Grow(length)
 	params.append(&builder, addr, zone)
@@ -982,7 +993,7 @@ func (params *ipAddressStringParams) toZonedString(addr IPAddressDivisionSeries,
 	return builder.String()
 }
 
-func (params *ipAddressStringParams) toString(addr IPAddressDivisionSeries) string {
+func (params *ipAddressStringParams) toString(addr AddressDivisionSeries) string {
 	return params.toZonedString(addr, noZone)
 }
 
@@ -1089,7 +1100,9 @@ func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *I
 			segIndex = lastIndex - i
 		}
 		if segIndex < firstCompressedSegmentIndex || segIndex >= nextUncompressedIndex {
-			params.appendSegment(segIndex, builder, addr)
+			div := addr.GetSegment(segIndex)
+			prefLen := div.getDivisionPrefixLength()
+			params.appendSegment(segIndex, div, prefLen, builder, addr)
 			i++
 			if i > lastIndex {
 				break
@@ -1121,13 +1134,14 @@ func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection
 	count := 0
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
-		//Character separator = getSeparator();
 		i := 0
 		firstCompressedSegmentIndex := params.firstCompressedSegmentIndex
 		nextUncompressedIndex := params.nextUncompressedIndex
 		for {
 			if i < firstCompressedSegmentIndex || i >= nextUncompressedIndex {
-				count += params.appendSegment(i, nil, part)
+				div := part.GetSegment(i)
+				prefLen := div.GetDivisionPrefixLength()
+				count += params.appendSegment(i, div, prefLen, nil, part)
 				i++
 				if i >= divCount {
 					break
@@ -1904,3 +1918,37 @@ func getLeadingZeros(leadingZeroCount int, builder *strings.Builder) {
 }
 
 var zeros = "00000000000000000000"
+
+func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressSection, zone Zone) string {
+	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
+	var builder strings.Builder
+	separator := params.getWildcards().GetRangeSeparator()
+	if separator != "" {
+		length += len(separator)
+		builder.Grow(length)
+		params.append(&builder, lower).WriteString(separator)
+		params.appendZoned(&builder, upper, zone)
+	} else {
+		builder.Grow(length)
+		params.appendZoned(params.append(&builder, lower), upper, zone)
+	}
+	checkLengths(length, &builder)
+	return builder.String()
+}
+
+//func toNormalizedIPStringRange(params *ipAddressStringParams, lower, upper *AddressSection, zone Zone) string {
+//	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
+//	var builder strings.Builder
+//	separator := params.getWildcards().GetRangeSeparator()
+//	if separator != "" {
+//		length += len(separator)
+//		builder.Grow(length)
+//		params.append(&builder, lower).WriteString(separator)
+//		params.appendZoned(&builder, upper, zone)
+//	} else {
+//		builder.Grow(length)
+//		params.appendZoned(params.append(&builder, lower), upper, zone)
+//	}
+//	checkLengths(length, &builder)
+//	return builder.String()
+//}

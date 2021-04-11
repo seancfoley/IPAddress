@@ -49,9 +49,9 @@ func (section *ipAddressSectionInternal) GetSegment(index int) *IPAddressSegment
 	return section.getDivision(index).ToIPAddressSegment()
 }
 
-func (section *ipAddressSectionInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
-	return section.GetSegment(index)
-}
+//func (section *ipAddressSectionInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
+//	return section.GetSegment(index)
+//}
 
 func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
 	addrType := section.getAddrType()
@@ -272,6 +272,10 @@ func (section *ipAddressSectionInternal) mask(other *IPAddressSection, retainPre
 		false)
 }
 
+func (section *ipAddressSectionInternal) toNormalizedIPOptsString(stringOptions IPStringOptions) string {
+	return toNormalizedIPString(stringOptions, section)
+}
+
 func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }
@@ -439,12 +443,23 @@ var (
 	allSQLWildcards               = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).SetWildcards(
 		new(WildcardsBuilder).SetWildcard(SegmentSqlWildcardStr).SetSingleWildcard(SegmentSqlSingleWildcardStr).ToWildcards()).ToOptions()
 
-	hexParams           = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
-	hexPrefixedParams   = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(HexPrefix).ToOptions()
-	octalParams         = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
-	octalPrefixedParams = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(OctalPrefix).ToOptions()
-	binaryParams        = new(IPStringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
+//	ipHexParams           = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
+//	ipHexPrefixedParams   = new(IPStringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(HexPrefix).ToOptions()
+//	ipOctalParams         = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
+//	ipOctalPrefixedParams = new(IPStringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).SetAddressLabel(OctalPrefix).ToOptions()
+//	ipBinaryParams        = new(IPStringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetWildcardOptions(allWildcards).ToOptions()
 )
+
+//
+//func (section *IPAddressSection) ToHexString(with0xPrefix bool) (string, error) {
+//	xxx
+//	similar to the one in section, but need to use the opts above instead
+//	xxx
+//	//use:
+//	//func (section *ipAddressSectionInternal) toNormalizedIPOptsString(stringOptions IPStringOptions) string {
+//	//	return toNormalizedIPString(stringOptions, section)
+//	//}
+//}
 
 func BitsPerSegment(version IPVersion) BitCount {
 	if version == IPv4 {

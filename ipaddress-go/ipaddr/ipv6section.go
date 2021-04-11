@@ -675,13 +675,13 @@ type IPv6v4MixedAddressSection struct {
 	ipv4Section *IPv4AddressSection
 }
 
-func (sect *IPv6v4MixedAddressSection) GetGenericIPDivision(index int) IPAddressGenericDivision {
-	ipv6Section := sect.ipv6Section
-	if index < ipv6Section.GetSegmentCount() {
-		return ipv6Section.GetSegment(index)
-	}
-	return sect.ipv4Section.GetSegment(index)
-}
+//func (sect *IPv6v4MixedAddressSection) GetGenericIPDivision(index int) IPAddressGenericDivision {
+//	ipv6Section := sect.ipv6Section
+//	if index < ipv6Section.GetSegmentCount() {
+//		return ipv6Section.GetSegment(index)
+//	}
+//	return sect.ipv4Section.GetSegment(index)
+//}
 
 type Range struct {
 	index, length int

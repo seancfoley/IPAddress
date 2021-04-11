@@ -407,8 +407,8 @@ func NewIPv4StringOptionsBuilder() *IPStringOptionsBuilder {
 }
 
 // NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MAC address string.
-func NewMACStringOptionsBuilder() *IPStringOptionsBuilder {
-	opts := IPStringOptionsBuilder{}
+func NewMACStringOptionsBuilder() *StringOptionsBuilder {
+	opts := StringOptionsBuilder{}
 	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)
 }
 

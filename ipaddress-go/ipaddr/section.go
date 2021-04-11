@@ -482,6 +482,14 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 //	return section.toNormalizedString(noZone)
 //}
 
+var (
+	hexParams           = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	hexPrefixedParams   = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	octalParams         = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	octalPrefixedParams = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
+	binaryParams        = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+)
+
 func (section *addressSectionInternal) ToNormalizedString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
@@ -500,9 +508,54 @@ func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
 	return section.ToNormalizedString()
 }
 
-func (section *addressSectionInternal) ToHexString(with0xPrefix bool) string {
-	//TODO
-	return ""
+func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return cacheStrErr(&section.getStringCache().canonicalString, func() (string, IncompatibleAddressException) { return section.toHexStringZoned(with0xPrefix, noZone) })
+}
+
+func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressException) {
+	isDual, err := section.isDualString()
+	if err != nil {
+		return "", err
+	}
+	var params StringOptions
+	if with0xPrefix {
+		params = hexPrefixedParams
+	} else {
+		params = hexParams
+	}
+	if isDual {
+		sect := section.toAddressSection()
+		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+	}
+	return section.toNormalizedOptsString(params), nil
+}
+
+func (section *addressSectionInternal) toNormalizedOptsString(stringOptions StringOptions) string {
+	return toNormalizedString(stringOptions, section)
+}
+
+func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressException) {
+	count := section.GetSegmentCount()
+	for i := 0; i < count; i++ {
+		division := section.GetSegment(i)
+		if division.isMultiple() {
+			//at this point we know we will return true, but we determine now if we must throw IncompatibleAddressException
+			isLastFull := true
+			for j := count - 1; j >= 0; j-- {
+				division = section.GetSegment(j)
+				if division.isMultiple() {
+					if !isLastFull {
+						return false, &incompatibleAddressException{key: "ipaddress.error.segmentMismatch"}
+					}
+					isLastFull = division.IsFullRange()
+				} else {
+					isLastFull = false
+				}
+			}
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (section *addressSectionInternal) ToNormalizedWildcardString() string {

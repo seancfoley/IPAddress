@@ -27,9 +27,7 @@ func PrefixEquals(one, two PrefixLen) bool {
 type PrefixLen *BitCount //TODO ensure you check for negative prefix lens everywhere
 
 func cacheBitCount(i BitCount) PrefixLen {
-	//TODO caching
-	bits := i
-	return PrefixLen(&bits)
+	return cache(i)
 }
 
 type Port *int // using signed integers allows for easier arithmetic and decrement bugs
