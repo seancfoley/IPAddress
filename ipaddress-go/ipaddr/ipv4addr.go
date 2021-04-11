@@ -343,6 +343,18 @@ func (addr *IPv4Address) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
 
+func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toOctalString(with0Prefix)
+}
+
+func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toBinaryString(with0bPrefix)
+}
+
 //func (addr *IPv4Address) IsMore(other *IPv4Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}
