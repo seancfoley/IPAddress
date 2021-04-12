@@ -160,13 +160,49 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *MACAddressSection) ToCanonicalString() string {
-	return cacheStr(&section.getStringCache().canonicalString, func() string { return section.toNormalizedOptsString(macCanonicalParams) })
+	return cacheStr(&section.getStringCache().canonicalString,
+		func() string {
+			return section.toNormalizedOptsString(macCanonicalParams)
+		})
 }
 
 func (section *MACAddressSection) ToNormalizedString() string {
-	return cacheStr(&section.getStringCache().normalizedMACString, func() string { return section.toNormalizedOptsString(macNormalizedParams) })
+	return cacheStr(&section.getStringCache().normalizedMACString,
+		func() string {
+			return section.toNormalizedOptsString(macNormalizedParams)
+		})
 }
 
 func (section *MACAddressSection) ToCompressedString() string {
-	return cacheStr(&section.getStringCache().compressedMACString, func() string { return section.toNormalizedOptsString(macCompressedParams) })
+	return cacheStr(&section.getStringCache().compressedMACString,
+		func() string {
+			return section.toNormalizedOptsString(macCompressedParams)
+		})
+}
+
+// ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
+func (section *MACAddressSection) ToDottedString() string {
+	return cacheStr(&section.getStringCache().dottedString,
+		func() string {
+			//TODO AddressDivisionGrouping dottedGrouping = getDottedGrouping();
+			//getStringCache().dottedString = result = toNormalizedString(MACStringCache.dottedParams, dottedGrouping);
+			//return section.toNormalizedOptsString(dottedParams)
+			return ""
+		})
+}
+
+// ToSpaceDelimitedString produces a string delimited by spaces: aa bb cc dd ee ff
+func (section *MACAddressSection) ToSpaceDelimitedString() string {
+	return cacheStr(&section.getStringCache().spaceDelimitedString,
+		func() string {
+			return section.toNormalizedOptsString(spaceDelimitedParams)
+		})
+}
+
+func (section *MACAddressSection) ToDashedString() string {
+	return section.ToCanonicalString()
+}
+
+func (section *MACAddressSection) ToColonDelimitedString() string {
+	return section.ToNormalizedString()
 }

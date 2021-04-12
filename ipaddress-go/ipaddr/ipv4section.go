@@ -430,52 +430,9 @@ func (section *IPv4AddressSection) ToCompressedWildcardString() string {
 //TODO NEXT string methods:
 // You do not need to override in ipv6 to get zones, but you do need a separate method for each in section for addr to call with zone
 // In some cases you do need to override since the strings are different in each, and for ipv6 in particular you typically need to add compression options
-//MAC:
-//	colonDelimited
-//	DONE compressed
-//	dashed
-//	dotted
-//	space
-//	DONE hex with bool
-//  DONE normalized
-//  DONE canonical
-//
-//IPv4
-//	DONE canonicalWildcard
-//	DONE compressed
-//	DONE compressedWildcard
-//	DONE full
-//	InetAton(radix, segs) //this requires AddressDivisionGrouping
-//	DONE normalizedWildcard
-//	DONE prefixLength // yeah, I cannot remember putting that in there
-//	DONE reverseDNS
-//	DONE segmentedBinary
-//	DONE sqlWildcard
-//	DONE subnet
-//  DONE normalized
-//  DONE canonical
-//
-//IPv6
-//	base85
-//	DONE mixed
-//
-//	DONE canonicalWildcard
-//	DONE compressed
-//	DONE compressedWildcard
-//	DONE full
-//	DONE normalizedWildcard
-//	DONE prefixLength // yeah, I cannot remember putting that in there
-//	DONE reverseDNS
-//	DONE segmentedBinary
-//	DONE sqlWildcard
-//	DONE subnet
-//  DONE normalized
-//  DONE canonical
-//
-//base IP
-//	DONE binary
-//	DONE octal with bool
-//	DONE hex with bool
+
+//TODO strings: MAC dotted, IPv4 inet aton, IPv6 base 85
+// I did IPv6 mixed
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)

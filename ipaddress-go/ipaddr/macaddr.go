@@ -250,6 +250,24 @@ func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddr
 	return addr.init().toHexString(with0xPrefix)
 }
 
+// ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
+func (addr *MACAddress) ToDottedString() string {
+	return addr.init().GetSection().ToDottedString()
+}
+
+// ToSpaceDelimitedString produces a string delimited by spaces: aa bb cc dd ee ff
+func (addr *MACAddress) ToSpaceDelimitedString() string {
+	return addr.init().GetSection().ToSpaceDelimitedString()
+}
+
+func (addr *MACAddress) ToDashedString() string {
+	return addr.init().GetSection().ToDashedString()
+}
+
+func (addr *MACAddress) ToColonDelimitedString() string {
+	return addr.init().GetSection().ToColonDelimitedString()
+}
+
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
