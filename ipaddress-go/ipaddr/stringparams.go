@@ -29,6 +29,10 @@ import (
 //	toZonedString(addr IPAddressStringDivisionSeries, zone string) string
 //}
 
+func toNormalizedIPZonedString(opts IPStringOptions, section AddressDivisionSeries, zone Zone) string {
+	return toIPParams(opts).toZonedString(section, zone)
+}
+
 func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) string {
 	return toIPParams(opts).toString(section)
 }

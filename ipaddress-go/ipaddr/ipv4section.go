@@ -16,7 +16,7 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 						addrType:  ipv4Type,
 						cache: &valueCache{
 							stringCache: stringCache{
-								ipxStringCache: &ipxStringCache{},
+								ipStringCache: &ipStringCache{},
 							},
 						},
 					},
@@ -353,7 +353,9 @@ var (
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToCanonicalString() string {
 	return cacheStr(&section.getStringCache().canonicalString,
-		func() string { return section.toNormalizedString(ipv4CanonicalParams) })
+		func() string {
+			return section.toNormalizedString(ipv4CanonicalParams)
+		})
 }
 
 // ToNormalizedString produces a normalized string.
@@ -363,11 +365,63 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 	return section.ToCanonicalString()
 }
 
+func (section *IPv4AddressSection) ToCompressedString() string {
+	return section.ToCanonicalString()
+}
+
+func (section *IPv4AddressSection) ToNormalizedWildcardString() string {
+	return cacheStr(&section.getStringCache().normalizedWildcardString,
+		func() string {
+			return section.toNormalizedString(ipv4NormalizedWildcardParams)
+		})
+}
+
+func (section *IPv4AddressSection) ToCanonicalWildcardString() string {
+	return section.ToNormalizedWildcardString()
+}
+
+func (section *IPv4AddressSection) ToSegmentedBinaryString() string {
+	return cacheStr(&section.getStringCache().segmentedBinaryString,
+		func() string {
+			return section.toNormalizedString(ipv4SegmentedBinaryParams)
+		})
+}
+
+func (section *IPv4AddressSection) ToSQLWildcardString() string {
+	return cacheStr(&section.getStringCache().sqlWildcardString,
+		func() string {
+			return section.toNormalizedString(ipv4SqlWildcardParams)
+		})
+}
+
+func (section *IPv4AddressSection) ToFullString() string {
+	return cacheStr(&section.getStringCache().fullString,
+		func() string {
+			return section.toNormalizedString(ipv4FullParams)
+		})
+}
+
+func (section *IPv4AddressSection) ToReverseDNSString() string {
+	return cacheStr(&section.getStringCache().reverseDNSString,
+		func() string {
+			return section.toNormalizedString(ipv4ReverseDNSParams)
+		})
+}
+
+func (section *IPv4AddressSection) ToPrefixLenString() string {
+	return section.ToCanonicalString()
+}
+
+func (section *IPv4AddressSection) ToSubnetString() string {
+	return section.ToNormalizedWildcardString()
+}
+
+func (section *IPv4AddressSection) ToCompressedWildcardString() string {
+	return section.ToNormalizedWildcardString()
+}
+
 //TODO NEXT
-// 4. do the rest of the string methods - divs are done.  addresses and sections.  canonical and normalized done.  caches done.
-// When it comes to certain strings that are not overridden... what is the plan?
-// I think you have to upscale for the most part,
-// although the majority of strings are IP only
+// 4. do the rest of the string methods - divs are done.  addresses and sections.
 // MAybe do the inet aton, to ensure your absence of ipaddressdivisiongrouping is not a problem
 // so you must combine ipstringparams with addressdivisiongrouping
 // OK, I laid the groundwork for inet aton, I made ipstringParams work with addressDivisionSeries
@@ -378,7 +432,7 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 // In some cases you do need to override since the strings are different in each, and for ipv6 in particular you typically need to add compression options
 //MAC:
 //	colonDelimited
-//	compressed
+//	DONE compressed
 //	dashed
 //	dotted
 //	space
@@ -387,33 +441,34 @@ func (section *IPv4AddressSection) ToNormalizedString() string {
 //  DONE canonical
 //
 //IPv4
-//	canonicalWildcard
-//	compressed
-//	compressedWildcard
-//	full
+//	DONE canonicalWildcard
+//	DONE compressed
+//	DONE compressedWildcard
+//	DONE full
 //	InetAton(radix, segs) //this requires AddressDivisionGrouping
-//	normalizedWildcard
-//	reverseDNS
-//	segmentedBinary
-//	sqlWildcard
-//	subnet
+//	DONE normalizedWildcard
+//	DONE prefixLength // yeah, I cannot remember putting that in there
+//	DONE reverseDNS
+//	DONE segmentedBinary
+//	DONE sqlWildcard
+//	DONE subnet
 //  DONE normalized
 //  DONE canonical
 //
 //IPv6
 //	base85
-//	mixed
+//	DONE mixed
 //
-//	canonicalWildcard
-//	compressed
-//	compressedWildcard
-//	full
-//	normalizedWildcard
-//	prefixLength // yeah, I cannot remember putting that in there
-//	reverseDNS
-//	segmentedBinary
-//	sqlWildcard
-//	subnet
+//	DONE canonicalWildcard
+//	DONE compressed
+//	DONE compressedWildcard
+//	DONE full
+//	DONE normalizedWildcard
+//	DONE prefixLength // yeah, I cannot remember putting that in there
+//	DONE reverseDNS
+//	DONE segmentedBinary
+//	DONE sqlWildcard
+//	DONE subnet
 //  DONE normalized
 //  DONE canonical
 //

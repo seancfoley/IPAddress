@@ -142,6 +142,93 @@ func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, Incomp
 	return addr.section.ToIPAddressSection().ToBinaryString(with0bPrefix)
 }
 
+func (addr *ipAddressInternal) toCanonicalWildcardString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().canonicalWildcardString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toCanonicalWildcardStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToCanonicalWildcardString()
+}
+
+func (addr *ipAddressInternal) toNormalizedWildcardString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().normalizedWildcardString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toNormalizedWildcardStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToNormalizedWildcardString()
+}
+
+func (addr *ipAddressInternal) toSegmentedBinaryString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().segmentedBinaryString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toSegmentedBinaryStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToSegmentedBinaryString()
+}
+
+func (addr *ipAddressInternal) toSQLWildcardString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().sqlWildcardString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toSQLWildcardStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToSQLWildcardString()
+}
+
+func (addr *ipAddressInternal) toFullString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().fullString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toFullStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToFullString()
+}
+
+func (addr *ipAddressInternal) toReverseDNSString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().reverseDNSString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToReverseDNSString()
+}
+
+func (addr *ipAddressInternal) toPrefixLengthString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().networkPrefixLengthString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toPrefixLenStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToPrefixLengthString()
+}
+
+func (addr *ipAddressInternal) toSubnetString() string {
+	if addr.hasZone() {
+		return addr.toPrefixLengthString()
+	}
+	return addr.section.ToIPAddressSection().ToSubnetString()
+}
+
+func (addr *ipAddressInternal) toCompressedWildcardString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().compressedWildcardString,
+			func() string {
+				return addr.section.ToIPv6AddressSection().toCompressedWildcardStringZoned(addr.zone)
+			})
+	}
+	return addr.section.ToIPAddressSection().ToCompressedWildcardString()
+}
+
 //func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
 //	return addr.GetSegment(index)
 //}
@@ -442,12 +529,60 @@ func (addr *IPAddress) ToCanonicalString() string {
 	return addr.init().toCanonicalString()
 }
 
+func (addr *IPAddress) ToCanonicalWildcardString() string {
+	return addr.init().toCanonicalWildcardString()
+}
+
 func (addr *IPAddress) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
 
+func (addr *IPAddress) ToCompressedString() string {
+	return addr.init().toCompressedString()
+}
+
 func (addr *IPAddress) ToNormalizedWildcardString() string {
 	return addr.init().toNormalizedWildcardString()
+}
+
+func (addr *IPAddress) ToSegmentedBinaryString() string {
+	return addr.init().toSegmentedBinaryString()
+}
+
+func (addr *IPAddress) ToSQLWildcardString() string {
+	return addr.init().toSQLWildcardString()
+}
+
+func (addr *IPAddress) ToFullString() string {
+	return addr.init().toFullString()
+}
+
+func (addr *IPAddress) ToReverseDNSString() string {
+	return addr.init().toReverseDNSString()
+}
+
+func (addr *IPAddress) ToPrefixLengthString() string {
+	return addr.init().toPrefixLengthString()
+}
+
+func (addr *IPAddress) ToSubnetString() string {
+	return addr.init().toSubnetString()
+}
+
+func (addr *IPAddress) ToCompressedWildcardString() string {
+	return addr.init().toCompressedWildcardString()
+}
+
+func (addr *IPAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *IPAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toOctalString(with0Prefix)
+}
+
+func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toBinaryString(with0bPrefix)
 }
 
 // Generates an IPAddressString object for this IPAddress object.

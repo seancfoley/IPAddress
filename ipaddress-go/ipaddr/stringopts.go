@@ -412,7 +412,7 @@ func NewMACStringOptionsBuilder() *StringOptionsBuilder {
 	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)
 }
 
-// NewIPv6StringOptionsBuilder returns a builder with default options set to create a specific type of IPv4 address string.
+// NewIPv6StringOptionsBuilder returns a builder with default options set to create a specific type of IPv6 address string.
 func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
 	opts := IPv6StringOptionsBuilder{}
 	return opts.SetRadix(IPv6DefaultTextualRadix).SetSeparator(IPv6SegmentSeparator)

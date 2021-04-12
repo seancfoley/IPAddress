@@ -300,8 +300,85 @@ func (section *ipAddressSectionInternal) toBinaryStringZoned(with0bPrefix bool, 
 	return section.toLongStringZoned(zone, binaryParams)
 }
 
-func (section *ipAddressSectionInternal) toNormalizedIPOptsString(stringOptions IPStringOptions) string {
-	return toNormalizedIPString(stringOptions, section)
+func (section *ipAddressSectionInternal) ToNormalizedWildcardString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToNormalizedWildcardString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToNormalizedWildcardString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToCanonicalWildcardString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToCanonicalWildcardString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToCanonicalWildcardString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToSegmentedBinaryString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToSegmentedBinaryString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToSegmentedBinaryString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToSQLWildcardString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToSQLWildcardString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToSQLWildcardString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToFullString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToFullString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToFullString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToReverseDNSString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToReverseDNSString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToReverseDNSString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToPrefixLengthString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToPrefixLengthString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToPrefixLengthString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToSubnetString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToNormalizedWildcardString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToPrefixLengthString()
+	}
+	return "0"
+}
+
+func (section *ipAddressSectionInternal) ToCompressedWildcardString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToCompressedWildcardString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToCompressedWildcardString()
+	}
+	return "0"
 }
 
 func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {

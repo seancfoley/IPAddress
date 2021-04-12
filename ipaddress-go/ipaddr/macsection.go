@@ -21,7 +21,7 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 					addrType:  macType,
 					cache: &valueCache{
 						stringCache: stringCache{
-							macxStringCache: &macxStringCache{},
+							macStringCache: &macStringCache{},
 						},
 					},
 				},
@@ -164,5 +164,9 @@ func (section *MACAddressSection) ToCanonicalString() string {
 }
 
 func (section *MACAddressSection) ToNormalizedString() string {
-	return cacheStr(&section.getStringCache().normalizedString, func() string { return section.toNormalizedOptsString(macNormalizedParams) })
+	return cacheStr(&section.getStringCache().normalizedMACString, func() string { return section.toNormalizedOptsString(macNormalizedParams) })
+}
+
+func (section *MACAddressSection) ToCompressedString() string {
+	return cacheStr(&section.getStringCache().compressedMACString, func() string { return section.toNormalizedOptsString(macCompressedParams) })
 }

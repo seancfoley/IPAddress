@@ -572,22 +572,25 @@ func (addr *addressInternal) getStringCache() *stringCache {
 func (addr *addressInternal) toCanonicalString() string {
 	if addr.hasZone() {
 		return cacheStr(&addr.getStringCache().canonicalString,
-			func() string { return addr.section.toCanonicalString(addr.zone) })
+			func() string { return addr.section.ToIPv6AddressSection().toCanonicalString(addr.zone) })
 	}
 	return addr.section.ToCanonicalString()
 }
 
-func (addr *addressInternal) toCanonicalWildcardString() string {
-	//TODO
-	return ""
-}
-
 func (addr *addressInternal) toNormalizedString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().canonicalString,
-			func() string { return addr.section.toNormalizedString(addr.zone) })
+		return cacheStr(&addr.getStringCache().normalizedIPv6String,
+			func() string { return addr.section.ToIPv6AddressSection().toNormalizedString(addr.zone) })
 	}
 	return addr.section.ToNormalizedString()
+}
+
+func (addr *addressInternal) toCompressedString() string {
+	if addr.hasZone() {
+		return cacheStr(&addr.getStringCache().compressedIPv6String,
+			func() string { return addr.section.ToIPv6AddressSection().toCompressedString(addr.zone) })
+	}
+	return addr.section.ToCompressedString()
 }
 
 func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
@@ -604,11 +607,6 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 			})
 	}
 	return addr.section.ToHexString(with0xPrefix)
-}
-
-func (addr *addressInternal) toNormalizedWildcardString() string {
-	//TODO
-	return ""
 }
 
 var zeroAddr = &Address{
@@ -732,6 +730,14 @@ func (addr *Address) ToCanonicalString() string {
 
 func (addr *Address) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
+}
+
+func (addr *Address) ToCompressedString() string {
+	return addr.init().toCompressedString()
+}
+
+func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+	return addr.init().toHexString(with0xPrefix)
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

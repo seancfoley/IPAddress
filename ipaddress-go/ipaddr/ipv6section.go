@@ -16,7 +16,7 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 						cache: &valueCache{
 							stringCache: stringCache{
 								ipv6StringCache: &ipv6StringCache{},
-								ipxStringCache:  &ipxStringCache{},
+								ipStringCache:   &ipStringCache{},
 							},
 						},
 						addrType: ipv6Type,
@@ -417,7 +417,7 @@ var (
 	ipv6CanonicalParams = NewIPv6StringOptionsBuilder().SetCompressOptions(compressAllNoSingles).ToOptions()
 	uncParams           = NewIPv6StringOptionsBuilder().SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
 				SetAddressSuffix(IPv6UncSuffix).SetWildcardOptions(uncWildcards).ToOptions()
-	iov6CompressedParams         = NewIPv6StringOptionsBuilder().SetCompressOptions(compressAll).ToOptions()
+	ipv6CompressedParams         = NewIPv6StringOptionsBuilder().SetCompressOptions(compressAll).ToOptions()
 	ipv6normalizedParams         = NewIPv6StringOptionsBuilder().ToOptions()
 	canonicalWildcardParams      = NewIPv6StringOptionsBuilder().SetWildcardOptions(allWildcards).SetCompressOptions(compressZerosNoSingles).ToOptions()
 	ipv6NormalizedWildcardParams = NewIPv6StringOptionsBuilder().SetWildcardOptions(allWildcards).ToOptions()    //no compression
@@ -436,34 +436,148 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
-	return cacheStr(&section.getStringCache().canonicalString, func() string { return section.toNormalizedZonedString(ipv6CanonicalParams, noZone) })
-
-}
-
-func (section *IPv6AddressSection) toCanonicalString(zone Zone) string {
-	return section.toNormalizedZonedString(ipv6CanonicalParams, zone)
+	return cacheStr(&section.getStringCache().canonicalString,
+		func() string {
+			return section.toCanonicalString(noZone)
+		})
 }
 
 // ToNormalizedString produces a normalized string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToNormalizedString() string {
-	return cacheStr(&section.getStringCache().normalizedString, func() string { return section.toNormalizedZonedString(ipv6normalizedParams, noZone) })
+	return cacheStr(&section.getStringCache().normalizedIPv6String,
+		func() string {
+			return section.toNormalizedString(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToCompressedString() string {
+	return cacheStr(&section.getStringCache().compressedIPv6String,
+		func() string {
+			return section.toCompressedString(noZone)
+		})
+}
+
+// This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
+func (section *IPv6AddressSection) ToMixedString() string {
+	return cacheStr(&section.getStringCache().normalizedIPv6String,
+		func() string {
+			return section.toMixedStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToNormalizedWildcardString() string {
+	return cacheStr(&section.getStringCache().normalizedWildcardString,
+		func() string {
+			return section.toNormalizedWildcardStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToCanonicalWildcardString() string {
+	return cacheStr(&section.getStringCache().canonicalWildcardString,
+		func() string {
+			return section.toCanonicalWildcardStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToSegmentedBinaryString() string {
+	return cacheStr(&section.getStringCache().segmentedBinaryString,
+		func() string {
+			return section.toSegmentedBinaryStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToSQLWildcardString() string {
+	return cacheStr(&section.getStringCache().sqlWildcardString,
+		func() string {
+			return section.toSQLWildcardStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToFullString() string {
+	return cacheStr(&section.getStringCache().fullString,
+		func() string {
+			return section.toFullStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToReverseDNSString() string {
+	return cacheStr(&section.getStringCache().reverseDNSString,
+		func() string {
+			return section.toReverseDNSStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToPrefixLenString() string {
+	return cacheStr(&section.getStringCache().networkPrefixLengthString,
+		func() string {
+			return section.toPrefixLenStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) ToSubnetString() string {
+	return section.ToPrefixLenString()
+}
+
+func (section *IPv6AddressSection) ToCompressedWildcardString() string {
+	return cacheStr(&section.getStringCache().compressedWildcardString,
+		func() string {
+			return section.toCompressedWildcardStringZoned(noZone)
+		})
+}
+
+func (section *IPv6AddressSection) toCanonicalString(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6CanonicalParams, zone)
 }
 
 func (section *IPv6AddressSection) toNormalizedString(zone Zone) string {
 	return section.toNormalizedZonedString(ipv6normalizedParams, zone)
 }
 
-// This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
-func (section *IPv6AddressSection) ToMixedString() string {
-	//TODO caching
-	return section.toNormalizedZonedString(mixedParams, noZone)
+func (section *IPv6AddressSection) toCompressedString(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6CompressedParams, zone)
 }
 
-//func (section *IPv6AddressSection) toNormalizedStringWithOptions(stringOptions IPv6StringOptions) string {
-//	return section.toNormalizedZonedString(stringOptions, noZone)
-//}
+func (section *IPv6AddressSection) toMixedStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(mixedParams, zone)
+}
+
+func (section *IPv6AddressSection) toNormalizedWildcardStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6NormalizedWildcardParams, zone)
+}
+
+func (section *IPv6AddressSection) toCanonicalWildcardStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(canonicalWildcardParams, zone)
+}
+
+func (section *IPv6AddressSection) toSegmentedBinaryStringZoned(zone Zone) string {
+	return section.toNormalizedIPOptsString(ipv6SegmentedBinaryParams, zone)
+}
+
+func (section *IPv6AddressSection) toSQLWildcardStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6SqlWildcardParams, zone)
+}
+
+func (section *IPv6AddressSection) toFullStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6FullParams, zone)
+}
+
+func (section *IPv6AddressSection) toReverseDNSStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(ipv6ReverseDNSParams, zone)
+}
+
+func (section *IPv6AddressSection) toPrefixLenStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(networkPrefixLengthParams, zone)
+}
+
+func (section *IPv6AddressSection) toCompressedWildcardStringZoned(zone Zone) string {
+	return section.toNormalizedZonedString(wildcardCompressedParams, zone)
+}
+
+func (section *IPv6AddressSection) toNormalizedIPOptsString(stringOptions IPStringOptions, zone Zone) string {
+	return toNormalizedIPZonedString(stringOptions, section, zone)
+}
 
 func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOptions, zone Zone) string {
 	var stringParams *ipv6StringParams

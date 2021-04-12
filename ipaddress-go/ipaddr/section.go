@@ -429,30 +429,6 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 	return &section.cache.stringCache
 }
 
-//func (section *addressSectionInternal) ToNormalizedString() string {
-//	if sect := section.toIPv4AddressSection(); sect != nil {
-//		return sect.ToNormalizedString()
-//	} else if sect := section.toIPv6AddressSection(); sect != nil {
-//		return sect.toNormalizedString()
-//	} else if sect := section.toMACAddressSection(); sect != nil {
-//		return sect.ToNormalizedString()
-//	}
-//
-//	cacheStr(&section.getStringCache().cachedNormalizedString, func() string {return section.toNormalizedString(noZone)})
-//	xxx
-//	use fake cache if no divisions
-//	do I have to do the cache thing in each sub type?  ugh
-//	we are scaling up because each sub type has their own options/params
-//
-//	so i guess we should only do the caching code line above in each subtype since we are scaling up everywhere
-//	that is what we did with GetCount and cacheCount
-//	xxx
-//
-//	OK, I believe I just need the one liner above in the subtypes, and I need to scale up in here for each string method
-//
-//	return section.toNormalizedString(noZone)
-//}
-
 var (
 	hexParams            = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
 	hexPrefixedParams    = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
@@ -479,18 +455,6 @@ func (section *addressSectionInternal) ToCanonicalString() string {
 	return "0"
 }
 
-func (section *addressSectionInternal) toCanonicalString(zone Zone) string {
-	if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.toCanonicalString(zone)
-	}
-	return section.ToCanonicalString()
-}
-
-func (section *addressSectionInternal) ToCanonicalWildcardString() string {
-	//TODO
-	return ""
-}
-
 func (section *addressSectionInternal) ToNormalizedString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
@@ -502,16 +466,22 @@ func (section *addressSectionInternal) ToNormalizedString() string {
 	return "0"
 }
 
-func (section *addressSectionInternal) toNormalizedString(zone Zone) string {
-	if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.toNormalizedString(zone)
+func (section *addressSectionInternal) ToCompressedString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.ToCompressedString()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.ToCompressedString()
+	} else if sect := section.toMACAddressSection(); sect != nil {
+		return sect.ToCompressedString()
 	}
-	return section.ToNormalizedString()
+	return "0"
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
 	return cacheStrErr(&section.getStringCache().canonicalString,
-		func() (string, IncompatibleAddressException) { return section.toHexStringZoned(with0xPrefix, noZone) })
+		func() (string, IncompatibleAddressException) {
+			return section.toHexStringZoned(with0xPrefix, noZone)
+		})
 }
 
 func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressException) {
@@ -559,11 +529,6 @@ func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddress
 		}
 	}
 	return false, nil
-}
-
-func (section *addressSectionInternal) ToNormalizedWildcardString() string {
-	//TODO
-	return ""
 }
 
 func (section *addressSectionInternal) GetSegmentStrings() []string {

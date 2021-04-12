@@ -242,17 +242,13 @@ func (addr *MACAddress) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
 
+func (addr *MACAddress) ToCompressedString() string {
+	return addr.init().toCompressedString()
+}
+
 func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
 	return addr.init().toHexString(with0xPrefix)
 }
-
-//func (addr *MACAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
-//	return addr.init().toOctalString(with0Prefix)
-//}
-//
-//func (addr *MACAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
-//	return addr.init().toBinaryString(with0bPrefix)
-//}
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()

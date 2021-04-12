@@ -321,7 +321,7 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 }
 
 type valueCache struct {
-	//	Cache lock is used for some fields, but not all, some use atomic reads/writes of pointers
+	//	Cache lock is used for some fields, but not all, most use atomic reads/writes of pointers
 	cacheLock sync.RWMutex
 
 	//cachedCount, cachedPrefixCount *countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
@@ -342,7 +342,7 @@ type valueCache struct {
 	embeddedIPv4Section        *IPv4AddressSection
 }
 
-type ipxStringCache struct {
+type ipStringCache struct {
 	normalizedWildcardString,
 	fullString,
 	sqlWildcardString,
@@ -356,8 +356,8 @@ type ipxStringCache struct {
 }
 
 type ipv6StringCache struct {
-	normalizedString,
-	compressedString,
+	normalizedIPv6String,
+	compressedIPv6String,
 	mixedString,
 	compressedWildcardString,
 	canonicalWildcardString,
@@ -365,9 +365,9 @@ type ipv6StringCache struct {
 	base85String *string
 }
 
-type macxStringCache struct {
-	normalizedString,
-	compressedString,
+type macStringCache struct {
+	normalizedMACString,
+	compressedMACString,
 	dottedString,
 	spaceDelimitedString *string
 }
@@ -379,9 +379,9 @@ type stringCache struct {
 
 	*ipv6StringCache
 
-	*ipxStringCache
+	*ipStringCache
 
-	*macxStringCache
+	*macStringCache
 }
 
 var zeroStringCache stringCache

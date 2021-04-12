@@ -220,6 +220,8 @@ func main() {
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
 	str = ipv6Sect.ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
+	str, _ = addrStrPref7.GetAddress().ToBinaryString(true)
+	fmt.Printf("\nIPv6 binary string is %s", str)
 
 	addrStrPref8 := ipaddr.NewIPAddressString("1::4:5:6:7:8fff/64", nil)
 	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()

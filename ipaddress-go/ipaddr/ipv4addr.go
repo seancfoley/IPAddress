@@ -343,6 +343,46 @@ func (addr *IPv4Address) ToNormalizedString() string {
 	return addr.init().toNormalizedString()
 }
 
+func (addr *IPv4Address) ToCompressedString() string {
+	return addr.init().toCompressedString()
+}
+
+func (addr *IPv4Address) ToCanonicalWildcardString() string {
+	return addr.init().toCanonicalWildcardString()
+}
+
+func (addr *IPv4Address) ToNormalizedWildcardString() string {
+	return addr.init().toNormalizedWildcardString()
+}
+
+func (addr *IPv4Address) ToSegmentedBinaryString() string {
+	return addr.init().toSegmentedBinaryString()
+}
+
+func (addr *IPv4Address) ToSQLWildcardString() string {
+	return addr.init().toSQLWildcardString()
+}
+
+func (addr *IPv4Address) ToFullString() string {
+	return addr.init().toFullString()
+}
+
+func (addr *IPv4Address) ToReverseDNSString() string {
+	return addr.init().toReverseDNSString()
+}
+
+func (addr *IPv4Address) ToPrefixLengthString() string {
+	return addr.init().toPrefixLengthString()
+}
+
+func (addr *IPv4Address) ToSubnetString() string {
+	return addr.init().toSubnetString()
+}
+
+func (addr *IPv4Address) ToCompressedWildcardString() string {
+	return addr.init().toCompressedWildcardString()
+}
+
 func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
 	return addr.init().toHexString(with0xPrefix)
 }
