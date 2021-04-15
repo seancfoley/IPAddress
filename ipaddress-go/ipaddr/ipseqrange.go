@@ -640,6 +640,10 @@ func checkSubnet(series AddressDivisionSeries, prefixLength BitCount) BitCount {
 	return checkBitCount(prefixLength, series.GetBitCount())
 }
 
+func checkDiv(div AddressGenericDivision, prefixLength BitCount) BitCount {
+	return checkBitCount(prefixLength, div.GetBitCount())
+}
+
 func checkBitCount(prefixLength, max BitCount) BitCount {
 	if prefixLength > max {
 		return max

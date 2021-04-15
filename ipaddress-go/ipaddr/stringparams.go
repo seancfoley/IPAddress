@@ -187,6 +187,72 @@ func (opts *ipv6StringOptions) from(addr *IPv6AddressSection) (res *ipv6StringPa
 	return res
 }
 
+type divStringProvider interface {
+	getLowerStringLength(radix int) int
+
+	getUpperStringLength(radix int) int
+
+	getLowerString(radix int, uppercase bool, appendable *strings.Builder)
+
+	getLowerStringChopped(radix int, choppedDigits int, uppercase bool, appendable *strings.Builder)
+
+	getUpperString(radix int, uppercase bool, appendable *strings.Builder)
+
+	getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder)
+
+	getSplitLowerString(radix int, choppedDigits int, uppercase bool,
+		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder)
+
+	getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
+		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException
+
+	getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
+		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int
+
+	getRangeDigitCount(radix int) int
+
+	// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
+	adjustLowerLeadingZeroCount(leadingZeroCount int, radix int) int
+
+	// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
+	adjustUpperLeadingZeroCount(leadingZeroCount int, radix int) int
+
+	getMaxDigitCountRadix(radix int) int
+
+	// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
+	getDefaultTextualRadix() int // put this in divisionValues perhaps?  or use addrType
+
+	// returns the number of digits for the maximum possible value of the division when using the default radix
+	getMaxDigitCount() int
+
+	// A simple string using just the lower value and the default radix.
+	getDefaultLowerString() string
+
+	// A simple string using just the lower and upper values and the default radix, separated by the default range character.
+	getDefaultRangeString() string
+
+	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
+	//
+	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
+	//
+	// For instance, generally the '*' is used as a wildcard to denote all possible values for a given segment,
+	// but in some cases that character is used for a segment separator.
+	//
+	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
+	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
+	//getDefaultSegmentWildcardString() string //TODO not sure this needs to be here
+
+	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
+	//
+	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
+	//
+	//For instance, generally the '-' is used as a range separator, but in some cases that character is used for a segment separator.
+	//
+	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
+	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
+	getDefaultRangeSeparatorString() string
+}
+
 // Each segment params has settings to write exactly one type of IP address part string segment.
 type addressSegmentParams interface {
 	getWildcards() Wildcards
@@ -561,73 +627,6 @@ func (params *addressStringParams) isReverseSplitDigits() bool {
 //		getStringAsLower which is really getDefaultLowerString,
 //		getWildcardString,
 //		getString
-
-//TODO this needs to be moved since it's in the middle of addressStringParams
-type divStringProvider interface {
-	getLowerStringLength(radix int) int
-
-	getUpperStringLength(radix int) int
-
-	getLowerString(radix int, uppercase bool, appendable *strings.Builder)
-
-	getLowerStringChopped(radix int, choppedDigits int, uppercase bool, appendable *strings.Builder)
-
-	getUpperString(radix int, uppercase bool, appendable *strings.Builder)
-
-	getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder)
-
-	getSplitLowerString(radix int, choppedDigits int, uppercase bool,
-		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder)
-
-	getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
-		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException
-
-	getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
-		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int
-
-	getRangeDigitCount(radix int) int
-
-	// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
-	adjustLowerLeadingZeroCount(leadingZeroCount int, radix int) int
-
-	// if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
-	adjustUpperLeadingZeroCount(leadingZeroCount int, radix int) int
-
-	getMaxDigitCountRadix(radix int) int
-
-	// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
-	getDefaultTextualRadix() int // put this in divisionValues perhaps?  or use addrType
-
-	// returns the number of digits for the maximum possible value of the division when using the default radix
-	getMaxDigitCount() int
-
-	// A simple string using just the lower value and the default radix.
-	getDefaultLowerString() string
-
-	// A simple string using just the lower and upper values and the default radix, separated by the default range character.
-	getDefaultRangeString() string
-
-	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
-	//
-	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
-	//
-	// For instance, generally the '*' is used as a wildcard to denote all possible values for a given segment,
-	// but in some cases that character is used for a segment separator.
-	//
-	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
-	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
-	//getDefaultSegmentWildcardString() string //TODO not sure this needs to be here
-
-	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
-	//
-	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
-	//
-	//For instance, generally the '-' is used as a range separator, but in some cases that character is used for a segment separator.
-	//
-	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
-	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
-	getDefaultRangeSeparatorString() string
-}
 
 //
 //
@@ -1768,8 +1767,6 @@ func (writer stringWriter) getRangeDigitString(segmentIndex int, params addressS
 
 func (writer stringWriter) adjustRangeDigits(rangeDigits int) int {
 	if rangeDigits != 0 {
-		//div := writer.div
-
 		//Note: ranges like ___ intended to represent 0-fff cannot work because the range does not include 2 digit and 1 digit numbers
 		//This only happens when the lower value is 0 and there is more than 1 range digit
 		//That's because you can then omit any leading zeros.
@@ -1921,7 +1918,7 @@ func getLeadingZeros(leadingZeroCount int, builder *strings.Builder) {
 	}
 }
 
-var zeros = "00000000000000000000"
+const zeros = "00000000000000000000"
 
 func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressSection, zone Zone) string {
 	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
@@ -1939,20 +1936,3 @@ func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressS
 	checkLengths(length, &builder)
 	return builder.String()
 }
-
-//func toNormalizedIPStringRange(params *ipAddressStringParams, lower, upper *AddressSection, zone Zone) string {
-//	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
-//	var builder strings.Builder
-//	separator := params.getWildcards().GetRangeSeparator()
-//	if separator != "" {
-//		length += len(separator)
-//		builder.Grow(length)
-//		params.append(&builder, lower).WriteString(separator)
-//		params.appendZoned(&builder, upper, zone)
-//	} else {
-//		builder.Grow(length)
-//		params.appendZoned(params.append(&builder, lower), upper, zone)
-//	}
-//	checkLengths(length, &builder)
-//	return builder.String()
-//}

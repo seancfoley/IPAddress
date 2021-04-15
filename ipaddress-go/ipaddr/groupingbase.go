@@ -355,6 +355,11 @@ type ipStringCache struct {
 	segmentedBinaryString *string
 }
 
+type ipv4StringCache struct {
+	inetAtonOctalString,
+	inetAtonHexString *string
+}
+
 type ipv6StringCache struct {
 	normalizedIPv6String,
 	compressedIPv6String,
@@ -378,6 +383,8 @@ type stringCache struct {
 	hexString, hexStringPrefixed *string
 
 	*ipv6StringCache
+
+	*ipv4StringCache
 
 	*ipStringCache
 

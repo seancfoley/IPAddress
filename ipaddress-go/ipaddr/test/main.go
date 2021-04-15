@@ -214,6 +214,14 @@ func main() {
 	str = sect.ToCanonicalString()
 	fmt.Printf("\nString with prefix length is %s", str)
 
+	ipv4Addr = addrStrPref6.GetAddress().ToIPv4Address()
+	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 2)
+	fmt.Printf("\nInet Aton string with prefix length is %s", str)
+	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 1)
+	fmt.Printf("\nInet Aton string with prefix length is %s", str)
+	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 0)
+	fmt.Printf("\nInet Aton string with prefix length is %s", str)
+
 	addrStrPref7 := ipaddr.NewIPAddressString("1:2:3:4::/64", nil)
 	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
@@ -222,6 +230,9 @@ func main() {
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 	str, _ = addrStrPref7.GetAddress().ToBinaryString(true)
 	fmt.Printf("\nIPv6 binary string is %s", str)
+
+	str = addrStrPref7.GetAddress().ToSegmentedBinaryString()
+	fmt.Printf("\nIPv6 segmented binary string is %s", str)
 
 	addrStrPref8 := ipaddr.NewIPAddressString("1::4:5:6:7:8fff/64", nil)
 	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()

@@ -985,7 +985,7 @@ func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
 	if digs, ok := theMap[key]; ok {
 		return digs
 	}
-	digs := getDigitCount(maxValue, radix)
+	digs := getDigitCount(maxValue, bitCount, radix)
 	newMaxDigitMap := make(map[uint64]int)
 	for k, val := range theMap {
 		newMaxDigitMap[k] = val
@@ -996,41 +996,28 @@ func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
 	return digs
 }
 
-func getDigitCount(value uint64, radix int) int {
+func getDigitCount(maxValue uint64, bitCount BitCount, radix int) int {
 	result := 1
 	if radix == 16 {
-		for {
-			value >>= 4
-			if value == 0 {
-				break
-			}
-			result++
-		}
+		return int(bitCount >> 2)
 	} else {
 		if radix == 10 {
-			if value < 10 {
+			if maxValue < 10 {
 				return 1
-			} else if value < 100 {
+			} else if maxValue < 100 {
 				return 2
-			} else if value < 1000 {
+			} else if maxValue < 1000 {
 				return 3
 			}
-			value /= 1000
+			maxValue /= 1000
 			result = 3 //we start with 3 in the loop below
 		} else if radix == 8 {
-			for {
-				value >>= 3
-				if value == 0 {
-					break
-				}
-				result++
-			}
-			return result
+			return int(bitCount / 3)
 		}
 		rad64 := uint64(radix)
 		for {
-			value /= rad64
-			if value == 0 {
+			maxValue /= rad64
+			if maxValue == 0 {
 				break
 			}
 			result++

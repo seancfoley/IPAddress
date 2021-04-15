@@ -16,7 +16,8 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 						addrType:  ipv4Type,
 						cache: &valueCache{
 							stringCache: stringCache{
-								ipStringCache: &ipStringCache{},
+								ipStringCache:   &ipStringCache{},
+								ipv4StringCache: &ipv4StringCache{},
 							},
 						},
 					},
@@ -342,8 +343,8 @@ var (
 	ipv4NormalizedWildcardParams = NewIPv4StringOptionsBuilder().SetWildcardOptions(allWildcards).ToOptions()
 	ipv4SqlWildcardParams        = NewIPv4StringOptionsBuilder().SetWildcardOptions(allSQLWildcards).ToOptions()
 
-	inetAtonOctalParams       = NewIPv4StringOptionsBuilder().SetRadix(inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
-	inetAtonHexParams         = NewIPv4StringOptionsBuilder().SetRadix(inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
+	inetAtonOctalParams       = NewIPv4StringOptionsBuilder().SetRadix(Inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
+	inetAtonHexParams         = NewIPv4StringOptionsBuilder().SetRadix(Inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
 	ipv4ReverseDNSParams      = NewIPv4StringOptionsBuilder().SetWildcardOptions(allWildcards).SetReverse(true).SetAddressSuffix(IPv4ReverseDnsSuffix).ToOptions()
 	ipv4SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv4SegmentSeparator).SetSegmentStrPrefix(BinaryStrPrefix).ToOptions()
 )
@@ -420,50 +421,335 @@ func (section *IPv4AddressSection) ToCompressedWildcardString() string {
 	return section.ToNormalizedWildcardString()
 }
 
-//TODO NEXT
-// 4. do the rest of the string methods - divs are done.  addresses and sections.
-// MAybe do the inet aton, to ensure your absence of ipaddressdivisiongrouping is not a problem
-// so you must combine ipstringparams with addressdivisiongrouping
-// OK, I laid the groundwork for inet aton, I made ipstringParams work with addressDivisionSeries
-// So need to create someting like the IPv4JOinedSegments and use that with ipStringParams
+func (section *IPv4AddressSection) ToInetAtonString(radix Inet_aton_radix) string {
+	if radix == Inet_aton_radix_octal {
+		return cacheStr(&section.getStringCache().inetAtonOctalString,
+			func() string {
+				return section.toNormalizedString(inetAtonOctalParams)
+			})
+	} else if radix == Inet_aton_radix_hex {
+		return cacheStr(&section.getStringCache().inetAtonHexString,
+			func() string {
+				return section.toNormalizedString(inetAtonHexParams)
+			})
+	} else {
+		return section.ToCanonicalString()
+	}
+}
 
-//TODO NEXT string methods:
-// You do not need to override in ipv6 to get zones, but you do need a separate method for each in section for addr to call with zone
-// In some cases you do need to override since the strings are different in each, and for ipv6 in particular you typically need to add compression options
+func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressException) {
+	if joinedCount <= 0 {
+		return section.ToInetAtonString(radix), nil
+	}
+	var stringParams IPStringOptions
+	if radix == Inet_aton_radix_octal {
+		stringParams = inetAtonOctalParams
+	} else if radix == Inet_aton_radix_hex {
+		stringParams = inetAtonHexParams
+	} else {
+		stringParams = ipv4CanonicalParams
+	}
+	return section.ToNormalizedJoinedString(stringParams, joinedCount)
+}
 
-//TODO strings: MAC dotted, IPv4 inet aton, IPv6 base 85
-// I did IPv6 mixed
+func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStringOptions, joinedCount int) (string, IncompatibleAddressException) {
+	if joinedCount <= 0 || section.GetSegmentCount() <= 1 {
+		return section.toNormalizedString(stringParams), nil
+	}
+	equivalentPart, err := section.ToJoinedSegments(joinedCount) // AddressDivisionSeries
+	if err != nil {
+		return "", err
+	}
+	return toNormalizedIPString(stringParams, equivalentPart), nil
+}
+
+func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivisionSeries, IncompatibleAddressException) {
+	thisCount := section.GetSegmentCount()
+	if joinCount <= 0 || thisCount <= 1 {
+		return section, nil
+	}
+	var totalCount int
+	if joinCount >= thisCount {
+		joinCount = thisCount - 1
+		totalCount = 1
+	} else {
+		totalCount = thisCount - joinCount
+	}
+	joinedSegment, err := section.joinSegments(joinCount) //IPv4JoinedSegments
+	if err != nil {
+		return nil, err
+	}
+	notJoinedCount := totalCount - 1
+	segs := make([]*AddressDivision, totalCount)
+	section.copySubSegmentsToSlice(0, notJoinedCount, segs)
+	segs[notJoinedCount] = joinedSegment
+	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLength(), zeroType, 0)
+	//IPAddressDivisionGrouping equivalentPart = new IPAddressDivisionGrouping(segs, getNetwork());
+	return equivalentPart, nil
+	//createInitializedGrouping
+}
+
+func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision, IncompatibleAddressException) {
+	//  it seems IPv4JoinedSegments override getMaxDigitCount, getBitCount, some others
+	// the design I used was intended to handle IPAddressLargeDivision and other such impls like this
+	// So I guess this must be passed in as AddressDivisionSeries/GenericDivision
+	// We moved a lot of the string methods into stringwriter, wrapping GenericDivision, such as getLowerStandardString
+	// And those methods no longer operate on virtual methods of the target GenericDivision, instead they are top-down interface impl calls
+	//  so we do need those methods in our joined segment type, but should be fine once they're there
+
+	//xxxx
+	//ok, I think I need to supply my own divisionValues
+	//
+	//either that or I override a lot of stuff, inlcuding getDivisionValue and getUpperDivisionValue and getBitCount
+	//
+	//I think it makes the most sense to supply my own divisionValues, why supply ipv4 divisionValues that do not apply then override?
+	//
+	//Once that is done, do I need to override anything?  no
+	//xxx
+	var lower, upper DivInt
+	var prefix PrefixLen
+	var networkPrefixLength BitCount
+
+	var firstRange *IPv4AddressSegment
+	firstJoinedIndex := section.GetSegmentCount() - 1 - joinCount
+	bitsPerSeg := section.GetBitsPerSegment()
+	for j := 0; j <= joinCount; j++ {
+		thisSeg := section.GetSegment(firstJoinedIndex + j)
+		if firstRange != nil {
+			if !thisSeg.IsFullRange() {
+				return nil, &incompatibleAddressException{key: "ipaddress.error.segmentMismatch"}
+			}
+		} else if thisSeg.isMultiple() {
+			firstRange = thisSeg
+		}
+		lower = (lower << bitsPerSeg) | DivInt(thisSeg.getSegmentValue())
+		upper = (upper << bitsPerSeg) | DivInt(thisSeg.getUpperSegmentValue())
+		if prefix == nil {
+			thisSegPrefix := thisSeg.getDivisionPrefixLength()
+			if thisSegPrefix != nil {
+				prefix = cache(networkPrefixLength + *thisSegPrefix)
+			} else {
+				networkPrefixLength += thisSeg.getBitCount()
+			}
+		}
+	}
+	return createAddressDivision(&joinedSegmentVals{
+		value:       lower,
+		upperValue:  upper,
+		joinedCount: joinCount,
+		prefixLen:   prefix,
+	}), nil
+}
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
 }
 
-type inet_aton_radix int
+/*
+	private IPv4JoinedSegments joinSegments(int joinCount) {
+		long lower = 0, upper = 0;
+		int networkPrefixLength = 0;
+		Integer prefix = null;
+		int firstSegIndex = 0;
+		IPv4AddressSegment firstRange = null;
+		int firstJoinedIndex = getSegmentCount() - 1 - joinCount;
+		for(int j = 0; j <= joinCount; j++) {
+			IPv4AddressSegment thisSeg = getSegment(firstJoinedIndex + j);
+			if(firstRange != null) {
+				if(!thisSeg.isFullRange()) {
+					throw new IncompatibleAddressException(firstRange, firstSegIndex, thisSeg, firstJoinedIndex + j, "ipaddress.error.segmentMismatch");
+				}
+			} else if(thisSeg.isMultiple()) {
+				firstSegIndex = firstJoinedIndex + j;
+				firstRange = thisSeg;
+			}
+			lower = lower << getBitsPerSegment() | thisSeg.getSegmentValue();
+			upper = upper << getBitsPerSegment() | thisSeg.getUpperSegmentValue();
+			if(prefix == null) {
+				Integer thisSegPrefix = thisSeg.getSegmentPrefixLength();
+				if(thisSegPrefix != null) {
+					prefix = cacheBits(networkPrefixLength + thisSegPrefix);
+				} else {
+					networkPrefixLength += thisSeg.getBitCount();
+				}
+			}
+		}
+		IPv4JoinedSegments joinedSegment = new IPv4JoinedSegments(joinCount, lower, upper, prefix);
+		return joinedSegment;
+	}
+*/
+///func (seg *IPv4JoinedSegments) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
+//	if seg.IsPrefixed() {
+//		upperValue := seg.GetUpperSegmentValue()
+//		mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+//		upperValue &= mask
+//		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
+//	} else {
+//		seg.getUpperString(radix, uppercase, appendable)
+//	}
+//}
 
-func (rad inet_aton_radix) GetRadix() int {
+//xxx ok, I really need a separate struct to act as the values
+//IPv4JoinedSegments must still extend addressDivisionInternal but use that other struct
+//In fact, no need to have an IPv4JoinedSegments, just use AddressDivision
+
+//type IPv4JoinedSegments struct {
+//	addressDivisionInternal
+//}
+
+type joinedSegmentVals struct {
+	value, upperValue DivInt
+	joinedCount       int
+	prefixLen         PrefixLen
+	cache             divCache
+}
+
+func (seg *joinedSegmentVals) getBitCount() BitCount {
+	return (BitCount(seg.joinedCount) + 1) << 3
+}
+
+func (seg *joinedSegmentVals) getByteCount() int {
+	return seg.joinedCount + 1
+}
+
+func (seg *joinedSegmentVals) getDivisionValue() DivInt {
+	return seg.value
+}
+
+func (seg *joinedSegmentVals) getUpperDivisionValue() DivInt {
+	return seg.upperValue
+}
+
+func (seg *joinedSegmentVals) getValue() *big.Int {
+	return big.NewInt(int64(seg.getDivisionValue()))
+}
+
+func (seg *joinedSegmentVals) getUpperValue() *big.Int {
+	return big.NewInt(int64(seg.getUpperDivisionValue()))
+}
+
+func (seg *joinedSegmentVals) includesZero() bool {
+	return seg.getDivisionValue() == 0
+}
+
+func (seg *joinedSegmentVals) includesMax() bool {
+	return seg.getUpperDivisionValue() == ^(^DivInt(0) << seg.getBitCount())
+}
+
+func (seg *joinedSegmentVals) isMultiple() bool {
+	return seg.getDivisionValue() != seg.getUpperDivisionValue()
+}
+
+func (seg *joinedSegmentVals) getCount() *big.Int {
+	return big.NewInt(int64((seg.getUpperDivisionValue() - seg.getDivisionValue()) + 1))
+}
+
+func (seg *joinedSegmentVals) calcBytesInternal() (bytes, upperBytes []byte) {
+	return calcBytesInternal(seg.getByteCount(), seg.getDivisionValue(), seg.getUpperDivisionValue())
+}
+
+func calcBytesInternal(byteCount int, val, upperVal DivInt) (bytes, upperBytes []byte) {
+	//byteCount := seg.getByteCount()
+	byteIndex := byteCount - 1
+	//val := seg.getDivisionValue()
+	isMultiple := val != upperVal //seg.isMultiple()
+	bytes = make([]byte, byteCount)
+	//var upperVal DivInt
+	if isMultiple {
+		//upperVal = seg.getUpperDivisionValue()
+		upperBytes = make([]byte, byteCount)
+	} else {
+		upperBytes = bytes
+	}
+	for {
+		bytes[byteIndex] |= byte(val)
+		val >>= 8
+		if isMultiple {
+			upperBytes[byteIndex] |= byte(upperVal)
+			upperVal >>= 8
+		}
+		if byteIndex == 0 {
+			return bytes, upperBytes
+		}
+		byteIndex--
+	}
+}
+
+func (seg *joinedSegmentVals) getCache() *divCache {
+	return &seg.cache
+}
+
+func (seg *joinedSegmentVals) getAddrType() addrType {
+	return zeroType //ipv4Type means convertible to IPv4 segment, which this is not
+}
+
+func (seg *joinedSegmentVals) getDivisionPrefixLength() PrefixLen {
+	return seg.prefixLen
+}
+
+func (seg *joinedSegmentVals) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+	return &joinedSegmentVals{
+		value:       val,
+		upperValue:  upperVal,
+		joinedCount: seg.joinedCount,
+		prefixLen:   prefLen,
+	}
+}
+
+func (seg *joinedSegmentVals) getSegmentValue() SegInt {
+	return SegInt(seg.value)
+}
+
+func (seg *joinedSegmentVals) getUpperSegmentValue() SegInt {
+	return SegInt(seg.upperValue)
+}
+
+func (seg *joinedSegmentVals) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+	return &joinedSegmentVals{
+		value:       DivInt(val),
+		upperValue:  DivInt(upperVal),
+		joinedCount: seg.joinedCount,
+		prefixLen:   prefLen,
+	}
+}
+
+func (seg *joinedSegmentVals) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+	return &joinedSegmentVals{
+		value:       DivInt(val),
+		upperValue:  DivInt(val),
+		joinedCount: seg.joinedCount,
+		prefixLen:   prefLen,
+	}
+}
+
+var _ divisionValues = &joinedSegmentVals{}
+
+type Inet_aton_radix int
+
+func (rad Inet_aton_radix) GetRadix() int {
 	return int(rad)
 }
 
-func (rad inet_aton_radix) GetSegmentStrPrefix() string {
-	if rad == inet_aton_radix_octal {
+func (rad Inet_aton_radix) GetSegmentStrPrefix() string {
+	if rad == Inet_aton_radix_octal {
 		return OctalPrefix
-	} else if rad == inet_aton_radix_hex {
+	} else if rad == Inet_aton_radix_hex {
 		return HexPrefix
 	}
 	return ""
 }
 
-func (rad inet_aton_radix) String() string {
-	if rad == inet_aton_radix_octal {
+func (rad Inet_aton_radix) String() string {
+	if rad == Inet_aton_radix_octal {
 		return "octal"
-	} else if rad == inet_aton_radix_hex {
+	} else if rad == Inet_aton_radix_hex {
 		return "hexadecimal"
 	}
 	return "decimal"
 }
 
 const (
-	inet_aton_radix_octal   inet_aton_radix = 8
-	inet_aton_radix_hex     inet_aton_radix = 16
-	inet_aton_radix_decimal inet_aton_radix = 10
+	Inet_aton_radix_octal   Inet_aton_radix = 8
+	Inet_aton_radix_hex     Inet_aton_radix = 16
+	Inet_aton_radix_decimal Inet_aton_radix = 10
 )

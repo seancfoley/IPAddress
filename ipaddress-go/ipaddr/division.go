@@ -22,7 +22,7 @@ type deriver interface {
 }
 
 // DivisionValues represents divisions with values that are 64 bits or less
-type divisionValues interface {
+type divisionValues interface { //TODO make public?  I think I need to for createInitializedGrouping which should also be public
 	divisionValuesBase
 
 	// getDivisionPrefixLength provides the prefix length
@@ -90,7 +90,11 @@ type divCache struct {
 }
 
 func createAddressDivision(vals divisionValues) *AddressDivision {
-	return &AddressDivision{addressDivisionInternal{addressDivisionBase{divisionValues: vals}}}
+	return &AddressDivision{
+		addressDivisionInternal{
+			addressDivisionBase{divisionValues: vals},
+		},
+	}
 }
 
 type addressDivisionInternal struct {
@@ -103,55 +107,6 @@ func (div *addressDivisionInternal) getAddrType() addrType {
 	}
 	return div.divisionValues.getAddrType()
 }
-
-//func (div *addressDivisionInternal) cacheStrX(cacher func(*divCache) **string, stringer func() string) (str string) {
-//	cache := div.getCache()
-//	if cache == nil {
-//		return "0"
-//	}
-//	res := cacher(cache)
-//	cachedVal := *res
-//	if cachedVal == nil {
-//		str = stringer()
-//		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(res))
-//		atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
-//	} else {
-//		str = *cachedVal
-//	}
-//	return
-//}
-//
-//func (div *addressDivisionInternal) cacheStr(isWildcard bool, stringer func() string) (str string) {
-//	//xxxx pattern similar to java where we check cache existence first then a particular string xxx
-//	//xxxx I want to pass in a pointer to the string location xxx
-//	//xxxx but the cache might not exist xxx
-//	//xxxx so pass in a func to some other func, the other func chechs the cache and passes to first  func xxx
-//
-//	cache := div.getCache()
-//	if cache == nil {
-//		return "0"
-//	}
-//	var res *string
-//	if isWildcard {
-//		res = cache.cachedWildcardString
-//	} else {
-//		res = cache.cachedString
-//	}
-//	if res == nil {
-//		str = stringer()
-//		res = &str
-//		var dataLoc *unsafe.Pointer
-//		if isWildcard {
-//			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedWildcardString))
-//		} else {
-//			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedString))
-//		}
-//		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
-//	} else {
-//		str = *res
-//	}
-//	return
-//}
 
 var (
 	// wildcards differ, here we use only range since div size not implicit
@@ -183,56 +138,6 @@ func (div *addressDivisionInternal) toString(opts StringOptions) string {
 	params.appendDivision(&builder, div)
 	return builder.String()
 }
-
-//func (div *addressDivisionInternal) String() string {
-//	if div.IsMultiple() {
-//		return fmt.Sprintf("%x-%x", div.GetDivisionValue(), div.GetUpperDivisionValue())
-//	}
-//	return fmt.Sprintf("%x", div.GetDivisionValue())
-//	/*
-//			We will have  default radix, which starts as hex, but when we switch to ipv4 section and gain ipv4 addr type,
-//			each division will have default radix reset to 10
-//			but that will require locking so the default radix will be part of the cache and use the cache lock
-//
-//			The downside is this means that this would mean that the result of this method can change after conversion to ipv4 and back again
-//
-//			So maybe you don't want to do that
-//
-//			If you do not, then maybe you want to change the java side too to always use hex by default, even for IPv4?
-//			Well, that remains to be seen, because the way strings work is a bit different
-//			IPv4Segment instances override the parent behaviour.  So it's not the same, and only applies to IPAddressBitsDivision.
-//
-//			So no I am thinking, no switcheroo, just stick to hex
-//
-//		 now we've added addrType to divisions, that settles it.  We need to check addrType and scale up
-//		given the address type, otherwise use hex.  In fact, could just stick to hex and scale up for ipv4 only.
-//
-//				@Override
-//				public String toString() {
-//					int radix = getDefaultTextualRadix();
-//					IPStringOptions opts;
-//					switch(radix) {
-//					case 8:
-//						opts = OCTAL_PARAMS;
-//						break;
-//					case 16:
-//						opts = HEX_PARAMS;
-//						break;
-//					case 10:
-//						opts = DECIMAL_PARAMS;
-//						break;
-//					default:
-//						opts = new IPStringOptions.Builder(radix).setWildcards(new Wildcards(IPAddress.RANGE_SEPARATOR_STR)).toOptions();
-//						break;
-//					}
-//					StringBuilder builder = new StringBuilder(34);
-//					toParams(opts).appendSingleDivision(this, builder);
-//					return builder.toString();
-//				}
-//
-//
-//	*/
-//}
 
 func (div *addressDivisionInternal) isPrefixed() bool {
 	return div.getDivisionPrefixLength() != nil
@@ -281,10 +186,12 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 }
 
 func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	prefixLen = checkDiv(div, prefixLen)
 	return div.isPrefixBlockVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
 }
 
 func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	prefixLen = checkDiv(div, prefixLen)
 	return div.isSinglePrefixBlock(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
 }
 
@@ -372,11 +279,7 @@ func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen,
 	if hasPrefLen {
 		prefBits := *divPrefixLength
 		bitCount := div.GetBitCount()
-		if prefBits < 0 {
-			prefBits = 0
-		} else if prefBits > bitCount {
-			prefBits = bitCount
-		}
+		prefBits = checkBitCount(prefBits, bitCount)
 		mask := ^DivInt(0) << (bitCount - prefBits)
 		newLower = lower & mask
 		newUpper = upper | ^mask
@@ -402,11 +305,7 @@ func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen
 	bitCount := div.GetBitCount()
 	if hasPrefLen {
 		prefBits := *divPrefixLength
-		if prefBits < 0 {
-			prefBits = 0
-		} else if prefBits > bitCount {
-			prefBits = bitCount
-		}
+		prefBits = checkBitCount(prefBits, bitCount)
 		if div.isPrefixed() && prefBits == *div.getDivisionPrefixLength() {
 			return div.toAddressDivision()
 		}
@@ -557,6 +456,14 @@ func (div *addressDivisionInternal) getUpperString(radix int, uppercase bool, ap
 func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		seg.getUpperStringMasked(radix, uppercase, appendable)
+	} else if div.isPrefixed() {
+		upperValue := div.GetUpperDivisionValue()
+		mask := ^DivInt(0) << (div.GetBitCount() - *div.getDivisionPrefixLength())
+		//mask := ^(^DivInt(0) >> *seg.GetDivisionPrefixLength())
+		//mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+		//return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
+		upperValue &= mask
+		toUnsignedStringCased(upperValue, radix, 0, uppercase, appendable)
 	} else {
 		div.getUpperString(radix, uppercase, appendable)
 	}
@@ -662,7 +569,7 @@ func (div *addressDivisionInternal) adjustUpperLeadingZeroCount(leadingZeroCount
 
 func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int, value DivInt, radix int) int {
 	if leadingZeroCount < 0 {
-		width := getDigitCount(value, radix) //static
+		width := getDigitCount(value, div.GetBitCount(), radix) //static
 		num := div.getMaxDigitCountRadix(radix) - width
 		if num < 0 {
 			return 0
@@ -676,19 +583,21 @@ func (div *addressDivisionInternal) getDigitCount(radix int) int {
 	if !div.IsMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
 		return len(div.GetWildcardString())
 	}
-	return getDigitCount(div.GetUpperDivisionValue(), radix) //static
+	return getDigitCount(div.GetUpperDivisionValue(), div.GetBitCount(), radix) //static
 }
 
 func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
-	if radix == 10 || radix == 16 {
-		return div.getMaxDigitCount()
-	}
+	//if radix == 10 || radix == 16 {
+	//	return div.getMaxDigitCount()
+	//}
 	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue()) //static
 }
 
 // returns the number of digits for the maximum possible value of the division when using the default radix
 func (div *addressDivisionInternal) getMaxDigitCount() int {
-	return int((div.GetBitCount() + 7) >> 2) // works for hex chars, the default, but also IPv4 where bitcount of 8 results in result of 3
+	return div.getMaxDigitCountRadix(div.getDefaultTextualRadix())
+	//xxx
+	//return int((div.GetBitCount() + 7) >> 2) // works for hex chars, the default, but also IPv4 where bitcount of 8 results in result of 3
 }
 
 // A simple string using just the lower value and the default radix.

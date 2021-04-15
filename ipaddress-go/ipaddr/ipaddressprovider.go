@@ -900,18 +900,20 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // TODO NOW progress
 // TODO NEXT NOW progress
 // - Move towards address creation - need ipaddress provider types fleshed out, and in particular ParsedIPAddress
+// TODO next MAC creation, link it to parser, and then the target stuff below
 //
 // - Then the mask stuff in parseQualifier can be done, which depends on address creation
 // - here you might start putting in validation tests that check for parsing errors
 // - then you can do the string methods in the address sections and addresses and segments
 // - the you can add validation tests that use strings, in fact not sure if I do that much, I have some that check the string methods thought
-// - things to target: increment, setting prefixes, merge, span, cover, string generation
+// - things to target: increment, setting prefixes, merge, span, covers
 // - need to hook up mac address string to the parser
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
 // - finish HostName (now it's mostly done, just a few methods left)
 // - check notes.txt in Java for functionality table
+// - finish sequential range code (hard part done already)
 
 // done so far: most of parsing and params, most of HostName, most of seq ranges, a lot of framework,
 // comparators, iterators, a lot of the basic funcs for prefixes and indexes, bytes functions,
@@ -920,7 +922,3 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // things for later: tries, string collections, base85
 
 // not doing: streams, spliterators
-
-//xxx
-//so now what?  string generation?  yes
-// probably not so bad

@@ -395,6 +395,14 @@ func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
+func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
+	return addr.init().GetSection().ToInetAtonString(radix)
+}
+
+func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressException) {
+	return addr.init().GetSection().ToInetAtonJoinedString(radix, joinedCount)
+}
+
 //func (addr *IPv4Address) IsMore(other *IPv4Address) int {
 //	return addr.init().isMore(other.ToIPAddress())
 //}

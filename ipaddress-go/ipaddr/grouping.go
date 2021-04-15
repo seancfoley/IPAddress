@@ -6,6 +6,35 @@ import (
 	"unsafe"
 )
 
+func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressDivisionGrouping {
+	return &AddressDivisionGrouping{
+		//return &AddressSection{
+		//addressSectionInternal{
+		addressDivisionGroupingInternal{
+			addressDivisionGroupingBase: addressDivisionGroupingBase{
+				divisions:    standardDivArray{divs},
+				prefixLength: prefixLength,
+				addrType:     addrType,
+				cache:        &valueCache{},
+			},
+			addressSegmentIndex: startIndex,
+		},
+		//},
+	}
+}
+
+func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, addrType, startIndex)
+	result.isMultiple = isMultiple
+	return result
+}
+
+func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, addrType, startIndex)
+	result.init() // assigns isMultiple
+	return result
+}
+
 var (
 	emptyBytes = []byte{}
 )

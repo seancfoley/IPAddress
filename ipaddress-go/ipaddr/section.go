@@ -24,7 +24,7 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	}
 }
 
-func createMultipleSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressSection {
+func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType, startIndex)
 	result.isMultiple = isMultiple
 	return result
@@ -371,7 +371,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
-	return createMultipleSection(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.IsMultiple() || prefLen < bitCount)
+	return createSectionMultiple(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.IsMultiple() || prefLen < bitCount)
 }
 
 func (section *addressSectionInternal) withoutPrefixLength() *AddressSection {
