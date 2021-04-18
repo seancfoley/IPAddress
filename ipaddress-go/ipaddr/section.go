@@ -9,7 +9,7 @@ import (
 var zeroSection = createSection(zeroDivs, nil, zeroType, 0)
 
 func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
-	return &AddressSection{
+	sect := &AddressSection{
 		addressSectionInternal{
 			addressDivisionGroupingInternal{
 				addressDivisionGroupingBase: addressDivisionGroupingBase{
@@ -21,6 +21,21 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 				addressSegmentIndex: startIndex,
 			},
 		},
+	}
+	assignStringCache(&sect.addressDivisionGroupingBase, addrType)
+	return sect
+}
+
+func assignStringCache(section *addressDivisionGroupingBase, addrType addrType) {
+	stringCache := &section.cache.stringCache
+	if addrType.isIPv4() {
+		stringCache.ipStringCache = &ipStringCache{}
+		stringCache.ipv4StringCache = &ipv4StringCache{}
+	} else if addrType.isIPv6() {
+		stringCache.ipStringCache = &ipStringCache{}
+		stringCache.ipv6StringCache = &ipv6StringCache{}
+	} else if addrType.isMAC() {
+		stringCache.macStringCache = &macStringCache{}
 	}
 }
 
@@ -270,7 +285,7 @@ func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (r
 	}
 	cache := section.cache
 	sectionCache := &cache.sectionCache
-	cache.cacheLock.RLock()
+	cache.cacheLock.RLock() //TODO use the usual pattern, not this
 	if lowest {
 		result = sectionCache.lower
 	} else {

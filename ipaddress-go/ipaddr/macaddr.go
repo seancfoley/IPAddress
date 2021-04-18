@@ -24,6 +24,9 @@ const (
 	ExtendedUniqueIdentifier48SegmentCount = MediaAccessControlSegmentCount
 	ExtendedUniqueIdentifier64SegmentCount = 8
 
+	MACOrganizationalUniqueIdentifierSegmentCount = 3
+	//public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_BIT_COUNT = ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT * BITS_PER_SEGMENT;
+
 	MACSegmentMaxChars = 2
 
 	MACDashSegmentSeparator   = dash
@@ -36,12 +39,23 @@ const (
 )
 
 func NewMACAddress(section *MACAddressSection) *MACAddress {
-	return &MACAddress{
-		addressInternal{
-			section: section.ToAddressSection(),
-			cache:   &addressCache{},
-		},
+	//func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
+	return createAddress(section.ToAddressSection(), noZone).ToMACAddress()
+	//}
+	//return &MACAddress{
+	//	addressInternal{
+	//		section: section.ToAddressSection(),
+	//		cache:   &addressCache{},
+	//	},
+	//}
+}
+
+func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
+	res := NewMACAddress(section)
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator)
 	}
+	return res
 }
 
 var zeroMAC = initMACZero()
@@ -251,7 +265,7 @@ func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddr
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
-func (addr *MACAddress) ToDottedString() string {
+func (addr *MACAddress) ToDottedString() (string, IncompatibleAddressException) {
 	return addr.init().GetSection().ToDottedString()
 }
 

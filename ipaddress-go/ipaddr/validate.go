@@ -136,7 +136,7 @@ func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov IPAd
 	return chooseIPAddressProvider(fromString, str, validationOptions, &pa)
 }
 
-func (strValidator) validateMACAddressStr(fromString *MACAddressString) (prov MACAddressProvider, err AddressStringException) {
+func (strValidator) validateMACAddressStr(fromString *MACAddressString) (prov macAddressProvider, err AddressStringException) {
 	str := fromString.str
 	validationOptions := fromString.getParams()
 	pa := ParsedMACAddress{
@@ -2580,14 +2580,14 @@ func parseBase85(
 
 func chooseMACAddressProvider(fromString *MACAddressString,
 	validationOptions MACAddressStringParameters, pa *ParsedMACAddress,
-	addressParseData *AddressParseData) (res MACAddressProvider, err AddressStringException) {
+	addressParseData *AddressParseData) (res macAddressProvider, err AddressStringException) {
 	if addressParseData.isProvidingEmpty() {
-		res = macAddressEmptyProvider
+		res = defaultMACAddressEmptyProvider
 	} else if addressParseData.isAll() {
 		if validationOptions == defaultMACAddrParameters {
 			res = macAddressDefaultAllProvider
 		} else {
-			res = MACAddressAllProvider{validationOptions}
+			res = macAddressAllProvider{validationOptions: validationOptions}
 		}
 	} else {
 		err = checkMACSegments(

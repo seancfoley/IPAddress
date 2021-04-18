@@ -41,7 +41,7 @@ func (zone Zone) IsEmpty() bool {
 const noZone Zone = ""
 
 func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
-	return NewIPv6AddressZoned(section, noZone)
+	return createAddress(section.ToAddressSection(), noZone).ToIPv6Address()
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {

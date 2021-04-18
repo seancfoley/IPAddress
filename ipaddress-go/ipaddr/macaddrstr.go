@@ -1,16 +1,28 @@
 package ipaddr
 
+import (
+	"sync/atomic"
+	"unsafe"
+)
+
 var defaultMACAddrParameters *macAddressStringParameters = &macAddressStringParameters{}
 
 // NewMACAddressString constructs a MACAddressString that will parse the given string according to the given parameters
 func NewMACAddressString(str string, params MACAddressStringParameters) *MACAddressString {
-	return &MACAddressString{str: str, params: convertMACParams(params)}
+	var p *macAddressStringParameters
+	if params == nil {
+		p = defaultMACAddrParameters
+	} else {
+		p = getPrivateMACParams(params)
+	}
+	return &MACAddressString{str: str, params: p, macAddrStringCache: new(macAddrStringCache)}
+	//return &MACAddressString{str: str, params: convertMACParams(params)}
 }
 
 var zeroMACAddressString = NewMACAddressString("", defaultMACAddrParameters)
 
 type macAddrData struct {
-	addressProvider   MACAddressProvider
+	addressProvider   macAddressProvider
 	validateException AddressStringException
 }
 
@@ -58,13 +70,12 @@ func (addrStr *MACAddressString) ToNormalizedString() string {
 }
 
 func (addrStr *MACAddressString) GetAddress() *MACAddress {
-	//TODO MACAddressString
-	return nil
+	addr, _ := addrStr.getAddressProvider().getAddress()
+	return addr
 }
 
-func (addrStr *MACAddressString) ToAddress() (*MACAddress, error) {
-	//TODO MACAddressString
-	return nil, nil
+func (addrStr *MACAddressString) ToAddress() (*MACAddress, IncompatibleAddressException) {
+	return addrStr.getAddressProvider().getAddress()
 }
 
 // error can be AddressStringException or IncompatibleAddressException
@@ -75,6 +86,25 @@ func (addrStr *MACAddressString) ToHostAddress() (*Address, error) {
 
 func (addrStr *MACAddressString) IsValid() bool {
 	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
+}
+
+func (addrStr *MACAddressString) getAddressProvider() macAddressProvider {
+	addrStr = addrStr.init()
+	addrStr.Validate()
+	return addrStr.addressProvider
+}
+
+// Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
+func (addrStr *MACAddressString) Validate() AddressStringException {
+	addrStr = addrStr.init()
+	data := addrStr.macAddrData
+	if data == nil {
+		addressProvider, err := validator.validateMACAddressStr(addrStr)
+		data = &macAddrData{addressProvider, err}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addrStr.macAddrData))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(data))
+	}
+	return data.validateException
 }
 
 // Two MACAddressString objects are equal if they represent the same set of addresses.
@@ -114,4 +144,11 @@ func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
 		return stringsMatch // Two invalid addresses are not equal unless strings match, regardless of validation options
 	}
 	return false
+}
+
+func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
+	if p, ok := orig.(*macAddressStringParameters); ok {
+		return p
+	}
+	return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
 }

@@ -1,92 +1,67 @@
 package ipaddr
 
-type MACAddressProvider interface {
-	//getAddress() MACAddress
+import (
+	"sync"
+)
+
+type macAddressProvider interface {
+	getAddress() (*MACAddress, IncompatibleAddressException)
 }
 
-type MACAddressEmptyProvider struct{}
+type macAddressEmptyProvider struct{}
 
-var macAddressEmptyProvider = MACAddressEmptyProvider{}
+func (provider macAddressEmptyProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+	return nil, nil
+}
 
-type MACAddressAllProvider struct {
+var defaultMACAddressEmptyProvider = macAddressEmptyProvider{}
+
+type macAddressAllProvider struct {
 	validationOptions MACAddressStringParameters
+	address           *MACAddress
+	creationLock      sync.Mutex
 }
 
-var macAddressDefaultAllProvider = &MACAddressAllProvider{defaultMACAddrParameters}
+func (provider macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+	addr := provider.address
+	if addr == nil {
+		provider.creationLock.Lock()
+		addr = provider.address
+		if addr == nil {
+			validationOptions := provider.validationOptions
+			creator := provider.validationOptions.GetNetwork().GetMACAddressCreator()
+			size := validationOptions.AddressSize()
+			var segCount int
+			if size == EUI64 {
+				segCount = ExtendedUniqueIdentifier64SegmentCount
+			} else {
+				segCount = MediaAccessControlSegmentCount
+			}
+			allRangeSegment := creator.createMACRangeSegment(0, MACMaxValuePerSegment)
+			segments := make([]*AddressDivision, segCount)
+			for i := range segments {
+				segments[i] = allRangeSegment
+			}
+			section := creator.createSectionInternal(segments)
+			addr = creator.createAddressInternal(section.ToAddressSection(), nil).ToMACAddress()
+		}
+		provider.creationLock.Unlock()
+	}
+	return addr, nil
+}
 
-//public interface MACAddressProvider extends Serializable {
-//
-//	@SuppressWarnings("serial")
-//	static final MACAddressProvider EMPTY_PROVIDER = new MACAddressProvider() {
-//
-//		@Override
-//		public MACAddress getAddress() {
-//			return null;
-//		}
-//
-//		@Override
-//		public String toString() {
-//			return "null";
-//		}
-//	};
-//
-//	static final class ParsedMACAddressProvider implements MACAddressProvider {
-//
-//		private static final long serialVersionUID = 4L;
-//
-//		private ParsedMACAddress parsedAddress;
-//		private MACAddress address;
-//
-//		public ParsedMACAddressProvider(MACAddress address) {
-//			this.address = address;
-//		}
-//
-//		@Override
-//		public MACAddress getAddress() {
-//			if(parsedAddress != null) {
-//				synchronized(this) {
-//					if(parsedAddress != null) {
-//						address = parsedAddress.createAddress();
-//						parsedAddress = null;
-//					}
-//				}
-//			}
-//			return address;
-//		}
-//
-//		@Override
-//		public String toString() {
-//			return String.valueOf(getAddress());
-//		}
-//
-//	}
-//
-//	MACAddress getAddress();
-//
-//	public static MACAddressProvider getAllProvider(MACAddressStringParameters validationOptions) {
-//		MACAddressNetwork network = validationOptions.getNetwork();
-//		AddressSize allAddresses = validationOptions.addressSize;
-//		MACAddressCreator creator = network.getAddressCreator();
-//		MACAddressSegment allRangeSegment = creator.createRangeSegment(0, MACAddress.MAX_VALUE_PER_SEGMENT);
-//		MACAddressSegment segments[] = creator.createSegmentArray(allAddresses == AddressSize.EUI64 ?
-//			MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT :
-//			MACAddress.MEDIA_ACCESS_CONTROL_SEGMENT_COUNT);
-//		Arrays.fill(segments, allRangeSegment);
-//		return new MACAddressProvider() {
-//
-//			private static final long serialVersionUID = 4L;
-//
-//			@Override
-//			public MACAddress getAddress() {
-//				ParsedAddressCreator<MACAddress, MACAddressSection, MACAddressSection, MACAddressSegment> parsedCreator = creator;
-//				MACAddressSection section = parsedCreator.createSectionInternal(segments);
-//				return creator.createAddress(section);
-//			}
-//
-//			@Override
-//			public String toString() {
-//				return String.valueOf(getAddress());
-//			}
-//		};
-//	}
-//}
+var macAddressDefaultAllProvider = &macAddressAllProvider{validationOptions: defaultMACAddrParameters}
+
+type wrappedMACAddressProvider struct {
+	address *MACAddress
+}
+
+func (provider wrappedMACAddressProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+	return provider.address, nil
+}
+
+var (
+	_, _, _ macAddressProvider = &macAddressEmptyProvider{},
+		&macAddressAllProvider{},
+		&wrappedMACAddressProvider{}
+)

@@ -13,7 +13,7 @@ type HostIdentifierStringValidator interface {
 
 	validateIPAddressStr(fromString *IPAddressString) (IPAddressProvider, AddressStringException)
 
-	validateMACAddressStr(fromString *MACAddressString) (MACAddressProvider, AddressStringException)
+	validateMACAddressStr(fromString *MACAddressString) (macAddressProvider, AddressStringException)
 
 	validatePrefixLenStr(fullAddr string, version IPVersion) (PrefixLen, AddressStringException)
 }

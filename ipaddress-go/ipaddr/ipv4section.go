@@ -48,6 +48,12 @@ func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, 
 	return
 }
 
+func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressSection) {
+	res = createIPv4Section(segments)
+	_ = res.init()
+	return
+}
+
 //TODO need the public equivalent of this that takes IPv4AddressSegment
 
 func newIPv4AddressSectionSingle(segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {

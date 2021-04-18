@@ -52,6 +52,12 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 	return
 }
 
+func newIPv6AddressSectionParsed(segments []*AddressDivision) (res *IPv6AddressSection) {
+	res = createIPv6Section(segments, 0)
+	_ = res.init()
+	return
+}
+
 func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueException) {
 	res, err = newIPv6AddressSection(segments, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
 	if err == nil && prefixLength != nil {

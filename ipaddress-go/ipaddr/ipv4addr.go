@@ -24,14 +24,6 @@ const (
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()
-	//return &IPv4Address{
-	//	ipAddressInternal{
-	//		addressInternal{
-	//			section: section.ToAddressSection(),
-	//			cache:   &addressCache{},
-	//		},
-	//	},
-	//}
 }
 
 func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueException) {

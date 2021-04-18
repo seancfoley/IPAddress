@@ -32,6 +32,12 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 
 //TODO the constructors for MAC
 
+func newMACAddressSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
+	res = createMACSection(segments)
+	_ = res.init()
+	return
+}
+
 type MACAddressSection struct {
 	addressSectionInternal
 }
@@ -167,7 +173,9 @@ func (section *MACAddressSection) ToCanonicalString() string {
 }
 
 func (section *MACAddressSection) ToNormalizedString() string {
-	return cacheStr(&section.getStringCache().normalizedMACString,
+	cch := section.getStringCache()
+	strp := &cch.normalizedMACString
+	return cacheStr(strp,
 		func() string {
 			return section.toNormalizedOptsString(macNormalizedParams)
 		})
@@ -237,8 +245,8 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 			//throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
 		vals := &bitsDivisionVals{
-			value:      (segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue(),
-			upperValue: (segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue(),
+			value:      DivInt((segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()),
+			upperValue: DivInt((segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue()),
 			bitCount:   newSegmentBitCount,
 			radix:      MACDefaultTextualRadix,
 			//joinedCount: joinCount,
@@ -256,8 +264,8 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 	if segIndex < segmentCount {
 		segment := section.GetSegment(segIndex)
 		vals := &bitsDivisionVals{
-			value:      segment.GetSegmentValue() << bitsPerSeg,
-			upperValue: segment.GetUpperSegmentValue() << bitsPerSeg,
+			value:      DivInt(segment.GetSegmentValue() << bitsPerSeg),
+			upperValue: DivInt(segment.GetUpperSegmentValue() << bitsPerSeg),
 			bitCount:   newSegmentBitCount,
 			radix:      MACDefaultTextualRadix,
 			//joinedCount: joinCount,

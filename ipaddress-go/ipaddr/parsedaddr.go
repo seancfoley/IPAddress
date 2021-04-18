@@ -8,19 +8,19 @@ import (
 // TODO note that the way that you save substrings for segments in Java is perfect for go and slices, so your address creator interfaces will keep it
 
 type TranslatedResult struct {
-	address, hostAddress *IPAddress
+	address, hostAddress *IPAddress //TODO atomically read
 
 	qualifier  *ParsedHostIdentifierStringQualifier
 	originator HostIdentifierString
 
-	section, hostSection,
-	lowerSection, upperSection *IPAddressSection
+	section, hostSection, upperSection *IPAddressSection
+	lowerSection                       *IPAddressSection //TODO atomically read
 
 	joinHostException, joinAddressException /* inet_aton, single seg */, mixedException, maskException IncompatibleAddressException
 
 	rangeLower, rangeUpper *IPAddress
 
-	rng *IPAddressSeqRange
+	rng *IPAddressSeqRange //TODO atomically read
 
 	//series IPAddressDivisionSeries // TODO division grouping creation
 
@@ -115,8 +115,20 @@ type ParsedIPAddress struct {
 	originator HostIdentifierString
 	valuesx    TranslatedResult
 	//skipContains *bool //TODO additional containment options in IPAddressString
-	maskers, mixedMaskers []Masker //TODO masking (not as bad as it looks)
+	maskers, mixedMaskers []Masker
 
+	//TODO NEXT refine this by switching to non-RW Mutex.  Use the mutex for creation, but when checking for creation, no lock, and use atomic lock on write (see MAC)
+	// Since the creation here is more complex than MAC, not obvious which fields need atomic writes and how to break up creation,
+	// since of course creation of objects here is more inter-related.
+	// In fact, maybe simplify by:
+	// - always create lower/upper and main sections at same time.  Atomic write all 3 of them I guess.
+	//		The only way to make it safe is to check both lower and upper before creating range.  And if you do that, you might as well populate lower and upper in the sections.
+	//		So you need to atomic write all 3 and check each one before using any:
+	//		if (!lower || !upper) creatboth().
+	//		You cannot check just one, you must check each one you need and you must atomic write all 3.
+	// - creation of addresses are atomic writes, once again main, lower, upper.  Whether all 3 are the same, you must compare pointers of sections to know.
+	// - creation of ranges: atomic writes.
+	//
 	creationLock sync.RWMutex
 }
 
@@ -595,7 +607,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 		result = creator.createPrefixedSectionInternal(segments, prefLength)
 		finalResult.section = result
 		if hostSegments != nil {
-			hostResult = creator.createSectionInternal(hostSegments)
+			hostResult = creator.createSectionInternal(hostSegments).ToIPAddressSection()
 			finalResult.hostSection = hostResult
 			if checkExpandedValues(hostResult, expandedStart, expandedEnd) {
 				finalResult.joinHostException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
@@ -648,7 +660,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			}
 		}
 		if lowerSegments != nil {
-			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).ToIPAddressSection()
+			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength)
 		}
 		if upperSegments != nil {
 			section := creator.createPrefixedSectionInternal(upperSegments, prefLength)
@@ -730,8 +742,8 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				var lowerHighBytes, upperHighBytes uint64
 				hostIsRange := false
 				if isCompressed {
-					lower = 0 //TODO probably unnecessary, probably already 0
-					upper = 0
+					//	lower = 0 //TODO probably unnecessary, probably already 0
+					//upper = 0
 				} else if isWildcard {
 					if missingSegmentCount > 3 {
 						upperHighBytes = 0xffffffffffffffff >> ((7 - missingSegmentCount) << 4)
@@ -1167,7 +1179,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 	var result, hostResult *IPAddressSection
 	if doAddress {
 		if hostSegments != nil {
-			hostResult = creator.createSectionInternal(hostSegments)
+			hostResult = creator.createSectionInternal(hostSegments).ToIPAddressSection()
 			finalResult.hostSection = hostResult
 			if checkExpandedValues(hostResult, expandedStart, expandedEnd) {
 				finalResult.joinHostException = &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
@@ -1221,7 +1233,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			}
 		}
 		if lowerSegments != nil {
-			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength).ToIPAddressSection()
+			finalResult.lowerSection = creator.createPrefixedSectionInternalSingle(lowerSegments, prefLength)
 		}
 		if upperSegments != nil {
 			section := creator.createPrefixedSectionInternal(upperSegments, prefLength)

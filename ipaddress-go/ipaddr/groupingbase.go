@@ -324,7 +324,6 @@ type valueCache struct {
 	//	Cache lock is used for some fields, but not all, most use atomic reads/writes of pointers
 	cacheLock sync.RWMutex
 
-	//cachedCount, cachedPrefixCount *countSetting // use BitLen() or len(x.Bits()) to check if value is set, or maybe check for 0
 	cachedCount, cachedPrefixCount *big.Int
 
 	cachedMaskLens *maskLenSetting

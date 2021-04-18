@@ -29,19 +29,24 @@ type AddressSegmentCreator interface {
 type ParsedAddressCreator interface {
 	AddressSegmentCreator
 
-	createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection
+	createSectionInternal(segments []*AddressDivision) *AddressSection
 
-	createAddressInternal(section *AddressSection, zone Zone) *Address
+	//createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection
+
+	//createZonedAddressInternal(section *AddressSection, zone Zone) *Address
+
+	createAddressInternal(section *AddressSection, identifier HostIdentifierString) *Address
 }
 
 type ParsedIPAddressCreator interface {
+	createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection
+
 	createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection
 
 	createAddressInternalFromSection(*IPAddressSection, Zone, HostIdentifierString) *IPAddress
 }
 
 type AddressCreator interface {
-	//TODO
 	ParsedAddressCreator
 }
 
@@ -51,15 +56,10 @@ type IPAddressCreator interface {
 	ParsedIPAddressCreator
 
 	createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress
-
-	//createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool)
-	//TODO
 }
 
 //TODO the methods in the creator interface that use the exact type, nammely uint16, will be public.  Those using SegInt will remain private
-type IPv6AddressCreator struct {
-	//TODO
-}
+type IPv6AddressCreator struct{}
 
 func (creator *IPv6AddressCreator) getMaxValuePerSegment() SegInt {
 	return IPv6MaxValuePerSegment
@@ -117,15 +117,13 @@ func (creator *IPv6AddressCreator) createPrefixedSectionInternal(segments []*Add
 	return sec.ToIPAddressSection()
 }
 
-func (creator *IPv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
+func (creator *IPv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
 	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, true)
-	return sec.ToAddressSection()
+	return sec.ToIPAddressSection()
 }
 
-func (creator *IPv6AddressCreator) createSectionInternal(segment []*AddressDivision) *IPAddressSection {
-	//TODO
-	//return NewIPv6RangePrefixSegment(lower, upper, segmentPrefixLength).ToAddressDivision()
-	return nil
+func (creator *IPv6AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
+	return newIPv6AddressSectionParsed(segments).ToAddressSection()
 }
 
 func (creator *IPv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress {
@@ -141,8 +139,16 @@ func (creator *IPv6AddressCreator) createAddressInternalFromSection(section *IPA
 	return res
 }
 
-func (creator *IPv6AddressCreator) createAddressInternal(section *AddressSection, zone Zone) *Address {
-	return NewIPv6Address(section.ToIPv6AddressSection()).ToAddress()
+//func (creator *IPv6AddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
+//	return NewIPv6Address(section.ToIPv6AddressSection()).ToAddress() xxxx
+//}
+
+func (creator *IPv6AddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
+	res := NewIPv6Address(section.ToIPv6AddressSection()).ToAddress()
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator.(*IPAddressString))
+	}
+	return res
 }
 
 //TODO creators: the methods in the creator interface that use the exact type, nammely IPv4SegInt, will be public.
@@ -151,9 +157,7 @@ func (creator *IPv6AddressCreator) createAddressInternal(section *AddressSection
 // Private methods will likely defer to base types like AddressDivision and AddressSection
 // Public methods will create IPv4 types like IPv4Segment and IPv4AddressSection
 
-type IPv4AddressCreator struct {
-	//TODO
-}
+type IPv4AddressCreator struct{}
 
 func (creator *IPv4AddressCreator) getMaxValuePerSegment() SegInt {
 	return IPv4MaxValuePerSegment
@@ -211,15 +215,13 @@ func (creator *IPv4AddressCreator) createPrefixedSectionInternal(segments []*Add
 	return sec.ToIPAddressSection()
 }
 
-func (creator *IPv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
+func (creator *IPv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
 	sec, _ := newIPv4AddressSectionSingle(segments, prefixLength, true)
-	return sec.ToAddressSection()
+	return sec.ToIPAddressSection()
 }
 
-func (creator *IPv4AddressCreator) createSectionInternal(segment []*AddressDivision) *IPAddressSection {
-	//TODO createSectionInternal
-	//return NewIPv6RangePrefixSegment(lower, upper, segmentPrefixLength).ToAddressDivision()
-	return nil
+func (creator *IPv4AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
+	return newIPv4AddressSectionParsed(segments).ToAddressSection()
 }
 
 func (creator *IPv4AddressCreator) createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress {
@@ -235,7 +237,11 @@ func (creator *IPv4AddressCreator) createAddressInternalFromSection(section *IPA
 	return res
 }
 
-func (creator *IPv4AddressCreator) createAddressInternal(section *AddressSection, zone Zone) *Address {
+//func (creator *IPv4AddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
+//	return creator.createAddressInternal(section)
+//}
+
+func (creator *IPv4AddressCreator) createAddressInternal(section *AddressSection, identifierString HostIdentifierString) *Address {
 	return NewIPv4Address(section.ToIPv4AddressSection()).ToAddress()
 }
 
@@ -245,9 +251,7 @@ func (creator *IPv4AddressCreator) createAddressInternal(section *AddressSection
 //
 //
 
-type MACAddressCreator struct {
-	//TODO
-}
+type MACAddressCreator struct{}
 
 func (creator *MACAddressCreator) getMaxValuePerSegment() SegInt {
 	return MACMaxValuePerSegment
@@ -304,14 +308,26 @@ func (creator *MACAddressCreator) createMACRangePrefixSegment(lower, upper MACSe
 	return NewMACRangeSegment(lower, upper).ToAddressDivision()
 }
 
-func (creator *MACAddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
-	//return NewMACAddress(section.ToMACAddressSection()).ToAddress()
-	//TODO
-	return nil
+//func (creator *MACAddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
+//	//return NewMACAddress(section.ToMACAddressSection()).ToAddress()
+//	//\
+//	return nil
+//}
+
+//func (creator *MACAddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
+//	return creator.createAddressInternal(section)
+//}
+
+func (creator *MACAddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
+	return newMACAddressSectionParsed(segments).ToAddressSection()
 }
 
-func (creator *MACAddressCreator) createAddressInternal(section *AddressSection, zone Zone) *Address {
-	return NewMACAddress(section.ToMACAddressSection()).ToAddress()
+func (creator *MACAddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
+	res := NewMACAddress(section.ToMACAddressSection()).ToAddress()
+	if originator != nil {
+		res.cache.fromString = unsafe.Pointer(originator.(*MACAddressString))
+	}
+	return res
 }
 
 func (creator *MACAddressCreator) createAddressInternalFromSection(section *MACAddressSection, originator HostIdentifierString) *MACAddress {

@@ -167,6 +167,8 @@ func (addr addressInternal) String() string { // using non-pointer receiver make
 	section := addr.section
 	if section == nil {
 		return "0"
+	} else if addr.isMAC() {
+		return addr.toNormalizedString()
 	}
 	return addr.toCanonicalString()
 }

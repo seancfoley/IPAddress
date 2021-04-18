@@ -201,6 +201,7 @@ func (w *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
 // separates the divisions of the address, typically ':' or '.'
 func (w *StringOptionsBuilder) SetSeparator(separator byte) *StringOptionsBuilder {
 	w.separator = separator
+	w.SetHasSeparator(true)
 	return w
 }
 

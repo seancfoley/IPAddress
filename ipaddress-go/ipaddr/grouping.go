@@ -7,7 +7,7 @@ import (
 )
 
 func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressDivisionGrouping {
-	return &AddressDivisionGrouping{
+	grouping := &AddressDivisionGrouping{
 		//return &AddressSection{
 		//addressSectionInternal{
 		addressDivisionGroupingInternal{
@@ -21,6 +21,8 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 		},
 		//},
 	}
+	assignStringCache(&grouping.addressDivisionGroupingBase, addrType)
+	return grouping
 }
 
 func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressDivisionGrouping {

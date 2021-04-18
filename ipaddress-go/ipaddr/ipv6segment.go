@@ -12,24 +12,6 @@ func ToIPv6SegInt(val SegInt) IPv6SegInt {
 
 //TODO caching of ipv6SegmentValues
 
-// https://www.tapirgames.com/blog/golang-interface-implementation
-/*
-type _interface struct {
-	dynamicTypeInfo *_implementation
-	dynamicValue    unsafe.Pointer // unsafe.Pointer means
-	                               // *ArbitraryType in Go.
-}
-For the official Go compiler and runtime, a non-nil dynamicValue field value may store
-the address of the dynamic value if the dynamic type is not a pointer type, or
-the dynamic value itself if the dynamic type is a pointer type.
-Surely, it is not essential to make the exception for pointer dynamic values.
-This is just a compiler optimization. We can get why it is an optimization in following sections.
-(BTW, about more current and future optimizations in the official interface implementation, please read this article.)
-*/
-// If ipv6SegmentValues implements divisionValues by pointer, then it will stick that pointer in the interface var
-// So there is really no reason to make ipv6SegmentValues use non-pointer method receivers
-// Cuz it will already by dereferencing at least one pointer through the interface, might as well be that one
-
 func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
 	return &ipv6SegmentValues{
 		value:      value,
