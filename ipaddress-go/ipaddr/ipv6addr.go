@@ -366,6 +366,14 @@ func (addr *IPv6Address) SequentialBlockIterator() IPv6AddressIterator {
 	return ipv6AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPv6Address) IncrementBoundary(increment int64) *IPv6Address {
+	return addr.init().incrementBoundary(increment).ToIPv6Address()
+}
+
+func (addr *IPv6Address) Increment(increment int64) *IPv6Address {
+	return addr.init().increment(increment).ToIPv6Address()
+}
+
 func (addr IPv6Address) String() string {
 	return addr.init().addressInternal.String()
 }

@@ -900,7 +900,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // TODO NOW progress
 // TODO NEXT NOW progress
 //
-// - things to target: increment, setting prefixes, merge, span, covers
+// - things to target: increment, setting prefixes, merge, span, cover
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
@@ -911,3 +911,5 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // done so far: most of parsing and params, most of HostName, most of seq ranges, a lot of framework,
 // comparators, iterators, a lot of the basic funcs for prefixes and indexes, bytes functions,
 // address structure, string generation, mac parsing, ...
+
+// TODO xxx which is next?  increment or merge or span? increment (and incrementBoundary)

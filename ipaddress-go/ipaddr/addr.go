@@ -279,7 +279,7 @@ func (addr *addressInternal) checkIdentity(section *AddressSection) *Address {
 	if section == addr.section {
 		return addr.toAddress()
 	}
-	return &Address{addressInternal{section: section, zone: addr.zone, cache: &addressCache{}}}
+	return createAddress(section, addr.zone)
 }
 
 func (addr *addressInternal) getLower() *Address {
@@ -561,16 +561,26 @@ func (addr *addressInternal) hasZone() bool {
 	return addr.zone != noZone
 }
 
+//TODO options for overflow:
+// - same as integers, you wrap around
+// - return error
+// - return nil
+// Error seems too much.  Wrappoing around mimics integers, but that's somewhat an artifact of how arithmetic in cpus work, overflow detection expected to be done by software.
+// So, that leaves nil.  Would someone ever want to wrap around?  Not likely.
+// nil makes sense to me.
+
+func (addr *addressInternal) increment(increment int64) *Address {
+	return addr.checkIdentity(addr.section.increment(increment))
+}
+
+func (addr *addressInternal) incrementBoundary(increment int64) *Address {
+	return addr.checkIdentity(addr.section.incrementBoundary(increment))
+}
+
 func (addr *addressInternal) getStringCache() *stringCache {
 	return addr.cache.stringCache
 }
 
-//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
-// we also want toCanonicalWildcardString
-// the code will need to check the addrtype in the section, in fact, the code should just defer to the section,
-// although that's a bit problematic for ipv6.  So for ipv6, we need to scale up to ipv6 inside the address code,
-// unfortunately, although this is just as messy for the java side where we had to make a special override for ipv6 everywhere
-// And let's face it, we need to override all methods in addresses for the init() calls anyway
 func (addr *addressInternal) toCanonicalString() string {
 	if addr.hasZone() {
 		return cacheStr(&addr.getStringCache().canonicalString,
@@ -724,6 +734,14 @@ func (addr *Address) PrefixIterator() AddressIterator {
 
 func (addr *Address) PrefixBlockIterator() AddressIterator {
 	return addr.prefixIterator(true)
+}
+
+func (addr *Address) IncrementBoundary(increment int64) *Address {
+	return addr.init().IncrementBoundary(increment).ToAddress()
+}
+
+func (addr *Address) Increment(increment int64) *Address {
+	return addr.init().increment(increment).ToAddress()
 }
 
 func (addr *Address) ToCanonicalString() string {

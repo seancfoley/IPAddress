@@ -111,6 +111,14 @@ func (addr *MACAddress) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
+func (addr *MACAddress) LongValue() uint64 {
+	return addr.GetSection().LongValue()
+}
+
+func (addr *MACAddress) UpperLongValue() uint64 {
+	return addr.GetSection().UpperLongValue()
+}
+
 func (addr *MACAddress) GetHardwareAddr() net.HardwareAddr {
 	return addr.GetBytes()
 }
@@ -242,6 +250,14 @@ func (addr *MACAddress) PrefixIterator() MACAddressIterator {
 
 func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
 	return macAddressIterator{addr.init().prefixIterator(true)}
+}
+
+func (addr *MACAddress) IncrementBoundary(increment int64) *MACAddress {
+	return addr.init().incrementBoundary(increment).ToMACAddress()
+}
+
+func (addr *MACAddress) Increment(increment int64) *MACAddress {
+	return addr.init().increment(increment).ToMACAddress()
 }
 
 func (addr MACAddress) String() string {

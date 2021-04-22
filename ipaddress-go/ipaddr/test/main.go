@@ -280,6 +280,8 @@ func main() {
 	for mAddrIter.HasNext() {
 		fmt.Printf("%v ", mAddrIter.Next())
 	}
+
+	fmt.Printf("\nincremented by 1 mac addr %+v is %+v\n", mAddr, mAddr.Increment(1))
 	//_ = getDoc()
 }
 

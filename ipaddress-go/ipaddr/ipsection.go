@@ -486,11 +486,11 @@ func (section *IPAddressSection) GetSegments() (res []*IPAddressSegment) {
 }
 
 func (section *IPAddressSection) GetLower() *IPAddressSection {
-	return section.getLowestOrHighestSection(true).ToIPAddressSection()
+	return section.getLower().ToIPAddressSection()
 }
 
 func (section *IPAddressSection) GetUpper() *IPAddressSection {
-	return section.getLowestOrHighestSection(false).ToIPAddressSection()
+	return section.getUpper().ToIPAddressSection()
 }
 
 func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {
@@ -539,6 +539,14 @@ func (section *IPAddressSection) BlockIterator(segmentCount int) IPSectionIterat
 
 func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
 	return ipSectionIterator{section.sequentialBlockIterator()}
+}
+
+func (section *IPAddressSection) IncrementBoundary(increment int64) *IPAddressSection {
+	return section.incrementBoundary(increment).ToIPAddressSection()
+}
+
+func (section *IPAddressSection) Increment(increment int64) *IPAddressSection {
+	return section.increment(increment).ToIPAddressSection()
 }
 
 var (
@@ -629,7 +637,6 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 		}
 	}
 	res.prefixLength = prefixLength
-	//} // else prefixLength has already been set to the proper value
 	return
 }
 
@@ -788,6 +795,44 @@ func toSegments(
 		segments[segmentIndex] = seg
 	}
 	return
+}
+
+func createSegmentsUint64(
+	segments []*AddressDivision, // empty
+	highBytes,
+	lowBytes uint64,
+	bytesPerSegment int,
+	bitsPerSegment BitCount,
+	creator AddressSegmentCreator,
+	prefixLength PrefixLen) []*AddressDivision {
+	segmentMask := ^(^SegInt(0) << bitsPerSegment)
+	lowSegCount := getHostSegmentIndex(64, bytesPerSegment, bitsPerSegment)
+	segLen := len(segments)
+	lowIndex := segLen - lowSegCount
+	if lowIndex < 0 {
+		lowIndex = 0
+	}
+	segmentIndex := segLen - 1
+	bytes := lowBytes
+	for {
+		for {
+			segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+			value := segmentMask & SegInt(bytes)
+			seg := creator.createSegment(value, value, segmentPrefixLength)
+			segments[segmentIndex] = seg
+			segmentIndex--
+			if segmentIndex < lowIndex {
+				break
+			}
+			bytes >>= bitsPerSegment
+		}
+		if lowIndex == 0 {
+			break
+		}
+		lowIndex = 0
+		bytes = highBytes
+	}
+	return segments
 }
 
 func createSegments(

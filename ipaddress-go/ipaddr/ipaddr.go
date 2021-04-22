@@ -525,6 +525,14 @@ func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
 	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.IsMultiple())
 }
 
+func (addr *IPAddress) IncrementBoundary(increment int64) *IPAddress {
+	return addr.init().incrementBoundary(increment).ToIPAddress()
+}
+
+func (addr *IPAddress) Increment(increment int64) *IPAddress {
+	return addr.init().increment(increment).ToIPAddress()
+}
+
 func (addr *IPAddress) ToCanonicalString() string {
 	return addr.init().toCanonicalString()
 }

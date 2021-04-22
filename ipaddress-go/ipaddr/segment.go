@@ -187,7 +187,7 @@ func (seg *addressSegmentInternal) ToNormalizedString() string {
 	return stringer()
 }
 
-func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
+func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
 	var stringer func() string
 	if with0xPrefix {
 		stringer = func() string {
@@ -201,12 +201,12 @@ func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) string {
 	if seg.divisionValues != nil {
 		if cache := seg.getCache(); cache != nil {
 			if with0xPrefix {
-				return cacheStr(&cache.cached0xHexString, stringer)
+				return cacheStr(&cache.cached0xHexString, stringer), nil
 			}
-			return cacheStr(&cache.cachedHexString, stringer)
+			return cacheStr(&cache.cachedHexString, stringer), nil
 		}
 	}
-	return stringer()
+	return stringer(), nil
 }
 
 type AddressSegment struct {

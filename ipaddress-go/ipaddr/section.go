@@ -140,6 +140,14 @@ func (section *addressSectionInternal) init() error {
 }
 
 func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
+	addrType := section.getAddrType()
+	if addrType.isIPv4() {
+		return IPv4BitsPerSegment
+	} else if addrType.isIPv6() {
+		return IPv6BitsPerSegment
+	} else if addrType.isMAC() {
+		return MACBitsPerSegment
+	}
 	if section.GetDivisionCount() == 0 {
 		return 0
 	}
@@ -147,6 +155,14 @@ func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
 }
 
 func (section *addressSectionInternal) GetBytesPerSegment() int {
+	addrType := section.getAddrType()
+	if addrType.isIPv4() {
+		return IPv4BytesPerSegment
+	} else if addrType.isIPv6() {
+		return IPv6BytesPerSegment
+	} else if addrType.isMAC() {
+		return MACBytesPerSegment
+	}
 	if section.GetDivisionCount() == 0 {
 		return 0
 	}
@@ -174,6 +190,14 @@ func (section *addressSectionInternal) GetByteCount() int {
 }
 
 func (section *addressSectionInternal) GetMaxSegmentValue() SegInt {
+	addrType := section.getAddrType()
+	if addrType.isIPv4() {
+		return IPv4MaxValuePerSegment
+	} else if addrType.isIPv6() {
+		return IPv6MaxValuePerSegment
+	} else if addrType.isMAC() {
+		return MACMaxValuePerSegment
+	}
 	divLen := section.GetDivisionCount()
 	if divLen == 0 {
 		return 0
@@ -279,7 +303,7 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 	return
 }
 
-func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (result *AddressSection) { //TODO move this too
+func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (result *AddressSection) {
 	if !section.IsMultiple() {
 		return section.toAddressSection()
 	}
@@ -444,6 +468,35 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 	return &section.cache.stringCache
 }
 
+func (section *addressSectionInternal) getLower() *AddressSection {
+	return section.getLowestOrHighestSection(true)
+}
+
+func (section *addressSectionInternal) getUpper() *AddressSection {
+	return section.getLowestOrHighestSection(false)
+}
+
+func (section *addressSectionInternal) incrementBoundary(increment int64) *AddressSection {
+	if increment <= 0 {
+		if increment == 0 {
+			return section.toAddressSection()
+		}
+		return section.getLower().increment(increment)
+	}
+	return section.getUpper().increment(increment)
+}
+
+func (section *addressSectionInternal) increment(increment int64) *AddressSection {
+	if sect := section.toIPv4AddressSection(); sect != nil {
+		return sect.Increment(increment).ToAddressSection()
+	} else if sect := section.toIPv6AddressSection(); sect != nil {
+		return sect.Increment(increment).ToAddressSection()
+	} else if sect := section.toMACAddressSection(); sect != nil {
+		return sect.Increment(increment).ToAddressSection()
+	}
+	return nil
+}
+
 var (
 	hexParams            = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
 	hexPrefixedParams    = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
@@ -453,7 +506,7 @@ var (
 	binaryPrefixedParams = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
 
-//TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
+// TODO the four string methods at address level are toCanonicalString, toNormalizedString, toHexString, toCompressedString
 // we also want toCanonicalWildcardString and ToNormalizedWildcardString
 // the code will need to check the addrtype in the section,
 // and scale up to ipv6 or ipv4 or mac, or maybe do an if/elseif/else, not sure which is better
@@ -718,29 +771,6 @@ type AddressSection struct {
 	addressSectionInternal
 }
 
-// this was moved down into addressSectionInternal
-//func (section *AddressSection) ContainsPrefixBlock(prefixLen BitCount) bool {
-//	return section.containsPrefixBlock(prefixLen)
-//	//prefixLen = checkSubnet(section, prefixLen)
-//	//divCount := section.GetSegmentCount()
-//	//bitsPerSegment := section.GetBitsPerSegment()
-//	//i := getHostSegmentIndex(prefixLen, section.GetBytesPerSegment(), bitsPerSegment)
-//	//if i < divCount {
-//	//	div := section.GetSegment(i)
-//	//	segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
-//	//	if !div.ContainsPrefixBlock(*segmentPrefixLength) {
-//	//		return false
-//	//	}
-//	//	for i++; i < divCount; i++ {
-//	//		div = section.GetSegment(i)
-//	//		if !div.IsFullRange() {
-//	//			return false
-//	//		}
-//	//	}
-//	//}
-//	//return true
-//}
-
 func (section *AddressSection) GetCount() *big.Int {
 	if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetCount()
@@ -812,11 +842,11 @@ func (section *AddressSection) GetSegments() (res []*AddressSegment) {
 }
 
 func (section *AddressSection) GetLower() *AddressSection {
-	return section.getLowestOrHighestSection(true)
+	return section.getLower()
 }
 
 func (section *AddressSection) GetUpper() *AddressSection {
-	return section.getLowestOrHighestSection(false)
+	return section.getUpper()
 }
 
 func (section *AddressSection) ToPrefixBlock() *AddressSection {
@@ -885,4 +915,12 @@ func (section *AddressSection) PrefixIterator() SectionIterator {
 
 func (section *AddressSection) PrefixBlockIterator() SectionIterator {
 	return section.prefixIterator(true)
+}
+
+func (section *AddressSection) IncrementBoundary(increment int64) *AddressSection {
+	return section.incrementBoundary(increment)
+}
+
+func (section *AddressSection) Increment(increment int64) *AddressSection {
+	return section.increment(increment)
 }

@@ -46,7 +46,7 @@ type AddressItem interface {
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
 	//AddressComponentRange
 
-	//ToHexString(bool) string TODO reinstate when this is in place everywhere
+	ToHexString(bool) (string, IncompatibleAddressException)
 	ToNormalizedString() string
 }
 
@@ -117,6 +117,7 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	AddressDivisionSeries
 
 	ToCanonicalString() string
+	ToCompressedString() string
 }
 
 //TODO this might be useful for the merging code, in Java I believe I used it there

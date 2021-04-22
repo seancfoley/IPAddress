@@ -148,6 +148,14 @@ func (section *IPv6AddressSection) GetIPVersion() IPVersion {
 	return IPv6
 }
 
+func (section *IPv6AddressSection) GetBitsPerSegment() BitCount {
+	return IPv6BitsPerSegment
+}
+
+func (section *IPv6AddressSection) GetBytesPerSegment() int {
+	return IPv6BytesPerSegment
+}
+
 func (section *IPv6AddressSection) GetCount() *big.Int {
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
@@ -241,11 +249,11 @@ func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection, retai
 }
 
 func (section *IPv6AddressSection) GetLower() *IPv6AddressSection {
-	return section.getLowestOrHighestSection(true).ToIPv6AddressSection()
+	return section.getLower().ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) GetUpper() *IPv6AddressSection {
-	return section.getLowestOrHighestSection(false).ToIPv6AddressSection()
+	return section.getUpper().ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) ToPrefixBlock() *IPv6AddressSection {
@@ -402,8 +410,61 @@ func (section *IPv6AddressSection) getZeroSegments(includeRanges bool) RangeList
 	return RangeList{ranges[:rangeCount]}
 }
 
-func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
-	return (*IPAddressSection)(unsafe.Pointer(section))
+func (section *IPv6AddressSection) IncrementBoundary(increment int64) *IPv6AddressSection {
+	return section.incrementBoundary(increment).ToIPv6AddressSection()
+}
+
+func getIPv6MaxValue(segmentCount int) *big.Int {
+	return new(big.Int).Set(ipv6MaxValues[segmentCount])
+}
+
+var ipv6MaxValues = []*big.Int{
+	bigZero(),
+	new(big.Int).SetUint64(IPv6MaxValuePerSegment),
+	new(big.Int).SetUint64(0xffffffff),
+	new(big.Int).SetUint64(0xffffffffffff),
+	maxInt(4),
+	maxInt(5),
+	maxInt(6),
+	maxInt(7),
+	maxInt(8),
+}
+
+func maxInt(segCount int) *big.Int {
+	res := new(big.Int).SetUint64(1)
+	return res.Lsh(res, 16*uint(segCount)).Sub(res, bigOneConst())
+}
+
+func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSection {
+	if increment == 0 && !section.IsMultiple() {
+		return section
+	}
+	lowerValue := section.GetValue()
+	upperValue := section.GetUpperValue()
+	count := section.GetCount()
+	var bigIncrement big.Int
+	bigIncrement.SetInt64(increment)
+	checkOverflowBig(increment, &bigIncrement, lowerValue, upperValue, count, func() *big.Int { return getIPv6MaxValue(section.GetSegmentCount()) })
+	prefixLength := section.GetPrefixLength()
+	result := fastIncrement(
+		section.ToAddressSection(),
+		increment,
+		DefaultIPv6Network.GetIPv6AddressCreator(),
+		section.getLower,
+		section.getUpper,
+		prefixLength)
+	if result != nil {
+		return result.ToIPv6AddressSection()
+	}
+	bigIncrement.SetInt64(increment)
+	return incrementBig(
+		section.ToAddressSection(),
+		increment,
+		&bigIncrement,
+		DefaultIPv6Network.GetIPv6AddressCreator(),
+		section.getLower,
+		section.getUpper,
+		prefixLength).ToIPv6AddressSection()
 }
 
 var (
@@ -633,6 +694,10 @@ func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4Mi
 	mixed := section.GetMixedAddressSection()
 	result := mixedParams.toZonedString(mixed, zone)
 	return result
+}
+
+func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
+	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
 func (section *IPv6AddressSection) GetMixedAddressSection() *IPv6v4MixedAddressSection {

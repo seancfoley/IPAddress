@@ -43,25 +43,25 @@ func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *I
 }
 
 func NewIPv4AddressFromValues(vals SegmentValueProvider) (addr *IPv4Address) {
-	section := NewIPv4AddressSectionFromValues(vals, IPv4SegmentCount)
+	section := NewIPv4AddressSectionFromVals(vals, IPv4SegmentCount)
 	addr = NewIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
-	section := NewIPv4AddressSectionFromPrefixedValues(vals, IPv4SegmentCount, prefixLength)
+	section := NewIPv4AddressSectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Address) {
-	section := NewIPv4AddressSectionFromRangeValues(vals, upperVals, IPv4SegmentCount)
+	section := NewIPv4AddressSectionFromRangeVals(vals, upperVals, IPv4SegmentCount)
 	addr = NewIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
-	section := NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv4SegmentCount, prefixLength)
+	section := NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
 }
@@ -200,6 +200,14 @@ func (addr *IPv4Address) UpperIntValue() uint32 {
 	return addr.GetSection().UpperIntValue()
 }
 
+func (addr *IPv4Address) LongValue() uint64 {
+	return addr.GetSection().LongValue()
+}
+
+func (addr *IPv4Address) UpperLongValue() uint64 {
+	return addr.GetSection().UpperLongValue()
+}
+
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
 	return addr.init().toPrefixBlock().ToIPv4Address()
 }
@@ -321,6 +329,14 @@ func (addr *IPv4Address) BlockIterator(segmentCount int) IPv4AddrIterator {
 
 func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
 	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
+}
+
+func (addr *IPv4Address) IncrementBoundary(increment int64) *IPv4Address {
+	return addr.init().incrementBoundary(increment).ToIPv4Address()
+}
+
+func (addr *IPv4Address) Increment(increment int64) *IPv4Address {
+	return addr.init().increment(increment).ToIPv4Address()
 }
 
 func (addr IPv4Address) String() string {

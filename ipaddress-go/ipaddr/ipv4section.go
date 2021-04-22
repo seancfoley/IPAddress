@@ -106,21 +106,21 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	return
 }
 
-func NewIPv4AddressSectionFromValues(vals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
-	res = NewIPv4AddressSectionFromPrefixedRangeValues(vals, nil, segmentCount, nil)
+func NewIPv4AddressSectionFromVals(vals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
+	res = NewIPv4AddressSectionFromPrefixedRangeVals(vals, nil, segmentCount, nil)
 	return
 }
 
-func NewIPv4AddressSectionFromPrefixedValues(vals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
-	return NewIPv4AddressSectionFromPrefixedRangeValues(vals, nil, segmentCount, prefixLength)
+func NewIPv4AddressSectionFromPrefixedVals(vals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
+	return NewIPv4AddressSectionFromPrefixedRangeVals(vals, nil, segmentCount, prefixLength)
 }
 
-func NewIPv4AddressSectionFromRangeValues(vals, upperVals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
-	res = NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals, segmentCount, nil)
+func NewIPv4AddressSectionFromRangeVals(vals, upperVals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
+	res = NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals, segmentCount, nil)
 	return
 }
 
-func NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
+func NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
@@ -142,6 +142,14 @@ func NewIPv4AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 // The zero values is a section with zero segments.
 type IPv4AddressSection struct {
 	ipAddressSectionInternal
+}
+
+func (section *IPv4AddressSection) GetBitsPerSegment() BitCount {
+	return IPv4BitsPerSegment
+}
+
+func (section *IPv4AddressSection) GetBytesPerSegment() int {
+	return IPv4BytesPerSegment
 }
 
 func (section *IPv4AddressSection) GetIPVersion() IPVersion {
@@ -242,11 +250,19 @@ func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retai
 }
 
 func (section *IPv4AddressSection) GetLower() *IPv4AddressSection {
-	return section.getLowestOrHighestSection(true).ToIPv4AddressSection()
+	return section.getLower().ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) GetUpper() *IPv4AddressSection {
-	return section.getLowestOrHighestSection(false).ToIPv4AddressSection()
+	return section.getUpper().ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) LongValue() uint64 {
+	return uint64(section.IntValue())
+}
+
+func (section *IPv4AddressSection) UpperLongValue() uint64 {
+	return uint64(section.UpperIntValue())
 }
 
 func (section *IPv4AddressSection) IntValue() uint32 {
@@ -285,11 +301,16 @@ func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
 				uint32(section.GetSegment(3).GetUpperSegmentValue())
 		}
 	} else {
-		result = uint32(section.GetSegment(0).GetUpperSegmentValue())
+		seg := section.GetSegment(0)
+		if lower {
+			result = uint32(seg.GetSegmentValue())
+		} else {
+			result = uint32(seg.GetUpperSegmentValue())
+		}
 		bitsPerSegment := section.GetBitsPerSegment()
 		for i := 1; i < segCount; i++ {
 			result = (result << bitsPerSegment)
-			seg := section.GetSegment(i)
+			seg = section.GetSegment(i)
 			if lower {
 				result |= uint32(seg.GetSegmentValue())
 			} else {
@@ -341,6 +362,34 @@ func (section *IPv4AddressSection) SequentialBlockIterator() IPv4SectionIterator
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
+}
+
+func (section *IPv4AddressSection) IncrementBoundary(increment int64) *IPv4AddressSection {
+	return section.incrementBoundary(increment).ToIPv4AddressSection()
+}
+
+func getIPv4MaxValueLong(segmentCount int) uint64 {
+	return macMaxValues[segmentCount]
+}
+
+func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
+	if inc == 0 && !section.IsMultiple() {
+		return section
+	}
+	lowerValue := uint64(section.IntValue())
+	upperValue := uint64(section.UpperIntValue())
+	count := section.GetIPv4Count()
+	checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
+	return increment(
+		section.ToAddressSection(),
+		inc,
+		DefaultIPv4Network.GetIPv4AddressCreator(),
+		count,
+		lowerValue,
+		upperValue,
+		section.getLower,
+		section.getUpper,
+		section.GetPrefixLength()).ToIPv4AddressSection()
 }
 
 var (

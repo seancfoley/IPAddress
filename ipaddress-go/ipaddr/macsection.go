@@ -42,6 +42,14 @@ type MACAddressSection struct {
 	addressSectionInternal
 }
 
+func (section *MACAddressSection) GetBitsPerSegment() BitCount {
+	return MACBitsPerSegment
+}
+
+func (section *MACAddressSection) GetBytesPerSegment() int {
+	return MACBytesPerSegment
+}
+
 func (section *MACAddressSection) GetCount() *big.Int {
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
@@ -123,11 +131,43 @@ func (section *MACAddressSection) GetSegments() (res []*MACAddressSegment) {
 }
 
 func (section *MACAddressSection) GetLower() *MACAddressSection {
-	return section.getLowestOrHighestSection(true).ToMACAddressSection()
+	return section.getLower().ToMACAddressSection()
 }
 
 func (section *MACAddressSection) GetUpper() *MACAddressSection {
-	return section.getLowestOrHighestSection(false).ToMACAddressSection()
+	return section.getUpper().ToMACAddressSection()
+}
+
+func (section *MACAddressSection) LongValue() uint64 {
+	return section.getLongValue(true)
+}
+
+func (section *MACAddressSection) UpperLongValue() uint64 {
+	return section.getLongValue(false)
+}
+
+func (section *MACAddressSection) getLongValue(lower bool) (result uint64) {
+	segCount := section.GetSegmentCount()
+	if segCount == 0 {
+		return
+	}
+	seg := section.GetSegment(0)
+	if lower {
+		result = uint64(seg.GetSegmentValue())
+	} else {
+		result = uint64(seg.GetUpperSegmentValue())
+	}
+	bitsPerSegment := section.GetBitsPerSegment()
+	for i := 1; i < segCount; i++ {
+		result = (result << bitsPerSegment)
+		seg = section.GetSegment(i)
+		if lower {
+			result |= uint64(seg.GetSegmentValue())
+		} else {
+			result |= uint64(seg.GetUpperSegmentValue())
+		}
+	}
+	return
 }
 
 func (section *MACAddressSection) ToPrefixBlock() *MACAddressSection {
@@ -148,6 +188,75 @@ func (section *MACAddressSection) PrefixIterator() MACSectionIterator {
 
 func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 	return macSectionIterator{section.prefixIterator(true)}
+}
+
+func (section *MACAddressSection) IncrementBoundary(increment int64) *MACAddressSection {
+	return section.incrementBoundary(increment).ToMACAddressSection()
+}
+
+func getMacMaxValueLong(segmentCount int) uint64 {
+	return macMaxValues[segmentCount]
+}
+
+var macMaxValues = []uint64{
+	0,
+	MACMaxValuePerSegment,
+	0xffff,
+	0xffffff,
+	0xffffffff,
+	0xffffffffff,
+	0xffffffffffff,
+	0xffffffffffffff,
+	0xffffffffffffffff}
+
+func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSection {
+	if incrementVal == 0 && !section.IsMultiple() {
+		return section
+	}
+	segCount := section.GetSegmentCount()
+	lowerValue := section.LongValue()
+	upperValue := section.UpperLongValue()
+	count := section.GetCount()
+	countMinus1 := count.Sub(count, bigOneConst()).Uint64()
+	checkOverflow(incrementVal, lowerValue, upperValue, countMinus1, getMacMaxValueLong(segCount))
+	return increment(
+		section.ToAddressSection(),
+		incrementVal,
+		DefaultMACNetwork.GetMACAddressCreator(),
+		countMinus1,
+		section.LongValue(),
+		section.UpperLongValue(),
+		section.addressSectionInternal.getLower,
+		section.addressSectionInternal.getUpper,
+		section.GetPrefixLength()).ToMACAddressSection()
+	//			}
+	//			BigInteger lowerValue = getValue();
+	//			BigInteger upperValue = getUpperValue();
+	//			BigInteger count = getCount();
+	//			BigInteger bigIncrement = BigInteger.valueOf(increment);
+	//			checkOverflow(increment, bigIncrement, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+	//			Integer prefixLength = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength();
+	//			MACAddressSection result = fastIncrement(
+	//					this,
+	//					increment,
+	//					getAddressCreator(),
+	//					this::getLower,
+	//					this::getUpper,
+	//					prefixLength);
+	//			if(result != null) {
+	//				return result;
+	//			}
+	//			return increment(
+	//					this,
+	//					increment,
+	//					bigIncrement,
+	//					getAddressCreator(),
+	//					this::getLower,
+	//					this::getUpper,
+	//					getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
+	//
+	//*/
+	//return nil
 }
 
 var (
