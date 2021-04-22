@@ -1,0 +1,253 @@
+package ipaddr
+
+import (
+	"math"
+	"math/big"
+)
+
+// returns true for overflow
+func checkOverflow( // used by IPv4 and MAC
+	increment int64,
+	lowerValue,
+	upperValue,
+	countMinus1 uint64,
+	maxValue uint64) bool {
+	if increment < 0 {
+		if lowerValue < uint64(-increment) {
+			return true
+		}
+	} else {
+		uIncrement := uint64(increment)
+		if uIncrement > countMinus1 {
+			if countMinus1 > 0 {
+				uIncrement -= countMinus1
+			}
+			if uIncrement > maxValue-upperValue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func checkOverflowBig( // used by MAC and IPv6
+	increment int64,
+	bigIncrement,
+	lowerValue,
+	upperValue,
+	count *big.Int,
+	maxValue func() *big.Int) bool {
+	isMultiple := count.CmpAbs(bigOneConst()) > 0
+	if increment < 0 {
+		if lowerValue.CmpAbs(bigIncrement.Neg(bigIncrement)) < 0 {
+			return true
+		}
+	} else {
+		if isMultiple {
+			bigIncrement.Sub(bigIncrement, count.Sub(count, bigOneConst()))
+		}
+		maxVal := maxValue()
+		if bigIncrement.CmpAbs(maxVal.Sub(maxVal, upperValue)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Handles the cases in which we can use longs rather than BigInteger
+func fastIncrement( // used by IPv6
+	section *AddressSection,
+	inc int64,
+	creator AddressSegmentCreator,
+	lowerProducer,
+	upperProducer func() *AddressSection,
+	prefixLength PrefixLen) *AddressSection {
+	if inc >= 0 {
+		count := section.GetCount()
+		uincrement := uint64(inc)
+		var maxUint64 big.Int
+		maxUint64.SetUint64(math.MaxUint64)
+		if count.CmpAbs(&maxUint64) <= 0 {
+			longCount := count.Uint64()
+			if longCount > uincrement {
+				if longCount == uincrement+1 {
+					return upperProducer()
+				}
+				return incrementRange(section, inc, creator, lowerProducer, prefixLength)
+			}
+			upperValue := section.GetUpperValue()
+			if upperValue.CmpAbs(&maxUint64) <= 0 {
+				value := section.GetValue()
+				return increment(
+					section,
+					inc,
+					creator,
+					count.Uint64(),
+					value.Uint64(),
+					upperValue.Uint64(),
+					lowerProducer,
+					upperProducer,
+					prefixLength)
+			}
+		}
+	} else {
+		var maxUint64 big.Int
+		maxUint64.SetUint64(math.MaxUint64)
+		value := section.GetValue()
+		if value.CmpAbs(&maxUint64) <= 0 {
+			return add(lowerProducer(), value.Uint64(), inc, creator, prefixLength)
+		}
+	}
+	return nil
+}
+
+//this does not handle overflow, overflow should be checked before calling this
+func increment( // used by IPv4 and MAC
+	section *AddressSection,
+	increment int64,
+	creator AddressSegmentCreator,
+	countMinus1 uint64,
+	lowerValue,
+	upperValue uint64,
+	lowerProducer,
+	upperProducer func() *AddressSection,
+	prefixLength PrefixLen) *AddressSection {
+	if !section.IsMultiple() {
+		return add(section, lowerValue, increment, creator, prefixLength)
+	}
+	isDecrement := increment <= 0
+	if isDecrement {
+		//we know lowerValue + increment >= 0 because we already did an overflow check
+		return add(lowerProducer(), lowerValue, increment, creator, prefixLength)
+	}
+	uIncrement := uint64(increment)
+	if countMinus1 >= uIncrement {
+		if countMinus1 == uIncrement {
+			return upperProducer()
+		}
+		return incrementRange(section, increment, creator, lowerProducer, prefixLength)
+	}
+	if uIncrement <= math.MaxUint64-upperValue {
+		return add(upperProducer(), upperValue, int64(uIncrement-countMinus1), creator, prefixLength)
+	}
+	return addBig(upperProducer(), new(big.Int).SetUint64(uIncrement-countMinus1), creator, prefixLength)
+}
+
+//this does not handle overflow, overflow should be checked before calling this
+func incrementBig( // used by MAC and IPv6
+	section *AddressSection,
+	increment int64,
+	bigIncrement *big.Int,
+	creator AddressSegmentCreator,
+	lowerProducer,
+	upperProducer func() *AddressSection,
+	prefixLength PrefixLen) *AddressSection {
+	if !section.IsMultiple() {
+		return addBig(section, bigIncrement, creator, prefixLength)
+	}
+	isDecrement := increment <= 0
+	if isDecrement {
+		return addBig(lowerProducer(), bigIncrement, creator, prefixLength)
+	}
+	count := section.GetCount()
+	incrementPlus1 := bigIncrement.Add(bigIncrement, bigOneConst())
+	countCompare := count.CmpAbs(incrementPlus1)
+	if countCompare <= 0 {
+		if countCompare == 0 {
+			return upperProducer()
+		}
+		return addBig(upperProducer(), incrementPlus1.Sub(incrementPlus1, count), creator, prefixLength)
+	}
+	return incrementRange(section, increment, creator, lowerProducer, prefixLength)
+}
+
+// rangeIncrement the positive value of the number of increments through the range (0 means take lower or upper value in range)
+func incrementRange(
+	section *AddressSection,
+	increment int64,
+	creator AddressSegmentCreator,
+	lowerProducer func() *AddressSection,
+	prefixLength PrefixLen) *AddressSection {
+	if increment == 0 {
+		return lowerProducer()
+	}
+	segCount := section.GetSegmentCount()
+	newSegments := make([]*AddressDivision, segCount)
+	for i := segCount - 1; i >= 0; i-- {
+		seg := section.GetSegment(i)
+		segRange := seg.GetValueCount()
+		segRange64 := int64(segRange)
+		revolutions := increment / segRange64
+		remainder := increment % segRange64
+		val := seg.getSegmentValue() + SegInt(remainder)
+		segPrefixLength := getSegmentPrefixLength(section.GetBitsPerSegment(), prefixLength, i)
+		newSegment := creator.createSegment(val, val, segPrefixLength)
+		newSegments[i] = newSegment
+		if revolutions == 0 {
+			for i--; i >= 0; i-- {
+				original := section.GetSegment(i)
+				val = original.getSegmentValue()
+				segPrefixLength = getSegmentPrefixLength(section.GetBitsPerSegment(), prefixLength, i)
+				newSegments[i] = creator.createSegment(val, val, segPrefixLength)
+			}
+			break
+		} else {
+			increment = revolutions
+		}
+	}
+	return createSection(newSegments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	//return createIteratedSection(newSegments, addrCreator, prefixLength)
+}
+
+//this does not handle overflow, overflow should be checked before calling this
+func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentCreator, prefixLength PrefixLen) *AddressSection {
+	segCount := section.GetSegmentCount()
+	fullValue := section.GetValue()
+	fullValue.Add(fullValue, increment)
+	//expectedByteCount := getHostSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount)
+	expectedByteCount := section.GetByteCount()
+	bytes := fullValue.Bytes() // could use FillBytes but that only came with 1.15
+	segments, _ := toSegments(
+		bytes,
+		segCount,
+		section.GetBytesPerSegment(),
+		section.GetBitsPerSegment(),
+		expectedByteCount,
+		creator,
+		prefixLength)
+
+	res := createSection(segments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	//if prefixLength != nil {
+	//	assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
+	//}
+	if expectedByteCount == len(bytes) {
+		res.cache.lowerBytes = bytes
+		res.cache.upperBytes = bytes
+	}
+	return res
+	//return addrCreator.createSectionInternal(bytes, segCount, prefixLength, true) //TODO create from bytes here, will need creator
+}
+
+func add(section *AddressSection, fullValue uint64, increment int64, creator AddressSegmentCreator, prefixLength PrefixLen) *AddressSection {
+	//if(section.IsMultiple()) {
+	//	throw new IllegalArgumentException();
+	//}
+	segCount := section.GetSegmentCount()
+	newSegs := make([]*AddressDivision, segCount)
+	var val uint64
+	if increment < 0 {
+		val = fullValue - uint64(-increment)
+	} else {
+		val = fullValue + uint64(increment)
+	}
+	createSegmentsUint64(
+		newSegs,
+		0,
+		val,
+		section.GetBytesPerSegment(),
+		section.GetBitsPerSegment(),
+		creator,
+		prefixLength)
+	return createSection(newSegs, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	//return createIteratedSection(newSegs, addrCreator, prefixLength)
+}
