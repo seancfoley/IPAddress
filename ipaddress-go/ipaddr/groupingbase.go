@@ -65,8 +65,8 @@ func (grouping *addressDivisionGroupingBase) getDivision(index int) *addressDivi
 //	return grouping.getDivision(index)
 //}
 
-// GetGenericDivision returns the division as a common interface AddressGenericDivision,
-// which allows all division types and aggregated division types to be represented by a single type,
+// GetGenericDivision returns the division as an AddressGenericDivision,
+// allowing all division types and aggregated division types to be represented by a single type,
 // useful for comparisons and other common uses.
 func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) AddressGenericDivision {
 	return grouping.divisions.getGenericDivision(index)
@@ -228,7 +228,7 @@ func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitC
 	return res
 }
 
-func (grouping *addressDivisionGroupingBase) IsMore(other AddressDivisionSeries) int {
+func (grouping *addressDivisionGroupingBase) CompareSize(other AddressDivisionSeries) int {
 	if !grouping.IsMultiple() {
 		if other.IsMultiple() {
 			return -1

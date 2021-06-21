@@ -114,7 +114,7 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 	return true
 }
 
-func (grouping *addressDivisionGroupingInternal) IsMore(other AddressDivisionSeries) int { // the GetCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
+func (grouping *addressDivisionGroupingInternal) CompareSize(other AddressDivisionSeries) int { // the GetCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
 	if !grouping.IsMultiple() {
 		if other.IsMultiple() {
 			return -1
@@ -322,19 +322,24 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 	return true
 }
 
+//TODO cache: GetPrefixLengthForSingleBlock: cachedEquivalentPrefix
+// IsSinglePrefixBlock: cachedIsSinglePrefixBlock
+// getMinPrefixLengthForBlock: cachedMinPrefix
+// methods: GetPrefixLengthForSingleBlock, AssignPrefixForSingleBlock, IsSinglePrefixBlock, GetMinPrefixLengthForBlock
+//
+// already caching prefix length, getNetworkPrefixLength: cachedPrefixLength
+
 func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with getPrefixLengthForSingleBlock
-	prefLen := grouping.GetPrefixLength() //TODO cache this value
+	prefLen := grouping.GetPrefixLength()
 	return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
 }
 
 func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with getMinPrefixLengthForBlock
-	prefLen := grouping.GetPrefixLength() //TODO cache this value
+	prefLen := grouping.GetPrefixLength()
 	return prefLen != nil && grouping.ContainsPrefixBlock(*prefLen)
 }
 
 func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() BitCount {
-	// TODO  maybe we should cache this value, like we do in Java,
-	// although not clear why cached in Java (maybe because it is hard to calculate)
 	count := grouping.GetDivisionCount()
 	totalPrefix := grouping.GetBitCount()
 	for i := count - 1; i >= 0; i-- {

@@ -76,13 +76,13 @@ func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err Address
 	return
 }
 
-func NewIPv6AddressFromValues(vals SegmentValueProvider) (addr *IPv6Address) {
+func NewIPv6AddressFromVals(vals SegmentValueProvider) (addr *IPv6Address) {
 	section := NewIPv6AddressSectionFromValues(vals, IPv6SegmentCount)
 	addr = NewIPv6Address(section)
 	return
 }
 
-func NewIPv6AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
 	section := NewIPv6AddressSectionFromPrefixedValues(vals, IPv6SegmentCount, prefixLength)
 	addr = NewIPv6Address(section)
 	return
@@ -198,6 +198,11 @@ func (addr *IPv6Address) GetGenericDivision(index int) AddressGenericDivision {
 	return addr.init().getDivision(index)
 }
 
+// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
+func (addr *IPv6Address) GetGenericSegment(index int) AddressStandardSegment {
+	return addr.init().getSegment(index)
+}
+
 // GetDivisionCount returns the segment count
 func (addr *IPv6Address) GetDivisionCount() int {
 	return addr.init().GetDivisionCount()
@@ -236,6 +241,30 @@ func (addr *IPv6Address) GetUpper() *IPv6Address {
 	return addr.init().getUpper().ToIPv6Address()
 }
 
+func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressException) {
+	res, err := addr.init().toZeroHost()
+	return res.ToIPv6Address(), err
+}
+
+func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressException) {
+	res, err := addr.init().toZeroHostLen(prefixLength)
+	return res.ToIPv6Address(), err
+}
+
+func (addr *IPv6Address) ToZeroNetwork() *IPv6Address {
+	return addr.init().toZeroNetwork().ToIPv6Address()
+}
+
+func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressException) {
+	res, err := addr.init().toMaxHost()
+	return res.ToIPv6Address(), err
+}
+
+func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressException) {
+	res, err := addr.init().toMaxHostLen(prefixLength)
+	return res.ToIPv6Address(), err
+}
+
 func (addr *IPv6Address) ToPrefixBlock() *IPv6Address {
 	return addr.init().toPrefixBlock().ToIPv6Address()
 }
@@ -244,8 +273,25 @@ func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPv6Address()
 }
 
+func (addr *IPv6Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv6Address {
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv6Address()
+}
+
 func (addr *IPv6Address) WithoutPrefixLength() *IPv6Address {
 	return addr.init().withoutPrefixLength().ToIPv6Address()
+}
+
+func (addr *IPv6Address) SetPrefixLen(prefixLen BitCount) *IPv6Address {
+	return addr.init().setPrefixLen(prefixLen).ToIPv6Address()
+}
+
+func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressException) {
+	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToIPv6Address(), err
+}
+
+func (addr *IPv6Address) AssignPrefixForSingleBlock() *IPv6Address {
+	return addr.init().assignPrefixForSingleBlock().ToIPv6Address()
 }
 
 func (addr *IPv6Address) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -366,12 +412,57 @@ func (addr *IPv6Address) SequentialBlockIterator() IPv6AddressIterator {
 	return ipv6AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPv6Address) GetSequentialBlockIndex() int {
+	return addr.init().getSequentialBlockIndex()
+}
+
 func (addr *IPv6Address) IncrementBoundary(increment int64) *IPv6Address {
 	return addr.init().incrementBoundary(increment).ToIPv6Address()
 }
 
 func (addr *IPv6Address) Increment(increment int64) *IPv6Address {
 	return addr.init().increment(increment).ToIPv6Address()
+}
+
+//func (addr *IPv6Address) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+//	xxx
+//	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+//	if addr.IsSequential() {
+//		if addr.IsSinglePrefixBlock() {
+//			return []ExtendedIPSegmentSeries{wrapped}
+//		}
+//		return getSpanningPrefixBlocks(wrapped, wrapped)
+//	}
+//	return spanWithPrefixBlocks(wrapped)
+//}
+//
+//func (addr *IPv6Address) spanWithPrefixBlocksTo(other *IPv6Address) []ExtendedIPSegmentSeries {
+//	return getSpanningPrefixBlocks(
+//		WrappedIPAddress{addr.ToIPAddress()},
+//		WrappedIPAddress{other.ToIPAddress()},
+//	)
+//}
+
+func (addr *IPv6Address) SpanWithPrefixBlocks() []*IPv6Address {
+	if addr.IsSequential() {
+		if addr.IsSinglePrefixBlock() {
+			return []*IPv6Address{addr}
+		}
+		wrapped := WrappedIPAddress{addr.ToIPAddress()}
+		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
+		return cloneToIPv6Addrs(spanning)
+	}
+	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	return cloneToIPv6Addrs(spanWithPrefixBlocks(wrapped))
+}
+
+func (addr *IPv6Address) SpanWithPrefixBlocksTo(other *IPv6Address) []*IPv6Address {
+	return cloneToIPv6Addrs(
+		getSpanningPrefixBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	)
 }
 
 func (addr IPv6Address) String() string {
@@ -438,8 +529,8 @@ func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-//func (addr *IPv6Address) IsMore(other *IPv6Address) int {
-//	return addr.init().isMore(other.ToIPAddress())
+//func (addr *IPv6Address) CompareSize(other *IPv6Address) int {
+//	return addr.init().CompareSize(other.ToIPAddress())
 //}
 
 func (addr *IPv6Address) ToAddress() *Address {

@@ -199,6 +199,11 @@ func (addr *MACAddress) GetGenericDivision(index int) AddressGenericDivision {
 	return addr.init().getDivision(index)
 }
 
+// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
+func (addr *MACAddress) GetGenericSegment(index int) AddressStandardSegment {
+	return addr.init().getSegment(index)
+}
+
 // GetDivision returns the segment count, implementing the interface AddressDivisionSeries
 func (addr *MACAddress) GetDivisionCount() int {
 	return addr.init().getDivisionCount()
@@ -208,8 +213,25 @@ func (addr *MACAddress) ToPrefixBlock() *MACAddress {
 	return addr.init().toPrefixBlock().ToMACAddress()
 }
 
+func (addr *MACAddress) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddress {
+	return addr.init().toBlock(segmentIndex, lower, upper).ToMACAddress()
+}
+
 func (addr *MACAddress) WithoutPrefixLength() *MACAddress {
 	return addr.init().withoutPrefixLength().ToMACAddress()
+}
+
+func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {
+	return addr.init().setPrefixLen(prefixLen).ToMACAddress()
+}
+
+func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressException) {
+	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToMACAddress(), err
+}
+
+func (addr *MACAddress) AssignPrefixForSingleBlock() *MACAddress {
+	return addr.init().assignPrefixForSingleBlock().ToMACAddress()
 }
 
 func (addr *MACAddress) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -310,6 +332,6 @@ func (addr *MACAddress) ToAddressString() *MACAddressString {
 	return (*MACAddressString)(res)
 }
 
-//func (addr *MACAddress) IsMore(other *MACAddress) int {
-//	return addr.init().isMore(other.ToAddress())
+//func (addr *MACAddress) CompareSize(other *MACAddress) int {
+//	return addr.init().CompareSize(other.ToAddress())
 //}

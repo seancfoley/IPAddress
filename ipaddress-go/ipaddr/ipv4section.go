@@ -257,6 +257,30 @@ func (section *IPv4AddressSection) GetUpper() *IPv4AddressSection {
 	return section.getUpper().ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) ToZeroHost() (*IPv4AddressSection, IncompatibleAddressException) {
+	res, err := section.toZeroHost()
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) ToZeroHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+	res, err := section.toZeroHostLen(prefixLength)
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) ToZeroNetwork() *IPv4AddressSection {
+	return section.toZeroNetwork().ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) ToMaxHost() (*IPv4AddressSection, IncompatibleAddressException) {
+	res, err := section.toMaxHost()
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+	res, err := section.toMaxHostLen(prefixLength)
+	return res.ToIPv4AddressSection(), err
+}
+
 func (section *IPv4AddressSection) LongValue() uint64 {
 	return uint64(section.IntValue())
 }
@@ -336,8 +360,25 @@ func (section *IPv4AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv4Addre
 	return section.toPrefixBlockLen(prefLen).ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *IPv4AddressSection {
+	return section.toBlock(segmentIndex, lower, upper).ToIPv4AddressSection()
+}
+
 func (section *IPv4AddressSection) WithoutPrefixLength() *IPv4AddressSection {
 	return section.withoutPrefixLength().ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) SetPrefixLen(prefixLen BitCount) *IPv4AddressSection {
+	return section.setPrefixLen(prefixLen).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+	res, err := section.setPrefixLenZeroed(prefixLen)
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) AssignPrefixForSingleBlock() *IPv4AddressSection {
+	return section.assignPrefixForSingleBlock().ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
@@ -379,7 +420,10 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	lowerValue := uint64(section.IntValue())
 	upperValue := uint64(section.UpperIntValue())
 	count := section.GetIPv4Count()
-	checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
+	isOverflow := checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
+	if isOverflow {
+		return nil
+	}
 	return increment(
 		section.ToAddressSection(),
 		inc,
@@ -391,6 +435,90 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 		section.getUpper,
 		section.GetPrefixLength()).ToIPv4AddressSection()
 }
+
+//func (section *IPv4AddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries { xxx this can be shared in ipaddressInternal maybe xxx
+//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+//	if section.IsSequential() {
+//		if section.IsSinglePrefixBlock() {
+//			return []ExtendedIPSegmentSeries{wrapped}
+//		}
+//		return getSpanningPrefixBlocks(wrapped, wrapped)
+//	}
+//	return spanWithPrefixBlocks(wrapped)
+//}
+//
+//func (section *IPv4AddressSection) spanWithPrefixBlocksTo(other *IPv4AddressSection) ([]ExtendedIPSegmentSeries, SizeMismatchException) {
+//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+//		return nil, err
+//	}
+//	return getSpanningPrefixBlocks(
+//		WrappedIPAddressSection{section.ToIPAddressSection()},
+//		WrappedIPAddressSection{other.ToIPAddressSection()},
+//	), nil
+//}
+
+func (section *IPv4AddressSection) SpanWithPrefixBlocks() []*IPv4AddressSection {
+	if section.IsSequential() {
+		if section.IsSinglePrefixBlock() {
+			return []*IPv4AddressSection{section}
+		}
+		wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
+		return cloneToIPv4Sections(spanning)
+	}
+	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	return cloneToIPv4Sections(spanWithPrefixBlocks(wrapped))
+}
+
+func (section *IPv4AddressSection) SpanWithPrefixBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+		return nil, err
+	}
+	return cloneToIPv4Sections(
+		getSpanningPrefixBlocks(
+			WrappedIPAddressSection{section.ToIPAddressSection()},
+			WrappedIPAddressSection{other.ToIPAddressSection()},
+		),
+	), nil
+}
+
+//TODO NEXT xxx ipv6 sect and ipv4 6 addrs, also the same for getMergedSequentialBlocks
+
+//
+// Merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+	series := cloneIPv4Sections(sections)
+	if err := checkSectionCounts(series); err != nil {
+		return nil, err
+	}
+	blocks := getMergedPrefixBlocks(
+		series,
+		//func(series AddressSegmentSeries) ExtendedIPSegmentSeriesIterator {
+		//	return sectionSeriesIterator{series.(*IPv4AddressSection).SequentialBlockIterator()}
+		//},
+		//func(series AddressSegmentSeries) []AddressSegmentSeries {
+		//	return cloneIPv4Sections(series.(*IPv4AddressSection).SpanWithPrefixBlocks())
+		//},
+		//func(series AddressSegmentSeries, bits BitCount) AddressSegmentSeries {
+		//	return series.(*IPv4AddressSection).ToPrefixBlockLen(bits)
+		//},
+	)
+	return cloneToIPv4Sections(blocks), nil
+}
+
+//
+//
+// Merges this with the list of sections to produce the smallest array of sequential block subnets.
+//
+// The resulting array is sorted by lower address, regardless of the size of each prefix block.
+//public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
+//	checkSectionsMergeable(sections);
+//	IPv4AddressSection converted[] = getCloned(sections);
+//	List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
+//	return blocks.toArray(new IPv4AddressSection[blocks.size()]);
+//}
 
 var (
 	ipv4CanonicalParams          = NewIPv4StringOptionsBuilder().ToOptions()

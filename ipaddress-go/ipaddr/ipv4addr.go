@@ -20,7 +20,7 @@ const (
 	IPv4SegmentMaxChars     = 3
 )
 
-// TODO there is 1 other categories:  uint32
+// TODO there is 1 other categories:  uint32 (not sure what I was thinking with this comment, probably just talking about constructor for uint32 needed)
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()
@@ -42,13 +42,13 @@ func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *I
 	return
 }
 
-func NewIPv4AddressFromValues(vals SegmentValueProvider) (addr *IPv4Address) {
+func NewIPv4AddressFromVals(vals SegmentValueProvider) (addr *IPv4Address) {
 	section := NewIPv4AddressSectionFromVals(vals, IPv4SegmentCount)
 	addr = NewIPv4Address(section)
 	return
 }
 
-func NewIPv4AddressFromPrefixedValues(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
 	section := NewIPv4AddressSectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
@@ -154,6 +154,11 @@ func (addr *IPv4Address) GetGenericDivision(index int) AddressGenericDivision {
 	return addr.init().getDivision(index)
 }
 
+// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
+func (addr *IPv4Address) GetGenericSegment(index int) AddressStandardSegment {
+	return addr.init().getSegment(index)
+}
+
 // GetDivisionCount returns the segment count
 func (addr *IPv4Address) GetDivisionCount() int {
 	return addr.init().getDivisionCount()
@@ -192,6 +197,30 @@ func (addr *IPv4Address) GetUpper() *IPv4Address {
 	return addr.init().getUpper().ToIPv4Address()
 }
 
+func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressException) {
+	res, err := addr.init().toZeroHost()
+	return res.ToIPv4Address(), err
+}
+
+func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressException) {
+	res, err := addr.init().toZeroHostLen(prefixLength)
+	return res.ToIPv4Address(), err
+}
+
+func (addr *IPv4Address) ToZeroNetwork() *IPv4Address {
+	return addr.init().toZeroNetwork().ToIPv4Address()
+}
+
+func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressException) {
+	res, err := addr.init().toMaxHost()
+	return res.ToIPv4Address(), err
+}
+
+func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressException) {
+	res, err := addr.init().toMaxHostLen(prefixLength)
+	return res.ToIPv4Address(), err
+}
+
 func (addr *IPv4Address) IntValue() uint32 {
 	return addr.GetSection().IntValue()
 }
@@ -216,8 +245,25 @@ func (addr *IPv4Address) ToPrefixBlockLen(prefLen BitCount) *IPv4Address {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPv4Address()
 }
 
+func (addr *IPv4Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv4Address {
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv4Address()
+}
+
 func (addr *IPv4Address) WithoutPrefixLength() *IPv4Address {
 	return addr.init().withoutPrefixLength().ToIPv4Address()
+}
+
+func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
+	return addr.init().setPrefixLen(prefixLen).ToIPv4Address()
+}
+
+func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressException) {
+	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToIPv4Address(), err
+}
+
+func (addr *IPv4Address) AssignPrefixForSingleBlock() *IPv4Address {
+	return addr.init().assignPrefixForSingleBlock().ToIPv4Address()
 }
 
 func (addr *IPv4Address) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -286,6 +332,7 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 
 //TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?
 // Because the type checks can be avoided, so can section segment counts, etc
+// WEll, I did add seriesValsSame, which avoids type checks
 
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
@@ -331,12 +378,57 @@ func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
 	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPv4Address) GetSequentialBlockIndex() int {
+	return addr.init().getSequentialBlockIndex()
+}
+
 func (addr *IPv4Address) IncrementBoundary(increment int64) *IPv4Address {
 	return addr.init().incrementBoundary(increment).ToIPv4Address()
 }
 
 func (addr *IPv4Address) Increment(increment int64) *IPv4Address {
 	return addr.init().increment(increment).ToIPv4Address()
+}
+
+//func (addr *IPv4Address) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+//	xxx
+//	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+//	if addr.IsSequential() {
+//		if addr.IsSinglePrefixBlock() {
+//			return []ExtendedIPSegmentSeries{wrapped}
+//		}
+//		return getSpanningPrefixBlocks(wrapped, wrapped)
+//	}
+//	return spanWithPrefixBlocks(wrapped)
+//}
+//
+//func (addr *IPv4Address) spanWithPrefixBlocksTo(other *IPv4Address) []ExtendedIPSegmentSeries {
+//	return getSpanningPrefixBlocks(
+//		WrappedIPAddress{addr.ToIPAddress()},
+//		WrappedIPAddress{other.ToIPAddress()},
+//	)
+//}
+
+func (addr *IPv4Address) SpanWithPrefixBlocks() []*IPv4Address {
+	if addr.IsSequential() {
+		if addr.IsSinglePrefixBlock() {
+			return []*IPv4Address{addr}
+		}
+		wrapped := WrappedIPAddress{addr.ToIPAddress()}
+		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
+		return cloneToIPv4Addrs(spanning)
+	}
+	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	return cloneToIPv4Addrs(spanWithPrefixBlocks(wrapped))
+}
+
+func (addr *IPv4Address) SpanWithPrefixBlocksTo(other *IPv4Address) []*IPv4Address {
+	return cloneToIPv4Addrs(
+		getSpanningPrefixBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	)
 }
 
 func (addr IPv4Address) String() string {
@@ -411,8 +503,8 @@ func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCou
 	return addr.init().GetSection().ToInetAtonJoinedString(radix, joinedCount)
 }
 
-//func (addr *IPv4Address) IsMore(other *IPv4Address) int {
-//	return addr.init().isMore(other.ToIPAddress())
+//func (addr *IPv4Address) CompareSize(other *IPv4Address) int {
+//	return addr.init().CompareSize(other.ToIPAddress())
 //}
 
 func (addr *IPv4Address) ToAddress() *Address {

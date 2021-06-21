@@ -178,6 +178,10 @@ type addressStringIndexErr struct {
 	index int
 }
 
+type SizeMismatchException interface {
+	error
+}
+
 ///////////////////////////////////////////////
 
 type wrappedErr struct {

@@ -30,7 +30,7 @@ var (
 	_ AddressGenericDivision = &MACAddressSegment{}
 )
 
-// AddressGenericDivision serves as common interface to all IP address divisions, including large divisions (> 64 bits)
+// IPAddressGenericDivision is a division with its own prefix length
 //type IPAddressGenericDivision interface {
 //	AddressGenericDivision
 //
@@ -50,7 +50,7 @@ var (
 //)
 
 // Represents any standard address division, all of which can be converted to/from AddressDivision
-type AddressStandardDivision interface { //TODO rename StandardDivisionType
+type AddressStandardDivision interface { //TODO rename StandardDivisionType.
 	AddressGenericDivision
 
 	// GetDivisionValue returns the lower division value
@@ -72,7 +72,7 @@ var (
 )
 
 // euqivalent to AddressSegment on Java side, serves as common interface to all segments
-type AddressStandardSegment interface { //TODO rename AddressSegmentType
+type AddressStandardSegment interface { //TODO rename AddressSegmentType or StandardSegmentType
 	AddressComponent
 
 	AddressStandardDivision
@@ -85,7 +85,6 @@ type AddressStandardSegment interface { //TODO rename AddressSegmentType
 	// GetUpperSegmentValue returns the upper segment value as a SegInt, the same value as the DivInt value returned by GetUpperDivisionValue()
 	GetUpperSegmentValue() SegInt
 
-	//ToAddressDivision() *AddressDivision
 	ToAddressSegment() *AddressSegment
 }
 

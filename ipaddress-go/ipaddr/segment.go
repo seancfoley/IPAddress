@@ -5,7 +5,7 @@ import (
 )
 
 // SegInt is an integer type for holding generic address segment values.  It is at least as large as all address segment values: IPv6SegInt, IPv4SegInt, MACSegInt
-type SegInt = uint32      // must be at least uint16 to handle IPv6, at least 32 to handle single segment IPv4, and no larger than 64 because we use bits.TrailingZeros64.  IP address segment code uses bits.TrailingZeros32 and bits.LeadingZeros32.
+type SegInt = uint32      // must be at least uint16 to handle IPv6, at least 32 to handle single segment IPv4, and no larger than 64 because we use bits.TrailingZeros64.  IP address segment code uses bits.TrailingZeros32 and bits.LeadingZeros32, so it cannot be larger than 32.
 const SegIntSize = 32     // must match the bit count of SegInt
 type SegIntCount = uint64 // must be able to hold: (max value of SegInt) + 1
 

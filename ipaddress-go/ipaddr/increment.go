@@ -196,7 +196,6 @@ func incrementRange(
 		}
 	}
 	return createSection(newSegments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
-	//return createIteratedSection(newSegments, addrCreator, prefixLength)
 }
 
 //this does not handle overflow, overflow should be checked before calling this
@@ -204,7 +203,6 @@ func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentC
 	segCount := section.GetSegmentCount()
 	fullValue := section.GetValue()
 	fullValue.Add(fullValue, increment)
-	//expectedByteCount := getHostSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount)
 	expectedByteCount := section.GetByteCount()
 	bytes := fullValue.Bytes() // could use FillBytes but that only came with 1.15
 	segments, _ := toSegments(
@@ -217,21 +215,14 @@ func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentC
 		prefixLength)
 
 	res := createSection(segments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
-	//if prefixLength != nil {
-	//	assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
-	//}
 	if expectedByteCount == len(bytes) {
 		res.cache.lowerBytes = bytes
 		res.cache.upperBytes = bytes
 	}
 	return res
-	//return addrCreator.createSectionInternal(bytes, segCount, prefixLength, true) //TODO create from bytes here, will need creator
 }
 
 func add(section *AddressSection, fullValue uint64, increment int64, creator AddressSegmentCreator, prefixLength PrefixLen) *AddressSection {
-	//if(section.IsMultiple()) {
-	//	throw new IllegalArgumentException();
-	//}
 	segCount := section.GetSegmentCount()
 	newSegs := make([]*AddressDivision, segCount)
 	var val uint64
@@ -249,5 +240,4 @@ func add(section *AddressSection, fullValue uint64, increment int64, creator Add
 		creator,
 		prefixLength)
 	return createSection(newSegs, prefixLength, section.getAddrType(), section.addressSegmentIndex)
-	//return createIteratedSection(newSegs, addrCreator, prefixLength)
 }

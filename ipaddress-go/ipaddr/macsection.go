@@ -87,9 +87,18 @@ func (section *MACAddressSection) WithoutPrefixLength() *MACAddressSection {
 	return section.withoutPrefixLength().ToMACAddressSection()
 }
 
-//func (section *MACAddressSection) IsMore(other *MACAddressSection) int {
-//	return section.isMore(other.ToAddressDivisionGrouping())
-//}
+func (section *MACAddressSection) SetPrefixLen(prefixLen BitCount) *MACAddressSection {
+	return section.setPrefixLen(prefixLen).ToMACAddressSection()
+}
+
+func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, IncompatibleAddressException) {
+	res, err := section.setPrefixLenZeroed(prefixLen)
+	return res.ToMACAddressSection(), err
+}
+
+func (section *MACAddressSection) AssignPrefixForSingleBlock() *MACAddressSection {
+	return section.assignPrefixForSingleBlock().ToMACAddressSection()
+}
 
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 	return section.getDivision(index).ToMACAddressSegment()
@@ -178,6 +187,10 @@ func (section *MACAddressSection) ToPrefixBlockLen(prefLen BitCount) *MACAddress
 	return section.toPrefixBlockLen(prefLen).ToMACAddressSection()
 }
 
+func (section *MACAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddressSection {
+	return section.toBlock(segmentIndex, lower, upper).ToMACAddressSection()
+}
+
 func (section *MACAddressSection) Iterator() MACSectionIterator {
 	return macSectionIterator{section.sectionIterator(nil)}
 }
@@ -192,6 +205,7 @@ func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 
 func (section *MACAddressSection) IncrementBoundary(increment int64) *MACAddressSection {
 	return section.incrementBoundary(increment).ToMACAddressSection()
+
 }
 
 func getMacMaxValueLong(segmentCount int) uint64 {
@@ -218,7 +232,10 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	upperValue := section.UpperLongValue()
 	count := section.GetCount()
 	countMinus1 := count.Sub(count, bigOneConst()).Uint64()
-	checkOverflow(incrementVal, lowerValue, upperValue, countMinus1, getMacMaxValueLong(segCount))
+	isOverflow := checkOverflow(incrementVal, lowerValue, upperValue, countMinus1, getMacMaxValueLong(segCount))
+	if isOverflow {
+		return nil
+	}
 	return increment(
 		section.ToAddressSection(),
 		incrementVal,

@@ -56,7 +56,7 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	// TODO maybe you want a generic GetLowerIPAddress() *IPAddress and GetUpperIPAddress() *IPAddress in here?
 	// Just to be able to get lower and upper through the interface?
 	// Once again, downside is this pollute method-set, confuses with GetLower and GetUpper, so probably not.
-	// This interface might not be all that useful
+	// This IPAddressRange interface might not be all that useful
 
 	CopyIP(bytes net.IP) net.IP
 	CopyUpperIP(bytes net.IP) net.IP
@@ -85,13 +85,15 @@ type AddressDivisionSeries interface {
 	AddressItem
 	AddressStringDivisionSeries
 
+	IsSequential() bool
+
 	IsPrefixBlock() bool
+	IsSinglePrefixBlock() bool
 
 	IsPrefixed() bool
-
 	GetPrefixLength() PrefixLen
 
-	IsMore(AddressDivisionSeries) int
+	CompareSize(AddressDivisionSeries) int
 
 	GetGenericDivision(index int) AddressGenericDivision // useful for comparisons
 }
@@ -112,19 +114,62 @@ type AddressDivisionSeries interface {
 //	_ IPAddressDivisionSeries = &IPv6Address{}
 //)
 
-type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
+type addrSegmentSeries interface {
 	AddressComponent
-	AddressDivisionSeries
+
+	GetMaxSegmentValue() SegInt
+	GetSegmentCount() int
+	GetBitsPerSegment() BitCount
+	GetBytesPerSegment() int
 
 	ToCanonicalString() string
 	ToCompressedString() string
+
+	GetGenericSegment(index int) AddressStandardSegment
+
+	//TestBit(BitCount) bool //TODO
+	//IsOneBit(BitCount) bool
+
 }
 
-//TODO this might be useful for the merging code, in Java I believe I used it there
+type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
+
+	AddressDivisionSeries
+
+	addrSegmentSeries
+}
+
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above
+
 	AddressSegmentSeries
 
-	//GetGenericIPDivision(index int) IPAddressGenericDivision
+	IncludesZeroHostLen(prefLen BitCount) bool
+	IncludesMaxHostLen(prefLen BitCount) bool
+	IncludesZeroHost() bool
+	IncludesMaxHost() bool
+	IsZeroHostLen(BitCount) bool
+	IsZeroHost() bool
+	IsSingleNetwork() bool
+
+	GetSequentialBlockIndex() int
+	//GetSequentialBlockCount() *big.Int TODO
+
+	//GetIPVersion() //TODO
+
+	//ToFullString() string //TODO all these strings, they may even be fine now, just uncomment
+	//ToPrefixLenString() string
+	//ToSubnetString() string
+	//ToNormalizedWildcardString() string
+	//ToCanonicalWildcardString() string
+	//ToCompressedWildcardString() string
+	//ToSQLWildcardString() string
+	//ToReverseDNSLookupString() string
+	//ToBinaryString() string
+	//ToSegmentedBinaryString() string
+	//ToOctalString(bool) string
+	//ToNormalizedString(IPStringOptions) string
+
+	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) AddressGenericDivision
 }
 
 // GenericGroupingType represents any division grouping
@@ -153,6 +198,7 @@ var (
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
 type AddressSectionType interface {
 	AddressDivisionGroupingType
+	addrSegmentSeries
 
 	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection
@@ -166,8 +212,8 @@ var (
 	_ AddressSectionType = &MACAddressSection{}
 )
 
-// AddressType represents any address, all of which can be represented by Address,
-// including IPAddress, IPv4Address, IPv6Address, and MACAddress
+// AddressType represents any address, all of which can be represented by the base type Address.
+// This includes IPAddress, IPv4Address, IPv6Address, and MACAddress.
 type AddressType interface {
 	//AddressDivisionSeries
 	AddressSegmentSeries

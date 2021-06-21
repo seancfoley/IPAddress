@@ -91,8 +91,8 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixCount(prefixLen BitCount) *big.In
 	return upper
 }
 
-// IsMore returns whether this range has a large count than the other
-func (rng *ipAddressSeqRangeInternal) IsMore(other *IPAddressSeqRange) int {
+// CompareSize returns whether this range has a large count than the other
+func (rng *ipAddressSeqRangeInternal) CompareSize(other *IPAddressSeqRange) int {
 	if !rng.IsMultiple() {
 		if other.IsMultiple() {
 			return -1

@@ -141,3 +141,24 @@ type macAddressIterator struct {
 func (iter macAddressIterator) Next() *MACAddress {
 	return iter.AddressIterator.Next().ToMACAddress()
 }
+
+type ExtendedIPSegmentSeriesIterator interface {
+	iteratorBase
+	Next() ExtendedIPSegmentSeries
+}
+
+type addressSeriesIterator struct {
+	IPAddressIterator
+}
+
+func (iter addressSeriesIterator) Next() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{iter.IPAddressIterator.Next()}
+}
+
+type sectionSeriesIterator struct {
+	IPSectionIterator
+}
+
+func (iter sectionSeriesIterator) Next() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{iter.IPSectionIterator.Next()}
+}

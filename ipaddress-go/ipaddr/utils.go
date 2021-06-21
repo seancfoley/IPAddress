@@ -14,6 +14,20 @@ func cloneBytes(orig []byte) []byte {
 	return append(make([]byte, 0, len(orig)), orig...)
 }
 
+//func cloneToIPSections(orig []AddressSegmentSeries) []*IPAddressSection {
+//	result := make([]*IPAddressSection, 0, len(orig))
+//	for i := range result {
+//		result[i] = orig[i].(*IPAddressSection)
+//	}
+//	return result
+//}
+
+func fillDivs(orig []*AddressDivision, val *AddressDivision) {
+	for i := range orig {
+		orig[i] = val
+	}
+}
+
 // copies cached into bytes, unless bytes is too small, in which case cached is cloned
 func getBytesCopy(bytes, cached []byte) []byte {
 	if bytes == nil || len(bytes) < len(cached) {

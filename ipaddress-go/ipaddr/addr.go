@@ -142,17 +142,7 @@ func (addr *addressInternal) GetPrefixLengthForSingleBlock() PrefixLen {
 	return section.GetPrefixLengthForSingleBlock()
 }
 
-//func (addr *addressInternal) isMore(other *Address) int {
-//	if addr.section == nil {
-//		if other.IsMultiple() {
-//			return -1
-//		}
-//		return 0
-//	}
-//	return addr.section.IsMore(other.GetSection())
-//}
-
-func (addr *addressInternal) IsMore(other AddressDivisionSeries) int {
+func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
 	section := addr.section
 	if section == nil {
 		if other.IsMultiple() {
@@ -160,7 +150,7 @@ func (addr *addressInternal) IsMore(other AddressDivisionSeries) int {
 		}
 		return 0
 	}
-	return section.IsMore(other)
+	return section.CompareSize(other)
 }
 
 func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
@@ -362,6 +352,10 @@ func (addr *addressInternal) toPrefixBlock() *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlock())
 }
 
+func (addr *addressInternal) toBlock(segmentIndex int, lower, upper SegInt) *Address {
+	return addr.checkIdentity(addr.section.toBlock(segmentIndex, lower, upper))
+}
+
 func (addr *addressInternal) toPrefixBlockLen(prefLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen))
 }
@@ -425,6 +419,26 @@ func (addr *addressInternal) equals(other AddressType) bool {
 
 func (addr *addressInternal) withoutPrefixLength() *Address {
 	return addr.checkIdentity(addr.section.withoutPrefixLength())
+}
+
+func (addr *addressInternal) setPrefixLen(prefixLen BitCount) *Address {
+	return addr.checkIdentity(addr.section.toAddressSection().setPrefixLen(prefixLen))
+}
+
+func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressException) {
+	section, err := addr.section.toAddressSection().setPrefixLenZeroed(prefixLen)
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
+func (addr *addressInternal) assignPrefixForSingleBlock() *Address {
+	newPrefix := addr.GetPrefixLengthForSingleBlock()
+	if newPrefix == nil {
+		return nil
+	}
+	return addr.checkIdentity(addr.section.setPrefixLen(*newPrefix))
 }
 
 func (addr *addressInternal) isSameZone(other AddressType) bool {
@@ -554,20 +568,15 @@ func (addr *addressInternal) sequentialBlockIterator() AddressIterator {
 }
 
 func (addr *addressInternal) getSequentialBlockIndex() int {
+	if addr.section == nil {
+		return 0
+	}
 	return addr.section.GetSequentialBlockIndex()
 }
 
 func (addr *addressInternal) hasZone() bool {
 	return addr.zone != noZone
 }
-
-//TODO options for overflow:
-// - same as integers, you wrap around
-// - return error
-// - return nil
-// Error seems too much.  Wrappoing around mimics integers, but that's somewhat an artifact of how arithmetic in cpus work, overflow detection expected to be done by software.
-// So, that leaves nil.  Would someone ever want to wrap around?  Not likely.
-// nil makes sense to me.
 
 func (addr *addressInternal) increment(increment int64) *Address {
 	return addr.checkIdentity(addr.section.increment(increment))
@@ -699,6 +708,11 @@ func (addr *Address) GetGenericDivision(index int) AddressGenericDivision {
 	return addr.getDivision(index)
 }
 
+// GetGenericDivision returns the segment at the given index as an AddressStandardSegment
+func (addr *Address) GetGenericSegment(index int) AddressStandardSegment {
+	return addr.getSegment(index)
+}
+
 // GetDivision returns the segment count
 func (addr *Address) GetDivisionCount() int {
 	return addr.getDivisionCount()
@@ -716,8 +730,24 @@ func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
 }
 
+func (addr *Address) ToBlock(segmentIndex int, lower, upper SegInt) *Address {
+	return addr.init().toBlock(segmentIndex, lower, upper)
+}
+
 func (addr *Address) WithoutPrefixLength() *Address {
 	return addr.init().withoutPrefixLength()
+}
+
+func (addr *Address) SetPrefixLen(prefixLen BitCount) *Address {
+	return addr.init().setPrefixLen(prefixLen)
+}
+
+func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressException) {
+	return addr.init().setPrefixLenZeroed(prefixLen)
+}
+
+func (addr *Address) AssignPrefixForSingleBlock() *Address {
+	return addr.init().assignPrefixForSingleBlock()
 }
 
 func (addr *Address) GetMaxSegmentValue() SegInt {
@@ -815,12 +845,28 @@ func (addr *Address) ToMACAddress() *MACAddress {
 	return nil
 }
 
-// no type checking
-func addrValsSame(one, two *Address) bool {
-	count := one.GetSegmentCount()
+//// no type checking
+//func addrValsSame(one, two *Address) bool {
+//	count := one.GetSegmentCount()
+//	for i := 0; i < count; i++ {
+//		oneSeg := one.GetSegment(i)
+//		twoSeg := two.GetSegment(i)
+//		if segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
+//			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
+//			return false
+//		}
+//	}
+//	return true
+//}
+
+func seriesValsSame(one, two AddressSegmentSeries) bool {
+	if one == two {
+		return true
+	}
+	count := one.GetDivisionCount()
 	for i := 0; i < count; i++ {
-		oneSeg := one.GetSegment(i)
-		twoSeg := two.GetSegment(i)
+		oneSeg := one.GetGenericSegment(i)
+		twoSeg := two.GetGenericSegment(i)
 		if segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
 			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
 			return false

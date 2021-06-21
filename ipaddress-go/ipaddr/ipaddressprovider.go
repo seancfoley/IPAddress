@@ -710,16 +710,18 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
 			network := options.GetIPv4Parameters().GetNetwork()
-			if withPrefixLength {
-				return network.GetNetworkIPAddress(prefLen)
-			}
-			return network.GetNetworkMask(prefLen, false)
+			//if withPrefixLength {
+			//	return network.GetNetworkIPAddress(prefLen)
+			//}
+			//return network.GetNetworkMask(prefLen, false)
+			return network.GetNetworkMask(*prefLen)
 		} else if version == IPv6 {
 			network := options.GetIPv6Parameters().GetNetwork()
-			if withPrefixLength {
-				return network.GetNetworkIPAddress(prefLen)
-			}
-			return network.GetNetworkMask(prefLen, false)
+			//if withPrefixLength {
+			//	return network.GetNetworkIPAddress(prefLen)
+			//}
+			//return network.GetNetworkMask(prefLen, false)
+			return network.GetNetworkMask(*prefLen)
 		}
 		return nil
 	}
@@ -905,11 +907,28 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
 // - finish HostName (now it's mostly done, just a few methods left)
+// - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - finish sequential range code (hard part done already)
 
-// done so far: most of parsing and params, most of HostName, most of seq ranges, a lot of framework,
-// comparators, iterators, a lot of the basic funcs for prefixes and indexes, bytes functions,
-// address structure, string generation, mac parsing, ...
+// TODO xxx which is next?  merge or span?  equal difficulty?  maybe do both at same time? Kinda like that idea of doing both
 
-// TODO xxx which is next?  increment or merge or span? increment (and incrementBoundary)
+// IP Address and section:
+// spanWithPrefixBlocks // scale up?  depends on impl.  regardless, it will be part of ipaddress and ipaddresssection
+// spanWithPrefixBlocks(Section) // arg must match the type, so only in ipv6/4
+// spanWithSequentialBlocks
+// spanWithSequentialBlocks(Section) // arg must match the type, so only in ipv6/4
+//
+// // how to handle different versions?  hmmmm perhaps the method would ignore other versions?
+// or maybe only in ipv6/4 like span?  But then, maybe make a func?
+// Maybe also have a func that merges both ipv4 and ipv6?  Nah
+// just have a func, one in ipv4, one in ipv6
+//
+// mergeToSequentialBlocks   only in ipv6/4 as a func
+// mergeToPrefixBlocks only in ipv6/4 as a func
+//
+// In IP Address:
+// toSequentialRange(Address)
+// spanWithRange()
+//
+//

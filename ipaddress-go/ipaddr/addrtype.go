@@ -29,13 +29,22 @@ func (a addrType) isMAC() bool {
 	return a == macType
 }
 
-func (a addrType) getCreator() (creator ParsedAddressCreator) {
+func (a addrType) getNetwork() (network AddressNetwork) {
 	if a.isIPv6() {
-		creator = DefaultIPv6Network.GetIPv6AddressCreator()
+		network = &DefaultIPv6Network
 	} else if a.isIPv4() {
-		creator = DefaultIPv4Network.GetIPv4AddressCreator()
+		network = &DefaultIPv4Network
 	} else if a.isMAC() {
-		creator = DefaultMACNetwork.GetMACAddressCreator()
+		network = &DefaultMACNetwork
+	}
+	return
+}
+
+func (a addrType) getIPNetwork() (network IPAddressNetwork) {
+	if a.isIPv6() {
+		network = &DefaultIPv6Network
+	} else if a.isIPv4() {
+		network = &DefaultIPv4Network
 	}
 	return
 }

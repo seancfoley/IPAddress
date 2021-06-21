@@ -188,8 +188,8 @@ func (section *IPv6AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.In
 	})
 }
 
-//func (section *IPv6AddressSection) IsMore(other *IPv6AddressSection) int {
-//	return section.isMore(other.ToIPAddressSection())
+//func (section *IPv6AddressSection) CompareSize(other *IPv6AddressSection) int {
+//	return section.CompareSize(other.ToIPAddressSection())
 //}
 
 func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
@@ -256,6 +256,30 @@ func (section *IPv6AddressSection) GetUpper() *IPv6AddressSection {
 	return section.getUpper().ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) ToZeroHost() (*IPv6AddressSection, IncompatibleAddressException) {
+	res, err := section.toZeroHost()
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) ToZeroHostLen(prefixLength BitCount) (*IPv6AddressSection, IncompatibleAddressException) {
+	res, err := section.toZeroHostLen(prefixLength)
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) ToZeroNetwork() *IPv6AddressSection {
+	return section.toZeroNetwork().ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) ToMaxHost() (*IPv6AddressSection, IncompatibleAddressException) {
+	res, err := section.toMaxHost()
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv6AddressSection, IncompatibleAddressException) {
+	res, err := section.toMaxHostLen(prefixLength)
+	return res.ToIPv6AddressSection(), err
+}
+
 func (section *IPv6AddressSection) ToPrefixBlock() *IPv6AddressSection {
 	return section.toPrefixBlock().ToIPv6AddressSection()
 }
@@ -264,8 +288,25 @@ func (section *IPv6AddressSection) ToPrefixBlockLen(prefLen BitCount) *IPv6Addre
 	return section.toPrefixBlockLen(prefLen).ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *IPv6AddressSection {
+	return section.toBlock(segmentIndex, lower, upper).ToIPv6AddressSection()
+}
+
 func (section *IPv6AddressSection) WithoutPrefixLength() *IPv6AddressSection {
 	return section.withoutPrefixLength().ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {
+	return section.setPrefixLen(prefixLen).ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6AddressSection, IncompatibleAddressException) {
+	res, err := section.setPrefixLenZeroed(prefixLen)
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) AssignPrefixForSingleBlock() *IPv6AddressSection {
+	return section.assignPrefixForSingleBlock().ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
@@ -444,7 +485,10 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	count := section.GetCount()
 	var bigIncrement big.Int
 	bigIncrement.SetInt64(increment)
-	checkOverflowBig(increment, &bigIncrement, lowerValue, upperValue, count, func() *big.Int { return getIPv6MaxValue(section.GetSegmentCount()) })
+	isOverflow := checkOverflowBig(increment, &bigIncrement, lowerValue, upperValue, count, func() *big.Int { return getIPv6MaxValue(section.GetSegmentCount()) })
+	if isOverflow {
+		return nil
+	}
 	prefixLength := section.GetPrefixLength()
 	result := fastIncrement(
 		section.ToAddressSection(),
@@ -465,6 +509,53 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 		section.getLower,
 		section.getUpper,
 		prefixLength).ToIPv6AddressSection()
+}
+
+//func (section *IPv6AddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+//	xxx
+//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+//	if section.IsSequential() {
+//		if section.IsSinglePrefixBlock() {
+//			return []ExtendedIPSegmentSeries{wrapped}
+//		}
+//		return getSpanningPrefixBlocks(wrapped, wrapped)
+//	}
+//	return spanWithPrefixBlocks(wrapped)
+//}
+
+//func (section *IPv6AddressSection) spanWithPrefixBlocksTo(other *IPv6AddressSection) ([]ExtendedIPSegmentSeries, SizeMismatchException) {
+//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+//		return nil, err
+//	}
+//	return getSpanningPrefixBlocks(
+//		WrappedIPAddressSection{section.ToIPAddressSection()},
+//		WrappedIPAddressSection{other.ToIPAddressSection()},
+//	), nil
+//}
+
+func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection {
+	if section.IsSequential() {
+		if section.IsSinglePrefixBlock() {
+			return []*IPv6AddressSection{section}
+		}
+		wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
+		return cloneToIPv6Sections(spanning)
+	}
+	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	return cloneToIPv6Sections(spanWithPrefixBlocks(wrapped))
+}
+
+func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchException) {
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+		return nil, err
+	}
+	return cloneToIPv6Sections(
+		getSpanningPrefixBlocks(
+			WrappedIPAddressSection{section.ToIPAddressSection()},
+			WrappedIPAddressSection{other.ToIPAddressSection()},
+		),
+	), nil
 }
 
 var (

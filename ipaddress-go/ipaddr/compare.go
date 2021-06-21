@@ -880,5 +880,5 @@ func compareDivBitCounts(oneSeries, twoSeries AddressDivisionSeries) int {
 }
 
 func compareCount(one, two AddressDivisionSeries) int {
-	return one.IsMore(two)
+	return one.CompareSize(two)
 }

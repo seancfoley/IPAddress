@@ -44,6 +44,78 @@ func (version IPVersion) String() string {
 	return string(version)
 }
 
+func (version IPVersion) getNetwork() (network IPAddressNetwork) {
+	if version.isIPv6() {
+		network = &DefaultIPv6Network
+	} else if version.isIPv4() {
+		network = &DefaultIPv4Network
+	}
+	return
+}
+
+func (version IPVersion) toType() (t addrType) {
+	if version.isIPv6() {
+		t = ipv4Type
+	} else if version.isIPv4() {
+		t = ipv6Type
+	}
+	return
+}
+
+func GetMaxSegmentValue(version IPVersion) SegInt {
+	if version.isIPv4() {
+		return IPv4MaxValuePerSegment
+	}
+	return IPv6MaxValuePerSegment
+}
+
+func GetBytesPerSegment(version IPVersion) int {
+	if version.isIPv4() {
+		return IPv4BytesPerSegment
+	}
+	return IPv6BytesPerSegment
+}
+
+func GetBitsPerSegment(version IPVersion) BitCount {
+	if version.isIPv4() {
+		return IPv4BitsPerSegment
+	}
+	return IPv6BitsPerSegment
+}
+
+func GetByteCount(version IPVersion) int {
+	if version.isIPv4() {
+		return IPv4ByteCount
+	}
+	return IPv6ByteCount
+}
+
+func GetSegmentCount(version IPVersion) int {
+	if version.isIPv4() {
+		return IPv4SegmentCount
+	}
+	return IPv6SegmentCount
+}
+
+func GetBitCount(version IPVersion) BitCount {
+	if version.isIPv4() {
+		return IPv4BitCount
+	}
+	return IPv6BitCount
+}
+
+func createIPAddress(section *AddressSection, zone Zone) *IPAddress {
+	return &IPAddress{
+		ipAddressInternal{
+			addressInternal{
+				section: section,
+				zone:    zone,
+				cache:   &addressCache{},
+			},
+		},
+	}
+}
+
 // necessary to avoid direct access to IPAddress
 type ipAddressInternal struct {
 	addressInternal
@@ -86,7 +158,7 @@ func (addr *ipAddressInternal) includesZeroHostLen(networkPrefixLength BitCount)
 	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
 }
 
-func (addr *ipAddressInternal) includesMaxHost() bool {
+func (addr *ipAddressInternal) IncludesMaxHost() bool {
 	section := addr.section
 	if section == nil {
 		return false
@@ -98,6 +170,84 @@ func (addr *ipAddressInternal) includesMaxHostLen(networkPrefixLength BitCount) 
 	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
 }
 
+// IsSingleNetwork returns whether the network section of the address, the prefix, consists of a single value
+func (addr *ipAddressInternal) IsSingleNetwork() bool {
+	section := addr.section
+	return section == nil || section.ToIPAddressSection().IsSingleNetwork()
+}
+
+// IsZeroHost returns whether this section has a prefix length and if so,
+// whether the host section is zero for this section or all sections in this set of address sections.
+// If the host section is zero length (there are no host bits at all), returns false.
+func (addr *ipAddressInternal) IsZeroHost() bool {
+	section := addr.section
+	return section != nil && section.ToIPAddressSection().IsZeroHost()
+}
+
+// IsZeroHostLen returns whether the host is zero for the given prefix length for this section or all sections in this set of address sections.
+// If this section already has a prefix length, then that prefix length is ignored.
+// If the host section is zero length (there are no host bits at all), returns false.
+func (addr *ipAddressInternal) IsZeroHostLen(prefLen BitCount) bool {
+	section := addr.section
+	return section == nil || section.ToIPAddressSection().IsZeroHostLen(prefLen)
+}
+
+func (addr *ipAddressInternal) toZeroHost() (res *IPAddress, err IncompatibleAddressException) {
+	section, err := addr.section.toIPAddressSection().toZeroHost()
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
+func (addr *ipAddressInternal) toZeroHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressException) {
+	section, err := addr.section.toIPAddressSection().toZeroHostLen(prefixLength)
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
+func (addr *ipAddressInternal) toZeroNetwork() *IPAddress {
+	return addr.checkIdentity(addr.section.toIPAddressSection().toZeroNetwork())
+}
+
+func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddressException) {
+	section, err := addr.section.toIPAddressSection().toMaxHost()
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
+func (addr *ipAddressInternal) toMaxHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressException) {
+	section, err := addr.section.toIPAddressSection().toMaxHostLen(prefixLength)
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
+func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddress {
+	sect := section.ToAddressSection()
+	if sect == addr.section {
+		return addr.toIPAddress()
+	}
+	return createIPAddress(sect, addr.zone)
+}
+
+//func (addr *ipAddressInternal) setPrefixLen(prefixLen BitCount) *IPAddress {
+//	return addr.checkIdentity(addr.section.toIPAddressSection().setPrefixLen(prefixLen))
+//} TODO remove
+//
+//func (addr *ipAddressInternal) setPrefixLenZeroed(prefixLen BitCount, zeroHostIsBlock bool) (res *IPAddress, err IncompatibleAddressException) {
+//	section, err := addr.section.toIPAddressSection().setPrefixLenZeroed(prefixLen, zeroHostIsBlock)
+//	if err == nil {
+//		res = addr.checkIdentity(section)
+//	}
+//	return
+//} TODO remove
+
 func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
 	section := addr.section
 	if section == nil {
@@ -108,6 +258,17 @@ func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen 
 
 func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 	return addr.getSegment(index).ToIPAddressSegment()
+}
+
+func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+	wrapped := WrappedIPAddress{addr.toIPAddress()}
+	if addr.IsSequential() {
+		if addr.IsSinglePrefixBlock() {
+			return []ExtendedIPSegmentSeries{wrapped}
+		}
+		return getSpanningPrefixBlocks(wrapped, wrapped)
+	}
+	return spanWithPrefixBlocks(wrapped)
 }
 
 func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
@@ -233,12 +394,8 @@ func (addr *ipAddressInternal) toCompressedWildcardString() string {
 //	return addr.GetSegment(index)
 //}
 
-// this is here to take advantage of the IsMore in IPAddressSection which is optimized for prefix block subnets
-//func (addr *ipAddressInternal) isMore(other *IPAddress) int {
-//	return addr.toIPAddress().IsMore(other)
-//}
-func (addr *ipAddressInternal) IsMore(other AddressDivisionSeries) int {
-	return addr.toIPAddress().IsMore(other)
+func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
+	return addr.toIPAddress().CompareSize(other)
 }
 
 var zeroIPAddr = &IPAddress{ //TODO maybe this should have a zero-length slice of segs, and not a nil slice, or maybe not, maybe it should be consistent with AddressSection{}
@@ -273,12 +430,12 @@ func (addr *IPAddress) getProvider() IPAddressProvider {
 	//TODO
 	/*
 		if(isPrefixed()) {
-					if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
-						return IPAddressProvider.getProviderFor(this, withoutPrefixLength());
-					}
-					return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLength());
-				}
-				return IPAddressProvider.getProviderFor(this, this);
+			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
+				return IPAddressProvider.getProviderFor(this, withoutPrefixLength());
+			}
+			return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLength());
+		}
+		return IPAddressProvider.getProviderFor(this, this);
 	*/
 }
 
@@ -340,6 +497,11 @@ func (addr *IPAddress) GetGenericDivision(index int) AddressGenericDivision {
 	return addr.getDivision(index)
 }
 
+// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
+func (addr *IPAddress) GetGenericSegment(index int) AddressStandardSegment {
+	return addr.getSegment(index)
+}
+
 // GetDivision returns the segment count
 func (addr *IPAddress) GetDivisionCount() int {
 	return addr.getDivisionCount()
@@ -353,6 +515,26 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 	return addr.init().getUpper().ToIPAddress()
 }
 
+func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressException) {
+	return addr.init().toZeroHost()
+}
+
+func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressException) {
+	return addr.init().toZeroHostLen(prefixLength)
+}
+
+func (addr *IPAddress) ToZeroNetwork() *IPAddress {
+	return addr.init().toZeroNetwork()
+}
+
+func (addr *IPAddress) ToMaxHost() (*IPAddress, IncompatibleAddressException) {
+	return addr.init().toMaxHost()
+}
+
+func (addr *IPAddress) ToMaxHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressException) {
+	return addr.init().toMaxHostLen(prefixLength)
+}
+
 func (addr *IPAddress) ToPrefixBlock() *IPAddress {
 	return addr.init().toPrefixBlock().ToIPAddress()
 }
@@ -361,14 +543,33 @@ func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
 	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
 }
 
-func (addr *IPAddress) WithoutPrefixLength() *IPAddress {
+func (addr *IPAddress) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddress {
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIPAddress()
+}
+
+func (addr *IPAddress) WithoutPrefixLength() *IPAddress { //TODO maybe rename to  WithoutPrefixLen() everywhere
 	return addr.withoutPrefixLength().ToIPAddress()
 }
 
-//// IsMore returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
-func (addr *IPAddress) IsMore(other AddressDivisionSeries) int { // this is here to take advantage of the IsMore in IPAddressSection
-	//func (addr *IPAddress) IsMore(other *IPAddress) int { // this is here to take advantage of the IsMore in IPAddressSection
-	return addr.GetSection().IsMore(other)
+func (addr *IPAddress) SetPrefixLen(prefixLen BitCount) *IPAddress {
+	return addr.init().setPrefixLen(prefixLen).ToIPAddress()
+}
+
+//func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount, zeroHostIsBlock bool) (*IPAddress, IncompatibleAddressException) { TODO remove
+//	return addr.init().setPrefixLenZeroed(prefixLen, zeroHostIsBlock)
+//}
+func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressException) {
+	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToIPAddress(), err
+}
+
+func (addr *IPAddress) AssignPrefixForSingleBlock() *IPAddress {
+	return addr.init().assignPrefixForSingleBlock().ToIPAddress()
+}
+
+// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPAddress) CompareSize(other AddressDivisionSeries) int { // this is here to take advantage of the CompareSize in IPAddressSection
+	return addr.GetSection().CompareSize(other)
 }
 
 func (addr *IPAddress) GetValue() *big.Int {
@@ -509,6 +710,10 @@ func (addr *IPAddress) SequentialBlockIterator() IPAddressIterator {
 	return ipAddrIterator{addr.init().sequentialBlockIterator()}
 }
 
+func (addr *IPAddress) GetSequentialBlockIndex() int {
+	return addr.getSequentialBlockIndex()
+}
+
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {
@@ -531,6 +736,19 @@ func (addr *IPAddress) IncrementBoundary(increment int64) *IPAddress {
 
 func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
+}
+
+func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
+	if addr.IsSequential() {
+		if addr.IsSinglePrefixBlock() {
+			return []*IPAddress{addr}
+		}
+		wrapped := WrappedIPAddress{addr}
+		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
+		return cloneToIPAddrs(spanning)
+	}
+	wrapped := WrappedIPAddress{addr}
+	return cloneToIPAddrs(spanWithPrefixBlocks(wrapped))
 }
 
 func (addr *IPAddress) ToCanonicalString() string {
