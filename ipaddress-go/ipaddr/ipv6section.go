@@ -558,6 +558,65 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSect
 	), nil
 }
 
+func (section *IPv6AddressSection) SpanWithSequentialBlocks() []*IPv6AddressSection {
+	if section.IsSequential() {
+		return []*IPv6AddressSection{section}
+	}
+	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	return cloneToIPv6Sections(spanWithSequentialBlocks(wrapped))
+}
+
+func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchException) {
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+		return nil, err
+	}
+	return cloneToIPv6Sections(
+		getSpanningSequentialBlocks(
+			WrappedIPAddressSection{section.ToIPAddressSection()},
+			WrappedIPAddressSection{other.ToIPAddressSection()},
+		),
+	), nil
+}
+
+//
+// MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchException) {
+	series := cloneIPv6Sections(section, sections)
+	if err := checkSectionCounts(series); err != nil {
+		return nil, err
+	}
+	blocks := getMergedSequentialBlocks(series)
+	return cloneToIPv6Sections(blocks), nil
+}
+
+//
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchException) {
+	series := cloneIPv6Sections(section, sections)
+	if err := checkSectionCounts(series); err != nil {
+		return nil, err
+	}
+	blocks := getMergedPrefixBlocks(series)
+	return cloneToIPv6Sections(blocks), nil
+}
+
+//
+// Merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+//func MergeToIPv6PrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchException) {
+//	series := cloneIPv6Sections(sections)
+//	if err := checkSectionCounts(series); err != nil {
+//		return nil, err
+//	}
+//	blocks := getMergedPrefixBlocks(series)
+//	return cloneToIPv6Sections(blocks), nil
+//}
+
 var (
 	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS_OR_HOST).ToOptions()
 	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MIXED_PREFERRED).ToOptions()

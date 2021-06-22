@@ -751,6 +751,14 @@ func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 	return cloneToIPAddrs(spanWithPrefixBlocks(wrapped))
 }
 
+func (addr *IPAddress) SpanWithSequentialBlocks() []*IPAddress {
+	if addr.IsSequential() {
+		return []*IPAddress{addr}
+	}
+	wrapped := WrappedIPAddress{addr}
+	return cloneToIPAddrs(spanWithSequentialBlocks(wrapped))
+}
+
 func (addr *IPAddress) ToCanonicalString() string {
 	return addr.init().toCanonicalString()
 }

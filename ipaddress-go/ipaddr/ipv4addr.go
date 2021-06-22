@@ -431,6 +431,43 @@ func (addr *IPv4Address) SpanWithPrefixBlocksTo(other *IPv4Address) []*IPv4Addre
 	)
 }
 
+func (addr *IPv4Address) SpanWithSequentialBlocks() []*IPv4Address {
+	if addr.IsSequential() {
+		return []*IPv4Address{addr}
+	}
+	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	return cloneToIPv4Addrs(spanWithSequentialBlocks(wrapped))
+}
+
+func (addr *IPv4Address) SpanWithSequentialBlocksTo(other *IPv4Address) []*IPv4Address {
+	return cloneToIPv4Addrs(
+		getSpanningSequentialBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	)
+}
+
+//
+// MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPv4Address) MergeToSequentialBlocks(addrs ...*IPv4Address) []*IPv4Address {
+	series := cloneIPv4Addrs(addr, addrs)
+	blocks := getMergedSequentialBlocks(series)
+	return cloneToIPv4Addrs(blocks)
+}
+
+//
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPv4Address) MergeToPrefixBlocks(addrs ...*IPv4Address) []*IPv4Address {
+	series := cloneIPv4Addrs(addr, addrs)
+	blocks := getMergedPrefixBlocks(series)
+	return cloneToIPv4Addrs(blocks)
+}
+
 func (addr IPv4Address) String() string {
 	return addr.init().ipAddressInternal.String()
 }

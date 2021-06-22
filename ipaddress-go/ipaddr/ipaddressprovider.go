@@ -924,8 +924,8 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // Maybe also have a func that merges both ipv4 and ipv6?  Nah
 // just have a func, one in ipv4, one in ipv6
 //
-// mergeToSequentialBlocks   only in ipv6/4 as a func
-// mergeToPrefixBlocks only in ipv6/4 as a func
+// mergeToSequentialBlocks
+// mergeToPrefixBlocks
 //
 // In IP Address:
 // toSequentialRange(Address)

@@ -465,6 +465,43 @@ func (addr *IPv6Address) SpanWithPrefixBlocksTo(other *IPv6Address) []*IPv6Addre
 	)
 }
 
+func (addr *IPv6Address) SpanWithSequentialBlocks() []*IPv6Address {
+	if addr.IsSequential() {
+		return []*IPv6Address{addr}
+	}
+	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	return cloneToIPv6Addrs(spanWithSequentialBlocks(wrapped))
+}
+
+func (addr *IPv6Address) SpanWithSequentialBlocksTo(other *IPv6Address) []*IPv6Address {
+	return cloneToIPv6Addrs(
+		getSpanningSequentialBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	)
+}
+
+//
+// MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPv6Address) MergeToSequentialBlocks(addrs ...*IPv6Address) []*IPv6Address {
+	series := cloneIPv6Addrs(addr, addrs)
+	blocks := getMergedSequentialBlocks(series)
+	return cloneToIPv6Addrs(blocks)
+}
+
+//
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPv6Address) MergeToPrefixBlocks(addrs ...*IPv6Address) []*IPv6Address {
+	series := cloneIPv6Addrs(addr, addrs)
+	blocks := getMergedPrefixBlocks(series)
+	return cloneToIPv6Addrs(blocks)
+}
+
 func (addr IPv6Address) String() string {
 	return addr.init().addressInternal.String()
 }

@@ -378,15 +378,11 @@ func organizeSequentially(
 				}
 			}
 			iterator := section.SequentialBlockIterator()
-			//iterator := sequentialBlockIterator(section)
-			//iterator := section.SequentialBlockIterator();
 			for iterator.HasNext() {
 				sequentialList = append(sequentialList, iterator.Next())
-				//sequentialList.add(iterator.Next())
 			}
 		} else if sequentialList != nil {
 			sequentialList = append(sequentialList, section)
-			//sequentialList.add(section)
 		}
 	}
 	if sequentialList == nil {

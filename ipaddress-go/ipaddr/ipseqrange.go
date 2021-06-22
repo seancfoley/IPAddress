@@ -255,10 +255,6 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 		shift   BitCount
 	}
 	segPrefs := make([]segPrefData, segCount)
-	//var networkSegIndex int
-	//if prefLength > 0 {
-	//networkSegIndex = getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
-	//}
 	networkSegIndex := getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
 	for i := networkSegIndex; i < segCount; i++ {
 		segPrefLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLength, i)
@@ -267,7 +263,6 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 	hostSegIndex := getHostSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
 	return rng.rangeIterator(
 		true,
-		//lower.getAddrType().getCreator(),
 		(*IPAddress).GetSegment,
 		func(seg *IPAddressSegment, index int) IPSegmentIterator {
 			return seg.Iterator()

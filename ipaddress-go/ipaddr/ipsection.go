@@ -819,13 +819,14 @@ func (section *IPAddressSection) SpanWithPrefixBlocks() []*IPAddressSection {
 	}
 	wrapped := WrappedIPAddressSection{section}
 	return cloneToIPSections(spanWithPrefixBlocks(wrapped))
+}
 
-	//if section.IsIPv4AddressSection() {
-	//	return section.ToIPv4AddressSection().SpanWithPrefixBlocks()
-	//} else if section.IsIPv6AddressSection() {
-	//	return section.ToIPv6AddressSection().SpanWithPrefixBlocks()
-	//}
-	//return nil
+func (section *IPAddressSection) SpanWithSequentialBlocks() []*IPAddressSection {
+	if section.IsSequential() {
+		return []*IPAddressSection{section}
+	}
+	wrapped := WrappedIPAddressSection{section}
+	return cloneToIPSections(spanWithSequentialBlocks(wrapped))
 }
 
 var (

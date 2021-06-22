@@ -437,7 +437,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 }
 
 //func (section *IPv4AddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries { xxx this can be shared in ipaddressInternal maybe xxx
-//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()} TODO REMOVE
 //	if section.IsSequential() {
 //		if section.IsSinglePrefixBlock() {
 //			return []ExtendedIPSegmentSeries{wrapped}
@@ -448,7 +448,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 //}
 //
 //func (section *IPv4AddressSection) spanWithPrefixBlocksTo(other *IPv4AddressSection) ([]ExtendedIPSegmentSeries, SizeMismatchException) {
-//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {TODO REMOVE
 //		return nil, err
 //	}
 //	return getSpanningPrefixBlocks(
@@ -482,31 +482,64 @@ func (section *IPv4AddressSection) SpanWithPrefixBlocksTo(other *IPv4AddressSect
 	), nil
 }
 
-//TODO NEXT xxx ipv6 sect and ipv4 6 addrs, also the same for getMergedSequentialBlocks
+func (section *IPv4AddressSection) SpanWithSequentialBlocks() []*IPv4AddressSection {
+	if section.IsSequential() {
+		return []*IPv4AddressSection{section}
+	}
+	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	return cloneToIPv4Sections(spanWithSequentialBlocks(wrapped))
+}
+
+func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+		return nil, err
+	}
+	return cloneToIPv4Sections(
+		getSpanningSequentialBlocks(
+			WrappedIPAddressSection{section.ToIPAddressSection()},
+			WrappedIPAddressSection{other.ToIPAddressSection()},
+		),
+	), nil
+}
+
+//
+// MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+	series := cloneIPv4Sections(section, sections)
+	if err := checkSectionCounts(series); err != nil {
+		return nil, err
+	}
+	blocks := getMergedSequentialBlocks(series)
+	return cloneToIPv4Sections(blocks), nil
+}
+
+//
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+	series := cloneIPv4Sections(section, sections)
+	if err := checkSectionCounts(series); err != nil {
+		return nil, err
+	}
+	blocks := getMergedPrefixBlocks(series)
+	return cloneToIPv4Sections(blocks), nil
+}
 
 //
 // Merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
-	series := cloneIPv4Sections(sections)
-	if err := checkSectionCounts(series); err != nil {
-		return nil, err
-	}
-	blocks := getMergedPrefixBlocks(
-		series,
-		//func(series AddressSegmentSeries) ExtendedIPSegmentSeriesIterator {
-		//	return sectionSeriesIterator{series.(*IPv4AddressSection).SequentialBlockIterator()}
-		//},
-		//func(series AddressSegmentSeries) []AddressSegmentSeries {
-		//	return cloneIPv4Sections(series.(*IPv4AddressSection).SpanWithPrefixBlocks())
-		//},
-		//func(series AddressSegmentSeries, bits BitCount) AddressSegmentSeries {
-		//	return series.(*IPv4AddressSection).ToPrefixBlockLen(bits)
-		//},
-	)
-	return cloneToIPv4Sections(blocks), nil
-}
+//func MergeToIPv4PrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+//	series := cloneIPv4Sections(sections)
+//	if err := checkSectionCounts(series); err != nil {
+//		return nil, err
+//	}
+//	blocks := getMergedPrefixBlocks(series)
+//	return cloneToIPv4Sections(blocks), nil
+//}
 
 //
 //
@@ -514,7 +547,7 @@ func MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection
 //
 // The resulting array is sorted by lower address, regardless of the size of each prefix block.
 //public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
-//	checkSectionsMergeable(sections);
+//	checkSectionsMergeable(sections);TODO REMOVE
 //	IPv4AddressSection converted[] = getCloned(sections);
 //	List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
 //	return blocks.toArray(new IPv4AddressSection[blocks.size()]);
