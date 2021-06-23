@@ -79,7 +79,7 @@ func NewIPv6AddressSectionFromPrefixedBytes(bytes []byte, segmentCount int, pref
 	return newIPv6AddressSectionFromBytes(bytes, segmentCount, prefixLength, false)
 }
 
-func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen /* boolean cloneBytes,*/, singleOnly bool) (res *IPv6AddressSection, err AddressValueException) {
+func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueException) {
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
@@ -98,9 +98,11 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
 		}
 		if expectedByteCount == len(bytes) {
-			bytes = cloneBytes(bytes) // copy
-			res.cache.lowerBytes = bytes
-			res.cache.upperBytes = bytes
+			bytes = cloneBytes(bytes)
+			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
+			if !res.isMultiple { // not a prefix block
+				res.cache.bytesCache.upperBytes = bytes
+			}
 		}
 	}
 	return

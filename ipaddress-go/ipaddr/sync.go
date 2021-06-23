@@ -53,7 +53,7 @@ package ipaddr
 //}
 //
 //func (a *atomicFlag) set() {
-//	/* TODO this can become non-atomic.
+//
 //	think about our pattern that we use everywhere
 //	field b
 //	field val

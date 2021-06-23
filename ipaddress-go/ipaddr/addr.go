@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"math/big"
 	"net"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -35,16 +36,20 @@ func createAddress(section *AddressSection, zone Zone) *Address {
 
 type SegmentValueProvider func(segmentIndex int) SegInt
 
-type addressCache struct {
-	ip           net.IPAddr // lower converted (cloned when returned)
+type addrsCache struct {
 	lower, upper *Address
+}
+
+type addressCache struct {
+	ip net.IPAddr // lower converted (cloned when returned)
+
+	//xxxxx lower, upper *Address
+	addrsCache *addrsCache
 
 	stringCache *stringCache
 
-	//fromString   *HostIdentifierString xxxxx
-	fromString unsafe.Pointer
-	//fromString *IPAddressString
-	fromHost *HostName
+	fromString unsafe.Pointer // MACAddressString or IPAddressString
+	fromHost   *HostName
 }
 
 type addressInternal struct {
@@ -91,6 +96,16 @@ func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 		return bigOne()
 	}
 	return section.GetPrefixCountLen(prefixLen)
+}
+
+// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+func (addr *addressInternal) testBit(n BitCount) bool {
+	return addr.section.TestBit(n)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (addr *addressInternal) isOneBit(bitIndex BitCount) bool {
+	return addr.section.IsOneBit(bitIndex)
 }
 
 func (addr *addressInternal) IsMultiple() bool {
@@ -273,13 +288,37 @@ func (addr *addressInternal) checkIdentity(section *AddressSection) *Address {
 }
 
 func (addr *addressInternal) getLower() *Address {
-	//TODO cache the result in the addressCache
-	return addr.checkIdentity(addr.section.GetLower())
+	lower, _ := addr.getLowestHighestAddrs()
+	return lower
 }
 
 func (addr *addressInternal) getUpper() *Address {
-	//TODO cache the result in the addressCache
-	return addr.checkIdentity(addr.section.GetUpper())
+	_, upper := addr.getLowestHighestAddrs()
+	return upper
+}
+
+func (addr *addressInternal) getLowestHighestAddrs() (lower, upper *Address) {
+	if !addr.IsMultiple() {
+		lower = addr.toAddress()
+		upper = lower
+		return
+	}
+	cache := addr.cache
+	cached := cache.addrsCache
+	if cached == nil {
+		cached = &addrsCache{}
+		cached.lower, cached.upper = addr.createLowestHighestAddrs()
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.addrsCache))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
+	}
+	lower, upper = cached.lower, cached.upper
+	return
+}
+
+func (addr *addressInternal) createLowestHighestAddrs() (lower, upper *Address) {
+	lower = addr.checkIdentity(addr.section.GetLower())
+	upper = addr.checkIdentity(addr.section.GetUpper())
+	return
 }
 
 func (addr *addressInternal) IsZero() bool {
@@ -304,7 +343,7 @@ func (addr *addressInternal) IsMax() bool {
 		// when no bits, the only value 0 is the max value too
 		return true
 	}
-	return section.IsMax()
+	return addr.section.IsMax()
 }
 
 func (addr *addressInternal) IncludesMax() bool {
@@ -313,7 +352,7 @@ func (addr *addressInternal) IncludesMax() bool {
 		// when no bits, the only value 0 is the max value too
 		return true
 	}
-	return section.IncludesMax()
+	return addr.section.IncludesMax()
 }
 
 func (addr *addressInternal) IsFullRange() bool {
@@ -716,6 +755,16 @@ func (addr *Address) GetGenericSegment(index int) AddressStandardSegment {
 // GetDivision returns the segment count
 func (addr *Address) GetDivisionCount() int {
 	return addr.getDivisionCount()
+}
+
+// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+func (addr *Address) TestBit(n BitCount) bool {
+	return addr.init().testBit(n)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (addr *Address) IsOneBit(bitIndex BitCount) bool {
+	return addr.init().isOneBit(bitIndex)
 }
 
 func (addr *Address) GetLower() *Address {

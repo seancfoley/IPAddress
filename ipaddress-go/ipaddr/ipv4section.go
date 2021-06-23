@@ -77,7 +77,7 @@ func NewIPv4AddressSectionFromPrefixedBytes(bytes []byte, segmentCount int, pref
 	return newIPv4AddressSectionFromBytes(bytes, segmentCount, prefixLength, false)
 }
 
-func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen /* boolean cloneBytes,*/, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {
+func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
@@ -97,9 +97,9 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		}
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
-			res.cache.lowerBytes = bytes
-			if !res.isMultiple {
-				res.cache.upperBytes = bytes
+			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
+			if !res.isMultiple { // not a prefix block
+				res.cache.bytesCache.upperBytes = bytes
 			}
 		}
 	}
@@ -290,67 +290,124 @@ func (section *IPv4AddressSection) UpperLongValue() uint64 {
 }
 
 func (section *IPv4AddressSection) IntValue() uint32 {
-	return section.getIntValue(true)
+	lower, _ := section.getIntValues()
+	return lower
 }
 
 func (section *IPv4AddressSection) UpperIntValue() uint32 {
-	return section.getIntValue(false)
+	_, upper := section.getIntValues()
+	return upper
 }
 
-func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
+func (section *IPv4AddressSection) getIntValues() (lower, upper uint32) {
 	segCount := section.GetSegmentCount()
 	if segCount == 0 {
-		return 0
+		return 0, 0
 	}
 	cache := section.cache
-	var val *uint32
-	if lower {
-		val = cache.cachedLowerVal
-	} else {
-		val = cache.cachedUpperVal
+	cached := cache.intsCache
+	if cached == nil {
+		cached = &intsCache{}
+		cached.cachedLowerVal, cached.cachedUpperVal = section.calcIntValues()
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.intsCache))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
 	}
-	if val != nil {
-		return *val
-	}
+	lower = cached.cachedLowerVal
+	upper = cached.cachedUpperVal
+	return
+}
+
+func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
+	segCount := section.GetSegmentCount()
+	isMult := section.IsMultiple()
 	if segCount == 4 {
-		if lower {
-			result = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
-				(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
-				(uint32(section.GetSegment(2).GetSegmentValue()) << 8) |
-				uint32(section.GetSegment(3).GetSegmentValue())
-		} else {
-			result = (uint32(section.GetSegment(0).GetUpperSegmentValue()) << 24) |
+		lower = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
+			(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
+			(uint32(section.GetSegment(2).GetSegmentValue()) << 8) |
+			uint32(section.GetSegment(3).GetSegmentValue())
+		if isMult {
+			upper = (uint32(section.GetSegment(0).GetUpperSegmentValue()) << 24) |
 				(uint32(section.GetSegment(1).GetUpperSegmentValue()) << 16) |
 				(uint32(section.GetSegment(2).GetUpperSegmentValue()) << 8) |
 				uint32(section.GetSegment(3).GetUpperSegmentValue())
-		}
-	} else {
-		seg := section.GetSegment(0)
-		if lower {
-			result = uint32(seg.GetSegmentValue())
 		} else {
-			result = uint32(seg.GetUpperSegmentValue())
+			upper = lower
 		}
-		bitsPerSegment := section.GetBitsPerSegment()
-		for i := 1; i < segCount; i++ {
-			result = (result << bitsPerSegment)
-			seg = section.GetSegment(i)
-			if lower {
-				result |= uint32(seg.GetSegmentValue())
-			} else {
-				result |= uint32(seg.GetUpperSegmentValue())
-			}
+		return
+	}
+	seg := section.GetSegment(0)
+	lower = uint32(seg.GetSegmentValue())
+	if isMult {
+		upper = uint32(seg.GetUpperSegmentValue())
+	}
+	bitsPerSegment := section.GetBitsPerSegment()
+	for i := 1; i < segCount; i++ {
+		seg = section.GetSegment(i)
+		lower = (lower << bitsPerSegment) | uint32(seg.GetSegmentValue())
+		if isMult {
+			upper = (upper << bitsPerSegment) | uint32(seg.GetUpperSegmentValue())
 		}
 	}
-	var dataLoc *unsafe.Pointer
-	if lower {
-		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedLowerVal))
-	} else {
-		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedUpperVal))
+	if !isMult {
+		upper = lower
 	}
-	atomic.StorePointer(dataLoc, unsafe.Pointer(&result))
-	return result
+	return
 }
+
+//func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
+//	segCount := section.GetSegmentCount() xxx
+//	if segCount == 0 {
+//		return 0
+//	}
+//	cache := section.cache
+//	var val *uint32
+//	if lower {
+//		val = cache.cachedLowerVal
+//	} else {
+//		val = cache.cachedUpperVal
+//	}
+//	if val != nil {
+//		return *val
+//	}
+//	if segCount == 4 {
+//		if lower {
+//			result = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
+//				(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
+//				(uint32(section.GetSegment(2).GetSegmentValue()) << 8) |
+//				uint32(section.GetSegment(3).GetSegmentValue())
+//		} else {
+//			result = (uint32(section.GetSegment(0).GetUpperSegmentValue()) << 24) |
+//				(uint32(section.GetSegment(1).GetUpperSegmentValue()) << 16) |
+//				(uint32(section.GetSegment(2).GetUpperSegmentValue()) << 8) |
+//				uint32(section.GetSegment(3).GetUpperSegmentValue())
+//		}
+//	} else {
+//		seg := section.GetSegment(0)
+//		if lower {
+//			result = uint32(seg.GetSegmentValue())
+//		} else {
+//			result = uint32(seg.GetUpperSegmentValue())
+//		}
+//		bitsPerSegment := section.GetBitsPerSegment()
+//		for i := 1; i < segCount; i++ {
+//			result = (result << bitsPerSegment)
+//			seg = section.GetSegment(i)
+//			if lower {
+//				result |= uint32(seg.GetSegmentValue())
+//			} else {
+//				result |= uint32(seg.GetUpperSegmentValue())
+//			}
+//		}
+//	}
+//	var dataLoc *unsafe.Pointer
+//	if lower {
+//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedLowerVal))
+//	} else {
+//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedUpperVal))
+//	}
+//	atomic.StorePointer(dataLoc, unsafe.Pointer(&result))
+//	return result
+//}
 
 func (section *IPv4AddressSection) ToPrefixBlock() *IPv4AddressSection {
 	return section.toPrefixBlock().ToIPv4AddressSection()
@@ -435,27 +492,6 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 		section.getUpper,
 		section.GetPrefixLength()).ToIPv4AddressSection()
 }
-
-//func (section *IPv4AddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries { xxx this can be shared in ipaddressInternal maybe xxx
-//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()} TODO REMOVE
-//	if section.IsSequential() {
-//		if section.IsSinglePrefixBlock() {
-//			return []ExtendedIPSegmentSeries{wrapped}
-//		}
-//		return getSpanningPrefixBlocks(wrapped, wrapped)
-//	}
-//	return spanWithPrefixBlocks(wrapped)
-//}
-//
-//func (section *IPv4AddressSection) spanWithPrefixBlocksTo(other *IPv4AddressSection) ([]ExtendedIPSegmentSeries, SizeMismatchException) {
-//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {TODO REMOVE
-//		return nil, err
-//	}
-//	return getSpanningPrefixBlocks(
-//		WrappedIPAddressSection{section.ToIPAddressSection()},
-//		WrappedIPAddressSection{other.ToIPAddressSection()},
-//	), nil
-//}
 
 func (section *IPv4AddressSection) SpanWithPrefixBlocks() []*IPv4AddressSection {
 	if section.IsSequential() {

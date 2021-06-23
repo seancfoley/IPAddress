@@ -350,6 +350,24 @@ func (addr *IPv6Address) CopyUpperBytes(bytes []byte) []byte {
 	return addr.init().section.CopyUpperBytes(bytes)
 }
 
+func (addr *IPv6Address) IsMax() bool {
+	return addr.init().section.IsMax()
+}
+
+func (addr *IPv6Address) IncludesMax() bool {
+	return addr.init().section.IncludesMax()
+}
+
+// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+func (addr *IPv6Address) TestBit(n BitCount) bool {
+	return addr.init().testBit(n)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
+	return addr.init().isOneBit(bitIndex)
+}
+
 func (addr *IPv6Address) Contains(other AddressType) bool {
 	return addr.init().contains(other) // the base method handles zone too
 }

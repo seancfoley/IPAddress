@@ -47,21 +47,19 @@ type ExtendedIPSegmentSeries interface {
 
 	AssignPrefixForSingleBlock() ExtendedIPSegmentSeries
 
-	//AssignMinPrefixForBlock() ExtendedIPSegmentSeries  //TODO
+	//AssignMinPrefixForBlock() ExtendedIPSegmentSeries  //TODO uses GetMinPrefixLengthForBlock I presume which we have already
 
 	SequentialBlockIterator() ExtendedIPSegmentSeriesIterator
 
-	//BlockIterator() ExtendedIPSegmentSeriesIterator  //TODO
+	BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator
 
-	//Iterator() ExtendedIPSegmentSeriesIterator  //TODO
+	Iterator() ExtendedIPSegmentSeriesIterator
 
-	//PrefixIterator() ExtendedIPSegmentSeriesIterator  //TODO
+	PrefixIterator() ExtendedIPSegmentSeriesIterator
 
-	//PrefixBlockIterator() ExtendedIPSegmentSeriesIterator  //TODO
+	PrefixBlockIterator() ExtendedIPSegmentSeriesIterator
 
 	SpanWithPrefixBlocks() []ExtendedIPSegmentSeries
-
-	//SpanWithPrefixBlocksTo(ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries //TODO maybe toss this one, this one has different error for section vs address, and passing in an ExtendedIPSegmentSeries also makes it non-type-safe so you'd need an error for typew mismatch
 
 	//CoverWithPrefixBlock() ExtendedIPSegmentSeries  //TODO
 
@@ -84,6 +82,22 @@ type WrappedIPAddress struct {
 
 func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
 	return addressSeriesIterator{w.IPAddress.SequentialBlockIterator()}
+}
+
+func (w WrappedIPAddress) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
+	return addressSeriesIterator{w.IPAddress.BlockIterator(segmentCount)}
+}
+
+func (w WrappedIPAddress) Iterator() ExtendedIPSegmentSeriesIterator {
+	return addressSeriesIterator{w.IPAddress.Iterator()}
+}
+
+func (w WrappedIPAddress) PrefixIterator() ExtendedIPSegmentSeriesIterator {
+	return addressSeriesIterator{w.IPAddress.PrefixIterator()}
+}
+
+func (w WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return addressSeriesIterator{w.IPAddress.PrefixBlockIterator()}
 }
 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
@@ -167,6 +181,22 @@ type WrappedIPAddressSection struct {
 
 func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
 	return sectionSeriesIterator{w.IPAddressSection.SequentialBlockIterator()}
+}
+
+func (w WrappedIPAddressSection) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
+	return sectionSeriesIterator{w.IPAddressSection.BlockIterator(segmentCount)}
+}
+
+func (w WrappedIPAddressSection) Iterator() ExtendedIPSegmentSeriesIterator {
+	return sectionSeriesIterator{w.IPAddressSection.Iterator()}
+}
+
+func (w WrappedIPAddressSection) PrefixIterator() ExtendedIPSegmentSeriesIterator {
+	return sectionSeriesIterator{w.IPAddressSection.PrefixIterator()}
+}
+
+func (w WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return sectionSeriesIterator{w.IPAddressSection.PrefixBlockIterator()}
 }
 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,

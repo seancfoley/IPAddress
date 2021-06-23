@@ -46,6 +46,9 @@ type AddressItem interface {
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
 	//AddressComponentRange
 
+	TestBit(BitCount) bool
+	IsOneBit(BitCount) bool
+
 	ToHexString(bool) (string, IncompatibleAddressException)
 	ToNormalizedString() string
 }
@@ -64,17 +67,17 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	GetUpperIP() net.IP
 }
 
-// TODO as discussed in stringparams.go
+//  as discussed in stringparams.go
 // Likely you will eventually merge AddressStringDivisionSeries with AddressDivisionSeries
 // Likely you will merge AddressStringDivision into AddressGenericDivision too
 
 //
 //
 // division series
-type AddressStringDivisionSeries interface {
-	GetDivisionCount() int
-	//GetStringDivision(index int) AddressStringDivision // useful for string generation
-}
+//type AddressStringDivisionSeries interface {
+//	GetDivisionCount() int
+//	//GetStringDivision(index int) AddressStringDivision // useful for string generation
+//}
 
 //type IPAddressStringDivisionSeries interface {
 //	AddressStringDivisionSeries
@@ -83,13 +86,13 @@ type AddressStringDivisionSeries interface {
 // AddressDivisionSeries serves as a common interface to all division groupings (including large) and addresses
 type AddressDivisionSeries interface {
 	AddressItem
-	AddressStringDivisionSeries
+	//AddressStringDivisionSeries
+	GetDivisionCount() int
 
 	IsSequential() bool
 
 	IsPrefixBlock() bool
 	IsSinglePrefixBlock() bool
-
 	IsPrefixed() bool
 	GetPrefixLength() PrefixLen
 
@@ -126,10 +129,6 @@ type addrSegmentSeries interface {
 	ToCompressedString() string
 
 	GetGenericSegment(index int) AddressStandardSegment
-
-	//TestBit(BitCount) bool //TODO
-	//IsOneBit(BitCount) bool
-
 }
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
@@ -154,20 +153,19 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	GetSequentialBlockIndex() int
 	//GetSequentialBlockCount() *big.Int TODO
 
-	//GetIPVersion() //TODO
+	GetIPVersion() IPVersion
 
-	//ToFullString() string //TODO all these strings, they may even be fine now, just uncomment
-	//ToPrefixLenString() string
-	//ToSubnetString() string
-	//ToNormalizedWildcardString() string
-	//ToCanonicalWildcardString() string
-	//ToCompressedWildcardString() string
-	//ToSQLWildcardString() string
-	//ToReverseDNSLookupString() string
-	//ToBinaryString() string
-	//ToSegmentedBinaryString() string
-	//ToOctalString(bool) string
-	//ToNormalizedString(IPStringOptions) string
+	ToFullString() string
+	//ToPrefixLenString() string //TODO
+	ToSubnetString() string
+	ToNormalizedWildcardString() string
+	ToCanonicalWildcardString() string
+	ToCompressedWildcardString() string
+	ToSQLWildcardString() string
+	//ToReverseDNSLookupString() string //TODO
+	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException)
+	ToSegmentedBinaryString() string
+	ToOctalString(withPrefix bool) (string, IncompatibleAddressException)
 
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) AddressGenericDivision
 }

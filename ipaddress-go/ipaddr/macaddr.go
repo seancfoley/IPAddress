@@ -204,6 +204,16 @@ func (addr *MACAddress) GetGenericSegment(index int) AddressStandardSegment {
 	return addr.init().getSegment(index)
 }
 
+// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+func (addr *MACAddress) TestBit(n BitCount) bool {
+	return addr.init().testBit(n)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (addr *MACAddress) IsOneBit(bitIndex BitCount) bool {
+	return addr.init().isOneBit(bitIndex)
+}
+
 // GetDivision returns the segment count, implementing the interface AddressDivisionSeries
 func (addr *MACAddress) GetDivisionCount() int {
 	return addr.init().getDivisionCount()

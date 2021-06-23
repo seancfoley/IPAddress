@@ -72,7 +72,7 @@ func (creator *IPv6AddressCreator) createSegment(lower, upper SegInt, segmentPre
 func (creator *IPv6AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
 	result := creator.createIPv6PrefixSegment(ToIPv6SegInt(value), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 
@@ -80,7 +80,7 @@ func (creator *IPv6AddressCreator) createRangeSegmentInternal(lower, upper SegIn
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
 	result := creator.createIPv6RangePrefixSegment(ToIPv6SegInt(lower), ToIPv6SegInt(upper), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 
@@ -170,7 +170,7 @@ func (creator *IPv4AddressCreator) createSegment(lower, upper SegInt, segmentPre
 func (creator *IPv4AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
 	result := creator.createIPv4PrefixSegment(ToIPv4SegInt(value), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 
@@ -178,7 +178,7 @@ func (creator *IPv4AddressCreator) createRangeSegmentInternal(lower, upper SegIn
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
 	result := creator.createIPv4RangePrefixSegment(ToIPv4SegInt(lower), ToIPv4SegInt(upper), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 
@@ -264,7 +264,7 @@ func (creator *MACAddressCreator) createSegment(lower, upper SegInt, segmentPref
 func (creator *MACAddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
 	result := creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 
@@ -272,7 +272,7 @@ func (creator *MACAddressCreator) createRangeSegmentInternal(lower, upper SegInt
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
 	result := creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
-	//TODO store string slices
+	//TODO store string slices, the ones from the parsing
 	return result
 }
 

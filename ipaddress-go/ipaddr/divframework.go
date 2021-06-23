@@ -1,16 +1,16 @@
 package ipaddr
 
-type AddressStringDivision interface {
-}
-
-type IPAddressStringDivision interface {
-	AddressStringDivision
-}
+//type AddressStringDivision interface {
+//}
+//
+//type IPAddressStringDivision interface {
+//	AddressStringDivision
+//}
 
 // AddressGenericDivision serves as common interface to all divisions, including large divisions (> 64 bits)
 type AddressGenericDivision interface { //TODO rename GenericDivisionType or GenericDivision
 	AddressItem
-	AddressStringDivision
+	//AddressStringDivision
 
 	getAddrType() addrType
 

@@ -902,7 +902,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // TODO NOW progress
 // TODO NEXT NOW progress
 //
-// - things to target: increment, setting prefixes, merge, span, cover
+// - things to target: cover
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
@@ -910,22 +910,13 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - finish sequential range code (hard part done already)
+// - did we do mac <-> ipv6?  Or ipv4 <-> ipv6?
+// - finish the list of methods in ExtendedIPSegmentSeries
+// - clean up errors code, probably at the end
 
-// TODO xxx which is next?  merge or span?  equal difficulty?  maybe do both at same time? Kinda like that idea of doing both
+// TODO xxx which is next?  not a whole lot, just the stuff listed here, and the todos, seems like "cover" is the last thing to target listed here
+// Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
 
-// IP Address and section:
-// spanWithPrefixBlocks // scale up?  depends on impl.  regardless, it will be part of ipaddress and ipaddresssection
-// spanWithPrefixBlocks(Section) // arg must match the type, so only in ipv6/4
-// spanWithSequentialBlocks
-// spanWithSequentialBlocks(Section) // arg must match the type, so only in ipv6/4
-//
-// // how to handle different versions?  hmmmm perhaps the method would ignore other versions?
-// or maybe only in ipv6/4 like span?  But then, maybe make a func?
-// Maybe also have a func that merges both ipv4 and ipv6?  Nah
-// just have a func, one in ipv4, one in ipv6
-//
-// mergeToSequentialBlocks
-// mergeToPrefixBlocks
 //
 // In IP Address:
 // toSequentialRange(Address)

@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -219,6 +220,20 @@ func (section *addressSectionInternal) GetMaxSegmentValue() SegInt {
 	return section.GetSegment(0).GetMaxValue()
 }
 
+// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this section.
+func (section *addressSectionInternal) TestBit(n BitCount) bool {
+	return section.IsOneBit(section.GetBitCount() - (n + 1))
+}
+
+// Returns true if the bit in the lower value of this section at the given index is 1, where index 0 is the most significant bit.
+func (section *addressSectionInternal) IsOneBit(prefixBitIndex BitCount) bool {
+	bitsPerSegment := section.GetBitsPerSegment()
+	bytesPerSegment := section.GetBytesPerSegment()
+	segment := section.GetSegment(getHostSegmentIndex(prefixBitIndex, bytesPerSegment, bitsPerSegment))
+	segmentBitIndex := prefixBitIndex % bitsPerSegment
+	return segment.IsOneBit(segmentBitIndex)
+}
+
 // Gets the subsection from the series starting from the given index and ending just before the give endIndex
 // The first segment is at index 0.
 func (section *addressSectionInternal) getSubSection(index, endIndex int) *AddressSection {
@@ -317,53 +332,47 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 	return
 }
 
-func (section *addressSectionInternal) getLowestOrHighestSection(lowest bool) (result *AddressSection) {
+func (section *addressSectionInternal) getLowestHighestSections() (lower, upper *AddressSection) {
 	if !section.IsMultiple() {
-		return section.toAddressSection()
-	}
-	cache := section.cache
-	sectionCache := &cache.sectionCache
-	cache.cacheLock.RLock() //TODO use the usual pattern, not this pattern
-	if lowest {
-		result = sectionCache.lower
-	} else {
-		result = sectionCache.upper
-	}
-	cache.cacheLock.RUnlock()
-	if result != nil {
+		lower = section.toAddressSection()
+		upper = lower
 		return
 	}
-	cache.cacheLock.Lock()
-	if lowest {
-		result = sectionCache.lower
-		if result == nil {
-			result = section.createLowestOrHighestSectionCacheLocked(lowest)
-			sectionCache.lower = result
-		}
-	} else {
-		result = sectionCache.upper
-		if result == nil {
-			result = section.createLowestOrHighestSectionCacheLocked(lowest)
-			sectionCache.upper = result
-		}
+	cache := section.cache
+	cached := cache.sectionCache
+	if cached == nil {
+		cached = &groupingCache{}
+		cached.lower, cached.upper = section.createLowestHighestSections()
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.sectionCache))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
 	}
-	cache.cacheLock.Unlock()
+	lower = cached.lower
+	upper = cached.upper
 	return
 }
 
-func (section *addressSectionInternal) createLowestOrHighestSectionCacheLocked(lowest bool) *AddressSection {
+func (section *addressSectionInternal) createLowestHighestSections() (lower, upper *AddressSection) {
 	segmentCount := section.GetSegmentCount()
-	segs := createSegmentArray(segmentCount)
-	if lowest {
-		for i := 0; i < segmentCount; i++ {
-			segs[i] = section.GetSegment(i).GetLower().ToAddressDivision()
-		}
-	} else {
-		for i := 0; i < segmentCount; i++ {
-			segs[i] = section.GetSegment(i).GetUpper().ToAddressDivision()
+	lowSegs := createSegmentArray(segmentCount)
+	var highSegs []*AddressDivision
+	if section.IsMultiple() {
+		highSegs = createSegmentArray(segmentCount)
+	}
+	for i := 0; i < segmentCount; i++ {
+		seg := section.GetSegment(i)
+		lowSegs[i] = seg.GetLower().ToAddressDivision()
+		if highSegs != nil {
+			highSegs[i] = seg.GetUpper().ToAddressDivision()
 		}
 	}
-	return createSection(segs, section.prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	pref, addrType, ind := section.prefixLength, section.getAddrType(), section.addressSegmentIndex
+	lower = createSection(lowSegs, pref, addrType, ind)
+	if highSegs == nil {
+		upper = lower
+	} else {
+		upper = createSection(highSegs, pref, addrType, ind)
+	}
+	return
 }
 
 func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
@@ -540,11 +549,13 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 }
 
 func (section *addressSectionInternal) getLower() *AddressSection {
-	return section.getLowestOrHighestSection(true)
+	lower, _ := section.getLowestHighestSections()
+	return lower
 }
 
 func (section *addressSectionInternal) getUpper() *AddressSection {
-	return section.getLowestOrHighestSection(false)
+	_, upper := section.getLowestHighestSections()
+	return upper
 }
 
 func (section *addressSectionInternal) incrementBoundary(increment int64) *AddressSection {

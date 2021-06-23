@@ -74,7 +74,7 @@ func (div *addressSegmentInternal) TestBit(n BitCount) bool {
 }
 
 // Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
-func (div *addressSegmentInternal) isOneBit(segmentBitIndex BitCount) bool {
+func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
 	value := div.GetSegmentValue()
 	bitCount := div.GetBitCount()
 	return (value & (1 << (bitCount - (segmentBitIndex + 1)))) != 0

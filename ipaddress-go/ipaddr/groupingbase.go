@@ -3,7 +3,6 @@ package ipaddr
 import (
 	"fmt"
 	"math/big"
-	"sync"
 	"sync/atomic"
 	"unsafe"
 )
@@ -293,24 +292,41 @@ func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big
 	return counter()
 }
 
+/*
+cache := div.getCache()
+	if cache == nil {
+		return div.calcBytesInternal()
+	}
+	cached := cache.cachedBytes
+	if cached == nil {
+		bytes, upperBytes = div.calcBytesInternal()
+		cached = &bytesCache{
+			lowerBytes: bytes,
+			upperBytes: upperBytes,
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedBytes))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
+	}
+	return cached.lowerBytes, cached.upperBytes
+*/
+
 func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (bytes, upperBytes []byte)) (bytes, upperBytes []byte) {
 	cache := grouping.cache
 	if cache == nil {
 		return emptyBytes, emptyBytes
 	}
-	cache.cacheLock.RLock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	cache.cacheLock.RUnlock()
-	if bytes != nil {
-		return
-	}
-	cache.cacheLock.Lock()
-	bytes, upperBytes = cache.lowerBytes, cache.upperBytes
-	if bytes == nil {
+	cached := cache.bytesCache
+	if cached == nil {
 		bytes, upperBytes = calcBytes()
-		cache.lowerBytes, cache.upperBytes = bytes, upperBytes
+		cached = &bytesCache{
+			lowerBytes: bytes,
+			upperBytes: upperBytes,
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.bytesCache))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
 	}
-	cache.cacheLock.Unlock()
+	bytes = cached.lowerBytes
+	upperBytes = cached.upperBytes
 	return
 }
 
@@ -322,20 +338,22 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 
 type valueCache struct {
 	//	Cache lock is used for some fields, but not all, most use atomic reads/writes of pointers
-	cacheLock sync.RWMutex
+	//cacheLock sync.RWMutex
 
 	cachedCount, cachedPrefixCount *big.Int
 
 	cachedMaskLens *maskLenSetting
 
-	lowerBytes, upperBytes         []byte
-	cachedLowerVal, cachedUpperVal *uint32
+	bytesCache *bytesCache
+
+	intsCache *intsCache
+	//cachedLowerVal, cachedUpperVal *uint32
 
 	zeroVals *zeroRangeCache
 
 	stringCache stringCache
 
-	sectionCache groupingCache
+	sectionCache *groupingCache
 
 	defaultMixedAddressSection *IPv6v4MixedAddressSection
 	embeddedIPv4Section        *IPv4AddressSection
@@ -400,14 +418,13 @@ type zeroRangeCache struct {
 	zeroSegments, zeroRangeSegments RangeList
 }
 
+type intsCache struct {
+	cachedLowerVal, cachedUpperVal uint32
+}
+
 type maskLenSetting struct {
 	networkMaskLen, hostMaskLen PrefixLen
 }
-
-//type countSetting struct { //TODO just use big.Int, no need for this struct
-//	//x     atomicFlag
-//	count *big.Int
-//}
 
 type divArray interface {
 	// TODO if this returned an interface, maybe it would be more useful, could move more stuff into groupingbase from grouping

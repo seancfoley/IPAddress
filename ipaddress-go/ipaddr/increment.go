@@ -213,11 +213,12 @@ func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentC
 		expectedByteCount,
 		creator,
 		prefixLength)
-
 	res := createSection(segments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
 	if expectedByteCount == len(bytes) {
-		res.cache.lowerBytes = bytes
-		res.cache.upperBytes = bytes
+		res.cache.bytesCache = &bytesCache{
+			lowerBytes: bytes,
+			upperBytes: bytes,
+		}
 	}
 	return res
 }
