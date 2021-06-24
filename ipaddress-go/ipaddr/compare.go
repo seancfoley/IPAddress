@@ -179,6 +179,12 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 }
 
 func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int {
+	if wrapper, ok := one.(ExtendedIPSegmentSeries); ok {
+		one = wrapper.Unwrap()
+	}
+	if wrapper, ok := two.(ExtendedIPSegmentSeries); ok {
+		two = wrapper.Unwrap()
+	}
 	if addrSeries1, ok := one.(AddressType); ok {
 		if addrSeries2, ok := two.(AddressType); ok {
 			return comp.CompareAddresses(addrSeries1, addrSeries2)
@@ -425,19 +431,21 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 						oneByteCount -= count
 						for count > 0 {
 							count--
-							oneByteIndex++
+
 							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
+							oneByteIndex++
 						}
 					} else {
 						shortCount := oneByteCount - 1
 						lastBitsCount := oneTotalBitCount - (BitCount(shortCount) << 3)
 						for shortCount > 0 {
 							shortCount--
-							oneByteIndex++
+
 							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
+							oneByteIndex++
 						}
-						oneByteIndex++
 						oneValue = (oneValue << lastBitsCount) | uint64(oneBytes[oneByteIndex]>>(8-lastBitsCount))
+						oneByteIndex++
 						oneBitCount = oneTotalBitCount
 						oneTotalBitCount = 0
 						oneByteCount = 0
@@ -465,19 +473,21 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 						twoByteCount -= count
 						for count > 0 {
 							count--
+
+							twoValue = (twoValue << 8) | uint64(twoBytes[twoByteIndex])
 							twoByteIndex++
-							twoValue = (twoValue << 8) | uint64(oneBytes[twoByteIndex])
 						}
 					} else {
 						shortCount := twoByteCount - 1
 						lastBitsCount := twoTotalBitCount - (BitCount(shortCount) << 3)
 						for shortCount > 0 {
 							shortCount--
+
+							twoValue = (twoValue << 8) | uint64(twoBytes[twoByteIndex])
 							twoByteIndex++
-							twoValue = (twoValue << 8) | uint64(oneBytes[twoByteIndex])
 						}
+						twoValue = (twoValue << lastBitsCount) | uint64(twoBytes[twoByteIndex]>>(8-lastBitsCount))
 						twoByteIndex++
-						twoValue = (twoValue << lastBitsCount) | uint64(oneBytes[twoByteIndex]>>(8-lastBitsCount))
 						twoBitCount = twoTotalBitCount
 						twoTotalBitCount = 0
 						twoByteCount = 0
@@ -708,9 +718,9 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					oneByteCount -= count
 					for count > 0 {
 						count--
-						oneByteIndex++
 						upperByte := oneUpperBytes[oneByteIndex]
 						lowerByte := oneLowerBytes[oneByteIndex]
+						oneByteIndex++
 						oneUpper = (oneUpper << 1) | uint64(upperByte)
 						oneLower = (oneLower << 1) | uint64(lowerByte)
 					}
@@ -719,15 +729,15 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					lastBitsCount := oneTotalBitCount - (BitCount(shortCount) << 3)
 					for shortCount > 0 {
 						shortCount--
-						oneByteIndex++
 						upperByte := oneUpperBytes[oneByteIndex]
 						lowerByte := oneLowerBytes[oneByteIndex]
+						oneByteIndex++
 						oneUpper = (oneUpper << 8) | uint64(upperByte)
 						oneLower = (oneLower << 8) | uint64(lowerByte)
 					}
-					oneByteIndex++
 					upperByte := oneUpperBytes[oneByteIndex]
 					lowerByte := oneLowerBytes[oneByteIndex]
+					oneByteIndex++
 					oneUpper = (oneUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
 					oneLower = (oneLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
 					oneBitCount = oneTotalBitCount
@@ -755,9 +765,9 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					twoByteCount -= count
 					for count > 0 {
 						count--
-						twoByteIndex++
 						upperByte := twoUpperBytes[twoByteIndex]
 						lowerByte := twoLowerBytes[twoByteIndex]
+						twoByteIndex++
 						twoUpper = (twoUpper << 8) | uint64(upperByte)
 						twoLower = (twoLower << 8) | uint64(lowerByte)
 					}
@@ -766,15 +776,15 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					lastBitsCount := twoTotalBitCount - (BitCount(shortCount) << 3)
 					for shortCount > 0 {
 						shortCount--
-						twoByteIndex++
 						upperByte := twoUpperBytes[twoByteIndex]
 						lowerByte := twoLowerBytes[twoByteIndex]
+						twoByteIndex++
 						twoUpper = (twoUpper << 8) | uint64(upperByte)
 						twoLower = (twoLower << 8) | uint64(lowerByte)
 					}
-					twoByteIndex++
 					upperByte := twoUpperBytes[twoByteIndex]
 					lowerByte := twoLowerBytes[twoByteIndex]
+					twoByteIndex++
 					twoUpper = (twoUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
 					twoLower = (twoLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
 					twoBitCount = twoTotalBitCount

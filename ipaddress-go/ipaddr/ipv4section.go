@@ -177,7 +177,7 @@ func (section *IPv4AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.In
 	return section.calcCount(func() *big.Int { return new(big.Int).SetUint64(section.GetIPv4PrefixCountLen(prefixLen)) })
 }
 
-//This was added so count available as a long and not as BigInteger
+// GetIPv4PrefixCountLen gives count available as a uint64 instead of big.Int
 func (section *IPv4AddressSection) GetIPv4PrefixCountLen(prefixLength BitCount) uint64 {
 	if !section.IsMultiple() {
 		return 1

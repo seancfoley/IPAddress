@@ -5,6 +5,9 @@ package ipaddr
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
+	// Unwrap returns the wrapped section or address as an IPAddressSegmentSeries
+	Unwrap() IPAddressSegmentSeries
+
 	// not sure about the return types on these 5, probably should be *IPAddressSection?  Because the wrapper types are geared for that type anyway
 	//GetSection() AddressSectionType  //TODO
 
@@ -74,10 +77,15 @@ type ExtendedIPSegmentSeries interface {
 	//ReverseBits(bool) ExtendedIPSegmentSeries //TODO
 
 	//ReverseSegments(bool) ExtendedIPSegmentSeries //TODO
+
 }
 
 type WrappedIPAddress struct {
 	*IPAddress
+}
+
+func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
+	return w.IPAddress
 }
 
 func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
@@ -177,6 +185,10 @@ func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeri
 
 type WrappedIPAddressSection struct {
 	*IPAddressSection
+}
+
+func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
+	return w.IPAddressSection
 }
 
 func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
@@ -287,7 +299,7 @@ func cloneIPv4Sections(sect *IPv4AddressSection, orig []*IPv4AddressSection) []E
 	if sect != nil {
 		count++
 	}
-	result := make([]ExtendedIPSegmentSeries, 0, count)
+	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
 		result[origCount] = WrappedIPAddressSection{sect.ToIPAddressSection()}
 	}
@@ -303,7 +315,7 @@ func cloneIPv6Sections(sect *IPv6AddressSection, orig []*IPv6AddressSection) []E
 	if sect != nil {
 		count++
 	}
-	result := make([]ExtendedIPSegmentSeries, 0, count)
+	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
 		result[origCount] = WrappedIPAddressSection{sect.ToIPAddressSection()}
 	}
@@ -319,7 +331,7 @@ func cloneIPv4Addrs(sect *IPv4Address, orig []*IPv4Address) []ExtendedIPSegmentS
 	if sect != nil {
 		count++
 	}
-	result := make([]ExtendedIPSegmentSeries, 0, count)
+	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
 		result[origCount] = WrappedIPAddress{sect.ToIPAddress()}
 	}
@@ -335,7 +347,7 @@ func cloneIPv6Addrs(sect *IPv6Address, orig []*IPv6Address) []ExtendedIPSegmentS
 	if sect != nil {
 		count++
 	}
-	result := make([]ExtendedIPSegmentSeries, 0, count)
+	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
 		result[origCount] = WrappedIPAddress{sect.ToIPAddress()}
 	}
@@ -346,7 +358,7 @@ func cloneIPv6Addrs(sect *IPv6Address, orig []*IPv6Address) []ExtendedIPSegmentS
 }
 
 func cloneToIPSections(orig []ExtendedIPSegmentSeries) []*IPAddressSection {
-	result := make([]*IPAddressSection, 0, len(orig))
+	result := make([]*IPAddressSection, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddressSection).IPAddressSection
 	}
@@ -354,7 +366,7 @@ func cloneToIPSections(orig []ExtendedIPSegmentSeries) []*IPAddressSection {
 }
 
 func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
-	result := make([]*IPv4AddressSection, 0, len(orig))
+	result := make([]*IPv4AddressSection, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddressSection).ToIPv4AddressSection()
 	}
@@ -362,7 +374,7 @@ func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
 }
 
 func cloneToIPv6Sections(orig []ExtendedIPSegmentSeries) []*IPv6AddressSection {
-	result := make([]*IPv6AddressSection, 0, len(orig))
+	result := make([]*IPv6AddressSection, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddressSection).ToIPv6AddressSection()
 	}
@@ -370,7 +382,7 @@ func cloneToIPv6Sections(orig []ExtendedIPSegmentSeries) []*IPv6AddressSection {
 }
 
 func cloneToIPAddrs(orig []ExtendedIPSegmentSeries) []*IPAddress {
-	result := make([]*IPAddress, 0, len(orig))
+	result := make([]*IPAddress, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddress).IPAddress
 	}
@@ -378,7 +390,7 @@ func cloneToIPAddrs(orig []ExtendedIPSegmentSeries) []*IPAddress {
 }
 
 func cloneToIPv4Addrs(orig []ExtendedIPSegmentSeries) []*IPv4Address {
-	result := make([]*IPv4Address, 0, len(orig))
+	result := make([]*IPv4Address, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddress).ToIPv4Address()
 	}
@@ -386,7 +398,7 @@ func cloneToIPv4Addrs(orig []ExtendedIPSegmentSeries) []*IPv4Address {
 }
 
 func cloneToIPv6Addrs(orig []ExtendedIPSegmentSeries) []*IPv6Address {
-	result := make([]*IPv6Address, 0, len(orig))
+	result := make([]*IPv6Address, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddress).ToIPv6Address()
 	}

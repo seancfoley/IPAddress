@@ -33,8 +33,10 @@ func (res *TranslatedResult) getAddress() *IPAddress {
 		// So we need only share the boundaries when they were constructed first.
 		addr := res.creator.createAddressInternalFromSection(res.section, res.getZone(), res.originator)
 		if res.rng != nil {
-			addr.cache.lower = res.rangeLower.ToAddress()
-			addr.cache.upper = res.rangeUpper.ToAddress()
+			addr.cache.addrsCache = &addrsCache{
+				lower: res.rangeLower.ToAddress(),
+				upper: res.rangeUpper.ToAddress(),
+			}
 		}
 		res.address = addr
 	}

@@ -5,8 +5,8 @@ import (
 	"unsafe"
 )
 
-// NewIPAddressString constructs an IPAddressString that will parse the given string according to the given parameters
-func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddressString {
+// NewIPAddressStringParams constructs an IPAddressString that will parse the given string according to the given parameters
+func NewIPAddressStringParams(str string, params IPAddressStringParameters) *IPAddressString {
 	var p *ipAddressStringParameters
 	if params == nil {
 		p = defaultIPAddrParameters
@@ -16,9 +16,14 @@ func NewIPAddressString(str string, params IPAddressStringParameters) *IPAddress
 	return &IPAddressString{str: str, params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
 
+// NewIPAddressString constructs an IPAddressString
+func NewIPAddressString(str string) *IPAddressString {
+	return &IPAddressString{str: str, params: defaultIPAddrParameters, ipAddrStringCache: new(ipAddrStringCache)}
+}
+
 var defaultIPAddrParameters = &ipAddressStringParameters{}
 
-var zeroIPAddressString = NewIPAddressString("", defaultIPAddrParameters)
+var zeroIPAddressString = NewIPAddressString("")
 
 type addrData struct {
 	addressProvider   IPAddressProvider

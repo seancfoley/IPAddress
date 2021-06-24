@@ -1575,6 +1575,7 @@ func getOredSegments(
 				}
 			}
 			res = deriveIPAddressSectionSingle(original, newSegments, networkPrefixLength, singleOnly)
+			return
 		}
 	}
 	res = original

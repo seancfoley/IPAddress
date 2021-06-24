@@ -43,10 +43,9 @@ type addrsCache struct {
 type addressCache struct {
 	ip net.IPAddr // lower converted (cloned when returned)
 
-	//xxxxx lower, upper *Address
 	addrsCache *addrsCache
 
-	stringCache *stringCache
+	stringCache *stringCache // only used by IPv6 due to zone
 
 	fromString unsafe.Pointer // MACAddressString or IPAddressString
 	fromHost   *HostName
@@ -916,7 +915,7 @@ func seriesValsSame(one, two AddressSegmentSeries) bool {
 	for i := 0; i < count; i++ {
 		oneSeg := one.GetGenericSegment(i)
 		twoSeg := two.GetGenericSegment(i)
-		if segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
+		if !segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
 			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
 			return false
 		}

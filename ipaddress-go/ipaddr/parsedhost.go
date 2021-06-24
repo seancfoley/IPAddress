@@ -106,16 +106,16 @@ func (host *ParsedHost) asGenericAddressString() *IPAddressString {
 	if host.hasEmbeddedAddress() {
 		addressProvider := host.getAddressProvider()
 		if addressProvider.isProvidingAllAddresses() {
-			return NewIPAddressString(SegmentWildcardStr, addressProvider.getParameters())
+			return NewIPAddressStringParams(SegmentWildcardStr, addressProvider.getParameters())
 			//} else if(addressProvider.isProvidingPrefixOnly()) {
 			//	return new IPAddressString(IPAddressNetwork.getPrefixString(addressProvider.getProviderNetworkPrefixLength()), addressProvider.getParameters());
 		} else if addressProvider.isProvidingEmpty() {
-			return NewIPAddressString("", addressProvider.getParameters())
+			return NewIPAddressStringParams("", addressProvider.getParameters())
 		} else {
 			//try {
 			addr, err := addressProvider.getProviderAddress()
 			if err != nil {
-				return NewIPAddressString(host.originalStr, addressProvider.getParameters())
+				return NewIPAddressStringParams(host.originalStr, addressProvider.getParameters())
 			}
 			return addr.ToAddressString()
 			//} catch(IncompatibleAddressException e) {

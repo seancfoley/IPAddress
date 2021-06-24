@@ -185,6 +185,8 @@ func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err erro
 	return
 }
 
+//TODO xxx MaskPrefixed which is in sections but seems I forgot to add to addresses xxxx
+
 func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange {
 	return NewIPv4SeqRange(addr.init(), other.init())
 }
@@ -407,25 +409,6 @@ func (addr *IPv4Address) IncrementBoundary(increment int64) *IPv4Address {
 func (addr *IPv4Address) Increment(increment int64) *IPv4Address {
 	return addr.init().increment(increment).ToIPv4Address()
 }
-
-//func (addr *IPv4Address) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-//	xxx
-//	wrapped := WrappedIPAddress{addr.ToIPAddress()}
-//	if addr.IsSequential() {
-//		if addr.IsSinglePrefixBlock() {
-//			return []ExtendedIPSegmentSeries{wrapped}
-//		}
-//		return getSpanningPrefixBlocks(wrapped, wrapped)
-//	}
-//	return spanWithPrefixBlocks(wrapped)
-//}
-//
-//func (addr *IPv4Address) spanWithPrefixBlocksTo(other *IPv4Address) []ExtendedIPSegmentSeries {
-//	return getSpanningPrefixBlocks(
-//		WrappedIPAddress{addr.ToIPAddress()},
-//		WrappedIPAddress{other.ToIPAddress()},
-//	)
-//}
 
 func (addr *IPv4Address) SpanWithPrefixBlocks() []*IPv4Address {
 	if addr.IsSequential() {

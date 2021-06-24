@@ -94,7 +94,7 @@ func main() {
 	fmt.Printf("%+v\n", ipv4AddrSection) // expecting [] or <nil>
 
 	//addrStr := ipaddr.IPAddressString{}
-	addrStr := ipaddr.NewIPAddressString("1.2.3.4", nil)
+	addrStr := ipaddr.NewIPAddressString("1.2.3.4")
 	pAddr := addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
@@ -106,17 +106,17 @@ func main() {
 	ipv4Prefixed2 := pAddr.ToPrefixBlockLen(19)
 	fmt.Printf("19 block is %+v\n", ipv4Prefixed2)
 
-	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b", nil)
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b")
 	pAddr = addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
-	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b%eth0", nil)
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:a:b%eth0")
 	pAddr = addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
-	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:1.2.3.4", nil)
+	addrStr = ipaddr.NewIPAddressString("a:b:c:d:e:f:1.2.3.4")
 	pAddr = addrStr.GetAddress()
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
@@ -170,7 +170,7 @@ func main() {
 		fmt.Printf("%v ", iter.Next())
 	}
 
-	addrStrPref := ipaddr.NewIPAddressString("1.2-11.0.0/15", nil)
+	addrStrPref := ipaddr.NewIPAddressString("1.2-11.0.0/15")
 	pAddr = addrStrPref.GetAddress()
 	newIter := pAddr.GetSection().PrefixBlockIterator()
 	fmt.Printf("\nto iterate: %+v", pAddr)
@@ -178,7 +178,7 @@ func main() {
 	for newIter.HasNext() {
 		fmt.Printf("%v ", newIter.Next())
 	}
-	addrStrPref = ipaddr.NewIPAddressString("1.2-11.0.0/16", nil)
+	addrStrPref = ipaddr.NewIPAddressString("1.2-11.0.0/16")
 	pAddr = addrStrPref.GetAddress()
 	fmt.Printf("\nto iterate: %+v", pAddr)
 	newIter = pAddr.GetSection().BlockIterator(2)
@@ -192,8 +192,8 @@ func main() {
 		fmt.Printf("%v ", newIter.Next())
 	}
 
-	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4", nil)
-	addrStrPref2 := ipaddr.NewIPAddressString("1.2.4.1", nil)
+	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4")
+	addrStrPref2 := ipaddr.NewIPAddressString("1.2.4.1")
 	rng := addrStrPref1.GetAddress().ToIPv4Address().SpanWithRange(addrStrPref2.GetAddress().ToIPv4Address())
 	riter := rng.Iterator()
 	fmt.Printf("\nsequential range iterator:\n")
@@ -209,7 +209,7 @@ func main() {
 	sect := addrStrPref1.GetAddress().ToIPv4Address().GetSection()
 	str := sect.ToCanonicalString()
 	fmt.Printf("\nString is %s", str)
-	addrStrPref6 := ipaddr.NewIPAddressString("1.2.3.4/16", nil)
+	addrStrPref6 := ipaddr.NewIPAddressString("1.2.3.4/16")
 	sect = addrStrPref6.GetAddress().ToIPv4Address().GetSection()
 	str = sect.ToCanonicalString()
 	fmt.Printf("\nString with prefix length is %s", str)
@@ -222,7 +222,7 @@ func main() {
 	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 0)
 	fmt.Printf("\nInet Aton string with prefix length is %s", str)
 
-	addrStrPref7 := ipaddr.NewIPAddressString("1:2:3:4::/64", nil)
+	addrStrPref7 := ipaddr.NewIPAddressString("1:2:3:4::/64")
 	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
@@ -234,7 +234,7 @@ func main() {
 	str = addrStrPref7.GetAddress().ToSegmentedBinaryString()
 	fmt.Printf("\nIPv6 segmented binary string is %s", str)
 
-	addrStrPref8 := ipaddr.NewIPAddressString("1::4:5:6:7:8fff/64", nil)
+	addrStrPref8 := ipaddr.NewIPAddressString("1::4:5:6:7:8fff/64")
 	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
@@ -247,21 +247,21 @@ func main() {
 		fmt.Printf("%v ", rangiter.Next())
 	}
 
-	addrStrPref3 := ipaddr.NewIPAddressString("1-4::1/125", nil)
+	addrStrPref3 := ipaddr.NewIPAddressString("1-4::1/125")
 	addrIter := addrStrPref3.GetAddress().PrefixBlockIterator()
 	fmt.Printf("\naddress pref block iterator:\n")
 	for addrIter.HasNext() {
 		fmt.Printf("%v ", addrIter.Next())
 	}
 
-	addrStrPref4 := ipaddr.NewIPAddressString("1::1/125", nil)
+	addrStrPref4 := ipaddr.NewIPAddressString("1::1/125")
 	addrIter = addrStrPref4.GetAddress().Iterator()
 	fmt.Printf("\naddress iterator:\n")
 	for addrIter.HasNext() {
 		fmt.Printf("%v ", addrIter.Next())
 	}
 
-	addrStrPref5 := ipaddr.NewIPAddressString("1::/125", nil)
+	addrStrPref5 := ipaddr.NewIPAddressString("1::/125")
 	addrIter = addrStrPref5.GetAddress().Iterator()
 	fmt.Printf("\naddress iterator:\n")
 	for addrIter.HasNext() {
@@ -285,8 +285,68 @@ func main() {
 	fmt.Printf("\nincremented by -1 mac addr %+v is %+v\n", mAddr, mAddr.Increment(-1))
 	fmt.Printf("\nincremented by -1 and then by +1 mac addr %+v is %+v\n", mAddr, mAddr.Increment(-1).Increment(1))
 	fmt.Printf("\nincremented by +1 and then by -1 mac addr %+v is %+v\n", mAddr, mAddr.Increment(1).Increment(-1))
+
+	splitIntoBlocks("0.0.0.0", "0.0.0.254")
+	splitIntoBlocks("0.0.0.1", "0.0.0.254")
+	splitIntoBlocks("0.0.0.0", "0.0.0.254") // 16 8 4 2 1
+	splitIntoBlocks("0.0.0.10", "0.0.0.21")
+
+	splitIntoBlocks("1.2.3.4", "1.2.3.3-5")
+	splitIntoBlocks("1.2-3.4.5-6", "2.0.0.0")
+	splitIntoBlocks("1.2.3.4", "1.2.4.4") // 16 8 4 2 1
+	splitIntoBlocks("0.0.0.0", "255.0.0.0")
+
+	fmt.Printf("\n\n")
+
+	splitIntoBlocksSeq("0.0.0.0", "0.0.0.254")
+	splitIntoBlocksSeq("0.0.0.1", "0.0.0.254")
+	splitIntoBlocksSeq("0.0.0.0", "0.0.0.254") // 16 8 4 2 1
+	splitIntoBlocksSeq("0.0.0.10", "0.0.0.21")
+
+	splitIntoBlocksSeq("1.2.3.4", "1.2.3.3-5")
+	splitIntoBlocksSeq("1.2-3.4.5-6", "2.0.0.0")
+	splitIntoBlocksSeq("1.2-3.4.5-6", "1.3.4.6")
+	splitIntoBlocksSeq("1.2.3.4", "1.2.4.4") // 16 8 4 2 1
+	splitIntoBlocksSeq("0.0.0.0", "255.0.0.0")
+
+	//TODO try a merge
+
+	fmt.Printf("\n\n")
 	//_ = getDoc()
 }
+
+func splitIntoBlocks(one, two string) {
+	blocks := split(one, two)
+	fmt.Printf("%v from splitting %v and %v: %v\n", len(blocks), one, two, blocks)
+}
+
+func splitIntoBlocksSeq(one, two string) {
+	blocks := splitSeq(one, two)
+	fmt.Printf("%v from splitting %v and %v: %v\n", len(blocks), one, two, blocks)
+}
+
+func split(oneStr, twoStr string) []*ipaddr.IPv4Address {
+	one := ipaddr.NewIPAddressString(oneStr)
+	two := ipaddr.NewIPAddressString(twoStr)
+	return one.GetAddress().ToIPv4Address().SpanWithPrefixBlocksTo(two.GetAddress().ToIPv4Address())
+}
+
+func splitSeq(oneStr, twoStr string) []*ipaddr.IPv4Address {
+	one := ipaddr.NewIPAddressString(oneStr)
+	two := ipaddr.NewIPAddressString(twoStr)
+	return one.GetAddress().ToIPv4Address().SpanWithSequentialBlocksTo(two.GetAddress().ToIPv4Address())
+}
+
+/*
+8 from splitting 0.0.0.0 and 0.0.0.254: [0.0.0.0/25, 0.0.0.128/26, 0.0.0.192/27, 0.0.0.224/28, 0.0.0.240/29, 0.0.0.248/30, 0.0.0.252/31, 0.0.0.254/32]
+14 from splitting 0.0.0.1 and 0.0.0.254: [0.0.0.1/32, 0.0.0.2/31, 0.0.0.4/30, 0.0.0.8/29, 0.0.0.16/28, 0.0.0.32/27, 0.0.0.64/26, 0.0.0.128/26, 0.0.0.192/27, 0.0.0.224/28, 0.0.0.240/29, 0.0.0.248/30, 0.0.0.252/31, 0.0.0.254/32]
+8 from splitting 0.0.0.0 and 0.0.0.254: [0.0.0.0/25, 0.0.0.128/26, 0.0.0.192/27, 0.0.0.224/28, 0.0.0.240/29, 0.0.0.248/30, 0.0.0.252/31, 0.0.0.254/32]
+4 from splitting 0.0.0.10 and 0.0.0.21: [0.0.0.10/31, 0.0.0.12/30, 0.0.0.16/30, 0.0.0.20/31]
+1 from splitting 1.2.3.4 and 1.2.3.3-5: [1.2.3.3-5]
+4 from splitting 1.2-3.4.5-6 and 2.0.0.0: [1.2.4.5-255, 1.2.5-255.*, 1.3-255.*.*, 2.0.0.0]
+2 from splitting 1.2.3.4 and 1.2.4.4: [1.2.3.4-255, 1.2.4.0-4]
+2 from splitting 0.0.0.0 and 255.0.0.0: [0-254.*.*.*, 255.0.0.0]
+*/
 
 //func foo(bytes []byte) {
 //	fmt.Printf("%v\n", bytes)

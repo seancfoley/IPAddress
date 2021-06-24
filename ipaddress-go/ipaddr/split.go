@@ -251,6 +251,7 @@ func splitIntoSequentialBlocks(
 			}
 		}
 		if lowerValue == upperValue {
+			//fmt.Printf("block a %v\n", lower)
 			blocks = append(blocks, lower)
 		} else {
 			lowerIsLowest := lower.IncludesZeroHostLen(previousSegmentBits)
@@ -259,6 +260,7 @@ func splitIntoSequentialBlocks(
 				if higherIsHighest {
 					// full range
 					series := lower.ToBlock(segSegment, lowerValue, upperValue)
+					//fmt.Printf("block b %v\n", series)
 					blocks = append(blocks, series)
 				} else {
 					topLower, _ := upper.ToZeroHostLen(previousSegmentBits)
@@ -266,12 +268,15 @@ func splitIntoSequentialBlocks(
 					series := lower.ToBlock(segSegment, lowerValue, middleUpper.GetGenericSegment(segSegment).GetSegmentValue())
 					//IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
 					blocks = append(blocks, series)
+					//fmt.Printf("split %v - %v to %v - %v / %v and %v - %v\n", lower, upper, lower, middleUpper, series, topLower, upper)
+					//fmt.Printf("block c %v\n", series)
 					lower = topLower
 					continue
 				}
 			} else if higherIsHighest {
 				bottomUpper, _ := lower.ToMaxHostLen(previousSegmentBits)
 				topLower := bottomUpper.Increment(1)
+				//series := topLower.ToBlock(segSegment, topLower.GetGenericSegment(segSegment).GetSegmentValue(), upperValue)
 				series := topLower.ToBlock(segSegment, topLower.GetGenericSegment(segSegment).GetSegmentValue(), upperValue)
 				//IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment,
 				//	topLower.getSegment(segSegment).getSegmentValue(), upperValue);
@@ -280,6 +285,8 @@ func splitIntoSequentialBlocks(
 				//}
 				//toAdd.addFirst(series);
 				toAdd.PushFront(series)
+				//fmt.Printf("split %v - %v to %v - %v and %v - %v / %v\n", lower, upper, lower, bottomUpper, topLower, upper, series)
+				//fmt.Printf("block d %v\n", series)
 				upper = bottomUpper
 				continue
 			} else { //lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
@@ -288,6 +295,7 @@ func splitIntoSequentialBlocks(
 				middleUpper := topLower.Increment(-1)                     //2:3:ffff:ffff:ffff:ffff:ffff:ffff
 				bottomUpper, _ := lower.ToMaxHostLen(previousSegmentBits) //2:3:ffff:ffff:ffff:ffff:ffff:ffff
 				middleLower := bottomUpper.Increment(1)                   //2:4::
+				//fmt.Printf("split %v - %v to %v - %v and %v - %v\n", lower, upper, lower, bottomUpper, topLower, upper)
 				if LowValueComparator.CompareSeries(middleLower, middleUpper) <= 0 {
 					//if(middleLower.compareTo(middleUpper) <= 0) {
 					series := middleLower.ToBlock(
@@ -302,9 +310,12 @@ func splitIntoSequentialBlocks(
 					//	toAdd = new ArrayDeque<>(IPv6Address.SEGMENT_COUNT);
 					//}
 					//toAdd.addFirst(series);
+					//fmt.Printf("block e %v\n", series)
 					toAdd.PushFront(series)
 				}
+
 				stack.init(IPv6SegmentCount)
+
 				stack.push(topLower, upper, previousSegmentBits, currentSegment) // do this one later
 				upper = bottomUpper
 				continue
@@ -365,11 +376,11 @@ func splitIntoPrefixBlocks(
 	var currentSegment int
 	var stack SeriesStack
 
+	segCount := lower.GetDivisionCount()
+	bitsPerSegment := lower.GetBitsPerSegment()
 	for {
 		//Find first non-matching bit.
 		var differing SegInt
-		segCount := lower.GetDivisionCount()
-		bitsPerSegment := lower.GetBitsPerSegment()
 		for ; currentSegment < segCount; currentSegment++ {
 			lowerSeg := lower.GetGenericSegment(currentSegment)
 			upperSeg := upper.GetGenericSegment(currentSegment)
@@ -388,12 +399,14 @@ func splitIntoPrefixBlocks(
 			differingIsLowestBit := (differing == 1)
 			if differingIsLowestBit && currentSegment+1 == segCount {
 				//only the very last bit differs, so we have a prefix block right there
+				//fmt.Printf("pref block a %v\n", lower)
 				blocks = append(blocks, lower.ToPrefixBlockLen(lower.GetBitCount()-1))
 			} else {
 				highestDifferingBitInRange := BitCount(bits.LeadingZeros32(uint32(differing))) - (32 - bitsPerSegment)
 				differingBitPrefixLen := highestDifferingBitInRange + previousSegmentBits
 				if lower.IncludesZeroHostLen(differingBitPrefixLen) && upper.IncludesMaxHostLen(differingBitPrefixLen) {
 					//full range at the differing bit, we have a single prefix block
+					//fmt.Printf("pref block b %v\n", lower)
 					blocks = append(blocks, lower.ToPrefixBlockLen(differingBitPrefixLen))
 				} else {
 					//neither a prefix block nor a single address
@@ -404,6 +417,7 @@ func splitIntoPrefixBlocks(
 					//so in each new range, the differing bit is at least one further to the right (or more)
 					lowerTop, _ := upper.ToZeroHostLen(differingBitPrefixLen + 1)
 					upperBottom := lowerTop.Increment(-1)
+					//fmt.Printf("split %v - %v to %v - %v  and %v - %v\n", lower, upper, lowerTop, upper, lower, upperBottom)
 					if differingIsLowestBit {
 						previousSegmentBits += bitsPerSegment
 						currentSegment++

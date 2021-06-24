@@ -155,7 +155,7 @@ func (addr *ipAddressInternal) IncludesZeroHost() bool {
 }
 
 func (addr *ipAddressInternal) includesZeroHostLen(networkPrefixLength BitCount) bool {
-	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
+	return addr.section.ToIPAddressSection().IncludesZeroHostLen(networkPrefixLength)
 }
 
 func (addr *ipAddressInternal) IncludesMaxHost() bool {
@@ -756,6 +756,22 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
+//xxxx
+//TODO NEXT do we want to rethink not having SpanWithPrefixBlocksTo(IPAddress) in here
+// the rationale is that it is not truly object oriented with the arg that does not always apply.
+// BUT, so many of your wiki examples will not work.
+// It affects SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
+// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
+// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
+// So, perhaps you could do this:
+// 1. Put them only in IPAddress and not the ipaddressInternal so they are not part of IPv4/6Address
+// 2. How do they behave?  panic?  I'd say yes to panic for masking/bitwise.  In fact, I'm tempted to panic for all of them.
+//		Maybe not intersect or subtract.  Or you could use IncompatibleAddressError.  But that screws up code a bit.
+//		I had instances of whether I wanted to have errors for other things, I think I shied away from them.  Like PrefixLenException.
+//		Yeah, maybe you just do the conversion ToIPv4Address and then that gives nil and then it just panics.
+//		Then the downside is the way this does not jive with Java.  BUt there are a couple of diffs,
+//		one is the conversion allowed by Java, another is that the method signature must remain the same (not sure, maybe I should not have done that)
+// Maybe intersect and subtract do nothing, while the rest panic.  Or maybe they all panic.
 func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 	if addr.IsSequential() {
 		if addr.IsSinglePrefixBlock() {
@@ -853,7 +869,7 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
 	if res == nil {
-		str := NewIPAddressString(addr.toCanonicalString(), nil)
+		str := NewIPAddressString(addr.toCanonicalString())
 		dataLoc := &addr.cache.fromString
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str

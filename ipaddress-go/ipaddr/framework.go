@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 )
@@ -34,6 +35,8 @@ type AddressItem interface {
 	// GetPrefixCount(int) TODO, I think this is the last one for AddressItem
 
 	CompareTo(item AddressItem) int
+
+	fmt.Stringer
 }
 
 // probably does not apply to golang because ranged values are always more specific, I'd have to add new methods with standard return values
