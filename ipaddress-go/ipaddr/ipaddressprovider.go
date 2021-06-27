@@ -844,7 +844,8 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 		all := createAllAddress(all.adjustedVersion, NO_QUALIFIER, nil, all.parameters)
 		upper, _ := all.GetUpper().Mask(mask)
 		lower := all.GetLower() //TODO apply the mask? maybe I have this wrong in Java too
-		return lower.SpanWithRange(upper)
+		rge, _ := lower.SpanWithRange(upper)
+		return rge
 	}
 	return all.cachedAddressProvider.getProviderSeqRange()
 }
@@ -916,10 +917,3 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 
 // TODO xxx which is next?  not a whole lot, just the stuff listed here, and the todos, seems like "cover" is the last thing to target listed here
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
-
-//
-// In IP Address:
-// toSequentialRange(Address)
-// spanWithRange()
-//
-//

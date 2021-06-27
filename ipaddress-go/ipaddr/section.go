@@ -1027,3 +1027,22 @@ func (section *AddressSection) IncrementBoundary(increment int64) *AddressSectio
 func (section *AddressSection) Increment(increment int64) *AddressSection {
 	return section.increment(increment)
 }
+
+func seriesValsSame(one, two AddressSegmentSeries) bool {
+	if one == two {
+		return true
+	}
+	count := one.GetDivisionCount()
+	if count != two.GetDivisionCount() {
+		panic(two)
+	}
+	for i := count - 1; i >= 0; i-- { // reverse order since less significant segments more likely to differ
+		oneSeg := one.GetGenericSegment(i)
+		twoSeg := two.GetGenericSegment(i)
+		if !segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
+			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
+			return false
+		}
+	}
+	return true
+}

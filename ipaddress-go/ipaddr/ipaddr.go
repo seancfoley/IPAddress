@@ -236,18 +236,6 @@ func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddre
 	return createIPAddress(sect, addr.zone)
 }
 
-//func (addr *ipAddressInternal) setPrefixLen(prefixLen BitCount) *IPAddress {
-//	return addr.checkIdentity(addr.section.toIPAddressSection().setPrefixLen(prefixLen))
-//} TODO remove
-//
-//func (addr *ipAddressInternal) setPrefixLenZeroed(prefixLen BitCount, zeroHostIsBlock bool) (res *IPAddress, err IncompatibleAddressException) {
-//	section, err := addr.section.toIPAddressSection().setPrefixLenZeroed(prefixLen, zeroHostIsBlock)
-//	if err == nil {
-//		res = addr.checkIdentity(section)
-//	}
-//	return
-//} TODO remove
-
 func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
 	section := addr.section
 	if section == nil {
@@ -398,13 +386,11 @@ func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
 	return addr.toIPAddress().CompareSize(other)
 }
 
-var zeroIPAddr = &IPAddress{ //TODO maybe this should have a zero-length slice of segs, and not a nil slice, or maybe not, maybe it should be consistent with AddressSection{}
+var zeroIPAddr = &IPAddress{
 	ipAddressInternal{
 		addressInternal{
 			section: zeroSection,
-			//section: createSection(make([]*AddressDivision, 0), nil, zeroType, 0),
-			//section: &AddressSection{},
-			cache: &addressCache{},
+			cache:   &addressCache{},
 		},
 	},
 }
@@ -668,42 +654,6 @@ func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 	return nil
 }
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
-		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
-		}
-	}
-	return nil
-}
-
-// Mask applies the given mask to all addresses represented by this IPAddress.
-// The mask is applied to all individual addresses.
-// Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
-//
-// If the mask is a different version than this, then an error is returned
-//
-// If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
-// that cannot be represented as a contiguous range within each segment, then an error is returned
-func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, error) {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
-			result, err := thisAddr.Mask(oth)
-			return result.ToIPAddress(), err
-		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
-			result, err := thisAddr.Mask(oth)
-			return result.ToIPAddress(), err
-		}
-	}
-	return nil, &incompatibleAddressException{str: "ipaddress.error.ipMismatch"}
-}
-
 func (addr *IPAddress) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
@@ -756,22 +706,115 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-//xxxx
-//TODO NEXT do we want to rethink not having SpanWithPrefixBlocksTo(IPAddress) in here
-// the rationale is that it is not truly object oriented with the arg that does not always apply.
-// BUT, so many of your wiki examples will not work.
-// It affects SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
-// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
-// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
-// So, perhaps you could do this:
-// 1. Put them only in IPAddress and not the ipaddressInternal so they are not part of IPv4/6Address
-// 2. How do they behave?  panic?  I'd say yes to panic for masking/bitwise.  In fact, I'm tempted to panic for all of them.
-//		Maybe not intersect or subtract.  Or you could use IncompatibleAddressError.  But that screws up code a bit.
-//		I had instances of whether I wanted to have errors for other things, I think I shied away from them.  Like PrefixLenException.
-//		Yeah, maybe you just do the conversion ToIPv4Address and then that gives nil and then it just panics.
-//		Then the downside is the way this does not jive with Java.  BUt there are a couple of diffs,
-//		one is the conversion allowed by Java, another is that the method signature must remain the same (not sure, maybe I should not have done that)
-// Maybe intersect and subtract do nothing, while the rest panic.  Or maybe they all panic.
+//TODO SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
+//// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
+//// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
+// All of these with IPAddress arguments, we will pass IncompatibleAddressException with them, for the case where the arg does not match the IPAddress  version.
+// We only do this in IPAddress, not IPAddressSection.  The rationale for that in Java was that you could convert addresses but not sections.
+// The rationale here is that span, merge, mask, etc are really methods targeted for addresses and not sections and you do not really need to put them in sections too.
+// The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
+// Becauase we do have the type-safe versions.
+
+func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressException) {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
+		}
+	}
+	return nil, &incompatibleAddressException{str: "ipaddress.error.ipVersionMismatch"}
+}
+
+// Mask applies the given mask to all addresses represented by this IPAddress.
+// The mask is applied to all individual addresses.
+// Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
+//
+// If the mask is a different version than this, then an error is returned
+//
+// If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
+// that cannot be represented as a contiguous range within each segment, then an error is returned
+func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressException) {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			result, err := thisAddr.Mask(oth)
+			return result.ToIPAddress(), err
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			result, err := thisAddr.Mask(oth)
+			return result.ToIPAddress(), err
+		}
+	}
+	return nil, &incompatibleAddressException{str: "ipaddress.error.ipMismatch"}
+}
+
+func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+	if !versionsMatch(addr, other) {
+		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+	}
+	return cloneToIPAddrs(
+		getSpanningPrefixBlocks(
+			WrappedIPAddress{addr},
+			WrappedIPAddress{other},
+		),
+	), nil
+}
+
+func versionsMatch(one, two *IPAddress) bool {
+	return one.getAddrType() == two.getAddrType()
+}
+
+func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
+	addrType := one.getAddrType()
+	for _, addr := range two {
+		if addr.getAddrType() != addrType {
+			return false
+		}
+	}
+	return true
+}
+
+func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+	if !versionsMatch(addr, other) {
+		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+	}
+	return cloneToIPAddrs(
+		getSpanningSequentialBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	), nil
+}
+
+//
+// MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+	if !allVersionsMatch(addr, addrs) {
+		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+	}
+	series := cloneIPAddrs(addr, addrs)
+	blocks := getMergedSequentialBlocks(series)
+	return cloneToIPAddrs(blocks), nil
+}
+
+//
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+//
+// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
+func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+	if !allVersionsMatch(addr, addrs) {
+		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+	}
+	series := cloneIPAddrs(addr, addrs)
+	blocks := getMergedPrefixBlocks(series)
+	return cloneToIPAddrs(blocks), nil
+}
+
 func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 	if addr.IsSequential() {
 		if addr.IsSinglePrefixBlock() {

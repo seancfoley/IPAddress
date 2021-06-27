@@ -892,33 +892,3 @@ func (addr *Address) ToMACAddress() *MACAddress {
 	}
 	return nil
 }
-
-//// no type checking
-//func addrValsSame(one, two *Address) bool {
-//	count := one.GetSegmentCount()
-//	for i := 0; i < count; i++ {
-//		oneSeg := one.GetSegment(i)
-//		twoSeg := two.GetSegment(i)
-//		if segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
-//			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
-//			return false
-//		}
-//	}
-//	return true
-//}
-
-func seriesValsSame(one, two AddressSegmentSeries) bool {
-	if one == two {
-		return true
-	}
-	count := one.GetDivisionCount()
-	for i := 0; i < count; i++ {
-		oneSeg := one.GetGenericSegment(i)
-		twoSeg := two.GetGenericSegment(i)
-		if !segValsSame(oneSeg.GetSegmentValue(), twoSeg.GetSegmentValue(),
-			oneSeg.GetUpperSegmentValue(), twoSeg.GetUpperSegmentValue()) {
-			return false
-		}
-	}
-	return true
-}

@@ -309,7 +309,9 @@ func main() {
 	splitIntoBlocksSeq("1.2.3.4", "1.2.4.4") // 16 8 4 2 1
 	splitIntoBlocksSeq("0.0.0.0", "255.0.0.0")
 
-	//TODO try a merge
+	fmt.Printf("%v\n\n", merge("209.152.214.112/30", "209.152.214.116/31", "209.152.214.118/31"))
+	fmt.Printf("%v\n\n", merge("209.152.214.112/30", "209.152.214.116/32", "209.152.214.118/31"))
+	fmt.Printf("%v\n\n", merge("1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:5:4000::/66", "1:2:3:5::/66", "1:2:3:5:8000::/65"))
 
 	fmt.Printf("\n\n")
 	//_ = getDoc()
@@ -348,6 +350,16 @@ func splitSeq(oneStr, twoStr string) []*ipaddr.IPv4Address {
 2 from splitting 0.0.0.0 and 255.0.0.0: [0-254.*.*.*, 255.0.0.0]
 */
 
+func merge(strs ...string) []*ipaddr.IPAddress {
+	first := ipaddr.NewIPAddressString(strs[0]).GetAddress()
+	var remaining = make([]*ipaddr.IPAddress, len(strs))
+	for i := range strs {
+		remaining[i] = ipaddr.NewIPAddressString(strs[i]).GetAddress()
+	}
+	res, _ := first.MergeToPrefixBlocks(remaining...)
+	return res
+}
+
 //func foo(bytes []byte) {
 //	fmt.Printf("%v\n", bytes)
 //}
@@ -364,6 +376,9 @@ func splitSeq(oneStr, twoStr string) []*ipaddr.IPv4Address {
 // http://localhost:6060/pkg/github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/
 
 // src/golang.org/x/tools/godoc/static/ has the templates, specifically godoc.html
+
+// godoc cheat sheet
+//https://godoc.org/github.com/fluhus/godoc-tricks#Links
 
 // TODO gdb https://gist.github.com/danisfermi/17d6c0078a2fd4c6ee818c954d2de13c
 func getDoc() error {

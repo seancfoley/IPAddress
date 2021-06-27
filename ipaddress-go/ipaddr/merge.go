@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	//"container/list"
 	"sort"
 )
 
@@ -155,7 +154,6 @@ top:
 	if removedCount > 0 {
 		newSize := listLen - removedCount
 		for k, l := 0, 0; k < newSize; k, l = k+1, l+1 {
-			//while(list.get(l) == null) {
 			for list[l] == nil {
 				l++
 			}
@@ -164,10 +162,6 @@ top:
 			}
 		}
 		list = list[:newSize]
-		// last := listLen;
-		//while(removedCount-- > 0) { // could use subList here
-		//	list.remove(--last);
-		//}
 	}
 	return list
 }

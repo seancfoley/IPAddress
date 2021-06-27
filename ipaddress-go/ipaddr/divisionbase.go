@@ -234,7 +234,6 @@ func (div *addressDivisionBase) matchesStructure(other AddressGenericDivision) (
 }
 
 func (div *addressDivisionBase) Equals(other AddressGenericDivision) (res bool) {
-	// TODO an identity/pointer comparison which requires we grab the *addressDivisionBase from AddressGenericDivision
 	matches, _ := div.matchesStructure(other)
 	if div.isMultiple() {
 		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),

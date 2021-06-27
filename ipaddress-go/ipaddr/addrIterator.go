@@ -86,7 +86,7 @@ func rangeAddrIterator(
 	return addrIterator(single, original, valsAreMultiple, iterator)
 }
 
-// IPv4AddrIterator iterates through IP addresses, subnets and ranges
+// IPv4AddressIterator iterates through IP addresses, subnets and ranges
 type IPAddressIterator interface {
 	iteratorBase
 	Next() *IPAddress
@@ -101,7 +101,7 @@ func (iter ipAddrIterator) Next() *IPAddress {
 }
 
 // IPv4AddressIterator iterates through IPv4 addresses, subnets and ranges
-type IPv4AddrIterator interface { //TODO rename to IPv4AddressIterator
+type IPv4AddressIterator interface {
 	iteratorBase
 	Next() *IPv4Address
 }

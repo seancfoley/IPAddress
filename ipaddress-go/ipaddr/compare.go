@@ -338,7 +338,7 @@ func (comp valueComparator) compareSectionParts(one, two *AddressSection) int {
 				s2 = segTwo.GetUpperSegmentValue()
 			} else {
 				s1 = segOne.GetSegmentValue()
-				s2 = segTwo.GetUpperSegmentValue()
+				s2 = segTwo.GetSegmentValue()
 			}
 			if s1 != s2 {
 				var result int

@@ -146,7 +146,7 @@ func (rng *ipAddressSeqRangeInternal) ContainsPrefixBlock(prefixLen BitCount) bo
 		div := lower.GetSegment(i)
 		upperDiv := upper.GetSegment(i)
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
-		if !div.isPrefixBlockVals(div.GetDivisionValue(), upperDiv.GetDivisionValue(), *segmentPrefixLength) {
+		if !div.isPrefixBlockVals(div.getDivisionValue(), upperDiv.getDivisionValue(), *segmentPrefixLength) {
 			return false
 		}
 		for i++; i < divCount; i++ {
@@ -176,12 +176,12 @@ func (rng *ipAddressSeqRangeInternal) ContainsSinglePrefixBlock(prefixLen BitCou
 		bitCount := div.GetBitCount()
 		totalBitCount := bitCount + prevBitCount
 		if prefixLen >= totalBitCount {
-			if !divValSame(div.GetDivisionValue(), upperDiv.GetDivisionValue()) {
+			if !divValSame(div.getDivisionValue(), upperDiv.getDivisionValue()) {
 				return false
 			}
 		} else {
 			divPrefixLen := prefixLen - prevBitCount
-			if !div.isPrefixBlockVals(div.GetDivisionValue(), upperDiv.GetDivisionValue(), divPrefixLen) {
+			if !div.isPrefixBlockVals(div.getDivisionValue(), upperDiv.getDivisionValue(), divPrefixLen) {
 				return false
 			}
 			for i++; i < divCount; i++ {

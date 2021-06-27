@@ -2274,6 +2274,11 @@ func parseEncodedZone(
 	return
 }
 
+// whether no wildcards or range characters allowed
+func isNoRange(rp RangeParameters) bool {
+	return !rp.AllowsWildcard() && !rp.AllowsRangeSeparator() && !rp.AllowsSingleWildcard()
+}
+
 /**
  * Some options are not supported in masks (prefix, wildcards, etc)
  * So we eliminate those options while preserving the others from the address options.
@@ -2287,24 +2292,24 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 	var builder *IPAddressStringParametersBuilder
 	if ipVersion.isIndeterminate() || ipVersion.isIPv6() {
 		ipv6Options := validationOptions.GetIPv6Parameters()
-		if !ipv6Options.GetRangeParameters().IsNoRange() {
+		if !isNoRange(ipv6Options.GetRangeParameters()) {
 			builder = ToIPAddressStringParamsBuilder(validationOptions)
-			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NO_RANGE)
+			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
-		if ipv6Options.AllowsMixed() && !ipv6Options.GetMixedParameters().GetIPv4Parameters().GetRangeParameters().IsNoRange() {
+		if ipv6Options.AllowsMixed() && !isNoRange(ipv6Options.GetMixedParameters().GetIPv4Parameters().GetRangeParameters()) {
 			if builder == nil {
 				builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
-			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NO_RANGE)
+			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
 	}
 	if ipVersion.isIndeterminate() || ipVersion.isIPv4() {
 		ipv4Options := validationOptions.GetIPv4Parameters()
-		if !ipv4Options.GetRangeParameters().IsNoRange() {
+		if !isNoRange(ipv4Options.GetRangeParameters()) {
 			if builder == nil {
 				builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
-			builder.GetIPv4AddressParametersBuilder().SetRangeParameters(NO_RANGE)
+			builder.GetIPv4AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
 	}
 	if validationOptions.AllowsAll() {

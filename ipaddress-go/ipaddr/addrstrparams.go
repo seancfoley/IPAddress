@@ -30,10 +30,6 @@ type RangeParameters interface {
 
 	// whether a missing range value before or after a '-' is allowed to denote the mininum or maximum potential value
 	AllowsInferredBoundary() bool
-
-	//TODO move this out of the interface, the interface is something implemented by users, this is used by us
-	// returns true if no wildcards or range separators allowed, which means AllowsWildcard(), AllowsRangeSeparator() and AllowsSingleWildcard() are all false
-	IsNoRange() bool
 }
 
 var _ AddressStringFormatParameters = &addressStringFormatParameters{}
@@ -44,8 +40,8 @@ type rangeParameters struct {
 	noWildcard, noValueRange, noReverseRange, noSingleWildcard, noInferredBoundary bool
 }
 
-var ( //TODO rename, these stay public but not all capitals, MixedCase instead
-	NO_RANGE RangeParameters = &rangeParameters{
+var (
+	NoRange RangeParameters = &rangeParameters{
 		noWildcard:         true,
 		noValueRange:       true,
 		noReverseRange:     true,
@@ -54,20 +50,15 @@ var ( //TODO rename, these stay public but not all capitals, MixedCase instead
 	}
 
 	// use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3
-	WILDCARD_ONLY RangeParameters = &rangeParameters{
+	WildcardOnly RangeParameters = &rangeParameters{
 		noValueRange:     true,
 		noReverseRange:   true,
 		noSingleWildcard: true,
 	}
 
 	// use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff::
-	WILDCARD_AND_RANGE RangeParameters = &rangeParameters{}
+	WildcardAndRange RangeParameters = &rangeParameters{}
 )
-
-// whether no wildcards or range characters allowed
-func (rp *rangeParameters) IsNoRange() bool {
-	return rp.noWildcard && rp.noValueRange && rp.noSingleWildcard
-}
 
 // whether '*' is allowed to denote segments covering all possible segment values
 func (rp *rangeParameters) AllowsWildcard() bool {
@@ -193,7 +184,7 @@ func (params *addressStringParameters) AllowsAll() bool {
 }
 
 // AddressStringParametersBuilder builds an AddressStringParameters
-type AddressStringParametersBuilder struct { // TODO rename to BuilderBase to match Java
+type AddressStringParametersBuilder struct {
 	addressStringParameters
 }
 

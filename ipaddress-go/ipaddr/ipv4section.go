@@ -241,7 +241,7 @@ func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4Add
 	return section.MaskPrefixed(other, false)
 }
 
-func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err error) {
+func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressException) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
 	if err == nil {
 		res = sec.ToIPv4AddressSection()

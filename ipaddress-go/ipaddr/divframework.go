@@ -53,11 +53,11 @@ var (
 type AddressStandardDivision interface { //TODO rename StandardDivisionType.
 	AddressGenericDivision
 
-	// GetDivisionValue returns the lower division value
-	GetDivisionValue() DivInt
+	// getDivisionValue returns the lower division value
+	//getDivisionValue() DivInt
 
-	// GetUpperDivisionValue returns the upper division value
-	GetUpperDivisionValue() DivInt
+	// getUpperDivisionValue returns the upper division value
+	//getUpperDivisionValue() DivInt
 
 	ToAddressDivision() *AddressDivision
 }
@@ -79,10 +79,10 @@ type AddressStandardSegment interface { //TODO rename AddressSegmentType or Stan
 
 	Contains(AddressStandardSegment) bool
 
-	// GetSegmentValue returns the lower segment value as a SegInt, the same value as the DivInt value returned by GetDivisionValue()
+	// GetSegmentValue returns the lower segment value as a SegInt, the same value as the DivInt value returned by getDivisionValue()
 	GetSegmentValue() SegInt
 
-	// GetUpperSegmentValue returns the upper segment value as a SegInt, the same value as the DivInt value returned by GetUpperDivisionValue()
+	// GetUpperSegmentValue returns the upper segment value as a SegInt, the same value as the DivInt value returned by getUpperDivisionValue()
 	GetUpperSegmentValue() SegInt
 
 	ToAddressSegment() *AddressSegment

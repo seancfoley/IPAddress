@@ -145,7 +145,7 @@ func (div *addressDivisionInternal) isPrefixed() bool {
 
 // return whether the division range includes the block of values for the given prefix length
 func (div *addressDivisionInternal) containsPrefixBlock(divisionPrefixLen BitCount) bool {
-	return div.isPrefixBlockVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), divisionPrefixLen)
+	return div.isPrefixBlockVals(div.getDivisionValue(), div.getUpperDivisionValue(), divisionPrefixLen)
 }
 
 // Returns whether the division range includes the block of values for its prefix length
@@ -187,12 +187,12 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 
 func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
 	prefixLen = checkDiv(div, prefixLen)
-	return div.isPrefixBlockVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
+	return div.isPrefixBlockVals(div.getDivisionValue(), div.getUpperDivisionValue(), prefixLen)
 }
 
 func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	prefixLen = checkDiv(div, prefixLen)
-	return div.isSinglePrefixBlock(div.GetDivisionValue(), div.GetUpperDivisionValue(), prefixLen)
+	return div.isSinglePrefixBlock(div.getDivisionValue(), div.getUpperDivisionValue(), prefixLen)
 }
 
 func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
@@ -220,8 +220,8 @@ func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
 
 func (div *addressDivisionInternal) GetPrefixLengthForSingleBlock() PrefixLen {
 	divPrefix := div.GetMinPrefixLengthForBlock()
-	lowerValue := div.GetDivisionValue()
-	upperValue := div.GetUpperDivisionValue()
+	lowerValue := div.getDivisionValue()
+	upperValue := div.getUpperDivisionValue()
 	bitCount := div.GetBitCount()
 	if divPrefix == bitCount {
 		if lowerValue == upperValue {
@@ -247,7 +247,7 @@ func (div *addressDivisionInternal) getMaxValue() DivInt {
 	return ^(^DivInt(0) << div.GetBitCount())
 }
 
-func (div *addressDivisionInternal) GetDivisionValue() DivInt {
+func (div *addressDivisionInternal) getDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -255,7 +255,7 @@ func (div *addressDivisionInternal) GetDivisionValue() DivInt {
 	return vals.getDivisionValue()
 }
 
-func (div *addressDivisionInternal) GetUpperDivisionValue() DivInt {
+func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return 0
@@ -272,8 +272,8 @@ func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen,
 	if vals == nil {
 		return div.toAddressDivision()
 	}
-	lower := div.GetDivisionValue()
-	upper := div.GetUpperDivisionValue()
+	lower := div.getDivisionValue()
+	upper := div.getUpperDivisionValue()
 	var newLower, newUpper DivInt
 	hasPrefLen := divPrefixLength != nil
 	if hasPrefLen {
@@ -312,8 +312,8 @@ func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen
 	} else {
 		return div.toAddressDivision()
 	}
-	lower := div.GetDivisionValue()
-	upper := div.GetUpperDivisionValue()
+	lower := div.getDivisionValue()
+	upper := div.getUpperDivisionValue()
 	newVals := div.deriveNew(lower, upper, divPrefixLength)
 	return createAddressDivision(newVals)
 }
@@ -330,13 +330,16 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 }
 
 func (div *addressDivisionInternal) Equals(other AddressGenericDivision) bool {
-	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase from AddressGenericDivision
 	if otherDiv, ok := other.(AddressStandardDivision); ok {
 		if div.IsMultiple() {
 			if other.IsMultiple() {
 				matches, _ := div.matchesStructure(other)
-				return matches && divValsSame(div.GetDivisionValue(), otherDiv.GetDivisionValue(),
-					div.GetUpperDivisionValue(), otherDiv.GetUpperDivisionValue())
+				if !matches {
+					return false
+				}
+				otherDivision := otherDiv.ToAddressDivision()
+				return divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
+					div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
 			} else {
 				return false
 			}
@@ -344,7 +347,8 @@ func (div *addressDivisionInternal) Equals(other AddressGenericDivision) bool {
 			return false
 		} else {
 			matches, _ := div.matchesStructure(other)
-			return matches && divValSame(div.GetDivisionValue(), otherDiv.GetDivisionValue())
+			otherDivision := otherDiv.ToAddressDivision()
+			return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
 		}
 	}
 	return div.addressDivisionBase.Equals(other)
@@ -434,30 +438,30 @@ func (div *addressDivisionInternal) buildDefaultRangeString(radix int) string {
 }
 
 func (div *addressDivisionInternal) getLowerStringLength(radix int) int {
-	return toUnsignedStringLength(div.GetDivisionValue(), radix)
+	return toUnsignedStringLength(div.getDivisionValue(), radix)
 }
 
 func (div *addressDivisionInternal) getUpperStringLength(radix int) int {
-	return toUnsignedStringLength(div.GetUpperDivisionValue(), radix)
+	return toUnsignedStringLength(div.getUpperDivisionValue(), radix)
 }
 
 func (div *addressDivisionInternal) getLowerString(radix int, uppercase bool, appendable *strings.Builder) {
-	toUnsignedStringCased(div.GetDivisionValue(), radix, 0, uppercase, appendable)
+	toUnsignedStringCased(div.getDivisionValue(), radix, 0, uppercase, appendable)
 }
 
 func (div *addressDivisionInternal) getLowerStringChopped(radix int, choppedDigits int, uppercase bool, appendable *strings.Builder) {
-	toUnsignedStringCased(div.GetDivisionValue(), radix, choppedDigits, uppercase, appendable)
+	toUnsignedStringCased(div.getDivisionValue(), radix, choppedDigits, uppercase, appendable)
 }
 
 func (div *addressDivisionInternal) getUpperString(radix int, uppercase bool, appendable *strings.Builder) {
-	toUnsignedStringCased(div.GetUpperDivisionValue(), radix, 0, uppercase, appendable)
+	toUnsignedStringCased(div.getUpperDivisionValue(), radix, 0, uppercase, appendable)
 }
 
 func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		seg.getUpperStringMasked(radix, uppercase, appendable)
 	} else if div.isPrefixed() {
-		upperValue := div.GetUpperDivisionValue()
+		upperValue := div.getUpperDivisionValue()
 		mask := ^DivInt(0) << (div.GetBitCount() - *div.getDivisionPrefixLength())
 		//mask := ^(^DivInt(0) >> *seg.GetDivisionPrefixLength())
 		//mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
@@ -471,14 +475,14 @@ func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bo
 
 func (div *addressDivisionInternal) getSplitLowerString(radix int, choppedDigits int, uppercase bool,
 	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) {
-	toSplitUnsignedString(div.GetDivisionValue(), radix, choppedDigits, uppercase, splitDigitSeparator, reverseSplitDigits, stringPrefix, appendable)
+	toSplitUnsignedString(div.getDivisionValue(), radix, choppedDigits, uppercase, splitDigitSeparator, reverseSplitDigits, stringPrefix, appendable)
 }
 
 func (div *addressDivisionInternal) getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
 	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException {
 	return toUnsignedSplitRangeString(
-		div.GetDivisionValue(),
-		div.GetUpperDivisionValue(),
+		div.getDivisionValue(),
+		div.getUpperDivisionValue(),
 		rangeSeparator,
 		wildcard,
 		radix,
@@ -492,8 +496,8 @@ func (div *addressDivisionInternal) getSplitRangeString(rangeSeparator string, w
 func (div *addressDivisionInternal) getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
 	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int {
 	return toUnsignedSplitRangeStringLength(
-		div.GetDivisionValue(),
-		div.GetUpperDivisionValue(),
+		div.getDivisionValue(),
+		div.getUpperDivisionValue(),
 		rangeSeparator,
 		wildcard,
 		leadingZeroCount,
@@ -519,8 +523,8 @@ func (div *addressDivisionInternal) getRangeDigitCount(radix int) int {
 		}
 		return 0
 	}
-	value := div.GetDivisionValue()
-	upperValue := div.GetUpperDivisionValue()
+	value := div.getDivisionValue()
+	upperValue := div.getUpperDivisionValue()
 	maxValue := div.getMaxValue()
 	factorRadix := DivInt(radix)
 	factor := factorRadix
@@ -559,12 +563,12 @@ func (div *addressDivisionInternal) getRangeDigitCount(radix int) int {
 
 // if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
 func (div *addressDivisionInternal) adjustLowerLeadingZeroCount(leadingZeroCount int, radix int) int {
-	return div.adjustLeadingZeroCount(leadingZeroCount, div.GetDivisionValue(), radix)
+	return div.adjustLeadingZeroCount(leadingZeroCount, div.getDivisionValue(), radix)
 }
 
 // if leadingZeroCount is -1, returns the number of leading zeros for maximum width, based on the width of the value
 func (div *addressDivisionInternal) adjustUpperLeadingZeroCount(leadingZeroCount int, radix int) int {
-	return div.adjustLeadingZeroCount(leadingZeroCount, div.GetUpperDivisionValue(), radix)
+	return div.adjustLeadingZeroCount(leadingZeroCount, div.getUpperDivisionValue(), radix)
 }
 
 func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int, value DivInt, radix int) int {
@@ -583,7 +587,7 @@ func (div *addressDivisionInternal) getDigitCount(radix int) int {
 	if !div.IsMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
 		return len(div.GetWildcardString())
 	}
-	return getDigitCount(div.GetUpperDivisionValue(), div.GetBitCount(), radix) //static
+	return getDigitCount(div.getUpperDivisionValue(), div.GetBitCount(), radix) //static
 }
 
 func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
@@ -602,12 +606,12 @@ func (div *addressDivisionInternal) getMaxDigitCount() int {
 
 // A simple string using just the lower value and the default radix.
 func (div *addressDivisionInternal) getDefaultLowerString() string {
-	return toDefaultString(div.GetDivisionValue(), div.getDefaultTextualRadix())
+	return toDefaultString(div.getDivisionValue(), div.getDefaultTextualRadix())
 }
 
 // A simple string using just the lower and upper values and the default radix, separated by the default range character.
 func (div *addressDivisionInternal) getDefaultRangeString() string {
-	return div.getDefaultRangeStringVals(div.GetDivisionValue(), div.GetUpperDivisionValue(), div.getDefaultTextualRadix())
+	return div.getDefaultRangeStringVals(div.getDivisionValue(), div.getUpperDivisionValue(), div.getDefaultTextualRadix())
 }
 
 // getDefaultSegmentWildcardString() is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
@@ -642,22 +646,17 @@ type AddressDivision struct {
 	addressDivisionInternal
 }
 
-//TODO I cannot recall why I reverted back to GetDivisionValue() in addressDivisionInternal,
-//now it appears in IPv4/6/MAC, confusing those who wonder diff with GetSegmentValue().
-//I am extremely tempted to switch it back.  Maybe wait a bit to see if the reason resurfaces.
-//Maybe you thought there are lots of cases where you have different seg div types and you need a common method?
-//YEAH, that was it, like in div framework, AddressStandardDivision.
-//But still, could use ToAddressDivision first.  So it was not absolutely necessary.
-// OK, I really believe it should go back to being hidden.  It is just too confusing otherwise, to have both.
-//
 //Note: many of the methods below are not public to addressDivisionInternal because segments have corresponding methods using segment values
-//func (div *AddressDivision) GetDivisionValue() DivInt {
-//	return div.getDivisionValue()
-//}
-//
-//func (div *AddressDivision) GetUpperDivisionValue() DivInt {
-//	return div.getUpperDivisionValue()
-//}
+
+// GetDivisionValue returns the lower division value
+func (div *AddressDivision) GetDivisionValue() DivInt {
+	return div.getDivisionValue()
+}
+
+// GetUpperDivisionValue returns the upper division value
+func (div *AddressDivision) GetUpperDivisionValue() DivInt {
+	return div.getUpperDivisionValue()
+}
 
 func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()

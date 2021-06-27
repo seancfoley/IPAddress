@@ -103,11 +103,11 @@ func (rng *IPv4AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bo
 	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (rng *IPv4AddressSeqRange) Iterator() IPv4AddrIterator {
+func (rng *IPv4AddressSeqRange) Iterator() IPv4AddressIterator {
 	return ipv4AddressIterator{rng.init().iterator()}
 }
 
-func (rng *IPv4AddressSeqRange) PrefixBlockIterator(prefLength BitCount) IPv4AddrIterator {
+func (rng *IPv4AddressSeqRange) PrefixBlockIterator(prefLength BitCount) IPv4AddressIterator {
 	return &ipv4AddressIterator{rng.init().prefixBlockIterator(prefLength)}
 }
 

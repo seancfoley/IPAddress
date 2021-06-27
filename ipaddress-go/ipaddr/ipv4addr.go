@@ -378,23 +378,23 @@ func (addr *IPv4Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
 }
 
-func (addr *IPv4Address) Iterator() IPv4AddrIterator {
+func (addr *IPv4Address) Iterator() IPv4AddressIterator {
 	return ipv4AddressIterator{addr.init().addrIterator(nil)}
 }
 
-func (addr *IPv4Address) PrefixIterator() IPv4AddrIterator {
+func (addr *IPv4Address) PrefixIterator() IPv4AddressIterator {
 	return ipv4AddressIterator{addr.init().prefixIterator(false)}
 }
 
-func (addr *IPv4Address) PrefixBlockIterator() IPv4AddrIterator {
+func (addr *IPv4Address) PrefixBlockIterator() IPv4AddressIterator {
 	return ipv4AddressIterator{addr.init().prefixIterator(true)}
 }
 
-func (addr *IPv4Address) BlockIterator(segmentCount int) IPv4AddrIterator {
+func (addr *IPv4Address) BlockIterator(segmentCount int) IPv4AddressIterator {
 	return ipv4AddressIterator{addr.init().blockIterator(segmentCount)}
 }
 
-func (addr *IPv4Address) SequentialBlockIterator() IPv4AddrIterator {
+func (addr *IPv4Address) SequentialBlockIterator() IPv4AddressIterator {
 	return ipv4AddressIterator{addr.init().sequentialBlockIterator()}
 }
 

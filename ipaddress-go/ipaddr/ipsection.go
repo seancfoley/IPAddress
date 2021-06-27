@@ -471,6 +471,7 @@ func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSecti
 	return nil
 }
 
+// error can be IncompatibleAddressException or SizeMismatchException
 func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, error) {
 	if err := section.checkSectionCount(msk); err != nil {
 		return nil, err

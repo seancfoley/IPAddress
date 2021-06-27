@@ -325,6 +325,22 @@ func cloneIPv6Sections(sect *IPv6AddressSection, orig []*IPv6AddressSection) []E
 	return result
 }
 
+func cloneIPAddrs(sect *IPAddress, orig []*IPAddress) []ExtendedIPSegmentSeries {
+	origCount := len(orig)
+	count := origCount
+	if sect != nil {
+		count++
+	}
+	result := make([]ExtendedIPSegmentSeries, count)
+	if sect != nil {
+		result[origCount] = WrappedIPAddress{sect}
+	}
+	for i := range orig {
+		result[i] = WrappedIPAddress{orig[i]} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+	}
+	return result
+}
+
 func cloneIPv4Addrs(sect *IPv4Address, orig []*IPv4Address) []ExtendedIPSegmentSeries {
 	origCount := len(orig)
 	count := origCount
