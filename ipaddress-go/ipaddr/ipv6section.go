@@ -30,12 +30,12 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 
 func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueException) {
 	if startIndex < 0 {
-		err = &addressPositionException{val: startIndex, key: "ipaddress.error.invalid.position"}
+		err = &addressPositionException{addressValueException{val: startIndex, ipAddressException: ipAddressException{key: "ipaddress.error.invalid.position"}}}
 		return
 	}
 	segsLen := len(segments)
 	if startIndex+segsLen > IPv6SegmentCount {
-		err = &addressValueException{val: startIndex + segsLen, key: "ipaddress.error.exceeds.size"}
+		err = &addressValueException{val: startIndex + segsLen, ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
 	res = createIPv6Section(segments, int8(startIndex))
@@ -238,11 +238,11 @@ func (section *IPv6AddressSection) GetSegments() (res []*IPv6AddressSegment) {
 	return
 }
 
-func (section *IPv6AddressSection) Mask(other *IPv6AddressSection) (res *IPv6AddressSection, err error) {
+func (section *IPv6AddressSection) Mask(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressException) {
 	return section.MaskPrefixed(other, false)
 }
 
-func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err error) {
+func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressException) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
 	if err == nil {
 		res = sec.ToIPv6AddressSection()
@@ -294,8 +294,8 @@ func (section *IPv6AddressSection) ToBlock(segmentIndex int, lower, upper SegInt
 	return section.toBlock(segmentIndex, lower, upper).ToIPv6AddressSection()
 }
 
-func (section *IPv6AddressSection) WithoutPrefixLength() *IPv6AddressSection {
-	return section.withoutPrefixLength().ToIPv6AddressSection()
+func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
+	return section.withoutPrefixLen().ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {

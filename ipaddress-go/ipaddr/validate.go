@@ -75,7 +75,7 @@ func isSingleSegmentIPv6(
 			(ipv6SpecificOptions.AllowsBinary() && frontTotalDigits == IPV6_BINARY_SINGLE_SEGMENT_DIGIT_COUNT+2) ||
 			frontTotalDigits == 0
 		if !frontIsIpv6 {
-			err = &addressStringException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}
+			err = &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}}
 			return
 		}
 	}
@@ -107,7 +107,7 @@ func isSingleSegmentIPv4(
 			(ipv4SpecificOptions.AllowsBinary() && frontTotalDigits == IPV4_BINARY_SINGLE_SEGMENT_DIGIT_COUNT+2) ||
 			frontTotalDigits == 0
 		if !frontIsIpv4 {
-			err = &addressStringException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}
+			err = &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}}
 			return
 		}
 	}
@@ -232,7 +232,7 @@ func validateAddress(
 		firstSegmentDashedRange, frontUppercase, uppercase,
 		isSingleIPv6, isSingleSegment, isDoubleSegment bool
 
-	var err error
+	var err AddressStringException
 
 	checkCharCounts := true
 
@@ -260,7 +260,7 @@ func validateAddress(
 						// we are not base 85, so error if necessary
 						if extendedCharacterIndex >= 0 {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 								extendedCharacterIndex}
 						}
 						//current char is either . or : to handle last segment, unless we have double :: in which case we already handled last segment
@@ -272,7 +272,7 @@ func validateAddress(
 									//ends with ::, we've already parsed the last segment
 									break
 								}
-								return &addressStringException{str: str, key: "ipaddress.error.cannot.end.with.single.separator"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.cannot.end.with.single.separator"}}
 							} else if ipAddressParseData.isProvidingMixedIPv6() {
 								//no need to parse the last segment, since it is mixed we already have
 								break
@@ -289,16 +289,16 @@ func validateAddress(
 						//it is prefix-only or ""
 						if !isMac && ipAddressParseData.hasPrefixSeparator() {
 							if !validationOptions.AllowsPrefixOnly() {
-								return &addressStringException{str: str, key: "ipaddress.error.prefix.only"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.prefix.only"}}
 							}
 						} else if !baseOptions.AllowsEmpty() {
-							return &addressStringException{str: str, key: "ipaddress.error.empty"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty"}}
 						}
 						parseData.setEmpty(true)
 						break
 					} else if wildcardCount == totalCharacterCount && wildcardCount <= MAX_WILDCARDS { //20 wildcards are base 85!
 						if !baseOptions.AllowsAll() {
-							return &addressStringException{str: str, key: "ipaddress.error.all"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.all"}}
 						}
 						parseData.setHasWildcard()
 						parseData.setAll()
@@ -317,13 +317,13 @@ func validateAddress(
 							// firstSegmentDashedRange means that the range character is '|'
 							addressSize := macOptions.AddressSize()
 							if addressSize == EUI64 && totalDigits == MAC_DOUBLE_SEGMENT_DIGIT_COUNT {
-								return &addressStringException{str: str, key: "ipaddress.error.too.few.segments"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments"}}
 							} else if addressSize == MAC && totalDigits == MAC_EXTENDED_DOUBLE_SEGMENT_DIGIT_COUNT {
-								return &addressStringException{str: str, key: "ipaddress.error.too.many.segments"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.many.segments"}}
 							}
 							// we have aaaaaa-bbbbbb
 							if !macOptions.AllowsSingleDashed() {
-								return &addressStringException{str: str, key: "ipaddress.mac.error.format"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.format"}}
 							}
 							isDoubleSegment = true
 							macAddressParseData.setDoubleSegment(true)
@@ -333,14 +333,14 @@ func validateAddress(
 						} else if frontWildcardCount > 0 || wildcardCount > 0 {
 							// either x-* or *-x, we treat these as if they can be expanded to x-*-*-*-*-* or *-*-*-*-*-x
 							if !macOptions.AllowsSingleDashed() {
-								return &addressStringException{str: str, key: "ipaddress.mac.error.format"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.format"}}
 							}
 							currentChar = MACDashSegmentSeparator
 						} else {
 							// a string of digits with no segment separator
 							// here we handle abcdefabcdef or abcdefabcdef|abcdefabcdef or abcdefabcdef-abcdefabcdef
 							if !baseOptions.AllowsSingleSegment() {
-								return &addressStringException{str: str, key: "ipaddress.error.single.segment"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.single.segment"}}
 							}
 							is12Digits := totalDigits == MAC_SINGLE_SEGMENT_DIGIT_COUNT
 							is16Digits := totalDigits == MAC_EXTENDED_SINGLE_SEGMENT_DIGIT_COUNT
@@ -353,19 +353,19 @@ func validateAddress(
 									frontIsNoDigits = frontTotalDigits == 0
 									if is12Digits {
 										if !frontIs12Digits && !frontIsNoDigits {
-											return &addressStringException{str: str, key: "ipaddress.error.front.digit.count"}
+											return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.front.digit.count"}}
 										}
 									} else if is16Digits {
 										if !frontIs16Digits && !frontIsNoDigits {
-											return &addressStringException{str: str, key: "ipaddress.error.front.digit.count"}
+											return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.front.digit.count"}}
 										}
 									} else if isNoDigits {
 										if !frontIs12Digits && !frontIs16Digits {
-											return &addressStringException{str: str, key: "ipaddress.error.front.digit.count"}
+											return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.front.digit.count"}}
 										}
 									}
 								} else if isNoDigits {
-									return &addressStringException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}
+									return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}}
 								}
 								isSingleSegment = true
 								parseData.setSingleSegment()
@@ -373,13 +373,13 @@ func validateAddress(
 								currentChar = MACColonSegmentSeparator
 								checkCharCounts = false //counted chars already
 							} else {
-								return &addressStringException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}}
 							}
 						}
 					} else {
 						//a string of digits with no segment separator
 						if !baseOptions.AllowsSingleSegment() {
-							return &addressStringException{str: str, key: "ipaddress.error.single.segment"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.single.segment"}}
 						}
 
 						isRange := rangeWildcardIndex >= 0
@@ -390,7 +390,7 @@ func validateAddress(
 							// we are not base 85, so throw if necessary
 							if extendedCharacterIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 									extendedCharacterIndex,
 								}
 							}
@@ -425,13 +425,13 @@ func validateAddress(
 								// we are not base 85, so throw if necessary
 								if extendedCharacterIndex >= 0 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 										extendedCharacterIndex,
 									}
 								}
 								currentChar = IPv4SegmentSeparator
 							} else {
-								return &addressStringException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments.digit.count"}}
 							}
 						}
 						isSingleSegment = true
@@ -473,7 +473,7 @@ func validateAddress(
 			if isMac {
 				if segCount == 0 {
 					if !macOptions.AllowsDotted() {
-						return &addressStringException{str: str, key: "ipaddress.mac.error.format"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.format"}}
 					}
 					macFormat = DOTTED
 					macAddressParseData.setFormat(macFormat)
@@ -482,7 +482,7 @@ func validateAddress(
 				} else {
 					if macFormat != DOTTED {
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.mac.error.mix.format.characters.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.mix.format.characters.at.index"}},
 							index}
 					}
 					var limit int
@@ -492,14 +492,14 @@ func validateAddress(
 						limit = MediaAccessControlDotted64SegmentCount
 					}
 					if segCount >= limit {
-						return &addressStringException{str: str, key: "ipaddress.error.too.many.segments"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.many.segments"}}
 					}
 				}
 			} else {
 				//end of an ipv4 segment
 				if segCount == 0 {
 					if !validationOptions.AllowsIPv4() {
-						return &addressStringException{str: str, key: "ipaddress.error.ipv4"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv4"}}
 					}
 					version = IPv4
 					ipAddressParseData.setVersion(version)
@@ -510,11 +510,11 @@ func validateAddress(
 				} else if ipAddressParseData.getProviderIPVersion().isIPv6() {
 					//mixed IPv6 address like 1:2:3:4:5:6:1.2.3.4
 					if !ipv6SpecificOptions.AllowsMixed() {
-						return &addressStringException{str: str, key: "ipaddress.error.no.mixed"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.mixed"}}
 					}
 					totalSegmentCount := segCount + IPv6MixedReplacedSegmentCount
 					if totalSegmentCount > IPv6SegmentCount {
-						return &addressStringException{str: str, key: "ipaddress.error.too.many.segments"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.many.segments"}}
 					}
 					if wildcardCount > 0 {
 						if parseData.getConsecutiveSeparatorIndex() < 0 &&
@@ -546,18 +546,18 @@ func validateAddress(
 					index = pa.getAddressParseData().getAddressEndIndex()
 					continue
 				} else if segCount >= IPv4SegmentCount {
-					return &addressStringException{str: str, key: "ipaddress.error.ipv4.too.many.segments"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv4.too.many.segments"}}
 				}
 			}
 			if wildcardCount > 0 {
 				if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
-					return &addressStringException{str: str, key: "ipaddress.error.no.wildcard"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.wildcard"}}
 				}
 				//wildcards must appear alone
 				totalDigits := index - segmentStartIndex
 				if wildcardCount != totalDigits || hexDelimiterIndex >= 0 {
 					return &addressStringIndexErr{
-						addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+						addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 						index}
 				}
 				parseData.setHasWildcard()
@@ -601,7 +601,7 @@ func validateAddress(
 					if rangeWildcardIndex < 0 || hexDelimiterIndex >= 0 || !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
 						// starts with '.', or has two consecutive '.'
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 							index}
 					} else if isMac {
 						value = MACMaxValuePerDottedSegment
@@ -622,37 +622,37 @@ func validateAddress(
 							maxMacChars := 4
 							if digitCount > maxMacChars { //
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									segmentValueStartIndex}
 							}
 							totalDigits := digitCount + leadingZeroCount
 							if hexDelimiterIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									hexDelimiterIndex}
 							} else if leadingZeroCount > 0 && !stringFormatParams.AllowsLeadingZeros() {
-								return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 							} else if !stringFormatParams.AllowsUnlimitedLeadingZeros() && totalDigits > maxMacChars {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									segmentValueStartIndex}
 							} else if !macSpecificOptions.AllowsShortSegments() && totalDigits < maxMacChars {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.short.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.short.at.index"}},
 									segmentValueStartIndex}
 							}
 						} else if !stringFormatParams.AllowsLeadingZeros() {
 							// the '0' preceding the 'x' is not allowed
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						} else if !ipv4SpecificOptions.Allows_inet_aton_hex() {
-							return &addressStringException{str: str, key: "ipaddress.error.ipv4.segment.hex"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv4.segment.hex"}}
 						} else if hasLeadingZeros && !ipv4SpecificOptions.Allows_inet_aton_leading_zeros() {
 							// the '0' following the 'x' is not allowed
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						} else {
 							if digitCount > 8 { // 0xffffffff
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									segmentValueStartIndex}
 							}
 							ipAddressParseData.set_has_inet_aton_value(true)
@@ -661,7 +661,7 @@ func validateAddress(
 						if isSingleWildcard {
 							if rangeWildcardIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							}
 							err = assignSingleWildcard16(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
@@ -683,12 +683,12 @@ func validateAddress(
 						}
 						if isBinaryOrOctal {
 							if !stringFormatParams.AllowsLeadingZeros() {
-								return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 							}
 							if isBinary {
 								if digitCount > 33 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										segmentValueStartIndex}
 								}
 								digitStartIndex++ // exclude the 'b' in 0b1100
@@ -698,7 +698,7 @@ func validateAddress(
 								if isSingleWildcard {
 									if rangeWildcardIndex >= 0 {
 										return &addressStringIndexErr{
-											addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+											addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 											index}
 									}
 									if digitCount > 16 {
@@ -721,10 +721,10 @@ func validateAddress(
 								}
 							} else {
 								if leadingZeroCount > 1 && !ipv4SpecificOptions.Allows_inet_aton_leading_zeros() {
-									return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+									return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 								} else if digitCount > 11 { //octal 037777777777
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										segmentValueStartIndex}
 								}
 								ipAddressParseData.set_has_inet_aton_value(true)
@@ -732,7 +732,7 @@ func validateAddress(
 								if isSingleWildcard {
 									if rangeWildcardIndex >= 0 {
 										return &addressStringIndexErr{
-											addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+											addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 											index}
 									}
 									switchSingleWildcard8(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
@@ -749,20 +749,20 @@ func validateAddress(
 						} else {
 							if hasLeadingZeros {
 								if !stringFormatParams.AllowsLeadingZeros() {
-									return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+									return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 								}
 								ipAddressParseData.setHasIPv4LeadingZeros(true)
 							}
 							if digitCount > 10 { // 4294967295
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									segmentValueStartIndex}
 							}
 							radix = 10
 							if isSingleWildcard {
 								if rangeWildcardIndex >= 0 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										index}
 								}
 								switchSingleWildcard10(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, ipv4SpecificOptions)
@@ -788,10 +788,10 @@ func validateAddress(
 					frontEndIndex := rangeWildcardIndex
 					frontLeadingZeroStartIndex := frontStartIndex - frontLeadingZeroCount
 					if !stringFormatParams.GetRangeParameters().AllowsRangeSeparator() {
-						return &addressStringException{str: str, key: "ipaddress.error.no.range"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.range"}}
 					} else if frontSingleWildcardCount > 0 || frontWildcardCount > 0 { //no wildcards in ranges
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 							rangeWildcardIndex}
 					}
 					frontEmpty := frontStartIndex == frontEndIndex
@@ -803,29 +803,29 @@ func validateAddress(
 							maxMacChars := 4
 							if frontHexDelimiterIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									frontHexDelimiterIndex}
 							} else if hasFrontLeadingZeros && !stringFormatParams.AllowsLeadingZeros() {
-								return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 							} else if !stringFormatParams.AllowsUnlimitedLeadingZeros() && totalFrontDigits > maxMacChars {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									frontLeadingZeroStartIndex}
 							} else if !macSpecificOptions.AllowsShortSegments() && totalFrontDigits < maxMacChars {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.short.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.short.at.index"}},
 									frontLeadingZeroStartIndex}
 							} else if frontEmpty { //we allow the front of a range to be empty in which case it is 0
 								if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 										index}
 								}
 								rangeFlags |= KEY_INFERRED_LOWER_BOUNDARY
 								front = 0
 							} else if frontDigitCount > maxMacChars { // mac dotted segments aaa.bbb.ccc.ddd
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									frontLeadingZeroStartIndex}
 							} else {
 								front = currentFrontValueHex
@@ -833,19 +833,19 @@ func validateAddress(
 							}
 						} else if !stringFormatParams.AllowsLeadingZeros() {
 							// the '0' preceding the 'x' is not allowed
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						} else if !ipv4SpecificOptions.Allows_inet_aton_hex() {
-							return &addressStringException{str: str, key: "ipaddress.error.ipv4.segment.hex"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv4.segment.hex"}}
 						} else if hasFrontLeadingZeros && !ipv4SpecificOptions.Allows_inet_aton_leading_zeros() {
 							// the '0' following the 'x' is not allowed
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						} else if frontEmpty {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 								index}
 						} else if frontDigitCount > 8 { // 0xffffffff
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 								frontLeadingZeroStartIndex}
 						} else {
 							ipAddressParseData.set_has_inet_aton_value(true)
@@ -856,12 +856,12 @@ func validateAddress(
 					} else {
 						if hasFrontLeadingZeros {
 							if !stringFormatParams.AllowsLeadingZeros() {
-								return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 							}
 							if ipv4SpecificOptions.AllowsBinary() && isBinaryDelimiter(str, frontStartIndex) {
 								if frontDigitCount > 33 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										frontLeadingZeroStartIndex}
 								}
 								ipAddressParseData.setHasBinaryDigits(true)
@@ -879,10 +879,10 @@ func validateAddress(
 								isReversed = digitCount != 0 && front > value
 							} else if ipv4SpecificOptions.Allows_inet_aton_octal() {
 								if frontLeadingZeroCount > 1 && !ipv4SpecificOptions.Allows_inet_aton_leading_zeros() {
-									return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+									return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 								} else if frontDigitCount > 11 { // 037777777777
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										frontLeadingZeroStartIndex}
 								}
 								ipAddressParseData.set_has_inet_aton_value(true)
@@ -899,13 +899,13 @@ func validateAddress(
 							if frontEmpty { //we allow the front of a range to be empty in which case it is 0
 								if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 										index}
 								}
 								rangeFlags |= KEY_INFERRED_LOWER_BOUNDARY
 							} else if frontDigitCount > 10 { // 4294967295
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 									frontLeadingZeroStartIndex}
 							} else {
 								front, err = switchValue10(currentFrontValueHex, str, frontDigitCount)
@@ -914,7 +914,7 @@ func validateAddress(
 								}
 								if hasFrontLeadingZeros {
 									if !stringFormatParams.AllowsLeadingZeros() {
-										return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+										return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 									}
 									ipAddressParseData.setHasIPv4LeadingZeros(true)
 								}
@@ -932,7 +932,7 @@ func validateAddress(
 					backEndIndex := index
 					if isReversed {
 						if !stringFormatParams.GetRangeParameters().AllowsReverseRange() {
-							return &addressStringException{str: str, key: "ipaddress.error.invalidRange"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalidRange"}}
 						}
 						// switcheroo
 						frontStartIndex, digitStartIndex = digitStartIndex, frontStartIndex
@@ -1003,14 +1003,14 @@ func validateAddress(
 								//we handle the first segment here, we handle the second segment in the usual place below
 								if frontHexDelimiterIndex >= 0 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										frontHexDelimiterIndex}
 								} else if hexDelimiterIndex >= 0 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										hexDelimiterIndex}
 								} else if !macOptions.AllowsDashed() {
-									return &addressStringException{str: str, key: "ipaddress.mac.error.format"}
+									return &addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.format"}}
 								}
 								macFormat = DASHED
 								macAddressParseData.setFormat(macFormat)
@@ -1019,10 +1019,10 @@ func validateAddress(
 								isSegmented = true
 								if frontWildcardCount > 0 {
 									if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
-										return &addressStringException{str: str, key: "ipaddress.error.no.wildcard"}
+										return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.wildcard"}}
 									} else if frontSingleWildcardCount > 0 || frontLeadingZeroCount > 0 || frontDigitCount > 0 || frontHexDelimiterIndex >= 0 { //wildcards must appear alone
 										return &addressStringIndexErr{
-											addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+											addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 											rangeWildcardIndex}
 									}
 									parseData.setHasWildcard()
@@ -1046,7 +1046,7 @@ func validateAddress(
 										parseData, 0, 0, upperValue, KEY_WILDCARD)
 								} else {
 									if !stringFormatParams.AllowsLeadingZeros() && frontLeadingZeroCount > 0 {
-										return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+										return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 									}
 									startIndex := rangeWildcardIndex - frontDigitCount
 									leadingZeroStartIndex := startIndex - frontLeadingZeroCount
@@ -1057,7 +1057,7 @@ func validateAddress(
 										if !frontUppercase {
 											if frontDigitCount == 0 {
 												return &addressStringIndexErr{
-													addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+													addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 													startIndex}
 											}
 											flags = KEY_STANDARD_STR
@@ -1084,7 +1084,7 @@ func validateAddress(
 								endOfHexSegment = isRangeChar
 							} else if isDashedRangeChar {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							}
 						}
@@ -1098,7 +1098,7 @@ func validateAddress(
 									extendedCharacterIndex = index
 								} else {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										index}
 								}
 							} else {
@@ -1144,7 +1144,7 @@ func validateAddress(
 					if currentChar == PrefixLenSeparator {
 						if isMac {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 								index}
 						}
 						strEndIndex = index
@@ -1211,19 +1211,19 @@ func validateAddress(
 									index++
 								} else {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										index}
 								}
 							} else {
 								if isMac {
 									if parseData.getSegmentCount() > 0 {
 										return &addressStringIndexErr{
-											addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+											addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 											index}
 									}
 								} else if version.isIPv6() {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 										index}
 								}
 								hexDelimiterIndex = index
@@ -1238,13 +1238,13 @@ func validateAddress(
 									extendedCharacterIndex = index
 								} else if extendedRangeWildcardIndex >= 0 {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										index}
 								}
 								extendedRangeWildcardIndex = index
 							} else {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 									index}
 							}
 							index++
@@ -1256,27 +1256,27 @@ func validateAddress(
 								ipAddressParseData.setQualifierIndex(index + 1)
 							} else {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 									index}
 							}
 						} else {
 							if canBeBase85 {
 								if currentChar < 0 || int(currentChar) >= len(extendedChars) {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 										index}
 								}
 								val := extendedChars[currentChar]
 								if val == 0 { //note that we already check for the currentChar '0' character at another else/if block, so any other character mapped to the value 0 is an invalid character
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 										index}
 								} else if extendedCharacterIndex < 0 {
 									extendedCharacterIndex = index
 								}
 							} else {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 									index}
 							}
 							index++
@@ -1295,7 +1295,7 @@ func validateAddress(
 					} else {
 						if hexDelimiterIndex >= 0 {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 								hexDelimiterIndex}
 						} else {
 							var isNoExc bool
@@ -1307,7 +1307,7 @@ func validateAddress(
 								isNoExc = macOptions.AllowsColonDelimited()
 							}
 							if !isNoExc {
-								return &addressStringException{str: str, key: "ipaddress.mac.error.format"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.format"}}
 							} else if isRangeChar {
 								macFormat = DASHED
 								macAddressParseData.setFormat(macFormat)
@@ -1336,7 +1336,7 @@ func validateAddress(
 					if isExc {
 						// TODO search for "ipaddress.error.invalid.character.at.index" should be 15, and 19 of "ipaddress.error.invalid.character.at.index", inside this func
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.mac.error.mix.format.characters.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.mac.error.mix.format.characters.at.index"}},
 							index}
 					}
 					var segLimit int
@@ -1346,14 +1346,14 @@ func validateAddress(
 						segLimit = ExtendedUniqueIdentifier64SegmentCount
 					}
 					if segCount >= segLimit {
-						return &addressStringException{str: str, key: "ipaddress.error.too.many.segments"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.many.segments"}}
 					}
 				}
 				hexMaxChars = MACSegmentMaxChars //will be ignored for single or double segments due to checkCharCounts booleans
 			} else {
 				if segCount == 0 {
 					if !validationOptions.AllowsIPv6() {
-						return &addressStringException{str: str, key: "ipaddress.error.ipv6"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv6"}}
 					}
 					canBeBase85 = false
 					version = IPv6
@@ -1365,9 +1365,9 @@ func validateAddress(
 						firstIndex := index
 						index++
 						if index == strEndIndex {
-							return &addressStringException{str: str, key: "ipaddress.error.too.few.segments"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.few.segments"}}
 						} else if str[index] != IPv6SegmentSeparator {
-							return &addressStringException{str: str, key: "ipaddress.error.ipv6.cannot.start.with.single.separator"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv6.cannot.start.with.single.separator"}}
 						}
 						parseData.initSegmentData(IPv6SegmentCount)
 						parseData.setConsecutiveSeparatorSegmentIndex(0)
@@ -1384,26 +1384,26 @@ func validateAddress(
 						} else {
 							if hexDelimiterIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 									hexDelimiterIndex}
 							}
 							parseData.initSegmentData(IPv6SegmentCount)
 						}
 					}
 				} else if ipAddressParseData.getProviderIPVersion().isIPv4() {
-					return &addressStringException{str: str, key: "ipaddress.error.ipv6.separator"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv6.separator"}}
 				} else if segCount >= IPv6SegmentCount {
-					return &addressStringException{str: str, key: "ipaddress.error.too.many.segments"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.too.many.segments"}}
 				}
 				hexMaxChars = IPv6SegmentMaxChars // will be ignored for single segment due to checkCharCounts boolean
 			}
 			if index == segmentStartIndex { // empty segment
 				if isMac {
 					return &addressStringIndexErr{
-						addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+						addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 						index}
 				} else if parseData.getConsecutiveSeparatorIndex() >= 0 {
-					return &addressStringException{str: str, key: "ipaddress.error.ipv6.ambiguous"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.ipv6.ambiguous"}}
 				}
 				parseData.setConsecutiveSeparatorSegmentIndex(segCount)
 				parseData.setConsecutiveSeparatorIndex(index - 1)
@@ -1411,12 +1411,12 @@ func validateAddress(
 				parseData.incrementSegmentCount()
 			} else if wildcardCount > 0 && !isSingleIPv6 {
 				if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
-					return &addressStringException{str: str, key: "ipaddress.error.no.wildcard"}
+					return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.wildcard"}}
 				}
 				totalDigits := index - segmentStartIndex
 				if wildcardCount != totalDigits || hexDelimiterIndex >= 0 {
 					return &addressStringIndexErr{
-						addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+						addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 						index}
 				}
 				parseData.setHasWildcard()
@@ -1470,7 +1470,7 @@ func validateAddress(
 						if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
 							// starts with '.', or has two consecutive '.'
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 								index}
 						} else if isMac {
 							if isSingleSegment {
@@ -1494,14 +1494,14 @@ func validateAddress(
 					} else {
 						if digitCount > hexMaxChars && checkCharCounts {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 								segmentValueStartIndex}
 						}
 						if singleWildcardCount > 0 {
 							noValuesToSet = true
 							if rangeWildcardIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 { //We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
 								parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
@@ -1538,14 +1538,14 @@ func validateAddress(
 						// So for a single segment IPv6 segment:
 						// 0b11 is a hex segment, 0b111 is hex, 0b1111 is invalid (too short for binary, too long for hex), 0b1100110011001100 is a binary segment
 						if !stringFormatParams.AllowsLeadingZeros() {
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						}
 						startIndex++ // exclude the 'b' in 0b1100
 						digitCount-- // exclude the 'b'
 						if singleWildcardCount > 0 {
 							if rangeWildcardIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 {
 								parseSingleSegmentSingleWildcard2(str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
@@ -1573,20 +1573,20 @@ func validateAddress(
 					} else {
 						if digitCount > hexMaxChars && checkCharCounts {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 								segmentValueStartIndex}
 						} else if !stringFormatParams.AllowsLeadingZeros() {
-							return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 						} else if !stringFormatParams.AllowsUnlimitedLeadingZeros() && checkCharCounts && (digitCount+leadingZeroCount) > hexMaxChars {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 								segmentValueStartIndex}
 						}
 						if singleWildcardCount > 0 {
 							noValuesToSet = true
 							if rangeWildcardIndex >= 0 {
 								return &addressStringIndexErr{
-									addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+									addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 { //We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
 								parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
@@ -1623,18 +1623,18 @@ func validateAddress(
 					frontLeadingZeroStartIndex := frontStartIndex - frontLeadingZeroCount
 					frontTotalDigitCount := frontDigitCount + frontLeadingZeroCount //the stuff that uses frontLeadingZeroCount needs to be sectioned off when singleIPv6
 					if !stringFormatParams.GetRangeParameters().AllowsRangeSeparator() {
-						return &addressStringException{str: str, key: "ipaddress.error.no.range"}
+						return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.range"}}
 					} else if frontHexDelimiterIndex >= 0 && !isSingleSegment {
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.error.invalid.character.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 							frontHexDelimiterIndex}
 					} else if frontSingleWildcardCount > 0 || frontWildcardCount > 0 { // no wildcards in ranges
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 							rangeWildcardIndex}
 					} else if isMac && !macSpecificOptions.AllowsShortSegments() && frontTotalDigitCount < 2 {
 						return &addressStringIndexErr{
-							addressStringException{str: str, key: "ipaddress.error.segment.too.short.at.index"},
+							addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.short.at.index"}},
 							frontLeadingZeroStartIndex}
 					}
 					var upperRadix uint32
@@ -1645,7 +1645,7 @@ func validateAddress(
 					if frontEmpty {
 						if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
 							return &addressStringIndexErr{
-								addressStringException{str: str, key: "ipaddress.error.empty.segment.at.index"},
+								addressStringException{ipAddressException{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 								index}
 						}
 						rangeFlags |= KEY_INFERRED_LOWER_BOUNDARY
@@ -1685,15 +1685,15 @@ func validateAddress(
 							isReversed = (extendedFront > extendedValue) || (extendedFront == extendedValue && front > value)
 						} else {
 							if !stringFormatParams.AllowsLeadingZeros() && frontLeadingZeroCount > 0 {
-								return &addressStringException{str: str, key: "ipaddress.error.segment.leading.zeros"}
+								return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.leading.zeros"}}
 							} else if checkCharCounts {
 								if frontDigitCount > hexMaxChars {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										frontLeadingZeroStartIndex}
 								} else if !stringFormatParams.AllowsUnlimitedLeadingZeros() && frontTotalDigitCount > hexMaxChars {
 									return &addressStringIndexErr{
-										addressStringException{str: str, key: "ipaddress.error.segment.too.long.at.index"},
+										addressStringException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long.at.index"}},
 										frontLeadingZeroStartIndex}
 								}
 							}
@@ -1705,7 +1705,7 @@ func validateAddress(
 					backEndIndex := index
 					if isReversed {
 						if !stringFormatParams.GetRangeParameters().AllowsReverseRange() {
-							return &addressStringException{str: str, key: "ipaddress.error.invalidRange"}
+							return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.invalidRange"}}
 						}
 						// switcheroo
 						frontStartIndex, startIndex = startIndex, frontStartIndex
@@ -1753,7 +1753,7 @@ func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (pr
 	isPrefix, err := validatePrefix(fullAddr, noZone, defaultIPAddrParameters, nil,
 		&qualifier, 0, len(fullAddr), version)
 	if !isPrefix {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefix"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefix"}}
 	} else {
 		prefixLen = qualifier.getNetworkPrefixLength()
 	}
@@ -1807,25 +1807,25 @@ func parsePortOrService(
 			if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || isHyphen || isAll {
 				if isHyphen {
 					if i == index {
-						err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.start"}
+						err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.start"}}
 						return
 					} else if i-1 == lastHyphen {
-						err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.consecutive"}
+						err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.consecutive"}}
 						return
 					} else if i == endIndex-1 {
-						err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.end"}
+						err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalid.service.hyphen.end"}}
 						return
 					}
 					lastHyphen = i
 				} else if isAll {
 					if i > index {
 						err = &addressStringIndexErr{
-							addressStringException{str: fullAddr, key: "ipaddress.error.invalid.character.combination.at.index"},
+							addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.character.combination.at.index"}},
 							i}
 						return
 					} else if i+1 < endIndex {
 						err = &addressStringIndexErr{
-							addressStringException{str: fullAddr, key: "ipaddress.error.invalid.character.combination.at.index"},
+							addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.character.combination.at.index"}},
 							i + 1}
 						return
 					}
@@ -1838,7 +1838,7 @@ func parsePortOrService(
 				charCount++
 			} else {
 				err = &addressStringIndexErr{
-					addressStringException{str: fullAddr, key: "ipaddress.host.error.invalid.port.service"},
+					addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalid.port.service"}},
 					i}
 				return
 			}
@@ -1846,13 +1846,13 @@ func parsePortOrService(
 	}
 	if isPort {
 		if !validationOptions.AllowsPort() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.port"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.port"}}
 			return
 		} else if port == 0 {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalidPort.no.digits"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalidPort.no.digits"}}
 			return
 		} else if port > 65535 {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalidPort.too.large"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalidPort.too.large"}}
 			return
 		}
 		res.zone = zone
@@ -1860,16 +1860,16 @@ func parsePortOrService(
 		//res = &ParsedHostIdentifierStringQualifier{zone: zone, port: &port}
 		return
 	} else if !validationOptions.AllowsService() {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.service"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.service"}}
 		return
 	} else if charCount == 0 {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalidService.no.chars"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalidService.no.chars"}}
 		return
 	} else if charCount > 15 {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalidService.too.long"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalidService.too.long"}}
 		return
 	} else if !hasLetter {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.host.error.invalidService.no.letter"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.host.error.invalidService.no.letter"}}
 		return
 	}
 	res.zone = zone
@@ -1897,7 +1897,7 @@ func parseValidatedPrefix(
 	//tryCache := false
 	if asIPv4 {
 		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLengthLeadingZeros() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.prefix.leading.zeros"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.prefix.leading.zeros"}}
 			return
 		}
 		allowPrefixesBeyondAddressSize := validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
@@ -1905,18 +1905,18 @@ func parseValidatedPrefix(
 			if validationOptions.AllowsSingleSegment() {
 				return //treat it as a single segment ipv4 mask
 			}
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.prefixSize"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.prefixSize"}}
 			return
 		}
 		//tryCache = result < len(PREFIX_CACHE)
 	} else {
 		if leadingZeros > 0 && !validationOptions.GetIPv6Parameters().AllowsPrefixLengthLeadingZeros() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.ipv6.prefix.leading.zeros"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv6.prefix.leading.zeros"}}
 			return
 		}
 		allowPrefixesBeyondAddressSize := validationOptions.GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
 		if !allowPrefixesBeyondAddressSize && result > IPv6BitCount {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.prefixSize"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.prefixSize"}}
 			return
 		}
 		//tryCache = zone.IsEmpty() && result < len(PREFIX_CACHE)
@@ -2020,12 +2020,12 @@ func parseAddressQualifier(
 	} else if ipAddressParseData.isZoned() {
 		if ipAddressParseData.isBase85Zoned() && !ipAddressParseData.isProvidingBase85IPv6() {
 			err = &addressStringIndexErr{
-				addressStringException{str: fullAddr, key: "ipaddress.error.invalid.character.at.index"},
+				addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.character.at.index"}},
 				qualifierIndex - 1}
 			return
 		}
 		if addressIsEmpty {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.only.zone"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.only.zone"}}
 			return
 		}
 		return parseZone(fullAddr, validationOptions, res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
@@ -2051,7 +2051,7 @@ func parseHostAddressQualifier(
 			res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
 	} else if ipAddressParseData.isZoned() {
 		if addressIsEmpty {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.only.zone"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.only.zone"}}
 			return
 		}
 		return parseEncodedZone(fullAddr, validationOptions, res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
@@ -2082,7 +2082,7 @@ func parsePrefix(
 	}
 	if addressIsEmpty {
 		//PREFIX_ONLY must have a prefix and not a mask - we don't allow /255.255.0.0
-		err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalid.mask.address.empty"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.mask.address.empty"}}
 	} else if validationOptions.AllowsMask() {
 		//check for a mask
 		//check if we need a new validation options for the mask
@@ -2098,41 +2098,41 @@ func parsePrefix(
 		}
 		maskParseData := pa.getAddressParseData()
 		if maskParseData.isProvidingEmpty() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalid.mask.empty"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.mask.empty"}}
 			return
 		} else if maskParseData.isAll() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalid.mask.wildcard"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.mask.wildcard"}}
 			return
 		}
 		err = checkSegments(fullAddr, maskOptions, pa.getIPAddressParseData())
 		if err != nil {
-			err = WrapErrf(err, "ipaddress.error.invalidCIDRPrefixOrMask")
+			err = WrapErrf(err, "ipaddress.error.invalidCIDRPrefixOrMask") //TODO cannot just wrap this
 			return
 		}
 		maskEndIndex := maskParseData.getAddressEndIndex()
 		if maskEndIndex != endIndex { // 1.2.3.4/ or 1.2.3.4// or 1.2.3.4/%
 			err = &addressStringIndexErr{
-				addressStringException{str: fullAddr, key: "ipaddress.error.invalid.mask.extra.chars"},
+				addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.mask.extra.chars"}},
 				maskEndIndex + 1}
 			return
 		}
 		maskVersion := pa.getProviderIPVersion()
 		if maskVersion.isIPv4() && maskParseData.getSegmentCount() == 1 && !maskParseData.hasWildcard() &&
 			!validationOptions.GetIPv4Parameters().Allows_inet_aton_single_segment_mask() { //1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.mask.single.segment"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.mask.single.segment"}}
 			return
 		} else if !ipVersion.isIndeterminate() && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6()) {
 			//note that this also covers the cases of non-standard addresses in the mask, ie mask neither ipv4 or ipv6
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.ipMismatch"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipMismatch"}}
 			return
 		}
 		res.mask = pa
 		res.zone = zone
 		//res = &ParsedHostIdentifierStringQualifier{mask: pa, zone: zone}
 	} else if validationOptions.AllowsPrefix() {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefixOrMask"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefixOrMask"}}
 	} else {
-		err = &addressStringException{str: fullAddr, key: "ipaddress.error.CIDRNotAllowed"}
+		err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.CIDRNotAllowed"}}
 	}
 	return
 }
@@ -2203,7 +2203,7 @@ func parseZone(
 			return parsePrefix(fullAddr, zone, validationOptions, nil, res, addressIsEmpty, i+1, endIndex, ipVersion)
 		} else if c == IPv6SegmentSeparator {
 			err = &addressStringIndexErr{
-				addressStringException{str: fullAddr, key: "ipaddress.error.invalid.zone"},
+				addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.zone"}},
 				i}
 			return
 		}
@@ -2232,7 +2232,7 @@ func parseEncodedZone(
 		if c == IPv6ZoneSeparator {
 			if i+2 >= endIndex {
 				err = &addressStringIndexErr{
-					addressStringException{str: fullAddr, key: "ipaddress.error.invalid.zone.encoding"},
+					addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.zone.encoding"}},
 					i}
 				return
 			}
@@ -2255,7 +2255,7 @@ func parseEncodedZone(
 			return parsePrefix(fullAddr, Zone(zone), validationOptions, nil, res, addressIsEmpty, i+1, endIndex, ipVersion)
 		} else if isReserved(c) {
 			err = &addressStringIndexErr{
-				addressStringException{str: fullAddr, key: "ipaddress.error.invalid.zone"},
+				addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.invalid.zone"}},
 				i}
 			return
 		}
@@ -2648,7 +2648,7 @@ func chooseIPAddressProvider(
 			} else {
 				key = "ipaddress.error.ipv4"
 			}
-			err = &addressStringException{str: fullAddr, key: key}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: key}}
 			return
 		}
 		addressParseData := parseData.getAddressParseData()
@@ -2691,7 +2691,7 @@ func chooseIPAddressProvider(
 		}
 	} else {
 		if parseData.isZoned() && version.isIPv4() {
-			err = &addressStringException{str: fullAddr, key: "ipaddress.error.only.ipv6.has.zone"}
+			err = &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.only.ipv6.has.zone"}}
 			return
 		}
 		//parseData.setQualifier(qualifier);
@@ -2712,7 +2712,7 @@ func checkSegmentMaxValues(
 	if parseData.getFlag(segmentIndex, KEY_SINGLE_WILDCARD) {
 		value := parseData.getValue(segmentIndex, KEY_LOWER)
 		if value > maxValue {
-			return &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}
+			return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 		}
 		if parseData.getValue(segmentIndex, KEY_UPPER) > maxValue {
 			parseData.setValue(segmentIndex, KEY_UPPER, maxValue)
@@ -2720,25 +2720,25 @@ func checkSegmentMaxValues(
 		if !params.AllowsUnlimitedLeadingZeros() {
 			lowerRadix := parseData.getRadix(segmentIndex, KEY_LOWER_RADIX_INDEX)
 			if parseData.getIndex(segmentIndex, KEY_LOWER_STR_END_INDEX)-parseData.getIndex(segmentIndex, KEY_LOWER_STR_DIGITS_INDEX)-getStringPrefixCharCount(lowerRadix) > maxDigitCount {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 			}
 		}
 	} else {
 		value := parseData.getValue(segmentIndex, KEY_UPPER)
 		if value > maxValue {
-			return &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}
+			return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 		}
 		if !params.AllowsUnlimitedLeadingZeros() {
 			lowerRadix := parseData.getRadix(segmentIndex, KEY_LOWER_RADIX_INDEX)
 			lowerEndIndex := parseData.getIndex(segmentIndex, KEY_LOWER_STR_END_INDEX)
 			upperEndIndex := parseData.getIndex(segmentIndex, KEY_UPPER_STR_END_INDEX)
 			if lowerEndIndex-parseData.getIndex(segmentIndex, KEY_LOWER_STR_DIGITS_INDEX)-getStringPrefixCharCount(lowerRadix) > maxDigitCount {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 			}
 			if lowerEndIndex != upperEndIndex {
 				upperRadix := parseData.getRadix(segmentIndex, KEY_UPPER_RADIX_INDEX)
 				if upperEndIndex-parseData.getIndex(segmentIndex, KEY_UPPER_STR_DIGITS_INDEX)-getStringPrefixCharCount(upperRadix) > maxUpperDigitCount {
-					return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+					return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 				}
 			}
 		}
@@ -2750,7 +2750,7 @@ func checkMACSegments(
 	fullAddr string,
 	validationOptions MACAddressStringParameters,
 	parseData *ParsedMACAddress) AddressStringException {
-	var err error
+	var err AddressStringException
 	format := parseData.getFormat()
 	if format != UNKNOWN_FORMAT {
 		addressParseData := parseData.getAddressParseData()
@@ -2760,20 +2760,20 @@ func checkMACSegments(
 		if format == DOTTED {
 			if segCount <= MediaAccessControlDottedSegmentCount && validationOptions.AddressSize() != EUI64 {
 				if !hasWildcardSeparator && segCount != MediaAccessControlDottedSegmentCount {
-					return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+					return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
 			} else if !hasWildcardSeparator && segCount < MediaAccessControlDotted64SegmentCount {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 			} else {
 				parseData.setExtended(true)
 			}
 		} else if segCount > 2 {
 			if segCount <= MediaAccessControlSegmentCount && validationOptions.AddressSize() != EUI64 {
 				if !hasWildcardSeparator && segCount != MediaAccessControlSegmentCount {
-					return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+					return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
 			} else if !hasWildcardSeparator && segCount < ExtendedUniqueIdentifier64SegmentCount {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 			} else {
 				parseData.setExtended(true)
 			}
@@ -2817,7 +2817,7 @@ func checkMACSegments(
 					}
 				}
 			} else if !hasWildcardSeparator {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 			}
 			if validationOptions.AddressSize() == EUI64 {
 				parseData.setExtended(true)
@@ -2844,7 +2844,7 @@ func checkSegments(
 			if ipv4Options.Allows_inet_aton_joinedSegments() {
 				parseData.set_inet_aton_joined(true)
 			} else if !hasWildcardSeparator {
-				return &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.too.few.segments"}
+				return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.too.few.segments"}}
 			}
 		}
 
@@ -2865,7 +2865,7 @@ func checkSegments(
 			if parseData.getFlag(i, KEY_SINGLE_WILDCARD) {
 				var value uint64 = parseData.getValue(i, KEY_LOWER)
 				if value > max {
-					return &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}
+					return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 				}
 				if parseData.getValue(i, KEY_UPPER) > max {
 					parseData.setValue(i, KEY_UPPER, max)
@@ -2874,13 +2874,13 @@ func checkSegments(
 					lowerRadix := addressParseData.getRadix(i, KEY_LOWER_RADIX_INDEX)
 					maxDigitCount := getMaxIPv4StringLength(missingCount, lowerRadix)
 					if parseData.getIndex(i, KEY_LOWER_STR_END_INDEX)-parseData.getIndex(i, KEY_LOWER_STR_DIGITS_INDEX)-getStringPrefixCharCount(lowerRadix) > maxDigitCount {
-						return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+						return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 					}
 				}
 			} else {
 				var value uint64 = parseData.getValue(i, KEY_UPPER)
 				if value > max {
-					return &addressStringException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}
+					return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 				}
 				if notUnlimitedLength {
 					lowerRadix := addressParseData.getRadix(i, KEY_LOWER_RADIX_INDEX)
@@ -2888,13 +2888,13 @@ func checkSegments(
 					lowerEndIndex := parseData.getIndex(i, KEY_LOWER_STR_END_INDEX)
 					upperEndIndex := parseData.getIndex(i, KEY_UPPER_STR_END_INDEX)
 					if lowerEndIndex-parseData.getIndex(i, KEY_LOWER_STR_DIGITS_INDEX)-getStringPrefixCharCount(lowerRadix) > maxDigitCount {
-						return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+						return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 					}
 					if lowerEndIndex != upperEndIndex {
 						upperRadix := parseData.getRadix(i, KEY_UPPER_RADIX_INDEX)
 						maxUpperDigitCount := getMaxIPv4StringLength(missingCount, upperRadix)
 						if upperEndIndex-parseData.getIndex(i, KEY_UPPER_STR_DIGITS_INDEX)-getStringPrefixCharCount(upperRadix) > maxUpperDigitCount {
-							return &addressStringException{str: fullAddr, key: "ipaddress.error.segment.too.long"}
+							return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.segment.too.long"}}
 						}
 					}
 				}
@@ -2907,7 +2907,7 @@ func checkSegments(
 		}
 		hasWildcardSeparator := addressParseData.hasWildcard() && validationOptions.GetIPv6Parameters().AllowsWildcardedSeparator()
 		if !hasWildcardSeparator && totalSegmentCount != 1 && totalSegmentCount < IPv6SegmentCount && !parseData.isCompressed() {
-			return &addressStringException{str: fullAddr, key: "ipaddress.error.too.few.segments"}
+			return &addressStringException{ipAddressException{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 		}
 	}
 	return nil
@@ -2915,11 +2915,11 @@ func checkSegments(
 
 func checkSingleWildcard(str string, start, end, digitsEnd int, options AddressStringFormatParameters) AddressStringException {
 	if !options.GetRangeParameters().AllowsSingleWildcard() {
-		return &addressStringException{str: str, key: "ipaddress.error.no.single.wildcard"}
+		return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.no.single.wildcard"}}
 	}
 	for k := digitsEnd; k < end; k++ {
 		if str[k] != SegmentSqlSingleWildcard {
-			return &addressStringException{str: str, key: "ipaddress.error.single.wildcard.order"}
+			return &addressStringException{ipAddressException{str: str, key: "ipaddress.error.single.wildcard.order"}}
 		}
 	}
 	return nil
@@ -3175,7 +3175,7 @@ func getMaxIPv4StringLength(additionalSegmentsCovered int, radix uint32) int {
 func switchValue2(currentHexValue uint64, s string, digitCount int) (result uint64, err AddressStringException) {
 	result = 0xf & currentHexValue
 	if result > 1 {
-		err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.binary.digit"}
+		err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.binary.digit"}}
 		return
 	}
 	shift := 0
@@ -3188,7 +3188,7 @@ func switchValue2(currentHexValue uint64, s string, digitCount int) (result uint
 			if next == 1 {
 				result |= 1 << shift
 			} else {
-				err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.binary.digit"}
+				err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.binary.digit"}}
 				return
 			}
 		}
@@ -3206,7 +3206,7 @@ func switchValue2(currentHexValue uint64, s string, digitCount int) (result uint
 func switchValue8(currentHexValue uint64, s string, digitCount int) (result uint64, err AddressStringException) {
 	result = 0xf & currentHexValue
 	if result >= 8 {
-		err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.octal.digit"}
+		err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.octal.digit"}}
 		return
 	}
 	shift := 0
@@ -3215,7 +3215,7 @@ func switchValue8(currentHexValue uint64, s string, digitCount int) (result uint
 		currentHexValue >>= 4
 		next := 0xf & currentHexValue
 		if next >= 8 {
-			err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.octal.digit"}
+			err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.octal.digit"}}
 			return
 		}
 		result |= next << shift
@@ -3226,7 +3226,7 @@ func switchValue8(currentHexValue uint64, s string, digitCount int) (result uint
 func switchValue10(currentHexValue uint64, s string, digitCount int) (result uint64, err AddressStringException) {
 	result = 0xf & currentHexValue
 	if result >= 10 {
-		err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.decimal.digit"}
+		err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.decimal.digit"}}
 		return
 	}
 	digitCount--
@@ -3236,7 +3236,7 @@ func switchValue10(currentHexValue uint64, s string, digitCount int) (result uin
 			currentHexValue >>= 4
 			next := 0xf & currentHexValue
 			if next >= 10 {
-				err = &addressStringException{str: s, key: "ipaddress.error.ipv4.invalid.decimal.digit"}
+				err = &addressStringException{ipAddressException{str: s, key: "ipaddress.error.ipv4.invalid.decimal.digit"}}
 				return
 			}
 			result += next * factor
@@ -3361,7 +3361,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 	validationOptions := fromHost.getParams()
 	addrLen := len(str)
 	if addrLen > MAX_HOST_LENGTH {
-		err = &hostNameException{str: str, key: "ipaddress.host.error.invalid.length"}
+		err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.length"}}
 		return
 	}
 	var segmentUppercase, isNotNormalized, squareBracketed,
@@ -3403,7 +3403,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 					tryIPv6 = true
 					break
 				}
-				err = &hostNameException{str: str, key: "ipaddress.host.error.invalid"}
+				err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid"}}
 				return
 			}
 			isPossiblyIPv4 = isPossiblyIPv4 && segmentCountMatchesIPv4
@@ -3438,11 +3438,11 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 		} else if currentChar == LabelSeparator {
 			len := index - lastSeparatorIndex - 1
 			if len > MAX_LABEL_LENGTH {
-				err = &hostNameException{str: str, key: "ipaddress.error.segment.too.long"}
+				err = &hostNameException{ipAddressException{str: str, key: "ipaddress.error.segment.too.long"}}
 				return
 			}
 			if len == 0 {
-				err = &hostNameException{str: str, key: "ipaddress.host.error.segment.too.short"}
+				err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.segment.too.short"}}
 				return
 			}
 			if labelCount < maxLocalLabels {
@@ -3487,7 +3487,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 				}
 				labelCount++
 				if labelCount > MAX_HOST_SEGMENTS {
-					err = &hostNameException{str: str, key: "ipaddress.host.error.too.many.segments"}
+					err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.too.many.segments"}}
 					return
 				}
 			}
@@ -3499,7 +3499,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 		} else if currentChar == '-' {
 			//host name segments cannot end with '-'
 			if index == lastSeparatorIndex+1 || index == addrLen-1 || str[index+1] == LabelSeparator {
-				err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+				err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 				return
 			}
 			isAllDigits = false
@@ -3508,7 +3508,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 				squareBracketed = true
 				break
 			}
-			err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+			err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 			return
 		} else if currentChar == PrefixLenSeparator {
 			isPrefixed = true
@@ -3527,7 +3527,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 						isPossiblyIPv4 = false
 						break
 					}
-					err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+					err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 					return
 				} else {
 					if isPossiblyIPv4 && addressOptions.GetIPv4Parameters().GetRangeParameters().AllowsWildcard() {
@@ -3544,7 +3544,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 					} else {
 						if !isPossiblyIPv4 {
 							//needs to be either ipv4 or ipv6
-							err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+							err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 							return
 						}
 						isPossiblyIPv6 = false
@@ -3564,13 +3564,13 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 						tryIPv6 = true
 						break
 					}
-					err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+					err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 					return
 				}
 			} else if currentChar == AlternativeRangeSeparator {
 				isAllDigits = false
 			} else {
-				err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, index}
+				err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 				return
 			}
 		}
@@ -3592,7 +3592,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 	isIPAddress := squareBracketed || tryIPv4 || tryIPv6
 	if !validationOptions.AllowsIPAddress() {
 		if isIPAddress {
-			err = &hostNameException{str: str, key: "ipaddress.host.error.ipaddress"}
+			err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.ipaddress"}}
 			return
 		}
 	} else if isIPAddress || isPossiblyIPv4 || isPossiblyIPv6 {
@@ -3617,7 +3617,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 				if endsWithQualifier {
 					for endIndex--; str[endIndex] != IPv6EndBracket; endIndex-- {
 						if endIndex == 1 {
-							err = &hostNameException{str: str, key: "ipaddress.host.error.bracketed.missing.end"}
+							err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.bracketed.missing.end"}}
 							return
 						}
 					}
@@ -3637,7 +3637,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 					*/
 					firstChar := str[1]
 					if firstChar == IPvFUTURE || firstChar == IPvFUTURE_UPPERCASE {
-						err = &hostNameException{str: str, key: "ipaddress.host.error.invalid.mechanism"}
+						err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.mechanism"}}
 						return
 					}
 				}
@@ -3655,7 +3655,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 					} else if prefixChar == PortSeparator {
 						hasPortOrService = true
 					} else {
-						hostErr = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, prefixIndex}
+						hostErr = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, prefixIndex}
 						return
 					}
 					qualifierIndex = prefixIndex + 1 //skip the ']/'
@@ -3725,7 +3725,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 				//SMTP rfc 2821 allows [ipv4address]
 				version := pa.getProviderIPVersion()
 				if !version.isIPv6() && !validationOptions.AllowsBracketedIPv4() {
-					err = &hostNameException{str: str, key: "ipaddress.host.error.bracketed.not.ipv6"}
+					err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.bracketed.not.ipv6"}}
 					return
 				}
 				//}
@@ -3882,7 +3882,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 	}
 	if addressIsEmpty {
 		if !validationOptions.AllowsEmpty() {
-			err = &hostNameException{str: str, key: "ipaddress.host.error.empty"}
+			err = &hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.empty"}}
 			return
 		}
 		if *hostQualifier == DEFAULT_EMPTY_HOST.labelsQualifier {
@@ -3958,10 +3958,10 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 		if isSpecialOnlyIndex >= 0 && (!hasEmbeddedAddr || embeddedAddr.addressStringException != nil) {
 			if embeddedAddr.addressStringException != nil {
 				//TODO need to do someting with embeddedAddr.addressStringException, wrap it in the error or something
-				err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, isSpecialOnlyIndex}
+				err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, isSpecialOnlyIndex}
 				return
 			}
-			err = &hostNameIndexErr{hostNameException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}, isSpecialOnlyIndex}
+			err = &hostNameIndexErr{hostNameException{ipAddressException{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, isSpecialOnlyIndex}
 			return
 		}
 		parsedHost.separatorIndices = separatorIndices
@@ -4173,5 +4173,5 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *ParsedHostIdentif
 //}
 
 func wrapAddrErr(orig AddressStringException) (wrapped HostNameException) {
-	return &hostAddressErr{orig}
+	return &hostAddressErr{nested: orig}
 }

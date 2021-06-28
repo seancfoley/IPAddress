@@ -455,8 +455,8 @@ func (addr *addressInternal) equals(other AddressType) bool {
 		addr.isSameZone(other)
 }
 
-func (addr *addressInternal) withoutPrefixLength() *Address {
-	return addr.checkIdentity(addr.section.withoutPrefixLength())
+func (addr *addressInternal) withoutPrefixLen() *Address {
+	return addr.checkIdentity(addr.section.withoutPrefixLen())
 }
 
 func (addr *addressInternal) setPrefixLen(prefixLen BitCount) *Address {
@@ -782,8 +782,8 @@ func (addr *Address) ToBlock(segmentIndex int, lower, upper SegInt) *Address {
 	return addr.init().toBlock(segmentIndex, lower, upper)
 }
 
-func (addr *Address) WithoutPrefixLength() *Address {
-	return addr.init().withoutPrefixLength()
+func (addr *Address) WithoutPrefixLen() *Address {
+	return addr.init().withoutPrefixLen()
 }
 
 func (addr *Address) SetPrefixLen(prefixLen BitCount) *Address {

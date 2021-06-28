@@ -6,169 +6,68 @@ import (
 	"strings"
 )
 
-//TODO at the end of the day, not so sure there is any reason to have my own interfaces, unless they had methods in addition to Error()
-//and as far as I know they do not, although I could potentially expose the parsed string or the string index or both.
-// Maybe I resurrect HostIdentifierException and use it everywhere?  Since I don't need separate errors?
+//TODO xxxx we need a strict hierarchy xxx
+//all of which end at the same structure xxx
+// Then we will create our own catalog from properties file,
+// and it will be associated with "en" label and that will be the fallback,
+// and then to print an error we will create a printer: func NewPrinter(t language.Tag, opts ...Option) *Printer {
+// message.Catalog(xxxthatxxx) which returns an option to pass in to NewPrinter
+//
+// BUT let's face it, why bother?  Just copy the code to read in the file, either that catalog code or
+// https://stackoverflow.com/questions/40022861/parsing-values-from-property-file-in-golang/46860900
+// Just return the key from the errors so others can i18n if they want, they can use whatever method they prefer,
+// all they need is the keys and the original file
+//
+// BUT... you do need a tool to create the index... why?  Because goland deals with binaries and you do not want to lug around a properties file
+// So that's why they did it that way
+
+//TODO add some dummy methods to X and x to ensure the hierarchy is enforced.  Since the interfaces have nothing in them, no way to know that right now.
+/*
+
+IPAddressException
+	- IncompatibleAddressException
+		- SizeMismatchException
+	- HostIdentifierException
+		- HostNameException
+		- AddressStringException
+	- AddressValueException
+		- InconsistentPrefixException
+		- AddressPositionException
+
+unused:
+NetworkMismatchException
+AddressConversionException
+PrefixLenException
+
+*/
+
+type IPAddressException interface { //TODO rename to AddressException
+	error
+}
+
+type ipAddressException struct {
+	// key to look up the error message
+	key string
+
+	// the address
+	str string
+}
+
+func (a *ipAddressException) Error() string {
+	//TODO i18n -
+	return a.key
+}
+
+type HostIdentifierException interface {
+	IPAddressException
+}
 
 type AddressStringException interface {
-	error
+	HostIdentifierException
 }
 
-type IncompatibleAddressException interface {
-	error
-}
-
-type HostNameException interface {
-	error
-
-	GetAddrErr() AddressStringException //returns the underlying address error, or nil
-}
-
-type hostAddressErr struct {
-	nested AddressStringException
-}
-
-func (a *hostAddressErr) GetAddrErr() AddressStringException {
-	return a.nested
-}
-
-func (a *hostAddressErr) Error() string {
-	//TODO i18n -
-	return "ipaddress.host.error.invalid" + ": " + a.nested.Error()
-}
-
-//TODO split into two types, one without index nested inside other with index
-// first step is to convert the err = followed by return into a method call that returns nil, err
-// then you will have two of those, and you can then do the switcheroo in there
-type hostNameException struct {
-	// the string being parsed
-	str,
-
-	// key to look up the error message
-	key string
-}
-
-type hostNameIndexErr struct {
-	hostNameException
-
-	// byte index location in string of the error
-	index int
-}
-
-func (a *hostNameException) GetAddrErr() AddressStringException {
-	return nil
-}
-
-func (a *hostNameException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-// TODO not so sure I need another exception type, but at the same time, distinguishing between errors would be nice
-
-type addressException struct {
-	// key to look up the error message
-	key string
-}
-
-func (a *addressException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type incompatibleAddressException struct {
-	// the value, can be nil
-	str,
-
-	// key to look up the error message
-	key string
-}
-
-func (a *incompatibleAddressException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-// TODO xxxxx think about replacing interfaces above with these xxxx
-
-//TODO split into two types, one without index nested inside other with index
 type addressStringException struct {
-	// the string being parsed
-	str,
-
-	// key to look up the error message
-	key string
-}
-
-func (a *addressStringException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type AddressValueException interface {
-	error
-}
-
-type addressValueException struct {
-	// the value
-	val int
-
-	// key to look up the error message
-	key string
-}
-
-func (a *addressValueException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type addressPositionException struct {
-	// the value
-	val int
-
-	// key to look up the error message
-	key string
-}
-
-func (a *addressPositionException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type inconsistentPrefixException struct {
-	str,
-
-	// key to look up the error message
-	key string
-}
-
-func (a *inconsistentPrefixException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type sizeMismatchException struct {
-	str,
-
-	// key to look up the error message
-	key string
-}
-
-func (a *sizeMismatchException) Error() string {
-	//TODO i18n -
-	return a.key
-}
-
-type prefixLenException struct {
-	prefixLen BitCount
-
-	// key to look up the error message
-	key string
-}
-
-func (a *prefixLenException) Error() string {
-	//TODO i18n -
-	return a.key
+	ipAddressException
 }
 
 type addressStringIndexErr struct {
@@ -178,8 +77,73 @@ type addressStringIndexErr struct {
 	index int
 }
 
+type HostNameException interface {
+	HostIdentifierException
+
+	GetAddrErr() AddressStringException //returns the underlying address error, or nil
+}
+
+type hostNameException struct {
+	ipAddressException
+}
+
+func (a *hostNameException) GetAddrErr() AddressStringException {
+	return nil
+}
+
+type hostAddressErr struct {
+	hostNameException //TODO in this case, the nested has the key, so need to figure this out
+	nested            AddressStringException
+}
+
+func (a *hostAddressErr) GetAddrErr() AddressStringException {
+	return a.nested
+}
+
+func (a *hostAddressErr) Error() string {
+	return "ipaddress.host.error.invalid" + ": " + a.nested.Error()
+}
+
+type hostNameIndexErr struct {
+	hostNameException
+
+	// byte index location in string of the error
+	index int
+}
+
+type IncompatibleAddressException interface {
+	IPAddressException
+}
+
+type incompatibleAddressException struct {
+	ipAddressException
+}
+
 type SizeMismatchException interface {
+	IncompatibleAddressException
+}
+
+type sizeMismatchException struct {
+	incompatibleAddressException
+}
+
+type AddressValueException interface {
 	error
+}
+
+type addressValueException struct {
+	ipAddressException
+
+	// the value
+	val int
+}
+
+type addressPositionException struct {
+	addressValueException
+}
+
+type inconsistentPrefixException struct {
+	addressValueException
 }
 
 ///////////////////////////////////////////////

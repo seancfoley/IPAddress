@@ -227,8 +227,8 @@ func (addr *MACAddress) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddre
 	return addr.init().toBlock(segmentIndex, lower, upper).ToMACAddress()
 }
 
-func (addr *MACAddress) WithoutPrefixLength() *MACAddress {
-	return addr.init().withoutPrefixLength().ToMACAddress()
+func (addr *MACAddress) WithoutPrefixLen() *MACAddress {
+	return addr.init().withoutPrefixLen().ToMACAddress()
 }
 
 func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {

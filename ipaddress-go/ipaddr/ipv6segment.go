@@ -154,8 +154,8 @@ func (seg *IPv6AddressSegment) PrefixIterator() IPv6SegmentIterator {
 	return ipv6SegmentIterator{seg.prefixIterator()}
 }
 
-func (seg *IPv6AddressSegment) WithoutPrefixLength() *IPv6AddressSegment {
-	return seg.withoutPrefixLength().ToIPv6AddressSegment()
+func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
+	return seg.withoutPrefixLen().ToIPv6AddressSegment()
 }
 
 // Converts this IPv6 address segment into smaller segments,

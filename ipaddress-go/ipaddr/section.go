@@ -109,7 +109,7 @@ func (section *addressSectionInternal) initMultiple() {
 }
 
 // error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) init() error {
+func (section *addressSectionInternal) init() AddressValueException {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen
@@ -118,7 +118,7 @@ func (section *addressSectionInternal) init() error {
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
 			if segment == nil {
-				return &addressException{"ipaddress.error.null.segment"}
+				return &addressValueException{ipAddressException: ipAddressException{key: "ipaddress.error.null.segment"}}
 			}
 
 			if !isMultiple && segment.IsMultiple() {
@@ -140,7 +140,14 @@ func (section *addressSectionInternal) init() error {
 					section.prefixLength = getNetworkPrefixLength(bitsPerSegment, *segPrefix, i)
 				}
 			} else if segPrefix == nil || *segPrefix != 0 {
-				return &inconsistentPrefixException{str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix), key: "ipaddress.error.inconsistent.prefixes"}
+				return &inconsistentPrefixException{
+					addressValueException{
+						ipAddressException: ipAddressException{
+							str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix),
+							key: "ipaddress.error.inconsistent.prefixes",
+						},
+					},
+				}
 			}
 			previousSegmentPrefix = segPrefix
 		}
@@ -475,7 +482,7 @@ func (section *addressSectionInternal) toBlock(segmentIndex int, lower, upper Se
 	return section.toAddressSection()
 }
 
-func (section *addressSectionInternal) withoutPrefixLength() *AddressSection {
+func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
 	if !section.IsPrefixed() {
 		return section.toAddressSection()
 	}
@@ -669,7 +676,7 @@ func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddress
 				division = section.GetSegment(j)
 				if division.isMultiple() {
 					if !isLastFull {
-						return false, &incompatibleAddressException{key: "ipaddress.error.segmentMismatch"}
+						return false, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.segmentMismatch"}}
 					}
 					isLastFull = division.IsFullRange()
 				} else {
@@ -940,8 +947,8 @@ func (section *AddressSection) ToPrefixBlockLen(prefLen BitCount) *AddressSectio
 	return section.toPrefixBlockLen(prefLen)
 }
 
-func (section *AddressSection) WithoutPrefixLength() *AddressSection {
-	return section.withoutPrefixLength()
+func (section *AddressSection) WithoutPrefixLen() *AddressSection {
+	return section.withoutPrefixLen()
 }
 
 func (section *AddressSection) SetPrefixLen(prefixLen BitCount) *AddressSection {

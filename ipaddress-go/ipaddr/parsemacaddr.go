@@ -108,7 +108,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 			adjustedLower2 := segLower & 0xff
 			adjustedUpper2 := segUpper & 0xff
 			if lowerHalfLower != lowerHalfUpper && adjustedUpper2-adjustedLower2 != 0xff {
-				return nil, &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
+				return nil, &incompatibleAddressException{ipAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
 			}
 			segments[normalizedSegmentIndex] = createSegment(
 				addressString,
@@ -151,7 +151,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 							//otherwise there is no way for us to represent the address
 							//so we need to check whether the lower parts cover the full range
 							//eg cannot represent 0.0.0x100-0x10f or 0.0.1-1ff, but can do 0.0.0x100-0x1ff or 0.0.0-1ff
-							return nil, &incompatibleAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}
+							return nil, &incompatibleAddressException{ipAddressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
 						}
 						previousAdjustedWasRange = newLower != newUpper
 

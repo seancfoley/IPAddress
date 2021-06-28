@@ -19,13 +19,7 @@ func main() {
 	//ipaddr.Test()
 
 	//ipaddr.divFunc(nil)
-	seg := ipaddr.IPv4AddressSegment{} //TODO Can we prevent this?  Possibly if we do copying when switching back and forth IPv6, or maybe we can have a default value?
-	//According to this you can make the thing not exported and yet still have access to it?  https://stackoverflow.com/questions/37135193/how-to-set-default-values-in-go-structs
-	//But then you have to write up all those methods
-	//I guess the only solution is to use non-pointer
-	//The rule is that WHENEVER you are inheriting a method, it must be a non-pointer.
-	//If you have an interface field, in which case you are inheriting those methods but you must assign to the interface fro the methods to work,
-	//then you must also override each such method
+	seg := ipaddr.IPv4AddressSegment{}
 
 	seg.GetSegmentValue()
 

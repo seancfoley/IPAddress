@@ -220,7 +220,7 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
 }
 
-func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err error) {
+func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressException) {
 	addr = addr.init()
 	sect, err := addr.GetSection().Mask(other.GetSection())
 	if err == nil {
@@ -277,8 +277,8 @@ func (addr *IPv6Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv6Add
 	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv6Address()
 }
 
-func (addr *IPv6Address) WithoutPrefixLength() *IPv6Address {
-	return addr.init().withoutPrefixLength().ToIPv6Address()
+func (addr *IPv6Address) WithoutPrefixLen() *IPv6Address {
+	return addr.init().withoutPrefixLen().ToIPv6Address()
 }
 
 func (addr *IPv6Address) SetPrefixLen(prefixLen BitCount) *IPv6Address {
@@ -391,7 +391,7 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	if addr == nil {
 		return nil
 	}
-	addr = addr.init().WithoutPrefixLength().WithoutZone()
+	addr = addr.init().WithoutPrefixLen().WithoutZone()
 	return newSeqRangeUnchecked(
 		addr.GetLower().ToIPAddress(),
 		addr.GetUpper().ToIPAddress(),

@@ -584,9 +584,9 @@ func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
 	if f := first.contains(other); f || other.contains(first) {
 		var addr *IPAddress
 		if f {
-			addr = first.WithoutPrefixLength()
+			addr = first.WithoutPrefixLen()
 		} else {
-			addr = other.WithoutPrefixLength()
+			addr = other.WithoutPrefixLen()
 		}
 		lower = addr.GetLower()
 		if isMult = addr.IsMultiple(); isMult {
@@ -613,9 +613,9 @@ func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
 			isMult = comp > 0
 			upper = firstUpper
 		}
-		lower = lower.WithoutPrefixLength()
+		lower = lower.WithoutPrefixLen()
 		if isMult = isMult || compareLowIPAddressValues(lower, upper) != 0; isMult {
-			upper = upper.WithoutPrefixLength()
+			upper = upper.WithoutPrefixLen()
 		} else {
 			upper = lower
 		}

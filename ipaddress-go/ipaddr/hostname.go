@@ -159,11 +159,11 @@ func (host *HostName) GetAddress() *IPAddress {
 	return addr
 }
 
-func (host *HostName) ToAddresses() ([]*IPAddress, error) {
+func (host *HostName) ToAddresses() ([]*IPAddress, IPAddressException) {
 	return host.toAddresses()
 }
 
-func (host *HostName) ToAddress() (addr *IPAddress, err error) {
+func (host *HostName) ToAddress() (addr *IPAddress, err IPAddressException) {
 	addresses, err := host.toAddresses()
 	if len(addresses) > 0 {
 		addr = addresses[0]
@@ -173,19 +173,19 @@ func (host *HostName) ToAddress() (addr *IPAddress, err error) {
 
 //
 // error can be AddressStringException or IncompatibleAddressException
-func (host *HostName) toAddresses() (addrs []*IPAddress, err error) {
+func (host *HostName) toAddresses() (addrs []*IPAddress, err IPAddressException) {
 	host = host.init()
 	data := host.resolveData
 	if data == nil {
 		//note that validation handles empty address resolution
-		err = host.Validate()
+		err = host.Validate() //HostNameException
 		if err != nil {
 			return
 		}
 		// http://networkbit.ch/golang-dns-lookup/
 		parsedHost := host.parsedHost
 		if parsedHost.isAddressString() {
-			addr, addrErr := parsedHost.asAddress()
+			addr, addrErr := parsedHost.asAddress() // IncompatibleAddressException
 			addrs, err = []*IPAddress{addr}, addrErr
 			//note there is no need to apply prefix or mask here, it would have been applied to the address already
 		} else {
@@ -220,7 +220,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err error) {
 						}
 					}
 					if byteLen == IPv6ByteCount {
-						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(addr, networkPrefixLength)
+						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueException
 						if addrErr != nil {
 							return nil, addrErr
 						}
@@ -230,7 +230,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err error) {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
 							networkPrefixLength = cacheBits(IPv4BitCount)
 						}
-						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) /* address creation */
+						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueException
 						if addrErr != nil {
 							return nil, addrErr
 						}
@@ -247,7 +247,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err error) {
 	return data.resolvedAddrs, nil
 }
 
-func (host *HostName) ToHostAddress() (*Address, error) {
+func (host *HostName) ToHostAddress() (*Address, IPAddressException) {
 	host = host.init()
 	addr, err := host.ToAddress()
 	return addr.ToAddress(), err

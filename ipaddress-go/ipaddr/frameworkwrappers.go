@@ -70,7 +70,7 @@ type ExtendedIPSegmentSeries interface {
 
 	SetPrefixLen(BitCount) ExtendedIPSegmentSeries
 
-	WithoutPrefixLength() ExtendedIPSegmentSeries
+	WithoutPrefixLen() ExtendedIPSegmentSeries
 
 	//ReverseBytes() ExtendedIPSegmentSeries //TODO
 
@@ -166,8 +166,8 @@ func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
 //	return w.IPAddressSection.AssignMinPrefixForBlock())
 //}
 
-func (w WrappedIPAddress) WithoutPrefixLength() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.WithoutPrefixLength()}
+func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.WithoutPrefixLen()}
 }
 
 func (w WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
@@ -273,8 +273,8 @@ func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentS
 //	return w.IPAddressSection.AssignMinPrefixForBlock()
 //}
 
-func (w WrappedIPAddressSection) WithoutPrefixLength() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.WithoutPrefixLength()}
+func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.WithoutPrefixLen()}
 }
 
 func (w WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {

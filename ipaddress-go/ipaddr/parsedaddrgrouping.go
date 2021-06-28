@@ -97,26 +97,6 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	return BitCount(segmentCount) * bitsPerSegment
 }
 
-var cachedPrefixLens = initPrefLens()
-
-func initPrefLens() []PrefixLen {
-	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-	for i := 0; i <= IPv6BitCount; i++ {
-		bc := BitCount(i)
-		cachedPrefLens[i] = &bc
-	}
-	return cachedPrefLens
-}
-
-func cache(i BitCount) PrefixLen {
-	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
-		result := cachedPrefixLens[i]
-		return result
-	}
-	bc := BitCount(i)
-	return &bc
-}
-
 // TODO This extended prefix subnet
 //
 //public static boolean isPrefixSubnet(

@@ -183,7 +183,7 @@ func checkSequentialBlockFormat(
 			result = contained
 		}
 	} else if container.IsSequential() {
-		result = container.WithoutPrefixLength()
+		result = container.WithoutPrefixLen()
 		//result = prefixRemover.apply(container)
 	}
 	if result != nil {
@@ -452,7 +452,7 @@ func applyOperatorToLowerUpper(
 		//if first.Equals(other) {
 		if removePrefixes && first.IsPrefixed() {
 			if other.IsPrefixed() {
-				lower = first.WithoutPrefixLength()
+				lower = first.WithoutPrefixLen()
 				isOther = false
 				isFirst = false
 			} else {
@@ -487,8 +487,8 @@ func applyOperatorToLowerUpper(
 			isOther = false
 		}
 		if removePrefixes {
-			lower = lower.WithoutPrefixLength()
-			upper = upper.WithoutPrefixLength()
+			lower = lower.WithoutPrefixLen()
+			upper = upper.WithoutPrefixLen()
 		}
 	}
 	// We pass the first arg to the operator func if both the lower and upper args came from the first arg.

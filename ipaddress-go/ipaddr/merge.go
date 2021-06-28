@@ -172,7 +172,7 @@ func getMergedSequentialBlocks(sections []ExtendedIPSegmentSeries) []ExtendedIPS
 	singleElement, list := organizeSequentialMerge(sections)
 	//boolean singleElement = organizeSequentialMerge(sections, list);
 	if singleElement {
-		list[0] = list[0].WithoutPrefixLength()
+		list[0] = list[0].WithoutPrefixLen()
 		return list
 	}
 	//		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
@@ -328,7 +328,7 @@ top:
 			for list[l] == nil {
 				l++
 			}
-			list[k] = list[l].WithoutPrefixLength()
+			list[k] = list[l].WithoutPrefixLen()
 		}
 		list = list[:newSize]
 		// last := len(list)
@@ -338,7 +338,7 @@ top:
 		//}
 	} else {
 		for n := 0; n < len(list); n++ {
-			list[n] = list[n].WithoutPrefixLength()
+			list[n] = list[n].WithoutPrefixLen()
 		}
 	}
 	return list

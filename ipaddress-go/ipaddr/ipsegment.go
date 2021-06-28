@@ -32,7 +32,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 	return false
 }
 
-func (seg *ipAddressSegmentInternal) withoutPrefixLength() *IPAddressSegment {
+func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 	if seg.IsPrefixed() {
 		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
 		return createAddressDivision(vals).ToIPAddressSegment()
@@ -253,8 +253,8 @@ func (seg *IPAddressSegment) PrefixIterator() IPSegmentIterator {
 	return ipSegmentIterator{seg.prefixIterator()}
 }
 
-func (seg *IPAddressSegment) WithoutPrefixLength() *IPAddressSegment {
-	return seg.withoutPrefixLength()
+func (seg *IPAddressSegment) WithoutPrefixLen() *IPAddressSegment {
+	return seg.withoutPrefixLen()
 }
 
 func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {

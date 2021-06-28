@@ -70,16 +70,21 @@ func (addrStr *MACAddressString) ToNormalizedString() string {
 }
 
 func (addrStr *MACAddressString) GetAddress() *MACAddress {
-	addr, _ := addrStr.getAddressProvider().getAddress()
+	provider, _ := addrStr.getAddressProvider()
+	addr, _ := provider.getAddress()
 	return addr
 }
 
-func (addrStr *MACAddressString) ToAddress() (*MACAddress, IncompatibleAddressException) {
-	return addrStr.getAddressProvider().getAddress()
+func (addrStr *MACAddressString) ToAddress() (*MACAddress, IPAddressException) {
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil, err
+	}
+	return provider.getAddress()
 }
 
 // error can be AddressStringException or IncompatibleAddressException
-func (addrStr *MACAddressString) ToHostAddress() (*Address, error) {
+func (addrStr *MACAddressString) ToHostAddress() (*Address, IPAddressException) {
 	addr, err := addrStr.ToAddress()
 	return addr.ToAddress(), err
 }
@@ -88,10 +93,10 @@ func (addrStr *MACAddressString) IsValid() bool {
 	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
 }
 
-func (addrStr *MACAddressString) getAddressProvider() macAddressProvider {
+func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, AddressStringException) {
 	addrStr = addrStr.init()
-	addrStr.Validate()
-	return addrStr.addressProvider
+	err := addrStr.Validate()
+	return addrStr.addressProvider, err
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.

@@ -212,43 +212,6 @@ func (grouping addressDivisionGroupingInternal) String() string {
 	return fmt.Sprintf("%v", grouping.init().divisions)
 }
 
-//// getPrefixLengthCacheLocked calculates prefix length
-//// If a division D has a prefix length p, and all following division have prefix length 0,
-//// and there are no earlier division with the same property, then division D determines the over-all prefix length
-//// of the grouping.
-//// In the case of IPv4/6 groupings, this property is enforced, so if a division has a non-zero prefix length,
-//// then all preceding division must have nil prefix length and all following must have zero prefix length.
-//func (grouping *addressDivisionGroupingInternal) getPrefixLengthCacheLocked() PrefixLen {
-//	cache := grouping.cache
-//	prefLen := cache.cachedPrefixLen
-//	if !prefLen.isSet {
-//		count := grouping.getDivisionCount()
-//		bitsSoFar, prefixBits := BitCount(0), BitCount(0)
-//		hasPrefix := false
-//		for i := 0; i < count; i++ {
-//			div := grouping.getDivision(i)
-//			divPrefLen := div.getDivisionPrefixLength() //TODO for MAC this needs to be changed to getMinPrefixLengthForBlock (optimize it to check for full range or single value first )
-//			if hasPrefix = divPrefLen != nil; hasPrefix {
-//				divPrefBits := *divPrefLen
-//				if !hasPrefix || divPrefBits != 0 {
-//					prefixBits = bitsSoFar + divPrefBits
-//				}
-//				if grouping.addrType.alignsPrefix() {
-//					break
-//				}
-//			}
-//			bitsSoFar += div.getBitCount()
-//		}
-//		if hasPrefix {
-//			res := &prefixBits
-//			prefLen.value = res
-//			cache.cachedPrefixLen.value = res
-//		}
-//		cache.cachedPrefixLen.isSet = true
-//	}
-//	return prefLen.value
-//}
-
 func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
 	return grouping.prefixLength
 }
@@ -382,26 +345,6 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLengthForSingleBlock()
 	}
 	return cache(totalPrefix)
 }
-
-//// prefixesAlign returns whether the prefix of each division align with each other, which is a requirement for IPv4/6
-//// If an earlier division has a prefix, then all following division must have prefix 0
-//func (grouping *addressDivisionGroupingInternal) prefixesAlign() bool {
-//	count := grouping.getDivisionCount()
-//	for i := 0; i < count; i++ {
-//		div := grouping.getDivision(i)
-//		divPrefLen := div.getDivisionPrefixLength() //TODO for MAC this needs to be changed to getMinPrefixLengthForBlock (optimize it to check for full range or single value first )
-//		if divPrefLen != nil {
-//			for j := i + 1; j < count; j++ {
-//				div = grouping.getDivision(j)
-//				divPrefLen = div.getDivisionPrefixLength()
-//				if divPrefLen == nil || *divPrefLen != 0 {
-//					return false
-//				}
-//			}
-//		}
-//	}
-//	return true
-//}
 
 func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {
 	if grouping.hasNoDivisions() {

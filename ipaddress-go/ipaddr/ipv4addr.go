@@ -176,7 +176,7 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	return &IPv4Address{ipAddressInternal{addressInternal{section: sec, cache: &addressCache{}}}}
 }
 
-func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err error) {
+func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressException) {
 	addr = addr.init()
 	sect, err := addr.GetSection().Mask(other.GetSection())
 	if err == nil {
@@ -251,8 +251,8 @@ func (addr *IPv4Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv4Add
 	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv4Address()
 }
 
-func (addr *IPv4Address) WithoutPrefixLength() *IPv4Address {
-	return addr.init().withoutPrefixLength().ToIPv4Address()
+func (addr *IPv4Address) WithoutPrefixLen() *IPv4Address {
+	return addr.init().withoutPrefixLen().ToIPv4Address()
 }
 
 func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
@@ -362,7 +362,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	if addr == nil {
 		return nil
 	}
-	addr = addr.init().WithoutPrefixLength()
+	addr = addr.init().WithoutPrefixLen()
 	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.IsMultiple()).ToIPv4SequentialRange()
 }
 

@@ -417,21 +417,15 @@ func (addr *IPAddress) getProvider() IPAddressProvider {
 	/*
 		if(isPrefixed()) {
 			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
-				return IPAddressProvider.getProviderFor(this, withoutPrefixLength());
+				return IPAddressProvider.getProviderFor(this, withoutPrefixLen());
 			}
-			return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLength());
+			return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLen());
 		}
 		return IPAddressProvider.getProviderFor(this, this);
 	*/
 }
 
 func (addr IPAddress) String() string {
-	//address := addr.init()
-	//if address.section.cache != nil {
-	//	addrType := address.section.cache.addrType
-	//	_ = addrType
-	//	//TODO a different default string if we know we are IPv4 or IPv6.  But we must do full check, same as when calling ToIPvxAddress() or ToIPvxAddressSection(), so that the result of this is consistent.
-	//}
 	return addr.init().ipAddressInternal.String()
 }
 
@@ -533,17 +527,14 @@ func (addr *IPAddress) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddress
 	return addr.init().toBlock(segmentIndex, lower, upper).ToIPAddress()
 }
 
-func (addr *IPAddress) WithoutPrefixLength() *IPAddress { //TODO maybe rename to  WithoutPrefixLen() everywhere
-	return addr.withoutPrefixLength().ToIPAddress()
+func (addr *IPAddress) WithoutPrefixLen() *IPAddress {
+	return addr.withoutPrefixLen().ToIPAddress()
 }
 
 func (addr *IPAddress) SetPrefixLen(prefixLen BitCount) *IPAddress {
 	return addr.init().setPrefixLen(prefixLen).ToIPAddress()
 }
 
-//func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount, zeroHostIsBlock bool) (*IPAddress, IncompatibleAddressException) { TODO remove
-//	return addr.init().setPrefixLenZeroed(prefixLen, zeroHostIsBlock)
-//}
 func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressException) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPAddress(), err
@@ -725,7 +716,7 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
 		}
 	}
-	return nil, &incompatibleAddressException{str: "ipaddress.error.ipVersionMismatch"}
+	return nil, &incompatibleAddressException{ipAddressException{str: "ipaddress.error.ipVersionMismatch"}}
 }
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
@@ -748,12 +739,12 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressEx
 			return result.ToIPAddress(), err
 		}
 	}
-	return nil, &incompatibleAddressException{str: "ipaddress.error.ipMismatch"}
+	return nil, &incompatibleAddressException{ipAddressException{str: "ipaddress.error.ipMismatch"}}
 }
 
 func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningPrefixBlocks(
@@ -779,7 +770,7 @@ func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
 
 func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningSequentialBlocks(
@@ -795,7 +786,7 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddres
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedSequentialBlocks(series)
@@ -808,7 +799,7 @@ func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddres
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{key: "ipaddress.error.ipVersionMismatch"}
+		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedPrefixBlocks(series)
@@ -934,7 +925,3 @@ func IPAddressEquals(one, two *IPAddress) bool {
 	}
 	return two != nil && one.Equals(two)
 }
-
-// TODO make sure everything in IPv4 and IPv6 is "overridden", in the sense all methods will check for no divisions and
-// create the default zero-segments if necessary, so we never expose a zero value with 0 segments
-// The zero values of everythign else will have sections with no segments

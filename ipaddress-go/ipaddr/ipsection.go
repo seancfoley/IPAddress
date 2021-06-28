@@ -466,13 +466,13 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 
 func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) SizeMismatchException {
 	if other.GetSegmentCount() < section.GetSegmentCount() {
-		return &sizeMismatchException{str: "ipaddress.error.sizeMismatch"}
+		return &sizeMismatchException{incompatibleAddressException{ipAddressException{str: "ipaddress.error.sizeMismatch"}}}
 	}
 	return nil
 }
 
 // error can be IncompatibleAddressException or SizeMismatchException
-func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, error) {
+func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, IncompatibleAddressException) {
 	if err := section.checkSectionCount(msk); err != nil {
 		return nil, err
 	}
@@ -742,8 +742,8 @@ func (section *IPAddressSection) ToMaxHostLen(prefixLength BitCount) (*IPAddress
 	return section.toMaxHostLen(prefixLength)
 }
 
-func (section *IPAddressSection) WithoutPrefixLength() *IPAddressSection {
-	return section.withoutPrefixLength().ToIPAddressSection()
+func (section *IPAddressSection) WithoutPrefixLen() *IPAddressSection {
+	return section.withoutPrefixLen().ToIPAddressSection()
 }
 
 func (section *IPAddressSection) SetPrefixLen(prefixLen BitCount) *IPAddressSection {
@@ -1005,18 +1005,27 @@ func toSegments(
 			mostSignificantBit := bytes[expectedStartIndex] >> 7
 			if mostSignificantBit != 0 {
 				if expectedExtendedValue != 0xff { //0xff or -1
-					err = &addressValueException{key: "ipaddress.error.exceeds.size", val: int(expectedExtendedValue)}
+					err = &addressValueException{
+						ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
+						val:                int(expectedExtendedValue),
+					}
 					return
 				}
 			} else {
-				err = &addressValueException{key: "ipaddress.error.exceeds.size", val: int(expectedExtendedValue)}
+				err = &addressValueException{
+					ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
+					val:                int(expectedExtendedValue),
+				}
 				return
 			}
 		}
 		for startIndex < higherStartIndex {
 			higherStartIndex--
 			if bytes[higherStartIndex] != expectedExtendedValue {
-				err = &addressValueException{key: "ipaddress.error.exceeds.size", val: int(expectedExtendedValue)}
+				err = &addressValueException{
+					ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
+					val:                int(expectedExtendedValue),
+				}
 				return
 			}
 		}
@@ -1126,225 +1135,6 @@ func createSegments(
 	return
 }
 
-// TODO remove all this commented stuff
-//
-//func setIPPrefixLength(
-//	original *IPAddressSection,
-//	networkPrefixLength BitCount,
-//	withZeros,
-//	singleOnly bool,
-//) (res *IPAddressSection, err IncompatibleAddressException) {
-//	result, err := setPrefixLengthWithCreator(
-//		original.ToAddressSection(),
-//		networkPrefixLength,
-//		withZeros,
-//		func(newSegments []*AddressDivision, prefixLen PrefixLen) *AddressSection {
-//			return deriveIPAddressSectionSingle(original, newSegments, prefixLen, singleOnly).ToAddressSection()
-//		},
-//	)
-//	if err == nil {
-//		res = result.ToIPAddressSection()
-//	}
-//	return
-//}
-//
-//func setPrefixLength(
-//	original *AddressSection,
-//	networkPrefixLength BitCount,
-//	withZeros bool,
-//) (res *AddressSection, err IncompatibleAddressException) {
-//	return setPrefixLengthWithCreator(
-//		original.ToAddressSection(),
-//		networkPrefixLength,
-//		withZeros,
-//		func(newSegments []*AddressDivision, prefixLen PrefixLen) *AddressSection {
-//			return deriveAddressSectionPrefLen(original, newSegments, prefixLen)
-//		},
-//	)
-//}
-//
-//func setPrefixLengthWithCreator(
-//	original *AddressSection,
-//	networkPrefixLength BitCount,
-//	withZeros bool,
-//	creator func([]*AddressDivision, PrefixLen) *AddressSection,
-//) (res *AddressSection, err IncompatibleAddressException) {
-//	existingPrefixLength := original.GetPrefixLength()
-//	if existingPrefixLength != nil && networkPrefixLength == *existingPrefixLength {
-//		res = original
-//		return
-//	}
-//	checkSubnet(original, networkPrefixLength)
-//	var minPrefIndex, maxPrefIndex int
-//	var minPrefLen, maxPrefLen BitCount
-//	verifyMask := false
-//	bitsPerSegment := original.GetBitsPerSegment()
-//	bytesPerSegment := original.GetBytesPerSegment()
-//	prefIndex := getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
-//	var startIndex int
-//	if existingPrefixLength != nil {
-//		existingPrefLen := *existingPrefixLength
-//		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment)
-//		verifyMask = true
-//		if prefIndex > existingPrefIndex {
-//			maxPrefIndex = prefIndex
-//			minPrefIndex = existingPrefIndex
-//		} else {
-//			maxPrefIndex = existingPrefIndex
-//			minPrefIndex = prefIndex
-//		}
-//		if withZeros {
-//			if networkPrefixLength < existingPrefLen {
-//				minPrefLen = networkPrefixLength
-//				maxPrefLen = existingPrefLen
-//			} else {
-//				minPrefLen = existingPrefLen
-//				maxPrefLen = networkPrefixLength
-//			}
-//			startIndex = minPrefIndex
-//		} else {
-//			startIndex = minPrefIndex
-//			minPrefIndex = original.GetSegmentCount() // used for zeroing, so setting it to the end causes no zeroing
-//		}
-//	} else {
-//		minPrefIndex = original.GetSegmentCount()
-//		startIndex = prefIndex
-//	}
-//	maxVal := original.GetMaxSegmentValue()
-//	return getSegments(
-//		original,
-//		startIndex,
-//		cacheBitCount(networkPrefixLength),
-//		verifyMask,
-//		func(i int) *AddressDivision {
-//			return original.getDivision(i)
-//		},
-//		func(i int) SegInt {
-//			if i >= minPrefIndex {
-//				if i <= maxPrefIndex {
-//					minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
-//					minMask := maxVal << (bitsPerSegment - minSegPrefLen)
-//					maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
-//					if maxSegPrefLen != nil {
-//						maxMask := maxVal << (bitsPerSegment - minSegPrefLen)
-//						return minMask | maxMask
-//					}
-//					return minMask
-//				}
-//			}
-//			return maxVal
-//		},
-//		creator)
-//}
-//
-//func getSubnetSegments(
-//	original *IPAddressSection,
-//	startIndex int,
-//	networkPrefixLength PrefixLen,
-//	verifyMask bool,
-//	segProducer func(int) *AddressDivision,
-//	segmentMaskProducer func(int) SegInt,
-//	singleOnly bool) (res *IPAddressSection, err IncompatibleAddressException) {
-//	result, err := getSegments(
-//		original.ToAddressSection(),
-//		startIndex,
-//		networkPrefixLength,
-//		verifyMask,
-//		segProducer,
-//		segmentMaskProducer,
-//		func(newSegments []*AddressDivision, prefixLen PrefixLen) *AddressSection {
-//			return deriveIPAddressSectionSingle(original, newSegments, prefixLen, singleOnly).ToAddressSection()
-//		},
-//	)
-//	if err == nil {
-//		res = result.ToIPAddressSection()
-//	}
-//	return
-//}
-//
-//func getSegments( // called by methods to adjust/remove/setPrefixLength, masking methods, zero host and zero network methods
-//	original *AddressSection,
-//	startIndex int,
-//	networkPrefixLength PrefixLen,
-//	verifyMask bool,
-//	segProducer func(int) *AddressDivision,
-//	segmentMaskProducer func(int) SegInt,
-//	creator func([]*AddressDivision, PrefixLen) *AddressSection,
-//) (res *AddressSection, err IncompatibleAddressException) {
-//	if networkPrefixLength != nil {
-//		prefLen := *networkPrefixLength
-//		if prefLen < 0 {
-//			networkPrefixLength = cacheBits(0)
-//		} else {
-//			if addressBitLength := original.GetBitCount(); prefLen > addressBitLength {
-//				networkPrefixLength = cacheBitCount(addressBitLength)
-//			}
-//		}
-//	}
-//	bitsPerSegment := original.GetBitsPerSegment()
-//	count := original.GetSegmentCount()
-//	for i := startIndex; i < count; i++ {
-//		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
-//		seg := segProducer(i)
-//		//note that the mask can represent a range (for example a CIDR mask),
-//		//but we use the lowest value (maskSegment.value) in the range when masking (ie we discard the range)
-//		maskValue := segmentMaskProducer(i)
-//		origValue, origUpperValue := seg.getSegmentValue(), seg.getUpperSegmentValue()
-//		value, upperValue := origValue, origUpperValue
-//		if verifyMask {
-//			mask64 := uint64(maskValue)
-//			val64 := uint64(value)
-//			upperVal64 := uint64(upperValue)
-//			masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
-//			if !masker.IsSequential() {
-//				err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
-//				return
-//			}
-//			value = SegInt(masker.GetMaskedLower(val64, mask64))
-//			upperValue = SegInt(masker.GetMaskedUpper(upperVal64, mask64))
-//		} else {
-//			value &= maskValue
-//			upperValue &= maskValue
-//		}
-//		if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
-//			newSegments := createSegmentArray(count)
-//			original.copySubSegmentsToSlice(0, i, newSegments)
-//			newSegments[i] = createAddressDivision(seg.deriveNewMultiSeg(value, upperValue, segmentPrefixLength))
-//			for i++; i < count; i++ {
-//				segmentPrefixLength = getSegmentPrefixLength(bitsPerSegment, networkPrefixLength, i)
-//				seg = segProducer(i)
-//				maskValue = segmentMaskProducer(i)
-//				origValue, origUpperValue = seg.getSegmentValue(), seg.getUpperSegmentValue()
-//				value, upperValue = origValue, origUpperValue
-//				if verifyMask {
-//					mask64 := uint64(maskValue)
-//					val64 := uint64(value)
-//					upperVal64 := uint64(upperValue)
-//					masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
-//					if !masker.IsSequential() {
-//						err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
-//						return
-//					}
-//					value = SegInt(masker.GetMaskedLower(val64, mask64))
-//					upperValue = SegInt(masker.GetMaskedUpper(upperVal64, mask64))
-//				} else {
-//					value &= maskValue
-//					upperValue &= maskValue
-//				}
-//				if !segsSame(segmentPrefixLength, seg.getDivisionPrefixLength(), value, origValue, upperValue, origUpperValue) {
-//					newSegments[i] = createAddressDivision(seg.deriveNewMultiSeg(value, upperValue, segmentPrefixLength))
-//				} else {
-//					newSegments[i] = seg
-//				}
-//			}
-//			res = creator(newSegments, networkPrefixLength)
-//			return
-//		}
-//	}
-//	res = original
-//	return
-//}
-
 func setPrefixLength(
 	original *AddressSection,
 	networkPrefixLength BitCount,
@@ -1451,7 +1241,7 @@ func getSubnetSegments( // called by methods to adjust/remove/setPrefixLength, m
 			upperVal64 := uint64(upperValue)
 			masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 			if !masker.IsSequential() {
-				err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+				err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
 				return
 			}
 			value = SegInt(masker.GetMaskedLower(val64, mask64))
@@ -1476,7 +1266,7 @@ func getSubnetSegments( // called by methods to adjust/remove/setPrefixLength, m
 					upperVal64 := uint64(upperValue)
 					masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 					if !masker.IsSequential() {
-						err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+						err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
 						return
 					}
 					value = SegInt(masker.GetMaskedLower(val64, mask64))
@@ -1506,7 +1296,7 @@ func getOredSegments(
 	verifyMask bool,
 	segProducer func(int) *AddressDivision,
 	segmentMaskProducer func(int) SegInt,
-	singleOnly bool) (res *IPAddressSection, err error) {
+	singleOnly bool) (res *IPAddressSection, err IncompatibleAddressException) {
 
 	if networkPrefixLength != nil {
 		prefLen := *networkPrefixLength
@@ -1534,7 +1324,7 @@ func getOredSegments(
 			upperVal64 := uint64(upperValue)
 			masker := bitwiseOrRange(val64, upperVal64, mask64, seg.GetMaxValue())
 			if !masker.IsSequential() {
-				err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+				err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
 				return
 			}
 			value = SegInt(masker.GetOredLower(val64, mask64))
@@ -1559,7 +1349,7 @@ func getOredSegments(
 					upperVal64 := uint64(upperValue)
 					masker := bitwiseOrRange(val64, upperVal64, mask64, seg.GetMaxValue())
 					if !masker.IsSequential() {
-						err = &incompatibleAddressException{key: "ipaddress.error.maskMismatch"}
+						err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
 						return
 					}
 					value = SegInt(masker.GetOredLower(val64, mask64))
@@ -1592,7 +1382,7 @@ func checkSectionCounts(sections []ExtendedIPSegmentSeries) SizeMismatchExceptio
 				continue
 			}
 			if section.GetSegmentCount() != segCount {
-				return &sizeMismatchException{key: "ipaddress.error.sizeMismatch"}
+				return &sizeMismatchException{incompatibleAddressException{ipAddressException{key: "ipaddress.error.sizeMismatch"}}}
 			}
 		}
 	}
