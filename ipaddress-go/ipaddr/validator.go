@@ -9,13 +9,13 @@ const ( //TODO mvove upwards and rename
 
 // Interface for validation and parsing of host identifier strings
 type HostIdentifierStringValidator interface {
-	validateHostName(fromHost *HostName) (*ParsedHost, HostNameException)
+	validateHostName(fromHost *HostName) (*ParsedHost, HostNameError)
 
-	validateIPAddressStr(fromString *IPAddressString) (IPAddressProvider, AddressStringException)
+	validateIPAddressStr(fromString *IPAddressString) (IPAddressProvider, AddressStringError)
 
-	validateMACAddressStr(fromString *MACAddressString) (macAddressProvider, AddressStringException)
+	validateMACAddressStr(fromString *MACAddressString) (macAddressProvider, AddressStringError)
 
-	validatePrefixLenStr(fullAddr string, version IPVersion) (PrefixLen, AddressStringException)
+	validatePrefixLenStr(fullAddr string, version IPVersion) (PrefixLen, AddressStringError)
 }
 
 var _ HostIdentifierStringValidator = strValidator{}

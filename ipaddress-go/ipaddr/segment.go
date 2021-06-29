@@ -25,8 +25,8 @@ type addressSegmentInternal struct {
 	addressDivisionInternal
 }
 
-func (seg *addressSegmentInternal) Contains(other AddressStandardSegment) (res bool) {
-	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase or *addressSegmentInternal from AddressStandardSegment
+func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool) {
+	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase or *addressSegmentInternal from AddressSegmentType
 	if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
 		otherSeg := other.ToAddressSegment()
 		res = otherSeg.GetSegmentValue() >= seg.GetSegmentValue() &&
@@ -187,7 +187,7 @@ func (seg *addressSegmentInternal) ToNormalizedString() string {
 	return stringer()
 }
 
-func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	var stringer func() string
 	if with0xPrefix {
 		stringer = func() string {

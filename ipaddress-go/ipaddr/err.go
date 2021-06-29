@@ -6,26 +6,26 @@ import (
 	"strings"
 )
 
-//TODO add some dummy methods to X and x to ensure the hierarchy is enforced.  Since the interfaces have nothing in them, no way to know that right now.
 /*
+Error hierarchy:
 
-AddressException
-	- IncompatibleAddressException
-		- SizeMismatchException
-	- HostIdentifierException
-		- HostNameException
-		- AddressStringException
-	- AddressValueException
-		- InconsistentPrefixException
-		- AddressPositionException
+AddressError
+	- IncompatibleAddressError
+		- SizeMismatchError
+	- HostIdentifierError
+		- HostNameError
+		- AddressStringError
+	- AddressValueError
 
 unused:
 NetworkMismatchException
+InconsistentPrefixException
+AddressPositionException
 AddressConversionException
 PrefixLenException
 */
 
-type AddressException interface {
+type AddressError interface {
 	error
 
 	// GetKey() allows users to implement their own i18n messages.
@@ -35,7 +35,7 @@ type AddressException interface {
 	GetKey() string
 }
 
-type addressException struct {
+type addressError struct {
 	// key to look up the error message
 	key string
 
@@ -43,118 +43,118 @@ type addressException struct {
 	str string
 }
 
-func (a *addressException) Error() string {
+func (a *addressError) Error() string {
 	return lookupStr("ipaddress.address.error") + " " + lookupStr(a.key)
 }
 
-func (a *addressException) GetKey() string {
+func (a *addressError) GetKey() string {
 	return a.key
 }
 
-type HostIdentifierException interface {
-	AddressException
+type HostIdentifierError interface {
+	AddressError
 }
 
-type AddressStringException interface {
-	HostIdentifierException
+type AddressStringError interface {
+	HostIdentifierError
 }
 
-type addressStringException struct {
-	addressException
+type addressStringError struct {
+	addressError
 }
 
-type addressStringNestedErr struct {
-	addressException
-	nested AddressStringException
+type addressStringNestedError struct {
+	addressStringError
+	nested AddressStringError
 }
 
-func (a *addressStringNestedErr) Error() string {
-	return a.addressException.Error() + ": " + a.nested.Error()
+func (a *addressStringNestedError) Error() string {
+	return a.addressError.Error() + ": " + a.nested.Error()
 }
 
-type addressStringIndexErr struct {
-	addressStringException
+type addressStringIndexError struct {
+	addressStringError
 
 	// byte index location in string of the error
 	index int
 }
 
-type HostNameException interface {
-	HostIdentifierException
+type HostNameError interface {
+	HostIdentifierError
 
-	GetAddrErr() AddressStringException //returns the underlying address error, or nil
+	GetAddrError() AddressError //returns the underlying address error, or nil
 }
 
-type hostNameException struct {
-	addressException
+type hostNameError struct {
+	addressError
 }
 
-func (a *hostNameException) GetAddrErr() AddressStringException {
+func (a *hostNameError) GetAddrError() AddressError {
 	return nil
 }
 
-func (a *hostNameException) Error() string {
+func (a *hostNameError) Error() string {
 	return lookupStr("ipaddress.host.error") + " " + lookupStr(a.key)
 }
 
-type hostNameNestedException struct {
-	hostNameException
+type hostNameNestedError struct {
+	hostNameError
 	nested error
 }
 
-type hostAddressNestedErr struct {
-	hostNameException
-	nested AddressStringException
+type hostAddressNestedError struct {
+	hostNameError
+	nested AddressError
 }
 
-func (a *hostAddressNestedErr) GetAddrErr() AddressStringException {
+func (a *hostAddressNestedError) GetAddrError() AddressError {
 	return a.nested
 }
 
-func (a *hostAddressNestedErr) Error() string {
+func (a *hostAddressNestedError) Error() string {
 	return lookupStr("ipaddress.host.error") + " " + a.nested.Error()
 }
 
-type hostNameIndexErr struct {
-	hostNameException
+type hostNameIndexError struct {
+	hostNameError
 
 	// byte index location in string of the error
 	index int
 }
 
-type IncompatibleAddressException interface {
-	AddressException
+type IncompatibleAddressError interface {
+	AddressError
 }
 
-type incompatibleAddressException struct {
-	addressException
+type incompatibleAddressError struct {
+	addressError
 }
 
-type SizeMismatchException interface {
-	IncompatibleAddressException
+type SizeMismatchError interface {
+	IncompatibleAddressError
 }
 
-type sizeMismatchException struct {
-	incompatibleAddressException
+type sizeMismatchError struct {
+	incompatibleAddressError
 }
 
-type AddressValueException interface {
-	AddressException
+type AddressValueError interface {
+	AddressError
 }
 
-type addressValueException struct {
-	addressException
+type addressValueError struct {
+	addressError
 
 	// the value
 	val int
 }
 
-type addressPositionException struct {
-	addressValueException
+type addressPositionError struct {
+	addressValueError
 }
 
-type inconsistentPrefixException struct {
-	addressValueException
+type inconsistentPrefixError struct {
+	addressValueError
 }
 
 ///////////////////////////////////////////////

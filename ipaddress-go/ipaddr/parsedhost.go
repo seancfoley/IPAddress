@@ -11,7 +11,7 @@ import (
 type EmbeddedAddress struct {
 	isUNCIPv6Literal, isReverseDNS bool
 
-	addressStringException AddressStringException
+	addressStringException AddressStringError
 
 	addressProvider IPAddressProvider
 }
@@ -84,7 +84,7 @@ func (host *ParsedHost) isAddressString() bool {
 	return host.getAddressProvider() != nil
 }
 
-func (host *ParsedHost) asAddress() (*IPAddress, IncompatibleAddressException) {
+func (host *ParsedHost) asAddress() (*IPAddress, IncompatibleAddressError) {
 	if host.hasEmbeddedAddress() {
 		return host.getAddressProvider().getProviderAddress()
 	}
@@ -118,7 +118,7 @@ func (host *ParsedHost) asGenericAddressString() *IPAddressString {
 				return NewIPAddressStringParams(host.originalStr, addressProvider.getParameters())
 			}
 			return addr.ToAddressString()
-			//} catch(IncompatibleAddressException e) {
+			//} catch(IncompatibleAddressError e) {
 			//return new IPAddressString(originalStr, addressProvider.getParameters());
 			//}
 		}
@@ -196,8 +196,8 @@ func (host *ParsedHost) getNormalizedLabels() []string {
 }
 
 /*
-	public AddressStringException getAddressStringException() { // this is an exception when something looks like reverse dns string or ip literal string and it is off a bit
-		return embeddedAddress.addressStringException;
+	public AddressStringError getAddressStringException() { // this is an exception when something looks like reverse dns string or ip literal string and it is off a bit
+		return embeddedAddress.addressStringError;
 	}
 */
 

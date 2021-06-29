@@ -52,7 +52,7 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
 	return result
 }
 
-func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6AddressSectionFromSegmentedBytes(bytes, IPv6SegmentCount)
 	if err == nil {
 		addr = NewIPv6Address(section)
@@ -60,7 +60,7 @@ func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueExce
 	return
 }
 
-func NewIPv6AddressFromPrefixedIP(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromPrefixedIP(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6AddressSectionFromPrefixedBytes(bytes, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = NewIPv6Address(section)
@@ -68,7 +68,7 @@ func NewIPv6AddressFromPrefixedIP(bytes []byte, prefixLength PrefixLen) (addr *I
 	return
 }
 
-func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err AddressValueError) {
 	addr, err = NewIPv6AddressFromIP(ipAddr.IP)
 	if err == nil {
 		addr.zone = Zone(ipAddr.Zone)
@@ -82,7 +82,7 @@ func NewIPv6AddressFromVals(vals SegmentValueProvider) (addr *IPv6Address) {
 	return
 }
 
-func NewIPv6AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section := NewIPv6AddressSectionFromPrefixedValues(vals, IPv6SegmentCount, prefixLength)
 	addr = NewIPv6Address(section)
 	return
@@ -94,7 +94,7 @@ func NewIPv6AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv6Ad
 	return
 }
 
-func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueException) {
+func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section := NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals, IPv6SegmentCount, prefixLength)
 	addr = NewIPv6Address(section)
 	return
@@ -193,13 +193,13 @@ func (addr *IPv6Address) GetSegmentCount() int {
 	return addr.GetDivisionCount()
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
-func (addr *IPv6Address) GetGenericDivision(index int) AddressGenericDivision {
+// GetGenericDivision returns the segment at the given index as an DivisionType
+func (addr *IPv6Address) GetGenericDivision(index int) DivisionType {
 	return addr.init().getDivision(index)
 }
 
-// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
-func (addr *IPv6Address) GetGenericSegment(index int) AddressStandardSegment {
+// GetGenericSegment returns the segment at the given index as an AddressSegmentType
+func (addr *IPv6Address) GetGenericSegment(index int) AddressSegmentType {
 	return addr.init().getSegment(index)
 }
 
@@ -220,7 +220,7 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
 }
 
-func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressException) {
+func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().Mask(other.GetSection())
 	if err == nil {
@@ -241,12 +241,12 @@ func (addr *IPv6Address) GetUpper() *IPv6Address {
 	return addr.init().getUpper().ToIPv6Address()
 }
 
-func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressException) {
+func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost()
 	return res.ToIPv6Address(), err
 }
 
-func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressException) {
+func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
 	return res.ToIPv6Address(), err
 }
@@ -255,12 +255,12 @@ func (addr *IPv6Address) ToZeroNetwork() *IPv6Address {
 	return addr.init().toZeroNetwork().ToIPv6Address()
 }
 
-func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressException) {
+func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
 	return res.ToIPv6Address(), err
 }
 
-func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressException) {
+func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
 	return res.ToIPv6Address(), err
 }
@@ -285,7 +285,7 @@ func (addr *IPv6Address) SetPrefixLen(prefixLen BitCount) *IPv6Address {
 	return addr.init().setPrefixLen(prefixLen).ToIPv6Address()
 }
 
-func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressException) {
+func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPv6Address(), err
 }
@@ -572,15 +572,15 @@ func (addr *IPv6Address) ToReverseDNSString() string {
 	return addr.init().toReverseDNSString()
 }
 
-func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toBinaryString(with0bPrefix)
 }
 

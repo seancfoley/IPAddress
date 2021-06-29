@@ -64,10 +64,10 @@ func (grouping *addressDivisionGroupingBase) getDivision(index int) *addressDivi
 //	return grouping.getDivision(index)
 //}
 
-// GetGenericDivision returns the division as an AddressGenericDivision,
+// GetGenericDivision returns the division as an DivisionType,
 // allowing all division types and aggregated division types to be represented by a single type,
 // useful for comparisons and other common uses.
-func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) AddressGenericDivision {
+func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) DivisionType {
 	return grouping.divisions.getGenericDivision(index)
 }
 
@@ -432,7 +432,7 @@ type divArray interface {
 	// Or make those calls use getGenericDivision instead.
 	getDivision(index int) *addressDivisionBase
 
-	getGenericDivision(index int) AddressGenericDivision
+	getGenericDivision(index int) DivisionType
 
 	getDivisionCount() int
 
@@ -454,7 +454,7 @@ func (grouping standardDivArray) getDivision(index int) *addressDivisionBase {
 	return (*addressDivisionBase)(unsafe.Pointer(grouping.divisions[index]))
 }
 
-func (grouping standardDivArray) getGenericDivision(index int) AddressGenericDivision {
+func (grouping standardDivArray) getGenericDivision(index int) DivisionType {
 	return grouping.divisions[index]
 }
 

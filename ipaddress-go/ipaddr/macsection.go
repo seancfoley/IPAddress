@@ -91,7 +91,7 @@ func (section *MACAddressSection) SetPrefixLen(prefixLen BitCount) *MACAddressSe
 	return section.setPrefixLen(prefixLen).ToMACAddressSection()
 }
 
-func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, IncompatibleAddressException) {
+func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
 	return res.ToMACAddressSection(), err
 }
@@ -315,9 +315,9 @@ func (section *MACAddressSection) ToCompressedString() string {
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
-func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressException) {
+func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressError) {
 	return cacheStrErr(&section.getStringCache().dottedString,
-		func() (string, IncompatibleAddressException) {
+		func() (string, IncompatibleAddressError) {
 			dottedGrouping, err := section.GetDottedGrouping()
 			if err != nil {
 				return "", err
@@ -330,7 +330,7 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 		})
 }
 
-func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, IncompatibleAddressException) {
+func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, IncompatibleAddressError) {
 	start := section.addressSegmentIndex
 	segmentCount := section.GetSegmentCount()
 	var newSegs []*AddressDivision
@@ -367,8 +367,8 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 		segment2 := section.GetSegment(segIndex)
 		segIndex++
 		if segment1.isMultiple() && !segment2.IsFullRange() {
-			return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.invalid.joined.ranges"}}
-			//throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+			//throw new IncompatibleAddressError(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
 		vals := &bitsDivisionVals{
 			value:      DivInt((segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()),

@@ -23,7 +23,7 @@ var zeroMACAddressString = NewMACAddressString("", defaultMACAddrParameters)
 
 type macAddrData struct {
 	addressProvider   macAddressProvider
-	validateException AddressStringException
+	validateException AddressStringError
 }
 
 type macAddrStringCache struct {
@@ -75,7 +75,7 @@ func (addrStr *MACAddressString) GetAddress() *MACAddress {
 	return addr
 }
 
-func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressException) {
+func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -83,8 +83,8 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressException) {
 	return provider.getAddress()
 }
 
-// error can be AddressStringException or IncompatibleAddressException
-func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressException) {
+// error can be AddressStringError or IncompatibleAddressError
+func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressError) {
 	addr, err := addrStr.ToAddress()
 	return addr.ToAddress(), err
 }
@@ -93,14 +93,14 @@ func (addrStr *MACAddressString) IsValid() bool {
 	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
 }
 
-func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, AddressStringException) {
+func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, AddressStringError) {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	return addrStr.addressProvider, err
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-func (addrStr *MACAddressString) Validate() AddressStringException {
+func (addrStr *MACAddressString) Validate() AddressStringError {
 	addrStr = addrStr.init()
 	data := addrStr.macAddrData
 	if data == nil {
@@ -142,7 +142,7 @@ func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
 			} else if other.GetAddress() != nil {
 				return false
 			}
-			// both are null, either empty or IncompatibleAddressException
+			// both are null, either empty or IncompatibleAddressError
 			return stringsMatch
 		}
 	} else if !other.IsValid() { // both are invalid

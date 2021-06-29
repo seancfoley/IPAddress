@@ -165,8 +165,6 @@ func (rp *RangeParametersBuilder) AllowSingleWildcard(allow bool) *RangeParamete
 	return rp
 }
 
-//TODO need godocs comments for each param, copy over from Java
-
 type addressStringParameters struct {
 	noEmpty, noAll, noSingleSegment bool
 }

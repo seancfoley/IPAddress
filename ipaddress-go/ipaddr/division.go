@@ -329,8 +329,8 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 	return bigZero().SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
 }
 
-func (div *addressDivisionInternal) Equals(other AddressGenericDivision) bool {
-	if otherDiv, ok := other.(AddressStandardDivision); ok {
+func (div *addressDivisionInternal) Equals(other DivisionType) bool {
+	if otherDiv, ok := other.(StandardDivisionType); ok {
 		if div.IsMultiple() {
 			if other.IsMultiple() {
 				matches, _ := div.matchesStructure(other)
@@ -479,7 +479,7 @@ func (div *addressDivisionInternal) getSplitLowerString(radix int, choppedDigits
 }
 
 func (div *addressDivisionInternal) getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
-	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException {
+	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressError {
 	return toUnsignedSplitRangeString(
 		div.getDivisionValue(),
 		div.getUpperDivisionValue(),
@@ -751,7 +751,7 @@ func cacheStr(cachedString **string, stringer func() string) (str string) {
 	return
 }
 
-func cacheStrErr(cachedString **string, stringer func() (string, IncompatibleAddressException)) (str string, err IncompatibleAddressException) {
+func cacheStrErr(cachedString **string, stringer func() (string, IncompatibleAddressError)) (str string, err IncompatibleAddressError) {
 	cachedVal := *cachedString
 	if cachedVal == nil {
 		str, err = stringer()

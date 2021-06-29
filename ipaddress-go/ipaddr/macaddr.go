@@ -194,13 +194,13 @@ func (addr *MACAddress) GetSegmentCount() int {
 	return addr.GetDivisionCount()
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
-func (addr *MACAddress) GetGenericDivision(index int) AddressGenericDivision {
+// GetGenericDivision returns the segment at the given index as an DivisionType
+func (addr *MACAddress) GetGenericDivision(index int) DivisionType {
 	return addr.init().getDivision(index)
 }
 
-// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
-func (addr *MACAddress) GetGenericSegment(index int) AddressStandardSegment {
+// GetGenericSegment returns the segment at the given index as an AddressSegmentType
+func (addr *MACAddress) GetGenericSegment(index int) AddressSegmentType {
 	return addr.init().getSegment(index)
 }
 
@@ -235,7 +235,7 @@ func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {
 	return addr.init().setPrefixLen(prefixLen).ToMACAddress()
 }
 
-func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressException) {
+func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToMACAddress(), err
 }
@@ -308,12 +308,12 @@ func (addr *MACAddress) ToCompressedString() string {
 	return addr.init().toCompressedString()
 }
 
-func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
-func (addr *MACAddress) ToDottedString() (string, IncompatibleAddressException) {
+func (addr *MACAddress) ToDottedString() (string, IncompatibleAddressError) {
 	return addr.init().GetSection().ToDottedString()
 }
 

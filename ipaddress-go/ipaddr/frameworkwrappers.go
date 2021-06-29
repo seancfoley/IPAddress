@@ -32,13 +32,13 @@ type ExtendedIPSegmentSeries interface {
 
 	ToPrefixBlock() ExtendedIPSegmentSeries
 
-	ToZeroHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException)
+	ToZeroHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
 
-	ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressException)
+	ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
 
-	ToMaxHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException)
+	ToMaxHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
 
-	ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressException)
+	ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
 
 	ToZeroNetwork() ExtendedIPSegmentSeries
 
@@ -126,19 +126,19 @@ func (w WrappedIPAddress) ToPrefixBlock() ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.ToPrefixBlock()}
 }
 
-func (w WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapAddrWithErr(w.IPAddress.ToZeroHostLen(bitCount)) //in IPAddress/Section
 }
 
-func (w WrappedIPAddress) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddress) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapAddrWithErr(w.IPAddress.ToZeroHost()) // in IPAddress/Section/Segment
 }
 
-func (w WrappedIPAddress) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddress) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapAddrWithErr(w.IPAddress.ToMaxHostLen(bitCount))
 }
 
-func (w WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapAddrWithErr(w.IPAddress.ToMaxHost())
 }
 
@@ -229,19 +229,19 @@ func (w WrappedIPAddressSection) ToPrefixBlock() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlock()}
 }
 
-func (w WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapSectWithErr(w.IPAddressSection.ToZeroHostLen(bitCount))
 }
 
-func (w WrappedIPAddressSection) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddressSection) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapSectWithErr(w.IPAddressSection.ToZeroHost())
 }
 
-func (w WrappedIPAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapSectWithErr(w.IPAddressSection.ToMaxHostLen(bitCount))
 }
 
-func (w WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func (w WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	return wrapSectWithErr(w.IPAddressSection.ToMaxHost())
 }
 
@@ -436,14 +436,14 @@ func convSectToIntf(sect *IPAddressSection) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{sect}
 }
 
-func wrapSectWithErr(section *IPAddressSection, err IncompatibleAddressException) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func wrapSectWithErr(section *IPAddressSection, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
 		return WrappedIPAddressSection{section}, nil
 	}
 	return nil, err
 }
 
-func wrapAddrWithErr(addr *IPAddress, err IncompatibleAddressException) (ExtendedIPSegmentSeries, IncompatibleAddressException) {
+func wrapAddrWithErr(addr *IPAddress, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
 		return WrappedIPAddress{addr}, nil
 	}

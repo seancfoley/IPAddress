@@ -51,7 +51,7 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) clearPrefixOrMask() {
 	parsedQual.mask = nil
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) (err IncompatibleAddressException) {
+func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) (err IncompatibleAddressError) {
 	if parsedQual.networkPrefixLength == nil ||
 		(other.networkPrefixLength != nil && *other.networkPrefixLength < *parsedQual.networkPrefixLength) {
 		parsedQual.networkPrefixLength = other.networkPrefixLength

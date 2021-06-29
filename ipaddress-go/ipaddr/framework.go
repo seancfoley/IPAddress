@@ -52,7 +52,7 @@ type AddressComponent interface { //AddressSegment and above, AddressSegmentSeri
 	TestBit(BitCount) bool
 	IsOneBit(BitCount) bool
 
-	ToHexString(bool) (string, IncompatibleAddressException)
+	ToHexString(bool) (string, IncompatibleAddressError)
 	ToNormalizedString() string
 }
 
@@ -72,7 +72,7 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 
 //  as discussed in stringparams.go
 // Likely you will eventually merge AddressStringDivisionSeries with AddressDivisionSeries
-// Likely you will merge AddressStringDivision into AddressGenericDivision too
+// Likely you will merge AddressStringDivision into DivisionType too
 
 //
 //
@@ -101,24 +101,8 @@ type AddressDivisionSeries interface {
 
 	CompareSize(AddressDivisionSeries) int
 
-	GetGenericDivision(index int) AddressGenericDivision // useful for comparisons
+	GetGenericDivision(index int) DivisionType // useful for comparisons
 }
-
-// IPAddressDivisionSeries serves as a common interface to all IP division groupings (including large) and IP addresses
-//type IPAddressDivisionSeries interface {
-//	AddressDivisionSeries
-//
-//	GetGenericIPDivision(index int) IPAddressGenericDivision // useful for comparisons
-//}
-//
-//var (
-//	_ IPAddressDivisionSeries = &IPAddressSection{}
-//	_ IPAddressDivisionSeries = &IPv4AddressSection{}
-//	_ IPAddressDivisionSeries = &IPv6AddressSection{}
-//	_ IPAddressDivisionSeries = &IPAddress{}
-//	_ IPAddressDivisionSeries = &IPv4Address{}
-//	_ IPAddressDivisionSeries = &IPv6Address{}
-//)
 
 type addrSegmentSeries interface {
 	AddressComponent
@@ -131,7 +115,7 @@ type addrSegmentSeries interface {
 	ToCanonicalString() string
 	ToCompressedString() string
 
-	GetGenericSegment(index int) AddressStandardSegment
+	GetGenericSegment(index int) AddressSegmentType
 }
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
@@ -166,11 +150,11 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	ToCompressedWildcardString() string
 	ToSQLWildcardString() string
 	//ToReverseDNSLookupString() string //TODO
-	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException)
+	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToSegmentedBinaryString() string
-	ToOctalString(withPrefix bool) (string, IncompatibleAddressException)
+	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
 
-	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) AddressGenericDivision
+	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }
 
 // GenericGroupingType represents any division grouping
@@ -182,41 +166,36 @@ type GenericGroupingType interface {
 	Equals(GenericGroupingType) bool
 }
 
-// AddressDivisionGroupingType represents any standard division grouping (divisions are 64 bits or less)
+// StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
-type AddressDivisionGroupingType interface { //TODO rename StandardDivisionGroupingType
+type StandardDivisionGroupingType interface {
 	GenericGroupingType
 
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
 }
 
-var (
-	_ AddressDivisionGroupingType = &AddressDivisionGrouping{}
-)
+var _ StandardDivisionGroupingType = &AddressDivisionGrouping{}
 
 // AddressSectionType represents any address section
 // that can be converted to/from the base type AddressSection,
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
 type AddressSectionType interface {
-	AddressDivisionGroupingType
+	StandardDivisionGroupingType
 	addrSegmentSeries
 
 	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection
 }
 
-var (
-	_ AddressSectionType = &AddressSection{}
-	_ AddressSectionType = &IPAddressSection{}
-	_ AddressSectionType = &IPv4AddressSection{}
-	_ AddressSectionType = &IPv6AddressSection{}
-	_ AddressSectionType = &MACAddressSection{}
-)
+var _, _, _, _, _ AddressSectionType = &AddressSection{},
+	&IPAddressSection{},
+	&IPv4AddressSection{},
+	&IPv6AddressSection{},
+	&MACAddressSection{}
 
 // AddressType represents any address, all of which can be represented by the base type Address.
 // This includes IPAddress, IPv4Address, IPv6Address, and MACAddress.
 type AddressType interface {
-	//AddressDivisionSeries
 	AddressSegmentSeries
 
 	Equals(AddressType) bool
@@ -224,11 +203,10 @@ type AddressType interface {
 	ToAddress() *Address
 }
 
-var (
-	_ AddressType = &Address{}
-	_ AddressType = &MACAddress{}
-)
+var _, _ AddressType = &Address{}, &MACAddress{}
 
+// IPAddressType represents any IP address, all of which can be represented by the base type IPAddress.
+// This includes IPv4Address, and IPv6Address.
 type IPAddressType interface {
 	AddressType
 	IPAddressRange
@@ -236,11 +214,9 @@ type IPAddressType interface {
 	ToIPAddress() *IPAddress
 }
 
-var (
-	_ IPAddressType = &IPAddress{}
-	_ IPAddressType = &IPv4Address{}
-	_ IPAddressType = &IPv6Address{}
-)
+var _, _, _ IPAddressType = &IPAddress{},
+	&IPv4Address{},
+	&IPv6Address{}
 
 type IPAddressSeqRangeType interface {
 	IPAddressRange
@@ -250,37 +226,6 @@ type IPAddressSeqRangeType interface {
 	ToIPAddressSeqRange() *IPAddressSeqRange
 }
 
-var (
-	_ IPAddressSeqRangeType = &IPAddressSeqRange{}
-	_ IPAddressSeqRangeType = &IPv4AddressSeqRange{}
-	_ IPAddressSeqRangeType = &IPv6AddressSeqRange{}
-)
-
-//
-//
-//
-//
-//
-//TODO think some more about using the names GenericAddress and AddressGenericDivisionGrouping or GenericAddressDivisionGrouping
-// to be consistent with AddressGenericDivision
-// In fact, all the names need thought, to balance:
-// 1. consistency with Java
-// 2. distinguish the new interfaces that span the class hierarchies in Java
-// 3. try to keep names short a la go style
-// 4. try to remain descriptive
-// 5. rename interfaces in Java too if it helps (1) although I am leaning away from that, at least in the short term
-
-//Logically AddressDivisionSeries would be implemened only by AddressDivisionGrouping
-//AddressSegmentSeries by AddressSection and Address
-//AddressGenericDivision by AddressDivision
-//
-// Also, in Go, you cannot have the same function appearing in two embedded interfaces, which is lame
-// But I guess in the end, since the only thing that matters is the methods themselves, can work around it,
-// the embedding is really only a convenience, you could literally list every method in every interface
-// Still, it's a PITA
-//
-// do not see the need for this interface, since I am doing away with IPAddressDivision
-//type IPAddressGenericDivision interface { // IPAddressDivision, IPAddressLargeDivision
-//	AddressGenericDivision
-//	IPAddressStringDivision
-//}
+var _, _, _ IPAddressSeqRangeType = &IPAddressSeqRange{},
+	&IPv4AddressSeqRange{},
+	&IPv6AddressSeqRange{}

@@ -635,7 +635,7 @@ func checkSubnet(series AddressDivisionSeries, prefixLength BitCount) BitCount {
 	return checkBitCount(prefixLength, series.GetBitCount())
 }
 
-func checkDiv(div AddressGenericDivision, prefixLength BitCount) BitCount {
+func checkDiv(div DivisionType, prefixLength BitCount) BitCount {
 	return checkBitCount(prefixLength, div.GetBitCount())
 }
 

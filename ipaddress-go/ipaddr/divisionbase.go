@@ -224,7 +224,7 @@ func (div *addressDivisionBase) getAddrType() addrType {
 	return vals.getAddrType()
 }
 
-func (div *addressDivisionBase) matchesStructure(other AddressGenericDivision) (res bool, addrType addrType) {
+func (div *addressDivisionBase) matchesStructure(other DivisionType) (res bool, addrType addrType) {
 	addrType = div.getAddrType()
 	if addrType != other.getAddrType() || (addrType.isNil() && (div.GetBitCount() != other.GetBitCount())) {
 		return
@@ -233,7 +233,7 @@ func (div *addressDivisionBase) matchesStructure(other AddressGenericDivision) (
 	return
 }
 
-func (div *addressDivisionBase) Equals(other AddressGenericDivision) (res bool) {
+func (div *addressDivisionBase) Equals(other DivisionType) (res bool) {
 	matches, _ := div.matchesStructure(other)
 	if div.isMultiple() {
 		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),

@@ -43,11 +43,11 @@ const (
 type IPAddressProvider interface {
 	getType() IPType
 
-	getProviderHostAddress() (*IPAddress, IncompatibleAddressException)
+	getProviderHostAddress() (*IPAddress, IncompatibleAddressError)
 
-	getProviderAddress() (*IPAddress, IncompatibleAddressException)
+	getProviderAddress() (*IPAddress, IncompatibleAddressError)
 
-	getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressException)
+	getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError)
 
 	isSequential() bool
 
@@ -56,13 +56,13 @@ type IPAddressProvider interface {
 	getProviderMask() *IPAddress
 
 	// TODO getDivisionGrouping
-	//default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
+	//default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {
 	//	return getProviderAddress();
 	//}
 
-	providerCompare(IPAddressProvider) (int, IncompatibleAddressException)
+	providerCompare(IPAddressProvider) (int, IncompatibleAddressError)
 
-	providerEquals(IPAddressProvider) (bool, IncompatibleAddressException)
+	providerEquals(IPAddressProvider) (bool, IncompatibleAddressError)
 
 	getProviderIPVersion() IPVersion
 
@@ -195,11 +195,11 @@ func (p *ipAddrProvider) isSequential() bool {
 	return false
 }
 
-func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
+func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
 	return nil, nil
 }
 
-func (p *ipAddrProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
+func (p *ipAddrProvider) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -207,7 +207,7 @@ func (p *ipAddrProvider) getProviderSeqRange() *IPAddressSeqRange {
 	return nil
 }
 
-func (p *ipAddrProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressException) {
+func (p *ipAddrProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -263,7 +263,7 @@ func (p *ipAddrProvider) getParameters() IPAddressStringParameters {
 	return nil
 }
 
-func providerCompare(p, other IPAddressProvider) (res int, err IncompatibleAddressException) {
+func providerCompare(p, other IPAddressProvider) (res int, err IncompatibleAddressError) {
 	if p == other {
 		return
 	}
@@ -293,7 +293,7 @@ func providerCompare(p, other IPAddressProvider) (res int, err IncompatibleAddre
 * @param o
 * @return
  */
-func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddressException) {
+func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddressError) {
 	if p == other {
 		res = true
 		return
@@ -309,16 +309,7 @@ func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddre
 			return
 		}
 		if otherValue != nil {
-			// TODO equals, but also, think about struct ==, would be nice if that worked!
-			// But won't with cache, UNLESS I make it so ALL addresses the same have same cache ALWAYS, which is possible!
-			// Actually no, not possible, you would need a cache for every address, not every segment.  Too many.
-			//
-			// You gotta be careful, once you support it you don't want to renege
-			// Seems common to have "equal" methods. eg https://godoc.org/bytes#Equal
-			// There are vays, namely separate the stuff for comparison: https://stackoverflow.com/questions/47134293/compare-structs-except-one-field-golang
-			// BUT note that == does not work on slices!  But it does work on arrays.  And you will likely use slices in sections.
-			//https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
-			//res = value.equals(otherValue)
+			// TODO equals
 			return
 		} else {
 			return
@@ -356,11 +347,11 @@ func (p *nullProvider) getType() IPType {
 	return p.ipType
 }
 
-func (p *nullProvider) providerCompare(other IPAddressProvider) (int, IncompatibleAddressException) {
+func (p *nullProvider) providerCompare(other IPAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(p, other)
 }
 
-func (p *nullProvider) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressException) {
+func (p *nullProvider) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressError) {
 	return providerEquals(p, other)
 }
 
@@ -416,11 +407,11 @@ type cachedAddressProvider struct {
 //TODO do not forget you also need these two in all top level classes, including ParsedIPAddress, the mask, all and empty providers
 // they are needed becaue of virtual calls to getType() and getProviderAddress()
 
-func (cached *cachedAddressProvider) providerCompare(other IPAddressProvider) (int, IncompatibleAddressException) {
+func (cached *cachedAddressProvider) providerCompare(other IPAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(cached, other)
 }
 
-func (cached *cachedAddressProvider) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressException) {
+func (cached *cachedAddressProvider) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressError) {
 	return providerEquals(cached, other)
 }
 
@@ -428,7 +419,7 @@ func (cached *cachedAddressProvider) isProvidingIPAddress() bool {
 	return true
 }
 
-func (cached *cachedAddressProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressException) {
+func (cached *cachedAddressProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError) {
 	thisVersion := cached.getProviderIPVersion()
 	if version != thisVersion {
 		return nil, nil
@@ -456,7 +447,7 @@ func (cached *cachedAddressProvider) isSequential() bool {
 //	return cached.addressCreator == nil || cached.isItemCreated()
 //}
 
-func (cached *cachedAddressProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
+func (cached *cachedAddressProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
 	res := cached.hostAddress
 	if res == nil {
 		_, res = cached.getCachedAddresses()
@@ -465,7 +456,7 @@ func (cached *cachedAddressProvider) getProviderHostAddress() (*IPAddress, Incom
 	//return cached.getCachedAddresses().getHostAddress(), nil
 }
 
-func (cached *cachedAddressProvider) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
+func (cached *cachedAddressProvider) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
 	res := cached.address
 	if res == nil {
 		res, _ = cached.getCachedAddresses()
@@ -559,7 +550,7 @@ func (versioned *VersionedAddressCreator) getType() IPType {
 	return fromVersion(versioned.adjustedVersion)
 }
 
-func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressException) {
+func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressError) {
 	index := version.index()
 	if index >= INDETERMINATE_VERSION.index() {
 		return
@@ -652,11 +643,11 @@ type LoopbackCreator struct {
 	zone string
 }
 
-func (loop *LoopbackCreator) providerCompare(other IPAddressProvider) (int, IncompatibleAddressException) {
+func (loop *LoopbackCreator) providerCompare(other IPAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(loop, other)
 }
 
-func (loop *LoopbackCreator) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressException) {
+func (loop *LoopbackCreator) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressError) {
 	return providerEquals(loop, other)
 }
 
@@ -674,14 +665,14 @@ func (adjusted *AdjustedAddressCreator) getProviderNetworkPrefixLength() PrefixL
 	return adjusted.networkPrefixLength
 }
 
-func (adjusted *AdjustedAddressCreator) getProviderAddress() (*IPAddress, IncompatibleAddressException) {
+func (adjusted *AdjustedAddressCreator) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
 	return adjusted.VersionedAddressCreator.getProviderAddress()
 }
 
-func (adjusted *AdjustedAddressCreator) getProviderHostAddress() (*IPAddress, IncompatibleAddressException) {
+func (adjusted *AdjustedAddressCreator) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
@@ -868,7 +859,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //		}
 //
 //		@Override
-//		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressException {
+//		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {
 //			if(isProvidingAllAddresses()) {
 //				return null;
 //			}
@@ -879,7 +870,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //				// there is a mask
 //				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLength(false);
 //				if(hostMaskPrefixLen == null) { // not a host mask
-//					throw new IncompatibleAddressException(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
+//					throw new IncompatibleAddressError(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
 //				}
 //				IPAddress hostMask = network.getHostMask(hostMaskPrefixLen);
 //				return hostMask.toPrefixBlock();

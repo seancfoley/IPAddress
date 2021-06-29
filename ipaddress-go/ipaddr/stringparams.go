@@ -204,7 +204,7 @@ type divStringProvider interface {
 		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder)
 
 	getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
-		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressException
+		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressError
 
 	getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
 		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int
@@ -432,8 +432,8 @@ func (params *addressStringParams) isReverseSplitDigits() bool {
 // which will call into the corresponding types on the division and segment side
 // the types will be interfaces at the two bottom levels:
 // - AddressStringDivisionSeries for all divisions
-//		This can use AddressGenericDivision
-//		I believe I can merge AddressDivisionSeries/AddressStringDivisionSeries AddressGenericDivision/AddressStringDivision
+//		This can use DivisionType
+//		I believe I can merge AddressDivisionSeries/AddressStringDivisionSeries DivisionType/AddressStringDivision
 //		But, for the time being, can keep those 4 types. merge them later
 // - IPAddressDivisionSeries, an interface to represent the ip div/seg types
 //		IPAddressSection, IPv4AddressSection, IPv6AddressSection, IPAddressLargeDivision
@@ -681,7 +681,7 @@ func (params *addressStringParams) appendSegments(builder *strings.Builder, part
 	return builder
 }
 
-func (params *addressStringParams) appendSingleDivision(seg AddressGenericDivision, builder *strings.Builder) int {
+func (params *addressStringParams) appendSingleDivision(seg DivisionType, builder *strings.Builder) int {
 	writer := stringWriter{seg}
 	if builder == nil {
 		return params.getAddressLabelLength() + writer.getStandardString(0, params, nil)
@@ -691,11 +691,11 @@ func (params *addressStringParams) appendSingleDivision(seg AddressGenericDivisi
 	return 0
 }
 
-func (params *addressStringParams) getDivisionStringLength(seg AddressGenericDivision) int {
+func (params *addressStringParams) getDivisionStringLength(seg DivisionType) int {
 	return params.appendSingleDivision(seg, nil)
 }
 
-func (params *addressStringParams) appendDivision(builder *strings.Builder, seg AddressGenericDivision) *strings.Builder {
+func (params *addressStringParams) appendDivision(builder *strings.Builder, seg DivisionType) *strings.Builder {
 	params.appendSingleDivision(seg, builder)
 	return builder
 }
@@ -957,7 +957,7 @@ func (params *ipAddressStringParams) append(builder *strings.Builder, addr Addre
 	return builder
 }
 
-func (params *ipAddressStringParams) appendSegment(segmentIndex int, div AddressGenericDivision, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) int {
+func (params *ipAddressStringParams) appendSegment(segmentIndex int, div DivisionType, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) int {
 	//div := part.GetGenericIPDivision(segmentIndex)
 	writer := stringWriter{div}
 	//prefixLen := div.GetDivisionPrefixLength()
@@ -1314,19 +1314,19 @@ func (params *ipv6v4MixedParams) clone() *ipv6v4MixedParams {
 type stringWriter struct {
 	//divStringProvider // the division itself, seen as a string provider
 
-	//div AddressGenericDivision // the division itself
+	//div DivisionType // the division itself
 
-	AddressGenericDivision
+	DivisionType
 
 	// do these really need to be function pointers?
 	// MAYBE
 	// 1. THEY are methods in the divs to be accessible publicly , at least two are
 	// 2. Those public methods will scale up, so technically maybe they do not need to be here
-	// 3. BUT, are they in AddressGenericDivision?  Maybe two will be
+	// 3. BUT, are they in DivisionType?  Maybe two will be
 	// 4. Maybe the other could be moved to divStringProvider?
 	//maybe just call these on the div itself?
 	//in there they should scale up
-	//and move them into AddressGenericDivision too
+	//and move them into DivisionType too
 	//
 	//getStringAsLower  func() string
 	//getString         func() string
@@ -1346,7 +1346,7 @@ type stringWriter struct {
 //}
 
 func (writer stringWriter) getStringAsLower() string {
-	return writer.AddressGenericDivision.getStringAsLower()
+	return writer.DivisionType.getStringAsLower()
 }
 
 func (writer stringWriter) getString() string {
@@ -1790,7 +1790,7 @@ func (writer stringWriter) getRangeStringWithCounts(
 	radix := params.getRadix()
 	rangeSeparator := params.getWildcards().GetRangeSeparator()
 	uppercase := params.isUppercase()
-	return getRangeString(writer.AddressGenericDivision, rangeSeparator, lowerLeadingZerosCount, upperLeadingZerosCount, stringPrefix, radix, uppercase, maskUpper, appendable)
+	return getRangeString(writer.DivisionType, rangeSeparator, lowerLeadingZerosCount, upperLeadingZerosCount, stringPrefix, radix, uppercase, maskUpper, appendable)
 }
 
 func (writer stringWriter) writeSplitRangeString(

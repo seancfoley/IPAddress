@@ -27,7 +27,7 @@ var zeroIPAddressString = NewIPAddressString("")
 
 type addrData struct {
 	addressProvider   IPAddressProvider
-	validateException AddressStringException
+	validateException AddressStringError
 }
 
 type ipAddrStringCache struct {
@@ -85,8 +85,8 @@ func (addrStr *IPAddressString) GetAddress() *IPAddress {
 	return addr
 }
 
-// error can be AddressStringException or IncompatibleAddressException
-func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressException) {
+// error can be AddressStringError or IncompatibleAddressError
+func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -100,8 +100,8 @@ func (addrStr *IPAddressString) GetHostAddress() *IPAddress {
 	return addr
 }
 
-// error can be AddressStringException or IncompatibleAddressException
-func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressException) {
+// error can be AddressStringError or IncompatibleAddressError
+func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -110,25 +110,25 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressException) {
 }
 
 // Validates that this string is a valid IPv4 address, and if not, returns an error with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) ValidateIPv4() AddressStringException {
+func (addrStr *IPAddressString) ValidateIPv4() AddressStringError {
 	return addrStr.ValidateVersion(IPv4)
 }
 
 // Validates that this string is a valid IPv6 address, and if not, returns an error with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) ValidateIPv6() AddressStringException {
+func (addrStr *IPAddressString) ValidateIPv6() AddressStringError {
 	return addrStr.ValidateVersion(IPv6)
 }
 
 var validator strValidator
 
-func (addrStr *IPAddressString) getAddressProvider() (IPAddressProvider, AddressStringException) {
+func (addrStr *IPAddressString) getAddressProvider() (IPAddressProvider, AddressStringError) {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	return addrStr.addressProvider, err
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) Validate() AddressStringException {
+func (addrStr *IPAddressString) Validate() AddressStringError {
 	addrStr = addrStr.init()
 	data := addrStr.addrData
 	if data == nil {
@@ -143,7 +143,7 @@ func (addrStr *IPAddressString) Validate() AddressStringException {
 	return data.validateException
 }
 
-func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressStringException {
+func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressStringError {
 	err := addrStr.Validate()
 	if err != nil {
 		return err
@@ -152,11 +152,11 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.isIPv4() {
 			if !addrVersion.isIPv4() {
-				return &addressStringException{addressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
+				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
 			}
 		} else if version.isIPv6() {
 			if !addrVersion.isIPv6() {
-				return &addressStringException{addressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
+				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
 			}
 		}
 	}
@@ -224,6 +224,7 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 
 			// When a value provider produces no value, equality and comparison are based on the enum IPType,
 			// which can be null.
+			var err AddressError
 			addrProvider, err := addrStr.getAddressProvider()
 			if err != nil {
 				return stringsMatch

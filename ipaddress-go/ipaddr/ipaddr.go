@@ -192,7 +192,7 @@ func (addr *ipAddressInternal) IsZeroHostLen(prefLen BitCount) bool {
 	return section == nil || section.ToIPAddressSection().IsZeroHostLen(prefLen)
 }
 
-func (addr *ipAddressInternal) toZeroHost() (res *IPAddress, err IncompatibleAddressException) {
+func (addr *ipAddressInternal) toZeroHost() (res *IPAddress, err IncompatibleAddressError) {
 	section, err := addr.section.toIPAddressSection().toZeroHost()
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -200,7 +200,7 @@ func (addr *ipAddressInternal) toZeroHost() (res *IPAddress, err IncompatibleAdd
 	return
 }
 
-func (addr *ipAddressInternal) toZeroHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressException) {
+func (addr *ipAddressInternal) toZeroHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressError) {
 	section, err := addr.section.toIPAddressSection().toZeroHostLen(prefixLength)
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -212,7 +212,7 @@ func (addr *ipAddressInternal) toZeroNetwork() *IPAddress {
 	return addr.checkIdentity(addr.section.toIPAddressSection().toZeroNetwork())
 }
 
-func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddressException) {
+func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddressError) {
 	section, err := addr.section.toIPAddressSection().toMaxHost()
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -220,7 +220,7 @@ func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddr
 	return
 }
 
-func (addr *ipAddressInternal) toMaxHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressException) {
+func (addr *ipAddressInternal) toMaxHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressError) {
 	section, err := addr.section.toIPAddressSection().toMaxHostLen(prefixLength)
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -259,7 +259,7 @@ func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries 
 	return spanWithPrefixBlocks(wrapped)
 }
 
-func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
 		if with0Prefix {
@@ -268,14 +268,14 @@ func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, Incompat
 			cacheField = &addr.getStringCache().octalString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressException) {
+			func() (string, IncompatibleAddressError) {
 				return addr.section.ToIPAddressSection().toOctalStringZoned(with0Prefix, addr.zone)
 			})
 	}
 	return addr.section.ToIPAddressSection().ToOctalString(with0Prefix)
 }
 
-func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
 		if with0bPrefix {
@@ -284,7 +284,7 @@ func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, Incomp
 			cacheField = &addr.getStringCache().binaryString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressException) {
+			func() (string, IncompatibleAddressError) {
 				return addr.section.ToIPAddressSection().toBinaryStringZoned(with0bPrefix, addr.zone)
 			})
 	}
@@ -472,13 +472,13 @@ func (addr *IPAddress) GetSegmentCount() int {
 	return addr.getDivisionCount()
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
-func (addr *IPAddress) GetGenericDivision(index int) AddressGenericDivision {
+// GetGenericDivision returns the segment at the given index as an DivisionType
+func (addr *IPAddress) GetGenericDivision(index int) DivisionType {
 	return addr.getDivision(index)
 }
 
-// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
-func (addr *IPAddress) GetGenericSegment(index int) AddressStandardSegment {
+// GetGenericSegment returns the segment at the given index as an AddressSegmentType
+func (addr *IPAddress) GetGenericSegment(index int) AddressSegmentType {
 	return addr.getSegment(index)
 }
 
@@ -513,11 +513,11 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 	return addr.init().getUpper().ToIPAddress()
 }
 
-func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHost()
 }
 
-func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHostLen(prefixLength)
 }
 
@@ -525,11 +525,11 @@ func (addr *IPAddress) ToZeroNetwork() *IPAddress {
 	return addr.init().toZeroNetwork()
 }
 
-func (addr *IPAddress) ToMaxHost() (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) ToMaxHost() (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toMaxHost()
 }
 
-func (addr *IPAddress) ToMaxHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) ToMaxHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toMaxHostLen(prefixLength)
 }
 
@@ -553,7 +553,7 @@ func (addr *IPAddress) SetPrefixLen(prefixLen BitCount) *IPAddress {
 	return addr.init().setPrefixLen(prefixLen).ToIPAddress()
 }
 
-func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPAddress(), err
 }
@@ -718,13 +718,13 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 //TODO SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
 //// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
 //// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
-// All of these with IPAddress arguments, we will pass IncompatibleAddressException with them, for the case where the arg does not match the IPAddress  version.
+// All of these with IPAddress arguments, we will pass IncompatibleAddressError with them, for the case where the arg does not match the IPAddress  version.
 // We only do this in IPAddress, not IPAddressSection.  The rationale for that in Java was that you could convert addresses but not sections.
 // The rationale here is that span, merge, mask, etc are really methods targeted for addresses and not sections and you do not really need to put them in sections too.
 // The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
 // Becauase we do have the type-safe versions.
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressException) {
+func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
@@ -734,7 +734,7 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
 		}
 	}
-	return nil, &incompatibleAddressException{addressException{str: "ipaddress.error.ipVersionMismatch"}}
+	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipVersionMismatch"}}
 }
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
@@ -745,7 +745,7 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 //
 // If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 // that cannot be represented as a contiguous range within each segment, then an error is returned
-func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
 			result, err := thisAddr.Mask(oth)
@@ -757,12 +757,12 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressEx
 			return result.ToIPAddress(), err
 		}
 	}
-	return nil, &incompatibleAddressException{addressException{str: "ipaddress.error.ipMismatch"}}
+	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
 }
 
-func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningPrefixBlocks(
@@ -786,9 +786,9 @@ func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
 	return true
 }
 
-func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningSequentialBlocks(
@@ -802,9 +802,9 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddres
 // MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressError) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedSequentialBlocks(series)
@@ -815,9 +815,9 @@ func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddres
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
+func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressError) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedPrefixBlocks(series)
@@ -893,15 +893,15 @@ func (addr *IPAddress) ToCompressedWildcardString() string {
 	return addr.init().toCompressedWildcardString()
 }
 
-func (addr *IPAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *IPAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+func (addr *IPAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toBinaryString(with0bPrefix)
 }
 

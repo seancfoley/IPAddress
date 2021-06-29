@@ -734,10 +734,10 @@ func toUnsignedSplitRangeString(
 	splitDigitSeparator byte,
 	reverseSplitDigits bool,
 	stringPrefix string,
-	appendable *strings.Builder) (err IncompatibleAddressException) {
+	appendable *strings.Builder) (err IncompatibleAddressError) {
 	//A split can be invalid.  Consider xxx.456-789.
 	//The number 691, which is in the range 456-789, is not in the range 4-7.5-8.6-9
-	//In such cases we throw IncompatibleAddressException
+	//In such cases we throw IncompatibleAddressError
 	//To avoid such cases, we must have lower digits covering the full range, for example 400-799 in which lower digits are both 0-9 ranges.
 	//If we have 401-799 then 500 will not be included when splitting.
 	//If we have 400-798 then 599 will not be included when splitting.
@@ -869,7 +869,7 @@ func appendRangeDigits(
 	splitDigitSeparator byte,
 	reverseSplitDigits bool,
 	stringPrefix string,
-	appendable *strings.Builder) IncompatibleAddressException {
+	appendable *strings.Builder) IncompatibleAddressError {
 
 	dig := DIGITS
 	if uppercase {
@@ -932,7 +932,7 @@ func appendRangeDigits(
 			}
 		} else {
 			if !previousWasFullRange {
-				return &incompatibleAddressException{addressException{str: fmt.Sprintf("%d-%d", lower, upper), key: "ipaddress.error.splitMismatch"}}
+				return &incompatibleAddressError{addressError{str: fmt.Sprintf("%d-%d", lower, upper), key: "ipaddress.error.splitMismatch"}}
 			}
 			previousWasFullRange = (lowerDigit == 0) && (upperDigit == uradix-1)
 			if previousWasFullRange && len(wildcard) > 0 {

@@ -55,8 +55,8 @@ const (
 	iprangetype   = 0
 )
 
-func mapDivision(genericDiv AddressGenericDivision) int {
-	if div, ok := genericDiv.(AddressStandardDivision); ok {
+func mapDivision(genericDiv DivisionType) int {
+	if div, ok := genericDiv.(StandardDivisionType); ok {
 		addrDiv := div.ToAddressDivision()
 		if addrDiv.IsIPv6AddressSegment() {
 			return ipv6segtype
@@ -84,7 +84,7 @@ func mapDivision(genericDiv AddressGenericDivision) int {
 }
 
 func mapGrouping(series AddressDivisionSeries) int {
-	if grouping, ok := series.(AddressDivisionGroupingType); ok {
+	if grouping, ok := series.(StandardDivisionGroupingType); ok {
 		group := grouping.ToAddressDivisionGrouping()
 		if group.IsIPv6AddressSection() {
 			return ipv6sectype
@@ -101,7 +101,7 @@ func mapGrouping(series AddressDivisionSeries) int {
 			return sectype
 		}
 		return standardgroupingtype
-	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO
+	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO later
 	//	return -2;
 	//}
 	return 0
@@ -205,7 +205,7 @@ func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int 
 	return comp.compareParts(one, two)
 }
 
-func (comp AddressComparator) CompareSegments(one, two AddressStandardSegment) int {
+func (comp AddressComparator) CompareSegments(one, two AddressSegmentType) int {
 	result := mapDivision(one) - mapDivision(two)
 	if result != 0 {
 		return result
@@ -213,9 +213,9 @@ func (comp AddressComparator) CompareSegments(one, two AddressStandardSegment) i
 	return comp.compareSegValues(one.GetUpperSegmentValue(), one.GetSegmentValue(), two.GetUpperSegmentValue(), two.GetSegmentValue())
 }
 
-func (comp AddressComparator) CompareDivisions(one, two AddressGenericDivision) int {
-	if addrSeg1, ok := one.(AddressStandardSegment); ok {
-		if addrSeg2, ok := two.(AddressStandardSegment); ok {
+func (comp AddressComparator) CompareDivisions(one, two DivisionType) int {
+	if addrSeg1, ok := one.(AddressSegmentType); ok {
+		if addrSeg2, ok := two.(AddressSegmentType); ok {
 			return comp.CompareSegments(addrSeg1, addrSeg2)
 		}
 	}
@@ -227,8 +227,8 @@ func (comp AddressComparator) CompareDivisions(one, two AddressGenericDivision) 
 	if result != 0 {
 		return result
 	}
-	if addrDiv1, ok := one.(AddressStandardDivision); ok {
-		if addrDiv2, ok := two.(AddressStandardDivision); ok {
+	if addrDiv1, ok := one.(StandardDivisionType); ok {
+		if addrDiv2, ok := two.(StandardDivisionType); ok {
 			div1 := addrDiv1.ToAddressDivision()
 			div2 := addrDiv2.ToAddressDivision()
 			return comp.compareValues(div1.GetUpperDivisionValue(), div1.GetDivisionValue(), div2.GetUpperDivisionValue(), div2.GetDivisionValue())
@@ -263,10 +263,10 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	//			the use mapping to compare address sections (map to type with type switch and ints, then if both same type, use generic compare(AddressSection one, two))
 	//		1c compare division series types
 	//		1d compare division series for general case when 1c types the same
-	//				this checks for both AddressDivisionGroupingType (DONE), so we can use longs,
+	//				this checks for both StandardDivisionGroupingType (DONE), so we can use longs,
 	//				if either not, then we use bytes and AddressDivisionSeries
-	// 2. type assertion for AddressGenericDivision, covering all divisions, including large
-	//		2a check for AddressStandardSegment with type assertion
+	// 2. type assertion for DivisionType, covering all divisions, including large
+	//		2a check for AddressSegmentType with type assertion
 	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
 	//		2b compare division types (ie mapDivision)
 	//		2c check bit diff
@@ -280,10 +280,10 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// AddressDivisionSeries (split off all division groupings including large)
 	// AddressType to convert to Address
 	// AddressSectionType to convert to AddressSection
-	// AddressDivisionGroupingType (all standard divisons) so we can grab longs when comparing divisions
-	// AddressGenericDivision (all divisions including large)
-	// AddressStandardSegment to convert to AddressSegment
-	// AddressStandardDivision so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
+	// StandardDivisionGroupingType (all standard divisons) so we can grab longs when comparing divisions
+	// DivisionType (all divisions including large)
+	// AddressSegmentType to convert to AddressSegment
+	// StandardDivisionType so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
 	// IPAddressSeqRangeType (split off all ranges)
 	if divSeries1, ok := one.(AddressDivisionSeries); ok {
 		if divSeries2, ok := two.(AddressDivisionSeries); ok {
@@ -291,8 +291,8 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		} else {
 			return 1
 		}
-	} else if div1, ok := one.(AddressGenericDivision); ok {
-		if div2, ok := two.(AddressGenericDivision); ok {
+	} else if div1, ok := one.(DivisionType); ok {
+		if div2, ok := two.(DivisionType); ok {
 			return comp.CompareDivisions(div1, div2)
 		} else {
 			return -1
@@ -308,7 +308,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// we've covered all known address items for one, so check two
 	if _, ok := two.(AddressDivisionSeries); ok {
 		return -1
-	} else if _, ok := two.(AddressGenericDivision); ok {
+	} else if _, ok := two.(DivisionType); ok {
 		return 1
 	} else if _, ok := two.(IPAddressSeqRangeType); ok {
 		return -1
@@ -372,8 +372,8 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 	}
 	compareHigh := comp.compareHighValue
 	var one, two *AddressDivisionGrouping
-	if o, ok := oneSeries.(AddressDivisionGroupingType); ok {
-		if t, ok := twoSeries.(AddressDivisionGroupingType); ok {
+	if o, ok := oneSeries.(StandardDivisionGroupingType); ok {
+		if t, ok := twoSeries.(StandardDivisionGroupingType); ok {
 			one = o.ToAddressDivisionGrouping()
 			two = t.ToAddressDivisionGrouping()
 		}
@@ -659,8 +659,8 @@ func (comp countComparator) compareParts(one, two AddressDivisionSeries) int {
 
 func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries AddressDivisionSeries) int {
 	var one, two *AddressDivisionGrouping
-	if o, ok := oneSeries.(AddressDivisionGroupingType); ok {
-		if t, ok := twoSeries.(AddressDivisionGroupingType); ok {
+	if o, ok := oneSeries.(StandardDivisionGroupingType); ok {
+		if t, ok := twoSeries.(StandardDivisionGroupingType); ok {
 			one = o.ToAddressDivisionGrouping()
 			two = t.ToAddressDivisionGrouping()
 		}

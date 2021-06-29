@@ -22,13 +22,13 @@ func (parseData *ParsedMACAddress) getMACAddressParseData() *MACAddressParseData
 	return &parseData.MACAddressParseData
 }
 
-func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddressException) {
+func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddressError) {
 	addr := parseData.address
 	if addr == nil {
 		parseData.creationLock.Lock()
 		addr = parseData.address
 		if addr == nil {
-			var err IncompatibleAddressException
+			var err IncompatibleAddressError
 			addr, err = parseData.createAddress()
 			if err != nil {
 				return nil, err
@@ -42,7 +42,7 @@ func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddres
 	return addr, nil
 }
 
-func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAddressException) {
+func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAddressError) {
 	creator := parseData.getMACAddressCreator()
 	sect, err := parseData.createSection()
 	if err != nil {
@@ -54,7 +54,7 @@ func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAdd
 	//return creator.createAddressInternal(createSection(), originator);
 }
 
-func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, IncompatibleAddressException) {
+func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, IncompatibleAddressError) {
 	addressString := parseData.str
 	addressParseData := parseData.getAddressParseData()
 	actualInitialSegmentCount := addressParseData.getSegmentCount()
@@ -108,7 +108,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 			adjustedLower2 := segLower & 0xff
 			adjustedUpper2 := segUpper & 0xff
 			if lowerHalfLower != lowerHalfUpper && adjustedUpper2-adjustedLower2 != 0xff {
-				return nil, &incompatibleAddressException{addressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
+				return nil, &incompatibleAddressError{addressError{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
 			}
 			segments[normalizedSegmentIndex] = createSegment(
 				addressString,
@@ -151,7 +151,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 							//otherwise there is no way for us to represent the address
 							//so we need to check whether the lower parts cover the full range
 							//eg cannot represent 0.0.0x100-0x10f or 0.0.1-1ff, but can do 0.0.0x100-0x1ff or 0.0.0-1ff
-							return nil, &incompatibleAddressException{addressException{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
+							return nil, &incompatibleAddressError{addressError{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
 						}
 						previousAdjustedWasRange = newLower != newUpper
 

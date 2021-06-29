@@ -463,7 +463,7 @@ func (addr *addressInternal) setPrefixLen(prefixLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.toAddressSection().setPrefixLen(prefixLen))
 }
 
-func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressException) {
+func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressError) {
 	section, err := addr.section.toAddressSection().setPrefixLenZeroed(prefixLen)
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -652,7 +652,7 @@ func (addr *addressInternal) toCompressedString() string {
 	return addr.section.ToCompressedString()
 }
 
-func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
 		if with0xPrefix {
@@ -661,7 +661,7 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 			cacheField = &addr.getStringCache().hexString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressException) {
+			func() (string, IncompatibleAddressError) {
 				return addr.section.toHexStringZoned(with0xPrefix, addr.zone)
 			})
 	}
@@ -741,13 +741,13 @@ func (addr *Address) GetSegmentCount() int {
 	return addr.getDivisionCount()
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
-func (addr *Address) GetGenericDivision(index int) AddressGenericDivision {
+// GetGenericDivision returns the segment at the given index as an DivisionType
+func (addr *Address) GetGenericDivision(index int) DivisionType {
 	return addr.getDivision(index)
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressStandardSegment
-func (addr *Address) GetGenericSegment(index int) AddressStandardSegment {
+// GetGenericDivision returns the segment at the given index as an AddressSegmentType
+func (addr *Address) GetGenericSegment(index int) AddressSegmentType {
 	return addr.getSegment(index)
 }
 
@@ -790,7 +790,7 @@ func (addr *Address) SetPrefixLen(prefixLen BitCount) *Address {
 	return addr.init().setPrefixLen(prefixLen)
 }
 
-func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressException) {
+func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
 	return addr.init().setPrefixLenZeroed(prefixLen)
 }
 
@@ -834,7 +834,7 @@ func (addr *Address) ToCompressedString() string {
 	return addr.init().toCompressedString()
 }
 
-func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
 }
 

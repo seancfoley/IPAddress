@@ -109,7 +109,7 @@ func (section *addressSectionInternal) initMultiple() {
 }
 
 // error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) init() AddressValueException {
+func (section *addressSectionInternal) init() AddressValueError {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen
@@ -118,7 +118,7 @@ func (section *addressSectionInternal) init() AddressValueException {
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
 			if segment == nil {
-				return &addressValueException{addressException: addressException{key: "ipaddress.error.null.segment"}}
+				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 
 			if !isMultiple && segment.IsMultiple() {
@@ -140,9 +140,9 @@ func (section *addressSectionInternal) init() AddressValueException {
 					section.prefixLength = getNetworkPrefixLength(bitsPerSegment, *segPrefix, i)
 				}
 			} else if segPrefix == nil || *segPrefix != 0 {
-				return &inconsistentPrefixException{
-					addressValueException{
-						addressException: addressException{
+				return &inconsistentPrefixError{
+					addressValueError{
+						addressError: addressError{
 							str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix),
 							key: "ipaddress.error.inconsistent.prefixes",
 						},
@@ -189,9 +189,9 @@ func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
 	return section.getDivision(index).ToAddressSegment()
 }
 
-// GetGenericSegment returns the segment as an AddressStandardSegment,
+// GetGenericSegment returns the segment as an AddressSegmentType,
 // allowing all segment types to be represented by a single type
-func (section *addressSectionInternal) GetGenericSegment(index int) AddressStandardSegment {
+func (section *addressSectionInternal) GetGenericSegment(index int) AddressSegmentType {
 	return section.GetSegment(index)
 }
 
@@ -495,7 +495,7 @@ func (section *addressSectionInternal) setPrefixLen(prefixLen BitCount) *Address
 	return res
 }
 
-func (section *addressSectionInternal) setPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressException) {
+func (section *addressSectionInternal) setPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
 	return setPrefixLength(section.toAddressSection(), prefixLen, true)
 }
 
@@ -629,7 +629,7 @@ func (section *addressSectionInternal) ToCompressedString() string {
 	return "0"
 }
 
-func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	var cacheField **string
 	if with0xPrefix {
 		cacheField = &section.getStringCache().hexStringPrefixed
@@ -637,19 +637,19 @@ func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, I
 		cacheField = &section.getStringCache().hexString
 	}
 	return cacheStrErr(cacheField,
-		func() (string, IncompatibleAddressException) {
+		func() (string, IncompatibleAddressError) {
 			return section.toHexStringZoned(with0xPrefix, noZone)
 		})
 }
 
-func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressException) {
+func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressError) {
 	if with0xPrefix {
 		return section.toLongStringZoned(zone, hexPrefixedParams)
 	}
 	return section.toLongStringZoned(zone, hexParams)
 }
 
-func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressException) {
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
 	isDual, err := section.isDualString()
 	if err != nil {
 		return "", err
@@ -665,18 +665,18 @@ func (section *addressSectionInternal) toNormalizedOptsString(stringOptions Stri
 	return toNormalizedString(stringOptions, section)
 }
 
-func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressException) {
+func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
 	count := section.GetSegmentCount()
 	for i := 0; i < count; i++ {
 		division := section.GetSegment(i)
 		if division.isMultiple() {
-			//at this point we know we will return true, but we determine now if we must throw IncompatibleAddressException
+			//at this point we know we will return true, but we determine now if we must throw IncompatibleAddressError
 			isLastFull := true
 			for j := count - 1; j >= 0; j-- {
 				division = section.GetSegment(j)
 				if division.isMultiple() {
 					if !isLastFull {
-						return false, &incompatibleAddressException{addressException{key: "ipaddress.error.segmentMismatch"}}
+						return false, &incompatibleAddressError{addressError{key: "ipaddress.error.segmentMismatch"}}
 					}
 					isLastFull = division.IsFullRange()
 				} else {
@@ -955,7 +955,7 @@ func (section *AddressSection) SetPrefixLen(prefixLen BitCount) *AddressSection 
 	return section.setPrefixLen(prefixLen)
 }
 
-func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressException) {
+func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
 	return section.setPrefixLenZeroed(prefixLen)
 }
 

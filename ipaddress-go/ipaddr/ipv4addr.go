@@ -26,7 +26,7 @@ func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()
 }
 
-func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueException) {
+func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueError) {
 	section, err := NewIPv4AddressSectionFromSegmentedBytes(bytes, IPv4SegmentCount)
 	if err == nil {
 		addr = NewIPv4Address(section)
@@ -34,7 +34,7 @@ func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueExce
 	return
 }
 
-func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
 	section, err := NewIPv4AddressSectionFromPrefixedBytes(bytes, IPv4SegmentCount, prefixLength)
 	if err == nil {
 		addr = NewIPv4Address(section)
@@ -48,7 +48,7 @@ func NewIPv4AddressFromVals(vals SegmentValueProvider) (addr *IPv4Address) {
 	return
 }
 
-func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
 	section := NewIPv4AddressSectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
@@ -60,7 +60,7 @@ func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Ad
 	return
 }
 
-func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueException) {
+func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
 	section := NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
@@ -149,13 +149,13 @@ func (addr *IPv4Address) GetSegmentCount() int {
 	return addr.GetDivisionCount()
 }
 
-// GetGenericDivision returns the segment at the given index as an AddressGenericDivision
-func (addr *IPv4Address) GetGenericDivision(index int) AddressGenericDivision {
+// GetGenericDivision returns the segment at the given index as an DivisionType
+func (addr *IPv4Address) GetGenericDivision(index int) DivisionType {
 	return addr.init().getDivision(index)
 }
 
-// GetGenericSegment returns the segment at the given index as an AddressStandardSegment
-func (addr *IPv4Address) GetGenericSegment(index int) AddressStandardSegment {
+// GetGenericSegment returns the segment at the given index as an AddressSegmentType
+func (addr *IPv4Address) GetGenericSegment(index int) AddressSegmentType {
 	return addr.init().getSegment(index)
 }
 
@@ -176,7 +176,7 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	return &IPv4Address{ipAddressInternal{addressInternal{section: sec, cache: &addressCache{}}}}
 }
 
-func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressException) {
+func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().Mask(other.GetSection())
 	if err == nil {
@@ -199,12 +199,12 @@ func (addr *IPv4Address) GetUpper() *IPv4Address {
 	return addr.init().getUpper().ToIPv4Address()
 }
 
-func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressException) {
+func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost()
 	return res.ToIPv4Address(), err
 }
 
-func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressException) {
+func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
 	return res.ToIPv4Address(), err
 }
@@ -213,12 +213,12 @@ func (addr *IPv4Address) ToZeroNetwork() *IPv4Address {
 	return addr.init().toZeroNetwork().ToIPv4Address()
 }
 
-func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressException) {
+func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
 	return res.ToIPv4Address(), err
 }
 
-func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressException) {
+func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
 	return res.ToIPv4Address(), err
 }
@@ -259,7 +259,7 @@ func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
 	return addr.init().setPrefixLen(prefixLen).ToIPv4Address()
 }
 
-func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressException) {
+func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPv4Address(), err
 }
@@ -521,15 +521,15 @@ func (addr *IPv4Address) ToCompressedWildcardString() string {
 	return addr.init().toCompressedWildcardString()
 }
 
-func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressException) {
+func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
@@ -537,7 +537,7 @@ func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
 	return addr.init().GetSection().ToInetAtonString(radix)
 }
 
-func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressException) {
+func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
 	return addr.init().GetSection().ToInetAtonJoinedString(radix, joinedCount)
 }
 

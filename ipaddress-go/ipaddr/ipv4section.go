@@ -28,10 +28,10 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 }
 
 // error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
-func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueException) {
+func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueError) {
 	segsLen := len(segments)
 	if segsLen > IPv4SegmentCount {
-		err = &addressValueException{val: segsLen, addressException: addressException{key: "ipaddress.error.exceeds.size"}}
+		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
 	res = createIPv4Section(segments)
@@ -56,7 +56,7 @@ func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressS
 
 //TODO need the public equivalent of this that takes []*IPv4AddressSegment (and not []*AddressDivision)
 
-func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {
+func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
 	res, err = newIPv4AddressSection(segments /*cloneSegments,*/, prefixLength == nil)
 	if err == nil && prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<3), IPv4BitCount)
@@ -64,20 +64,20 @@ func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength Prefi
 	return
 }
 
-func NewIPv4AddressSectionFromBytes(bytes []byte) (res *IPv4AddressSection, err AddressValueException) {
+func NewIPv4AddressSectionFromBytes(bytes []byte) (res *IPv4AddressSection, err AddressValueError) {
 	return newIPv4AddressSectionFromBytes(bytes, len(bytes), nil, false)
 }
 
 // Useful if the byte array has leading zeros or leading sign extension
-func NewIPv4AddressSectionFromSegmentedBytes(bytes []byte, segmentCount int) (res *IPv4AddressSection, err AddressValueException) {
+func NewIPv4AddressSectionFromSegmentedBytes(bytes []byte, segmentCount int) (res *IPv4AddressSection, err AddressValueError) {
 	return newIPv4AddressSectionFromBytes(bytes, segmentCount, nil, false)
 }
 
-func NewIPv4AddressSectionFromPrefixedBytes(bytes []byte, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueException) {
+func NewIPv4AddressSectionFromPrefixedBytes(bytes []byte, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
 	return newIPv4AddressSectionFromBytes(bytes, segmentCount, prefixLength, false)
 }
 
-func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueException) {
+func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
@@ -237,11 +237,11 @@ func (section *IPv4AddressSection) GetSegments() (res []*IPv4AddressSegment) {
 	return
 }
 
-func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressException) {
+func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	return section.MaskPrefixed(other, false)
 }
 
-func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressException) {
+func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
 	if err == nil {
 		res = sec.ToIPv4AddressSection()
@@ -257,12 +257,12 @@ func (section *IPv4AddressSection) GetUpper() *IPv4AddressSection {
 	return section.getUpper().ToIPv4AddressSection()
 }
 
-func (section *IPv4AddressSection) ToZeroHost() (*IPv4AddressSection, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToZeroHost() (*IPv4AddressSection, IncompatibleAddressError) {
 	res, err := section.toZeroHost()
 	return res.ToIPv4AddressSection(), err
 }
 
-func (section *IPv4AddressSection) ToZeroHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToZeroHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressError) {
 	res, err := section.toZeroHostLen(prefixLength)
 	return res.ToIPv4AddressSection(), err
 }
@@ -271,12 +271,12 @@ func (section *IPv4AddressSection) ToZeroNetwork() *IPv4AddressSection {
 	return section.toZeroNetwork().ToIPv4AddressSection()
 }
 
-func (section *IPv4AddressSection) ToMaxHost() (*IPv4AddressSection, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToMaxHost() (*IPv4AddressSection, IncompatibleAddressError) {
 	res, err := section.toMaxHost()
 	return res.ToIPv4AddressSection(), err
 }
 
-func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4AddressSection, IncompatibleAddressError) {
 	res, err := section.toMaxHostLen(prefixLength)
 	return res.ToIPv4AddressSection(), err
 }
@@ -429,7 +429,7 @@ func (section *IPv4AddressSection) SetPrefixLen(prefixLen BitCount) *IPv4Address
 	return section.setPrefixLen(prefixLen).ToIPv4AddressSection()
 }
 
-func (section *IPv4AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4AddressSection, IncompatibleAddressException) {
+func (section *IPv4AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4AddressSection, IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
 	return res.ToIPv4AddressSection(), err
 }
@@ -506,7 +506,7 @@ func (section *IPv4AddressSection) SpanWithPrefixBlocks() []*IPv4AddressSection 
 	return cloneToIPv4Sections(spanWithPrefixBlocks(wrapped))
 }
 
-func (section *IPv4AddressSection) SpanWithPrefixBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+func (section *IPv4AddressSection) SpanWithPrefixBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
@@ -526,7 +526,7 @@ func (section *IPv4AddressSection) SpanWithSequentialBlocks() []*IPv4AddressSect
 	return cloneToIPv4Sections(spanWithSequentialBlocks(wrapped))
 }
 
-func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
@@ -542,7 +542,7 @@ func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4Address
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	series := cloneIPv4Sections(section, sections)
 	if err := checkSectionCounts(series); err != nil {
 		return nil, err
@@ -555,7 +555,7 @@ func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4Addr
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	series := cloneIPv4Sections(section, sections)
 	if err := checkSectionCounts(series); err != nil {
 		return nil, err
@@ -568,7 +568,7 @@ func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressS
 // Merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-//func MergeToIPv4PrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchException) {
+//func MergeToIPv4PrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 //	series := cloneIPv4Sections(sections)
 //	if err := checkSectionCounts(series); err != nil {
 //		return nil, err
@@ -582,7 +582,7 @@ func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressS
 // Merges this with the list of sections to produce the smallest array of sequential block subnets.
 //
 // The resulting array is sorted by lower address, regardless of the size of each prefix block.
-//public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchException {
+//public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchError {
 //	checkSectionsMergeable(sections);TODO REMOVE
 //	IPv4AddressSection converted[] = getCloned(sections);
 //	List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
@@ -689,7 +689,7 @@ func (section *IPv4AddressSection) ToInetAtonString(radix Inet_aton_radix) strin
 	}
 }
 
-func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
 	if joinedCount <= 0 {
 		return section.ToInetAtonString(radix), nil
 	}
@@ -704,7 +704,7 @@ func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix,
 	return section.ToNormalizedJoinedString(stringParams, joinedCount)
 }
 
-func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStringOptions, joinedCount int) (string, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStringOptions, joinedCount int) (string, IncompatibleAddressError) {
 	if joinedCount <= 0 || section.GetSegmentCount() <= 1 {
 		return section.toNormalizedString(stringParams), nil
 	}
@@ -715,7 +715,7 @@ func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStrin
 	return toNormalizedIPString(stringParams, equivalentPart), nil
 }
 
-func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivisionSeries, IncompatibleAddressException) {
+func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivisionSeries, IncompatibleAddressError) {
 	thisCount := section.GetSegmentCount()
 	if joinCount <= 0 || thisCount <= 1 {
 		return section, nil
@@ -741,7 +741,7 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 	//createInitializedGrouping
 }
 
-func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision, IncompatibleAddressException) {
+func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision, IncompatibleAddressError) {
 	//  it seems IPv4JoinedSegments override getMaxDigitCount, getBitCount, some others
 	// the design I used was intended to handle IPAddressLargeDivision and other such impls like this
 	// So I guess this must be passed in as AddressDivisionSeries/GenericDivision
@@ -769,7 +769,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		thisSeg := section.GetSegment(firstJoinedIndex + j)
 		if firstRange != nil {
 			if !thisSeg.IsFullRange() {
-				return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.segmentMismatch"}}
+				return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.segmentMismatch"}}
 			}
 		} else if thisSeg.isMultiple() {
 			firstRange = thisSeg
@@ -809,7 +809,7 @@ func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOpti
 			IPv4AddressSegment thisSeg = getSegment(firstJoinedIndex + j);
 			if(firstRange != null) {
 				if(!thisSeg.isFullRange()) {
-					throw new IncompatibleAddressException(firstRange, firstSegIndex, thisSeg, firstJoinedIndex + j, "ipaddress.error.segmentMismatch");
+					throw new IncompatibleAddressError(firstRange, firstSegIndex, thisSeg, firstJoinedIndex + j, "ipaddress.error.segmentMismatch");
 				}
 			} else if(thisSeg.isMultiple()) {
 				firstSegIndex = firstJoinedIndex + j;

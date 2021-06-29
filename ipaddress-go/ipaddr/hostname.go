@@ -61,7 +61,7 @@ var zeroHost = NewHostName("", defaultHostParameters)
 
 type hostData struct {
 	parsedHost        *ParsedHost
-	validateException HostNameException
+	validateException HostNameError
 }
 
 type resolveData struct {
@@ -97,7 +97,7 @@ func (host *HostName) GetValidationOptions() HostNameParameters {
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-func (host *HostName) Validate() HostNameException {
+func (host *HostName) Validate() HostNameError {
 	host = host.init()
 	data := host.hostData
 	if data == nil {
@@ -159,11 +159,11 @@ func (host *HostName) GetAddress() *IPAddress {
 	return addr
 }
 
-func (host *HostName) ToAddresses() ([]*IPAddress, AddressException) {
+func (host *HostName) ToAddresses() ([]*IPAddress, AddressError) {
 	return host.toAddresses()
 }
 
-func (host *HostName) ToAddress() (addr *IPAddress, err AddressException) {
+func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
 	addresses, err := host.toAddresses()
 	if len(addresses) > 0 {
 		addr = addresses[0]
@@ -172,20 +172,20 @@ func (host *HostName) ToAddress() (addr *IPAddress, err AddressException) {
 }
 
 //
-// error can be AddressStringException or IncompatibleAddressException
-func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
+// error can be AddressStringError or IncompatibleAddressError
+func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 	host = host.init()
 	data := host.resolveData
 	if data == nil {
 		//note that validation handles empty address resolution
-		err = host.Validate() //HostNameException
+		err = host.Validate() //HostNameError
 		if err != nil {
 			return
 		}
 		// http://networkbit.ch/golang-dns-lookup/
 		parsedHost := host.parsedHost
 		if parsedHost.isAddressString() {
-			addr, addrErr := parsedHost.asAddress() // IncompatibleAddressException
+			addr, addrErr := parsedHost.asAddress() // IncompatibleAddressError
 			addrs, err = []*IPAddress{addr}, addrErr
 			//note there is no need to apply prefix or mask here, it would have been applied to the address already
 		} else {
@@ -199,8 +199,8 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
 				ips, lookupErr := net.LookupIP(strHost)
 				if lookupErr != nil {
 					//Note we do not set resolveData, so we will attempt to resolve again
-					err = &hostNameNestedException{nested: lookupErr,
-						hostNameException: hostNameException{addressException{str: strHost, key: "ipaddress.host.error.host.resolve"}}}
+					err = &hostNameNestedError{nested: lookupErr,
+						hostNameError: hostNameError{addressError{str: strHost, key: "ipaddress.host.error.host.resolve"}}}
 					return
 				}
 				count := len(ips)
@@ -222,7 +222,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
 						}
 					}
 					if byteLen == IPv6ByteCount {
-						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueException
+						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
 							return nil, addrErr
 						}
@@ -232,7 +232,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
 							networkPrefixLength = cacheBits(IPv4BitCount)
 						}
-						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueException
+						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
 							return nil, addrErr
 						}
@@ -249,7 +249,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
 	return data.resolvedAddrs, nil
 }
 
-func (host *HostName) ToHostAddress() (*Address, AddressException) {
+func (host *HostName) ToHostAddress() (*Address, AddressError) {
 	host = host.init()
 	addr, err := host.ToAddress()
 	return addr.ToAddress(), err

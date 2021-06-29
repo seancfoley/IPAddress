@@ -5,12 +5,12 @@ import (
 )
 
 type macAddressProvider interface {
-	getAddress() (*MACAddress, IncompatibleAddressException)
+	getAddress() (*MACAddress, IncompatibleAddressError)
 }
 
 type macAddressEmptyProvider struct{}
 
-func (provider macAddressEmptyProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+func (provider macAddressEmptyProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -22,7 +22,7 @@ type macAddressAllProvider struct {
 	creationLock      sync.Mutex
 }
 
-func (provider macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+func (provider macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
 	addr := provider.address
 	if addr == nil {
 		provider.creationLock.Lock()
@@ -56,7 +56,7 @@ type wrappedMACAddressProvider struct {
 	address *MACAddress
 }
 
-func (provider wrappedMACAddressProvider) getAddress() (*MACAddress, IncompatibleAddressException) {
+func (provider wrappedMACAddressProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
 	return provider.address, nil
 }
 
