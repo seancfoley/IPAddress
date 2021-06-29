@@ -367,7 +367,7 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 		segment2 := section.GetSegment(segIndex)
 		segIndex++
 		if segment1.isMultiple() && !segment2.IsFullRange() {
-			return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.invalid.joined.ranges"}}
+			return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.invalid.joined.ranges"}}
 			//throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
 		vals := &bitsDivisionVals{

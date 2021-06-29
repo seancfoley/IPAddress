@@ -220,7 +220,7 @@ func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
 	return grouping.prefixLength != nil
 }
 
-//TODO eventually when supporting large divisions,
+//TODO LATER eventually when supporting large divisions,
 //might move containsPrefixBlock(prefixLen BitCount), containsSinglePrefixBlock(prefixLen BitCount),
 // GetMinPrefixLengthForBlock, and GetPrefixLengthForSingleBlock into groupingBase code
 // IsPrefixBlock, IsSinglePrefixBlock

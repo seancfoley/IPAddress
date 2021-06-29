@@ -25,7 +25,7 @@ type addressDivisionGroupingBase struct {
 	cache *valueCache
 }
 
-// TODO for large will need to add methods in java AddressItem (porting those same methods in AddressItem using BigINteger to use big.int should do it):
+// TODO LATER for large will need to add methods in java AddressItem (porting those same methods in AddressItem using BigINteger to use big.int should do it):
 // isSinglePrefixBlock, isPrefixBlock, containsPrefixBlock(int), containsSinglePrefixBlock(int), getMinPrefixLengthForBlock() bitcount, getPrefixLengthForSingleBlock() prefixlen
 
 func (grouping *addressDivisionGroupingBase) getAddrType() addrType {
@@ -40,7 +40,7 @@ func (grouping *addressDivisionGroupingBase) hasNoDivisions() bool {
 }
 
 // GetBitCount returns the total number of bits across all divisions
-func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) { //TODO if we end up using this a lot, consider storing it on grouping construction
+func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) {
 	for i := 0; i < grouping.GetDivisionCount(); i++ {
 		res += grouping.getDivision(i).GetBitCount()
 	}

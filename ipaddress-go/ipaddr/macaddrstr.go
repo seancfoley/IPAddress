@@ -75,7 +75,7 @@ func (addrStr *MACAddressString) GetAddress() *MACAddress {
 	return addr
 }
 
-func (addrStr *MACAddressString) ToAddress() (*MACAddress, IPAddressException) {
+func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressException) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, IPAddressException) {
 }
 
 // error can be AddressStringException or IncompatibleAddressException
-func (addrStr *MACAddressString) ToHostAddress() (*Address, IPAddressException) {
+func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressException) {
 	addr, err := addrStr.ToAddress()
 	return addr.ToAddress(), err
 }

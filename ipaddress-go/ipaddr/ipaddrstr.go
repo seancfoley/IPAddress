@@ -86,7 +86,7 @@ func (addrStr *IPAddressString) GetAddress() *IPAddress {
 }
 
 // error can be AddressStringException or IncompatibleAddressException
-func (addrStr *IPAddressString) ToAddress() (*IPAddress, IPAddressException) {
+func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressException) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (addrStr *IPAddressString) GetHostAddress() *IPAddress {
 }
 
 // error can be AddressStringException or IncompatibleAddressException
-func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, IPAddressException) {
+func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressException) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -152,11 +152,11 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.isIPv4() {
 			if !addrVersion.isIPv4() {
-				return &addressStringException{ipAddressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
+				return &addressStringException{addressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
 			}
 		} else if version.isIPv6() {
 			if !addrVersion.isIPv6() {
-				return &addressStringException{ipAddressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
+				return &addressStringException{addressException{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
 			}
 		}
 	}

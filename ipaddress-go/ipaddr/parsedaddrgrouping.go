@@ -97,7 +97,7 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	return BitCount(segmentCount) * bitsPerSegment
 }
 
-// TODO This extended prefix subnet
+// TODO LATER This extended prefix subnet
 //
 //public static boolean isPrefixSubnet(
 //		DivisionValueProvider lowerValueProvider,

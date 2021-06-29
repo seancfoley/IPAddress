@@ -469,7 +469,7 @@ func (addr *IPAddress) GetSegment(index int) *IPAddressSegment {
 
 // GetSegmentCount returns the segment count
 func (addr *IPAddress) GetSegmentCount() int {
-	return addr.GetDivisionCount()
+	return addr.getDivisionCount()
 }
 
 // GetGenericDivision returns the segment at the given index as an AddressGenericDivision
@@ -485,6 +485,24 @@ func (addr *IPAddress) GetGenericSegment(index int) AddressStandardSegment {
 // GetDivision returns the segment count
 func (addr *IPAddress) GetDivisionCount() int {
 	return addr.getDivisionCount()
+}
+
+func (addr *IPAddress) GetBitCount() BitCount {
+	if address := addr.ToIPv4Address(); address != nil {
+		return address.GetBitCount()
+	} else if address := addr.ToIPv6Address(); address != nil {
+		return address.GetBitCount()
+	}
+	return addr.addressInternal.GetBitCount()
+}
+
+func (addr *IPAddress) GetByteCount() int {
+	if address := addr.ToIPv4Address(); address != nil {
+		return address.GetByteCount()
+	} else if address := addr.ToIPv6Address(); address != nil {
+		return address.GetByteCount()
+	}
+	return addr.addressInternal.GetByteCount()
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {
@@ -716,7 +734,7 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
 		}
 	}
-	return nil, &incompatibleAddressException{ipAddressException{str: "ipaddress.error.ipVersionMismatch"}}
+	return nil, &incompatibleAddressException{addressException{str: "ipaddress.error.ipVersionMismatch"}}
 }
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
@@ -739,12 +757,12 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressEx
 			return result.ToIPAddress(), err
 		}
 	}
-	return nil, &incompatibleAddressException{ipAddressException{str: "ipaddress.error.ipMismatch"}}
+	return nil, &incompatibleAddressException{addressException{str: "ipaddress.error.ipMismatch"}}
 }
 
 func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningPrefixBlocks(
@@ -770,7 +788,7 @@ func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
 
 func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	return cloneToIPAddrs(
 		getSpanningSequentialBlocks(
@@ -786,7 +804,7 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddres
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedSequentialBlocks(series)
@@ -799,7 +817,7 @@ func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddres
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressException) {
 	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.ipVersionMismatch"}}
+		return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.ipVersionMismatch"}}
 	}
 	series := cloneIPAddrs(addr, addrs)
 	blocks := getMergedPrefixBlocks(series)

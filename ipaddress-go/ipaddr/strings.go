@@ -932,7 +932,7 @@ func appendRangeDigits(
 			}
 		} else {
 			if !previousWasFullRange {
-				return &incompatibleAddressException{ipAddressException{str: fmt.Sprintf("%d-%d", lower, upper), key: "ipaddress.error.splitMismatch"}}
+				return &incompatibleAddressException{addressException{str: fmt.Sprintf("%d-%d", lower, upper), key: "ipaddress.error.splitMismatch"}}
 			}
 			previousWasFullRange = (lowerDigit == 0) && (upperDigit == uradix-1)
 			if previousWasFullRange && len(wildcard) > 0 {

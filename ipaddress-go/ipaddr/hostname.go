@@ -159,11 +159,11 @@ func (host *HostName) GetAddress() *IPAddress {
 	return addr
 }
 
-func (host *HostName) ToAddresses() ([]*IPAddress, IPAddressException) {
+func (host *HostName) ToAddresses() ([]*IPAddress, AddressException) {
 	return host.toAddresses()
 }
 
-func (host *HostName) ToAddress() (addr *IPAddress, err IPAddressException) {
+func (host *HostName) ToAddress() (addr *IPAddress, err AddressException) {
 	addresses, err := host.toAddresses()
 	if len(addresses) > 0 {
 		addr = addresses[0]
@@ -173,7 +173,7 @@ func (host *HostName) ToAddress() (addr *IPAddress, err IPAddressException) {
 
 //
 // error can be AddressStringException or IncompatibleAddressException
-func (host *HostName) toAddresses() (addrs []*IPAddress, err IPAddressException) {
+func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressException) {
 	host = host.init()
 	data := host.resolveData
 	if data == nil {
@@ -196,9 +196,11 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err IPAddressException)
 				//TODO if we make the zero string translate to zero address of a preferred version, need to change something here
 			} else {
 				var ips []net.IP
-				ips, err = net.LookupIP(strHost)
-				if err != nil {
+				ips, lookupErr := net.LookupIP(strHost)
+				if lookupErr != nil {
 					//Note we do not set resolveData, so we will attempt to resolve again
+					err = &hostNameNestedException{nested: lookupErr,
+						hostNameException: hostNameException{addressException{str: strHost, key: "ipaddress.host.error.host.resolve"}}}
 					return
 				}
 				count := len(ips)
@@ -247,7 +249,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err IPAddressException)
 	return data.resolvedAddrs, nil
 }
 
-func (host *HostName) ToHostAddress() (*Address, IPAddressException) {
+func (host *HostName) ToHostAddress() (*Address, AddressException) {
 	host = host.init()
 	addr, err := host.ToAddress()
 	return addr.ToAddress(), err

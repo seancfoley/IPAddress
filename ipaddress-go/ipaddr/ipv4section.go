@@ -31,7 +31,7 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueException) {
 	segsLen := len(segments)
 	if segsLen > IPv4SegmentCount {
-		err = &addressValueException{val: segsLen, ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"}}
+		err = &addressValueException{val: segsLen, addressException: addressException{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
 	res = createIPv4Section(segments)
@@ -769,7 +769,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		thisSeg := section.GetSegment(firstJoinedIndex + j)
 		if firstRange != nil {
 			if !thisSeg.IsFullRange() {
-				return nil, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.segmentMismatch"}}
+				return nil, &incompatibleAddressException{addressException{key: "ipaddress.error.segmentMismatch"}}
 			}
 		} else if thisSeg.isMultiple() {
 			firstRange = thisSeg

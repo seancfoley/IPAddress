@@ -30,12 +30,12 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 
 func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueException) {
 	if startIndex < 0 {
-		err = &addressPositionException{addressValueException{val: startIndex, ipAddressException: ipAddressException{key: "ipaddress.error.invalid.position"}}}
+		err = &addressPositionException{addressValueException{val: startIndex, addressException: addressException{key: "ipaddress.error.invalid.position"}}}
 		return
 	}
 	segsLen := len(segments)
 	if startIndex+segsLen > IPv6SegmentCount {
-		err = &addressValueException{val: startIndex + segsLen, ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"}}
+		err = &addressValueException{val: startIndex + segsLen, addressException: addressException{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
 	res = createIPv6Section(segments, int8(startIndex))

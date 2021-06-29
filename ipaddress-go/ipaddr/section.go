@@ -118,7 +118,7 @@ func (section *addressSectionInternal) init() AddressValueException {
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
 			if segment == nil {
-				return &addressValueException{ipAddressException: ipAddressException{key: "ipaddress.error.null.segment"}}
+				return &addressValueException{addressException: addressException{key: "ipaddress.error.null.segment"}}
 			}
 
 			if !isMultiple && segment.IsMultiple() {
@@ -142,7 +142,7 @@ func (section *addressSectionInternal) init() AddressValueException {
 			} else if segPrefix == nil || *segPrefix != 0 {
 				return &inconsistentPrefixException{
 					addressValueException{
-						ipAddressException: ipAddressException{
+						addressException: addressException{
 							str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix),
 							key: "ipaddress.error.inconsistent.prefixes",
 						},
@@ -676,7 +676,7 @@ func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddress
 				division = section.GetSegment(j)
 				if division.isMultiple() {
 					if !isLastFull {
-						return false, &incompatibleAddressException{ipAddressException{key: "ipaddress.error.segmentMismatch"}}
+						return false, &incompatibleAddressException{addressException{key: "ipaddress.error.segmentMismatch"}}
 					}
 					isLastFull = division.IsFullRange()
 				} else {

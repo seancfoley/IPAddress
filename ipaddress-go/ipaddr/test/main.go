@@ -97,6 +97,10 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
+	addrStr = ipaddr.NewIPAddressString("abc.2.3.4")
+	noAddr, err := addrStr.ToAddress()
+	fmt.Printf("invalid string abc.2.3.4 is %v with err %v\n", noAddr, err)
+
 	ipv4Prefixed2 := pAddr.ToPrefixBlockLen(19)
 	fmt.Printf("19 block is %+v\n", ipv4Prefixed2)
 

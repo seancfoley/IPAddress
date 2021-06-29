@@ -466,7 +466,7 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 
 func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) SizeMismatchException {
 	if other.GetSegmentCount() < section.GetSegmentCount() {
-		return &sizeMismatchException{incompatibleAddressException{ipAddressException{str: "ipaddress.error.sizeMismatch"}}}
+		return &sizeMismatchException{incompatibleAddressException{addressException{str: "ipaddress.error.sizeMismatch"}}}
 	}
 	return nil
 }
@@ -1006,15 +1006,15 @@ func toSegments(
 			if mostSignificantBit != 0 {
 				if expectedExtendedValue != 0xff { //0xff or -1
 					err = &addressValueException{
-						ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
-						val:                int(expectedExtendedValue),
+						addressException: addressException{key: "ipaddress.error.exceeds.size"},
+						val:              int(expectedExtendedValue),
 					}
 					return
 				}
 			} else {
 				err = &addressValueException{
-					ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
-					val:                int(expectedExtendedValue),
+					addressException: addressException{key: "ipaddress.error.exceeds.size"},
+					val:              int(expectedExtendedValue),
 				}
 				return
 			}
@@ -1023,8 +1023,8 @@ func toSegments(
 			higherStartIndex--
 			if bytes[higherStartIndex] != expectedExtendedValue {
 				err = &addressValueException{
-					ipAddressException: ipAddressException{key: "ipaddress.error.exceeds.size"},
-					val:                int(expectedExtendedValue),
+					addressException: addressException{key: "ipaddress.error.exceeds.size"},
+					val:              int(expectedExtendedValue),
 				}
 				return
 			}
@@ -1241,7 +1241,7 @@ func getSubnetSegments( // called by methods to adjust/remove/setPrefixLength, m
 			upperVal64 := uint64(upperValue)
 			masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 			if !masker.IsSequential() {
-				err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
+				err = &incompatibleAddressException{addressException{key: "ipaddress.error.maskMismatch"}}
 				return
 			}
 			value = SegInt(masker.GetMaskedLower(val64, mask64))
@@ -1266,7 +1266,7 @@ func getSubnetSegments( // called by methods to adjust/remove/setPrefixLength, m
 					upperVal64 := uint64(upperValue)
 					masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 					if !masker.IsSequential() {
-						err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
+						err = &incompatibleAddressException{addressException{key: "ipaddress.error.maskMismatch"}}
 						return
 					}
 					value = SegInt(masker.GetMaskedLower(val64, mask64))
@@ -1324,7 +1324,7 @@ func getOredSegments(
 			upperVal64 := uint64(upperValue)
 			masker := bitwiseOrRange(val64, upperVal64, mask64, seg.GetMaxValue())
 			if !masker.IsSequential() {
-				err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
+				err = &incompatibleAddressException{addressException{key: "ipaddress.error.maskMismatch"}}
 				return
 			}
 			value = SegInt(masker.GetOredLower(val64, mask64))
@@ -1349,7 +1349,7 @@ func getOredSegments(
 					upperVal64 := uint64(upperValue)
 					masker := bitwiseOrRange(val64, upperVal64, mask64, seg.GetMaxValue())
 					if !masker.IsSequential() {
-						err = &incompatibleAddressException{ipAddressException{key: "ipaddress.error.maskMismatch"}}
+						err = &incompatibleAddressException{addressException{key: "ipaddress.error.maskMismatch"}}
 						return
 					}
 					value = SegInt(masker.GetOredLower(val64, mask64))
@@ -1382,7 +1382,7 @@ func checkSectionCounts(sections []ExtendedIPSegmentSeries) SizeMismatchExceptio
 				continue
 			}
 			if section.GetSegmentCount() != segCount {
-				return &sizeMismatchException{incompatibleAddressException{ipAddressException{key: "ipaddress.error.sizeMismatch"}}}
+				return &sizeMismatchException{incompatibleAddressException{addressException{key: "ipaddress.error.sizeMismatch"}}}
 			}
 		}
 	}

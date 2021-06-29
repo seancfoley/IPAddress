@@ -6,25 +6,10 @@ import (
 	"strings"
 )
 
-//TODO xxxx we need a strict hierarchy xxx
-//all of which end at the same structure xxx
-// Then we will create our own catalog from properties file,
-// and it will be associated with "en" label and that will be the fallback,
-// and then to print an error we will create a printer: func NewPrinter(t language.Tag, opts ...Option) *Printer {
-// message.Catalog(xxxthatxxx) which returns an option to pass in to NewPrinter
-//
-// BUT let's face it, why bother?  Just copy the code to read in the file, either that catalog code or
-// https://stackoverflow.com/questions/40022861/parsing-values-from-property-file-in-golang/46860900
-// Just return the key from the errors so others can i18n if they want, they can use whatever method they prefer,
-// all they need is the keys and the original file
-//
-// BUT... you do need a tool to create the index... why?  Because goland deals with binaries and you do not want to lug around a properties file
-// So that's why they did it that way
-
 //TODO add some dummy methods to X and x to ensure the hierarchy is enforced.  Since the interfaces have nothing in them, no way to know that right now.
 /*
 
-IPAddressException
+AddressException
 	- IncompatibleAddressException
 		- SizeMismatchException
 	- HostIdentifierException
@@ -38,14 +23,19 @@ unused:
 NetworkMismatchException
 AddressConversionException
 PrefixLenException
-
 */
 
-type IPAddressException interface { //TODO rename to AddressException
+type AddressException interface {
 	error
+
+	// GetKey() allows users to implement their own i18n messages.
+	// The keys and mappings are listed in IPAddressResources.properties,
+	// so users of this library need only provide translations and implement
+	// their own method if i18n, such as that at provided by golang.org/x/text
+	GetKey() string
 }
 
-type ipAddressException struct {
+type addressException struct {
 	// key to look up the error message
 	key string
 
@@ -53,13 +43,16 @@ type ipAddressException struct {
 	str string
 }
 
-func (a *ipAddressException) Error() string {
-	//TODO i18n -
+func (a *addressException) Error() string {
+	return lookupStr("ipaddress.address.error") + " " + lookupStr(a.key)
+}
+
+func (a *addressException) GetKey() string {
 	return a.key
 }
 
 type HostIdentifierException interface {
-	IPAddressException
+	AddressException
 }
 
 type AddressStringException interface {
@@ -67,7 +60,16 @@ type AddressStringException interface {
 }
 
 type addressStringException struct {
-	ipAddressException
+	addressException
+}
+
+type addressStringNestedErr struct {
+	addressException
+	nested AddressStringException
+}
+
+func (a *addressStringNestedErr) Error() string {
+	return a.addressException.Error() + ": " + a.nested.Error()
 }
 
 type addressStringIndexErr struct {
@@ -84,24 +86,33 @@ type HostNameException interface {
 }
 
 type hostNameException struct {
-	ipAddressException
+	addressException
 }
 
 func (a *hostNameException) GetAddrErr() AddressStringException {
 	return nil
 }
 
-type hostAddressErr struct {
-	hostNameException //TODO in this case, the nested has the key, so need to figure this out
-	nested            AddressStringException
+func (a *hostNameException) Error() string {
+	return lookupStr("ipaddress.host.error") + " " + lookupStr(a.key)
 }
 
-func (a *hostAddressErr) GetAddrErr() AddressStringException {
+type hostNameNestedException struct {
+	hostNameException
+	nested error
+}
+
+type hostAddressNestedErr struct {
+	hostNameException
+	nested AddressStringException
+}
+
+func (a *hostAddressNestedErr) GetAddrErr() AddressStringException {
 	return a.nested
 }
 
-func (a *hostAddressErr) Error() string {
-	return "ipaddress.host.error.invalid" + ": " + a.nested.Error()
+func (a *hostAddressNestedErr) Error() string {
+	return lookupStr("ipaddress.host.error") + " " + a.nested.Error()
 }
 
 type hostNameIndexErr struct {
@@ -112,11 +123,11 @@ type hostNameIndexErr struct {
 }
 
 type IncompatibleAddressException interface {
-	IPAddressException
+	AddressException
 }
 
 type incompatibleAddressException struct {
-	ipAddressException
+	addressException
 }
 
 type SizeMismatchException interface {
@@ -128,11 +139,11 @@ type sizeMismatchException struct {
 }
 
 type AddressValueException interface {
-	error
+	AddressException
 }
 
 type addressValueException struct {
-	ipAddressException
+	addressException
 
 	// the value
 	val int
