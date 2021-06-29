@@ -64,9 +64,8 @@ var strIndices = []int{` + indicesStr + `
 
 var strVals =` + strStr + `
 
-func lookupStr(key string) (result string, ok bool) {
-	var index int
-	if index, ok = keyStrMap[key]; ok {
+func lookupStr(key string) (result string) {
+	if index, ok := keyStrMap[key]; ok {
 		start, end := strIndices[index], strIndices[index+1]
 		result = strVals[start:end]
 	}
