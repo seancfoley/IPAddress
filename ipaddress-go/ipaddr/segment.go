@@ -26,7 +26,6 @@ type addressSegmentInternal struct {
 }
 
 func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool) {
-	// TODO an identity/pointer comparison which requires we grab the *addressDivisionInternal or *addressDivisionBase or *addressSegmentInternal from AddressSegmentType
 	if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
 		otherSeg := other.ToAddressSegment()
 		res = otherSeg.GetSegmentValue() >= seg.GetSegmentValue() &&
@@ -115,14 +114,6 @@ func (seg *addressSegmentInternal) iterator() SegmentIterator {
 func (seg *addressSegmentInternal) identityIterator() SegmentIterator {
 	return &singleSegmentIterator{original: seg.toAddressSegment()}
 }
-
-//func (seg *addressSegmentInternal) iter(withPrefix bool) SegmentIterator { TODO might not need this
-//	var segPrefLen PrefixLen
-//	if withPrefix {
-//		segPrefLen = seg.getDivisionPrefixLength()
-//	}
-//	return seg.segmentIterator(segPrefLen, false, false)
-//}
 
 func (seg *addressSegmentInternal) prefixBlockIterator() SegmentIterator {
 	return seg.segmentIterator(seg.getDivisionPrefixLength(), true, true)
@@ -217,7 +208,7 @@ func (seg *AddressSegment) IsIPAddressSegment() bool {
 	return seg != nil && seg.matchesIPSegment()
 }
 
-func (seg *AddressSegment) IsIPv4AddressSegment() bool { //TODO maybe rename all these to IsIPv4(), same for IPv6() and maybe isMAC()
+func (seg *AddressSegment) IsIPv4AddressSegment() bool { //TODO maybe rename all these to IsIPv4(), same for IsIPv6() and maybe isMAC()
 	return seg != nil && seg.matchesIPv4Segment()
 }
 

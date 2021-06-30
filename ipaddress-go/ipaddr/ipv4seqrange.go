@@ -118,3 +118,44 @@ func (rng *IPv4AddressSeqRange) PrefixIterator(prefLength BitCount) IPv4AddressS
 func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
 }
+
+func (rng *IPv4AddressSeqRange) Overlaps(other *IPv4AddressSeqRange) bool {
+	return rng.init().overlaps(other.ToIPAddressSeqRange())
+}
+
+func (rng *IPv4AddressSeqRange) Intersect(other *IPv4AddressSeqRange) *IPAddressSeqRange {
+	return rng.init().intersect(other.toIPSequentialRange())
+}
+
+// TODO these methods complete this type
+///**
+//	 * Equivalent to {@link #getCount()} but returns a long
+//	 *
+//	 * @return
+//	 */
+//	public long getIPv4Count() {
+//		return getUpper().longValue() - getLower().longValue() + 1;
+//	}
+//
+//	/**
+//	 * Equivalent to {@link #getPrefixCount(int)} but returns a long
+//	 *
+//	 * @return
+//	 */
+//	public long getIPv4PrefixCount(int prefixLength) {
+//		if(prefixLength < 0) {
+//			throw new PrefixLenException(this, prefixLength);
+//		}
+//		int bitCount = getBitCount();
+//		if(bitCount <= prefixLength) {
+//			return getIPv4Count();
+//		}
+//		int shiftAdjustment = bitCount - prefixLength;
+//		long upperAdjusted = getUpper().longValue() >>> shiftAdjustment;
+//		long lowerAdjusted = getLower().longValue() >>> shiftAdjustment;
+//		return upperAdjusted - lowerAdjusted + 1;
+//	}
+//
+//	public String toIPv4String(Function<IPv4Address, String> lowerStringer, String separator, Function<IPv4Address, String> upperStringer) {
+//		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
+//	}

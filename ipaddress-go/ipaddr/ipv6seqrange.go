@@ -120,3 +120,16 @@ func (rng *IPv6AddressSeqRange) PrefixIterator(prefLength BitCount) IPv6AddressS
 func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
 }
+
+func (rng *IPv6AddressSeqRange) Overlaps(other *IPv6AddressSeqRange) bool {
+	return rng.init().overlaps(other.ToIPAddressSeqRange())
+}
+
+func (rng *IPv6AddressSeqRange) Intersect(other *IPv6AddressSeqRange) *IPAddressSeqRange {
+	return rng.init().intersect(other.toIPSequentialRange())
+}
+
+// TODO  this  method completes this type
+//public String toIPv6String(Function<IPv6Address, String> lowerStringer, String separator, Function<IPv6Address, String> upperStringer) {
+//	return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
+//}

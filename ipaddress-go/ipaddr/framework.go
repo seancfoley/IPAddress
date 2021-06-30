@@ -68,6 +68,8 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	CopyUpperIP(bytes net.IP) net.IP
 	GetIP() net.IP
 	GetUpperIP() net.IP
+
+	//IsSequential() bool TODO
 }
 
 //  as discussed in stringparams.go
