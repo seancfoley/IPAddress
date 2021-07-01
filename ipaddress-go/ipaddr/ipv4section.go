@@ -538,6 +538,15 @@ func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4Address
 	), nil
 }
 
+func (section *IPv4AddressSection) CoverWithPrefixBlockTo(other *IPv4AddressSection) (*IPv4AddressSection, SizeMismatchError) {
+	res, err := section.coverWithPrefixBlockTo(other.ToIPAddressSection())
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) CoverWithPrefixBlock() *IPv4AddressSection {
+	return section.coverWithPrefixBlock().ToIPv4AddressSection()
+}
+
 //
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //

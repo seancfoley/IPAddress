@@ -259,6 +259,34 @@ func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries 
 	return spanWithPrefixBlocks(wrapped)
 }
 
+func (addr *ipAddressInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSeries {
+	// call from wrapper
+	if addr.IsSinglePrefixBlock() {
+		return WrappedIPAddress{addr.toIPAddress()}
+	}
+	return coverWithPrefixBlock(
+		WrappedIPAddress{addr.getLower().ToIPAddress()},
+		WrappedIPAddress{addr.getUpper().ToIPAddress()})
+}
+
+func (addr *ipAddressInternal) coverWithPrefixBlock() *IPAddress {
+	// call from ip ipv4 ipv6
+	if addr.IsSinglePrefixBlock() {
+		return addr.toIPAddress()
+	}
+	res := coverWithPrefixBlock(
+		WrappedIPAddress{addr.getLower().ToIPAddress()},
+		WrappedIPAddress{addr.getUpper().ToIPAddress()})
+	return res.(WrappedIPAddress).IPAddress
+}
+
+func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddress {
+	res := getCoveringPrefixBlock(
+		WrappedIPAddress{addr.toIPAddress()},
+		WrappedIPAddress{other})
+	return res.(WrappedIPAddress).IPAddress
+}
+
 func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
@@ -760,18 +788,6 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressEr
 	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
 }
 
-func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
-	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
-	}
-	return cloneToIPAddrs(
-		getSpanningPrefixBlocks(
-			WrappedIPAddress{addr},
-			WrappedIPAddress{other},
-		),
-	), nil
-}
-
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()
 }
@@ -784,18 +800,6 @@ func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
 		}
 	}
 	return true
-}
-
-func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
-	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
-	}
-	return cloneToIPAddrs(
-		getSpanningSequentialBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
-		),
-	), nil
 }
 
 //
@@ -825,6 +829,7 @@ func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, I
 }
 
 func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
+	addr = addr.init()
 	if addr.IsSequential() {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPAddress{addr}
@@ -837,12 +842,50 @@ func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 	return cloneToIPAddrs(spanWithPrefixBlocks(wrapped))
 }
 
+func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
+	if !versionsMatch(addr, other) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+	}
+	return cloneToIPAddrs(
+		getSpanningPrefixBlocks(
+			WrappedIPAddress{addr.init()},
+			WrappedIPAddress{other.init()},
+		),
+	), nil
+}
+
+func (addr *IPAddress) CoverWithPrefixBlockTo(other *IPAddress) (*IPAddress, IncompatibleAddressError) {
+	if !versionsMatch(addr, other) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+	}
+	return addr.init().coverWithPrefixBlockTo(other), nil
+}
+
+func (addr *IPAddress) CoverWithPrefixBlock() *IPAddress {
+	return addr.init().coverWithPrefixBlock()
+}
+
 func (addr *IPAddress) SpanWithSequentialBlocks() []*IPAddress {
+	addr = addr.init()
 	if addr.IsSequential() {
 		return []*IPAddress{addr}
 	}
 	wrapped := WrappedIPAddress{addr}
 	return cloneToIPAddrs(spanWithSequentialBlocks(wrapped))
+}
+
+func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
+	addr = addr.init()
+	other = other.init()
+	if !versionsMatch(addr, other) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+	}
+	return cloneToIPAddrs(
+		getSpanningSequentialBlocks(
+			WrappedIPAddress{addr.ToIPAddress()},
+			WrappedIPAddress{other.ToIPAddress()},
+		),
+	), nil
 }
 
 func (addr *IPAddress) ToCanonicalString() string {

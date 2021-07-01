@@ -442,25 +442,6 @@ func (addr *IPv6Address) Increment(increment int64) *IPv6Address {
 	return addr.init().increment(increment).ToIPv6Address()
 }
 
-//func (addr *IPv6Address) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-//	xxx
-//	wrapped := WrappedIPAddress{addr.ToIPAddress()}
-//	if addr.IsSequential() {
-//		if addr.IsSinglePrefixBlock() {
-//			return []ExtendedIPSegmentSeries{wrapped}
-//		}
-//		return getSpanningPrefixBlocks(wrapped, wrapped)
-//	}
-//	return spanWithPrefixBlocks(wrapped)
-//}
-//
-//func (addr *IPv6Address) spanWithPrefixBlocksTo(other *IPv6Address) []ExtendedIPSegmentSeries {
-//	return getSpanningPrefixBlocks(
-//		WrappedIPAddress{addr.ToIPAddress()},
-//		WrappedIPAddress{other.ToIPAddress()},
-//	)
-//}
-
 func (addr *IPv6Address) SpanWithPrefixBlocks() []*IPv6Address {
 	if addr.IsSequential() {
 		if addr.IsSinglePrefixBlock() {
@@ -498,6 +479,14 @@ func (addr *IPv6Address) SpanWithSequentialBlocksTo(other *IPv6Address) []*IPv6A
 			WrappedIPAddress{other.ToIPAddress()},
 		),
 	)
+}
+
+func (addr *IPv6Address) CoverWithPrefixBlockTo(other *IPv6Address) *IPv6Address {
+	return addr.init().coverWithPrefixBlockTo(other.ToIPAddress()).ToIPv6Address()
+}
+
+func (addr *IPv6Address) CoverWithPrefixBlock() *IPv6Address {
+	return addr.init().coverWithPrefixBlock().ToIPv6Address()
 }
 
 //

@@ -167,6 +167,8 @@ func (rng ipAddressSeqRangeInternal) String() string { // using non-pointer rece
 //	@Override
 //	public abstract IPAddress[] spanWithSequentialBlocks();
 //
+// TODO I think this one should become a method, so that we can have ipv4 and v6 versions.
+// We also need to change the name of the other join, maybe to joinTo or joinSingle
 //	/**
 //	 * Joins the given ranges into the fewest number of ranges.
 //	 * The returned array will be sorted by ascending lowest range value.
@@ -272,7 +274,7 @@ func (rng *ipAddressSeqRangeInternal) intersect(other *IPAddressSeqRange) *IPAdd
 	return newSeqRangeUnchecked(lower, otherUpper, comp != 0)
 }
 
-//
+// TODO these too need to be done.
 //	/**
 //	 * If this range overlaps with the given range,
 //	 * or if the highest value of the lower range is one below the lowest value of the higher range,

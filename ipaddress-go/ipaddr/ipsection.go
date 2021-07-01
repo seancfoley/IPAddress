@@ -501,6 +501,35 @@ func (section *ipAddressSectionInternal) spanWithPrefixBlocks() []ExtendedIPSegm
 	return spanWithPrefixBlocks(wrapped)
 }
 
+func (section *ipAddressSectionInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSeries {
+	if section.IsSinglePrefixBlock() {
+		return WrappedIPAddressSection{section.toIPAddressSection()}
+	}
+	return coverWithPrefixBlock(
+		WrappedIPAddressSection{section.getLower().ToIPAddressSection()},
+		WrappedIPAddressSection{section.getUpper().ToIPAddressSection()})
+}
+
+func (section *ipAddressSectionInternal) coverWithPrefixBlock() *IPAddressSection {
+	if section.IsSinglePrefixBlock() {
+		return section.toIPAddressSection()
+	}
+	res := coverWithPrefixBlock(
+		WrappedIPAddressSection{section.getLower().ToIPAddressSection()},
+		WrappedIPAddressSection{section.getUpper().ToIPAddressSection()})
+	return res.(WrappedIPAddressSection).IPAddressSection
+}
+
+func (section *ipAddressSectionInternal) coverWithPrefixBlockTo(other *IPAddressSection) (*IPAddressSection, SizeMismatchError) {
+	if err := section.checkSectionCount(other); err != nil {
+		return nil, err
+	}
+	res := getCoveringPrefixBlock(
+		WrappedIPAddressSection{section.toIPAddressSection()},
+		WrappedIPAddressSection{other})
+	return res.(WrappedIPAddressSection).IPAddressSection, nil
+}
+
 func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return cacheStrErr(&section.getStringCache().octalString,
 		func() (string, IncompatibleAddressError) {
@@ -799,16 +828,6 @@ func (section *IPAddressSection) Increment(increment int64) *IPAddressSection {
 	return section.increment(increment).ToIPAddressSection()
 }
 
-//func (section *IPAddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-//	xxx
-//	if section.IsIPv4AddressSection() {
-//		return section.ToIPv4AddressSection().spanWithPrefixBlocks()
-//	} else if section.IsIPv6AddressSection() {
-//		return section.ToIPv6AddressSection().spanWithPrefixBlocks()
-//	}
-//	return nil
-//}
-
 func (section *IPAddressSection) SpanWithPrefixBlocks() []*IPAddressSection {
 	if section.IsSequential() {
 		if section.IsSinglePrefixBlock() {
@@ -828,6 +847,10 @@ func (section *IPAddressSection) SpanWithSequentialBlocks() []*IPAddressSection 
 	}
 	wrapped := WrappedIPAddressSection{section}
 	return cloneToIPSections(spanWithSequentialBlocks(wrapped))
+}
+
+func (section *IPAddressSection) CoverWithPrefixBlock() *IPAddressSection {
+	return section.coverWithPrefixBlock()
 }
 
 var (

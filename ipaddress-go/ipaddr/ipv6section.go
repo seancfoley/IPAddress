@@ -580,6 +580,15 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6Address
 	), nil
 }
 
+func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, SizeMismatchError) {
+	res, err := section.coverWithPrefixBlockTo(other.ToIPAddressSection())
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) CoverWithPrefixBlock() *IPv6AddressSection {
+	return section.coverWithPrefixBlock().ToIPv6AddressSection()
+}
+
 //
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //

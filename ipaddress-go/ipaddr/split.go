@@ -20,9 +20,9 @@ func getSpanningPrefixBlocks(
 	result := checkPrefixBlockContainment(first, other)
 	//result := checkPrefixBlockContainment(first, other, prefixAdder)
 	if result != nil {
-		return result
+		return wrapNonNilInSlice(result)
 	}
-	blocks := applyOperatorToLowerUpper(
+	return applyOperatorToLowerUpper(
 		first,
 		other,
 		//func(series AddressSegmentSeries) AddressSegmentSeries { return getLower(series.(*IPAddressSection)) },
@@ -35,15 +35,39 @@ func getSpanningPrefixBlocks(
 		//func(series AddressSegmentSeries) AddressSegmentSeries {
 		//	return prefixRemover(series.(*IPAddressSection))
 		//},
-		func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
-			return splitIntoPrefixBlocks(lower, upper)
-		})
+		//func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
+		//	return splitIntoPrefixBlocks(lower, upper)
+		//}
+		splitIntoPrefixBlocks)
 	//);
-	return blocks.([]ExtendedIPSegmentSeries)
+	//return blocks.([]ExtendedIPSegmentSeries)
 	//return cloneToIPSections(blocks.([]AddressSegmentSeries)), nil
 	//List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, (orig, lower, upper) -> IPAddressSection.splitIntoPrefixBlocks(lower, upper));
 	//result = blocks.toArray(arrayProducer.apply(blocks.size()));
 	//return result;
+
+	//blocks := applyOperatorToLowerUpper(
+	//	first,
+	//	other,
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries { return getLower(series.(*IPAddressSection)) },
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries { return getUpper(series.(*IPAddressSection)) },
+	//	//func(one, two ExtendedIPSegmentSeries) int {
+	//	//	return comparator(one.(*IPAddressSection), two.(*IPAddressSection))
+	//	//},
+	//	//comparator,
+	//	true,
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries {
+	//	//	return prefixRemover(series.(*IPAddressSection))
+	//	//},
+	//	func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
+	//		return splitIntoPrefixBlocks(lower, upper)
+	//	})
+	////);
+	//return blocks.([]ExtendedIPSegmentSeries)
+	////return cloneToIPSections(blocks.([]AddressSegmentSeries)), nil
+	////List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, (orig, lower, upper) -> IPAddressSection.splitIntoPrefixBlocks(lower, upper));
+	////result = blocks.toArray(arrayProducer.apply(blocks.size()));
+	////return result;
 }
 
 func getSpanningSequentialBlocks(
@@ -57,9 +81,9 @@ func getSpanningSequentialBlocks(
 ) []ExtendedIPSegmentSeries {
 	result := checkSequentialBlockContainment(first, other)
 	if result != nil {
-		return result
+		return wrapNonNilInSlice(result)
 	}
-	blocks := applyOperatorToLowerUpper(
+	return applyOperatorToLowerUpper(
 		first,
 		other,
 		//func(series AddressSegmentSeries) AddressSegmentSeries { return getLower(series.(*IPAddressSection)) },
@@ -72,14 +96,37 @@ func getSpanningSequentialBlocks(
 		//func(series AddressSegmentSeries) AddressSegmentSeries {
 		//	return prefixRemover(series.(*IPAddressSection))
 		//},
-		func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
-			return splitIntoSequentialBlocks(lower, upper)
-		})
+		//func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
+		//	return splitIntoSequentialBlocks(lower, upper)
+		//}
+		splitIntoSequentialBlocks)
 
 	//TriFunction<R, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, creator::createSequentialBlockSection);
 	//List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
 	//return blocks.toArray(creator.createSectionArray(blocks.size()));
-	return blocks.([]ExtendedIPSegmentSeries)
+	//return blocks.([]ExtendedIPSegmentSeries)
+
+	//blocks := applyOperatorToLowerUpper(
+	//	first,
+	//	other,
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries { return getLower(series.(*IPAddressSection)) },
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries { return getUpper(series.(*IPAddressSection)) },
+	//	//func(one, two ExtendedIPSegmentSeries) int {
+	//	//	return comparator(one.(*IPAddressSection), two.(*IPAddressSection))
+	//	//},
+	//	//comparator,
+	//	true,
+	//	//func(series AddressSegmentSeries) AddressSegmentSeries {
+	//	//	return prefixRemover(series.(*IPAddressSection))
+	//	//},
+	//	func(orig, lower, upper ExtendedIPSegmentSeries) interface{} {
+	//		return splitIntoSequentialBlocks(lower, upper)
+	//	})
+	//
+	////TriFunction<R, List<IPAddressSegmentSeries>> operatorFunctor = (orig, one, two) -> IPAddressSection.splitIntoSequentialBlocks(one, two, creator::createSequentialBlockSection);
+	////List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, operatorFunctor);
+	////return blocks.toArray(creator.createSectionArray(blocks.size()));
+	//return blocks.([]ExtendedIPSegmentSeries)
 }
 
 //protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningSequentialBlocks(
@@ -104,7 +151,7 @@ func checkPrefixBlockContainment(
 	first,
 	other ExtendedIPSegmentSeries,
 	//prefixAdder func(*IPAddressSection) *IPAddressSection
-) []ExtendedIPSegmentSeries {
+) ExtendedIPSegmentSeries {
 	//IntFunction<R[]> arrayProducer) []*IPAddressSection {
 	if first.Contains(other) {
 		return checkPrefixBlockFormat(first, other, true)
@@ -122,12 +169,19 @@ func checkPrefixBlockContainment(
 	return nil
 }
 
+func wrapNonNilInSlice(result ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries {
+	if result != nil {
+		return []ExtendedIPSegmentSeries{result}
+	}
+	return nil
+}
+
 func checkSequentialBlockContainment(
 	first,
 	other ExtendedIPSegmentSeries,
 	//UnaryOperator<T> prefixRemover,
 	//IntFunction<T[]> arrayProducer
-) []ExtendedIPSegmentSeries {
+) ExtendedIPSegmentSeries {
 	if first.Contains(other) {
 		return checkSequentialBlockFormat(first, other, true)
 		//	return checkSequentialBlockFormat(first, other, true, prefixRemover, arrayProducer);
@@ -138,31 +192,59 @@ func checkSequentialBlockContainment(
 	return nil
 }
 
+//func checkPrefixBlockFormat(
+//	container,
+//	contained ExtendedIPSegmentSeries,
+//	checkEqual bool,
+//) []ExtendedIPSegmentSeries {
+//	//prefixAdder func(AddressSegmentSeries) AddressSegmentSeries) []AddressSegmentSeries {
+//	//IntFunction<T[]> arrayProducer) {
+//	var result ExtendedIPSegmentSeries
+//	if container.IsPrefixed() {
+//		if container.IsSinglePrefixBlock() {
+//			result = container
+//		}
+//	} else if checkEqual && contained.IsPrefixed() && container.CompareSize(contained) == 0 && contained.IsSinglePrefixBlock() {
+//		result = contained
+//	} else {
+//		result = container.AssignPrefixForSingleBlock() // this returns nil if cannot be a prefix block
+//		//result = prefixAdder(container) // this returns nil if cannot be a prefix block
+//	}
+//	if result != nil {
+//		return []ExtendedIPSegmentSeries{result}
+//		//T resultArray[] = arrayProducer.apply(1);
+//		//resultArray[0] = result;
+//		//return resultArray;
+//	}
+//	return nil
+//	//return null;
+//}
+
 func checkPrefixBlockFormat(
 	container,
 	contained ExtendedIPSegmentSeries,
 	checkEqual bool,
-) []ExtendedIPSegmentSeries {
+) (result ExtendedIPSegmentSeries) {
 	//prefixAdder func(AddressSegmentSeries) AddressSegmentSeries) []AddressSegmentSeries {
 	//IntFunction<T[]> arrayProducer) {
-	var result ExtendedIPSegmentSeries
-	if container.IsPrefixed() {
-		if container.IsSinglePrefixBlock() {
-			result = container
-		}
+	//xxx is this right?  if first is prefixed but prefix len does not match block len
+	//then second might have prfix len that does
+	if container.IsPrefixed() && container.IsSinglePrefixBlock() {
+		result = container
 	} else if checkEqual && contained.IsPrefixed() && container.CompareSize(contained) == 0 && contained.IsSinglePrefixBlock() {
 		result = contained
 	} else {
 		result = container.AssignPrefixForSingleBlock() // this returns nil if cannot be a prefix block
 		//result = prefixAdder(container) // this returns nil if cannot be a prefix block
 	}
-	if result != nil {
-		return []ExtendedIPSegmentSeries{result}
-		//T resultArray[] = arrayProducer.apply(1);
-		//resultArray[0] = result;
-		//return resultArray;
-	}
-	return nil
+	return
+	//if result != nil {
+	//	return []ExtendedIPSegmentSeries{result}
+	//	//T resultArray[] = arrayProducer.apply(1);
+	//	//resultArray[0] = result;
+	//	//return resultArray;
+	//}
+	//return nil
 	//return null;
 }
 
@@ -172,8 +254,8 @@ func checkSequentialBlockFormat(
 	checkEqual bool,
 	//UnaryOperator<T> prefixRemover,
 	//IntFunction<T[]> arrayProducer
-) []ExtendedIPSegmentSeries {
-	var result ExtendedIPSegmentSeries
+) (result ExtendedIPSegmentSeries) {
+	//var result ExtendedIPSegmentSeries
 	if !container.IsPrefixed() {
 		if container.IsSequential() {
 			result = container
@@ -186,14 +268,45 @@ func checkSequentialBlockFormat(
 		result = container.WithoutPrefixLen()
 		//result = prefixRemover.apply(container)
 	}
-	if result != nil {
-		return []ExtendedIPSegmentSeries{result}
-		//T resultArray[] = arrayProducer.apply(1);
-		//resultArray[0] = result;
-		//return resultArray;
-	}
-	return nil
+	return
+	//if result != nil {
+	//	return []ExtendedIPSegmentSeries{result}
+	//	//T resultArray[] = arrayProducer.apply(1);
+	//	//resultArray[0] = result;
+	//	//return resultArray;
+	//}
+	//return nil
 }
+
+//
+//func checkSequentialBlockFormat(
+//	container,
+//	contained ExtendedIPSegmentSeries,
+//	checkEqual bool,
+//	//UnaryOperator<T> prefixRemover,
+//	//IntFunction<T[]> arrayProducer
+//) []ExtendedIPSegmentSeries {
+//	var result ExtendedIPSegmentSeries
+//	if !container.IsPrefixed() {
+//		if container.IsSequential() {
+//			result = container
+//		}
+//	} else if checkEqual && !contained.IsPrefixed() && container.CompareSize(contained) == 0 {
+//		if contained.IsSequential() {
+//			result = contained
+//		}
+//	} else if container.IsSequential() {
+//		result = container.WithoutPrefixLen()
+//		//result = prefixRemover.apply(container)
+//	}
+//	if result != nil {
+//		return []ExtendedIPSegmentSeries{result}
+//		//T resultArray[] = arrayProducer.apply(1);
+//		//resultArray[0] = result;
+//		//return resultArray;
+//	}
+//	return nil
+//}
 
 //private static <R extends IPAddressSection> R[] checkSequentialBlockContainment(
 //			R first,
@@ -445,22 +558,22 @@ func applyOperatorToLowerUpper(
 	//comparator func(IPAddressSegmentSeries, IPAddressSegmentSeries) int,
 	//prefixRemover func(AddressSegmentSeries) AddressSegmentSeries,
 	removePrefixes bool,
-	operatorFunctor func(sourceLowerUpper, lower, upper ExtendedIPSegmentSeries) interface{}) interface{} {
+	operatorFunctor func(lower, upper ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries {
 	var lower, upper ExtendedIPSegmentSeries
-	isFirst, isOther := true, true
+	//isFirst, isOther := true, true
 	if seriesValsSame(first, other) {
 		//if first.Equals(other) {
 		if removePrefixes && first.IsPrefixed() {
 			if other.IsPrefixed() {
 				lower = first.WithoutPrefixLen()
-				isOther = false
-				isFirst = false
+				//isOther = false
+				//isFirst = false
 			} else {
 				lower = other
-				isFirst = false
+				//isFirst = false
 			}
 		} else {
-			isOther = false
+			//isOther = false
 			lower = first
 		}
 		upper = lower.GetUpper()
@@ -473,18 +586,18 @@ func applyOperatorToLowerUpper(
 		if LowValueComparator.CompareSeries(firstLower, otherLower) > 0 {
 			//if firstLower.CompareTo(otherLower) > 0 {
 			lower = otherLower
-			isFirst = false
+			//isFirst = false
 		} else {
 			lower = firstLower
-			isOther = false
+			//isOther = false
 		}
 		if LowValueComparator.CompareSeries(firstUpper, otherUpper) < 0 {
 			//if firstUpper.CompareTo(otherUpper) < 0 {
 			upper = otherUpper
-			isFirst = false
+			//isFirst = false
 		} else {
 			upper = firstUpper
-			isOther = false
+			//isOther = false
 		}
 		if removePrefixes {
 			lower = lower.WithoutPrefixLen()
@@ -495,14 +608,82 @@ func applyOperatorToLowerUpper(
 	// In the case of coverWithPrefixBlock, if the lower and upper are both from the first, and the first is a prefix block, then the first can be reused,
 	// rather than create a new prefix block each time.
 	// In other words, when passing in a prefix block as the original, we reuse it.
-	var sourceLowerUpper ExtendedIPSegmentSeries
-	if isFirst {
-		sourceLowerUpper = first
-	} else if isOther {
-		sourceLowerUpper = other
-	}
-	return operatorFunctor(sourceLowerUpper, lower, upper)
+	//var sourceLowerUpper ExtendedIPSegmentSeries
+	//if isFirst {
+	//	sourceLowerUpper = first
+	//} else if isOther {
+	//	sourceLowerUpper = other
+	//}
+	return operatorFunctor(lower, upper)
 }
+
+//func applyOperatorToLowerUpper(
+////static <R extends IPAddressSegmentSeries, OperatorResult> OperatorResult applyOperatorToLowerUpper(
+//	first,
+//	other ExtendedIPSegmentSeries,
+////getLower,
+////getUpper func(AddressSegmentSeries) AddressSegmentSeries,
+////comparator func(IPAddressSegmentSeries, IPAddressSegmentSeries) int,
+////prefixRemover func(AddressSegmentSeries) AddressSegmentSeries,
+//	removePrefixes bool,
+//	operatorFunctor func(sourceLowerUpper, lower, upper ExtendedIPSegmentSeries) interface{}) interface{} {
+//	var lower, upper ExtendedIPSegmentSeries
+//	isFirst, isOther := true, true
+//	if seriesValsSame(first, other) {
+//		//if first.Equals(other) {
+//		if removePrefixes && first.IsPrefixed() {
+//			if other.IsPrefixed() {
+//				lower = first.WithoutPrefixLen()
+//				isOther = false
+//				isFirst = false
+//			} else {
+//				lower = other
+//				isFirst = false
+//			}
+//		} else {
+//			isOther = false
+//			lower = first
+//		}
+//		upper = lower.GetUpper()
+//		lower = lower.GetLower()
+//	} else {
+//		firstLower := first.GetLower()
+//		otherLower := other.GetLower()
+//		firstUpper := first.GetUpper()
+//		otherUpper := other.GetUpper()
+//		if LowValueComparator.CompareSeries(firstLower, otherLower) > 0 {
+//			//if firstLower.CompareTo(otherLower) > 0 {
+//			lower = otherLower
+//			isFirst = false
+//		} else {
+//			lower = firstLower
+//			isOther = false
+//		}
+//		if LowValueComparator.CompareSeries(firstUpper, otherUpper) < 0 {
+//			//if firstUpper.CompareTo(otherUpper) < 0 {
+//			upper = otherUpper
+//			isFirst = false
+//		} else {
+//			upper = firstUpper
+//			isOther = false
+//		}
+//		if removePrefixes {
+//			lower = lower.WithoutPrefixLen()
+//			upper = upper.WithoutPrefixLen()
+//		}
+//	}
+//	// We pass the first arg to the operator func if both the lower and upper args came from the first arg.
+//	// In the case of coverWithPrefixBlock, if the lower and upper are both from the first, and the first is a prefix block, then the first can be reused,
+//	// rather than create a new prefix block each time.
+//	// In other words, when passing in a prefix block as the original, we reuse it.
+//	var sourceLowerUpper ExtendedIPSegmentSeries
+//	if isFirst {
+//		sourceLowerUpper = first
+//	} else if isOther {
+//		sourceLowerUpper = other
+//	}
+//	return operatorFunctor(sourceLowerUpper, lower, upper)
+//}
 
 type SeriesStack struct {
 	seriesPairs []ExtendedIPSegmentSeries // stack items

@@ -109,7 +109,7 @@ func (section *addressSectionInternal) initMultiple() {
 }
 
 // error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) init() AddressValueError {
+func (section *addressSectionInternal) init() AddressValueError { //TODO rename, right now it confuses due to all the other init() methods for zero addresses
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen

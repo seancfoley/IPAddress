@@ -449,6 +449,14 @@ func (addr *IPv4Address) SpanWithSequentialBlocksTo(other *IPv4Address) []*IPv4A
 	)
 }
 
+func (addr *IPv4Address) CoverWithPrefixBlockTo(other *IPv4Address) *IPv4Address {
+	return addr.init().coverWithPrefixBlockTo(other.ToIPAddress()).ToIPv4Address()
+}
+
+func (addr *IPv4Address) CoverWithPrefixBlock() *IPv4Address {
+	return addr.init().coverWithPrefixBlock().ToIPv4Address()
+}
+
 //
 // MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
 //
