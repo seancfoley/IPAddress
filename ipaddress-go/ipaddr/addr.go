@@ -490,6 +490,12 @@ func (addr *addressInternal) assignPrefixForSingleBlock() *Address {
 	return addr.checkIdentity(addr.section.setPrefixLen(*newPrefix))
 }
 
+// Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
+// such that the range of values are a set of subnet blocks for that prefix.
+func (addr *addressInternal) assignMinPrefixForBlock() *Address {
+	return addr.setPrefixLen(addr.GetMinPrefixLengthForBlock())
+}
+
 func (addr *addressInternal) isSameZone(other AddressType) bool {
 	return addr.zone == other.ToAddress().zone
 }
@@ -807,6 +813,12 @@ func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, Incompati
 
 func (addr *Address) AssignPrefixForSingleBlock() *Address {
 	return addr.init().assignPrefixForSingleBlock()
+}
+
+// Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
+// such that the range of values are the prefix block for that prefix.
+func (addr *Address) AssignMinPrefixForBlock() *Address {
+	return addr.init().assignMinPrefixForBlock()
 }
 
 func (addr *Address) GetMaxSegmentValue() SegInt {

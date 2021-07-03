@@ -53,7 +53,7 @@ type AddressItem interface {
 	GetMinPrefixLengthForBlock() BitCount
 
 	// GetPrefixCount() TODO, NEXT I think this is the last one for AddressItem
-	// GetPrefixCountLen(int) TODO, this one might go in addresssegmentseries, need to check where to put it in here
+	// GetPrefixCountLen(int) TODO this one might go in addresssegmentseries, need to check where to put it in here
 
 	CompareTo(item AddressItem) int
 
@@ -164,7 +164,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	IsSingleNetwork() bool
 
 	GetSequentialBlockIndex() int
-	//GetSequentialBlockCount() *big.Int TODO
+	//GetSequentialBlockCount() *big.Int TODO next
 
 	GetIPVersion() IPVersion
 
@@ -245,7 +245,7 @@ var _, _, _ IPAddressType = &IPAddress{},
 	&IPv6Address{}
 
 type IPAddressSeqRangeType interface {
-	AddressItem // TODO NEXT add this, need to add GetMinPrefixLengthForBlock and getPrefixLengthForSingleBlock and IsFullRange
+	AddressItem
 	IPAddressRange
 
 	ContainsRange(other IPAddressSeqRangeType) bool

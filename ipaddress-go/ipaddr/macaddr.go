@@ -252,6 +252,10 @@ func (addr *MACAddress) AssignPrefixForSingleBlock() *MACAddress {
 	return addr.init().assignPrefixForSingleBlock().ToMACAddress()
 }
 
+func (addr *MACAddress) AssignMinPrefixForBlock() *MACAddress {
+	return addr.init().assignMinPrefixForBlock().ToMACAddress()
+}
+
 func (addr *MACAddress) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return addr.init().addressInternal.ContainsPrefixBlock(prefixLen)
 }

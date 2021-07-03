@@ -259,6 +259,14 @@ func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries 
 	return spanWithPrefixBlocks(wrapped)
 }
 
+func (addr *ipAddressInternal) spanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	wrapped := WrappedIPAddress{addr.toIPAddress()}
+	if addr.IsSequential() {
+		return []ExtendedIPSegmentSeries{wrapped}
+	}
+	return spanWithSequentialBlocks(wrapped)
+}
+
 func (addr *ipAddressInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSeries {
 	// call from wrapper
 	if addr.IsSinglePrefixBlock() {
@@ -603,6 +611,10 @@ func (addr *IPAddress) AssignPrefixForSingleBlock() *IPAddress {
 	return addr.init().assignPrefixForSingleBlock().ToIPAddress()
 }
 
+func (addr *IPAddress) AssignMinPrefixForBlock() *IPAddress {
+	return addr.init().assignMinPrefixForBlock().ToIPAddress()
+}
+
 // CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *IPAddress) CompareSize(other AddressDivisionSeries) int { // this is here to take advantage of the CompareSize in IPAddressSection
 	return addr.GetSection().CompareSize(other)
@@ -763,7 +775,7 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 // We only do this in IPAddress, not IPAddressSection.  The rationale for that in Java was that you could convert addresses but not sections.
 // The rationale here is that span, merge, mask, etc are really methods targeted for addresses and not sections and you do not really need to put them in sections too.
 // The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
-// Becauase we do have the type-safe versions.
+// Because we do have the type-safe versions.
 
 func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {

@@ -311,6 +311,10 @@ func (section *IPv6AddressSection) AssignPrefixForSingleBlock() *IPv6AddressSect
 	return section.assignPrefixForSingleBlock().ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) AssignMinPrefixForBlock() *IPv6AddressSection {
+	return section.assignMinPrefixForBlock().ToIPv6AddressSection()
+}
+
 func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
 	return ipv6SectionIterator{section.sectionIterator(nil)}
 }

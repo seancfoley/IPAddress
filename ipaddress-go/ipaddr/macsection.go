@@ -100,6 +100,10 @@ func (section *MACAddressSection) AssignPrefixForSingleBlock() *MACAddressSectio
 	return section.assignPrefixForSingleBlock().ToMACAddressSection()
 }
 
+func (section *MACAddressSection) AssignMinPrefixForBlock() *MACAddressSection {
+	return section.assignMinPrefixForBlock().ToMACAddressSection()
+}
+
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 	return section.getDivision(index).ToMACAddressSegment()
 }

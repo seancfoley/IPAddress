@@ -454,16 +454,6 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 	return true
 }
 
-//func (section *ipAddressSectionInternal) setPrefixLen(prefixLen BitCount) *IPAddressSection {
-//	res, _ := setIPPrefixLength(section.toIPAddressSection(), prefixLen, false, true)
-//	return res
-//} TODO remove
-//
-//func (section *ipAddressSectionInternal) setPrefixLenZeroed(prefixLen BitCount, zeroHostIsBlock bool) (*IPAddressSection, IncompatibleAddressError) {
-//	return setIPPrefixLength(section.toIPAddressSection(), prefixLen, true, !zeroHostIsBlock)
-//} TODO remove
-//
-
 func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) SizeMismatchError {
 	if other.GetSegmentCount() < section.GetSegmentCount() {
 		return &sizeMismatchError{incompatibleAddressError{addressError{str: "ipaddress.error.sizeMismatch"}}}
@@ -499,6 +489,14 @@ func (section *ipAddressSectionInternal) spanWithPrefixBlocks() []ExtendedIPSegm
 		return getSpanningPrefixBlocks(wrapped, wrapped)
 	}
 	return spanWithPrefixBlocks(wrapped)
+}
+
+func (section *ipAddressSectionInternal) spanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	wrapped := WrappedIPAddressSection{section.toIPAddressSection()}
+	if section.IsSequential() {
+		return []ExtendedIPSegmentSeries{wrapped}
+	}
+	return spanWithSequentialBlocks(wrapped)
 }
 
 func (section *ipAddressSectionInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSeries {
@@ -794,6 +792,10 @@ func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSe
 
 func (section *IPAddressSection) AssignPrefixForSingleBlock() *IPAddressSection {
 	return section.assignPrefixForSingleBlock().ToIPAddressSection()
+}
+
+func (section *IPAddressSection) AssignMinPrefixForBlock() *IPAddressSection {
+	return section.assignMinPrefixForBlock().ToIPAddressSection()
 }
 
 func (section *IPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddressSection {

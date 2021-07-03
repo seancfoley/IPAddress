@@ -438,6 +438,10 @@ func (section *IPv4AddressSection) AssignPrefixForSingleBlock() *IPv4AddressSect
 	return section.assignPrefixForSingleBlock().ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) AssignMinPrefixForBlock() *IPv4AddressSection {
+	return section.assignMinPrefixForBlock().ToIPv4AddressSection()
+}
+
 func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
 	return ipv4SectionIterator{section.sectionIterator(nil)}
 }

@@ -1,7 +1,8 @@
 package ipaddr
 
 // ExtendedIPSegmentSeries can be used to write code that works on either IP Addresses or IP Address Sections,
-// going further than IPAddressSegmentSeries to offer additional methods with series types in their signature
+// going further than IPAddressSegmentSeries to offer additional methods with series types in their signature.
+// An ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
@@ -24,11 +25,12 @@ type ExtendedIPSegmentSeries interface {
 	// GetSegment(int index) *IPAddressSegment and GetSegments() []*IPAddressSegment //TODO - we do have GetGenericSegment and GetGenericDivision but we could also return IPAddressSegment
 	// GetTrailingSection, GetSubSection, CopySegments, CopySubSegments // TODO these are already there in IPAddress and IPAddressSection, so not much work
 
-	//IsIPv4() IsIPV6() TODO also already there so not much work
+	IsIPv4() bool
+	IsIPv6() bool
 
-	// creates a sequential block by changing the segment at the given index to have the given lower and upper value,
+	// ToBlock creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 	// and changing the following segments to be full-range
-	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries // see Java createSequentialBlockSection
+	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries
 
 	ToPrefixBlockLen(BitCount) ExtendedIPSegmentSeries
 	ToPrefixBlock() ExtendedIPSegmentSeries
@@ -40,15 +42,13 @@ type ExtendedIPSegmentSeries interface {
 	ToZeroNetwork() ExtendedIPSegmentSeries
 
 	Increment(int64) ExtendedIPSegmentSeries
-
-	//IncrementBoundary //TODO
+	IncrementBoundary(int64) ExtendedIPSegmentSeries
 
 	GetLower() ExtendedIPSegmentSeries
 	GetUpper() ExtendedIPSegmentSeries
 
 	AssignPrefixForSingleBlock() ExtendedIPSegmentSeries
-
-	//AssignMinPrefixForBlock() ExtendedIPSegmentSeries  //TODO uses GetMinPrefixLengthForBlock I presume which we have already
+	AssignMinPrefixForBlock() ExtendedIPSegmentSeries
 
 	SequentialBlockIterator() ExtendedIPSegmentSeriesIterator
 	BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator
@@ -57,7 +57,7 @@ type ExtendedIPSegmentSeries interface {
 	PrefixBlockIterator() ExtendedIPSegmentSeriesIterator
 
 	SpanWithPrefixBlocks() []ExtendedIPSegmentSeries
-	//SpanWithSequentialBlocks() []ExtendedIPSegmentSeries TODO
+	SpanWithSequentialBlocks() []ExtendedIPSegmentSeries
 
 	CoverWithPrefixBlock() ExtendedIPSegmentSeries
 
@@ -141,6 +141,10 @@ func (w WrappedIPAddress) Increment(i int64) ExtendedIPSegmentSeries {
 	return convAddrToIntf(w.IPAddress.Increment(i))
 }
 
+func (w WrappedIPAddress) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
+	return convAddrToIntf(w.IPAddress.IncrementBoundary(i))
+}
+
 func (w WrappedIPAddress) GetLower() ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.GetLower()}
 }
@@ -157,9 +161,9 @@ func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
 	return convAddrToIntf(w.IPAddress.AssignPrefixForSingleBlock())
 }
 
-//func (w WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries { //TODO reinstate
-//	return w.IPAddressSection.AssignMinPrefixForBlock())
-//}
+func (w WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.AssignMinPrefixForBlock()}
+}
 
 func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.WithoutPrefixLen()}
@@ -167,6 +171,10 @@ func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
 
 func (w WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
 	return w.IPAddress.spanWithPrefixBlocks()
+}
+
+func (w WrappedIPAddress) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	return w.IPAddress.spanWithSequentialBlocks()
 }
 
 func (w WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
@@ -252,6 +260,10 @@ func (w WrappedIPAddressSection) Increment(i int64) ExtendedIPSegmentSeries {
 	return convSectToIntf(w.IPAddressSection.Increment(i))
 }
 
+func (w WrappedIPAddressSection) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
+	return convSectToIntf(w.IPAddressSection.IncrementBoundary(i))
+}
+
 func (w WrappedIPAddressSection) GetLower() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.GetLower()}
 }
@@ -272,9 +284,9 @@ func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentS
 	return convSectToIntf(w.IPAddressSection.AssignPrefixForSingleBlock())
 }
 
-//func (w WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries { //TODO reinstate
-//	return w.IPAddressSection.AssignMinPrefixForBlock()
-//}
+func (w WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.AssignMinPrefixForBlock()}
+}
 
 func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.WithoutPrefixLen()}
@@ -282,6 +294,10 @@ func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
 
 func (w WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
 	return w.IPAddressSection.spanWithPrefixBlocks()
+}
+
+func (w WrappedIPAddressSection) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	return w.IPAddressSection.spanWithSequentialBlocks()
 }
 
 func (w WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries {

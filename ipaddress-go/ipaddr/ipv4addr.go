@@ -278,6 +278,10 @@ func (addr *IPv4Address) AssignPrefixForSingleBlock() *IPv4Address {
 	return addr.init().assignPrefixForSingleBlock().ToIPv4Address()
 }
 
+func (addr *IPv4Address) AssignMinPrefixForBlock() *IPv4Address {
+	return addr.init().assignMinPrefixForBlock().ToIPv4Address()
+}
+
 func (addr *IPv4Address) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return addr.init().ipAddressInternal.ContainsPrefixBlock(prefixLen)
 }

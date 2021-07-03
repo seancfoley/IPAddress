@@ -519,6 +519,12 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 	return section.setPrefixLen(*newPrefix)
 }
 
+// Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
+// such that the range of values are a set of subnet blocks for that prefix.
+func (section *addressSectionInternal) assignMinPrefixForBlock() *AddressSection {
+	return section.setPrefixLen(section.GetMinPrefixLengthForBlock())
+}
+
 func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	otherSection := other.ToAddressSection()
 	if section.toAddressSection() == otherSection {
@@ -972,7 +978,11 @@ func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressS
 }
 
 func (section *AddressSection) AssignPrefixForSingleBlock() *AddressSection {
-	return section.assignPrefixForSingleBlock().ToAddressSection()
+	return section.assignPrefixForSingleBlock()
+}
+
+func (section *AddressSection) AssignMinPrefixForBlock() *AddressSection {
+	return section.assignMinPrefixForBlock()
 }
 
 func (section *AddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *AddressSection {

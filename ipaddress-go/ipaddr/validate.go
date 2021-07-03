@@ -1334,7 +1334,6 @@ func validateAddress(
 						isExc = macFormat != COLON_DELIMITED
 					}
 					if isExc {
-						// TODO search for "ipaddress.error.invalid.character.at.index" should be 15, and 19 of "ipaddress.error.invalid.character.at.index", inside this func
 						return &addressStringIndexError{
 							addressStringError{addressError{str: str, key: "ipaddress.mac.error.mix.format.characters.at.index"}},
 							index}

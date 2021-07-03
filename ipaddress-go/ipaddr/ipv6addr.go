@@ -304,6 +304,10 @@ func (addr *IPv6Address) AssignPrefixForSingleBlock() *IPv6Address {
 	return addr.init().assignPrefixForSingleBlock().ToIPv6Address()
 }
 
+func (addr *IPv6Address) AssignMinPrefixForBlock() *IPv6Address {
+	return addr.init().assignMinPrefixForBlock().ToIPv6Address()
+}
+
 func (addr *IPv6Address) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return addr.init().ipAddressInternal.ContainsPrefixBlock(prefixLen)
 }
