@@ -147,11 +147,11 @@ func (section *MACAddressSection) GetUpper() *MACAddressSection {
 	return section.getUpper().ToMACAddressSection()
 }
 
-func (section *MACAddressSection) LongValue() uint64 {
+func (section *MACAddressSection) Uint64Value() uint64 {
 	return section.getLongValue(true)
 }
 
-func (section *MACAddressSection) UpperLongValue() uint64 {
+func (section *MACAddressSection) UpperUint64Value() uint64 {
 	return section.getLongValue(false)
 }
 
@@ -228,8 +228,8 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		return section
 	}
 	segCount := section.GetSegmentCount()
-	lowerValue := section.LongValue()
-	upperValue := section.UpperLongValue()
+	lowerValue := section.Uint64Value()
+	upperValue := section.UpperUint64Value()
 	count := section.GetCount()
 	countMinus1 := count.Sub(count, bigOneConst()).Uint64()
 	isOverflow := checkOverflow(incrementVal, lowerValue, upperValue, countMinus1, getMacMaxValueLong(segCount))
@@ -241,8 +241,8 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		incrementVal,
 		DefaultMACNetwork.GetMACAddressCreator(),
 		countMinus1,
-		section.LongValue(),
-		section.UpperLongValue(),
+		section.Uint64Value(),
+		section.UpperUint64Value(),
 		section.addressSectionInternal.getLower,
 		section.addressSectionInternal.getUpper,
 		section.GetPrefixLength()).ToMACAddressSection()

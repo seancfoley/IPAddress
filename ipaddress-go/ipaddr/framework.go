@@ -28,11 +28,32 @@ type AddressItem interface {
 	IsZero() bool
 	IsMax() bool
 
+	// ContainsPrefixBlock returns whether the values of this item contains the prefix block for the given prefix length.
+	// If there are multiple possible prefixes in this item for the given prefix length, then this returns
+	// whether this item contains the prefix block for each and every one of those prefixes.
 	ContainsPrefixBlock(BitCount) bool
+
+	// ContainsSinglePrefixBlock returns  whether the values of this series contains a single prefix block for the given prefix length.
+	// This means there is only one prefix of the given length in this item, and this item contains the prefix block for that given prefix.
 	ContainsSinglePrefixBlock(BitCount) bool
+
+	// GetPrefixLengthForSingleBlock returns a prefix length for which there is only one prefix of that length in this item,
+	// and the range of this item matches the block of all values for that prefix.
+	// If the range can be dictated this way, then this method returns the same value as GetMinPrefixLengthForBlock.
+	// If no such prefix length exists, returns nil.
+	// If this item represents a single value, this returns the bit count.
 	GetPrefixLengthForSingleBlock() PrefixLen
+
+	// GetMinPrefixLengthForBlock returns the smallest prefix length possible such that this item includes the block of all values for that prefix length.
+	// If there are multiple possible prefixes in this item for the given prefix length,
+	// this item contains the prefix block for each and every one of those prefixes.
+	// If the entire range can be dictated this way, then this method returns the same value as {@link #getPrefixLengthForSingleBlock()}.
+	// Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #getPrefixLengthForSingleBlock()} will return null.
+	// In cases where the final bit is constant so there is no such block, this returns the bit count.
 	GetMinPrefixLengthForBlock() BitCount
-	// GetPrefixCount(int) TODO, I think this is the last one for AddressItem
+
+	// GetPrefixCount() TODO, NEXT I think this is the last one for AddressItem
+	// GetPrefixCountLen(int) TODO, this one might go in addresssegmentseries, need to check where to put it in here
 
 	CompareTo(item AddressItem) int
 
@@ -56,20 +77,23 @@ type AddressComponent interface { //AddressSegment and above, AddressSegmentSeri
 	ToNormalizedString() string
 }
 
-type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
-	//AddressComponentRange
-
-	// TODO maybe you want a generic GetLowerIPAddress() *IPAddress and GetUpperIPAddress() *IPAddress in here?
-	// Just to be able to get lower and upper through the interface?
-	// Once again, downside is this pollute method-set, confuses with GetLower and GetUpper, so probably not.
-	// This IPAddressRange interface might not be all that useful
+type ipAddressRange interface {
+	GetLowerIPAddress() *IPAddress
+	GetUpperIPAddress() *IPAddress
 
 	CopyIP(bytes net.IP) net.IP
 	CopyUpperIP(bytes net.IP) net.IP
+
 	GetIP() net.IP
 	GetUpperIP() net.IP
+}
 
-	//IsSequential() bool TODO
+type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
+	//AddressComponentRange
+
+	ipAddressRange
+
+	IsSequential() bool
 }
 
 //  as discussed in stringparams.go
@@ -120,14 +144,14 @@ type addrSegmentSeries interface {
 	GetGenericSegment(index int) AddressSegmentType
 }
 
-type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries
+type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries, ExtendedIPSegmentSeries
 
 	AddressDivisionSeries
 
 	addrSegmentSeries
 }
 
-type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above
+type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
 
 	AddressSegmentSeries
 
@@ -211,7 +235,7 @@ var _, _ AddressType = &Address{}, &MACAddress{}
 // This includes IPv4Address, and IPv6Address.
 type IPAddressType interface {
 	AddressType
-	IPAddressRange
+	ipAddressRange
 
 	ToIPAddress() *IPAddress
 }
@@ -221,6 +245,7 @@ var _, _, _ IPAddressType = &IPAddress{},
 	&IPv6Address{}
 
 type IPAddressSeqRangeType interface {
+	AddressItem // TODO NEXT add this, need to add GetMinPrefixLengthForBlock and getPrefixLengthForSingleBlock and IsFullRange
 	IPAddressRange
 
 	ContainsRange(other IPAddressSeqRangeType) bool

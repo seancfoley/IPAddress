@@ -1880,7 +1880,7 @@ func parsePortOrService(
 }
 
 func parseValidatedPrefix(
-	result int,
+	result BitCount,
 	fullAddr string,
 	zone Zone,
 	validationOptions IPAddressStringParameters,
@@ -1931,7 +1931,7 @@ func parseValidatedPrefix(
 	//	return
 	//}
 	//res = &ParsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result), zone: zone}xx
-	res.networkPrefixLength = cacheBits(result)
+	res.networkPrefixLength = cacheBitCount(result)
 	res.zone = zone
 	return
 }
@@ -1952,14 +1952,15 @@ func validatePrefix(
 	//isPrefix := true
 	prefixEndIndex := endIndex
 	hasDigits := false
-	var result, leadingZeros int
+	var result BitCount
+	var leadingZeros int
 	charArray := chars
 	//	var portQualifier *ParsedHostIdentifierStringQualifier
 	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
 		if c >= '1' && c <= '9' {
 			hasDigits = true
-			result = result*10 + int(charArray[c])
+			result = result*10 + BitCount(charArray[c])
 		} else if c == '0' {
 			if hasDigits {
 				result *= 10
@@ -2598,7 +2599,7 @@ func chooseMACAddressProvider(fromString *MACAddressString,
 		if validationOptions == defaultMACAddrParameters {
 			res = macAddressDefaultAllProvider
 		} else {
-			res = macAddressAllProvider{validationOptions: validationOptions}
+			res = &macAddressAllProvider{validationOptions: validationOptions}
 		}
 	} else {
 		err = checkMACSegments(
@@ -3442,12 +3443,11 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 			segmentUppercase = true
 			isAllDigits = false
 		} else if currentChar == LabelSeparator {
-			len := index - lastSeparatorIndex - 1
-			if len > MAX_LABEL_LENGTH {
+			length := index - lastSeparatorIndex - 1
+			if length > MAX_LABEL_LENGTH {
 				err = &hostNameError{addressError{str: str, key: "ipaddress.error.segment.too.long"}}
 				return
-			}
-			if len == 0 {
+			} else if length == 0 {
 				err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.segment.too.short"}}
 				return
 			}

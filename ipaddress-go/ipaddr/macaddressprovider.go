@@ -22,7 +22,7 @@ type macAddressAllProvider struct {
 	creationLock      sync.Mutex
 }
 
-func (provider macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
+func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
 	addr := provider.address
 	if addr == nil {
 		provider.creationLock.Lock()

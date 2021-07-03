@@ -246,7 +246,7 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 	if r1Type == ipv4rangetype {
 		r1 := one.ToIPAddressSeqRange().ToIPv4SequentialRange()
 		r2 := two.ToIPAddressSeqRange().ToIPv4SequentialRange()
-		return comp.compareValues(uint64(r1.GetUpper().IntValue()), uint64(r1.GetLower().IntValue()), uint64(r2.GetUpper().IntValue()), uint64(r2.GetLower().IntValue()))
+		return comp.compareValues(uint64(r1.GetUpper().Uint32Value()), uint64(r1.GetLower().Uint32Value()), uint64(r2.GetUpper().Uint32Value()), uint64(r2.GetLower().Uint32Value()))
 	}
 	r1 := one.ToIPAddressSeqRange()
 	r2 := two.ToIPAddressSeqRange()
@@ -297,7 +297,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		} else {
 			return -1
 		}
-	} else if rng1, ok := one.(IPAddressSeqRangeType); ok {
+	} else if rng1, ok := one.(IPAddressSeqRangeType); ok { //TODO this is not right, IPAddressSeqRangeType is not AddressItem
 		if rng2, ok := two.(IPAddressSeqRangeType); ok {
 			return comp.CompareRanges(rng1, rng2)
 		} else if _, ok := two.(AddressDivisionSeries); ok {

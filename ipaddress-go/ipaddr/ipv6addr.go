@@ -7,20 +7,20 @@ import (
 )
 
 const (
-	IPv6SegmentSeparator           = ':'
-	IPv6ZoneSeparator              = '%'
-	IPv6AlternativeZoneSeparator   = '\u00a7'
-	IPv6BitsPerSegment             = 16
-	IPv6BytesPerSegment            = 2
-	IPv6SegmentCount               = 8
-	IPv6MixedReplacedSegmentCount  = 2
-	IPv6MixedOriginalSegmentCount  = 6
-	IPv6ByteCount                  = 16
-	IPv6BitCount                   = 128
-	IPv6DefaultTextualRadix        = 16
-	IPv6MaxValuePerSegment         = 0xffff
-	IPv6ReverseDnsSuffix           = ".ip6.arpa"
-	IPv6ReverseDnsSuffixDeprecated = ".ip6.int"
+	IPv6SegmentSeparator                    = ':'
+	IPv6ZoneSeparator                       = '%'
+	IPv6AlternativeZoneSeparator            = '\u00a7'
+	IPv6BitsPerSegment             BitCount = 16
+	IPv6BytesPerSegment                     = 2
+	IPv6SegmentCount                        = 8
+	IPv6MixedReplacedSegmentCount           = 2
+	IPv6MixedOriginalSegmentCount           = 6
+	IPv6ByteCount                           = 16
+	IPv6BitCount                   BitCount = 128
+	IPv6DefaultTextualRadix                 = 16
+	IPv6MaxValuePerSegment                  = 0xffff
+	IPv6ReverseDnsSuffix                    = ".ip6.arpa"
+	IPv6ReverseDnsSuffixDeprecated          = ".ip6.int"
 
 	IPv6UncSegmentSeparator  = '-'
 	IPv6UncZoneSeparator     = 's'
@@ -241,6 +241,16 @@ func (addr *IPv6Address) GetUpper() *IPv6Address {
 	return addr.init().getUpper().ToIPv6Address()
 }
 
+// GetLowerIPAddress implements the IPAddressRange interface
+func (addr *IPv6Address) GetLowerIPAddress() *IPAddress {
+	return addr.GetLower().ToIPAddress()
+}
+
+// GetUpperIPAddress implements the IPAddressRange interface
+func (addr *IPv6Address) GetUpperIPAddress() *IPAddress {
+	return addr.GetUpper().ToIPAddress()
+}
+
 func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost()
 	return res.ToIPv6Address(), err
@@ -358,7 +368,7 @@ func (addr *IPv6Address) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *IPv6Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }
@@ -393,8 +403,8 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	}
 	addr = addr.init().WithoutPrefixLen().WithoutZone()
 	return newSeqRangeUnchecked(
-		addr.GetLower().ToIPAddress(),
-		addr.GetUpper().ToIPAddress(),
+		addr.GetLowerIPAddress(),
+		addr.GetUpperIPAddress(),
 		addr.IsMultiple()).ToIPv6SequentialRange()
 }
 

@@ -360,7 +360,7 @@ func toDefaultString(val uint64, radix int) string {
 	} else if val == 1 {
 		return "1"
 	}
-	var len int
+	var length int
 	var quotient, remainder, value uint //we iterate on //value == quotient * radix + remainder
 	if radix == 10 {
 		if val < 10 {
@@ -393,19 +393,19 @@ func toDefaultString(val uint64, radix int) string {
 			builder.WriteByte(dig[digIndex+1])
 			return builder.String()
 		} else if val < 1000 {
-			len = 3
+			length = 3
 			value = uint(val)
 		} else {
 			return strconv.FormatUint(val, 10)
 		}
-		chars := make([]byte, len)
+		chars := make([]byte, length)
 		dig := DIGITS
 		for value != 0 {
-			len--
+			length--
 			//value == quotient * 10 + remainder
 			quotient = (value * 0xcccd) >> 19                       //floor of n/10 is floor of ((0xcccd * n / (2 ^ 16)) / (2 ^ 3))
 			remainder = value - ((quotient << 3) + (quotient << 1)) //multiplication by 2 added to multiplication by 2 ^ 3 is multiplication by 2 + 8 = 10
-			chars[len] = dig[remainder]
+			chars[length] = dig[remainder]
 			value = quotient
 		}
 		return string(chars)
@@ -415,22 +415,22 @@ func toDefaultString(val uint64, radix int) string {
 		}
 		var builder strings.Builder
 		if val < 0x100 {
-			len = 2
+			length = 2
 			value = uint(val)
 		} else if val < 0x1000 {
-			len = 3
+			length = 3
 			value = uint(val)
 		} else if val < 0x10000 {
 			if val == 0xffff {
 				return "ffff"
 			}
 			value = uint(val)
-			len = 4
+			length = 4
 		} else {
 			return strconv.FormatUint(val, 16)
 		}
 		dig := DIGITS
-		builder.Grow(len)
+		builder.Grow(length)
 		shift := uint(12)
 		for {
 			index := (value >> shift) & 15

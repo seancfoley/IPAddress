@@ -52,16 +52,16 @@ func main() {
 	var slc []int
 	fmt.Printf("%+v\n", slc) // expecting []
 	fmt.Printf("%v\n", slc)  // expecting []
-	fmt.Printf("%s\n", slc)  // expecting []
+	fmt.Printf("%v\n", slc)  // expecting []
 
 	addr := ipaddr.IPv6Address{}
-	fmt.Printf("%+v\n", addr)
-	fmt.Printf("%+v\n", &addr)
+	fmt.Printf("zero addr is %+v\n", addr)
+	fmt.Printf("zero addr is %+v\n", &addr)
 
 	addr4 := ipaddr.IPv4Address{}
-	fmt.Printf("%+v\n", addr4)
+	fmt.Printf("zero addr is %+v\n", addr4)
 	addr2 := addr4.ToIPAddress()
-	fmt.Printf("%+v\n", addr2)
+	fmt.Printf("zero addr is %+v\n", addr2)
 	//fmt.Printf("%+v\n", &addr2)
 
 	ipv4Prefixed := addr4.ToPrefixBlockLen(16)

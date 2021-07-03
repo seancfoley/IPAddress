@@ -8,44 +8,42 @@ type ExtendedIPSegmentSeries interface {
 	// Unwrap returns the wrapped section or address as an IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
-	// not sure about the return types on these 5, probably should be *IPAddressSection?  Because the wrapper types are geared for that type anyway
-	//GetSection() AddressSectionType  //TODO
+	// not sure about the return types on these 5, probably should all be *IPAddressSection?  Because the wrapper types are geared for that type anyway
+
+	// GetSection returns the full address section
+	GetSection() *IPAddressSection
 
 	//GetNetworkSection() AddressSectionType  //TODO
-
 	//GetHostSection() AddressSectionType  //TODO
-
 	//GetNetworkSectionLen(BitCount) AddressSectionType  //TODO
-
 	//GetHostSectionLen(BitCount) AddressSectionType  //TODO
-	//
 
 	//GetNetworkMask() ExtendedIPSegmentSeries  //TODO
-
 	//GetHostMask() ExtendedIPSegmentSeries  //TODO
+
+	// GetSegment(int index) *IPAddressSegment and GetSegments() []*IPAddressSegment //TODO - we do have GetGenericSegment and GetGenericDivision but we could also return IPAddressSegment
+	// GetTrailingSection, GetSubSection, CopySegments, CopySubSegments // TODO these are already there in IPAddress and IPAddressSection, so not much work
+
+	//IsIPv4() IsIPV6() TODO also already there so not much work
 
 	// creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 	// and changing the following segments to be full-range
 	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries // see Java createSequentialBlockSection
 
 	ToPrefixBlockLen(BitCount) ExtendedIPSegmentSeries
-
 	ToPrefixBlock() ExtendedIPSegmentSeries
 
 	ToZeroHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
-
 	ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
-
 	ToMaxHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
-
 	ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
-
 	ToZeroNetwork() ExtendedIPSegmentSeries
 
 	Increment(int64) ExtendedIPSegmentSeries
 
-	GetLower() ExtendedIPSegmentSeries
+	//IncrementBoundary //TODO
 
+	GetLower() ExtendedIPSegmentSeries
 	GetUpper() ExtendedIPSegmentSeries
 
 	AssignPrefixForSingleBlock() ExtendedIPSegmentSeries
@@ -53,31 +51,24 @@ type ExtendedIPSegmentSeries interface {
 	//AssignMinPrefixForBlock() ExtendedIPSegmentSeries  //TODO uses GetMinPrefixLengthForBlock I presume which we have already
 
 	SequentialBlockIterator() ExtendedIPSegmentSeriesIterator
-
 	BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator
-
 	Iterator() ExtendedIPSegmentSeriesIterator
-
 	PrefixIterator() ExtendedIPSegmentSeriesIterator
-
 	PrefixBlockIterator() ExtendedIPSegmentSeriesIterator
 
 	SpanWithPrefixBlocks() []ExtendedIPSegmentSeries
+	//SpanWithSequentialBlocks() []ExtendedIPSegmentSeries TODO
 
 	CoverWithPrefixBlock() ExtendedIPSegmentSeries
 
 	Contains(other ExtendedIPSegmentSeries) bool
 
 	SetPrefixLen(BitCount) ExtendedIPSegmentSeries
-
 	WithoutPrefixLen() ExtendedIPSegmentSeries
 
 	//ReverseBytes() ExtendedIPSegmentSeries //TODO
-
 	//ReverseBits(bool) ExtendedIPSegmentSeries //TODO
-
 	//ReverseSegments(bool) ExtendedIPSegmentSeries //TODO
-
 }
 
 type WrappedIPAddress struct {
@@ -158,6 +149,10 @@ func (w WrappedIPAddress) GetUpper() ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.GetUpper()}
 }
 
+func (w WrappedIPAddress) GetSection() *IPAddressSection {
+	return w.IPAddress.GetSection()
+}
+
 func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
 	return convAddrToIntf(w.IPAddress.AssignPrefixForSingleBlock())
 }
@@ -179,7 +174,7 @@ func (w WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
 }
 
 func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.(AddressType)
+	addr, ok := other.Unwrap().(AddressType)
 	return ok && w.IPAddress.Contains(addr)
 }
 
@@ -265,6 +260,10 @@ func (w WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.GetUpper()}
 }
 
+func (w WrappedIPAddressSection) GetSection() *IPAddressSection {
+	return w.IPAddressSection
+}
+
 //func (w WrappedIPAddressSection) CompareTo(series ExtendedIPSegmentSeries) int {
 //	return w.IPAddressSection.CompareTo(series)
 //}
@@ -290,7 +289,7 @@ func (w WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries 
 }
 
 func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.(AddressSectionType)
+	addr, ok := other.Unwrap().(AddressSectionType)
 	return ok && w.IPAddressSection.Contains(addr)
 }
 
@@ -425,6 +424,22 @@ func cloneToIPv6Addrs(orig []ExtendedIPSegmentSeries) []*IPv6Address {
 	result := make([]*IPv6Address, len(orig))
 	for i := range result {
 		result[i] = orig[i].(WrappedIPAddress).ToIPv6Address()
+	}
+	return result
+}
+
+func cloneToIPv4SeqRange(orig []*IPAddressSeqRange) []*IPv4AddressSeqRange {
+	result := make([]*IPv4AddressSeqRange, len(orig))
+	for i := range result {
+		result[i] = orig[i].ToIPv4SequentialRange()
+	}
+	return result
+}
+
+func cloneToIPv6SeqRange(orig []*IPAddressSeqRange) []*IPv6AddressSeqRange {
+	result := make([]*IPv6AddressSeqRange, len(orig))
+	for i := range result {
+		result[i] = orig[i].ToIPv6SequentialRange()
 	}
 	return result
 }

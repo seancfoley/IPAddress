@@ -1,12 +1,16 @@
 package ipaddr
 
 import (
-	"fmt"
 	"math/big"
+	"math/bits"
 	"net"
+	"sort"
+	"strings"
 	"sync/atomic"
 	"unsafe"
 )
+
+const DefaultSeqRangeSeparator = " -> "
 
 type rangeCache struct {
 	cachedCount *big.Int
@@ -33,8 +37,8 @@ func (rng *ipAddressSeqRangeInternal) GetCachedCount(copy bool) (res *big.Int) {
 		if !rng.IsMultiple() {
 			count = bigOne()
 		} else if ipv4Range := rng.toIPv4SequentialRange(); ipv4Range != nil {
-			upper := int64(ipv4Range.GetUpper().IntValue())
-			lower := int64(ipv4Range.GetLower().IntValue())
+			upper := int64(ipv4Range.GetUpper().Uint32Value())
+			lower := int64(ipv4Range.GetLower().Uint32Value())
 			val := upper - lower + 1
 			count = new(big.Int).SetInt64(val)
 		} else {
@@ -70,8 +74,8 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixCount(prefixLen BitCount) *big.In
 	if ipv4Range := rng.toIPv4SequentialRange(); ipv4Range != nil {
 		upper := ipv4Range.GetUpper()
 		lower := ipv4Range.GetLower()
-		upperAdjusted := upper.IntValue() >> shiftAdjustment
-		lowerAdjusted := lower.IntValue() >> shiftAdjustment
+		upperAdjusted := upper.Uint32Value() >> shiftAdjustment
+		lowerAdjusted := lower.Uint32Value() >> shiftAdjustment
 		result := int64(upperAdjusted) - int64(lowerAdjusted) + 1
 		return new(big.Int).SetInt64(result)
 	}
@@ -123,126 +127,16 @@ func (rng *ipAddressSeqRangeInternal) toIPSequentialRange() *IPAddressSeqRange {
 	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
 }
 
-func (rng ipAddressSeqRangeInternal) String() string { // using non-pointer receiver makes it work well with fmt
-	return fmt.Sprintf("%v -> %v", rng.lower, rng.upper)
+func (rng *ipAddressSeqRangeInternal) toString(lowerStringer func(*IPAddress) string, separator string, upperStringer func(*IPAddress) string) string {
+	builder := strings.Builder{}
+	str1, str2, str3 := lowerStringer(rng.lower), separator, upperStringer(rng.upper)
+	builder.Grow(len(str1) + len(str2) + len(str3))
+	builder.WriteString(str1)
+	builder.WriteString(str2)
+	builder.WriteString(str3)
+	return builder.String()
 }
 
-//TODO NEXT the methods below (and the few ones in ipv4/6 seq range) complete the range types
-
-//public String toNormalizedString(String separator) {
-//		Function<IPAddress, String> stringer = IPAddress::toNormalizedString;
-//		return toString(stringer, separator, stringer);
-//	}
-//
-//	@Override
-//	public String toNormalizedString() {
-//		return toNormalizedString(" -> ");
-//	}
-//
-//	public String toCanonicalString(String separator) {
-//		Function<IPAddress, String> stringer = IPAddress::toCanonicalString;
-//		return toString(stringer, separator, stringer);
-//	}
-//
-//	@Override
-//	public String toCanonicalString() {
-//		return toCanonicalString(" -> ");
-//	}
-//
-//	public String toString(Function<? super IPAddress, String> lowerStringer, String separator, Function<? super IPAddress, String> upperStringer) {
-//		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
-//	}
-//
-//	@Override
-//	public String toString() {
-//		return toCanonicalString();
-//	}
-//
-//	@Override
-//	public abstract IPAddress coverWithPrefixBlock();
-//
-//	@Override
-//	public abstract IPAddress[] spanWithPrefixBlocks();
-//
-//	@Override
-//	public abstract IPAddress[] spanWithSequentialBlocks();
-//
-// TODO I think this one should become a method, so that we can have ipv4 and v6 versions.
-// We also need to change the name of the other join, maybe to joinTo or joinSingle
-//	/**
-//	 * Joins the given ranges into the fewest number of ranges.
-//	 * The returned array will be sorted by ascending lowest range value.
-//	 *
-//	 * @param ranges
-//	 * @return
-//	 */
-//	public static IPAddressSeqRange[] join(IPAddressSeqRange... ranges) {
-//		ranges = ranges.clone();
-//		// null entries are automatic joins
-//		int joinedCount = 0;
-//		for(int i = 0, j = ranges.length - 1; i <= j; i++) {
-//			if(ranges[i] == null) {
-//				joinedCount++;
-//				while(ranges[j] == null && j > i) {
-//					j--;
-//					joinedCount++;
-//				}
-//				if(j > i) {
-//					ranges[i] = ranges[j];
-//					ranges[j] = null;
-//					j--;
-//				}
-//			}
-//		}
-//		int len = ranges.length - joinedCount;
-//		Arrays.sort(ranges, 0, len, Address.ADDRESS_LOW_VALUE_COMPARATOR);
-//		for(int i = 0; i < len; i++) {
-//			IPAddressSeqRange range = ranges[i];
-//			if(range == null) {
-//				continue;
-//			}
-//			IPAddress currentLower = range.getLower();
-//			IPAddress currentUpper = range.getUpper();
-//			boolean didJoin = false;
-//			for(int j = i + 1; j < ranges.length; j++) {
-//				IPAddressSeqRange range2 = ranges[j];
-//				if(range2 == null) {
-//					continue;
-//				}
-//				IPAddress nextLower = range2.getLower();
-//				if(compareLowValues(currentUpper, nextLower) >= 0
-//						|| currentUpper.increment(1).equals(nextLower)) {
-//					//join them
-//					IPAddress nextUpper = range2.getUpper();
-//					if(compareLowValues(currentUpper, nextUpper) < 0) {
-//						currentUpper = nextUpper;
-//					}
-//					ranges[j] = null;
-//					didJoin = true;
-//					joinedCount++;
-//				} else break;
-//			}
-//			if(didJoin) {
-//				ranges[i] = range.create(currentLower, currentUpper);
-//			}
-//		}
-//		if(joinedCount == 0) {
-//			return ranges;
-//		}
-//		IPAddressSeqRange joined[] = new IPAddressSeqRange[ranges.length - joinedCount];
-//		for(int i = 0, j = 0; i < ranges.length; i++) {
-//			IPAddressSeqRange range = ranges[i];
-//			if(range == null) {
-//				continue;
-//			}
-//			joined[j++] = range;
-//			if(j >= joined.length) {
-//				break;
-//			}
-//		}
-//		return joined;
-//	}
-//
 func (rng *ipAddressSeqRangeInternal) overlaps(other *IPAddressSeqRange) bool {
 	return compareLowIPAddressValues(other.GetLower(), rng.upper) <= 0 && compareLowIPAddressValues(other.GetUpper(), rng.lower) >= 0
 }
@@ -274,134 +168,108 @@ func (rng *ipAddressSeqRangeInternal) intersect(other *IPAddressSeqRange) *IPAdd
 	return newSeqRangeUnchecked(lower, otherUpper, comp != 0)
 }
 
-// TODO these too need to be done.
-//	/**
-//	 * If this range overlaps with the given range,
-//	 * or if the highest value of the lower range is one below the lowest value of the higher range,
-//	 * then the two are joined into a new larger range that is returned.
-//	 * <p>
-//	 * Otherwise null is returned.
-//	 *
-//	 * @param other
-//	 * @return
-//	 */
-//	public IPAddressSeqRange join(IPAddressSeqRange other) {
-//		IPAddress otherLower = other.getLower();
-//		IPAddress otherUpper = other.getUpper();
-//		IPAddress lower = getLower();
-//		IPAddress upper = getUpper();
-//		int lowerComp = compareLowValues(lower, otherLower);
-//		if(!overlaps(other)) {
-//			if(lowerComp >= 0) {
-//				if(otherUpper.increment(1).equals(lower)) {
-//					return create(otherLower, upper);
-//				}
-//			} else {
-//				if(upper.increment(1).equals(otherLower)) {
-//					return create(lower, otherUpper);
-//				}
-//			}
-//			return null;
-//		}
-//		int upperComp = compareLowValues(upper, otherUpper);
-//		IPAddress lowestLower, highestUpper;
-//		if(lowerComp >= 0) {
-//			if(lowerComp == 0 && upperComp == 0) {
-//				return this;
-//			}
-//			lowestLower = otherLower;
-//		} else {
-//			lowestLower = lower;
-//		}
-//		highestUpper = upperComp >= 0 ? upper : otherUpper;
-//		return create(lowestLower, highestUpper);
-//	}
-//
-///**
-// * Extend this sequential range to include all address in the given range, which can be an IPAddress or IPAddressSeqRange.
-// * If the argument has a different IP version than this, null is returned.
-// * Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
-// *
-// * @param other
-// * @return
-// */
-//public IPAddressSeqRange extend(IPAddressRange other) {
-//	IPAddress otherLower = other.getLower();
-//	IPAddress otherUpper = other.getUpper();
-//	IPAddress lower = getLower();
-//	IPAddress upper = getUpper();
-//	int lowerComp = compareLowValues(lower, otherLower);
-//	int upperComp = compareLowValues(upper, otherUpper);
-//	if(lowerComp > 0) { //
-//		if(upperComp <= 0) { // ol l u ou
-//			return other.toSequentialRange();
-//		}
-//		IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
-//		int versionComp = compareLowValues(lower, max);
-//		if(versionComp > 0) { // different versions: ol ou max l u
-//			return null;
-//		}
-//		// ol l ou u
-//		return create(otherLower, upper);
-//	}
-//	// lowerComp <= 0
-//	if(upperComp >= 0) { // l ol ou u
-//		return this;
-//	}
-//	IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
-//	int versionComp = compareLowValues(otherLower, max);
-//	if(versionComp > 0) { // different versions: l u max ol ou
-//		return null;
-//	}
-//	return create(lower, otherUpper);// l ol u ou
-//}
-//
-///**
-// * Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
-// * If the result has length 2, the two ranges are ordered by ascending lowest range value.
-// *
-// * @param other
-// * @return
-// */
-//public IPAddressSeqRange[] subtract(IPAddressSeqRange other) {
-//	IPAddress otherLower = other.getLower();
-//	IPAddress otherUpper = other.getUpper();
-//	IPAddress lower = getLower();
-//	IPAddress upper = getUpper();
-//	if(compareLowValues(lower, otherLower) < 0) {
-//		if(compareLowValues(upper, otherUpper) > 0) { // l ol ou u
-//			return createPair(lower, otherLower.increment(-1), otherUpper.increment(1), upper);
-//		} else {
-//			int comp = compareLowValues(upper, otherLower);
-//			if(comp < 0) { // l u ol ou
-//				return createSingle();
-//			} else if(comp == 0) { // l u == ol ou
-//				return createSingle(lower, upper.increment(-1));
-//			}
-//			return createSingle(lower, otherLower.increment(-1)); // l ol u ou
-//		}
-//	} else if(compareLowValues(otherUpper, upper) >= 0) { // ol l u ou
-//		return createEmpty();
-//	} else {
-//		int comp = compareLowValues(otherUpper, lower);
-//		if(comp < 0) {
-//			return createSingle(); // ol ou l u
-//		} else if(comp == 0) {
-//			return createSingle(lower.increment(1), upper); // ol ou == l u
-//		}
-//		return createSingle(otherUpper.increment(1), upper); // ol l ou u
-//	}
-//}
-//
-//protected abstract IPAddressSeqRange create(IPAddress lower, IPAddress upper);
-//
-//protected abstract IPAddressSeqRange[] createPair(IPAddress lower1, IPAddress upper1, IPAddress lower2, IPAddress upper2);
-//
-//protected abstract IPAddressSeqRange[] createSingle(IPAddress lower, IPAddress upper);
-//
-//protected abstract IPAddressSeqRange[] createSingle();
-//
-//protected abstract IPAddressSeqRange[] createEmpty();
+// If this range overlaps with the given range,
+// or if the highest value of the lower range is one below the lowest value of the higher range,
+// then the two are joined into a new larger range that is returned.
+// Otherwise nil is returned.
+func (rng *ipAddressSeqRangeInternal) joinTo(other *IPAddressSeqRange) *IPAddressSeqRange {
+	otherLower, otherUpper := other.GetLower(), other.GetUpper()
+	lower, upper := rng.lower, rng.upper
+	lowerComp := compareLowIPAddressValues(lower, otherLower)
+	if !rng.overlaps(other) {
+		if lowerComp >= 0 {
+			if otherUpper.increment(1).equals(lower) {
+				return newSeqRangeUnchecked(otherLower, upper, true)
+			}
+		} else {
+			if upper.increment(1).equals(otherLower) {
+				return newSeqRangeUnchecked(lower, otherUpper, true)
+			}
+		}
+		return nil
+	}
+	upperComp := compareLowIPAddressValues(upper, otherUpper)
+	var lowestLower, highestUpper *IPAddress
+	if lowerComp >= 0 {
+		if lowerComp == 0 && upperComp == 0 {
+			return rng.toIPSequentialRange()
+		}
+		lowestLower = otherLower
+	} else {
+		lowestLower = lower
+	}
+	if upperComp >= 0 {
+		highestUpper = upper
+	} else {
+		highestUpper = otherUpper
+	}
+	return newSeqRangeUnchecked(lowestLower, highestUpper, true)
+}
+
+// extend extends this sequential range to include all address in the given range.
+// If the argument has a different IP version than this, nil is returned.
+// Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
+func (rng *ipAddressSeqRangeInternal) extend(other *IPAddressSeqRange) *IPAddressSeqRange {
+	otherLower, otherUpper := other.GetLower(), other.GetUpper()
+	lower, upper := rng.lower, rng.upper
+	lowerComp := compareLowIPAddressValues(lower, otherLower)
+	upperComp := compareLowIPAddressValues(upper, otherUpper)
+	if lowerComp > 0 { //
+		if upperComp <= 0 { // ol l u ou
+			return other
+		}
+		//IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
+		//int versionComp = compareLowValues(lower, max);
+		//if(versionComp > 0) { // different versions: ol ou max l u
+		//	return null;
+		//}
+		// ol l ou u or ol ou l u
+		return newSeqRangeUnchecked(otherLower, upper, true)
+	}
+	// lowerComp <= 0
+	if upperComp >= 0 { // l ol ou u
+		return rng.toIPSequentialRange()
+	}
+	//IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
+	//int versionComp = compareLowValues(otherLower, max);
+	//if(versionComp > 0) { // different versions: l u max ol ou
+	//	return null;
+	//}
+	return newSeqRangeUnchecked(lower, otherUpper, true) // l ol u ou or l u ol ou
+}
+
+// Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
+// If the result has length 2, the two ranges are ordered by ascending lowest range value.
+func (rng *ipAddressSeqRangeInternal) subtract(other *IPAddressSeqRange) []*IPAddressSeqRange {
+	otherLower, otherUpper := other.GetLower(), other.GetUpper()
+	lower, upper := rng.lower, rng.upper
+	if compareLowIPAddressValues(lower, otherLower) < 0 {
+		if compareLowIPAddressValues(upper, otherUpper) > 0 { // l ol ou u
+			return []*IPAddressSeqRange{
+				newSeqRangeCheckSize(lower, otherLower.Increment(-1)),
+				newSeqRangeCheckSize(otherUpper.Increment(1), upper),
+			}
+		} else {
+			comp := compareLowIPAddressValues(upper, otherLower)
+			if comp < 0 { // l u ol ou
+				return []*IPAddressSeqRange{rng.toIPSequentialRange()}
+			} else if comp == 0 { // l u == ol ou
+				return []*IPAddressSeqRange{newSeqRangeCheckSize(lower, upper.Increment(-1))}
+			}
+			return []*IPAddressSeqRange{newSeqRangeCheckSize(lower, otherLower.Increment(-1))} // l ol u ou
+		}
+	} else if compareLowIPAddressValues(otherUpper, upper) >= 0 { // ol l u ou
+		return make([]*IPAddressSeqRange, 0, 0)
+	} else {
+		comp := compareLowIPAddressValues(otherUpper, lower)
+		if comp < 0 {
+			return []*IPAddressSeqRange{rng.toIPSequentialRange()} // ol ou l u
+		} else if comp == 0 {
+			return []*IPAddressSeqRange{newSeqRangeCheckSize(lower.Increment(1), upper)} // ol ou == l u
+		}
+		return []*IPAddressSeqRange{newSeqRangeCheckSize(otherUpper.Increment(1), upper)} // ol l ou u
+	}
+}
 
 func (rng *ipAddressSeqRangeInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
 	lower := rng.lower
@@ -469,6 +337,72 @@ func (rng *ipAddressSeqRangeInternal) ContainsSinglePrefixBlock(prefixLen BitCou
 	return true
 }
 
+func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+	lower := rng.lower
+	if lower == nil {
+		return cacheBits(0) // returns true for 0 bits
+	}
+	upper := rng.upper
+	count := lower.GetSegmentCount()
+	segBitCount := lower.GetBitsPerSegment()
+	maxSegValue := ^(^SegInt(0) << segBitCount)
+	totalPrefix := BitCount(0)
+	for i := 0; i < count; i++ {
+		lowerSeg := lower.GetSegment(i)
+		upperSeg := upper.GetSegment(i)
+		segPrefix := getPrefixLengthForSingleBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
+		if segPrefix == nil {
+			return nil
+		}
+		bits := *segPrefix
+		totalPrefix += bits
+		if bits < segBitCount {
+			//remaining segments must be full range or we return null
+			for i++; i < count; i++ {
+				lowerSeg = lower.GetSegment(i)
+				upperSeg = upper.GetSegment(i)
+				if lowerSeg.GetSegmentValue() != 0 {
+					return nil
+				} else if upperSeg.GetSegmentValue() != maxSegValue {
+					return nil
+				}
+			}
+		}
+	}
+	return cacheBitCount(totalPrefix)
+
+}
+
+func (rng *ipAddressSeqRangeInternal) GetMinPrefixLengthForBlock() BitCount {
+	lower := rng.lower
+	if lower == nil {
+		return 0 // returns true for 0 bits
+	}
+	upper := rng.upper
+	count := lower.GetSegmentCount()
+	totalPrefix := lower.GetBitCount()
+	segBitCount := lower.GetBitsPerSegment()
+	for i := count - 1; i >= 0; i-- {
+		lowerSeg := lower.GetSegment(i)
+		upperSeg := upper.GetSegment(i)
+		segPrefix := getMinPrefixLengthForBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
+		if segPrefix == segBitCount {
+			break
+		} else {
+			totalPrefix -= segBitCount
+			if segPrefix != 0 {
+				totalPrefix += segPrefix
+				break
+			}
+		}
+	}
+	return totalPrefix
+}
+
+func (rng *ipAddressSeqRangeInternal) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(rng.toIPSequentialRange(), item)
+}
+
 func (rng *ipAddressSeqRangeInternal) IsZero() bool {
 	return rng.IncludesZero() && !rng.IsMultiple()
 }
@@ -485,6 +419,11 @@ func (rng *ipAddressSeqRangeInternal) IsMax() bool {
 func (rng *ipAddressSeqRangeInternal) IncludesMax() bool {
 	upper := rng.upper
 	return upper == nil || upper.IsMax()
+}
+
+// whether this address item represents all possible values attainable by an address item of this type
+func (rng *ipAddressSeqRangeInternal) IsFullRange() bool {
+	return rng.IncludesZero() && rng.IncludesMax()
 }
 
 // Iterates through the range of prefixes in this range instance using the given prefix length.
@@ -721,15 +660,35 @@ type IPAddressSeqRange struct {
 	ipAddressSeqRangeInternal
 }
 
-func (rng IPAddressSeqRange) String() string {
-	return rng.init().ipAddressSeqRangeInternal.String()
-}
-
 func (rng *IPAddressSeqRange) init() *IPAddressSeqRange {
 	if rng.lower == nil {
 		return zeroRange
 	}
 	return rng
+}
+
+func (rng IPAddressSeqRange) String() string {
+	return rng.ToString((*IPAddress).String, DefaultSeqRangeSeparator, (*IPAddress).String)
+}
+
+func (rng *IPAddressSeqRange) ToString(lowerStringer func(*IPAddress) string, separator string, upperStringer func(*IPAddress) string) string {
+	return rng.init().toString(lowerStringer, separator, upperStringer)
+}
+
+func (rng *IPAddressSeqRange) ToNormalizedString() string {
+	return rng.ToString((*IPAddress).ToNormalizedString, DefaultSeqRangeSeparator, (*IPAddress).ToNormalizedString)
+}
+
+func (rng *IPAddressSeqRange) ToCanonicalString() string {
+	return rng.ToString((*IPAddress).ToCanonicalString, DefaultSeqRangeSeparator, (*IPAddress).ToCanonicalString)
+}
+
+func (rng *IPAddressSeqRange) GetLowerIPAddress() *IPAddress {
+	return rng.init().lower
+}
+
+func (rng *IPAddressSeqRange) GetUpperIPAddress() *IPAddress {
+	return rng.init().upper
 }
 
 func (rng *IPAddressSeqRange) GetLower() *IPAddress {
@@ -785,7 +744,7 @@ func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
 }
 
 func (rng *IPAddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
-	return rng.containsRange(other)
+	return rng.init().containsRange(other)
 }
 
 func (rng *IPAddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
@@ -846,6 +805,56 @@ func (rng *IPAddressSeqRange) Intersect(other *IPAddressSeqRange) *IPAddressSeqR
 	return rng.init().intersect(other)
 }
 
+func (rng *IPAddressSeqRange) CoverWithPrefixBlock() *IPAddress {
+	res, _ := rng.GetLower().CoverWithPrefixBlockTo(rng.GetUpper())
+	return res
+}
+
+func (rng *IPAddressSeqRange) SpanWithPrefixBlocks() []*IPAddress {
+	res, _ := rng.GetLower().SpanWithPrefixBlocksTo(rng.GetUpper())
+	return res
+}
+
+func (rng *IPAddressSeqRange) SpanWithSequentialBlocks() []*IPAddress {
+	res, _ := rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
+	return res
+}
+
+// Joins the given ranges into the fewest number of ranges.
+// The returned array will be sorted by ascending lowest range value.
+func (rng *IPAddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPAddressSeqRange {
+	origLen := len(ranges)
+	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
+	ranges[origLen] = rng
+	return join(ranges)
+}
+
+// JoinTo joins this range to the other.  If this range overlaps with the given range,
+// or if the highest value of the lower range is one below the lowest value of the higher range,
+// then the two are joined into a new larger range that is returned.
+// Otherwise nil is returned.
+func (rng *IPAddressSeqRange) JoinTo(other *IPAddressSeqRange) *IPAddressSeqRange {
+	return rng.init().joinTo(other.init())
+}
+
+// Extend extends this sequential range to include all address in the given range.
+// If the argument has a different IP version than this, nil is returned.
+// Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
+func (rng *IPAddressSeqRange) Extend(other *IPAddressSeqRange) *IPAddressSeqRange {
+	rng = rng.init()
+	other = other.init()
+	if !versionsMatch(rng.lower, other.lower) {
+		return nil
+	}
+	return rng.extend(other)
+}
+
+// Subtract Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
+// If the result has length 2, the two ranges are ordered by ascending lowest range value.
+func (rng *IPAddressSeqRange) Subtract(other *IPAddressSeqRange) []*IPAddressSeqRange {
+	return rng.init().subtract(other.init())
+}
+
 func newSeqRangeUnchecked(lower, upper *IPAddress, isMult bool) *IPAddressSeqRange {
 	return &IPAddressSeqRange{
 		ipAddressSeqRangeInternal{
@@ -855,6 +864,10 @@ func newSeqRangeUnchecked(lower, upper *IPAddress, isMult bool) *IPAddressSeqRan
 			cache:      &rangeCache{},
 		},
 	}
+}
+
+func newSeqRangeCheckSize(lower, upper *IPAddress) *IPAddressSeqRange {
+	return newSeqRangeUnchecked(lower, upper, !lower.equalsSameVersion(upper))
 }
 
 func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
@@ -902,6 +915,78 @@ func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
 	return newSeqRangeUnchecked(lower, upper, isMult)
 }
 
+func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
+	//ranges = ranges.clone();
+	// null entries are automatic joins
+	joinedCount := 0
+	rangesLen := len(ranges)
+	for i, j := 0, rangesLen-1; i <= j; i++ {
+		if ranges[i] == nil {
+			joinedCount++
+			for ranges[j] == nil && j > i {
+				j--
+				joinedCount++
+			}
+			if j > i {
+				ranges[i] = ranges[j]
+				ranges[j] = nil
+				j--
+			}
+		}
+	}
+	rangesLen = rangesLen - joinedCount
+	ranges = ranges[:rangesLen]
+	joinedCount = 0
+	sort.Slice(ranges, func(i, j int) bool {
+		return LowValueComparator.CompareRanges(ranges[i], ranges[j]) < 0
+	})
+	for i := 0; i < rangesLen; i++ {
+		rng := ranges[i]
+		if rng == nil {
+			continue
+		}
+		currentLower, currentUpper := rng.GetLower(), rng.GetUpper()
+		var isMultiJoin, doJoin bool
+		for j := i + 1; j < rangesLen; j++ {
+			rng2 := ranges[j]
+			nextLower := rng2.GetLower()
+			doJoin = compareLowIPAddressValues(currentUpper, nextLower) >= 0
+			if !doJoin {
+				doJoin = currentUpper.increment(1).equals(nextLower)
+				isMultiJoin = true
+			}
+			if doJoin {
+				//join them
+				nextUpper := rng2.GetUpper()
+				if compareLowIPAddressValues(currentUpper, nextUpper) < 0 {
+					currentUpper = nextUpper
+				}
+				ranges[j] = nil
+				isMultiJoin = isMultiJoin || rng.isMultiple || rng2.isMultiple
+				joinedCount++
+			} else {
+				break
+			}
+		}
+		if doJoin {
+			ranges[i] = newSeqRangeUnchecked(currentLower, currentUpper, isMultiJoin)
+		}
+	}
+	finalLen := rangesLen - joinedCount
+	for i, j := 0, 0; i < rangesLen; i++ {
+		rng := ranges[i]
+		if rng == nil {
+			continue
+		}
+		ranges[j] = rng
+		j++
+		if j >= finalLen {
+			break
+		}
+	}
+	return ranges[:finalLen]
+}
+
 func compareLowValues(one, two *Address) int {
 	return LowValueComparator.CompareAddresses(one, two)
 }
@@ -925,6 +1010,48 @@ func checkBitCount(prefixLength, max BitCount) BitCount {
 		return 0
 	}
 	return prefixLength
+}
+
+func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount {
+	if lower == upper {
+		return bitCount
+	} else if lower == 0 {
+		maxValue := ^(^DivInt(0) << bitCount)
+		if upper == maxValue {
+			return 0
+		}
+	}
+	result := bitCount
+	lowerZeros := bits.TrailingZeros64(lower)
+	if lowerZeros != 0 {
+		upperOnes := bits.TrailingZeros64(^upper)
+		if upperOnes != 0 {
+			var prefixedBitCount int
+			if lowerZeros < upperOnes {
+				prefixedBitCount = lowerZeros
+			} else {
+				prefixedBitCount = upperOnes
+			}
+			result -= BitCount(prefixedBitCount)
+		}
+	}
+	return result
+
+}
+
+func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) PrefixLen {
+	prefixLen := getMinPrefixLengthForBlock(lower, upper, bitCount)
+	if prefixLen == bitCount {
+		if lower == upper {
+			return cache(prefixLen)
+		}
+	} else {
+		shift := bitCount - prefixLen
+		if lower>>shift == upper>>shift {
+			return cache(prefixLen)
+		}
+	}
+	return nil
 }
 
 // wrapperIterator notifies the iterator to the right when wrapperIterator reaches its final value

@@ -266,7 +266,8 @@ func (addr *ipAddressInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSer
 	}
 	return coverWithPrefixBlock(
 		WrappedIPAddress{addr.getLower().ToIPAddress()},
-		WrappedIPAddress{addr.getUpper().ToIPAddress()})
+		WrappedIPAddress{addr.getUpper().ToIPAddress()},
+	)
 }
 
 func (addr *ipAddressInternal) coverWithPrefixBlock() *IPAddress {
@@ -276,14 +277,16 @@ func (addr *ipAddressInternal) coverWithPrefixBlock() *IPAddress {
 	}
 	res := coverWithPrefixBlock(
 		WrappedIPAddress{addr.getLower().ToIPAddress()},
-		WrappedIPAddress{addr.getUpper().ToIPAddress()})
+		WrappedIPAddress{addr.getUpper().ToIPAddress()},
+	)
 	return res.(WrappedIPAddress).IPAddress
 }
 
 func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddress {
 	res := getCoveringPrefixBlock(
 		WrappedIPAddress{addr.toIPAddress()},
-		WrappedIPAddress{other})
+		WrappedIPAddress{other},
+	)
 	return res.(WrappedIPAddress).IPAddress
 }
 
@@ -441,7 +444,7 @@ func (addr *IPAddress) init() *IPAddress {
 
 func (addr *IPAddress) getProvider() IPAddressProvider {
 	return nil
-	//TODO
+	//TODO getProvider
 	/*
 		if(isPrefixed()) {
 			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
@@ -531,6 +534,16 @@ func (addr *IPAddress) GetByteCount() int {
 		return address.GetByteCount()
 	}
 	return addr.addressInternal.GetByteCount()
+}
+
+// GetLowerIPAddress implements the IPAddressRange interface, and is equivalent to GetLower()
+func (addr *IPAddress) GetLowerIPAddress() *IPAddress {
+	return addr.GetLower()
+}
+
+// GetUpperIPAddress implements the IPAddressRange interface, and is equivalent to GetUpper()
+func (addr *IPAddress) GetUpperIPAddress() *IPAddress {
+	return addr.GetUpper()
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {
@@ -643,7 +656,7 @@ func (addr *IPAddress) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *IPAddress) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }

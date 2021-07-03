@@ -24,7 +24,7 @@ func PrefixEquals(one, two PrefixLen) bool {
 	return two != nil && *one == *two
 }
 
-type PrefixLen *BitCount //TODO ensure you check for negative prefix lens everywhere (I think I do that for the most part)
+type PrefixLen *BitCount
 
 var cachedPrefixLens = initPrefLens()
 
@@ -34,8 +34,8 @@ func cacheBitCount(i BitCount) PrefixLen {
 
 func initPrefLens() []PrefixLen {
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-	for i := 0; i <= IPv6BitCount; i++ {
-		bc := BitCount(i)
+	for i := BitCount(0); i <= IPv6BitCount; i++ {
+		bc := i
 		cachedPrefLens[i] = &bc
 	}
 	return cachedPrefLens

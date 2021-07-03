@@ -155,6 +155,18 @@ func (section *addressSectionInternal) init() AddressValueError { //TODO rename,
 	return nil
 }
 
+func (section *addressSectionInternal) equalsSameVersion(other *AddressSection) bool {
+	count := section.GetSegmentCount()
+	for i := 0; i < count; i++ {
+		one := section.GetSegment(i)
+		two := other.GetSegment(i)
+		if !one.equalsSameVersion(two) {
+			return false
+		}
+	}
+	return true
+}
+
 func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
 	addrType := section.getAddrType()
 	if addrType.isIPv4() {
@@ -227,7 +239,7 @@ func (section *addressSectionInternal) GetMaxSegmentValue() SegInt {
 	return section.GetSegment(0).GetMaxValue()
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this section.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (section *addressSectionInternal) TestBit(n BitCount) bool {
 	return section.IsOneBit(section.GetBitCount() - (n + 1))
 }

@@ -97,7 +97,7 @@ func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 	return section.GetPrefixCountLen(prefixLen)
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *addressInternal) testBit(n BitCount) bool {
 	return addr.section.TestBit(n)
 }
@@ -446,11 +446,22 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	if addr.toAddress() == otherAddr {
 		return true
 	}
-	otherSection := other.ToAddress().GetSection()
+	otherSection := otherAddr.GetSection()
 	if addr.section == nil {
 		return otherSection.GetSegmentCount() == 0
 	}
 	return addr.section.Equals(otherSection) &&
+		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
+		addr.isSameZone(other)
+}
+
+func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
+	otherAddr := other.ToAddress()
+	if addr.toAddress() == otherAddr {
+		return true
+	}
+	otherSection := otherAddr.GetSection()
+	return addr.section.equalsSameVersion(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
 		addr.isSameZone(other)
 }
@@ -756,7 +767,7 @@ func (addr *Address) GetDivisionCount() int {
 	return addr.getDivisionCount()
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }

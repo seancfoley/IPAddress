@@ -7,17 +7,17 @@ import (
 )
 
 const (
-	IPv4SegmentSeparator    = '.'
-	IPv4BitsPerSegment      = 8
-	IPv4BytesPerSegment     = 1
-	IPv4SegmentCount        = 4
-	IPv4ByteCount           = 4
-	IPv4BitCount            = 32
-	IPv4DefaultTextualRadix = 10
-	IPv4MaxValuePerSegment  = 0xff
-	IPv4MaxValue            = 0xffffffff
-	IPv4ReverseDnsSuffix    = ".in-addr.arpa"
-	IPv4SegmentMaxChars     = 3
+	IPv4SegmentSeparator             = '.'
+	IPv4BitsPerSegment      BitCount = 8
+	IPv4BytesPerSegment              = 1
+	IPv4SegmentCount                 = 4
+	IPv4ByteCount                    = 4
+	IPv4BitCount            BitCount = 32
+	IPv4DefaultTextualRadix          = 10
+	IPv4MaxValuePerSegment           = 0xff
+	IPv4MaxValue                     = 0xffffffff
+	IPv4ReverseDnsSuffix             = ".in-addr.arpa"
+	IPv4SegmentMaxChars              = 3
 )
 
 // TODO there is 1 other categories:  uint32 (not sure what I was thinking with this comment, probably just talking about constructor for uint32 needed)
@@ -199,6 +199,16 @@ func (addr *IPv4Address) GetUpper() *IPv4Address {
 	return addr.init().getUpper().ToIPv4Address()
 }
 
+// GetLowerIPAddress implements the IPAddressRange interface
+func (addr *IPv4Address) GetLowerIPAddress() *IPAddress {
+	return addr.GetLower().ToIPAddress()
+}
+
+// GetUpperIPAddress implements the IPAddressRange interface
+func (addr *IPv4Address) GetUpperIPAddress() *IPAddress {
+	return addr.GetUpper().ToIPAddress()
+}
+
 func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost()
 	return res.ToIPv4Address(), err
@@ -223,20 +233,20 @@ func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, Inco
 	return res.ToIPv4Address(), err
 }
 
-func (addr *IPv4Address) IntValue() uint32 {
-	return addr.GetSection().IntValue()
+func (addr *IPv4Address) Uint32Value() uint32 {
+	return addr.GetSection().Uint32Value()
 }
 
-func (addr *IPv4Address) UpperIntValue() uint32 {
-	return addr.GetSection().UpperIntValue()
+func (addr *IPv4Address) UpperUint32Value() uint32 {
+	return addr.GetSection().UpperUint32Value()
 }
 
-func (addr *IPv4Address) LongValue() uint64 {
-	return addr.GetSection().LongValue()
+func (addr *IPv4Address) Uint64Value() uint64 {
+	return addr.GetSection().Uint64Value()
 }
 
-func (addr *IPv4Address) UpperLongValue() uint64 {
-	return addr.GetSection().UpperLongValue()
+func (addr *IPv4Address) UpperUint64Value() uint64 {
+	return addr.GetSection().UpperUint64Value()
 }
 
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
@@ -332,7 +342,7 @@ func (addr *IPv4Address) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *IPv4Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }

@@ -111,12 +111,20 @@ func (addr *MACAddress) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *MACAddress) LongValue() uint64 {
-	return addr.GetSection().LongValue()
+func (addr *MACAddress) GetLower() *Address {
+	return addr.init().getLower()
 }
 
-func (addr *MACAddress) UpperLongValue() uint64 {
-	return addr.GetSection().UpperLongValue()
+func (addr *MACAddress) GetUpper() *Address {
+	return addr.init().getUpper()
+}
+
+func (addr *MACAddress) Uint64Value() uint64 {
+	return addr.GetSection().Uint64Value()
+}
+
+func (addr *MACAddress) UpperUint64Value() uint64 {
+	return addr.GetSection().UpperUint64Value()
 }
 
 func (addr *MACAddress) GetHardwareAddr() net.HardwareAddr {
@@ -204,7 +212,7 @@ func (addr *MACAddress) GetGenericSegment(index int) AddressSegmentType {
 	return addr.init().getSegment(index)
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *MACAddress) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }

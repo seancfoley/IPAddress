@@ -529,9 +529,9 @@ func (builder *IPv6AddressStringParametersBuilder) ToParams() IPv6AddressStringP
 	return result
 }
 
-func (params *IPv6AddressStringParametersBuilder) GetRangeParametersBuilder() *RangeParametersBuilder {
-	result := &params.rangeParamsBuilder
-	result.parent = params
+func (builder *IPv6AddressStringParametersBuilder) GetRangeParametersBuilder() *RangeParametersBuilder {
+	result := &builder.rangeParamsBuilder
+	result.parent = builder
 	return result
 }
 

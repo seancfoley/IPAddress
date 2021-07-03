@@ -18,15 +18,35 @@ type IPv6AddressSeqRange struct {
 	ipAddressSeqRangeInternal
 }
 
-func (rng IPv6AddressSeqRange) String() string {
-	return rng.init().ipAddressSeqRangeInternal.String()
-}
-
 func (rng *IPv6AddressSeqRange) init() *IPv6AddressSeqRange {
 	if rng.lower == nil {
 		return zeroIPv6Range
 	}
 	return rng
+}
+
+func (rng IPv6AddressSeqRange) String() string {
+	return rng.ToString((*IPv6Address).String, DefaultSeqRangeSeparator, (*IPv6Address).String)
+}
+
+func (rng *IPv6AddressSeqRange) ToString(lowerStringer func(*IPv6Address) string, separator string, upperStringer func(*IPv6Address) string) string {
+	return rng.init().toString(
+		func(addr *IPAddress) string {
+			return lowerStringer(addr.ToIPv6Address())
+		},
+		separator,
+		func(addr *IPAddress) string {
+			return upperStringer(addr.ToIPv6Address())
+		},
+	)
+}
+
+func (rng *IPv6AddressSeqRange) ToNormalizedString() string {
+	return rng.ToString((*IPv6Address).ToNormalizedString, DefaultSeqRangeSeparator, (*IPv6Address).ToNormalizedString)
+}
+
+func (rng *IPv6AddressSeqRange) ToCanonicalString() string {
+	return rng.ToString((*IPv6Address).ToCanonicalString, DefaultSeqRangeSeparator, (*IPv6Address).ToNormalizedString)
 }
 
 func (rng *IPv6AddressSeqRange) GetBitCount() BitCount {
@@ -35,6 +55,14 @@ func (rng *IPv6AddressSeqRange) GetBitCount() BitCount {
 
 func (rng *IPv6AddressSeqRange) GetByteCount() int {
 	return rng.GetLower().GetByteCount()
+}
+
+func (rng *IPv6AddressSeqRange) GetLowerIPAddress() *IPAddress {
+	return rng.init().lower
+}
+
+func (rng *IPv6AddressSeqRange) GetUpperIPAddress() *IPAddress {
+	return rng.init().upper
 }
 
 func (rng *IPv6AddressSeqRange) GetLower() *IPv6Address {
@@ -90,7 +118,7 @@ func (rng *IPv6AddressSeqRange) Contains(other IPAddressType) bool {
 }
 
 func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
-	return rng.containsRange(other)
+	return rng.init().containsRange(other)
 }
 
 func (rng *IPv6AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
@@ -103,6 +131,14 @@ func (rng *IPv6AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
 
 func (rng *IPv6AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (rng *IPv6AddressSeqRange) GetPrefixLengthForSingleBlock() PrefixLen {
+	return rng.init().ipAddressSeqRangeInternal.GetPrefixLengthForSingleBlock()
+}
+
+func (rng *IPv6AddressSeqRange) GetMinPrefixLengthForBlock() BitCount {
+	return rng.init().ipAddressSeqRangeInternal.GetMinPrefixLengthForBlock()
 }
 
 func (rng *IPv6AddressSeqRange) Iterator() IPv6AddressIterator {
@@ -129,7 +165,23 @@ func (rng *IPv6AddressSeqRange) Intersect(other *IPv6AddressSeqRange) *IPAddress
 	return rng.init().intersect(other.toIPSequentialRange())
 }
 
-// TODO  this  method completes this type
-//public String toIPv6String(Function<IPv6Address, String> lowerStringer, String separator, Function<IPv6Address, String> upperStringer) {
-//	return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
-//}
+func (rng *IPv6AddressSeqRange) CoverWithPrefixBlock() *IPv6Address {
+	return rng.GetLower().CoverWithPrefixBlockTo(rng.GetUpper())
+}
+
+func (rng *IPv6AddressSeqRange) SpanWithPrefixBlocks() []*IPv6Address {
+	return rng.GetLower().SpanWithPrefixBlocksTo(rng.GetUpper())
+}
+
+func (rng *IPv6AddressSeqRange) SpanWithSequentialBlocks() []*IPv6Address {
+	return rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
+}
+
+// Joins the given ranges into the fewest number of ranges.
+// The returned array will be sorted by ascending lowest range value.
+func (rng *IPv6AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv6AddressSeqRange {
+	origLen := len(ranges)
+	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
+	ranges[origLen] = rng.ToIPAddressSeqRange()
+	return cloneToIPv6SeqRange(join(ranges))
+}

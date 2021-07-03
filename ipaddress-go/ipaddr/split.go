@@ -535,7 +535,7 @@ func splitIntoPrefixBlocks(
 						previousSegmentBits += bitsPerSegment
 						currentSegment++
 					}
-					stack.init(IPv6BitCount)
+					stack.init(int(IPv6BitCount))
 					stack.push(lowerTop, upper, previousSegmentBits, currentSegment) // do upper one later
 					upper = upperBottom                                              // do lower one now
 					continue
@@ -721,9 +721,9 @@ func (stack *SeriesStack) pop() (popped bool, lower, upper ExtendedIPSegmentSeri
 	length = len(indexes) - 1
 	currentSegment = indexes[length]
 	stack.indexes = indexes[:length]
-	bits := stack.bits
-	previousSegmentBits = bits[length]
-	stack.bits = bits[:length]
+	stackbits := stack.bits
+	previousSegmentBits = stackbits[length]
+	stack.bits = stackbits[:length]
 	popped = true
 	return
 }

@@ -34,6 +34,14 @@ func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool)
 	return
 }
 
+func (seg *addressSegmentInternal) equalsSameVersion(other *AddressSegment) bool {
+	if seg.IsMultiple() {
+		return other.IsMultiple() && segValsSame(seg.getSegmentValue(), other.getSegmentValue(),
+			seg.getUpperSegmentValue(), other.getUpperSegmentValue())
+	}
+	return !other.IsMultiple() && seg.getSegmentValue() == other.getSegmentValue()
+}
+
 func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
@@ -66,7 +74,7 @@ func (seg *addressSegmentInternal) GetMaxValue() SegInt {
 	return ^(^SegInt(0) << seg.GetBitCount())
 }
 
-// Computes (this &amp; (1 &lt;&lt; n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (div *addressSegmentInternal) TestBit(n BitCount) bool {
 	value := div.GetSegmentValue()
 	return (value & (1 << n)) != 0

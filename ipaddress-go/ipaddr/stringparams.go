@@ -1370,19 +1370,19 @@ func (writer stringWriter) getStandardString(segmentIndex int, params addressSeg
 			stringPrefix := params.getSegmentStrPrefix()
 			prefLen := len(stringPrefix)
 			if appendable == nil {
-				var len int
+				var length int
 				if leadingZeroCount != 0 {
 					if leadingZeroCount < 0 {
-						len = writer.getMaxDigitCountRadix(radix)
+						length = writer.getMaxDigitCountRadix(radix)
 					} else {
-						len = writer.getLowerStringLength(radix) + leadingZeroCount
+						length = writer.getLowerStringLength(radix) + leadingZeroCount
 					}
 				} else {
-					len = writer.getLowerStringLength(radix)
+					length = writer.getLowerStringLength(radix)
 				}
-				count := (len << 1) - 1
+				count := (length << 1) - 1
 				if prefLen > 0 {
-					count += len * prefLen
+					count += length * prefLen
 				}
 				return count
 			} else {

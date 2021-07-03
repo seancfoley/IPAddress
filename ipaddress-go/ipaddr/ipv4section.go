@@ -281,20 +281,20 @@ func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4Add
 	return res.ToIPv4AddressSection(), err
 }
 
-func (section *IPv4AddressSection) LongValue() uint64 {
-	return uint64(section.IntValue())
+func (section *IPv4AddressSection) Uint64Value() uint64 {
+	return uint64(section.Uint32Value())
 }
 
-func (section *IPv4AddressSection) UpperLongValue() uint64 {
-	return uint64(section.UpperIntValue())
+func (section *IPv4AddressSection) UpperUint64Value() uint64 {
+	return uint64(section.UpperUint32Value())
 }
 
-func (section *IPv4AddressSection) IntValue() uint32 {
+func (section *IPv4AddressSection) Uint32Value() uint32 {
 	lower, _ := section.getIntValues()
 	return lower
 }
 
-func (section *IPv4AddressSection) UpperIntValue() uint32 {
+func (section *IPv4AddressSection) UpperUint32Value() uint32 {
 	_, upper := section.getIntValues()
 	return upper
 }
@@ -474,8 +474,8 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	if inc == 0 && !section.IsMultiple() {
 		return section
 	}
-	lowerValue := uint64(section.IntValue())
-	upperValue := uint64(section.UpperIntValue())
+	lowerValue := section.Uint64Value()
+	upperValue := section.UpperUint64Value()
 	count := section.GetIPv4Count()
 	isOverflow := checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
 	if isOverflow {

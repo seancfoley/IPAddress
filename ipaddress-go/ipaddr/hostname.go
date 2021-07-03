@@ -230,7 +230,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 						addrs[j] = ipv6Addr.ToIPAddress()
 					} else {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
-							networkPrefixLength = cacheBits(IPv4BitCount)
+							networkPrefixLength = cacheBitCount(IPv4BitCount)
 						}
 						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueError
 						if addrErr != nil {

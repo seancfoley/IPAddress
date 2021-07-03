@@ -475,16 +475,16 @@ type IPv6StringOptionsBuilder struct {
 	makeMixed bool
 }
 
-func (opts *IPv6StringOptionsBuilder) IsMixed() bool {
-	return opts.makeMixed
+func (builder *IPv6StringOptionsBuilder) IsMixed() bool {
+	return builder.makeMixed
 }
 
-func (opts *IPv6StringOptionsBuilder) GetIPv4Opts() IPStringOptions {
-	return opts.ops.ipv4Opts
+func (builder *IPv6StringOptionsBuilder) GetIPv4Opts() IPStringOptions {
+	return builder.ops.ipv4Opts
 }
 
-func (opts *IPv6StringOptionsBuilder) GetCompressOptions() CompressOptions {
-	return opts.ops.compressOptions
+func (builder *IPv6StringOptionsBuilder) GetCompressOptions() CompressOptions {
+	return builder.ops.compressOptions
 }
 
 func (builder *IPv6StringOptionsBuilder) SetCompressOptions(compressOptions CompressOptions) *IPv6StringOptionsBuilder {
