@@ -60,7 +60,8 @@ func (rng *ipAddressSeqRangeInternal) GetCachedCount(copy bool) (res *big.Int) {
 	return
 }
 
-func (rng *ipAddressSeqRangeInternal) GetPrefixCount(prefixLen BitCount) *big.Int {
+// GetPrefixCountLen returns the count of the number of distinct values within the prefix part of the range of addresses
+func (rng *ipAddressSeqRangeInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 	if !rng.IsMultiple() { // also checks for zero-ranges
 		return bigOne()
 	}

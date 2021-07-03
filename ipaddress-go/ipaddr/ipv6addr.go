@@ -448,6 +448,10 @@ func (addr *IPv6Address) GetSequentialBlockIndex() int {
 	return addr.init().getSequentialBlockIndex()
 }
 
+func (addr *IPv6Address) GetSequentialBlockCount() *big.Int {
+	return addr.getSequentialBlockCount()
+}
+
 func (addr *IPv6Address) IncrementBoundary(increment int64) *IPv6Address {
 	return addr.init().incrementBoundary(increment).ToIPv6Address()
 }

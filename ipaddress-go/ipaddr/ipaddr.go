@@ -744,6 +744,10 @@ func (addr *IPAddress) GetSequentialBlockIndex() int {
 	return addr.getSequentialBlockIndex()
 }
 
+func (addr *IPAddress) GetSequentialBlockCount() *big.Int {
+	return addr.getSequentialBlockCount()
+}
+
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {

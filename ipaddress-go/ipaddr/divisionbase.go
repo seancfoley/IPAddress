@@ -159,7 +159,7 @@ func (div *addressDivisionBase) GetCount() *big.Int {
 }
 
 // The count of the number of distinct values within the prefix part of the address item, the bits that appear within the prefix length.
-func (div *addressDivisionBase) GetPrefixCount(prefixLength BitCount) *big.Int {
+func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.Int {
 	if prefixLength < 0 {
 		return bigOne()
 	}

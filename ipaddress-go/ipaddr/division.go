@@ -331,6 +331,17 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 	return bigZero().SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
 }
 
+func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCount) *big.Int {
+	if div.IsFullRange() {
+		return bigZero().Add(bigOneConst(), bigZero().SetUint64(div.getMaxValue()))
+	}
+	bitCount := div.GetBitCount()
+	divisionPrefixLength = checkBitCount(divisionPrefixLength, bitCount)
+	shiftAdjustment := bitCount - divisionPrefixLength
+	count := ((div.getUpperDivisionValue() >> shiftAdjustment) - (div.getDivisionValue() >> shiftAdjustment)) + 1
+	return bigZero().SetUint64(count)
+}
+
 func (div *addressDivisionInternal) Equals(other DivisionType) bool {
 	if otherDiv, ok := other.(StandardDivisionType); ok {
 		if div.IsMultiple() {

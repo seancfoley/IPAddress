@@ -48,7 +48,7 @@ func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
 	return getPrefixValueCount(seg.toAddressSegment(), *prefixLength)
 }
 
-func (seg *ipAddressSegmentInternal) GetDivisionPrefixLength() PrefixLen {
+func (seg *ipAddressSegmentInternal) GetDivisionPrefixLength() PrefixLen { //TODO rename to GetSegmentPrefixLength
 	return seg.getDivisionPrefixLength()
 }
 

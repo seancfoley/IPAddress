@@ -105,9 +105,9 @@ func (w WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) Extende
 	return WrappedIPAddress{w.IPAddress.ToBlock(segmentIndex, lower, upper)}
 }
 
-func (w WrappedIPAddress) GetSequentialBlockIndex() int {
-	return w.IPAddress.GetSequentialBlockIndex()
-}
+//func (w WrappedIPAddress) GetSequentialBlockIndex() int {
+//	return w.IPAddress.GetSequentialBlockIndex()
+//}
 
 func (w WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.ToPrefixBlockLen(bitCount)}
@@ -224,9 +224,9 @@ func (w WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) 
 	return WrappedIPAddressSection{w.IPAddressSection.ToBlock(segmentIndex, lower, upper)}
 }
 
-func (w WrappedIPAddressSection) GetSequentialBlockIndex() int {
-	return w.IPAddressSection.GetSequentialBlockIndex()
-}
+//func (w WrappedIPAddressSection) GetSequentialBlockIndex() int {
+//	return w.IPAddressSection.GetSequentialBlockIndex()
+//}
 
 func (w WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlockLen(bitCount)}

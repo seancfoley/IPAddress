@@ -156,22 +156,26 @@ func (grouping *addressDivisionGroupingBase) IsFullRange() bool {
 	return true
 }
 
-/**
- * Gets the minimal segment index for which all following segments are full-range blocks.
- * <p>
- * The segment at this index is not a full-range block unless all segments are full-range.
- * The segment at this index and all following segments form a sequential range.
- * For the full series to be sequential, the preceding segments must be single-valued.
- *
- * @return
- */
+// Gets the minimal segment index for which all following segments are full-range blocks.
+// The segment at this index is not a full-range block unless all segments are full-range.
+// The segment at this index and all following segments form a sequential range.
+// For the full series to be sequential, the preceding segments must be single-valued.
 func (grouping *addressDivisionGroupingBase) GetSequentialBlockIndex() int {
-	segCount := grouping.GetDivisionCount()
-	if segCount > 0 {
-		for segCount--; segCount > 0 && grouping.getDivision(segCount).IsFullRange(); segCount-- {
+	divCount := grouping.GetDivisionCount()
+	if divCount > 0 {
+		for divCount--; divCount > 0 && grouping.getDivision(divCount).IsFullRange(); divCount-- {
 		}
 	}
-	return segCount
+	return divCount
+}
+
+func (grouping *addressDivisionGroupingBase) GetSequentialBlockCount() *big.Int {
+	sequentialSegCount := grouping.GetSequentialBlockIndex()
+	prefixLen := BitCount(0)
+	for i := 0; i < sequentialSegCount; i++ {
+		prefixLen += grouping.getDivision(i).GetBitCount()
+	}
+	return grouping.GetPrefixCountLen(prefixLen) // 0-1.0-1.*.* gives 1 as seq block index, and then you count only previous segments
 }
 
 func (grouping *addressDivisionGroupingBase) getCountBig() *big.Int {
@@ -212,7 +216,7 @@ func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitC
 			if div.IsMultiple() {
 				var divCount *big.Int
 				if divPrefixLength < divBitCount {
-					divCount = div.GetPrefixCount(divPrefixLength)
+					divCount = div.GetPrefixCountLen(divPrefixLength)
 				} else {
 					divCount = div.GetCount()
 				}

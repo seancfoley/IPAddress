@@ -416,6 +416,10 @@ func (addr *IPv4Address) GetSequentialBlockIndex() int {
 	return addr.init().getSequentialBlockIndex()
 }
 
+func (addr *IPv4Address) GetSequentialBlockCount() *big.Int {
+	return addr.getSequentialBlockCount()
+}
+
 func (addr *IPv4Address) IncrementBoundary(increment int64) *IPv4Address {
 	return addr.init().incrementBoundary(increment).ToIPv4Address()
 }

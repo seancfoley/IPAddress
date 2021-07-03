@@ -629,6 +629,13 @@ func (addr *addressInternal) getSequentialBlockIndex() int {
 	return addr.section.GetSequentialBlockIndex()
 }
 
+func (addr *addressInternal) getSequentialBlockCount() *big.Int {
+	if addr.section == nil {
+		return bigOne()
+	}
+	return addr.section.GetSequentialBlockCount()
+}
+
 func (addr *addressInternal) hasZone() bool {
 	return addr.zone != noZone
 }

@@ -52,9 +52,10 @@ type AddressItem interface {
 	// In cases where the final bit is constant so there is no such block, this returns the bit count.
 	GetMinPrefixLengthForBlock() BitCount
 
-	// GetPrefixCount() TODO, NEXT I think this is the last one for AddressItem
-	// GetPrefixCountLen(int) TODO this one might go in addresssegmentseries, need to check where to put it in here
+	// The count of the number of distinct values within the prefix part of the range of values for this item
+	GetPrefixCountLen(BitCount) *big.Int
 
+	// Any address item is comparable to any other
 	CompareTo(item AddressItem) int
 
 	fmt.Stringer
@@ -118,6 +119,8 @@ type AddressDivisionSeries interface {
 	//AddressStringDivisionSeries
 	GetDivisionCount() int
 
+	GetPrefixCount() *big.Int
+
 	IsSequential() bool
 
 	IsPrefixBlock() bool
@@ -164,7 +167,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	IsSingleNetwork() bool
 
 	GetSequentialBlockIndex() int
-	//GetSequentialBlockCount() *big.Int TODO next
+	GetSequentialBlockCount() *big.Int
 
 	GetIPVersion() IPVersion
 

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	"unsafe"
 )
 
@@ -64,6 +65,14 @@ func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
 		return 0
 	}
 	return vals.getUpperSegmentValue()
+}
+
+func (seg *addressSegmentInternal) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
+	return bigZero().SetUint64(seg.GetPrefixValueCount(segmentPrefixLength))
+}
+
+func (seg *addressSegmentInternal) GetPrefixValueCount(segmentPrefixLength BitCount) SegIntCount {
+	return getPrefixValueCount(seg.toAddressSegment(), segmentPrefixLength)
 }
 
 func (seg *addressSegmentInternal) GetValueCount() SegIntCount {

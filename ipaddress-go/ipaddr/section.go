@@ -828,6 +828,11 @@ func (section *addressSectionInternal) sequentialBlockIterator() SectionIterator
 	return section.blockIterator(section.GetSequentialBlockIndex())
 }
 
+func (section *addressSectionInternal) GetSequentialBlockCount() *big.Int {
+	sequentialSegCount := section.GetSequentialBlockIndex()
+	return section.GetPrefixCountLen(BitCount(sequentialSegCount) * section.GetBitsPerSegment())
+}
+
 func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
 	for i := 0; i < segmentCount; i++ {
 		if section.GetSegment(i).IsMultiple() {
