@@ -1013,6 +1013,19 @@ func checkBitCount(prefixLength, max BitCount) BitCount {
 	return prefixLength
 }
 
+func checkPrefLen(prefixLength PrefixLen, max BitCount) PrefixLen {
+	if prefixLength != nil {
+		prefLen := *prefixLength
+		if prefLen > max {
+			return cacheBitCount(max)
+		} else if prefLen < 0 {
+			return cacheBits(0)
+		}
+	}
+	return prefixLength
+
+}
+
 func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount {
 	if lower == upper {
 		return bitCount

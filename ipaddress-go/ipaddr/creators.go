@@ -3,8 +3,6 @@ package ipaddr
 import "unsafe"
 
 type AddressSegmentCreator interface {
-	//createSegmentArray(length int) []*addressDivisionInternal
-
 	createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision
 
 	createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
@@ -31,10 +29,6 @@ type ParsedAddressCreator interface {
 
 	createSectionInternal(segments []*AddressDivision) *AddressSection
 
-	//createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection
-
-	//createZonedAddressInternal(section *AddressSection, zone Zone) *Address
-
 	createAddressInternal(section *AddressSection, identifier HostIdentifierString) *Address
 }
 
@@ -46,19 +40,26 @@ type ParsedIPAddressCreator interface {
 	createAddressInternalFromSection(*IPAddressSection, Zone, HostIdentifierString) *IPAddress
 }
 
-type AddressCreator interface {
-	ParsedAddressCreator
-}
-
 type IPAddressCreator interface {
-	AddressCreator
+	ParsedAddressCreator
 
 	ParsedIPAddressCreator
 
 	createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress
 }
 
-//TODO the methods in the creator interface that use the exact type, nammely uint16, will be public.  Those using SegInt will remain private
+// TODO almost all of this should become private.  We've created some duplication, in some cases we may use functors for creation of segments.
+// IN fact, whenever you are cesting from an existing section or segment, you can use a derive function, not a creator instance.
+// We also have the addrType available everywhere and this too allows you to avoid providing a functor or a creator as a callback for creating anything.
+// So, typically we want to choose:
+// 1. derive from existing using derive functions in sections or derive methods in segments/divisions.  Use checkIdentity in addresses.
+// 2. when miving up the hierarchy, use addr type and or ToAddressSection() and the like
+// 3. We use segProducer functors in a few key spots: getSubnetSegments, getOredSegments, assign prefix in section creator, iterator for ranges.
+// 4. We use creators in a few places.  We use segment creators in increment functions, createSegments and createSegmentsUint64 and toSegments,
+//
+// Maybe we should consolidate to either functors or creator instances.  Is there a benefit to centralizing with creator interfaces?  Are functors too slow?
+// Both serve the same purpose.
+
 type IPv6AddressCreator struct{}
 
 func (creator *IPv6AddressCreator) getMaxValuePerSegment() SegInt {
@@ -87,14 +88,6 @@ func (creator *IPv6AddressCreator) createRangeSegmentInternal(lower, upper SegIn
 func (creator *IPv6AddressCreator) createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
 	return creator.createIPv6PrefixSegment(ToIPv6SegInt(value), segmentPrefixLength)
 }
-
-//func (creator *IPv6AddressCreator) createSegmentArray(length int) []*AddressDivision {
-//	return make([]*AddressDivision, length)
-//}
-
-//func (creator *IPv6AddressCreator) createAddressArray() [IPv6SegmentCount]*AddressDivision {
-//	return [IPv6SegmentCount]*AddressDivision{}
-//}
 
 func (creator *IPv6AddressCreator) createIPv6Segment(value IPv6SegInt) *AddressDivision {
 	return NewIPv6Segment(value).ToAddressDivision()
@@ -128,6 +121,7 @@ func (creator *IPv6AddressCreator) createSectionInternal(segments []*AddressDivi
 
 func (creator *IPv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress {
 	//TODO create address (either use "New" or create the Address and call ToIPAddress)
+	// only used by the loopback creator at the moment
 	return nil
 }
 
@@ -139,10 +133,6 @@ func (creator *IPv6AddressCreator) createAddressInternalFromSection(section *IPA
 	return res
 }
 
-//func (creator *IPv6AddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
-//	return NewIPv6Address(section.ToIPv6AddressSection()).ToAddress() xxxx
-//}
-
 func (creator *IPv6AddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
 	res := NewIPv6Address(section.ToIPv6AddressSection()).ToAddress()
 	if originator != nil {
@@ -150,12 +140,6 @@ func (creator *IPv6AddressCreator) createAddressInternal(section *AddressSection
 	}
 	return res
 }
-
-//TODO creators: the methods in the creator interface that use the exact type, nammely IPv4SegInt, will be public.
-// Those using SegInt will remain private (these are the ones we use after parsing IIRC)
-// "Internal" will remain private, for same reasons as in Java, so we can avoid extra obj creation.
-// Private methods will likely defer to base types like AddressDivision and AddressSection
-// Public methods will create IPv4 types like IPv4Segment and IPv4AddressSection
 
 type IPv4AddressCreator struct{}
 

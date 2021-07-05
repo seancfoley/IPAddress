@@ -531,13 +531,14 @@ func maskExtendedRange(
 //	return maskRange(value, upperValue, maskValue, 0xffffffffffffffff)
 //}
 
+//func TestMaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
+//	return maskRange(value, upperValue, maskValue, maxValue)
+//}
+
 func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 	if value == upperValue {
 		return defaultMasker
 	}
-	//if(value > upperValue) { TODO figure out errors for address masking later
-	//	throw new IllegalArgumentException("value > upper value");
-	//}
 	if maskValue == 0 || maskValue == maxValue {
 		return defaultMasker
 	}

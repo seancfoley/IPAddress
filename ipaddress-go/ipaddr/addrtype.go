@@ -29,22 +29,11 @@ func (a addrType) isMAC() bool {
 	return a == macType
 }
 
-func (a addrType) getNetwork() (network AddressNetwork) {
-	if a.isIPv6() {
-		network = &DefaultIPv6Network
-	} else if a.isIPv4() {
-		network = &DefaultIPv4Network
-	} else if a.isMAC() {
-		network = &DefaultMACNetwork
-	}
-	return
-}
-
 func (a addrType) getIPNetwork() (network IPAddressNetwork) {
 	if a.isIPv6() {
-		network = &DefaultIPv6Network
+		network = DefaultIPv6Network
 	} else if a.isIPv4() {
-		network = &DefaultIPv4Network
+		network = DefaultIPv4Network
 	}
 	return
 }

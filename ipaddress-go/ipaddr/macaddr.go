@@ -8,15 +8,13 @@ import (
 )
 
 const (
-	//IPv4SegmentSeparator             = '.'
-	MACBitsPerSegment  = 8
-	MACBytesPerSegment = 1
+	MACBitsPerSegment  BitCount = 8
+	MACBytesPerSegment          = 1
 	//MACByteCount                    = 4
 	//MACBitCount             = 32
 	MACDefaultTextualRadix      = 16
 	MACMaxValuePerSegment       = 0xff
 	MACMaxValuePerDottedSegment = 0xffff
-	//IPv4MaxValue                 = 0xffffffff
 
 	MediaAccessControlSegmentCount         = 6
 	MediaAccessControlDottedSegmentCount   = 3

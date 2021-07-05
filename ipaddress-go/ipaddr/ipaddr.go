@@ -46,9 +46,9 @@ func (version IPVersion) String() string {
 
 func (version IPVersion) getNetwork() (network IPAddressNetwork) {
 	if version.isIPv6() {
-		network = &DefaultIPv6Network
+		network = DefaultIPv6Network
 	} else if version.isIPv4() {
-		network = &DefaultIPv4Network
+		network = DefaultIPv4Network
 	}
 	return
 }
@@ -298,6 +298,24 @@ func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddre
 	return res.(WrappedIPAddress).IPAddress
 }
 
+func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddress {
+	var prefLen BitCount
+	if addr.IsPrefixed() {
+		prefLen = *addr.GetNetworkPrefixLength()
+	} else {
+		prefLen = addr.GetBitCount()
+	}
+	return network.GetNetworkMask(prefLen)
+}
+
+func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress {
+	var prefLen BitCount
+	if addr.IsPrefixed() {
+		prefLen = *addr.GetNetworkPrefixLength()
+	}
+	return network.GetNetworkMask(prefLen)
+}
+
 func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
@@ -482,6 +500,34 @@ func (addr *IPAddress) GetTrailingSection(index int) *IPAddressSection {
 //// The first segment is at index 0.
 func (addr *IPAddress) GetSubSection(index, endIndex int) *IPAddressSection {
 	return addr.GetSection().GetSubSection(index, endIndex)
+}
+
+func (addr *IPAddress) GetNetworkSection() *IPAddressSection {
+	return addr.GetSection().GetNetworkSection()
+}
+
+func (addr *IPAddress) GetNetworkSectionLen(prefLen BitCount) *IPAddressSection {
+	return addr.GetSection().GetNetworkSectionLen(prefLen)
+}
+
+func (addr *IPAddress) GetHostSection() *IPAddressSection {
+	return addr.GetSection().GetHostSection()
+}
+
+func (addr *IPAddress) GetHostSectionLen(prefLen BitCount) *IPAddressSection {
+	return addr.GetSection().GetHostSectionLen(prefLen)
+}
+
+func (addr *IPAddress) getNetwork() IPAddressNetwork {
+	return addr.GetSection().getNetwork()
+}
+
+func (addr *IPAddress) GetNetworkMask() *IPAddress {
+	return addr.getNetworkMask(addr.getNetwork())
+}
+
+func (addr *IPAddress) GetHostMask() *IPAddress {
+	return addr.getHostMask(addr.getNetwork())
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,

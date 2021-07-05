@@ -894,19 +894,14 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // TODO NOW progress
 // TODO NEXT NOW progress
 //
-// - things to target: cover
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
 // - finish HostName (now it's mostly done, just a few methods left)
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
-// - finish sequential range code (hard part done already)
+// - go over the java to-dos as some might make sense in golang too
 // - did we do mac <-> ipv6?  Or ipv4 <-> ipv6?
 // - finish the list of methods in ExtendedIPSegmentSeries
-// - clean up errors code, probably at the end
-
-// TODO xxx which is next?  not a whole lot, just the stuff listed here, and the todos, seems like "cover" is the last thing to target listed here
+//
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
-
-// TODO cover, then finish off the seq ranges, because they need cover (they have their own cover)

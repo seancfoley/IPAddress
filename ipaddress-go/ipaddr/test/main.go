@@ -311,6 +311,21 @@ func main() {
 	fmt.Printf("%v\n\n", merge("209.152.214.112/30", "209.152.214.116/32", "209.152.214.118/31"))
 	fmt.Printf("%v\n\n", merge("1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:5:4000::/66", "1:2:3:5::/66", "1:2:3:5:8000::/65"))
 
+	//bitsPerSegment := 8
+	//prefBits := 7
+	//maxVal := ^ipaddr.DivInt(0)
+	//mask := ^(maxVal << (bitsPerSegment - prefBits))
+	//masker := ipaddr.TestMaskRange(0, 4, mask, maxVal)
+	//fmt.Printf("masked vals 0 to 4 masked with %v (should be 0 to 1): %v %v\n", mask, masker.GetMaskedLower(0, mask), masker.GetMaskedUpper(4, mask))
+	//
+	//prefBits = 4
+	//mask = ^(maxVal << (bitsPerSegment - prefBits))
+	//masker = ipaddr.TestMaskRange(17, 32, mask, maxVal)
+	//fmt.Printf("masked vals 17 to 32 masked with %v (should be 0 to 15): %v %v\n", mask, masker.GetMaskedLower(17, mask), masker.GetMaskedUpper(32, mask))
+	//
+	//masker = ipaddr.TestMaskRange(16, 32, mask, maxVal)
+	//fmt.Printf("masked vals 16 to 32 masked with %v (should be 0 to 15): %v %v\n", mask, masker.GetMaskedLower(16, mask), masker.GetMaskedUpper(32, mask))
+
 	fmt.Printf("\n\n")
 	//_ = getDoc()
 }

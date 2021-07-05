@@ -218,6 +218,30 @@ func (section *IPv4AddressSection) GetSubSection(index, endIndex int) *IPv4Addre
 	return section.getSubSection(index, endIndex).ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) GetNetworkSection() *IPv4AddressSection {
+	return section.getNetworkSection().ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) GetNetworkSectionLen(prefLen BitCount) *IPv4AddressSection {
+	return section.getNetworkSectionLen(prefLen).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) GetHostSection() *IPv4AddressSection {
+	return section.getHostSection().ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) GetHostSectionLen(prefLen BitCount) *IPv4AddressSection {
+	return section.getHostSectionLen(prefLen).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) GetNetworkMask() *IPv4AddressSection {
+	return section.getNetworkMask(DefaultIPv4Network).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) GetHostMask() *IPv4AddressSection {
+	return section.getHostMask(DefaultIPv4Network).ToIPv4AddressSection()
+}
+
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv4AddressSection) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {

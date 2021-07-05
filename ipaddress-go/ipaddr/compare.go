@@ -178,13 +178,16 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 	return comp.compareSectionParts(oneSec, twoSec)
 }
 
+func unwrapWrapper(item AddressDivisionSeries) AddressDivisionSeries {
+	if wrapper, ok := item.(ExtendedIPSegmentSeries); ok {
+		return wrapper.Unwrap()
+	}
+	return item
+}
+
 func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int {
-	if wrapper, ok := one.(ExtendedIPSegmentSeries); ok {
-		one = wrapper.Unwrap()
-	}
-	if wrapper, ok := two.(ExtendedIPSegmentSeries); ok {
-		two = wrapper.Unwrap()
-	}
+	one = unwrapWrapper(one)
+	two = unwrapWrapper(two)
 	if addrSeries1, ok := one.(AddressType); ok {
 		if addrSeries2, ok := two.(AddressType); ok {
 			return comp.CompareAddresses(addrSeries1, addrSeries2)

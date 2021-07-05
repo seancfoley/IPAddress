@@ -6,10 +6,6 @@ import (
 	"unsafe"
 )
 
-type AddressNetwork interface {
-	//GetAddressCreator() AddressCreator
-}
-
 //TODO I think I probably want to get rid of the address creators from networks (but they are still useful when passing into certain functions), I realize now they make little sense
 //But I will still have caching.
 
@@ -25,13 +21,7 @@ type AddressNetwork interface {
 // will be associated with the same network as the original address, by using the network's address creator instance.
 // Addresses created by instantiation not through the network's creator instance will be associated with the default network.
 type IPAddressNetwork interface {
-	AddressNetwork
-
-	//GetIPAddressCreator() IPAddressCreator
-
 	GetLoopback() *IPAddress
-
-	//GetNetworkIPAddress(PrefixLen) *IPAddress
 
 	GetNetworkMask(prefixLength BitCount) *IPAddress
 
@@ -60,58 +50,30 @@ func (network *IPv6AddressNetwork) GetIPv6AddressCreator() *IPv6AddressCreator {
 	return &network.creator
 }
 
-//func (network *IPv6AddressNetwork) GetIPAddressCreator() IPAddressCreator {
-//	return network.GetIPv6AddressCreator()
-//}
-
-//func (network *IPv6AddressNetwork) GetAddressCreator() AddressCreator {
-//	return network.GetIPv6AddressCreator()
-//}
-
 func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
-	//TODO use the creator
+	//TODO
 	return nil
 }
 
-//func (network *IPv6AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
-//	return network.GetNetworkIPv6Address(prefLen).ToIPAddress()
-//}
-
 func (network *IPv6AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.subnetMasks, true, false)
-	//return network.getNetworkIPv6Mask(prefLen, false).ToIPAddress()
 }
 
 func (network *IPv6AddressNetwork) GetPrefixedNetworkMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.subnetsMasksWithPrefix, true, true)
-	//return network.getNetworkIPv6Mask(prefLen, true).ToIPAddress()
 }
 
 func (network *IPv6AddressNetwork) GetHostMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.hostMasks, false, false)
-	//return network.getNetworkIPv4Mask(prefLen, false).ToIPAddress()
 }
 
 func (network *IPv6AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.hostMasksWithPrefix, false, true)
-	//return network.getNetworkIPv4Mask(prefLen, false).ToIPAddress()
 }
-
-//func (network *IPv6AddressNetwork) GetNetworkIPv6Address(prefLen PrefixLen) *IPv6Address {
-//	//
-//	return nil
-//}
-
-//func (network *IPv6AddressNetwork) getNetworkIPv6Mask(prefLen BitCount, withPrefixLength bool) *IPv6Address {
-//	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, cache, true, withPrefixLength).ToIPv6Address()
-//	//xxx
-//	//func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength BitCount, cache []*IPAddress,  network,  withPrefixLength bool) *IPAddress {
-//	//return nil
-//}
 
 var _ IPAddressNetwork = &IPv6AddressNetwork{}
 
-var DefaultIPv6Network = IPv6AddressNetwork{
+var DefaultIPv6Network = &IPv6AddressNetwork{
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv6BitCount+1),
 		make([]*IPAddress, IPv6BitCount+1),
@@ -158,32 +120,23 @@ func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
 
 func (network *IPv4AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.subnetMasks, true, false)
-	//return network.getNetworkIPv4Mask(prefLen, false).ToIPAddress()
 }
 
 func (network *IPv4AddressNetwork) GetPrefixedNetworkMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.subnetsMasksWithPrefix, true, true)
-	//return network.getNetworkIPv4Mask(prefLen, true).ToIPAddress()
 }
 
 func (network *IPv4AddressNetwork) GetHostMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.hostMasks, false, false)
-	//return network.getNetworkIPv4Mask(prefLen, false).ToIPAddress()
 }
 
 func (network *IPv4AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.hostMasksWithPrefix, false, true)
-	//return network.getNetworkIPv4Mask(prefLen, false).ToIPAddress()
 }
-
-//func (network *IPv4AddressNetwork) getNetworkIPv4Mask(prefLen BitCount, withPrefixLength bool) *IPv4Address {
-//	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, cache, true, withPrefixLength).ToIPv4Address()
-//	//return nil
-//}
 
 var _ IPAddressNetwork = &IPv4AddressNetwork{}
 
-var DefaultIPv4Network = IPv4AddressNetwork{
+var DefaultIPv4Network = &IPv4AddressNetwork{
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv4BitCount+1),
 		make([]*IPAddress, IPv4BitCount+1),
@@ -464,7 +417,5 @@ func (network *MACAddressNetwork) GetMACAddressCreator() *MACAddressCreator {
 //func (network *MACAddressNetwork) GetAddressCreator() AddressCreator {
 //	return network.GetMACAddressCreator()
 //}
-
-var _ AddressNetwork = &MACAddressNetwork{}
 
 var DefaultMACNetwork MACAddressNetwork

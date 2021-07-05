@@ -335,7 +335,6 @@ func (parseData *ParsedIPAddress) getProviderNetworkPrefixLength() PrefixLen {
 func allocateSegments(
 	segments,
 	originalSegments []*AddressDivision,
-	creator AddressSegmentCreator,
 	segmentCount,
 	originalCount int) []*AddressDivision {
 	if segments == nil {
@@ -461,7 +460,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 					}
 					if doAddress {
 						if maskedIsDifferent || currentPrefix != nil {
-							hostSegments = allocateSegments(hostSegments, segments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+							hostSegments = allocateSegments(hostSegments, segments, IPv4SegmentCount, normalizedSegmentIndex)
 							hostSegments[normalizedSegmentIndex] = parseData.createSegment(
 								addressString,
 								IPv4,
@@ -486,7 +485,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 						isRange := maskedSegLower != maskedSegUpper
 						if !doAddress || isRange {
 							if doAddress {
-								lowerSegments = allocateSegments(lowerSegments, segments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+								lowerSegments = allocateSegments(lowerSegments, segments, IPv4SegmentCount, normalizedSegmentIndex)
 							} // else segments already allocated
 							lowerSegments[normalizedSegmentIndex] = parseData.createSegment(
 								addressString,
@@ -502,7 +501,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 						}
 						if withUpper {
 							if isRange {
-								upperSegments = allocateSegments(upperSegments, lowerSegments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+								upperSegments = allocateSegments(upperSegments, lowerSegments, IPv4SegmentCount, normalizedSegmentIndex)
 								upperSegments[normalizedSegmentIndex] = parseData.createSegment(
 									addressString,
 									IPv4,
@@ -550,7 +549,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 		segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv4BitsPerSegment, qualifier)
 		if doAddress {
 			if maskedIsDifferent || segmentPrefixLength != nil {
-				hostSegments = allocateSegments(hostSegments, segments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+				hostSegments = allocateSegments(hostSegments, segments, IPv4SegmentCount, normalizedSegmentIndex)
 				hostSegments[normalizedSegmentIndex] = parseData.createSegment(
 					addressString,
 					IPv4,
@@ -575,7 +574,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			isRange := lower != upper
 			if !doAddress || isRange {
 				if doAddress {
-					lowerSegments = allocateSegments(lowerSegments, segments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+					lowerSegments = allocateSegments(lowerSegments, segments, IPv4SegmentCount, normalizedSegmentIndex)
 				} // else segments already allocated
 				lowerSegments[normalizedSegmentIndex] = parseData.createSegment(
 					addressString,
@@ -591,7 +590,7 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			}
 			if withUpper {
 				if isRange {
-					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, IPv4SegmentCount, normalizedSegmentIndex)
+					upperSegments = allocateSegments(upperSegments, lowerSegments, IPv4SegmentCount, normalizedSegmentIndex)
 					upperSegments[normalizedSegmentIndex] = parseData.createSegment(
 						addressString,
 						IPv4,
@@ -663,11 +662,11 @@ func (parseData *ParsedIPAddress) createIPv4Sections(doAddress, doRangeBoundarie
 			if isPrefixSub {
 				if lowerSegments == nil {
 					//allocate lower segments from address segments
-					lowerSegments = allocateSegments(lowerSegments, segments, creator, IPv4SegmentCount, IPv4SegmentCount)
+					lowerSegments = allocateSegments(lowerSegments, segments, IPv4SegmentCount, IPv4SegmentCount)
 				}
 				if upperSegments == nil {
 					//allocate upper segments from lower segments
-					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, IPv4SegmentCount, IPv4SegmentCount)
+					upperSegments = allocateSegments(upperSegments, lowerSegments, IPv4SegmentCount, IPv4SegmentCount)
 				}
 			}
 		}
@@ -916,7 +915,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 					}
 					if doAddress {
 						if maskedIsDifferent || currentPrefix != nil {
-							hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+							hostSegments = allocateSegments(hostSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 							hostSegments[normalizedSegmentIndex] = parseData.createSegment(
 								addressString,
 								IPv6,
@@ -941,7 +940,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 						isSegRange := maskedSegLower != maskedSegUpper
 						if !doAddress || isSegRange {
 							if doAddress {
-								lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+								lowerSegments = allocateSegments(lowerSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 							} // else segments already allocated
 							lowerSegments[normalizedSegmentIndex] = parseData.createSegment(
 								addressString,
@@ -958,7 +957,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 						}
 						if withUpper {
 							if isSegRange {
-								upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+								upperSegments = allocateSegments(upperSegments, lowerSegments, ipv6SegmentCount, normalizedSegmentIndex)
 								upperSegments[normalizedSegmentIndex] = parseData.createSegment(
 									addressString,
 									IPv6,
@@ -1007,7 +1006,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 		segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
 		if doAddress {
 			if maskedIsDifferent || segmentPrefixLength != nil {
-				hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+				hostSegments = allocateSegments(hostSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 				hostSegments[normalizedSegmentIndex] = parseData.createSegment(
 					addressString,
 					IPv6,
@@ -1032,7 +1031,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			isRange := lower != upper
 			if !doAddress || isRange {
 				if doAddress {
-					lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+					lowerSegments = allocateSegments(lowerSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 				} // else segments already allocated
 				lowerSegments[normalizedSegmentIndex] = parseData.createSegment(
 					addressString,
@@ -1048,7 +1047,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			}
 			if withUpper {
 				if isRange {
-					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+					upperSegments = allocateSegments(upperSegments, lowerSegments, ipv6SegmentCount, normalizedSegmentIndex)
 					upperSegments[normalizedSegmentIndex] = parseData.createSegment(
 						addressString,
 						IPv6,
@@ -1068,7 +1067,6 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 	}
 	prefLength := getPrefixLength(qualifier)
 	if mixed {
-		//TODO need to make getProviderSeqRange work xxxx
 		ipv4Range := parseData.mixedParsedAddress.getProviderSeqRange().ToIPv4SequentialRange()
 		if hasMask && parseData.mixedMaskers == nil {
 			parseData.mixedMaskers = make([]Masker, IPv4SegmentCount)
@@ -1136,7 +1134,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			if doAddress {
 				doHostSegment := maskedIsDifferent || segmentPrefixLength != nil
 				if doHostSegment {
-					hostSegments = allocateSegments(hostSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+					hostSegments = allocateSegments(hostSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 				}
 				if !isRange {
 					if doHostSegment {
@@ -1173,7 +1171,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			if doRangeBoundaries {
 				if !doAddress || isRange {
 					if doAddress {
-						lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+						lowerSegments = allocateSegments(lowerSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
 					} // else segments already allocated
 					lowerSegments[normalizedSegmentIndex] = createIPv6Segment(
 						oneLower,
@@ -1185,7 +1183,7 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 				}
 				if withUpper {
 					if isRange {
-						upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, normalizedSegmentIndex)
+						upperSegments = allocateSegments(upperSegments, lowerSegments, ipv6SegmentCount, normalizedSegmentIndex)
 						upperSegments[normalizedSegmentIndex] = createIPv6Segment(
 							oneUpper,
 							twoUpper,
@@ -1247,11 +1245,11 @@ func (parseData *ParsedIPAddress) createIPv6Sections(doAddress, doRangeBoundarie
 			if isPrefixSub {
 				if lowerSegments == nil {
 					//allocate lower segments from address segments
-					lowerSegments = allocateSegments(lowerSegments, segments, creator, ipv6SegmentCount, ipv6SegmentCount)
+					lowerSegments = allocateSegments(lowerSegments, segments, ipv6SegmentCount, ipv6SegmentCount)
 				}
 				if upperSegments == nil {
 					//allocate upper segments from lower segments
-					upperSegments = allocateSegments(upperSegments, lowerSegments, creator, ipv6SegmentCount, ipv6SegmentCount)
+					upperSegments = allocateSegments(upperSegments, lowerSegments, ipv6SegmentCount, ipv6SegmentCount)
 				}
 			}
 		}

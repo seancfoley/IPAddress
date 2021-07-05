@@ -28,8 +28,8 @@ const (
 	IPv6UncRangeSeparatorStr = string(AlternativeRangeSeparator)
 	IPv6UncSuffix            = ".ipv6-literal.net"
 
-	IPv6SegmentMaxChars    = 4
-	IPv6SegmentBitsPerChar = 4
+	IPv6SegmentMaxChars             = 4
+	IPv6SegmentBitsPerChar BitCount = 4
 )
 
 type Zone string
@@ -166,6 +166,30 @@ func (addr *IPv6Address) GetSubSection(index, endIndex int) *IPv6AddressSection 
 	return addr.GetSection().GetSubSection(index, endIndex)
 }
 
+func (addr *IPv6Address) GetNetworkSection() *IPv6AddressSection {
+	return addr.GetSection().GetNetworkSection()
+}
+
+func (addr *IPv6Address) GetNetworkSectionLen(prefLen BitCount) *IPv6AddressSection {
+	return addr.GetSection().GetNetworkSectionLen(prefLen)
+}
+
+func (addr *IPv6Address) GetHostSection() *IPv6AddressSection {
+	return addr.GetSection().GetHostSection()
+}
+
+func (addr *IPv6Address) GetHostSectionLen(prefLen BitCount) *IPv6AddressSection {
+	return addr.GetSection().GetHostSectionLen(prefLen)
+}
+
+func (addr *IPv6Address) GetNetworkMask() *IPv6Address {
+	return addr.getNetworkMask(DefaultIPv6Network).ToIPv6Address()
+}
+
+func (addr *IPv6Address) GetHostMask() *IPv6Address {
+	return addr.getHostMask(DefaultIPv6Network).ToIPv6Address()
+}
+
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (addr *IPv6Address) CopySubSegments(start, end int, segs []*IPv6AddressSegment) (count int) {
@@ -223,6 +247,15 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().Mask(other.GetSection())
+	if err == nil {
+		masked = addr.checkIdentity(sect)
+	}
+	return
+}
+
+func (addr *IPv6Address) MaskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
+	addr = addr.init()
+	sect, err := addr.GetSection().MaskPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
 		masked = addr.checkIdentity(sect)
 	}

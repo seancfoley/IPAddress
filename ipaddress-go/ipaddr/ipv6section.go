@@ -210,6 +210,30 @@ func (section *IPv6AddressSection) GetSubSection(index, endIndex int) *IPv6Addre
 	return section.getSubSection(index, endIndex).ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) GetNetworkSection() *IPv6AddressSection {
+	return section.getNetworkSection().ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) GetNetworkSectionLen(prefLen BitCount) *IPv6AddressSection {
+	return section.getNetworkSectionLen(prefLen).ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) GetHostSection() *IPv6AddressSection {
+	return section.getHostSection().ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) GetHostSectionLen(prefLen BitCount) *IPv6AddressSection {
+	return section.getHostSectionLen(prefLen).ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) GetNetworkMask() *IPv6AddressSection {
+	return section.getNetworkMask(DefaultIPv6Network).ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) GetHostMask() *IPv6AddressSection {
+	return section.getHostMask(DefaultIPv6Network).ToIPv6AddressSection()
+}
+
 //// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true TODO not sure about this, still considering adding it (here and in Java), it allows you to avoid panics by not going past end of segment array
 //func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
 //	section.visitSegments(
@@ -516,28 +540,6 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 		section.getUpper,
 		prefixLength).ToIPv6AddressSection()
 }
-
-//func (section *IPv6AddressSection) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-//	xxx
-//	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
-//	if section.IsSequential() {
-//		if section.IsSinglePrefixBlock() {
-//			return []ExtendedIPSegmentSeries{wrapped}
-//		}
-//		return getSpanningPrefixBlocks(wrapped, wrapped)
-//	}
-//	return spanWithPrefixBlocks(wrapped)
-//}
-
-//func (section *IPv6AddressSection) spanWithPrefixBlocksTo(other *IPv6AddressSection) ([]ExtendedIPSegmentSeries, SizeMismatchError) {
-//	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
-//		return nil, err
-//	}
-//	return getSpanningPrefixBlocks(
-//		WrappedIPAddressSection{section.ToIPAddressSection()},
-//		WrappedIPAddressSection{other.ToIPAddressSection()},
-//	), nil
-//}
 
 func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection {
 	if section.IsSequential() {

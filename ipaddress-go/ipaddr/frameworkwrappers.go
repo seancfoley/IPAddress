@@ -9,21 +9,27 @@ type ExtendedIPSegmentSeries interface {
 	// Unwrap returns the wrapped section or address as an IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
-	// not sure about the return types on these 5, probably should all be *IPAddressSection?  Because the wrapper types are geared for that type anyway
-
 	// GetSection returns the full address section
 	GetSection() *IPAddressSection
 
-	//GetNetworkSection() AddressSectionType  //TODO
-	//GetHostSection() AddressSectionType  //TODO
-	//GetNetworkSectionLen(BitCount) AddressSectionType  //TODO
-	//GetHostSectionLen(BitCount) AddressSectionType  //TODO
+	// GetTrailingSection returns an ending subsection of the full address section
+	GetTrailingSection(index int) *IPAddressSection
 
-	//GetNetworkMask() ExtendedIPSegmentSeries  //TODO
-	//GetHostMask() ExtendedIPSegmentSeries  //TODO
+	// GetSubSection returns a subsection of the full address section
+	GetSubSection(index, endIndex int) *IPAddressSection
 
-	// GetSegment(int index) *IPAddressSegment and GetSegments() []*IPAddressSegment //TODO - we do have GetGenericSegment and GetGenericDivision but we could also return IPAddressSegment
-	// GetTrailingSection, GetSubSection, CopySegments, CopySubSegments // TODO these are already there in IPAddress and IPAddressSection, so not much work
+	GetNetworkSection() *IPAddressSection
+	GetHostSection() *IPAddressSection
+	GetNetworkSectionLen(BitCount) *IPAddressSection
+	GetHostSectionLen(BitCount) *IPAddressSection
+
+	GetNetworkMask() ExtendedIPSegmentSeries
+	GetHostMask() ExtendedIPSegmentSeries
+
+	GetSegment(index int) *IPAddressSegment
+	GetSegments() []*IPAddressSegment
+	CopySegments(segs []*IPAddressSegment) (count int)
+	CopySubSegments(start, end int, segs []*IPAddressSegment) (count int)
 
 	IsIPv4() bool
 	IsIPv6() bool
@@ -79,6 +85,14 @@ func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
 	return w.IPAddress
 }
 
+func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.GetNetworkMask()}
+}
+
+func (w WrappedIPAddress) GetHostMask() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.GetHostMask()}
+}
+
 func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
 	return addressSeriesIterator{w.IPAddress.SequentialBlockIterator()}
 }
@@ -104,10 +118,6 @@ func (w WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator 
 func (w WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.ToBlock(segmentIndex, lower, upper)}
 }
-
-//func (w WrappedIPAddress) GetSequentialBlockIndex() int {
-//	return w.IPAddress.GetSequentialBlockIndex()
-//}
 
 func (w WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.ToPrefixBlockLen(bitCount)}
@@ -198,6 +208,14 @@ func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
 	return w.IPAddressSection
 }
 
+func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.GetNetworkMask()}
+}
+
+func (w WrappedIPAddressSection) GetHostMask() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.GetHostMask()}
+}
+
 func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
 	return sectionSeriesIterator{w.IPAddressSection.SequentialBlockIterator()}
 }
@@ -223,10 +241,6 @@ func (w WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIt
 func (w WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.ToBlock(segmentIndex, lower, upper)}
 }
-
-//func (w WrappedIPAddressSection) GetSequentialBlockIndex() int {
-//	return w.IPAddressSection.GetSequentialBlockIndex()
-//}
 
 func (w WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlockLen(bitCount)}
@@ -275,10 +289,6 @@ func (w WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
 func (w WrappedIPAddressSection) GetSection() *IPAddressSection {
 	return w.IPAddressSection
 }
-
-//func (w WrappedIPAddressSection) CompareTo(series ExtendedIPSegmentSeries) int {
-//	return w.IPAddressSection.CompareTo(series)
-//}
 
 func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
 	return convSectToIntf(w.IPAddressSection.AssignPrefixForSingleBlock())

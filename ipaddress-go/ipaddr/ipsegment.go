@@ -230,7 +230,7 @@ func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, wit
 	return seg.toNetworkDivision(segmentPrefixLength, withPrefixLength).ToIPAddressSegment()
 }
 
-//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment { TODO ToHostSegment
+//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment { TODO ToHostSegment (see getHostSection for code that does the proper masking)
 //	if isHostChangedByPrefix(bits) {
 //		return super.toHostSegment(bits, getSegmentCreator())
 //	}

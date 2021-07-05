@@ -479,7 +479,7 @@ func (params *ipv6AddressStringParameters) GetEmbeddedIPv4AddressParams() IPv4Ad
 
 func (params *ipv6AddressStringParameters) GetNetwork() *IPv6AddressNetwork { //TODO this needs to go, no longer using address creators
 	if params.network == nil {
-		return &DefaultIPv6Network
+		return DefaultIPv6Network
 	}
 	return params.network
 }
@@ -677,7 +677,7 @@ func (params *ipv4AddressStringParameters) Allows_inet_aton_leading_zeros() bool
 
 func (params *ipv4AddressStringParameters) GetNetwork() *IPv4AddressNetwork {
 	if params.network == nil {
-		return &DefaultIPv4Network
+		return DefaultIPv4Network
 	}
 	return params.network
 }

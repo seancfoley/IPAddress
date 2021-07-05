@@ -122,6 +122,30 @@ func (addr *IPv4Address) GetSubSection(index, endIndex int) *IPv4AddressSection 
 	return addr.GetSection().GetSubSection(index, endIndex)
 }
 
+func (addr *IPv4Address) GetNetworkSection() *IPv4AddressSection {
+	return addr.GetSection().GetNetworkSection()
+}
+
+func (addr *IPv4Address) GetNetworkSectionLen(prefLen BitCount) *IPv4AddressSection {
+	return addr.GetSection().GetNetworkSectionLen(prefLen)
+}
+
+func (addr *IPv4Address) GetHostSection() *IPv4AddressSection {
+	return addr.GetSection().GetHostSection()
+}
+
+func (addr *IPv4Address) GetHostSectionLen(prefLen BitCount) *IPv4AddressSection {
+	return addr.GetSection().GetHostSectionLen(prefLen)
+}
+
+func (addr *IPv4Address) GetNetworkMask() *IPv4Address {
+	return addr.getNetworkMask(DefaultIPv4Network).ToIPv4Address()
+}
+
+func (addr *IPv4Address) GetHostMask() *IPv4Address {
+	return addr.getHostMask(DefaultIPv4Network).ToIPv4Address()
+}
+
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (addr *IPv4Address) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {
@@ -185,7 +209,14 @@ func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err Inco
 	return
 }
 
-//TODO xxx MaskPrefixed which is in sections but seems I forgot to add to addresses xxxx
+func (addr *IPv4Address) MaskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
+	addr = addr.init()
+	sect, err := addr.GetSection().MaskPrefixed(other.GetSection(), retainPrefix)
+	if err == nil {
+		masked = addr.checkIdentity(sect)
+	}
+	return
+}
 
 func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange {
 	return NewIPv4SeqRange(addr.init(), other.init())
