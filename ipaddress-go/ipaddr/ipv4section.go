@@ -909,11 +909,11 @@ func (seg *joinedSegmentVals) getUpperDivisionValue() DivInt {
 	return seg.upperValue
 }
 
-func (seg *joinedSegmentVals) getValue() *big.Int {
+func (seg *joinedSegmentVals) getValue() *BigDivInt {
 	return big.NewInt(int64(seg.getDivisionValue()))
 }
 
-func (seg *joinedSegmentVals) getUpperValue() *big.Int {
+func (seg *joinedSegmentVals) getUpperValue() *BigDivInt {
 	return big.NewInt(int64(seg.getUpperDivisionValue()))
 }
 

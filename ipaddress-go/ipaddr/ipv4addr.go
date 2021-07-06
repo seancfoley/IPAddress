@@ -75,6 +75,8 @@ func initZeroIPv4() *IPv4Address {
 	return NewIPv4Address(section)
 }
 
+// TODO survey the  IPv4 API, I've already surveyed IPAddress API
+
 //
 //
 // IPv4Address is an IPv4 address, or a subnet of multiple IPv4 addresses.  Each segment can represent a single value or a range of values.

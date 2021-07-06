@@ -827,6 +827,13 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 // The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
 // Because we do have the type-safe versions.
 
+// subtract //TODO
+// intersect //TODO
+// BitwiseOr //TODO
+
+// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code
+// ToUNCHostName //TODO
+
 func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
@@ -862,6 +869,15 @@ func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressEr
 	}
 	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
 }
+
+// TODO isAnyLocal in IPAddress / IPv4/6Address
+// TODO isLinkLOcal
+// TODO isLocal
+// TODO isLoopBack
+// TODO isUnspecified
+// TODO matchesWithMask here and in IPSection
+// TODO prefixContains
+//
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()

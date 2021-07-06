@@ -115,6 +115,8 @@ func initZeroIPv6() *IPv6Address {
 	return NewIPv6Address(section)
 }
 
+// TODO survey the IPv6 API (ie take a look at java to see what we are missing), I've already surveyed IPAddress API
+
 //
 //
 // IPv6Address is an IPv6 address, or a subnet of multiple IPv6 addresses.  Each segment can represent a single value or a range of values.

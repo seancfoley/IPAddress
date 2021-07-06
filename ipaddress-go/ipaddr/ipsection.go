@@ -1380,3 +1380,7 @@ func checkSectionCounts(sections []ExtendedIPSegmentSeries) SizeMismatchError {
 	}
 	return nil
 }
+
+//TODO survey ipsection, ipaddressdivisionGrouping, ipdivisiongroupingbase, etc, to find stuff I might be missing.
+// I've already surveyed ipaddress.
+// there might not be much, I've lready created so much of the address framework and the string building and so on...

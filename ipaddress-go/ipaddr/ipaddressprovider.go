@@ -897,11 +897,14 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish off the ip address creator interfaces (not sure if you need much here)
-// - finish HostName (now it's mostly done, just a few methods left)
+// - finish HostName (now it's mostly done, just a few methods left) <---
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - did we do mac <-> ipv6?  Or ipv4 <-> ipv6?
-// - finish the list of methods in ExtendedIPSegmentSeries
+// - finish the list of methods in ExtendedIPSegmentSeries - almost there <---
+// ---> - we need to circle back to the parsing code and do all teh things we deferred, such as the locking, such as the optimized contains and equals, etc
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
+
+// I think you want to fix up the locking in the parsing, then move on to the prefixEquals and prefixContains stuff, but first do the reverse methods

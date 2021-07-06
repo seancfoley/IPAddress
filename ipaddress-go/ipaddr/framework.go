@@ -9,8 +9,8 @@ import (
 type AddressItem interface {
 	IsMultiple() bool
 
-	GetValue() *BigDivInt
-	GetUpperValue() *BigDivInt
+	GetValue() *big.Int
+	GetUpperValue() *big.Int
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
@@ -152,6 +152,8 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	AddressDivisionSeries
 
 	addrSegmentSeries
+
+	// TODO BitwiseOr, Intersect, Subtract.
 }
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
@@ -171,14 +173,19 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 	GetIPVersion() IPVersion
 
+	GetBlockMaskPrefixLength(network bool) PrefixLen
+
+	// getLeadingBitCount(boolean network) // TODO (in java we had it in IPAddress, IPAddressDivisionGrouping, so in here I guess that translates to here
+	// getTrailingBitCount(boolean network) TODO
+
 	ToFullString() string
-	//ToPrefixLenString() string //TODO
+	//ToPrefixLenString() string //TODO seems I went most of the way but not all the way
 	ToSubnetString() string
 	ToNormalizedWildcardString() string
 	ToCanonicalWildcardString() string
 	ToCompressedWildcardString() string
 	ToSQLWildcardString() string
-	//ToReverseDNSLookupString() string //TODO
+	ToReverseDNSString() string
 	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToSegmentedBinaryString() string
 	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
@@ -230,6 +237,8 @@ type AddressType interface {
 	Equals(AddressType) bool
 	Contains(AddressType) bool
 	ToAddress() *Address
+
+	// toAddressString, toHostName TODO look at hostidstring.go for some thoughts on these
 }
 
 var _, _ AddressType = &Address{}, &MACAddress{}

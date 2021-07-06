@@ -19,10 +19,10 @@ type divisionValuesBase interface { // shared by standard and large divisions
 	getByteCount() int
 
 	// getValue gets the lower value for a large division
-	getValue() *big.Int
+	getValue() *BigDivInt
 
 	// getValue gets the upper value for a large division
-	getUpperValue() *big.Int
+	getUpperValue() *BigDivInt
 
 	includesZero() bool
 
@@ -69,7 +69,7 @@ func (div *addressDivisionBase) GetByteCount() int {
 	return vals.getByteCount()
 }
 
-func (div *addressDivisionBase) GetValue() *big.Int {
+func (div *addressDivisionBase) GetValue() *BigDivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return bigZero()
@@ -77,7 +77,7 @@ func (div *addressDivisionBase) GetValue() *big.Int {
 	return vals.getValue()
 }
 
-func (div *addressDivisionBase) GetUpperValue() *big.Int {
+func (div *addressDivisionBase) GetUpperValue() *BigDivInt {
 	vals := div.divisionValues
 	if vals == nil {
 		return bigZero()
@@ -254,12 +254,12 @@ func (div *addressDivisionBase) getDefaultTextualRadix() int {
 	return 16
 }
 
-func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {
+func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *BigDivInt) bool {
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
 }
 
-func bigDivValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal *big.Int) bool {
+func bigDivValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal *BigDivInt) bool {
 	return oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
 }
 

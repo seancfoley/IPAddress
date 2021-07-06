@@ -4,7 +4,7 @@ import (
 	"math/big"
 )
 
-type MACSegInt uint8 //TODO consider changing to int16 later, because it makes arithmetic easier, in thigns like increment, or iterators, or spliterators
+type MACSegInt uint8
 
 func ToMACSegInt(val SegInt) MACSegInt {
 	return MACSegInt(val)
@@ -48,11 +48,11 @@ func (seg *macSegmentValues) getByteCount() int {
 	return MACBytesPerSegment
 }
 
-func (seg *macSegmentValues) getValue() *big.Int {
+func (seg *macSegmentValues) getValue() *BigDivInt {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg *macSegmentValues) getUpperValue() *big.Int {
+func (seg *macSegmentValues) getUpperValue() *BigDivInt {
 	return big.NewInt(int64(seg.upperValue))
 }
 
@@ -65,7 +65,6 @@ func (seg *macSegmentValues) getUpperDivisionValue() DivInt {
 }
 
 func (seg *macSegmentValues) getDivisionPrefixLength() PrefixLen {
-	//TODO for MAC this needs to be changed to getMinPrefixLengthForBlock
 	return nil
 }
 
@@ -142,6 +141,33 @@ func (seg *MACAddressSegment) prefixBlockIterator(segmentPrefixLen BitCount) MAC
 
 func (seg *MACAddressSegment) prefixIterator(segmentPrefixLen BitCount) MACSegmentIterator {
 	return macSegmentIterator{seg.prefixedIterator(segmentPrefixLen)}
+}
+
+func (seg *MACAddressSegment) ReverseBits(perByte bool) (res *MACAddressSegment, err IncompatibleAddressError) {
+	if seg.divisionValues == nil {
+		res = seg
+		return
+	}
+	if seg.IsMultiple() {
+		if isReversible, _ := seg.isReversibleRange(false); isReversible {
+			res = seg
+			return
+		}
+		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		return
+	}
+	oldVal := MACSegInt(seg.GetSegmentValue())
+	val := MACSegInt(reverseUint8(uint8(oldVal)))
+	if oldVal == val {
+		res = seg
+	} else {
+		res = NewMACSegment(val)
+	}
+	return
+}
+
+func (seg *MACAddressSegment) ReverseBytes() (*MACAddressSegment, IncompatibleAddressError) {
+	return seg, nil
 }
 
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {

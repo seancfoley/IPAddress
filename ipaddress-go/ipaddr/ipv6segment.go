@@ -55,11 +55,11 @@ func (seg *ipv6SegmentValues) getByteCount() int {
 	return IPv6BytesPerSegment
 }
 
-func (seg *ipv6SegmentValues) getValue() *big.Int {
+func (seg *ipv6SegmentValues) getValue() *BigDivInt {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg *ipv6SegmentValues) getUpperValue() *big.Int {
+func (seg *ipv6SegmentValues) getUpperValue() *BigDivInt {
 	return big.NewInt(int64(seg.upperValue))
 }
 
@@ -187,8 +187,8 @@ func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int,
 	myPrefix := seg.GetDivisionPrefixLength()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 	if index >= 0 && index < boundaryIndex {
-		highLower := highByte(seg.GetSegmentValue())
-		highUpper := highByte(seg.GetUpperSegmentValue())
+		highLower := highByteIpv6(seg.GetSegmentValue())
+		highUpper := highByteIpv6(seg.GetUpperSegmentValue())
 		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
 		if highLower == highUpper {
 			seg := NewIPv4PrefixSegment(IPv4SegInt(highLower), highPrefixBits)
@@ -200,8 +200,8 @@ func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int,
 	}
 	index++
 	if index >= 0 && index < boundaryIndex {
-		lowLower := lowByte(seg.GetSegmentValue())
-		lowUpper := lowByte(seg.GetUpperSegmentValue())
+		lowLower := lowByteIpv6(seg.GetSegmentValue())
+		lowUpper := lowByteIpv6(seg.GetUpperSegmentValue())
 		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
 		if lowLower == lowUpper {
 			seg := NewIPv4PrefixSegment(IPv4SegInt(lowLower), lowPrefixBits)
@@ -214,18 +214,18 @@ func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int,
 }
 
 func (seg *IPv6AddressSegment) highByte() SegInt {
-	return highByte(seg.GetSegmentValue())
+	return highByteIpv6(seg.GetSegmentValue())
 }
 
 func (seg *IPv6AddressSegment) lowByte() SegInt {
-	return lowByte(seg.GetSegmentValue())
+	return lowByteIpv6(seg.GetSegmentValue())
 }
 
-func highByte(value SegInt) SegInt {
+func highByteIpv6(value SegInt) SegInt {
 	return value >> 8
 }
 
-func lowByte(value SegInt) SegInt {
+func lowByteIpv6(value SegInt) SegInt {
 	return value & 0xff
 }
 
@@ -240,6 +240,51 @@ func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, inde
 
 func (seg *IPv6AddressSegment) getSplitSegments(segs []*AddressDivision, index int) {
 	seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
+}
+
+func (seg *IPv6AddressSegment) ReverseBits(perByte bool) (res *IPv6AddressSegment, err IncompatibleAddressError) {
+	if seg.divisionValues == nil {
+		res = seg
+		return
+	}
+	if seg.IsMultiple() {
+		var addrSeg *AddressSegment
+		addrSeg, err = seg.reverseMultiValSeg(perByte)
+		res = addrSeg.ToIPv6AddressSegment()
+		return
+	}
+	oldVal := IPv6SegInt(seg.GetSegmentValue())
+	val := IPv6SegInt(reverseUint16(uint16(oldVal)))
+	if perByte {
+		val = ((val & 0xff) << 8) | (val >> 8)
+	}
+	if oldVal == val && !seg.isPrefixed() {
+		res = seg
+	} else {
+		res = NewIPv6Segment(val)
+	}
+	return
+}
+
+func (seg *IPv6AddressSegment) ReverseBytes() (res *IPv6AddressSegment, err IncompatibleAddressError) {
+	if seg.divisionValues == nil {
+		res = seg
+		return
+	}
+	if seg.IsMultiple() {
+		var addrSeg *AddressSegment
+		addrSeg, err = seg.reverseMultiValSeg(false)
+		res = addrSeg.ToIPv6AddressSegment()
+		return
+	}
+	oldVal := IPv6SegInt(seg.GetSegmentValue())
+	val := IPv6SegInt(reverseUint16(uint16(oldVal)))
+	if oldVal == val && !seg.isPrefixed() {
+		res = seg
+	} else {
+		res = NewIPv6Segment(val)
+	}
+	return
 }
 
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {

@@ -75,6 +75,9 @@ type ExtendedIPSegmentSeries interface {
 	//ReverseBytes() ExtendedIPSegmentSeries //TODO
 	//ReverseBits(bool) ExtendedIPSegmentSeries //TODO
 	//ReverseSegments(bool) ExtendedIPSegmentSeries //TODO
+
+	//addresscomponent: reversebits(boolean perbyte) and reverseBytes()
+	//addresssection and addresssegmentseries: the same plus reverseSegments and reverseBytesPerSegment()
 }
 
 type WrappedIPAddress struct {

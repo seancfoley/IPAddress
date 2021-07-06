@@ -48,6 +48,8 @@ func NewMACAddress(section *MACAddressSection) *MACAddress {
 	//}
 }
 
+// TODO survey the MAC API
+
 func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
 	res := NewMACAddress(section)
 	if originator != nil {

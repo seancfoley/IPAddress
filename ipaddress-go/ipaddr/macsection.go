@@ -458,11 +458,11 @@ func (div bitsDivisionVals) getByteCount() int {
 	return int((div.getBitCount() + 3) >> 3)
 }
 
-func (div bitsDivisionVals) getValue() *big.Int {
+func (div bitsDivisionVals) getValue() *BigDivInt {
 	return big.NewInt(int64(div.value))
 }
 
-func (div bitsDivisionVals) getUpperValue() *big.Int {
+func (div bitsDivisionVals) getUpperValue() *BigDivInt {
 	return big.NewInt(int64(div.upperValue))
 }
 

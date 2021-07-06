@@ -53,11 +53,11 @@ func (seg *ipv4SegmentValues) getByteCount() int {
 	return IPv4BytesPerSegment
 }
 
-func (seg *ipv4SegmentValues) getValue() *big.Int {
+func (seg *ipv4SegmentValues) getValue() *BigDivInt {
 	return big.NewInt(int64(seg.value))
 }
 
-func (seg *ipv4SegmentValues) getUpperValue() *big.Int {
+func (seg *ipv4SegmentValues) getUpperValue() *BigDivInt {
 	return big.NewInt(int64(seg.upperValue))
 }
 
@@ -154,6 +154,33 @@ func (seg *IPv4AddressSegment) PrefixIterator() IPv4SegmentIterator {
 
 func (seg *IPv4AddressSegment) WithoutPrefixLen() *IPv4AddressSegment {
 	return seg.withoutPrefixLen().ToIPv4AddressSegment()
+}
+
+func (seg *IPv4AddressSegment) ReverseBits(perByte bool) (res *IPv4AddressSegment, err IncompatibleAddressError) {
+	if seg.divisionValues == nil {
+		res = seg
+		return
+	}
+	if seg.IsMultiple() {
+		if isReversible, _ := seg.isReversibleRange(false); isReversible {
+			res = seg.WithoutPrefixLen()
+			return
+		}
+		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		return
+	}
+	oldVal := IPv4SegInt(seg.GetSegmentValue())
+	val := IPv4SegInt(reverseUint8(uint8(oldVal)))
+	if oldVal == val && !seg.isPrefixed() {
+		res = seg
+	} else {
+		res = NewIPv4Segment(val)
+	}
+	return
+}
+
+func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, IncompatibleAddressError) {
+	return seg, nil
 }
 
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
