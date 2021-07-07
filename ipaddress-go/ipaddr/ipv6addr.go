@@ -562,6 +562,26 @@ func (addr *IPv6Address) MergeToPrefixBlocks(addrs ...*IPv6Address) []*IPv6Addre
 	return cloneToIPv6Addrs(blocks)
 }
 
+func (addr *IPv6Address) ReverseBytes() (*IPv6Address, IncompatibleAddressError) {
+	res, err := addr.GetSection().ReverseBytes()
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(res), nil
+}
+
+func (addr *IPv6Address) ReverseBits(perByte bool) (*IPv6Address, IncompatibleAddressError) {
+	res, err := addr.GetSection().ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(res), nil
+}
+
+func (addr *IPv6Address) ReverseSegments() *IPv6Address {
+	return addr.checkIdentity(addr.GetSection().ReverseSegments())
+}
+
 func (addr IPv6Address) String() string {
 	return addr.init().addressInternal.String()
 }

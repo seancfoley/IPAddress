@@ -907,4 +907,6 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
 
+// more: subtract, intersect, BitwiseOr
+
 // I think you want to fix up the locking in the parsing, then move on to the prefixEquals and prefixContains stuff, but first do the reverse methods

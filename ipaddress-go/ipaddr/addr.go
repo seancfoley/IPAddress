@@ -398,6 +398,26 @@ func (addr *addressInternal) toPrefixBlockLen(prefLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen))
 }
 
+func (addr *addressInternal) reverseBytes() (*Address, IncompatibleAddressError) {
+	sect, err := addr.section.ReverseBytes()
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(sect), nil
+}
+
+func (addr *addressInternal) reverseBits(perByte bool) (*Address, IncompatibleAddressError) {
+	sect, err := addr.section.ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(sect), nil
+}
+
+func (addr *addressInternal) reverseSegments() *Address {
+	return addr.checkIdentity(addr.section.ReverseSegments())
+}
+
 // isIPv4() returns whether this matches an IPv4 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIPv4() bool {
@@ -850,6 +870,18 @@ func (addr *Address) IncrementBoundary(increment int64) *Address {
 
 func (addr *Address) Increment(increment int64) *Address {
 	return addr.init().increment(increment).ToAddress()
+}
+
+func (addr *Address) ReverseBytes() (*Address, IncompatibleAddressError) {
+	return addr.init().reverseBytes()
+}
+
+func (addr *Address) ReverseBits(perByte bool) (*Address, IncompatibleAddressError) {
+	return addr.init().reverseBits(perByte)
+}
+
+func (addr *Address) ReverseSegments() *Address {
+	return addr.init().reverseSegments()
 }
 
 func (addr *Address) ToCanonicalString() string {

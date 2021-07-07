@@ -528,6 +528,22 @@ func (addr *IPv4Address) MergeToPrefixBlocks(addrs ...*IPv4Address) []*IPv4Addre
 	return cloneToIPv4Addrs(blocks)
 }
 
+func (addr *IPv4Address) ReverseBytes() *IPv4Address {
+	return addr.checkIdentity(addr.GetSection().ReverseBytes())
+}
+
+func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, IncompatibleAddressError) {
+	res, err := addr.GetSection().ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(res), nil
+}
+
+func (addr *IPv4Address) ReverseSegments() *IPv4Address {
+	return addr.checkIdentity(addr.GetSection().ReverseSegments())
+}
+
 func (addr IPv4Address) String() string {
 	return addr.init().ipAddressInternal.String()
 }

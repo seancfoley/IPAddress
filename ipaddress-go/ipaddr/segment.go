@@ -120,6 +120,14 @@ func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	return createAddressSegment(newVals)
 }
 
+func (seg *addressSegmentInternal) withoutPrefixLen() *AddressSegment {
+	if seg.isPrefixed() {
+		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
+		return createAddressDivision(vals).ToAddressSegment()
+	}
+	return seg.toAddressSegment()
+}
+
 func (seg *addressSegmentInternal) getDefaultSegmentWildcardString() string {
 	return SegmentWildcardStr
 }

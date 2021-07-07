@@ -621,18 +621,35 @@ func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressS
 	return cloneToIPv6Sections(blocks), nil
 }
 
-//
-// Merges this with the list of sections to produce the smallest array of prefix blocks.
-//
-// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-//func MergeToIPv6PrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
-//	series := cloneIPv6Sections(sections)
-//	if err := checkSectionCounts(series); err != nil {
-//		return nil, err
-//	}
-//	blocks := getMergedPrefixBlocks(series)
-//	return cloneToIPv6Sections(blocks), nil
+func (section *IPv6AddressSection) ReverseBits(perByte bool) (*IPv6AddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBits(perByte)
+	return res.ToIPv6AddressSection(), err
+}
+
+func (section *IPv6AddressSection) ReverseBytes() (*IPv6AddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBytes(false)
+	return res.ToIPv6AddressSection(), err
+}
+
+//func (section *IPv6AddressSection) ReverseBytesPerSegment() (*IPv6AddressSection, IncompatibleAddressError) {
+//	res, err := section.reverseBytes(true)
+//	return res.ToIPv6AddressSection(), err
 //}
+
+func (section *IPv6AddressSection) ReverseSegments() *IPv6AddressSection {
+	if section.GetSegmentCount() <= 1 {
+		if section.IsPrefixed() {
+			return section.WithoutPrefixLen()
+		}
+		return section
+	}
+	res, _ := section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).WithoutPrefixLen().ToAddressSegment(), nil
+		},
+	)
+	return res.ToIPv6AddressSection()
+}
 
 var (
 	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS_OR_HOST).ToOptions()

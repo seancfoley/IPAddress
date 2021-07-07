@@ -280,6 +280,37 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	//return nil
 }
 
+func (section *MACAddressSection) ReverseBits(perByte bool) (*MACAddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBits(perByte)
+	return res.ToMACAddressSection(), err
+}
+
+func (section *MACAddressSection) ReverseBytes() *MACAddressSection {
+	return section.ReverseSegments()
+}
+
+//func (section *MACAddressSection) ReverseBytesPerSegment() *MACAddressSection {
+//	if !section.IsPrefixed() {
+//		return section
+//	}
+//	return section.WithoutPrefixLen()
+//}
+
+func (section *MACAddressSection) ReverseSegments() *MACAddressSection {
+	if section.GetSegmentCount() <= 1 {
+		if section.IsPrefixed() {
+			return section.WithoutPrefixLen()
+		}
+		return section
+	}
+	res, _ := section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).ToAddressSegment(), nil
+		},
+	)
+	return res.ToMACAddressSection()
+}
+
 var (
 	canonicalWildcards = new(WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
 

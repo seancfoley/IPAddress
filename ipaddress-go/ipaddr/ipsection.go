@@ -1060,6 +1060,36 @@ func (section *IPAddressSection) CoverWithPrefixBlock() *IPAddressSection {
 	return section.coverWithPrefixBlock()
 }
 
+func (section *IPAddressSection) ReverseBits(perByte bool) (*IPAddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBits(perByte)
+	return res.ToIPAddressSection(), err
+}
+
+func (section *IPAddressSection) ReverseBytes() (*IPAddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBytes(false)
+	return res.ToIPAddressSection(), err
+}
+
+//func (section *IPAddressSection) ReverseBytesPerSegment() (*IPAddressSection, IncompatibleAddressError) {
+//	res, err := section.reverseBytes(true)
+//	return res.ToIPAddressSection(), err
+//}
+
+func (section *IPAddressSection) ReverseSegments() *IPAddressSection {
+	if section.GetSegmentCount() <= 1 {
+		if section.IsPrefixed() {
+			return section.WithoutPrefixLen()
+		}
+		return section
+	}
+	res, _ := section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).withoutPrefixLen().ToAddressSegment(), nil
+		},
+	)
+	return res.ToIPAddressSection()
+}
+
 var (
 	rangeWildcard                 = new(WildcardsBuilder).ToWildcards()
 	allWildcards                  = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).ToOptions()

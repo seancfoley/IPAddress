@@ -72,11 +72,11 @@ type ExtendedIPSegmentSeries interface {
 	SetPrefixLen(BitCount) ExtendedIPSegmentSeries
 	WithoutPrefixLen() ExtendedIPSegmentSeries
 
-	//ReverseBytes() ExtendedIPSegmentSeries //TODO
-	//ReverseBits(bool) ExtendedIPSegmentSeries //TODO
-	//ReverseSegments(bool) ExtendedIPSegmentSeries //TODO
+	ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError)
+	ReverseBits(bool) (ExtendedIPSegmentSeries, IncompatibleAddressError)
+	ReverseSegments() ExtendedIPSegmentSeries
 
-	//addresscomponent: reversebits(boolean perbyte) and reverseBytes()
+	//addresscomponent: reversebits(boolean perbyte) and reverseBytes() DONE for segments
 	//addresssection and addresssegmentseries: the same plus reverseSegments and reverseBytesPerSegment()
 }
 
@@ -203,6 +203,26 @@ func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeri
 	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
 }
 
+func (w WrappedIPAddress) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+	addr, err := w.IPAddress.ReverseBytes()
+	if err != nil {
+		return nil, err
+	}
+	return WrappedIPAddress{addr}, nil
+}
+
+func (w WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+	addr, err := w.IPAddress.ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return WrappedIPAddress{addr}, nil
+}
+
+func (w WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.ReverseSegments()}
+}
+
 type WrappedIPAddressSection struct {
 	*IPAddressSection
 }
@@ -324,6 +344,26 @@ func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddressSection) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+	sect, err := w.IPAddressSection.ReverseBytes()
+	if err != nil {
+		return nil, err
+	}
+	return WrappedIPAddressSection{sect}, nil
+}
+
+func (w WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+	sect, err := w.IPAddressSection.ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return WrappedIPAddressSection{sect}, nil
+}
+
+func (w WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.ReverseSegments()}
 }
 
 var _ ExtendedIPSegmentSeries = WrappedIPAddress{}

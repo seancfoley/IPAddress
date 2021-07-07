@@ -979,6 +979,20 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddres
 	), nil
 }
 
+func (addr *IPAddress) ReverseBytes() (*IPAddress, IncompatibleAddressError) {
+	res, err := addr.init().reverseBytes()
+	return res.ToIPAddress(), err
+}
+
+func (addr *IPAddress) ReverseBits(perByte bool) (*IPAddress, IncompatibleAddressError) {
+	res, err := addr.init().reverseBits(perByte)
+	return res.ToIPAddress(), err
+}
+
+func (addr *IPAddress) ReverseSegments() *IPAddress {
+	return addr.init().reverseSegments().ToIPAddress()
+}
+
 func (addr *IPAddress) ToCanonicalString() string {
 	return addr.init().toCanonicalString()
 }

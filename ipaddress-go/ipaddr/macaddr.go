@@ -103,6 +103,14 @@ func (addr *MACAddress) init() *MACAddress {
 	return addr
 }
 
+func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
+	sec := section.ToAddressSection()
+	if sec == addr.section {
+		return addr
+	}
+	return &MACAddress{addressInternal{section: sec, cache: &addressCache{}}}
+}
+
 func (addr *MACAddress) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }
@@ -302,6 +310,22 @@ func (addr *MACAddress) IncrementBoundary(increment int64) *MACAddress {
 
 func (addr *MACAddress) Increment(increment int64) *MACAddress {
 	return addr.init().increment(increment).ToMACAddress()
+}
+
+func (addr *MACAddress) ReverseBytes() *MACAddress {
+	return addr.checkIdentity(addr.GetSection().ReverseBytes())
+}
+
+func (addr *MACAddress) ReverseBits(perByte bool) (*MACAddress, IncompatibleAddressError) {
+	res, err := addr.GetSection().ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return addr.checkIdentity(res), nil
+}
+
+func (addr *MACAddress) ReverseSegments() *MACAddress {
+	return addr.checkIdentity(addr.GetSection().ReverseSegments())
 }
 
 func (addr MACAddress) String() string {

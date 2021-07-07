@@ -44,7 +44,7 @@ func deriveAddressSectionPrefLen(from *AddressSection, segments []*AddressDivisi
 }
 
 func deriveAddressSection(from *AddressSection, segments []*AddressDivision) (res *AddressSection) {
-	return deriveAddressSectionPrefLen(from, segments, nil)
+	return deriveAddressSectionPrefLen(from, segments, from.prefixLength)
 }
 
 /*
@@ -400,14 +400,126 @@ func (section *addressSectionInternal) createLowestHighestSections() (lower, upp
 			highSegs[i] = seg.GetUpper().ToAddressDivision()
 		}
 	}
-	pref, addrType, ind := section.prefixLength, section.getAddrType(), section.addressSegmentIndex
-	lower = createSection(lowSegs, pref, addrType, ind)
+	//pref, addrType, ind := section.prefixLength, section.getAddrType(), section.addressSegmentIndex
+	lower = deriveAddressSection(section.toAddressSection(), lowSegs)
+	//lower = createSection(lowSegs, pref, addrType, ind)
 	if highSegs == nil {
 		upper = lower
 	} else {
-		upper = createSection(highSegs, pref, addrType, ind)
+		upper = deriveAddressSection(section.toAddressSection(), highSegs)
+		//upper = createSection(highSegs, pref, addrType, ind)
 	}
 	return
+}
+
+func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*AddressSegment, IncompatibleAddressError)) (res *AddressSection, err IncompatibleAddressError) {
+	count := section.GetSegmentCount()
+	if count == 0 { // case count == 1 we cannot exit early, we need to apply segProducer to each segment
+		if section.IsPrefixed() {
+			return section.withoutPrefixLen(), nil
+		}
+		return section.toAddressSection(), nil
+	}
+	newSegs := createSegmentArray(count)
+	halfCount := count >> 1
+	i := 0
+	isSame := !section.IsPrefixed() //when reversing, the prefix must go
+	for j := count - 1; i < halfCount; i, j = i+1, j-1 {
+		var segi, segj *AddressSegment
+		if segi, err = segProducer(i); err != nil {
+			return
+		}
+		if segj, err = segProducer(j); err != nil {
+			return
+		}
+		origi := section.GetSegment(i)
+		origj := section.GetSegment(j)
+		newSegs[j] = segi.ToAddressDivision()
+		newSegs[i] = segj.ToAddressDivision()
+		if isSame &&
+			!(segValsSame(segi.getSegmentValue(), origi.getSegmentValue(), segi.getUpperSegmentValue(), origi.getUpperSegmentValue()) &&
+				segValsSame(segj.getSegmentValue(), origj.getSegmentValue(), segj.getUpperSegmentValue(), origj.getUpperSegmentValue())) {
+			isSame = false
+		}
+	}
+	if (count & 1) == 1 { //the count is odd, handle the middle one
+		seg := section.getDivision(i)
+		newSegs[i] = seg // gets segment i without prefix length
+	}
+	if isSame {
+		res = section.toAddressSection() //We can do this because for ipv6 startIndex stays the same and for mac startIndex and extended stays the same
+		return
+	}
+	res = deriveAddressSectionPrefLen(section.toAddressSection(), newSegs, nil)
+	return
+	//return creator.createSectionInternal(newSegs);
+}
+
+func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSection, err IncompatibleAddressError) {
+	if perByte {
+		isSame := !section.IsPrefixed() //when reversing, the prefix must go
+		count := section.GetSegmentCount()
+		newSegs := createSegmentArray(count)
+		for i := 0; i < count; i++ {
+			seg := section.GetSegment(i)
+			var reversedSeg *AddressSegment
+			reversedSeg, err = seg.ReverseBits(perByte)
+			if err != nil {
+				return
+			}
+			newSegs[i] = reversedSeg.ToAddressDivision()
+			if isSame && !segValsSame(seg.getSegmentValue(), reversedSeg.getSegmentValue(), seg.getUpperSegmentValue(), reversedSeg.getUpperSegmentValue()) {
+				//if(isSame && !newSegs[i].equals(section.getSegment(i))) {
+				isSame = false
+			}
+		}
+		if isSame {
+			res = section.toAddressSection() //We can do this because for ipv6 startIndex stays the same and for mac startIndex and extended stays the same
+			return
+		}
+		res = deriveAddressSectionPrefLen(section.toAddressSection(), newSegs, nil)
+		return
+		//return creator.createSectionInternal(newSegs);
+	}
+	return section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).ReverseBits(perByte)
+		},
+	)
+}
+
+func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *AddressSection, err IncompatibleAddressError) {
+	if perSegment {
+		isSame := !section.IsPrefixed() //when reversing, the prefix must go
+		count := section.GetSegmentCount()
+		newSegs := createSegmentArray(count)
+		for i := 0; i < count; i++ {
+			seg := section.GetSegment(i)
+			var reversedSeg *AddressSegment
+			reversedSeg, err = seg.ReverseBytes()
+			if err != nil {
+				return
+			}
+			newSegs[i] = reversedSeg.ToAddressDivision()
+			if isSame && !segValsSame(seg.getSegmentValue(), reversedSeg.getSegmentValue(), seg.getUpperSegmentValue(), reversedSeg.getUpperSegmentValue()) {
+				//if(isSame && !newSegs[i].equals(section.getSegment(i))) {
+				isSame = false
+			}
+			//if(isSame && !newSegs[i].equals(section.getSegment(i))) {
+			//	isSame = false;
+			//}
+		}
+		if isSame {
+			res = section.toAddressSection() //We can do this because for ipv6 startIndex stays the same and for mac startIndex and extended stays the same
+			return
+		}
+		res = deriveAddressSectionPrefLen(section.toAddressSection(), newSegs, nil)
+		//return creator.createSectionInternal(newSegs);
+		return
+	}
+	return section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) { return section.GetSegment(i).ReverseBytes() },
+	)
 }
 
 func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
@@ -1219,6 +1331,33 @@ func (section *AddressSection) IncrementBoundary(increment int64) *AddressSectio
 
 func (section *AddressSection) Increment(increment int64) *AddressSection {
 	return section.increment(increment)
+}
+
+func (section *AddressSection) ReverseBits(perByte bool) (*AddressSection, IncompatibleAddressError) {
+	return section.reverseBits(perByte)
+}
+
+func (section *AddressSection) ReverseBytes() (*AddressSection, IncompatibleAddressError) {
+	return section.reverseBytes(false)
+}
+
+//func (section *AddressSection) ReverseBytesPerSegment() (*AddressSection, IncompatibleAddressError) {
+//	return section.reverseBytes(true)
+//}
+
+func (section *AddressSection) ReverseSegments() *AddressSection {
+	if section.GetSegmentCount() <= 1 {
+		if section.IsPrefixed() {
+			return section.WithoutPrefixLen()
+		}
+		return section
+	}
+	res, _ := section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).withoutPrefixLen(), nil
+		},
+	)
+	return res
 }
 
 func seriesValsSame(one, two AddressSegmentSeries) bool {

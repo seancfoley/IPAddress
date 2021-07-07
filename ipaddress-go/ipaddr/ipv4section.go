@@ -601,6 +601,37 @@ func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressS
 	return cloneToIPv4Sections(blocks), nil
 }
 
+func (section *IPv4AddressSection) ReverseBits(perByte bool) (*IPv4AddressSection, IncompatibleAddressError) {
+	res, err := section.reverseBits(perByte)
+	return res.ToIPv4AddressSection(), err
+}
+
+func (section *IPv4AddressSection) ReverseBytes() *IPv4AddressSection {
+	return section.ReverseSegments()
+}
+
+//func (section *IPv4AddressSection) ReverseBytesPerSegment() *IPv4AddressSection {
+//	if !section.IsPrefixed() {
+//		return section
+//	}
+//	return section.WithoutPrefixLen()
+//}
+
+func (section *IPv4AddressSection) ReverseSegments() *IPv4AddressSection {
+	if section.GetSegmentCount() <= 1 {
+		if section.IsPrefixed() {
+			return section.WithoutPrefixLen()
+		}
+		return section
+	}
+	res, _ := section.reverseSegments(
+		func(i int) (*AddressSegment, IncompatibleAddressError) {
+			return section.GetSegment(i).WithoutPrefixLen().ToAddressSegment(), nil
+		},
+	)
+	return res.ToIPv4AddressSection()
+}
+
 //
 // Merges this with the list of sections to produce the smallest array of prefix blocks.
 //
