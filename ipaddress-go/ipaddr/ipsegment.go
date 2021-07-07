@@ -18,7 +18,7 @@ func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
-	return seg.GetDivisionPrefixLength() != nil
+	return seg.GetSegmentPrefixLength() != nil
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
@@ -26,7 +26,7 @@ func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
 }
 
 func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
-	if prefLen := seg.GetDivisionPrefixLength(); prefLen != nil {
+	if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
 		return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 	}
 	return false
@@ -41,14 +41,14 @@ func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
-	prefixLength := seg.GetDivisionPrefixLength()
+	prefixLength := seg.GetSegmentPrefixLength()
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
 	return getPrefixValueCount(seg.toAddressSegment(), *prefixLength)
 }
 
-func (seg *ipAddressSegmentInternal) GetDivisionPrefixLength() PrefixLen { //TODO rename to GetSegmentPrefixLength
+func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
 	return seg.getDivisionPrefixLength()
 }
 
@@ -143,7 +143,7 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(network bool) BitCount {
 func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 	if seg.IsPrefixed() {
 		upperValue := seg.GetUpperSegmentValue()
-		mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
 		upperValue &= mask
 		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
 	} else {
@@ -226,16 +226,17 @@ func (seg *IPAddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength Prefix
 	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPAddressSegment()
 }
 
-func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen, withPrefixLength bool) *IPAddressSegment {
-	return seg.toNetworkDivision(segmentPrefixLength, withPrefixLength).ToIPAddressSegment()
+func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
+	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPAddressSegment()
 }
 
-//	func (seg *IPAddressSegment)  ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment { TODO ToHostSegment (see getHostSection for code that does the proper masking)
-//	if isHostChangedByPrefix(bits) {
-//		return super.toHostSegment(bits, getSegmentCreator())
-//	}
-//	return this
-//}
+func (seg *IPAddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
+	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPAddressSegment()
+}
+
+func (seg *IPAddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
+	return seg.toHostDivision(segmentPrefixLength, false).ToIPAddressSegment()
+}
 
 func (seg *IPAddressSegment) Iterator() IPSegmentIterator {
 	return ipSegmentIterator{seg.iterator()}

@@ -960,7 +960,7 @@ func (params *ipAddressStringParams) append(builder *strings.Builder, addr Addre
 func (params *ipAddressStringParams) appendSegment(segmentIndex int, div DivisionType, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) int {
 	//div := part.GetGenericIPDivision(segmentIndex)
 	writer := stringWriter{div}
-	//prefixLen := div.GetDivisionPrefixLength()
+	//prefixLen := div.GetSegmentPrefixLength()
 	// consider all the cases in which we need not account for prefix length
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
@@ -1143,7 +1143,7 @@ func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection
 		for {
 			if i < firstCompressedSegmentIndex || i >= nextUncompressedIndex {
 				div := part.GetSegment(i)
-				prefLen := div.GetDivisionPrefixLength()
+				prefLen := div.GetSegmentPrefixLength()
 				count += params.appendSegment(i, div, prefLen, nil, part)
 				i++
 				if i >= divCount {

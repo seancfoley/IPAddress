@@ -302,6 +302,60 @@ func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen,
 	return createAddressDivision(newVals)
 }
 
+func (div *addressDivisionInternal) toPrefixedHostDivision(divPrefixLength PrefixLen) *AddressDivision {
+	return div.toHostDivision(divPrefixLength, true)
+}
+
+func (div *addressDivisionInternal) toHostDivision(divPrefixLength PrefixLen, withPrefixLength bool) *AddressDivision {
+	vals := div.divisionValues
+	if vals == nil {
+		return div.toAddressDivision()
+	}
+	lower := div.getDivisionValue()
+	upper := div.getUpperDivisionValue()
+	//var newLower, newUpper DivInt
+	hasPrefLen := divPrefixLength != nil
+	var mask SegInt
+	if hasPrefLen {
+		prefBits := *divPrefixLength
+		bitCount := div.GetBitCount()
+		prefBits = checkBitCount(prefBits, bitCount)
+		mask = ^(^SegInt(0) << (bitCount - prefBits))
+	}
+	//if hasPrefLen {
+
+	//divLower := uint64(div.getDivisionValue())
+	//divUpper := uint64(div.getUpperDivisionValue())
+	divMask := uint64(mask)
+	maxVal := uint64(^SegInt(0))
+	masker := maskRange(lower, upper, divMask, maxVal)
+	newLower, newUpper := masker.GetMaskedLower(lower, divMask), masker.GetMaskedUpper(upper, divMask)
+	//segLower, segUpper := SegInt(lower), SegInt(upper)
+
+	if !withPrefixLength {
+		divPrefixLength = nil
+	}
+
+	//mask := ^DivInt(0) << (bitCount - prefBits)
+	//newLower = lower & mask
+	//newUpper = upper | ^mask
+	//if !withPrefixLength {
+	//	divPrefixLength = nil
+	//}
+	if divsSame(divPrefixLength, div.getDivisionPrefixLength(), newLower, lower, newUpper, upper) {
+		return div.toAddressDivision()
+	}
+	//} else {
+	//	withPrefixLength = false
+	//	divPrefixLength = nil
+	//	if div.getDivisionPrefixLength() == nil {
+	//		return div.toAddressDivision()
+	//	}
+	//}
+	newVals := div.deriveNew(newLower, newUpper, divPrefixLength)
+	return createAddressDivision(newVals)
+}
+
 func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen) *AddressDivision {
 	hasPrefLen := divPrefixLength != nil
 	bitCount := div.GetBitCount()
@@ -476,8 +530,8 @@ func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bo
 	} else if div.isPrefixed() {
 		upperValue := div.getUpperDivisionValue()
 		mask := ^DivInt(0) << (div.GetBitCount() - *div.getDivisionPrefixLength())
-		//mask := ^(^DivInt(0) >> *seg.GetDivisionPrefixLength())
-		//mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+		//mask := ^(^DivInt(0) >> *seg.GetSegmentPrefixLength())
+		//mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
 		//return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
 		upperValue &= mask
 		toUnsignedStringCased(upperValue, radix, 0, uppercase, appendable)

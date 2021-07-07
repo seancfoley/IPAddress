@@ -901,7 +901,7 @@ func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOpti
 ///func (seg *IPv4JoinedSegments) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 //	if seg.IsPrefixed() {
 //		upperValue := seg.GetUpperSegmentValue()
-//		mask := seg.GetSegmentNetworkMask(*seg.GetDivisionPrefixLength())
+//		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
 //		upperValue &= mask
 //		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
 //	} else {

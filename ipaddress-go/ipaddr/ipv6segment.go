@@ -138,6 +138,22 @@ func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 	return 0xffff
 }
 
+func (seg *IPv6AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
+	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
+}
+
+func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
+	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
+}
+
+func (seg *IPv6AddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
+	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPv6AddressSegment()
+}
+
+func (seg *IPv6AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
+	return seg.toHostDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
+}
+
 func (seg *IPv6AddressSegment) Iterator() IPv6SegmentIterator {
 	return ipv6SegmentIterator{seg.iterator()}
 }
@@ -166,7 +182,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
 	if !seg.IsMultiple() {
 		bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
-		myPrefix := seg.GetDivisionPrefixLength()
+		myPrefix := seg.GetSegmentPrefixLength()
 		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
 		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
 		if index >= 0 && index < boundaryIndex {
@@ -184,7 +200,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IP
 }
 
 func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
-	myPrefix := seg.GetDivisionPrefixLength()
+	myPrefix := seg.GetSegmentPrefixLength()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 	if index >= 0 && index < boundaryIndex {
 		highLower := highByteIpv6(seg.GetSegmentValue())

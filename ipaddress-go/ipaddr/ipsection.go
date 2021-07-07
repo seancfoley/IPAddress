@@ -549,7 +549,7 @@ func (section *ipAddressSectionInternal) getNetworkSectionLen(networkPrefixLengt
 	mask := ^SegInt(0) << (bitsPerSegment - prefBits)
 	lower, upper := lastSeg.getSegmentValue()&mask, lastSeg.getUpperSegmentValue()|^mask
 	networkSegmentCount := prefixedSegmentIndex + 1
-	if networkSegmentCount == segmentCount && segsSame(segPrefLength, lastSeg.GetDivisionPrefixLength(), lower, lastSeg.getSegmentValue(), upper, lastSeg.getUpperSegmentValue()) {
+	if networkSegmentCount == segmentCount && segsSame(segPrefLength, lastSeg.GetSegmentPrefixLength(), lower, lastSeg.getSegmentValue(), upper, lastSeg.getUpperSegmentValue()) {
 		// the segment count and prefixed segment matches
 		return section.toIPAddressSection()
 	}
@@ -564,7 +564,7 @@ func (section *ipAddressSectionInternal) getHostSection() *IPAddressSection {
 	if section.IsPrefixed() {
 		prefLen = *section.GetPrefixLength()
 	}
-	return section.getNetworkSectionLen(prefLen)
+	return section.getHostSectionLen(prefLen)
 }
 
 func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength BitCount) *IPAddressSection {
@@ -588,7 +588,7 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 	lower, upper := masker.GetMaskedLower(divLower, divMask), masker.GetMaskedUpper(divUpper, divMask)
 	segLower, segUpper := SegInt(lower), SegInt(upper)
 	resultPrefLen := cacheBitCount(networkPrefixLength)
-	if prefixedSegmentIndex == 0 && segsSame(segPrefLength, firstSeg.GetDivisionPrefixLength(), segLower, firstSeg.getSegmentValue(), segUpper, firstSeg.getUpperSegmentValue()) {
+	if prefixedSegmentIndex == 0 && segsSame(segPrefLength, firstSeg.GetSegmentPrefixLength(), segLower, firstSeg.getSegmentValue(), segUpper, firstSeg.getUpperSegmentValue()) {
 		// the segment count and prefixed segment matches
 		return section.toIPAddressSection()
 	}

@@ -136,6 +136,22 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
 
+func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
+	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4AddressSegment()
+}
+
+func (seg *IPv4AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
+	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+}
+
+func (seg *IPv4AddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
+	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPv4AddressSegment()
+}
+
+func (seg *IPv4AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
+	return seg.toHostDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+}
+
 func (seg *IPv4AddressSegment) Iterator() IPv4SegmentIterator {
 	return ipv4SegmentIterator{seg.iterator()}
 }
