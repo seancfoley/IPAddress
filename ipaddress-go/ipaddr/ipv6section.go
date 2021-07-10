@@ -90,7 +90,7 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
 		expectedByteCount,
-		DefaultIPv6Network.GetIPv6AddressCreator(),
+		DefaultIPv6Network.getAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv6Section(segments, 0)
@@ -130,7 +130,7 @@ func NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 		vals, upperVals,
 		segmentCount,
 		IPv6BitsPerSegment,
-		DefaultIPv6Network.GetIPv6AddressCreator(),
+		DefaultIPv6Network.getAddressCreator(),
 		prefixLength)
 	res = createIPv6Section(segments, 0)
 	res.isMultiple = isMultiple
@@ -523,7 +523,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	result := fastIncrement(
 		section.ToAddressSection(),
 		increment,
-		DefaultIPv6Network.GetIPv6AddressCreator(),
+		DefaultIPv6Network.getAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength)
@@ -535,7 +535,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 		section.ToAddressSection(),
 		increment,
 		&bigIncrement,
-		DefaultIPv6Network.GetIPv6AddressCreator(),
+		DefaultIPv6Network.getAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength).ToIPv6AddressSection()

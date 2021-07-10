@@ -6,9 +6,9 @@ import (
 
 type IPv6SegInt uint16
 
-func ToIPv6SegInt(val SegInt) IPv6SegInt {
-	return IPv6SegInt(val)
-}
+//func ToIPv6SegInt(val SegInt) IPv6SegInt {
+//	return IPv6SegInt(val)
+//}
 
 //TODO caching of ipv6SegmentValues
 

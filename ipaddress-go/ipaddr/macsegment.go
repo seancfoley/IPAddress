@@ -6,9 +6,9 @@ import (
 
 type MACSegInt uint8
 
-func ToMACSegInt(val SegInt) MACSegInt {
-	return MACSegInt(val)
-}
+//func ToMACSegInt(val SegInt) MACSegInt {
+//	return MACSegInt(val)
+//}
 
 func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
 	return &macSegmentValues{value: value, upperValue: upperValue}

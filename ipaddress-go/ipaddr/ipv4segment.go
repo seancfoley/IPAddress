@@ -6,9 +6,9 @@ import (
 
 type IPv4SegInt uint8
 
-func ToIPv4SegInt(val SegInt) IPv4SegInt {
-	return IPv4SegInt(val)
-}
+//func ToIPv4SegInt(val SegInt) IPv4SegInt {
+//	return IPv4SegInt(val)
+//}
 
 func newIPv4SegmentValues(value, upperValue IPv4SegInt, prefLen PrefixLen) *ipv4SegmentValues {
 	return &ipv4SegmentValues{

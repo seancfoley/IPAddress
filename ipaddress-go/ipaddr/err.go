@@ -47,6 +47,12 @@ func (a *addressError) Error() string {
 	return lookupStr("ipaddress.address.error") + " " + lookupStr(a.key)
 }
 
+// GetKey can be used to internationalize the error strings in the IPAddress library.
+// The list of keys and their English translations are listed in IPAddressResources.properties.
+// Use your own preferred method to map the key to your own translations.
+// One such option is golang.org/x/text which provides language tags (https://pkg.go.dev/golang.org/x/text/language?utm_source=godoc#Tag),
+// which can then be mapped to catalogs, each catalog a list of translations for the set of keys provided here.
+// You can use the gotext tool to integrate those translations with your application.
 func (a *addressError) GetKey() string {
 	return a.key
 }

@@ -80,9 +80,9 @@ func (parseData *AddressParseData) initSegmentData(segmentCapacity int) {
 	parseData.segmentData = make([]uint32, dataSize)
 }
 
-func (parseData *AddressParseData) releaseSegmentData() {
-	parseData.segmentData = nil
-}
+//func (parseData *AddressParseData) releaseSegmentData() {
+//	parseData.segmentData = nil
+//}
 
 func (parseData *AddressParseData) getSegmentData() []uint32 {
 	return parseData.segmentData

@@ -12,14 +12,7 @@ type AddressSegmentCreator interface {
 		originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 		lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision
 
-	// We are using more exact int types, so you might as well avoid these methods down here if you can
-	//createSegment(value SegInt) *AddressDivision
-	//
-	//createRangeSegment(lower, upper SegInt) *AddressDivision
-
 	createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision
-	//
-	//createRangePrefixSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision
 
 	getMaxValuePerSegment() SegInt
 }
@@ -48,7 +41,8 @@ type IPAddressCreator interface {
 	createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress
 }
 
-// TODO almost all of this should become private.  We've created some duplication, in some cases we may use functors for creation of segments.
+// TODO almost all of this should become private.
+// We've created some duplication, in some cases we may use functors for creation of segments.
 // IN fact, whenever you are cesting from an existing section or segment, you can use a derive function, not a creator instance.
 // We also have the addrType available everywhere and this too allows you to avoid providing a functor or a creator as a callback for creating anything.
 // So, typically we want to choose:
@@ -67,12 +61,13 @@ func (creator *IPv6AddressCreator) getMaxValuePerSegment() SegInt {
 }
 
 func (creator *IPv6AddressCreator) createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createIPv6RangePrefixSegment(ToIPv6SegInt(lower), ToIPv6SegInt(upper), segmentPrefixLength)
+	return NewIPv6RangePrefixSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToAddressDivision()
 }
 
 func (creator *IPv6AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
-	result := creator.createIPv6PrefixSegment(ToIPv6SegInt(value), segmentPrefixLength)
+	result := NewIPv6PrefixSegment(IPv6SegInt(value), segmentPrefixLength).ToAddressDivision()
+	//result := creator.createIPv6PrefixSegment(ToIPv6SegInt(value), segmentPrefixLength)
 	//TODO store string slices, the ones from the parsing
 	return result
 }
@@ -80,29 +75,13 @@ func (creator *IPv6AddressCreator) createSegmentInternal(value SegInt, segmentPr
 func (creator *IPv6AddressCreator) createRangeSegmentInternal(lower, upper SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
-	result := creator.createIPv6RangePrefixSegment(ToIPv6SegInt(lower), ToIPv6SegInt(upper), segmentPrefixLength)
+	result := NewIPv6RangePrefixSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToAddressDivision()
 	//TODO store string slices, the ones from the parsing
 	return result
 }
 
 func (creator *IPv6AddressCreator) createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createIPv6PrefixSegment(ToIPv6SegInt(value), segmentPrefixLength)
-}
-
-func (creator *IPv6AddressCreator) createIPv6Segment(value IPv6SegInt) *AddressDivision {
-	return NewIPv6Segment(value).ToAddressDivision()
-}
-
-func (creator *IPv6AddressCreator) createIPv6PrefixSegment(value IPv6SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewIPv6PrefixSegment(value, segmentPrefixLength).ToAddressDivision()
-}
-
-func (creator *IPv6AddressCreator) createIPv6RangeSegment(lower, upper IPv6SegInt) *AddressDivision {
-	return NewIPv6RangeSegment(lower, upper).ToAddressDivision()
-}
-
-func (creator *IPv6AddressCreator) createIPv6RangePrefixSegment(lower, upper IPv6SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewIPv6RangePrefixSegment(lower, upper, segmentPrefixLength).ToAddressDivision()
+	return NewIPv6PrefixSegment(IPv6SegInt(value), segmentPrefixLength).ToAddressDivision()
 }
 
 func (creator *IPv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
@@ -148,12 +127,14 @@ func (creator *IPv4AddressCreator) getMaxValuePerSegment() SegInt {
 }
 
 func (creator *IPv4AddressCreator) createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createIPv4RangePrefixSegment(ToIPv4SegInt(lower), ToIPv4SegInt(upper), segmentPrefixLength)
+	return NewIPv4RangePrefixSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToAddressDivision()
+	//return creator.createIPv4RangePrefixSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength)
 }
 
 func (creator *IPv4AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
-	result := creator.createIPv4PrefixSegment(ToIPv4SegInt(value), segmentPrefixLength)
+	result := NewIPv4PrefixSegment(IPv4SegInt(value), segmentPrefixLength).ToAddressDivision()
+	//result := creator.createIPv4PrefixSegment(IPv4SegInt(value), segmentPrefixLength)
 	//TODO store string slices, the ones from the parsing
 	return result
 }
@@ -161,37 +142,15 @@ func (creator *IPv4AddressCreator) createSegmentInternal(value SegInt, segmentPr
 func (creator *IPv4AddressCreator) createRangeSegmentInternal(lower, upper SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
-	result := creator.createIPv4RangePrefixSegment(ToIPv4SegInt(lower), ToIPv4SegInt(upper), segmentPrefixLength)
+	result := NewIPv4RangePrefixSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToAddressDivision()
+	//result := creator.createIPv4RangePrefixSegment(ToIPv4SegInt(lower), ToIPv4SegInt(upper), segmentPrefixLength)
 	//TODO store string slices, the ones from the parsing
 	return result
 }
 
 func (creator *IPv4AddressCreator) createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createIPv4PrefixSegment(ToIPv4SegInt(value), segmentPrefixLength)
-}
-
-//func (creator *IPv4AddressCreator) createSegmentArray(length int) []*AddressDivision {
-//	return make([]*AddressDivision, length)
-//}
-
-//func (creator *IPv4AddressCreator) createAddressArray() [IPv4SegmentCount]*AddressDivision {
-//	return [IPv4SegmentCount]*AddressDivision{}
-//}
-
-func (creator *IPv4AddressCreator) createIPv4Segment(value IPv4SegInt) *AddressDivision {
-	return NewIPv4Segment(value).ToAddressDivision()
-}
-
-func (creator *IPv4AddressCreator) createIPv4RangeSegment(lower, upper IPv4SegInt) *AddressDivision {
-	return NewIPv4RangeSegment(lower, upper).ToAddressDivision()
-}
-
-func (creator *IPv4AddressCreator) createIPv4PrefixSegment(value IPv4SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewIPv4PrefixSegment(value, segmentPrefixLength).ToAddressDivision()
-}
-
-func (creator *IPv4AddressCreator) createIPv4RangePrefixSegment(lower, upper IPv4SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewIPv4RangePrefixSegment(lower, upper, segmentPrefixLength).ToAddressDivision()
+	return NewIPv4PrefixSegment(IPv4SegInt(value), segmentPrefixLength).ToAddressDivision()
+	//return creator.createIPv4PrefixSegment(ToIPv4SegInt(value), segmentPrefixLength)
 }
 
 func (creator *IPv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
@@ -209,7 +168,7 @@ func (creator *IPv4AddressCreator) createSectionInternal(segments []*AddressDivi
 }
 
 func (creator *IPv4AddressCreator) createAddressInternalFromBytes(bytes []byte, zone string) *IPAddress {
-	//TODO create address, call ToIPAddress
+	//TODO create address, call ToIPAddress (this is called from newLoopbackCreator)
 	return nil
 }
 
@@ -220,10 +179,6 @@ func (creator *IPv4AddressCreator) createAddressInternalFromSection(section *IPA
 	}
 	return res
 }
-
-//func (creator *IPv4AddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
-//	return creator.createAddressInternal(section)
-//}
 
 func (creator *IPv4AddressCreator) createAddressInternal(section *AddressSection, identifierString HostIdentifierString) *Address {
 	return NewIPv4Address(section.ToIPv4AddressSection()).ToAddress()
@@ -242,12 +197,14 @@ func (creator *MACAddressCreator) getMaxValuePerSegment() SegInt {
 }
 
 func (creator *MACAddressCreator) createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
+	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
+	//return creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
 }
 
 func (creator *MACAddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
-	result := creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
+	result := NewMACSegment(MACSegInt(value)).ToAddressDivision()
+	//result := creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
 	//TODO store string slices, the ones from the parsing
 	return result
 }
@@ -255,42 +212,33 @@ func (creator *MACAddressCreator) createSegmentInternal(value SegInt, segmentPre
 func (creator *MACAddressCreator) createRangeSegmentInternal(lower, upper SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalLower, originalUpper SegInt, isStandardString, isStandardRangeString bool,
 	lowerStringStartIndex, lowerStringEndIndex, upperStringEndIndex int) *AddressDivision {
-	result := creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
+	result := NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
+	//result := creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
 	//TODO store string slices, the ones from the parsing
 	return result
 }
 
 func (creator *MACAddressCreator) createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
+	return NewMACSegment(MACSegInt(value)).ToAddressDivision()
+	//return creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
 }
 
-//func (creator *MACAddressCreator) createSegmentArray(length int) []*AddressDivision {
-//	return make([]*AddressDivision, length)
+//func (creator *MACAddressCreator) createMACSegment(value MACSegInt) *AddressDivision {
+//	return NewMACSegment(value).ToAddressDivision()
 //}
 //
-//func (creator *IPv4AddressCreator) createMACAddressArray(length int) [MediaAccessControlSegmentCount]*AddressDivision {
-//	return [MediaAccessControlSegmentCount]*AddressDivision{}
+func (creator *MACAddressCreator) createMACRangeSegment(lower, upper SegInt) *AddressDivision {
+	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
+}
+
+//
+//func (creator *MACAddressCreator) createMACPrefixSegment(value MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
+//	return NewMACSegment(value).ToAddressDivision()
 //}
 //
-//func (creator *IPv4AddressCreator) createEUI64AddressArray(length int) [ExtendedUniqueIdentifier64SegmentCount]*AddressDivision {
-//	return [ExtendedUniqueIdentifier64SegmentCount]*AddressDivision{}
+//func (creator *MACAddressCreator) createMACRangePrefixSegment(lower, upper MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
+//	return NewMACRangeSegment(lower, upper).ToAddressDivision()
 //}
-
-func (creator *MACAddressCreator) createMACSegment(value MACSegInt) *AddressDivision {
-	return NewMACSegment(value).ToAddressDivision()
-}
-
-func (creator *MACAddressCreator) createMACRangeSegment(lower, upper MACSegInt) *AddressDivision {
-	return NewMACRangeSegment(lower, upper).ToAddressDivision()
-}
-
-func (creator *MACAddressCreator) createMACPrefixSegment(value MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewMACSegment(value).ToAddressDivision()
-}
-
-func (creator *MACAddressCreator) createMACRangePrefixSegment(lower, upper MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-	return NewMACRangeSegment(lower, upper).ToAddressDivision()
-}
 
 //func (creator *MACAddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
 //	//return NewMACAddress(section.ToMACAddressSection()).ToAddress()

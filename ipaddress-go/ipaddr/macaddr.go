@@ -36,6 +36,16 @@ const (
 	MacDashedSegmentRangeSeparatorStr string = string(MacDashedSegmentRangeSeparator)
 )
 
+// TODO constructors:
+// long (48 bits)
+// long boolean extended (64 bits)
+// []byte
+// MACAddressSegment[] with prefix
+// SegmentValueProvider
+// SegmentValueProvider boolean extended (64 bits)
+// SegmentValueProvider SegmentValueProvider
+// SegmentValueProvider SegmentValueProvider boolean extended (64 bits)
+
 func NewMACAddress(section *MACAddressSection) *MACAddress {
 	//func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), noZone).ToMACAddress()

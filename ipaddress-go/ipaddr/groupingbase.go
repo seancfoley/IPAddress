@@ -57,13 +57,6 @@ func (grouping *addressDivisionGroupingBase) getDivision(index int) *addressDivi
 	return grouping.divisions.getDivision(index)
 }
 
-//// GetStringDivision returns the division as a common interface AddressStringDivision,
-//// which allows all division types and aggregated division types to be represented by a single type
-//// that is used for string generation.
-//func (grouping *addressDivisionGroupingBase) GetStringDivision(index int) AddressStringDivision {
-//	return grouping.getDivision(index)
-//}
-
 // GetGenericDivision returns the division as an DivisionType,
 // allowing all division types and aggregated division types to be represented by a single type,
 // useful for comparisons and other common uses.
@@ -296,24 +289,6 @@ func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big
 	return counter()
 }
 
-/*
-cache := div.getCache()
-	if cache == nil {
-		return div.calcBytesInternal()
-	}
-	cached := cache.cachedBytes
-	if cached == nil {
-		bytes, upperBytes = div.calcBytesInternal()
-		cached = &bytesCache{
-			lowerBytes: bytes,
-			upperBytes: upperBytes,
-		}
-		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedBytes))
-		atomic.StorePointer(dataLoc, unsafe.Pointer(cached))
-	}
-	return cached.lowerBytes, cached.upperBytes
-*/
-
 func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (bytes, upperBytes []byte)) (bytes, upperBytes []byte) {
 	cache := grouping.cache
 	if cache == nil {
@@ -341,9 +316,6 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 }
 
 type valueCache struct {
-	//	Cache lock is used for some fields, but not all, most use atomic reads/writes of pointers
-	//cacheLock sync.RWMutex
-
 	cachedCount, cachedPrefixCount *big.Int
 
 	cachedMaskLens *maskLenSetting
@@ -351,7 +323,6 @@ type valueCache struct {
 	bytesCache *bytesCache
 
 	intsCache *intsCache
-	//cachedLowerVal, cachedUpperVal *uint32
 
 	zeroVals *zeroRangeCache
 

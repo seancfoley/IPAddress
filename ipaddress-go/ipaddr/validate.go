@@ -3812,7 +3812,7 @@ func (strValidator) validateHostName(fromHost *HostName) (parsedHost *ParsedHost
 								IPAddressParseData: IPAddressParseData{AddressParseData: AddressParseData{str: str}},
 								options:            addressOptions,
 								originator:         fromHost,
-								//valuesx: TranslatedResult{
+								//valuesx: translatedResult{
 								//	originator: fromHost,
 								//},
 

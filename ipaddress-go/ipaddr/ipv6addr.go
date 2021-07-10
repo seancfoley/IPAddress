@@ -52,6 +52,22 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
 	return result
 }
 
+// TODO ipv6 constructors
+// big.int
+// big,int with prefix
+// big.int with zone
+// big.int with prefix and zone
+//
+// net.IPAddr (which has zone) with prefix
+//
+// IPv6AddressSection
+// IPv6AddressSection with zone
+//
+// []IPv6AddressSegment
+// []IPv6AddressSegment with prefix
+// []IPv6AddressSegment with zone
+// []IPv6AddressSegment with prefix and zone
+
 func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6AddressSectionFromSegmentedBytes(bytes, IPv6SegmentCount)
 	if err == nil {
@@ -60,7 +76,7 @@ func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueErro
 	return
 }
 
-func NewIPv6AddressFromPrefixedIP(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6AddressSectionFromPrefixedBytes(bytes, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = NewIPv6Address(section)

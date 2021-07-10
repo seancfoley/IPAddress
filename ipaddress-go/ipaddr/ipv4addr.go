@@ -20,7 +20,12 @@ const (
 	IPv4SegmentMaxChars              = 3
 )
 
-// TODO there is 1 other categories:  uint32 (not sure what I was thinking with this comment, probably just talking about constructor for uint32 needed)
+// TODO constructors:
+// uint32
+// uint32 with prefix
+// IPv4AddressSection
+// IPv4AddressSegment[]
+// IPv4AddressSegment[] with prefix
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()

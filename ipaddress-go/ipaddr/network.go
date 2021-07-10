@@ -30,6 +30,8 @@ type IPAddressNetwork interface {
 	GetHostMask(prefixLength BitCount) *IPAddress
 
 	GetPrefixedHostMask(prefixLength BitCount) *IPAddress
+
+	getAddressCreator() IPAddressCreator
 }
 
 type ipAddressNetwork struct {
@@ -46,12 +48,16 @@ type IPv6AddressNetwork struct {
 	creator IPv6AddressCreator
 }
 
-func (network *IPv6AddressNetwork) GetIPv6AddressCreator() *IPv6AddressCreator {
+func (network *IPv6AddressNetwork) getAddressCreator() IPAddressCreator {
 	return &network.creator
 }
 
+//func (network *IPv6AddressNetwork) GetIPv6AddressCreator() *IPv6AddressCreator {
+//	return &network.creator
+//}
+
 func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
-	//TODO
+	//TODO loopback
 	return nil
 }
 
@@ -93,9 +99,13 @@ type IPv4AddressNetwork struct {
 	creator IPv4AddressCreator
 }
 
-func (network *IPv4AddressNetwork) GetIPv4AddressCreator() *IPv4AddressCreator {
+func (network *IPv4AddressNetwork) getAddressCreator() IPAddressCreator {
 	return &network.creator
 }
+
+//func (network *IPv4AddressNetwork) GetIPv4AddressCreator() *IPv4AddressCreator {
+//	return &network.creator
+//}
 
 //func (network *IPv4AddressNetwork) GetIPAddressCreator() IPAddressCreator {
 //	return network.GetIPv4AddressCreator()
@@ -106,7 +116,7 @@ func (network *IPv4AddressNetwork) GetIPv4AddressCreator() *IPv4AddressCreator {
 //}
 
 func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
-	//TODO
+	//TODO loopback
 	return nil
 }
 

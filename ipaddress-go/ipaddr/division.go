@@ -322,36 +322,16 @@ func (div *addressDivisionInternal) toHostDivision(divPrefixLength PrefixLen, wi
 		prefBits = checkBitCount(prefBits, bitCount)
 		mask = ^(^SegInt(0) << (bitCount - prefBits))
 	}
-	//if hasPrefLen {
-
-	//divLower := uint64(div.getDivisionValue())
-	//divUpper := uint64(div.getUpperDivisionValue())
 	divMask := uint64(mask)
 	maxVal := uint64(^SegInt(0))
 	masker := maskRange(lower, upper, divMask, maxVal)
 	newLower, newUpper := masker.GetMaskedLower(lower, divMask), masker.GetMaskedUpper(upper, divMask)
-	//segLower, segUpper := SegInt(lower), SegInt(upper)
-
 	if !withPrefixLength {
 		divPrefixLength = nil
 	}
-
-	//mask := ^DivInt(0) << (bitCount - prefBits)
-	//newLower = lower & mask
-	//newUpper = upper | ^mask
-	//if !withPrefixLength {
-	//	divPrefixLength = nil
-	//}
 	if divsSame(divPrefixLength, div.getDivisionPrefixLength(), newLower, lower, newUpper, upper) {
 		return div.toAddressDivision()
 	}
-	//} else {
-	//	withPrefixLength = false
-	//	divPrefixLength = nil
-	//	if div.getDivisionPrefixLength() == nil {
-	//		return div.toAddressDivision()
-	//	}
-	//}
 	newVals := div.deriveNew(newLower, newUpper, divPrefixLength)
 	return createAddressDivision(newVals)
 }

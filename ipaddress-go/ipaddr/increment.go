@@ -181,14 +181,15 @@ func incrementRange(
 		remainder := increment % segRange64
 		val := seg.getSegmentValue() + SegInt(remainder)
 		segPrefixLength := getSegmentPrefixLength(section.GetBitsPerSegment(), prefixLength, i)
-		newSegment := creator.createSegment(val, val, segPrefixLength)
+		newSegment := createAddressDivision(seg.deriveNewMultiSeg(val, val, segPrefixLength))
 		newSegments[i] = newSegment
 		if revolutions == 0 {
 			for i--; i >= 0; i-- {
 				original := section.GetSegment(i)
 				val = original.getSegmentValue()
 				segPrefixLength = getSegmentPrefixLength(section.GetBitsPerSegment(), prefixLength, i)
-				newSegments[i] = creator.createSegment(val, val, segPrefixLength)
+				newSegment = createAddressDivision(seg.deriveNewMultiSeg(val, val, segPrefixLength))
+				newSegments[i] = newSegment
 			}
 			break
 		} else {

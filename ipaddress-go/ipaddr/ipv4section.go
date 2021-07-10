@@ -88,7 +88,7 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
 		expectedByteCount,
-		DefaultIPv4Network.GetIPv4AddressCreator(),
+		DefaultIPv4Network.getAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv4Section(segments)
@@ -128,7 +128,7 @@ func NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals SegmentValueProv
 		vals, upperVals,
 		segmentCount,
 		IPv4BitsPerSegment,
-		DefaultIPv4Network.GetIPv4AddressCreator(),
+		DefaultIPv4Network.getAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
 	res.isMultiple = isMultiple
@@ -512,7 +512,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	return increment(
 		section.ToAddressSection(),
 		inc,
-		DefaultIPv4Network.GetIPv4AddressCreator(),
+		DefaultIPv4Network.getAddressCreator(),
 		count,
 		lowerValue,
 		upperValue,

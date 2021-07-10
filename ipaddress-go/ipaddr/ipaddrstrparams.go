@@ -129,9 +129,6 @@ type IPv4AddressStringParameters interface {
 	// The first 0 is not considered a leading zero, it either denotes octal or hex depending on whether it is followed by an 'x'.
 	// Zeros that appear afterwards are inet_aton leading zeros.
 	Allows_inet_aton_leading_zeros() bool
-
-	// The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
-	GetNetwork() *IPv4AddressNetwork // TODO you'd want to avoid exposing the default IPv6AddressNetwork, you might want to copy, or use an interface, or something.  But only applies with anonymous fields of public types.
 }
 
 var _ IPv4AddressStringParameters = &ipv4AddressStringParameters{}
@@ -153,10 +150,6 @@ type IPv6AddressStringParameters interface {
 
 	// The IPv4 part of the IPAddressStringParameters returned by GetMixedParameters(), which is the part that matters most
 	GetEmbeddedIPv4AddressParams() IPv4AddressStringParameters
-
-	//TODO this needs to go, no longer using address creators
-	// The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
-	GetNetwork() *IPv6AddressNetwork // TODO you'd want to avoid exposing the default IPv6AddressNetwork, you might want to copy, or use an interface, or something
 }
 
 var _ IPv6AddressStringParameters = &ipv6AddressStringParameters{}
@@ -448,8 +441,6 @@ type ipv6AddressStringParameters struct {
 
 	noMixed, noZone, noBase85 bool
 
-	network *IPv6AddressNetwork //TODO this needs to go, no longer using address creators
-
 	embeddedParams *ipAddressStringParameters
 }
 
@@ -477,13 +468,6 @@ func (params *ipv6AddressStringParameters) GetEmbeddedIPv4AddressParams() IPv4Ad
 	return params.embeddedParams.GetIPv4Parameters()
 }
 
-func (params *ipv6AddressStringParameters) GetNetwork() *IPv6AddressNetwork { //TODO this needs to go, no longer using address creators
-	if params.network == nil {
-		return DefaultIPv6Network
-	}
-	return params.network
-}
-
 type IPv6AddressStringParametersBuilder struct {
 	// This is not anonymous since it clashes with IPAddressStringFormatParametersBuilder,
 	// both have ipAddressStringFormatParameters and AddressStringFormatParameters
@@ -508,7 +492,7 @@ func toIPv6AddressStringParamsBuilder(params IPv6AddressStringParameters, isMixe
 			noMixed:  !params.AllowsMixed(),
 			noZone:   !params.AllowsZone(),
 			noBase85: !params.AllowsBase85(),
-			network:  params.GetNetwork(),
+			//network:  params.GetNetwork(),
 		}
 	}
 	result.IPAddressStringFormatParametersBuilder = *ToIPAddressStringFormatParamsBuilder(params)
@@ -533,11 +517,6 @@ func (builder *IPv6AddressStringParametersBuilder) GetRangeParametersBuilder() *
 	result := &builder.rangeParamsBuilder
 	result.parent = builder
 	return result
-}
-
-func (builder *IPv6AddressStringParametersBuilder) SetNetwork(network *IPv6AddressNetwork) *IPv6AddressStringParametersBuilder {
-	builder.params.network = network
-	return builder
 }
 
 func (builder *IPv6AddressStringParametersBuilder) AllowsMixed() bool {
@@ -651,8 +630,6 @@ type ipv4AddressStringParameters struct {
 	no_inet_aton_joinedSegments,
 	inet_aton_single_segment_mask,
 	no_inet_aton_leading_zeros bool
-
-	network *IPv4AddressNetwork
 }
 
 func (params *ipv4AddressStringParameters) Allows_inet_aton_hex() bool {
@@ -673,13 +650,6 @@ func (params *ipv4AddressStringParameters) Allows_inet_aton_single_segment_mask(
 
 func (params *ipv4AddressStringParameters) Allows_inet_aton_leading_zeros() bool {
 	return !params.no_inet_aton_leading_zeros
-}
-
-func (params *ipv4AddressStringParameters) GetNetwork() *IPv4AddressNetwork {
-	if params.network == nil {
-		return DefaultIPv4Network
-	}
-	return params.network
 }
 
 type IPv4AddressStringParametersBuilder struct {
@@ -704,7 +674,7 @@ func ToIPv4AddressStringParamsBuilder(params IPv4AddressStringParameters) *IPv4A
 			no_inet_aton_joinedSegments:   params.Allows_inet_aton_joinedSegments(),
 			inet_aton_single_segment_mask: params.Allows_inet_aton_single_segment_mask(),
 			no_inet_aton_leading_zeros:    params.Allows_inet_aton_leading_zeros(),
-			network:                       params.GetNetwork(),
+			//network:                       params.GetNetwork(),
 		}
 	}
 	result.IPAddressStringFormatParametersBuilder = *ToIPAddressStringFormatParamsBuilder(params)
@@ -727,11 +697,6 @@ func (params *IPv4AddressStringParametersBuilder) GetRangeParametersBuilder() *R
 	result := &params.rangeParamsBuilder
 	result.parent = params
 	return result
-}
-
-func (builder *IPv4AddressStringParametersBuilder) SetNetwork(network *IPv4AddressNetwork) *IPv4AddressStringParametersBuilder {
-	builder.params.network = network
-	return builder
 }
 
 func (builder *IPv4AddressStringParametersBuilder) Allow_inet_aton(allow bool) *IPv4AddressStringParametersBuilder {

@@ -33,7 +33,7 @@ func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddres
 			if err != nil {
 				return nil, err
 			}
-			parseData.releaseSegmentData()
+			parseData.segmentData = nil // no longer needed
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&parseData.address))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(addr))
 		}
