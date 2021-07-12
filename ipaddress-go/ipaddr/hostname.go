@@ -28,9 +28,9 @@ func NewHostName(str string, params HostNameParameters) *HostName {
 
 func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
 	hostStr := toNormalizedAddrPortString(addr, port) //TODO cache normalized string
-	parsedHost := ParsedHost{
+	parsedHost := parsedHost{
 		originalStr:     hostStr,
-		embeddedAddress: EmbeddedAddress{addressProvider: addr.getProvider()},
+		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
 		labelsQualifier: ParsedHostIdentifierStringQualifier{port: cachePorts(port)},
 	}
 	return &HostName{
@@ -42,9 +42,9 @@ func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
 
 func NewHostNameFromAddr(addr *IPAddress) *HostName {
 	hostStr := addr.ToNormalizedString() //TODO cache normalized string
-	parsedHost := ParsedHost{
+	parsedHost := parsedHost{
 		originalStr:     hostStr,
-		embeddedAddress: EmbeddedAddress{addressProvider: addr.getProvider()},
+		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
 	}
 	return &HostName{
 		str:       hostStr,
@@ -60,7 +60,7 @@ var defaultHostParameters = &hostNameParameters{}
 var zeroHost = NewHostName("", defaultHostParameters)
 
 type hostData struct {
-	parsedHost        *ParsedHost
+	parsedHost        *parsedHost
 	validateException HostNameError
 }
 

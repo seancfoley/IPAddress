@@ -227,7 +227,7 @@ func (params *ipAddressStringParameters) inferVersion() IPVersion {
 	} else if params.AllowsIPv4() {
 		return IPv4
 	}
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }
 
 func (params *ipAddressStringParameters) GetIPv4Parameters() IPv4AddressStringParameters {

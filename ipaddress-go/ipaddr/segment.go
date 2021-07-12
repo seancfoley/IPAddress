@@ -15,7 +15,7 @@ func createAddressSegment(vals divisionValues) *AddressSegment {
 		addressSegmentInternal{
 			addressDivisionInternal{
 				addressDivisionBase{
-					divisionValues: vals,
+					vals,
 				},
 			},
 		},

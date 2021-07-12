@@ -7,7 +7,7 @@ import (
 )
 
 type ParsedMACAddress struct {
-	MACAddressParseData
+	macAddressParseData
 
 	originator   *MACAddressString
 	address      *MACAddress
@@ -18,8 +18,8 @@ func (parseData *ParsedMACAddress) getMACAddressCreator() ParsedAddressCreator {
 	return parseData.originator.GetValidationOptions().GetNetwork().GetMACAddressCreator()
 }
 
-func (parseData *ParsedMACAddress) getMACAddressParseData() *MACAddressParseData {
-	return &parseData.MACAddressParseData
+func (parseData *ParsedMACAddress) getMACAddressParseData() *macAddressParseData {
+	return &parseData.macAddressParseData
 }
 
 func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddressError) {
@@ -68,7 +68,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 			initialSegmentCount = MediaAccessControlSegmentCount
 		}
 		finalSegmentCount = initialSegmentCount
-	} else if format == DOTTED {
+	} else if format == dotted {
 		if parseData.isExtended() {
 			initialSegmentCount = MediaAccessControlDotted64SegmentCount
 		} else {
@@ -97,9 +97,9 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 	expandedSegments := (missingCount <= 0)
 	segments := make([]*AddressDivision, finalSegmentCount)
 	for i, normalizedSegmentIndex := 0, 0; i < actualInitialSegmentCount; i++ {
-		lower := addressParseData.getValue(i, KEY_LOWER)
-		upper := addressParseData.getValue(i, KEY_UPPER)
-		if format == DOTTED { //aaa.bbb.ccc.ddd
+		lower := addressParseData.getValue(i, keyLower)
+		upper := addressParseData.getValue(i, keyUpper)
+		if format == dotted { //aaa.bbb.ccc.ddd
 			//aabb is becoming aa.bb
 			segLower := SegInt(lower)
 			segUpper := SegInt(upper)
@@ -159,8 +159,8 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.
 						if count == 0 && newLower == lower {
 							if newUpper != upper {
-								addressParseData.unsetFlag(i, KEY_STANDARD_RANGE_STR)
-								//segFlags[AddressParseData.STANDARD_RANGE_STR_INDEX] = false;
+								addressParseData.unsetFlag(i, keyStandardRangeStr)
+								//segFlags[addressParseData.STANDARD_RANGE_STR_INDEX] = false;
 							}
 						} else {
 							useStringIndicators = false
@@ -208,7 +208,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 					expandedSegments = true
 					count := missingCount
 					for ; count > 0; count-- { //add the missing segments
-						if format == DOTTED {
+						if format == dotted {
 							seg := createSegment(
 								addressString,
 								0,
@@ -249,7 +249,7 @@ func createSegment(
 	val,
 	upperVal SegInt,
 	useFlags bool,
-	parseData *AddressParseData,
+	parseData *addressParseData,
 	parsedSegIndex int,
 	creator ParsedAddressCreator) *AddressDivision {
 	if val != upperVal {
@@ -264,9 +264,9 @@ func createSegment(
 			nil, //prefix length
 			addressString,
 			val,
-			parseData.getFlag(parsedSegIndex, KEY_STANDARD_STR),
-			parseData.getIndex(parsedSegIndex, KEY_LOWER_STR_START_INDEX),
-			parseData.getIndex(parsedSegIndex, KEY_LOWER_STR_END_INDEX))
+			parseData.getFlag(parsedSegIndex, keyStandardStr),
+			parseData.getIndex(parsedSegIndex, keyLowerStrStartIndex),
+			parseData.getIndex(parsedSegIndex, keyLowerStrEndIndex))
 	}
 	return result
 }
@@ -276,7 +276,7 @@ func createRangeSegment(
 	lower,
 	upper SegInt,
 	useFlags bool,
-	parseData *AddressParseData,
+	parseData *addressParseData,
 	parsedSegIndex int,
 	creator ParsedAddressCreator) *AddressDivision {
 	var result *AddressDivision
@@ -290,11 +290,11 @@ func createRangeSegment(
 			addressString,
 			lower,
 			upper,
-			parseData.getFlag(parsedSegIndex, KEY_STANDARD_STR),
-			parseData.getFlag(parsedSegIndex, KEY_STANDARD_RANGE_STR),
-			parseData.getIndex(parsedSegIndex, KEY_LOWER_STR_START_INDEX),
-			parseData.getIndex(parsedSegIndex, KEY_LOWER_STR_END_INDEX),
-			parseData.getIndex(parsedSegIndex, KEY_UPPER_STR_END_INDEX))
+			parseData.getFlag(parsedSegIndex, keyStandardStr),
+			parseData.getFlag(parsedSegIndex, keyStandardRangeStr),
+			parseData.getIndex(parsedSegIndex, keyLowerStrStartIndex),
+			parseData.getIndex(parsedSegIndex, keyLowerStrEndIndex),
+			parseData.getIndex(parsedSegIndex, keyUpperStrEndIndex))
 	}
 	return result
 }

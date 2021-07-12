@@ -28,7 +28,7 @@ func (it *singleSegmentIterator) Next() (res *AddressSegment) {
 type segmentIterator struct {
 	done                bool
 	current, last       SegInt
-	creator             deriver
+	creator             segderiver
 	segmentPrefixLength PrefixLen
 }
 
@@ -119,7 +119,7 @@ func segIterator(
 	originalLower,
 	originalUpper SegInt,
 	bitCount BitCount,
-	creator deriver,
+	creator segderiver,
 	segmentPrefixLength PrefixLen,
 	isPrefixIterator, isBlockIterator bool) SegmentIterator {
 	var shiftAdjustment BitCount

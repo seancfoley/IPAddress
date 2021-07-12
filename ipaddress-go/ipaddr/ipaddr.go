@@ -11,11 +11,10 @@ type IPVersion string
 
 const (
 	PrefixLenSeparator = '/'
-	BinaryStrPrefix    = "0b"
 
-	INDETERMINATE_VERSION IPVersion = ""
-	IPv4                  IPVersion = "IPv4"
-	IPv6                  IPVersion = "IPv6"
+	IndeterminateIPVersion IPVersion = ""
+	IPv4                   IPVersion = "IPv4"
+	IPv6                   IPVersion = "IPv6"
 )
 
 func (version IPVersion) isIPv6() bool {
@@ -27,10 +26,10 @@ func (version IPVersion) isIPv4() bool {
 }
 
 func (version IPVersion) isIndeterminate() bool {
-	return version == INDETERMINATE_VERSION
+	return version == IndeterminateIPVersion
 }
 
-// returns an index starting from 0 with INDETERMINATE_VERSION being the highest
+// returns an index starting from 0 with IndeterminateIPVersion being the highest
 func (version IPVersion) index() int {
 	if version.isIPv4() {
 		return 0
@@ -135,7 +134,7 @@ func (addr *ipAddressInternal) getIPVersion() IPVersion {
 	} else if addr.isIPv6() {
 		return IPv6
 	}
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }
 
 func (addr *ipAddressInternal) GetNetworkPrefixLength() PrefixLen {

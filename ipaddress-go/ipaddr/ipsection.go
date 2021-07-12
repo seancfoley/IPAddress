@@ -72,7 +72,7 @@ func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
 	} else if addrType.isIPv6() {
 		return IPv6
 	}
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }
 
 func (section *ipAddressSectionInternal) GetNetworkPrefixLength() PrefixLen {

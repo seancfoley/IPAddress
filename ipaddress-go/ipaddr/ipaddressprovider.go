@@ -216,7 +216,7 @@ func (p *ipAddrProvider) getProviderMask() *IPAddress {
 }
 
 func (p *ipAddrProvider) getProviderIPVersion() IPVersion {
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }
 
 func (p *ipAddrProvider) isProvidingIPAddress() bool {
@@ -414,7 +414,7 @@ type cachedAddressProvider struct {
 	//CreationLock
 }
 
-//TODO do not forget you also need these two in all top level classes, including ParsedIPAddress, the mask, all and empty providers
+//TODO do not forget you also need these two in all top level classes, including parsedIPAddress, the mask, all and empty providers
 // they are needed becaue of virtual calls to getType() and getProviderAddress()
 
 func (cached *cachedAddressProvider) providerCompare(other IPAddressProvider) (int, IncompatibleAddressError) {
@@ -516,7 +516,7 @@ func (cached *cachedAddressProvider) getProviderIPVersion() IPVersion {
 	if addr, _ := cached.getProviderAddress(); addr != nil {
 		return addr.getIPVersion()
 	}
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }
 
 func (cached *cachedAddressProvider) getType() IPType {
@@ -551,7 +551,7 @@ func (versioned *VersionedAddressCreator) getParameters() IPAddressStringParamet
 }
 
 func (versioned *VersionedAddressCreator) isProvidingIPAddress() bool {
-	return versioned.adjustedVersion != INDETERMINATE_VERSION
+	return versioned.adjustedVersion != IndeterminateIPVersion
 }
 
 func (versioned *VersionedAddressCreator) isProvidingIPv4() bool {
@@ -572,7 +572,7 @@ func (versioned *VersionedAddressCreator) getType() IPType {
 
 func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressError) {
 	index := version.index()
-	if index >= INDETERMINATE_VERSION.index() {
+	if index >= IndeterminateIPVersion.index() {
 		return
 	}
 	if versioned.versionedAddressCreator != nil {
@@ -600,7 +600,7 @@ func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion)
 
 func newLoopbackCreator(options IPAddressStringParameters, zone string) *LoopbackCreator {
 	// TODO an option to set preferred loopback here in IPAddressStringParameters, do the same in Java
-	// the option will set one of three options, IPv4, IPv6, or INDETERMINATE_VERSION which is the default
+	// the option will set one of three options, IPv4, IPv6, or IndeterminateIPVersion which is the default
 	// In Go the default will be IPv4
 	// There is another option I wanted to add, was in the validator code, I think allow empty zone with prefix like %/
 	// ALSO, consider using zero value instead of loopback - zero string becomes zero value
@@ -723,7 +723,7 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 
 	var preferIPv6 bool
 
-	if adjustedVersion == INDETERMINATE_VERSION {
+	if adjustedVersion == IndeterminateIPVersion {
 		if preferIPv6 {
 			adjustedVersion = IPv6
 		} else {
@@ -787,16 +787,16 @@ type MaskCreator struct {
 
 func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*AllCreator, IncompatibleAddressError) {
 	var addrCreator func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError)
-	if *qualifier == *NO_QUALIFIER {
+	if *qualifier == *noQualifier {
 		addrCreator = func() (*IPAddress, *IPAddress, IncompatibleAddressError, IncompatibleAddressError) { //(address, hostAddress *IPAddress)
-			addr, err := createAllAddress(adjustedVersion, NO_QUALIFIER, originator)
+			addr, err := createAllAddress(adjustedVersion, noQualifier, originator)
 			return addr, addr, err, err
 		}
 	} else {
 		addrCreator = func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
 			address, addrErr = createAllAddress(adjustedVersion, qualifier, originator)
 			if qualifier.zone == noZone {
-				hostAddress, hostErr = createAllAddress(adjustedVersion, NO_QUALIFIER, originator)
+				hostAddress, hostErr = createAllAddress(adjustedVersion, noQualifier, originator)
 			} else {
 				qualifier2 := ParsedHostIdentifierStringQualifier{zone: qualifier.zone}
 				hostAddress, hostErr = createAllAddress(adjustedVersion, &qualifier2, originator)
@@ -837,7 +837,7 @@ func (all *AllCreator) getType() IPType {
 }
 
 func (all *AllCreator) isProvidingAllAddresses() bool {
-	return all.adjustedVersion == INDETERMINATE_VERSION
+	return all.adjustedVersion == IndeterminateIPVersion
 }
 
 func (all *AllCreator) getProviderNetworkPrefixLength() PrefixLen {
@@ -855,7 +855,7 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	mask := all.getProviderMask()
 	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil {
 		// we must apply the mask
-		all, _ := createAllAddress(all.adjustedVersion, NO_QUALIFIER, nil)
+		all, _ := createAllAddress(all.adjustedVersion, noQualifier, nil)
 		upper, _ := all.GetUpper().Mask(mask)
 		lower := all.GetLower() //TODO apply the mask? maybe I have this wrong in Java too.  Use the masker.
 		rge, _ := lower.SpanWithRange(upper)

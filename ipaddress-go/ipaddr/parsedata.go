@@ -1,50 +1,51 @@
 package ipaddr
 
 const (
-	UPPER_ADJUSTMENT int = 8
+	upperAdjustment = 8
 
-	// these are for the flags
-	// a standard string is a string showing only the lower value of a segment.
+	// These are for the flags.
+	// A standard string is a string showing only the lower value of a segment, in lowercase.
 	// A standard range string shows both values, low to high, with the standard separator.
-	KEY_WILDCARD                uint32 = 0x10000
-	KEY_SINGLE_WILDCARD         uint32 = 0x20000
-	KEY_STANDARD_STR            uint32 = 0x40000
-	KEY_STANDARD_RANGE_STR      uint32 = 0x80000
-	KEY_RANGE_WILDCARD          uint32 = 0x100000
-	KEY_INFERRED_LOWER_BOUNDARY uint32 = 0x200000
-	KEY_INFERRED_UPPER_BOUNDARY uint32 = 0x400000
-	KEY_MERGED_MIXED            uint32 = 0x800000
-	KEY_RADIX                   uint32 = 0x00ff
-	KEY_BIT_SIZE                uint32 = 0xff00
-	BIT_SIZE_SHIFT                     = 8
+
+	keyWildcard              uint32 = 0x10000
+	keySingleWildcard        uint32 = 0x20000
+	keyStandardStr           uint32 = 0x40000
+	keyStandardRangeStr      uint32 = 0x80000
+	keyRangeWildcard         uint32 = 0x100000
+	keyInferredLowerBoundary uint32 = 0x200000
+	keyInferredUpperBoundary uint32 = 0x400000
+	keyMergedMixed           uint32 = 0x800000
+	keyRadix                 uint32 = 0x00ff
+	keyBitSize               uint32 = 0xff00
+	bitSizeShift                    = 8
 
 	// the flags, radix and bit size are stored in the same int, the radix takes the low byte,
 	// the bit size the next byte, the remaining 16 bits are available for flags.
-	KEY_LOWER_RADIX_INDEX int = 0
-	KEY_BIT_SIZE_INDEX    int = KEY_LOWER_RADIX_INDEX
-	FLAGS_INDEX           int = KEY_LOWER_RADIX_INDEX
-	KEY_UPPER_RADIX_INDEX int = KEY_LOWER_RADIX_INDEX + UPPER_ADJUSTMENT
+	keyLowerRadixIndex = 0
+	keyBitSizeIndex    = keyLowerRadixIndex
+	flagsIndex         = keyLowerRadixIndex
+	keyUpperRadixIndex = keyLowerRadixIndex + upperAdjustment
 
 	// these are for the segment values - they must be even-numbered
-	KEY_LOWER          int = 2
-	KEY_EXTENDED_LOWER int = 4
-	KEY_UPPER          int = KEY_LOWER + UPPER_ADJUSTMENT
-	KEY_EXTENDED_UPPER int = KEY_EXTENDED_LOWER + UPPER_ADJUSTMENT
+	keyLower         = 2
+	keyExtendedLower = 4
+	keyUpper         = keyLower + upperAdjustment
+	keyExtendedUpper = keyExtendedLower + upperAdjustment
 
 	// these are for the indices
-	KEY_LOWER_STR_DIGITS_INDEX int = 1
-	KEY_LOWER_STR_START_INDEX  int = 6
-	KEY_LOWER_STR_END_INDEX    int = 7
-	KEY_UPPER_STR_DIGITS_INDEX int = KEY_LOWER_STR_DIGITS_INDEX + UPPER_ADJUSTMENT
-	KEY_UPPER_STR_START_INDEX  int = KEY_LOWER_STR_START_INDEX + UPPER_ADJUSTMENT
-	KEY_UPPER_STR_END_INDEX    int = KEY_LOWER_STR_END_INDEX + UPPER_ADJUSTMENT
-	SEGMENT_DATA_SIZE          int = 16
-	SEGMENT_INDEX_SHIFT        int = 4
-	IPV4_SEGMENT_DATA_SIZE     int = SEGMENT_DATA_SIZE * 4
-	IPV6_SEGMENT_DATA_SIZE     int = SEGMENT_DATA_SIZE * 8
+	keyLowerStrDigitsIndex = 1
+	keyLowerStrStartIndex  = 6
+	keyLowerStrEndIndex    = 7
+	keyUpperStrDigitsIndex = keyLowerStrDigitsIndex + upperAdjustment
+	keyUpperStrStartIndex  = keyLowerStrStartIndex + upperAdjustment
+	keyUpperStrEndIndex    = keyLowerStrEndIndex + upperAdjustment
+	segmentDataSize        = 16
+	segmentIndexShift      = 4
+	ipv4SegmentDataSize    = segmentDataSize * 4
+	ipv6SegmentDataSize    = segmentDataSize * 8
 )
 
-type AddressParseData struct {
+type addressParseData struct {
 	segmentData  []uint32
 	segmentCount int
 
@@ -56,145 +57,141 @@ type AddressParseData struct {
 	str string
 }
 
-func (parseData *AddressParseData) init(str string) {
+func (parseData *addressParseData) init(str string) {
 	parseData.consecutiveSepIndex = -1
 	parseData.consecutiveSepSegmentIndex = -1
 	parseData.str = str
 }
 
-func (parseData *AddressParseData) getString() string {
+func (parseData *addressParseData) getString() string {
 	return parseData.str
 }
 
-func (parseData *AddressParseData) initSegmentData(segmentCapacity int) {
+func (parseData *addressParseData) initSegmentData(segmentCapacity int) {
 	dataSize := 0
 	if segmentCapacity == 4 {
-		dataSize = IPV4_SEGMENT_DATA_SIZE
+		dataSize = ipv4SegmentDataSize
 	} else if segmentCapacity == 8 {
-		dataSize = IPV6_SEGMENT_DATA_SIZE
+		dataSize = ipv6SegmentDataSize
 	} else if segmentCapacity == 1 {
-		dataSize = SEGMENT_DATA_SIZE // SEGMENT_DATA_SIZE * segmentCapacity
+		dataSize = segmentDataSize // segmentDataSize * segmentCapacity
 	} else {
-		dataSize = segmentCapacity * SEGMENT_DATA_SIZE
+		dataSize = segmentCapacity * segmentDataSize
 	}
 	parseData.segmentData = make([]uint32, dataSize)
 }
 
-//func (parseData *AddressParseData) releaseSegmentData() {
-//	parseData.segmentData = nil
-//}
-
-func (parseData *AddressParseData) getSegmentData() []uint32 {
+func (parseData *addressParseData) getSegmentData() []uint32 {
 	return parseData.segmentData
 }
 
-func (parseData *AddressParseData) incrementSegmentCount() {
+func (parseData *addressParseData) incrementSegmentCount() {
 	parseData.segmentCount++
 }
 
-func (parseData *AddressParseData) getSegmentCount() int {
+func (parseData *addressParseData) getSegmentCount() int {
 	return parseData.segmentCount
 }
 
-func (parseData *AddressParseData) getConsecutiveSeparatorSegmentIndex() int {
+func (parseData *addressParseData) getConsecutiveSeparatorSegmentIndex() int {
 	return parseData.consecutiveSepSegmentIndex
 }
 
-func (parseData *AddressParseData) setConsecutiveSeparatorSegmentIndex(val int) {
+func (parseData *addressParseData) setConsecutiveSeparatorSegmentIndex(val int) {
 	parseData.consecutiveSepSegmentIndex = val
 }
 
-func (parseData *AddressParseData) getConsecutiveSeparatorIndex() int {
+func (parseData *addressParseData) getConsecutiveSeparatorIndex() int {
 	return parseData.consecutiveSepIndex
 }
 
-func (parseData *AddressParseData) setConsecutiveSeparatorIndex(val int) {
+func (parseData *addressParseData) setConsecutiveSeparatorIndex(val int) {
 	parseData.consecutiveSepIndex = val
 }
 
-func (parseData *AddressParseData) isProvidingEmpty() bool {
+func (parseData *addressParseData) isProvidingEmpty() bool {
 	return parseData.isEmpty
 }
 
-func (parseData *AddressParseData) setEmpty(val bool) {
+func (parseData *addressParseData) setEmpty(val bool) {
 	parseData.isEmpty = val
 }
 
-func (parseData *AddressParseData) isAll() bool {
+func (parseData *addressParseData) isAll() bool {
 	return parseData.isAllVal
 }
 
-func (parseData *AddressParseData) setAll() {
+func (parseData *addressParseData) setAll() {
 	parseData.isAllVal = true
 }
 
-func (parseData *AddressParseData) getAddressEndIndex() int {
+func (parseData *addressParseData) getAddressEndIndex() int {
 	return parseData.addressEndIndex
 }
 
-func (parseData *AddressParseData) setAddressEndIndex(val int) {
+func (parseData *addressParseData) setAddressEndIndex(val int) {
 	parseData.addressEndIndex = val
 }
 
-func (parseData *AddressParseData) isSingleSegment() bool {
+func (parseData *addressParseData) isSingleSegment() bool {
 	return parseData.isSingleSegmentVal
 }
 
-func (parseData *AddressParseData) setSingleSegment() {
+func (parseData *addressParseData) setSingleSegment() {
 	parseData.isSingleSegmentVal = true
 }
 
-func (parseData *AddressParseData) hasWildcard() bool {
+func (parseData *addressParseData) hasWildcard() bool {
 	return parseData.anyWildcard
 }
 
-func (parseData *AddressParseData) setHasWildcard() {
+func (parseData *addressParseData) setHasWildcard() {
 	parseData.anyWildcard = true
 }
 
-func (parseData *AddressParseData) unsetFlag(segmentIndex int, flagIndicator uint32) {
-	index := (segmentIndex << SEGMENT_INDEX_SHIFT) | FLAGS_INDEX
+func (parseData *addressParseData) unsetFlag(segmentIndex int, flagIndicator uint32) {
+	index := (segmentIndex << segmentIndexShift) | flagsIndex
 	segmentData := parseData.getSegmentData()
 	segmentData[index] &= uint32(0xffff) ^ flagIndicator // segmentData[index] &= ~flagIndicator
 }
 
-func (parseData *AddressParseData) getFlag(segmentIndex int, flagIndicator uint32) bool {
+func (parseData *addressParseData) getFlag(segmentIndex int, flagIndicator uint32) bool {
 	segmentData := parseData.getSegmentData()
-	return (segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|FLAGS_INDEX] & flagIndicator) != 0
+	return (segmentData[(segmentIndex<<segmentIndexShift)|flagsIndex] & flagIndicator) != 0
 }
 
-func (parseData *AddressParseData) hasEitherFlag(segmentIndex int, flagIndicator1, flagIndicator2 uint32) bool {
+func (parseData *addressParseData) hasEitherFlag(segmentIndex int, flagIndicator1, flagIndicator2 uint32) bool {
 	return parseData.getFlag(segmentIndex, flagIndicator1|flagIndicator2)
 }
 
-func (parseData *AddressParseData) getRadix(segmentIndex, indexIndicator int) uint32 {
+func (parseData *addressParseData) getRadix(segmentIndex, indexIndicator int) uint32 {
 	segmentData := parseData.getSegmentData()
-	radix := segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|indexIndicator] & KEY_RADIX
+	radix := segmentData[(segmentIndex<<segmentIndexShift)|indexIndicator] & keyRadix
 	if radix == 0 {
 		return IPv6DefaultTextualRadix // 16 is the default, we only set the radix if not 16
 	}
 	return radix
 }
 
-func (parseData *AddressParseData) getBitLength(segmentIndex int) BitCount {
+func (parseData *addressParseData) getBitLength(segmentIndex int) BitCount {
 	segmentData := parseData.getSegmentData()
-	bitLength := (segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|KEY_BIT_SIZE_INDEX] & KEY_BIT_SIZE) >> BIT_SIZE_SHIFT
+	bitLength := (segmentData[(segmentIndex<<segmentIndexShift)|keyBitSizeIndex] & keyBitSize) >> bitSizeShift
 	return BitCount(bitLength)
 }
 
-func (parseData *AddressParseData) setBitLength(segmentIndex int, length BitCount) {
+func (parseData *addressParseData) setBitLength(segmentIndex int, length BitCount) {
 	segmentData := parseData.getSegmentData()
-	segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|KEY_BIT_SIZE_INDEX] |= ((uint32(length) << BIT_SIZE_SHIFT) & KEY_BIT_SIZE)
+	segmentData[(segmentIndex<<segmentIndexShift)|keyBitSizeIndex] |= ((uint32(length) << bitSizeShift) & keyBitSize)
 }
 
-func (parseData *AddressParseData) setIndex(segmentIndex,
+func (parseData *addressParseData) setIndex(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
 	indexIndicator3 int, value3 uint32,
 	indexIndicator4 int, value4 uint32,
 	indexIndicator5 int, value5 uint32) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	segmentData[baseIndex|indexIndicator0] = value0
 	segmentData[baseIndex|indexIndicator1] = value1
@@ -204,15 +201,15 @@ func (parseData *AddressParseData) setIndex(segmentIndex,
 	segmentData[baseIndex|indexIndicator5] = value5
 }
 
-func (parseData *AddressParseData) getIndex(segmentIndex, indexIndicator int) int {
+func (parseData *addressParseData) getIndex(segmentIndex, indexIndicator int) int {
 	return getIndexFromData(segmentIndex, indexIndicator, parseData.getSegmentData())
 }
 
 func getIndexFromData(segmentIndex, indexIndicator int, segmentData []uint32) int {
-	return int(segmentData[(segmentIndex<<SEGMENT_INDEX_SHIFT)|indexIndicator])
+	return int(segmentData[(segmentIndex<<segmentIndexShift)|indexIndicator])
 }
 
-func (parseData *AddressParseData) set7IndexFlags(segmentIndex,
+func (parseData *addressParseData) set7IndexFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -220,7 +217,7 @@ func (parseData *AddressParseData) set7IndexFlags(segmentIndex,
 	indexIndicator4 int, value4 uint32,
 	indexIndicator5 int, value5 uint32,
 	indexIndicator6 int, value6 uint32) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	segmentData[baseIndex|indexIndicator0] = value0
 	segmentData[baseIndex|indexIndicator1] = value1
@@ -231,7 +228,7 @@ func (parseData *AddressParseData) set7IndexFlags(segmentIndex,
 	segmentData[baseIndex|indexIndicator6] = value6
 }
 
-func (parseData *AddressParseData) set8IndexFlags(segmentIndex,
+func (parseData *addressParseData) set8IndexFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -240,7 +237,7 @@ func (parseData *AddressParseData) set8IndexFlags(segmentIndex,
 	indexIndicator5 int, value5 uint32,
 	indexIndicator6 int, value6 uint32,
 	indexIndicator7 int, value7 uint32) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	segmentData[baseIndex|indexIndicator0] = value0
 	segmentData[baseIndex|indexIndicator1] = value1
@@ -252,7 +249,7 @@ func (parseData *AddressParseData) set8IndexFlags(segmentIndex,
 	segmentData[baseIndex|indexIndicator7] = value7
 }
 
-func (parseData *AddressParseData) set8Index4ValuesFlags(segmentIndex,
+func (parseData *addressParseData) set8Index4ValuesFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -265,7 +262,7 @@ func (parseData *AddressParseData) set8Index4ValuesFlags(segmentIndex,
 	indexIndicator9 int, value9 uint64,
 	indexIndicator10 int, value10 uint64,
 	indexIndicator11 int, value11 uint64) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	setIndexValuesFlags(baseIndex, segmentData,
 		indexIndicator0, value0,
@@ -288,7 +285,7 @@ func (parseData *AddressParseData) set8Index4ValuesFlags(segmentIndex,
 	segmentData[index|1] = uint32(value11 & 0xffffffff)
 }
 
-func (parseData *AddressParseData) set7Index4ValuesFlags(segmentIndex,
+func (parseData *addressParseData) set7Index4ValuesFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -300,7 +297,7 @@ func (parseData *AddressParseData) set7Index4ValuesFlags(segmentIndex,
 	indexIndicator8 int, value8 uint64,
 	indexIndicator9 int, value9 uint64,
 	indexIndicator10 int, value10 uint64) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	setIndexValuesFlags(baseIndex, segmentData,
 		indexIndicator0, value0,
@@ -322,7 +319,7 @@ func (parseData *AddressParseData) set7Index4ValuesFlags(segmentIndex,
 	segmentData[index|1] = uint32(value10 & 0xffffffff)
 }
 
-func (parseData *AddressParseData) set8Index2ValuesFlags(segmentIndex,
+func (parseData *addressParseData) set8Index2ValuesFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -333,7 +330,7 @@ func (parseData *AddressParseData) set8Index2ValuesFlags(segmentIndex,
 	indexIndicator7 int, value7 uint32,
 	indexIndicator8 int, value8 uint64,
 	indexIndicator9 int, value9 uint64) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	setIndexValuesFlags(baseIndex, segmentData,
 		indexIndicator0, value0,
@@ -348,7 +345,7 @@ func (parseData *AddressParseData) set8Index2ValuesFlags(segmentIndex,
 	segmentData[baseIndex|indexIndicator7] = value7
 }
 
-func (parseData *AddressParseData) set7Index2ValuesFlags(segmentIndex,
+func (parseData *addressParseData) set7Index2ValuesFlags(segmentIndex,
 	indexIndicator0 int, value0 uint32,
 	indexIndicator1 int, value1 uint32,
 	indexIndicator2 int, value2 uint32,
@@ -358,7 +355,7 @@ func (parseData *AddressParseData) set7Index2ValuesFlags(segmentIndex,
 	indexIndicator6 int, value6 uint32,
 	indexIndicator7 int, value7 uint64,
 	indexIndicator8 int, value8 uint64) {
-	baseIndex := segmentIndex << SEGMENT_INDEX_SHIFT
+	baseIndex := segmentIndex << segmentIndexShift
 	segmentData := parseData.getSegmentData()
 	setIndexValuesFlags(baseIndex, segmentData,
 		indexIndicator0, value0,
@@ -401,9 +398,9 @@ func setIndexValuesFlags(
 	segmentData[index|1] = uint32(value8 & 0xffffffff)
 }
 
-func (parseData *AddressParseData) setValue(segmentIndex,
+func (parseData *addressParseData) setValue(segmentIndex,
 	indexIndicator int, value uint64) {
-	index := (segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator
+	index := (segmentIndex << segmentIndexShift) | indexIndicator
 	upperValue := uint32(value >> 32)
 	lowerValue := uint32(value & 0xffffffff)
 	segmentData := parseData.getSegmentData()
@@ -411,40 +408,40 @@ func (parseData *AddressParseData) setValue(segmentIndex,
 	segmentData[index|1] = lowerValue
 }
 
-func (parseData *AddressParseData) getValue(segmentIndex, indexIndicator int) uint64 {
+func (parseData *addressParseData) getValue(segmentIndex, indexIndicator int) uint64 {
 	return getValueFromData(segmentIndex, indexIndicator, parseData.getSegmentData())
 }
 
 func getValueFromData(segmentIndex, indexIndicator int, segmentData []uint32) uint64 {
-	index := (segmentIndex << SEGMENT_INDEX_SHIFT) | indexIndicator
+	index := (segmentIndex << segmentIndexShift) | indexIndicator
 	upperValue := uint64(segmentData[index])
 	lowerValue := 0xffffffff & uint64(segmentData[index|1])
 	value := (upperValue << 32) | lowerValue
 	return value
 }
 
-func (parseData *AddressParseData) isMergedMixed(segmentIndex int) bool {
-	return parseData.getFlag(segmentIndex, KEY_MERGED_MIXED)
+func (parseData *addressParseData) isMergedMixed(segmentIndex int) bool {
+	return parseData.getFlag(segmentIndex, keyMergedMixed)
 }
 
-func (parseData *AddressParseData) isWildcard(segmentIndex int) bool {
-	return parseData.getFlag(segmentIndex, KEY_WILDCARD)
+func (parseData *addressParseData) isWildcard(segmentIndex int) bool {
+	return parseData.getFlag(segmentIndex, keyWildcard)
 }
 
-func (parseData *AddressParseData) hasRange(segmentIndex int) bool {
-	return parseData.hasEitherFlag(segmentIndex, KEY_SINGLE_WILDCARD, KEY_RANGE_WILDCARD)
+func (parseData *addressParseData) hasRange(segmentIndex int) bool {
+	return parseData.hasEitherFlag(segmentIndex, keySingleWildcard, keyRangeWildcard)
 }
 
-func (parseData *AddressParseData) isInferredUpperBoundary(segmentIndex int) bool {
-	return parseData.getFlag(segmentIndex, KEY_INFERRED_UPPER_BOUNDARY)
+func (parseData *addressParseData) isInferredUpperBoundary(segmentIndex int) bool {
+	return parseData.getFlag(segmentIndex, keyInferredUpperBoundary)
 }
 
-func NewIPAddressParseData(str string) *IPAddressParseData {
-	return &IPAddressParseData{AddressParseData: AddressParseData{str: str}}
+func NewIPAddressParseData(str string) *ipAddressParseData {
+	return &ipAddressParseData{addressParseData: addressParseData{str: str}}
 }
 
-type IPAddressParseData struct {
-	AddressParseData
+type ipAddressParseData struct {
+	addressParseData
 
 	qualifier ParsedHostIdentifierStringQualifier
 
@@ -459,81 +456,81 @@ type IPAddressParseData struct {
 	hasIPv4LeadingZerosVal, isBinaryVal bool
 	isBase85, isBase85ZonedVal          bool
 
-	mixedParsedAddress *ParsedIPAddress
+	mixedParsedAddress *parsedIPAddress
 }
 
-func (parseData *IPAddressParseData) init(str string) {
+func (parseData *ipAddressParseData) init(str string) {
 	parseData.qualifierIndex = -1
-	parseData.AddressParseData.init(str)
+	parseData.addressParseData.init(str)
 }
 
-func (parseData *IPAddressParseData) getAddressParseData() *AddressParseData {
-	return &parseData.AddressParseData
+func (parseData *ipAddressParseData) getAddressParseData() *addressParseData {
+	return &parseData.addressParseData
 }
 
-func (parseData *IPAddressParseData) getProviderIPVersion() IPVersion {
+func (parseData *ipAddressParseData) getProviderIPVersion() IPVersion {
 	return parseData.ipVersion
 }
 
-func (parseData *IPAddressParseData) setVersion(version IPVersion) {
+func (parseData *ipAddressParseData) setVersion(version IPVersion) {
 	parseData.ipVersion = version
 }
 
-func (parseData *IPAddressParseData) isProvidingIPv6() bool {
+func (parseData *ipAddressParseData) isProvidingIPv6() bool {
 	version := parseData.getProviderIPVersion()
 	return version.isIPv6()
 }
 
-func (parseData *IPAddressParseData) isProvidingIPv4() bool {
+func (parseData *ipAddressParseData) isProvidingIPv4() bool {
 	version := parseData.getProviderIPVersion()
 	return version.isIPv4()
 }
 
-func (parseData *IPAddressParseData) is_inet_aton_joined() bool {
+func (parseData *ipAddressParseData) is_inet_aton_joined() bool {
 	return parseData.is_inet_aton_joined_val
 }
 
-func (parseData *IPAddressParseData) set_inet_aton_joined(val bool) {
+func (parseData *ipAddressParseData) set_inet_aton_joined(val bool) {
 	parseData.is_inet_aton_joined_val = val
 }
 
-func (parseData *IPAddressParseData) has_inet_aton_value() bool {
+func (parseData *ipAddressParseData) has_inet_aton_value() bool {
 	return parseData.has_inet_aton_value_val
 }
 
-func (parseData *IPAddressParseData) set_has_inet_aton_value(val bool) {
+func (parseData *ipAddressParseData) set_has_inet_aton_value(val bool) {
 	parseData.has_inet_aton_value_val = val
 }
 
-func (parseData *IPAddressParseData) hasIPv4LeadingZeros() bool {
+func (parseData *ipAddressParseData) hasIPv4LeadingZeros() bool {
 	return parseData.hasIPv4LeadingZerosVal
 }
 
-func (parseData *IPAddressParseData) setHasIPv4LeadingZeros(val bool) {
+func (parseData *ipAddressParseData) setHasIPv4LeadingZeros(val bool) {
 	parseData.hasIPv4LeadingZerosVal = val
 }
 
-func (parseData *IPAddressParseData) hasBinaryDigits() bool {
+func (parseData *ipAddressParseData) hasBinaryDigits() bool {
 	return parseData.isBinaryVal
 }
 
-func (parseData *IPAddressParseData) setHasBinaryDigits(val bool) {
+func (parseData *ipAddressParseData) setHasBinaryDigits(val bool) {
 	parseData.isBinaryVal = val
 }
 
-func (parseData *IPAddressParseData) getQualifier() *ParsedHostIdentifierStringQualifier {
+func (parseData *ipAddressParseData) getQualifier() *ParsedHostIdentifierStringQualifier {
 	return &parseData.qualifier
 }
 
-//func (parseData *IPAddressParseData) setQualifier(val *ParsedHostIdentifierStringQualifier) {
+//func (parseData *ipAddressParseData) setQualifier(val *ParsedHostIdentifierStringQualifier) {
 //	parseData.qualifier = val
 //}
 
-func (parseData *IPAddressParseData) getQualifierIndex() int {
+func (parseData *ipAddressParseData) getQualifierIndex() int {
 	return parseData.qualifierIndex
 }
 
-func (parseData *IPAddressParseData) clearQualifier() {
+func (parseData *ipAddressParseData) clearQualifier() {
 	parseData.qualifierIndex = -1
 	parseData.isZonedVal = false
 	parseData.isBase85ZonedVal = false
@@ -541,68 +538,68 @@ func (parseData *IPAddressParseData) clearQualifier() {
 	parseData.qualifier = ParsedHostIdentifierStringQualifier{}
 }
 
-func (parseData *IPAddressParseData) setQualifierIndex(index int) {
+func (parseData *ipAddressParseData) setQualifierIndex(index int) {
 	parseData.qualifierIndex = index
 }
 
-func (parseData *IPAddressParseData) isZoned() bool {
+func (parseData *ipAddressParseData) isZoned() bool {
 	return parseData.isZonedVal
 }
 
-func (parseData *IPAddressParseData) setZoned(val bool) {
+func (parseData *ipAddressParseData) setZoned(val bool) {
 	parseData.isZonedVal = val
 }
 
-func (parseData *IPAddressParseData) hasPrefixSeparator() bool {
+func (parseData *ipAddressParseData) hasPrefixSeparator() bool {
 	return parseData.hasPrefixSeparatorVal
 }
 
-func (parseData *IPAddressParseData) setHasPrefixSeparator(val bool) {
+func (parseData *ipAddressParseData) setHasPrefixSeparator(val bool) {
 	parseData.hasPrefixSeparatorVal = val
 }
 
-func (parseData *IPAddressParseData) isProvidingBase85IPv6() bool {
+func (parseData *ipAddressParseData) isProvidingBase85IPv6() bool {
 	return parseData.isBase85
 }
 
-func (parseData *IPAddressParseData) setBase85(val bool) {
+func (parseData *ipAddressParseData) setBase85(val bool) {
 	parseData.isBase85 = val
 }
 
-func (parseData *IPAddressParseData) isBase85Zoned() bool {
+func (parseData *ipAddressParseData) isBase85Zoned() bool {
 	return parseData.isBase85ZonedVal
 }
 
-func (parseData *IPAddressParseData) setBase85Zoned(val bool) {
+func (parseData *ipAddressParseData) setBase85Zoned(val bool) {
 	parseData.isBase85ZonedVal = val
 }
 
-func (parseData *IPAddressParseData) isCompressed() bool {
-	return parseData.AddressParseData.getConsecutiveSeparatorIndex() >= 0
+func (parseData *ipAddressParseData) isCompressed() bool {
+	return parseData.addressParseData.getConsecutiveSeparatorIndex() >= 0
 }
 
-func (parseData *IPAddressParseData) segIsCompressed(index int, segmentData []uint32) bool {
-	end := getIndexFromData(index, KEY_UPPER_STR_END_INDEX, segmentData)
-	start := getIndexFromData(index, KEY_LOWER_STR_START_INDEX, segmentData)
+func (parseData *ipAddressParseData) segIsCompressed(index int, segmentData []uint32) bool {
+	end := getIndexFromData(index, keyUpperStrEndIndex, segmentData)
+	start := getIndexFromData(index, keyLowerStrStartIndex, segmentData)
 	return start == end
 }
-func (parseData *IPAddressParseData) segmentIsCompressed(index int) bool {
-	return parseData.segIsCompressed(index, parseData.AddressParseData.getSegmentData())
+func (parseData *ipAddressParseData) segmentIsCompressed(index int) bool {
+	return parseData.segIsCompressed(index, parseData.addressParseData.getSegmentData())
 }
 
-func (parseData *IPAddressParseData) isProvidingMixedIPv6() bool {
+func (parseData *ipAddressParseData) isProvidingMixedIPv6() bool {
 	return parseData.mixedParsedAddress != nil
 }
 
-func (parseData *IPAddressParseData) setMixedParsedAddress(val *ParsedIPAddress) {
+func (parseData *ipAddressParseData) setMixedParsedAddress(val *parsedIPAddress) {
 	parseData.mixedParsedAddress = val
 }
 
-func NewMACAddressParseData(str string) *MACAddressParseData {
-	return &MACAddressParseData{AddressParseData: AddressParseData{str: str}}
-}
+//func NewMACAddressParseData(str string) *macAddressParseData {
+//	return &macAddressParseData{addressParseData: addressParseData{str: str}}
+//}
 
-type MACFormat *byte
+type macFormat *byte
 
 const (
 	dash  = '-'
@@ -617,49 +614,49 @@ var (
 	spaceByte  byte = space
 	dotByte    byte = dot
 
-	DASHED          MACFormat = &dashedByte //TODO more constants to uncapitalize
-	COLON_DELIMITED MACFormat = &colonByte
-	DOTTED          MACFormat = &dotByte
-	SPACE_DELIMITED MACFormat = &spaceByte
-	UNKNOWN_FORMAT  MACFormat
+	dashed         macFormat = &dashedByte
+	colonDelimited macFormat = &colonByte
+	dotted         macFormat = &dotByte
+	spaceDelimited macFormat = &spaceByte
+	unknownFormat  macFormat
 )
 
-type MACAddressParseData struct {
-	AddressParseData
+type macAddressParseData struct {
+	addressParseData
 
 	isDoubleSegmentVal, isExtendedVal bool
 
-	format MACFormat
+	format macFormat
 }
 
-func (parseData *MACAddressParseData) init(str string) {
-	parseData.AddressParseData.init(str)
+func (parseData *macAddressParseData) init(str string) {
+	parseData.addressParseData.init(str)
 }
 
-func (parseData *MACAddressParseData) getAddressParseData() *AddressParseData {
-	return &parseData.AddressParseData
+func (parseData *macAddressParseData) getAddressParseData() *addressParseData {
+	return &parseData.addressParseData
 }
 
-func (parseData *MACAddressParseData) getFormat() MACFormat {
+func (parseData *macAddressParseData) getFormat() macFormat {
 	return parseData.format
 }
 
-func (parseData *MACAddressParseData) setFormat(format MACFormat) {
+func (parseData *macAddressParseData) setFormat(format macFormat) {
 	parseData.format = format
 }
 
-func (parseData *MACAddressParseData) isDoubleSegment() bool {
+func (parseData *macAddressParseData) isDoubleSegment() bool {
 	return parseData.isExtendedVal
 }
 
-func (parseData *MACAddressParseData) setDoubleSegment(val bool) {
+func (parseData *macAddressParseData) setDoubleSegment(val bool) {
 	parseData.isExtendedVal = val
 }
 
-func (parseData *MACAddressParseData) isExtended() bool {
+func (parseData *macAddressParseData) isExtended() bool {
 	return parseData.isDoubleSegmentVal
 }
 
-func (parseData *MACAddressParseData) setExtended(val bool) {
+func (parseData *macAddressParseData) setExtended(val bool) {
 	parseData.isDoubleSegmentVal = val
 }

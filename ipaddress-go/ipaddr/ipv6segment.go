@@ -6,10 +6,6 @@ import (
 
 type IPv6SegInt uint16
 
-//func ToIPv6SegInt(val SegInt) IPv6SegInt {
-//	return IPv6SegInt(val)
-//}
-
 //TODO caching of ipv6SegmentValues
 
 func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
@@ -319,7 +315,7 @@ func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {
 }
 
 func NewIPv6RangeSegment(val, upperVal IPv6SegInt) *IPv6AddressSegment {
-	return NewIPv6RangePrefixSegment(val, val, nil)
+	return NewIPv6RangePrefixSegment(val, upperVal, nil)
 }
 
 func NewIPv6PrefixSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {

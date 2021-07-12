@@ -11,7 +11,7 @@ type ParsedHostIdentifierStringQualifier struct { //TODO rename to non-public
 
 	// If instead of a prefix length a mask was provided, this is the mask.
 	// We can also have both a prefix length and mask if one is added when merging qualifiers  */'
-	mask *ParsedIPAddress
+	mask *parsedIPAddress
 
 	// overrides the parsed mask if present
 	mergedMask *IPAddress
@@ -117,5 +117,5 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) inferVersion(validationOp
 	if parsedQual.zone != "" {
 		return IPv6
 	}
-	return INDETERMINATE_VERSION
+	return IndeterminateIPVersion
 }

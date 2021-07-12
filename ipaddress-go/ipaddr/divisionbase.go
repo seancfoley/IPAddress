@@ -6,17 +6,16 @@ import (
 	"unsafe"
 )
 
-// TODO we must be careful that any methods we grab from Java addressDivisionBase are put in the right place and done the right way.
-// Most are string-related and byte-related.
-// addressDivisionBase is a base for both standard and large divisions.
-// Standard divisions are divisions up to 64 bits of length, large are divisions of any length.
-// With standard divisions, you can use GetValue/GetUpperValue and use DivInt integers for the values.
-// For large divisions, you must use big.Int instances.
-
-type divisionValuesBase interface { // shared by standard and large divisions
+// divisionValuesBase provides an interface for divisions of any bit-size.
+// It is shared by standard and large divisions.
+type divisionValuesBase interface {
 	getBitCount() BitCount
 
 	getByteCount() int
+
+	// getDivisionPrefixLength provides the prefix length
+	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
+	getDivisionPrefixLength() PrefixLen
 
 	// getValue gets the lower value for a large division
 	getValue() *BigDivInt
@@ -41,8 +40,28 @@ type divisionValuesBase interface { // shared by standard and large divisions
 	getAddrType() addrType
 }
 
+type bytesCache struct {
+	lowerBytes, upperBytes []byte
+}
+
+type divCache struct {
+	cachedString, cachedWildcardString, cached0xHexString, cachedHexString, cachedNormalizedString *string
+
+	cachedBytes *bytesCache
+
+	//isSinglePrefixBlock boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+}
+
+// addressDivisionBase is a division of any bit-size.
+// It is shared by standard and large divisions types.
+// Large divisions must not use the methods of divisionValues and use only the methods in divisionValuesBase.
 type addressDivisionBase struct {
-	divisionValues //TODO this is not quite right.  Should be divisionValuesBase.  Not sure the best route here.  Seems either type assertions or double field.  Or leave as is and do type assertions in large divs only.
+	// I've looked into making this divisionValuesBase.
+	// If you do that, then to get access to the methods in divisionValues, you can either do type assertions like divisionValuesBase.(divisionValiues),
+	// or you can add a method getDivisionValues to divisionValuesBase.
+	// But in the end, either way you are assuming you knowe that divisionValuesBase is a divisionValues.  So no point.
+	// Instead, each division type like IPAddressSegment and LargeDivision will know which value methods apply to that type.
+	divisionValues
 }
 
 func (div *addressDivisionBase) getDivisionPrefixLength() PrefixLen {

@@ -49,7 +49,7 @@ type IPAddressCreator interface {
 // 1. derive from existing using derive functions in sections or derive methods in segments/divisions.  Use checkIdentity in addresses.
 // 2. when miving up the hierarchy, use addr type and or ToAddressSection() and the like
 // 3. We use segProducer functors in a few key spots: getSubnetSegments, getOredSegments, assign prefix in section creator, iterator for ranges.
-// 4. We use creators in a few places.  We use segment creators in increment functions, createSegments and createSegmentsUint64 and toSegments,
+// 4. We use creators in a few places.  We use segment creators in createSegments and createSegmentsUint64 and toSegments, and string parsing.
 //
 // Maybe we should consolidate to either functors or creator instances.  Is there a benefit to centralizing with creator interfaces?  Are functors too slow?
 // Both serve the same purpose.

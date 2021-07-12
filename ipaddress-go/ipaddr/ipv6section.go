@@ -679,7 +679,7 @@ var (
 					SetSplitDigits(true).SetExpandedSegments(true).SetSeparator('.').ToOptions()
 	base85Params = new(IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
 			SetWildcards(base85Wildcards).SetZoneSeparator(IPv6AlternativeZoneSeparator).ToOptions()
-	ipv6SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryStrPrefix).
+	ipv6SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).
 					SetExpandedSegments(true).ToOptions()
 )
 
@@ -1031,7 +1031,7 @@ func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4Add
 	return section
 }
 
-//TODO this can wrap AddressDivisionGrouping I guess
+//TODO IPv6v4MixedAddressSection - this can wrap AddressDivisionGrouping I guess
 // but would need to override a few key methods, or maybe we can just assign them right away?
 // Or maybe we do not even have to worry about them
 // Only worry about isPrefixBlock, but even that I do not really need

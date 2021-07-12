@@ -147,7 +147,7 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 	err := addrStr.Validate()
 	if err != nil {
 		return err
-	} else if version != INDETERMINATE_VERSION {
+	} else if version != IndeterminateIPVersion {
 		addrStr = addrStr.init()
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.isIPv4() {

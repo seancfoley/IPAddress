@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-type EmbeddedAddress struct {
+type embeddedAddress struct {
 	isUNCIPv6Literal, isReverseDNS bool
 
 	addressStringException AddressStringError
@@ -18,8 +18,8 @@ type EmbeddedAddress struct {
 
 var (
 	// used by hosts
-	//NO_EMBEDDED_ADDRESS *EmbeddedAddress                     = &EmbeddedAddress{}
-	NO_QUALIFIER *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
+	//NO_EMBEDDED_ADDRESS *embeddedAddress                     = &embeddedAddress{}
+	noQualifier *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
 )
 
 type hostStrings struct {
@@ -31,67 +31,67 @@ type parsedHostCache struct {
 	*hostStrings
 }
 
-type ParsedHost struct {
+type parsedHost struct {
 	separatorIndices []int // can be nil
 	normalizedFlags  []bool
 
 	labelsQualifier ParsedHostIdentifierStringQualifier
 
-	embeddedAddress EmbeddedAddress
+	embeddedAddress embeddedAddress
 
 	originalStr string
 
 	*parsedHostCache
 }
 
-func (host *ParsedHost) getQualifier() *ParsedHostIdentifierStringQualifier {
+func (host *parsedHost) getQualifier() *ParsedHostIdentifierStringQualifier {
 	return &host.labelsQualifier
 }
 
-func (host *ParsedHost) isIPv6Address() bool {
+func (host *parsedHost) isIPv6Address() bool {
 	return host.hasEmbeddedAddress() && host.getAddressProvider().isProvidingIPv6()
 }
 
-func (host *ParsedHost) getPort() Port {
+func (host *parsedHost) getPort() Port {
 	return host.labelsQualifier.getPort()
 }
 
-func (host *ParsedHost) getService() string {
+func (host *parsedHost) getService() string {
 	return host.labelsQualifier.getService()
 }
 
-func (host *ParsedHost) getNetworkPrefixLength() PrefixLen {
+func (host *parsedHost) getNetworkPrefixLength() PrefixLen {
 	return host.labelsQualifier.getNetworkPrefixLength()
 }
 
-func (host *ParsedHost) getEquivalentPrefixLength() PrefixLen {
+func (host *parsedHost) getEquivalentPrefixLength() PrefixLen {
 	return host.labelsQualifier.getEquivalentPrefixLength()
 }
 
-func (host *ParsedHost) getMask() *IPAddress {
+func (host *parsedHost) getMask() *IPAddress {
 	return host.labelsQualifier.getMaskLower()
 }
 
-func (host *ParsedHost) getAddressProvider() IPAddressProvider {
+func (host *parsedHost) getAddressProvider() IPAddressProvider {
 	return host.embeddedAddress.addressProvider
 }
 
-func (host *ParsedHost) hasEmbeddedAddress() bool {
+func (host *parsedHost) hasEmbeddedAddress() bool {
 	return host.embeddedAddress.addressProvider != nil
 }
 
-func (host *ParsedHost) isAddressString() bool {
+func (host *parsedHost) isAddressString() bool {
 	return host.getAddressProvider() != nil
 }
 
-func (host *ParsedHost) asAddress() (*IPAddress, IncompatibleAddressError) {
+func (host *parsedHost) asAddress() (*IPAddress, IncompatibleAddressError) {
 	if host.hasEmbeddedAddress() {
 		return host.getAddressProvider().getProviderAddress()
 	}
 	return nil, nil
 }
 
-func (host *ParsedHost) mapString(addressProvider IPAddressProvider) string {
+func (host *parsedHost) mapString(addressProvider IPAddressProvider) string {
 	if addressProvider.isProvidingAllAddresses() {
 		return SegmentWildcardStr
 		//} else if addressProvider.isProvidingPrefixOnly() {
@@ -102,7 +102,7 @@ func (host *ParsedHost) mapString(addressProvider IPAddressProvider) string {
 	return host.originalStr
 }
 
-func (host *ParsedHost) asGenericAddressString() *IPAddressString {
+func (host *parsedHost) asGenericAddressString() *IPAddressString {
 	if host.hasEmbeddedAddress() {
 		addressProvider := host.getAddressProvider()
 		if addressProvider.isProvidingAllAddresses() {
@@ -126,11 +126,11 @@ func (host *ParsedHost) asGenericAddressString() *IPAddressString {
 	return nil
 }
 
-func (host *ParsedHost) getHost() string {
+func (host *parsedHost) getHost() string {
 	return host.buildStrings().host
 }
 
-func (host *ParsedHost) buildStrings() *hostStrings {
+func (host *parsedHost) buildStrings() *hostStrings {
 	res := host.hostStrings
 	if res == nil {
 		var normalizedLabels []string
@@ -191,7 +191,7 @@ func (host *ParsedHost) buildStrings() *hostStrings {
 	return res
 }
 
-func (host *ParsedHost) getNormalizedLabels() []string {
+func (host *parsedHost) getNormalizedLabels() []string {
 	return host.buildStrings().normalizedLabels
 }
 
@@ -201,10 +201,10 @@ func (host *ParsedHost) getNormalizedLabels() []string {
 	}
 */
 
-func (host *ParsedHost) isUNCIPv6Literal() bool {
+func (host *parsedHost) isUNCIPv6Literal() bool {
 	return host.embeddedAddress.isUNCIPv6Literal
 }
 
-func (host *ParsedHost) isReverseDNS() bool {
+func (host *parsedHost) isReverseDNS() bool {
 	return host.embeddedAddress.isReverseDNS
 }

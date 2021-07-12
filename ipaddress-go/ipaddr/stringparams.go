@@ -240,7 +240,7 @@ type divStringProvider interface {
 	//
 	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
 	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
-	//getDefaultSegmentWildcardString() string //TODO not sure this needs to be here
+	//getDefaultSegmentWildcardString() string //not sure this needs to be here
 
 	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
 	//
@@ -302,7 +302,7 @@ type addressStringParams struct {
 	zoneSeparator byte
 }
 
-//TODO the setters and getters and constructors not implemented can be deleted, I only need the builder functions really
+// the setters and getters and constructors not implemented can be deleted, I only need the builder functions really
 
 //public AddressStringParams(int radix, Character separator, boolean uppercase) {
 //	this(radix, separator, uppercase, (char) 0);
@@ -784,7 +784,7 @@ func (params *addressStringParams) clone() *addressStringParams {
 	return &result
 }
 
-//var _ addressDivisionWriter = &addressStringParams{} TODO reinstate when string building done
+//var _ addressDivisionWriter = &addressStringParams{}
 var _ addressSegmentParams = &addressStringParams{}
 
 // Each StringParams has settings to write exactly one type of IP address part string.
@@ -1009,7 +1009,7 @@ func (params *ipAddressStringParams) clone() *ipAddressStringParams {
 	return &result
 }
 
-//var _ ipAddressStringWriter = &ipAddressStringParams{} TODO reinstate when string building done
+//var _ ipAddressStringWriter = &ipAddressStringParams{}
 
 //IPv4StringParams(int radix) {
 //	super(radix, IPv4Address.SEGMENT_SEPARATOR, false);

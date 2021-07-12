@@ -12,7 +12,12 @@ type DivInt = uint64
 
 const DivIntSize = 64
 
-type deriver interface {
+type divderiver interface {
+	// deriveNew produces a new division with the same bit count as the old
+	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
+}
+
+type segderiver interface {
 	// deriveNew produces a new segment with the same bit count as the old
 	deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues
 
@@ -20,13 +25,19 @@ type deriver interface {
 	deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues
 }
 
-// DivisionValues represents divisions with values that are 64 bits or less
-type divisionValues interface { //TODO make public?  I think I need to for createInitializedGrouping which should also be public
-	divisionValuesBase
+type segmentValues interface {
+	// getSegmentValue gets the lower value for a segment
+	getSegmentValue() SegInt
 
-	// getDivisionPrefixLength provides the prefix length
-	// if is aligned is true and the prefix is non-nil, any divisions that follow in the same grouping have a zero-length prefix
-	getDivisionPrefixLength() PrefixLen
+	// getUpperSegmentValue gets the upper value for a segment
+	getUpperSegmentValue() SegInt
+
+	segderiver
+}
+
+// DivisionValues represents divisions with values that are 64 bits or less
+type divisionValues interface {
+	divisionValuesBase
 
 	// getDivisionValue gets the lower value for a division
 	getDivisionValue() DivInt
@@ -34,77 +45,141 @@ type divisionValues interface { //TODO make public?  I think I need to for creat
 	// getUpperDivisionValue gets the upper value for a division
 	getUpperDivisionValue() DivInt
 
-	// deriveNew produces a new division with the same bit count as the old
-	deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues
+	divderiver
 
-	// getSegmentValue gets the lower value for a segment
-	getSegmentValue() SegInt
-
-	// getUpperSegmentValue gets the upper value for a segment
-	getUpperSegmentValue() SegInt
-
-	deriver
+	segmentValues
 }
 
-//TODO your generic addressDivision calcBytesInternal (which will work with uint64) will look like this
-//func (div *addressDivisionInternal) calcBytesInternal() (bytes, upperBytes []byte) {
-//	isMultiple := div.IsMultiple()
-//	byteCount := div.getByteCount()
-//	bytes = make([]byte, byteCount)
-//	val := div.getDivisionValue()
-//	var upperVal DivInt
-//	if isMultiple {
-//		upperBytes = make([]byte, byteCount)
-//		upperVal = div.getUpperDivisionValue()
-//	} else {
-//		upperBytes = bytes
-//	}
-//	bitCount := div.getBitCount()
-//	byteIndex := byteCount - 1
-//	for {
-//		bytes[byteIndex] |= byte(val)
-//		val >>= 8
-//		if isMultiple {
-//			upperBytes[byteIndex] = byte(upperVal)
-//			upperVal >>= 8
-//		}
-//		if bitCount <= 8 {
-//			return
-//		}
-//		bitCount -= 8
-//		byteIndex--
-//	}
-//}
-
-type bytesCache struct {
-	lowerBytes, upperBytes []byte
+func newDivValues(value, upperValue DivInt, prefLen PrefixLen) *divValues {
+	return &divValues{
+		value:      value,
+		upperValue: upperValue,
+		prefLen:    prefLen,
+	}
 }
 
-type divCache struct {
-	cachedString, cachedWildcardString, cached0xHexString, cachedHexString, cachedNormalizedString *string
+type divValues struct {
+	bitCount     BitCount
+	value        DivInt
+	upperValue   DivInt
+	prefLen      PrefixLen
+	defaultRadix int
+	cache        divCache
+}
 
-	cachedBytes *bytesCache
+func (div divValues) getBitCount() BitCount {
+	return div.bitCount
+}
 
-	//isSinglePrefixBlock boolSetting //TODO maybe init this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+func (div divValues) getByteCount() int {
+	return (int(div.bitCount) + 7) / 8
+}
+
+func (div divValues) getDivisionPrefixLength() PrefixLen {
+	return div.prefLen
+}
+
+func (div divValues) getValue() *BigDivInt {
+	return big.NewInt(int64(div.value))
+}
+
+func (div divValues) getUpperValue() *BigDivInt {
+	return big.NewInt(int64(div.upperValue))
+}
+
+func (div divValues) includesZero() bool {
+	return div.value == 0
+}
+
+func (div divValues) includesMax() bool {
+	allOnes := ^DivInt(0)
+	return div.upperValue == allOnes & ^(allOnes<<div.bitCount)
+}
+
+func (div divValues) isMultiple() bool {
+	return div.value != div.upperValue
+}
+
+func (div divValues) getCount() *big.Int {
+	res := new(big.Int)
+	return res.SetUint64(uint64(div.upperValue-div.value)).Add(res, bigOneConst())
+}
+
+func (div divValues) calcBytesInternal() (bytes, upperBytes []byte) {
+	isMultiple := div.isMultiple()
+	byteCount := div.getByteCount()
+	bytes = make([]byte, byteCount)
+	val := div.getDivisionValue()
+	var upperVal DivInt
+	if isMultiple {
+		upperBytes = make([]byte, byteCount)
+		upperVal = div.getUpperDivisionValue()
+	} else {
+		upperBytes = bytes
+	}
+	bitCount := div.getBitCount()
+	byteIndex := byteCount - 1
+	for {
+		bytes[byteIndex] |= byte(val)
+		val >>= 8
+		if isMultiple {
+			upperBytes[byteIndex] = byte(upperVal)
+			upperVal >>= 8
+		}
+		if bitCount <= 8 {
+			return
+		}
+		bitCount -= 8
+		byteIndex--
+	}
+}
+
+func (div divValues) getCache() *divCache {
+	return &div.cache
+}
+
+func (div divValues) getAddrType() addrType {
+	return zeroType
+}
+
+func (div divValues) getDivisionValue() DivInt {
+	return div.value
+}
+
+func (div divValues) getUpperDivisionValue() DivInt {
+	return div.upperValue
+}
+
+func (div divValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+	return NewRangePrefixDivision(val, upperVal, prefLen)
+}
+
+func (div divValues) getSegmentValue() SegInt {
+	return SegInt(div.value)
+}
+
+func (div divValues) getUpperSegmentValue() SegInt {
+	return SegInt(div.upperValue)
+}
+
+func (div divValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+	return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen)
+}
+
+func (div divValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+	return NewPrefixDivision(DivInt(val), prefLen)
 }
 
 func createAddressDivision(vals divisionValues) *AddressDivision {
 	return &AddressDivision{
 		addressDivisionInternal{
-			addressDivisionBase{divisionValues: vals},
+			addressDivisionBase: addressDivisionBase{vals},
 		},
 	}
 }
 
 type addressDivisionInternal struct {
 	addressDivisionBase
-}
-
-func (div *addressDivisionInternal) getAddrType() addrType {
-	if div.divisionValues == nil {
-		return zeroType
-	}
-	return div.divisionValues.getAddrType()
 }
 
 var (
@@ -196,46 +271,10 @@ func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount
 
 func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
 	return getMinPrefixLengthForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
-	//if !div.IsMultiple() {
-	//	return div.GetBitCount()
-	//} else if div.IsFullRange() {
-	//	return 0
-	//}
-	//
-	//result := div.GetBitCount()
-	//lowerZeros := bits.TrailingZeros64(div.getDivisionValue())
-	//if lowerZeros != 0 {
-	//	upperOnes := bits.TrailingZeros64(^div.getUpperDivisionValue())
-	//	if upperOnes != 0 {
-	//		var prefixedBitCount int
-	//		if lowerZeros < upperOnes {
-	//			prefixedBitCount = lowerZeros
-	//		} else {
-	//			prefixedBitCount = upperOnes
-	//		}
-	//		result -= BitCount(prefixedBitCount)
-	//	}
-	//}
-	//return result
 }
 
 func (div *addressDivisionInternal) GetPrefixLengthForSingleBlock() PrefixLen {
 	return getPrefixLengthForSingleBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
-	//divPrefix := div.GetMinPrefixLengthForBlock()
-	//lowerValue := div.getDivisionValue()
-	//upperValue := div.getUpperDivisionValue()
-	//bitCount := div.GetBitCount()
-	//if divPrefix == bitCount {
-	//	if lowerValue == upperValue {
-	//		return cache(divPrefix)
-	//	}
-	//} else {
-	//	shift := bitCount - divPrefix
-	//	if lowerValue>>shift == upperValue>>shift {
-	//		return cache(divPrefix)
-	//	}
-	//}
-	//return nil
 }
 
 // return whether the division range includes the block of values for the division prefix length,
@@ -689,6 +728,29 @@ func (div *addressDivisionInternal) getDefaultRangeSeparatorString() string {
 	return "-"
 }
 
+func NewDivision(val DivInt) *AddressDivision {
+	return NewRangePrefixDivision(val, val, nil)
+}
+
+func NewRangeDivision(val, upperVal DivInt) *AddressDivision {
+	return NewRangePrefixDivision(val, upperVal, nil)
+}
+
+func NewPrefixDivision(val DivInt, prefixLen PrefixLen) *AddressDivision {
+	return NewRangePrefixDivision(val, val, prefixLen)
+}
+
+func NewRangePrefixDivision(val, upperVal DivInt, prefixLen PrefixLen) *AddressDivision {
+	return &AddressDivision{
+		addressDivisionInternal{
+			addressDivisionBase{newDivValues(val, upperVal, prefixLen)},
+		},
+	}
+}
+
+// AddressDivision represents an arbitrary division in an address or address division grouping.
+// Divisions that were converted from IPv4, IPv6 or MAC segments can be converted back to the same segment type and version.
+// Divisions that were not converted from IPv4, IPv6 or MAC cannot be converted to segments.
 type AddressDivision struct {
 	addressDivisionInternal
 }

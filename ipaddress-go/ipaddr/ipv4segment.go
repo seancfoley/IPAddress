@@ -215,7 +215,7 @@ func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {
 }
 
 func NewIPv4RangeSegment(val, upperVal IPv4SegInt) *IPv4AddressSegment {
-	return NewIPv4RangePrefixSegment(val, val, nil)
+	return NewIPv4RangePrefixSegment(val, upperVal, nil)
 }
 
 func NewIPv4PrefixSegment(val IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
