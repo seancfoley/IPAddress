@@ -1233,7 +1233,7 @@ func toSegments(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	expectedByteCount int,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
 
 	//We allow two formats of bytes:
@@ -1331,7 +1331,7 @@ func createSegmentsUint64(
 	lowBytes uint64,
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	prefixLength PrefixLen) []*AddressDivision {
 	segmentMask := ^(^SegInt(0) << bitsPerSegment)
 	lowSegCount := getHostSegmentIndex(64, bytesPerSegment, bitsPerSegment)
@@ -1368,7 +1368,7 @@ func createSegments(
 	upperValueProvider SegmentValueProvider,
 	segmentCount int,
 	bitsPerSegment BitCount,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	prefixLength PrefixLen) (segments []*AddressDivision, isMultiple bool) {
 	segments = createSegmentArray(segmentCount)
 	for segmentIndex := 0; segmentIndex < segmentCount; segmentIndex++ {

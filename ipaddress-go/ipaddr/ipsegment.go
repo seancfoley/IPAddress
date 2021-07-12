@@ -198,6 +198,85 @@ func (seg *ipAddressSegmentInternal) GetWildcardString() string {
 	return stringer()
 }
 
+func (seg *ipAddressSegmentInternal) setStandardString(
+	addressStr string,
+	isStandardString bool,
+	lowerStringStartIndex,
+	lowerStringEndIndex int,
+	originalLowerValue SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
+			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
+			cache.cachedString = &str
+		}
+	}
+}
+
+func (seg *ipAddressSegmentInternal) setWildcardString(
+	addressStr string,
+	isStandardString bool,
+	lowerStringStartIndex,
+	lowerStringEndIndex int,
+	lowerValue SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedWildcardString == nil && isStandardString && lowerValue == seg.getSegmentValue() && lowerValue == seg.getUpperSegmentValue() {
+			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
+			cache.cachedWildcardString = &str
+		}
+	}
+}
+
+func (seg *ipAddressSegmentInternal) setRangeStandardString(
+	addressStr string,
+	isStandardString,
+	isStandardRangeString bool,
+	lowerStringStartIndex,
+	lowerStringEndIndex,
+	upperStringEndIndex int,
+	rangeLower,
+	rangeUpper SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedString == nil {
+			if seg.IsSinglePrefixBlock() {
+				if isStandardString && rangeLower == seg.getSegmentValue() {
+					str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
+					cache.cachedString = &str
+				}
+			} else if seg.IsFullRange() {
+				cache.cachedString = &segmentWildcardStr
+			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() {
+				upper := seg.getUpperSegmentValue()
+				if seg.isPrefixed() {
+					upper &= seg.GetSegmentNetworkMask(*seg.getDivisionPrefixLength())
+				}
+				if rangeUpper == upper {
+					str := addressStr[lowerStringStartIndex:upperStringEndIndex]
+					cache.cachedString = &str
+				}
+			}
+		}
+	}
+}
+
+func (seg *ipAddressSegmentInternal) setRangeWildcardString(
+	addressStr string,
+	isStandardRangeString bool,
+	lowerStringStartIndex,
+	upperStringEndIndex int,
+	rangeLower,
+	rangeUpper SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedWildcardString == nil {
+			if seg.IsFullRange() {
+				cache.cachedWildcardString = &segmentWildcardStr
+			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {
+				str := addressStr[lowerStringStartIndex:upperStringEndIndex]
+				cache.cachedWildcardString = &str
+			}
+		}
+	}
+}
+
 func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(bits BitCount) SegInt {
 	bc := seg.GetBitCount()
 	bits = checkBitCount(bits, bc)

@@ -58,7 +58,7 @@ func checkOverflowBig( // used by MAC and IPv6
 func fastIncrement( // used by IPv6
 	section *AddressSection,
 	inc int64,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	lowerProducer,
 	upperProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
@@ -105,7 +105,7 @@ func fastIncrement( // used by IPv6
 func increment( // used by IPv4 and MAC
 	section *AddressSection,
 	increment int64,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	countMinus1 uint64,
 	lowerValue,
 	upperValue uint64,
@@ -138,7 +138,7 @@ func incrementBig( // used by MAC and IPv6
 	section *AddressSection,
 	increment int64,
 	bigIncrement *big.Int,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	lowerProducer,
 	upperProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
@@ -165,7 +165,7 @@ func incrementBig( // used by MAC and IPv6
 func incrementRange(
 	section *AddressSection,
 	increment int64,
-	creator AddressSegmentCreator,
+	creator addressSegmentCreator,
 	lowerProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
 	if increment == 0 {
@@ -200,7 +200,7 @@ func incrementRange(
 }
 
 //this does not handle overflow, overflow should be checked before calling this
-func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentCreator, prefixLength PrefixLen) *AddressSection {
+func addBig(section *AddressSection, increment *big.Int, creator addressSegmentCreator, prefixLength PrefixLen) *AddressSection {
 	segCount := section.GetSegmentCount()
 	fullValue := section.GetValue()
 	fullValue.Add(fullValue, increment)
@@ -224,7 +224,7 @@ func addBig(section *AddressSection, increment *big.Int, creator AddressSegmentC
 	return res
 }
 
-func add(section *AddressSection, fullValue uint64, increment int64, creator AddressSegmentCreator, prefixLength PrefixLen) *AddressSection {
+func add(section *AddressSection, fullValue uint64, increment int64, creator addressSegmentCreator, prefixLength PrefixLen) *AddressSection {
 	segCount := section.GetSegmentCount()
 	newSegs := make([]*AddressDivision, segCount)
 	var val uint64

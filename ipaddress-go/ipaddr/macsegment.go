@@ -127,6 +127,39 @@ func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 	return 0xff
 }
 
+func (seg *MACAddressSegment) setString(
+	addressStr string,
+	isStandardString bool,
+	lowerStringStartIndex,
+	lowerStringEndIndex int,
+	originalLowerValue SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedWildcardString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
+			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
+			cache.cachedWildcardString = &str
+		}
+	}
+}
+
+func (seg *MACAddressSegment) setRangeString(
+	addressStr string,
+	isStandardRangeString bool,
+	lowerStringStartIndex,
+	upperStringEndIndex int,
+	rangeLower,
+	rangeUpper SegInt) {
+	if cache := seg.getCache(); cache != nil {
+		if cache.cachedWildcardString == nil {
+			if seg.IsFullRange() {
+				cache.cachedWildcardString = &segmentWildcardStr
+			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {
+				str := addressStr[lowerStringStartIndex:upperStringEndIndex]
+				cache.cachedWildcardString = &str
+			}
+		}
+	}
+}
+
 func (seg *MACAddressSegment) Iterator() MACSegmentIterator {
 	return macSegmentIterator{seg.iterator()}
 }

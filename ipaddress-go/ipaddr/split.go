@@ -77,7 +77,7 @@ func getSpanningSequentialBlocks(
 	//UnaryOperator<R> getUpper,
 	//Comparator<R> comparator,
 	//UnaryOperator<R> prefixRemover,
-	//IPAddressCreator<?, R, ?, S, ?> creator
+	//ipAddressCreator<?, R, ?, S, ?> creator
 ) []ExtendedIPSegmentSeries {
 	result := checkSequentialBlockContainment(first, other)
 	if result != nil {
@@ -136,7 +136,7 @@ func getSpanningSequentialBlocks(
 //		UnaryOperator<T> getUpper,
 //		Comparator<T> comparator,
 //		UnaryOperator<T> prefixRemover,
-//		IPAddressCreator<T, ?, ?, S, ?> creator) {
+//		ipAddressCreator<T, ?, ?, S, ?> creator) {
 //	T[] result = checkSequentialBlockContainment(first, other, prefixRemover, creator::createAddressArray);
 //	if(result != null) {
 //		return result;

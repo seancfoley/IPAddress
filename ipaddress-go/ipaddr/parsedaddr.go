@@ -1264,7 +1264,7 @@ func (parseData *parsedIPAddress) createSegment(
 	useFlags bool,
 	parsedSegIndex int,
 	segmentPrefixLength PrefixLen,
-	creator ParsedAddressCreator) *AddressDivision {
+	creator parsedAddressCreator) *AddressDivision {
 	parsed := parseData.getAddressParseData()
 	if val != upperVal {
 		return createRangeSeg(addressString, version, val, upperVal,
@@ -1288,7 +1288,7 @@ func (parseData *parsedIPAddress) createSegment(
 }
 
 // create an IPv6 segment by joining two IPv4 segments
-func createIPv6Segment(value1, value2 SegInt, segmentPrefixLength PrefixLen, creator ParsedAddressCreator) *AddressDivision {
+func createIPv6Segment(value1, value2 SegInt, segmentPrefixLength PrefixLen, creator parsedAddressCreator) *AddressDivision {
 	value := (value1 << IPv4BitsPerSegment) | value2
 	result := creator.createPrefixSegment(value, segmentPrefixLength)
 	return result
@@ -1304,7 +1304,7 @@ func createIPv6RangeSegment(
 	lowerRangeLower,
 	lowerRangeUpper SegInt,
 	segmentPrefixLength PrefixLen,
-	creator IPAddressCreator) *AddressDivision {
+	creator ipAddressCreator) *AddressDivision {
 	shift := IPv4BitsPerSegment
 	if upperRangeLower != upperRangeUpper {
 		//if the high segment has a range, the low segment must match the full range,
@@ -1332,7 +1332,7 @@ func createRangeSeg(
 	parseData *addressParseData,
 	parsedSegIndex int,
 	segmentPrefixLength PrefixLen,
-	creator ParsedAddressCreator) *AddressDivision {
+	creator parsedAddressCreator) *AddressDivision {
 	var lower, upper = stringLower, stringUpper
 	var result *AddressDivision
 	if !useFlags {
@@ -1361,7 +1361,7 @@ func createFullRangeSegment(
 	parsedSegIndex int,
 	segmentPrefixLength PrefixLen,
 	mask *SegInt,
-	creator ParsedAddressCreator) (result *AddressDivision, err IncompatibleAddressError) {
+	creator parsedAddressCreator) (result *AddressDivision, err IncompatibleAddressError) {
 	hasMask := (mask != nil)
 	if hasMask {
 		maskInt := DivInt(*mask)
@@ -1438,7 +1438,7 @@ func createAllAddress(
 				boolean hasMask = mask != null;
 				Integer prefLength = getPrefixLength(qualifier);
 				if(version.isIPv4()) {
-					ParsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getAddressCreator();
+					parsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getAddressCreator();
 					IPv4AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 					for(int i = 0; i < segmentCount; i++) {
 						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
@@ -1453,7 +1453,7 @@ func createAllAddress(
 					}
 					return creator.createAddressInternal(segments, originator, prefLength);
 				} else {
-					ParsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getAddressCreator();
+					parsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getAddressCreator();
 					IPv6AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 					for(int i = 0; i < segmentCount; i++) {
 						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;

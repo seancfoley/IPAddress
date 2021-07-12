@@ -24,6 +24,8 @@ const (
 	SegmentSqlSingleWildcardStr       = string(SegmentSqlSingleWildcard)
 )
 
+var segmentWildcardStr = SegmentWildcardStr
+
 func createAddress(section *AddressSection, zone Zone) *Address {
 	return &Address{
 		addressInternal{

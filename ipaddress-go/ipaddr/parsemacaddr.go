@@ -14,7 +14,7 @@ type ParsedMACAddress struct {
 	creationLock sync.Mutex
 }
 
-func (parseData *ParsedMACAddress) getMACAddressCreator() ParsedAddressCreator {
+func (parseData *ParsedMACAddress) getMACAddressCreator() parsedAddressCreator {
 	return parseData.originator.GetValidationOptions().GetNetwork().GetMACAddressCreator()
 }
 
@@ -50,7 +50,7 @@ func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAdd
 	}
 	return creator.createAddressInternal(sect.ToAddressSection(), parseData.originator).ToMACAddress(), nil
 	//return NewMACAddressInternal(parseData.createSection(), parseData.originator)
-	//ParsedAddressCreator<? extends MACAddress, MACAddressSection, ?, ?> creator = getMACAddressCreator();
+	//parsedAddressCreator<? extends MACAddress, MACAddressSection, ?, ?> creator = getMACAddressCreator();
 	//return creator.createAddressInternal(createSection(), originator);
 }
 
@@ -238,7 +238,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 		}
 		normalizedSegmentIndex++
 	}
-	////		ParsedAddressCreator<?, MACAddressSection, ?, MACAddressSegment> addressCreator = creator;
+	////		parsedAddressCreator<?, MACAddressSection, ?, MACAddressSegment> addressCreator = creator;
 	return creator.createSectionInternal(segments).ToMACAddressSection(), nil
 	//		MACAddressSection result = addressCreator.createSectionInternal(segments);
 	//		return result;
@@ -251,7 +251,7 @@ func createSegment(
 	useFlags bool,
 	parseData *addressParseData,
 	parsedSegIndex int,
-	creator ParsedAddressCreator) *AddressDivision {
+	creator parsedAddressCreator) *AddressDivision {
 	if val != upperVal {
 		return createRangeSegment(addressString, val, upperVal, useFlags, parseData, parsedSegIndex, creator)
 	}
@@ -278,7 +278,7 @@ func createRangeSegment(
 	useFlags bool,
 	parseData *addressParseData,
 	parsedSegIndex int,
-	creator ParsedAddressCreator) *AddressDivision {
+	creator parsedAddressCreator) *AddressDivision {
 	var result *AddressDivision
 	if !useFlags {
 		result = creator.createSegment(lower, upper, nil)

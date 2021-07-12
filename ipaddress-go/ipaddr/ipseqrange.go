@@ -522,7 +522,7 @@ func (rng *ipAddressSeqRangeInternal) iterator() AddressIterator {
 }
 
 func (rng *ipAddressSeqRangeInternal) rangeIterator(
-	//creator ParsedAddressCreator, /* nil for zero sections */
+	//creator parsedAddressCreator, /* nil for zero sections */
 	valsAreMultiple bool,
 	segProducer func(addr *IPAddress, index int) *IPAddressSegment,
 	segmentIteratorProducer func(seg *IPAddressSegment, index int) IPSegmentIterator,
