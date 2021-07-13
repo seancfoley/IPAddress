@@ -156,7 +156,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 						previousAdjustedWasRange = newLower != newUpper
 
 						//we may be able to reuse our strings on the final segment
-						//for previous segments, strings can be reused only when the value is 0, which we do not need to cache.  Any other value changes when shifted.
+						//for previous segments, strings can be reused only when the value is 0, which we do not need to cacheBitCountx.  Any other value changes when shifted.
 						if count == 0 && newLower == lower {
 							if newUpper != upper {
 								addressParseData.unsetFlag(i, keyStandardRangeStr)

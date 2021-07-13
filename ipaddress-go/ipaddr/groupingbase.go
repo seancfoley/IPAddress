@@ -8,7 +8,7 @@ import (
 )
 
 type addressDivisionGroupingBase struct {
-	// the non-cache elements are assigned at creation and are immutable
+	// the non-cacheBitCountx elements are assigned at creation and are immutable
 	divisions    divArray  // either standard or large
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool
@@ -250,7 +250,7 @@ func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCoun
 }
 
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
+	cache := grouping.cache // IsMultiple checks prior to this ensures cacheBitCountx no nil here
 	count := cache.cachedCount
 	if count == nil {
 		count = grouping.calcCount(counter)
@@ -268,7 +268,7 @@ func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) 
 }
 
 func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache // IsMultiple checks prior to this ensures cache no nil here
+	cache := grouping.cache // IsMultiple checks prior to this ensures cacheBitCountx no nil here
 	count := cache.cachedPrefixCount
 	if count == nil {
 		count = grouping.calcPrefixCount(counter)
@@ -315,6 +315,12 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 	return grouping.isMultiple
 }
 
+type mixedCache struct {
+	defaultMixedAddressSection *IPv6v4MixedAddressGrouping
+	embeddedIPv4Section        *IPv4AddressSection
+	embeddedIPv6Section        *IPv6AddressSection
+}
+
 type valueCache struct {
 	cachedCount, cachedPrefixCount *big.Int
 
@@ -330,8 +336,11 @@ type valueCache struct {
 
 	sectionCache *groupingCache
 
-	defaultMixedAddressSection *IPv6v4MixedAddressSection
-	embeddedIPv4Section        *IPv4AddressSection
+	mixed *mixedCache
+	//xxx group these together, and add the IPV6Section xxx
+
+	//defaultMixedAddressSection *IPv6v4MixedAddressGrouping
+	//embeddedIPv4Section        *IPv4AddressSection
 }
 
 type ipStringCache struct {

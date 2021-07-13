@@ -29,7 +29,12 @@ type PrefixLen *BitCount
 var cachedPrefixLens = initPrefLens()
 
 func cacheBitCount(i BitCount) PrefixLen {
-	return cache(i)
+	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
+		result := cachedPrefixLens[i]
+		return result
+	}
+	bc := BitCount(i)
+	return &bc
 }
 
 func initPrefLens() []PrefixLen {
@@ -39,15 +44,6 @@ func initPrefLens() []PrefixLen {
 		cachedPrefLens[i] = &bc
 	}
 	return cachedPrefLens
-}
-
-func cache(i BitCount) PrefixLen {
-	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
-		result := cachedPrefixLens[i]
-		return result
-	}
-	bc := BitCount(i)
-	return &bc
 }
 
 type Port *int // using signed integers allows for easier arithmetic and decrement bugs

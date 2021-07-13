@@ -34,7 +34,7 @@ type divisionValuesBase interface {
 	// convert lower and upper values to byte arrays
 	calcBytesInternal() (bytes, upperBytes []byte)
 
-	// getCache returns a cache for those divisions which cache their values, or nil otherwise
+	// getCache returns a cacheBitCountx for those divisions which cacheBitCountx their values, or nil otherwise
 	getCache() *divCache
 
 	getAddrType() addrType

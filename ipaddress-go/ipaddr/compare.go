@@ -31,6 +31,7 @@ type AddressComparator struct {
 
 const (
 	ipv6sectype          = 7
+	ipv6v4groupingtype   = 6
 	ipv4sectype          = 5
 	ipsectype            = 4
 	macsectype           = 3
@@ -88,9 +89,8 @@ func mapGrouping(series AddressDivisionSeries) int {
 		group := grouping.ToAddressDivisionGrouping()
 		if group.IsIPv6AddressSection() {
 			return ipv6sectype
-			//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
-			//		return 5;
-			//	}
+		} else if group.IsIPv6v4MixedAddressGrouping() {
+			return ipv6v4groupingtype
 		} else if group.IsIPv4AddressSection() {
 			return ipv4sectype
 		} else if group.IsMACAddressSection() {
@@ -117,23 +117,6 @@ func mapRange(rngType IPAddressSeqRangeType) int {
 	return iprangetype
 }
 
-func mapSection(section AddressSectionType) int {
-	sect := section.ToAddressSection()
-	if sect.IsIPv6AddressSection() {
-		return ipv6sectype
-		//} else if(series instanceof IPv6v4MixedAddressSection) { TODO
-		//		return 5;
-		//	}
-	} else if sect.IsIPv4AddressSection() {
-		return ipv4sectype
-	} else if sect.IsMACAddressSection() {
-		return macsectype
-	} else if sect.IsIPAddressSection() {
-		return ipsectype
-	}
-	return sectype
-}
-
 func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 	oneAddr := one.ToAddress()
 	twoAddr := two.ToAddress()
@@ -155,7 +138,7 @@ func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 }
 
 func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType) int {
-	result := mapSection(one) - mapSection(two)
+	result := mapGrouping(one) - mapGrouping(two)
 	if result != 0 {
 		return result
 	}
@@ -300,7 +283,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		} else {
 			return -1
 		}
-	} else if rng1, ok := one.(IPAddressSeqRangeType); ok { //TODO this is not right, IPAddressSeqRangeType is not AddressItem
+	} else if rng1, ok := one.(IPAddressSeqRangeType); ok {
 		if rng2, ok := two.(IPAddressSeqRangeType); ok {
 			return comp.CompareRanges(rng1, rng2)
 		} else if _, ok := two.(AddressDivisionSeries); ok {

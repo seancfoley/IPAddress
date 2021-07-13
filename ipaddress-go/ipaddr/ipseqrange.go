@@ -1057,12 +1057,12 @@ func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) Prefi
 	prefixLen := getMinPrefixLengthForBlock(lower, upper, bitCount)
 	if prefixLen == bitCount {
 		if lower == upper {
-			return cache(prefixLen)
+			return cacheBitCount(prefixLen)
 		}
 	} else {
 		shift := bitCount - prefixLen
 		if lower>>shift == upper>>shift {
-			return cache(prefixLen)
+			return cacheBitCount(prefixLen)
 		}
 	}
 	return nil

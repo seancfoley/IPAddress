@@ -153,7 +153,7 @@ func (addr *addressInternal) GetMinPrefixLengthForBlock() BitCount {
 func (addr *addressInternal) GetPrefixLengthForSingleBlock() PrefixLen {
 	section := addr.section
 	if section == nil {
-		return cache(0)
+		return cacheBitCount(0)
 	}
 	return section.GetPrefixLengthForSingleBlock()
 }

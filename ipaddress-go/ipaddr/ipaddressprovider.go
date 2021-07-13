@@ -494,7 +494,7 @@ func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress 
 	/*
 		networkMaskLen, hostMaskLen := section.checkForPrefixMask()
 			res := &maskLenSetting{networkMaskLen, hostMaskLen}
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedMaskLens))
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedMaskLens))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	*/
 	//if cached.addressCreator != nil && !cached.isItemCreated() {
@@ -931,5 +931,13 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
 
 // more: subtract, intersect, BitwiseOr
+
+// TODO append and replace in sections.  But this is tricky, when it comes to address type.  Appending to IPv6v4MixedSection, what should happen?
+// Or appending to IPv4, we must ensure the division groupings are also ipv4.  I am inclined to (a) only maintain addrType when appending at highest level,
+// (b) drop the addrType at lower levels.  It is possible you could check addrType and upscale, but this does not help with IPv6v4MixedSection.
+// So, you could just upscale selectively.  I like that.
+// But in Java, you do not allow append or replace at lower levels at all.  So, maybe you do that.  In fact, that alleviates confusion.
+// And any grouping can simply be reconstitued from the divisions as desired, you don't need it at lower level.
+// In Java, it is really problematic for (a) the type of the append or replace arg and (b) what to do when there is no match
 
 // I think you want to fix up the locking in the parsing, then move on to the prefixEquals and prefixContains stuff, but first do the reverse methods

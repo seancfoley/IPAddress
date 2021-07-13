@@ -193,7 +193,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }
 
-// GenericGroupingType represents any division grouping
+// GenericGroupingType represents any division grouping, including groupings of both standard and large divisions
 type GenericGroupingType interface {
 	AddressDivisionSeries
 
@@ -210,7 +210,8 @@ type StandardDivisionGroupingType interface {
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
 }
 
-var _ StandardDivisionGroupingType = &AddressDivisionGrouping{}
+var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
+	&IPv6v4MixedAddressGrouping{}
 
 // AddressSectionType represents any address section
 // that can be converted to/from the base type AddressSection,

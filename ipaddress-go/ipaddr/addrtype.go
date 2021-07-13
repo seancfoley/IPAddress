@@ -1,12 +1,14 @@
 package ipaddr
 
+// addrType tracks which address division and address division groupings can be upscaled to higher-level types
 type addrType string
 
 const (
-	zeroType addrType = ""     // no segments
-	ipv4Type addrType = "IPv4" // ipv4 segments
-	ipv6Type addrType = "IPv6" // ipv6 segments
-	macType  addrType = "MAC"  // mac segments
+	zeroType        addrType = ""            // no segments
+	ipv4Type        addrType = "IPv4"        // ipv4 segments
+	ipv6Type        addrType = "IPv6"        // ipv6 segments
+	ipv6v4MixedType addrType = "IPv6v4Mixed" // ipv6-v4 mixed segments
+	macType         addrType = "MAC"         // mac segments
 )
 
 func (a addrType) isNil() bool {
@@ -19,6 +21,10 @@ func (a addrType) isIPv4() bool {
 
 func (a addrType) isIPv6() bool {
 	return a == ipv6Type
+}
+
+func (a addrType) isIPv6v4Mixed() bool {
+	return a == ipv6v4MixedType
 }
 
 func (a addrType) isIP() bool {

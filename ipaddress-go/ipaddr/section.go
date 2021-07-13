@@ -1144,7 +1144,7 @@ func (section *addressSectionInternal) toMACAddressSection() *MACAddressSection 
 }
 
 func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
-	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
+	return (*AddressDivisionGrouping)(section)
 }
 
 //

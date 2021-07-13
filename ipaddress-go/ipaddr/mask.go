@@ -362,10 +362,10 @@ func maskExtendedRange(
 				//			BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
 				//			maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
 			}
-			//		ExtendedFullRangeMasker cache[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-			//		ExtendedFullRangeMasker result = cache[highestDifferingBitMasked];
+			//		ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
+			//		ExtendedFullRangeMasker result = cacheBitCountx[highestDifferingBitMasked];
 			//		if(result == null) {
-			//			cache[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
+			//			cacheBitCountx[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
 			//		}
 			//		return result;
 			return newExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential)
@@ -517,10 +517,10 @@ func maskExtendedRange(
 		//	maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
 	}
 	highestDifferingBitMasked = highestDifferingBitMaskedLow + 64
-	//ExtendedFullRangeMasker cache[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-	//ExtendedFullRangeMasker result = cache[highestDifferingBitMasked];
+	//ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
+	//ExtendedFullRangeMasker result = cacheBitCountx[highestDifferingBitMasked];
 	//if(result == null) {
-	//	cache[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
+	//	cacheBitCountx[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
 	//}
 	//return result;
 	return newExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential)

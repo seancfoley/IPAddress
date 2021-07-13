@@ -187,12 +187,12 @@ func (section *ipAddressSectionInternal) checkForPrefixMask() (networkMaskLen, h
 	}
 	if checkingNetworkFront {
 		// all ones
-		networkMaskLen = cache(section.GetBitCount())
-		hostMaskLen = cache(0)
+		networkMaskLen = cacheBitCount(section.GetBitCount())
+		hostMaskLen = cacheBitCount(0)
 	} else if checkingHostFront {
 		// all zeros
-		hostMaskLen = cache(section.GetBitCount())
-		networkMaskLen = cache(0)
+		hostMaskLen = cacheBitCount(section.GetBitCount())
+		networkMaskLen = cacheBitCount(0)
 	} else if checkingNetworkBack {
 		// ending in zeros, network mask
 		networkMaskLen = getNetworkPrefixLength(firstSeg.GetBitCount(), prefixedSegPrefixLen, prefixedSeg)

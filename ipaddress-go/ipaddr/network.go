@@ -210,8 +210,8 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	bitsPerSegment := GetBitsPerSegment(version)
 	//bytesPerSegment := GetBytesPerSegment(version);
 	//if(onesSubnet == nil || zerosSubnet == nil) {
-	//synchronized(cache) {
-	//onesSubnet = cache[onesSubnetIndex];
+	//synchronized(cacheBitCountx) {
+	//onesSubnet = cacheBitCountx[onesSubnetIndex];
 	maxSegmentValue := GetMaxSegmentValue(version)
 	if onesSubnet == nil {
 		//ipAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
@@ -251,9 +251,9 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[onesSubnetIndex]))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(onesSubnet))
 
-		//cache[onesSubnetIndex] = onesSubnet;
+		//cacheBitCountx[onesSubnetIndex] = onesSubnet;
 	}
-	//zerosSubnet = cache[zerosSubnetIndex];
+	//zerosSubnet = cacheBitCountx[zerosSubnetIndex];
 	if zerosSubnet == nil {
 		//ipAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
 		newSegments := createSegmentArray(segmentCount)
@@ -297,13 +297,13 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[zerosSubnetIndex]))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(zerosSubnet))
 
-		//cache[zerosSubnetIndex] = zerosSubnet;
+		//cacheBitCountx[zerosSubnetIndex] = zerosSubnet;
 	}
 	//}
 	//}
 
-	//synchronized(cache) {
-	//subnet = cache[cacheIndex];
+	//synchronized(cacheBitCountx) {
+	//subnet = cacheBitCountx[cacheIndex];
 	//if(subnet == nil) {
 	//BiFunction<T, Integer, S> segProducer = getSegmentProducer();
 	prefix := bits
@@ -397,10 +397,10 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	//	subnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), noZone)
 	//	//subnet = creator.createAddressInternal(newSegments); /* address creation */
 	//}
-	//initialize the cache fields since we know what they are now - they do not have to be calculated later
+	//initialize the cacheBitCountx fields since we know what they are now - they do not have to be calculated later
 	//initMaskCachedValues(subnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, prefix, segmentCount, bitsPerSegment, bytesPerSegment);
-	//cache[cacheIndex] = subnet; //last thing is to put into the cache - don't put it there before we are done with it
-	//} // end subnet from cache is null
+	//cacheBitCountx[cacheIndex] = subnet; //last thing is to put into the cacheBitCountx - don't put it there before we are done with it
+	//} // end subnet from cacheBitCountx is null
 
 	dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[cacheIndex]))
 	atomic.StorePointer(dataLoc, unsafe.Pointer(subnet))
@@ -411,7 +411,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	//
 	maskMutex.Unlock()
 
-	//} // end subnet from cache is null
+	//} // end subnet from cacheBitCountx is null
 	return subnet
 }
 

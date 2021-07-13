@@ -63,9 +63,9 @@ func getPrefixedSegmentPrefixLength(bitsPerSegment BitCount, prefixLength BitCou
  */
 func getDivisionPrefixLength(divisionBits, divisionPrefixedBits BitCount) PrefixLen {
 	if divisionPrefixedBits <= 0 {
-		return cache(0) //none of the bits in this segment matter
+		return cacheBitCount(0) //none of the bits in this segment matter
 	} else if divisionPrefixedBits <= divisionBits {
-		return cache(divisionPrefixedBits) //some of the bits in this segment matter
+		return cacheBitCount(divisionPrefixedBits) //some of the bits in this segment matter
 	}
 	return nil //all the bits in this segment matter
 }
@@ -85,7 +85,7 @@ func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmen
 	} else {
 		increment = BitCount(segmentIndex) * bitsPerSegment
 	}
-	return cache(increment + segmentPrefixLength)
+	return cacheBitCount(increment + segmentPrefixLength)
 }
 
 func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {

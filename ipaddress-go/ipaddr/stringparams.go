@@ -43,7 +43,7 @@ func toNormalizedString(opts StringOptions, section AddressDivisionSeries) strin
 
 //protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
 func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
-	//since the params here are not dependent on the section, we could cache the params in the options
+	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
@@ -93,7 +93,7 @@ func getDefaults(radix int, wildcards Wildcards, separator, zoneSeparator byte) 
 }
 
 func toParams(opts StringOptions) (res *addressStringParams) {
-	//since the params here are not dependent on the section, we could cache the params in the options
+	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(*stringOptions)
 	if hasCache {
@@ -122,7 +122,7 @@ func toParams(opts StringOptions) (res *addressStringParams) {
 }
 
 func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
-	//since the params here are not dependent on the section, we could cache the params in the options
+	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
@@ -1215,16 +1215,16 @@ func (params *ipv6v4MixedParams) getTrailingSegmentSeparator() byte {
 	return params.ipv4Params.getTrailingSegmentSeparator()
 }
 
-func (params *ipv6v4MixedParams) getTrailingSeparatorCount(addr *IPv6v4MixedAddressSection) int {
-	return params.ipv4Params.getTrailingSeparatorCount(addr.ipv4Section)
+func (params *ipv6v4MixedParams) getTrailingSeparatorCount(addr *IPv6v4MixedAddressGrouping) int {
+	return params.ipv4Params.getTrailingSeparatorCount(addr.GetIPv4AddressSection())
 }
 
-func (params *ipv6v4MixedParams) getStringLength(addr *IPv6v4MixedAddressSection, zone Zone) int {
+func (params *ipv6v4MixedParams) getStringLength(addr *IPv6v4MixedAddressGrouping, zone Zone) int {
 	ipv6Params := params.ipv6Params
-	ipv6length := ipv6Params.getSegmentsStringLength(addr.ipv6Section)
-	ipv4length := params.ipv4Params.getSegmentsStringLength(addr.ipv4Section)
+	ipv6length := ipv6Params.getSegmentsStringLength(addr.GetIPv6AddressSection())
+	ipv4length := params.ipv4Params.getSegmentsStringLength(addr.GetIPv4AddressSection())
 	length := ipv6length + ipv4length
-	if ipv6Params.nextUncompressedIndex < addr.ipv6Section.GetSegmentCount() {
+	if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
 		length++
 	}
 	length += params.getPrefixStringLength(addr)
@@ -1234,11 +1234,11 @@ func (params *ipv6v4MixedParams) getStringLength(addr *IPv6v4MixedAddressSection
 	return length
 }
 
-func (params *ipv6v4MixedParams) toString(addr *IPv6v4MixedAddressSection) string {
+func (params *ipv6v4MixedParams) toString(addr *IPv6v4MixedAddressGrouping) string {
 	return params.toZonedString(addr, noZone)
 }
 
-func (params *ipv6v4MixedParams) toZonedString(addr *IPv6v4MixedAddressSection, zone Zone) string {
+func (params *ipv6v4MixedParams) toZonedString(addr *IPv6v4MixedAddressGrouping, zone Zone) string {
 	length := params.getStringLength(addr, zone)
 	builder := &strings.Builder{}
 	builder.Grow(length)
@@ -1255,14 +1255,14 @@ func (params *ipv6v4MixedParams) appendDivision(builder *strings.Builder, seg *A
 	return params.ipv6Params.appendDivision(builder, seg)
 }
 
-func (params *ipv6v4MixedParams) append(builder *strings.Builder, addr *IPv6v4MixedAddressSection, zone Zone) *strings.Builder {
+func (params *ipv6v4MixedParams) append(builder *strings.Builder, addr *IPv6v4MixedAddressGrouping, zone Zone) *strings.Builder {
 	ipv6Params := params.ipv6Params
 	ipv6Params.appendLabel(builder)
-	ipv6Params.appendSegments(builder, addr.ipv6Section)
-	if ipv6Params.nextUncompressedIndex < addr.ipv6Section.GetSegmentCount() {
+	ipv6Params.appendSegments(builder, addr.GetIPv6AddressSection())
+	if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
 		builder.WriteByte(ipv6Params.getTrailingSegmentSeparator())
 	}
-	params.ipv4Params.appendSegments(builder, addr.ipv4Section)
+	params.ipv4Params.appendSegments(builder, addr.GetIPv4AddressSection())
 
 	/*
 	 * rfc 4038: for bracketed addresses, zone is inside and prefix outside, putting prefix after zone.
@@ -1280,15 +1280,15 @@ func (params *ipv6v4MixedParams) append(builder *strings.Builder, addr *IPv6v4Mi
 	return builder
 }
 
-func (params *ipv6v4MixedParams) getPrefixStringLength(addr *IPv6v4MixedAddressSection) int {
-	if params.requiresPrefixIndicatorIPv6(addr.ipv6Section) || params.requiresPrefixIndicatorIPv4(addr.ipv4Section) {
+func (params *ipv6v4MixedParams) getPrefixStringLength(addr *IPv6v4MixedAddressGrouping) int {
+	if params.requiresPrefixIndicatorIPv6(addr.GetIPv6AddressSection()) || params.requiresPrefixIndicatorIPv4(addr.GetIPv4AddressSection()) {
 		return getPrefixIndicatorStringLength(addr)
 	}
 	return 0
 }
 
-func (params *ipv6v4MixedParams) appendPrefixIndicator(builder *strings.Builder, addr *IPv6v4MixedAddressSection) {
-	if params.requiresPrefixIndicatorIPv6(addr.ipv6Section) || params.requiresPrefixIndicatorIPv4(addr.ipv4Section) {
+func (params *ipv6v4MixedParams) appendPrefixIndicator(builder *strings.Builder, addr *IPv6v4MixedAddressGrouping) {
+	if params.requiresPrefixIndicatorIPv6(addr.GetIPv6AddressSection()) || params.requiresPrefixIndicatorIPv4(addr.GetIPv4AddressSection()) {
 		params.ipv6Params.appendPrefixIndicator(builder, addr)
 	}
 }
@@ -1413,7 +1413,7 @@ func (writer stringWriter) getStandardString(segmentIndex int, params addressSeg
 		wildcard := params.getWildcards().GetWildcard()
 		if len(wildcard) > 0 {
 			//if wildcard == writer.getDefaultSegmentWildcardString() { unnecessary and a PITA for golang
-			//	setDefaultAsFullRangeWildcardString() //cache
+			//	setDefaultAsFullRangeWildcardString() //cacheBitCountx
 			//}
 			splitDigits := params.isSplitDigits()
 			if splitDigits {
@@ -1456,7 +1456,7 @@ func (writer stringWriter) getPrefixAdjustedRangeString(segmentIndex int, params
 	//We can insert leading zeros, string prefix, and a different separator string if necessary
 	//Also, we cannot in the case of full range (in which case we are only here because we do not want '*')
 	if rangeDigitCount == 0 && radix == writer.getDefaultTextualRadix() && !writer.IsFullRange() {
-		//we call getString() to cache the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
+		//we call getString() to cacheBitCountx the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
 		str := writer.getString()
 		rangeSep := writer.getDefaultRangeSeparatorString()
 		stringPrefix := params.getSegmentStrPrefix()

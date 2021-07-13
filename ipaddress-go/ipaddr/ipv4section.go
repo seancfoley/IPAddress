@@ -383,12 +383,12 @@ func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
 //	if segCount == 0 {
 //		return 0
 //	}
-//	cache := section.cache
+//	cacheBitCountx := section.cacheBitCountx
 //	var val *uint32
 //	if lower {
-//		val = cache.cachedLowerVal
+//		val = cacheBitCountx.cachedLowerVal
 //	} else {
-//		val = cache.cachedUpperVal
+//		val = cacheBitCountx.cachedUpperVal
 //	}
 //	if val != nil {
 //		return *val
@@ -425,9 +425,9 @@ func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
 //	}
 //	var dataLoc *unsafe.Pointer
 //	if lower {
-//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedLowerVal))
+//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedLowerVal))
 //	} else {
-//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedUpperVal))
+//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedUpperVal))
 //	}
 //	atomic.StorePointer(dataLoc, unsafe.Pointer(&result))
 //	return result
@@ -847,7 +847,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		if prefix == nil {
 			thisSegPrefix := thisSeg.getDivisionPrefixLength()
 			if thisSegPrefix != nil {
-				prefix = cache(networkPrefixLength + *thisSegPrefix)
+				prefix = cacheBitCount(networkPrefixLength + *thisSegPrefix)
 			} else {
 				networkPrefixLength += thisSeg.getBitCount()
 			}

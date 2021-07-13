@@ -53,7 +53,7 @@ func NewMACAddress(section *MACAddressSection) *MACAddress {
 	//return &MACAddress{
 	//	addressInternal{
 	//		section: section.ToAddressSection(),
-	//		cache:   &addressCache{},
+	//		cacheBitCountx:   &addressCache{},
 	//	},
 	//}
 }

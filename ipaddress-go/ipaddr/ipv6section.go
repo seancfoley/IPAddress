@@ -884,22 +884,38 @@ func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPv6AddressSection) GetMixedAddressSection() *IPv6v4MixedAddressSection {
+func (section *IPv6AddressSection) GetMixedAddressSection() *IPv6v4MixedAddressGrouping {
 	cache := section.cache
-	var sect *IPv6v4MixedAddressSection
-	if cache != nil {
-		sect = cache.defaultMixedAddressSection
+	var sect *IPv6v4MixedAddressGrouping
+	if cache != nil && cache.mixed != nil {
+		sect = cache.mixed.defaultMixedAddressSection
 	}
 	if sect == nil {
 		sect = newIPv6v4MixedSection(
 			section.createNonMixedSection(),
-			section.GetEmbeddedIPv4AddressSection())
-		if cache != nil {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.defaultMixedAddressSection))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(sect))
+			section.createEmbeddedIPv4AddressSection(),
+		)
+		if cache != nil && cache.mixed != nil {
+			mixed := &mixedCache{
+				defaultMixedAddressSection: sect,
+				embeddedIPv6Section:        sect.GetIPv6AddressSection(),
+				embeddedIPv4Section:        sect.GetIPv4AddressSection(),
+			}
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.mixed))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(mixed))
 		}
 	}
 	return sect
+}
+
+// Gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
+// which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
+func (section *IPv6AddressSection) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
+	cache := section.cache
+	if cache == nil {
+		return section.createEmbeddedIPv4AddressSection()
+	}
+	return section.GetMixedAddressSection().GetIPv4AddressSection()
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
@@ -927,49 +943,6 @@ func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex in
 	return res
 }
 
-// Gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
-// which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
-
-func (section *IPv6AddressSection) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
-	cache := section.cache
-	var sect *IPv4AddressSection
-	if cache != nil {
-		sect = cache.embeddedIPv4Section
-	}
-	if sect == nil {
-		nonMixedCount := 0
-		addressSegmentIndex := section.addressSegmentIndex
-		if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
-			nonMixedCount = count
-		}
-		segCount := section.GetSegmentCount()
-		mixedCount := segCount - nonMixedCount
-		lastIndex := segCount - 1
-		var mixed []*AddressDivision
-		if mixedCount == 0 {
-			mixed = []*AddressDivision{}
-		} else if mixedCount == 1 {
-			mixed = make([]*AddressDivision, section.GetBytesPerSegment())
-			last := section.GetSegment(lastIndex)
-			last.getSplitSegments(mixed, 0)
-		} else {
-			bytesPerSeg := section.GetBytesPerSegment()
-			mixed = make([]*AddressDivision, bytesPerSeg<<1)
-			low := section.GetSegment(lastIndex)
-			high := section.GetSegment(lastIndex - 1)
-			high.getSplitSegments(mixed, 0)
-			low.getSplitSegments(mixed, bytesPerSeg)
-		}
-		sect = createIPv4Section(mixed)
-		sect.init()
-		if cache != nil {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.embeddedIPv4Section))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(sect))
-		}
-	}
-	return sect
-}
-
 func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
 	nonMixedCount := 0
 	addressSegmentIndex := section.addressSegmentIndex
@@ -987,24 +960,49 @@ func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
 	return res
 }
 
-func createMixedAddressSection(divisions []*AddressDivision) *IPv6v4MixedAddressSection {
-	return &IPv6v4MixedAddressSection{
-		//ipAddressSectionInternal{
-		//addressSectionInternal{
+func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv4AddressSection) {
+	nonMixedCount := 0
+	addressSegmentIndex := section.addressSegmentIndex
+	if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
+		nonMixedCount = count
+	}
+	segCount := section.GetSegmentCount()
+	mixedCount := segCount - nonMixedCount
+	lastIndex := segCount - 1
+	var mixed []*AddressDivision
+	if mixedCount == 0 {
+		mixed = []*AddressDivision{}
+	} else if mixedCount == 1 {
+		mixed = make([]*AddressDivision, section.GetBytesPerSegment())
+		last := section.GetSegment(lastIndex)
+		last.getSplitSegments(mixed, 0)
+	} else {
+		bytesPerSeg := section.GetBytesPerSegment()
+		mixed = make([]*AddressDivision, bytesPerSeg<<1)
+		low := section.GetSegment(lastIndex)
+		high := section.GetSegment(lastIndex - 1)
+		high.getSplitSegments(mixed, 0)
+		low.getSplitSegments(mixed, bytesPerSeg)
+	}
+	sect = createIPv4Section(mixed)
+	sect.init()
+	return
+}
+
+func createMixedAddressSection(divisions []*AddressDivision) *IPv6v4MixedAddressGrouping {
+	return &IPv6v4MixedAddressGrouping{
 		addressDivisionGroupingInternal: addressDivisionGroupingInternal{
 			addressDivisionGroupingBase: addressDivisionGroupingBase{
 				divisions: standardDivArray{divisions},
-				//addrType:  ipv6Type,
-				cache: &valueCache{},
+				addrType:  ipv6v4MixedType,
+				cache:     &valueCache{},
 			},
 		},
-		//},
-		//},
 	}
 }
 
 //private static IPAddressDivision[] createSegments
-func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressSection {
+func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressGrouping {
 	//This cannot be public so we can be sure that the prefix lengths amongst the segments jive
 	// also set isMultiple, prefixLength,
 	//This is the first attempt to create a division grouping that has no address type.
@@ -1020,31 +1018,36 @@ func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4Add
 	ipv6Section.copySubSegmentsToSlice(0, ipv6Len, allSegs)
 	ipv4Section.copySubSegmentsToSlice(0, ipv4Len, allSegs[ipv6Len:])
 	section := createMixedAddressSection(allSegs)
-	section.ipv6Section = ipv6Section
-	section.ipv4Section = ipv4Section
+	section.cache.mixed = &mixedCache{
+		embeddedIPv6Section: ipv6Section,
+		embeddedIPv4Section: ipv4Section,
+	}
 	section.isMultiple = ipv6Section.IsMultiple() || ipv4Section.IsMultiple()
 	if ipv6Section.IsPrefixed() {
 		section.prefixLength = ipv6Section.GetPrefixLength()
 	} else if ipv4Section.IsPrefixed() {
-		section.prefixLength = cache(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLength())
+		section.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLength())
 	}
 	return section
 }
 
-//TODO IPv6v4MixedAddressSection - this can wrap AddressDivisionGrouping I guess
-// but would need to override a few key methods, or maybe we can just assign them right away?
-// Or maybe we do not even have to worry about them
-// Only worry about isPrefixBlock, but even that I do not really need
-// It may very well be that this baby needs no methods whatsoever!
-
-type IPv6v4MixedAddressSection struct {
+type IPv6v4MixedAddressGrouping struct {
 	addressDivisionGroupingInternal
-
-	ipv6Section *IPv6AddressSection
-	ipv4Section *IPv4AddressSection
 }
 
-//func (sect *IPv6v4MixedAddressSection) GetGenericIPDivision(index int) IPAddressGenericDivision {
+func (grouping *IPv6v4MixedAddressGrouping) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return (*AddressDivisionGrouping)(grouping)
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) GetIPv6AddressSection() *IPv6AddressSection {
+	return grouping.cache.mixed.embeddedIPv6Section
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) GetIPv4AddressSection() *IPv4AddressSection {
+	return grouping.cache.mixed.embeddedIPv4Section
+}
+
+//func (sect *IPv6v4MixedAddressGrouping) GetGenericIPDivision(index int) IPAddressGenericDivision {
 //	ipv6Section := sect.ipv6Section
 //	if index < ipv6Section.GetSegmentCount() {
 //		return ipv6Section.GetSegment(index)

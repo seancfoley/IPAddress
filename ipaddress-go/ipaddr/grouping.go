@@ -183,6 +183,11 @@ func (grouping *addressDivisionGroupingInternal) matchesIPv6Section() bool {
 	return addrType.isIPv6() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
+func (grouping *addressDivisionGroupingInternal) matchesIPv6v4MixedGrouping() bool {
+	addrType := grouping.getAddrType()
+	return addrType.isIPv6v4Mixed() || (addrType.isNil() && grouping.hasNoDivisions())
+}
+
 func (grouping *addressDivisionGroupingInternal) matchesIPv4Section() bool {
 	addrType := grouping.getAddrType()
 	return addrType.isIPv4() || (addrType.isNil() && grouping.hasNoDivisions())
@@ -285,7 +290,7 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 	return true
 }
 
-//TODO cache: GetPrefixLengthForSingleBlock: cachedEquivalentPrefix
+//TODO cacheBitCountx: GetPrefixLengthForSingleBlock: cachedEquivalentPrefix
 // IsSinglePrefixBlock: cachedIsSinglePrefixBlock
 // getMinPrefixLengthForBlock: cachedMinPrefix
 // methods: GetPrefixLengthForSingleBlock, AssignPrefixForSingleBlock, IsSinglePrefixBlock, GetMinPrefixLengthForBlock
@@ -343,7 +348,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLengthForSingleBlock()
 			}
 		}
 	}
-	return cache(totalPrefix)
+	return cacheBitCount(totalPrefix)
 }
 
 func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {
@@ -572,6 +577,10 @@ func (grouping *AddressDivisionGrouping) IsIPv6AddressSection() bool {
 	return grouping.ToAddressSection().IsIPv6AddressSection()
 }
 
+func (grouping *AddressDivisionGrouping) IsIPv6v4MixedAddressGrouping() bool {
+	return grouping.matchesIPv6v4MixedGrouping()
+}
+
 func (grouping *AddressDivisionGrouping) IsMACAddressSection() bool {
 	return grouping.ToAddressSection().IsMACAddressSection()
 }
@@ -583,6 +592,13 @@ func (grouping *AddressDivisionGrouping) ToAddressSection() *AddressSection {
 		return nil
 	}
 	return (*AddressSection)(unsafe.Pointer(grouping))
+}
+
+func (grouping *AddressDivisionGrouping) ToIPv4v6MixedAddressGrouping() *IPv6v4MixedAddressGrouping {
+	if grouping.matchesIPv6v4MixedGrouping() {
+		return (*IPv6v4MixedAddressGrouping)(grouping)
+	}
+	return nil
 }
 
 func (grouping *AddressDivisionGrouping) ToIPAddressSection() *IPAddressSection {
