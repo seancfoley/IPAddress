@@ -28,10 +28,11 @@ PrefixLenException
 type AddressError interface {
 	error
 
-	// GetKey() allows users to implement their own i18n messages.
+	// GetKey() allows users to implement their own i18n error messages.
 	// The keys and mappings are listed in IPAddressResources.properties,
 	// so users of this library need only provide translations and implement
-	// their own method if i18n, such as that at provided by golang.org/x/text
+	// their own method of i18n to incorporate those translations,
+	// such as the method provided by golang.org/x/text
 	GetKey() string
 }
 
@@ -49,9 +50,10 @@ func (a *addressError) Error() string {
 
 // GetKey can be used to internationalize the error strings in the IPAddress library.
 // The list of keys and their English translations are listed in IPAddressResources.properties.
-// Use your own preferred method to map the key to your own translations.
+// Use your own preferred method to map the key to your translations.
 // One such option is golang.org/x/text which provides language tags (https://pkg.go.dev/golang.org/x/text/language?utm_source=godoc#Tag),
 // which can then be mapped to catalogs, each catalog a list of translations for the set of keys provided here.
+// In the code you supply a language key to use the right catalog.
 // You can use the gotext tool to integrate those translations with your application.
 func (a *addressError) GetKey() string {
 	return a.key

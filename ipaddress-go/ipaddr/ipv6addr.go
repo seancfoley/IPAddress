@@ -259,25 +259,65 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	if sec == addr.section {
 		return addr
 	}
-	return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
+	return NewIPv6AddressZoned(section, addr.zone)
+	//return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
 }
 
 func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, false)
+}
+
+func (addr *IPv6Address) MaskPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, true)
+}
+
+func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()
-	sect, err := addr.GetSection().Mask(other.GetSection())
+	sect, err := addr.GetSection().maskPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
 		masked = addr.checkIdentity(sect)
 	}
 	return
 }
 
-func (addr *IPv6Address) MaskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
+func (addr *IPv6Address) BitwiseOr(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(other, false)
+}
+
+func (addr *IPv6Address) BitwiseOrPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(other, true)
+}
+
+func (addr *IPv6Address) bitwiseOrPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()
-	sect, err := addr.GetSection().MaskPrefixed(other.GetSection(), retainPrefix)
+	sect, err := addr.GetSection().bitwiseOrPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
 		masked = addr.checkIdentity(sect)
 	}
 	return
+}
+
+func (addr *IPv6Address) Subtract(other *IPv6Address) []*IPv6Address {
+	addr = addr.init()
+	sects, _ := addr.GetSection().Subtract(other.GetSection())
+	sectLen := len(sects)
+	if sectLen == 1 {
+		sec := sects[0]
+		if sec.ToAddressSection() == addr.section {
+			return []*IPv6Address{addr}
+		}
+	}
+	res := make([]*IPv6Address, sectLen)
+	for i, sect := range sects {
+		res[i] = NewIPv6AddressZoned(sect, addr.zone)
+	}
+	return res
+}
+
+func (addr *IPv6Address) Intersect(other *IPv6Address) *IPv6Address {
+	addr = addr.init()
+	section, _ := addr.GetSection().Intersect(other.GetSection())
+	return addr.checkIdentity(section)
 }
 
 func (addr *IPv6Address) SpanWithRange(other *IPv6Address) *IPv6AddressSeqRange {

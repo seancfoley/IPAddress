@@ -204,25 +204,64 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	if sec == addr.section {
 		return addr
 	}
-	return &IPv4Address{ipAddressInternal{addressInternal{section: sec, cache: &addressCache{}}}}
+	return NewIPv4Address(section)
 }
 
 func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, false)
+}
+
+func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, true)
+}
+
+func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
 	addr = addr.init()
-	sect, err := addr.GetSection().Mask(other.GetSection())
+	sect, err := addr.GetSection().maskPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
 		masked = addr.checkIdentity(sect)
 	}
 	return
 }
 
-func (addr *IPv4Address) MaskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
+func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(other, false)
+}
+
+func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(other, true)
+}
+
+func (addr *IPv4Address) bitwiseOrPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
 	addr = addr.init()
-	sect, err := addr.GetSection().MaskPrefixed(other.GetSection(), retainPrefix)
+	sect, err := addr.GetSection().bitwiseOrPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
 		masked = addr.checkIdentity(sect)
 	}
 	return
+}
+
+func (addr *IPv4Address) Subtract(other *IPv4Address) []*IPv4Address {
+	addr = addr.init()
+	sects, _ := addr.GetSection().Subtract(other.GetSection())
+	sectLen := len(sects)
+	if sectLen == 1 {
+		sec := sects[0]
+		if sec.ToAddressSection() == addr.section {
+			return []*IPv4Address{addr}
+		}
+	}
+	res := make([]*IPv4Address, sectLen)
+	for i, sect := range sects {
+		res[i] = NewIPv4Address(sect)
+	}
+	return res
+}
+
+func (addr *IPv4Address) Intersect(other *IPv4Address) *IPv4Address {
+	addr = addr.init()
+	section, _ := addr.GetSection().Intersect(other.GetSection())
+	return addr.checkIdentity(section)
 }
 
 func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange {
@@ -402,9 +441,10 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 	return addr.init().equals(other)
 }
 
-//TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?
+//TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?  Yes
+// Maybe EqualsAddress and ContainsAddress?
 // Because the type checks can be avoided, so can section segment counts, etc
-// WEll, I did add seriesValsSame, which avoids type checks
+// WEll, I did add seriesValsSame, which avoids type checks, could use that
 
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
@@ -534,10 +574,12 @@ func (addr *IPv4Address) MergeToPrefixBlocks(addrs ...*IPv4Address) []*IPv4Addre
 }
 
 func (addr *IPv4Address) ReverseBytes() *IPv4Address {
+	addr = addr.init()
 	return addr.checkIdentity(addr.GetSection().ReverseBytes())
 }
 
 func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, IncompatibleAddressError) {
+	addr = addr.init()
 	res, err := addr.GetSection().ReverseBits(perByte)
 	if err != nil {
 		return nil, err
@@ -546,6 +588,7 @@ func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, IncompatibleAd
 }
 
 func (addr *IPv4Address) ReverseSegments() *IPv4Address {
+	addr = addr.init()
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
 }
 

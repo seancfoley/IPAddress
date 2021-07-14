@@ -262,11 +262,47 @@ func (section *IPv4AddressSection) GetSegments() (res []*IPv4AddressSegment) {
 }
 
 func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
-	return section.MaskPrefixed(other, false)
+	return section.maskPrefixed(other, false)
 }
 
-func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
+func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
+	return section.maskPrefixed(other, true)
+}
+
+func (section *IPv4AddressSection) maskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv4AddressSection()
+	}
+	return
+}
+
+func (section *IPv4AddressSection) BitwiseOr(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
+	return section.bitwiseOrPrefixed(other, false)
+}
+
+func (section *IPv4AddressSection) BitwiseOrPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
+	return section.bitwiseOrPrefixed(other, true)
+}
+
+func (section *IPv4AddressSection) bitwiseOrPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
+	sec, err := section.bitwiseOr(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv4AddressSection()
+	}
+	return
+}
+
+func (section *IPv4AddressSection) Subtract(other *IPv4AddressSection) (res []*IPv4AddressSection, err SizeMismatchError) {
+	sections, err := section.subtract(other.ToIPAddressSection())
+	if err == nil {
+		res = cloneIPSectsToIPv4Sects(sections)
+	}
+	return
+}
+
+func (section *IPv4AddressSection) Intersect(other *IPv4AddressSection) (res *IPv4AddressSection, err SizeMismatchError) {
+	sec, err := section.intersect(other.ToIPAddressSection())
 	if err == nil {
 		res = sec.ToIPv4AddressSection()
 	}
@@ -631,31 +667,6 @@ func (section *IPv4AddressSection) ReverseSegments() *IPv4AddressSection {
 	)
 	return res.ToIPv4AddressSection()
 }
-
-//
-// Merges this with the list of sections to produce the smallest array of prefix blocks.
-//
-// The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-//func MergeToIPv4PrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
-//	series := cloneIPv4Sections(sections)
-//	if err := checkSectionCounts(series); err != nil {
-//		return nil, err
-//	}
-//	blocks := getMergedPrefixBlocks(series)
-//	return cloneToIPv4Sections(blocks), nil
-//}
-
-//
-//
-// Merges this with the list of sections to produce the smallest array of sequential block subnets.
-//
-// The resulting array is sorted by lower address, regardless of the size of each prefix block.
-//public IPv4AddressSection[] mergeToSequentialBlocks(IPv4AddressSection ...sections) throws SizeMismatchError {
-//	checkSectionsMergeable(sections);TODO REMOVE
-//	IPv4AddressSection converted[] = getCloned(sections);
-//	List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator()::createSequentialBlockSection);
-//	return blocks.toArray(new IPv4AddressSection[blocks.size()]);
-//}
 
 var (
 	ipv4CanonicalParams          = NewIPv4StringOptionsBuilder().ToOptions()

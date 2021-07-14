@@ -919,7 +919,6 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //
 // - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
-// - finish off the ip address creator interfaces (not sure if you need much here)
 // - finish HostName (now it's mostly done, just a few methods left) <---
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
@@ -930,14 +929,15 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
 
-// more: subtract, intersect, BitwiseOr
+// TODO next: prefixContains optimization in the address providers and ipaddressstring, for some reason I want to do this now
 
-// TODO append and replace in sections.  But this is tricky, when it comes to address type.  Appending to IPv6v4MixedSection, what should happen?
+// TODO append and replace in sections: we only allow at top-level.
+// This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.
+// Appending to IPv6v4MixedSection, what should happen?
+// avoiding it at lower level prevents weirdness like ipv4 becoming not ipv4 unpredictably.
 // Or appending to IPv4, we must ensure the division groupings are also ipv4.  I am inclined to (a) only maintain addrType when appending at highest level,
 // (b) drop the addrType at lower levels.  It is possible you could check addrType and upscale, but this does not help with IPv6v4MixedSection.
 // So, you could just upscale selectively.  I like that.
 // But in Java, you do not allow append or replace at lower levels at all.  So, maybe you do that.  In fact, that alleviates confusion.
 // And any grouping can simply be reconstitued from the divisions as desired, you don't need it at lower level.
 // In Java, it is really problematic for (a) the type of the append or replace arg and (b) what to do when there is no match
-
-// I think you want to fix up the locking in the parsing, then move on to the prefixEquals and prefixContains stuff, but first do the reverse methods

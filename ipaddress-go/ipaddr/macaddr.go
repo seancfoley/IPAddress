@@ -118,7 +118,7 @@ func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
 	if sec == addr.section {
 		return addr
 	}
-	return &MACAddress{addressInternal{section: sec, cache: &addressCache{}}}
+	return NewMACAddress(section)
 }
 
 func (addr *MACAddress) GetValue() *big.Int {

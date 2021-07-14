@@ -442,14 +442,7 @@ func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
 	return addr.toIPAddress().CompareSize(other)
 }
 
-var zeroIPAddr = &IPAddress{
-	ipAddressInternal{
-		addressInternal{
-			section: zeroSection,
-			cache:   &addressCache{},
-		},
-	},
-}
+var zeroIPAddr = createIPAddress(zeroSection, noZone)
 
 //
 //
@@ -817,7 +810,7 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-//TODO SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
+// methods with address args - SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
 //// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
 //// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
 // All of these with IPAddress arguments, we will pass IncompatibleAddressError with them, for the case where the arg does not match the IPAddress  version.
@@ -825,12 +818,10 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 // The rationale here is that span, merge, mask, etc are really methods targeted for addresses and not sections and you do not really need to put them in sections too.
 // The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
 // Because we do have the type-safe versions.
+// Also, with sections, the segment count matters.  And also the startIndex comes into play.  So pitting two sections against each other is more problematic.
+//   A further rationale is that it helps keep section method count down.
 
-// subtract //TODO
-// intersect //TODO
-// BitwiseOr //TODO
-
-// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code
+// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code (net.LookupAddr or LookupCNAME) http://networkbit.ch/golang-dns-lookup/
 // ToUNCHostName //TODO
 
 func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
@@ -854,19 +845,77 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 //
 // If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 // that cannot be represented as a contiguous range within each segment, then an error is returned
-func (addr *IPAddress) Mask(other *IPAddress) (*IPAddress, IncompatibleAddressError) {
+func (addr *IPAddress) Mask(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, false)
+}
+
+func (addr *IPAddress) MaskPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+	return addr.maskPrefixed(other, true)
+}
+
+func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
-			result, err := thisAddr.Mask(oth)
+			result, err := thisAddr.maskPrefixed(oth, retainPrefix)
 			return result.ToIPAddress(), err
 		}
 	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
 		if oth := other.ToIPv6Address(); oth != nil {
-			result, err := thisAddr.Mask(oth)
+			result, err := thisAddr.maskPrefixed(oth, retainPrefix)
 			return result.ToIPAddress(), err
 		}
 	}
 	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
+}
+
+func (addr *IPAddress) BitwiseOr(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(addr, false)
+}
+
+func (addr *IPAddress) BitwiseOrPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+	return addr.bitwiseOrPrefixed(addr, true)
+}
+
+func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			result, err := thisAddr.bitwiseOrPrefixed(oth, retainPrefix)
+			return result.ToIPAddress(), err
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			result, err := thisAddr.bitwiseOrPrefixed(oth, retainPrefix)
+			return result.ToIPAddress(), err
+		}
+	}
+	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
+}
+
+func (addr *IPAddress) Intersect(other *IPAddress) *IPAddress {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			return thisAddr.Intersect(oth).ToIPAddress()
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			return thisAddr.Intersect(oth).ToIPAddress()
+		}
+	}
+	return nil
+}
+
+func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			//TODO this could be more efficient since we create array twice, once inside IPv4 subtract, once here
+			return cloneIPv4AddrsToIPAddrs(thisAddr.Subtract(oth))
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			return cloneIPv6AddrsToIPAddrs(thisAddr.Subtract(oth))
+		}
+	}
+	return nil
 }
 
 // TODO isAnyLocal in IPAddress / IPv4/6Address

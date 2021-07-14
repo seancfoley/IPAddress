@@ -42,7 +42,7 @@ func deriveIPAddressSectionPrefLen(from *IPAddressSection, segments []*AddressDi
 //}
 
 func deriveIPAddressSectionSingle(from *IPAddressSection, segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPAddressSection) {
-	res = deriveIPAddressSection(from, segments)
+	res = deriveIPAddressSectionPrefLen(from, segments, prefixLength)
 	if prefixLength != nil && !singleOnly {
 		assignPrefixSubnet(prefixLength, segments, res)
 	}
@@ -368,8 +368,7 @@ func (section *ipAddressSectionInternal) createMaxHost() (*IPAddressSection, Inc
 		prefixLength,
 		true,
 		section.getDivision,
-		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() },
-		true)
+		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() })
 }
 
 func (section *ipAddressSectionInternal) toMaxHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
@@ -381,8 +380,7 @@ func (section *ipAddressSectionInternal) toMaxHostLen(prefixLength BitCount) (*I
 		nil,
 		true,
 		section.getDivision,
-		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() },
-		true)
+		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() })
 }
 
 // IsSingleNetwork returns whether the network section of the address, the prefix, consists of a single value
@@ -475,6 +473,273 @@ func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefi
 		true,
 		section.getDivision,
 		func(i int) SegInt { return msk.GetSegment(i).GetSegmentValue() })
+}
+
+// error can be IncompatibleAddressError or SizeMismatchError
+func (section *ipAddressSectionInternal) bitwiseOr(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, IncompatibleAddressError) {
+	if err := section.checkSectionCount(msk); err != nil {
+		return nil, err
+	}
+	var prefLen PrefixLen
+	if retainPrefix {
+		prefLen = section.GetPrefixLength()
+	}
+	return section.getOredSegments(
+		prefLen,
+		true,
+		section.getDivision,
+		func(i int) SegInt { return msk.GetSegment(i).GetSegmentValue() })
+}
+
+func (section *ipAddressSectionInternal) intersect(
+	other *IPAddressSection,
+	//IntFunction<S> segProducer,
+	//IntFunction<S> otherSegProducer
+) (res *IPAddressSection, err SizeMismatchError) {
+
+	//check if they are comparable section.  We only check segment count, we do not care about start index.
+	err = section.checkSectionCount(other)
+	if err != nil {
+		return
+	}
+
+	//larger prefix length should prevail?    hmmmmm... I would say that is true, choose the larger prefix
+	pref := section.GetNetworkPrefixLength()
+	otherPref := other.GetNetworkPrefixLength()
+	if pref != nil {
+		if otherPref != nil {
+			if *otherPref > *pref {
+				pref = otherPref
+			}
+		} else {
+			pref = nil
+		}
+	}
+
+	if other.Contains(section) {
+		if PrefixEquals(pref, section.GetNetworkPrefixLength()) {
+			res = section.toIPAddressSection()
+			return
+		}
+	} else if !section.IsMultiple() {
+		return
+	}
+	if section.Contains(other) {
+		if PrefixEquals(pref, other.GetNetworkPrefixLength()) {
+			res = other.toIPAddressSection()
+			return
+		}
+	} else if !other.IsMultiple() {
+		return
+	}
+
+	segCount := section.GetSegmentCount()
+	for i := 0; i < segCount; i++ {
+		seg := section.GetSegment(i)
+		otherSeg := other.GetSegment(i)
+		lower := seg.GetSegmentValue()
+		higher := seg.getUpperSegmentValue()
+		otherLower := otherSeg.GetSegmentValue()
+		otherHigher := otherSeg.getUpperSegmentValue()
+		if otherLower > higher || lower > otherHigher {
+			//no overlap in this segment means no overlap at all
+			return
+		}
+	}
+
+	// all segments have overlap
+	segs := createSegmentArray(segCount)
+	for i := 0; i < segCount; i++ {
+		seg := section.GetSegment(i)
+		otherSeg := other.GetSegment(i)
+		segPref := getSegmentPrefixLength(seg.getBitCount(), pref, i)
+		if seg.Contains(otherSeg) {
+			if PrefixEquals(segPref, otherSeg.GetSegmentPrefixLength()) {
+				segs[i] = otherSeg.ToAddressDivision()
+				continue
+			}
+		}
+		if otherSeg.Contains(seg) {
+			if PrefixEquals(segPref, seg.GetSegmentPrefixLength()) {
+				segs[i] = seg.ToAddressDivision()
+				continue
+			}
+		}
+		lower := seg.GetSegmentValue()
+		higher := seg.getUpperSegmentValue()
+		otherLower := otherSeg.GetSegmentValue()
+		otherHigher := otherSeg.getUpperSegmentValue()
+		if otherLower > lower {
+			lower = otherLower
+		}
+		if otherHigher < higher {
+			higher = otherHigher
+		}
+		segs[i] = createAddressDivision(seg.deriveNewMultiSeg(lower, higher, segPref))
+		//int newLower = Math.max(lower, otherLower);
+		//int newHigher = Math.min(higher, otherHigher);
+		//segs[i] = addrCreator.createSegment(newLower, newHigher, segPref);
+	}
+	res = deriveIPAddressSectionPrefLen(section.toIPAddressSection(), segs, pref)
+	//R result = addrCreator.createSection(segs);
+	//return result;
+	return
+}
+
+func (section *ipAddressSectionInternal) subtract(
+	other *IPAddressSection,
+	//IPAddressCreator<T, R, ?, S, ?> addrCreator,
+	//IntFunction<S> segProducer,
+	//SegFunction<R, R> prefixApplier
+) (res []*IPAddressSection, err SizeMismatchError) {
+	//check if they are comparable section
+	//section.checkSectionCount(other);
+
+	err = section.checkSectionCount(other)
+	if err != nil {
+		return
+	}
+
+	if !section.IsMultiple() {
+		if other.Contains(section) {
+			return
+		}
+		res = []*IPAddressSection{section.toIPAddressSection()}
+		return
+		//result[0] = section;
+		//return result;
+	}
+	//getDifference: same as removing the intersection
+	//   section you confirm there is an intersection in each segment.
+	// Then you remove each intersection, one at a time, leaving the other segments the same, since only one segment needs to differ.
+	// To prevent adding the same section twice, use only the intersection (ie the relative complement of the diff)
+	// of segments already handled and not the whole segment.
+
+	// For example: 0-3.0-3.2.4 subtracting 1-4.1-3.2.4, the intersection is 1-3.1-3.2.4
+	// The diff of the section segment is just 0, giving 0.0-3.2.4 (subtract the section segment, leave the others the same)
+	// The diff of the second segment is also 0, but for the section segment we use the intersection since we handled the section already, giving 1-3.0.2.4
+	// 	(take the intersection of the section segment, subtract the second segment, leave remaining segments the same)
+
+	segCount := section.GetSegmentCount()
+	for i := 0; i < segCount; i++ {
+		seg := section.GetSegment(i)
+		otherSeg := other.GetSegment(i)
+		lower := seg.GetSegmentValue()
+		higher := seg.getUpperSegmentValue()
+		otherLower := otherSeg.GetSegmentValue()
+		otherHigher := otherSeg.getUpperSegmentValue()
+		if otherLower > higher || lower > otherHigher {
+			//no overlap in this segment means no overlap at all
+			res = []*IPAddressSection{section.toIPAddressSection()}
+			return
+		}
+	}
+
+	//S intersections[] = addrCreator.createSegmentArray(segCount);
+	intersections := createSegmentArray(segCount)
+	sections := make([]*IPAddressSection, 0, segCount<<1)
+	//ArrayList<R> sections = new ArrayList<R>();
+	for i := 0; i < segCount; i++ {
+		seg := section.GetSegment(i)
+		otherSeg := other.GetSegment(i)
+		lower := seg.GetSegmentValue()
+		higher := seg.getUpperSegmentValue()
+		otherLower := otherSeg.GetSegmentValue()
+		otherHigher := otherSeg.getUpperSegmentValue()
+		if lower >= otherLower {
+			if higher <= otherHigher {
+				//this segment is contained in the other
+				if seg.isPrefixed() {
+					intersections[i] = createAddressDivision(seg.deriveNewMultiSeg(lower, higher, nil)) //addrCreator.createSegment(lower, higher, null);
+				} else {
+					intersections[i] = seg.ToAddressDivision()
+				}
+				continue
+			}
+			//otherLower <= lower <= otherHigher < higher
+			intersections[i] = createAddressDivision(seg.deriveNewMultiSeg(lower, otherHigher, nil))
+			section := section.createDiffSection(seg, otherHigher+1, higher, i, intersections)
+			sections = append(sections, section)
+		} else {
+			//lower < otherLower <= otherHigher
+			section := section.createDiffSection(seg, lower, otherLower-1, i, intersections)
+			sections = append(sections, section)
+			if higher <= otherHigher {
+				intersections[i] = createAddressDivision(seg.deriveNewMultiSeg(otherLower, higher, nil))
+			} else {
+				//lower < otherLower <= otherHigher < higher
+				intersections[i] = createAddressDivision(seg.deriveNewMultiSeg(otherLower, otherHigher, nil))
+				section = section.createDiffSection(seg, otherHigher+1, higher, i, intersections)
+				sections = append(sections, section)
+			}
+		}
+	}
+	if len(sections) == 0 {
+		return
+	}
+
+	//apply the prefix to the sections
+	//for each section, we figure out what each prefix length should be
+	if section.IsPrefixed() {
+		thisPrefix := *section.GetNetworkPrefixLength()
+		for i := 0; i < len(sections); i++ {
+			section := sections[i]
+			bitCount := section.GetBitCount()
+			totalPrefix := bitCount
+			for j := section.GetSegmentCount() - 1; j >= 0; j-- {
+				seg := section.GetSegment(j)
+				segBitCount := seg.GetBitCount()
+				segPrefix := seg.GetMinPrefixLengthForBlock()
+				if segPrefix == segBitCount {
+					break
+				} else {
+					totalPrefix -= segBitCount
+					if segPrefix != 0 {
+						totalPrefix += segPrefix
+						break
+					}
+				}
+			}
+			if totalPrefix != bitCount {
+				if totalPrefix < thisPrefix {
+					totalPrefix = thisPrefix
+				}
+				section = section.SetPrefixLen(totalPrefix)
+				sections[i] = section
+				//section = prefixApplier.apply(section, totalPrefix)
+				//sections.set(i, section)
+			}
+		}
+	}
+	res = sections
+	return
+	//R result[] = addrCreator.createSectionArray(sections.size());
+	//sections.toArray(result);
+	//return result;
+}
+
+func (original *ipAddressSectionInternal) createDiffSection(
+	//R original,
+	seg *IPAddressSegment,
+	lower,
+	upper SegInt,
+	diffIndex int,
+	//IPAddressCreator<T, R, ?, S, ?> addrCreator,
+	//IntFunction<S> segProducer,
+	intersectingValues []*AddressDivision) *IPAddressSection {
+	segCount := original.GetSegmentCount()
+	segments := createSegmentArray(segCount)
+	for j := 0; j < diffIndex; j++ {
+		segments[j] = intersectingValues[j]
+	}
+	diff := createAddressDivision(seg.deriveNewMultiSeg(lower, upper, nil))
+	segments[diffIndex] = diff
+	for j := diffIndex + 1; j < segCount; j++ {
+		segments[j] = original.getDivision(j)
+	}
+	section := deriveIPAddressSection(original.toIPAddressSection(), segments)
+	//R section = addrCreator.createSectionInternal(segments);
+	return section
 }
 
 func (section *ipAddressSectionInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
@@ -614,8 +879,7 @@ func (section *ipAddressSectionInternal) getOredSegments(
 	networkPrefixLength PrefixLen,
 	verifyMask bool,
 	segProducer func(int) *AddressDivision,
-	segmentMaskProducer func(int) SegInt,
-	singleOnly bool) (res *IPAddressSection, err IncompatibleAddressError) {
+	segmentMaskProducer func(int) SegInt) (res *IPAddressSection, err IncompatibleAddressError) {
 	networkPrefixLength = checkPrefLen(networkPrefixLength, section.GetBitCount())
 	bitsPerSegment := section.GetBitsPerSegment()
 	count := section.GetSegmentCount()
@@ -674,7 +938,8 @@ func (section *ipAddressSectionInternal) getOredSegments(
 					newSegments[i] = seg
 				}
 			}
-			res = deriveIPAddressSectionSingle(section.toIPAddressSection(), newSegments, networkPrefixLength, singleOnly)
+			res = deriveIPAddressSectionPrefLen(section.toIPAddressSection(), newSegments, networkPrefixLength)
+			//res = deriveIPAddressSectionSingle(section.toIPAddressSection(), newSegments, networkPrefixLength, singleOnly)
 			return
 		}
 	}

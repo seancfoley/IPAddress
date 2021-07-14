@@ -152,8 +152,6 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	AddressDivisionSeries
 
 	addrSegmentSeries
-
-	// TODO BitwiseOr, Intersect, Subtract.
 }
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
@@ -179,7 +177,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	// getTrailingBitCount(boolean network) TODO
 
 	ToFullString() string
-	//ToPrefixLenString() string //TODO seems I went most of the way but not all the way
+	//ToPrefixLenString() string //TODO seems I went most of the way but not all the way, still need this one string method
 	ToSubnetString() string
 	ToNormalizedWildcardString() string
 	ToCanonicalWildcardString() string

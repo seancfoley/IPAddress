@@ -263,11 +263,47 @@ func (section *IPv6AddressSection) GetSegments() (res []*IPv6AddressSegment) {
 }
 
 func (section *IPv6AddressSection) Mask(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
-	return section.MaskPrefixed(other, false)
+	return section.maskPrefixed(other, false)
 }
 
-func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressError) {
+func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	return section.maskPrefixed(other, true)
+}
+
+func (section *IPv6AddressSection) maskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv6AddressSection()
+	}
+	return
+}
+
+func (section *IPv6AddressSection) BitwiseOr(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	return section.bitwiseOrPrefixed(other, false)
+}
+
+func (section *IPv6AddressSection) BitwiseOrPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	return section.bitwiseOrPrefixed(other, false)
+}
+
+func (section *IPv6AddressSection) bitwiseOrPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	sec, err := section.bitwiseOr(other.ToIPAddressSection(), retainPrefix)
+	if err == nil {
+		res = sec.ToIPv6AddressSection()
+	}
+	return
+}
+
+func (section *IPv6AddressSection) Subtract(other *IPv6AddressSection) (res []*IPv6AddressSection, err SizeMismatchError) {
+	sections, err := section.subtract(other.ToIPAddressSection())
+	if err == nil {
+		res = cloneIPSectsToIPv6Sects(sections)
+	}
+	return
+}
+
+func (section *IPv6AddressSection) Intersect(other *IPv6AddressSection) (res *IPv6AddressSection, err SizeMismatchError) {
+	sec, err := section.intersect(other.ToIPAddressSection())
 	if err == nil {
 		res = sec.ToIPv6AddressSection()
 	}

@@ -766,7 +766,12 @@ func (params *addressStringParams) getAddressLabelLength() int {
 }
 
 func (params *addressStringParams) toString(addr AddressDivisionSeries) string {
-	return params.toZonedString(addr, noZone) //TODO I think this might be no longer necessary, we should move the zone stuff up now
+	length := params.getStringLength(addr)
+	builder := &strings.Builder{}
+	builder.Grow(length)
+	params.append(builder, addr)
+	checkLengths(length, builder)
+	return builder.String()
 }
 
 //

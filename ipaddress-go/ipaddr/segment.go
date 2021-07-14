@@ -420,7 +420,7 @@ func (seg *AddressSegment) IsIPAddressSegment() bool {
 	return seg != nil && seg.matchesIPSegment()
 }
 
-func (seg *AddressSegment) IsIPv4AddressSegment() bool { //TODO maybe rename all these to IsIPv4(), same for IsIPv6() and maybe isMAC()
+func (seg *AddressSegment) IsIPv4AddressSegment() bool {
 	return seg != nil && seg.matchesIPv4Segment()
 }
 

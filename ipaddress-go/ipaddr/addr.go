@@ -714,12 +714,7 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 	return addr.section.ToHexString(with0xPrefix)
 }
 
-var zeroAddr = &Address{
-	addressInternal{
-		section: zeroSection,
-		cache:   &addressCache{},
-	},
-}
+var zeroAddr = createAddress(zeroSection, noZone)
 
 type Address struct {
 	addressInternal
