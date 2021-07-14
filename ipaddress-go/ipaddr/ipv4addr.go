@@ -592,6 +592,14 @@ func (addr *IPv4Address) ReverseSegments() *IPv4Address {
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
 }
 
+func (addr *IPv4Address) GetLeadingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetLeadingBitCount(ones)
+}
+
+func (addr *IPv4Address) GetTrailingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetTrailingBitCount(ones)
+}
+
 func (addr IPv4Address) String() string {
 	return addr.init().ipAddressInternal.String()
 }

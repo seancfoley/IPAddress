@@ -974,6 +974,53 @@ func (section *ipAddressSectionInternal) getHostMask(network IPAddressNetwork) *
 	return network.GetNetworkMask(prefLen).GetSubSection(0, section.GetSegmentCount())
 }
 
+// getLeadingBitCount returns the number of consecutive leading one or zero bits.
+// If ones is true, returns the number of consecutive leading one bits.
+// Otherwise, returns the number of consecutive leading zero bits.
+//
+// This method applies only to the lower value of the range if this division represents multiple values.
+func (section *ipAddressSectionInternal) GetLeadingBitCount(ones bool) BitCount {
+	count := section.GetSegmentCount()
+	if count == 0 {
+		return 0
+	}
+	var front SegInt
+	if ones {
+		front = section.GetSegment(0).GetMaxValue()
+	}
+	var prefixLen BitCount
+	for i := 0; i < count; i++ {
+		seg := section.GetSegment(i)
+		value := seg.getSegmentValue()
+		if value != front {
+			return prefixLen + seg.GetLeadingBitCount(ones)
+		}
+		prefixLen += seg.getBitCount()
+	}
+	return prefixLen
+}
+
+func (section *ipAddressSectionInternal) GetTrailingBitCount(ones bool) BitCount {
+	count := section.GetSegmentCount()
+	if count == 0 {
+		return 0
+	}
+	var back SegInt
+	if !ones {
+		back = section.GetSegment(0).GetMaxValue()
+	}
+	var bitLen BitCount
+	for i := count - 1; i >= 0; i-- {
+		seg := section.GetSegment(i)
+		value := seg.getSegmentValue()
+		if value != back {
+			return bitLen + seg.GetTrailingBitCount(ones)
+		}
+		bitLen += seg.getBitCount()
+	}
+	return bitLen
+}
+
 func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return cacheStrErr(&section.getStringCache().octalString,
 		func() (string, IncompatibleAddressError) {

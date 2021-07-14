@@ -1133,6 +1133,14 @@ func (addr *IPAddress) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
 }
 
+func (addr *IPAddress) GetLeadingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetLeadingBitCount(ones)
+}
+
+func (addr *IPAddress) GetTrailingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetTrailingBitCount(ones)
+}
+
 func IPAddressEquals(one, two *IPAddress) bool {
 	if one == nil {
 		return two == nil

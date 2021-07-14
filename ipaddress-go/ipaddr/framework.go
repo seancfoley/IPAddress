@@ -173,8 +173,8 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 	GetBlockMaskPrefixLength(network bool) PrefixLen
 
-	// getLeadingBitCount(boolean network) // TODO (in java we had it in IPAddress, IPAddressDivisionGrouping, so in here I guess that translates to here
-	// getTrailingBitCount(boolean network) TODO
+	GetLeadingBitCount(ones bool) BitCount
+	GetTrailingBitCount(ones bool) BitCount
 
 	ToFullString() string
 	//ToPrefixLenString() string //TODO seems I went most of the way but not all the way, still need this one string method

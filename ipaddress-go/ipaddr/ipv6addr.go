@@ -638,6 +638,14 @@ func (addr *IPv6Address) ReverseSegments() *IPv6Address {
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
 }
 
+func (addr *IPv6Address) GetLeadingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetLeadingBitCount(ones)
+}
+
+func (addr *IPv6Address) GetTrailingBitCount(ones bool) BitCount {
+	return addr.GetSection().GetTrailingBitCount(ones)
+}
+
 func (addr IPv6Address) String() string {
 	return addr.init().addressInternal.String()
 }

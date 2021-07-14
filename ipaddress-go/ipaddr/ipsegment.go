@@ -110,13 +110,13 @@ func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) Pref
 }
 
 // GetTrailingBitCount returns the number of consecutive trailing one or zero bits.
-// If network is true, returns the number of consecutive trailing zero bits.
+// If ones is true, returns the number of consecutive trailing zero bits.
 // Otherwise, returns the number of consecutive trailing one bits.
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
-func (seg *ipAddressSegmentInternal) GetTrailingBitCount(network bool) BitCount {
+func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
 	val := seg.GetSegmentValue()
-	if network {
+	if ones {
 		//trailing zeros
 		return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << seg.GetBitCount()))))
 	}
@@ -125,14 +125,14 @@ func (seg *ipAddressSegmentInternal) GetTrailingBitCount(network bool) BitCount 
 }
 
 //	GetLeadingBitCount returns the number of consecutive leading one or zero bits.
-// If network is true, returns the number of consecutive leading one bits.
+// If ones is true, returns the number of consecutive leading one bits.
 // Otherwise, returns the number of consecutive leading zero bits.
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
-func (seg *ipAddressSegmentInternal) GetLeadingBitCount(network bool) BitCount {
+func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
 	extraLeading := 32 - seg.GetBitCount()
 	val := seg.GetSegmentValue()
-	if network {
+	if ones {
 		//leading ones
 		return BitCount(bits.LeadingZeros32(uint32(^val&seg.GetMaxValue()))) - extraLeading
 	}
