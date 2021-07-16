@@ -9,7 +9,7 @@ package ipaddr
 //	paramsBuilder := MACAddressStringParametersBuilder{}
 //	return paramsBuilder.
 //		// general settings
-//		SetAddressSize(orig.AddressSize()).
+//		SetAddressSize(orig.MACAddressSize()).
 //		AllowDashed(orig.AllowsDashed()).
 //		AllowSingleDashed(orig.AllowsSingleDashed()).
 //		AllowColonDelimited(orig.AllowsColonDelimited()).
@@ -40,24 +40,23 @@ package ipaddr
 //		ToParams().(*macAddressStringParameters)
 //}
 
-type AddressSize string //TODO rename to MACAddressSize
+type MACAddressSize string
 
 const (
-	MAC   AddressSize = "MAC"
-	EUI64 AddressSize = "EUI64"
-	ANY   AddressSize = ""
+	MAC   MACAddressSize = "MAC"
+	EUI64 MACAddressSize = "EUI64"
+	ANY   MACAddressSize = ""
 )
 
 type MACAddressStringParameters interface {
 	AddressStringParameters
 
-	AddressSize() AddressSize
+	AddressSize() MACAddressSize
 	AllowsDashed() bool
 	AllowsSingleDashed() bool
 	AllowsColonDelimited() bool
 	AllowsDotted() bool
 	AllowsSpaceDelimited() bool
-	GetNetwork() *MACAddressNetwork //TODO remove, since we will no longer use address creators
 	GetFormatParameters() MACAddressStringFormatParameters
 }
 
@@ -82,19 +81,12 @@ type macAddressStringParameters struct {
 	noAllowColonDelimited,
 	noAllowDotted,
 	noAllowSpaceDelimited bool
-	allAddresses AddressSize
+	allAddresses MACAddressSize
 	network      *MACAddressNetwork
 }
 
-func (params *macAddressStringParameters) AddressSize() AddressSize {
+func (params *macAddressStringParameters) AddressSize() MACAddressSize {
 	return params.allAddresses
-}
-
-func (params *macAddressStringParameters) GetNetwork() *MACAddressNetwork {
-	if params.network == nil {
-		return &DefaultMACNetwork
-	}
-	return params.network
 }
 
 func (params *macAddressStringParameters) AllowsDashed() bool {
@@ -140,7 +132,6 @@ func ToMACAddressStringParamsBuilder(params MACAddressStringParameters) *MACAddr
 			noAllowDotted:         !params.AllowsDotted(),
 			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
 			allAddresses:          params.AddressSize(),
-			network:               params.GetNetwork(),
 		}
 	}
 	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
@@ -180,7 +171,7 @@ func (builder *MACAddressStringParametersBuilder) AllowAll(allow bool) *MACAddre
 	return builder
 }
 
-func (builder *MACAddressStringParametersBuilder) SetAddressSize(size AddressSize) *MACAddressStringParametersBuilder {
+func (builder *MACAddressStringParametersBuilder) SetAddressSize(size MACAddressSize) *MACAddressStringParametersBuilder {
 	builder.params.allAddresses = size
 	return builder
 }

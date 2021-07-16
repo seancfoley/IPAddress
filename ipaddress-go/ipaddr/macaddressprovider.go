@@ -29,15 +29,16 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAd
 		addr = provider.address
 		if addr == nil {
 			validationOptions := provider.validationOptions
-			creator := provider.validationOptions.GetNetwork().GetMACAddressCreator()
+			//creator := provider.validationOptions.GetNetwork().GetMACAddressCreator() xxxx ipaddress we used addrType to get network to get creator
 			size := validationOptions.AddressSize()
+			creator := macType.getNetwork().getAddressCreator()
 			var segCount int
 			if size == EUI64 {
 				segCount = ExtendedUniqueIdentifier64SegmentCount
 			} else {
 				segCount = MediaAccessControlSegmentCount
 			}
-			allRangeSegment := creator.createMACRangeSegment(0, MACMaxValuePerSegment)
+			allRangeSegment := creator.createRangeSegment(0, MACMaxValuePerSegment)
 			segments := make([]*AddressDivision, segCount)
 			for i := range segments {
 				segments[i] = allRangeSegment

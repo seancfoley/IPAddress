@@ -460,7 +460,7 @@ func (cached *cachedAddressProvider) isSequential() bool {
 func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, err IncompatibleAddressError) {
 	addrs := cached.addresses
 	if addrs == nil {
-		_, res, _, err = cached.getCachedAddresses()
+		_, res, _, err = cached.getCachedAddresses() // sets cached.addresses
 	} else {
 		res, err = addrs.hostAddress, addrs.hostErr
 	}
@@ -470,7 +470,7 @@ func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, e
 func (cached *cachedAddressProvider) getProviderAddress() (res *IPAddress, err IncompatibleAddressError) {
 	addrs := cached.addresses
 	if addrs == nil {
-		res, _, err, _ = cached.getCachedAddresses()
+		res, _, err, _ = cached.getCachedAddresses() // sets cached.addresses
 	} else {
 		res, err = addrs.address, addrs.addrErr
 	}
@@ -478,16 +478,21 @@ func (cached *cachedAddressProvider) getProviderAddress() (res *IPAddress, err I
 }
 
 func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
-	if cached.addressCreator != nil {
-		address, hostAddress, addrErr, hostErr = cached.addressCreator()
-		addresses := &addressResult{
-			address:     address,
-			hostAddress: hostAddress,
-			addrErr:     addrErr,
-			hostErr:     hostErr,
+	addrs := cached.addresses
+	if addrs == nil {
+		if cached.addressCreator != nil {
+			address, hostAddress, addrErr, hostErr = cached.addressCreator()
+			addresses := &addressResult{
+				address:     address,
+				hostAddress: hostAddress,
+				addrErr:     addrErr,
+				hostErr:     hostErr,
+			}
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cached.addresses))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(addresses))
 		}
-		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cached.addresses))
-		atomic.StorePointer(dataLoc, unsafe.Pointer(addresses))
+	} else {
+		address, hostAddress, addrErr, hostErr = addrs.address, addrs.hostAddress, addrs.addrErr, addrs.hostErr
 	}
 	return
 	//xxx
@@ -607,7 +612,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 	var preferIPv6 bool
 	ipv6WithZoneLoop := func() *IPAddress {
 		network := DefaultIPv6Network
-		creator := network.getAddressCreator()
+		creator := network.getIPAddressCreator()
 		return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
 	}
 	ipv6Loop := func() *IPAddress {
@@ -786,40 +791,21 @@ type MaskCreator struct {
 //			(b) this behaviour can be overridden by a string parameters option
 
 func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*AllCreator, IncompatibleAddressError) {
-	var addrCreator func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError)
-	if *qualifier == *noQualifier {
-		addrCreator = func() (*IPAddress, *IPAddress, IncompatibleAddressError, IncompatibleAddressError) { //(address, hostAddress *IPAddress)
-			addr, err := createAllAddress(adjustedVersion, noQualifier, originator)
-			return addr, addr, err, err
-		}
-	} else {
-		addrCreator = func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
-			address, addrErr = createAllAddress(adjustedVersion, qualifier, originator)
-			if qualifier.zone == noZone {
-				hostAddress, hostErr = createAllAddress(adjustedVersion, noQualifier, originator)
-			} else {
-				qualifier2 := ParsedHostIdentifierStringQualifier{zone: qualifier.zone}
-				hostAddress, hostErr = createAllAddress(adjustedVersion, &qualifier2, originator)
-			}
-			return
-		}
-	}
-	cached := cachedAddressProvider{addressCreator: addrCreator}
-	return &AllCreator{
+	//cached := cachedAddressProvider{addressCreator: addrCreator}
+	result := &AllCreator{
 		AdjustedAddressCreator: AdjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLength(),
 			VersionedAddressCreator: VersionedAddressCreator{
-				adjustedVersion:       adjustedVersion,
-				parameters:            options,
-				cachedAddressProvider: cached,
-				versionedAddressCreator: func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
-					return createAllAddress(version, qualifier, originator)
-				},
+				adjustedVersion: adjustedVersion,
+				parameters:      options,
 			},
 		},
 		originator: originator,
 		qualifier:  *qualifier,
-	}, nil
+	}
+	result.addressCreator = result.createAddrs
+	result.versionedAddressCreator = result.versionedCreate
+	return result, nil
 }
 
 type AllCreator struct {
@@ -827,6 +813,8 @@ type AllCreator struct {
 
 	originator HostIdentifierString
 	qualifier  ParsedHostIdentifierStringQualifier
+
+	rng *IPAddressSeqRange
 }
 
 func (all *AllCreator) getType() IPType {
@@ -848,20 +836,62 @@ func (all *AllCreator) getProviderMask() *IPAddress {
 	return all.qualifier.getMaskLower()
 }
 
+func (all *AllCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+	rng = all.rng
+	addrs := all.addresses
+	if rng == nil || addrs == nil {
+		var lower, upper *IPAddress
+		addr, hostAddr, lower, upper, addrErr = createAllAddress(
+			all.adjustedVersion,
+			&all.qualifier,
+			all.originator)
+		rng, _ = lower.SpanWithRange(upper)
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&all.rng))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(rng))
+		addresses := &addressResult{
+			address:     addr,
+			hostAddress: hostAddr,
+			addrErr:     addrErr,
+			hostErr:     hostErr,
+		}
+		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&all.addresses))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(addresses))
+	} else {
+		addr, hostAddr, addrErr, hostErr = addrs.address, addrs.hostAddress, addrs.addrErr, addrs.hostErr
+	}
+	return
+}
+
+func (all *AllCreator) createRange() (rng *IPAddressSeqRange) {
+	rng, _, _, _, _ = all.createAll()
+	return
+}
+
+func (all *AllCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+	_, addr, hostAddr, addrErr, hostErr = all.createAll()
+	return
+}
+
+func (all *AllCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr IncompatibleAddressError) {
+	if version == all.adjustedVersion {
+		return all.getProviderAddress()
+	}
+	addr, _, _, _, addrErr = createAllAddress(
+		version,
+		&all.qualifier,
+		all.originator)
+	return
+}
+
 func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	if all.isProvidingAllAddresses() {
 		return nil
 	}
-	mask := all.getProviderMask()
-	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil {
-		// we must apply the mask
-		all, _ := createAllAddress(all.adjustedVersion, noQualifier, nil)
-		upper, _ := all.GetUpper().Mask(mask)
-		lower := all.GetLower() //TODO apply the mask? maybe I have this wrong in Java too.  Use the masker.
-		rge, _ := lower.SpanWithRange(upper)
-		return rge
+	rng := all.rng
+	if rng == nil {
+		rng = all.createRange()
 	}
-	return all.cachedAddressProvider.getProviderSeqRange()
+	return rng
 }
 
 // TODO the ones below later

@@ -27,7 +27,7 @@ func NewHostName(str string, params HostNameParameters) *HostName {
 }
 
 func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
-	hostStr := toNormalizedAddrPortString(addr, port) //TODO cacheBitCountx normalized string
+	hostStr := toNormalizedAddrPortString(addr, port)
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
 		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
@@ -41,7 +41,7 @@ func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
 }
 
 func NewHostNameFromAddr(addr *IPAddress) *HostName {
-	hostStr := addr.ToNormalizedString() //TODO cacheBitCountx normalized string
+	hostStr := addr.ToNormalizedString()
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
 		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},

@@ -14,9 +14,9 @@ type ParsedMACAddress struct {
 	creationLock sync.Mutex
 }
 
-func (parseData *ParsedMACAddress) getMACAddressCreator() parsedAddressCreator {
-	return parseData.originator.GetValidationOptions().GetNetwork().GetMACAddressCreator()
-}
+//func (parseData *ParsedMACAddress) getMACAddressCreator() parsedAddressCreator {
+//	return parseData.originator.GetValidationOptions().GetNetwork().GetMACAddressCreator()
+//}
 
 func (parseData *ParsedMACAddress) getMACAddressParseData() *macAddressParseData {
 	return &parseData.macAddressParseData
@@ -43,7 +43,7 @@ func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddres
 }
 
 func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAddressError) {
-	creator := parseData.getMACAddressCreator()
+	creator := macType.getNetwork().getAddressCreator()
 	sect, err := parseData.createSection()
 	if err != nil {
 		return nil, err
@@ -58,7 +58,8 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 	addressString := parseData.str
 	addressParseData := parseData.getAddressParseData()
 	actualInitialSegmentCount := addressParseData.getSegmentCount()
-	creator := parseData.getMACAddressCreator()
+	creator := macType.getNetwork().getAddressCreator()
+	//creator := parseData.getMACAddressCreator()
 	format := parseData.getFormat()
 	var finalSegmentCount, initialSegmentCount int
 	if format == nil {

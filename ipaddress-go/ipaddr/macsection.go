@@ -243,7 +243,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	return increment(
 		section.ToAddressSection(),
 		incrementVal,
-		DefaultMACNetwork.GetMACAddressCreator(),
+		DefaultMACNetwork.getAddressCreator(),
 		countMinus1,
 		section.Uint64Value(),
 		section.UpperUint64Value(),
@@ -260,7 +260,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	//			MACAddressSection result = fastIncrement(
 	//					this,
 	//					increment,
-	//					getAddressCreator(),
+	//					getIPAddressCreator(),
 	//					this::getLower,
 	//					this::getUpper,
 	//					prefixLength);
@@ -271,7 +271,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	//					this,
 	//					increment,
 	//					bigIncrement,
-	//					getAddressCreator(),
+	//					getIPAddressCreator(),
 	//					this::getLower,
 	//					this::getUpper,
 	//					getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());

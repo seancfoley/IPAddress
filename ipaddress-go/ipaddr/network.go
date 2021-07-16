@@ -6,6 +6,10 @@ import (
 	"unsafe"
 )
 
+type addressNetwork interface {
+	getAddressCreator() parsedAddressCreator
+}
+
 //TODO I think I probably want to get rid of the address creators from networks (but they are still useful when passing into certain functions), I realize now they make little sense
 //But I will still have caching.
 
@@ -31,7 +35,9 @@ type IPAddressNetwork interface {
 
 	GetPrefixedHostMask(prefixLength BitCount) *IPAddress
 
-	getAddressCreator() ipAddressCreator
+	getIPAddressCreator() ipAddressCreator
+
+	addressNetwork
 }
 
 type ipAddressNetwork struct {
@@ -48,7 +54,11 @@ type IPv6AddressNetwork struct {
 	creator ipv6AddressCreator
 }
 
-func (network *IPv6AddressNetwork) getAddressCreator() ipAddressCreator {
+func (network *IPv6AddressNetwork) getIPAddressCreator() ipAddressCreator {
+	return &network.creator
+}
+
+func (network *IPv6AddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
 
@@ -99,7 +109,11 @@ type IPv4AddressNetwork struct {
 	creator ipv4AddressCreator
 }
 
-func (network *IPv4AddressNetwork) getAddressCreator() ipAddressCreator {
+func (network *IPv4AddressNetwork) getIPAddressCreator() ipAddressCreator {
+	return &network.creator
+}
+
+func (network *IPv4AddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
 
@@ -214,7 +228,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	//onesSubnet = cacheBitCountx[onesSubnetIndex];
 	maxSegmentValue := GetMaxSegmentValue(version)
 	if onesSubnet == nil {
-		//ipAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
+		//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 		newSegments := createSegmentArray(segmentCount)
 
 		//if network && withPrefixLength {
@@ -255,7 +269,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	}
 	//zerosSubnet = cacheBitCountx[zerosSubnetIndex];
 	if zerosSubnet == nil {
-		//ipAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
+		//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 		newSegments := createSegmentArray(segmentCount)
 		//S seg;
 		if withPrefixLength {
@@ -311,7 +325,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	zerosSegment := zerosSubnet.getDivision(0)
 	//onesSegment := segProducer(onesSubnet, 1);
 	//zerosSegment := segProducer(zerosSubnet, 1);
-	//ipAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
+	//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 
 	//ArrayList<S> segmentList = new ArrayList<S>(segmentCount);
 	newSegments := createSegmentArray(segmentCount)[:0]
@@ -419,13 +433,19 @@ type MACAddressNetwork struct {
 	creator macAddressCreator
 }
 
-func (network *MACAddressNetwork) GetMACAddressCreator() *macAddressCreator {
+func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
+
+//func (network *MACAddressNetwork) GetMACAddressCreator() *macAddressCreator {
+//	return &network.creator
+//}
 
 //
 //func (network *MACAddressNetwork) GetAddressCreator() AddressCreator {
 //	return network.GetMACAddressCreator()
 //}
 
-var DefaultMACNetwork MACAddressNetwork
+var DefaultMACNetwork = &MACAddressNetwork{}
+
+var _ addressNetwork = &MACAddressNetwork{}

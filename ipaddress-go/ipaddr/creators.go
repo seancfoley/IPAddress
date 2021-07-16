@@ -3,6 +3,8 @@ package ipaddr
 import "unsafe"
 
 type addressSegmentCreator interface {
+	createRangeSegment(lower, upper SegInt) *AddressDivision
+
 	createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision
 
 	createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
@@ -49,6 +51,10 @@ func (creator *ipv6AddressCreator) getMaxValuePerSegment() SegInt {
 
 func (creator *ipv6AddressCreator) createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
 	return NewIPv6RangePrefixSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToAddressDivision()
+}
+
+func (creator *ipv6AddressCreator) createRangeSegment(lower, upper SegInt) *AddressDivision {
+	return NewIPv6RangeSegment(IPv6SegInt(lower), IPv6SegInt(upper)).ToAddressDivision()
 }
 
 func (creator *ipv6AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
@@ -118,6 +124,10 @@ func (creator *ipv4AddressCreator) createSegment(lower, upper SegInt, segmentPre
 	return NewIPv4RangePrefixSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToAddressDivision()
 }
 
+func (creator *ipv4AddressCreator) createRangeSegment(lower, upper SegInt) *AddressDivision {
+	return NewIPv4RangeSegment(IPv4SegInt(lower), IPv4SegInt(upper)).ToAddressDivision()
+}
+
 func (creator *ipv4AddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
 	originalVal SegInt, isStandardString bool, lowerStringStartIndex, lowerStringEndIndex int) *AddressDivision {
 	seg := NewIPv4PrefixSegment(IPv4SegInt(value), segmentPrefixLength)
@@ -168,7 +178,11 @@ func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPA
 }
 
 func (creator *ipv4AddressCreator) createAddressInternal(section *AddressSection, identifierString HostIdentifierString) *Address {
-	return NewIPv4Address(section.ToIPv4AddressSection()).ToAddress()
+	res := NewIPv4Address(section.ToIPv4AddressSection()).ToAddress()
+	if identifierString != nil {
+		res.cache.fromString = unsafe.Pointer(identifierString.(*IPAddressString))
+	}
+	return res
 }
 
 //
@@ -185,7 +199,10 @@ func (creator *macAddressCreator) getMaxValuePerSegment() SegInt {
 
 func (creator *macAddressCreator) createSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
 	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
-	//return creator.createMACRangePrefixSegment(ToMACSegInt(lower), ToMACSegInt(upper), segmentPrefixLength)
+}
+
+func (creator *macAddressCreator) createRangeSegment(lower, upper SegInt) *AddressDivision {
+	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
 }
 
 func (creator *macAddressCreator) createSegmentInternal(value SegInt, segmentPrefixLength PrefixLen, addressStr string,
@@ -205,35 +222,11 @@ func (creator *macAddressCreator) createRangeSegmentInternal(lower, upper SegInt
 
 func (creator *macAddressCreator) createPrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *AddressDivision {
 	return NewMACSegment(MACSegInt(value)).ToAddressDivision()
-	//return creator.createMACPrefixSegment(ToMACSegInt(value), segmentPrefixLength)
 }
 
-//func (creator *macAddressCreator) createMACSegment(value MACSegInt) *AddressDivision {
-//	return NewMACSegment(value).ToAddressDivision()
-//}
-//
 func (creator *macAddressCreator) createMACRangeSegment(lower, upper SegInt) *AddressDivision {
 	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
 }
-
-//
-//func (creator *macAddressCreator) createMACPrefixSegment(value MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-//	return NewMACSegment(value).ToAddressDivision()
-//}
-//
-//func (creator *macAddressCreator) createMACRangePrefixSegment(lower, upper MACSegInt, segmentPrefixLength PrefixLen) *AddressDivision {
-//	return NewMACRangeSegment(lower, upper).ToAddressDivision()
-//}
-
-//func (creator *macAddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
-//	//return NewMACAddress(section.ToMACAddressSection()).ToAddress()
-//	//\
-//	return nil
-//}
-
-//func (creator *macAddressCreator) createZonedAddressInternal(section *AddressSection, zone Zone) *Address {
-//	return creator.createAddressInternal(section)
-//}
 
 func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
 	return newMACAddressSectionParsed(segments).ToAddressSection()

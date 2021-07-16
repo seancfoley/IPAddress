@@ -54,7 +54,7 @@ func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressS
 	return
 }
 
-//TODO need the public equivalent of this that takes []*IPv4AddressSegment (and not []*AddressDivision)
+//TODO need the public equivalent of this constructor that takes []*IPv4AddressSegment (and not []*AddressDivision)
 
 func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
 	res, err = newIPv4AddressSection(segments /*cloneSegments,*/, prefixLength == nil)
@@ -88,7 +88,7 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
 		expectedByteCount,
-		DefaultIPv4Network.getAddressCreator(),
+		DefaultIPv4Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv4Section(segments)
@@ -128,7 +128,7 @@ func NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals SegmentValueProv
 		vals, upperVals,
 		segmentCount,
 		IPv4BitsPerSegment,
-		DefaultIPv4Network.getAddressCreator(),
+		DefaultIPv4Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
 	res.isMultiple = isMultiple
@@ -548,7 +548,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	return increment(
 		section.ToAddressSection(),
 		inc,
-		DefaultIPv4Network.getAddressCreator(),
+		DefaultIPv4Network.getIPAddressCreator(),
 		count,
 		lowerValue,
 		upperValue,

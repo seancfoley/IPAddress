@@ -43,3 +43,14 @@ func (a addrType) getIPNetwork() (network IPAddressNetwork) {
 	}
 	return
 }
+
+func (a addrType) getNetwork() (network addressNetwork) {
+	if a.isIPv6() {
+		network = DefaultIPv6Network
+	} else if a.isIPv4() {
+		network = DefaultIPv4Network
+	} else if a.isMAC() {
+		network = DefaultMACNetwork
+	}
+	return
+}

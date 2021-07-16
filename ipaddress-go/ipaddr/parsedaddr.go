@@ -32,7 +32,7 @@ type boundaryResult struct {
 func (res *boundaryResult) createRange(zone Zone) *IPAddressSeqRange {
 	//we need to add zone in order to reuse the lower and upper
 	lowerSection := res.lowerSection
-	creator := lowerSection.getAddrType().getIPNetwork().getAddressCreator()
+	creator := lowerSection.getAddrType().getIPNetwork().getIPAddressCreator()
 	rangeLower := creator.createAddressInternalFromSection(lowerSection, zone, nil)
 	var rangeUpper *IPAddress
 	if res.upperSection == nil {
@@ -46,7 +46,7 @@ func (res *boundaryResult) createRange(zone Zone) *IPAddressSeqRange {
 
 func (res *boundaryResult) createMask() *IPAddress {
 	lowerSection := res.lowerSection
-	creator := lowerSection.getAddrType().getIPNetwork().getAddressCreator()
+	creator := lowerSection.getAddrType().getIPNetwork().getIPAddressCreator()
 	return creator.createAddressInternalFromSection(res.lowerSection, noZone, nil)
 }
 
@@ -226,13 +226,13 @@ func (parseData *parsedIPAddress) getCachedAddresses(forHostAddr bool) *sectionR
 					section = sections.section
 					originator = parseData.originator
 				}
-				creator := section.getAddrType().getIPNetwork().getAddressCreator()
+				creator := section.getAddrType().getIPNetwork().getIPAddressCreator()
 				addr = creator.createAddressInternalFromSection(section, parseData.getQualifier().getZone(), originator)
 				var dataLoc *unsafe.Pointer
 				if forHostAddr {
 					dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&sections.hostAddress))
 				} else {
-					// if range created first, grab the lower and upper
+					// if range created first, stick the lower and upper into the address cache
 					if rng := val.rng; rng != nil {
 						addr.cache.addrsCache = &addrsCache{
 							lower: rng.lower.ToAddress(),
@@ -314,7 +314,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 	if hasMask && parseData.maskers == nil {
 		parseData.maskers = make([]Masker, segmentCount)
 	}
-	creator := ipv4Type.getIPNetwork().getAddressCreator()
+	creator := ipv4Type.getIPNetwork().getIPAddressCreator()
 	missingCount := IPv4SegmentCount - segmentCount
 
 	var hostSegments, segments, lowerSegments, upperSegments []*AddressDivision
@@ -650,7 +650,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 		parseData.maskers = make([]Masker, segmentCount)
 	}
 	//creator := parseData.getIPv6AddressCreator()
-	creator := ipv6Type.getIPNetwork().getAddressCreator()
+	creator := ipv6Type.getIPNetwork().getIPAddressCreator()
 	ipv6SegmentCount := IPv6SegmentCount
 	var hostSegments, segments, lowerSegments, upperSegments []*AddressDivision
 	if doSections {
@@ -1361,8 +1361,10 @@ func createFullRangeSegment(
 	parsedSegIndex int,
 	segmentPrefixLength PrefixLen,
 	mask *SegInt,
-	creator parsedAddressCreator) (result *AddressDivision, err IncompatibleAddressError) {
+	creator parsedAddressCreator) (result, hostResult, lower, upper *AddressDivision, err IncompatibleAddressError) {
+	var maskedLower, maskedUpper SegInt
 	hasMask := (mask != nil)
+	maskedIsDifferent := false
 	if hasMask {
 		maskInt := DivInt(*mask)
 		lstringLower := uint64(stringLower)
@@ -1375,60 +1377,91 @@ func createFullRangeSegment(
 					key: "ipaddress.error.maskMismatch",
 				},
 			}
-			return
 		}
-		stringLower = SegInt(masker.GetMaskedLower(lstringLower, maskInt))
-		stringUpper = SegInt(masker.GetMaskedUpper(lstringUpper, maskInt))
+		maskedLower = SegInt(masker.GetMaskedLower(lstringLower, maskInt))
+		maskedUpper = SegInt(masker.GetMaskedUpper(lstringUpper, maskInt))
+		maskedIsDifferent = maskedLower != stringLower || maskedUpper != stringUpper
 	}
-	result = createRangeSeg("", version, stringLower, stringUpper,
+	result = createRangeSeg("", version, maskedLower, maskedUpper,
 		false, nil, parsedSegIndex, segmentPrefixLength, creator)
+	if maskedIsDifferent || segmentPrefixLength != nil {
+		hostResult = createRangeSeg("", version, stringLower, stringUpper,
+			false, nil, parsedSegIndex, nil, creator)
+	} else {
+		hostResult = result
+	}
+	if maskedLower == maskedUpper {
+		lower = result
+		upper = result
+	} else {
+		lower = createRangeSeg("", version, maskedLower, maskedLower,
+			false, nil, parsedSegIndex, segmentPrefixLength, creator)
+		upper = createRangeSeg("", version, maskedUpper, maskedUpper,
+			false, nil, parsedSegIndex, segmentPrefixLength, creator)
+	}
 	return
 }
 
 func createAllAddress(
 	version IPVersion,
 	qualifier *ParsedHostIdentifierStringQualifier,
-	originator HostIdentifierString) (*IPAddress, IncompatibleAddressError) {
+	originator HostIdentifierString) (res, hostAddr, lower, upper *IPAddress, err IncompatibleAddressError) {
 
-	creator := version.toType().getIPNetwork().getAddressCreator()
-	prefixLength := qualifier.getEquivalentPrefixLength()
+	creator := version.toType().getIPNetwork().getIPAddressCreator()
+	//prefixLength := qualifier.getEquivalentPrefixLength()
 	mask := qualifier.getMaskLower()
+	//TODO mask version must match version
+	// Sometimes this function is called for a specific version, in fact that version might even be etermined by the mask, but it is not always dettermined by the mask
 	if mask != nil && mask.GetBlockMaskPrefixLength(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}
 	segmentCount := GetSegmentCount(version)
 	segments := make([]*AddressDivision, segmentCount)
+	hostSegments := make([]*AddressDivision, segmentCount)
+	lowerSegments := make([]*AddressDivision, segmentCount)
+	upperSegments := make([]*AddressDivision, segmentCount)
 	segMaxVal := creator.getMaxValuePerSegment()
-	if prefixLength == nil {
-		allRangeSegment := creator.createSegment(0, segMaxVal, nil)
-		for i := range segments {
-			segments[i] = allRangeSegment
+	//if prefixLength == nil { xxxx this looks wrong - what about mask, we can still have a mask when pref len is nil xxx
+	//	allRangeSegment := creator.createSegment(0, segMaxVal, nil)
+	//	for i := range segments {
+	//		segments[i] = allRangeSegment
+	//	}
+	//} else {
+	hasMask := mask != nil
+	for i := 0; i < segmentCount; i++ {
+		var segmentMask *SegInt
+		if hasMask {
+			maskVal := mask.getSegment(i).getSegmentValue()
+			segmentMask = &maskVal
 		}
-	} else {
-		hasMask := mask != nil
-		for i := 0; i < segmentCount; i++ {
-			var segmentMask *SegInt
-			if hasMask {
-				maskVal := mask.getSegment(i).getSegmentValue()
-				segmentMask = &maskVal
-			}
-			newSeg, err := createFullRangeSegment(
-				version,
-				0,
-				segMaxVal,
-				i,
-				getSegmentVersionedPrefixLength(i, version, qualifier),
-				segmentMask,
-				creator)
-			if err != nil {
-				return nil, err
-			}
-			segments[i] = newSeg
+		newSeg, hostSeg, lowSeg, upperSeg, rngErr := createFullRangeSegment(
+			version,
+			0,
+			segMaxVal,
+			i,
+			getSegmentVersionedPrefixLength(i, version, qualifier),
+			segmentMask,
+			creator)
+		if rngErr != nil && err == nil {
+			err = rngErr
 		}
+		segments[i] = newSeg
+		hostSegments[i] = hostSeg
+		lowerSegments[i] = lowSeg
+		upperSegments[i] = upperSeg
 	}
-	section := creator.createSectionInternal(segments)
-	return creator.createAddressInternal(section.ToAddressSection(), originator).ToIPAddress(), nil
-
+	//}
+	if err == nil {
+		section := creator.createSectionInternal(segments)
+		res = creator.createAddressInternalFromSection(section.ToIPAddressSection(), qualifier.getZone(), originator).ToIPAddress()
+	}
+	hostSection := creator.createSectionInternal(hostSegments)
+	hostAddr = creator.createAddressInternal(hostSection.ToAddressSection(), nil).ToIPAddress()
+	lowerSection := creator.createSectionInternal(lowerSegments)
+	lower = creator.createAddressInternal(lowerSection.ToAddressSection(), nil).ToIPAddress()
+	upperSection := creator.createSectionInternal(upperSegments)
+	upper = creator.createAddressInternal(upperSection.ToAddressSection(), nil).ToIPAddress()
+	return
 	/*
 		int segmentCount = IPAddress.getSegmentCount(version);
 				IPAddress mask = qualifier.getMaskLower();
@@ -1438,7 +1471,7 @@ func createAllAddress(
 				boolean hasMask = mask != null;
 				Integer prefLength = getPrefixLength(qualifier);
 				if(version.isIPv4()) {
-					parsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getAddressCreator();
+					parsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getIPAddressCreator();
 					IPv4AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 					for(int i = 0; i < segmentCount; i++) {
 						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
@@ -1453,7 +1486,7 @@ func createAllAddress(
 					}
 					return creator.createAddressInternal(segments, originator, prefLength);
 				} else {
-					parsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getAddressCreator();
+					parsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getIPAddressCreator();
 					IPv6AddressSegment segments[] = creator.createSegmentArray(segmentCount);
 					for(int i = 0; i < segmentCount; i++) {
 						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
@@ -1481,7 +1514,7 @@ func createAllAddress(
 				if addr == nil {
 					validationOptions := provider.validationOptions
 					creator := provider.validationOptions.GetNetwork().GetMACAddressCreator()
-					size := validationOptions.AddressSize()
+					size := validationOptions.MACAddressSize()
 					var segCount int
 					if size == EUI64 {
 						segCount = ExtendedUniqueIdentifier64SegmentCount

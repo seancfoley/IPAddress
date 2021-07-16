@@ -90,7 +90,7 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
 		expectedByteCount,
-		DefaultIPv6Network.getAddressCreator(),
+		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv6Section(segments, 0)
@@ -130,7 +130,7 @@ func NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 		vals, upperVals,
 		segmentCount,
 		IPv6BitsPerSegment,
-		DefaultIPv6Network.getAddressCreator(),
+		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv6Section(segments, 0)
 	res.isMultiple = isMultiple
@@ -233,15 +233,6 @@ func (section *IPv6AddressSection) GetNetworkMask() *IPv6AddressSection {
 func (section *IPv6AddressSection) GetHostMask() *IPv6AddressSection {
 	return section.getHostMask(DefaultIPv6Network).ToIPv6AddressSection()
 }
-
-//// ForEachSegment calls the given callback for each segment, terminating early if a callback returns true TODO not sure about this, still considering adding it (here and in Java), it allows you to avoid panics by not going past end of segment array
-//func (section *IPv6AddressSection) ForEachSegment(callback func(index int, segment *IPv6AddressSegment) (stop bool)) {
-//	section.visitSegments(
-//		func(index int, div *AddressDivision) bool {
-//			return callback(index, div.ToIPv6AddressSegment())
-//		},
-//		section.GetSegmentCount())
-//}
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
@@ -559,7 +550,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	result := fastIncrement(
 		section.ToAddressSection(),
 		increment,
-		DefaultIPv6Network.getAddressCreator(),
+		DefaultIPv6Network.getIPAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength)
@@ -571,7 +562,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 		section.ToAddressSection(),
 		increment,
 		&bigIncrement,
-		DefaultIPv6Network.getAddressCreator(),
+		DefaultIPv6Network.getIPAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength).ToIPv6AddressSection()
