@@ -35,7 +35,7 @@ func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, 
 		return
 	}
 	res = createIPv4Section(segments)
-	if err = res.init(); err != nil {
+	if err = res.initMultAndPrefLen(); err != nil {
 		res = nil
 		return
 	}
@@ -50,7 +50,7 @@ func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, 
 
 func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressSection) {
 	res = createIPv4Section(segments)
-	_ = res.init()
+	_ = res.initMultAndPrefLen()
 	return
 }
 
@@ -864,196 +864,12 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 			}
 		}
 	}
-	return createAddressDivision(&joinedSegmentVals{
-		value:       lower,
-		upperValue:  upper,
-		joinedCount: joinCount,
-		prefixLen:   prefix,
-	}), nil
+	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
 }
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
 }
-
-/*
-	private IPv4JoinedSegments joinSegments(int joinCount) {
-		long lower = 0, upper = 0;
-		int networkPrefixLength = 0;
-		Integer prefix = null;
-		int firstSegIndex = 0;
-		IPv4AddressSegment firstRange = null;
-		int firstJoinedIndex = getSegmentCount() - 1 - joinCount;
-		for(int j = 0; j <= joinCount; j++) {
-			IPv4AddressSegment thisSeg = getSegment(firstJoinedIndex + j);
-			if(firstRange != null) {
-				if(!thisSeg.isFullRange()) {
-					throw new IncompatibleAddressError(firstRange, firstSegIndex, thisSeg, firstJoinedIndex + j, "ipaddress.error.segmentMismatch");
-				}
-			} else if(thisSeg.isMultiple()) {
-				firstSegIndex = firstJoinedIndex + j;
-				firstRange = thisSeg;
-			}
-			lower = lower << getBitsPerSegment() | thisSeg.getSegmentValue();
-			upper = upper << getBitsPerSegment() | thisSeg.getUpperSegmentValue();
-			if(prefix == null) {
-				Integer thisSegPrefix = thisSeg.getSegmentPrefixLength();
-				if(thisSegPrefix != null) {
-					prefix = cacheBits(networkPrefixLength + thisSegPrefix);
-				} else {
-					networkPrefixLength += thisSeg.getBitCount();
-				}
-			}
-		}
-		IPv4JoinedSegments joinedSegment = new IPv4JoinedSegments(joinCount, lower, upper, prefix);
-		return joinedSegment;
-	}
-*/
-///func (seg *IPv4JoinedSegments) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
-//	if seg.IsPrefixed() {
-//		upperValue := seg.GetUpperSegmentValue()
-//		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
-//		upperValue &= mask
-//		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
-//	} else {
-//		seg.getUpperString(radix, uppercase, appendable)
-//	}
-//}
-
-//xxx ok, I really need a separate struct to act as the values
-//IPv4JoinedSegments must still extend addressDivisionInternal but use that other struct
-//In fact, no need to have an IPv4JoinedSegments, just use AddressDivision
-
-//type IPv4JoinedSegments struct {
-//	addressDivisionInternal
-//}
-
-type joinedSegmentVals struct {
-	value, upperValue DivInt
-	joinedCount       int
-	prefixLen         PrefixLen
-	cache             divCache
-}
-
-func (seg *joinedSegmentVals) getBitCount() BitCount {
-	return (BitCount(seg.joinedCount) + 1) << 3
-}
-
-func (seg *joinedSegmentVals) getByteCount() int {
-	return seg.joinedCount + 1
-}
-
-func (seg *joinedSegmentVals) getDivisionValue() DivInt {
-	return seg.value
-}
-
-func (seg *joinedSegmentVals) getUpperDivisionValue() DivInt {
-	return seg.upperValue
-}
-
-func (seg *joinedSegmentVals) getValue() *BigDivInt {
-	return big.NewInt(int64(seg.getDivisionValue()))
-}
-
-func (seg *joinedSegmentVals) getUpperValue() *BigDivInt {
-	return big.NewInt(int64(seg.getUpperDivisionValue()))
-}
-
-func (seg *joinedSegmentVals) includesZero() bool {
-	return seg.getDivisionValue() == 0
-}
-
-func (seg *joinedSegmentVals) includesMax() bool {
-	return seg.getUpperDivisionValue() == ^(^DivInt(0) << seg.getBitCount())
-}
-
-func (seg *joinedSegmentVals) isMultiple() bool {
-	return seg.getDivisionValue() != seg.getUpperDivisionValue()
-}
-
-func (seg *joinedSegmentVals) getCount() *big.Int {
-	return big.NewInt(int64((seg.getUpperDivisionValue() - seg.getDivisionValue()) + 1))
-}
-
-func (seg *joinedSegmentVals) calcBytesInternal() (bytes, upperBytes []byte) {
-	return calcBytesInternal(seg.getByteCount(), seg.getDivisionValue(), seg.getUpperDivisionValue())
-}
-
-func calcBytesInternal(byteCount int, val, upperVal DivInt) (bytes, upperBytes []byte) {
-	//byteCount := seg.getByteCount()
-	byteIndex := byteCount - 1
-	//val := seg.getDivisionValue()
-	isMultiple := val != upperVal //seg.isMultiple()
-	bytes = make([]byte, byteCount)
-	//var upperVal DivInt
-	if isMultiple {
-		//upperVal = seg.getUpperDivisionValue()
-		upperBytes = make([]byte, byteCount)
-	} else {
-		upperBytes = bytes
-	}
-	for {
-		bytes[byteIndex] |= byte(val)
-		val >>= 8
-		if isMultiple {
-			upperBytes[byteIndex] |= byte(upperVal)
-			upperVal >>= 8
-		}
-		if byteIndex == 0 {
-			return bytes, upperBytes
-		}
-		byteIndex--
-	}
-}
-
-func (seg *joinedSegmentVals) getCache() *divCache {
-	return &seg.cache
-}
-
-func (seg *joinedSegmentVals) getAddrType() addrType {
-	return zeroType //ipv4Type means convertible to IPv4 segment, which this is not
-}
-
-func (seg *joinedSegmentVals) getDivisionPrefixLength() PrefixLen {
-	return seg.prefixLen
-}
-
-func (seg *joinedSegmentVals) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return &joinedSegmentVals{
-		value:       val,
-		upperValue:  upperVal,
-		joinedCount: seg.joinedCount,
-		prefixLen:   prefLen,
-	}
-}
-
-func (seg *joinedSegmentVals) getSegmentValue() SegInt {
-	return SegInt(seg.value)
-}
-
-func (seg *joinedSegmentVals) getUpperSegmentValue() SegInt {
-	return SegInt(seg.upperValue)
-}
-
-func (seg *joinedSegmentVals) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
-	return &joinedSegmentVals{
-		value:       DivInt(val),
-		upperValue:  DivInt(upperVal),
-		joinedCount: seg.joinedCount,
-		prefixLen:   prefLen,
-	}
-}
-
-func (seg *joinedSegmentVals) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
-	return &joinedSegmentVals{
-		value:       DivInt(val),
-		upperValue:  DivInt(val),
-		joinedCount: seg.joinedCount,
-		prefixLen:   prefLen,
-	}
-}
-
-var _ divisionValues = &joinedSegmentVals{}
 
 type Inet_aton_radix int
 

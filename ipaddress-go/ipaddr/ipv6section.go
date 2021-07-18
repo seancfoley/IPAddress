@@ -39,7 +39,7 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 		return
 	}
 	res = createIPv6Section(segments, int8(startIndex))
-	if err = res.init(); err != nil {
+	if err = res.initMultAndPrefLen(); err != nil {
 		res = nil
 		return
 	}
@@ -54,7 +54,7 @@ func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, clone
 
 func newIPv6AddressSectionParsed(segments []*AddressDivision) (res *IPv6AddressSection) {
 	res = createIPv6Section(segments, 0)
-	_ = res.init()
+	_ = res.initMultAndPrefLen()
 	return
 }
 
@@ -902,7 +902,7 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOpt
 }
 
 func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4MixedParams, zone Zone) string {
-	mixed := section.GetMixedAddressSection()
+	mixed := section.GetMixedAddressGrouping()
 	result := mixedParams.toZonedString(mixed, zone)
 	return result
 }
@@ -911,14 +911,14 @@ func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPv6AddressSection) GetMixedAddressSection() *IPv6v4MixedAddressGrouping {
+func (section *IPv6AddressSection) GetMixedAddressGrouping() *IPv6v4MixedAddressGrouping {
 	cache := section.cache
 	var sect *IPv6v4MixedAddressGrouping
 	if cache != nil && cache.mixed != nil {
 		sect = cache.mixed.defaultMixedAddressSection
 	}
 	if sect == nil {
-		sect = newIPv6v4MixedSection(
+		sect = newIPv6v4MixedGrouping(
 			section.createNonMixedSection(),
 			section.createEmbeddedIPv4AddressSection(),
 		)
@@ -942,7 +942,7 @@ func (section *IPv6AddressSection) GetEmbeddedIPv4AddressSection() *IPv4AddressS
 	if cache == nil {
 		return section.createEmbeddedIPv4AddressSection()
 	}
-	return section.GetMixedAddressSection().GetIPv4AddressSection()
+	return section.GetMixedAddressGrouping().GetIPv4AddressSection()
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
@@ -966,7 +966,7 @@ func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex in
 		ipv6Segment.getSplitSegments(segments, j)
 	}
 	res := createIPv4Section(segments)
-	res.init()
+	res.initMultAndPrefLen()
 	return res
 }
 
@@ -983,7 +983,7 @@ func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
 	nonMixed := make([]*AddressDivision, nonMixedCount)
 	section.copySubSegmentsToSlice(0, nonMixedCount, nonMixed)
 	res := createIPv6Section(nonMixed, addressSegmentIndex)
-	res.init()
+	res.initMultAndPrefLen()
 	return res
 }
 
@@ -1012,7 +1012,7 @@ func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv
 		low.getSplitSegments(mixed, bytesPerSeg)
 	}
 	sect = createIPv4Section(mixed)
-	sect.init()
+	sect.initMultAndPrefLen()
 	return
 }
 
@@ -1029,7 +1029,7 @@ func createMixedAddressSection(divisions []*AddressDivision) *IPv6v4MixedAddress
 }
 
 //private static IPAddressDivision[] createSegments
-func newIPv6v4MixedSection(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressGrouping {
+func newIPv6v4MixedGrouping(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressGrouping {
 	//This cannot be public so we can be sure that the prefix lengths amongst the segments jive
 	// also set isMultiple, prefixLength,
 	//This is the first attempt to create a division grouping that has no address type.

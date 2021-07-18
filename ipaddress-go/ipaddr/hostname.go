@@ -31,7 +31,7 @@ func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
 		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
-		labelsQualifier: ParsedHostIdentifierStringQualifier{port: cachePorts(port)},
+		labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(port)},
 	}
 	return &HostName{
 		str:       hostStr,

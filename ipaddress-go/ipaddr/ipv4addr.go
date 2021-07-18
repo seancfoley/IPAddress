@@ -673,7 +673,7 @@ func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCou
 }
 
 //func (addr *IPv4Address) CompareSize(other *IPv4Address) int {
-//	return addr.init().CompareSize(other.ToIPAddress())
+//	return addr.initMultAndPrefLen().CompareSize(other.ToIPAddress())
 //}
 
 func (addr *IPv4Address) ToAddress() *Address {

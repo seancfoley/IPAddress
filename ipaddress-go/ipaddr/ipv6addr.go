@@ -711,7 +711,7 @@ func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 }
 
 //func (addr *IPv6Address) CompareSize(other *IPv6Address) int {
-//	return addr.init().CompareSize(other.ToIPAddress())
+//	return addr.initMultAndPrefLen().CompareSize(other.ToIPAddress())
 //}
 
 func (addr *IPv6Address) ToAddress() *Address {

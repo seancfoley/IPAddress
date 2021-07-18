@@ -111,7 +111,7 @@ type hostNameNestedError struct {
 }
 
 type hostAddressNestedError struct {
-	hostNameError
+	hostNameIndexError
 	nested AddressError
 }
 
@@ -120,6 +120,9 @@ func (a *hostAddressNestedError) GetAddrError() AddressError {
 }
 
 func (a *hostAddressNestedError) Error() string {
+	if a.hostNameIndexError.key != "" {
+		return lookupStr("ipaddress.host.error") + " " + a.hostNameIndexError.Error() + " " + a.nested.Error()
+	}
 	return lookupStr("ipaddress.host.error") + " " + a.nested.Error()
 }
 

@@ -790,7 +790,7 @@ type MaskCreator struct {
 // involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
 //			(b) this behaviour can be overridden by a string parameters option
 
-func newAllCreator(qualifier *ParsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*AllCreator, IncompatibleAddressError) {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*AllCreator, IncompatibleAddressError) {
 	//cached := cachedAddressProvider{addressCreator: addrCreator}
 	result := &AllCreator{
 		AdjustedAddressCreator: AdjustedAddressCreator{
@@ -812,7 +812,7 @@ type AllCreator struct {
 	AdjustedAddressCreator
 
 	originator HostIdentifierString
-	qualifier  ParsedHostIdentifierStringQualifier
+	qualifier  parsedHostIdentifierStringQualifier
 
 	rng *IPAddressSeqRange
 }

@@ -1748,7 +1748,7 @@ func validateAddress(
 }
 
 func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
-	var qualifier ParsedHostIdentifierStringQualifier
+	var qualifier parsedHostIdentifierStringQualifier
 	isPrefix, err := validatePrefix(fullAddr, noZone, defaultIPAddrParameters, nil,
 		&qualifier, 0, len(fullAddr), version)
 	if !isPrefix {
@@ -1763,7 +1763,7 @@ func parsePortOrService(
 	fullAddr string,
 	zone Zone,
 	validationOptions HostNameParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	index,
 	endIndex int) (err AddressStringError) {
 	isPort := true
@@ -1856,7 +1856,7 @@ func parsePortOrService(
 		}
 		res.zone = zone
 		res.port = cachePorts(port)
-		//res = &ParsedHostIdentifierStringQualifier{zone: zone, port: &port}
+		//res = &parsedHostIdentifierStringQualifier{zone: zone, port: &port}
 		return
 	} else if !validationOptions.AllowsService() {
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.host.error.service"}}
@@ -1874,7 +1874,7 @@ func parsePortOrService(
 	res.zone = zone
 	res.service = fullAddr[index:endIndex]
 	//res.service = Service(fullAddr[index:endIndex])
-	//res = &ParsedHostIdentifierStringQualifier{zone: zone, service: Service(fullAddr[index:endIndex])}xx
+	//res = &parsedHostIdentifierStringQualifier{zone: zone, service: Service(fullAddr[index:endIndex])}xx
 	return
 }
 
@@ -1883,7 +1883,7 @@ func parseValidatedPrefix(
 	fullAddr string,
 	zone Zone,
 	validationOptions IPAddressStringParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	digitCount,
 	leadingZeros int,
 	ipVersion IPVersion) (err AddressStringError) {
@@ -1923,13 +1923,13 @@ func parseValidatedPrefix(
 	//if tryCache {
 	//	qual := PREFIX_CACHE[result]
 	//	if qual == nil {
-	//		qual = &ParsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result)}xx
+	//		qual = &parsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result)}xx
 	//		PREFIX_CACHE[result] = qual
 	//	}
 	//	res = qual
 	//	return
 	//}
-	//res = &ParsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result), zone: zone}xx
+	//res = &parsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result), zone: zone}xx
 	res.networkPrefixLength = cacheBitCount(result)
 	res.zone = zone
 	return
@@ -1940,7 +1940,7 @@ func validatePrefix(
 	zone Zone,
 	validationOptions IPAddressStringParameters,
 	hostValidationOptions HostNameParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	index,
 	endIndex int,
 	ipVersion IPVersion) (isPrefix bool, err AddressStringError) {
@@ -1954,7 +1954,7 @@ func validatePrefix(
 	var result BitCount
 	var leadingZeros int
 	charArray := chars
-	//	var portQualifier *ParsedHostIdentifierStringQualifier
+	//	var portQualifier *parsedHostIdentifierStringQualifier
 	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
 		if c >= '1' && c <= '9' {
@@ -2067,7 +2067,7 @@ func parsePrefix(
 	zone Zone,
 	validationOptions IPAddressStringParameters,
 	hostValidationOptions HostNameParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
 	endIndex int,
@@ -2134,7 +2134,7 @@ func parsePrefix(
 		}
 		res.mask = pa
 		res.zone = zone
-		//res = &ParsedHostIdentifierStringQualifier{mask: pa, zone: zone}
+		//res = &parsedHostIdentifierStringQualifier{mask: pa, zone: zone}
 	} else if validationOptions.AllowsPrefix() {
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefixOrMask"}}
 	} else {
@@ -2147,7 +2147,7 @@ func parseHostNameQualifier(
 	fullAddr string,
 	validationOptions IPAddressStringParameters,
 	hostValidationOptions HostNameParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	isPrefixed,
 	isPort, // always false for address
 	addressIsEmpty bool,
@@ -2193,7 +2193,7 @@ func isReserved(c byte) bool {
 func parseZone(
 	fullAddr string,
 	validationOptions IPAddressStringParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
 	endIndex int,
@@ -2201,10 +2201,10 @@ func parseZone(
 	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
 		if c == PrefixLenSeparator {
-			//if i == index {//TODO add an option and check for empty zone (i == endIndex), up til now we allowed it
-			//	err = &addressStringIndexError{ addressStringError{str: fullAddr, key: "ipaddress.error.invalid.zone"},  i}
-			//	return
-			//}
+			if i == index {
+				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
+				return
+			}
 			zone := Zone(fullAddr[index:i])
 			return parsePrefix(fullAddr, zone, validationOptions, nil, res, addressIsEmpty, i+1, endIndex, ipVersion)
 		} else if c == IPv6SegmentSeparator {
@@ -2221,15 +2221,17 @@ func parseZone(
 func parseEncodedZone(
 	fullAddr string,
 	validationOptions IPAddressStringParameters,
-	res *ParsedHostIdentifierStringQualifier,
+	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
 	endIndex int,
 	ipVersion IPVersion) (err AddressStringError) {
+
 	var result strings.Builder
 	var zone string
-	for i := index; i < endIndex; i++ { //TODO add an option and check for empty zone (i == endIndex), up til now we allowed it (check both %/ and %)
+	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
+
 		//we are in here when we have a square bracketed host like [::1]
 		//not if we have a HostName with no brackets
 
@@ -2253,6 +2255,10 @@ func parseEncodedZone(
 			i++
 			c |= byte(charArray[fullAddr[i]])
 		} else if c == PrefixLenSeparator {
+			if i == index {
+				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
+				return
+			}
 			if result.Len() > 0 {
 				zone = result.String()
 			} else {
@@ -2271,10 +2277,10 @@ func parseEncodedZone(
 	}
 	if result.Len() == 0 {
 		zone = fullAddr[index:endIndex]
-		//res = &ParsedHostIdentifierStringQualifier{zone: Zone(fullAddr[index:endIndex])}xx
+		//res = &parsedHostIdentifierStringQualifier{zone: Zone(fullAddr[index:endIndex])}xx
 	} else {
 		zone = result.String()
-		//res = &ParsedHostIdentifierStringQualifier{zone: Zone(result.String())}xx
+		//res = &parsedHostIdentifierStringQualifier{zone: Zone(result.String())}xx
 	}
 	res.zone = Zone(zone)
 	return
@@ -3134,7 +3140,7 @@ func parseSingleSegmentSingleWildcard2(s string, start, end, numSingleWildcards 
 
 ////////////////////////
 
-var maxValues = [5]uint64{0, IPv4MaxValuePerSegment, 0xffff, 0xffffff, 0xffffffff} //TODO uncapitalize later
+var maxValues = [5]uint64{0, IPv4MaxValuePerSegment, 0xffff, 0xffffff, 0xffffffff}
 
 func getMaxIPv4Value(segmentCount int) uint64 {
 	return maxValues[segmentCount]
@@ -3152,7 +3158,7 @@ func getStringPrefixCharCount(radix uint32) int {
 	return 1
 }
 
-var maxIPv4StringLen [9][]int = [9][]int{ //indices are [radix / 2][additionalSegments], and we handle radices 8, 10, 16 //TODO uncapitalize later
+var maxIPv4StringLen [9][]int = [9][]int{ //indices are [radix / 2][additionalSegments], and we handle radices 8, 10, 16
 	{3, 6, 8, 11},   //no radix supplied we treat as octal, the longest
 	{8, 16, 24, 32}, // binary
 	{}, {},
@@ -3305,8 +3311,8 @@ func parseLong16(s string, start, end int) uint64 {
 //			BASE_85_POWERS[i] = BASE_85_POWERS[i - 1].multiply(eightyFive);
 //		}
 //	}
-//
-//	private static BigInteger parseBase85(CharSequence s, int start, int end) { TODO parse base 85
+// TODO LATER parse base 85
+//	private static BigInteger parseBase85(CharSequence s, int start, int end) {
 //		int charArray[] = extendedChars;
 //		BigInteger result = BigInteger.ZERO;
 //		boolean last;
@@ -3354,7 +3360,7 @@ func parseLong16(s string, start, end int) uint64 {
 
 var (
 	ipvFutureUppercase = byte(unicode.ToUpper(rune(IPvFuture)))
-	defaultEmptyHost   = &parsedHost{parsedHostCache: &parsedHostCache{}} //TODO call functions in the default empty host to avoid data race or locking
+	defaultEmptyHost   = &parsedHost{parsedHostCache: &parsedHostCache{}}
 )
 
 func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, err HostNameError) {
@@ -3605,8 +3611,8 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				originator:         fromHost,
 			}
 			hostQualifier := psdHost.getQualifier()
-			//var addrQualifier ParsedHostIdentifierStringQualifier
-			//var hostQualifier ParsedHostIdentifierStringQualifier
+			//var addrQualifier parsedHostIdentifierStringQualifier
+			//var hostQualifier parsedHostIdentifierStringQualifier
 			if squareBracketed {
 				//Note:
 				//Firstly, we need to find the address end which is denoted by the end bracket
@@ -3776,7 +3782,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				if hasAddressPortOrService {
 					//validate the potential port
 					addrErr = parsePortOrService(str, "", validationOptions, hostQualifier, addressQualifierIndex, len(str))
-					//ParsedHostIdentifierStringQualifier hostPortQualifier = hostQualifier = parsePortOrService(str, null, validationOptions, addressQualifierIndex, str.length());
+					//parsedHostIdentifierStringQualifier hostPortQualifier = hostQualifier = parsePortOrService(str, null, validationOptions, addressQualifierIndex, str.length());
 					if addrErr != nil {
 						//certainly not IPv4 since it doesn't qualify as port (see comment above)
 						if !isPotentiallyIPv6 {
@@ -3945,7 +3951,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		//here we check what is in the qualifier that follows the bracket: prefix/mask or port?
 		//if prefix/mask, we supply the qualifier to the address, otherwise we supply it to the host
 		//also, it is possible the address has a zone
-		var addrQualifier *ParsedHostIdentifierStringQualifier
+		var addrQualifier *parsedHostIdentifierStringQualifier
 		if isPrefixed {
 			addrQualifier = hostQualifier
 		} else {
@@ -3954,10 +3960,17 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		embeddedAddr := checkSpecialHosts(str, addrLen, addrQualifier)
 		hasEmbeddedAddr := embeddedAddr.addressProvider == nil
 		//AddressStringError embeddedException = null;
-		if isSpecialOnlyIndex >= 0 && (!hasEmbeddedAddr || embeddedAddr.addressStringException != nil) {
-			if embeddedAddr.addressStringException != nil {
-				//TODO need to do someting with embeddedAddr.addressStringError, wrap it in the error or something
-				err = &hostNameIndexError{hostNameError{addressError{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, isSpecialOnlyIndex}
+		if isSpecialOnlyIndex >= 0 && (!hasEmbeddedAddr || embeddedAddr.addressStringError != nil) {
+			if embeddedAddr.addressStringError != nil {
+				err = &hostAddressNestedError{
+					hostNameIndexError: hostNameIndexError{
+						hostNameError: hostNameError{
+							addressError{str: str, key: "ipaddress.host.error.invalid.character.at.index"},
+						},
+						index: isSpecialOnlyIndex,
+					},
+					nested: embeddedAddr.addressStringError,
+				}
 				return
 			}
 			err = &hostNameIndexError{hostNameError{addressError{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, isSpecialOnlyIndex}
@@ -3979,7 +3992,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 	return
 }
 
-func checkSpecialHosts(str string, addrLen int, hostQualifier *ParsedHostIdentifierStringQualifier) (emb embeddedAddress) {
+func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentifierStringQualifier) (emb embeddedAddress) {
 	// TODO special hosts
 	//		try {
 	//			String suffix = IPv6Address.UNC_SUFFIX;
@@ -4003,8 +4016,8 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *ParsedHostIdentif
 	//				IPAddressStringParameters params = DEFAULT_UNC_OPTS;
 	//				parsedIPAddress pa = new parsedIPAddress(null, str, params);
 	//				validateIPAddress(params, builder, 0, builder.length(), pa, false);
-	//				ParsedHostIdentifierStringQualifier qual;
-	//				ParsedHostIdentifierStringQualifier addrQualifier = parseAddressQualifier(builder, DEFAULT_UNC_OPTS, null, pa, builder.length());
+	//				parsedHostIdentifierStringQualifier qual;
+	//				parsedHostIdentifierStringQualifier addrQualifier = parseAddressQualifier(builder, DEFAULT_UNC_OPTS, null, pa, builder.length());
 	//				if(addrQualifier == parsedHost.noQualifier) {
 	//					qual = hostQualifier;
 	//				} else if(hostQualifier == parsedHost.noQualifier) {

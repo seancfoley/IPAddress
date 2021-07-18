@@ -11,7 +11,7 @@ import (
 type embeddedAddress struct {
 	isUNCIPv6Literal, isReverseDNS bool
 
-	addressStringException AddressStringError
+	addressStringError AddressStringError
 
 	addressProvider IPAddressProvider
 }
@@ -19,7 +19,7 @@ type embeddedAddress struct {
 var (
 	// used by hosts
 	//NO_EMBEDDED_ADDRESS *embeddedAddress                     = &embeddedAddress{}
-	noQualifier *ParsedHostIdentifierStringQualifier = &ParsedHostIdentifierStringQualifier{}
+	noQualifier *parsedHostIdentifierStringQualifier = &parsedHostIdentifierStringQualifier{}
 )
 
 type hostStrings struct {
@@ -35,7 +35,7 @@ type parsedHost struct {
 	separatorIndices []int // can be nil
 	normalizedFlags  []bool
 
-	labelsQualifier ParsedHostIdentifierStringQualifier
+	labelsQualifier parsedHostIdentifierStringQualifier
 
 	embeddedAddress embeddedAddress
 
@@ -44,7 +44,7 @@ type parsedHost struct {
 	*parsedHostCache
 }
 
-func (host *parsedHost) getQualifier() *ParsedHostIdentifierStringQualifier {
+func (host *parsedHost) getQualifier() *parsedHostIdentifierStringQualifier {
 	return &host.labelsQualifier
 }
 

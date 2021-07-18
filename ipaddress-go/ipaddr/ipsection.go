@@ -25,13 +25,13 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 
 func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
 	res = createIPSection(segments, nil, from.getAddrType(), from.addressSegmentIndex)
-	res.init()
+	res.initMultAndPrefLen()
 	return
 }
 
 func deriveIPAddressSectionPrefLen(from *IPAddressSection, segments []*AddressDivision, prefixLength PrefixLen) (res *IPAddressSection) {
 	res = createIPSection(segments, prefixLength, from.getAddrType(), from.addressSegmentIndex)
-	res.init()
+	res.initMultAndPrefLen()
 	return
 }
 

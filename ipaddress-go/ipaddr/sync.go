@@ -17,7 +17,7 @@ package ipaddr
 //	end if
 //
 // - we do not need a read barrier for isSet (we can only write one value), so doesn't matter if others writing isSet
-// - we do not need a write barrier, we don't care if we read an earlier value saying it was done, because init can be done twice
+// - we do not need a write barrier, we don't care if we read an earlier value saying it was done, because initMultAndPrefLen can be done twice
 // But then we may get data race errors when using the data race detector.
 // The most important one to remove is the first read because it may happen often.
 //
@@ -70,7 +70,7 @@ package ipaddr
 //	We can never have an invalid "val" in memory.
 //	Unless the write to b were reordered to before the setting of val
 //	We don't care if we read an invalid b
-//	It just makes us init the thing twice
+//	It just makes us initMultAndPrefLen the thing twice
 //	We do care if
 //	1. somehow b could be flipped before val is set
 //	Or

@@ -443,7 +443,7 @@ func NewIPAddressParseData(str string) *ipAddressParseData {
 type ipAddressParseData struct {
 	addressParseData
 
-	qualifier ParsedHostIdentifierStringQualifier
+	qualifier parsedHostIdentifierStringQualifier
 
 	qualifierIndex int
 
@@ -518,11 +518,11 @@ func (parseData *ipAddressParseData) setHasBinaryDigits(val bool) {
 	parseData.isBinaryVal = val
 }
 
-func (parseData *ipAddressParseData) getQualifier() *ParsedHostIdentifierStringQualifier {
+func (parseData *ipAddressParseData) getQualifier() *parsedHostIdentifierStringQualifier {
 	return &parseData.qualifier
 }
 
-//func (parseData *ipAddressParseData) setQualifier(val *ParsedHostIdentifierStringQualifier) {
+//func (parseData *ipAddressParseData) setQualifier(val *parsedHostIdentifierStringQualifier) {
 //	parseData.qualifier = val
 //}
 
@@ -535,7 +535,7 @@ func (parseData *ipAddressParseData) clearQualifier() {
 	parseData.isZonedVal = false
 	parseData.isBase85ZonedVal = false
 	parseData.hasPrefixSeparatorVal = false
-	parseData.qualifier = ParsedHostIdentifierStringQualifier{}
+	parseData.qualifier = parsedHostIdentifierStringQualifier{}
 }
 
 func (parseData *ipAddressParseData) setQualifierIndex(index int) {

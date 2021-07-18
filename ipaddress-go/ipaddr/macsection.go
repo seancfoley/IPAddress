@@ -34,7 +34,7 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 
 func newMACAddressSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	_ = res.init()
+	_ = res.initMultAndPrefLen()
 	return
 }
 
@@ -379,14 +379,28 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 		newSegmentCount := (segmentCount >> 1) + 1
 		newSegs = make([]*AddressDivision, newSegmentCount)
 		segment := section.GetSegment(0)
-		vals := &bitsDivisionVals{
-			value:      segment.getDivisionValue(),
-			upperValue: segment.getUpperDivisionValue(),
-			bitCount:   newSegmentBitCount,
-			radix:      MACDefaultTextualRadix,
-			//joinedCount: joinCount,
-			//prefixLen:   nil,
-		}
+
+		//func NewDivision(val DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
+		//	return NewRangePrefixDivision(val, val, nil, bitCount, defaultRadix)
+		//}
+		//
+		//func NewRangeDivision(val, upperVal DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
+		//	return NewRangePrefixDivision(val, upperVal, nil, bitCount, defaultRadix)
+		//}
+		//
+		//func NewPrefixDivision(val DivInt, prefixLen PrefixLen, bitCount BitCount, defaultRadix int) *AddressDivision {
+		//	return NewRangePrefixDivision(val, val, prefixLen, bitCount, defaultRadix)
+		//}
+		vals := NewRangeDivision(segment.getDivisionValue(), segment.getUpperDivisionValue(), newSegmentBitCount, MACDefaultTextualRadix)
+
+		//vals := &bitsDivisionVals{
+		//	value:      segment.getDivisionValue(),
+		//	upperValue: segment.getUpperDivisionValue(),
+		//	bitCount:   newSegmentBitCount,
+		//	radix:      MACDefaultTextualRadix,
+		//	//joinedCount: joinCount,
+		//	//prefixLen:   nil,
+		//}
 		newSegs[0] = createAddressDivision(vals)
 
 		//newSegs[0] = new AddressBitsDivision(segment.getSegmentValue(),
@@ -405,14 +419,18 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
 			//throw new IncompatibleAddressError(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
-		vals := &bitsDivisionVals{
-			value:      DivInt((segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()),
-			upperValue: DivInt((segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue()),
-			bitCount:   newSegmentBitCount,
-			radix:      MACDefaultTextualRadix,
-			//joinedCount: joinCount,
-			//prefixLen:   nil,
-		}
+		val := (segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()
+		upperVal := (segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue()
+		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
+
+		//vals := &bitsDivisionVals{
+		//	value:      DivInt((segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()),
+		//	upperValue: DivInt((segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue()),
+		//	bitCount:   newSegmentBitCount,
+		//	radix:      MACDefaultTextualRadix,
+		//	//joinedCount: joinCount,
+		//	//prefixLen:   nil,
+		//}
 		newSegs[newSegIndex] = createAddressDivision(vals)
 		newSegIndex++
 		//AddressDivision newSeg = new AddressBitsDivision(
@@ -424,14 +442,17 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 	}
 	if segIndex < segmentCount {
 		segment := section.GetSegment(segIndex)
-		vals := &bitsDivisionVals{
-			value:      DivInt(segment.GetSegmentValue() << bitsPerSeg),
-			upperValue: DivInt(segment.GetUpperSegmentValue() << bitsPerSeg),
-			bitCount:   newSegmentBitCount,
-			radix:      MACDefaultTextualRadix,
-			//joinedCount: joinCount,
-			//prefixLen:   nil,
-		}
+		val := segment.GetSegmentValue() << bitsPerSeg
+		upperVal := segment.GetUpperSegmentValue() << bitsPerSeg
+		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
+		//vals := &bitsDivisionVals{
+		//	value:      DivInt(segment.GetSegmentValue() << bitsPerSeg),
+		//	upperValue: DivInt(segment.GetUpperSegmentValue() << bitsPerSeg),
+		//	bitCount:   newSegmentBitCount,
+		//	radix:      MACDefaultTextualRadix,
+		//	//joinedCount: joinCount,
+		//	//prefixLen:   nil,
+		//}
 		newSegs[newSegIndex] = createAddressDivision(vals)
 		//			newSegs[newSegIndex] = new AddressBitsDivision(
 		//					segment.getSegmentValue() << bitsPerSeg,
@@ -468,108 +489,3 @@ func (section *MACAddressSection) ToDashedString() string {
 func (section *MACAddressSection) ToColonDelimitedString() string {
 	return section.ToNormalizedString()
 }
-
-//AddressBitsDivision
-
-//TODO make public?  the derive and deriveNew all have prefix length - also, making these public can be awkward, exposing internals of divisions
-// So I think instead you need a NewBitsDivisionVals or something that returns *AddressDivision
-// divisionValues is anon field right now, so if that becomes public, cannot be anon anymore
-type bitsDivisionVals struct {
-	value, upperValue DivInt
-	bitCount          BitCount
-	radix             int
-	cache             divCache
-}
-
-func (div bitsDivisionVals) getBitCount() BitCount {
-	return div.bitCount
-}
-
-func (div bitsDivisionVals) getByteCount() int {
-	return int((div.getBitCount() + 3) >> 3)
-}
-
-func (div bitsDivisionVals) getValue() *BigDivInt {
-	return big.NewInt(int64(div.value))
-}
-
-func (div bitsDivisionVals) getUpperValue() *BigDivInt {
-	return big.NewInt(int64(div.upperValue))
-}
-
-func (div bitsDivisionVals) includesZero() bool {
-	return div.getDivisionValue() == 0
-}
-
-func (div bitsDivisionVals) includesMax() bool {
-	return div.getUpperDivisionValue() == ^(^DivInt(0) << div.getBitCount())
-}
-
-func (div bitsDivisionVals) isMultiple() bool {
-	return div.getDivisionValue() != div.getUpperDivisionValue()
-}
-
-func (div bitsDivisionVals) getCount() *big.Int {
-	return big.NewInt(int64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1))
-}
-
-func (div bitsDivisionVals) calcBytesInternal() (bytes, upperBytes []byte) {
-	return calcBytesInternal(div.getByteCount(), div.getDivisionValue(), div.getUpperDivisionValue())
-}
-
-func (div bitsDivisionVals) getCache() *divCache {
-	return &div.cache
-}
-
-func (div bitsDivisionVals) getAddrType() addrType {
-	return zeroType // macType means convertible to MAC segment, which this is not
-}
-
-func (div bitsDivisionVals) getDivisionPrefixLength() PrefixLen {
-	return nil
-}
-
-func (div bitsDivisionVals) getDivisionValue() DivInt {
-	return div.value
-}
-
-func (div bitsDivisionVals) getUpperDivisionValue() DivInt {
-	return div.upperValue
-}
-
-func (div bitsDivisionVals) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return &bitsDivisionVals{
-		value:      val,
-		upperValue: upperVal,
-		bitCount:   div.bitCount,
-		radix:      div.radix,
-	}
-}
-
-func (div bitsDivisionVals) getSegmentValue() SegInt {
-	panic("implement me")
-}
-
-func (div bitsDivisionVals) getUpperSegmentValue() SegInt {
-	panic("implement me")
-}
-
-func (div bitsDivisionVals) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
-	return &bitsDivisionVals{
-		value:      DivInt(val),
-		upperValue: DivInt(upperVal),
-		bitCount:   div.bitCount,
-		radix:      div.radix,
-	}
-}
-
-func (div bitsDivisionVals) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
-	return &bitsDivisionVals{
-		value:      DivInt(val),
-		upperValue: DivInt(val),
-		bitCount:   div.bitCount,
-		radix:      div.radix,
-	}
-}
-
-var _ divisionValues = &bitsDivisionVals{}

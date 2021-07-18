@@ -35,7 +35,7 @@ func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, 
 
 func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
 	result := createSection(segments, prefixLength, addrType, startIndex)
-	result.init() // assigns isMultiple and checks prefix length
+	result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
 	return result
 }
 
@@ -109,7 +109,7 @@ func (section *addressSectionInternal) initMultiple() {
 }
 
 // error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) init() AddressValueError { //TODO rename, right now it confuses due to all the other init() methods for zero addresses
+func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen

@@ -1,6 +1,6 @@
 package ipaddr
 
-type ParsedHostIdentifierStringQualifier struct { //TODO rename to non-public
+type parsedHostIdentifierStringQualifier struct {
 
 	// if there is a port for the host, this will be its numeric value
 	port    Port   // non-nil for a host with port
@@ -20,38 +20,17 @@ type ParsedHostIdentifierStringQualifier struct { //TODO rename to non-public
 	zone Zone
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) clearPortOrService() {
+func (parsedQual *parsedHostIdentifierStringQualifier) clearPortOrService() {
 	parsedQual.port = nil
 	parsedQual.service = ""
 }
 
-//TODO this might end up not being used (I think it might not be needed)
-//func (parsedQual *ParsedHostIdentifierStringQualifier) overrideMask(other *ParsedHostIdentifierStringQualifier) {
-//	if other.mask != nil {
-//		parsedQual.mask = other.mask
-//	}
-//}
-//
-////TODO make these types private later - this might end up not being used (I think it might not be needed)
-//func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefixLength(other *ParsedHostIdentifierStringQualifier) {
-//	if other.networkPrefixLength != nil {
-//		parsedQual.networkPrefixLength = other.networkPrefixLength
-//	}
-//
-//}
-//
-//TODO this might end up not being used (I think it might not be needed)
-//func (parsedQual *ParsedHostIdentifierStringQualifier) overridePrefix(other *ParsedHostIdentifierStringQualifier) {
-//	parsedQual.overridePrefixLength(other)
-//	parsedQual.overrideMask(other)
-//}
-
-func (parsedQual *ParsedHostIdentifierStringQualifier) clearPrefixOrMask() {
+func (parsedQual *parsedHostIdentifierStringQualifier) clearPrefixOrMask() {
 	parsedQual.networkPrefixLength = nil
 	parsedQual.mask = nil
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostIdentifierStringQualifier) (err IncompatibleAddressError) {
+func (parsedQual *parsedHostIdentifierStringQualifier) merge(other *parsedHostIdentifierStringQualifier) (err IncompatibleAddressError) {
 	if parsedQual.networkPrefixLength == nil ||
 		(other.networkPrefixLength != nil && *other.networkPrefixLength < *parsedQual.networkPrefixLength) {
 		parsedQual.networkPrefixLength = other.networkPrefixLength
@@ -64,7 +43,7 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) merge(other *ParsedHostId
 	return
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getMaskLower() *IPAddress {
+func (parsedQual *parsedHostIdentifierStringQualifier) getMaskLower() *IPAddress {
 	if mask := parsedQual.mergedMask; mask != nil {
 		return mask
 	}
@@ -74,11 +53,11 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) getMaskLower() *IPAddress
 	return nil
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getNetworkPrefixLength() PrefixLen {
+func (parsedQual *parsedHostIdentifierStringQualifier) getNetworkPrefixLength() PrefixLen {
 	return parsedQual.networkPrefixLength
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getEquivalentPrefixLength() PrefixLen {
+func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLength() PrefixLen {
 	pref := parsedQual.getNetworkPrefixLength()
 	if pref == nil {
 		mask := parsedQual.getMaskLower()
@@ -89,19 +68,19 @@ func (parsedQual *ParsedHostIdentifierStringQualifier) getEquivalentPrefixLength
 	return pref
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getZone() Zone {
+func (parsedQual *parsedHostIdentifierStringQualifier) getZone() Zone {
 	return parsedQual.zone
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getPort() Port {
+func (parsedQual *parsedHostIdentifierStringQualifier) getPort() Port {
 	return parsedQual.port
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) getService() string {
+func (parsedQual *parsedHostIdentifierStringQualifier) getService() string {
 	return parsedQual.service
 }
 
-func (parsedQual *ParsedHostIdentifierStringQualifier) inferVersion(validationOptions IPAddressStringParameters) IPVersion {
+func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions IPAddressStringParameters) IPVersion {
 	if parsedQual.networkPrefixLength != nil {
 		if *parsedQual.networkPrefixLength > IPv4BitCount &&
 			!validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize() {

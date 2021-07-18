@@ -389,5 +389,5 @@ func (addr *MACAddress) ToAddressString() *MACAddressString {
 }
 
 //func (addr *MACAddress) CompareSize(other *MACAddress) int {
-//	return addr.init().CompareSize(other.ToAddress())
+//	return addr.initMultAndPrefLen().CompareSize(other.ToAddress())
 //}

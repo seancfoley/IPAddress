@@ -1404,7 +1404,7 @@ func createFullRangeSegment(
 
 func createAllAddress(
 	version IPVersion,
-	qualifier *ParsedHostIdentifierStringQualifier,
+	qualifier *parsedHostIdentifierStringQualifier,
 	originator HostIdentifierString) (res, hostAddr, lower, upper *IPAddress, err IncompatibleAddressError) {
 
 	creator := version.toType().getIPNetwork().getIPAddressCreator()
@@ -1536,7 +1536,7 @@ func createAllAddress(
 	*/
 }
 
-func getPrefixLength(qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
+func getPrefixLength(qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
 	return qualifier.getEquivalentPrefixLength()
 }
 
@@ -1548,7 +1548,7 @@ func getPrefixLength(qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
  * @param segmentIndex
  * @return
  */
-func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
+func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
 	bits := getPrefixLength(qualifier)
 	return getSegmentPrefixLength(bitsPerSegment, bits, segmentIndex)
 }
@@ -1562,6 +1562,6 @@ func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, 
  * @param version
  * @return
  */
-func getSegmentVersionedPrefixLength(segmentIndex int, version IPVersion, qualifier *ParsedHostIdentifierStringQualifier) PrefixLen {
+func getSegmentVersionedPrefixLength(segmentIndex int, version IPVersion, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
 	return getQualifierSegmentPrefixLength(segmentIndex, BitsPerSegment(version), qualifier)
 }
