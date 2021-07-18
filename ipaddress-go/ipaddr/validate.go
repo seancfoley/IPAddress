@@ -2198,10 +2198,14 @@ func parseZone(
 	index,
 	endIndex int,
 	ipVersion IPVersion) (err AddressStringError) {
+	if index == endIndex && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+		err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
+		return
+	}
 	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
 		if c == PrefixLenSeparator {
-			if i == index {
+			if i == index && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
 				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 				return
 			}
@@ -2226,7 +2230,10 @@ func parseEncodedZone(
 	index,
 	endIndex int,
 	ipVersion IPVersion) (err AddressStringError) {
-
+	if index == endIndex && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+		err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
+		return
+	}
 	var result strings.Builder
 	var zone string
 	for i := index; i < endIndex; i++ {
@@ -2255,7 +2262,7 @@ func parseEncodedZone(
 			i++
 			c |= byte(charArray[fullAddr[i]])
 		} else if c == PrefixLenSeparator {
-			if i == index {
+			if i == index && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
 				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 				return
 			}

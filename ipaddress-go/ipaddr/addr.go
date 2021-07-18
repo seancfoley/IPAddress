@@ -423,26 +423,26 @@ func (addr *addressInternal) reverseSegments() *Address {
 // isIPv4() returns whether this matches an IPv4 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIPv4() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesIPv4Address()
+	return addr != nil && addr.section != nil && addr.section.matchesIPv4AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIPv6() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesIPv6Address()
+	return addr != nil && addr.section != nil && addr.section.matchesIPv6AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isMAC() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesMACAddress()
+	return addr != nil && addr.section != nil && addr.section.matchesMACAddressType()
 }
 
 // isIP() returns whether this matches an IP address.
 // It must be IPv4, IPv6, or the zero IPAddress which has no segments
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIP() bool {
-	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddress())
+	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddressType())
 }
 
 func (addr *addressInternal) CompareTo(item AddressItem) int {
@@ -472,7 +472,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	if addr.section == nil {
 		return otherSection.GetSegmentCount() == 0
 	}
-	return addr.section.Equals(otherSection) &&
+	return addr.section.sameCountTypeEquals(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
 		addr.isSameZone(other)
 }
@@ -483,7 +483,7 @@ func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
 		return true
 	}
 	otherSection := otherAddr.GetSection()
-	return addr.section.equalsSameVersion(otherSection) &&
+	return addr.section.sameCountTypeEquals(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
 		addr.isSameZone(other)
 }

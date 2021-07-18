@@ -1028,7 +1028,6 @@ func createMixedAddressSection(divisions []*AddressDivision) *IPv6v4MixedAddress
 	}
 }
 
-//private static IPAddressDivision[] createSegments
 func newIPv6v4MixedGrouping(ipv6Section *IPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressGrouping {
 	//This cannot be public so we can be sure that the prefix lengths amongst the segments jive
 	// also set isMultiple, prefixLength,

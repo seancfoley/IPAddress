@@ -171,12 +171,17 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 	return nil
 }
 
-func (section *addressSectionInternal) equalsSameVersion(other *AddressSection) bool {
+func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool {
+	matchesStructure, _ := section.matchesTypeAndCount(other)
+	return matchesStructure && section.sameCountTypeEquals(other)
+}
+
+func (section *addressSectionInternal) sameCountTypeEquals(other *AddressSection) bool {
 	count := section.GetSegmentCount()
 	for i := 0; i < count; i++ {
 		one := section.GetSegment(i)
 		two := other.GetSegment(i)
-		if !one.equalsSameVersion(two) {
+		if !one.sameTypeEquals(two) {
 			return false
 		}
 	}
@@ -659,7 +664,7 @@ func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 		return true
 	}
 	//check if they are comparable first
-	matches, count := section.matchesStructure(other)
+	matches, count := section.matchesTypeAndCount(other)
 	if !matches || count != other.GetDivisionCount() {
 		return false
 	} else {
@@ -1266,19 +1271,19 @@ func (section *AddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *A
 }
 
 func (section *AddressSection) IsIPAddressSection() bool {
-	return section != nil && section.matchesIPSection()
+	return section != nil && section.matchesIPSectionType()
 }
 
 func (section *AddressSection) IsIPv4AddressSection() bool {
-	return section != nil && section.matchesIPv4Section()
+	return section != nil && section.matchesIPv4SectionType()
 }
 
 func (section *AddressSection) IsIPv6AddressSection() bool {
-	return section != nil && section.matchesIPv6Section()
+	return section != nil && section.matchesIPv6SectionType()
 }
 
 func (section *AddressSection) IsMACAddressSection() bool {
-	return section != nil && section.matchesMACSection()
+	return section != nil && section.matchesMACSectionType()
 }
 
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {

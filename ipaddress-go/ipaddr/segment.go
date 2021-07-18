@@ -35,7 +35,12 @@ func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool)
 	return
 }
 
-func (seg *addressSegmentInternal) equalsSameVersion(other *AddressSegment) bool {
+func (seg *addressSegmentInternal) EqualsSegment(other *AddressSegment) bool {
+	matchesStructure, _ := seg.matchesStructure(other)
+	return matchesStructure && seg.sameTypeEquals(other)
+}
+
+func (seg *addressSegmentInternal) sameTypeEquals(other *AddressSegment) bool {
 	if seg.IsMultiple() {
 		return other.IsMultiple() && segValsSame(seg.getSegmentValue(), other.getSegmentValue(),
 			seg.getUpperSegmentValue(), other.getUpperSegmentValue())

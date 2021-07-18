@@ -1174,11 +1174,11 @@ func (section *IPAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int 
 }
 
 func (section *IPAddressSection) IsIPv4AddressSection() bool {
-	return section != nil && section.matchesIPv4Section()
+	return section != nil && section.matchesIPv4SectionType()
 }
 
 func (section *IPAddressSection) IsIPv6AddressSection() bool {
-	return section != nil && section.matchesIPv6Section()
+	return section != nil && section.matchesIPv6SectionType()
 }
 
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
@@ -1196,11 +1196,11 @@ func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
 }
 
 func (section *IPAddressSection) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddressSection()
-	return section != nil && section.matchesIPv4Section()
+	return section.IsIPv4AddressSection()
 }
 
 func (section *IPAddressSection) IsIPv6() bool {
-	return section != nil && section.matchesIPv6Section()
+	return section.IsIPv6AddressSection()
 }
 
 // Gets the subsection from the series starting from the given index

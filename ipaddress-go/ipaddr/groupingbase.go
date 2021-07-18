@@ -72,7 +72,7 @@ func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 	return 0
 }
 
-func (grouping *addressDivisionGroupingBase) matchesStructure(other GenericGroupingType) (matches bool, count int) {
+func (grouping *addressDivisionGroupingBase) matchesTypeAndCount(other GenericGroupingType) (matches bool, count int) {
 	count = grouping.GetDivisionCount()
 	if count != other.GetDivisionCount() {
 		return
@@ -84,7 +84,7 @@ func (grouping *addressDivisionGroupingBase) matchesStructure(other GenericGroup
 }
 
 func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) bool {
-	matches, count := grouping.matchesStructure(other)
+	matches, count := grouping.matchesTypeAndCount(other)
 	if !matches || count != other.GetDivisionCount() {
 		return false
 	} else {

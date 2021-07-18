@@ -1410,8 +1410,6 @@ func createAllAddress(
 	creator := version.toType().getIPNetwork().getIPAddressCreator()
 	//prefixLength := qualifier.getEquivalentPrefixLength()
 	mask := qualifier.getMaskLower()
-	//TODO mask version must match version
-	// Sometimes this function is called for a specific version, in fact that version might even be etermined by the mask, but it is not always dettermined by the mask
 	if mask != nil && mask.GetBlockMaskPrefixLength(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}

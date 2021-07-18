@@ -309,10 +309,10 @@ func providerEquals(p, other IPAddressProvider) (res bool, err IncompatibleAddre
 			return
 		}
 		if otherValue != nil {
-			// TODO equals
+			res = value.Equals(otherValue)
 			return
 		} else {
-			return
+			return // returns false
 		}
 	}
 	res = p.getType() == other.getType()
@@ -875,6 +875,8 @@ func (all *AllCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addr
 func (all *AllCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr IncompatibleAddressError) {
 	if version == all.adjustedVersion {
 		return all.getProviderAddress()
+	} else if all.adjustedVersion != IndeterminateIPVersion {
+		return nil, nil
 	}
 	addr, _, _, _, addrErr = createAllAddress(
 		version,

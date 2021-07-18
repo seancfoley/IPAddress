@@ -142,6 +142,9 @@ type IPv6AddressStringParameters interface {
 	// Allow zones like a:b:c:d:e:f:a:b%zone
 	AllowsZone() bool
 
+	// Allow the zone character % with no following zone
+	AllowsEmptyZone() bool
+
 	// Allow IPv6 single-segment base 85 addresses
 	AllowsBase85() bool
 
@@ -176,7 +179,8 @@ func init() {
 		AllowAll(false).
 		AllowIPv6(false).
 		GetIPv6AddressParametersBuilder().
-		AllowZone(true)
+		AllowZone(true).
+		AllowEmptyZone(true)
 	defaultEmbeddedParams =
 		defaultEmbeddedBuilder.
 			ToParams().(*ipAddressStringParameters)
@@ -439,7 +443,7 @@ func (builder *IPAddressStringFormatParametersBuilder) allowPrefixLengthLeadingZ
 type ipv6AddressStringParameters struct {
 	ipAddressStringFormatParameters
 
-	noMixed, noZone, noBase85 bool
+	noMixed, noZone, noBase85, noEmptyZone bool
 
 	embeddedParams *ipAddressStringParameters
 }
@@ -450,6 +454,10 @@ func (params *ipv6AddressStringParameters) AllowsMixed() bool {
 
 func (params *ipv6AddressStringParameters) AllowsZone() bool {
 	return !params.noZone
+}
+
+func (params *ipv6AddressStringParameters) AllowsEmptyZone() bool {
+	return !params.noEmptyZone
 }
 
 func (params *ipv6AddressStringParameters) AllowsBase85() bool {
@@ -489,9 +497,10 @@ func toIPv6AddressStringParamsBuilder(params IPv6AddressStringParameters, isMixe
 		result.params = *p
 	} else {
 		result.params = ipv6AddressStringParameters{
-			noMixed:  !params.AllowsMixed(),
-			noZone:   !params.AllowsZone(),
-			noBase85: !params.AllowsBase85(),
+			noMixed:     !params.AllowsMixed(),
+			noZone:      !params.AllowsZone(),
+			noEmptyZone: !params.AllowsEmptyZone(),
+			noBase85:    !params.AllowsBase85(),
 			//network:  params.GetNetwork(),
 		}
 	}
@@ -527,6 +536,10 @@ func (builder *IPv6AddressStringParametersBuilder) AllowsZone() bool {
 	return builder.params.AllowsZone()
 }
 
+func (builder *IPv6AddressStringParametersBuilder) AllowsEmptyZone() bool {
+	return builder.params.AllowsEmptyZone()
+}
+
 func (builder *IPv6AddressStringParametersBuilder) AllowsBase85() bool {
 	return builder.params.AllowsBase85()
 }
@@ -547,6 +560,16 @@ func (builder *IPv6AddressStringParametersBuilder) AllowZone(allow bool) *IPv6Ad
 	// ipv4Builder can be nil when builder == &defaultEmbeddedBuilder.ipv6Builder, see getEmbeddedIPv4ParametersBuilder()
 	if ipv4Builder := builder.getEmbeddedIPv4ParametersBuilder(); ipv4Builder != nil {
 		ipv4Builder.GetIPv6AddressParametersBuilder().params.noZone = !allow
+	}
+	return builder
+}
+
+func (builder *IPv6AddressStringParametersBuilder) AllowEmptyZone(allow bool) *IPv6AddressStringParametersBuilder {
+	builder.params.noEmptyZone = !allow
+
+	// ipv4Builder can be nil when builder == &defaultEmbeddedBuilder.ipv6Builder, see getEmbeddedIPv4ParametersBuilder()
+	if ipv4Builder := builder.getEmbeddedIPv4ParametersBuilder(); ipv4Builder != nil {
+		ipv4Builder.GetIPv6AddressParametersBuilder().params.noEmptyZone = !allow
 	}
 	return builder
 }
