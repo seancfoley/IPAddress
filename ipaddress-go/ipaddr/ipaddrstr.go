@@ -26,7 +26,7 @@ var defaultIPAddrParameters = &ipAddressStringParameters{}
 var zeroIPAddressString = NewIPAddressString("")
 
 type addrData struct {
-	addressProvider   IPAddressProvider
+	addressProvider   ipAddressProvider
 	validateException AddressStringError
 }
 
@@ -121,7 +121,7 @@ func (addrStr *IPAddressString) ValidateIPv6() AddressStringError {
 
 var validator strValidator
 
-func (addrStr *IPAddressString) getAddressProvider() (IPAddressProvider, AddressStringError) {
+func (addrStr *IPAddressString) getAddressProvider() (ipAddressProvider, AddressStringError) {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	return addrStr.addressProvider, err
@@ -222,7 +222,7 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 			//	return directResult.booleanValue();
 			//}
 
-			// When a value provider produces no value, equality and comparison are based on the enum IPType,
+			// When a value provider produces no value, equality and comparison are based on the enum ipType,
 			// which can be null.
 			var err AddressError
 			addrProvider, err := addrStr.getAddressProvider()

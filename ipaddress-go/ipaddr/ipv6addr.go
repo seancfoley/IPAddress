@@ -473,6 +473,14 @@ func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *IPv6Address) PrefixEquals(other AddressType) bool {
+	return addr.init().prefixEquals(other)
+}
+
+func (addr *IPv6Address) PrefixContains(other AddressType) bool {
+	return addr.init().prefixContains(other)
+}
+
 func (addr *IPv6Address) Contains(other AddressType) bool {
 	return addr.init().contains(other) // the base method handles zone too
 }

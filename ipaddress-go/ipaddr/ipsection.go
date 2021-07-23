@@ -23,6 +23,12 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 	}
 }
 
+func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *IPAddressSection {
+	result := createIPSection(segments, prefixLength, addrType, startIndex)
+	result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
+	return result
+}
+
 func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
 	res = createIPSection(segments, nil, from.getAddrType(), from.addressSegmentIndex)
 	res.initMultAndPrefLen()
@@ -843,7 +849,7 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 	prefixedSegmentIndex := getHostSegmentIndex(networkPrefixLength, section.GetBytesPerSegment(), bitsPerSegment)
 	segPrefLength := getPrefixedSegmentPrefixLength(bitsPerSegment, networkPrefixLength, prefixedSegmentIndex)
 	prefBits := *segPrefLength
-
+	//mask the boundary segment
 	mask := ^(^SegInt(0) << (bitsPerSegment - prefBits))
 	divLower := uint64(firstSeg.getDivisionValue())
 	divUpper := uint64(firstSeg.getUpperDivisionValue())
@@ -852,7 +858,6 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 	masker := maskRange(divLower, divUpper, divMask, maxVal)
 	lower, upper := masker.GetMaskedLower(divLower, divMask), masker.GetMaskedUpper(divUpper, divMask)
 	segLower, segUpper := SegInt(lower), SegInt(upper)
-	resultPrefLen := cacheBitCount(networkPrefixLength)
 	if prefixedSegmentIndex == 0 && segsSame(segPrefLength, firstSeg.GetSegmentPrefixLength(), segLower, firstSeg.getSegmentValue(), segUpper, firstSeg.getUpperSegmentValue()) {
 		// the segment count and prefixed segment matches
 		return section.toIPAddressSection()
@@ -861,7 +866,13 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 	newSegments := createSegmentArray(hostSegmentCount)
 	section.copySubSegmentsToSlice(1, hostSegmentCount, newSegments)
 	newSegments[0] = createAddressDivision(firstSeg.deriveNewMultiSeg(segLower, segUpper, segPrefLength))
-	return deriveIPAddressSectionPrefLen(section.toIPAddressSection(), newSegments, resultPrefLen)
+	newStartIndex := section.addressSegmentIndex + int8(prefixedSegmentIndex)
+	addrType := section.getAddrType()
+	if !section.IsMultiple() {
+		return createIPSection(newSegments, segPrefLength, addrType, newStartIndex)
+	}
+	return createInitializedIPSection(newSegments, segPrefLength, addrType, newStartIndex)
+	//return deriveIPAddressSectionPrefLen(section.toIPAddressSection(), newSegments, segPrefLength)
 }
 
 func (section *ipAddressSectionInternal) getSubnetSegments( // called by methods to adjust/remove/set prefix length, masking methods, zero host and zero network methods
@@ -1705,22 +1716,6 @@ func createSegments(
 		segments[segmentIndex] = seg
 	}
 	return
-}
-
-func checkSectionCounts(sections []ExtendedIPSegmentSeries) SizeMismatchError {
-	if length := len(sections); length > 1 {
-		segCount := sections[0].GetSegmentCount()
-		for i := 1; i < length; i++ {
-			section := sections[i]
-			if section == nil {
-				continue
-			}
-			if section.GetSegmentCount() != segCount {
-				return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
-			}
-		}
-	}
-	return nil
 }
 
 //TODO survey ipsection, ipaddressdivisionGrouping, ipdivisiongroupingbase, etc, to find stuff I might be missing.

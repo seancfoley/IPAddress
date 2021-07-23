@@ -581,8 +581,23 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection 
 	return cloneToIPv6Sections(spanWithPrefixBlocks(wrapped))
 }
 
-func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
-	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+func (section *IPv6AddressSection) checkIndex(other *IPv6AddressSection) (err PositionMismatchError) {
+	if section.addressSegmentIndex != other.addressSegmentIndex {
+		err = &positionMismatchError{
+			section1:                 section.ToIPAddressSection(),
+			section2:                 other.ToIPAddressSection(),
+			addressSegmentIndex1:     section.addressSegmentIndex,
+			addressSegmentIndex2:     other.addressSegmentIndex,
+			incompatibleAddressError: incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}},
+		}
+	}
+	return
+}
+
+func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+	if err := section.checkIndex(other); err != nil {
+		return nil, err
+	} else if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
 	return cloneToIPv6Sections(
@@ -601,8 +616,10 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocks() []*IPv6AddressSect
 	return cloneToIPv6Sections(spanWithSequentialBlocks(wrapped))
 }
 
-func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
-	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+	if err := section.checkIndex(other); err != nil {
+		return nil, err
+	} else if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
 	return cloneToIPv6Sections(
@@ -613,7 +630,10 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6Address
 	), nil
 }
 
-func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, SizeMismatchError) {
+func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, IncompatibleAddressError) {
+	if err := section.checkIndex(other); err != nil {
+		return nil, err
+	}
 	res, err := section.coverWithPrefixBlockTo(other.ToIPAddressSection())
 	return res.ToIPv6AddressSection(), err
 }
@@ -622,15 +642,39 @@ func (section *IPv6AddressSection) CoverWithPrefixBlock() *IPv6AddressSection {
 	return section.coverWithPrefixBlock().ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) checkSectionCounts(sections []*IPv6AddressSection) IncompatibleAddressError {
+	segCount := section.GetSegmentCount()
+	addressSegmentIndex := section.addressSegmentIndex
+	length := len(sections)
+	for i := 0; i < length; i++ {
+		section2 := sections[i]
+		if section2 == nil {
+			continue
+		}
+		if section2.addressSegmentIndex != addressSegmentIndex {
+			return &positionMismatchError{
+				section.ToIPAddressSection(),
+				section2.ToIPAddressSection(),
+				addressSegmentIndex,
+				section.addressSegmentIndex,
+				incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}}}
+		}
+		if section2.GetSegmentCount() != segCount {
+			return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
+		}
+	}
+	return nil
+}
+
 //
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
-	series := cloneIPv6Sections(section, sections)
-	if err := checkSectionCounts(series); err != nil {
+func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
+	series := cloneIPv6Sections(section, sections)
 	blocks := getMergedSequentialBlocks(series)
 	return cloneToIPv6Sections(blocks), nil
 }
@@ -639,11 +683,11 @@ func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6Addr
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
-	series := cloneIPv6Sections(section, sections)
-	if err := checkSectionCounts(series); err != nil {
+func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
+	series := cloneIPv6Sections(section, sections)
 	blocks := getMergedPrefixBlocks(series)
 	return cloneToIPv6Sections(blocks), nil
 }

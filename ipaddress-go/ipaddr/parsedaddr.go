@@ -67,10 +67,10 @@ type parsedIPAddress struct {
 
 	ipAddrProvider
 
-	options    IPAddressStringParameters
-	originator HostIdentifierString
-	valuesx    translatedResult
-	//skipContains *bool //TODO additional containment options in IPAddressString
+	options               IPAddressStringParameters
+	originator            HostIdentifierString
+	valuesx               translatedResult
+	skipCntains           boolSetting
 	maskers, mixedMaskers []Masker
 
 	creationLock sync.Mutex
@@ -80,11 +80,11 @@ func (parseData *parsedIPAddress) values() *translatedResult {
 	return &parseData.valuesx
 }
 
-func (parseData *parsedIPAddress) providerCompare(other IPAddressProvider) (int, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(parseData, other)
 }
 
-func (parseData *parsedIPAddress) providerEquals(other IPAddressProvider) (bool, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
 	return providerEquals(parseData, other)
 }
 
@@ -92,7 +92,7 @@ func (parseData *parsedIPAddress) isProvidingIPAddress() bool {
 	return true
 }
 
-func (parseData *parsedIPAddress) getType() IPType {
+func (parseData *parsedIPAddress) getType() ipType {
 	return fromVersion(parseData.getProviderIPVersion())
 }
 
@@ -101,7 +101,7 @@ func (parseData *parsedIPAddress) getParameters() IPAddressStringParameters {
 }
 
 // Note: the following are needed because we have two anonymous fields and there are name clashes
-// Instead of defaulting to the default methods in IPAddressProvider, we need to defer to our parsed data for these methods
+// Instead of defaulting to the default methods in ipAddressProvider, we need to defer to our parsed data for these methods
 //
 
 func (parseData *parsedIPAddress) isProvidingMixedIPv6() bool {
@@ -286,6 +286,816 @@ func (parseData *parsedIPAddress) getVersionedAddress(version IPVersion) (*IPAdd
 
 func (parseData *parsedIPAddress) getProviderNetworkPrefixLength() PrefixLen {
 	return parseData.getQualifier().getEquivalentPrefixLength()
+}
+
+func (parseData *parsedIPAddress) contains(other string) (res boolSetting) {
+	pd := parseData.getAddressParseData()
+	segmentData := pd.getSegmentData() //grab this field for thread safety, other threads can make it disappear
+	if segmentData == nil {
+		return
+	}
+	if parseData.skipContains() {
+		return
+		//return null;
+	}
+	if parseData.has_inet_aton_value() || parseData.hasIPv4LeadingZeros() || parseData.hasBinaryDigits() {
+		//you need to skip inet_aton completely because it can screw up where prefix matches up with digits
+		//you need to skip ipv4 leading zeros because addresses like 01.02.03.04 can change value depending on the validation options (octal or decimal)
+		return
+		//return null;
+	}
+	pref := parseData.getProviderNetworkPrefixLength()
+	//options := parseData.getParameters();
+	//IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network = (isProvidingIPv4() ? options.getIPv4Parameters() : options.getIPv6Parameters()).getNetwork();
+	if pref != nil && !parseData.isPrefixSubnet(*pref, segmentData) {
+		// this algorithm only works to check that the non-prefix host portion is valid,
+		// it does not attempt to check containment of the host or match the host,
+		// it depends on the host being full range in the containing address
+		return
+	}
+	return parseData.matchesPrefix(other, segmentData)
+}
+
+// skips contains checking for addresses already parsed -
+// so this is not a case of unusual string formatting, because this is not for comparing strings,
+// but more a case of whether the parsing data structures are easy to use or not
+func (parseData *parsedIPAddress) skipContains() bool {
+	result := parseData.skipCntains
+	if result.isSet {
+		return result.val
+	}
+	pd := parseData.getAddressParseData()
+	segmentCount := pd.getSegmentCount()
+	// first we must excluded cases where the segments line up differently than standard, although we do not exclude ipv6 compressed
+	if parseData.isProvidingIPv4() {
+		if segmentCount != IPv4SegmentCount { // accounts for is_inet_aton_joined, singleSegment and wildcard segments
+			parseData.skipCntains = boolSetting{true, true}
+			return true
+		}
+	} else {
+		if parseData.isProvidingMixedIPv6() || (segmentCount != IPv6SegmentCount && !parseData.isCompressed()) { // accounts for single segment and wildcard segments
+			parseData.skipCntains = boolSetting{true, true}
+			return true
+		}
+	}
+	// exclude non-standard masks which will modify segment values from their parsed values
+	mask := parseData.getProviderMask()
+	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil { // handles non-standard masks
+		parseData.skipCntains = boolSetting{true, true}
+		return true
+	}
+	parseData.skipCntains = boolSetting{true, false}
+	return false
+}
+
+func (parseData *parsedIPAddress) prefixContains(other string) (res boolSetting) {
+	equ := parseData.prefixEquals(other)
+	if equ.isSet && equ.val {
+		res = equ
+	} // else "false" results are ignored and treated like unknown results
+	return
+}
+
+func (parseData *parsedIPAddress) prefixEquals(other string) (res boolSetting) {
+	pd := parseData.getAddressParseData()
+	segmentData := pd.getSegmentData() //grab this field for thread safety, other threads can make it disappear
+	if segmentData == nil {
+		return
+	}
+	if parseData.skipContains() {
+		return
+	}
+	if parseData.has_inet_aton_value() || parseData.hasIPv4LeadingZeros() || parseData.hasBinaryDigits() {
+		//you need to skip inet_aton completely because it can screw up where prefix matches up with digits
+		//you need to skip ipv4 leading zeros because addresses like 01.02.03.04 can change value depending on the validation options (octal or decimal)
+		return
+	}
+	return parseData.matchesPrefix(other, segmentData)
+}
+
+//we do not call this method with parse data from inet_aton or single segment strings, so the cast to int is fine.
+//this is only for addresses with standard segment counts, although we do allow compressed.
+func (parseData *parsedIPAddress) isPrefixSubnet(networkPrefixLength BitCount, segmentData []uint32) bool {
+	//IPVersion version = network.getIPVersion();
+	var bytesPerSegment int
+	var max SegInt
+	var bitsPerSegment BitCount
+	if parseData.isProvidingIPv4() {
+		bytesPerSegment = IPv4BytesPerSegment
+		bitsPerSegment = IPv4BitsPerSegment
+		max = IPv4MaxValuePerSegment
+	} else {
+		bytesPerSegment = IPv6BytesPerSegment
+		bitsPerSegment = IPv6BitsPerSegment
+		max = IPv6MaxValuePerSegment
+	}
+	//PrefixConfiguration prefConf = network.getPrefixConfiguration();
+	addressParseData := parseData.getAddressParseData()
+	segmentCount := addressParseData.getSegmentCount()
+	if parseData.isCompressed() {
+		compressedCount := IPv6SegmentCount - segmentCount
+		compressedIndex := addressParseData.getConsecutiveSeparatorSegmentIndex()
+		return isPrefixSubnet(
+			func(segmentIndex int) SegInt {
+				//segmentIndex -> {
+				if segmentIndex >= compressedIndex {
+					if segmentIndex-compressedIndex < compressedCount {
+						return 0
+					}
+					segmentIndex -= compressedCount
+				}
+				return SegInt(parseData.getValue(segmentIndex, keyLower))
+			},
+			func(segmentIndex int) SegInt {
+				//segmentIndex -> {
+				if segmentIndex >= compressedIndex {
+					if segmentIndex-compressedIndex < compressedCount {
+						return 0
+					}
+					segmentIndex -= compressedCount
+				}
+				return SegInt(parseData.getValue(segmentIndex, keyUpper))
+			},
+			segmentCount+compressedCount,
+			bytesPerSegment,
+			bitsPerSegment,
+			max,
+			networkPrefixLength,
+			//prefConf,
+			false)
+	}
+	//we do not enter this method with parse data from inet_aton or single segment strings, so the cast to int is fine
+	return isPrefixSubnet(
+		func(segmentIndex int) SegInt {
+			//segmentIndex -> (int)
+			return SegInt(parseData.getValue(segmentIndex, keyLower))
+		},
+		func(segmentIndex int) SegInt {
+			//segmentIndex -> (int)
+			return SegInt(parseData.getValue(segmentIndex, keyUpper))
+		},
+		segmentCount,
+		bytesPerSegment,
+		bitsPerSegment,
+		max,
+		networkPrefixLength,
+		//prefConf,
+		false)
+}
+
+func (parseData *parsedIPAddress) matchesPrefix(other string, segmentData []uint32) (res boolSetting) {
+	otherLen := len(other)
+	// If other has a prefix length, then we end up returning false when we look at the end of the other string to ensure the other string is valid.
+	// Checking for prefix subnets in here is too expensive.
+	// Also, we don't want to start validating prefix strings as well, too expensive
+	// A prefix can only change a "true" result to "false", so all the places we return false below are still fine
+	// However, we only give up at the very end, so here we do a quick check first
+	isIPv4 := parseData.isProvidingIPv4()
+	if otherLen >= 4 {
+		//prefixLenSep := PrefixLenSeparator;
+		if other[otherLen-2] == PrefixLenSeparator || other[otherLen-3] == PrefixLenSeparator {
+			return
+		}
+		if !isIPv4 {
+			if other[otherLen-4] == PrefixLenSeparator {
+				return
+			}
+		}
+	}
+	pd := parseData.getAddressParseData()
+	pref := parseData.getProviderNetworkPrefixLength()
+	var expectedCount int
+	compressedAlready := false
+	networkSegIsCompressed := false
+	var prefixIsMidSegment bool
+	var prefixEndCharIndex, remainingSegsCharIndex, networkSegIndex, networkSegCharIndex, networkSegsCount, adjustment int // prefixEndCharIndex points to separator following prefixed seg if whole seg is prefixed, remainingSegsCharIndex points to next digit
+
+	if pref == nil {
+		if isIPv4 {
+			expectedCount = IPv4SegmentCount
+		} else {
+			expectedCount = IPv6SegmentCount
+		}
+		networkSegIndex = expectedCount - 1
+		prefixEndCharIndex = parseData.getIndex(networkSegIndex, keyUpperStrEndIndex)
+		if otherLen > prefixEndCharIndex {
+			return
+		}
+		prefixIsMidSegment = false
+	} else {
+		prefLen := *pref
+		if prefLen == 0 {
+			prefixIsMidSegment = false
+			if isIPv4 {
+				expectedCount = IPv4SegmentCount
+			} else {
+				expectedCount = IPv6SegmentCount
+			}
+			prefixEndCharIndex = 0
+		} else {
+			if isIPv4 {
+				expectedCount = IPv4SegmentCount
+				networkSegIndex = getNetworkSegmentIndex(prefLen, IPv4BytesPerSegment, IPv4BitsPerSegment)
+				prefixEndCharIndex = parseData.getIndex(networkSegIndex, keyUpperStrEndIndex)
+				segPrefLength := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, prefLen, networkSegIndex)
+				prefixIsMidSegment = *segPrefLength != IPv4BitsPerSegment
+				networkSegsCount = networkSegIndex + 1
+				remainingSegsCharIndex = prefixEndCharIndex + 1
+				if prefixIsMidSegment {
+					networkSegCharIndex = parseData.getIndex(networkSegIndex, keyLowerStrStartIndex)
+				}
+			} else {
+				expectedCount = IPv6SegmentCount
+				bitsPerSegment := IPv6BitsPerSegment
+				networkSegIndex = getNetworkSegmentIndex(prefLen, IPv6BytesPerSegment, IPv6BitsPerSegment)
+				missingSegmentCount := IPv6SegmentCount - pd.getSegmentCount()
+				compressedSegIndex := parseData.getConsecutiveSeparatorSegmentIndex()
+				compressedAlready = compressedSegIndex <= networkSegIndex                                               //any part of network prefix is compressed
+				networkSegIsCompressed = compressedAlready && compressedSegIndex+missingSegmentCount >= networkSegIndex //the segment with the prefix boundary is compressed
+				segPrefLength := getPrefixedSegmentPrefixLength(IPv6BitsPerSegment, prefLen, networkSegIndex)
+				if networkSegIsCompressed {
+					prefixIsMidSegment = *segPrefLength != IPv6BitsPerSegment
+					networkSegsCount = networkSegIndex + 1
+					prefixEndCharIndex = parseData.getIndex(compressedSegIndex, keyUpperStrEndIndex) + 1 //to include all zeros in prefix we must include both seps, in other cases we include no seps at alls
+					if prefixIsMidSegment && compressedSegIndex > 0 {
+						networkSegCharIndex = parseData.getIndex(compressedSegIndex, keyLowerStrStartIndex)
+					}
+					remainingSegsCharIndex = prefixEndCharIndex + 1
+				} else {
+					var actualNetworkSegIndex int
+					if compressedSegIndex < networkSegIndex {
+						actualNetworkSegIndex = networkSegIndex - missingSegmentCount
+					} else {
+						actualNetworkSegIndex = networkSegIndex
+					}
+					prefixEndCharIndex = parseData.getIndex(actualNetworkSegIndex, keyUpperStrEndIndex)
+					adjustment = IPv6SegmentMaxChars - (int(*segPrefLength+3) >> 2) // divide by IPv6AddressSegment.BITS_PER_CHAR
+					if adjustment > 0 {
+						prefixIsMidSegment = true
+						remainingSegsCharIndex = parseData.getIndex(actualNetworkSegIndex, keyUpperStrStartIndex)
+						if remainingSegsCharIndex+adjustment > prefixEndCharIndex {
+							adjustment = prefixEndCharIndex - remainingSegsCharIndex
+						}
+						prefixEndCharIndex -= adjustment
+						networkSegsCount = networkSegIndex
+						networkSegCharIndex = parseData.getIndex(actualNetworkSegIndex, keyLowerStrStartIndex)
+					} else {
+						prefixIsMidSegment = *segPrefLength != bitsPerSegment
+						networkSegsCount = actualNetworkSegIndex + 1
+						remainingSegsCharIndex = prefixEndCharIndex + 1
+						if prefixIsMidSegment {
+							networkSegCharIndex = parseData.getIndex(actualNetworkSegIndex, keyLowerStrStartIndex)
+						}
+					}
+				}
+			}
+		}
+	}
+	str := parseData.str
+	var otherSegmentCount int
+	currentSegHasNonZeroDigits := false
+	for i := 0; i < prefixEndCharIndex; i++ {
+		c := str[i]
+		var otherChar byte
+		if i < otherLen {
+			otherChar = other[i]
+		}
+		if c != otherChar {
+			if c >= '1' && c <= '9' {
+			} else if c >= 'a' && c <= 'f' {
+			} else if c >= 'A' && c <= 'F' {
+				adjustedChar := c + byte('a'-'A')
+				if c == adjustedChar {
+					continue
+				}
+			} else if c >= SegmentSqlWildcard && c <= RangeSeparator {
+				if c == SegmentWildcard || c == RangeSeparator || c == SegmentSqlWildcard {
+					return
+				}
+			} else if c == SegmentSqlSingleWildcard {
+				return
+			}
+
+			if otherChar >= 'A' && otherChar <= 'F' {
+				adjustedChar := otherChar + byte('a'-'A')
+				if otherChar == adjustedChar {
+					continue
+				}
+			}
+
+			if prefixIsMidSegment && (i >= networkSegCharIndex || networkSegCharIndex == 1) { //networkSegCharIndex == 1 accounts for :: start to address
+				// when prefix is not on seg boundary, we can have the same prefix without matching digits
+				// the host part can change the digits of the network part, particularly for ipv4
+				// this is true for ipv6 too when you consider host and network part of each digit
+				// this is also true when the digit count in the segments do not match,
+				// also note that f: and fabc: match prefix of 4 by string chars, but prefix does not match due to difference in digits in each segment
+				// So, in general, when mismatch of prefix chars we cannot conclude mismatch of prefix unless we are comparing entire segments (ie prefix is on seg boundary)
+				return
+			}
+
+			if parseData.hasRange(otherSegmentCount) {
+				return
+			}
+
+			if otherChar >= '1' && otherChar <= '9' {
+			} else if otherChar >= 'a' && otherChar <= 'f' {
+			} else {
+				if otherChar <= RangeSeparator && otherChar >= SegmentSqlWildcard {
+					if otherChar == SegmentWildcard || otherChar == RangeSeparator || otherChar == SegmentSqlWildcard {
+						return
+					}
+				} else if otherChar == SegmentSqlSingleWildcard {
+					return
+				}
+
+				if !currentSegHasNonZeroDigits {
+					//we know that this address has no ipv4 leading zeros, we abort this method in such cases.
+					//However, we do want to handle all the following cases and return null for each.
+					//We do not handle differing numbers of leading zeros
+					//We do not handle ipv6 compression in different places
+					//So we want to handle segments that start like all of these cases:
+
+					//other 01
+					//this  1
+
+					//other 00
+					//this  1
+
+					//other 00
+					//this  :
+
+					//other 0:
+					//this  :
+
+					//other 00
+					//this  0:
+
+					//other :
+					//this  0
+
+					//Those should all return null since they might in fact represent matching segments.
+					//However, the following should return FALSE when there are no leading zeros and no compression:
+
+					//other 0.
+					//this  1
+
+					//other 1
+					//this  0.
+
+					//other 0:
+					//this  1
+
+					//other 1
+					//this  0:
+
+					//So in summary, we first check that we have not matched non-zero values first (ie digitCount must be 0)
+					//All the null cases involve one or the other starting with 0.
+					//If the other is an ipv6 segment separator, return null.
+					//Otherwise, if the zero is not the end of segment, we have leading zeros which we do not handle here, so we return null.
+					//Otherwise, return false.  This is because we have a zero segment, and the other is not (it is neither compressed nor 0).
+					//Actually, we return false only if the 0 segment is the other string, because if the 0 segment is this it is only one segment while the other may be multi-segment.
+					//If the other might be multi-segment, we defer to the segment check that will tell us if we must have matching segments here.
+					if c == '0' {
+						if otherChar == IPv6SegmentSeparator || otherChar == 0 {
+							return
+						}
+						k := i + 1
+						if k < len(str) {
+							nextChar := str[k]
+							if nextChar != IPv4SegmentSeparator && nextChar != IPv6SegmentSeparator {
+								return
+							}
+						}
+						//defer to the segment check
+					} else if otherChar == '0' {
+						if c == IPv6SegmentSeparator {
+							return
+						}
+						k := i + 1
+						if k < otherLen {
+							nextChar := other[k]
+							if nextChar != IPv4SegmentSeparator && nextChar != IPv6SegmentSeparator {
+								return
+							}
+						}
+						return boolSetting{true, false}
+					}
+				}
+				if otherChar == IPv6SegmentSeparator {
+					return boolSetting{true, false} // we've alreqdy accounted for the case of container address 0 segment, so it is non-zero, so ending matching segment here is false match
+				} else if otherChar == IPv4SegmentSeparator {
+					if !isIPv4 {
+						return //mixed address
+					}
+					otherSegmentCount++
+				}
+			}
+
+			//if other is a range like 3-3 must return null
+			for k := i + 1; k < otherLen; k++ {
+				otherChar = other[k]
+				if otherChar == IPv6SegmentSeparator {
+					return boolSetting{true, false}
+				} else if otherChar <= PrefixLenSeparator && otherChar >= SegmentSqlWildcard {
+					if otherChar == IPv4SegmentSeparator {
+						if !isIPv4 {
+							return //mixed address
+						}
+						otherSegmentCount++
+					} else {
+						if otherChar == PrefixLenSeparator || otherChar == SegmentWildcard ||
+							otherChar == RangeSeparator || otherChar == SegmentSqlWildcard ||
+							otherChar == SegmentSqlSingleWildcard {
+							return
+						}
+					}
+				}
+			}
+			if isIPv4 {
+				// if we match ipv4 seg count and we see no wildcards or other special chars, we can conclude non-containment
+				if otherSegmentCount+1 == IPv4SegmentCount {
+					return boolSetting{true, false}
+				}
+			} else {
+				// for ipv6 we have already checked for compression and special chars.  If we are not single segment, then we can conclude non-containment
+				if otherSegmentCount > 0 {
+					return boolSetting{true, false}
+				}
+			}
+			return
+		}
+		if c != '0' {
+			isSegmentEnd := c == IPv6SegmentSeparator || c == IPv4SegmentSeparator
+			if isSegmentEnd {
+				otherSegmentCount++
+				currentSegHasNonZeroDigits = false
+			} else {
+				currentSegHasNonZeroDigits = true
+			}
+		}
+	}
+
+	// At this point we know the prefix matches, so we need to prove that the provided string is indeed a valid ip address
+	if pref != nil {
+		if prefixEndCharIndex == otherLen {
+			if networkSegsCount != expectedCount {
+				// we are ok if compressed and networkSegsCount <= expectedCount which is 8 for ipv6, for example 1::/64 matching 1::, there are only 4 network segs
+				if !compressedAlready || networkSegsCount > expectedCount {
+					return
+				}
+			}
+		} else {
+			if isIPv4 {
+				if *pref != 0 {
+					//we must match the same number of chars til end of segment, otherwise we might not have matched that last segment at all
+					//we also cannot make conclusions when not matching due to '-' or '_' characters or matching leading zeros
+					segmentEndIndex := prefixEndCharIndex + adjustment
+					if otherLen < segmentEndIndex {
+						return
+					}
+					if otherLen != segmentEndIndex && other[segmentEndIndex] != IPv4SegmentSeparator {
+						return
+					}
+					for n := prefixEndCharIndex; n < segmentEndIndex; n++ {
+						otherChar := other[n]
+						if otherChar == IPv4SegmentSeparator {
+							return
+						}
+					}
+				}
+
+				//now count the remaining segments and check those chars
+				var digitCount, remainingSegCount int
+				firstIsHighIPv4 := false
+				i := remainingSegsCharIndex
+				for ; i < otherLen; i++ {
+					otherChar := other[i]
+					if otherChar <= '9' && otherChar >= '0' {
+						if digitCount == 0 && otherChar >= '3' {
+							firstIsHighIPv4 = true
+						}
+						digitCount++
+					} else if otherChar == IPv4SegmentSeparator {
+						if digitCount == 0 {
+							return boolSetting{true, false}
+						}
+						if firstIsHighIPv4 {
+							if digitCount >= IPv4SegmentMaxChars {
+								return boolSetting{true, false}
+							}
+						} else if digitCount > IPv4SegmentMaxChars {
+							return //leading zeros or inet_aton formats
+						}
+						digitCount = 0
+						remainingSegCount++
+						firstIsHighIPv4 = false
+					} else {
+						return //some other character, possibly base 85, also '/' or wildcards
+					}
+				} // end for
+				if digitCount == 0 {
+					return boolSetting{true, false}
+				}
+				if digitCount > IPv4SegmentMaxChars {
+					return
+				} else if firstIsHighIPv4 && digitCount == IPv4SegmentMaxChars {
+					return
+				}
+				totalSegCount := networkSegsCount + remainingSegCount + 1
+				if totalSegCount != expectedCount {
+					return
+				}
+			} else {
+				if *pref != 0 {
+					// we must match the same number of chars til end of segment, otherwise we might not have matched that last segment at all
+					// we also cannot make conclusions when not matching due to '-' or '_' characters or matching leading zeros
+					// end of prefixed segment must be followed by separator eg 1:2 is prefix and must be followed by :
+					// also note this handles 1:2:: as prefix
+					segmentEndIndex := prefixEndCharIndex + adjustment
+					if otherLen < segmentEndIndex {
+						return
+					}
+					if otherLen != segmentEndIndex && other[segmentEndIndex] != IPv6SegmentSeparator {
+						return
+					}
+					for n := prefixEndCharIndex; n < segmentEndIndex; n++ {
+						otherChar := other[n]
+						if otherChar == IPv6SegmentSeparator {
+							return
+						}
+					}
+				}
+
+				//now count the remaining segments and check those chars
+				var digitCount, remainingSegCount int
+				i := remainingSegsCharIndex
+				for ; i < otherLen; i++ {
+					otherChar := other[i]
+					if otherChar <= '9' && otherChar >= '0' {
+						digitCount++
+					} else if (otherChar >= 'a' && otherChar <= 'f') || (otherChar >= 'A' && otherChar <= 'F') {
+						digitCount++
+					} else if otherChar == IPv4SegmentSeparator {
+						return // could be ipv6/ipv4 mixed
+					} else if otherChar == IPv6SegmentSeparator {
+						if digitCount > IPv6SegmentMaxChars {
+							return //possibly leading zeros or ranges
+						}
+						if digitCount == 0 {
+							if compressedAlready {
+								return boolSetting{true, false}
+							}
+							compressedAlready = true
+						} else {
+							digitCount = 0
+						}
+						remainingSegCount++
+					} else {
+						return //some other character, possibly base 85, also '/' or wildcards
+					}
+				} // end for
+				if digitCount == 0 {
+					prevIndex := i - 1
+					if prevIndex < 0 {
+						return boolSetting{true, false}
+					}
+					prevChar := other[prevIndex]
+					if prevChar != IPv6SegmentSeparator { // cannot end with empty segment unless prev segment also empty
+						return boolSetting{true, false}
+					}
+				} else if digitCount > IPv6SegmentMaxChars {
+					return
+				}
+				totalSegCount := networkSegsCount + remainingSegCount + 1
+				if totalSegCount > expectedCount || (totalSegCount < expectedCount && !compressedAlready) {
+					return
+				}
+				if networkSegIsCompressed && expectedCount-remainingSegCount <= networkSegIndex {
+					//consider 1:: and you are looking at segment 7
+					//So we look at the front and we see it matches 1::
+					//But what if the end is 1::3:4:5?
+					return
+				}
+			}
+		}
+	}
+	return boolSetting{true, true}
+}
+
+func (parseData *parsedIPAddress) containmentCheck(other ipAddressProvider, networkOnly, equals, checkZone bool) (res boolSetting) {
+	if otherParsed, ok := other.(*parsedIPAddress); ok {
+		addr := parseData.valuesx.sections.address
+		otherAddr := otherParsed.valuesx.sections.address
+		if addr == nil || otherAddr == nil {
+			// one or the other value not yet created, so take the shortcut that provides an answer most (but not all) of the time
+			// An answer is provided for all normalized, conventional or canonical addresses
+			res = parseData.containsProv(otherParsed, networkOnly, equals)
+			if checkZone && res.isSet && res.val {
+				res.val = parseData.getQualifier().getZone() == otherParsed.getQualifier().getZone()
+			}
+		} // else we defer to the values-based containment check (in the caller), which is best since it is ready to go
+	}
+	return
+}
+
+func (parseData *parsedIPAddress) containsProvider(other ipAddressProvider) (res boolSetting) {
+	return parseData.containmentCheck(other, false, false, true)
+}
+
+func (parseData *parsedIPAddress) parsedEquals(other ipAddressProvider) (res boolSetting) {
+	return parseData.containmentCheck(other, false, true, true)
+}
+
+func (parseData *parsedIPAddress) prefixContainsProvider(other ipAddressProvider) boolSetting {
+	return parseData.containmentCheck(other, true, false, false)
+}
+
+func (parseData *parsedIPAddress) prefixEqualsProvider(other ipAddressProvider) boolSetting {
+	return parseData.containmentCheck(other, true, true, false)
+}
+
+//not used for invalid, or cases where parseData.isEmpty or parseData.isAll
+func (parseData *parsedIPAddress) containsProv(other *parsedIPAddress, networkOnly, equals bool) (res boolSetting) {
+	pd := parseData.getAddressParseData()
+	otherParseData := other.getAddressParseData()
+	segmentData := pd.getSegmentData()                  //grab this field for thread safety, other threads can make it disappear
+	otherSegmentData := otherParseData.getSegmentData() //grab this field for thread safety, other threads can make it disappear
+	if segmentData == nil || otherSegmentData == nil {
+		return
+	}
+	if parseData.skipContains() || other.skipContains() { // this excludes mixed addresses, amongst others
+		return
+	}
+	ipVersion := parseData.getProviderIPVersion()
+	if ipVersion != other.getProviderIPVersion() {
+		return boolSetting{true, false}
+	}
+	segmentCount := pd.getSegmentCount()
+	otherSegmentCount := otherParseData.getSegmentCount()
+	var max SegInt
+	//IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network;
+	var compressedAlready, otherCompressedAlready bool
+	var expectedSegCount, bytesPerSegment int
+	var bitsPerSegment BitCount
+	//options := parseData.getParameters();
+	if parseData.isProvidingIPv4() {
+		max = IPv4MaxValuePerSegment
+		expectedSegCount = IPv4SegmentCount
+		bitsPerSegment = IPv4BitsPerSegment
+		bytesPerSegment = IPv4BytesPerSegment
+		//network = options.getIPv4Parameters().getNetwork();
+		compressedAlready = true
+		otherCompressedAlready = true
+	} else {
+		max = IPv6MaxValuePerSegment
+		expectedSegCount = IPv6SegmentCount
+		bitsPerSegment = IPv6BitsPerSegment
+		bytesPerSegment = IPv6BytesPerSegment
+		//network = options.getIPv6Parameters().getNetwork();
+		compressedAlready = expectedSegCount == segmentCount
+		otherCompressedAlready = expectedSegCount == otherSegmentCount
+	}
+	//PrefixConfiguration prefConf = network.getPrefixConfiguration();
+	//boolean zeroHostsAreSubnets = prefConf.zeroHostsAreSubnets();
+	//boolean allPrefixedAddressesAreSubnets = prefConf.allPrefixedAddressesAreSubnets();
+	pref := parseData.getProviderNetworkPrefixLength()
+	otherPref := other.getProviderNetworkPrefixLength()
+	var networkSegIndex, hostSegIndex, endIndex, otherHostAllSegIndex, hostAllSegIndex int
+	endIndex = segmentCount
+
+	// determine what indexes to use for network, host, and prefix block adjustments (hostAllSegIndex and otherHostAllSegIndex)
+	var adjustedOtherPref PrefixLen
+	if pref == nil {
+		networkOnly = false
+		hostAllSegIndex = expectedSegCount
+		otherHostAllSegIndex = expectedSegCount
+		hostSegIndex = expectedSegCount
+		//hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = expectedSegCount;
+		networkSegIndex = hostSegIndex - 1
+	} else {
+		prefLen := *pref
+		if networkOnly {
+			//hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment);
+			hostSegIndex = getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
+			hostAllSegIndex = hostSegIndex
+			otherHostAllSegIndex = hostSegIndex
+			networkSegIndex = getNetworkSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
+			// we treat the other as if it were a prefix block of the same prefix length
+			// this allows us to compare entire segments for prefixEquals, ignoring the host values
+			adjustedOtherPref = pref
+		} else {
+			otherHostAllSegIndex = expectedSegCount
+			hostSegIndex = getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
+			networkSegIndex = getNetworkSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
+			if parseData.isPrefixSubnet(prefLen, segmentData) {
+				hostAllSegIndex = hostSegIndex
+				if !equals {
+					// no need to look at host for containment when a prefix subnet
+					networkOnly = true
+				}
+			} else {
+				hostAllSegIndex = expectedSegCount
+			}
+		}
+	}
+	// Now determine if the other is a prefix block subnet, and if so, adjust otherHostAllSegIndex
+	if otherPref != nil {
+		otherPrefLen := *otherPref
+		if adjustedOtherPref == nil || otherPrefLen < *adjustedOtherPref {
+			otherHostIndex := getHostSegmentIndex(otherPrefLen, bytesPerSegment, bitsPerSegment)
+			if otherHostIndex < otherHostAllSegIndex &&
+				other.isPrefixSubnet(otherPrefLen, otherSegmentData) {
+				otherHostAllSegIndex = otherHostIndex
+			}
+		} else {
+			otherPref = adjustedOtherPref
+		}
+	} else {
+		otherPref = adjustedOtherPref
+	}
+	i, j, normalizedCount := 0, 0, 0
+	var compressedCount, otherCompressedCount int
+	for i < endIndex || compressedCount > 0 {
+		if networkOnly && normalizedCount > networkSegIndex {
+			break
+		}
+		var lower, upper SegInt
+		if compressedCount <= 0 {
+			lower = SegInt(parseData.getValue(i, keyLower))
+			upper = SegInt(parseData.getValue(i, keyUpper))
+		}
+		if normalizedCount >= hostAllSegIndex { // we've reached the prefixed segment
+			segPrefLength := getSegmentPrefixLength(bitsPerSegment, pref, normalizedCount)
+			segPref := *segPrefLength
+			networkMask := ^SegInt(0) << (bitsPerSegment - segPref)
+			hostMask := ^networkMask
+			lower &= networkMask
+			upper |= hostMask
+			//lower &= network.getSegmentNetworkMask(segPrefLength);
+			//upper |= network.getSegmentHostMask(segPrefLength);
+		}
+		var otherLower, otherUpper SegInt
+		if normalizedCount > otherHostAllSegIndex {
+			otherLower = 0
+			otherUpper = max
+		} else {
+			if otherCompressedCount <= 0 {
+				otherLower = SegInt(parseData.getValue(j, keyLower))
+				otherUpper = SegInt(parseData.getValue(j, keyUpper))
+			}
+			if normalizedCount == otherHostAllSegIndex { // we've reached the prefixed segment
+				segPrefLength := getSegmentPrefixLength(bitsPerSegment, otherPref, normalizedCount)
+				segPref := *segPrefLength
+				networkMask := ^SegInt(0) << (bitsPerSegment - segPref)
+				hostMask := ^networkMask
+				otherLower &= networkMask
+				otherUpper |= hostMask
+				//otherLower &= network.getSegmentNetworkMask(segPrefLength);
+				//otherUpper |= network.getSegmentHostMask(segPrefLength);
+			}
+		}
+		if equals {
+			if lower != otherLower || upper != otherUpper {
+				return boolSetting{true, false}
+			}
+		} else {
+			if lower > otherLower || upper < otherUpper {
+				return boolSetting{true, false}
+			}
+		}
+		if !compressedAlready {
+			if compressedCount > 0 {
+				compressedCount--
+				if compressedCount == 0 {
+					compressedAlready = true
+				}
+			} else if parseData.segmentIsCompressed(i) {
+				i++
+				compressedCount = expectedSegCount - segmentCount
+			} else {
+				i++
+			}
+		} else {
+			i++
+		}
+		if !otherCompressedAlready {
+			if otherCompressedCount > 0 {
+				otherCompressedCount--
+				if otherCompressedCount == 0 {
+					otherCompressedAlready = true
+				}
+			} else if other.segmentIsCompressed(j) {
+				j++
+				otherCompressedCount = expectedSegCount - otherSegmentCount
+			} else {
+				j++
+			}
+		} else {
+			j++
+		}
+		normalizedCount++
+	}
+	return boolSetting{true, true}
 }
 
 func allocateSegments(
@@ -1460,78 +2270,6 @@ func createAllAddress(
 	upperSection := creator.createSectionInternal(upperSegments)
 	upper = creator.createAddressInternal(upperSection.ToAddressSection(), nil).ToIPAddress()
 	return
-	/*
-		int segmentCount = IPAddress.getSegmentCount(version);
-				IPAddress mask = qualifier.getMaskLower();
-				if(mask != null && mask.getBlockMaskPrefixLength(true) != null) {
-					mask = null;//we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
-				}
-				boolean hasMask = mask != null;
-				Integer prefLength = getPrefixLength(qualifier);
-				if(version.isIPv4()) {
-					parsedAddressCreator<IPv4Address, IPv4AddressSection, ?, IPv4AddressSegment> creator = options.getIPv4Parameters().getNetwork().getIPAddressCreator();
-					IPv4AddressSegment segments[] = creator.createSegmentArray(segmentCount);
-					for(int i = 0; i < segmentCount; i++) {
-						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
-						segments[i] = createFullRangeSegment(
-								version,
-								0,
-								IPv4Address.MAX_VALUE_PER_SEGMENT,
-								i,
-								getSegmentPrefixLength(i, version, qualifier),
-								segmentMask,
-								creator);
-					}
-					return creator.createAddressInternal(segments, originator, prefLength);
-				} else {
-					parsedAddressCreator<IPv6Address, IPv6AddressSection, ?, IPv6AddressSegment> creator = options.getIPv6Parameters().getNetwork().getIPAddressCreator();
-					IPv6AddressSegment segments[] = creator.createSegmentArray(segmentCount);
-					for(int i = 0; i < segmentCount; i++) {
-						Integer segmentMask = hasMask ? cacheSegmentMask(mask.getSegment(i).getSegmentValue()) : null;
-						segments[i] = createFullRangeSegment(
-								version,
-								0,
-								IPv6Address.MAX_VALUE_PER_SEGMENT,
-								i,
-								getSegmentPrefixLength(i, version, qualifier),
-								segmentMask,
-								creator);
-					}
-					return creator.createAddressInternal(segments, qualifier.getZone(), originator, prefLength);
-				}
-	*/
-	//xxxxxx
-	//return nil
-
-	/*
-		func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
-			addr := provider.address
-			if addr == nil {
-				provider.creationLock.Lock()
-				addr = provider.address
-				if addr == nil {
-					validationOptions := provider.validationOptions
-					creator := provider.validationOptions.GetNetwork().GetMACAddressCreator()
-					size := validationOptions.MACAddressSize()
-					var segCount int
-					if size == EUI64 {
-						segCount = ExtendedUniqueIdentifier64SegmentCount
-					} else {
-						segCount = MediaAccessControlSegmentCount
-					}
-					allRangeSegment := creator.createMACRangeSegment(0, MACMaxValuePerSegment)
-					segments := make([]*AddressDivision, segCount)
-					for i := range segments {
-						segments[i] = allRangeSegment
-					}
-					section := creator.createSectionInternal(segments)
-					addr = creator.createAddressInternal(section.ToAddressSection(), nil).ToMACAddress()
-				}
-				provider.creationLock.Unlock()
-			}
-			return addr, nil
-		}
-	*/
 }
 
 func getPrefixLength(qualifier *parsedHostIdentifierStringQualifier) PrefixLen {

@@ -41,7 +41,7 @@ type addressError struct {
 	key string
 
 	// the address
-	str string
+	str string // TODO would be nice to move this up to make it clear it is not always needed nor available
 }
 
 func (a *addressError) Error() string {
@@ -146,6 +146,18 @@ type SizeMismatchError interface {
 }
 
 type sizeMismatchError struct {
+	incompatibleAddressError
+}
+
+type PositionMismatchError interface {
+	IncompatibleAddressError
+}
+
+type positionMismatchError struct {
+	section1, section2 *IPAddressSection
+
+	addressSegmentIndex1, addressSegmentIndex2 int8
+
 	incompatibleAddressError
 }
 

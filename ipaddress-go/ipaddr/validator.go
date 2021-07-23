@@ -11,7 +11,7 @@ const (
 type HostIdentifierStringValidator interface {
 	validateHostName(fromHost *HostName) (*parsedHost, HostNameError)
 
-	validateIPAddressStr(fromString *IPAddressString) (IPAddressProvider, AddressStringError)
+	validateIPAddressStr(fromString *IPAddressString) (ipAddressProvider, AddressStringError)
 
 	validateMACAddressStr(fromString *MACAddressString) (macAddressProvider, AddressStringError)
 

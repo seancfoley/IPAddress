@@ -583,6 +583,7 @@ func (parseData *ipAddressParseData) segIsCompressed(index int, segmentData []ui
 	start := getIndexFromData(index, keyLowerStrStartIndex, segmentData)
 	return start == end
 }
+
 func (parseData *ipAddressParseData) segmentIsCompressed(index int) bool {
 	return parseData.segIsCompressed(index, parseData.addressParseData.getSegmentData())
 }

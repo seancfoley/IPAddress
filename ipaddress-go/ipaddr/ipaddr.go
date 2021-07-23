@@ -460,17 +460,17 @@ func (addr *IPAddress) init() *IPAddress {
 	return addr
 }
 
-func (addr *IPAddress) getProvider() IPAddressProvider {
+func (addr *IPAddress) getProvider() ipAddressProvider {
 	return nil
 	//TODO getProvider
 	/*
 		if(isPrefixed()) {
 			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
-				return IPAddressProvider.getProviderFor(this, withoutPrefixLen());
+				return ipAddressProvider.getProviderFor(this, withoutPrefixLen());
 			}
-			return IPAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLen());
+			return ipAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLen());
 		}
-		return IPAddressProvider.getProviderFor(this, this);
+		return ipAddressProvider.getProviderFor(this, this);
 	*/
 }
 
@@ -716,6 +716,14 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *IPAddress) PrefixEquals(other AddressType) bool {
+	return addr.init().prefixEquals(other)
+}
+
+func (addr *IPAddress) PrefixContains(other AddressType) bool {
+	return addr.init().prefixContains(other)
+}
+
 func (addr *IPAddress) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }
@@ -924,8 +932,7 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 // TODO isLoopBack
 // TODO isUnspecified
 // TODO matchesWithMask here and in IPSection
-// TODO prefixContains
-//
+// TODO replace
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()

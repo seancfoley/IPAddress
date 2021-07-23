@@ -449,6 +449,34 @@ func (addr *addressInternal) CompareTo(item AddressItem) int {
 	return CountComparator.Compare(addr, item)
 }
 
+func (addr *addressInternal) prefixEquals(other AddressType) bool {
+	otherAddr := other.ToAddress()
+	if addr.toAddress() == otherAddr {
+		return true
+	}
+	otherSection := otherAddr.GetSection()
+	if addr.section == nil {
+		return otherSection.GetSegmentCount() == 0
+	}
+	return addr.section.PrefixEquals(otherSection) &&
+		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
+		addr.isSameZone(other)
+}
+
+func (addr *addressInternal) prefixContains(other AddressType) bool {
+	otherAddr := other.ToAddress()
+	if addr.toAddress() == otherAddr {
+		return true
+	}
+	otherSection := otherAddr.GetSection()
+	if addr.section == nil {
+		return otherSection.GetSegmentCount() == 0
+	}
+	return addr.section.PrefixContains(otherSection) &&
+		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
+		addr.isSameZone(other)
+}
+
 func (addr *addressInternal) contains(other AddressType) bool {
 	otherAddr := other.ToAddress()
 	if addr.toAddress() == otherAddr {
@@ -725,6 +753,14 @@ func (addr *Address) init() *Address {
 		return zeroAddr // this has a zero section rather that a nil section
 	}
 	return addr
+}
+
+func (addr *Address) PrefixEquals(other AddressType) bool {
+	return addr.init().prefixEquals(other)
+}
+
+func (addr *Address) PrefixContains(other AddressType) bool {
+	return addr.init().prefixContains(other)
 }
 
 func (addr *Address) Contains(other AddressType) bool {

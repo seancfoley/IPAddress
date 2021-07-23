@@ -290,6 +290,14 @@ func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen {
 	return addr.init().addressInternal.GetPrefixLengthForSingleBlock()
 }
 
+func (addr *MACAddress) PrefixEquals(other AddressType) bool {
+	return addr.init().prefixEquals(other)
+}
+
+func (addr *MACAddress) PrefixContains(other AddressType) bool {
+	return addr.init().prefixContains(other)
+}
+
 func (addr *MACAddress) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }

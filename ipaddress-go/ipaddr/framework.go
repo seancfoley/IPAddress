@@ -234,7 +234,9 @@ type AddressType interface {
 	AddressSegmentSeries
 
 	Equals(AddressType) bool
+	PrefixEquals(AddressType) bool
 	Contains(AddressType) bool
+	PrefixContains(AddressType) bool
 	ToAddress() *Address
 
 	// toAddressString, toHostName TODO look at hostidstring.go for some thoughts on these

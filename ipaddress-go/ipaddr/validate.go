@@ -117,7 +117,7 @@ func isSingleSegmentIPv4(
 
 type strValidator struct{}
 
-func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov IPAddressProvider, err AddressStringError) {
+func (strValidator) validateIPAddressStr(fromString *IPAddressString) (prov ipAddressProvider, err AddressStringError) {
 	str := fromString.str
 	validationOptions := fromString.getParams()
 	pa := parsedIPAddress{
@@ -2647,7 +2647,7 @@ func chooseIPAddressProvider(
 	originator HostIdentifierString,
 	fullAddr string,
 	validationOptions *ipAddressStringParameters,
-	parseData *parsedIPAddress) (res IPAddressProvider, err AddressStringError) {
+	parseData *parsedIPAddress) (res ipAddressProvider, err AddressStringError) {
 	qualifier := parseData.getQualifier()
 	version := parseData.getProviderIPVersion()
 	if version.isIndeterminate() {
@@ -3610,7 +3610,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		}
 	} else if isIPAddress || isPossiblyIPv4 || isPossiblyIPv6 {
 		//TODO see what happens when you move this out (what vars it needs from closure)
-		provider, addrErr, hostErr := func() (provider IPAddressProvider, addrErr AddressError, hostErr HostNameError) {
+		provider, addrErr, hostErr := func() (provider ipAddressProvider, addrErr AddressError, hostErr HostNameError) {
 			//				try {
 			pa := parsedIPAddress{
 				ipAddressParseData: ipAddressParseData{addressParseData: addressParseData{str: str}},
@@ -4035,7 +4035,7 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//					addrQualifier.overridePrefix(hostQualifier);
 	//					qual = addrQualifier;
 	//				}
-	//				IPAddressProvider provider = chooseIPAddressProvider(null, builder, params, pa, qual);
+	//				ipAddressProvider provider = chooseIPAddressProvider(null, builder, params, pa, qual);
 	//				emb.addressProvider = provider;
 	//			}
 	//			//Note: could support bitstring labels and support subnets in them, however they appear to be generally unused in the real world
@@ -4066,7 +4066,7 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//					}
 	//					parsedIPAddress pa = new parsedIPAddress(null, sequence, params);
 	//					validateIPAddress(params, sequence, 0, sequence.length(), pa, false);
-	//					IPAddressProvider provider = chooseIPAddressProvider(null, sequence, params, pa, hostQualifier != null ? hostQualifier : parsedHost.noQualifier);
+	//					ipAddressProvider provider = chooseIPAddressProvider(null, sequence, params, pa, hostQualifier != null ? hostQualifier : parsedHost.noQualifier);
 	//					emb.addressProvider = provider;
 	//				}
 	//			}

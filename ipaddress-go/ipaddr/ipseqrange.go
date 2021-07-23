@@ -996,36 +996,6 @@ func compareLowIPAddressValues(one, two *IPAddress) int {
 	return LowValueComparator.CompareAddresses(one, two)
 }
 
-func checkSubnet(series AddressDivisionSeries, prefixLength BitCount) BitCount {
-	return checkBitCount(prefixLength, series.GetBitCount())
-}
-
-func checkDiv(div DivisionType, prefixLength BitCount) BitCount {
-	return checkBitCount(prefixLength, div.GetBitCount())
-}
-
-func checkBitCount(prefixLength, max BitCount) BitCount {
-	if prefixLength > max {
-		return max
-	} else if prefixLength < 0 {
-		return 0
-	}
-	return prefixLength
-}
-
-func checkPrefLen(prefixLength PrefixLen, max BitCount) PrefixLen {
-	if prefixLength != nil {
-		prefLen := *prefixLength
-		if prefLen > max {
-			return cacheBitCount(max)
-		} else if prefLen < 0 {
-			return cacheBits(0)
-		}
-	}
-	return prefixLength
-
-}
-
 func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount {
 	if lower == upper {
 		return bitCount
@@ -1066,24 +1036,4 @@ func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) Prefi
 		}
 	}
 	return nil
-}
-
-// wrapperIterator notifies the iterator to the right when wrapperIterator reaches its final value
-type wrappedIterator struct {
-	iterator   IPSegmentIterator
-	finalValue []bool
-	indexi     int
-}
-
-func (wrapped *wrappedIterator) HasNext() bool {
-	return wrapped.iterator.HasNext()
-}
-
-func (wrapped *wrappedIterator) Next() *IPAddressSegment {
-	iter := wrapped.iterator
-	next := iter.Next()
-	if !iter.HasNext() {
-		wrapped.finalValue[wrapped.indexi+1] = true
-	}
-	return next
 }

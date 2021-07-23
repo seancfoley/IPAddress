@@ -611,15 +611,30 @@ func (section *IPv4AddressSection) CoverWithPrefixBlock() *IPv4AddressSection {
 	return section.coverWithPrefixBlock().ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) checkSectionCounts(sections []*IPv4AddressSection) SizeMismatchError {
+	segCount := section.GetSegmentCount()
+	length := len(sections)
+	for i := 0; i < length; i++ {
+		section2 := sections[i]
+		if section2 == nil {
+			continue
+		}
+		if section2.GetSegmentCount() != segCount {
+			return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
+		}
+	}
+	return nil
+}
+
 //
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
-	series := cloneIPv4Sections(section, sections)
-	if err := checkSectionCounts(series); err != nil {
+func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, IncompatibleAddressError) {
+	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
+	series := cloneIPv4Sections(section, sections)
 	blocks := getMergedSequentialBlocks(series)
 	return cloneToIPv4Sections(blocks), nil
 }
@@ -628,11 +643,11 @@ func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4Addr
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
-	series := cloneIPv4Sections(section, sections)
-	if err := checkSectionCounts(series); err != nil {
+func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, IncompatibleAddressError) {
+	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
+	series := cloneIPv4Sections(section, sections)
 	blocks := getMergedPrefixBlocks(series)
 	return cloneToIPv4Sections(blocks), nil
 }

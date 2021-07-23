@@ -433,6 +433,14 @@ func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *IPv4Address) PrefixEquals(other AddressType) bool {
+	return addr.init().prefixEquals(other)
+}
+
+func (addr *IPv4Address) PrefixContains(other AddressType) bool {
+	return addr.init().prefixContains(other)
+}
+
 func (addr *IPv4Address) Contains(other AddressType) bool {
 	return addr.init().contains(other)
 }

@@ -658,6 +658,77 @@ func (section *addressSectionInternal) assignMinPrefixForBlock() *AddressSection
 	return section.setPrefixLen(section.GetMinPrefixLengthForBlock())
 }
 
+func (section *addressSectionInternal) PrefixEquals(other AddressSectionType) (res bool) {
+	o := other.ToAddressSection()
+	if section.toAddressSection() == o {
+		return true
+	} else if section.getAddrType() != o.getAddrType() {
+		return
+	}
+	return section.addressSegmentIndex >= o.addressSegmentIndex && section.prefixContains(o, int(section.addressSegmentIndex-o.addressSegmentIndex), false)
+}
+
+func (section *addressSectionInternal) PrefixContains(other AddressSectionType) (res bool) {
+	o := other.ToAddressSection()
+	if section.toAddressSection() == o {
+		return true
+	} else if section.getAddrType() != o.getAddrType() {
+		return
+	}
+	return section.addressSegmentIndex >= o.addressSegmentIndex && section.prefixContains(o, int(section.addressSegmentIndex-o.addressSegmentIndex), true)
+}
+
+func (section *addressSectionInternal) prefixContains(other *AddressSection, otherIndex int, contains bool) (res bool) {
+	if otherIndex < 0 {
+		return
+	}
+	prefixLength := section.GetPrefixLength()
+	var prefixedSection int
+	if prefixLength == nil {
+		prefixedSection = section.GetSegmentCount()
+		oIndex := prefixedSection + otherIndex
+		if oIndex > other.GetSegmentCount() {
+			return
+		}
+	} else {
+		prefLen := *prefixLength
+		prefixedSection = getNetworkSegmentIndex(prefLen, section.GetBytesPerSegment(), section.GetBitsPerSegment())
+		if prefixedSection >= 0 {
+			oIndex := prefixedSection + otherIndex
+			if oIndex >= other.GetSegmentCount() {
+				return
+			}
+			one := section.GetSegment(prefixedSection)
+			two := other.GetSegment(oIndex)
+			segPrefixLength := getPrefixedSegmentPrefixLength(one.getBitCount(), prefLen, prefixedSection)
+			if contains {
+				if !one.PrefixContains(two, *segPrefixLength) {
+					return
+				}
+			} else {
+				if !one.PrefixEquals(two, *segPrefixLength) {
+					return
+				}
+			}
+		}
+	}
+
+	for prefixedSection--; prefixedSection >= 0; prefixedSection-- {
+		one := section.GetSegment(prefixedSection)
+		two := other.GetSegment(prefixedSection + otherIndex)
+		if contains {
+			if !one.Contains(two) {
+				return
+			}
+		} else {
+			if !one.equalsSegment(two) {
+				return
+			}
+		}
+	}
+	return true
+}
+
 func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	otherSection := other.ToAddressSection()
 	if section.toAddressSection() == otherSection {
