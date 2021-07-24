@@ -59,7 +59,7 @@ func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressS
 func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
 	res, err = newIPv4AddressSection(segments /*cloneSegments,*/, prefixLength == nil)
 	if err == nil && prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<3), IPv4BitCount)
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<3))
 	}
 	return
 }
@@ -93,7 +93,7 @@ func newIPv4AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	if err == nil {
 		res = createIPv4Section(segments)
 		if prefixLength != nil {
-			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
+			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3))
 		}
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
@@ -133,7 +133,7 @@ func NewIPv4AddressSectionFromPrefixedRangeVals(vals, upperVals SegmentValueProv
 	res = createIPv4Section(segments)
 	res.isMultiple = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv4BitCount)
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
 	}
 	return
 }
@@ -403,9 +403,9 @@ func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
 	bitsPerSegment := section.GetBitsPerSegment()
 	for i := 1; i < segCount; i++ {
 		seg = section.GetSegment(i)
-		lower = (lower << bitsPerSegment) | uint32(seg.GetSegmentValue())
+		lower = (lower << uint(bitsPerSegment)) | uint32(seg.GetSegmentValue())
 		if isMult {
-			upper = (upper << bitsPerSegment) | uint32(seg.GetUpperSegmentValue())
+			upper = (upper << uint(bitsPerSegment)) | uint32(seg.GetUpperSegmentValue())
 		}
 	}
 	if !isMult {
@@ -868,8 +868,8 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		} else if thisSeg.isMultiple() {
 			firstRange = thisSeg
 		}
-		lower = (lower << bitsPerSeg) | DivInt(thisSeg.getSegmentValue())
-		upper = (upper << bitsPerSeg) | DivInt(thisSeg.getUpperSegmentValue())
+		lower = (lower << uint(bitsPerSeg)) | DivInt(thisSeg.getSegmentValue())
+		upper = (upper << uint(bitsPerSeg)) | DivInt(thisSeg.getUpperSegmentValue())
 		if prefix == nil {
 			thisSegPrefix := thisSeg.getDivisionPrefixLength()
 			if thisSegPrefix != nil {

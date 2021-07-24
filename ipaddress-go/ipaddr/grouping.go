@@ -485,11 +485,11 @@ func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes 
 			divBits := div.GetBitCount()
 			for divBits > 0 {
 				rbi := 8 - bitIndex
-				bytes[byteIndex] |= byte(val << rbi)
-				val >>= bitIndex
+				bytes[byteIndex] |= byte(val << uint(rbi))
+				val >>= uint(bitIndex)
 				if isMultiple {
-					upperBytes[byteIndex] |= byte(upperVal << rbi)
-					upperVal >>= bitIndex
+					upperBytes[byteIndex] |= byte(upperVal << uint(rbi))
+					upperVal >>= uint(bitIndex)
 				}
 				if divBits < bitIndex {
 					bitIndex -= divBits

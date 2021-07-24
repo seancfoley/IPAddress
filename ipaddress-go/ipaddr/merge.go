@@ -104,15 +104,15 @@ top:
 		if lastBitSegmentIndex == lastMatchSegmentIndex {
 			segmentBitToCheck := matchBitIndex % bitsPerSegment
 			shift := segmentLastBitIndex - segmentBitToCheck
-			itemSegmentValue >>= shift
-			otherItemSegmentValue >>= shift
+			itemSegmentValue >>= uint(shift)
+			otherItemSegmentValue >>= uint(shift)
 		} else {
 			itemBitValue := item.GetGenericSegment(lastBitSegmentIndex).GetSegmentValue()
 			otherItemBitalue := otherItem.GetGenericSegment(lastBitSegmentIndex).GetSegmentValue()
 
 			//we will make space for the last bit so we can do a single comparison
-			itemSegmentValue = (itemSegmentValue << 1) | (itemBitValue >> segmentLastBitIndex)
-			otherItemSegmentValue = (otherItemSegmentValue << 1) | (otherItemBitalue >> segmentLastBitIndex)
+			itemSegmentValue = (itemSegmentValue << 1) | (itemBitValue >> uint(segmentLastBitIndex))
+			otherItemSegmentValue = (otherItemSegmentValue << 1) | (otherItemBitalue >> uint(segmentLastBitIndex))
 		}
 		if itemSegmentValue != otherItemSegmentValue {
 			itemSegmentValue ^= 1 //the ^ 1 flips the first bit

@@ -172,7 +172,7 @@ func (section *MACAddressSection) getLongValue(lower bool) (result uint64) {
 	}
 	bitsPerSegment := section.GetBitsPerSegment()
 	for i := 1; i < segCount; i++ {
-		result = (result << bitsPerSegment)
+		result = (result << uint(bitsPerSegment))
 		seg = section.GetSegment(i)
 		if lower {
 			result |= uint64(seg.GetSegmentValue())
@@ -419,8 +419,8 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
 			//throw new IncompatibleAddressError(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
-		val := (segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()
-		upperVal := (segment1.GetUpperSegmentValue() << bitsPerSeg) | segment2.GetUpperSegmentValue()
+		val := (segment1.GetSegmentValue() << uint(bitsPerSeg)) | segment2.GetSegmentValue()
+		upperVal := (segment1.GetUpperSegmentValue() << uint(bitsPerSeg)) | segment2.GetUpperSegmentValue()
 		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
 
 		//vals := &bitsDivisionVals{
@@ -442,8 +442,8 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 	}
 	if segIndex < segmentCount {
 		segment := section.GetSegment(segIndex)
-		val := segment.GetSegmentValue() << bitsPerSeg
-		upperVal := segment.GetUpperSegmentValue() << bitsPerSeg
+		val := segment.GetSegmentValue() << uint(bitsPerSeg)
+		upperVal := segment.GetUpperSegmentValue() << uint(bitsPerSeg)
 		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
 		//vals := &bitsDivisionVals{
 		//	value:      DivInt(segment.GetSegmentValue() << bitsPerSeg),

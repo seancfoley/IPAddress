@@ -338,7 +338,7 @@ func isPrefixSubnet(
 				} else {
 					upperOnes := bits.TrailingZeros64(^uint64(upper))
 					if upperOnes > 0 {
-						if (upper >> upperOnes) != 0 {
+						if (upper >> uint(upperOnes)) != 0 {
 							return false
 						}
 						fullRangeOnly = true
@@ -349,7 +349,7 @@ func isPrefixSubnet(
 			} else if prefLen < bitsPerSegment {
 				segHostBits := bitsPerSegment - prefLen
 				if fullRangeOnly {
-					hostMask := ^(^SegInt(0) << segHostBits)
+					hostMask := ^(^SegInt(0) << uint(segHostBits))
 					if (hostMask & lower) != 0 {
 						return false
 					}
@@ -365,7 +365,7 @@ func isPrefixSubnet(
 					upper := upperValueProvider(i)
 					upperOnes := BitCount(bits.TrailingZeros64(^uint64(upper)))
 					if upperOnes < segHostBits {
-						upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<bitsPerSegment)) >> upperOnes))
+						upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<uint(bitsPerSegment))) >> uint(upperOnes)))
 						if upperOnes+upperZeros < segHostBits {
 							return false
 						}

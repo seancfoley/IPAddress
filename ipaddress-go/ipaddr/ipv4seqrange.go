@@ -218,7 +218,7 @@ func (rng *IPv4AddressSeqRange) GetIPv4PrefixCount(prefixLength BitCount) uint64
 		return rng.GetIPv4Count()
 	}
 	shiftAdjustment := bitCount - prefixLength
-	upperAdjusted := rng.GetUpper().Uint64Value() >> shiftAdjustment
-	lowerAdjusted := rng.GetLower().Uint64Value() >> shiftAdjustment
+	upperAdjusted := rng.GetUpper().Uint64Value() >> uint(shiftAdjustment)
+	lowerAdjusted := rng.GetLower().Uint64Value() >> uint(shiftAdjustment)
 	return upperAdjusted - lowerAdjusted + 1
 }

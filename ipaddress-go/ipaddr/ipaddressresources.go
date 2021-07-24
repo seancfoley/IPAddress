@@ -181,7 +181,7 @@ var strVals = `invalid host` +
 	`with a zone you must specify an address` +
 	`invalid segment` +
 	`back address in range has an invalid digit count` +
-	`Invalid index into address` +
+	`invalidType index into address` +
 	`Address not within the assigned range` +
 	`invalid encoding in zone at index:` +
 	`service name must have at least one letter` +

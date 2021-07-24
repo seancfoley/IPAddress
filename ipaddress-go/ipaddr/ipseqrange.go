@@ -75,8 +75,8 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixCountLen(prefixLen BitCount) *big
 	if ipv4Range := rng.toIPv4SequentialRange(); ipv4Range != nil {
 		upper := ipv4Range.GetUpper()
 		lower := ipv4Range.GetLower()
-		upperAdjusted := upper.Uint32Value() >> shiftAdjustment
-		lowerAdjusted := lower.Uint32Value() >> shiftAdjustment
+		upperAdjusted := upper.Uint32Value() >> uint(shiftAdjustment)
+		lowerAdjusted := lower.Uint32Value() >> uint(shiftAdjustment)
 		result := int64(upperAdjusted) - int64(lowerAdjusted) + 1
 		return new(big.Int).SetInt64(result)
 	}
@@ -346,7 +346,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen 
 	upper := rng.upper
 	count := lower.GetSegmentCount()
 	segBitCount := lower.GetBitsPerSegment()
-	maxSegValue := ^(^SegInt(0) << segBitCount)
+	maxSegValue := ^(^SegInt(0) << uint(segBitCount))
 	totalPrefix := BitCount(0)
 	for i := 0; i < count; i++ {
 		lowerSeg := lower.GetSegment(i)
@@ -355,9 +355,9 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen 
 		if segPrefix == nil {
 			return nil
 		}
-		bits := *segPrefix
-		totalPrefix += bits
-		if bits < segBitCount {
+		dabits := *segPrefix
+		totalPrefix += dabits
+		if dabits < segBitCount {
 			//remaining segments must be full range or we return null
 			for i++; i < count; i++ {
 				lowerSeg = lower.GetSegment(i)
@@ -484,7 +484,7 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 				return addr1.GetSegment(index).GetSegmentValue() == addr2.GetSegment(index).GetSegmentValue()
 			}
 			shift := segPref.shift
-			return addr1.GetSegment(index).GetSegmentValue()>>shift == addr2.GetSegment(index).GetSegmentValue()>>shift
+			return addr1.GetSegment(index).GetSegmentValue()>>uint(shift) == addr2.GetSegment(index).GetSegmentValue()>>uint(shift)
 
 		},
 		networkSegIndex,
@@ -1000,7 +1000,7 @@ func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount
 	if lower == upper {
 		return bitCount
 	} else if lower == 0 {
-		maxValue := ^(^DivInt(0) << bitCount)
+		maxValue := ^(^DivInt(0) << uint(bitCount))
 		if upper == maxValue {
 			return 0
 		}
@@ -1031,7 +1031,7 @@ func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) Prefi
 		}
 	} else {
 		shift := bitCount - prefixLen
-		if lower>>shift == upper>>shift {
+		if lower>>uint(shift) == upper>>uint(shift) {
 			return cacheBitCount(prefixLen)
 		}
 	}

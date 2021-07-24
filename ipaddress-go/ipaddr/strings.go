@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -172,11 +171,11 @@ func toUnsignedStringFast(value uint16, radix int, uppercase bool, appendable *s
 			}
 		}
 		for digitIndex--; digitIndex > 0; digitIndex-- {
-			digit := (value >> digitIndex) & 1
+			digit := (value >> uint(digitIndex)) & 1
 			if digit == 1 {
 				appendable.WriteByte('1')
 				for digitIndex--; digitIndex > 0; digitIndex-- {
-					digit = (value >> digitIndex) & 1
+					digit = (value >> uint(digitIndex)) & 1
 					if digit == 0 {
 						appendable.WriteByte('0')
 					} else {
@@ -769,7 +768,10 @@ func toUnsignedSplitRangeStringLength(
 	splitDigitSeparator byte,
 	reverseSplitDigits bool,
 	stringPrefix string) int {
-
+	_ = rangeSeparator
+	_ = uppercase
+	_ = splitDigitSeparator
+	_ = reverseSplitDigits
 	digitsLength := -1 //we will count one too many split digit separators in here
 	stringPrefixLength := len(stringPrefix)
 	radix64 := uint64(radix)
@@ -932,7 +934,7 @@ func appendRangeDigits(
 			}
 		} else {
 			if !previousWasFullRange {
-				return &incompatibleAddressError{addressError{str: fmt.Sprintf("%d-%d", lower, upper), key: "ipaddress.error.splitMismatch"}}
+				return &incompatibleAddressError{addressError{key: "ipaddress.error.splitMismatch"}}
 			}
 			previousWasFullRange = (lowerDigit == 0) && (upperDigit == uradix-1)
 			if previousWasFullRange && len(wildcard) > 0 {

@@ -224,8 +224,8 @@ func (w *StringOptionsBuilder) ToOptions() StringOptions {
 type WildcardOption string
 
 const (
-	WILDCARDS_NETWORK_ONLY WildcardOption = ""    //only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
-	WILDCARDS_ALL          WildcardOption = "ALL" //print wildcards for any visible (non-compressed) segments
+	WILDCARDS_NETWORK_ONLY WildcardOption = ""        //only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
+	WILDCARDS_ALL          WildcardOption = "allType" //print wildcards for any visible (non-compressed) segments
 )
 
 type WildcardOptions interface {

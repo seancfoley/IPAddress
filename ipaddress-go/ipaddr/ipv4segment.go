@@ -168,7 +168,7 @@ func (seg *IPv4AddressSegment) WithoutPrefixLen() *IPv4AddressSegment {
 	return seg.withoutPrefixLen().ToIPv4AddressSegment()
 }
 
-func (seg *IPv4AddressSegment) ReverseBits(perByte bool) (res *IPv4AddressSegment, err IncompatibleAddressError) {
+func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return
@@ -178,7 +178,7 @@ func (seg *IPv4AddressSegment) ReverseBits(perByte bool) (res *IPv4AddressSegmen
 			res = seg.WithoutPrefixLen()
 			return
 		}
-		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
 		return
 	}
 	oldVal := IPv4SegInt(seg.GetSegmentValue())

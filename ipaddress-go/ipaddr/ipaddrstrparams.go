@@ -44,7 +44,7 @@ package ipaddr
 //		AllowSingleWildcard(origIPv6Range.AllowsSingleWildcard()).
 //		GetIPv6ParentBuilder().
 //		//
-//		// mixed-in embedded IPV4 settings (the 1.2.3.4 in a:b:c:d:e:f:1.2.3.4)
+//		// mixed-in embedded ipv4AddrType settings (the 1.2.3.4 in a:b:c:d:e:f:1.2.3.4)
 //		GetEmbeddedIPv4AddressParametersBuilder().
 //		Allow_inet_aton_hex(origMixedIPv4.Allows_inet_aton_hex()).
 //		Allow_inet_aton_octal(origMixedIPv4.Allows_inet_aton_octal()).
@@ -585,7 +585,7 @@ func (builder *IPv6AddressStringParametersBuilder) getEmbeddedIPv4ParametersBuil
 	}
 	if result = builder.embeddedBuilder; result == nil {
 		result = &IPAddressStringParametersBuilder{}
-		// copy in proper default values for embedded IPv4 addresses, which differ from defaults for typical IPV4 addresses
+		// copy in proper default values for embedded IPv4 addresses, which differ from defaults for typical ipv4AddrType addresses
 		*result = defaultEmbeddedBuilder
 		builder.embeddedBuilder = result
 	}

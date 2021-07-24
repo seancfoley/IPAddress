@@ -66,13 +66,13 @@ func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostM
 			if trailingOnes == 0 {
 				// can only be 11110000 and not 00000000
 				trailingZeros := seg.GetTrailingBitCount(false)
-				shifted = (^val & maxVal) >> trailingZeros
+				shifted = (^val & maxVal) >> uint(trailingZeros)
 				if shifted == 0 {
 					networkMaskLen = cacheBitCount(seg.GetBitCount() - trailingZeros)
 				}
 			} else {
 				// can only be 00001111 and not 11111111
-				shifted = val >> trailingOnes
+				shifted = val >> uint(trailingOnes)
 				if shifted == 0 {
 					hostMaskLen = cacheBitCount(seg.GetBitCount() - trailingOnes)
 				}
@@ -99,9 +99,9 @@ func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) Pref
 	var shifted SegInt
 	val := seg.GetSegmentValue()
 	if network {
-		shifted = (^val & seg.GetMaxValue()) >> hostLength
+		shifted = (^val & seg.GetMaxValue()) >> uint(hostLength)
 	} else {
-		shifted = val >> hostLength
+		shifted = val >> uint(hostLength)
 	}
 	if shifted == 0 {
 		return cacheBitCount(seg.GetBitCount() - hostLength)
@@ -118,7 +118,7 @@ func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
 	val := seg.GetSegmentValue()
 	if ones {
 		//trailing zeros
-		return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << seg.GetBitCount()))))
+		return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << uint(seg.GetBitCount())))))
 	}
 	// trailing ones
 	return BitCount(bits.TrailingZeros32(uint32(^val)))
@@ -280,13 +280,13 @@ func (seg *ipAddressSegmentInternal) setRangeWildcardString(
 func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(bits BitCount) SegInt {
 	bc := seg.GetBitCount()
 	bits = checkBitCount(bits, bc)
-	return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
+	return seg.GetMaxValue() & (^SegInt(0) << uint(bc-bits))
 }
 
 func (seg *ipAddressSegmentInternal) GetSegmentHostMask(bits BitCount) SegInt {
 	bc := seg.GetBitCount()
 	bits = checkBitCount(bits, bc)
-	return ^(^SegInt(0) << (bc - bits))
+	return ^(^SegInt(0) << uint(bc-bits))
 }
 
 func (seg *ipAddressSegmentInternal) toIPAddressSegment() *IPAddressSegment {

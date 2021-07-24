@@ -355,7 +355,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//int networkMask = fullMask & (fullMask << (segmentBitSize - i));
 				//int mask = getSegmentNetworkMask(bits);
 				if network {
-					mask := maxSegmentValue & (maxSegmentValue << (bitsPerSegment - bits))
+					mask := maxSegmentValue & (maxSegmentValue << uint(bitsPerSegment-bits))
 					if withPrefixLength {
 						segment = createAddressDivision(zeroSeg.deriveNewSeg(mask, getDivisionPrefixLength(bitsPerSegment, bits)))
 						//segment = creator.createSegment(mask, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bits));
@@ -364,7 +364,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 						//segment = creator.createSegment(mask);
 					}
 				} else {
-					mask := maxSegmentValue & ^(maxSegmentValue << (bitsPerSegment - bits))
+					mask := maxSegmentValue & ^(maxSegmentValue << uint(bitsPerSegment-bits))
 					if withPrefixLength {
 						segment = createAddressDivision(zeroSeg.deriveNewSeg(mask, getDivisionPrefixLength(bitsPerSegment, bits)))
 					} else {

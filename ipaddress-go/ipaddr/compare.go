@@ -430,7 +430,7 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
 							oneByteIndex++
 						}
-						oneValue = (oneValue << lastBitsCount) | uint64(oneBytes[oneByteIndex]>>(8-lastBitsCount))
+						oneValue = (oneValue << uint64(lastBitsCount)) | uint64(oneBytes[oneByteIndex]>>uint64(8-lastBitsCount))
 						oneByteIndex++
 						oneBitCount = oneTotalBitCount
 						oneTotalBitCount = 0
@@ -472,7 +472,7 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 							twoValue = (twoValue << 8) | uint64(twoBytes[twoByteIndex])
 							twoByteIndex++
 						}
-						twoValue = (twoValue << lastBitsCount) | uint64(twoBytes[twoByteIndex]>>(8-lastBitsCount))
+						twoValue = (twoValue << uint(lastBitsCount)) | uint64(twoBytes[twoByteIndex]>>uint(8-lastBitsCount))
 						twoByteIndex++
 						twoBitCount = twoTotalBitCount
 						twoTotalBitCount = 0
@@ -489,14 +489,14 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 			} else {
 				diffBits := twoBitCount - oneBitCount
 				if diffBits > 0 {
-					twoResultValue >>= diffBits
-					twoValue &= ^(^uint64(0) << diffBits)
+					twoResultValue >>= uint(diffBits)
+					twoValue &= ^(^uint64(0) << uint(diffBits))
 					twoBitCount = diffBits
 					oneBitCount = 0
 				} else {
 					diffBits = -diffBits
-					oneResultValue >>= diffBits
-					oneValue &= ^(^uint64(0) << diffBits)
+					oneResultValue >>= uint(diffBits)
+					oneValue &= ^(^uint64(0) << uint(diffBits))
 					oneBitCount = diffBits
 					twoBitCount = 0
 				}
@@ -724,8 +724,8 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					upperByte := oneUpperBytes[oneByteIndex]
 					lowerByte := oneLowerBytes[oneByteIndex]
 					oneByteIndex++
-					oneUpper = (oneUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
-					oneLower = (oneLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
+					oneUpper = (oneUpper << uint(lastBitsCount)) | uint64(upperByte>>uint(8-lastBitsCount))
+					oneLower = (oneLower << uint(lastBitsCount)) | uint64(lowerByte>>uint(8-lastBitsCount))
 					oneBitCount = oneTotalBitCount
 					oneTotalBitCount = 0
 					oneByteCount = 0
@@ -771,8 +771,8 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 					upperByte := twoUpperBytes[twoByteIndex]
 					lowerByte := twoLowerBytes[twoByteIndex]
 					twoByteIndex++
-					twoUpper = (twoUpper << lastBitsCount) | uint64(upperByte>>(8-lastBitsCount))
-					twoLower = (twoLower << lastBitsCount) | uint64(lowerByte>>(8-lastBitsCount))
+					twoUpper = (twoUpper << uint(lastBitsCount)) | uint64(upperByte>>uint(8-lastBitsCount))
+					twoLower = (twoLower << uint(lastBitsCount)) | uint64(lowerByte>>uint(8-lastBitsCount))
 					twoBitCount = twoTotalBitCount
 					twoTotalBitCount = 0
 					twoByteCount = 0
@@ -790,18 +790,18 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 		} else {
 			diffBits := twoBitCount - oneBitCount
 			if diffBits > 0 {
-				twoResultUpper >>= diffBits //look at the high bits only (we are comparing left to right, high to low)
-				twoResultLower >>= diffBits
-				mask := ^(^uint64(0) << diffBits)
+				twoResultUpper >>= uint(diffBits) //look at the high bits only (we are comparing left to right, high to low)
+				twoResultLower >>= uint(diffBits)
+				mask := ^(^uint64(0) << uint(diffBits))
 				twoUpper &= mask
 				twoLower &= mask
 				twoBitCount = diffBits
 				oneBitCount = 0
 			} else {
 				diffBits = -diffBits
-				oneResultUpper >>= diffBits
-				oneResultLower >>= diffBits
-				mask := ^(^uint64(0) << diffBits)
+				oneResultUpper >>= uint(diffBits)
+				oneResultLower >>= uint(diffBits)
+				mask := ^(^uint64(0) << uint(diffBits))
 				oneUpper &= mask
 				oneLower &= mask
 				oneBitCount = diffBits

@@ -82,15 +82,15 @@ func (seg *macSegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 	return
 }
 
-func (seg *macSegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNew(val, upperVal DivInt, _ PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
-func (seg *macSegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNewSeg(val SegInt, _ PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(val))
 }
 
-func (seg *macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
+func (seg *macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, _ PrefixLen) divisionValues {
 	return newMACSegmentValues(MACSegInt(val), MACSegInt(upperVal))
 }
 
@@ -172,7 +172,7 @@ func (seg *MACAddressSegment) prefixIterator(segmentPrefixLen BitCount) MACSegme
 	return macSegmentIterator{seg.prefixedIterator(segmentPrefixLen)}
 }
 
-func (seg *MACAddressSegment) ReverseBits(perByte bool) (res *MACAddressSegment, err IncompatibleAddressError) {
+func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return
@@ -182,7 +182,7 @@ func (seg *MACAddressSegment) ReverseBits(perByte bool) (res *MACAddressSegment,
 			res = seg
 			return
 		}
-		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
 		return
 	}
 	oldVal := MACSegInt(seg.GetSegmentValue())

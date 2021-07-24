@@ -55,9 +55,9 @@ const (
 )
 
 var (
-	macMaxTriple uint64 = (MACMaxValuePerSegment << (MACBitsPerSegment * 2)) |
-		(MACMaxValuePerSegment << MACBitsPerSegment) | MACMaxValuePerSegment
-	macMaxQuintuple uint64 = (macMaxTriple << (MACBitsPerSegment * 2)) | (macMaxTriple >> MACBitsPerSegment)
+	macMaxTriple uint64 = (MACMaxValuePerSegment << uint64(MACBitsPerSegment*2)) |
+		(MACMaxValuePerSegment << uint64(MACBitsPerSegment)) | MACMaxValuePerSegment
+	macMaxQuintuple uint64 = (macMaxTriple << uint64(MACBitsPerSegment*2)) | uint64(macMaxTriple>>uint64(MACBitsPerSegment))
 )
 
 func isSingleSegmentIPv6(
@@ -702,9 +702,13 @@ func validateAddress(
 											index}
 									}
 									if digitCount > 16 {
-										parseSingleSegmentSingleWildcard2(str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+										if parseErr := parseSingleSegmentSingleWildcard2(str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+											return parseErr
+										}
 									} else {
-										switchSingleWildcard2(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+										if parseErr := switchSingleWildcard2(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+											return parseErr
+										}
 									}
 									value = 0
 									noValuesToSet = true
@@ -735,7 +739,9 @@ func validateAddress(
 											addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 											index}
 									}
-									switchSingleWildcard8(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+									if parseErr := switchSingleWildcard8(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+										return parseErr
+									}
 									value = 0
 									noValuesToSet = true
 									singleWildcardCount = 0
@@ -765,7 +771,9 @@ func validateAddress(
 										addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 										index}
 								}
-								switchSingleWildcard10(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, ipv4SpecificOptions)
+								if parseErr := switchSingleWildcard10(currentValueHex, str, digitStartIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, ipv4SpecificOptions); parseErr != nil {
+									return parseErr
+								}
 								value = 0
 								noValuesToSet = true
 								singleWildcardCount = 0
@@ -971,7 +979,7 @@ func validateAddress(
 					/*
 					 There are 3 cases here, A, B and C.
 					 A - we have two MAC segments a-b-
-					 B - we have the front of a range segment, either a-b which is MAC or IPV6,  or a|b or a<space>b which is MAC
+					 B - we have the front of a range segment, either a-b which is MAC or ipv6AddrType,  or a|b or a<space>b which is MAC
 					 C - we have a single segment, either a MAC segment a- or an IPv6 or MAC segment a:
 					*/
 
@@ -1051,7 +1059,9 @@ func validateAddress(
 									startIndex := rangeWildcardIndex - frontDigitCount
 									leadingZeroStartIndex := startIndex - frontLeadingZeroCount
 									if frontSingleWildcardCount > 0 {
-										assignSingleWildcard16(currentFrontValueHex, str, startIndex, rangeWildcardIndex, singleWildcardCount, parseData, 0, leadingZeroStartIndex, stringFormatParams)
+										if parseErr := assignSingleWildcard16(currentFrontValueHex, str, startIndex, rangeWildcardIndex, singleWildcardCount, parseData, 0, leadingZeroStartIndex, stringFormatParams); parseErr != nil {
+											return parseErr
+										}
 									} else {
 										var flags uint32
 										if !frontUppercase {
@@ -1503,9 +1513,13 @@ func validateAddress(
 									addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 { //We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
-								parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							} else {
-								assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							}
 							uppercase = false
 							singleWildcardCount = 0
@@ -1547,9 +1561,13 @@ func validateAddress(
 									addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 {
-								parseSingleSegmentSingleWildcard2(str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := parseSingleSegmentSingleWildcard2(str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							} else {
-								switchSingleWildcard2(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := switchSingleWildcard2(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							}
 							noValuesToSet = true
 							singleWildcardCount = 0
@@ -1588,9 +1606,13 @@ func validateAddress(
 									addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.combination.at.index"}},
 									index}
 							} else if isSingleIPv6 { //We need this special call here because single ipv6 hex is 128 bits and cannot fit into a long
-								parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := parseSingleSegmentSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							} else {
-								assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams)
+								if parseErr := assignSingleWildcard16(currentValueHex, str, startIndex, index, singleWildcardCount, parseData, segCount, segmentValueStartIndex, stringFormatParams); parseErr != nil {
+									return parseErr
+								}
 							}
 							uppercase = false
 							singleWildcardCount = 0
@@ -2495,7 +2517,7 @@ func parseBase85(
 	//		if(!validationOptions.allowIPv6) {
 	//			throw new AddressStringError(str, "ipaddress.error.ipv6");
 	//		}
-	//		ipAddressParseData.setVersion(IPVersion.IPV6);
+	//		ipAddressParseData.setVersion(IPVersion.ipv6AddrType);
 	//		BigInteger val = parseBase85(str, strStartIndex, strEndIndex);
 	//		long value = val.and(LOW_BITS_MASK).longValue();
 	//		BigInteger shift64 = val.shiftRight(Long.SIZE);
@@ -2522,7 +2544,7 @@ func parseBase85(
 	//		if(!ipv6SpecificOptions.rangeOptions.allowsRangeSeparator()) {
 	//			throw new AddressStringError(str, "ipaddress.error.no.range");
 	//		}
-	//		ipAddressParseData.setVersion(IPVersion.IPV6);
+	//		ipAddressParseData.setVersion(IPVersion.ipv6AddrType);
 	//		int frontEndIndex = extendedRangeWildcardIndex, flags = 0;
 	//		long value, value2, extendedValue, extendedValue2;
 	//		int lowerStart, lowerEnd, upperStart, upperEnd;
@@ -2623,8 +2645,8 @@ func chooseMACAddressProvider(fromString *MACAddressString,
 	return
 }
 
-var maskCache = [3][IPv6BitCount + 1]MaskCreator{}
-var loopbackCache = &LoopbackCreator{VersionedAddressCreator: VersionedAddressCreator{parameters: defaultIPAddrParameters}}
+var maskCache = [3][IPv6BitCount + 1]maskCreator{}
+var loopbackCache = &loopbackCreator{versionedAddressCreator: versionedAddressCreator{parameters: defaultIPAddrParameters}}
 
 func init() {
 	for i := 0; i < 3; i++ {
@@ -2681,8 +2703,8 @@ func chooseIPAddressProvider(
 					res = &maskCache[index][prefLen]
 					return
 				}
-				//return new MaskCreator(networkPrefixLength, version, validationOptions);
-				res = &MaskCreator{AdjustedAddressCreator: AdjustedAddressCreator{networkPrefixLength: networkPrefixLength, VersionedAddressCreator: VersionedAddressCreator{adjustedVersion: version, parameters: validationOptions}}}
+				//return new maskCreator(networkPrefixLength, version, validationOptions);
+				res = &maskCreator{adjustedAddressCreator: adjustedAddressCreator{networkPrefixLength: networkPrefixLength, versionedAddressCreator: versionedAddressCreator{adjustedVersion: version, parameters: validationOptions}}}
 				return
 			} else {
 				//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
@@ -2691,15 +2713,15 @@ func chooseIPAddressProvider(
 						res = loopbackCache
 						return
 					}
-					res = &LoopbackCreator{VersionedAddressCreator: VersionedAddressCreator{parameters: validationOptions}}
+					res = &loopbackCreator{versionedAddressCreator: versionedAddressCreator{parameters: validationOptions}}
 					return
 				}
-				res = EMPTY_PROVIDER
+				res = emptyProvider
 				return
 			}
 		} else { //isAll
-			//We also need the AllCreator to use the equivalent prefix length, much like in parsedIPAddress
-			res = &AllCreator{AdjustedAddressCreator: AdjustedAddressCreator{VersionedAddressCreator: VersionedAddressCreator{adjustedVersion: version, parameters: validationOptions}},
+			//We also need the allCreator to use the equivalent prefix length, much like in parsedIPAddress
+			res = &allCreator{adjustedAddressCreator: adjustedAddressCreator{versionedAddressCreator: versionedAddressCreator{adjustedVersion: version, parameters: validationOptions}},
 				originator: originator, qualifier: *qualifier}
 			//qualifier, version, originator, validationOptions);
 			return
@@ -2990,7 +3012,7 @@ func switchSingleWildcard2(currentValueHex uint64, s string, start, end, numSing
 	} else {
 		lower = 0
 	}
-	lower <<= numSingleWildcards
+	lower <<= uint(numSingleWildcards)
 	switch numSingleWildcards {
 	case 1:
 		upper = lower | 0x1
@@ -3025,7 +3047,7 @@ func switchSingleWildcard2(currentValueHex uint64, s string, start, end, numSing
 	case 16:
 		upper = lower | 0xffff
 	default:
-		upper = lower | ^(^uint64(0) << numSingleWildcards)
+		upper = lower | ^(^uint64(0) << uint(numSingleWildcards))
 	}
 	var radix uint32 = 2
 	assign6Attributes2Values2Flags(start, end, leadingZeroStartIndex, start, end, leadingZeroStartIndex,
@@ -3058,8 +3080,8 @@ func switchSingleWildcard8(currentValueHex uint64, s string, start, end, numSing
 		upper = lower | 0777
 	default:
 		shift := numSingleWildcards * 3
-		lower <<= shift
-		upper = lower | ^(^uint64(0) << shift)
+		lower <<= uint(shift)
+		upper = lower | ^(^uint64(0) << uint(shift))
 	}
 	var radix uint32 = 8
 	assign6Attributes2Values2Flags(start, end, leadingZeroStartIndex, start, end, leadingZeroStartIndex,
@@ -3074,8 +3096,8 @@ func assignSingleWildcard16(lower uint64, s string, start, end, numSingleWildcar
 		return
 	}
 	shift := numSingleWildcards << 2
-	lower <<= shift
-	upper := lower | ^(^uint64(0) << shift)
+	lower <<= uint(shift)
+	upper := lower | ^(^uint64(0) << uint(shift))
 	assign6Attributes2Values1Flags(start, end, leadingZeroStartIndex, start, end, leadingZeroStartIndex,
 		parseData, parsedSegIndex, lower, upper, keySingleWildcard)
 	return
@@ -3092,8 +3114,8 @@ func parseSingleSegmentSingleWildcard16(currentValueHex uint64, s string, start,
 		midIndex := end - longHexDigits
 		lower = parseLong16(s, midIndex, digitsEnd)
 		shift := numSingleWildcards << 2
-		lower <<= shift
-		upper = lower | ^(^uint64(0) << shift)
+		lower <<= uint(shift)
+		upper = lower | ^(^uint64(0) << uint(shift))
 		extendedLower = parseLong16(s, start, midIndex)
 		extendedUpper = extendedLower
 	} else if numSingleWildcards == longHexDigits {
@@ -3106,8 +3128,8 @@ func parseSingleSegmentSingleWildcard16(currentValueHex uint64, s string, start,
 		upper = 0xffffffffffffffff
 		extendedLower = currentValueHex
 		shift := (numSingleWildcards - longHexDigits) << 2
-		extendedLower <<= shift
-		extendedUpper = extendedLower | ^(^uint64(0) << shift)
+		extendedLower <<= uint(shift)
+		extendedUpper = extendedLower | ^(^uint64(0) << uint(shift))
 	}
 	assign6Attributes4Values1Flags(start, end, leadingZeroStartIndex, start, end, leadingZeroStartIndex,
 		parseData, parsedSegIndex, lower, extendedLower, upper, extendedUpper, keySingleWildcard)
@@ -3125,8 +3147,8 @@ func parseSingleSegmentSingleWildcard2(s string, start, end, numSingleWildcards 
 	if numSingleWildcards < longBinaryDigits {
 		lower = parseLong2(s, midIndex, digitsEnd)
 		shift := numSingleWildcards
-		lower <<= shift
-		upper = lower | ^(^uint64(0) << shift)
+		lower <<= uint(shift)
+		upper = lower | ^(^uint64(0) << uint(shift))
 		extendedLower = parseLong2(s, start, midIndex)
 		extendedUpper = extendedLower
 	} else if numSingleWildcards == longBinaryDigits {
@@ -3137,8 +3159,8 @@ func parseSingleSegmentSingleWildcard2(s string, start, end, numSingleWildcards 
 		upper = 0xffffffffffffffff
 		shift := numSingleWildcards - longBinaryDigits
 		extendedLower = parseLong2(s, start, midIndex-shift)
-		extendedLower <<= shift
-		extendedUpper = extendedLower | ^(^uint64(0) << shift)
+		extendedLower <<= uint(shift)
+		extendedUpper = extendedLower | ^(^uint64(0) << uint(shift))
 	}
 	assign6Attributes4Values1Flags(start, end, leadingZeroStartIndex, start, end, leadingZeroStartIndex,
 		parseData, parsedSegIndex, lower, extendedLower, upper, extendedUpper, keySingleWildcard)
@@ -3200,7 +3222,7 @@ func switchValue2(currentHexValue uint64, s string, digitCount int) (result uint
 		next := 0xf & currentHexValue
 		if next >= 1 {
 			if next == 1 {
-				result |= 1 << shift
+				result |= 1 << uint(shift)
 			} else {
 				err = &addressStringError{addressError{str: s, key: "ipaddress.error.ipv4.invalid.binary.digit"}}
 				return
@@ -3232,7 +3254,7 @@ func switchValue8(currentHexValue uint64, s string, digitCount int) (result uint
 			err = &addressStringError{addressError{str: s, key: "ipaddress.error.ipv4.invalid.octal.digit"}}
 			return
 		}
-		result |= next << shift
+		result |= next << uint(shift)
 	}
 	return
 }

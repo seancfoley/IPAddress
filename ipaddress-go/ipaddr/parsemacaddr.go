@@ -167,7 +167,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 							useStringIndicators = false
 						}
 					} else {
-						newLower = (lower >> (count << 3)) & MACMaxValuePerSegment
+						newLower = (lower >> uint(count<<3)) & MACMaxValuePerSegment
 						newUpper = newLower
 						if count != 0 || newLower != lower {
 							useStringIndicators = false

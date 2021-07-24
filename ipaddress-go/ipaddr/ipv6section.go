@@ -61,7 +61,7 @@ func newIPv6AddressSectionParsed(segments []*AddressDivision) (res *IPv6AddressS
 func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueError) {
 	res, err = newIPv6AddressSection(segments, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
 	if err == nil && prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<4), IPv6BitCount)
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<4))
 	}
 	return
 }
@@ -95,7 +95,7 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	if err == nil {
 		res = createIPv6Section(segments, 0)
 		if prefixLength != nil {
-			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3), IPv4BitCount)
+			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3))
 		}
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
@@ -135,7 +135,7 @@ func NewIPv6AddressSectionFromPrefixedRangeValues(vals, upperVals SegmentValuePr
 	res = createIPv6Section(segments, 0)
 	res.isMultiple = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3), IPv6BitCount)
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
 	}
 	return
 }

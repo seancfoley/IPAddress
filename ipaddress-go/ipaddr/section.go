@@ -1,7 +1,6 @@
 package ipaddr
 
 import (
-	"fmt"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -35,7 +34,7 @@ func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, 
 
 func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
 	result := createSection(segments, prefixLength, addrType, startIndex)
-	result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
+	_ = result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
 	return result
 }
 
@@ -145,7 +144,6 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 							return &inconsistentPrefixError{
 								addressValueError{
 									addressError: addressError{
-										str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix),
 										key: "ipaddress.error.inconsistent.prefixes",
 									},
 								},
@@ -159,7 +157,6 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 				return &inconsistentPrefixError{
 					addressValueError{
 						addressError: addressError{
-							str: fmt.Sprintf("%v %v %v", section.GetSegment(i-1), segment, segPrefix),
 							key: "ipaddress.error.inconsistent.prefixes",
 						},
 					},
@@ -1185,10 +1182,10 @@ func (original *addressSectionInternal) setPrefixLength(
 			if i >= minPrefIndex {
 				if i <= maxPrefIndex {
 					minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
-					minMask := maxVal << (bitsPerSegment - minSegPrefLen)
+					minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
 					maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
 					if maxSegPrefLen != nil {
-						maxMask := maxVal << (bitsPerSegment - minSegPrefLen)
+						maxMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
 						return minMask | maxMask
 					}
 					return minMask

@@ -62,7 +62,7 @@ type segmentPrefBlockIterator struct {
 func (it *segmentPrefBlockIterator) Next() (res *AddressSegment) {
 	if it.HasNext() {
 		cur := it.current
-		blockLow := cur << it.shiftAdjustment
+		blockLow := cur << uint(it.shiftAdjustment)
 		res = createAddressSegment(
 			it.creator.deriveNewMultiSeg(
 				blockLow,
@@ -87,7 +87,7 @@ type segmentPrefIterator struct {
 func (it *segmentPrefIterator) Next() (res *AddressSegment) {
 	if it.HasNext() {
 		cur := it.current
-		blockLow := cur << it.shiftAdjustment
+		blockLow := cur << uint(it.shiftAdjustment)
 		blockHigh := blockLow | it.upperShiftMask
 		cur++
 		it.current = cur
@@ -132,7 +132,7 @@ func segIterator(
 		prefLen := *segmentPrefixLength
 		prefLen = checkBitCount(bitCount, prefLen)
 		shiftAdjustment = bitCount - prefLen
-		shiftMask = ^SegInt(0) << shiftAdjustment
+		shiftMask = ^SegInt(0) << uint(shiftAdjustment)
 		upperShiftMask = ^shiftMask
 	}
 	if original != nil && !original.IsMultiple() {
@@ -147,8 +147,8 @@ func segIterator(
 		return &singleSegmentIterator{original: seg}
 	}
 	if isPrefixIterator {
-		current := originalLower >> shiftAdjustment
-		last := originalUpper >> shiftAdjustment
+		current := originalLower >> uint(shiftAdjustment)
+		last := originalUpper >> uint(shiftAdjustment)
 		segIterator := segmentIterator{
 			current:             current,
 			last:                last,

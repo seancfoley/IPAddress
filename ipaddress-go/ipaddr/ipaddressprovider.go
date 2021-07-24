@@ -6,19 +6,19 @@ import (
 )
 
 // All IP address strings corresponds to exactly one of these types.
-// In cases where there is no corresponding default IPAddress value (INVALID, ALL, and possibly EMPTY), these types can be used for comparison.
-// EMPTY means a zero-length string (useful for validation, we can set validation to allow empty strings) that has no corresponding IPAddress value (validation options allow you to map empty to the loopback)
-// INVALID means it is known that it is not any of the other allowed types (validation options can restrict the allowed types)
-// ALL means it is wildcard(s) with no separators, like "*", which represents all addresses, whether IPv4, IPv6 or other, and thus has no corresponding IPAddress value
+// In cases where there is no corresponding default IPAddress value (invalidType, allType, and possibly emptyType), these types can be used for comparison.
+// emptyType means a zero-length string (useful for validation, we can set validation to allow empty strings) that has no corresponding IPAddress value (validation options allow you to map empty to the loopback)
+// invalidType means it is known that it is not any of the other allowed types (validation options can restrict the allowed types)
+// allType means it is wildcard(s) with no separators, like "*", which represents all addresses, whether IPv4, IPv6 or other, and thus has no corresponding IPAddress value
 // These constants are ordered by address space size, from smallest to largest, and the ordering affects comparisons
 type ipType int
 
 func fromVersion(version IPVersion) ipType {
 	switch version {
 	case IPv4:
-		return IPV4
+		return ipv4AddrType
 	case IPv6:
-		return IPV6
+		return ipv6AddrType
 	default:
 	}
 	return uninitializedType
@@ -30,15 +30,13 @@ func (t ipType) isUnknown() bool {
 
 const (
 	uninitializedType ipType = iota
-	INVALID
-	EMPTY
-	IPV4
-	IPV6
+	invalidType
+	emptyType
+	ipv4AddrType
+	ipv6AddrType
 	//PREFIX_ONLY
-	ALL
+	allType
 )
-
-//TODO rename later ipAddressProvider, ipType, and the ipType constants, all the creator classes, etc, so not public, also same for macAddressProvider
 
 type ipAddressProvider interface {
 	getType() ipType
@@ -55,7 +53,7 @@ type ipAddressProvider interface {
 
 	getProviderMask() *IPAddress
 
-	// TODO getDivisionGrouping
+	// TODO LATER getDivisionGrouping
 	//default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {
 	//	return getProviderAddress();
 	//}
@@ -83,8 +81,6 @@ type ipAddressProvider interface {
 	getProviderNetworkPrefixLength() PrefixLen
 
 	isInvalid() bool
-
-	//isUninitialized() bool
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
@@ -131,8 +127,6 @@ type ipAddressProvider interface {
 	parsedEquals(ipAddressProvider) boolSetting
 }
 
-// TODO optimized contains: add these later
-
 type ipAddrProvider struct{}
 
 func (p *ipAddrProvider) getType() ipType {
@@ -155,7 +149,7 @@ func (p *ipAddrProvider) getProviderSeqRange() *IPAddressSeqRange {
 	return nil
 }
 
-func (p *ipAddrProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+func (p *ipAddrProvider) getVersionedAddress(_ IPVersion) (*IPAddress, IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -190,10 +184,6 @@ func (p *ipAddrProvider) isProvidingEmpty() bool {
 func (p *ipAddrProvider) isInvalid() bool {
 	return false
 }
-
-//func (p *ipAddrProvider) isUninitialized() bool {
-//	return false
-//}
 
 func (p *ipAddrProvider) isProvidingMixedIPv6() bool {
 	return false
@@ -254,11 +244,11 @@ func providerCompare(p, other ipAddressProvider) (res int, err IncompatibleAddre
 			return
 		}
 		if otherValue != nil {
-			//TODO compareTo on address
-			//return value.compareTo(otherValue);
+			res = value.CompareTo(otherValue)
+			return
 		}
 	}
-	var thisType, otherType ipType = p.getType(), other.getType()
+	var thisType, otherType = p.getType(), other.getType()
 	res = int(thisType - otherType)
 	return
 }
@@ -311,10 +301,6 @@ func (p *nullProvider) isInvalid() bool {
 	return p.isInvalidVal
 }
 
-//func (p *nullProvider) isUninitialized() bool {
-//	return p.isUninitializedVal
-//}
-
 func (p *nullProvider) isProvidingEmpty() bool {
 	return p.isEmpty
 }
@@ -332,24 +318,9 @@ func (p *nullProvider) providerEquals(other ipAddressProvider) (bool, Incompatib
 }
 
 var (
-	INVALID_PROVIDER = &nullProvider{isInvalidVal: true, ipType: INVALID}
-	//NO_TYPE_PROVIDER = &nullProvider{isUninitializedVal: true, ipType: uninitializedType}
-	EMPTY_PROVIDER = &nullProvider{isEmpty: true, ipType: EMPTY}
+	invalidProvider = &nullProvider{isInvalidVal: true, ipType: invalidType}
+	emptyProvider   = &nullProvider{isEmpty: true, ipType: emptyType}
 )
-
-//type CachedIPAddresses struct {
-//
-//	//address is 1.2.0.0/16 and hostAddress is 1.2.3.4 for the string 1.2.3.4/16
-//	address, hostAddress *IPAddress
-//}
-//
-//func (cached *CachedIPAddresses) getAddress() *IPAddress {
-//	return cached.address
-//}
-//
-//func (cached *CachedIPAddresses) getHostAddress() *IPAddress {
-//	return cached.hostAddress
-//}
 
 ///**
 //	 * Wraps an IPAddress for IPAddressString in the cases where no parsing is provided, the address exists already
@@ -371,27 +342,10 @@ type cachedAddressProvider struct {
 	ipAddrProvider
 
 	// addressCreator creates two addresses, the host address and address with prefix/mask, at the same time
-	//addressCreator func() CachedIPAddresses
 	addressCreator func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError)
 
-	//xxx must make this a pointer I think even though in some cases we jsut provide it off the bar, no sync required xxx
-	//xxx but in the cases we do not, need to synhronize atomically on a ptr to the data we create
-	//xxxx
-
-	//xxx
-	//cachedValues  CachedIPAddresses
-	//createdValues *CachedIPAddresses
-
-	//address, hostAddress *IPAddress
-	//
-	//err *IncompatibleAddressError
-
 	addresses *addressResult
-	//CreationLock
 }
-
-//TODO do not forget you also need these two in all top level classes, including parsedIPAddress, the mask, all and empty providers
-// they are needed becaue of virtual calls to getType() and getProviderAddress()
 
 func (cached *cachedAddressProvider) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(cached, other)
@@ -514,52 +468,51 @@ func (cached *cachedAddressProvider) isProvidingIPv6() bool {
 	return addr.IsIPv6()
 }
 
-type VersionedAddressCreator struct {
+type versionedAddressCreator struct {
 	cachedAddressProvider
 
 	adjustedVersion IPVersion
 
-	versionedAddressCreator func(IPVersion) (*IPAddress, IncompatibleAddressError)
+	versionedAddressCreatorFunc func(IPVersion) (*IPAddress, IncompatibleAddressError)
 
-	//createdVersioned [2]CreationLock
 	versionedValues [2]*IPAddress
 
 	parameters IPAddressStringParameters
 }
 
-func (versioned *VersionedAddressCreator) getParameters() IPAddressStringParameters {
+func (versioned *versionedAddressCreator) getParameters() IPAddressStringParameters {
 	return versioned.parameters
 }
 
-func (versioned *VersionedAddressCreator) isProvidingIPAddress() bool {
+func (versioned *versionedAddressCreator) isProvidingIPAddress() bool {
 	return versioned.adjustedVersion != IndeterminateIPVersion
 }
 
-func (versioned *VersionedAddressCreator) isProvidingIPv4() bool {
+func (versioned *versionedAddressCreator) isProvidingIPv4() bool {
 	return versioned.adjustedVersion == IPv4
 }
 
-func (versioned *VersionedAddressCreator) isProvidingIPv6() bool {
+func (versioned *versionedAddressCreator) isProvidingIPv6() bool {
 	return versioned.adjustedVersion == IPv6
 }
 
-func (versioned *VersionedAddressCreator) getProviderIPVersion() IPVersion {
+func (versioned *versionedAddressCreator) getProviderIPVersion() IPVersion {
 	return versioned.adjustedVersion
 }
 
-func (versioned *VersionedAddressCreator) getType() ipType {
+func (versioned *versionedAddressCreator) getType() ipType {
 	return fromVersion(versioned.adjustedVersion)
 }
 
-func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressError) {
+func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressError) {
 	index := version.index()
 	if index >= IndeterminateIPVersion.index() {
 		return
 	}
-	if versioned.versionedAddressCreator != nil {
+	if versioned.versionedAddressCreatorFunc != nil {
 		addr = versioned.versionedValues[index]
 		if addr == nil {
-			addr, err = versioned.versionedAddressCreator(version)
+			addr, err = versioned.versionedAddressCreatorFunc(version)
 			if err == nil {
 				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&versioned.versionedValues[index]))
 				atomic.StorePointer(dataLoc, unsafe.Pointer(addr))
@@ -579,7 +532,7 @@ func (versioned *VersionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func newLoopbackCreator(options IPAddressStringParameters, zone string) *LoopbackCreator {
+func newLoopbackCreator(options IPAddressStringParameters, zone string) *loopbackCreator {
 	// TODO an option to set preferred loopback here in IPAddressStringParameters, do the same in Java
 	// the option will set one of three options, IPv4, IPv6, or IndeterminateIPVersion which is the default
 	// In Go the default will be IPv4
@@ -619,7 +572,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 			return
 		},
 	}
-	loopbackCreator := func(version IPVersion) *IPAddress {
+	loopbackCreatorFunc := func(version IPVersion) *IPAddress {
 		addresses := cached.addresses
 		if addresses != nil {
 			addr := addresses.address
@@ -637,60 +590,60 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *Loopbac
 		}
 		return nil
 	}
-	versionedAddressCreator := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
-		return loopbackCreator(version), nil
+	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+		return loopbackCreatorFunc(version), nil
 	}
-	return &LoopbackCreator{
-		VersionedAddressCreator: VersionedAddressCreator{
-			adjustedVersion:         version,
-			parameters:              options,
-			cachedAddressProvider:   cached,
-			versionedAddressCreator: versionedAddressCreator,
+	return &loopbackCreator{
+		versionedAddressCreator: versionedAddressCreator{
+			adjustedVersion:             version,
+			parameters:                  options,
+			cachedAddressProvider:       cached,
+			versionedAddressCreatorFunc: versionedAddressCreatorFunc,
 		},
 		zone: zone,
 	}
 }
 
-type LoopbackCreator struct {
-	VersionedAddressCreator
+type loopbackCreator struct {
+	versionedAddressCreator
 
 	zone string
 }
 
-func (loop *LoopbackCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (loop *loopbackCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
 	return providerCompare(loop, other)
 }
 
-func (loop *LoopbackCreator) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (loop *loopbackCreator) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
 	return providerEquals(loop, other)
 }
 
-func (loop *LoopbackCreator) getProviderNetworkPrefixLength() PrefixLen {
+func (loop *loopbackCreator) getProviderNetworkPrefixLength() PrefixLen {
 	return nil
 }
 
-type AdjustedAddressCreator struct {
-	VersionedAddressCreator
+type adjustedAddressCreator struct {
+	versionedAddressCreator
 
 	networkPrefixLength PrefixLen
 }
 
-func (adjusted *AdjustedAddressCreator) getProviderNetworkPrefixLength() PrefixLen {
+func (adjusted *adjustedAddressCreator) getProviderNetworkPrefixLength() PrefixLen {
 	return adjusted.networkPrefixLength
 }
 
-func (adjusted *AdjustedAddressCreator) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
+func (adjusted *adjustedAddressCreator) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
-	return adjusted.VersionedAddressCreator.getProviderAddress()
+	return adjusted.versionedAddressCreator.getProviderAddress()
 }
 
-func (adjusted *AdjustedAddressCreator) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
+func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
-	return adjusted.VersionedAddressCreator.getProviderHostAddress()
+	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
 // TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
@@ -698,7 +651,7 @@ func (adjusted *AdjustedAddressCreator) getProviderHostAddress() (*IPAddress, In
 // involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
 //			(b) this behaviour can be overridden by a string parameters option
 
-func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *MaskCreator {
+func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
 	// TODO use the option for  preferred loopback also for preferred mask, do the same in Java
 	// Drop "prefix only" type - it was never a good idea anyway!  Better to prefer one over the other.
 
@@ -714,51 +667,41 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
 			network := DefaultIPv4Network
-			//network := options.GetIPv4Parameters().GetNetwork()
-			//if withPrefixLength {
-			//	return network.GetNetworkIPAddress(prefLen)
-			//}
-			//return network.GetNetworkMask(prefLen, false)
 			return network.GetNetworkMask(*prefLen)
 		} else if version == IPv6 {
 			network := DefaultIPv6Network
-			//network := options.GetIPv6Parameters().GetNetwork()
-			//if withPrefixLength {
-			//	return network.GetNetworkIPAddress(prefLen)
-			//}
-			//return network.GetNetworkMask(prefLen, false)
 			return network.GetNetworkMask(*prefLen)
 		}
 		return nil
 	}
-	versionedAddressCreator := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
 		return createVersionedMask(version, networkPrefixLength, true), nil
 	}
-	maskCreator := func() (address, hostAddress *IPAddress) {
+	maskCreatorFunc := func() (address, hostAddress *IPAddress) {
 		prefLen := networkPrefixLength
 		return createVersionedMask(adjustedVersion, prefLen, true),
 			createVersionedMask(adjustedVersion, prefLen, false)
 	}
 	addrCreator := func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
-		address, hostAddress = maskCreator()
+		address, hostAddress = maskCreatorFunc()
 		return
 	}
 	cached := cachedAddressProvider{addressCreator: addrCreator}
-	return &MaskCreator{
-		AdjustedAddressCreator{
+	return &maskCreator{
+		adjustedAddressCreator{
 			networkPrefixLength: networkPrefixLength,
-			VersionedAddressCreator: VersionedAddressCreator{
-				adjustedVersion:         adjustedVersion,
-				parameters:              options,
-				cachedAddressProvider:   cached,
-				versionedAddressCreator: versionedAddressCreator,
+			versionedAddressCreator: versionedAddressCreator{
+				adjustedVersion:             adjustedVersion,
+				parameters:                  options,
+				cachedAddressProvider:       cached,
+				versionedAddressCreatorFunc: versionedAddressCreatorFunc,
 			},
 		},
 	}
 }
 
-type MaskCreator struct {
-	AdjustedAddressCreator
+type maskCreator struct {
+	adjustedAddressCreator
 }
 
 // TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
@@ -766,12 +709,11 @@ type MaskCreator struct {
 // involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
 //			(b) this behaviour can be overridden by a string parameters option
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*AllCreator, IncompatibleAddressError) {
-	//cached := cachedAddressProvider{addressCreator: addrCreator}
-	result := &AllCreator{
-		AdjustedAddressCreator: AdjustedAddressCreator{
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*allCreator, IncompatibleAddressError) {
+	result := &allCreator{
+		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLength(),
-			VersionedAddressCreator: VersionedAddressCreator{
+			versionedAddressCreator: versionedAddressCreator{
 				adjustedVersion: adjustedVersion,
 				parameters:      options,
 			},
@@ -780,12 +722,12 @@ func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersi
 		qualifier:  *qualifier,
 	}
 	result.addressCreator = result.createAddrs
-	result.versionedAddressCreator = result.versionedCreate
+	result.versionedAddressCreatorFunc = result.versionedCreate
 	return result, nil
 }
 
-type AllCreator struct {
-	AdjustedAddressCreator
+type allCreator struct {
+	adjustedAddressCreator
 
 	originator HostIdentifierString
 	qualifier  parsedHostIdentifierStringQualifier
@@ -793,26 +735,34 @@ type AllCreator struct {
 	rng *IPAddressSeqRange
 }
 
-func (all *AllCreator) getType() ipType {
+func (all *allCreator) getType() ipType {
 	if !all.adjustedVersion.isIndeterminate() {
 		return fromVersion(all.adjustedVersion)
 	}
-	return ALL
+	return allType
 }
 
-func (all *AllCreator) isProvidingAllAddresses() bool {
+func (all *allCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+	return providerCompare(all, other)
+}
+
+func (all *allCreator) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+	return providerEquals(all, other)
+}
+
+func (all *allCreator) isProvidingAllAddresses() bool {
 	return all.adjustedVersion == IndeterminateIPVersion
 }
 
-func (all *AllCreator) getProviderNetworkPrefixLength() PrefixLen {
+func (all *allCreator) getProviderNetworkPrefixLength() PrefixLen {
 	return all.qualifier.getEquivalentPrefixLength()
 }
 
-func (all *AllCreator) getProviderMask() *IPAddress {
+func (all *allCreator) getProviderMask() *IPAddress {
 	return all.qualifier.getMaskLower()
 }
 
-func (all *AllCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+func (all *allCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
 	rng = all.rng
 	addrs := all.addresses
 	if rng == nil || addrs == nil {
@@ -838,17 +788,17 @@ func (all *AllCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hos
 	return
 }
 
-func (all *AllCreator) createRange() (rng *IPAddressSeqRange) {
+func (all *allCreator) createRange() (rng *IPAddressSeqRange) {
 	rng, _, _, _, _ = all.createAll()
 	return
 }
 
-func (all *AllCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+func (all *allCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
 	_, addr, hostAddr, addrErr, hostErr = all.createAll()
 	return
 }
 
-func (all *AllCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr IncompatibleAddressError) {
+func (all *allCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr IncompatibleAddressError) {
 	if version == all.adjustedVersion {
 		return all.getProviderAddress()
 	} else if all.adjustedVersion != IndeterminateIPVersion {
@@ -861,7 +811,7 @@ func (all *AllCreator) versionedCreate(version IPVersion) (addr *IPAddress, addr
 	return
 }
 
-func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
+func (all *allCreator) getProviderSeqRange() *IPAddressSeqRange {
 	if all.isProvidingAllAddresses() {
 		return nil
 	}
@@ -872,15 +822,15 @@ func (all *AllCreator) getProviderSeqRange() *IPAddressSeqRange {
 	return rng
 }
 
-func (all *AllCreator) prefixContainsProvider(otherProvider ipAddressProvider) boolSetting {
+func (all *allCreator) prefixContainsProvider(otherProvider ipAddressProvider) boolSetting {
 	return all.containsProviderFunc(otherProvider, (*IPAddress).prefixContains)
 }
 
-func (all *AllCreator) containsProvider(otherProvider ipAddressProvider) (res boolSetting) {
+func (all *allCreator) containsProvider(otherProvider ipAddressProvider) (res boolSetting) {
 	return all.containsProviderFunc(otherProvider, (*IPAddress).contains)
 }
 
-func (all *AllCreator) containsProviderFunc(otherProvider ipAddressProvider, functor func(*IPAddress, AddressType) bool) (res boolSetting) {
+func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, functor func(*IPAddress, AddressType) bool) (res boolSetting) {
 	if otherProvider.isInvalid() {
 		return boolSetting{true, false}
 	} else if all.adjustedVersion == IndeterminateIPVersion {
@@ -949,7 +899,7 @@ func (all *AllCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
 
-// TODO next: prefixContains optimization in the address providers and ipaddressstring, for some reason I want to do this now
+// TODO next: prefixContains and prefixEquals optimization in the address providers and ipaddressstring, for some reason I want to do this now
 
 // TODO append and replace in sections: we only allow at top-level.
 // This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.

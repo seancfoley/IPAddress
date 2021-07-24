@@ -135,7 +135,7 @@ func (addrStr *IPAddressString) Validate() AddressStringError {
 		addressProvider, err := validator.validateIPAddressStr(addrStr)
 		data = &addrData{addressProvider, err}
 		if err != nil {
-			data.addressProvider = INVALID_PROVIDER
+			data.addressProvider = invalidProvider
 		}
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addrStr.addrData))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(data))

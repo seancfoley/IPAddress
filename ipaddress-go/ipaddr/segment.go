@@ -55,8 +55,8 @@ func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, pref
 	if shift <= 0 {
 		return seg.Contains(other)
 	}
-	return (other.GetSegmentValue()>>shift) >= (seg.GetSegmentValue()>>shift) &&
-		(other.GetUpperSegmentValue()>>shift) <= (seg.GetUpperSegmentValue()>>shift)
+	return (other.GetSegmentValue()>>uint(shift)) >= (seg.GetSegmentValue()>>uint(shift)) &&
+		(other.GetUpperSegmentValue()>>uint(shift)) <= (seg.GetUpperSegmentValue()>>uint(shift))
 }
 
 // PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
@@ -66,8 +66,8 @@ func (seg *addressSegmentInternal) PrefixEquals(other AddressSegmentType, prefix
 	if shift <= 0 {
 		return seg.GetSegmentValue() == other.GetSegmentValue() && seg.GetUpperSegmentValue() == other.GetUpperSegmentValue()
 	}
-	return (other.GetSegmentValue()>>shift) == (seg.GetSegmentValue()>>shift) &&
-		(other.GetSegmentValue()>>shift) == (seg.GetUpperSegmentValue()>>shift)
+	return (other.GetSegmentValue()>>uint(shift)) == (seg.GetSegmentValue()>>uint(shift)) &&
+		(other.GetSegmentValue()>>uint(shift)) == (seg.GetUpperSegmentValue()>>uint(shift))
 }
 
 func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
@@ -107,20 +107,20 @@ func (seg *addressSegmentInternal) GetValueCount() SegIntCount {
 }
 
 func (seg *addressSegmentInternal) GetMaxValue() SegInt {
-	return ^(^SegInt(0) << seg.GetBitCount())
+	return ^(^SegInt(0) << uint(seg.GetBitCount()))
 }
 
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (div *addressSegmentInternal) TestBit(n BitCount) bool {
 	value := div.GetSegmentValue()
-	return (value & (1 << n)) != 0
+	return (value & (1 << uint(n))) != 0
 }
 
 // Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
 func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
 	value := div.GetSegmentValue()
 	bitCount := div.GetBitCount()
-	return (value & (1 << (bitCount - (segmentBitIndex + 1)))) != 0
+	return (value & (1 << uint(bitCount-(segmentBitIndex+1)))) != 0
 }
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
@@ -263,12 +263,12 @@ func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *Addres
 			for i := 1; i <= byteCount; i++ {
 				result = result << 8
 				bytes := BitCount(i << 3)
-				b := val >> (bitCount - bytes)
+				b := val >> uint(bitCount-bytes)
 				if i <= multiValueByteIndex {
 					result |= SegInt(reverseUint8(uint8(b)))
 					upperResult = result
 				} else {
-					ub := upperVal >> (bitCount - bytes)
+					ub := upperVal >> uint(bitCount-bytes)
 					result |= b
 					upperResult |= ub
 				}
@@ -287,7 +287,7 @@ func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *Addres
 		}
 		return
 	}
-	err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+	err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
 	return
 }
 
@@ -321,7 +321,7 @@ func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegmen
 			val = ((val & 0xff) << 24) | (val&0xff00)<<8 | (val&0xff0000)>>8 | (val >> 24)
 		}
 	default: // SegInt is at most 32 bits so this default case is not possible
-		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
 		return
 	}
 	if oldVal == val && !seg.isPrefixed() {
@@ -351,7 +351,7 @@ func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err Inco
 	case 4:
 		val = ((oldVal & 0xff) << 24) | (oldVal&0xff00)<<8 | (oldVal&0xff0000)>>8 | (oldVal >> 24)
 	default: // SegInt is at most 32 bits so this default case is not possible
-		err = &incompatibleAddressError{addressError{str: seg.String(), key: "ipaddress.error.reverseRange"}}
+		err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
 		return
 	}
 	if oldVal == val && !seg.isPrefixed() {
@@ -411,16 +411,16 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 		for i := 1; i <= byteCount; i++ {
 			bitShift := i << 3
 			shift := (bitCount - BitCount(bitShift))
-			byteVal := 0xff & (val >> shift)
-			upperByteVal := 0xff & (upperVal >> shift)
+			byteVal := 0xff & (val >> uint(shift))
+			upperByteVal := 0xff & (upperVal >> uint(shift))
 			if byteVal != upperByteVal {
 				multiValueByteIndex = i - 1
 				if byteVal <= 1 && upperByteVal >= 254 {
 					for i++; i <= byteCount; i++ {
 						bitShift = i << 3
 						shift = (bitCount - BitCount(bitShift))
-						byteVal = 0xff & (val >> shift)
-						upperByteVal = 0xff & (upperVal >> shift)
+						byteVal = 0xff & (val >> uint(shift))
+						upperByteVal = 0xff & (upperVal >> uint(shift))
 						if byteVal > 0 || upperByteVal < 255 {
 							break top
 						}
@@ -506,5 +506,5 @@ func segValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
 
 func getPrefixValueCount(segment *AddressSegment, segmentPrefixLength BitCount) SegIntCount {
 	shiftAdjustment := segment.GetBitCount() - segmentPrefixLength
-	return SegIntCount(segment.GetUpperSegmentValue()>>shiftAdjustment) - SegIntCount(segment.GetSegmentValue()>>shiftAdjustment) + 1
+	return SegIntCount(segment.GetUpperSegmentValue()>>uint(shiftAdjustment)) - SegIntCount(segment.GetSegmentValue()>>uint(shiftAdjustment)) + 1
 }

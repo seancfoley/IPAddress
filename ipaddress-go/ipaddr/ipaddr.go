@@ -842,7 +842,7 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
 		}
 	}
-	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipVersionMismatch"}}
+	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
 }
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
@@ -873,15 +873,15 @@ func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAdd
 			return result.ToIPAddress(), err
 		}
 	}
-	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
+	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
 }
 
 func (addr *IPAddress) BitwiseOr(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
-	return addr.bitwiseOrPrefixed(addr, false)
+	return addr.bitwiseOrPrefixed(other, false)
 }
 
 func (addr *IPAddress) BitwiseOrPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
-	return addr.bitwiseOrPrefixed(addr, true)
+	return addr.bitwiseOrPrefixed(other, true)
 }
 
 func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
@@ -896,7 +896,7 @@ func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*
 			return result.ToIPAddress(), err
 		}
 	}
-	return nil, &incompatibleAddressError{addressError{str: "ipaddress.error.ipMismatch"}}
+	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
 }
 
 func (addr *IPAddress) Intersect(other *IPAddress) *IPAddress {
@@ -1116,7 +1116,7 @@ func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAd
 // while the reverse direction is generally not all that useful, except under specific circumstances.
 //
 // Not all IPAddressString objects can be converted to IPAddress objects,
-// as is the case with IPAddressString objects corresponding to the types INVALID, EMPTY and ALL
+// as is the case with IPAddressString objects corresponding to the types invalidType, emptyType and allType
 //
 // So it may be useful to store a set of address strings as a collection of IPAddressString objects,
 // rather than IPAddress objects.

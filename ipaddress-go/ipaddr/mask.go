@@ -44,7 +44,7 @@ var _ Masker = maskerBase{}
 func newFullRangeMasker(fullRangeBit int, isSequential bool) Masker {
 	return fullRangeMasker{
 		fullRangeBit: fullRangeBit,
-		upperMask:    ^uint64(0) >> fullRangeBit,
+		upperMask:    ^uint64(0) >> uint(fullRangeBit),
 		maskerBase:   maskerBase{isSequential},
 	}
 }
@@ -113,9 +113,9 @@ var _ Masker = extendedMaskerBase{}
 func newExtendedFullRangeMasker(fullRangeBit int, isSequential bool) ExtendedMasker {
 	var upperMask, extendedUpperMask uint64
 	if fullRangeBit >= 64 {
-		upperMask = ^uint64(0) >> (fullRangeBit - 64)
+		upperMask = ^uint64(0) >> (uint(fullRangeBit) - 64)
 	} else {
-		extendedUpperMask = ^uint64(0) >> fullRangeBit
+		extendedUpperMask = ^uint64(0) >> uint(fullRangeBit)
 		upperMask = 0xffffffffffffffff
 	}
 	return extendedFullRangeMasker{
@@ -164,19 +164,19 @@ type extendedSpecificValueMasker struct {
 	extendedLower, lower, extendedUpper, upper uint64
 }
 
-func (masker extendedSpecificValueMasker) GetMaskedLower(value, maskValue uint64) uint64 {
+func (masker extendedSpecificValueMasker) GetMaskedLower(_, maskValue uint64) uint64 {
 	return masker.extendedMaskerBase.GetMaskedLower(masker.lower, maskValue)
 }
 
-func (masker extendedSpecificValueMasker) GetMaskedUpper(upperValue, maskValue uint64) uint64 {
+func (masker extendedSpecificValueMasker) GetMaskedUpper(_, maskValue uint64) uint64 {
 	return masker.extendedMaskerBase.GetMaskedUpper(masker.upper, maskValue)
 }
 
-func (masker extendedSpecificValueMasker) GetExtendedMaskedLower(extendedValue, extendedMaskValue uint64) uint64 {
+func (masker extendedSpecificValueMasker) GetExtendedMaskedLower(_, extendedMaskValue uint64) uint64 {
 	return masker.extendedMaskerBase.GetExtendedMaskedLower(masker.extendedLower, extendedMaskValue)
 }
 
-func (masker extendedSpecificValueMasker) GetExtendedMaskedUpper(extendedUpperValue, extendedMaskValue uint64) uint64 {
+func (masker extendedSpecificValueMasker) GetExtendedMaskedUpper(_, extendedMaskValue uint64) uint64 {
 	return masker.extendedMaskerBase.GetExtendedMaskedUpper(masker.extendedUpper, extendedMaskValue)
 }
 
@@ -238,7 +238,7 @@ var _ BitwiseOrer = bitwiseOrerBase{}
 func newFullRangeBitwiseOrer(fullRangeBit int, isSequential bool) BitwiseOrer {
 	return fullRangeBitwiseOrer{
 		fullRangeBit:    fullRangeBit,
-		upperMask:       ^uint64(0) >> fullRangeBit,
+		upperMask:       ^uint64(0) >> uint(fullRangeBit),
 		bitwiseOrerBase: bitwiseOrerBase{isSequential},
 	}
 }
@@ -312,13 +312,13 @@ func maskExtendedRange(
 		return defaultMasker
 	}
 	highestDifferingBitInRange := bits.LeadingZeros64(extendedDiffering)
-	extendedDifferingMasked := extendedMaskValue & (^uint64(0) >> highestDifferingBitInRange)
+	extendedDifferingMasked := extendedMaskValue & (^uint64(0) >> uint(highestDifferingBitInRange))
 	var highestDifferingBitMasked int
 	if extendedDifferingMasked != 0 {
 		differingIsLowestBit := (extendedDifferingMasked == 1)
 		highestDifferingBitMasked = bits.LeadingZeros64(extendedDifferingMasked)
 		var maskedIsSequential bool
-		hostMask := ^uint64(0) >> (highestDifferingBitMasked + 1)
+		hostMask := ^uint64(0) >> uint(highestDifferingBitMasked+1)
 		if !differingIsLowestBit { // Anything below highestDifferingBitMasked in the mask must be ones.
 			//for the first mask bit that is 1, all bits that follow must also be 1
 			maskedIsSequential = (extendedMaskValue&hostMask) == hostMask && maskValue == maxValue //check if all ones below
@@ -476,8 +476,8 @@ func maskExtendedRange(
 	highestDifferingBitMaskedLow := bits.LeadingZeros64(maskValue)
 	if maskValue != maxValue && highestDifferingBitMaskedLow < 63 {
 		//for the first mask bit that is 1, all bits that follow must also be 1
-		hostMask := ^uint64(0) >> (highestDifferingBitMaskedLow + 1) // this shift of since case of highestDifferingBitMaskedLow of 64 and 63 taken care of, so the shift is < 64
-		maskedIsSequential = (maskValue & hostMask) == hostMask      //check if all ones below
+		hostMask := ^uint64(0) >> uint(highestDifferingBitMaskedLow+1) // this shift of since case of highestDifferingBitMaskedLow of 64 and 63 taken care of, so the shift is < 64
+		maskedIsSequential = (maskValue & hostMask) == hostMask        //check if all ones below
 	}
 	if maskedIsSequential {
 		//Note: a count of 2 in the lower values could equate to a count of everything in the full range:
@@ -553,7 +553,7 @@ func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 	differing := value ^ upperValue
 	if differing != 1 {
 		highestDifferingBitInRange := bits.LeadingZeros64(differing)
-		maskMask := ^uint64(0) >> highestDifferingBitInRange
+		maskMask := ^uint64(0) >> uint(highestDifferingBitInRange)
 		differingMasked := maskValue & maskMask
 		foundDiffering := (differingMasked != 0)
 		if foundDiffering {
@@ -562,7 +562,7 @@ func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 			highestDifferingBitMasked := bits.LeadingZeros64(differingMasked) // first one bit in the mask covering the range
 			var hostMask uint64
 			if highestDifferingBitMasked != 63 {
-				hostMask = ^uint64(0) >> (highestDifferingBitMasked + 1)
+				hostMask = ^uint64(0) >> uint(highestDifferingBitMasked+1)
 			}
 			//for the first mask bit that is 1, all bits that follow must also be 1
 			maskedIsSequential := (maskValue & hostMask) == hostMask
@@ -570,7 +570,7 @@ func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 				(!maskedIsSequential || highestDifferingBitMasked > highestDifferingBitInRange) {
 				highestOneBit := bits.LeadingZeros64(upperValue)
 				// note we know highestOneBit < 64, otherwise differing would be 1 or 0
-				maxValue = ^uint64(0) >> highestOneBit
+				maxValue = ^uint64(0) >> uint(highestOneBit)
 			}
 			if value == 0 && upperValue == maxValue {
 				// full range
@@ -599,7 +599,7 @@ func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 						// and the range must cover 2 to the power of (5 - 1),
 						// or 2 to the power of bit count - highestDifferingBitMasked, or 1 shifted by that much.
 
-						countRequiredForSequential := uint64(1) << (64 - highestDifferingBitMasked)
+						countRequiredForSequential := uint64(1) << uint(64-highestDifferingBitMasked)
 						if count < countRequiredForSequential {
 							// the resulting masked values are disjoint, not sequential
 							maskedIsSequential = false
@@ -618,7 +618,7 @@ func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 				upperToBeMasked := upperValue & hostZeroed
 				lowerToBeMasked := value | hostMask
 				// we find a value in the range that will produce the highest and lowest values when masked
-				for nextBit := uint64(1) << (64 - (highestDifferingBitMasked + 1) - 1); nextBit != 0; nextBit >>= 1 {
+				for nextBit := uint64(1) << (64 - uint(highestDifferingBitMasked+1) - 1); nextBit != 0; nextBit >>= 1 {
 					// check if the bit in the mask is 1
 					if (maskValue & nextBit) != 0 {
 						candidate := upperToBeMasked | nextBit
@@ -665,21 +665,21 @@ func bitwiseOrRange(value, upperValue, maskValue, maxValue uint64) BitwiseOrer {
 	differing := value ^ upperValue
 	if differing != 1 {
 		highestDifferingBitInRange := bits.LeadingZeros64(differing)
-		maskMask := ^uint64(0) >> highestDifferingBitInRange
+		maskMask := ^uint64(0) >> uint(highestDifferingBitInRange)
 		differingMasked := maskValue & maskMask
 		foundDiffering := (differingMasked != maskMask) // mask not all ones
 		if foundDiffering {
 			highestDifferingBitMasked := bits.LeadingZeros64(^differingMasked & maskMask) // first 0 bit in the part of the mask covering the range
 			var hostMask uint64
 			if highestDifferingBitMasked != 63 {
-				hostMask = ^uint64(0) >> (highestDifferingBitMasked + 1)
+				hostMask = ^uint64(0) >> uint(highestDifferingBitMasked+1)
 			}
 			maskedIsSequential := (maskValue & hostMask) == 0
 			if maxValue == ^uint64(0) &&
 				(!maskedIsSequential || highestDifferingBitMasked > highestDifferingBitInRange) {
 				highestOneBit := bits.LeadingZeros64(upperValue)
 				// note we know highestOneBit < 64, otherwise differing would be 1 or 0, so shift is OK
-				maxValue = ^uint64(0) >> highestOneBit
+				maxValue = ^uint64(0) >> uint(highestOneBit)
 			}
 			if value == 0 && upperValue == maxValue {
 				// full range
@@ -694,7 +694,7 @@ func bitwiseOrRange(value, upperValue, maskValue, maxValue uint64) BitwiseOrer {
 					// the count will determine if the ored range is sequential
 					if highestDifferingBitMasked < 63 {
 						count := upperValue - value + 1
-						countRequiredForSequential := uint64(1) << (64 - highestDifferingBitMasked)
+						countRequiredForSequential := uint64(1) << uint(64-highestDifferingBitMasked)
 						if count < countRequiredForSequential {
 							// the resulting ored values are disjoint, not sequential
 							maskedIsSequential = false
@@ -706,7 +706,7 @@ func bitwiseOrRange(value, upperValue, maskValue, maxValue uint64) BitwiseOrer {
 				hostZeroed := ^hostMask
 				upperToBeMasked := upperValue & hostZeroed
 				lowerToBeMasked := value | hostMask
-				for nextBit := uint64(1) << (64 - (highestDifferingBitMasked + 1) - 1); nextBit != 0; nextBit >>= 1 {
+				for nextBit := uint64(1) << uint(64-(highestDifferingBitMasked+1)-1); nextBit != 0; nextBit >>= 1 {
 					// check if the bit in the mask is 0
 					if (maskValue & nextBit) == 0 {
 						candidate := upperToBeMasked | nextBit
