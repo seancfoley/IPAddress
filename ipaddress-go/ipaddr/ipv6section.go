@@ -760,7 +760,7 @@ var (
 func (section *IPv6AddressSection) ToCanonicalString() string {
 	return cacheStr(&section.getStringCache().canonicalString,
 		func() string {
-			return section.toCanonicalString(noZone)
+			return section.toCanonicalString(NoZone)
 		})
 }
 
@@ -770,14 +770,14 @@ func (section *IPv6AddressSection) ToCanonicalString() string {
 func (section *IPv6AddressSection) ToNormalizedString() string {
 	return cacheStr(&section.getStringCache().normalizedIPv6String,
 		func() string {
-			return section.toNormalizedString(noZone)
+			return section.toNormalizedString(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToCompressedString() string {
 	return cacheStr(&section.getStringCache().compressedIPv6String,
 		func() string {
-			return section.toCompressedString(noZone)
+			return section.toCompressedString(NoZone)
 		})
 }
 
@@ -785,56 +785,56 @@ func (section *IPv6AddressSection) ToCompressedString() string {
 func (section *IPv6AddressSection) ToMixedString() string {
 	return cacheStr(&section.getStringCache().normalizedIPv6String,
 		func() string {
-			return section.toMixedStringZoned(noZone)
+			return section.toMixedStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToNormalizedWildcardString() string {
 	return cacheStr(&section.getStringCache().normalizedWildcardString,
 		func() string {
-			return section.toNormalizedWildcardStringZoned(noZone)
+			return section.toNormalizedWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToCanonicalWildcardString() string {
 	return cacheStr(&section.getStringCache().canonicalWildcardString,
 		func() string {
-			return section.toCanonicalWildcardStringZoned(noZone)
+			return section.toCanonicalWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToSegmentedBinaryString() string {
 	return cacheStr(&section.getStringCache().segmentedBinaryString,
 		func() string {
-			return section.toSegmentedBinaryStringZoned(noZone)
+			return section.toSegmentedBinaryStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToSQLWildcardString() string {
 	return cacheStr(&section.getStringCache().sqlWildcardString,
 		func() string {
-			return section.toSQLWildcardStringZoned(noZone)
+			return section.toSQLWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToFullString() string {
 	return cacheStr(&section.getStringCache().fullString,
 		func() string {
-			return section.toFullStringZoned(noZone)
+			return section.toFullStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToReverseDNSString() string {
 	return cacheStr(&section.getStringCache().reverseDNSString,
 		func() string {
-			return section.toReverseDNSStringZoned(noZone)
+			return section.toReverseDNSStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToPrefixLenString() string {
 	return cacheStr(&section.getStringCache().networkPrefixLengthString,
 		func() string {
-			return section.toPrefixLenStringZoned(noZone)
+			return section.toPrefixLenStringZoned(NoZone)
 		})
 }
 
@@ -845,7 +845,7 @@ func (section *IPv6AddressSection) ToSubnetString() string {
 func (section *IPv6AddressSection) ToCompressedWildcardString() string {
 	return cacheStr(&section.getStringCache().compressedWildcardString,
 		func() string {
-			return section.toCompressedWildcardStringZoned(noZone)
+			return section.toCompressedWildcardStringZoned(NoZone)
 		})
 }
 
@@ -1010,7 +1010,7 @@ func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex in
 		ipv6Segment.getSplitSegments(segments, j)
 	}
 	res := createIPv4Section(segments)
-	res.initMultAndPrefLen()
+	_ = res.initMultAndPrefLen()
 	return res
 }
 
@@ -1027,7 +1027,7 @@ func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
 	nonMixed := make([]*AddressDivision, nonMixedCount)
 	section.copySubSegmentsToSlice(0, nonMixedCount, nonMixed)
 	res := createIPv6Section(nonMixed, addressSegmentIndex)
-	res.initMultAndPrefLen()
+	_ = res.initMultAndPrefLen()
 	return res
 }
 
@@ -1056,7 +1056,7 @@ func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv
 		low.getSplitSegments(mixed, bytesPerSeg)
 	}
 	sect = createIPv4Section(mixed)
-	sect.initMultAndPrefLen()
+	_ = sect.initMultAndPrefLen()
 	return
 }
 

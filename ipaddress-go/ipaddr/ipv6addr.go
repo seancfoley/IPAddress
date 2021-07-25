@@ -38,15 +38,15 @@ func (zone Zone) IsEmpty() bool {
 	return zone == ""
 }
 
-const noZone Zone = ""
+const NoZone Zone = ""
 
 func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
-	return createAddress(section.ToAddressSection(), noZone).ToIPv6Address()
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv6Address()
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
 	result := createAddress(section.ToAddressSection(), zone).ToIPv6Address()
-	if zone != noZone {
+	if zone != NoZone {
 		result.cache.stringCache = &stringCache{}
 	}
 	return result
@@ -165,7 +165,7 @@ func (addr *IPv6Address) init() *IPv6Address {
 }
 
 func (addr *IPv6Address) HasZone() bool {
-	return addr.zone != noZone
+	return addr.zone != NoZone
 }
 
 func (addr *IPv6Address) GetSection() *IPv6AddressSection {

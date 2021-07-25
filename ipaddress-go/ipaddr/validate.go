@@ -3,7 +3,9 @@ package ipaddr
 import (
 	"math"
 	"strings"
+	"sync/atomic"
 	"unicode"
+	"unsafe"
 )
 
 var extendedDigits = []byte{
@@ -1771,7 +1773,7 @@ func validateAddress(
 
 func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
 	var qualifier parsedHostIdentifierStringQualifier
-	isPrefix, err := validatePrefix(fullAddr, noZone, defaultIPAddrParameters, nil,
+	isPrefix, err := validatePrefix(fullAddr, NoZone, defaultIPAddrParameters, nil,
 		&qualifier, 0, len(fullAddr), version)
 	if !isPrefix {
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefix"}}
@@ -2037,7 +2039,7 @@ func parseAddressQualifier(
 	ipVersion := ipAddressParseData.getProviderIPVersion()
 	res := ipAddressParseData.getQualifier()
 	if ipAddressParseData.hasPrefixSeparator() {
-		return parsePrefix(fullAddr, noZone, validationOptions, hostValidationOptions,
+		return parsePrefix(fullAddr, NoZone, validationOptions, hostValidationOptions,
 			res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
 	} else if ipAddressParseData.isZoned() {
 		if ipAddressParseData.isBase85Zoned() && !ipAddressParseData.isProvidingBase85IPv6() {
@@ -2069,7 +2071,7 @@ func parseHostAddressQualifier(
 	addressIsEmpty := ipAddressParseData.getAddressParseData().isProvidingEmpty()
 	ipVersion := ipAddressParseData.getProviderIPVersion()
 	if isPrefixed {
-		return parsePrefix(fullAddr, noZone, validationOptions, hostValidationOptions,
+		return parsePrefix(fullAddr, NoZone, validationOptions, hostValidationOptions,
 			res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
 	} else if ipAddressParseData.isZoned() {
 		if addressIsEmpty {
@@ -2078,7 +2080,7 @@ func parseHostAddressQualifier(
 		}
 		return parseEncodedZone(fullAddr, validationOptions, res, addressIsEmpty, qualifierIndex, endIndex, ipVersion)
 	} else if hasPort { //isPort is always false when validating an address
-		return parsePortOrService(fullAddr, noZone, hostValidationOptions, res, qualifierIndex, endIndex)
+		return parsePortOrService(fullAddr, NoZone, hostValidationOptions, res, qualifierIndex, endIndex)
 	}
 	//res = noQualifier
 	return
@@ -2177,10 +2179,10 @@ func parseHostNameQualifier(
 	endIndex int,
 	ipVersion IPVersion) (err AddressStringError) {
 	if isPrefixed {
-		return parsePrefix(fullAddr, noZone, validationOptions, hostValidationOptions,
+		return parsePrefix(fullAddr, NoZone, validationOptions, hostValidationOptions,
 			res, addressIsEmpty, index, endIndex, ipVersion)
 	} else if isPort { // isPort is always false when validating an address
-		return parsePortOrService(fullAddr, noZone, hostValidationOptions, res, index, endIndex)
+		return parsePortOrService(fullAddr, NoZone, hostValidationOptions, res, index, endIndex)
 	}
 	//res = noQualifier
 	return
@@ -2645,25 +2647,9 @@ func chooseMACAddressProvider(fromString *MACAddressString,
 	return
 }
 
-var maskCache = [3][IPv6BitCount + 1]maskCreator{}
-var loopbackCache = &loopbackCreator{versionedAddressCreator: versionedAddressCreator{parameters: defaultIPAddrParameters}}
+var maskCache = [3][IPv6BitCount + 1]*maskCreator{}
 
-func init() {
-	for i := 0; i < 3; i++ {
-		var version IPVersion
-		if i == 1 {
-			version = IPv4
-		} else if i == 2 {
-			version = IPv6
-		}
-		for j := 0; j < len(maskCache[i]); j++ {
-			var cache = &maskCache[i][j]
-			cache.adjustedVersion = version
-			cache.networkPrefixLength = cacheBits(j)
-			cache.parameters = defaultIPAddrParameters
-		}
-	}
-}
+var loopbackCache = newLoopbackCreator(defaultIPAddrParameters, NoZone)
 
 func chooseIPAddressProvider(
 	originator HostIdentifierString,
@@ -2692,6 +2678,7 @@ func chooseIPAddressProvider(
 		if addressParseData.isProvidingEmpty() {
 			networkPrefixLength := qualifier.getNetworkPrefixLength()
 			if networkPrefixLength != nil {
+				// TODO new prefix only handling ,see ipaddressProvider
 				prefLen := *networkPrefixLength
 				if validationOptions == defaultIPAddrParameters && prefLen <= IPv6BitCount {
 					index := 0
@@ -2700,30 +2687,33 @@ func chooseIPAddressProvider(
 					} else if version.isIPv6() {
 						index = 2
 					}
-					res = &maskCache[index][prefLen]
+					res = maskCache[index][prefLen]
+					if res == nil {
+						creator := newMaskCreator(defaultIPAddrParameters, version, networkPrefixLength)
+						dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&maskCache[index][prefLen]))
+						atomic.StorePointer(dataLoc, unsafe.Pointer(creator))
+						res = creator
+					}
 					return
 				}
-				//return new maskCreator(networkPrefixLength, version, validationOptions);
-				res = &maskCreator{adjustedAddressCreator: adjustedAddressCreator{networkPrefixLength: networkPrefixLength, versionedAddressCreator: versionedAddressCreator{adjustedVersion: version, parameters: validationOptions}}}
+				res = newMaskCreator(validationOptions, version, networkPrefixLength)
 				return
 			} else {
 				//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
 				if validationOptions.EmptyIsLoopback() {
-					if validationOptions == defaultIPAddrParameters {
+					zone := qualifier.getZone()
+					if validationOptions == defaultIPAddrParameters && zone == NoZone {
 						res = loopbackCache
 						return
 					}
-					res = &loopbackCreator{versionedAddressCreator: versionedAddressCreator{parameters: validationOptions}}
+					res = newLoopbackCreator(validationOptions, zone)
 					return
 				}
 				res = emptyProvider
 				return
 			}
 		} else { //isAll
-			//We also need the allCreator to use the equivalent prefix length, much like in parsedIPAddress
-			res = &allCreator{adjustedAddressCreator: adjustedAddressCreator{versionedAddressCreator: versionedAddressCreator{adjustedVersion: version, parameters: validationOptions}},
-				originator: originator, qualifier: *qualifier}
-			//qualifier, version, originator, validationOptions);
+			res = newAllCreator(qualifier, version, originator, validationOptions)
 			return
 		}
 	} else {
@@ -2950,6 +2940,7 @@ func checkSegments(
 }
 
 func checkSingleWildcard(str string, start, end, digitsEnd int, options AddressStringFormatParameters) AddressStringError {
+	_ = start
 	if !options.GetRangeParameters().AllowsSingleWildcard() {
 		return &addressStringError{addressError{str: str, key: "ipaddress.error.no.single.wildcard"}}
 	}

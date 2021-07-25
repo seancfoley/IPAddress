@@ -707,7 +707,7 @@ func (params *addressStringParams) appendSegment(segmentIndex int, builder *stri
 }
 
 func (params *addressStringParams) getZoneLength(zone Zone) int {
-	if zone != noZone {
+	if zone != NoZone {
 		return len(zone) + 1 /* zone separator is one char */
 	}
 	return 0
@@ -715,7 +715,7 @@ func (params *addressStringParams) getZoneLength(zone Zone) int {
 
 func (params *addressStringParams) getZonedStringLength(addr AddressDivisionSeries, zone Zone) int {
 	result := params.getStringLength(addr)
-	if zone != noZone {
+	if zone != NoZone {
 		result += params.getZoneLength(zone)
 	}
 	return result
@@ -726,7 +726,7 @@ func (params *addressStringParams) getStringLength(addr AddressDivisionSeries) i
 }
 
 func (params *addressStringParams) appendZone(builder *strings.Builder, zone Zone) *strings.Builder {
-	if zone != noZone {
+	if zone != NoZone {
 		builder.WriteByte(params.zoneSeparator)
 		builder.WriteString(string(zone))
 	}
@@ -741,7 +741,7 @@ func (params *addressStringParams) appendZoned(builder *strings.Builder, addr Ad
 }
 
 func (params *addressStringParams) append(builder *strings.Builder, addr AddressDivisionSeries) *strings.Builder {
-	return params.appendZoned(builder, addr, noZone)
+	return params.appendZoned(builder, addr, NoZone)
 }
 
 func (params *addressStringParams) toZonedString(addr AddressDivisionSeries, zone Zone) string {
@@ -986,7 +986,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 
 func (params *ipAddressStringParams) getZonedStringLength(addr AddressDivisionSeries, zone Zone) int {
 	result := params.getStringLength(addr)
-	if zone != noZone {
+	if zone != NoZone {
 		result += params.getZoneLength(zone)
 	}
 	return result
@@ -1002,7 +1002,7 @@ func (params *ipAddressStringParams) toZonedString(addr AddressDivisionSeries, z
 }
 
 func (params *ipAddressStringParams) toString(addr AddressDivisionSeries) string {
-	return params.toZonedString(addr, noZone)
+	return params.toZonedString(addr, NoZone)
 }
 
 func (params *ipAddressStringParams) clone() *ipAddressStringParams {
@@ -1184,7 +1184,7 @@ func (params *ipv6StringParams) getStringLength(addr *IPv6AddressSection) int {
 
 func (params *ipv6StringParams) getZonedStringLength(addr *IPv6AddressSection, zone Zone) int {
 	result := params.getStringLength(addr)
-	if zone != noZone {
+	if zone != NoZone {
 		result += params.getZoneLength(zone)
 	}
 	return result
@@ -1200,7 +1200,7 @@ func (params *ipv6StringParams) toZonedString(addr *IPv6AddressSection, zone Zon
 }
 
 func (params *ipv6StringParams) toString(addr *IPv6AddressSection) string {
-	return params.toZonedString(addr, noZone)
+	return params.toZonedString(addr, NoZone)
 }
 
 func (params *ipv6StringParams) clone() *ipv6StringParams {
@@ -1240,7 +1240,7 @@ func (params *ipv6v4MixedParams) getStringLength(addr *IPv6v4MixedAddressGroupin
 }
 
 func (params *ipv6v4MixedParams) toString(addr *IPv6v4MixedAddressGrouping) string {
-	return params.toZonedString(addr, noZone)
+	return params.toZonedString(addr, NoZone)
 }
 
 func (params *ipv6v4MixedParams) toZonedString(addr *IPv6v4MixedAddressGrouping, zone Zone) string {
@@ -1832,6 +1832,9 @@ func (writer stringWriter) writeSplitRangeString(
 			appendable.WriteByte(splitDigitSeparator)
 			hasLeadingZeros = false
 		}
+		//TODO the call to getSplitRangeString can really produce an error.
+		// It is the only error that can be produced in this entire framework.  What a PITA.
+		// So maybe we should try to detect error beforehand outside this framework?  Yeah.
 		writer.getSplitRangeString(
 			rangeSeparator,
 			wildcards.GetWildcard(),

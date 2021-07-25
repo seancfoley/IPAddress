@@ -442,7 +442,7 @@ func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
 	return addr.toIPAddress().CompareSize(other)
 }
 
-var zeroIPAddr = createIPAddress(zeroSection, noZone)
+var zeroIPAddr = createIPAddress(zeroSection, NoZone)
 
 //
 //

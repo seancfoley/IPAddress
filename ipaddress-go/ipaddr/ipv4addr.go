@@ -28,7 +28,7 @@ const (
 // IPv4AddressSegment[] with prefix
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
-	return createAddress(section.ToAddressSection(), noZone).ToIPv4Address()
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
 }
 
 func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueError) {
@@ -423,7 +423,7 @@ func (addr *IPv4Address) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-// TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
+// TestBit computes (this & (1 << n)) != 0), using the lower value of this address.
 func (addr *IPv4Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }
@@ -450,9 +450,10 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 }
 
 //TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?  Yes
-// Maybe EqualsAddress and ContainsAddress?
+// Maybe EqualsAddress and ContainsAddress?  I have an equalsSegment
 // Because the type checks can be avoided, so can section segment counts, etc
 // WEll, I did add seriesValsSame, which avoids type checks, could use that
+// ACTUALLY the equals is now a lot more refined, so maybe no more is needed
 
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()

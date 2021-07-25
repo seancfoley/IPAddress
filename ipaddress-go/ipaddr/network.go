@@ -242,7 +242,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//S segment = creator.createSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
 				//Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
 				newSegments[lastIndex] = lastSegment
-				onesSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType(), 0), noZone)
+				onesSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType(), 0), NoZone)
 				//onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
 
 			} else {
@@ -250,14 +250,14 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//newSegments[0] = firstSegment
 				//fillDivs(newSegments[1:], segment)
 				fillDivs(newSegments, segment)
-				onesSubnet = createIPAddress(createSection(newSegments, cacheBits(0), version.toType(), 0), noZone)
+				onesSubnet = createIPAddress(createSection(newSegments, cacheBits(0), version.toType(), 0), NoZone)
 			}
 		} else {
 			segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, nil))
 			//S segment = creator.createSegment(maxSegmentValue);
 			//Arrays.fill(newSegments, segment);
 			fillDivs(newSegments, segment)
-			onesSubnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), noZone) /* address creation */
+			onesSubnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), NoZone) /* address creation */
 			//onesSubnet = creator.createAddressInternal(newSegments); /* address creation */
 		}
 		//initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
@@ -279,7 +279,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
 				fillDivs(newSegments, segment)
 				//Arrays.fill(newSegments, seg);
-				zerosSubnet = createIPAddress(createSection(newSegments, prefLen, version.toType(), 0), noZone)
+				zerosSubnet = createIPAddress(createSection(newSegments, prefLen, version.toType(), 0), NoZone)
 				//zerosSubnet = creator.createAddressInternal(newSegments, prefLen); /* address creation */
 				//if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
 				//	zerosSubnet = (T) zerosSubnet.getLower();
@@ -294,14 +294,14 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//S segment = creator.createSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
 				//Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
 				newSegments[lastIndex] = lastSegment
-				zerosSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType(), 0), noZone)
+				zerosSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType(), 0), NoZone)
 				//onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
 
 			}
 		} else {
 			segment := createAddressDivision(zeroSeg.deriveNewSeg(0, nil))
 			fillDivs(newSegments, segment)
-			zerosSubnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), noZone)
+			zerosSubnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), NoZone)
 			//seg = creator.createSegment(0);
 			//Arrays.fill(newSegments, seg);
 			//zerosSubnet = creator.createAddressInternal(newSegments); /* address creation */
@@ -398,17 +398,17 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	if withPrefixLength {
 		prefLen = cacheBitCount(prefix)
 	}
-	subnet = createIPAddress(createSection(newSegments, prefLen, version.toType(), 0), noZone)
+	subnet = createIPAddress(createSection(newSegments, prefLen, version.toType(), 0), NoZone)
 
 	//if withPrefixLength {
-	//	subnet = createIPAddress(createSection(newSegments, cacheBitCount(prefix), version.toType(), 0), noZone)
+	//	subnet = createIPAddress(createSection(newSegments, cacheBitCount(prefix), version.toType(), 0), NoZone)
 	//
 	//	//subnet = creator.createAddressInternal(newSegments, cacheBits(prefix)); /* address creation */
 	//	//if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
 	//	//	subnet = (T) subnet.getLower();
 	//	//}
 	//} else {
-	//	subnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), noZone)
+	//	subnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), NoZone)
 	//	//subnet = creator.createAddressInternal(newSegments); /* address creation */
 	//}
 	//initialize the cacheBitCountx fields since we know what they are now - they do not have to be calculated later

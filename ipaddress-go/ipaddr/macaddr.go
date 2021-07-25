@@ -48,7 +48,7 @@ const (
 
 func NewMACAddress(section *MACAddressSection) *MACAddress {
 	//func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
-	return createAddress(section.ToAddressSection(), noZone).ToMACAddress()
+	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress()
 	//}
 	//return &MACAddress{
 	//	addressInternal{

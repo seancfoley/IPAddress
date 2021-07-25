@@ -857,7 +857,7 @@ func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, I
 	}
 	return cacheStrErr(cacheField,
 		func() (string, IncompatibleAddressError) {
-			return section.toHexStringZoned(with0xPrefix, noZone)
+			return section.toHexStringZoned(with0xPrefix, NoZone)
 		})
 }
 

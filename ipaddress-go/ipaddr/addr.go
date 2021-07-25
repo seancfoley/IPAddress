@@ -687,7 +687,7 @@ func (addr *addressInternal) getSequentialBlockCount() *big.Int {
 }
 
 func (addr *addressInternal) hasZone() bool {
-	return addr.zone != noZone
+	return addr.zone != NoZone
 }
 
 func (addr *addressInternal) increment(increment int64) *Address {
@@ -742,7 +742,7 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 	return addr.section.ToHexString(with0xPrefix)
 }
 
-var zeroAddr = createAddress(zeroSection, noZone)
+var zeroAddr = createAddress(zeroSection, NoZone)
 
 type Address struct {
 	addressInternal

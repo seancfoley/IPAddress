@@ -1036,7 +1036,7 @@ func (section *ipAddressSectionInternal) GetTrailingBitCount(ones bool) BitCount
 func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	return cacheStrErr(&section.getStringCache().octalString,
 		func() (string, IncompatibleAddressError) {
-			return section.toOctalStringZoned(with0Prefix, noZone)
+			return section.toOctalStringZoned(with0Prefix, NoZone)
 		})
 }
 
@@ -1050,7 +1050,7 @@ func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zo
 func (section *ipAddressSectionInternal) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	return cacheStrErr(&section.getStringCache().binaryString,
 		func() (string, IncompatibleAddressError) {
-			return section.toBinaryStringZoned(with0bPrefix, noZone)
+			return section.toBinaryStringZoned(with0bPrefix, NoZone)
 		})
 }
 

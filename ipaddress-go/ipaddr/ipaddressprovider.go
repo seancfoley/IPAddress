@@ -532,7 +532,7 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func newLoopbackCreator(options IPAddressStringParameters, zone string) *loopbackCreator {
+func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
 	// TODO an option to set preferred loopback here in IPAddressStringParameters, do the same in Java
 	// the option will set one of three options, IPv4, IPv6, or IndeterminateIPVersion which is the default
 	// In Go the default will be IPv4
@@ -607,7 +607,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone string) *loopbac
 type loopbackCreator struct {
 	versionedAddressCreator
 
-	zone string
+	zone Zone
 }
 
 func (loop *loopbackCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
@@ -709,7 +709,7 @@ type maskCreator struct {
 // involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
 //			(b) this behaviour can be overridden by a string parameters option
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) (*allCreator, IncompatibleAddressError) {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLength(),
@@ -723,7 +723,7 @@ func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersi
 	}
 	result.addressCreator = result.createAddrs
 	result.versionedAddressCreatorFunc = result.versionedCreate
-	return result, nil
+	return result
 }
 
 type allCreator struct {
@@ -837,7 +837,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 		return boolSetting{true, true}
 	} else if all.adjustedVersion != otherProvider.getProviderIPVersion() {
 		return boolSetting{true, false}
-	} else if all.qualifier.getMaskLower() == nil && all.qualifier.getZone() == noZone {
+	} else if all.qualifier.getMaskLower() == nil && all.qualifier.getZone() == NoZone {
 		return boolSetting{true, true}
 	} else if addr, err := all.getProviderAddress(); err != nil {
 		return boolSetting{true, false}
@@ -887,19 +887,15 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO NOW progress
 // TODO NEXT NOW progress
 //
-// - also segment prefixContains and prefixEquals
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - finish HostName (now it's mostly done, just a few methods left) <---
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
-// - did we do mac <-> ipv6?  Or ipv4 <-> ipv6?
-// - finish the list of methods in ExtendedIPSegmentSeries - almost there <---
+// - did we do mac <-> ipv6?  Or ipv4 <-> ipv6? not yet
 // ---> - we need to circle back to the parsing code and do all teh things we deferred, such as the locking, such as the optimized contains and equals, etc
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
-
-// TODO next: prefixContains and prefixEquals optimization in the address providers and ipaddressstring, for some reason I want to do this now
 
 // TODO append and replace in sections: we only allow at top-level.
 // This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.

@@ -29,16 +29,16 @@ type boundaryResult struct {
 	lowerSection, upperSection *IPAddressSection
 }
 
-func (res *boundaryResult) createRange(zone Zone) *IPAddressSeqRange {
+func (res *boundaryResult) createRange() *IPAddressSeqRange {
 	//we need to add zone in order to reuse the lower and upper
 	lowerSection := res.lowerSection
 	creator := lowerSection.getAddrType().getIPNetwork().getIPAddressCreator()
-	rangeLower := creator.createAddressInternalFromSection(lowerSection, zone, nil)
+	rangeLower := creator.createAddressInternalFromSection(lowerSection, NoZone, nil)
 	var rangeUpper *IPAddress
 	if res.upperSection == nil {
 		rangeUpper = rangeLower
 	} else {
-		rangeUpper = creator.createAddressInternalFromSection(res.upperSection, zone, nil)
+		rangeUpper = creator.createAddressInternalFromSection(res.upperSection, NoZone, nil)
 	}
 	result, _ := rangeLower.SpanWithRange(rangeUpper)
 	return result
@@ -47,7 +47,7 @@ func (res *boundaryResult) createRange(zone Zone) *IPAddressSeqRange {
 func (res *boundaryResult) createMask() *IPAddress {
 	lowerSection := res.lowerSection
 	creator := lowerSection.getAddrType().getIPNetwork().getIPAddressCreator()
-	return creator.createAddressInternalFromSection(res.lowerSection, noZone, nil)
+	return creator.createAddressInternalFromSection(res.lowerSection, NoZone, nil)
 }
 
 type sectionResult struct {
@@ -151,13 +151,13 @@ func (parseData *parsedIPAddress) getProviderSeqRange() *IPAddressSeqRange {
 			if sections == nil {
 				_, boundaries := parseData.createSections(false, true, true)
 				// creates lower, upper, then range from the two
-				result = boundaries.createRange(parseData.getQualifier().getZone())
+				result = boundaries.createRange()
 			} else {
 				if sections.withoutAddressException() {
 					result = sections.address.ToSequentialRange()
 				} else {
 					_, boundaries := parseData.createSections(false, true, true)
-					result = boundaries.createRange(parseData.getQualifier().getZone())
+					result = boundaries.createRange()
 				}
 			}
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&val.rng))
