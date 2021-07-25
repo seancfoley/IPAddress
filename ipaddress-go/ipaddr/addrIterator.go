@@ -1,6 +1,6 @@
 package ipaddr
 
-// IPAddrIterator iterates through IP addresses, subnets and ranges
+// AddrIterator iterates through IP addresses, subnets and ranges
 type AddressIterator interface {
 	iteratorBase
 	Next() *Address

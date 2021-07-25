@@ -107,7 +107,7 @@ func (addrStr *IPAddressString) IsMixedIPv6() bool {
 	return addrStr.IsIPv6() && addrStr.addressProvider.isProvidingMixedIPv6()
 }
 
-/* TODO later
+/* TODO later IsBase85IPv6
 // IsBase85IPv6 returns whether this address string represents an IPv6 address, returns whether the string was base 85
 	func (addrStr *IPAddressString) IsBase85IPv6() bool {
 		return addrStr.IsIPv6() && addrStr.addressProvider.isProvidingBase85IPv6()
@@ -350,11 +350,9 @@ func (addrStr *IPAddressString) PrefixEquals(other *IPAddressString) bool {
 func (addrStr *IPAddressString) PrefixContains(other *IPAddressString) bool {
 	if other == addrStr {
 		return true
-	}
-	if !addrStr.IsValid() {
+	} else if !addrStr.IsValid() {
 		return false
-	}
-	if other.isUninitialized() { // other not yet validated - if other is validated no need for this quick contains
+	} else if other.isUninitialized() { // other not yet validated - if other is validated no need for this quick contains
 		// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
 		directResult := addrStr.addressProvider.prefixContains(other.str)
 		if directResult.isSet {
@@ -459,6 +457,7 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 	return false
 }
 
+// TODO adjustPrefixLength
 // Increases or decreases prefix length by the given increment.
 //
 // This acts on address strings with an associated prefix length, whether or not there is also an associated address value.
@@ -488,10 +487,6 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 //		}
 //		return address.adjustPrefixLength(adjustment).toAddressString();
 //	}
-
-// TODO xxx do the others too,
-//AdjustPrefixLength(here and in IPAddress)
-// countDelimitedAddress, ParseDelimitedSegments
 
 //TODO xxx was I planning to use Get/ToAddress(IPVersion)?  That applies to what, masks, all, and empty?
 // Is it worth it?  Probably I guess, it can allow you to specify the mask you want and the all address you want and the loopback you want
