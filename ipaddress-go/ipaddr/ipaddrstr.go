@@ -459,6 +459,36 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 	return false
 }
 
+// Increases or decreases prefix length by the given increment.
+//
+// This acts on address strings with an associated prefix length, whether or not there is also an associated address value.
+//
+// If the address string has prefix length 0 and represents all addresses of the same version,
+// and the prefix length is being decreased, then the address representing all addresses of any version is returned.
+//
+// When there is an associated address value and the prefix length is increased, the bits moved within the prefix become zero,
+// and if prefix length is extended beyond the segment series boundary, it is removed.
+// When there is an associated address value
+// and the prefix length is decreased, the bits moved outside the prefix become zero.
+//	public IPAddressString adjustPrefixLength(int adjustment) {
+//		if(isPrefixOnly()) {
+//			int newBits = adjustment > 0 ? Math.min(IPv6Address.BIT_COUNT, getNetworkPrefixLength() + adjustment) : Math.max(0, getNetworkPrefixLength() + adjustment);
+//			return new IPAddressString(IPAddressNetwork.getPrefixString(newBits), validationOptions);
+//		}
+//		IPAddress address = getAddress();
+//		if(address == null) {
+//			return null;
+//		}
+//		if(adjustment == 0 && isPrefixed()) {
+//			return this;
+//		}
+//		Integer prefix = address.getNetworkPrefixLength();
+//		if(prefix != null && prefix + adjustment < 0 && address.isPrefixBlock()) {
+//			return new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR, validationOptions);
+//		}
+//		return address.adjustPrefixLength(adjustment).toAddressString();
+//	}
+
 // TODO xxx do the others too,
 //AdjustPrefixLength(here and in IPAddress)
 // countDelimitedAddress, ParseDelimitedSegments
