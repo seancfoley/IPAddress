@@ -24,7 +24,12 @@ package ipaddr
 
 type HostNameParameters interface {
 	AllowsEmpty() bool
-	EmptyIsLoopback() bool
+	EmptyStrParsedAs() EmptyStrOption
+
+	// Indicates the version to prefer when resolving host names.
+	GetPreferredVersion() IPVersion
+
+	//EmptyIsLoopback() bool
 	AllowsBracketedIPv4() bool
 	AllowsBracketedIPv6() bool
 	NormalizesToLowercase() bool
@@ -41,7 +46,11 @@ type HostNameParameters interface {
 type hostNameParameters struct {
 	ipParams ipAddressStringParameters
 
-	noEmpty, emptyIsNotLoopback, noBracketedIPv4, noBracketedIPv6,
+	emptyStringOption EmptyStrOption
+
+	preferredVersion IPVersion
+
+	noEmpty, noBracketedIPv4, noBracketedIPv6,
 	noNormalizeToLower, noIPAddress, noPort, noService, expectPort bool
 }
 
@@ -49,8 +58,12 @@ func (params *hostNameParameters) AllowsEmpty() bool {
 	return !params.noEmpty
 }
 
-func (params *hostNameParameters) EmptyIsLoopback() bool {
-	return !params.emptyIsNotLoopback
+func (params *hostNameParameters) EmptyStrParsedAs() EmptyStrOption {
+	return params.emptyStringOption
+}
+
+func (params *hostNameParameters) GetPreferredVersion() IPVersion {
+	return params.preferredVersion
 }
 
 func (params *hostNameParameters) AllowsBracketedIPv4() bool {
@@ -98,6 +111,8 @@ func ToHostNameParametersBuilder(params HostNameParameters) *HostNameParametersB
 		result.hostNameParameters = *p
 	} else {
 		result.hostNameParameters = hostNameParameters{
+			emptyStringOption:  params.EmptyStrParsedAs(),
+			preferredVersion:   params.GetPreferredVersion(),
 			noEmpty:            !params.AllowsEmpty(),
 			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
 			noBracketedIPv6:    !params.AllowsBracketedIPv6(),
@@ -138,8 +153,18 @@ func (builder *HostNameParametersBuilder) AllowEmpty(allow bool) *HostNameParame
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) SetEmptyLoopback(isLoopback bool) *HostNameParametersBuilder {
-	builder.hostNameParameters.emptyIsNotLoopback = !isLoopback
+//func (builder *HostNameParametersBuilder) SetEmptyLoopback(isLoopback bool) *HostNameParametersBuilder {
+//	builder.hostNameParameters.emptyIsNotLoopback = !isLoopback
+//	return builder
+//}
+
+func (builder *HostNameParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParametersBuilder {
+	builder.hostNameParameters.emptyStringOption = option
+	return builder
+}
+
+func (builder *HostNameParametersBuilder) SetPreferredVersion(version IPVersion) *HostNameParametersBuilder {
+	builder.hostNameParameters.preferredVersion = version
 	return builder
 }
 

@@ -41,7 +41,7 @@ type addressError struct {
 	key string
 
 	// the address
-	str string // TODO would be nice to move this up to make it clear it is not always needed nor available
+	str string // TODO PITA would be nice to move this up to make it clear it is not always needed nor available
 }
 
 func (a *addressError) Error() string {

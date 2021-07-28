@@ -311,6 +311,22 @@ func main() {
 	fmt.Printf("%v\n\n", merge("209.152.214.112/30", "209.152.214.116/32", "209.152.214.118/31"))
 	fmt.Printf("%v\n\n", merge("1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:5:4000::/66", "1:2:3:5::/66", "1:2:3:5:8000::/65"))
 
+	delim := "1:2,3,4:3:6:4:5,6fff,7,8,99:6:8"
+	delims := ipaddr.ParseDelimitedSegments(delim)
+	delimCount := ipaddr.CountDelimitedAddresses(delim)
+	i = 0
+	for delims.HasNext() {
+		i++
+		fmt.Printf("%d of %d is %v, from %v\n", i, delimCount, delims.Next(), delim)
+	}
+	delim = "1:3:6:4:5,6fff,7,8,99:6:2,3,4:8"
+	delims = ipaddr.ParseDelimitedSegments(delim)
+	delimCount = ipaddr.CountDelimitedAddresses(delim)
+	i = 0
+	for delims.HasNext() {
+		i++
+		fmt.Printf("%d of %d is %v, from %v\n", i, delimCount, delims.Next(), delim)
+	}
 	//bitsPerSegment := 8
 	//prefBits := 7
 	//maxVal := ^ipaddr.DivInt(0)

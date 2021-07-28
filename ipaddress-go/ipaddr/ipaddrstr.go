@@ -67,6 +67,7 @@ func (addrStr *IPAddressString) IsPrefixed() bool {
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
 // The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
 func (addrStr *IPAddressString) GetNetworkPrefixLength() PrefixLen {
+	addrStr = addrStr.init()
 	if addrStr.IsValid() {
 		return addrStr.addressProvider.getProviderNetworkPrefixLength()
 	}
@@ -75,6 +76,7 @@ func (addrStr *IPAddressString) GetNetworkPrefixLength() PrefixLen {
 
 // GetMask returns the mask, if any, that was provided with this address string
 func (addrStr *IPAddressString) GetMask() *IPAddress {
+	addrStr = addrStr.init()
 	if addrStr.IsValid() {
 		return addrStr.addressProvider.getProviderMask()
 	}
@@ -84,30 +86,35 @@ func (addrStr *IPAddressString) GetMask() *IPAddress {
 // IsAllAddresses returns true if the string represents all IP addresses, such as the string "*"
 // You can denote all IPv4 addresses with *.*, or all IPv6 addresses with *:*
 func (addrStr *IPAddressString) IsAllAddresses() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsValid() && addrStr.addressProvider.isProvidingAllAddresses()
 }
 
 // IsEmpty() returns true if the address string is empty (zero-length).
 func (addrStr *IPAddressString) IsEmpty() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsValid() && addrStr.addressProvider.isProvidingEmpty()
 }
 
 // IsIPv4() returns true if the address is IPv4
 func (addrStr *IPAddressString) IsIPv4() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsValid() && addrStr.addressProvider.isProvidingIPv4()
 }
 
 // IsIPv6() returns true if the address is IPv6
 func (addrStr *IPAddressString) IsIPv6() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsValid() && addrStr.addressProvider.isProvidingIPv6()
 }
 
 // If this address string represents an IPv6 address, returns whether the lower 4 bytes were represented as IPv4
 func (addrStr *IPAddressString) IsMixedIPv6() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsIPv6() && addrStr.addressProvider.isProvidingMixedIPv6()
 }
 
-/* TODO later IsBase85IPv6
+/* TODO LATER IsBase85IPv6
 // IsBase85IPv6 returns whether this address string represents an IPv6 address, returns whether the string was base 85
 	func (addrStr *IPAddressString) IsBase85IPv6() bool {
 		return addrStr.IsIPv6() && addrStr.addressProvider.isProvidingBase85IPv6()
@@ -127,6 +134,7 @@ func (addrStr *IPAddressString) String() string {
 }
 
 func (addrStr *IPAddressString) ToNormalizedString() string {
+	addrStr = addrStr.init()
 	if addrStr.IsValid() {
 		if str, err := addrStr.toNormalizedString(addrStr.addressProvider); err == nil {
 			return str
@@ -179,6 +187,38 @@ func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressError) {
 	return provider.getProviderAddress()
 }
 
+// GetVersionedAddress is similar to ToVersionedAddress, but returns nil rather than an error when the address is invalid or does not match the supplied version.
+func (addrStr *IPAddressString) GetVersionedAddress(version IPVersion) *IPAddress {
+	provider, _ := addrStr.getAddressProvider()
+	addr, _ := provider.getVersionedAddress(version)
+	return addr
+}
+
+// ToVersionedAddress Produces the IPAddress of the specified address version corresponding to this IPAddressString.
+//
+// In most cases the string indicates the address version and calling {@link #toAddress()} is sufficient, with a few exceptions.
+//
+// When this object represents only a network prefix length,
+// specifying the address version allows the conversion to take place to the associated mask for that prefix length.
+//
+// When this object represents all addresses, specifying the address version allows the conversion to take place
+// to the associated representation of all IPv4 or all IPv6 addresses.
+//
+// When this object represents the empty string and that string is interpreted as a loopback or zero address, then it returns
+// the corresponding address for the given version.
+//
+// When this object represents an ipv4 or ipv6 address, it returns that address if and only if that address matches the provided version.
+//
+// If the string used to construct this object is an invalid format,
+// or a format that does not match the provided version, then an error is returned
+func (addrStr *IPAddressString) ToVersionedAddress(version IPVersion) (*IPAddress, AddressError) {
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil, err
+	}
+	return provider.getVersionedAddress(version)
+}
+
 func (addrStr *IPAddressString) GetHostAddress() *IPAddress {
 	provider, _ := addrStr.getAddressProvider()
 	addr, _ := provider.getProviderHostAddress()
@@ -202,6 +242,7 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 // In some cases, no IPAddress instance can be obtained from {@link #getAddress()} or {@link #toAddress()}, in the cases where {@link #toAddress()} throws IncompatibleAddressException,
 // but if the IPAddressString is sequential, you can obtain a IPAddressSeqRange to represent the IPAddressString instead.
 func (addrStr *IPAddressString) IsSequential() bool {
+	addrStr = addrStr.init()
 	return addrStr.IsValid() && addrStr.addressProvider.isSequential()
 }
 
@@ -225,6 +266,7 @@ func (addrStr *IPAddressString) GetSequentialRange() (res *IPAddressSeqRange) {
 }
 
 func (addrStr *IPAddressString) ToSequentialRange() (res *IPAddressSeqRange, err AddressStringError) {
+	addrStr = addrStr.init()
 	if err = addrStr.Validate(); err == nil {
 		res = addrStr.addressProvider.getProviderSeqRange()
 	}
@@ -264,6 +306,7 @@ func (addrStr *IPAddressString) Validate() AddressStringError {
 }
 
 func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressStringError {
+	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	if err != nil {
 		return err
@@ -287,6 +330,8 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
 func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
+	addrStr = addrStr.init()
+	other = other.init()
 	if addrStr == other {
 		return 0
 	}
@@ -309,6 +354,8 @@ func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
 // If this address string or the given address string is invalid, returns false.
 func (addrStr *IPAddressString) PrefixEquals(other *IPAddressString) bool {
 	// getting the prefix
+	addrStr = addrStr.init()
+	other = other.init()
 	if other == addrStr {
 		return true
 	}
@@ -348,6 +395,8 @@ func (addrStr *IPAddressString) PrefixEquals(other *IPAddressString) bool {
 //
 // If this address string or the given address string is invalid, returns false.
 func (addrStr *IPAddressString) PrefixContains(other *IPAddressString) bool {
+	addrStr = addrStr.init()
+	other = other.init()
 	if other == addrStr {
 		return true
 	} else if !addrStr.IsValid() {
@@ -377,12 +426,14 @@ func (addrStr *IPAddressString) PrefixContains(other *IPAddressString) bool {
 }
 
 func (addrStr *IPAddressString) isUninitialized() bool {
-	return addrStr.addrData == nil
+	return addrStr.init().addrData == nil
 }
 
 // Contains returns whether the address subnet identified by this address string contains the address identified by the given string.
 // If this address string or the given address string is invalid then returns false.
 func (addrStr *IPAddressString) Contains(other *IPAddressString) bool {
+	addrStr = addrStr.init()
+	other = other.init()
 	if addrStr.IsValid() {
 		if other == addrStr {
 			return true
@@ -418,6 +469,8 @@ func (addrStr *IPAddressString) Contains(other *IPAddressString) bool {
 //
 // If an IPAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
 func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
+	addrStr = addrStr.init()
+	other = other.init()
 	if other == addrStr {
 		return true
 	}
@@ -487,10 +540,6 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 //		}
 //		return address.adjustPrefixLength(adjustment).toAddressString();
 //	}
-
-//TODO xxx was I planning to use Get/ToAddress(IPVersion)?  That applies to what, masks, all, and empty?
-// Is it worth it?  Probably I guess, it can allow you to specify the mask you want and the all address you want and the loopback you want
-// There is no other way to do that in the ambiguous cases.  even with preferred versions, you might want to get the other version.
 
 func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
 	if p, ok := orig.(*ipAddressStringParameters); ok {

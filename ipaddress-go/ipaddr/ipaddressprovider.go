@@ -532,47 +532,77 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
-	// TODO an option to set preferred loopback here in IPAddressStringParameters, do the same in Java
-	// the option will set one of three options, IPv4, IPv6, or IndeterminateIPVersion which is the default
-	// In Go the default will be IPv4
-	// There is another option I wanted to add, was in the validator code, I think allow empty zone with prefix like %/
-	// ALSO, consider using zero value instead of loopback - zero string becomes zero value
-	var preferIPv6 bool
-	ipv6WithZoneLoop := func() *IPAddress {
-		network := DefaultIPv6Network
-		creator := network.getIPAddressCreator()
-		return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
-	}
-	ipv6Loop := func() *IPAddress {
-		return DefaultIPv6Network.GetLoopback()
-	}
-	ipv4Loop := func() *IPAddress {
-		return DefaultIPv4Network.GetLoopback()
-	}
+func emptyAddressCreator(emptyStrOption EmptyStrOption, options IPAddressStringParameters, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+	var preferIPv6 bool = version.isIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	var lbackCreator func() (address, hostAddress *IPAddress)
-	var version IPVersion
-	if preferIPv6 {
-		if len(zone) > 0 {
-			lbackCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneLoop()) }
+	if emptyStrOption == NoAddress {
+		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
+		versionedCreator = func() *IPAddress { return nil }
+	} else if emptyStrOption == Loopback {
+		if preferIPv6 {
+			if len(zone) > 0 {
+				ipv6WithZoneLoop := func() *IPAddress {
+					network := DefaultIPv6Network
+					creator := network.getIPAddressCreator()
+					return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
+				}
+				versionedCreator = ipv6WithZoneLoop
+				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneLoop()) }
+			} else {
+				ipv6Loop := func() *IPAddress {
+					return DefaultIPv6Network.GetLoopback()
+				}
+				versionedCreator = ipv6Loop
+				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Loop()) }
+			}
 		} else {
-			lbackCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Loop()) }
+			ipv4Loop := func() *IPAddress {
+				return DefaultIPv4Network.GetLoopback()
+			}
+			addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Loop()) }
+			versionedCreator = ipv4Loop
 		}
-		version = IPv6
-	} else {
-		lbackCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Loop()) }
-		version = IPv4
+	} else { // EmptyStrParsedAs() == ZeroAddress
+		if preferIPv6 {
+			if len(zone) > 0 {
+				ipv6WithZoneZero := func() *IPAddress {
+					network := DefaultIPv6Network
+					creator := network.getIPAddressCreator()
+					return creator.createAddressInternalFromBytes(zeroIPv6.GetBytes(), zone)
+				}
+				versionedCreator = ipv6WithZoneZero
+				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneZero()) }
+			} else {
+				ipv6Zero := func() *IPAddress {
+					return zeroIPv6.ToIPAddress()
+				}
+				versionedCreator = ipv6Zero
+				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Zero()) }
+			}
+		} else {
+			ipv4Zero := func() *IPAddress {
+				return zeroIPv4.ToIPAddress()
+			}
+			addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Zero()) }
+			versionedCreator = ipv4Zero
+		}
 	}
+	return
+}
+
+func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
+	var version = options.GetPreferredVersion()
+	emptyStrOption := options.EmptyStrParsedAs()
+	addrCreator, versionedCreator := emptyAddressCreator(emptyStrOption, options, version, zone)
 	cached := cachedAddressProvider{
 		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
-			address, hostAddress = lbackCreator()
+			address, hostAddress = addrCreator()
 			return
 		},
 	}
-	loopbackCreatorFunc := func(version IPVersion) *IPAddress {
+	versionedCreatorFunc := func(version IPVersion) *IPAddress {
 		addresses := cached.addresses
 		if addresses != nil {
 			addr := addresses.address
@@ -580,18 +610,10 @@ func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackC
 				return addr
 			}
 		}
-		if version.isIPv4() {
-			return ipv4Loop()
-		} else if version.isIPv6() {
-			if len(zone) > 0 {
-				return ipv6WithZoneLoop()
-			}
-			return ipv6Loop()
-		}
-		return nil
+		return versionedCreator()
 	}
 	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
-		return loopbackCreatorFunc(version), nil
+		return versionedCreatorFunc(version), nil
 	}
 	return &loopbackCreator{
 		versionedAddressCreator: versionedAddressCreator{
@@ -646,23 +668,9 @@ func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, In
 	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
-// TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
-// INside this function we will handle the cases where it is still not determined, and that will be based on our new rules
-// involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
-//			(b) this behaviour can be overridden by a string parameters option
-
 func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
-	// TODO use the option for  preferred loopback also for preferred mask, do the same in Java
-	// Drop "prefix only" type - it was never a good idea anyway!  Better to prefer one over the other.
-
-	var preferIPv6 bool
-
 	if adjustedVersion == IndeterminateIPVersion {
-		if preferIPv6 {
-			adjustedVersion = IPv6
-		} else {
-			adjustedVersion = IPv4
-		}
+		adjustedVersion = options.GetPreferredVersion()
 	}
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
@@ -703,11 +711,6 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 type maskCreator struct {
 	adjustedAddressCreator
 }
-
-// TODO the adjusted version passed in is the one adjusted due to zone %, or mask version, or prefix len >= 32
-// INside this function we will handle the cases where it is still not determined, and that will be based on our new rules
-// involving (a) maybe when < 32 we default to IPv4, otherwise IPv6
-//			(b) this behaviour can be overridden by a string parameters option
 
 func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) ipAddressProvider {
 	result := &allCreator{
@@ -849,7 +852,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 	}
 }
 
-// TODO later getDivisionGrouping()
+// TODO LATER getDivisionGrouping()
 //
 //		@Override
 //		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {

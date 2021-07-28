@@ -53,7 +53,7 @@ func NewHostNameFromAddr(addr *IPAddress) *HostName {
 	}
 }
 
-//TODO other constructors
+//TODO other constructors for HostName
 
 var defaultHostParameters = &hostNameParameters{}
 
@@ -191,9 +191,19 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 		} else {
 			strHost := parsedHost.getHost()
 			validationOptions := host.getParams()
-			if len(strHost) == 0 && !validationOptions.EmptyIsLoopback() {
-				addrs = []*IPAddress{}
-				//TODO if we make the zero string translate to zero address of a preferred version, need to change something here
+			if len(strHost) == 0 {
+				emptyStringOpt := validationOptions.EmptyStrParsedAs()
+				if emptyStringOpt != NoAddress {
+					addrFunc, _ := emptyAddressCreator(
+						validationOptions.EmptyStrParsedAs(),
+						validationOptions.GetIPAddressParameters(),
+						validationOptions.GetPreferredVersion(),
+						NoZone)
+					addr, _ := addrFunc()
+					addrs = []*IPAddress{addr}
+				} else {
+					addrs = []*IPAddress{}
+				}
 			} else {
 				var ips []net.IP
 				ips, lookupErr := net.LookupIP(strHost)
@@ -238,6 +248,39 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 						}
 						ipv4Addr.cache.fromHost = host
 						addrs[j] = ipv4Addr.ToIPAddress()
+					}
+				}
+
+				// sort by preferred version
+				preferredVersion := validationOptions.GetPreferredVersion()
+				preferredIndex := 0
+			top: //TODO test this sort, it changes [x y y x y x x] to [x x x x y y y] if x is preferred
+				for i := 0; i < len(addrs); i++ {
+					notPreferred := addrs[i]
+					if notPreferred.getIPVersion() != preferredVersion {
+						var j int
+						if preferredIndex == 0 {
+							j = i + 1
+						} else {
+							j = preferredIndex
+						}
+						for ; j < len(addrs); j++ {
+							preferred := addrs[j]
+							if preferred.getIPVersion() == preferredVersion {
+								addrs[i] = preferred
+								// don't swap so the non-preferred order is preserved
+								// instead shift each upwards by one spot
+								k := i + 1
+								for ; k < j; k++ {
+									addrs[k], notPreferred = notPreferred, addrs[k]
+								}
+								addrs[k] = notPreferred
+								preferredIndex = j + 1
+								continue top
+							}
+						}
+						// no more preferred
+						break
 					}
 				}
 			}

@@ -2659,8 +2659,8 @@ func chooseIPAddressProvider(
 	qualifier := parseData.getQualifier()
 	version := parseData.getProviderIPVersion()
 	if version.isIndeterminate() {
-		version = qualifier.inferVersion(validationOptions)
-		optionsVersion := validationOptions.inferVersion()
+		version = qualifier.inferVersion(validationOptions) // checks whether a mask, prefix length, or zone makes the version clear
+		optionsVersion := validationOptions.inferVersion()  // checks whether IPv4 or IPv6 is disallowed
 		if version.isIndeterminate() {
 			version = optionsVersion
 			parseData.setVersion(version)
@@ -2678,7 +2678,9 @@ func chooseIPAddressProvider(
 		if addressParseData.isProvidingEmpty() {
 			networkPrefixLength := qualifier.getNetworkPrefixLength()
 			if networkPrefixLength != nil {
-				// TODO new prefix only handling ,see ipaddressProvider
+				if version.isIndeterminate() {
+					version = validationOptions.GetPreferredVersion()
+				}
 				prefLen := *networkPrefixLength
 				if validationOptions == defaultIPAddrParameters && prefLen <= IPv6BitCount {
 					index := 0
@@ -2699,20 +2701,31 @@ func chooseIPAddressProvider(
 				res = newMaskCreator(validationOptions, version, networkPrefixLength)
 				return
 			} else {
-				//Note: we do not support loopback with zone, it seems the loopback is never associated with a link-local zone
-				if validationOptions.EmptyIsLoopback() {
-					zone := qualifier.getZone()
-					if validationOptions == defaultIPAddrParameters && zone == NoZone {
-						res = loopbackCache
-						return
-					}
-					res = newLoopbackCreator(validationOptions, zone)
+				emptyOpt := validationOptions.EmptyStrParsedAs()
+				if emptyOpt == Loopback || emptyOpt == ZeroAddress {
+					res = getLoopbackCreator(validationOptions, qualifier)
 					return
 				}
 				res = emptyProvider
 				return
 			}
 		} else { //isAll
+			// Before reaching here, we already checked whether we allow "all", "allowAll".
+			if version.isIndeterminate() && // version not inferred, nor is a particular version disallowed
+				validationOptions.AllStrParsedAs() == AllPreferredIPVersion {
+				preferredVersion := validationOptions.GetPreferredVersion()
+				if !preferredVersion.isIndeterminate() {
+					var formatParams IPAddressStringFormatParameters
+					if preferredVersion.isIPv6() {
+						formatParams = validationOptions.GetIPv6Parameters()
+					} else {
+						formatParams = validationOptions.GetIPv4Parameters()
+					}
+					if formatParams.AllowsWildcardedSeparator() {
+						version = preferredVersion
+					}
+				}
+			}
 			res = newAllCreator(qualifier, version, originator, validationOptions)
 			return
 		}
@@ -2724,6 +2737,17 @@ func chooseIPAddressProvider(
 		err = checkSegments(fullAddr, validationOptions, parseData.getIPAddressParseData())
 		res = parseData
 	}
+	return
+}
+
+func getLoopbackCreator(validationOptions IPAddressStringParameters, qualifier *parsedHostIdentifierStringQualifier) (res ipAddressProvider) {
+	zone := qualifier.getZone()
+	var defaultParams IPAddressStringParameters = defaultIPAddrParameters
+	if validationOptions == defaultParams && zone == NoZone {
+		res = loopbackCache
+		return
+	}
+	res = newLoopbackCreator(validationOptions, zone)
 	return
 }
 

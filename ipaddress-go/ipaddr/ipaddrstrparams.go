@@ -95,15 +95,52 @@ package ipaddr
 
 type IPAddressStringParameters interface {
 	AddressStringParameters
+
+	// AllowsPrefixOnly indicates whether strings like /16 are interpreted as the corresponding network mask like 255.255.0.0
+	// The mask version is determined by GetPreferredVersion() in the cases where it is ambiguous.
 	AllowsPrefixOnly() bool
+
+	// AllowsPrefix indicates whether addresses with prefix length like 1.2.0.0/16 are allowed.
 	AllowsPrefix() bool
-	EmptyIsLoopback() bool
+
+	// EmptyStrParsedAs determines how an zero-length empty string is translated to an address.
+	// If the option is ZeroAddress or Loopback, then if defers to GetPreferredVersion() for the version.
+	EmptyStrParsedAs() EmptyStrOption
+
+	// EmptyStrParsedAs determines how the "all" string "*" is translated to addresses.
+	// If the option is AllPreferredIPVersion, then if defers to GetPreferredVersion() for the version.
+	AllStrParsedAs() AllStrOption
+
 	AllowsMask() bool
+
+	// GetPreferredVersion indicates the version to use for ambiguous addresses strings,
+	// like prefix lengths less than 32 bits which are translated to masks,
+	// the "all" address or the "empty" address.
+	// The default is IPv6.
+	//
+	// If either of AllowsIPv4() or AllowsIPv6() returns false, then those settings take precedence over this setting.
+	GetPreferredVersion() IPVersion
+
 	AllowsIPv4() bool
 	AllowsIPv6() bool
 	GetIPv4Parameters() IPv4AddressStringParameters
 	GetIPv6Parameters() IPv6AddressStringParameters
 }
+
+type EmptyStrOption string
+
+const (
+	NoAddress   EmptyStrOption = "none"
+	ZeroAddress EmptyStrOption = "" // the default for Go is the zero address, which means zero strings are translated to zero addresses
+	Loopback    EmptyStrOption = "loopback"
+)
+
+type AllStrOption string
+
+const (
+	AllAddresses          AllStrOption = "" // the default for Go
+	AllPreferredIPVersion AllStrOption = "preferred"
+)
 
 var _ IPAddressStringParameters = &ipAddressStringParameters{}
 
@@ -196,9 +233,16 @@ type ipAddressStringParameters struct {
 	ipv4Params ipv4AddressStringParameters
 	ipv6Params ipv6AddressStringParameters
 
-	noPrefixOnly, emptyIsNotLoopback, noPrefix, noMask, noIPv6, noIPv4 bool
+	emptyStringOption EmptyStrOption
+	allStringOption   AllStrOption
+	preferredVersion  IPVersion
+
+	//emptyIsNotLoopback,
+	noPrefixOnly, noPrefix, noMask, noIPv6, noIPv4 bool
 }
 
+// Whether a string like "/16" is allowed as a stand-in for the associated network mask 255.255.0.0 or ffff::
+// The mask version is dependent on the preferred IP version
 func (params *ipAddressStringParameters) AllowsPrefixOnly() bool {
 	return !params.noPrefixOnly
 }
@@ -207,8 +251,16 @@ func (params *ipAddressStringParameters) AllowsPrefix() bool {
 	return !params.noPrefix
 }
 
-func (params *ipAddressStringParameters) EmptyIsLoopback() bool {
-	return !params.emptyIsNotLoopback
+func (params *ipAddressStringParameters) EmptyStrParsedAs() EmptyStrOption {
+	return params.emptyStringOption
+}
+
+func (params *ipAddressStringParameters) AllStrParsedAs() AllStrOption {
+	return params.allStringOption
+}
+
+func (params *ipAddressStringParameters) GetPreferredVersion() IPVersion {
+	return params.preferredVersion
 }
 
 func (params *ipAddressStringParameters) AllowsMask() bool {
@@ -262,12 +314,14 @@ func toIPAddressStringParamsBuilder(params IPAddressStringParameters, isMixed bo
 		result.params = *p
 	} else {
 		result.params = ipAddressStringParameters{
-			noPrefixOnly:       !params.AllowsPrefixOnly(),
-			emptyIsNotLoopback: !params.EmptyIsLoopback(),
-			noPrefix:           !params.AllowsPrefix(),
-			noMask:             !params.AllowsMask(),
-			noIPv6:             !params.AllowsIPv6(),
-			noIPv4:             !params.AllowsIPv4(),
+			noPrefixOnly:      !params.AllowsPrefixOnly(),
+			preferredVersion:  params.GetPreferredVersion(),
+			emptyStringOption: params.EmptyStrParsedAs(),
+			allStringOption:   params.AllStrParsedAs(),
+			noPrefix:          !params.AllowsPrefix(),
+			noMask:            !params.AllowsMask(),
+			noIPv6:            !params.AllowsIPv6(),
+			noIPv4:            !params.AllowsIPv4(),
 		}
 	}
 	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
@@ -315,8 +369,18 @@ func (builder *IPAddressStringParametersBuilder) AllowAll(allow bool) *IPAddress
 	return builder
 }
 
-func (builder *IPAddressStringParametersBuilder) SetEmptyLoopback(allow bool) *IPAddressStringParametersBuilder {
-	builder.params.emptyIsNotLoopback = !allow
+func (builder *IPAddressStringParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *IPAddressStringParametersBuilder {
+	builder.params.emptyStringOption = option
+	return builder
+}
+
+func (builder *IPAddressStringParametersBuilder) ParseAllStrAs(option AllStrOption) *IPAddressStringParametersBuilder {
+	builder.params.allStringOption = option
+	return builder
+}
+
+func (builder *IPAddressStringParametersBuilder) SetPreferredVersion(version IPVersion) *IPAddressStringParametersBuilder {
+	builder.params.preferredVersion = version
 	return builder
 }
 

@@ -55,7 +55,7 @@ func ParseDelimitedSegments(str string) StringIterator {
 				}
 				parts, delimitedList = addParts(str, parts, lastSegmentStartIndex, lastPartIndex, lastDelimiterIndex, delimitedList, i)
 				lastPartIndex = i
-				delimitedList = delimitedList[:0]
+				delimitedList = nil
 			}
 			lastDelimiterIndex = i + 1
 			lastSegmentStartIndex = lastDelimiterIndex

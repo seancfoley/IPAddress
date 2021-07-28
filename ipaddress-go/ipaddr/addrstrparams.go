@@ -12,6 +12,10 @@ type AddressStringFormatParameters interface {
 type AddressStringParameters interface {
 	AllowsEmpty() bool
 	AllowsSingleSegment() bool
+
+	// AllowsAll indicates if we allow the string of just the wildcard "*" to denote all addresses of all version.
+	// If false, then for IP addresses we check the preferred version with GetPreferredVersion(), and then check AllowsWildcardedSeparator(),
+	// to determine if the string represents all addresses of that version.
 	AllowsAll() bool
 }
 
