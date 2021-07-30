@@ -358,6 +358,15 @@ func (section *IPv6AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6
 	return res.ToIPv6AddressSection(), err
 }
 
+func (section *IPv6AddressSection) AdjustPrefixLen(prefixLen BitCount) *IPv6AddressSection {
+	return section.adjustPrefixLen(prefixLen).ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv6AddressSection, IncompatibleAddressError) {
+	res, err := section.adjustPrefixLenZeroed(prefixLen)
+	return res.ToIPv6AddressSection(), err
+}
+
 func (section *IPv6AddressSection) AssignPrefixForSingleBlock() *IPv6AddressSection {
 	return section.assignPrefixForSingleBlock().ToIPv6AddressSection()
 }

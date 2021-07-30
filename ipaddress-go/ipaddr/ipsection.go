@@ -458,6 +458,66 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 	return true
 }
 
+func (original *ipAddressSectionInternal) getAdjustedPrefix(adjustment BitCount, floor, ceiling bool) BitCount {
+	prefix := original.GetPrefixLength()
+	bitCount := original.GetBitCount()
+	if prefix == nil {
+		prefix = cacheBitCount(original.GetMinPrefixLengthForBlock())
+	}
+	result := *prefix + adjustment
+	if ceiling && result > bitCount {
+		result = bitCount
+	}
+	if floor && result < 0 {
+		result = 0
+	}
+	return result
+}
+
+func (original *ipAddressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (res *IPAddressSection, err IncompatibleAddressError) {
+	if adjustment == 0 && original.IsPrefixed() {
+		res = original.toIPAddressSection()
+		return
+	}
+	prefix := original.getAdjustedPrefix(adjustment, false, false)
+	bitCount := original.GetBitCount()
+	if prefix > bitCount {
+		if !original.IsPrefixed() {
+			res = original.toIPAddressSection()
+			return
+		}
+		var maskPrefix BitCount
+		if withZeros {
+			maskPrefix = *original.GetNetworkPrefixLength()
+		} else {
+			maskPrefix = bitCount
+		}
+		mask := original.addrType.getIPNetwork().GetNetworkMask(maskPrefix)
+		return original.getSubnetSegments(
+			0,
+			nil,
+			withZeros,
+			original.getDivision,
+			func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() })
+	}
+	if prefix < 0 {
+		prefix = 0
+	}
+	sec, err := original.setPrefixLength(prefix, withZeros)
+	res = sec.ToIPAddressSection()
+	return
+}
+
+func (section *ipAddressSectionInternal) adjustPrefixLen(adjustment BitCount) *IPAddressSection {
+	// no zeroing
+	res, _ := section.adjustPrefixLength(adjustment, false)
+	return res
+}
+
+func (section *ipAddressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount) (*IPAddressSection, IncompatibleAddressError) {
+	return section.adjustPrefixLength(adjustment, true)
+}
+
 func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) SizeMismatchError {
 	if other.GetSegmentCount() < section.GetSegmentCount() {
 		return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
@@ -1309,6 +1369,14 @@ func (section *IPAddressSection) SetPrefixLen(prefixLen BitCount) *IPAddressSect
 func (section *IPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
 	return res.ToIPAddressSection(), err
+}
+
+func (section *IPAddressSection) AdjustPrefixLen(prefixLen BitCount) *IPAddressSection {
+	return section.adjustPrefixLen(prefixLen)
+}
+
+func (section *IPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, IncompatibleAddressError) {
+	return section.adjustPrefixLenZeroed(prefixLen)
 }
 
 func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {

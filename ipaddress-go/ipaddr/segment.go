@@ -94,6 +94,18 @@ func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
 	return vals.getUpperSegmentValue()
 }
 
+func (seg *addressSegmentInternal) Matches(value SegInt) bool {
+	return seg.matches(DivInt(value))
+}
+
+func (seg *addressSegmentInternal) MatchesValWithMask(value, mask SegInt) bool {
+	return seg.matchesValWithMask(DivInt(value), DivInt(mask))
+}
+
+func (seg *addressSegmentInternal) MatchesValsWithMask(lowerValue, upperValue, mask SegInt) bool {
+	return seg.matchesValsWithMask(DivInt(lowerValue), DivInt(upperValue), DivInt(mask))
+}
+
 func (seg *addressSegmentInternal) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
 	return bigZero().SetUint64(seg.GetPrefixValueCount(segmentPrefixLength))
 }

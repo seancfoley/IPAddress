@@ -240,6 +240,14 @@ func (addr *MACAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *MACAddress) IsMax() bool {
+	return addr.init().section.IsMax()
+}
+
+func (addr *MACAddress) IncludesMax() bool {
+	return addr.init().section.IncludesMax()
+}
+
 // GetDivision returns the segment count, implementing the interface AddressDivisionSeries
 func (addr *MACAddress) GetDivisionCount() int {
 	return addr.init().getDivisionCount()
@@ -288,6 +296,10 @@ func (addr *MACAddress) GetMinPrefixLengthForBlock() BitCount {
 
 func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen {
 	return addr.init().addressInternal.GetPrefixLengthForSingleBlock()
+}
+
+func (addr *MACAddress) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr.init(), item)
 }
 
 func (addr *MACAddress) PrefixEquals(other AddressType) bool {

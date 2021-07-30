@@ -891,7 +891,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO NEXT NOW progress
 //
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
-// - finish HostName (now it's mostly done, just a few methods left) <---
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
@@ -902,11 +901,3 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 
 // TODO append and replace in sections: we only allow at top-level.
 // This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.
-// Appending to IPv6v4MixedSection, what should happen?
-// avoiding it at lower level prevents weirdness like ipv4 becoming not ipv4 unpredictably.
-// Or appending to IPv4, we must ensure the division groupings are also ipv4.  I am inclined to (a) only maintain addrType when appending at highest level,
-// (b) drop the addrType at lower levels.  It is possible you could check addrType and upscale, but this does not help with IPv6v4MixedSection.
-// So, you could just upscale selectively.  I like that.
-// But in Java, you do not allow append or replace at lower levels at all.  So, maybe you do that.  In fact, that alleviates confusion.
-// And any grouping can simply be reconstitued from the divisions as desired, you don't need it at lower level.
-// In Java, it is really problematic for (a) the type of the append or replace arg and (b) what to do when there is no match

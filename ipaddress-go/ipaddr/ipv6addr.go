@@ -168,6 +168,10 @@ func (addr *IPv6Address) HasZone() bool {
 	return addr.zone != NoZone
 }
 
+func (addr *IPv6Address) GetZone() Zone {
+	return addr.zone
+}
+
 func (addr *IPv6Address) GetSection() *IPv6AddressSection {
 	return addr.init().section.ToIPv6AddressSection()
 }
@@ -391,6 +395,15 @@ func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, I
 	return res.ToIPv6Address(), err
 }
 
+func (addr *IPv6Address) AdjustPrefixLen(prefixLen BitCount) *IPv6Address {
+	return addr.init().adjustPrefixLen(prefixLen).ToIPv6Address()
+}
+
+func (addr *IPv6Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
+	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
+	return res.ToIPv6Address(), err
+}
+
 func (addr *IPv6Address) AssignPrefixForSingleBlock() *IPv6Address {
 	return addr.init().assignPrefixForSingleBlock().ToIPv6Address()
 }
@@ -421,6 +434,13 @@ func (addr *IPv6Address) GetValue() *big.Int {
 
 func (addr *IPv6Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
+}
+
+func (addr *IPv6Address) GetIPAddr() net.IPAddr {
+	return net.IPAddr{
+		IP:   addr.GetIP(),
+		Zone: string(addr.GetZone()),
+	}
 }
 
 func (addr *IPv6Address) GetIP() net.IP {
@@ -473,6 +493,10 @@ func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *IPv6Address) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr.init(), item)
+}
+
 func (addr *IPv6Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -521,6 +545,23 @@ func (addr *IPv6Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool 
 
 func (addr *IPv6Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
+// IsLoopback returns whether this address is a loopback address, such as
+// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
+func (addr *IPv6Address) IsLoopback() bool {
+	if addr.section == nil {
+		return false
+	}
+	//::1
+	i := 0
+	lim := addr.GetSegmentCount() - 1
+	for ; i < lim; i++ {
+		if !addr.GetSegment(i).IsZero() {
+			return false
+		}
+	}
+	return addr.GetSegment(i).Matches(1)
 }
 
 func (addr *IPv6Address) Iterator() IPv6AddressIterator {

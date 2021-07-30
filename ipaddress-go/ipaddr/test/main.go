@@ -319,6 +319,7 @@ func main() {
 		i++
 		fmt.Printf("%d of %d is %v, from %v\n", i, delimCount, delims.Next(), delim)
 	}
+	fmt.Println()
 	delim = "1:3:6:4:5,6fff,7,8,99:6:2,3,4:8"
 	delims = ipaddr.ParseDelimitedSegments(delim)
 	delimCount = ipaddr.CountDelimitedAddresses(delim)

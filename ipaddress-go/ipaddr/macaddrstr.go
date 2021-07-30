@@ -65,7 +65,7 @@ func (addrStr *MACAddressString) String() string {
 }
 
 func (addrStr *MACAddressString) ToNormalizedString() string {
-	//TODO MACAddressString
+	//TODO MACAddressString ToNormalizedString
 	return ""
 }
 

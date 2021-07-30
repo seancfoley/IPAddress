@@ -641,6 +641,77 @@ func (section *addressSectionInternal) setPrefixLenZeroed(prefixLen BitCount) (*
 	return section.setPrefixLength(prefixLen, true)
 }
 
+func (section *addressSectionInternal) setPrefixLength(
+	networkPrefixLength BitCount,
+	withZeros bool,
+) (res *AddressSection, err IncompatibleAddressError) {
+	existingPrefixLength := section.GetPrefixLength()
+	if existingPrefixLength != nil && networkPrefixLength == *existingPrefixLength {
+		res = section.toAddressSection()
+		return
+	}
+	checkSubnet(section, networkPrefixLength)
+	var minPrefIndex, maxPrefIndex int
+	var minPrefLen, maxPrefLen BitCount
+	verifyMask := false
+	bitsPerSegment := section.GetBitsPerSegment()
+	bytesPerSegment := section.GetBytesPerSegment()
+	prefIndex := getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
+	var startIndex int
+	if existingPrefixLength != nil {
+		existingPrefLen := *existingPrefixLength
+		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment)
+		verifyMask = true
+		if prefIndex > existingPrefIndex {
+			maxPrefIndex = prefIndex
+			minPrefIndex = existingPrefIndex
+		} else {
+			maxPrefIndex = existingPrefIndex
+			minPrefIndex = prefIndex
+		}
+		if withZeros {
+			if networkPrefixLength < existingPrefLen {
+				minPrefLen = networkPrefixLength
+				maxPrefLen = existingPrefLen
+			} else {
+				minPrefLen = existingPrefLen
+				maxPrefLen = networkPrefixLength
+			}
+			startIndex = minPrefIndex
+		} else {
+			startIndex = minPrefIndex
+			minPrefIndex = section.GetSegmentCount() // used for zeroing, so setting it to the end causes no zeroing
+		}
+	} else {
+		minPrefIndex = section.GetSegmentCount()
+		startIndex = prefIndex
+	}
+	maxVal := section.GetMaxSegmentValue()
+	return section.getSubnetSegments(
+		startIndex,
+		cacheBitCount(networkPrefixLength),
+		verifyMask,
+		func(i int) *AddressDivision {
+			return section.getDivision(i)
+		},
+		func(i int) SegInt {
+			if i >= minPrefIndex {
+				if i <= maxPrefIndex {
+					minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
+					minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
+					maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
+					if maxSegPrefLen != nil {
+						maxMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
+						return minMask | maxMask
+					}
+					return minMask
+				}
+			}
+			return maxVal
+		},
+	)
+}
+
 func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSection {
 	newPrefix := section.GetPrefixLengthForSingleBlock()
 	if newPrefix == nil {
@@ -1123,77 +1194,6 @@ func (section *addressSectionInternal) getSubnetSegments( // called by methods t
 	}
 	res = section.toAddressSection()
 	return
-}
-
-func (original *addressSectionInternal) setPrefixLength(
-	networkPrefixLength BitCount,
-	withZeros bool,
-) (res *AddressSection, err IncompatibleAddressError) {
-	existingPrefixLength := original.GetPrefixLength()
-	if existingPrefixLength != nil && networkPrefixLength == *existingPrefixLength {
-		res = original.toAddressSection()
-		return
-	}
-	checkSubnet(original, networkPrefixLength)
-	var minPrefIndex, maxPrefIndex int
-	var minPrefLen, maxPrefLen BitCount
-	verifyMask := false
-	bitsPerSegment := original.GetBitsPerSegment()
-	bytesPerSegment := original.GetBytesPerSegment()
-	prefIndex := getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
-	var startIndex int
-	if existingPrefixLength != nil {
-		existingPrefLen := *existingPrefixLength
-		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment)
-		verifyMask = true
-		if prefIndex > existingPrefIndex {
-			maxPrefIndex = prefIndex
-			minPrefIndex = existingPrefIndex
-		} else {
-			maxPrefIndex = existingPrefIndex
-			minPrefIndex = prefIndex
-		}
-		if withZeros {
-			if networkPrefixLength < existingPrefLen {
-				minPrefLen = networkPrefixLength
-				maxPrefLen = existingPrefLen
-			} else {
-				minPrefLen = existingPrefLen
-				maxPrefLen = networkPrefixLength
-			}
-			startIndex = minPrefIndex
-		} else {
-			startIndex = minPrefIndex
-			minPrefIndex = original.GetSegmentCount() // used for zeroing, so setting it to the end causes no zeroing
-		}
-	} else {
-		minPrefIndex = original.GetSegmentCount()
-		startIndex = prefIndex
-	}
-	maxVal := original.GetMaxSegmentValue()
-	return original.getSubnetSegments(
-		startIndex,
-		cacheBitCount(networkPrefixLength),
-		verifyMask,
-		func(i int) *AddressDivision {
-			return original.getDivision(i)
-		},
-		func(i int) SegInt {
-			if i >= minPrefIndex {
-				if i <= maxPrefIndex {
-					minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
-					minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
-					maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
-					if maxSegPrefLen != nil {
-						maxMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
-						return minMask | maxMask
-					}
-					return minMask
-				}
-			}
-			return maxVal
-		},
-	)
 }
 
 func (section *addressSectionInternal) toAddressSection() *AddressSection {

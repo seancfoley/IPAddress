@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"math/bits"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -307,6 +308,45 @@ func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
 		return 0
 	}
 	return vals.getUpperDivisionValue()
+}
+
+func (div *addressDivisionInternal) matches(value DivInt) bool {
+	return !div.IsMultiple() && value == div.getDivisionValue()
+}
+
+func (div *addressDivisionInternal) matchesValWithMask(value, mask DivInt) bool {
+	if div.IsMultiple() {
+		//we want to ensure that any of the bits that can change from value to upperValue is masked out (zeroed) by the mask.
+		//In other words, when masked we need all values represented by this segment to become just a single value
+		diffBits := div.getDivisionValue() ^ div.getUpperDivisionValue()
+		leadingZeros := bits.LeadingZeros64(diffBits)
+		//the bits that can change are all bits following the first leadingZero bits
+		//all the bits that follow must be zeroed out by the mask
+		fullMask := ^DivInt(0) >> uint(leadingZeros)
+		if (fullMask & mask) != 0 {
+			return false
+		} //else we know that the mask zeros out all the bits that can change from value to upperValue, so now we just compare with either one
+	}
+	return value == (div.getDivisionValue() & mask)
+}
+
+// matchesWithMask returns whether masking with the given mask results in a valid contiguous range for this segment,
+// and if it does, if it matches the range obtained when masking the given values with the same mask.
+func (div *addressDivisionInternal) matchesValsWithMask(lowerValue, upperValue, mask DivInt) bool {
+	if lowerValue == upperValue {
+		return div.matchesValWithMask(lowerValue, mask)
+	}
+	if !div.IsMultiple() {
+		// lowerValue and upperValue are not the same, so impossible to match those two values with a single value
+		return false
+	}
+	thisValue := div.getDivisionValue()
+	thisUpperValue := div.getUpperDivisionValue()
+	masker := maskRange(thisValue, thisUpperValue, mask, div.getMaxValue())
+	if !masker.IsSequential() {
+		return false
+	}
+	return lowerValue == masker.GetMaskedLower(thisValue, mask) && upperValue == masker.GetMaskedUpper(thisUpperValue, mask)
 }
 
 func (div *addressDivisionInternal) toPrefixedNetworkDivision(divPrefixLength PrefixLen) *AddressDivision {
@@ -770,6 +810,18 @@ func (div *AddressDivision) GetDivisionValue() DivInt {
 // GetUpperDivisionValue returns the upper division value
 func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	return div.getUpperDivisionValue()
+}
+
+func (div *AddressDivision) Matches(value DivInt) bool {
+	return div.matches(value)
+}
+
+func (div *AddressDivision) MatchesValWithMask(value, mask DivInt) bool {
+	return div.matchesValWithMask(value, mask)
+}
+
+func (div *AddressDivision) MatchesValsWithMask(lowerValue, upperValue, mask DivInt) bool {
+	return div.matchesValsWithMask(lowerValue, upperValue, mask)
 }
 
 func (div *AddressDivision) GetMaxValue() DivInt {

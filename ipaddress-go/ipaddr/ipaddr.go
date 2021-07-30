@@ -235,6 +235,18 @@ func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddre
 	return createIPAddress(sect, addr.zone)
 }
 
+func (addr *ipAddressInternal) adjustPrefixLen(prefixLen BitCount) *IPAddress {
+	return addr.checkIdentity(addr.section.toIPAddressSection().adjustPrefixLen(prefixLen))
+}
+
+func (addr *ipAddressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *IPAddress, err IncompatibleAddressError) {
+	section, err := addr.section.toIPAddressSection().adjustPrefixLenZeroed(prefixLen)
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
 func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
 	section := addr.section
 	if section == nil {
@@ -645,6 +657,15 @@ func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, Incom
 	return res.ToIPAddress(), err
 }
 
+func (addr *IPAddress) AdjustPrefixLen(prefixLen BitCount) *IPAddress {
+	return addr.init().adjustPrefixLen(prefixLen).ToIPAddress()
+}
+
+func (addr *IPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressError) {
+	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
+	return res.ToIPAddress(), err
+}
+
 func (addr *IPAddress) AssignPrefixForSingleBlock() *IPAddress {
 	return addr.init().assignPrefixForSingleBlock().ToIPAddress()
 }
@@ -664,6 +685,13 @@ func (addr *IPAddress) GetValue() *big.Int {
 
 func (addr *IPAddress) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
+}
+
+func (addr *IPAddress) GetIPAddr() net.IPAddr {
+	return net.IPAddr{
+		IP:   addr.GetIP(),
+		Zone: string(addr.zone),
+	}
 }
 
 func (addr *IPAddress) GetIP() net.IP {
@@ -706,6 +734,20 @@ func (addr *IPAddress) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
+// IsLoopback returns whether this address is a loopback address, such as
+// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
+func (addr *IPAddress) IsLoopback() bool {
+	sect := addr.section
+	if sect == nil {
+		return false
+	} else if ipaddr := addr.ToIPv4Address(); ipaddr != nil {
+		return ipaddr.IsLoopback()
+	} else if ipaddr := addr.ToIPv6Address(); ipaddr != nil {
+		return ipaddr.IsLoopback()
+	}
+	return false
+}
+
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *IPAddress) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
@@ -714,6 +756,10 @@ func (addr *IPAddress) TestBit(n BitCount) bool {
 // Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
 func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
+}
+
+func (addr *IPAddress) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr.init(), item)
 }
 
 func (addr *IPAddress) PrefixEquals(other AddressType) bool {
@@ -830,7 +876,7 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 //   A further rationale is that it helps keep section method count down.
 
 // toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code (net.LookupAddr or LookupCNAME) http://networkbit.ch/golang-dns-lookup/
-// ToUNCHostName //TODO
+// ToUNCHostName //TODO LATER
 
 func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {

@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"net"
 	"sync/atomic"
 	"unsafe"
 )
@@ -43,7 +42,7 @@ type addrsCache struct {
 }
 
 type addressCache struct {
-	ip net.IPAddr // lower converted (cloned when returned)
+	//ip net.IPAddr // lower converted (cloned when returned)
 
 	addrsCache *addrsCache
 
@@ -207,76 +206,6 @@ func (addr *addressInternal) GetBytesPerSegment() int {
 	return section.GetBytesPerSegment()
 }
 
-func (addr *addressInternal) GetValue() *big.Int {
-	section := addr.section
-	if section == nil {
-		return bigZero()
-	}
-	return section.GetValue()
-}
-
-func (addr *addressInternal) GetUpperValue() *big.Int {
-	section := addr.section
-	if section == nil {
-		return bigZero()
-	}
-	return section.GetUpperValue()
-}
-
-func (addr *addressInternal) GetIP() net.IP {
-	return addr.GetBytes()
-}
-
-func (addr *addressInternal) CopyIP(bytes net.IP) net.IP {
-	return addr.CopyBytes(bytes)
-}
-
-func (addr *addressInternal) GetUpperIP() net.IP {
-	return addr.GetUpperBytes()
-}
-
-func (addr *addressInternal) CopyUpperIP(bytes net.IP) net.IP {
-	return addr.CopyUpperBytes(bytes)
-}
-
-func (addr *addressInternal) GetBytes() []byte {
-	section := addr.section
-	if section == nil {
-		return emptyBytes
-	}
-	return section.GetBytes()
-}
-
-func (addr *addressInternal) CopyBytes(bytes []byte) []byte {
-	section := addr.section
-	if section == nil {
-		if bytes != nil {
-			return bytes
-		}
-		return emptyBytes
-	}
-	return section.CopyBytes(bytes)
-}
-
-func (addr *addressInternal) GetUpperBytes() []byte {
-	section := addr.section
-	if section == nil {
-		return emptyBytes
-	}
-	return section.GetUpperBytes()
-}
-
-func (addr *addressInternal) CopyUpperBytes(bytes []byte) []byte {
-	section := addr.section
-	if section == nil {
-		if bytes != nil {
-			return bytes
-		}
-		return emptyBytes
-	}
-	return section.CopyUpperBytes(bytes)
-}
-
 func (addr *addressInternal) getMaxSegmentValue() SegInt {
 	return addr.section.GetMaxSegmentValue()
 }
@@ -336,24 +265,6 @@ func (addr *addressInternal) IncludesZero() bool {
 		return true
 	}
 	return section.IncludesZero()
-}
-
-func (addr *addressInternal) IsMax() bool {
-	section := addr.section
-	if section == nil {
-		// when no bits, the only value 0 is the max value too
-		return true
-	}
-	return addr.section.IsMax()
-}
-
-func (addr *addressInternal) IncludesMax() bool {
-	section := addr.section
-	if section == nil {
-		// when no bits, the only value 0 is the max value too
-		return true
-	}
-	return addr.section.IncludesMax()
 }
 
 func (addr *addressInternal) IsFullRange() bool {
@@ -445,10 +356,6 @@ func (addr *addressInternal) isIP() bool {
 	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddressType())
 }
 
-func (addr *addressInternal) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(addr, item)
-}
-
 func (addr *addressInternal) prefixEquals(other AddressType) bool {
 	otherAddr := other.ToAddress()
 	if addr.toAddress() == otherAddr {
@@ -460,7 +367,7 @@ func (addr *addressInternal) prefixEquals(other AddressType) bool {
 	}
 	return addr.section.PrefixEquals(otherSection) &&
 		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
-		addr.isSameZone(other)
+		addr.isSameZone(otherAddr)
 }
 
 func (addr *addressInternal) prefixContains(other AddressType) bool {
@@ -474,7 +381,7 @@ func (addr *addressInternal) prefixContains(other AddressType) bool {
 	}
 	return addr.section.PrefixContains(otherSection) &&
 		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
-		addr.isSameZone(other)
+		addr.isSameZone(otherAddr)
 }
 
 func (addr *addressInternal) contains(other AddressType) bool {
@@ -488,7 +395,7 @@ func (addr *addressInternal) contains(other AddressType) bool {
 	}
 	return addr.section.Contains(otherSection) &&
 		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
-		addr.isSameZone(other)
+		addr.isSameZone(otherAddr)
 }
 
 func (addr *addressInternal) equals(other AddressType) bool {
@@ -502,7 +409,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	}
 	return addr.section.sameCountTypeEquals(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
-		addr.isSameZone(other)
+		addr.isSameZone(otherAddr)
 }
 
 func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
@@ -513,7 +420,7 @@ func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
 	otherSection := otherAddr.GetSection()
 	return addr.section.sameCountTypeEquals(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
-		addr.isSameZone(other)
+		addr.isSameZone(otherAddr)
 }
 
 func (addr *addressInternal) withoutPrefixLen() *Address {
@@ -546,7 +453,7 @@ func (addr *addressInternal) assignMinPrefixForBlock() *Address {
 	return addr.setPrefixLen(addr.GetMinPrefixLengthForBlock())
 }
 
-func (addr *addressInternal) isSameZone(other AddressType) bool {
+func (addr *addressInternal) isSameZone(other *Address) bool {
 	return addr.zone == other.ToAddress().zone
 }
 
@@ -755,6 +662,10 @@ func (addr *Address) init() *Address {
 	return addr
 }
 
+func (addr *Address) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
 func (addr *Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -849,6 +760,38 @@ func (addr *Address) GetLower() *Address {
 
 func (addr *Address) GetUpper() *Address {
 	return addr.init().getUpper()
+}
+
+func (addr *Address) GetValue() *big.Int {
+	return addr.init().section.GetValue()
+}
+
+func (addr *Address) GetUpperValue() *big.Int {
+	return addr.init().section.GetUpperValue()
+}
+
+func (addr *Address) GetBytes() []byte {
+	return addr.init().section.GetBytes()
+}
+
+func (addr *Address) CopyBytes(bytes []byte) []byte {
+	return addr.init().section.CopyBytes(bytes)
+}
+
+func (addr *Address) GetUpperBytes() []byte {
+	return addr.init().section.GetUpperBytes()
+}
+
+func (addr *Address) CopyUpperBytes(bytes []byte) []byte {
+	return addr.init().section.CopyUpperBytes(bytes)
+}
+
+func (addr *Address) IsMax() bool {
+	return addr.init().section.IsMax()
+}
+
+func (addr *Address) IncludesMax() bool {
+	return addr.init().section.IncludesMax()
 }
 
 func (addr *Address) ToPrefixBlock() *Address {
@@ -949,15 +892,17 @@ func (addr *Address) IsIPv4() bool {
 func (addr *Address) IsIPv6() bool {
 	return addr.isIPv6()
 }
+
 func (addr *Address) IsIP() bool {
 	return addr.isIP()
 }
+
 func (addr *Address) IsMAC() bool {
 	return addr.isMAC()
 }
 
 func (addr *Address) ToAddress() *Address {
-	return addr
+	return addr.init()
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {

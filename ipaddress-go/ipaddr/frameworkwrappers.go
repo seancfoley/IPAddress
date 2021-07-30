@@ -1,7 +1,7 @@
 package ipaddr
 
 // ExtendedIPSegmentSeries can be used to write code that works on either IP Addresses or IP Address Sections,
-// going further than IPAddressSegmentSeries to offer additional methods with series types in their signature.
+// going further than IPAddressSegmentSeries to offer additional methods with the series types in their signature.
 // An ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
@@ -69,7 +69,10 @@ type ExtendedIPSegmentSeries interface {
 
 	Contains(other ExtendedIPSegmentSeries) bool
 
+	AdjustPrefixLen(BitCount) ExtendedIPSegmentSeries
+	AdjustPrefixLenZeroed(BitCount) ExtendedIPSegmentSeries
 	SetPrefixLen(BitCount) ExtendedIPSegmentSeries
+	SetPrefixLenZeroed(BitCount) ExtendedIPSegmentSeries
 	WithoutPrefixLen() ExtendedIPSegmentSeries
 
 	ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError)
@@ -197,6 +200,18 @@ func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
 }
 
 func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
 }
 
@@ -340,6 +355,18 @@ func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
 }
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
 }
 

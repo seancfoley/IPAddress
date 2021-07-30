@@ -341,13 +341,13 @@ func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4Add
 	return res.ToIPv4AddressSection(), err
 }
 
-func (section *IPv4AddressSection) Uint64Value() uint64 {
-	return uint64(section.Uint32Value())
-}
-
-func (section *IPv4AddressSection) UpperUint64Value() uint64 {
-	return uint64(section.UpperUint32Value())
-}
+//func (section *IPv4AddressSection) Uint64Value() uint64 {
+//	return uint64(section.Uint32Value())
+//}
+//
+//func (section *IPv4AddressSection) UpperUint64Value() uint64 {
+//	return uint64(section.UpperUint32Value())
+//}
 
 func (section *IPv4AddressSection) Uint32Value() uint32 {
 	lower, _ := section.getIntValues()
@@ -494,6 +494,15 @@ func (section *IPv4AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4
 	return res.ToIPv4AddressSection(), err
 }
 
+func (section *IPv4AddressSection) AdjustPrefixLen(prefixLen BitCount) *IPv4AddressSection {
+	return section.adjustPrefixLen(prefixLen).ToIPv4AddressSection()
+}
+
+func (section *IPv4AddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv4AddressSection, IncompatibleAddressError) {
+	res, err := section.adjustPrefixLenZeroed(prefixLen)
+	return res.ToIPv4AddressSection(), err
+}
+
 func (section *IPv4AddressSection) AssignPrefixForSingleBlock() *IPv4AddressSection {
 	return section.assignPrefixForSingleBlock().ToIPv4AddressSection()
 }
@@ -538,8 +547,8 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	if inc == 0 && !section.IsMultiple() {
 		return section
 	}
-	lowerValue := section.Uint64Value()
-	upperValue := section.UpperUint64Value()
+	lowerValue := uint64(section.Uint32Value())
+	upperValue := uint64(section.UpperUint32Value())
 	count := section.GetIPv4Count()
 	isOverflow := checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
 	if isOverflow {

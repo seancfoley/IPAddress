@@ -72,7 +72,8 @@ type resolveData struct {
 type hostCache struct {
 	*hostData
 	*resolveData
-	normalizedString *string
+	normalizedString,
+	normalizedWildcardString *string
 }
 
 type HostName struct {
@@ -128,9 +129,8 @@ func (host *HostName) IsAddressString() bool {
 }
 
 func (host *HostName) IsAddress() bool {
-	host = host.init()
 	if host.IsAddressString() {
-		addr, _ := host.parsedHost.asAddress()
+		addr, _ := host.init().parsedHost.asAddress()
 		return addr != nil
 	}
 	return false
@@ -254,33 +254,53 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 				// sort by preferred version
 				preferredVersion := validationOptions.GetPreferredVersion()
 				preferredIndex := 0
-			top: //TODO test this sort, it changes [x y y x y x x] to [x x x x y y y] if x is preferred
-				for i := 0; i < len(addrs); i++ {
-					notPreferred := addrs[i]
-					if notPreferred.getIPVersion() != preferredVersion {
-						var j int
-						if preferredIndex == 0 {
-							j = i + 1
-						} else {
-							j = preferredIndex
+
+				if count > 8 {
+					c := 0
+					newAddrs := make([]*IPAddress, count)
+					for _, val := range addrs {
+						if val.getIPVersion() == preferredVersion {
+							newAddrs[c] = val
+							c++
 						}
-						for ; j < len(addrs); j++ {
-							preferred := addrs[j]
-							if preferred.getIPVersion() == preferredVersion {
-								addrs[i] = preferred
-								// don't swap so the non-preferred order is preserved
-								// instead shift each upwards by one spot
-								k := i + 1
-								for ; k < j; k++ {
-									addrs[k], notPreferred = notPreferred, addrs[k]
-								}
-								addrs[k] = notPreferred
-								preferredIndex = j + 1
-								continue top
+					}
+					for i := 0; c < count; i++ {
+						val := addrs[i]
+						if val.getIPVersion() != preferredVersion {
+							newAddrs[c] = val
+							c++
+						}
+					}
+					addrs = newAddrs
+				} else {
+				top: //TODO test this sort, it changes [x y y x y x x] to [x x x x y y y] if x is preferred.
+					for i := 0; i < count; i++ {
+						notPreferred := addrs[i]
+						if notPreferred.getIPVersion() != preferredVersion {
+							var j int
+							if preferredIndex == 0 {
+								j = i + 1
+							} else {
+								j = preferredIndex
 							}
+							for ; j < len(addrs); j++ {
+								preferred := addrs[j]
+								if preferred.getIPVersion() == preferredVersion {
+									addrs[i] = preferred
+									// don't swap so the non-preferred order is preserved
+									// instead shift each upwards by one spot
+									k := i + 1
+									for ; k < j; k++ {
+										addrs[k], notPreferred = notPreferred, addrs[k]
+									}
+									addrs[k] = notPreferred
+									preferredIndex = j + 1
+									continue top
+								}
+							}
+							// no more preferred
+							break
 						}
-						// no more preferred
-						break
 					}
 				}
 			}
@@ -333,6 +353,19 @@ func (host *HostName) ToNormalizedString() string {
 	if str == nil {
 		newStr := host.toNormalizedString(false)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.normalizedString))
+		str = &newStr
+		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+	}
+	return *str
+}
+
+// ToNormalizedString provides a normalized string which is lowercase for host strings, and which is a normalized string for addresses.
+func (host *HostName) ToNormalizedWildcardString() string {
+	host = host.init()
+	str := host.normalizedWildcardString
+	if str == nil {
+		newStr := host.toNormalizedString(false)
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.normalizedWildcardString))
 		str = &newStr
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 	}
@@ -394,20 +427,15 @@ func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Bui
 		if !wildcard && addr.IsPrefixed() { // prefix needs to be outside the brackets
 			normalized := addr.ToNormalizedString()
 			index := strings.IndexByte(normalized, PrefixLenSeparator)
-			// translated := translateReserved(addr.ToIPv6Address(), normalized[: index]);
 			builder.WriteByte(IPv6StartBracket)
-			//builder.WriteString(translated)
 			translateReserved(addr.ToIPv6Address(), normalized[:index], builder)
 			builder.WriteByte(IPv6EndBracket)
 			builder.WriteString(normalized[index:])
-			//builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET).append(normalized.substring(index));
 		} else {
 			normalized := addr.ToNormalizedWildcardString()
 			builder.WriteByte(IPv6StartBracket)
 			translateReserved(addr.ToIPv6Address(), normalized, builder)
 			builder.WriteByte(IPv6EndBracket)
-			//translated := translateReserved(addr.ToIPv6Address(), normalized);
-			//builder.append(IPV6_START_BRACKET).append(translated).append(IPV6_END_BRACKET);
 		}
 	} else {
 		if wildcard {
@@ -415,7 +443,6 @@ func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Bui
 		} else {
 			builder.WriteString(addr.ToNormalizedString())
 		}
-		//builder.append(wildcard ? addr.toNormalizedWildcardString() : addr.toNormalizedString());
 	}
 }
 
@@ -502,8 +529,7 @@ func (host *HostName) GetHost() string {
 }
 
 /*
-TODO isUNCIPv6Literal and isReverseDNS
-
+TODO LATER isUNCIPv6Literal and isReverseDNS
 */
 ///**
 // * Returns whether this host name is an Uniform Naming Convention IPv6 literal host name.
@@ -523,97 +549,252 @@ TODO isUNCIPv6Literal and isReverseDNS
 //	return isValid() && parsedHost.isReverseDNS();
 //}
 
-/**
- * If a prefix length was supplied, either as part of an address or as part of a domain (in which case the prefix applies to any resolved address),
- * then returns that prefix length.  Otherwise, returns null.
- */
-//public Integer getNetworkPrefixLength() {
-//	if(isAddress()) {
-//		return parsedHost.asAddress().getNetworkPrefixLength();
-//	} else if(isAddressString()) {
-//		return parsedHost.asGenericAddressString().getNetworkPrefixLength();
-//	}
-//	return isValid() ? parsedHost.getEquivalentPrefixLength() : null;
-//}
-//
-///**
-// * If a mask was provided with this host name, this returns the resulting mask value.
-// *
-// * @return
-// */
-//public IPAddress getMask() {
-//	if(isValid()) {
-//		if(parsedHost.isAddressString()) {
-//			return parsedHost.getAddressProvider().getProviderMask();
-//		}
-//		return parsedHost.getMask();
-//	}
-//	return null;
-//}
+// GetNetworkPrefixLength() returns the prefix length, if a prefix length was supplied,
+// either as part of an address or as part of a domain (in which case the prefix applies to any resolved address),
+// Otherwise, returns nil.
+func (host *HostName) GetNetworkPrefixLength() PrefixLen {
+	if host.IsAddress() {
+		addr, err := host.parsedHost.asAddress()
+		if err != nil {
+			return addr.GetNetworkPrefixLength()
+		}
+	} else if host.IsAddressString() {
+		return host.parsedHost.asGenericAddressString().GetNetworkPrefixLength()
+	} else if host.IsValid() {
+		return host.parsedHost.getEquivalentPrefixLength()
+	}
+	return nil
+}
 
-///**
-// * Returns whether this represents, or resolves to,
-// * a host or address representing the same host.
-// *
-// * @return whether this represents or resolves to the localhost host or a loopback address
-// */
-//public boolean resolvesToSelf() {
-//	return isSelf() || (getAddress() != null && resolvedAddress.isLoopback());
-//}
-//
-///**
-// * Returns whether this represents a host or address representing the same host.
-// * Also see {@link #isLocalHost()} and {@link #isLoopback()}
-// *
-// * @return whether this is the localhost host or a loopback address
-// */
-//public boolean isSelf() {
-//	return isLocalHost() || isLoopback();
-//}
-//
-///**
-// * Returns whether this host is "localhost"
-// * @return
-// */
-//public boolean isLocalHost() {
-//	return isValid() && host.equalsIgnoreCase("localhost");
-//}
-//
-///**
-// * Returns whether this host has the loopback address, such as
-// * [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
-// *
-// * Also see {@link #isSelf()}
-// */
-//public boolean isLoopback() {
-//	return isAddress() && asAddress().isLoopback();
-//}
-//
+// GetMask returns the resulting mask value if a mask was provided with this host name.
+func (host *HostName) GetMask() *IPAddress {
+	if host.IsValid() {
+		if host.parsedHost.isAddressString() {
+			return host.parsedHost.getAddressProvider().getProviderMask()
+		}
+		return host.parsedHost.getMask()
+	}
+	return nil
+}
 
-// TODO java code has methods which provide InetSocketAddress, InetAddress, etc and/or take as constructor, so do the same for go types
+// ResolvesToSelf returns whether this represents, or resolves to,
+// a host or address representing the same host.
+func (host *HostName) ResolvesToSelf() bool {
+	if host.IsSelf() {
+		return true
+	} else if host.GetAddress() != nil {
+		host.resolvedAddrs[0].IsLoopback()
+	}
+	return false
+}
 
-// TODO compareTo
+// IsSelf returns whether this represents a host or address representing the same host.
+// Also see isLocalHost() and {@link #isLoopback()}
+func (host *HostName) IsSelf() bool {
+	return host.IsLocalHost() || host.IsLoopback()
+}
 
+// IsLocalHost returns whether this host is "localhost"
+func (host *HostName) IsLocalHost() bool {
+	return host.IsValid() && strings.EqualFold(host.str, "localhost")
+}
+
+// IsLoopback returns whether this host has the loopback address, such as
+// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
 //
-//private String toNormalizedWildcardString() {//used by hashCode
-//	String result = normalizedWildcardString;
-//	if(result == null) {
-//		normalizedWildcardString = result = toNormalizedString(true);
-//	}
-//	return result;
-//}
-//
+// Also see isSelf()
+func (host *HostName) IsLoopback() bool {
+	return host.IsAddress() && host.AsAddress().IsLoopback()
+}
+
+// ToTCPAddrService returns the TCPAddr if this HostName both resolves to an address and has an associated service or port
+func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCPAddr {
+	if host.IsValid() {
+		port := host.GetPort()
+		if port == nil && serviceMapper != nil {
+			service := host.GetService()
+			if service != "" {
+				port = serviceMapper(service)
+			}
+		}
+		if port != nil {
+			if addr := host.AsAddress(); addr != nil {
+				return &net.TCPAddr{
+					IP:   addr.GetIP(),
+					Port: *port,
+					Zone: string(addr.zone),
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// ToTCPAddr returns the TCPAddr if this HostName both resolves to an address and has an associated port
+func (host *HostName) ToTCPAddr() *net.TCPAddr {
+	return host.ToTCPAddrService(nil)
+}
+
+// ToUDPAddrService returns the UDPAddr if this HostName both resolves to an address and has an associated service or port
+func (host *HostName) ToUDPAddrService(serviceMapper func(string) Port) *net.UDPAddr {
+	tcpAddr := host.ToTCPAddrService(serviceMapper)
+	if tcpAddr != nil {
+		return &net.UDPAddr{
+			IP:   tcpAddr.IP,
+			Port: tcpAddr.Port,
+			Zone: tcpAddr.Zone,
+		}
+	}
+	return nil
+}
+
+// ToUDPAddr returns the UDPAddr if this HostName both resolves to an address and has an associated port
+func (host *HostName) ToUDPAddr(serviceMapper func(string) Port) *net.UDPAddr {
+	return host.ToUDPAddrService(serviceMapper)
+}
+
+func (host *HostName) ToIP() net.IP {
+	if addr, err := host.ToAddress(); addr != nil && err == nil {
+		return addr.GetIP()
+	}
+	return nil
+}
+
+func (host *HostName) ToIPAddr() *net.IPAddr {
+	if addr, err := host.ToAddress(); addr != nil && err == nil {
+		return &net.IPAddr{
+			IP:   addr.GetIP(),
+			Zone: string(addr.zone),
+		}
+	}
+	return nil
+}
+
+func (host *HostName) compareTo(other *HostName) int {
+	if host.IsValid() {
+		if other.IsValid() {
+			parsedHost := host.parsedHost
+			otherParsedHost := other.parsedHost
+			if parsedHost.isAddressString() {
+				if otherParsedHost.isAddressString() {
+					result := parsedHost.asGenericAddressString().CompareTo(otherParsedHost.asGenericAddressString())
+					if result != 0 {
+						return result
+					}
+					//fall through to compare ports
+				} else {
+					return -1
+				}
+			} else if otherParsedHost.isAddressString() {
+				return 1
+			} else {
+				//both are non-address hosts
+				normalizedLabels := parsedHost.getNormalizedLabels()
+				otherNormalizedLabels := otherParsedHost.getNormalizedLabels()
+				oneLen := len(normalizedLabels)
+				twoLen := len(otherNormalizedLabels)
+				var minLen int
+				if oneLen < twoLen {
+					minLen = oneLen
+				} else {
+					minLen = twoLen
+				}
+				for i := 1; i <= minLen; i++ {
+					one := normalizedLabels[oneLen-i]
+					two := otherNormalizedLabels[twoLen-i]
+					result := strings.Compare(one, two)
+					if result != 0 {
+						return result
+					}
+				}
+				if oneLen != twoLen {
+					return oneLen - twoLen
+				}
+
+				//keep in mind that hosts can has masks/prefixes or ports, but not both
+				networkPrefixLength := parsedHost.getEquivalentPrefixLength()
+				otherPrefixLength := otherParsedHost.getEquivalentPrefixLength()
+				if networkPrefixLength != nil {
+					if otherPrefixLength != nil {
+						if *networkPrefixLength != *otherPrefixLength {
+							return int(*otherPrefixLength - *networkPrefixLength)
+						}
+						//fall through to compare ports
+					} else {
+						return 1
+					}
+				} else {
+					if otherPrefixLength != nil {
+						return -1
+					}
+					mask := parsedHost.getMask()
+					otherMask := otherParsedHost.getMask()
+					if mask != nil {
+						if otherMask != nil {
+							ret := mask.CompareTo(otherMask)
+							if ret != 0 {
+								return ret
+							}
+							//fall through to compare ports
+						} else {
+							return 1
+						}
+					} else {
+						if otherMask != nil {
+							return -1
+						}
+						//fall through to compare ports
+					}
+				} //end non-address host compare
+			}
+
+			//two equivalent address strings or two equivalent hosts, now check port and service names
+			portOne := parsedHost.getPort()
+			portTwo := otherParsedHost.getPort()
+			if portOne != nil {
+				if portTwo != nil {
+					ret := *portOne - *portTwo
+					if ret != 0 {
+						return ret
+					}
+				} else {
+					return 1
+				}
+			} else if portTwo != nil {
+				return -1
+			}
+			serviceOne := parsedHost.getService()
+			serviceTwo := otherParsedHost.getService()
+			if serviceOne != "" {
+				if serviceTwo != "" {
+					ret := strings.Compare(serviceOne, serviceTwo)
+					if ret != 0 {
+						return ret
+					}
+				} else {
+					return 1
+				}
+			} else if serviceTwo != "" {
+				return -1
+			}
+			return 0
+		} else {
+			return 1
+		}
+	} else if other.IsValid() {
+		return -1
+	}
+	return strings.Compare(host.String(), other.String())
+}
+
 func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) {
 	//This is particularly targeted towards the zone
 	if !addr.HasZone() {
 		builder.WriteString(str)
 		return
-		//return str;
 	}
 	index := strings.IndexByte(str, IPv6ZoneSeparator)
-	//var translated strings.Builder
 	var translated *strings.Builder = builder
-	//translated.Grow(((len(str) - index) * 3) + index)
 	translated.WriteString(str[0:index])
 	translated.WriteString("%25")
 	for i := index + 1; i < len(str); i++ {
@@ -625,7 +806,6 @@ func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) 
 			translated.WriteByte(c)
 		}
 	}
-	//return translated.String()
 }
 
 func getPrivateHostParams(orig HostNameParameters) *hostNameParameters {

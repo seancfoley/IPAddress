@@ -318,13 +318,13 @@ func (addr *IPv4Address) UpperUint32Value() uint32 {
 	return addr.GetSection().UpperUint32Value()
 }
 
-func (addr *IPv4Address) Uint64Value() uint64 {
-	return addr.GetSection().Uint64Value()
-}
-
-func (addr *IPv4Address) UpperUint64Value() uint64 {
-	return addr.GetSection().UpperUint64Value()
-}
+//func (addr *IPv4Address) Uint64Value() uint64 {
+//	return addr.GetSection().Uint64Value()
+//}
+//
+//func (addr *IPv4Address) UpperUint64Value() uint64 {
+//	return addr.GetSection().UpperUint64Value()
+//}
 
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
 	return addr.init().toPrefixBlock().ToIPv4Address()
@@ -348,6 +348,15 @@ func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
 
 func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToIPv4Address(), err
+}
+
+func (addr *IPv4Address) AdjustPrefixLen(prefixLen BitCount) *IPv4Address {
+	return addr.init().adjustPrefixLen(prefixLen).ToIPv4Address()
+}
+
+func (addr *IPv4Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
+	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
 	return res.ToIPv4Address(), err
 }
 
@@ -433,6 +442,10 @@ func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+func (addr *IPv4Address) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(addr.init(), item)
+}
+
 func (addr *IPv4Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -477,6 +490,15 @@ func (addr *IPv4Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool 
 
 func (addr *IPv4Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
+}
+
+// IsLoopback returns whether this address is a loopback address, such as
+// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
+func (addr *IPv4Address) IsLoopback() bool {
+	if addr.section == nil {
+		return false
+	}
+	return addr.GetSegment(0).Matches(127)
 }
 
 func (addr *IPv4Address) Iterator() IPv4AddressIterator {

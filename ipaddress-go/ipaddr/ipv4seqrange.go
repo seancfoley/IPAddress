@@ -207,7 +207,7 @@ func (rng *IPv4AddressSeqRange) Subtract(other *IPv4AddressSeqRange) []*IPv4Addr
 
 // GetIPv4Count is equivalent to GetCount() but returns a uint64
 func (rng *IPv4AddressSeqRange) GetIPv4Count() uint64 {
-	return rng.GetUpper().Uint64Value() - rng.GetLower().Uint64Value() + 1
+	return uint64(rng.GetUpper().Uint32Value()-rng.GetLower().Uint32Value()) + 1
 }
 
 // GetIPv4PrefixCount is equivalent to GetPrefixCountLen(int) but returns a uint64
@@ -218,7 +218,7 @@ func (rng *IPv4AddressSeqRange) GetIPv4PrefixCount(prefixLength BitCount) uint64
 		return rng.GetIPv4Count()
 	}
 	shiftAdjustment := bitCount - prefixLength
-	upperAdjusted := rng.GetUpper().Uint64Value() >> uint(shiftAdjustment)
-	lowerAdjusted := rng.GetLower().Uint64Value() >> uint(shiftAdjustment)
-	return upperAdjusted - lowerAdjusted + 1
+	upperAdjusted := rng.GetUpper().Uint32Value() >> uint(shiftAdjustment)
+	lowerAdjusted := rng.GetLower().Uint32Value() >> uint(shiftAdjustment)
+	return uint64(upperAdjusted-lowerAdjusted) + 1
 }
