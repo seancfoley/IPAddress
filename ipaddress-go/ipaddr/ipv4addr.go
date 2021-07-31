@@ -287,7 +287,7 @@ func (addr *IPv4Address) GetUpperIPAddress() *IPAddress {
 }
 
 func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
-	res, err := addr.init().toZeroHost()
+	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv4Address(), err
 }
 

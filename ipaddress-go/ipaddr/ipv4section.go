@@ -318,7 +318,7 @@ func (section *IPv4AddressSection) GetUpper() *IPv4AddressSection {
 }
 
 func (section *IPv4AddressSection) ToZeroHost() (*IPv4AddressSection, IncompatibleAddressError) {
-	res, err := section.toZeroHost()
+	res, err := section.toZeroHost(false)
 	return res.ToIPv4AddressSection(), err
 }
 

@@ -144,7 +144,7 @@ func main() {
 	addrUpNil := addrDown.ToIPv4Address()
 	fmt.Printf("addr up converted nil is %+v\n", addrUpNil)
 
-	ht := ipaddr.NewHostName("bla.com", nil)
+	ht := ipaddr.NewHostName("bla.com")
 	fmt.Printf("%v\n", ht.ToNormalizedString())
 	fmt.Printf("%v\n", ht.GetHost())
 	//ip := net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc}

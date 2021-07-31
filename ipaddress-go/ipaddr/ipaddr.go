@@ -191,8 +191,9 @@ func (addr *ipAddressInternal) IsZeroHostLen(prefLen BitCount) bool {
 	return section == nil || section.ToIPAddressSection().IsZeroHostLen(prefLen)
 }
 
-func (addr *ipAddressInternal) toZeroHost() (res *IPAddress, err IncompatibleAddressError) {
-	section, err := addr.section.toIPAddressSection().toZeroHost()
+// when boundariesOnly is true, there will be no error
+func (addr *ipAddressInternal) toZeroHost(boundariesOnly bool) (res *IPAddress, err IncompatibleAddressError) {
+	section, err := addr.section.toIPAddressSection().toZeroHost(boundariesOnly)
 	if err == nil {
 		res = addr.checkIdentity(section)
 	}
@@ -473,17 +474,15 @@ func (addr *IPAddress) init() *IPAddress {
 }
 
 func (addr *IPAddress) getProvider() ipAddressProvider {
-	return nil
-	//TODO getProvider
-	/*
-		if(isPrefixed()) {
-			if(getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit() || !isPrefixBlock()) {
-				return ipAddressProvider.getProviderFor(this, withoutPrefixLen());
-			}
-			return ipAddressProvider.getProviderFor(this, toZeroHost(true).withoutPrefixLen());
+	if addr.IsPrefixed() {
+		if !addr.IsPrefixBlock() {
+			return getProviderFor(addr, addr.WithoutPrefixLen())
 		}
-		return ipAddressProvider.getProviderFor(this, this);
-	*/
+		zeroedAddr, _ := addr.toZeroHost(true)
+		return getProviderFor(addr, zeroedAddr.WithoutPrefixLen())
+	}
+	return getProviderFor(addr, addr)
+
 }
 
 func (addr IPAddress) String() string {
@@ -613,7 +612,7 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 }
 
 func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
-	return addr.init().toZeroHost()
+	return addr.init().toZeroHost(false)
 }
 
 func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressError) {
@@ -972,6 +971,7 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 	return nil
 }
 
+// TODO the static ToNormalizedString methods
 // TODO isAnyLocal in IPAddress / IPv4/6Address
 // TODO isLinkLOcal
 // TODO isLocal
@@ -1199,4 +1199,34 @@ func IPAddressEquals(one, two *IPAddress) bool {
 		return two == nil
 	}
 	return two != nil && one.Equals(two)
+}
+
+//TODO the general conversion methods in IPAddressGenerator which will include or use  addrFromIP and addrFromPrefixedIP
+
+func addrFromIP(bytes net.IP) (addr *IPAddress, err AddressValueError) {
+	addrLen := len(bytes)
+	if addrLen <= IPv4ByteCount {
+		var addr4 *IPv4Address
+		addr4, err = NewIPv4AddressFromIP(bytes)
+		addr = addr4.ToIPAddress()
+	} else {
+		var addr6 *IPv6Address
+		addr6, err = NewIPv6AddressFromIP(bytes)
+		addr = addr6.ToIPAddress()
+	}
+	return
+}
+
+func addrFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (addr *IPAddress, err AddressValueError) {
+	addrLen := len(bytes)
+	if addrLen <= IPv4ByteCount {
+		var addr4 *IPv4Address
+		addr4, err = NewIPv4AddressFromPrefixedIP(bytes, prefixLen)
+		addr = addr4.ToIPAddress()
+	} else {
+		var addr6 *IPv6Address
+		addr6, err = NewIPv6AddressFromPrefixedIP(bytes, prefixLen)
+		addr = addr6.ToIPAddress()
+	}
+	return
 }

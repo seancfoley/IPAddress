@@ -38,15 +38,16 @@ func (zone Zone) IsEmpty() bool {
 	return zone == ""
 }
 
-const NoZone Zone = ""
+const NoZone = ""
 
 func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv6Address()
 }
 
-func NewIPv6AddressZoned(section *IPv6AddressSection, zone Zone) *IPv6Address {
-	result := createAddress(section.ToAddressSection(), zone).ToIPv6Address()
-	if zone != NoZone {
+func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address {
+	zoneVal := Zone(zone)
+	result := createAddress(section.ToAddressSection(), zoneVal).ToIPv6Address()
+	if zoneVal != NoZone {
 		result.cache.stringCache = &stringCache{}
 	}
 	return result
@@ -84,8 +85,16 @@ func NewIPv6AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *I
 	return
 }
 
-func NewIPv6AddressFromIPAddr(ipAddr net.IPAddr) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
 	addr, err = NewIPv6AddressFromIP(ipAddr.IP)
+	if err == nil {
+		addr.zone = Zone(ipAddr.Zone)
+	}
+	return
+}
+
+func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromPrefixedIP(ipAddr.IP, prefixLen)
 	if err == nil {
 		addr.zone = Zone(ipAddr.Zone)
 	}
@@ -116,7 +125,7 @@ func NewIPv6AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefi
 	return
 }
 
-func NewIPv6AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone Zone) (addr *IPv6Address) {
+func NewIPv6AddressFromZonedRange(vals, upperVals SegmentValueProvider, zone string) (addr *IPv6Address) {
 	section := NewIPv6AddressSectionFromRangeValues(vals, upperVals, IPv6SegmentCount)
 	addr = NewIPv6AddressZoned(section, zone)
 	return
@@ -263,7 +272,7 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	if sec == addr.section {
 		return addr
 	}
-	return NewIPv6AddressZoned(section, addr.zone)
+	return NewIPv6AddressZoned(section, string(addr.zone))
 	//return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
 }
 
@@ -313,7 +322,7 @@ func (addr *IPv6Address) Subtract(other *IPv6Address) []*IPv6Address {
 	}
 	res := make([]*IPv6Address, sectLen)
 	for i, sect := range sects {
-		res[i] = NewIPv6AddressZoned(sect, addr.zone)
+		res[i] = NewIPv6AddressZoned(sect, string(addr.zone))
 	}
 	return res
 }
@@ -347,7 +356,7 @@ func (addr *IPv6Address) GetUpperIPAddress() *IPAddress {
 }
 
 func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
-	res, err := addr.init().toZeroHost()
+	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv6Address(), err
 }
 

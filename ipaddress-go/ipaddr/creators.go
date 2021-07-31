@@ -99,7 +99,7 @@ func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromSection(section *IPAddressSection, zone Zone, originator HostIdentifierString) *IPAddress {
-	res := NewIPv6AddressZoned(section.ToIPv6AddressSection(), zone).ToIPAddress()
+	res := NewIPv6AddressZoned(section.ToIPv6AddressSection(), string(zone)).ToIPAddress()
 	if originator != nil {
 		res.cache.fromString = unsafe.Pointer(originator.(*IPAddressString))
 	}

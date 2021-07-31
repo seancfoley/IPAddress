@@ -1879,7 +1879,7 @@ func parsePortOrService(
 			return
 		}
 		res.zone = zone
-		res.port = cachePorts(port)
+		res.port = cachePorts(PortNum(port))
 		//res = &parsedHostIdentifierStringQualifier{zone: zone, port: &port}
 		return
 	} else if !validationOptions.AllowsService() {
@@ -4002,8 +4002,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 			addrQualifier = noQualifier
 		}
 		embeddedAddr := checkSpecialHosts(str, addrLen, addrQualifier)
-		hasEmbeddedAddr := embeddedAddr.addressProvider == nil
-		//AddressStringError embeddedException = null;
+		hasEmbeddedAddr := embeddedAddr.addressProvider != nil
 		if isSpecialOnlyIndex >= 0 && (!hasEmbeddedAddr || embeddedAddr.addressStringError != nil) {
 			if embeddedAddr.addressStringError != nil {
 				err = &hostAddressNestedError{
@@ -4024,7 +4023,8 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		psdHost.normalizedFlags = normalizedFlags
 		if !hasEmbeddedAddr {
 			if !isNotNormalized {
-				psdHost.host = str
+				//	psdHost.parsedHostCache.hostStrings = &hostStrings{host: str} TODO I changed it so that both host and normalizedLabels must be assigned together which does not comport with this assignment here
+				//psdHost.host = str
 			}
 		} else {
 			if isPrefixed {
@@ -4037,7 +4037,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 }
 
 func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentifierStringQualifier) (emb embeddedAddress) {
-	// TODO special hosts
+	// TODO LATER special hosts
 	//		try {
 	//			String suffix = IPv6Address.UNC_SUFFIX;
 	//			//note that by using addrLen we are omitting any terminating prefix

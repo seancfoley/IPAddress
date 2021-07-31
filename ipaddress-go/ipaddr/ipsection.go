@@ -270,7 +270,7 @@ func (section *ipAddressSectionInternal) IncludesMaxHostLen(networkPrefixLength 
 	return true
 }
 
-func (section *ipAddressSectionInternal) toZeroHost() (res *IPAddressSection, err IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *IPAddressSection, err IncompatibleAddressError) {
 	segmentCount := section.GetSegmentCount()
 	if segmentCount == 0 {
 		return section.toIPAddressSection(), nil
@@ -284,7 +284,7 @@ func (section *ipAddressSectionInternal) toZeroHost() (res *IPAddressSection, er
 		res = section.getLower().ToIPAddressSection() //cached
 		return
 	}
-	return section.createZeroHost(false)
+	return section.createZeroHost(boundariesOnly)
 }
 
 // boundariesOnly: whether we care if the masking works for all values in a range.
@@ -309,7 +309,7 @@ func (section *ipAddressSectionInternal) toZeroHostLen(prefixLength BitCount) (*
 	if section.IsPrefixed() {
 		existingPrefLen := *section.GetNetworkPrefixLength()
 		if prefixLength == existingPrefLen {
-			return section.toZeroHost()
+			return section.toZeroHost(false)
 		}
 		if prefixLength < existingPrefLen {
 			minIndex = getNetworkSegmentIndex(prefixLength, section.GetBytesPerSegment(), section.GetBitsPerSegment())
@@ -1339,7 +1339,7 @@ func (section *IPAddressSection) GetUpper() *IPAddressSection {
 }
 
 func (section *IPAddressSection) ToZeroHost() (res *IPAddressSection, err IncompatibleAddressError) {
-	return section.toZeroHost()
+	return section.toZeroHost(false)
 }
 
 func (section *IPAddressSection) ToZeroHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {

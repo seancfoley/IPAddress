@@ -310,7 +310,7 @@ func (section *IPv6AddressSection) GetUpper() *IPv6AddressSection {
 }
 
 func (section *IPv6AddressSection) ToZeroHost() (*IPv6AddressSection, IncompatibleAddressError) {
-	res, err := section.toZeroHost()
+	res, err := section.toZeroHost(false)
 	return res.ToIPv6AddressSection(), err
 }
 

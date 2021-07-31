@@ -15,8 +15,13 @@ const (
 	IPv6EndBracket   = '['
 )
 
-// NewHostName constructs an HostName that will parse the given string according to the given parameters
-func NewHostName(str string, params HostNameParameters) *HostName {
+// NewHostName constructs an HostName that will parse the given string according to the default parameters
+func NewHostName(str string) *HostName {
+	return &HostName{str: str, params: defaultHostParameters, hostCache: &hostCache{}}
+}
+
+// NewHostNameParams constructs an HostName that will parse the given string according to the given parameters
+func NewHostNameParams(str string, params HostNameParameters) *HostName {
 	var prms *hostNameParameters
 	if params == nil {
 		prms = defaultHostParameters
@@ -27,11 +32,12 @@ func NewHostName(str string, params HostNameParameters) *HostName {
 }
 
 func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
-	hostStr := toNormalizedAddrPortString(addr, port)
+	portVal := PortNum(port)
+	hostStr := toNormalizedAddrPortString(addr, portVal)
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
 		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
-		labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(port)},
+		labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(portVal)},
 	}
 	return &HostName{
 		str:       hostStr,
@@ -42,6 +48,10 @@ func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
 
 func NewHostNameFromAddr(addr *IPAddress) *HostName {
 	hostStr := addr.ToNormalizedString()
+	return newHostNameFromAddr(hostStr, addr)
+}
+
+func newHostNameFromAddr(hostStr string, addr *IPAddress) *HostName { // same as HostName(String hostStr, ParsedHost parsed) {
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
 		embeddedAddress: embeddedAddress{addressProvider: addr.getProvider()},
@@ -53,15 +63,85 @@ func NewHostNameFromAddr(addr *IPAddress) *HostName {
 	}
 }
 
-//TODO other constructors for HostName
+func NewHostNameFromTCPAddr(addr *net.TCPAddr) (*HostName, AddressValueError) {
+	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
+}
+
+func NewHostNameFromUDPAddr(addr *net.UDPAddr) (*HostName, AddressValueError) {
+	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
+}
+
+func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName, err AddressValueError) {
+	var ipAddr *IPAddress
+	if zone == NoZone {
+		ipAddr, err = addrFromIP(ip)
+	} else {
+		var addr6 *IPv6Address
+		addr6, err = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+		ipAddr = addr6.ToIPAddress()
+	}
+	if err == nil {
+		portVal := PortNum(port)
+		hostStr := toNormalizedAddrPortString(ipAddr, portVal)
+		parsedHost := parsedHost{
+			originalStr:     hostStr,
+			embeddedAddress: embeddedAddress{addressProvider: ipAddr.getProvider()},
+			labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(portVal)},
+		}
+		hostName = &HostName{
+			str:       hostStr,
+			params:    defaultHostParameters,
+			hostCache: &hostCache{normalizedString: &hostStr, hostData: &hostData{parsedHost: &parsedHost}},
+		}
+	}
+	return
+}
+
+func NewHostNameFromIP(bytes net.IP) (hostName *HostName, err AddressValueError) {
+	addr, err := addrFromIP(bytes)
+	if err == nil {
+		hostName = NewHostNameFromAddr(addr)
+	}
+	return
+}
+
+func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName, err AddressValueError) {
+	addr, err := addrFromPrefixedIP(bytes, prefixLen)
+	if err == nil {
+		hostName = NewHostNameFromAddr(addr)
+	}
+	return
+}
+
+func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName, err AddressValueError) {
+	if addr.Zone == NoZone {
+		return NewHostNameFromIP(addr.IP)
+	}
+	addr6, err := NewIPv6AddressFromIPAddr(addr)
+	if err == nil {
+		hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	}
+	return
+}
+
+func NewHostNameFromPrefixedIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName, err AddressValueError) {
+	if addr.Zone == NoZone {
+		return NewHostNameFromPrefixedIP(addr.IP, prefixLen)
+	}
+	addr6, err := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLen)
+	if err == nil {
+		hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	}
+	return
+}
 
 var defaultHostParameters = &hostNameParameters{}
 
-var zeroHost = NewHostName("", defaultHostParameters)
+var zeroHost = NewHostName("")
 
 type hostData struct {
-	parsedHost        *parsedHost
-	validateException HostNameError
+	parsedHost    *parsedHost
+	validateError HostNameError
 }
 
 type resolveData struct {
@@ -107,17 +187,8 @@ func (host *HostName) Validate() HostNameError {
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.hostData))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(data))
 	}
-	return data.validateException
+	return data.validateError
 }
-
-// TODO we do want the functions taking IPVersion as arg, they allow validation without address object creation
-// the validation options can filter out one version already, although it's not obvious it can be done that way
-// I decided to deprecate them in Java, but, maybe you want to change your mind?
-// I am leaning towards deprecation, in part because the resolve works by delivering all address versions at once.
-// So there is an asymmetry there.
-// Another reason is that you can easily query for version without producing the address object.
-// From that perspective, the versioned methods buy you nothing useful.
-// This is a damn good reason to also remove these same functions from IPAddressString.
 
 func (host *HostName) String() string {
 	return host.str
@@ -159,21 +230,16 @@ func (host *HostName) GetAddress() *IPAddress {
 	return addr
 }
 
-func (host *HostName) ToAddresses() ([]*IPAddress, AddressError) {
-	return host.toAddresses()
-}
-
 func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
-	addresses, err := host.toAddresses()
+	addresses, err := host.ToAddresses()
 	if len(addresses) > 0 {
 		addr = addresses[0]
 	}
 	return
 }
 
-//
 // error can be AddressStringError or IncompatibleAddressError
-func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
+func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 	host = host.init()
 	data := host.resolveData
 	if data == nil {
@@ -250,12 +316,10 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 						addrs[j] = ipv4Addr.ToIPAddress()
 					}
 				}
-
 				// sort by preferred version
 				preferredVersion := validationOptions.GetPreferredVersion()
-				preferredIndex := 0
-
-				if count > 8 {
+				boundaryCase := 8
+				if count > boundaryCase {
 					c := 0
 					newAddrs := make([]*IPAddress, count)
 					for _, val := range addrs {
@@ -273,7 +337,8 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 					}
 					addrs = newAddrs
 				} else {
-				top: //TODO test this sort, it changes [x y y x y x x] to [x x x x y y y] if x is preferred.
+					preferredIndex := 0
+				top:
 					for i := 0; i < count; i++ {
 						notPreferred := addrs[i]
 						if notPreferred.getIPVersion() != preferredVersion {
@@ -287,7 +352,7 @@ func (host *HostName) toAddresses() (addrs []*IPAddress, err AddressError) {
 								preferred := addrs[j]
 								if preferred.getIPVersion() == preferredVersion {
 									addrs[i] = preferred
-									// don't swap so the non-preferred order is preserved
+									// don't swap so the non-preferred order is preserved,
 									// instead shift each upwards by one spot
 									k := i + 1
 									for ; k < j; k++ {
@@ -391,13 +456,11 @@ func (host *HostName) toNormalizedString(wildcard bool) string {
 			if networkPrefixLength != nil {
 				builder.WriteByte(PrefixLenSeparator)
 				toUnsignedString(uint64(*networkPrefixLength), 10, &builder)
-				//builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(networkPrefixLength);
 			} else {
 				mask := host.parsedHost.getMask()
 				if mask != nil {
 					builder.WriteByte(PrefixLenSeparator)
 					builder.WriteString(mask.ToNormalizedString())
-					//builder.append(IPAddress.PREFIX_LEN_SEPARATOR).append(mask.toNormalizedString())
 				}
 			}
 		}
@@ -409,7 +472,6 @@ func (host *HostName) toNormalizedString(wildcard bool) string {
 			if service != "" {
 				builder.WriteByte(PortSeparator)
 				builder.WriteString(string(service))
-				//builder.append(PORT_SEPARATOR).append(service)
 			}
 		}
 		return builder.String()
@@ -417,7 +479,7 @@ func (host *HostName) toNormalizedString(wildcard bool) string {
 	return host.str
 }
 
-func toNormalizedPortString(port int, builder *strings.Builder) {
+func toNormalizedPortString(port PortNum, builder *strings.Builder) {
 	builder.WriteByte(PortSeparator)
 	toUnsignedString(uint64(port), 10, builder)
 }
@@ -446,7 +508,7 @@ func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Bui
 	}
 }
 
-func toNormalizedAddrPortString(addr *IPAddress, port int) string {
+func toNormalizedAddrPortString(addr *IPAddress, port PortNum) string {
 	builder := strings.Builder{}
 	toNormalizedHostString(addr, false, &builder)
 	toNormalizedPortString(port, &builder)
@@ -621,7 +683,7 @@ func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCP
 			if addr := host.AsAddress(); addr != nil {
 				return &net.TCPAddr{
 					IP:   addr.GetIP(),
-					Port: *port,
+					Port: int(*port),
 					Zone: string(addr.zone),
 				}
 			}
@@ -755,7 +817,7 @@ func (host *HostName) compareTo(other *HostName) int {
 				if portTwo != nil {
 					ret := *portOne - *portTwo
 					if ret != 0 {
-						return ret
+						return int(ret)
 					}
 				} else {
 					return 1

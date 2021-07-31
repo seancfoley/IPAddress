@@ -52,7 +52,8 @@ func initPrefLens() []PrefixLen {
 	return cachedPrefLens
 }
 
-type Port *int // using signed integers allows for easier arithmetic and decrement bugs
+type Port *PortNum // using signed integers allows for easier arithmetic and decrement bugs
+type PortNum int
 
 func PortEquals(one, two Port) bool {
 	if one == nil {
@@ -61,7 +62,7 @@ func PortEquals(one, two Port) bool {
 	return two != nil && *one == *two
 }
 
-func cachePorts(i int) Port {
+func cachePorts(i PortNum) Port {
 	return Port(&i)
 }
 
