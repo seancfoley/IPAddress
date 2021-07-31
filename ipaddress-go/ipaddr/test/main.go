@@ -266,11 +266,11 @@ func main() {
 		fmt.Printf("%v ", addrIter.Next())
 	}
 
-	macStrPref1 := ipaddr.NewMACAddressString("1:2:3:4:5:6", nil)
+	macStrPref1 := ipaddr.NewMACAddressString("1:2:3:4:5:6")
 	mAddr := macStrPref1.GetAddress()
 	fmt.Printf("\nmac addr is %+v\n", mAddr)
 
-	macStrPref1 = ipaddr.NewMACAddressString("1:2:3:4:5:*", nil)
+	macStrPref1 = ipaddr.NewMACAddressString("1:2:3:4:5:*")
 	mAddr = macStrPref1.GetAddress()
 	fmt.Printf("\nmac addr is %+v\n", mAddr)
 	mAddrIter := mAddr.Iterator()

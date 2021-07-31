@@ -7,8 +7,8 @@ import (
 
 var defaultMACAddrParameters *macAddressStringParameters = &macAddressStringParameters{}
 
-// NewMACAddressString constructs a MACAddressString that will parse the given string according to the given parameters
-func NewMACAddressString(str string, params MACAddressStringParameters) *MACAddressString {
+// NewMACAddressStringParams constructs a MACAddressString that will parse the given string according to the given parameters
+func NewMACAddressStringParams(str string, params MACAddressStringParameters) *MACAddressString {
 	var p *macAddressStringParameters
 	if params == nil {
 		p = defaultMACAddrParameters
@@ -16,10 +16,26 @@ func NewMACAddressString(str string, params MACAddressStringParameters) *MACAddr
 		p = getPrivateMACParams(params)
 	}
 	return &MACAddressString{str: str, params: p, macAddrStringCache: new(macAddrStringCache)}
-	//return &MACAddressString{str: str, params: convertMACParams(params)}
 }
 
-var zeroMACAddressString = NewMACAddressString("", defaultMACAddrParameters)
+// NewMACAddressString constructs a MACAddressString that will parse the given string according to the default parameters
+func NewMACAddressString(str string) *MACAddressString {
+	return &MACAddressString{str: str, params: defaultMACAddrParameters, macAddrStringCache: new(macAddrStringCache)}
+}
+
+func newMACAddressStringFromAddr(str string, addr *MACAddress) *MACAddressString {
+	return &MACAddressString{
+		str:    str,
+		params: defaultMACAddrParameters,
+		macAddrStringCache: &macAddrStringCache{
+			&macAddrData{
+				addressProvider: wrappedMACAddressProvider{addr},
+			},
+		},
+	}
+}
+
+var zeroMACAddressString = NewMACAddressString("")
 
 type macAddrData struct {
 	addressProvider   macAddressProvider
@@ -51,15 +67,6 @@ func (addrStr *MACAddressString) GetValidationOptions() MACAddressStringParamete
 	return addrStr.getParams()
 }
 
-//func (addrStr *MACAddressString) getParams() *macAddressStringParameters {
-//	params := addrStr.params
-//	if params == nil {
-//		params = defaultMACAddrParameters
-//		//addrStr.params = params
-//	}
-//	return params
-//}
-
 func (addrStr *MACAddressString) String() string {
 	return addrStr.str
 }
@@ -83,11 +90,11 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressError) {
 	return provider.getAddress()
 }
 
-// error can be AddressStringError or IncompatibleAddressError
-func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressError) {
-	addr, err := addrStr.ToAddress()
-	return addr.ToAddress(), err
-}
+//// error can be AddressStringError or IncompatibleAddressError
+//func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressError) {
+//	addr, err := addrStr.ToAddress()
+//	return addr.ToAddress(), err
+//}
 
 func (addrStr *MACAddressString) IsValid() bool {
 	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
@@ -150,6 +157,9 @@ func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
 	}
 	return false
 }
+
+//TODO COmpareTo
+//TODO GetPrefixLEngth, isAllAddresses, IsEmpty, IsPrefixed, isZero and then we are done here
 
 func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
 	if p, ok := orig.(*macAddressStringParameters); ok {

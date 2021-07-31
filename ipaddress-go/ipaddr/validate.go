@@ -8,20 +8,9 @@ import (
 	"unsafe"
 )
 
-var extendedDigits = []byte{
-	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
-	'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-	'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
-	'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-	'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-',
-	';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}',
-	'~'}
+var chars, extendedChars = createChars()
 
-var chars [int('z') + 1]byte
-var extendedChars [int('~') + 1]byte
-
-func init() {
+func createChars() (chars [int('z') + 1]byte, extendedChars [int('~') + 1]byte) {
 	i := byte(0)
 	for c := '0'; i < 10; i, c = i+1, c+1 {
 		chars[c] = i
@@ -30,11 +19,21 @@ func init() {
 		chars[c] = i
 		chars[c2] = i
 	}
+	var extendedDigits = []byte{
+		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+		'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+		'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+		'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+		'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-',
+		';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}',
+		'~'}
 	extLen := byte(len(extendedDigits))
 	for i = 0; i < extLen; i++ {
 		c := extendedDigits[i]
 		extendedChars[c] = i
 	}
+	return
 }
 
 const (
@@ -4023,7 +4022,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		psdHost.normalizedFlags = normalizedFlags
 		if !hasEmbeddedAddr {
 			if !isNotNormalized {
-				//	psdHost.parsedHostCache.hostStrings = &hostStrings{host: str} TODO I changed it so that both host and normalizedLabels must be assigned together which does not comport with this assignment here
+				//	psdHost.parsedHostCache.hostStrings = &hostStrings{host: str} TODO I changed it so that both host and normalizedLabels must be assigned together which does not comport with this assignment here, since I do not have normalizedLabels here (boo)
 				//psdHost.host = str
 			}
 		} else {

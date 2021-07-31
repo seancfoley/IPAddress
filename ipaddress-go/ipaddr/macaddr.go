@@ -36,7 +36,7 @@ const (
 	MacDashedSegmentRangeSeparatorStr string = string(MacDashedSegmentRangeSeparator)
 )
 
-// TODO constructors:
+// TODO mac constructors:
 // long (48 bits)
 // long boolean extended (64 bits)
 // []byte
@@ -400,7 +400,8 @@ func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
 	if res == nil {
-		str := NewMACAddressString(addr.ToCanonicalString(), nil)
+		str := newMACAddressStringFromAddr(addr.toCanonicalString(), addr)
+		//str := NewMACAddressString(addr.ToCanonicalString(), nil)
 		dataLoc := &addr.cache.fromString
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str

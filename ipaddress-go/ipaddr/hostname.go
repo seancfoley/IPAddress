@@ -377,11 +377,11 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 	return data.resolvedAddrs, nil
 }
 
-func (host *HostName) ToHostAddress() (*Address, AddressError) {
-	host = host.init()
-	addr, err := host.ToAddress()
-	return addr.ToAddress(), err
-}
+//func (host *HostName) ToHostAddress() (*Address, AddressError) {
+//	host = host.init()
+//	addr, err := host.ToAddress()
+//	return addr.ToAddress(), err
+//}
 
 func (host *HostName) IsValid() bool {
 	return host.init().Validate() == nil

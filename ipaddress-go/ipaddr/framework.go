@@ -269,3 +269,15 @@ type IPAddressSeqRangeType interface {
 var _, _, _ IPAddressSeqRangeType = &IPAddressSeqRange{},
 	&IPv4AddressSeqRange{},
 	&IPv6AddressSeqRange{}
+
+// HostIdentifierString represents a string that is used to identify a host.
+type HostIdentifierString interface {
+
+	// provides a normalized String representation for the host identified by this HostIdentifierString instance
+	ToNormalizedString() string
+
+	// returns whether the wrapped string is a valid identifier for a host
+	IsValid() bool
+}
+
+var _, _, _ HostIdentifierString = &IPAddressString{}, &MACAddressString{}, &HostName{}

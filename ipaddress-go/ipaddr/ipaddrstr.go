@@ -22,6 +22,18 @@ func NewIPAddressString(str string) *IPAddressString {
 	return &IPAddressString{str: str, params: defaultIPAddrParameters, ipAddrStringCache: new(ipAddrStringCache)}
 }
 
+func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
+	return &IPAddressString{
+		str:    str,
+		params: defaultIPAddrParameters,
+		ipAddrStringCache: &ipAddrStringCache{
+			&addrData{
+				addressProvider: addr.getProvider(),
+			},
+		},
+	}
+}
+
 var validator strValidator
 
 var defaultIPAddrParameters = &ipAddressStringParameters{}

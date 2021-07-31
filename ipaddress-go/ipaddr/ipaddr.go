@@ -978,7 +978,8 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 // TODO isLoopBack
 // TODO isUnspecified
 // TODO matchesWithMask here and in IPSection
-// TODO replace
+// TODO replace: only at top-level (ie IPvx and MAC, not here, not Address).  // This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.
+// TODO append: allow at top-level. (ie IPvx and MAC, not here, not Address)
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()
@@ -1170,7 +1171,8 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
 	res := addr.cache.fromString
 	if res == nil {
-		str := NewIPAddressString(addr.toCanonicalString())
+		//str := NewIPAddressString(addr.toCanonicalString())
+		str := newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
 		dataLoc := &addr.cache.fromString
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str
@@ -1201,7 +1203,7 @@ func IPAddressEquals(one, two *IPAddress) bool {
 	return two != nil && one.Equals(two)
 }
 
-//TODO the general conversion methods in IPAddressGenerator which will include or use  addrFromIP and addrFromPrefixedIP
+//TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
 
 func addrFromIP(bytes net.IP) (addr *IPAddress, err AddressValueError) {
 	addrLen := len(bytes)

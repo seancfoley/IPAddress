@@ -6,7 +6,7 @@ package ipaddr
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
-	// Unwrap returns the wrapped section or address as an IPAddressSegmentSeries
+	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
 	// GetSection returns the full address section

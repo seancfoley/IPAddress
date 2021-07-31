@@ -894,10 +894,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
-// - did we do mac <-> ipv6?  Or ipv4 <-> ipv6? not yet
-// ---> - we need to circle back to the parsing code and do all teh things we deferred, such as the locking, such as the optimized contains and equals, etc
+// - mac <-> ipv6
+// - ipv4 <-> ipv6
 //
 // Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
-
-// TODO append and replace in sections: we only allow at top-level.
-// This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.
