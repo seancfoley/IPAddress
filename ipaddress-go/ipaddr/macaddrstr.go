@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"strings"
 	"sync/atomic"
 	"unsafe"
 )
@@ -72,8 +73,11 @@ func (addrStr *MACAddressString) String() string {
 }
 
 func (addrStr *MACAddressString) ToNormalizedString() string {
-	//TODO MACAddressString ToNormalizedString
-	return ""
+	addr := addrStr.GetAddress()
+	if addr != nil {
+		return addr.toNormalizedString()
+	}
+	return addrStr.String()
 }
 
 func (addrStr *MACAddressString) GetAddress() *MACAddress {
@@ -90,14 +94,39 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressError) {
 	return provider.getAddress()
 }
 
-//// error can be AddressStringError or IncompatibleAddressError
-//func (addrStr *MACAddressString) ToHostAddress() (*Address, AddressError) {
-//	addr, err := addrStr.ToAddress()
-//	return addr.ToAddress(), err
-//}
+// IsPrefixed returns whether this address represents the set of all addresses with the same prefix
+func (addrStr *MACAddressString) IsPrefixed() bool {
+	return addrStr.GetPrefixLength() != nil
+}
+
+// GetPrefixLength returns the prefix length if this address is a valid prefixed address, otherwise returns null
+func (addrStr *MACAddressString) GetPrefixLength() PrefixLen {
+	addr := addrStr.GetAddress()
+	if addr != nil {
+		return addr.GetPrefixLength()
+	}
+	return nil
+}
+
+// IsAllAddresses returns whether the address represents the set all all valid MAC addresses for its address length
+func (addrStr *MACAddressString) IsAllAddresses() bool {
+	addr := addrStr.GetAddress()
+	return addr != nil && addr.IsAllAddresses()
+}
+
+//IsEmpty returns true if the address is empty (zero-length).
+func (addrStr *MACAddressString) IsEmpty() bool {
+	addr, err := addrStr.ToAddress()
+	return err == nil && addr == nil
+}
+
+func (addrStr *MACAddressString) IsZero() bool {
+	addr := addrStr.GetAddress()
+	return addr != nil && addr.IsZero()
+}
 
 func (addrStr *MACAddressString) IsValid() bool {
-	return addrStr.macAddrStringCache == nil /* zero address is valid */ /* TODO || !addrStr.getAddressProvider().isInvalid() */
+	return addrStr.Validate() == nil
 }
 
 func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, AddressStringError) {
@@ -117,6 +146,31 @@ func (addrStr *MACAddressString) Validate() AddressStringError {
 		atomic.StorePointer(dataLoc, unsafe.Pointer(data))
 	}
 	return data.validateException
+}
+
+func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
+	addrStr = addrStr.init()
+	other = other.init()
+	if addrStr == other {
+		return 0
+	}
+	if addrStr.IsValid() {
+		if other.IsValid() {
+			addr := addrStr.GetAddress()
+			if addr != nil {
+				otherAddr := other.GetAddress()
+				if otherAddr != nil {
+					return addr.CompareTo(otherAddr)
+				}
+			}
+			// one or the other is null, either empty or IncompatibleAddressException
+			return strings.Compare(addrStr.String(), other.String())
+		}
+		return 1
+	} else if other.IsValid() {
+		return -1
+	}
+	return strings.Compare(addrStr.String(), other.String())
 }
 
 // Two MACAddressString objects are equal if they represent the same set of addresses.
@@ -157,9 +211,6 @@ func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
 	}
 	return false
 }
-
-//TODO COmpareTo
-//TODO GetPrefixLEngth, isAllAddresses, IsEmpty, IsPrefixed, isZero and then we are done here
 
 func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
 	if p, ok := orig.(*macAddressStringParameters); ok {

@@ -42,6 +42,10 @@ type MACAddressSection struct {
 	addressSectionInternal
 }
 
+func (section *MACAddressSection) IsExtended() bool {
+	return section.isExtended
+}
+
 func (section *MACAddressSection) GetBitsPerSegment() BitCount {
 	return MACBitsPerSegment
 }

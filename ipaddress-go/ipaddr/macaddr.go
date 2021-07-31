@@ -83,6 +83,14 @@ type MACAddress struct {
 	addressInternal
 }
 
+func (addr *MACAddress) IsExtended() bool {
+	return addr.GetSection().IsExtended()
+}
+
+func (addr *MACAddress) IsAllAddresses() bool {
+	return addr.GetSection().IsFullRange()
+}
+
 func (addr *MACAddress) GetBitCount() BitCount {
 	return addr.init().addressInternal.GetBitCount()
 }
