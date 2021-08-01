@@ -44,6 +44,10 @@ var (
 type addressDivisionGroupingInternal struct {
 	addressDivisionGroupingBase
 
+	//TODO get rid of addressSegmentIndex and isExtended
+	// You just don't need positionality from sections.
+	// Being mixed or converting to IPv6 from MAC are properties of the address.
+
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
 	addressSegmentIndex int8
 

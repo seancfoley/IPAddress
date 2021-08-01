@@ -1717,7 +1717,8 @@ func toSegments(
 }
 
 func createSegmentsUint64(
-	segments []*AddressDivision, // empty
+	//segments []*AddressDivision,
+	segLen int,
 	highBytes,
 	lowBytes uint64,
 	bytesPerSegment int,
@@ -1726,7 +1727,8 @@ func createSegmentsUint64(
 	prefixLength PrefixLen) []*AddressDivision {
 	segmentMask := ^(^SegInt(0) << uint(bitsPerSegment))
 	lowSegCount := getHostSegmentIndex(64, bytesPerSegment, bitsPerSegment)
-	segLen := len(segments)
+	newSegs := make([]*AddressDivision, segLen)
+	//segLen := len(segments)
 	lowIndex := segLen - lowSegCount
 	if lowIndex < 0 {
 		lowIndex = 0
@@ -1738,7 +1740,7 @@ func createSegmentsUint64(
 			segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 			value := segmentMask & SegInt(bytes)
 			seg := creator.createSegment(value, value, segmentPrefixLength)
-			segments[segmentIndex] = seg
+			newSegs[segmentIndex] = seg
 			segmentIndex--
 			if segmentIndex < lowIndex {
 				break
@@ -1751,7 +1753,7 @@ func createSegmentsUint64(
 		lowIndex = 0
 		bytes = highBytes
 	}
-	return segments
+	return newSegs
 }
 
 func createSegments(

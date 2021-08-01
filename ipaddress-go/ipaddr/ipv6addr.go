@@ -68,6 +68,8 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address 
 // []IPv6AddressSegment with prefix
 // []IPv6AddressSegment with zone
 // []IPv6AddressSegment with prefix and zone
+//
+// we actually had one for sections with two longs, but not for addresses
 
 func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6AddressSectionFromSegmentedBytes(bytes, IPv6SegmentCount)
@@ -85,12 +87,16 @@ func NewIPv6AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *I
 	return
 }
 
-func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
-	addr, err = NewIPv6AddressFromIP(ipAddr.IP)
+func newIPv6AddressFromZonedIP(bytes net.IP, zone string) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromIP(bytes)
 	if err == nil {
-		addr.zone = Zone(ipAddr.Zone)
+		addr.zone = Zone(zone)
 	}
 	return
+}
+
+func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
+	return newIPv6AddressFromZonedIP(ipAddr.IP, ipAddr.Zone)
 }
 
 func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err AddressValueError) {
@@ -219,6 +225,21 @@ func (addr *IPv6Address) GetNetworkMask() *IPv6Address {
 
 func (addr *IPv6Address) GetHostMask() *IPv6Address {
 	return addr.getHostMask(DefaultIPv6Network).ToIPv6Address()
+}
+
+func (addr *IPv6Address) GetMixedAddressGrouping() *IPv6v4MixedAddressGrouping {
+	return addr.init().GetSection().getMixedAddressGrouping()
+}
+
+// GetEmbeddedIPv4AddressSection gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
+// which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
+func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
+	return addr.init().GetSection().getEmbeddedIPv4AddressSection()
+}
+
+// GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
+func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) *IPv4AddressSection {
+	return addr.init().GetSection().getIPv4AddressSection(startIndex, endIndex)
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -515,11 +536,13 @@ func (addr *IPv6Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv6Address) Contains(other AddressType) bool {
-	return addr.init().contains(other) // the base method handles zone too
+	return other.getAddrType() == ipv6Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection()) &&
+		addr.isSameZone(other.ToAddress())
 }
 
 func (addr *IPv6Address) Equals(other AddressType) bool {
-	return addr.init().equals(other) // the base method handles zone too
+	return other.getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
+		addr.isSameZone(other.ToAddress())
 }
 
 func (addr *IPv6Address) GetMaxSegmentValue() SegInt {
@@ -766,6 +789,24 @@ func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAd
 
 func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toBinaryString(with0bPrefix)
+}
+
+// This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
+func (addr *IPv6Address) ToMixedString() string {
+	if addr.hasZone() {
+		var cacheField **string
+		cacheField = &addr.getStringCache().mixedString
+		//return cacheStrErr(cacheField, //TODO reinstate when your error handling is better in visitSplitSegments
+		//	func() (string, IncompatibleAddressError) {
+		//		return addr.section.ToIPv6AddressSection().toMixedStringZoned(addr.zone)
+		//	})
+		return cacheStr(cacheField,
+			func() string {
+				return addr.GetSection().toMixedStringZoned(addr.zone)
+			})
+	}
+	return addr.GetSection().toMixedString()
+
 }
 
 //func (addr *IPv6Address) CompareSize(other *IPv6Address) int {

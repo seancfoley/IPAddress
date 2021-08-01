@@ -224,7 +224,7 @@ func main() {
 	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str = ipv6Sect.ToMixedString()
+	str = addrStrPref7.GetAddress().ToIPv6Address().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 	str, _ = addrStrPref7.GetAddress().ToBinaryString(true)
 	fmt.Printf("\nIPv6 binary string is %s", str)
@@ -236,7 +236,7 @@ func main() {
 	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str = ipv6Sect.ToMixedString()
+	str = addrStrPref8.GetAddress().ToIPv6Address().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 
 	rangiter := rng.PrefixIterator(28)
@@ -410,7 +410,7 @@ func merge(strs ...string) []*ipaddr.IPAddress {
 // godoc cheat sheet
 //https://godoc.org/github.com/fluhus/godoc-tricks#Links
 
-// TODO gdb https://gist.github.com/danisfermi/17d6c0078a2fd4c6ee818c954d2de13c
+// gdb tips https://gist.github.com/danisfermi/17d6c0078a2fd4c6ee818c954d2de13c
 func getDoc() error {
 	// Create the AST by parsing src.
 	fset := token.NewFileSet() // positions are relative to fset

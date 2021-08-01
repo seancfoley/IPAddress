@@ -68,9 +68,9 @@ func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressStr
 	return res
 }
 
-var zeroMAC = initMACZero()
+var zeroMAC = createMACZero()
 
-func initMACZero() *MACAddress {
+func createMACZero() *MACAddress {
 	return nil
 	// TODO reinstate when all these methods are in place
 	//div := NewMACSegment(0).ToAddressDivision()
@@ -319,10 +319,12 @@ func (addr *MACAddress) PrefixContains(other AddressType) bool {
 }
 
 func (addr *MACAddress) Contains(other AddressType) bool {
+	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MAC
 	return addr.init().contains(other)
 }
 
 func (addr *MACAddress) Equals(other AddressType) bool {
+	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MAC
 	return addr.init().equals(other)
 }
 

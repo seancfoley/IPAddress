@@ -195,6 +195,8 @@ func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IP
 	}
 }
 
+//TODO this should error on certain ranged segments that cannot be split.  Use the same logic as in the parser.
+
 func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
 	myPrefix := seg.GetSegmentPrefixLength()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)

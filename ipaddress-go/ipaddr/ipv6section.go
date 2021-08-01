@@ -66,6 +66,20 @@ func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*c
 	return
 }
 
+func NewIPv6AddressSection(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
+	res, err = newIPv6AddressSection(cloneIPv6SegsToDivs(segments), 0, true)
+	return
+}
+
+func NewIPv6AddressPrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+	divs := cloneIPv6SegsToDivs(segments)
+	res, err = newIPv6AddressSection(divs, 0, prefixLength == nil)
+	if err == nil && prefixLength != nil {
+		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
+	}
+	return
+}
+
 func NewIPv6AddressSectionFromBytes(bytes []byte) (res *IPv6AddressSection, err AddressValueError) {
 	return newIPv6AddressSectionFromBytes(bytes, len(bytes), nil, false)
 }
@@ -105,6 +119,48 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 			}
 		}
 	}
+	return
+}
+
+func NewIPv6AddressSectionFromUint64(highBytes, lowBytes uint64, segmentCount int) (res *IPv6AddressSection, err AddressValueError) {
+	return NewIPv6AddressSectionFromPrefixedUint64(highBytes, lowBytes, segmentCount, nil)
+}
+
+func NewIPv6AddressSectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+	if segmentCount < 0 {
+		segmentCount = 8
+	}
+	segments := createSegmentsUint64(
+		segmentCount,
+		//segments []*AddressDivision, // empty
+		highBytes,
+		lowBytes,
+		IPv6BytesPerSegment,
+		IPv6BitsPerSegment,
+		DefaultIPv6Network.getIPAddressCreator(),
+		prefixLength)
+	//expectedByteCount := segmentCount << 1
+	//segments, err := toSegments(
+	//	bytes,
+	//	segmentCount,
+	//	IPv6BytesPerSegment,
+	//	IPv6BitsPerSegment,
+	//	//expectedByteCount,
+	//	DefaultIPv6Network.getIPAddressCreator(),
+	//	prefixLength)
+	//if err == nil {
+	res = createIPv6Section(segments, 0)
+	if prefixLength != nil {
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
+	}
+	//if expectedByteCount == len(bytes) {
+	//	bytes = cloneBytes(bytes)
+	//	res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
+	//	if !res.isMultiple { // not a prefix block
+	//		res.cache.bytesCache.upperBytes = bytes
+	//	}
+	//}
+	//}
 	return
 }
 
@@ -790,9 +846,12 @@ func (section *IPv6AddressSection) ToCompressedString() string {
 		})
 }
 
+//TODO isn't there the chance of error for mixed with ranged sections and addresses?
+//When we convert to the mixed grouping
+
 // This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
-func (section *IPv6AddressSection) ToMixedString() string {
-	return cacheStr(&section.getStringCache().normalizedIPv6String,
+func (section *IPv6AddressSection) toMixedString() string {
+	return cacheStr(&section.getStringCache().mixedString,
 		func() string {
 			return section.toMixedStringZoned(NoZone)
 		})
@@ -955,7 +1014,7 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOpt
 }
 
 func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4MixedParams, zone Zone) string {
-	mixed := section.GetMixedAddressGrouping()
+	mixed := section.getMixedAddressGrouping()
 	result := mixedParams.toZonedString(mixed, zone)
 	return result
 }
@@ -964,7 +1023,7 @@ func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPv6AddressSection) GetMixedAddressGrouping() *IPv6v4MixedAddressGrouping {
+func (section *IPv6AddressSection) getMixedAddressGrouping() *IPv6v4MixedAddressGrouping {
 	cache := section.cache
 	var sect *IPv6v4MixedAddressGrouping
 	if cache != nil && cache.mixed != nil {
@@ -990,19 +1049,19 @@ func (section *IPv6AddressSection) GetMixedAddressGrouping() *IPv6v4MixedAddress
 
 // Gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
 // which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
-func (section *IPv6AddressSection) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
+func (section *IPv6AddressSection) getEmbeddedIPv4AddressSection() *IPv4AddressSection {
 	cache := section.cache
 	if cache == nil {
 		return section.createEmbeddedIPv4AddressSection()
 	}
-	return section.GetMixedAddressGrouping().GetIPv4AddressSection()
+	return section.getMixedAddressGrouping().GetIPv4AddressSection()
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
-func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex int) *IPv4AddressSection {
+func (section *IPv6AddressSection) getIPv4AddressSection(startIndex, endIndex int) *IPv4AddressSection {
 	addressSegmentIndex := section.addressSegmentIndex
 	if startIndex == (IPv6MixedOriginalSegmentCount-int(addressSegmentIndex))<<1 && endIndex == (section.GetSegmentCount()<<1) {
-		return section.GetEmbeddedIPv4AddressSection()
+		return section.getEmbeddedIPv4AddressSection()
 	}
 	segments := make([]*AddressDivision, endIndex-startIndex)
 	i := startIndex

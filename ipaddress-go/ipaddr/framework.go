@@ -233,6 +233,8 @@ var _, _, _, _, _ AddressSectionType = &AddressSection{},
 type AddressType interface {
 	AddressSegmentSeries
 
+	getAddrType() addrType
+
 	Equals(AddressType) bool
 	PrefixEquals(AddressType) bool
 	Contains(AddressType) bool

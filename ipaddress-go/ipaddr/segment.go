@@ -26,11 +26,15 @@ type addressSegmentInternal struct {
 	addressDivisionInternal
 }
 
+func (seg *addressSegmentInternal) sameTypeContains(otherSeg *AddressSegment) bool {
+	return otherSeg.GetSegmentValue() >= seg.GetSegmentValue() &&
+		otherSeg.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
+}
+
 func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool) {
 	if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
 		otherSeg := other.ToAddressSegment()
-		res = otherSeg.GetSegmentValue() >= seg.GetSegmentValue() &&
-			otherSeg.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
+		return seg.sameTypeContains(otherSeg)
 	}
 	return
 }

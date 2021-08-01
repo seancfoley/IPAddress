@@ -175,10 +175,18 @@ func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool
 
 func (section *addressSectionInternal) sameCountTypeEquals(other *AddressSection) bool {
 	count := section.GetSegmentCount()
-	for i := 0; i < count; i++ {
-		one := section.GetSegment(i)
-		two := other.GetSegment(i)
-		if !one.sameTypeEquals(two) {
+	for i := count - 1; i >= 0; i-- {
+		if !section.GetSegment(i).sameTypeEquals(other.GetSegment(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func (section *addressSectionInternal) sameCountTypeContains(other *AddressSection) bool {
+	count := section.GetSegmentCount()
+	for i := count - 1; i >= 0; i-- {
+		if !section.GetSegment(i).sameTypeContains(other.GetSegment(i)) {
 			return false
 		}
 	}
@@ -804,12 +812,11 @@ func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 	}
 	//check if they are comparable first
 	matches, count := section.matchesTypeAndCount(other)
-	if !matches || count != other.GetDivisionCount() {
+	if !matches {
 		return false
 	} else {
 		for i := count - 1; i >= 0; i-- {
-			seg := section.GetSegment(i)
-			if !seg.Contains(otherSection.GetSegment(i)) {
+			if !section.GetSegment(i).sameTypeContains(otherSection.GetSegment(i)) {
 				return false
 			}
 		}

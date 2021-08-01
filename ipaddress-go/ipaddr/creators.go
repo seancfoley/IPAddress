@@ -93,9 +93,8 @@ func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivi
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone Zone) *IPAddress {
-	//TODO create from bytes: create address (either use "New" or create the Address and call ToIPAddress)
-	// only used by the loopback creator at the moment
-	return nil
+	addr, _ := newIPv6AddressFromZonedIP(bytes, string(zone))
+	return addr.ToIPAddress()
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromSection(section *IPAddressSection, zone Zone, originator HostIdentifierString) *IPAddress {
@@ -165,8 +164,8 @@ func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivi
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, _ Zone) *IPAddress {
-	//TODO create from bytes: create address, call ToIPAddress (this is called from newLoopbackCreator)
-	return nil
+	addr, _ := NewIPv4AddressFromIP(bytes)
+	return addr.ToIPAddress()
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPAddressSection, _ Zone, originator HostIdentifierString) *IPAddress {

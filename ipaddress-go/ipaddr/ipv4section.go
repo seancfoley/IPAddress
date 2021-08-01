@@ -28,7 +28,7 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 }
 
 // error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
-func newIPv4AddressSection(segments []*AddressDivision /*cloneSegments bool,*/, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueError) {
+func newIPv4AddressSection(segments []*AddressDivision, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueError) {
 	segsLen := len(segments)
 	if segsLen > IPv4SegmentCount {
 		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
@@ -54,7 +54,19 @@ func newIPv4AddressSectionParsed(segments []*AddressDivision) (res *IPv4AddressS
 	return
 }
 
-//TODO need the public equivalent of this constructor that takes []*IPv4AddressSegment (and not []*AddressDivision)
+func NewIPv4AddressSection(segments []*IPv4AddressSegment) (res *IPv4AddressSection, err AddressValueError) {
+	res, err = newIPv4AddressSection(cloneIPv4SegsToDivs(segments), true)
+	return
+}
+
+func NewIPv4AddressPrefixedSection(segments []*IPv4AddressSegment, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
+	divs := cloneIPv4SegsToDivs(segments)
+	res, err = newIPv4AddressSection(divs, prefixLength == nil)
+	if err == nil && prefixLength != nil {
+		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
+	}
+	return
+}
 
 func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
 	res, err = newIPv4AddressSection(segments /*cloneSegments,*/, prefixLength == nil)

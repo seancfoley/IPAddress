@@ -226,15 +226,14 @@ func addBig(section *AddressSection, increment *big.Int, creator addressSegmentC
 
 func add(section *AddressSection, fullValue uint64, increment int64, creator addressSegmentCreator, prefixLength PrefixLen) *AddressSection {
 	segCount := section.GetSegmentCount()
-	newSegs := make([]*AddressDivision, segCount)
 	var val uint64
 	if increment < 0 {
 		val = fullValue - uint64(-increment)
 	} else {
 		val = fullValue + uint64(increment)
 	}
-	createSegmentsUint64(
-		newSegs,
+	newSegs := createSegmentsUint64(
+		segCount,
 		0,
 		val,
 		section.GetBytesPerSegment(),

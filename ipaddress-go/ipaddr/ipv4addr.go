@@ -23,7 +23,7 @@ const (
 // TODO constructors:
 // uint32
 // uint32 with prefix
-// IPv4AddressSection
+// For these two just added the section constructors:
 // IPv4AddressSegment[]
 // IPv4AddressSegment[] with prefix
 
@@ -455,18 +455,12 @@ func (addr *IPv4Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv4Address) Contains(other AddressType) bool {
-	return addr.init().contains(other)
+	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection())
 }
 
 func (addr *IPv4Address) Equals(other AddressType) bool {
-	return addr.init().equals(other)
+	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
 }
-
-//TODO would it make sense to have an Equals and a Contains that took the same type, IPv4Address?  Yes
-// Maybe EqualsAddress and ContainsAddress?  I have an equalsSegment
-// Because the type checks can be avoided, so can section segment counts, etc
-// WEll, I did add seriesValsSame, which avoids type checks, could use that
-// ACTUALLY the equals is now a lot more refined, so maybe no more is needed
 
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()

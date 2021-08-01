@@ -407,7 +407,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	if addr.section == nil {
 		return otherSection.GetSegmentCount() == 0
 	}
-	return addr.section.sameCountTypeEquals(otherSection) &&
+	return addr.section.Equals(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
 		addr.isSameZone(otherAddr)
 }
