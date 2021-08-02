@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"net"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -9,9 +10,6 @@ import (
 type addressNetwork interface {
 	getAddressCreator() parsedAddressCreator
 }
-
-//TODO I think I probably want to get rid of the address creators from networks (but they are still useful when passing into certain functions), I realize now they make little sense
-//But I will still have caching.
 
 // IPAddressNetwork represents the full collection of addresses for a given IP version.
 // You can create your own network objects satisfying this interface, allowing you to create your own address types,
@@ -67,8 +65,7 @@ func (network *IPv6AddressNetwork) getAddressCreator() parsedAddressCreator {
 //}
 
 func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
-	//TODO loopback
-	return nil
+	return ipv6loopback
 }
 
 func (network *IPv6AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
@@ -130,8 +127,7 @@ func (network *IPv4AddressNetwork) getAddressCreator() parsedAddressCreator {
 //}
 
 func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
-	//TODO loopback
-	return nil
+	return ipv4loopback
 }
 
 //func (network *IPv4AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
@@ -449,3 +445,16 @@ func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 var DefaultMACNetwork = &MACAddressNetwork{}
 
 var _ addressNetwork = &MACAddressNetwork{}
+
+func createIPv6Loopback() *IPv6Address {
+	ipv6loopback, _ := NewIPv6AddressFromIP(net.IPv6loopback)
+	return ipv6loopback
+}
+
+func createIPv4Loopback() *IPv4Address {
+	ipv4loopback, _ := NewIPv4AddressFromIP([]byte{127, 0, 0, 1})
+	return ipv4loopback
+}
+
+var ipv4loopback = createIPv4Loopback().ToIPAddress()
+var ipv6loopback = createIPv6Loopback().ToIPAddress()

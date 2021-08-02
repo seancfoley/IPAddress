@@ -76,6 +76,29 @@ func newIPv4AddressSectionSingle(segments []*AddressDivision, prefixLength Prefi
 	return
 }
 
+func NewIPv4AddressSectionFromUint32(bytes uint32, segmentCount int) (res *IPv4AddressSection) {
+	return NewIPv4AddressSectionFromPrefixedUint32(bytes, segmentCount, nil)
+}
+
+func NewIPv4AddressSectionFromPrefixedUint32(bytes uint32, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
+	if segmentCount < 0 {
+		segmentCount = IPv4SegmentCount
+	}
+	segments := createSegmentsUint64(
+		segmentCount,
+		0,
+		uint64(bytes),
+		IPv4BytesPerSegment,
+		IPv4BitsPerSegment,
+		DefaultIPv6Network.getIPAddressCreator(),
+		prefixLength)
+	res = createIPv4Section(segments)
+	if prefixLength != nil {
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
+	}
+	return
+}
+
 func NewIPv4AddressSectionFromBytes(bytes []byte) (res *IPv4AddressSection, err AddressValueError) {
 	return newIPv4AddressSectionFromBytes(bytes, len(bytes), nil, false)
 }

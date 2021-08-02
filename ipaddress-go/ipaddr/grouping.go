@@ -47,6 +47,12 @@ type addressDivisionGroupingInternal struct {
 	//TODO get rid of addressSegmentIndex and isExtended
 	// You just don't need positionality from sections.
 	// Being mixed or converting to IPv6 from MAC are properties of the address.
+	// isExtended really only used for IPv6/MAC conversion.
+	// addressSegmentindex really only used for mixed
+	// Both of those are really "address-level" concepts.
+	//
+	// TODO LATER I also want to refactor to support infiniband, which will involve multiple types.
+	// But that will be a joint effort with Java and will wait to later.
 
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
 	addressSegmentIndex int8
@@ -67,7 +73,7 @@ func (grouping *addressDivisionGroupingInternal) getDivision(index int) *Address
 	panic("invalid index") // must be consistent with above code which panics with invalid index
 }
 
-// getDivision returns the divisions slice, only to be used internally
+// getDivisionsInternal returns the divisions slice, only to be used internally
 func (grouping *addressDivisionGroupingInternal) getDivisionsInternal() []*AddressDivision {
 	divsArray := grouping.divisions
 	if divsArray != nil {

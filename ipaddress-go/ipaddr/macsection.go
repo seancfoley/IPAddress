@@ -5,13 +5,6 @@ import (
 	"unsafe"
 )
 
-//func (section *ipAddressSectionInternal) GetIPVersion() IPVersion (TODO need the MAC equivalent (ie EUI 64 or MAC 48, butcannot remember if there is a MAC equivalent)
-//	if section.IsIPv4() {
-//		return IPv4
-//	}
-//	return IPv6
-//}
-
 func createMACSection(segments []*AddressDivision) *MACAddressSection {
 	return &MACAddressSection{
 		addressSectionInternal{
@@ -30,11 +23,92 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 	}
 }
 
-//TODO the constructors for MAC
+// error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
+func newMACAddressSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
+	segsLen := len(segments)
+	if segsLen > ExtendedUniqueIdentifier64SegmentCount {
+		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
+	}
+	res = createMACSection(segments)
+	if err = res.initMult(); err != nil {
+		res = nil
+		return
+	}
+	return
+}
+
+func NewMACAddressSection(segments []*MACAddressSegment) (res *MACAddressSection, err AddressValueError) {
+	res, err = newMACAddressSection(cloneMACSegsToDivs(segments))
+	return
+}
 
 func newMACAddressSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	_ = res.initMultAndPrefLen()
+	_ = res.initMult()
+	return
+}
+
+func NewMACAddressSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSection, err AddressValueError) {
+	if segmentCount < 0 {
+		segmentCount = len(bytes)
+	}
+	expectedByteCount := segmentCount
+	segments, err := toSegments(
+		bytes,
+		segmentCount,
+		MACBytesPerSegment,
+		MACBitsPerSegment,
+		expectedByteCount,
+		DefaultMACNetwork.getAddressCreator(),
+		nil)
+	if err == nil {
+		res = createMACSection(segments)
+		if expectedByteCount == len(bytes) {
+			bytes = cloneBytes(bytes)
+			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
+			if !res.isMultiple { // not a prefix block
+				res.cache.bytesCache.upperBytes = bytes
+			}
+		}
+	}
+	return
+}
+
+func NewMACAddressSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSection) {
+	if segmentCount < 0 {
+		segmentCount = MediaAccessControlSegmentCount
+	}
+	segments := createSegmentsUint64(
+		segmentCount,
+		0,
+		uint64(bytes),
+		MACBytesPerSegment,
+		MACBitsPerSegment,
+		DefaultMACNetwork.getAddressCreator(),
+		nil)
+	res = createMACSection(segments)
+	return
+}
+
+func NewMACAddressSectionFromVals(vals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+	res = NewMACAddressSectionFromRangeVals(vals, nil, segmentCount)
+	return
+}
+
+func NewMACAddressSectionFromRangeVals(vals, upperVals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+	if segmentCount < 0 {
+		segmentCount = 0
+	}
+	segments, isMultiple := createSegments(
+		vals,
+		upperVals,
+		segmentCount,
+		MACBitsPerSegment,
+		DefaultMACNetwork.getAddressCreator(),
+		nil)
+	res = createMACSection(segments)
+	res.isMultiple = isMultiple
 	return
 }
 

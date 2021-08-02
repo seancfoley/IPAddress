@@ -28,6 +28,9 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 	}
 }
 
+//TODO rename all the newIPv6AddressSection... to newIPv6Section... do the same for mac and ipv4
+// TODO rename xxxRangeVals everywhere to just xxxRange in all consructors (like for ipv4 addresses)
+
 func newIPv6AddressSection(segments []*AddressDivision, startIndex int /*, cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueError) {
 	if startIndex < 0 {
 		err = &addressPositionError{addressValueError{val: startIndex, addressError: addressError{key: "ipaddress.error.invalid.position"}}}
@@ -66,18 +69,26 @@ func newIPv6AddressSectionSingle(segments []*AddressDivision, startIndex int /*c
 	return
 }
 
-func NewIPv6AddressSection(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6AddressFromSection(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
 	res, err = newIPv6AddressSection(cloneIPv6SegsToDivs(segments), 0, true)
 	return
 }
 
-func NewIPv6AddressPrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6AddressFromPrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
 	divs := cloneIPv6SegsToDivs(segments)
 	res, err = newIPv6AddressSection(divs, 0, prefixLength == nil)
 	if err == nil && prefixLength != nil {
 		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
 	}
 	return
+}
+
+func NewIPv6AddressSectionFromBigInt(val *big.Int, segmentCount int) (res *IPv6AddressSection, err AddressValueError) {
+	return NewIPv6AddressSectionFromSegmentedBytes(val.Bytes(), segmentCount)
+}
+
+func NewIPv6AddressSectionFromPrefixedBigInt(val *big.Int, segmentCount int, prefixLen PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+	return NewIPv6AddressSectionFromPrefixedBytes(val.Bytes(), segmentCount, prefixLen)
 }
 
 func NewIPv6AddressSectionFromBytes(bytes []byte) (res *IPv6AddressSection, err AddressValueError) {
@@ -122,13 +133,13 @@ func newIPv6AddressSectionFromBytes(bytes []byte, segmentCount int, prefixLength
 	return
 }
 
-func NewIPv6AddressSectionFromUint64(highBytes, lowBytes uint64, segmentCount int) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6AddressSectionFromUint64(highBytes, lowBytes uint64, segmentCount int) (res *IPv6AddressSection) {
 	return NewIPv6AddressSectionFromPrefixedUint64(highBytes, lowBytes, segmentCount, nil)
 }
 
-func NewIPv6AddressSectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6AddressSectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
 	if segmentCount < 0 {
-		segmentCount = 8
+		segmentCount = IPv6SegmentCount
 	}
 	segments := createSegmentsUint64(
 		segmentCount,

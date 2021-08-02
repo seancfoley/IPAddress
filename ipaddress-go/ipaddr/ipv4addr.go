@@ -20,14 +20,33 @@ const (
 	IPv4SegmentMaxChars              = 3
 )
 
-// TODO constructors:
-// uint32
-// uint32 with prefix
-// For these two just added the section constructors:
-// IPv4AddressSegment[]
-// IPv4AddressSegment[] with prefix
-
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
+}
+
+func NewIPv4AddressFromSegments(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
+	section, err := NewIPv4AddressSection(segments)
+	if err != nil {
+		return nil, err
+	}
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+}
+
+func NewIPv4AddressFromPrefixedSegments(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
+	section, err := NewIPv4AddressPrefixedSection(segments, prefixLength)
+	if err != nil {
+		return nil, err
+	}
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+}
+
+func NewIPv4AddressFromUint32(val uint32) *IPv4Address {
+	section := NewIPv4AddressSectionFromUint32(val, IPv4SegmentCount)
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
+}
+
+func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4Address {
+	section := NewIPv4AddressSectionFromPrefixedUint32(val, IPv4SegmentCount, prefixLength)
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
 }
 
