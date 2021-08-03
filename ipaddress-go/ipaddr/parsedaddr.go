@@ -398,7 +398,6 @@ func (parseData *parsedIPAddress) isPrefixSubnet(networkPrefixLength BitCount) b
 		compressedIndex := addressParseData.getConsecutiveSeparatorSegmentIndex()
 		return isPrefixSubnet(
 			func(segmentIndex int) SegInt {
-				//segmentIndex -> {
 				if segmentIndex >= compressedIndex {
 					if segmentIndex-compressedIndex < compressedCount {
 						return 0
@@ -408,7 +407,6 @@ func (parseData *parsedIPAddress) isPrefixSubnet(networkPrefixLength BitCount) b
 				return SegInt(parseData.getValue(segmentIndex, keyLower))
 			},
 			func(segmentIndex int) SegInt {
-				//segmentIndex -> {
 				if segmentIndex >= compressedIndex {
 					if segmentIndex-compressedIndex < compressedCount {
 						return 0

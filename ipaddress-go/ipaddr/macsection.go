@@ -24,7 +24,7 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 }
 
 // error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
-func newMACAddressSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
+func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
 	segsLen := len(segments)
 	if segsLen > ExtendedUniqueIdentifier64SegmentCount {
 		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
@@ -38,18 +38,18 @@ func newMACAddressSection(segments []*AddressDivision) (res *MACAddressSection, 
 	return
 }
 
-func NewMACAddressSection(segments []*MACAddressSegment) (res *MACAddressSection, err AddressValueError) {
-	res, err = newMACAddressSection(cloneMACSegsToDivs(segments))
+func NewMACSection(segments []*MACAddressSegment) (res *MACAddressSection, err AddressValueError) {
+	res, err = newMACSection(cloneMACSegsToDivs(segments))
 	return
 }
 
-func newMACAddressSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
+func newMACSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
 	_ = res.initMult()
 	return
 }
 
-func NewMACAddressSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSection, err AddressValueError) {
+func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSection, err AddressValueError) {
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
@@ -75,7 +75,7 @@ func NewMACAddressSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddr
 	return
 }
 
-func NewMACAddressSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSection) {
+func NewMACSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSection) {
 	if segmentCount < 0 {
 		segmentCount = MediaAccessControlSegmentCount
 	}
@@ -91,12 +91,12 @@ func NewMACAddressSectionFromUint64(bytes uint64, segmentCount int) (res *MACAdd
 	return
 }
 
-func NewMACAddressSectionFromVals(vals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
-	res = NewMACAddressSectionFromRangeVals(vals, nil, segmentCount)
+func NewMACSectionFromVals(vals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+	res = NewMACSectionFromRange(vals, nil, segmentCount)
 	return
 }
 
-func NewMACAddressSectionFromRangeVals(vals, upperVals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+func NewMACSectionFromRange(vals, upperVals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}

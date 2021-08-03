@@ -4022,8 +4022,16 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		psdHost.normalizedFlags = normalizedFlags
 		if !hasEmbeddedAddr {
 			if !isNotNormalized {
-				//	psdHost.parsedHostCache.hostStrings = &hostStrings{host: str} TODO I changed it so that both host and normalizedLabels must be assigned together which does not comport with this assignment here, since I do not have normalizedLabels here (boo)
-				//psdHost.host = str
+				normalizedLabels := make([]string, len(separatorIndices))
+				for i, lastSep := 0, -1; i < len(normalizedLabels); i++ {
+					index := separatorIndices[i]
+					normalizedLabels[i] = str[lastSep+1 : index]
+					lastSep = index
+				}
+				psdHost.hostStrings = &hostStrings{
+					host:             str,
+					normalizedLabels: normalizedLabels,
+				}
 			}
 		} else {
 			if isPrefixed {

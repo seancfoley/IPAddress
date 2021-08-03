@@ -240,8 +240,6 @@ type AddressType interface {
 	Contains(AddressType) bool
 	PrefixContains(AddressType) bool
 	ToAddress() *Address
-
-	// toAddressString, toHostName TODO look at hostidstring.go for some thoughts on these
 }
 
 var _, _ AddressType = &Address{}, &MACAddress{}
@@ -253,6 +251,7 @@ type IPAddressType interface {
 	ipAddressRange
 
 	ToIPAddress() *IPAddress
+	ToAddressString() *IPAddressString
 }
 
 var _, _, _ IPAddressType = &IPAddress{},

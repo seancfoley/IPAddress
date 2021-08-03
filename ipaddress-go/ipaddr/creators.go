@@ -79,17 +79,17 @@ func (creator *ipv6AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, false)
+	sec, _ := newIPv6SectionSingle(segments, 0, prefixLength, false)
 	return sec.ToIPAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6AddressSectionSingle(segments, 0, prefixLength, true)
+	sec, _ := newIPv6SectionSingle(segments, 0, prefixLength, true)
 	return sec.ToIPAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newIPv6AddressSectionParsed(segments).ToAddressSection()
+	return newIPv6SectionParsed(segments).ToAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone Zone) *IPAddress {
@@ -150,17 +150,17 @@ func (creator *ipv4AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv4AddressSectionSingle(segments, prefixLength, false)
+	sec, _ := newIPv4SectionSingle(segments, prefixLength, false)
 	return sec.ToIPAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv4AddressSectionSingle(segments, prefixLength, true)
+	sec, _ := newIPv4SectionSingle(segments, prefixLength, true)
 	return sec.ToIPAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newIPv4AddressSectionParsed(segments).ToAddressSection()
+	return newIPv4SectionParsed(segments).ToAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, _ Zone) *IPAddress {
@@ -228,7 +228,7 @@ func (creator *macAddressCreator) createMACRangeSegment(lower, upper SegInt) *Ad
 }
 
 func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newMACAddressSectionParsed(segments).ToAddressSection()
+	return newMACSectionParsed(segments).ToAddressSection()
 }
 
 func (creator *macAddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {

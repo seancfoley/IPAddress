@@ -156,30 +156,31 @@ func (host *parsedHost) buildStrings() *hostStrings {
 		} else {
 			normalizedLabels = make([]string, len(host.separatorIndices))
 			normalizedFlags := host.normalizedFlags
-			var first strings.Builder
+
+			var hostStrBuilder strings.Builder
 			for i, lastSep := 0, -1; i < len(normalizedLabels); i++ {
 				index := host.separatorIndices[i]
 				if len(normalizedFlags) > 0 && !normalizedFlags[i] {
-					var second strings.Builder
-					second.Grow((index - lastSep) - 1)
+					var normalizedLabelBuilder strings.Builder
+					normalizedLabelBuilder.Grow((index - lastSep) - 1)
 					for j := lastSep + 1; j < index; j++ {
 						c := host.originalStr[j]
 						if c >= 'A' && c <= 'Z' {
 							c = c + ('a' - 'A')
 						}
-						second.WriteByte(c)
+						normalizedLabelBuilder.WriteByte(c)
 					}
-					normalizedLabels[i] = second.String()
+					normalizedLabels[i] = normalizedLabelBuilder.String()
 				} else {
 					normalizedLabels[i] = host.originalStr[lastSep+1 : index]
 				}
 				if i > 0 {
-					first.WriteByte(LabelSeparator)
+					hostStrBuilder.WriteByte(LabelSeparator)
 				}
-				first.WriteString(normalizedLabels[i])
+				hostStrBuilder.WriteString(normalizedLabels[i])
 				lastSep = index
 			}
-			hostStr = first.String()
+			hostStr = hostStrBuilder.String()
 		}
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.hostStrings))
 		res = &hostStrings{

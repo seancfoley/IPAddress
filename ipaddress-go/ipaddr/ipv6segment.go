@@ -6,9 +6,56 @@ import (
 
 type IPv6SegInt uint16
 
-//TODO caching of ipv6SegmentValues
+const useIPv6SegmentCache = true
 
-func newIPv6SegmentValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
+type ipv6DivsBlock struct {
+	block []*ipv6SegmentValues
+}
+
+type ipv6DivsPartition struct {
+	block []ipv6DivsBlock
+}
+
+var (
+	AllRangeValsIPv6 = &ipv6SegmentValues{
+		upperValue: IPv6MaxValuePerSegment,
+	}
+	allPrefixedCacheIPv6 = make([]*ipv4SegmentValues, IPv6BitsPerSegment+1)
+
+	segmentCacheIPv6       = make([]*ipv6DivsBlock, IPv6MaxValuePerSegment+1)
+	segmentPrefixCacheIPv6 = make([]*ipv6DivsPartition, IPv6BitsPerSegment+1) // for each prefix, all segment values, 0x100 blocks of size 0x100
+	prefixBlocksCacheIPv6  = make([]*ipv6DivsPartition, IPv6BitsPerSegment+1) // for each prefix, all prefix blocks.  ??? For prefix of size 8, one block of size ff.  For prefix of size > 8, a number of blocks of size ff.  For prefix of size < 8, 1 block of size less than ff.
+)
+
+/*
+//there are 0x10000 (ie 0xffff + 1 or 64k) possible segment values in IPv6.  We break the cache into 0x100 blocks of size 0x100
+			private transient IPv6AddressSegment segmentCache[][];
+
+			//we maintain a similar cache for each potential prefixed segment.
+			//Note that there are 2 to the n possible values for prefix n
+			//We break up that number into blocks of size 0x100
+			private transient IPv6AddressSegment segmentPrefixCache[][][];
+			private transient IPv6AddressSegment allPrefixedCache[];
+*/
+
+//TODO cache like ipv4xxxxx
+
+func newIPv6SegmentVal(value IPv6SegInt) *ipv6SegmentValues {
+	return &ipv6SegmentValues{
+		value:      value,
+		upperValue: value,
+	}
+}
+
+func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv6SegmentValues) {
+	return &ipv6SegmentValues{
+		value:      value,
+		upperValue: value,
+		prefLen:    prefLen,
+	}
+}
+
+func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
 	return &ipv6SegmentValues{
 		value:      value,
 		upperValue: upperValue,
@@ -90,15 +137,15 @@ func (seg *ipv6SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 }
 
 func (seg *ipv6SegmentValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
+	return newIPv6SegmentPrefixedValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
 func (seg *ipv6SegmentValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
-	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(val), prefLen)
+	return newIPv6SegmentPrefixedVal(IPv6SegInt(val), prefLen)
 }
 
 func (seg *ipv6SegmentValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
-	return newIPv6SegmentValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
+	return newIPv6SegmentPrefixedValues(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen)
 }
 
 func (seg *ipv6SegmentValues) getCache() *divCache {
@@ -313,23 +360,27 @@ func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 }
 
 func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {
-	return NewIPv6RangePrefixSegment(val, val, nil)
+	return newIPv6Segment(newIPv6SegmentVal(val))
 }
 
 func NewIPv6RangeSegment(val, upperVal IPv6SegInt) *IPv6AddressSegment {
-	return NewIPv6RangePrefixSegment(val, upperVal, nil)
+	return newIPv6Segment(newIPv6SegmentPrefixedValues(val, upperVal, nil))
 }
 
 func NewIPv6PrefixSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
-	return NewIPv6RangePrefixSegment(val, val, prefixLen)
+	return newIPv6Segment(newIPv6SegmentPrefixedVal(val, prefixLen))
 }
 
 func NewIPv6RangePrefixSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
+	return newIPv6Segment(newIPv6SegmentPrefixedValues(val, upperVal, prefixLen))
+}
+
+func newIPv6Segment(vals *ipv6SegmentValues) *IPv6AddressSegment {
 	return &IPv6AddressSegment{
 		ipAddressSegmentInternal{
 			addressSegmentInternal{
 				addressDivisionInternal{
-					addressDivisionBase{newIPv6SegmentValues(val, upperVal, prefixLen)},
+					addressDivisionBase{vals},
 				},
 			},
 		},

@@ -53,7 +53,7 @@ func NewMACAddressFromUint64(val uint64) *MACAddress {
 }
 
 func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
-	section := NewMACAddressSectionFromUint64(val, getMacSegCount(isExtended))
+	section := NewMACSectionFromUint64(val, getMacSegCount(isExtended))
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress()
 }
 
@@ -62,7 +62,7 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, Addr
 	if segsLen != MediaAccessControlSegmentCount && segsLen != ExtendedUniqueIdentifier64SegmentCount {
 		return nil, &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.mac.invalid.segment.count"}}
 	}
-	section, err := NewMACAddressSection(segments)
+	section, err := NewMACSection(segments)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func NewMACAddressFromVals(vals SegmentValueProvider) (addr *MACAddress) {
 }
 
 func NewMACAddressFromValsExt(vals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
-	section := NewMACAddressSectionFromVals(vals, getMacSegCount(isExtended))
+	section := NewMACSectionFromVals(vals, getMacSegCount(isExtended))
 	addr = NewMACAddress(section)
 	return
 }
@@ -84,7 +84,7 @@ func NewMACAddressFromRange(vals, upperVals SegmentValueProvider) (addr *MACAddr
 }
 
 func NewMACAddressFromRangeExt(vals, upperVals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
-	section := NewMACAddressSectionFromRangeVals(vals, upperVals, getMacSegCount(isExtended))
+	section := NewMACSectionFromRange(vals, upperVals, getMacSegCount(isExtended))
 	addr = NewMACAddress(section)
 	return
 }
@@ -110,7 +110,7 @@ func createMACSectionFromBytes(bytes []byte) (*MACAddressSection, AddressValueEr
 	} else {
 		segCount = ExtendedUniqueIdentifier64SegmentCount
 	}
-	return NewMACAddressSectionFromBytes(bytes, segCount)
+	return NewMACSectionFromBytes(bytes, segCount)
 }
 
 func getMacSegCount(isExtended bool) (segmentCount int) {
@@ -137,7 +137,7 @@ var zeroMAC = createMACZero()
 func createMACZero() *MACAddress {
 	div := NewMACSegment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div, div, div}
-	section, _ := newMACAddressSection(segs)
+	section, _ := newMACSection(segs)
 	return NewMACAddress(section)
 }
 

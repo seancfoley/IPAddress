@@ -205,6 +205,7 @@ func (seg *ipAddressSegmentInternal) setStandardString(
 	lowerStringEndIndex int,
 	originalLowerValue SegInt) {
 	if cache := seg.getCache(); cache != nil {
+		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cache.cachedString = &str
@@ -219,6 +220,7 @@ func (seg *ipAddressSegmentInternal) setWildcardString(
 	lowerStringEndIndex int,
 	lowerValue SegInt) {
 	if cache := seg.getCache(); cache != nil {
+		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedWildcardString == nil && isStandardString && lowerValue == seg.getSegmentValue() && lowerValue == seg.getUpperSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cache.cachedWildcardString = &str
@@ -236,6 +238,7 @@ func (seg *ipAddressSegmentInternal) setRangeStandardString(
 	rangeLower,
 	rangeUpper SegInt) {
 	if cache := seg.getCache(); cache != nil {
+		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedString == nil {
 			if seg.IsSinglePrefixBlock() {
 				if isStandardString && rangeLower == seg.getSegmentValue() {
@@ -267,6 +270,7 @@ func (seg *ipAddressSegmentInternal) setRangeWildcardString(
 	rangeUpper SegInt) {
 	if cache := seg.getCache(); cache != nil {
 		if cache.cachedWildcardString == nil {
+			//TODO atomic writes only, the caches are shared, use cacheStr
 			if seg.IsFullRange() {
 				cache.cachedWildcardString = &segmentWildcardStr
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {

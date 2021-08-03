@@ -134,6 +134,8 @@ func (seg *MACAddressSegment) setString(
 	lowerStringEndIndex int,
 	originalLowerValue SegInt) {
 	if cache := seg.getCache(); cache != nil {
+		//TODO atomic writes only, the caches are shared, use cacheStr
+		//TODO also, should I think about whether I should also set cached.string here?  The lower level types might be using it, though I'm not sure, depends on string generation and those params and whatnot
 		if cache.cachedWildcardString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cache.cachedWildcardString = &str
@@ -149,6 +151,7 @@ func (seg *MACAddressSegment) setRangeString(
 	rangeLower,
 	rangeUpper SegInt) {
 	if cache := seg.getCache(); cache != nil {
+		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedWildcardString == nil {
 			if seg.IsFullRange() {
 				cache.cachedWildcardString = &segmentWildcardStr

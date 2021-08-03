@@ -165,20 +165,6 @@ var DefaultIPv4Network = &IPv4AddressNetwork{
 	},
 }
 
-/*
-func cacheStr(cachedString **string, stringer func() string) (str string) {
-	cachedVal := *cachedString
-	if cachedVal == nil {
-		str = stringer()
-		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(cachedString))
-		atomic.StorePointer(dataLoc, unsafe.Pointer(&str))
-	} else {
-		str = *cachedVal
-	}
-	return
-}
-*/
-
 var maskMutex sync.Mutex
 
 func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength BitCount, cache []*IPAddress, network, withPrefixLength bool) *IPAddress {
@@ -437,7 +423,6 @@ func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 //	return &network.creator
 //}
 
-//
 //func (network *MACAddressNetwork) GetAddressCreator() AddressCreator {
 //	return network.GetMACAddressCreator()
 //}
@@ -445,6 +430,9 @@ func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 var DefaultMACNetwork = &MACAddressNetwork{}
 
 var _ addressNetwork = &MACAddressNetwork{}
+
+var ipv4loopback = createIPv4Loopback().ToIPAddress()
+var ipv6loopback = createIPv6Loopback().ToIPAddress()
 
 func createIPv6Loopback() *IPv6Address {
 	ipv6loopback, _ := NewIPv6AddressFromIP(net.IPv6loopback)
@@ -455,6 +443,3 @@ func createIPv4Loopback() *IPv4Address {
 	ipv4loopback, _ := NewIPv4AddressFromIP([]byte{127, 0, 0, 1})
 	return ipv4loopback
 }
-
-var ipv4loopback = createIPv4Loopback().ToIPAddress()
-var ipv6loopback = createIPv6Loopback().ToIPAddress()
