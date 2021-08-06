@@ -233,18 +233,56 @@ func newIPv4Segment(vals *ipv4SegmentValues) *IPv4AddressSegment {
 }
 
 type ipv4DivsBlock struct {
-	block []*ipv4SegmentValues
+	block []ipv4SegmentValues
 }
 
 var (
 	allRangeValsIPv4 = &ipv4SegmentValues{
 		upperValue: IPv4MaxValuePerSegment,
 	}
-	allPrefixedCacheIPv4   = make([]*ipv4SegmentValues, IPv4BitsPerSegment+1)
-	segmentCacheIPv4       = make([]*ipv4SegmentValues, IPv4MaxValuePerSegment+1)
-	segmentPrefixCacheIPv4 = make([]*ipv4DivsBlock, IPv4BitsPerSegment+1)
-	prefixBlocksCacheIPv4  = make([]*ipv4DivsBlock, IPv4BitsPerSegment+1)
+	allPrefixedCacheIPv4   = makePrefixCache()
+	segmentCacheIPv4       = makeSegmentCache()
+	segmentPrefixCacheIPv4 = makeDivsBlock()
+	prefixBlocksCacheIPv4  = makeDivsBlock()
 )
+
+func makeDivsBlock() []*ipv4DivsBlock {
+	if useIPv4SegmentCache {
+		return make([]*ipv4DivsBlock, IPv4BitsPerSegment+1)
+	}
+	return nil
+}
+
+func makePrefixCache() (allPrefixedCacheIPv4 []ipv4SegmentValues) {
+	if useIPv4SegmentCache {
+		allPrefixedCacheIPv4 = make([]ipv4SegmentValues, IPv4BitsPerSegment+1)
+		for i := range allPrefixedCacheIPv4 {
+			vals := &allPrefixedCacheIPv4[i]
+			vals.upperValue = IPv4MaxValuePerSegment
+			vals.prefLen = cacheBits(i)
+		}
+	}
+	return
+}
+
+func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
+	if useIPv4SegmentCache {
+		segmentCacheIPv4 = make([]ipv4SegmentValues, IPv4MaxValuePerSegment+1)
+		for i := range segmentCacheIPv4 {
+			vals := &segmentCacheIPv4[i]
+			segi := IPv4SegInt(i)
+			vals.value = segi
+			vals.upperValue = segi
+		}
+	}
+	return
+}
+
+func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually
+	if result.value != value || result.upperValue != upperValue {
+		panic("huh")
+	}
+}
 
 //func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 //	res := newIPv4SegmentValX(value)
@@ -257,16 +295,8 @@ var (
 
 func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 	if useIPv4SegmentCache {
-		cache := segmentCacheIPv4
-		result := cache[value]
-		if result == nil {
-			result = &ipv4SegmentValues{
-				value:      value,
-				upperValue: value,
-			}
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[value]))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-		}
+		result := &segmentCacheIPv4[value]
+		checkValuesIPv4(value, value, result)
 		return result
 	}
 	return &ipv4SegmentValues{
@@ -297,32 +327,24 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 	prefLen = cacheBitCount(segmentPrefixLength) // this ensures we use the prefix length cache for all segments
 	if useIPv4SegmentCache {
 		prefixIndex := segmentPrefixLength
-		valueIndex := value
 		cache := segmentPrefixCacheIPv4
 		block := cache[prefixIndex]
 		if block == nil {
-			block = &ipv4DivsBlock{make([]*ipv4SegmentValues, IPv4MaxValuePerSegment+1)}
+			block = &ipv4DivsBlock{make([]ipv4SegmentValues, IPv4MaxValuePerSegment+1)}
+			vals := block.block
+			for i := range vals {
+				value := &vals[i]
+				segi := IPv4SegInt(i)
+				value.value = segi
+				value.upperValue = segi
+				value.prefLen = prefLen
+			}
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
-			result = &ipv4SegmentValues{
-				value:      value,
-				upperValue: value,
-				prefLen:    prefLen,
-			}
-			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&block.block[valueIndex]))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-		} else {
-			result = block.block[valueIndex]
-			if result == nil {
-				result = &ipv4SegmentValues{
-					value:      value,
-					upperValue: value,
-					prefLen:    prefLen,
-				}
-				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&block.block[valueIndex]))
-				atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-			}
+
 		}
+		result = &block.block[value]
+		checkValuesIPv4(value, value, result)
 		return result
 	}
 	return &ipv4SegmentValues{
@@ -362,53 +384,39 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 		prefLen = cacheBitCount(segmentPrefixLength) // this ensures we use the prefix length cache for all segments
 		if useIPv4SegmentCache {
 			// cache is the prefix block for any prefix length
-			shiftBits := uint(8 - segmentPrefixLength)
-			prefixBlockUpper := value | ^(^IPv4SegInt(0) << shiftBits)
-			if upperValue == prefixBlockUpper {
+			shiftBits := uint(IPv4BitsPerSegment - segmentPrefixLength)
+			nmask := ^IPv4SegInt(0) << shiftBits
+			prefixBlockLower := value & nmask
+			hmask := ^nmask
+			prefixBlockUpper := value | hmask
+			if value == prefixBlockLower && upperValue == prefixBlockUpper {
 				valueIndex := value >> shiftBits
 				cache := prefixBlocksCacheIPv4
 				prefixIndex := segmentPrefixLength
 				block := cache[prefixIndex]
 				var result *ipv4SegmentValues
 				if block == nil {
-					block = &ipv4DivsBlock{make([]*ipv4SegmentValues, 1<<uint(segmentPrefixLength))}
+					block = &ipv4DivsBlock{make([]ipv4SegmentValues, 1<<uint(segmentPrefixLength))}
+					vals := block.block
+					for i := range vals {
+						value := &vals[i]
+						segi := IPv4SegInt(i << shiftBits)
+						value.value = segi
+						value.upperValue = segi | hmask
+						value.prefLen = prefLen
+					}
 					dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
 					atomic.StorePointer(dataLoc, unsafe.Pointer(block))
-					result = &ipv4SegmentValues{
-						value:      value,
-						upperValue: upperValue,
-						prefLen:    prefLen,
-					}
-					dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&block.block[valueIndex]))
-					atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-				} else {
-					result = block.block[valueIndex]
-					if result == nil {
-						result = &ipv4SegmentValues{
-							value:      value,
-							upperValue: value,
-							prefLen:    prefLen,
-						}
-						dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&block.block[valueIndex]))
-						atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-					}
 				}
+				result = &block.block[valueIndex]
+				checkValuesIPv4(value, upperValue, result)
 				return result
 			}
 			if value == 0 {
 				// cache is 0-255 for any prefix length
 				if upperValue == IPv4MaxValuePerSegment {
-					prefixIndex := segmentPrefixLength
-					cache := allPrefixedCacheIPv4
-					result := cache[prefixIndex]
-					if result == nil {
-						result = &ipv4SegmentValues{
-							upperValue: IPv4MaxValuePerSegment,
-							prefLen:    prefLen,
-						}
-						dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
-						atomic.StorePointer(dataLoc, unsafe.Pointer(result))
-					}
+					result := &allPrefixedCacheIPv4[segmentPrefixLength]
+					checkValuesIPv4(value, upperValue, result)
 					return result
 				}
 			}

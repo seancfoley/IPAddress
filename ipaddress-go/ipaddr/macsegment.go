@@ -6,6 +6,8 @@ import (
 
 type MACSegInt uint8
 
+//TODO cache mac values
+
 func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
 	return &macSegmentValues{value: value, upperValue: upperValue}
 }
