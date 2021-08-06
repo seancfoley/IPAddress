@@ -6,11 +6,7 @@ import (
 
 type MACSegInt uint8
 
-//TODO cache mac values
-
-func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
-	return &macSegmentValues{value: value, upperValue: upperValue}
-}
+const useMACSegmentCache = true
 
 type macSegmentValues struct {
 	value      MACSegInt
@@ -89,7 +85,7 @@ func (seg *macSegmentValues) deriveNew(val, upperVal DivInt, _ PrefixLen) divisi
 }
 
 func (seg *macSegmentValues) deriveNewSeg(val SegInt, _ PrefixLen) divisionValues {
-	return newMACSegmentValues(MACSegInt(val), MACSegInt(val))
+	return newMACSegmentVal(MACSegInt(val))
 }
 
 func (seg *macSegmentValues) deriveNewMultiSeg(val, upperVal SegInt, _ PrefixLen) divisionValues {
@@ -212,15 +208,64 @@ func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 }
 
 func NewMACSegment(val MACSegInt) *MACAddressSegment {
-	return NewMACRangeSegment(val, val)
+	return newMACSegment(newMACSegmentVal(val))
 }
 
 func NewMACRangeSegment(val, upperVal MACSegInt) *MACAddressSegment {
+	return newMACSegment(newMACSegmentValues(val, upperVal))
+}
+
+func newMACSegment(vals *macSegmentValues) *MACAddressSegment {
 	return &MACAddressSegment{
 		addressSegmentInternal{
 			addressDivisionInternal{
-				addressDivisionBase{newMACSegmentValues(val, upperVal)},
+				addressDivisionBase{vals},
 			},
 		},
 	}
+}
+
+var (
+	allRangeValsMAC = &macSegmentValues{
+		upperValue: MACMaxValuePerSegment,
+	}
+	segmentCacheMAC = makeSegmentCacheMAC()
+)
+
+func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually
+	if result.value != value || result.upperValue != upperValue {
+		panic("huh")
+	}
+}
+
+func makeSegmentCacheMAC() (segmentCacheMAC []macSegmentValues) {
+	if useMACSegmentCache {
+		segmentCacheMAC = make([]macSegmentValues, MACMaxValuePerSegment+1)
+		for i := range segmentCacheMAC {
+			vals := &segmentCacheMAC[i]
+			segi := MACSegInt(i)
+			vals.value = segi
+			vals.upperValue = segi
+		}
+	}
+	return
+}
+
+func newMACSegmentVal(value MACSegInt) *macSegmentValues {
+	if useMACSegmentCache {
+		result := &segmentCacheMAC[value]
+		checkValuesMAC(value, value, result)
+		return result
+	}
+	return &macSegmentValues{value: value, upperValue: value}
+}
+
+func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
+	if value == upperValue {
+		return newMACSegmentVal(value)
+	}
+	if useMACSegmentCache && value == 0 && upperValue == MACMaxValuePerSegment {
+		return allRangeValsMAC
+	}
+	return &macSegmentValues{value: value, upperValue: upperValue}
 }
