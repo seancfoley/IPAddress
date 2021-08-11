@@ -425,19 +425,6 @@ func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress 
 		address, hostAddress, addrErr, hostErr = addrs.address, addrs.hostAddress, addrs.addrErr, addrs.hostErr
 	}
 	return
-	//xxx
-	/*
-		networkMaskLen, hostMaskLen := section.checkForPrefixMask()
-			res := &maskLenSetting{networkMaskLen, hostMaskLen}
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedMaskLens))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
-	*/
-	//if cached.addressCreator != nil && !cached.isItemCreated() {
-	//	cached.create(func() {
-	//		cached.values = cached.addressCreator()
-	//	})
-	//}
-	//return &cached.values
 }
 
 func (cached *cachedAddressProvider) getProviderNetworkPrefixLength() (p PrefixLen) {
@@ -519,24 +506,16 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 			}
 		}
 	}
-
-	//xxxx
-	//if versioned.versionedAddressCreator != nil && !versioned.createdVersioned[index].isItemCreated() {
-	//	versioned.createdVersioned[index].create(func() {
-	//		xxxx
-	//		versioned.versionedValues[index] = versioned.versionedAddressCreator(version)
-	//	})
-	//}
-
 	addr = versioned.versionedValues[index]
 	return
 }
 
-func emptyAddressCreator(emptyStrOption EmptyStrOption, options IPAddressStringParameters, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+func emptyAddressCreator(options IPAddressStringParameters, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
 	var preferIPv6 bool = version.isIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
+	emptyStrOption := options.EmptyStrParsedAs()
 	if emptyStrOption == NoAddress {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
@@ -594,8 +573,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, options IPAddressStringP
 
 func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
 	var version = options.GetPreferredVersion()
-	emptyStrOption := options.EmptyStrParsedAs()
-	addrCreator, versionedCreator := emptyAddressCreator(emptyStrOption, options, version, zone)
+	addrCreator, versionedCreator := emptyAddressCreator(options, version, zone)
 	cached := cachedAddressProvider{
 		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
 			address, hostAddress = addrCreator()
@@ -897,4 +875,4 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - mac <-> ipv6
 // - ipv4 <-> ipv6
 //
-// Still a lot of work, BUT, you are clearly past the bug hump, way past halfway, on the home stretch
+// Still a lot of work, BUT, you are clearly past the big hump, way past halfway, on the home stretch

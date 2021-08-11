@@ -239,6 +239,9 @@ type ipv4DivsBlock struct {
 var (
 	allRangeValsIPv4 = &ipv4SegmentValues{
 		upperValue: IPv4MaxValuePerSegment,
+		cache: divCache{
+			isSinglePrefBlock: &falseVal,
+		},
 	}
 	allPrefixedCacheIPv4   = makePrefixCache()
 	segmentCacheIPv4       = makeSegmentCache()
@@ -260,7 +263,9 @@ func makePrefixCache() (allPrefixedCacheIPv4 []ipv4SegmentValues) {
 			vals := &allPrefixedCacheIPv4[i]
 			vals.upperValue = IPv4MaxValuePerSegment
 			vals.prefLen = cacheBits(i)
+			vals.cache.isSinglePrefBlock = &falseVal
 		}
+		allPrefixedCacheIPv4[0].cache.isSinglePrefBlock = &trueVal
 	}
 	return
 }
@@ -273,6 +278,7 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 			segi := IPv4SegInt(i)
 			vals.value = segi
 			vals.upperValue = segi
+			vals.cache.isSinglePrefBlock = &falseVal
 		}
 	}
 	return
@@ -281,6 +287,20 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
+	}
+
+	if result.cache.isSinglePrefBlock != nil {
+		seg := newIPv4Segment(result)
+		var isSinglePBlock bool
+		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+		}
+		if isSinglePBlock != *result.cache.isSinglePrefBlock {
+			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			}
+			panic("why")
+		}
 	}
 }
 
@@ -302,6 +322,9 @@ func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 	return &ipv4SegmentValues{
 		value:      value,
 		upperValue: value,
+		cache: divCache{
+			isSinglePrefBlock: &falseVal,
+		},
 	}
 }
 
@@ -332,25 +355,42 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 		if block == nil {
 			block = &ipv4DivsBlock{make([]ipv4SegmentValues, IPv4MaxValuePerSegment+1)}
 			vals := block.block
+			var isSinglePrefBlock *bool
+			if prefixIndex == IPv4BitsPerSegment {
+				isSinglePrefBlock = &trueVal
+			} else {
+				isSinglePrefBlock = &falseVal
+			}
 			for i := range vals {
 				value := &vals[i]
 				segi := IPv4SegInt(i)
 				value.value = segi
 				value.upperValue = segi
 				value.prefLen = prefLen
+				value.cache.isSinglePrefBlock = isSinglePrefBlock
+				//value.cache.isSinglePrefBlock = &falseVal xxxxx wrong when prefLen is 8 they are all prefix blocks xxxx
 			}
+			//vals[IPv4BitsPerSegment].cache.isSinglePrefBlock = &trueVal xxxxx wrong when prefLen is 8 they are all prefix blocks xxxx
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
-
 		}
 		result = &block.block[value]
-		checkValuesIPv4(value, value, result)
+		checkValuesIPv4(value, value, result) //xxx getting wrong cached answer for value 0 and prefLen 8
 		return result
+	}
+	var isSinglePrefBlock *bool
+	if segmentPrefixLength == IPv4BitsPerSegment {
+		isSinglePrefBlock = &trueVal
+	} else {
+		isSinglePrefBlock = &falseVal
 	}
 	return &ipv4SegmentValues{
 		value:      value,
 		upperValue: value,
 		prefLen:    prefLen,
+		cache: divCache{
+			isSinglePrefBlock: isSinglePrefBlock,
+		},
 	}
 }
 
@@ -364,6 +404,7 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 //}
 
 func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLen) *ipv4SegmentValues {
+	var isSinglePrefBlock *bool
 	if prefLen == nil {
 		if value == upperValue {
 			return newIPv4SegmentVal(value)
@@ -371,6 +412,7 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 		if useIPv4SegmentCache && value == 0 && upperValue == IPv4MaxValuePerSegment {
 			return allRangeValsIPv4
 		}
+		isSinglePrefBlock = &falseVal
 	} else {
 		if value == upperValue {
 			return newIPv4SegmentPrefixedVal(value, prefLen)
@@ -404,6 +446,7 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 						value.value = segi
 						value.upperValue = segi | hmask
 						value.prefLen = prefLen
+						value.cache.isSinglePrefBlock = &trueVal
 					}
 					dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
 					atomic.StorePointer(dataLoc, unsafe.Pointer(block))
@@ -420,11 +463,15 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 					return result
 				}
 			}
+			isSinglePrefBlock = &falseVal
 		}
 	}
 	return &ipv4SegmentValues{
 		value:      value,
 		upperValue: upperValue,
 		prefLen:    prefLen,
+		cache: divCache{
+			isSinglePrefBlock: isSinglePrefBlock,
+		},
 	}
 }

@@ -8,6 +8,11 @@ type boolSetting struct {
 	isSet, val bool
 }
 
+var (
+	falseVal = false
+	trueVal  = true
+)
+
 type BitCount int16 // using signed integers allows for easier arithmetic and decrement bugs
 
 func cacheBits(i int) PrefixLen {

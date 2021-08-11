@@ -49,7 +49,7 @@ type divCache struct {
 
 	cachedBytes *bytesCache
 
-	//isSinglePrefixBlock boolSetting //TODO maybe initMultAndPrefLen this on creation or put it in divisionValues or just calculate it, maybe do the same in Java
+	isSinglePrefBlock *bool
 }
 
 // addressDivisionBase is a division of any bit-size.

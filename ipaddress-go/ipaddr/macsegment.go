@@ -133,7 +133,22 @@ func (seg *MACAddressSegment) setString(
 	originalLowerValue SegInt) {
 	if cache := seg.getCache(); cache != nil {
 		//TODO atomic writes only, the caches are shared, use cacheStr
-		//TODO also, should I think about whether I should also set cached.string here?  The lower level types might be using it, though I'm not sure, depends on string generation and those params and whatnot
+		//TODO also, should I think about whether I should also set cached.string here?
+		// The lower level types might be using it, though I'm not sure, depends on string generation and those params and whatnot
+		// Actually, seems GetString in ipsegment.go uses it, so no prob here
+		// BUT these two use it
+		//func (div *addressDivisionInternal) getStringAsLower() string {
+		//func (div *addressDivisionInternal) getString() string {
+		// which are called from:
+		// func (div *addressDivisionInternal) GetString() string
+		// func (div *addressDivisionInternal) GetWildcardString() string {
+		// So yeah, because you are not really overriding, you can convert to AddressDivision and then use that field
+		// It seems this differs from Java, only IPAddressDivision uses cachedString
+		// So either you make func (div *addressDivisionInternal) GetString() check for type and scale upwards, or you write to cacherString here too
+		// The latter is  enough because we have code that always scales up to IPAddressSegment.
+		// In go, cachedWildcardString is used ONLY by ip segments in GetWildcardString
+		// in java, it used there too, but also by segments and divisions in general, as cachedString is present only in IPAddressDivision
+		// So here just change this to use cachedString
 		if cache.cachedWildcardString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cache.cachedWildcardString = &str
@@ -150,6 +165,8 @@ func (seg *MACAddressSegment) setRangeString(
 	rangeUpper SegInt) {
 	if cache := seg.getCache(); cache != nil {
 		//TODO atomic writes only, the caches are shared, use cacheStr
+		//
+		// TODO see above about cachedWildcardString.  Use only cachedString here.
 		if cache.cachedWildcardString == nil {
 			if seg.IsFullRange() {
 				cache.cachedWildcardString = &segmentWildcardStr

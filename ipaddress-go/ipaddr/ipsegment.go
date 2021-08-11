@@ -4,6 +4,7 @@ import (
 	//"net"
 	"math/bits"
 	"strings"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -26,10 +27,22 @@ func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
 }
 
 func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
-	if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
-		return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+	cache := seg.getCache()
+	res := cache.isSinglePrefBlock
+	if res == nil {
+		var result bool
+		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			result = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+		}
+		if result {
+			res = &trueVal
+		} else {
+			res = &falseVal
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.isSinglePrefBlock))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
-	return false
+	return *res
 }
 
 func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {

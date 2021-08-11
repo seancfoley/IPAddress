@@ -345,6 +345,9 @@ type ipv6DivsPartition struct {
 var (
 	allRangeValsIPv6 = &ipv6SegmentValues{
 		upperValue: IPv6MaxValuePerSegment,
+		cache: divCache{
+			isSinglePrefBlock: &falseVal,
+		},
 	}
 	allPrefixedCacheIPv6 = makePrefixCacheIPv6()
 
@@ -378,7 +381,9 @@ func makePrefixCacheIPv6() (allPrefixedCacheIPv6 []ipv6SegmentValues) {
 			vals := &allPrefixedCacheIPv6[i]
 			vals.upperValue = IPv6MaxValuePerSegment
 			vals.prefLen = cacheBits(i)
+			vals.cache.isSinglePrefBlock = &falseVal
 		}
+		allPrefixedCacheIPv6[0].cache.isSinglePrefBlock = &trueVal
 	}
 	return
 }
@@ -398,6 +403,7 @@ func newIPv6SegmentVal(value IPv6SegInt) *ipv6SegmentValues {
 				itemVal := firstBlockVal | IPv6SegInt(i)
 				item.value = itemVal
 				item.upperValue = itemVal
+				item.cache.isSinglePrefBlock = &falseVal
 			}
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[blockIndex]))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
@@ -409,6 +415,9 @@ func newIPv6SegmentVal(value IPv6SegInt) *ipv6SegmentValues {
 	return &ipv6SegmentValues{
 		value:      value,
 		upperValue: value,
+		cache: divCache{
+			isSinglePrefBlock: &falseVal,
+		},
 	}
 }
 
@@ -416,15 +425,15 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 	if prefLen == nil {
 		return newIPv6SegmentVal(value)
 	}
+	prefixIndex := *prefLen
+	if prefixIndex < 0 {
+		prefixIndex = 0
+	} else if prefixIndex > IPv6BitsPerSegment {
+		prefixIndex = IPv6BitsPerSegment
+	}
+	prefLen = cacheBitCount(prefixIndex) // this ensures we use the prefix length cache for all segments
 	if useIPv6SegmentCache {
 		cache := segmentPrefixCacheIPv6
-		prefixIndex := *prefLen
-		if prefixIndex < 0 {
-			prefixIndex = 0
-		} else if prefixIndex > IPv6BitsPerSegment {
-			prefixIndex = IPv6BitsPerSegment
-		}
-		prefLen = cacheBitCount(prefixIndex) // this ensures we use the prefix length cache for all segments
 		prefixCache := cache[prefixIndex]
 		if prefixCache == nil {
 			prefixCache = &ipv6DivsPartition{make([]*ipv6DivsBlock, (IPv6MaxValuePerSegment>>8)+1)}
@@ -438,13 +447,22 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 		if blockCache == nil {
 			blockCache = &ipv6DivsBlock{make([]ipv6SegmentValues, (IPv6MaxValuePerSegment>>8)+1)}
 			vals := blockCache.block
+			var isSinglePrefBlock *bool
+			if prefixIndex == IPv6BitsPerSegment {
+				isSinglePrefBlock = &trueVal
+			} else {
+				isSinglePrefBlock = &falseVal
+			}
 			for i := range vals {
 				item := &vals[i]
 				itemVal := firstBlockVal | IPv6SegInt(i)
 				item.value = itemVal
 				item.upperValue = itemVal
 				item.prefLen = prefLen
+				item.cache.isSinglePrefBlock = isSinglePrefBlock
+				//item.cache.isSinglePrefBlock = &falseVal xxxxx wrong when prefLen is 16 they are all prefix blocks xxxx
 			}
+			//vals[IPv6BitsPerSegment].cache.isSinglePrefBlock = &trueVal xxxxx wrong when prefLen is 16 they are all prefix blocks xxxx
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&prefixCache.block[blockIndex]))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 		}
@@ -452,10 +470,19 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 		checkValues(value, value, result)
 		return result
 	}
+	var isSinglePrefBlock *bool
+	if prefixIndex == IPv6BitsPerSegment {
+		isSinglePrefBlock = &trueVal
+	} else {
+		isSinglePrefBlock = &falseVal
+	}
 	return &ipv6SegmentValues{
 		value:      value,
 		upperValue: value,
 		prefLen:    prefLen,
+		cache: divCache{
+			isSinglePrefBlock: isSinglePrefBlock,
+		},
 	}
 }
 
@@ -463,9 +490,23 @@ func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TO
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
+	if result.cache.isSinglePrefBlock != nil {
+		seg := newIPv6Segment(result)
+		var isSinglePBlock bool
+		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+		}
+		if isSinglePBlock != *result.cache.isSinglePrefBlock {
+			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			}
+			panic("why")
+		}
+	}
 }
 
 func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
+	var isSinglePrefBlock *bool
 	if prefLen == nil {
 		if value == upperValue {
 			return newIPv6SegmentVal(value)
@@ -473,6 +514,7 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 		if useIPv6SegmentCache && value == 0 && upperValue == IPv6MaxValuePerSegment {
 			return allRangeValsIPv6
 		}
+		isSinglePrefBlock = &falseVal
 	} else {
 		if value == upperValue {
 			return newIPv6SegmentPrefixedVal(value, prefLen)
@@ -484,63 +526,69 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 			prefixIndex = IPv6BitsPerSegment
 		}
 		prefLen = cacheBitCount(prefixIndex) // this ensures we use the prefix length cache for all segments
-
-		shiftBits := uint(IPv6BitsPerSegment - prefixIndex)
-		nmask := ^IPv6SegInt(0) << shiftBits
-		prefixBlockLower := value & nmask
-		hmask := ^nmask
-		prefixBlockUpper := value | hmask
-		if value == prefixBlockLower && upperValue == prefixBlockUpper {
-			// cache is the prefix block for any prefix length
-			cache := prefixBlocksCacheIPv6
-			prefixCache := cache[prefixIndex]
-			if prefixCache == nil {
-				if prefixIndex <= 8 { // 1 block of size (1 << prefix)
-					prefixCache = &ipv6DivsPartition{make([]*ipv6DivsBlock, 1)}
-				} else { // (1 << (prefix - 8)) blocks of size 0x100.
-					prefixCache = &ipv6DivsPartition{make([]*ipv6DivsBlock, 1<<uint(prefixIndex-8))}
+		if useIPv6SegmentCache {
+			shiftBits := uint(IPv6BitsPerSegment - prefixIndex)
+			nmask := ^IPv6SegInt(0) << shiftBits
+			prefixBlockLower := value & nmask
+			hmask := ^nmask
+			prefixBlockUpper := value | hmask
+			if value == prefixBlockLower && upperValue == prefixBlockUpper {
+				// cache is the prefix block for any prefix length
+				cache := prefixBlocksCacheIPv6
+				prefixCache := cache[prefixIndex]
+				if prefixCache == nil {
+					if prefixIndex <= 8 { // 1 block of size (1 << prefix)
+						prefixCache = &ipv6DivsPartition{make([]*ipv6DivsBlock, 1)}
+					} else { // (1 << (prefix - 8)) blocks of size 0x100.
+						prefixCache = &ipv6DivsPartition{make([]*ipv6DivsBlock, 1<<uint(prefixIndex-8))}
+					}
+					dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
+					atomic.StorePointer(dataLoc, unsafe.Pointer(prefixCache))
 				}
-				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
-				atomic.StorePointer(dataLoc, unsafe.Pointer(prefixCache))
-			}
-			valueIndex := value >> shiftBits
-			blockIndex := valueIndex >> 8 // divide by 0x100
-			firstBlockVal := blockIndex << 8
-			resultIndex := valueIndex - (firstBlockVal) // mod 0x100
-			blockCache := prefixCache.block[blockIndex]
-			if blockCache == nil {
-				if prefixIndex <= 8 { // 1 block of size (1 << prefix)
-					blockCache = &ipv6DivsBlock{make([]ipv6SegmentValues, 1<<uint(prefixIndex))}
-				} else { // (1 << (prefix - 8)) blocks of size 0x100.
-					blockCache = &ipv6DivsBlock{make([]ipv6SegmentValues, 1<<8)}
+				valueIndex := value >> shiftBits
+				blockIndex := valueIndex >> 8 // divide by 0x100
+				firstBlockVal := blockIndex << 8
+				resultIndex := valueIndex - (firstBlockVal) // mod 0x100
+				blockCache := prefixCache.block[blockIndex]
+				if blockCache == nil {
+					if prefixIndex <= 8 { // 1 block of size (1 << prefix)
+						blockCache = &ipv6DivsBlock{make([]ipv6SegmentValues, 1<<uint(prefixIndex))}
+					} else { // (1 << (prefix - 8)) blocks of size 0x100.
+						blockCache = &ipv6DivsBlock{make([]ipv6SegmentValues, 1<<8)}
+					}
+					vals := blockCache.block
+					for i := range vals {
+						item := &vals[i]
+						itemVal := (firstBlockVal | IPv6SegInt(i)) << shiftBits
+						item.value = itemVal
+						item.upperValue = itemVal | hmask
+						item.prefLen = prefLen
+						item.cache.isSinglePrefBlock = &trueVal
+					}
+					dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&prefixCache.block[blockIndex]))
+					atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 				}
-				vals := blockCache.block
-				for i := range vals {
-					item := &vals[i]
-					itemVal := (firstBlockVal | IPv6SegInt(i)) << shiftBits
-					item.value = itemVal
-					item.upperValue = itemVal | hmask
-					item.prefLen = prefLen
-				}
-				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&prefixCache.block[blockIndex]))
-				atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
-			}
-			result := &blockCache.block[resultIndex]
-			checkValues(value, upperValue, result)
-			return result
-		}
-		if value == 0 {
-			// cache is 0-0xffff for any prefix length
-			if upperValue == IPv6MaxValuePerSegment {
-				result := &allPrefixedCacheIPv6[prefixIndex]
+				result := &blockCache.block[resultIndex]
 				checkValues(value, upperValue, result)
 				return result
 			}
+			if value == 0 {
+				// cache is 0-0xffff for any prefix length
+				if upperValue == IPv6MaxValuePerSegment {
+					result := &allPrefixedCacheIPv6[prefixIndex]
+					checkValues(value, upperValue, result)
+					return result
+				}
+			}
+			isSinglePrefBlock = &falseVal
 		}
 	}
 	return &ipv6SegmentValues{
 		value:      value,
 		upperValue: upperValue,
 		prefLen:    prefLen,
+		cache: divCache{
+			isSinglePrefBlock: isSinglePrefBlock,
+		},
 	}
 }

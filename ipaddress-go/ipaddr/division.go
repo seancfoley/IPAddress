@@ -112,14 +112,10 @@ func (div *divValues) calcBytesInternal() (bytes, upperBytes []byte) {
 }
 
 func calcBytesInternal(byteCount int, val, upperVal DivInt) (bytes, upperBytes []byte) {
-	//byteCount := seg.getByteCount()
 	byteIndex := byteCount - 1
-	//val := seg.getDivisionValue()
 	isMultiple := val != upperVal //seg.isMultiple()
 	bytes = make([]byte, byteCount)
-	//var upperVal DivInt
 	if isMultiple {
-		//upperVal = seg.getUpperDivisionValue()
 		upperBytes = make([]byte, byteCount)
 	} else {
 		upperBytes = bytes
@@ -257,12 +253,12 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 	var ones = ^DivInt(0)
 	var divisionBitMask DivInt = ^(ones << uint(bitCount))
 	var divisionPrefixMask DivInt = ones << uint(bitCount-divisionPrefixLen)
-	var divisionNonPrefixMask = ^divisionPrefixMask
+	var divisionHostMask = ^divisionPrefixMask
 	return testRange(divisionValue,
 		divisionValue,
 		upperValue,
 		divisionPrefixMask&divisionBitMask,
-		divisionNonPrefixMask)
+		divisionHostMask)
 }
 
 func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
