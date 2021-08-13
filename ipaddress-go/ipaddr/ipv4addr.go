@@ -681,11 +681,12 @@ func (addr *IPv4Address) ToFullString() string {
 }
 
 func (addr *IPv4Address) ToReverseDNSString() string {
-	return addr.init().toReverseDNSString()
+	str, _ := addr.init().toReverseDNSString()
+	return str
 }
 
-func (addr *IPv4Address) ToPrefixLengthString() string {
-	return addr.init().toPrefixLengthString()
+func (addr *IPv4Address) ToPrefixLenString() string {
+	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPv4Address) ToSubnetString() string {

@@ -262,7 +262,6 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 				if emptyStringOpt != NoAddress {
 					addrFunc, _ := emptyAddressCreator(
 						validationOptions.EmptyStrParsedAs(),
-						validationOptions.GetIPAddressParameters(),
 						validationOptions.GetPreferredVersion(),
 						NoZone)
 					addr, _ := addrFunc()

@@ -288,7 +288,6 @@ func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { 
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
-
 	if result.cache.isSinglePrefBlock != nil {
 		seg := newIPv4Segment(result)
 		var isSinglePBlock bool

@@ -3645,7 +3645,6 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 			return
 		}
 	} else if isIPAddress || isPossiblyIPv4 || isPossiblyIPv6 {
-		//TODO see what happens when you move this out (what vars it needs from closure)
 		provider, addrErr, hostErr := func() (provider ipAddressProvider, addrErr AddressError, hostErr HostNameError) {
 			//				try {
 			pa := parsedIPAddress{

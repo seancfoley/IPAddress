@@ -410,29 +410,29 @@ func (addr *ipAddressInternal) toFullString() string {
 	return addr.section.ToIPAddressSection().ToFullString()
 }
 
-func (addr *ipAddressInternal) toReverseDNSString() string {
+func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddressError) {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().reverseDNSString,
-			func() string {
+		return cacheStrErr(&addr.getStringCache().reverseDNSString,
+			func() (string, IncompatibleAddressError) {
 				return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
 			})
 	}
 	return addr.section.ToIPAddressSection().ToReverseDNSString()
 }
 
-func (addr *ipAddressInternal) toPrefixLengthString() string {
+func (addr *ipAddressInternal) toPrefixLenString() string {
 	if addr.hasZone() {
 		return cacheStr(&addr.getStringCache().networkPrefixLengthString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toPrefixLenStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToPrefixLengthString()
+	return addr.section.ToIPAddressSection().ToPrefixLenString()
 }
 
 func (addr *ipAddressInternal) toSubnetString() string {
 	if addr.hasZone() {
-		return addr.toPrefixLengthString()
+		return addr.toPrefixLenString()
 	}
 	return addr.section.ToIPAddressSection().ToSubnetString()
 }
@@ -1127,12 +1127,12 @@ func (addr *IPAddress) ToFullString() string {
 	return addr.init().toFullString()
 }
 
-func (addr *IPAddress) ToReverseDNSString() string {
+func (addr *IPAddress) ToReverseDNSString() (string, IncompatibleAddressError) {
 	return addr.init().toReverseDNSString()
 }
 
-func (addr *IPAddress) ToPrefixLengthString() string {
-	return addr.init().toPrefixLengthString()
+func (addr *IPAddress) ToPrefixLenString() string {
+	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPAddress) ToSubnetString() string {

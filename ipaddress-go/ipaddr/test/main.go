@@ -224,7 +224,7 @@ func main() {
 	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str = addrStrPref7.GetAddress().ToIPv6Address().ToMixedString()
+	str, _ = addrStrPref7.GetAddress().ToIPv6Address().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 	str, _ = addrStrPref7.GetAddress().ToBinaryString(true)
 	fmt.Printf("\nIPv6 binary string is %s", str)
@@ -236,7 +236,7 @@ func main() {
 	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str = addrStrPref8.GetAddress().ToIPv6Address().ToMixedString()
+	str, _ = addrStrPref8.GetAddress().ToIPv6Address().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 
 	rangiter := rng.PrefixIterator(28)

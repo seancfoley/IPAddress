@@ -177,13 +177,13 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	GetTrailingBitCount(ones bool) BitCount
 
 	ToFullString() string
-	//ToPrefixLenString() string //TODO seems I went most of the way but not all the way, still need this one string method
+	ToPrefixLenString() string
 	ToSubnetString() string
 	ToNormalizedWildcardString() string
 	ToCanonicalWildcardString() string
 	ToCompressedWildcardString() string
 	ToSQLWildcardString() string
-	ToReverseDNSString() string
+	ToReverseDNSString() (string, IncompatibleAddressError)
 	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToSegmentedBinaryString() string
 	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)

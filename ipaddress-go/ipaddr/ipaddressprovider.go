@@ -510,12 +510,11 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func emptyAddressCreator(options IPAddressStringParameters, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
 	var preferIPv6 bool = version.isIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	emptyStrOption := options.EmptyStrParsedAs()
 	if emptyStrOption == NoAddress {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
@@ -573,7 +572,7 @@ func emptyAddressCreator(options IPAddressStringParameters, version IPVersion, z
 
 func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
 	var version = options.GetPreferredVersion()
-	addrCreator, versionedCreator := emptyAddressCreator(options, version, zone)
+	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
 		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
 			address, hostAddress = addrCreator()
@@ -865,8 +864,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //		}
 //	}
 
-// TODO NOW progress
-// TODO NEXT NOW progress
+// TODO NEXT progress
 //
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - try to create the right set of constructors for sections and addresses, hopefully straightforward

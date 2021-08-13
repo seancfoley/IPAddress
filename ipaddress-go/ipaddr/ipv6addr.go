@@ -277,18 +277,18 @@ func (addr *IPv6Address) GetHostMask() *IPv6Address {
 	return addr.getHostMask(DefaultIPv6Network).ToIPv6Address()
 }
 
-func (addr *IPv6Address) GetMixedAddressGrouping() *IPv6v4MixedAddressGrouping {
+func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping, IncompatibleAddressError) {
 	return addr.init().GetSection().getMixedAddressGrouping()
 }
 
 // GetEmbeddedIPv4AddressSection gets the IPv4 section corresponding to the lowest (least-significant) 4 bytes in the original address,
 // which will correspond to between 0 and 4 bytes in this address.  Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
-func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() *IPv4AddressSection {
+func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() (*IPv4AddressSection, IncompatibleAddressError) {
 	return addr.init().GetSection().getEmbeddedIPv4AddressSection()
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
-func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) *IPv4AddressSection {
+func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
 	return addr.init().GetSection().getIPv4AddressSection(startIndex, endIndex)
 }
 
@@ -813,8 +813,8 @@ func (addr *IPv6Address) ToFullString() string {
 	return addr.init().toFullString()
 }
 
-func (addr *IPv6Address) ToPrefixLengthString() string {
-	return addr.init().toPrefixLengthString()
+func (addr *IPv6Address) ToPrefixLenString() string {
+	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPv6Address) ToSubnetString() string {
@@ -825,7 +825,7 @@ func (addr *IPv6Address) ToCompressedWildcardString() string {
 	return addr.init().toCompressedWildcardString()
 }
 
-func (addr *IPv6Address) ToReverseDNSString() string {
+func (addr *IPv6Address) ToReverseDNSString() (string, IncompatibleAddressError) {
 	return addr.init().toReverseDNSString()
 }
 
@@ -841,27 +841,20 @@ func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-// This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
-func (addr *IPv6Address) ToMixedString() string {
+// ToMixedString produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
+// For some address sections with ranges of values in the IPv4 part of the address, there is not mixed string, and an error is returned.
+func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		var cacheField **string
 		cacheField = &addr.getStringCache().mixedString
-		//return cacheStrErr(cacheField, //TODO reinstate when your error handling is better in visitSplitSegments
-		//	func() (string, IncompatibleAddressError) {
-		//		return addr.section.ToIPv6AddressSection().toMixedStringZoned(addr.zone)
-		//	})
-		return cacheStr(cacheField,
-			func() string {
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressError) {
 				return addr.GetSection().toMixedStringZoned(addr.zone)
 			})
 	}
 	return addr.GetSection().toMixedString()
 
 }
-
-//func (addr *IPv6Address) CompareSize(other *IPv6Address) int {
-//	return addr.initMultAndPrefLen().CompareSize(other.ToIPAddress())
-//}
 
 func (addr *IPv6Address) ToAddress() *Address {
 	if addr != nil {

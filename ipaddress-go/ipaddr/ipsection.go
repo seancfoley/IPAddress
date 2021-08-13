@@ -1166,20 +1166,20 @@ func (section *ipAddressSectionInternal) ToFullString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToReverseDNSString() string {
+func (section *ipAddressSectionInternal) ToReverseDNSString() (string, IncompatibleAddressError) {
 	if sect := section.toIPv4AddressSection(); sect != nil {
-		return sect.ToReverseDNSString()
+		return sect.ToReverseDNSString(), nil
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToReverseDNSString()
 	}
-	return "0"
+	return "0", nil
 }
 
-func (section *ipAddressSectionInternal) ToPrefixLengthString() string {
+func (section *ipAddressSectionInternal) ToPrefixLenString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
-		return sect.ToPrefixLengthString()
+		return sect.ToPrefixLenString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.ToPrefixLengthString()
+		return sect.ToPrefixLenString()
 	}
 	return "0"
 }
@@ -1188,7 +1188,7 @@ func (section *ipAddressSectionInternal) ToSubnetString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.ToPrefixLengthString()
+		return sect.ToPrefixLenString()
 	}
 	return "0"
 }

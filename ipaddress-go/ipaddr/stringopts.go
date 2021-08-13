@@ -81,8 +81,6 @@ type StringOptions interface {
 
 	IsUppercase() bool
 
-	IsSplitDigits() bool
-
 	IsExpandedSegments() bool
 
 	GetRadix() int
@@ -100,18 +98,18 @@ type StringOptions interface {
 type stringOptions struct {
 	wildcards Wildcards
 
-	expandSegments   bool
-	base             int // default is hex
-	segmentStrPrefix string
+	base int // default is hex
 
 	//the segment separator and in the case of split digits, the digit separator
-	separator    byte // default is ' ', but it's typically either '.' or ':'
-	hasSeparator bool
+	separator byte // default is ' ', but it's typically either '.' or ':'
 
-	addrLabel   string
-	reverse     bool
-	splitDigits bool
-	uppercase   bool
+	segmentStrPrefix,
+	addrLabel string
+
+	expandSegments,
+	hasSeparator,
+	reverse,
+	uppercase bool
 
 	cached *addressStringParams
 }
@@ -128,9 +126,9 @@ func (w *stringOptions) IsUppercase() bool {
 	return w.uppercase
 }
 
-func (w *stringOptions) IsSplitDigits() bool {
-	return w.splitDigits
-}
+//func (w *stringOptions) isSplitDigits() bool {
+//	return w.splitDigits
+//}
 
 func (w *stringOptions) IsExpandedSegments() bool {
 	return w.expandSegments
@@ -178,10 +176,10 @@ func (w *StringOptionsBuilder) SetUppercase(uppercase bool) *StringOptionsBuilde
 	return w
 }
 
-func (w *StringOptionsBuilder) SetSplitDigits(splitDigits bool) *StringOptionsBuilder {
-	w.splitDigits = splitDigits
-	return w
-}
+//func (w *StringOptionsBuilder) setSplitDigits(splitDigits bool) *StringOptionsBuilder { // not public since only supported for IPv6 because it produces errors for ranged segments
+//	w.splitDigits = splitDigits
+//	return w
+//}
 
 func (w *StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *StringOptionsBuilder {
 	w.expandSegments = expandSegments
@@ -358,10 +356,10 @@ func (w *IPStringOptionsBuilder) SetUppercase(uppercase bool) *IPStringOptionsBu
 	return w
 }
 
-func (w *IPStringOptionsBuilder) SetSplitDigits(splitDigits bool) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetSplitDigits(splitDigits)
-	return w
-}
+//func (w *IPStringOptionsBuilder) setSplitDigits(splitDigits bool) *IPStringOptionsBuilder {
+//	w.StringOptionsBuilder.setSplitDigits(splitDigits)
+//	return w
+//}
 
 func (w *IPStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPStringOptionsBuilder {
 	w.StringOptionsBuilder.SetExpandedSegments(expandSegments)
@@ -420,17 +418,19 @@ func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
 }
 
 type IPv6StringOptions interface {
-	isCacheable() bool
-
-	makeMixed() bool
+	IPStringOptions
 
 	GetIPv4Opts() IPStringOptions
 
 	GetCompressOptions() CompressOptions
 
-	IsMixed() bool
+	IsSplitDigits() bool
 
-	from(addr *IPv6AddressSection) *ipv6StringParams
+	IsMixed() bool
+}
+
+func isCacheable(options IPv6StringOptions) bool {
+	return options.GetCompressOptions() == nil
 }
 
 // Provides a clear way to create a specific type of IPv6 address string.
@@ -443,14 +443,20 @@ type ipv6StringOptions struct {
 
 	cachedIPv6Addr      *ipv6StringParams
 	cachedMixedIPv6Addr *ipv6v4MixedParams
+
+	splitDigits bool
 }
 
-func (opts *ipv6StringOptions) isCacheable() bool {
-	return opts.compressOptions == nil
-}
+//func (opts *ipv6StringOptions) isCacheable() bool {
+//	return opts.compressOptions == nil
+//}
 
-func (opts *ipv6StringOptions) makeMixed() bool {
-	return opts.ipv4Opts != nil
+//func (opts *ipv6StringOptions) makeMixed() bool {
+//	return opts.ipv4Opts != nil
+//}
+
+func (opts *ipv6StringOptions) IsSplitDigits() bool {
+	return opts.splitDigits
 }
 
 func (opts *ipv6StringOptions) GetIPv4Opts() IPStringOptions {
@@ -462,13 +468,13 @@ func (opts *ipv6StringOptions) GetCompressOptions() CompressOptions {
 }
 
 func (opts *ipv6StringOptions) IsMixed() bool {
-	return opts.makeMixed()
+	return opts.ipv4Opts != nil
 }
 
 var _ IPv6StringOptions = &ipv6StringOptions{}
 
 type IPv6StringOptionsBuilder struct {
-	ops ipv6StringOptions
+	opts ipv6StringOptions
 
 	IPStringOptionsBuilder
 
@@ -480,26 +486,31 @@ func (builder *IPv6StringOptionsBuilder) IsMixed() bool {
 }
 
 func (builder *IPv6StringOptionsBuilder) GetIPv4Opts() IPStringOptions {
-	return builder.ops.ipv4Opts
+	return builder.opts.ipv4Opts
 }
 
 func (builder *IPv6StringOptionsBuilder) GetCompressOptions() CompressOptions {
-	return builder.ops.compressOptions
+	return builder.opts.compressOptions
 }
 
-func (builder *IPv6StringOptionsBuilder) SetCompressOptions(compressOptions CompressOptions) *IPv6StringOptionsBuilder {
-	builder.ops.compressOptions = compressOptions
+func (builder *IPv6StringOptionsBuilder) SetSplitDigits(splitDigits bool) *IPv6StringOptionsBuilder {
+	builder.opts.splitDigits = splitDigits
 	return builder
 }
 
-func (builder *IPv6StringOptionsBuilder) SetMakeMixed(makeMixed bool) *IPv6StringOptionsBuilder {
+func (builder *IPv6StringOptionsBuilder) SetCompressOptions(compressOptions CompressOptions) *IPv6StringOptionsBuilder {
+	builder.opts.compressOptions = compressOptions
+	return builder
+}
+
+func (builder *IPv6StringOptionsBuilder) SetMixed(makeMixed bool) *IPv6StringOptionsBuilder {
 	builder.makeMixed = makeMixed
 	return builder
 }
 
 func (builder *IPv6StringOptionsBuilder) SetMixedOptions(ipv4Options IPStringOptions) *IPv6StringOptionsBuilder {
 	builder.makeMixed = true
-	builder.ops.ipv4Opts = ipv4Options
+	builder.opts.ipv4Opts = ipv4Options
 	return builder
 }
 
@@ -553,22 +564,17 @@ func (builder *IPv6StringOptionsBuilder) SetUppercase(upper bool) *IPv6StringOpt
 	return builder
 }
 
-func (builder *IPv6StringOptionsBuilder) SetSplitDigits(splitDigits bool) *IPv6StringOptionsBuilder {
-	builder.IPStringOptionsBuilder.SetSplitDigits(splitDigits)
-	return builder
-}
-
 func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 	if builder.makeMixed {
-		if builder.ops.ipv4Opts == nil {
-			builder.ops.ipv4Opts = NewIPv4StringOptionsBuilder().SetExpandedSegments(builder.expandSegments).
+		if builder.opts.ipv4Opts == nil {
+			builder.opts.ipv4Opts = NewIPv4StringOptionsBuilder().SetExpandedSegments(builder.expandSegments).
 				SetWildcardOption(builder.ipStringOptions.wildcardOption).
 				SetWildcards(builder.wildcards).ToOptions()
 		}
 	} else {
-		builder.ops.ipv4Opts = nil
+		builder.opts.ipv4Opts = nil
 	}
-	res := builder.ops
+	res := builder.opts
 	res.ipStringOptions = *builder.IPStringOptionsBuilder.ToOptions().(*ipStringOptions)
 	res.base, res.wildcards, res.separator, res.zoneSeparator = getDefaults(res.base, res.wildcards, res.separator, res.zoneSeparator)
 	return &res
