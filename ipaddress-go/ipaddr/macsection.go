@@ -407,7 +407,7 @@ var (
 func (section *MACAddressSection) ToCanonicalString() string {
 	return cacheStr(&section.getStringCache().canonicalString,
 		func() string {
-			return section.toNormalizedOptsString(macCanonicalParams)
+			return section.ToCustomString(macCanonicalParams)
 		})
 }
 
@@ -416,14 +416,14 @@ func (section *MACAddressSection) ToNormalizedString() string {
 	strp := &cch.normalizedMACString
 	return cacheStr(strp,
 		func() string {
-			return section.toNormalizedOptsString(macNormalizedParams)
+			return section.ToCustomString(macNormalizedParams)
 		})
 }
 
 func (section *MACAddressSection) ToCompressedString() string {
 	return cacheStr(&section.getStringCache().compressedMACString,
 		func() string {
-			return section.toNormalizedOptsString(macCompressedParams)
+			return section.ToCustomString(macCompressedParams)
 		})
 }
 
@@ -556,7 +556,7 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 func (section *MACAddressSection) ToSpaceDelimitedString() string {
 	return cacheStr(&section.getStringCache().spaceDelimitedString,
 		func() string {
-			return section.toNormalizedOptsString(spaceDelimitedParams)
+			return section.ToCustomString(spaceDelimitedParams)
 		})
 }
 

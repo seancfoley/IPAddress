@@ -901,6 +901,15 @@ func divValSame(oneVal, twoVal DivInt) bool {
 	return oneVal == twoVal
 }
 
+func cacheStrPtr(cachedString **string, str *string) {
+	cachedVal := *cachedString
+	if cachedVal == nil {
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(cachedString))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+	}
+	return
+}
+
 func cacheStr(cachedString **string, stringer func() string) (str string) {
 	cachedVal := *cachedString
 	if cachedVal == nil {

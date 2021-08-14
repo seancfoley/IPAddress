@@ -949,7 +949,7 @@ func (section *IPv6AddressSection) toCanonicalWildcardStringZoned(zone Zone) str
 }
 
 func (section *IPv6AddressSection) toSegmentedBinaryStringZoned(zone Zone) string {
-	return section.toNormalizedIPOptsString(ipv6SegmentedBinaryParams, zone)
+	return section.ipAddressSectionInternal.toCustomString(ipv6SegmentedBinaryParams, zone)
 }
 
 func (section *IPv6AddressSection) toSQLWildcardStringZoned(zone Zone) string {
@@ -961,7 +961,7 @@ func (section *IPv6AddressSection) toFullStringZoned(zone Zone) string {
 }
 
 func (section *IPv6AddressSection) toReverseDNSStringZoned(zone Zone) (string, IncompatibleAddressError) {
-	return section.toNormalizedZonedSplitString(ipv6ReverseDNSParams, zone)
+	return section.toNormalizedSplitZonedString(ipv6ReverseDNSParams, zone)
 }
 
 func (section *IPv6AddressSection) toPrefixLenStringZoned(zone Zone) string {
@@ -972,31 +972,17 @@ func (section *IPv6AddressSection) toCompressedWildcardStringZoned(zone Zone) st
 	return section.toNormalizedZonedString(wildcardCompressedParams, zone)
 }
 
-func (section *IPv6AddressSection) toNormalizedIPOptsString(stringOptions IPStringOptions, zone Zone) string {
-	return toNormalizedIPZonedString(stringOptions, section, zone)
+func (section *IPv6AddressSection) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
+	return section.toCustomString(stringOptions, NoZone)
 }
 
-//TODO consider if you have a ToNormalizedString that is public, then it would have to have IncompatibleAddressError for split strings and mixed strings
-// YOu'd have to check for split and for mixed and divert to the right method here
-// You would also want the zone to come from the string
-// the euqivalents in IPSection would not need to return error
-// If you have the IPv6StringOptions, IPStringOptions etc public, then I suppose you should have a method for each of them
-
-func (section *IPv6AddressSection) toNormalizedZonedSplitString(options IPv6StringOptions, zone Zone) (string, IncompatibleAddressError) {
-	var stringParams *ipv6StringParams
-	// all split strings are cacheable since no compression
-	opts, hasCache := options.(*ipv6StringOptions)
-	if hasCache {
-		stringParams = opts.cachedIPv6Addr
+func (section *IPv6AddressSection) toCustomString(stringOptions IPv6StringOptions, zone Zone) (string, IncompatibleAddressError) {
+	if stringOptions.IsMixed() {
+		return section.toNormalizedMixedZonedString(stringOptions, zone)
+	} else if stringOptions.IsSplitDigits() {
+		return section.toNormalizedSplitZonedString(stringOptions, zone)
 	}
-	if stringParams == nil {
-		stringParams = from(options, section)
-		if hasCache {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
-		}
-	}
-	return stringParams.toZonedSplitString(section, zone)
+	return section.toNormalizedZonedString(stringOptions, zone), nil
 }
 
 func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOptions, zone Zone) string {
@@ -1017,6 +1003,23 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOpt
 		stringParams = from(options, section)
 	}
 	return stringParams.toZonedString(section, zone)
+}
+
+func (section *IPv6AddressSection) toNormalizedSplitZonedString(options IPv6StringOptions, zone Zone) (string, IncompatibleAddressError) {
+	var stringParams *ipv6StringParams
+	// all split strings are cacheable since no compression
+	opts, hasCache := options.(*ipv6StringOptions)
+	if hasCache {
+		stringParams = opts.cachedIPv6Addr
+	}
+	if stringParams == nil {
+		stringParams = from(options, section)
+		if hasCache {
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
+		}
+	}
+	return stringParams.toZonedSplitString(section, zone)
 }
 
 func (section *IPv6AddressSection) toNormalizedMixedZonedString(options IPv6StringOptions, zone Zone) (string, IncompatibleAddressError) {

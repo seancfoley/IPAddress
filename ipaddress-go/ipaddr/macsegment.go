@@ -132,10 +132,10 @@ func (seg *MACAddressSegment) setString(
 	lowerStringEndIndex int,
 	originalLowerValue SegInt) {
 	if cache := seg.getCache(); cache != nil {
-		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
-			cache.cachedString = &str
+			cacheStrPtr(&cache.cachedString, &str)
+			//cache.cachedString = &str
 		}
 	}
 }
@@ -148,13 +148,14 @@ func (seg *MACAddressSegment) setRangeString(
 	rangeLower,
 	rangeUpper SegInt) {
 	if cache := seg.getCache(); cache != nil {
-		//TODO atomic writes only, the caches are shared, use cacheStr
 		if cache.cachedString == nil {
 			if seg.IsFullRange() {
-				cache.cachedString = &segmentWildcardStr
+				cacheStrPtr(&cache.cachedString, &segmentWildcardStr)
+				//cache.cachedString = &segmentWildcardStr
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {
 				str := addressStr[lowerStringStartIndex:upperStringEndIndex]
-				cache.cachedString = &str
+				cacheStrPtr(&cache.cachedString, &str)
+				//cache.cachedString = &str
 			}
 		}
 	}

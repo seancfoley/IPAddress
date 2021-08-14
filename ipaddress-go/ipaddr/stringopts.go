@@ -424,9 +424,10 @@ type IPv6StringOptions interface {
 
 	GetCompressOptions() CompressOptions
 
-	IsSplitDigits() bool
+	// Whether every digit is separated from others by separators.  If mixed, this option is ignored.
+	IsSplitDigits() bool // can produce IncompatibleAddressError for ranged series
 
-	IsMixed() bool
+	IsMixed() bool // can produce IncompatibleAddressError for ranges in the IPv4 part of the series
 }
 
 func isCacheable(options IPv6StringOptions) bool {

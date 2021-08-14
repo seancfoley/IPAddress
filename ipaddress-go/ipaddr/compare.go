@@ -101,7 +101,7 @@ func mapGrouping(series AddressDivisionSeries) int {
 			return sectype
 		}
 		return standardgroupingtype
-	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO later
+	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO LATER
 	//	return -2;
 	//}
 	return 0

@@ -947,10 +947,10 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 		sect := section.toAddressSection()
 		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
 	}
-	return section.toNormalizedOptsString(params), nil
+	return section.ToCustomString(params), nil
 }
 
-func (section *addressSectionInternal) toNormalizedOptsString(stringOptions StringOptions) string {
+func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
 	return toNormalizedString(stringOptions, section)
 }
 

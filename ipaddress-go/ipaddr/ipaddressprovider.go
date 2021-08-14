@@ -871,6 +871,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - mac <-> ipv6
-// - ipv4 <-> ipv6
+// - ipv4 <-> ipv6 (mostly done since I've done the embedded ipv4 stuff)
 //
 // Still a lot of work, BUT, you are clearly past the big hump, way past halfway, on the home stretch

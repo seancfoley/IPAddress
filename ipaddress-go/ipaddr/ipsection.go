@@ -1202,6 +1202,14 @@ func (section *ipAddressSectionInternal) ToCompressedWildcardString() string {
 	return "0"
 }
 
+func (section *ipAddressSectionInternal) ToCustomString(stringOptions IPStringOptions) string {
+	return toNormalizedIPZonedString(stringOptions, section, NoZone)
+}
+
+func (section *ipAddressSectionInternal) toCustomString(stringOptions IPStringOptions, zone Zone) string {
+	return toNormalizedIPZonedString(stringOptions, section, zone)
+}
+
 func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }

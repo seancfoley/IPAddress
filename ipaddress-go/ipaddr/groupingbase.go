@@ -411,9 +411,6 @@ type maskLenSetting struct {
 }
 
 type divArray interface {
-	// TODO if this returned an interface, maybe it would be more useful, could move more stuff into groupingbase from grouping
-	// Or merge it with getGenericDivision
-	// Or make those calls use getGenericDivision instead.
 	getDivision(index int) *addressDivisionBase
 
 	getGenericDivision(index int) DivisionType
