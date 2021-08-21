@@ -105,7 +105,7 @@ func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCou
 		for i := segCount - 1; i >= 0; i-- {
 			segment := section.GetSegment(i)
 			if isBlock {
-				minPref := segment.GetMinPrefixLengthForBlock()
+				minPref := segment.GetMinPrefixLenForBlock()
 				if minPref > 0 {
 					if minPref != bitsPerSegment || i != segCount-1 {
 						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
@@ -130,7 +130,7 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 			if isBlock {
-				minPref := segment.GetMinPrefixLengthForBlock()
+				minPref := segment.GetMinPrefixLenForBlock()
 				if minPref > 0 {
 					if minPref != bitsPerSegment || i != segCount-1 {
 						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
@@ -344,7 +344,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	}
 	segs := createSegmentArray(segmentCount)
 	section.copySubSegmentsToSlice(index, endIndex, segs)
-	newPrefLen := section.GetPrefixLength()
+	newPrefLen := section.GetPrefixLen()
 	if newPrefLen != nil && index != 0 {
 		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)
 	}
@@ -385,6 +385,7 @@ func (section *addressSectionInternal) copySubSegmentsToSlice(start, end int, di
 // When mapping is 1-1, I preserve the original mapping, but just adjust indices to account for mappings outside of bounds.
 // Would panic be better?  Hmmmm  I try to stay away from panic.  But am I being overly clever here?
 // And would I want to do the same on the Java side in getSegments() and replace() methods?
+// I think I like this, the difference with slices panic is that there is no mapping going on from one to another
 
 // For a source of items ranging from indices 0 to sourceCount, we want to range over indices start to end,
 // mapping those indices to the corresponging indices starting at targetStart in a target ranging from indices 0 to targetCount.
@@ -697,14 +698,14 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 
 	// unlike ipvx, sections of zero length with 0 prefix are still considered to be applying their prefix during replacement,
 	// because you can have zero length prefixes when there are no bits in the section
-	prefixLength := section.GetPrefixLength()
+	prefixLength := section.GetPrefixLen()
 	if replacementCount == 0 && replacedCount == 0 {
 		if prefixLength != nil {
 			prefLen := *prefixLength
 			if prefLen <= BitCount(startIndex<<segmentToBitsShift) {
 				return section.toAddressSection()
 			} else {
-				replacementPrefisLength := replacement.GetPrefixLength()
+				replacementPrefisLength := replacement.GetPrefixLen()
 				if replacementPrefisLength == nil {
 					return section.toAddressSection()
 				} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
@@ -712,7 +713,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 				}
 			}
 		} else {
-			replacementPrefisLength := replacement.GetPrefixLength()
+			replacementPrefisLength := replacement.GetPrefixLen()
 			if replacementPrefisLength == nil {
 				return section.toAddressSection()
 			} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
@@ -723,7 +724,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 		if prefixLength == nil || *prefixLength > 0 {
 			return replacement
 		} else {
-			replacementPrefisLength := replacement.GetPrefixLength()
+			replacementPrefisLength := replacement.GetPrefixLen()
 			if replacementPrefisLength != nil && *replacementPrefisLength == 0 { // prefix length is 0
 				return replacement
 			}
@@ -735,7 +736,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 	if prefixLength != nil && *prefixLength <= startBits {
 		newPrefixLength = prefixLength
 	} else {
-		replacementPrefLen := replacement.GetPrefixLength()
+		replacementPrefLen := replacement.GetPrefixLen()
 		if replacementPrefLen != nil && *replacementPrefLen <= BitCount(replacementEndIndex<<segmentToBitsShift) {
 			var replacementPrefixLen BitCount
 			replacementStartBits := BitCount(replacementStartIndex << segmentToBitsShift)
@@ -761,7 +762,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 }
 
 func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
-	prefixLength := section.GetPrefixLength()
+	prefixLength := section.GetPrefixLen()
 	if prefixLength == nil {
 		return section.toAddressSection()
 	}
@@ -783,7 +784,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 	}
 	segmentByteCount := section.GetBytesPerSegment()
 	segmentBitCount := section.GetBitsPerSegment()
-	existingPrefixLength := section.GetPrefixLength()
+	existingPrefixLength := section.GetPrefixLen()
 	prefixMatches := existingPrefixLength != nil && *existingPrefixLength == prefLen
 	if prefixMatches {
 		prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
@@ -881,7 +882,7 @@ func (section *addressSectionInternal) setPrefixLength(
 	networkPrefixLength BitCount,
 	withZeros bool,
 ) (res *AddressSection, err IncompatibleAddressError) {
-	existingPrefixLength := section.GetPrefixLength()
+	existingPrefixLength := section.GetPrefixLen()
 	if existingPrefixLength != nil && networkPrefixLength == *existingPrefixLength {
 		res = section.toAddressSection()
 		return
@@ -949,7 +950,7 @@ func (section *addressSectionInternal) setPrefixLength(
 }
 
 func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSection {
-	newPrefix := section.GetPrefixLengthForSingleBlock()
+	newPrefix := section.GetPrefixLenForSingleBlock()
 	if newPrefix == nil {
 		return nil
 	}
@@ -959,7 +960,7 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 // Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
 // such that the range of values are a set of subnet blocks for that prefix.
 func (section *addressSectionInternal) assignMinPrefixForBlock() *AddressSection {
-	return section.setPrefixLen(section.GetMinPrefixLengthForBlock())
+	return section.setPrefixLen(section.GetMinPrefixLenForBlock())
 }
 
 func (section *addressSectionInternal) PrefixEquals(other AddressSectionType) (res bool) {
@@ -983,7 +984,7 @@ func (section *addressSectionInternal) PrefixContains(other AddressSectionType) 
 }
 
 func (section *addressSectionInternal) prefixContains(other *AddressSection, contains bool) (res bool) {
-	prefixLength := section.GetPrefixLength()
+	prefixLength := section.GetPrefixLen()
 	var prefixedSection int
 	if prefixLength == nil {
 		prefixedSection = section.GetSegmentCount()

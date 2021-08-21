@@ -102,8 +102,8 @@ func (seg *addressSegmentInternal) Matches(value SegInt) bool {
 	return seg.matches(DivInt(value))
 }
 
-func (seg *addressSegmentInternal) MatchesValWithMask(value, mask SegInt) bool {
-	return seg.matchesValWithMask(DivInt(value), DivInt(mask))
+func (seg *addressSegmentInternal) MatchesWithMask(value, mask SegInt) bool {
+	return seg.matchesWithMask(DivInt(value), DivInt(mask))
 }
 
 func (seg *addressSegmentInternal) MatchesValsWithMask(lowerValue, upperValue, mask SegInt) bool {

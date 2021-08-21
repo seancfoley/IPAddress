@@ -116,20 +116,20 @@ func (addr *addressInternal) IsPrefixed() bool {
 	return addr.section != nil && addr.section.IsPrefixed()
 }
 
-func (addr *addressInternal) GetPrefixLength() PrefixLen {
+func (addr *addressInternal) GetPrefixLen() PrefixLen {
 	if addr.section == nil {
 		return nil
 	}
-	return addr.section.GetPrefixLength()
+	return addr.section.GetPrefixLen()
 }
 
 func (addr *addressInternal) IsSinglePrefixBlock() bool {
-	prefLen := addr.GetPrefixLength()
+	prefLen := addr.GetPrefixLen()
 	return prefLen != nil && addr.section.IsSinglePrefixBlock()
 }
 
 func (addr *addressInternal) IsPrefixBlock() bool {
-	prefLen := addr.GetPrefixLength()
+	prefLen := addr.GetPrefixLen()
 	return prefLen != nil && addr.section.IsPrefixBlock()
 }
 
@@ -141,20 +141,20 @@ func (addr *addressInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool 
 	return addr.section == nil || addr.section.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (addr *addressInternal) GetMinPrefixLengthForBlock() BitCount {
+func (addr *addressInternal) GetMinPrefixLenForBlock() BitCount {
 	section := addr.section
 	if section == nil {
 		return 0
 	}
-	return section.GetMinPrefixLengthForBlock()
+	return section.GetMinPrefixLenForBlock()
 }
 
-func (addr *addressInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+func (addr *addressInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	section := addr.section
 	if section == nil {
 		return cacheBitCount(0)
 	}
-	return section.GetPrefixLengthForSingleBlock()
+	return section.GetPrefixLenForSingleBlock()
 }
 
 func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
@@ -440,7 +440,7 @@ func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Addres
 }
 
 func (addr *addressInternal) assignPrefixForSingleBlock() *Address {
-	newPrefix := addr.GetPrefixLengthForSingleBlock()
+	newPrefix := addr.GetPrefixLenForSingleBlock()
 	if newPrefix == nil {
 		return nil
 	}
@@ -450,7 +450,7 @@ func (addr *addressInternal) assignPrefixForSingleBlock() *Address {
 // Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
 // such that the range of values are a set of subnet blocks for that prefix.
 func (addr *addressInternal) assignMinPrefixForBlock() *Address {
-	return addr.setPrefixLen(addr.GetMinPrefixLengthForBlock())
+	return addr.setPrefixLen(addr.GetMinPrefixLenForBlock())
 }
 
 func (addr *addressInternal) isSameZone(other *Address) bool {
@@ -489,7 +489,7 @@ func (addr *addressInternal) addrIterator(excludeFunc func([]*AddressDivision) b
 }
 
 func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterator {
-	prefLen := addr.GetPrefixLength()
+	prefLen := addr.GetPrefixLen()
 	if prefLen == nil {
 		return addr.addrIterator(nil)
 	}
@@ -858,6 +858,30 @@ func (addr *Address) ReverseBits(perByte bool) (*Address, IncompatibleAddressErr
 
 func (addr *Address) ReverseSegments() *Address {
 	return addr.init().reverseSegments()
+}
+
+// IsMulticast returns whether this address is multicast
+func (addr *Address) IsMulticast() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsMulticast()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsMulticast()
+	} else if thisAddr := addr.ToMACAddress(); thisAddr != nil {
+		return thisAddr.IsMulticast()
+	}
+	return false
+}
+
+// IsLocal returns whether the address can be considered a local address (as opposed to a global one)
+func (addr *Address) IsLocal() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsLocal()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsLocal()
+	} else if thisAddr := addr.ToMACAddress(); thisAddr != nil {
+		return thisAddr.IsLocal()
+	}
+	return false
 }
 
 func (addr *Address) ToCanonicalString() string {

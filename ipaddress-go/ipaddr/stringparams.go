@@ -886,7 +886,7 @@ func (params *ipAddressStringParams) getTrailingSeparatorCount(addr AddressDivis
 
 func getPrefixIndicatorStringLength(addr AddressDivisionSeries) int {
 	if addr.IsPrefixed() {
-		return toUnsignedStringLengthFast(uint16(*addr.GetPrefixLength()), 10) + 1
+		return toUnsignedStringLengthFast(uint16(*addr.GetPrefixLen()), 10) + 1
 	}
 	return 0
 }
@@ -895,7 +895,7 @@ func (params *ipAddressStringParams) getSegmentsStringLength(part AddressDivisio
 	count := 0
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
-		prefLen := part.GetPrefixLength()
+		prefLen := part.GetPrefixLen()
 		for i := 0; i < divCount; i++ {
 			div := part.GetGenericDivision(i)
 			count += params.appendSegment(i, div, prefLen, nil, part)
@@ -921,7 +921,7 @@ func (params *ipAddressStringParams) getStringLength(addr AddressDivisionSeries)
 func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Builder, addr AddressDivisionSeries) *strings.Builder {
 	if addr.IsPrefixed() {
 		builder.WriteByte(PrefixLenSeparator)
-		return toUnsignedStringCased(uint64(*addr.GetPrefixLength()), 10, 0, false, builder)
+		return toUnsignedStringCased(uint64(*addr.GetPrefixLen()), 10, 0, false, builder)
 	}
 	return builder
 }
@@ -929,7 +929,7 @@ func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Buil
 func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, part AddressDivisionSeries) *strings.Builder {
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
-		prefLen := part.GetPrefixLength()
+		prefLen := part.GetPrefixLen()
 		reverse := params.reverse
 		i := 0
 		hasSeparator := params.hasSep
@@ -970,7 +970,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	}
 	//div := part.GetGenericIPDivision(segmentIndex)
 	writer := stringWriter{div}
-	//prefixLen := div.GetSegmentPrefixLength()
+	//prefixLen := div.GetSegmentPrefixLen()
 	// consider all the cases in which we need not account for prefix length
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
@@ -1167,7 +1167,7 @@ func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection
 		for {
 			if i < firstCompressedSegmentIndex || i >= nextUncompressedIndex {
 				div := part.GetSegment(i)
-				prefLen := div.GetSegmentPrefixLength()
+				prefLen := div.GetSegmentPrefixLen()
 				additionalCount, _ := params.appendSegment(i, div, prefLen, nil, part)
 				count += additionalCount
 				i++

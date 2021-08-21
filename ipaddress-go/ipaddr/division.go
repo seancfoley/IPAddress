@@ -271,19 +271,19 @@ func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount
 	return div.isSinglePrefixBlock(div.getDivisionValue(), div.getUpperDivisionValue(), prefixLen)
 }
 
-func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
+func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
 	cache := div.getCache()
 	res := cache.minPrefLenForBlock
 	if res == nil {
-		res = cacheBitCount(getMinPrefixLengthForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()))
+		res = cacheBitCount(GetMinPrefixLenForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()))
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefLenForBlock))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
 	return *res
 }
 
-func (div *addressDivisionInternal) GetPrefixLengthForSingleBlock() PrefixLen {
-	return getPrefixLengthForSingleBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
+func (div *addressDivisionInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	return GetPrefixLenForSingleBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
 }
 
 // return whether the division range includes the block of values for the division prefix length,
@@ -317,7 +317,7 @@ func (div *addressDivisionInternal) matches(value DivInt) bool {
 	return !div.IsMultiple() && value == div.getDivisionValue()
 }
 
-func (div *addressDivisionInternal) matchesValWithMask(value, mask DivInt) bool {
+func (div *addressDivisionInternal) matchesWithMask(value, mask DivInt) bool {
 	if div.IsMultiple() {
 		//we want to ensure that any of the bits that can change from value to upperValue is masked out (zeroed) by the mask.
 		//In other words, when masked we need all values represented by this segment to become just a single value
@@ -337,7 +337,7 @@ func (div *addressDivisionInternal) matchesValWithMask(value, mask DivInt) bool 
 // and if it does, if it matches the range obtained when masking the given values with the same mask.
 func (div *addressDivisionInternal) matchesValsWithMask(lowerValue, upperValue, mask DivInt) bool {
 	if lowerValue == upperValue {
-		return div.matchesValWithMask(lowerValue, mask)
+		return div.matchesWithMask(lowerValue, mask)
 	}
 	if !div.IsMultiple() {
 		// lowerValue and upperValue are not the same, so impossible to match those two values with a single value
@@ -597,8 +597,8 @@ func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bo
 	} else if div.isPrefixed() {
 		upperValue := div.getUpperDivisionValue()
 		mask := ^DivInt(0) << uint(div.GetBitCount()-*div.getDivisionPrefixLength())
-		//mask := ^(^DivInt(0) >> *seg.GetSegmentPrefixLength())
-		//mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
+		//mask := ^(^DivInt(0) >> *seg.GetSegmentPrefixLen())
+		//mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
 		//return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
 		upperValue &= mask
 		toUnsignedStringCased(upperValue, radix, 0, uppercase, appendable)
@@ -647,7 +647,7 @@ func (div *addressDivisionInternal) getRangeDigitCount(radix int) int {
 		return 0
 	}
 	if radix == 16 {
-		prefix := div.GetMinPrefixLengthForBlock()
+		prefix := div.GetMinPrefixLenForBlock()
 		bitCount := div.GetBitCount()
 		if prefix < bitCount && div.ContainsSinglePrefixBlock(prefix) {
 			bitsPerCharacter := BitCount(4)
@@ -819,8 +819,8 @@ func (div *AddressDivision) Matches(value DivInt) bool {
 	return div.matches(value)
 }
 
-func (div *AddressDivision) MatchesValWithMask(value, mask DivInt) bool {
-	return div.matchesValWithMask(value, mask)
+func (div *AddressDivision) MatchesWithMask(value, mask DivInt) bool {
+	return div.matchesWithMask(value, mask)
 }
 
 func (div *AddressDivision) MatchesValsWithMask(lowerValue, upperValue, mask DivInt) bool {

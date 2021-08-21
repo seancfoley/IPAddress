@@ -233,7 +233,7 @@ func (grouping addressDivisionGroupingInternal) String() string {
 	return fmt.Sprintf("%v", grouping.init().divisions)
 }
 
-func (grouping *addressDivisionGroupingInternal) GetPrefixLength() PrefixLen {
+func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
 	return grouping.prefixLength
 }
 
@@ -243,7 +243,7 @@ func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
 
 //TODO LATER eventually when supporting large divisions,
 //might move containsPrefixBlock(prefixLen BitCount), containsSinglePrefixBlock(prefixLen BitCount),
-// GetMinPrefixLengthForBlock, and GetPrefixLengthForSingleBlock into groupingBase code
+// GetMinPrefixLenForBlock, and GetPrefixLenForSingleBlock into groupingBase code
 // IsPrefixBlock, IsSinglePrefixBlock
 // which looks straightforward since none deal with DivInt, instead they all call into divisionValues interface
 
@@ -306,30 +306,30 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 	return true
 }
 
-//TODO cacheBitCountx: GetPrefixLengthForSingleBlock: cachedEquivalentPrefix
+//TODO cacheBitCountx: GetPrefixLenForSingleBlock: cachedEquivalentPrefix
 // IsSinglePrefixBlock: cachedIsSinglePrefixBlock
-// getMinPrefixLengthForBlock: cachedMinPrefix
-// methods: GetPrefixLengthForSingleBlock, AssignPrefixForSingleBlock, IsSinglePrefixBlock, GetMinPrefixLengthForBlock
+// GetMinPrefixLenForBlock: cachedMinPrefix
+// methods: GetPrefixLenForSingleBlock, AssignPrefixForSingleBlock, IsSinglePrefixBlock, GetMinPrefixLenForBlock
 //
-// already caching prefix length, getNetworkPrefixLength: cachedPrefixLength
+// already caching prefix length, getNetworkPrefixLen: cachedPrefixLength
 
-func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with getPrefixLengthForSingleBlock
-	prefLen := grouping.GetPrefixLength()
+func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with GetPrefixLenForSingleBlock
+	prefLen := grouping.GetPrefixLen()
 	return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
 }
 
-func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with getMinPrefixLengthForBlock
-	prefLen := grouping.GetPrefixLength()
+func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with GetMinPrefixLenForBlock
+	prefLen := grouping.GetPrefixLen()
 	return prefLen != nil && grouping.ContainsPrefixBlock(*prefLen)
 }
 
-func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() BitCount {
+func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCount {
 	count := grouping.GetDivisionCount()
 	totalPrefix := grouping.GetBitCount()
 	for i := count - 1; i >= 0; i-- {
 		div := grouping.getDivision(i)
 		segBitCount := div.getBitCount()
-		segPrefix := div.GetMinPrefixLengthForBlock()
+		segPrefix := div.GetMinPrefixLenForBlock()
 		if segPrefix == segBitCount {
 			break
 		} else {
@@ -343,12 +343,12 @@ func (grouping *addressDivisionGroupingInternal) GetMinPrefixLengthForBlock() Bi
 	return totalPrefix
 }
 
-func (grouping *addressDivisionGroupingInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	count := grouping.GetDivisionCount()
 	var totalPrefix BitCount
 	for i := 0; i < count; i++ {
 		div := grouping.getDivision(i)
-		divPrefix := div.GetPrefixLengthForSingleBlock()
+		divPrefix := div.GetPrefixLenForSingleBlock()
 		if divPrefix == nil {
 			return nil
 		}

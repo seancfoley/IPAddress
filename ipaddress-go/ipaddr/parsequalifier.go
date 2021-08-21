@@ -62,7 +62,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLength
 	if pref == nil {
 		mask := parsedQual.getMaskLower()
 		if mask != nil {
-			pref = mask.GetBlockMaskPrefixLength(true)
+			pref = mask.GetBlockMaskPrefixLen(true)
 		}
 	}
 	return pref

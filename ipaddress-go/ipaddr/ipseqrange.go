@@ -338,7 +338,7 @@ func (rng *ipAddressSeqRangeInternal) ContainsSinglePrefixBlock(prefixLen BitCou
 	return true
 }
 
-func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen {
+func (rng *ipAddressSeqRangeInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	lower := rng.lower
 	if lower == nil {
 		return cacheBits(0) // returns true for 0 bits
@@ -351,7 +351,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen 
 	for i := 0; i < count; i++ {
 		lowerSeg := lower.GetSegment(i)
 		upperSeg := upper.GetSegment(i)
-		segPrefix := getPrefixLengthForSingleBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
+		segPrefix := GetPrefixLenForSingleBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
 		if segPrefix == nil {
 			return nil
 		}
@@ -374,7 +374,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixLengthForSingleBlock() PrefixLen 
 
 }
 
-func (rng *ipAddressSeqRangeInternal) GetMinPrefixLengthForBlock() BitCount {
+func (rng *ipAddressSeqRangeInternal) GetMinPrefixLenForBlock() BitCount {
 	lower := rng.lower
 	if lower == nil {
 		return 0 // returns true for 0 bits
@@ -386,7 +386,7 @@ func (rng *ipAddressSeqRangeInternal) GetMinPrefixLengthForBlock() BitCount {
 	for i := count - 1; i >= 0; i-- {
 		lowerSeg := lower.GetSegment(i)
 		upperSeg := upper.GetSegment(i)
-		segPrefix := getMinPrefixLengthForBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
+		segPrefix := GetMinPrefixLenForBlock(lowerSeg.getDivisionValue(), upperSeg.getDivisionValue(), segBitCount)
 		if segPrefix == segBitCount {
 			break
 		} else {
@@ -996,7 +996,7 @@ func compareLowIPAddressValues(one, two *IPAddress) int {
 	return LowValueComparator.CompareAddresses(one, two)
 }
 
-func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount {
+func GetMinPrefixLenForBlock(lower, upper DivInt, bitCount BitCount) BitCount {
 	if lower == upper {
 		return bitCount
 	} else if lower == 0 {
@@ -1022,8 +1022,8 @@ func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount
 	return result
 }
 
-func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) PrefixLen {
-	prefixLen := getMinPrefixLengthForBlock(lower, upper, bitCount)
+func GetPrefixLenForSingleBlock(lower, upper DivInt, bitCount BitCount) PrefixLen {
+	prefixLen := GetMinPrefixLenForBlock(lower, upper, bitCount)
 	if prefixLen == bitCount {
 		if lower == upper {
 			return cacheBitCount(prefixLen)

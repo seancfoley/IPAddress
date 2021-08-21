@@ -78,8 +78,8 @@ top:
 		// where x and y adjacent, becoming:
 		// w        z
 		//
-		prefixLen := item.GetPrefixLength()
-		otherPrefixLen := otherItem.GetPrefixLength()
+		prefixLen := item.GetPrefixLen()
+		otherPrefixLen := otherItem.GetPrefixLen()
 		if !PrefixEquals(prefixLen, otherPrefixLen) {
 			j = i
 			i--

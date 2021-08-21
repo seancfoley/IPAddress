@@ -533,7 +533,7 @@ func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
 //and the prefix length is decreased, the bits moved outside the prefix become zero.
 //
 // If the address string represents a prefix block, then the result will also represent a prefix block.
-func (addrStr *IPAddressString) AdjustPrefixLength(adjustment BitCount) (*IPAddressString, IncompatibleAddressError) {
+func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddressString, IncompatibleAddressError) {
 	address := addrStr.GetAddress()
 	if address == nil {
 		return nil, nil

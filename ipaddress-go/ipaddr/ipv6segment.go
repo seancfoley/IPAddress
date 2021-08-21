@@ -172,7 +172,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
 //	if !seg.IsMultiple() {
 //		bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
-//		myPrefix := seg.GetSegmentPrefixLength()
+//		myPrefix := seg.GetSegmentPrefixLen()
 //		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
 //		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
 //		if index >= 0 && index < boundaryIndex {
@@ -190,7 +190,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //}
 //
 //func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
-//	myPrefix := seg.GetSegmentPrefixLength()
+//	myPrefix := seg.GetSegmentPrefixLen()
 //	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 //	if index >= 0 && index < boundaryIndex {
 //		highLower := highByteIpv6(seg.GetSegmentValue())
@@ -232,7 +232,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value,
 		return seg.visitSplitSegmentsMultiple(creator, boundaryIndex, index)
 	} else {
 		bitSizeSplit := IPv6BitsPerSegment >> 1
-		myPrefix := seg.GetSegmentPrefixLength()
+		myPrefix := seg.GetSegmentPrefixLen()
 		if index >= 0 && index < boundaryIndex {
 			val := seg.highByte()
 			highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
@@ -250,7 +250,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value,
 
 // Used to create both IPv4 and MAC segments
 func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int) IncompatibleAddressError {
-	myPrefix := seg.GetSegmentPrefixLength()
+	myPrefix := seg.GetSegmentPrefixLen()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 	var highLower, highUpper, lowLower, lowUpper SegInt
 	var highPrefixBits, lowPrefixBits PrefixLen
@@ -566,11 +566,11 @@ func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TO
 	if result.cache.isSinglePrefBlock != nil {
 		seg := newIPv6Segment(result)
 		var isSinglePBlock bool
-		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
 			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 		}
 		if isSinglePBlock != *result.cache.isSinglePrefBlock {
-			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
 				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 			}
 			panic("why")
@@ -585,11 +585,11 @@ func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { 
 	if result.cache.isSinglePrefBlock != nil {
 		seg := newIPv4Segment(result)
 		var isSinglePBlock bool
-		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
 			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 		}
 		if isSinglePBlock != *result.cache.isSinglePrefBlock {
-			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
 				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 			}
 			panic("why")

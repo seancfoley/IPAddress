@@ -223,7 +223,7 @@ func (section *IPv4AddressSection) GetIPv4PrefixCountLen(prefixLength BitCount) 
 }
 
 func (section *IPv4AddressSection) GetIPv4PrefixCount() uint64 {
-	prefixLength := section.GetPrefixLength()
+	prefixLength := section.GetPrefixLen()
 	if prefixLength == nil {
 		return section.GetIPv4Count()
 	}
@@ -598,7 +598,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 		upperValue,
 		section.getLower,
 		section.getUpper,
-		section.GetPrefixLength()).ToIPv4AddressSection()
+		section.GetPrefixLen()).ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) SpanWithPrefixBlocks() []*IPv4AddressSection {
@@ -893,7 +893,7 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 	segs := make([]*AddressDivision, totalCount)
 	section.copySubSegmentsToSlice(0, notJoinedCount, segs)
 	segs[notJoinedCount] = joinedSegment
-	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLength(), zeroType)
+	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLen(), zeroType)
 	//IPAddressDivisionGrouping equivalentPart = new IPAddressDivisionGrouping(segs, getNetwork());
 	return equivalentPart, nil
 	//createInitializedGrouping

@@ -396,12 +396,12 @@ func (addr *IPv4Address) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	return addr.init().ipAddressInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (addr *IPv4Address) GetMinPrefixLengthForBlock() BitCount {
-	return addr.init().ipAddressInternal.GetMinPrefixLengthForBlock()
+func (addr *IPv4Address) GetMinPrefixLenForBlock() BitCount {
+	return addr.init().ipAddressInternal.GetMinPrefixLenForBlock()
 }
 
-func (addr *IPv4Address) GetPrefixLengthForSingleBlock() PrefixLen {
-	return addr.init().ipAddressInternal.GetPrefixLengthForSingleBlock()
+func (addr *IPv4Address) GetPrefixLenForSingleBlock() PrefixLen {
+	return addr.init().ipAddressInternal.GetPrefixLenForSingleBlock()
 }
 
 func (addr *IPv4Address) GetValue() *big.Int {
@@ -506,13 +506,72 @@ func (addr *IPv4Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
 }
 
+// IsLinkLocal returns whether the address is link local, whether unicast or multicast.
+func (addr *IPv4Address) IsLinkLocal() bool {
+	if addr.IsMulticast() {
+		//224.0.0.252	Link-local Multicast Name Resolution	[RFC4795]
+		return addr.GetSegment(0).Matches(224) && addr.GetSegment(1).IsZero() && addr.GetSegment(2).IsZero() && addr.GetSegment(3).Matches(252)
+	}
+	return addr.GetSegment(0).Matches(169) && addr.GetSegment(1).Matches(254)
+}
+
+func (addr *IPv4Address) IsPrivate() bool {
+	// refer to RFC 1918
+	// 10/8 prefix
+	// 172.16/12 prefix (172.16.0.0 – 172.31.255.255)
+	// 192.168/16 prefix
+	seg0, seg1 := addr.GetSegment(0), addr.GetSegment(1)
+	return seg0.Matches(10) ||
+		(seg0.Matches(172) && seg1.MatchesWithPrefixMask(16, 4)) ||
+		(seg0.Matches(192) && seg1.Matches(168))
+}
+
+func (addr *IPv4Address) IsMulticast() bool {
+	// 1110...
+	//224.0.0.0/4
+	return addr.GetSegment(0).MatchesWithPrefixMask(0xe0, 4)
+}
+
+// IsLocal returns true if the address is link local, site local, organization local, administered locally, or unspecified.
+// This includes both unicast and multicast.
+func (addr *IPv4Address) IsLocal() bool {
+	if addr.IsMulticast() {
+		//1110...
+		seg0 := addr.GetSegment(0)
+		//http://www.tcpipguide.com/free/t_IPMulticastAddressing.htm
+		//rfc4607 and https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+
+		//239.0.0.0-239.255.255.255 organization local
+		if seg0.matches(239) {
+			return true
+		}
+		seg1, seg2 := addr.GetSegment(1), addr.GetSegment(2)
+
+		// 224.0.0.0 to 224.0.0.255 local
+		// includes link local multicast name resolution https://tools.ietf.org/html/rfc4795 224.0.0.252
+		return (seg0.matches(224) && seg1.IsZero() && seg2.IsZero()) ||
+			//232.0.0.1 - 232.0.0.255	Reserved for IANA allocation	[RFC4607]
+			//232.0.1.0 - 232.255.255.255	Reserved for local host allocation	[RFC4607]
+			(seg0.matches(232) && !(seg1.IsZero() && seg2.IsZero()))
+	}
+	return addr.IsLinkLocal() || addr.IsPrivate() || addr.IsAnyLocal()
+}
+
+// The unspecified address is the address that is all zeros.
+func (addr *IPv4Address) IsUnspecified() bool {
+	return addr.section == nil || addr.IsZero()
+}
+
+// Returns whether this address is the address which binds to any address on the local host.
+// This is the address that has the value of 0, aka the unspecified address.
+func (addr *IPv4Address) IsAnyLocal() bool {
+	return addr.section == nil || addr.IsZero()
+}
+
 // IsLoopback returns whether this address is a loopback address, such as
 // [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
 func (addr *IPv4Address) IsLoopback() bool {
-	if addr.section == nil {
-		return false
-	}
-	return addr.GetSegment(0).Matches(127)
+	return addr.section != nil && addr.GetSegment(0).Matches(127)
 }
 
 func (addr *IPv4Address) Iterator() IPv4AddressIterator {

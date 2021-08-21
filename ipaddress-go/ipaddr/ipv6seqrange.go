@@ -133,12 +133,12 @@ func (rng *IPv6AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bo
 	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (rng *IPv6AddressSeqRange) GetPrefixLengthForSingleBlock() PrefixLen {
-	return rng.init().ipAddressSeqRangeInternal.GetPrefixLengthForSingleBlock()
+func (rng *IPv6AddressSeqRange) GetPrefixLenForSingleBlock() PrefixLen {
+	return rng.init().ipAddressSeqRangeInternal.GetPrefixLenForSingleBlock()
 }
 
-func (rng *IPv6AddressSeqRange) GetMinPrefixLengthForBlock() BitCount {
-	return rng.init().ipAddressSeqRangeInternal.GetMinPrefixLengthForBlock()
+func (rng *IPv6AddressSeqRange) GetMinPrefixLenForBlock() BitCount {
+	return rng.init().ipAddressSeqRangeInternal.GetMinPrefixLenForBlock()
 }
 
 func (rng *IPv6AddressSeqRange) Iterator() IPv6AddressIterator {

@@ -103,7 +103,7 @@ func (addrStr *MACAddressString) IsPrefixed() bool {
 func (addrStr *MACAddressString) GetPrefixLength() PrefixLen {
 	addr := addrStr.GetAddress()
 	if addr != nil {
-		return addr.GetPrefixLength()
+		return addr.GetPrefixLen()
 	}
 	return nil
 }

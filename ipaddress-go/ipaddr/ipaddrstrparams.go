@@ -33,7 +33,7 @@ package ipaddr
 //		AllowLeadingZeros(origIPv6.AllowsLeadingZeros()).
 //		AllowUnlimitedLeadingZeros(origIPv6.AllowsUnlimitedLeadingZeros()).
 //		AllowPrefixesBeyondAddressSize(origIPv6.AllowsPrefixesBeyondAddressSize()).
-//		AllowPrefixLengthLeadingZeros(origIPv6.AllowsPrefixLengthLeadingZeros()).
+//		AllowPrefixLenLeadingZeros(origIPv6.AllowsPrefixLenLeadingZeros()).
 //		//
 //		// IPv6 ranges
 //		GetRangeParametersBuilder().
@@ -73,7 +73,7 @@ package ipaddr
 //		Allow_inet_aton_joinedSegments(origIPv4.Allows_inet_aton_joinedSegments()).
 //		Allow_inet_aton_single_segment_mask(origIPv4.Allows_inet_aton_single_segment_mask()).
 //		AllowPrefixesBeyondAddressSize(origIPv4.AllowsPrefixesBeyondAddressSize()).
-//		AllowPrefixLengthLeadingZeros(origIPv4.AllowsPrefixLengthLeadingZeros()).
+//		AllowPrefixLenLeadingZeros(origIPv4.AllowsPrefixLenLeadingZeros()).
 //		AllowBinary(origIPv4.AllowsBinary()).
 //		SetNetwork(origIPv4.GetNetwork()).
 //		AllowUnlimitedLeadingZeros(origIPv4.AllowsUnlimitedLeadingZeros()).
@@ -201,7 +201,7 @@ type IPAddressStringFormatParameters interface {
 	AllowsPrefixesBeyondAddressSize() bool
 
 	// Allow leading zeros in the prefix length like 1.2.3.4/016
-	AllowsPrefixLengthLeadingZeros() bool
+	AllowsPrefixLenLeadingZeros() bool
 
 	// Allow binary addresses like 11111111.0.1.0 or 1111111111111111::
 	AllowsBinary() bool
@@ -439,7 +439,7 @@ func (params *ipAddressStringFormatParameters) AllowsPrefixesBeyondAddressSize()
 	return params.allowPrefixesBeyondAddrSize
 }
 
-func (params *ipAddressStringFormatParameters) AllowsPrefixLengthLeadingZeros() bool {
+func (params *ipAddressStringFormatParameters) AllowsPrefixLenLeadingZeros() bool {
 	return !params.noPrefixLengthLeadingZeros
 }
 
@@ -462,7 +462,7 @@ func ToIPAddressStringFormatParamsBuilder(params IPAddressStringFormatParameters
 	} else {
 		result.ipParams = ipAddressStringFormatParameters{
 			allowPrefixesBeyondAddrSize: params.AllowsPrefixesBeyondAddressSize(),
-			noPrefixLengthLeadingZeros:  !params.AllowsPrefixLengthLeadingZeros(),
+			noPrefixLengthLeadingZeros:  !params.AllowsPrefixLenLeadingZeros(),
 			noBinary:                    !params.AllowsBinary(),
 		}
 	}
@@ -484,8 +484,8 @@ func (builder *IPAddressStringFormatParametersBuilder) AllowsPrefixesBeyondAddre
 	return builder.ipParams.AllowsPrefixesBeyondAddressSize()
 }
 
-func (builder *IPAddressStringFormatParametersBuilder) AllowsPrefixLengthLeadingZeros() bool {
-	return builder.ipParams.AllowsPrefixLengthLeadingZeros()
+func (builder *IPAddressStringFormatParametersBuilder) AllowsPrefixLenLeadingZeros() bool {
+	return builder.ipParams.AllowsPrefixLenLeadingZeros()
 }
 
 func (builder *IPAddressStringFormatParametersBuilder) AllowsBinary() bool {
@@ -704,7 +704,7 @@ func (builder *IPv6AddressStringParametersBuilder) AllowPrefixesBeyondAddressSiz
 	return builder
 }
 
-func (builder *IPv6AddressStringParametersBuilder) AllowPrefixLengthLeadingZeros(allow bool) *IPv6AddressStringParametersBuilder {
+func (builder *IPv6AddressStringParametersBuilder) AllowPrefixLenLeadingZeros(allow bool) *IPv6AddressStringParametersBuilder {
 	builder.allowPrefixLengthLeadingZeros(allow)
 	return builder
 }
@@ -843,7 +843,7 @@ func (builder *IPv4AddressStringParametersBuilder) AllowPrefixesBeyondAddressSiz
 	return builder
 }
 
-func (builder *IPv4AddressStringParametersBuilder) AllowPrefixLengthLeadingZeros(allow bool) *IPv4AddressStringParametersBuilder {
+func (builder *IPv4AddressStringParametersBuilder) AllowPrefixLenLeadingZeros(allow bool) *IPv4AddressStringParametersBuilder {
 	builder.allowPrefixLengthLeadingZeros(allow)
 	return builder
 }

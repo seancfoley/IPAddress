@@ -502,12 +502,12 @@ func (addr *IPv6Address) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	return addr.init().ipAddressInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (addr *IPv6Address) GetMinPrefixLengthForBlock() BitCount {
-	return addr.init().ipAddressInternal.GetMinPrefixLengthForBlock()
+func (addr *IPv6Address) GetMinPrefixLenForBlock() BitCount {
+	return addr.init().ipAddressInternal.GetMinPrefixLenForBlock()
 }
 
-func (addr *IPv6Address) GetPrefixLengthForSingleBlock() PrefixLen {
-	return addr.init().ipAddressInternal.GetPrefixLengthForSingleBlock()
+func (addr *IPv6Address) GetPrefixLenForSingleBlock() PrefixLen {
+	return addr.init().ipAddressInternal.GetPrefixLenForSingleBlock()
 }
 
 func (addr *IPv6Address) GetValue() *big.Int {
@@ -631,6 +631,156 @@ func (addr *IPv6Address) IncludesMaxHostLen(networkPrefixLength BitCount) bool {
 	return addr.init().includesMaxHostLen(networkPrefixLength)
 }
 
+// IsLinkLocal returns whether the address is link local, whether unicast or multicast.
+func (addr *IPv6Address) IsLinkLocal() bool {
+	firstSeg := addr.GetSegment(0)
+	return (addr.IsMulticast() && firstSeg.matchesWithMask(2, 0xf)) || // ffx2::/16
+		//1111 1110 10 .... fe8x currently only in use
+		firstSeg.MatchesWithPrefixMask(0xfe80, 10)
+}
+
+// IsLocal returns true if the address is link local, site local, organization local, administered locally, or unspecified.
+// This includes both unicast and multicast.
+func (addr *IPv6Address) IsLocal() bool {
+	if addr.IsMulticast() {
+		/*
+				 [RFC4291][RFC7346]
+				 11111111|flgs|scop
+					scope 4 bits
+					 1  Interface-Local scope
+			         2  Link-Local scope
+			         3  Realm-Local scope
+			         4  Admin-Local scope
+			         5  Site-Local scope
+			         8  Organization-Local scope
+			         E  Global scope
+		*/
+		firstSeg := addr.GetSegment(0)
+		if firstSeg.matchesWithMask(8, 0xf) {
+			return true
+		}
+		if firstSeg.GetValueCount() <= 5 &&
+			(firstSeg.getSegmentValue()&0xf) >= 1 && (firstSeg.getUpperSegmentValue()&0xf) <= 5 {
+			//all values fall within the range from interface local to site local
+			return true
+		}
+		//source specific multicast
+		//rfc4607 and https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+		//FF3X::8000:0 - FF3X::FFFF:FFFF	Reserved for local host allocation	[RFC4607]
+		if firstSeg.MatchesWithPrefixMask(0xff30, 12) && addr.GetSegment(6).MatchesWithPrefixMask(0x8000, 1) {
+			return true
+		}
+	}
+	return addr.IsLinkLocal() || addr.IsSiteLocal() || addr.IsUniqueLocal() || addr.IsAnyLocal()
+}
+
+// The unspecified address is the address that is all zeros.
+func (addr *IPv6Address) IsUnspecified() bool {
+	return addr.section == nil || addr.IsZero()
+}
+
+// Returns whether this address is the address which binds to any address on the local host.
+// This is the address that has the value of 0, aka the unspecified address.
+func (addr *IPv6Address) IsAnyLocal() bool {
+	return addr.section == nil || addr.IsZero()
+}
+
+func (addr *IPv6Address) IsSiteLocal() bool {
+	firstSeg := addr.GetSegment(0)
+	return (addr.IsMulticast() && firstSeg.matchesWithMask(5, 0xf)) || // ffx5::/16
+		//1111 1110 11 ...
+		firstSeg.MatchesWithPrefixMask(0xfec0, 10) // deprecated RFC 3879
+}
+
+func (addr *IPv6Address) IsUniqueLocal() bool {
+	//RFC 4193
+	return addr.GetSegment(0).MatchesWithPrefixMask(0xfc00, 7)
+}
+
+// IsIPv4Mapped returns whether the address is IPv4-mapped
+//
+// ::ffff:x:x/96 indicates IPv6 address mapped to IPv4
+func (addr *IPv6Address) IsIPv4Mapped() bool {
+	//::ffff:x:x/96 indicates IPv6 address mapped to IPv4
+	if addr.GetSegment(5).Matches(IPv6MaxValuePerSegment) {
+		for i := 0; i < 5; i++ {
+			if !addr.GetSegment(i).IsZero() {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// IsIPv4Compatible returns whether the address is IPv4-compatible
+func (addr *IPv6Address) IsIPv4Compatible() bool {
+	return addr.GetSegment(0).IsZero() && addr.GetSegment(1).IsZero() && addr.GetSegment(2).IsZero() &&
+		addr.GetSegment(3).IsZero() && addr.GetSegment(4).IsZero() && addr.GetSegment(5).IsZero()
+}
+
+// Is6To4 returns whether the address is IPv6 to IPv4 relay
+func (addr *IPv6Address) Is6To4() bool {
+	//2002::/16
+	return addr.GetSegment(0).Matches(0x2002)
+}
+
+// Is6Over4 returns whether the address is 6over4
+func (addr *IPv6Address) Is6Over4() bool {
+	return addr.GetSegment(0).Matches(0xfe80) &&
+		addr.GetSegment(1).IsZero() && addr.GetSegment(2).IsZero() &&
+		addr.GetSegment(3).IsZero() && addr.GetSegment(4).IsZero() &&
+		addr.GetSegment(5).IsZero()
+}
+
+// IsTeredo returns whether the address is Teredo
+func (addr *IPv6Address) IsTeredo() bool {
+	//2001::/32
+	return addr.GetSegment(0).Matches(0x2001) && addr.GetSegment(1).IsZero()
+}
+
+// IsIsatap returns whether the address is ISATAP
+func (addr *IPv6Address) IsIsatap() bool {
+	// 0,1,2,3 is fe80::
+	// 4 can be 0200
+	return addr.GetSegment(0).Matches(0xfe80) &&
+		addr.GetSegment(1).IsZero() &&
+		addr.GetSegment(2).IsZero() &&
+		addr.GetSegment(3).IsZero() &&
+		(addr.GetSegment(4).IsZero() || addr.GetSegment(4).Matches(0x200)) &&
+		addr.GetSegment(5).Matches(0x5efe)
+}
+
+// IsIPv4Translatable returns whether the address is IPv4 translatable as in rfc 2765
+func (addr *IPv6Address) IsIPv4Translatable() bool { //rfc 2765
+	//::ffff:0:x:x/96 indicates IPv6 addresses translated from IPv4
+	return addr.GetSegment(4).Matches(0xffff) &&
+		addr.GetSegment(5).IsZero() &&
+		addr.GetSegment(0).IsZero() &&
+		addr.GetSegment(1).IsZero() &&
+		addr.GetSegment(2).IsZero() &&
+		addr.GetSegment(3).IsZero()
+}
+
+// IsWellKnownIPv4Translatable returns whether the address has the well-known prefix for IPv4 translatable addresses as in rfc 6052 and 6144
+func (addr *IPv6Address) IsWellKnownIPv4Translatable() bool { //rfc 6052 rfc 6144
+	//64:ff9b::/96 prefix for auto ipv4/ipv6 translation
+	if addr.GetSegment(0).Matches(0x64) && addr.GetSegment(1).Matches(0xff9b) {
+		for i := 2; i <= 5; i++ {
+			if !addr.GetSegment(i).IsZero() {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (addr *IPv6Address) IsMulticast() bool {
+	// 11111111...
+	return addr.GetSegment(0).MatchesWithPrefixMask(0xff00, 8)
+}
+
 // IsLoopback returns whether this address is a loopback address, such as
 // [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
 func (addr *IPv6Address) IsLoopback() bool {
@@ -731,7 +881,6 @@ func (addr *IPv6Address) CoverWithPrefixBlock() *IPv6Address {
 	return addr.init().coverWithPrefixBlock().ToIPv6Address()
 }
 
-//
 // MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
@@ -741,7 +890,6 @@ func (addr *IPv6Address) MergeToSequentialBlocks(addrs ...*IPv6Address) []*IPv6A
 	return cloneToIPv6Addrs(blocks)
 }
 
-//
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.

@@ -26,7 +26,7 @@ type addressDivisionGroupingBase struct {
 }
 
 // TODO LATER for large will need to add methods in java AddressItem (porting those same methods in AddressItem using BigINteger to use big.int should do it):
-// isSinglePrefixBlock, isPrefixBlock, containsPrefixBlock(int), containsSinglePrefixBlock(int), getMinPrefixLengthForBlock() bitcount, getPrefixLengthForSingleBlock() prefixlen
+// isSinglePrefixBlock, isPrefixBlock, containsPrefixBlock(int), containsSinglePrefixBlock(int), GetMinPrefixLenForBlock() bitcount, GetPrefixLenForSingleBlock() prefixlen
 
 func (grouping *addressDivisionGroupingBase) getAddrType() addrType {
 	return grouping.addrType

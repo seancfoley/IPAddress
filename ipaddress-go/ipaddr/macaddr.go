@@ -362,12 +362,12 @@ func (addr *MACAddress) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	return addr.init().addressInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (addr *MACAddress) GetMinPrefixLengthForBlock() BitCount { //TODO rename Length to Len everywhere
-	return addr.init().addressInternal.GetMinPrefixLengthForBlock()
+func (addr *MACAddress) GetMinPrefixLenForBlock() BitCount {
+	return addr.init().addressInternal.GetMinPrefixLenForBlock()
 }
 
-func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen { //TODO rename Length to Len everywhere
-	return addr.init().addressInternal.GetPrefixLengthForSingleBlock()
+func (addr *MACAddress) GetPrefixLenForSingleBlock() PrefixLen {
+	return addr.init().addressInternal.GetPrefixLenForSingleBlock()
 }
 
 func (addr *MACAddress) CompareTo(item AddressItem) int {
@@ -394,6 +394,25 @@ func (addr *MACAddress) Equals(other AddressType) bool {
 
 func (addr *MACAddress) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
+}
+
+// Multicast MAC addresses have the least significant bit of the first octet set to 1.
+func (addr *MACAddress) IsMulticast() bool {
+	return addr.GetSegment(0).MatchesWithMask(1, 0x1)
+}
+
+func (addr *MACAddress) IsUnicast() bool {
+	return !addr.IsMulticast()
+}
+
+// Universal MAC addresses have second the least significant bit of the first octet set to 0.
+func (addr *MACAddress) IsUniversal() bool {
+	return !addr.IsLocal()
+}
+
+// Local MAC addresses have the second least significant bit of the first octet set to 1.
+func (addr *MACAddress) IsLocal() bool {
+	return addr.GetSegment(0).MatchesWithMask(2, 0x2)
 }
 
 func (addr *MACAddress) Iterator() MACAddressIterator {

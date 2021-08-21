@@ -19,7 +19,7 @@ func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
-	return seg.GetSegmentPrefixLength() != nil
+	return seg.GetSegmentPrefixLen() != nil
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
@@ -31,7 +31,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 	res := cache.isSinglePrefBlock
 	if res == nil {
 		var result bool
-		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
 			result = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
 		}
 		if result {
@@ -54,15 +54,21 @@ func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
-	prefixLength := seg.GetSegmentPrefixLength()
+	prefixLength := seg.GetSegmentPrefixLen()
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
 	return getPrefixValueCount(seg.toAddressSegment(), *prefixLength)
 }
 
-func (seg *ipAddressSegmentInternal) GetSegmentPrefixLength() PrefixLen {
+func (seg *ipAddressSegmentInternal) GetSegmentPrefixLen() PrefixLen {
 	return seg.getDivisionPrefixLength()
+}
+
+func (seg *ipAddressSegmentInternal) MatchesWithPrefixMask(value SegInt, networkBits BitCount) bool {
+	mask := seg.GetSegmentNetworkMask(networkBits)
+	matchingValue := value & mask
+	return matchingValue == (seg.GetSegmentValue()&mask) && matchingValue == (seg.GetUpperSegmentValue()&mask)
 }
 
 func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostMaskLen PrefixLen) {
@@ -156,7 +162,7 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
 func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 	if seg.IsPrefixed() {
 		upperValue := seg.GetUpperSegmentValue()
-		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLength())
+		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
 		upperValue &= mask
 		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
 	} else {
@@ -297,16 +303,16 @@ func (seg *ipAddressSegmentInternal) setRangeWildcardString(
 	}
 }
 
-func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(bits BitCount) SegInt {
+func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(networkBits BitCount) SegInt {
 	bc := seg.GetBitCount()
-	bits = checkBitCount(bits, bc)
-	return seg.GetMaxValue() & (^SegInt(0) << uint(bc-bits))
+	networkBits = checkBitCount(networkBits, bc)
+	return seg.GetMaxValue() & (^SegInt(0) << uint(bc-networkBits))
 }
 
-func (seg *ipAddressSegmentInternal) GetSegmentHostMask(bits BitCount) SegInt {
+func (seg *ipAddressSegmentInternal) GetSegmentHostMask(networkBits BitCount) SegInt {
 	bc := seg.GetBitCount()
-	bits = checkBitCount(bits, bc)
-	return ^(^SegInt(0) << uint(bc-bits))
+	networkBits = checkBitCount(networkBits, bc)
+	return ^(^SegInt(0) << uint(bc-networkBits))
 }
 
 func (seg *ipAddressSegmentInternal) toIPAddressSegment() *IPAddressSegment {

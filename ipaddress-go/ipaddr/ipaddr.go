@@ -256,12 +256,12 @@ func (addr *ipAddressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *I
 	return
 }
 
-func (addr *ipAddressInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
+func (addr *ipAddressInternal) GetBlockMaskPrefixLen(network bool) PrefixLen {
 	section := addr.section
 	if section == nil {
 		return nil
 	}
-	return section.ToIPAddressSection().GetBlockMaskPrefixLength(network)
+	return section.ToIPAddressSection().GetBlockMaskPrefixLen(network)
 }
 
 func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
@@ -741,20 +741,6 @@ func (addr *IPAddress) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-// IsLoopback returns whether this address is a loopback address, such as
-// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
-func (addr *IPAddress) IsLoopback() bool {
-	sect := addr.section
-	if sect == nil {
-		return false
-	} else if ipaddr := addr.ToIPv4Address(); ipaddr != nil {
-		return ipaddr.IsLoopback()
-	} else if ipaddr := addr.ToIPv6Address(); ipaddr != nil {
-		return ipaddr.IsLoopback()
-	}
-	return false
-}
-
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *IPAddress) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
@@ -871,20 +857,6 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-// methods with address args - SpanWithPrefixBlocksTo, SpanWithSequentialBlocksTo, MergetoPrefixBlocks, MergeToSequentialBlocks,
-//// Cover, BitwiseOr, Mask, SpanWithRange, Intersect, Subtract.
-//// I think I am not implementing BitwiseOrNetwork or MaskNetwork though.
-// All of these with IPAddress arguments, we will pass IncompatibleAddressError with them, for the case where the arg does not match the IPAddress  version.
-// We only do this in IPAddress, not IPAddressSection.  The rationale for that in Java was that you could convert addresses but not sections.
-// The rationale here is that span, merge, mask, etc are really methods targeted for addresses and not sections and you do not really need to put them in sections too.
-// The other rationale is that when dealing with sections, you should be more aware of what ip version you are working with and defer to the type-safe versions of the methods.
-// Because we do have the type-safe versions.
-// Also, with sections, the segment count matters.  And also the startIndex comes into play.  So pitting two sections against each other is more problematic.
-//   A further rationale is that it helps keep section method count down.
-
-// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code (net.LookupAddr or LookupCNAME) http://networkbit.ch/golang-dns-lookup/
-// ToUNCHostName //TODO LATER
-
 func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
@@ -982,12 +954,63 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 	return res
 }
 
+// Returns whether the address is link local, whether unicast or multicast.
+func (addr *IPAddress) IsLinkLocal() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsLinkLocal()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsLinkLocal()
+	}
+	return false
+}
+
+// IsLocal returns true if the address is link local, site local, organization local, administered locally, or unspecified.
+// This includes both unicast and multicast.
+func (addr *IPAddress) IsLocal() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsLocal()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsLocal()
+	}
+	return false
+}
+
+// The unspecified address is the address that is all zeros.
+func (addr *IPAddress) IsUnspecified() bool {
+	return addr.section != nil && addr.IsZero()
+}
+
+// Returns whether this address is the address which binds to any address on the local host.
+// This is the address that has the value of 0, aka the unspecified address.
+func (addr *IPAddress) IsAnyLocal() bool {
+	return addr.section != nil && addr.IsZero()
+}
+
+// IsLoopback returns whether this address is a loopback address, such as
+// [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
+func (addr *IPAddress) IsLoopback() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsLoopback()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsLoopback()
+	}
+	return false
+}
+
+// IsMulticast returns whether this address is multicast
+func (addr *IPAddress) IsMulticast() bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		return thisAddr.IsMulticast()
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		return thisAddr.IsMulticast()
+	}
+	return false
+}
+
+// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code (net.LookupAddr or LookupCNAME) http://networkbit.ch/golang-dns-lookup/
+// ToUNCHostName //TODO LATER
 // TODO the static ToNormalizedString methods
-// TODO isAnyLocal in IPAddress / IPv4/6Address
-// TODO isLinkLOcal
-// TODO isLocal
-// TODO isLoopBack
-// TODO isUnspecified
+// TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
 // TODO matchesWithMask here and in IPSection
 
 func versionsMatch(one, two *IPAddress) bool {
@@ -1211,8 +1234,6 @@ func IPAddressEquals(one, two *IPAddress) bool {
 	}
 	return two != nil && one.Equals(two)
 }
-
-//TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
 
 func addrFromIP(bytes net.IP) (addr *IPAddress, err AddressValueError) {
 	addrLen := len(bytes)

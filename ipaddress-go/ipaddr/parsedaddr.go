@@ -341,7 +341,7 @@ func (parseData *parsedIPAddress) skipContains() bool {
 	}
 	// exclude non-standard masks which will modify segment values from their parsed values
 	mask := parseData.getProviderMask()
-	if mask != nil && mask.GetBlockMaskPrefixLength(true) == nil { // handles non-standard masks
+	if mask != nil && mask.GetBlockMaskPrefixLen(true) == nil { // handles non-standard masks
 		parseData.skipCntains = boolSetting{true, true}
 		return true
 	}
@@ -1114,7 +1114,7 @@ func allocateSegments(
 func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundaries, withUpper bool) (sections sectionResult, boundaries boundaryResult) {
 	qualifier := parseData.getQualifier()
 	mask := parseData.getProviderMask()
-	if mask != nil && mask.GetBlockMaskPrefixLength(true) != nil {
+	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}
 	hasMask := mask != nil
@@ -1448,7 +1448,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundaries, withUpper bool) (sections sectionResult, boundaries boundaryResult) {
 	qualifier := parseData.getQualifier()
 	mask := parseData.getProviderMask()
-	if mask != nil && mask.GetBlockMaskPrefixLength(true) != nil {
+	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}
 	hasMask := mask != nil
@@ -2219,7 +2219,7 @@ func createAllAddress(
 	creator := version.toType().getIPNetwork().getIPAddressCreator()
 	//prefixLength := qualifier.getEquivalentPrefixLength()
 	mask := qualifier.getMaskLower()
-	if mask != nil && mask.GetBlockMaskPrefixLength(true) != nil {
+	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}
 	segmentCount := GetSegmentCount(version)

@@ -131,12 +131,12 @@ func (rng *IPv4AddressSeqRange) ContainsSinglePrefixBlock(prefixLen BitCount) bo
 	return rng.init().ipAddressSeqRangeInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (rng *IPv4AddressSeqRange) GetPrefixLengthForSingleBlock() PrefixLen {
-	return rng.init().ipAddressSeqRangeInternal.GetPrefixLengthForSingleBlock()
+func (rng *IPv4AddressSeqRange) GetPrefixLenForSingleBlock() PrefixLen {
+	return rng.init().ipAddressSeqRangeInternal.GetPrefixLenForSingleBlock()
 }
 
-func (rng *IPv4AddressSeqRange) GetMinPrefixLengthForBlock() BitCount {
-	return rng.init().ipAddressSeqRangeInternal.GetMinPrefixLengthForBlock()
+func (rng *IPv4AddressSeqRange) GetMinPrefixLenForBlock() BitCount {
+	return rng.init().ipAddressSeqRangeInternal.GetMinPrefixLenForBlock()
 }
 
 func (rng *IPv4AddressSeqRange) Iterator() IPv4AddressIterator {

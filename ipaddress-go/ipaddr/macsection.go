@@ -117,57 +117,6 @@ func NewMACSectionFromRange(vals, upperVals SegmentValueProvider, segmentCount i
 	return
 }
 
-/*
-TODO in java, mac prefix lengths are calculated lazily, except when assigned on creation (usually when section is derived from existing)
-We do need to look out for the fact that GetPrefixLength in addressSectionInternal does not jive with that.
-So, what to do?  Maybe avoid the laziness?  We do not want the "init" stuff in here too.
-So that means that anywhere we call "assignPrefixLength" in java we need to instead provide prefix length to constructor func
-We also need constructors tht do not take prefix length to calculate it from getMinPrefixLengthForBlock or even that function
-I had in here somewhere, getPrefixLengthCacheLocked or prefixesAlign in the notes
-
-
-// Returns the number of bits in the prefix.
-	 //
-	 // The prefix is the smallest bit length x for which all possible values with the same first x bits are included in this range of sections,
-	 // unless that value x matches the bit count of this section, in which case the prefix is null.
-	 //
-// If the prefix is the OUI bit length (24) then the ODI segments cover all possibly values.
-	public Integer getPrefixLength() {
-		Integer ret = cachedPrefixLength;
-		if(ret == null) {
-			int prefix = getMinPrefixLengthForBlock();
-			if(prefix == getBitCount()) {
-				cachedPrefixLength = NO_PREFIX_LENGTH;
-				return null;
-			}
-			return cachedPrefixLength = cacheBits(prefix);
-		}
-		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
-			return null;
-		}
-		return ret;
-	}
-
-	protected void assignPrefixLength(Integer prefixLength) {
-		if(prefixLength == null) {
-			cachedPrefixLength = NO_PREFIX_LENGTH;
-			return;
-		}
-		if(prefixLength < 0) {
-			throw new PrefixLenException(prefixLength);
-		}
-		int max = getBitCount();
-		if(prefixLength > max) {
-			int maxPrefixLength = extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_BIT_COUNT;
-			if(prefixLength > maxPrefixLength) {
-				throw new PrefixLenException(prefixLength);
-			}
-			prefixLength = max;
-		}
-		cachedPrefixLength = prefixLength;
-	}
-*/
-
 type MACAddressSection struct {
 	addressSectionInternal
 }
@@ -194,7 +143,7 @@ func (section *MACAddressSection) GetCount() *big.Int {
 
 func (section *MACAddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(*section.GetPrefixLength())
+		return section.GetPrefixCountLen(*section.GetPrefixLen())
 	})
 }
 
@@ -383,7 +332,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		section.UpperUint64Value(),
 		section.addressSectionInternal.getLower,
 		section.addressSectionInternal.getUpper,
-		section.GetPrefixLength()).ToMACAddressSection()
+		section.GetPrefixLen()).ToMACAddressSection()
 	//			}
 	//			BigInteger lowerValue = getValue();
 	//			BigInteger upperValue = getUpperValue();
@@ -614,7 +563,7 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 		//					newSegmentBitCount,
 		//MACDefaultTextualRadix);
 	}
-	grouping := createInitializedGrouping(newSegs, section.GetPrefixLength(), zeroType)
+	grouping := createInitializedGrouping(newSegs, section.GetPrefixLen(), zeroType)
 	return grouping, nil
 	//AddressDivisionGrouping dottedGrouping;
 	//if(cachedPrefixLength == null) {

@@ -37,20 +37,20 @@ type AddressItem interface {
 	// This means there is only one prefix of the given length in this item, and this item contains the prefix block for that given prefix.
 	ContainsSinglePrefixBlock(BitCount) bool
 
-	// GetPrefixLengthForSingleBlock returns a prefix length for which there is only one prefix of that length in this item,
+	// GetPrefixLenForSingleBlock returns a prefix length for which there is only one prefix of that length in this item,
 	// and the range of this item matches the block of all values for that prefix.
-	// If the range can be dictated this way, then this method returns the same value as GetMinPrefixLengthForBlock.
+	// If the range can be dictated this way, then this method returns the same value as GetMinPrefixLenForBlock.
 	// If no such prefix length exists, returns nil.
 	// If this item represents a single value, this returns the bit count.
-	GetPrefixLengthForSingleBlock() PrefixLen
+	GetPrefixLenForSingleBlock() PrefixLen
 
-	// GetMinPrefixLengthForBlock returns the smallest prefix length possible such that this item includes the block of all values for that prefix length.
+	// GetMinPrefixLenForBlock returns the smallest prefix length possible such that this item includes the block of all values for that prefix length.
 	// If there are multiple possible prefixes in this item for the given prefix length,
 	// this item contains the prefix block for each and every one of those prefixes.
-	// If the entire range can be dictated this way, then this method returns the same value as {@link #getPrefixLengthForSingleBlock()}.
-	// Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #getPrefixLengthForSingleBlock()} will return null.
+	// If the entire range can be dictated this way, then this method returns the same value as {@link #GetPrefixLenForSingleBlock()}.
+	// Otherwise, this method will return the minimal possible prefix that can be paired with this address, while {@link #GetPrefixLenForSingleBlock()} will return null.
 	// In cases where the final bit is constant so there is no such block, this returns the bit count.
-	GetMinPrefixLengthForBlock() BitCount
+	GetMinPrefixLenForBlock() BitCount
 
 	// The count of the number of distinct values within the prefix part of the range of values for this item
 	GetPrefixCountLen(BitCount) *big.Int
@@ -126,7 +126,7 @@ type AddressDivisionSeries interface {
 	IsPrefixBlock() bool
 	IsSinglePrefixBlock() bool
 	IsPrefixed() bool
-	GetPrefixLength() PrefixLen
+	GetPrefixLen() PrefixLen
 
 	CompareSize(AddressDivisionSeries) int
 
@@ -171,7 +171,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 	GetIPVersion() IPVersion
 
-	GetBlockMaskPrefixLength(network bool) PrefixLen
+	GetBlockMaskPrefixLen(network bool) PrefixLen
 
 	GetLeadingBitCount(ones bool) BitCount
 	GetTrailingBitCount(ones bool) BitCount

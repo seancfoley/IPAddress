@@ -292,7 +292,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 								for i := 0; i < byteLen; i++ {
 									addr[i] &= maskBytes[i]
 								}
-								networkPrefixLength = mask.GetBlockMaskPrefixLength(true)
+								networkPrefixLength = mask.GetBlockMaskPrefixLen(true)
 							}
 						}
 					}

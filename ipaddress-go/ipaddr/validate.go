@@ -1918,7 +1918,7 @@ func parseValidatedPrefix(
 	asIPv4 := ipVersion.isIndeterminate() && ipVersion.isIPv4()
 	//tryCache := false
 	if asIPv4 {
-		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLengthLeadingZeros() {
+		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLenLeadingZeros() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv4.prefix.leading.zeros"}}
 			return
 		}
@@ -1932,7 +1932,7 @@ func parseValidatedPrefix(
 		}
 		//tryCache = result < len(PREFIX_CACHE)
 	} else {
-		if leadingZeros > 0 && !validationOptions.GetIPv6Parameters().AllowsPrefixLengthLeadingZeros() {
+		if leadingZeros > 0 && !validationOptions.GetIPv6Parameters().AllowsPrefixLenLeadingZeros() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv6.prefix.leading.zeros"}}
 			return
 		}

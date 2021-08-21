@@ -231,7 +231,7 @@ func (section *IPv6AddressSection) GetCount() *big.Int {
 
 func (section *IPv6AddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(*section.GetPrefixLength())
+		return section.GetPrefixCountLen(*section.GetPrefixLen())
 	})
 }
 
@@ -618,7 +618,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	if isOverflow {
 		return nil
 	}
-	prefixLength := section.GetPrefixLength()
+	prefixLength := section.GetPrefixLen()
 	result := fastIncrement(
 		section.ToAddressSection(),
 		increment,
@@ -1254,9 +1254,9 @@ func newIPv6v4MixedGrouping(ipv6Section *IPv6AddressSection, ipv4Section *IPv4Ad
 	}
 	section.isMultiple = ipv6Section.IsMultiple() || ipv4Section.IsMultiple()
 	if ipv6Section.IsPrefixed() {
-		section.prefixLength = ipv6Section.GetPrefixLength()
+		section.prefixLength = ipv6Section.GetPrefixLen()
 	} else if ipv4Section.IsPrefixed() {
-		section.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLength())
+		section.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLen())
 	}
 	return section
 }
