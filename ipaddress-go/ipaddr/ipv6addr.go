@@ -597,6 +597,10 @@ func (addr *IPv6Address) Equals(other AddressType) bool {
 		addr.isSameZone(other.ToAddress())
 }
 
+func (addr *IPv6Address) MatchesWithMask(other *IPv6Address, mask *IPv6Address) bool {
+	return addr.init().GetSection().MatchesWithMask(other.GetSection(), mask.GetSection())
+}
+
 func (addr *IPv6Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }

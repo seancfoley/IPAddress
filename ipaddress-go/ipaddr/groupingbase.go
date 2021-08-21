@@ -447,6 +447,10 @@ func (grouping standardDivArray) copyDivisions(divs []*AddressDivision) (count i
 	return copy(divs, grouping.divisions)
 }
 
+func (grouping standardDivArray) getSubDivisions(index, endIndex int) (divs []*AddressDivision) {
+	return grouping.divisions[index:endIndex]
+}
+
 func (grouping standardDivArray) init() standardDivArray {
 	if grouping.divisions == nil {
 		return zeroStandardDivArray

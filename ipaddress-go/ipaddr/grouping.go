@@ -92,6 +92,16 @@ func (grouping *addressDivisionGroupingInternal) copySubDivisions(start, end int
 	return
 }
 
+func (grouping *addressDivisionGroupingInternal) getSubDivisions(start, end int) []*AddressDivision {
+	divsArray := grouping.divisions
+	if divsArray != nil {
+		return divsArray.(standardDivArray).getSubDivisions(start, end)
+	} else if start != 0 || end != 0 {
+		panic("invalid subslice")
+	}
+	return make([]*AddressDivision, 0)
+}
+
 // copyDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (grouping *addressDivisionGroupingInternal) copyDivisions(divs []*AddressDivision) (count int) {

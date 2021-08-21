@@ -348,6 +348,10 @@ func (section *IPv6AddressSection) bitwiseOrPrefixed(other *IPv6AddressSection, 
 	return
 }
 
+func (section *IPv6AddressSection) MatchesWithMask(other *IPv6AddressSection, mask *IPv6AddressSection) bool {
+	return section.matchesWithMask(other.ToIPAddressSection(), mask.ToIPAddressSection())
+}
+
 func (section *IPv6AddressSection) Subtract(other *IPv6AddressSection) (res []*IPv6AddressSection, err SizeMismatchError) {
 	sections, err := section.subtract(other.ToIPAddressSection())
 	if err == nil {

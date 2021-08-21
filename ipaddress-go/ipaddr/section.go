@@ -342,8 +342,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	if index == 0 && endIndex == thisSegmentCount {
 		return section.toAddressSection()
 	}
-	segs := createSegmentArray(segmentCount)
-	section.copySubSegmentsToSlice(index, endIndex, segs)
+	segs := section.getSubDivisions(index, endIndex)
 	newPrefLen := section.GetPrefixLen()
 	if newPrefLen != nil && index != 0 {
 		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)

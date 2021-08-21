@@ -482,6 +482,10 @@ func (addr *IPv4Address) Equals(other AddressType) bool {
 	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
 }
 
+func (addr *IPv4Address) MatchesWithMask(other *IPv4Address, mask *IPv4Address) bool {
+	return addr.init().GetSection().MatchesWithMask(other.GetSection(), mask.GetSection())
+}
+
 func (addr *IPv4Address) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
@@ -697,6 +701,7 @@ func (addr *IPv4Address) ReverseSegments() *IPv4Address {
 }
 
 // ReplaceLen replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
+// Mappings to or from indices outside the range of this or the replacement address are skipped.
 func (addr *IPv4Address) ReplaceLen(startIndex, endIndex int, replacement *IPv4Address, replacementIndex int) *IPv4Address {
 	startIndex, endIndex, replacementIndex =
 		adjust1To1Indices(startIndex, endIndex, IPv4SegmentCount, replacementIndex, IPv4SegmentCount)
@@ -707,7 +712,8 @@ func (addr *IPv4Address) ReplaceLen(startIndex, endIndex int, replacement *IPv4A
 	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement.GetSection(), replacementIndex, replacementIndex+count))
 }
 
-// Replace replaces segments starting from startIndex with segments from the replacement section
+// Replace replaces segments starting from startIndex with segments from the replacement section.
+// Mappings to or from indices outside the range of this address or the replacement section are skipped.
 func (addr *IPv4Address) Replace(startIndex int, replacement *IPv4AddressSection) *IPv4Address {
 	startIndex, endIndex, replacementIndex :=
 		adjust1To1Indices(startIndex, startIndex+replacement.GetSegmentCount(), IPv4SegmentCount, 0, replacement.GetSegmentCount())

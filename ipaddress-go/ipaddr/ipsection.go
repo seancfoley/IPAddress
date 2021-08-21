@@ -7,7 +7,7 @@ import (
 )
 
 func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
-	return &IPAddressSection{
+	sect := &IPAddressSection{
 		ipAddressSectionInternal{
 			addressSectionInternal{
 				addressDivisionGroupingInternal{
@@ -21,6 +21,8 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 			},
 		},
 	}
+	assignStringCache(&sect.addressDivisionGroupingBase, addrType)
+	return sect
 }
 
 func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
@@ -555,6 +557,27 @@ func (section *ipAddressSectionInternal) bitwiseOr(msk *IPAddressSection, retain
 		true,
 		section.getDivision,
 		func(i int) SegInt { return msk.GetSegment(i).GetSegmentValue() })
+}
+
+func (section *ipAddressSectionInternal) matchesWithMask(other *IPAddressSection, mask *IPAddressSection) bool {
+	if err := section.checkSectionCount(other); err != nil {
+		return false
+	} else if err := section.checkSectionCount(mask); err != nil {
+		return false
+	}
+	divCount := section.GetSegmentCount()
+	for i := 0; i < divCount; i++ {
+		seg := section.GetSegment(i)
+		maskSegment := mask.GetSegment(i)
+		otherSegment := other.GetSegment(i)
+		if !seg.MatchesValsWithMask(
+			otherSegment.getSegmentValue(),
+			otherSegment.getUpperSegmentValue(),
+			maskSegment.getSegmentValue()) {
+			return false
+		}
+	}
+	return true
 }
 
 func (section *ipAddressSectionInternal) intersect(

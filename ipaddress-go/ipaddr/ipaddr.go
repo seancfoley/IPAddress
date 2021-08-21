@@ -771,6 +771,23 @@ func (addr *IPAddress) Equals(other AddressType) bool {
 	return addr.init().equals(other)
 }
 
+func (addr *IPAddress) MatchesWithMask(other *IPAddress, mask *IPAddress) bool {
+	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+		if oth := other.ToIPv4Address(); oth != nil {
+			if msk := mask.ToIPv4Address(); mask != nil {
+				return thisAddr.MatchesWithMask(oth, msk)
+			}
+		}
+	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+		if oth := other.ToIPv6Address(); oth != nil {
+			if msk := mask.ToIPv6Address(); mask != nil {
+				return thisAddr.MatchesWithMask(oth, msk)
+			}
+		}
+	}
+	return false
+}
+
 func (addr *IPAddress) IsIPv4() bool {
 	return addr.isIPv4()
 }
@@ -1011,7 +1028,6 @@ func (addr *IPAddress) IsMulticast() bool {
 // ToUNCHostName //TODO LATER
 // TODO the static ToNormalizedString methods
 // TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
-// TODO matchesWithMask here and in IPSection
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()
