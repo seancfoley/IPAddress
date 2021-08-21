@@ -613,10 +613,11 @@ func (m MixedCompressionOptions) compressMixed(addressSection *IPv6AddressSectio
 		return !addressSection.IsPrefixed()
 	case COVERED_BY_HOST:
 		if addressSection.IsPrefixed() {
-			mixedDistance := int(IPv6MixedOriginalSegmentCount - addressSection.addressSegmentIndex)
-			if mixedDistance < 0 {
-				mixedDistance = 0
-			}
+			//mixedDistance := int(IPv6MixedOriginalSegmentCount - addressSection.addressSegmentIndex)
+			//if mixedDistance < 0 {
+			//	mixedDistance = 0
+			//}
+			mixedDistance := IPv6MixedOriginalSegmentCount
 			mixedCount := addressSection.GetSegmentCount() - mixedDistance
 			if mixedCount > 0 {
 				return (BitCount(mixedDistance) * addressSection.GetBitsPerSegment()) >= *addressSection.GetNetworkPrefixLength()

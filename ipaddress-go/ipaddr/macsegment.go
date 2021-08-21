@@ -232,12 +232,6 @@ var (
 	segmentCacheMAC = makeSegmentCacheMAC()
 )
 
-func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually
-	if result.value != value || result.upperValue != upperValue {
-		panic("huh")
-	}
-}
-
 func makeSegmentCacheMAC() (segmentCacheMAC []macSegmentValues) {
 	if useMACSegmentCache {
 		segmentCacheMAC = make([]macSegmentValues, MACMaxValuePerSegment+1)

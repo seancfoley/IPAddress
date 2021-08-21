@@ -7,11 +7,11 @@ import "math/bits"
 func getNetworkSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount) int {
 	if bytesPerSegment != 1 {
 		if bytesPerSegment == 2 {
-			return int((networkPrefixLength - 1) >> 4) //note this is intentionally a signed shift and not >>> so that networkPrefixLength of 0 returns -1
+			return int((networkPrefixLength - 1) >> ipv6BitsToSegmentBitshift) //note this is intentionally a signed shift and not >>> so that networkPrefixLength of 0 returns -1
 		}
 		return int((networkPrefixLength - 1) / bitsPerSegment)
 	}
-	return int((networkPrefixLength - 1) >> 3)
+	return int((networkPrefixLength - 1) >> ipv4BitsToSegmentBitshift)
 }
 
 /**
@@ -25,11 +25,11 @@ func getNetworkSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, b
 func getHostSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bitsPerSegment BitCount) int {
 	if bytesPerSegment != 1 {
 		if bytesPerSegment == 2 {
-			return int(networkPrefixLength >> 4)
+			return int(networkPrefixLength >> ipv6BitsToSegmentBitshift)
 		}
 		return int(networkPrefixLength / bitsPerSegment)
 	}
-	return int(networkPrefixLength >> 3)
+	return int(networkPrefixLength >> ipv4BitsToSegmentBitshift)
 }
 
 /**
@@ -47,9 +47,9 @@ func getSegmentPrefixLength(bitsPerSegment BitCount, prefixLength PrefixLen, seg
 func getPrefixedSegmentPrefixLength(bitsPerSegment BitCount, prefixLength BitCount, segmentIndex int) PrefixLen {
 	var decrement int
 	if bitsPerSegment == 8 {
-		decrement = segmentIndex << 3
+		decrement = segmentIndex << ipv4BitsToSegmentBitshift
 	} else if bitsPerSegment == 16 {
-		decrement = segmentIndex << 4
+		decrement = segmentIndex << ipv6BitsToSegmentBitshift
 	} else {
 		decrement = segmentIndex * int(bitsPerSegment)
 	}
@@ -79,9 +79,9 @@ func getDivisionPrefixLength(divisionBits, divisionPrefixedBits BitCount) Prefix
 func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmentIndex int) PrefixLen {
 	var increment BitCount
 	if bitsPerSegment == 8 {
-		increment = BitCount(segmentIndex) << 3
+		increment = BitCount(segmentIndex) << ipv4BitsToSegmentBitshift
 	} else if bitsPerSegment == 16 {
-		increment = BitCount(segmentIndex) << 4
+		increment = BitCount(segmentIndex) << ipv6BitsToSegmentBitshift
 	} else {
 		increment = BitCount(segmentIndex) * bitsPerSegment
 	}
@@ -90,9 +90,9 @@ func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmen
 
 func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	if bitsPerSegment == 8 {
-		return BitCount(segmentCount) << 3
+		return BitCount(segmentCount) << ipv4BitsToSegmentBitshift
 	} else if bitsPerSegment == 16 {
-		return BitCount(segmentCount) << 4
+		return BitCount(segmentCount) << ipv6BitsToSegmentBitshift
 	}
 	return BitCount(segmentCount) * bitsPerSegment
 }
@@ -297,9 +297,9 @@ func isPrefixSubnet(
 	} else {
 		var totalBitCount BitCount
 		if bitsPerSegment == 8 {
-			totalBitCount = BitCount(segmentCount) << 3
+			totalBitCount = BitCount(segmentCount) << ipv4BitsToSegmentBitshift
 		} else if bitsPerSegment == 16 {
-			totalBitCount = BitCount(segmentCount) << 4
+			totalBitCount = BitCount(segmentCount) << ipv6BitsToSegmentBitshift
 		} else {
 			totalBitCount = BitCount(segmentCount) * bitsPerSegment
 		}

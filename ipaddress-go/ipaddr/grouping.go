@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressDivisionGrouping {
+func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
 	grouping := &AddressDivisionGrouping{
 		//return &AddressSection{
 		//addressSectionInternal{
@@ -17,7 +17,7 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 				addrType:     addrType,
 				cache:        &valueCache{},
 			},
-			addressSegmentIndex: startIndex,
+			//addressSegmentIndex: startIndex,
 		},
 		//},
 	}
@@ -25,14 +25,14 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 	return grouping
 }
 
-func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressDivisionGrouping {
-	result := createGrouping(divs, prefixLength, addrType, startIndex)
+func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, addrType)
 	result.isMultiple = isMultiple
 	return result
 }
 
-func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressDivisionGrouping {
-	result := createGrouping(divs, prefixLength, addrType, startIndex)
+func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, addrType)
 	result.init() // assigns isMultiple
 	return result
 }
@@ -44,20 +44,20 @@ var (
 type addressDivisionGroupingInternal struct {
 	addressDivisionGroupingBase
 
-	//TODO get rid of addressSegmentIndex and isExtended
+	// get rid of addressSegmentIndex and isExtended
 	// You just don't need positionality from sections.
 	// Being mixed or converting to IPv6 from MAC are properties of the address.
 	// isExtended really only used for IPv6/MAC conversion.
 	// addressSegmentindex really only used for mixed
 	// Both of those are really "address-level" concepts.
 	//
-	// TODO LATER I also want to refactor to support infiniband, which will involve multiple types.
+	// TODO LATER refactor to support infiniband, which will involve multiple types.
 	// But that will be a joint effort with Java and will wait to later.
 
 	// The index of the containing address where this section starts, only used by IPv6 where we trach the "IPv4-embedded" part of an address section
-	addressSegmentIndex int8
+	//addressSegmentIndex int8
 
-	isExtended bool
+	//isExtended bool
 }
 
 func createSegmentArray(length int) []*AddressDivision {

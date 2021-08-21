@@ -115,6 +115,14 @@ func createIPAddress(section *AddressSection, zone Zone) *IPAddress {
 	}
 }
 
+func newIPAddressZoned(section *IPAddressSection, zone Zone) *IPAddress {
+	result := createIPAddress(section.ToAddressSection(), zone)
+	if zone != NoZone { // will need to cache its own strings
+		result.cache.stringCache = &stringCache{}
+	}
+	return result
+}
+
 // necessary to avoid direct access to IPAddress
 type ipAddressInternal struct {
 	addressInternal
@@ -958,17 +966,20 @@ func (addr *IPAddress) Intersect(other *IPAddress) *IPAddress {
 }
 
 func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
-			//TODO this could be more efficient since we create array twice, once inside IPv4 subtract, once here
-			return cloneIPv4AddrsToIPAddrs(thisAddr.Subtract(oth))
-		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
-			return cloneIPv6AddrsToIPAddrs(thisAddr.Subtract(oth))
+	addr = addr.init()
+	sects, _ := addr.GetSection().subtract(other.GetSection())
+	sectLen := len(sects)
+	if sectLen == 1 {
+		sec := sects[0]
+		if sec.ToAddressSection() == addr.section {
+			return []*IPAddress{addr}
 		}
 	}
-	return nil
+	res := make([]*IPAddress, sectLen)
+	for i, sect := range sects {
+		res[i] = newIPAddressZoned(sect, addr.zone)
+	}
+	return res
 }
 
 // TODO the static ToNormalizedString methods
@@ -978,8 +989,6 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 // TODO isLoopBack
 // TODO isUnspecified
 // TODO matchesWithMask here and in IPSection
-// TODO replace: only at top-level (ie IPvx and MAC, not here, not Address).  // This ensures we do not have weirdness with IPv6v4MixedSection or whatnot.  Keeps ipv4 sections as ipv4.  Etc.
-// TODO append: allow at top-level. (ie IPvx and MAC, not here, not Address)
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()

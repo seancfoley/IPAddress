@@ -7,17 +7,18 @@ import (
 )
 
 const (
-	IPv4SegmentSeparator             = '.'
-	IPv4BitsPerSegment      BitCount = 8
-	IPv4BytesPerSegment              = 1
-	IPv4SegmentCount                 = 4
-	IPv4ByteCount                    = 4
-	IPv4BitCount            BitCount = 32
-	IPv4DefaultTextualRadix          = 10
-	IPv4MaxValuePerSegment           = 0xff
-	IPv4MaxValue                     = 0xffffffff
-	IPv4ReverseDnsSuffix             = ".in-addr.arpa"
-	IPv4SegmentMaxChars              = 3
+	IPv4SegmentSeparator               = '.'
+	IPv4BitsPerSegment        BitCount = 8
+	IPv4BytesPerSegment                = 1
+	IPv4SegmentCount                   = 4
+	IPv4ByteCount                      = 4
+	IPv4BitCount              BitCount = 32
+	IPv4DefaultTextualRadix            = 10
+	IPv4MaxValuePerSegment             = 0xff
+	IPv4MaxValue                       = 0xffffffff
+	IPv4ReverseDnsSuffix               = ".in-addr.arpa"
+	IPv4SegmentMaxChars                = 3
+	ipv4BitsToSegmentBitshift          = 3
 )
 
 func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
@@ -634,6 +635,25 @@ func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, IncompatibleAd
 func (addr *IPv4Address) ReverseSegments() *IPv4Address {
 	addr = addr.init()
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
+}
+
+// ReplaceLen replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
+func (addr *IPv4Address) ReplaceLen(startIndex, endIndex int, replacement *IPv4Address, replacementIndex int) *IPv4Address {
+	startIndex, endIndex, replacementIndex =
+		adjust1To1Indices(startIndex, endIndex, IPv4SegmentCount, replacementIndex, IPv4SegmentCount)
+	if startIndex == endIndex {
+		return addr
+	}
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement.GetSection(), replacementIndex, replacementIndex+count))
+}
+
+// Replace replaces segments starting from startIndex with segments from the replacement section
+func (addr *IPv4Address) Replace(startIndex int, replacement *IPv4AddressSection) *IPv4Address {
+	startIndex, endIndex, replacementIndex :=
+		adjust1To1Indices(startIndex, startIndex+replacement.GetSegmentCount(), IPv4SegmentCount, 0, replacement.GetSegmentCount())
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement, replacementIndex, replacementIndex+count))
 }
 
 func (addr *IPv4Address) GetLeadingBitCount(ones bool) BitCount {

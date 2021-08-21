@@ -197,7 +197,7 @@ func (it *multiSectionIterator) Next() (res *AddressSection) {
 	if it.HasNext() {
 		segs := it.iterator.Next()
 		original := it.original
-		res = createSection(segs, original.prefixLength, original.addrType, original.addressSegmentIndex)
+		res = createSection(segs, original.prefixLength, original.addrType)
 		res.isMultiple = it.valsAreMultiple
 	}
 	return
@@ -233,7 +233,7 @@ func (it *prefixSectionIterator) Next() (res *AddressSection) {
 	if it.HasNext() {
 		segs := it.iterator.Next()
 		original := it.original
-		res = createSection(segs, original.prefixLength, original.addrType, original.addressSegmentIndex)
+		res = createSection(segs, original.prefixLength, original.addrType)
 		if !it.isNotFirst {
 			res.initMultiple() // sets isMultiple
 			it.isNotFirst = true

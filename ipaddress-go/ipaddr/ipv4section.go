@@ -727,6 +727,26 @@ func (section *IPv4AddressSection) ReverseSegments() *IPv4AddressSection {
 	return res.ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) Append(other *IPv4AddressSection) *IPv4AddressSection {
+	count := section.GetSegmentCount()
+	return section.ReplaceLen(count, count, other, 0, other.GetSegmentCount())
+}
+
+func (section *IPv4AddressSection) Insert(index int, other *IPv4AddressSection) *IPv4AddressSection {
+	return section.insert(index, other.ToIPAddressSection(), ipv4BitsToSegmentBitshift).ToIPv4AddressSection()
+}
+
+// Replace the segments of this section starting at the given index with the given replacement segments
+func (section *IPv4AddressSection) Replace(index int, replacement *IPv4AddressSection) *IPv4AddressSection {
+	return section.ReplaceLen(index, index+replacement.GetSegmentCount(), replacement, 0, replacement.GetSegmentCount())
+}
+
+// Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+//ending before replacementEndIndex from the replacement section
+func (section *IPv4AddressSection) ReplaceLen(startIndex, endIndex int, replacement *IPv4AddressSection, replacementStartIndex, replacementEndIndex int) *IPv4AddressSection {
+	return section.replaceLen(startIndex, endIndex, replacement.ToIPAddressSection(), replacementStartIndex, replacementEndIndex, ipv4BitsToSegmentBitshift).ToIPv4AddressSection()
+}
+
 var (
 	ipv4CanonicalParams          = NewIPv4StringOptionsBuilder().ToOptions()
 	ipv4FullParams               = NewIPv4StringOptionsBuilder().SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
@@ -873,7 +893,7 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 	segs := make([]*AddressDivision, totalCount)
 	section.copySubSegmentsToSlice(0, notJoinedCount, segs)
 	segs[notJoinedCount] = joinedSegment
-	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLength(), zeroType, 0)
+	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLength(), zeroType)
 	//IPAddressDivisionGrouping equivalentPart = new IPAddressDivisionGrouping(segs, getNetwork());
 	return equivalentPart, nil
 	//createInitializedGrouping

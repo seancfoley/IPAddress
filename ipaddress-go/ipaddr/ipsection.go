@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *IPAddressSection {
+func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
 	return &IPAddressSection{
 		ipAddressSectionInternal{
 			addressSectionInternal{
@@ -17,27 +17,26 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 						cache:        &valueCache{},
 						prefixLength: prefixLength,
 					},
-					addressSegmentIndex: startIndex,
 				},
 			},
 		},
 	}
 }
 
-func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *IPAddressSection {
-	result := createIPSection(segments, prefixLength, addrType, startIndex)
+func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
+	result := createIPSection(segments, prefixLength, addrType)
 	_ = result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
 	return result
 }
 
 func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
-	res = createIPSection(segments, nil, from.getAddrType(), from.addressSegmentIndex)
+	res = createIPSection(segments, nil, from.getAddrType())
 	_ = res.initMultAndPrefLen()
 	return
 }
 
 func deriveIPAddressSectionPrefLen(from *IPAddressSection, segments []*AddressDivision, prefixLength PrefixLen) (res *IPAddressSection) {
-	res = createIPSection(segments, prefixLength, from.getAddrType(), from.addressSegmentIndex)
+	res = createIPSection(segments, prefixLength, from.getAddrType())
 	_ = res.initMultAndPrefLen()
 	return
 }
@@ -927,12 +926,12 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 	newSegments := createSegmentArray(hostSegmentCount)
 	section.copySubSegmentsToSlice(1, hostSegmentCount, newSegments)
 	newSegments[0] = createAddressDivision(firstSeg.deriveNewMultiSeg(segLower, segUpper, segPrefLength))
-	newStartIndex := section.addressSegmentIndex + int8(prefixedSegmentIndex)
+	//newStartIndex := section.addressSegmentIndex + int8(prefixedSegmentIndex)
 	addrType := section.getAddrType()
 	if !section.IsMultiple() {
-		return createIPSection(newSegments, segPrefLength, addrType, newStartIndex)
+		return createIPSection(newSegments, segPrefLength, addrType)
 	}
-	return createInitializedIPSection(newSegments, segPrefLength, addrType, newStartIndex)
+	return createInitializedIPSection(newSegments, segPrefLength, addrType)
 	//return deriveIPAddressSectionPrefLen(section.toIPAddressSection(), newSegments, segPrefLength)
 }
 
@@ -1091,6 +1090,77 @@ func (section *ipAddressSectionInternal) GetTrailingBitCount(ones bool) BitCount
 		bitLen += seg.getBitCount()
 	}
 	return bitLen
+}
+
+func (section *ipAddressSectionInternal) insert(index int, other *IPAddressSection, segmentToBitsShift uint) *IPAddressSection {
+	return section.replaceLen(index, index, other, 0, other.GetSegmentCount(), segmentToBitsShift)
+}
+
+// Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+//ending before replacementEndIndex from the replacement section
+func (section *ipAddressSectionInternal) replaceLen(
+	startIndex, endIndex int, replacement *IPAddressSection, replacementStartIndex, replacementEndIndex int, segmentToBitsShift uint) *IPAddressSection {
+
+	segmentCount := section.GetSegmentCount()
+	startIndex, endIndex, replacementStartIndex, replacementEndIndex =
+		adjustIndices(startIndex, endIndex, segmentCount, replacementStartIndex, replacementEndIndex, replacement.GetSegmentCount())
+	replacedCount := endIndex - startIndex
+	replacementCount := replacementEndIndex - replacementStartIndex
+	thizz := section.ToAddressSection()
+	if replacementCount == 0 && replacedCount == 0 { //keep in mind for ipvx, empty sections cannot have prefix lengths
+		return section.toIPAddressSection()
+	} else if segmentCount == replacedCount { //keep in mind for ipvx, empty sections cannot have prefix lengths
+		return replacement
+	}
+	var newPrefixLen PrefixLen
+	prefixLength := section.GetPrefixLength()
+	startBits := BitCount(startIndex << segmentToBitsShift)
+	if prefixLength != nil && *prefixLength <= startBits {
+		newPrefixLen = prefixLength
+		replacement = replacement.SetPrefixLen(0)
+	} else {
+		replacementEndBits := BitCount(replacementEndIndex << segmentToBitsShift)
+		replacementPrefLen := replacement.GetPrefixLength()
+		endIndexBits := BitCount(endIndex << segmentToBitsShift)
+		if replacementPrefLen != nil && *replacementPrefLen <= replacementEndBits {
+			var replacementPrefixLen BitCount
+			replacementStartBits := BitCount(replacementStartIndex << segmentToBitsShift)
+			replacementPrefLenIsZero := *replacementPrefLen <= replacementStartBits
+			if !replacementPrefLenIsZero {
+				replacementPrefixLen = *replacementPrefLen - replacementStartBits
+			}
+			newPrefixLen = cacheBitCount(startBits + replacementPrefixLen)
+			if endIndex < segmentCount && (prefixLength == nil || *prefixLength > endIndexBits) {
+				if replacedCount > 0 || replacementPrefLenIsZero {
+					thizz = section.setPrefixLen(endIndexBits)
+				} else {
+					// this covers the case of a:5:6:7:8 is getting b:c:d/47 at index 1 to 1
+					// We need "a" to have no prefix, and "5" to get prefix len 0
+					// But setting "5" to have prefix len 0 gives "a" the prefix len 16
+					// This is not a problem if any segments are getting replaced or the replacement segments have prefix length 0
+					//
+					// we move the non-replaced host segments from the end of this to the end of the replacement segments
+					// and we also remove the prefix length from this
+					additionalSegs := segmentCount - endIndex
+					thizz = section.getSubSection(0, startIndex)
+					//return section.ReplaceLen(index, index, other, 0, other.GetSegmentCount())
+
+					replacement = replacement.insert(
+						replacementEndIndex, section.getSubSection(endIndex, segmentCount).ToIPAddressSection(), segmentToBitsShift)
+					replacementEndIndex += additionalSegs
+				}
+			}
+		} else if prefixLength != nil {
+			replacementBits := BitCount(replacementCount << segmentToBitsShift)
+			var endPrefixBits BitCount
+			if *prefixLength > endIndexBits {
+				endPrefixBits = *prefixLength - endIndexBits
+			}
+			newPrefixLen = cacheBitCount(startBits + replacementBits + endPrefixBits)
+		} // else newPrefixLen is nil
+	}
+	return thizz.replace(startIndex, endIndex, replacement.ToAddressSection(),
+		replacementStartIndex, replacementEndIndex, newPrefixLen).ToIPAddressSection()
 }
 
 func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {

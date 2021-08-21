@@ -40,8 +40,8 @@ type addressError struct {
 	// key to look up the error message
 	key string
 
-	// the address
-	str string // TODO PITA would be nice to move this up to make it clear it is not always needed nor available
+	// an optional string with the address
+	str string
 }
 
 func (a *addressError) Error() string {

@@ -31,7 +31,7 @@ func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err Add
 		return
 	}
 	res = createMACSection(segments)
-	if err = res.initMult(); err != nil {
+	if err = res.initMultAndImplicitPrefLen(MACBitsPerSegment, true); err != nil {
 		res = nil
 		return
 	}
@@ -45,7 +45,7 @@ func NewMACSection(segments []*MACAddressSegment) (res *MACAddressSection, err A
 
 func newMACSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	_ = res.initMult()
+	_ = res.initMultAndImplicitPrefLen(MACBitsPerSegment, false)
 	return
 }
 
@@ -63,6 +63,7 @@ func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSect
 		DefaultMACNetwork.getAddressCreator(),
 		nil)
 	if err == nil {
+		// note prefix len is nil
 		res = createMACSection(segments)
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
@@ -87,6 +88,7 @@ func NewMACSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSec
 		MACBitsPerSegment,
 		DefaultMACNetwork.getAddressCreator(),
 		nil)
+	// note prefix len is nil
 	res = createMACSection(segments)
 	return
 }
@@ -108,17 +110,71 @@ func NewMACSectionFromRange(vals, upperVals SegmentValueProvider, segmentCount i
 		DefaultMACNetwork.getAddressCreator(),
 		nil)
 	res = createMACSection(segments)
-	res.isMultiple = isMultiple
+	if isMultiple {
+		res.initImplicitPrefLen(MACBitsPerSegment)
+		res.isMultiple = true
+	}
 	return
 }
+
+/*
+TODO in java, mac prefix lengths are calculated lazily, except when assigned on creation (usually when section is derived from existing)
+We do need to look out for the fact that GetPrefixLength in addressSectionInternal does not jive with that.
+So, what to do?  Maybe avoid the laziness?  We do not want the "init" stuff in here too.
+So that means that anywhere we call "assignPrefixLength" in java we need to instead provide prefix length to constructor func
+We also need constructors tht do not take prefix length to calculate it from getMinPrefixLengthForBlock or even that function
+I had in here somewhere, getPrefixLengthCacheLocked or prefixesAlign in the notes
+
+
+// Returns the number of bits in the prefix.
+	 //
+	 // The prefix is the smallest bit length x for which all possible values with the same first x bits are included in this range of sections,
+	 // unless that value x matches the bit count of this section, in which case the prefix is null.
+	 //
+// If the prefix is the OUI bit length (24) then the ODI segments cover all possibly values.
+	public Integer getPrefixLength() {
+		Integer ret = cachedPrefixLength;
+		if(ret == null) {
+			int prefix = getMinPrefixLengthForBlock();
+			if(prefix == getBitCount()) {
+				cachedPrefixLength = NO_PREFIX_LENGTH;
+				return null;
+			}
+			return cachedPrefixLength = cacheBits(prefix);
+		}
+		if(ret.intValue() == NO_PREFIX_LENGTH.intValue()) {
+			return null;
+		}
+		return ret;
+	}
+
+	protected void assignPrefixLength(Integer prefixLength) {
+		if(prefixLength == null) {
+			cachedPrefixLength = NO_PREFIX_LENGTH;
+			return;
+		}
+		if(prefixLength < 0) {
+			throw new PrefixLenException(prefixLength);
+		}
+		int max = getBitCount();
+		if(prefixLength > max) {
+			int maxPrefixLength = extended ? MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_BIT_COUNT : MACAddress.EXTENDED_UNIQUE_IDENTIFIER_48_BIT_COUNT;
+			if(prefixLength > maxPrefixLength) {
+				throw new PrefixLenException(prefixLength);
+			}
+			prefixLength = max;
+		}
+		cachedPrefixLength = prefixLength;
+	}
+*/
 
 type MACAddressSection struct {
 	addressSectionInternal
 }
 
-func (section *MACAddressSection) IsExtended() bool {
-	return section.isExtended
-}
+//func (section *MACAddressSection) IsExtended() bool {
+//	return section.isExtended
+//}
 
 func (section *MACAddressSection) GetBitsPerSegment() BitCount {
 	return MACBitsPerSegment
@@ -389,6 +445,26 @@ func (section *MACAddressSection) ReverseSegments() *MACAddressSection {
 	return res.ToMACAddressSection()
 }
 
+func (section *MACAddressSection) Append(other *MACAddressSection) *MACAddressSection {
+	count := section.GetSegmentCount()
+	return section.ReplaceLen(count, count, other, 0, other.GetSegmentCount())
+}
+
+func (section *MACAddressSection) Insert(index int, other *MACAddressSection) *MACAddressSection {
+	return section.ReplaceLen(index, index, other, 0, other.GetSegmentCount())
+}
+
+// Replace replaces the segments of this section starting at the given index with the given replacement segments
+func (section *MACAddressSection) Replace(index int, replacement *MACAddressSection) *MACAddressSection {
+	return section.ReplaceLen(index, index+replacement.GetSegmentCount(), replacement, 0, replacement.GetSegmentCount())
+}
+
+// ReplaceLen replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+// ending before replacementEndIndex from the replacement section
+func (section *MACAddressSection) ReplaceLen(startIndex, endIndex int, replacement *MACAddressSection, replacementStartIndex, replacementEndIndex int) *MACAddressSection {
+	return section.replaceLen(startIndex, endIndex, replacement.ToAddressSection(), replacementStartIndex, replacementEndIndex, macBitsToSegmentBitshift).ToMACAddressSection()
+}
+
 var (
 	canonicalWildcards = new(WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
 
@@ -444,49 +520,49 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 }
 
 func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, IncompatibleAddressError) {
-	start := section.addressSegmentIndex
+	//start := section.addressSegmentIndex
 	segmentCount := section.GetSegmentCount()
 	var newSegs []*AddressDivision
 	newSegmentBitCount := section.GetBitsPerSegment() << 1
 	var segIndex, newSegIndex int
-	if (start & 1) == 0 {
-		newSegmentCount := (segmentCount + 1) >> 1
-		newSegs = make([]*AddressDivision, newSegmentCount)
-		//newSegIndex = segIndex = 0;
-	} else {
-		newSegmentCount := (segmentCount >> 1) + 1
-		newSegs = make([]*AddressDivision, newSegmentCount)
-		segment := section.GetSegment(0)
-
-		//func NewDivision(val DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
-		//	return NewRangePrefixDivision(val, val, nil, bitCount, defaultRadix)
-		//}
-		//
-		//func NewRangeDivision(val, upperVal DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
-		//	return NewRangePrefixDivision(val, upperVal, nil, bitCount, defaultRadix)
-		//}
-		//
-		//func NewPrefixDivision(val DivInt, prefixLen PrefixLen, bitCount BitCount, defaultRadix int) *AddressDivision {
-		//	return NewRangePrefixDivision(val, val, prefixLen, bitCount, defaultRadix)
-		//}
-		vals := NewRangeDivision(segment.getDivisionValue(), segment.getUpperDivisionValue(), newSegmentBitCount, MACDefaultTextualRadix)
-
-		//vals := &bitsDivisionVals{
-		//	value:      segment.getDivisionValue(),
-		//	upperValue: segment.getUpperDivisionValue(),
-		//	bitCount:   newSegmentBitCount,
-		//	radix:      MACDefaultTextualRadix,
-		//	//joinedCount: joinCount,
-		//	//prefixLen:   nil,
-		//}
-		newSegs[0] = createAddressDivision(vals)
-
-		//newSegs[0] = new AddressBitsDivision(segment.getSegmentValue(),
-		//	segment.getUpperSegmentValue(),
-		//	newSegmentBitCount, MACDefaultTextualRadix);
-		newSegIndex = 1
-		segIndex = 1
-	}
+	//if (start & 1) == 0 {
+	newSegmentCount := (segmentCount + 1) >> 1
+	newSegs = make([]*AddressDivision, newSegmentCount)
+	//newSegIndex = segIndex = 0;
+	//} else {
+	//	newSegmentCount := (segmentCount >> 1) + 1
+	//	newSegs = make([]*AddressDivision, newSegmentCount)
+	//	segment := section.GetSegment(0)
+	//
+	//	//func NewDivision(val DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
+	//	//	return NewRangePrefixDivision(val, val, nil, bitCount, defaultRadix)
+	//	//}
+	//	//
+	//	//func NewRangeDivision(val, upperVal DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
+	//	//	return NewRangePrefixDivision(val, upperVal, nil, bitCount, defaultRadix)
+	//	//}
+	//	//
+	//	//func NewPrefixDivision(val DivInt, prefixLen PrefixLen, bitCount BitCount, defaultRadix int) *AddressDivision {
+	//	//	return NewRangePrefixDivision(val, val, prefixLen, bitCount, defaultRadix)
+	//	//}
+	//	vals := NewRangeDivision(segment.getDivisionValue(), segment.getUpperDivisionValue(), newSegmentBitCount, MACDefaultTextualRadix)
+	//
+	//	//vals := &bitsDivisionVals{
+	//	//	value:      segment.getDivisionValue(),
+	//	//	upperValue: segment.getUpperDivisionValue(),
+	//	//	bitCount:   newSegmentBitCount,
+	//	//	radix:      MACDefaultTextualRadix,
+	//	//	//joinedCount: joinCount,
+	//	//	//prefixLen:   nil,
+	//	//}
+	//	newSegs[0] = createAddressDivision(vals)
+	//
+	//	//newSegs[0] = new AddressBitsDivision(segment.getSegmentValue(),
+	//	//	segment.getUpperSegmentValue(),
+	//	//	newSegmentBitCount, MACDefaultTextualRadix);
+	//	newSegIndex = 1
+	//	segIndex = 1
+	//}
 	bitsPerSeg := section.GetBitsPerSegment()
 	for segIndex+1 < segmentCount {
 		segment1 := section.GetSegment(segIndex)
@@ -538,7 +614,7 @@ func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, In
 		//					newSegmentBitCount,
 		//MACDefaultTextualRadix);
 	}
-	grouping := createInitializedGrouping(newSegs, section.GetPrefixLength(), zeroType, start)
+	grouping := createInitializedGrouping(newSegs, section.GetPrefixLength(), zeroType)
 	return grouping, nil
 	//AddressDivisionGrouping dottedGrouping;
 	//if(cachedPrefixLength == null) {

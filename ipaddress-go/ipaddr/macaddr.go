@@ -34,6 +34,8 @@ const (
 
 	MacDashedSegmentRangeSeparator           = '|'
 	MacDashedSegmentRangeSeparatorStr string = string(MacDashedSegmentRangeSeparator)
+
+	macBitsToSegmentBitshift = 3
 )
 
 func NewMACAddress(section *MACAddressSection) *MACAddress {
@@ -145,9 +147,9 @@ type MACAddress struct {
 	addressInternal
 }
 
-func (addr *MACAddress) IsExtended() bool {
-	return addr.GetSection().IsExtended()
-}
+//func (addr *MACAddress) IsExtended() bool {
+//	return addr.GetSection().IsExtended()
+//}
 
 func (addr *MACAddress) IsAllAddresses() bool {
 	return addr.GetSection().IsFullRange()
@@ -173,7 +175,7 @@ func (addr *MACAddress) ToAddress() *Address {
 	if addr != nil {
 		addr = addr.init()
 	}
-	return (*Address)(unsafe.Pointer(addr))
+	return (*Address)(addr)
 }
 
 func (addr *MACAddress) init() *MACAddress {
@@ -360,11 +362,11 @@ func (addr *MACAddress) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
 	return addr.init().addressInternal.ContainsSinglePrefixBlock(prefixLen)
 }
 
-func (addr *MACAddress) GetMinPrefixLengthForBlock() BitCount {
+func (addr *MACAddress) GetMinPrefixLengthForBlock() BitCount { //TODO rename Length to Len everywhere
 	return addr.init().addressInternal.GetMinPrefixLengthForBlock()
 }
 
-func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen {
+func (addr *MACAddress) GetPrefixLengthForSingleBlock() PrefixLen { //TODO rename Length to Len everywhere
 	return addr.init().addressInternal.GetPrefixLengthForSingleBlock()
 }
 
@@ -428,6 +430,25 @@ func (addr *MACAddress) ReverseBits(perByte bool) (*MACAddress, IncompatibleAddr
 
 func (addr *MACAddress) ReverseSegments() *MACAddress {
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
+}
+
+// ReplaceLen replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
+func (addr *MACAddress) ReplaceLen(startIndex, endIndex int, replacement *MACAddress, replacementIndex int) *MACAddress {
+	startIndex, endIndex, replacementIndex =
+		adjust1To1Indices(startIndex, endIndex, addr.GetSegmentCount(), replacementIndex, replacement.GetSegmentCount())
+	if startIndex == endIndex {
+		return addr
+	}
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement.GetSection(), replacementIndex, replacementIndex+count))
+}
+
+// Replace replaces segments starting from startIndex with segments from the replacement section
+func (addr *MACAddress) Replace(startIndex int, replacement *MACAddressSection) *MACAddress {
+	startIndex, endIndex, replacementIndex :=
+		adjust1To1Indices(startIndex, startIndex+replacement.GetSegmentCount(), addr.GetSegmentCount(), 0, replacement.GetSegmentCount())
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement, replacementIndex, replacementIndex+count))
 }
 
 func (addr MACAddress) String() string {

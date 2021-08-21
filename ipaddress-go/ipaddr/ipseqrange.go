@@ -1020,7 +1020,6 @@ func getMinPrefixLengthForBlock(lower, upper DivInt, bitCount BitCount) BitCount
 		}
 	}
 	return result
-
 }
 
 func getPrefixLengthForSingleBlock(lower, upper DivInt, bitCount BitCount) PrefixLen {

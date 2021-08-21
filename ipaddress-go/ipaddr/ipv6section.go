@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6AddressSection {
+func createIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 	return &IPv6AddressSection{
 		ipAddressSectionInternal{
 			addressSectionInternal{
@@ -21,7 +21,6 @@ func createIPv6Section(segments []*AddressDivision, startIndex int8) *IPv6Addres
 						},
 						addrType: ipv6Type,
 					},
-					addressSegmentIndex: startIndex,
 				},
 			},
 		},
@@ -38,7 +37,7 @@ func newIPv6Section(segments []*AddressDivision, startIndex int /*, cloneSegment
 		err = &addressValueError{val: startIndex + segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
-	res = createIPv6Section(segments, int8(startIndex))
+	res = createIPv6Section(segments)
 	if err = res.initMultAndPrefLen(); err != nil {
 		res = nil
 		return
@@ -53,7 +52,7 @@ func newIPv6Section(segments []*AddressDivision, startIndex int /*, cloneSegment
 }
 
 func newIPv6SectionParsed(segments []*AddressDivision) (res *IPv6AddressSection) {
-	res = createIPv6Section(segments, 0)
+	res = createIPv6Section(segments)
 	_ = res.initMultAndPrefLen()
 	return
 }
@@ -115,7 +114,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
-		res = createIPv6Section(segments, 0)
+		res = createIPv6Section(segments)
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<3))
 		}
@@ -157,7 +156,7 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	//	DefaultIPv6Network.getIPAddressCreator(),
 	//	prefixLength)
 	//if err == nil {
-	res = createIPv6Section(segments, 0)
+	res = createIPv6Section(segments)
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
 	}
@@ -196,7 +195,7 @@ func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals SegmentValueProvider,
 		IPv6BitsPerSegment,
 		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
-	res = createIPv6Section(segments, 0)
+	res = createIPv6Section(segments)
 	res.isMultiple = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
@@ -522,7 +521,7 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOpti
 			count := rng.length
 			if createMixed {
 				//so here we shorten the range to exclude the mixed part if necessary
-				mixedIndex := int(IPv6MixedOriginalSegmentCount - section.addressSegmentIndex)
+				mixedIndex := IPv6MixedOriginalSegmentCount
 				if !compressMixed ||
 					index > mixedIndex || index+count < segmentCount { //range does not include entire mixed part.  We never compress only part of a mixed part.
 					//the compressible range must stop at the mixed part
@@ -654,23 +653,24 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection 
 	return cloneToIPv6Sections(spanWithPrefixBlocks(wrapped))
 }
 
-func (section *IPv6AddressSection) checkIndex(other *IPv6AddressSection) (err PositionMismatchError) {
-	if section.addressSegmentIndex != other.addressSegmentIndex {
-		err = &positionMismatchError{
-			section1:                 section.ToIPAddressSection(),
-			section2:                 other.ToIPAddressSection(),
-			addressSegmentIndex1:     section.addressSegmentIndex,
-			addressSegmentIndex2:     other.addressSegmentIndex,
-			incompatibleAddressError: incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}},
-		}
-	}
-	return
-}
+//func (section *IPv6AddressSection) checkIndex(other *IPv6AddressSection) (err PositionMismatchError) {
+//	if section.addressSegmentIndex != other.addressSegmentIndex {
+//		err = &positionMismatchError{
+//			section1:                 section.ToIPAddressSection(),
+//			section2:                 other.ToIPAddressSection(),
+//			addressSegmentIndex1:     section.addressSegmentIndex,
+//			addressSegmentIndex2:     other.addressSegmentIndex,
+//			incompatibleAddressError: incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}},
+//		}
+//	}
+//	return
+//}
 
 func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
-	if err := section.checkIndex(other); err != nil {
-		return nil, err
-	} else if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+	//if err := section.checkIndex(other); err != nil {
+	//	return nil, err
+	//} else
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
 	return cloneToIPv6Sections(
@@ -690,9 +690,10 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocks() []*IPv6AddressSect
 }
 
 func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
-	if err := section.checkIndex(other); err != nil {
-		return nil, err
-	} else if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
+	//if err := section.checkIndex(other); err != nil {
+	//	return nil, err
+	//} else
+	if err := section.checkSectionCount(other.ToIPAddressSection()); err != nil {
 		return nil, err
 	}
 	return cloneToIPv6Sections(
@@ -704,9 +705,9 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6Address
 }
 
 func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, IncompatibleAddressError) {
-	if err := section.checkIndex(other); err != nil {
-		return nil, err
-	}
+	//if err := section.checkIndex(other); err != nil {
+	//	return nil, err
+	//}
 	res, err := section.coverWithPrefixBlockTo(other.ToIPAddressSection())
 	return res.ToIPv6AddressSection(), err
 }
@@ -717,21 +718,21 @@ func (section *IPv6AddressSection) CoverWithPrefixBlock() *IPv6AddressSection {
 
 func (section *IPv6AddressSection) checkSectionCounts(sections []*IPv6AddressSection) IncompatibleAddressError {
 	segCount := section.GetSegmentCount()
-	addressSegmentIndex := section.addressSegmentIndex
+	//addressSegmentIndex := section.addressSegmentIndex
 	length := len(sections)
 	for i := 0; i < length; i++ {
 		section2 := sections[i]
 		if section2 == nil {
 			continue
 		}
-		if section2.addressSegmentIndex != addressSegmentIndex {
-			return &positionMismatchError{
-				section.ToIPAddressSection(),
-				section2.ToIPAddressSection(),
-				addressSegmentIndex,
-				section.addressSegmentIndex,
-				incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}}}
-		}
+		//if section2.addressSegmentIndex != addressSegmentIndex {
+		//	return &positionMismatchError{
+		//		section.ToIPAddressSection(),
+		//		section2.ToIPAddressSection(),
+		//		addressSegmentIndex,
+		//		section.addressSegmentIndex,
+		//		incompatibleAddressError{addressError{key: "ipaddress.error.incompatible.position"}}}
+		//}
 		if section2.GetSegmentCount() != segCount {
 			return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
 		}
@@ -793,6 +794,26 @@ func (section *IPv6AddressSection) ReverseSegments() *IPv6AddressSection {
 		},
 	)
 	return res.ToIPv6AddressSection()
+}
+
+func (section *IPv6AddressSection) Append(other *IPv6AddressSection) *IPv6AddressSection {
+	count := section.GetSegmentCount()
+	return section.ReplaceLen(count, count, other, 0, other.GetSegmentCount())
+}
+
+func (section *IPv6AddressSection) Insert(index int, other *IPv6AddressSection) *IPv6AddressSection {
+	return section.insert(index, other.ToIPAddressSection(), ipv6BitsToSegmentBitshift).ToIPv6AddressSection()
+}
+
+// Replace the segments of this section starting at the given index with the given replacement segments
+func (section *IPv6AddressSection) Replace(index int, replacement *IPv6AddressSection) *IPv6AddressSection {
+	return section.ReplaceLen(index, index+replacement.GetSegmentCount(), replacement, 0, replacement.GetSegmentCount())
+}
+
+// Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+//ending before replacementEndIndex from the replacement section
+func (section *IPv6AddressSection) ReplaceLen(startIndex, endIndex int, replacement *IPv6AddressSection, replacementStartIndex, replacementEndIndex int) *IPv6AddressSection {
+	return section.replaceLen(startIndex, endIndex, replacement.ToIPAddressSection(), replacementStartIndex, replacementEndIndex, ipv6BitsToSegmentBitshift).ToIPv6AddressSection()
 }
 
 var (
@@ -1043,7 +1064,8 @@ func (section *IPv6AddressSection) toNormalizedMixedZonedString(options IPv6Stri
 	}
 	//no caching is possible due to the compress options
 	stringParams = from(options, section)
-	if stringParams.nextUncompressedIndex <= int(IPv6MixedOriginalSegmentCount-section.addressSegmentIndex) { //the mixed section is not compressed
+	if stringParams.nextUncompressedIndex <= IPv6MixedOriginalSegmentCount { //the mixed section is not compressed
+		//if stringParams.nextUncompressedIndex <= int(IPv6MixedOriginalSegmentCount-section.addressSegmentIndex) { //the mixed section is not compressed
 		mixedParams := &ipv6v4MixedParams{
 			ipv6Params: stringParams,
 			ipv4Params: toIPParams(options.GetIPv4Opts()),
@@ -1110,9 +1132,12 @@ func (section *IPv6AddressSection) getEmbeddedIPv4AddressSection() (*IPv4Address
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
-func (section *IPv6AddressSection) getIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
-	addressSegmentIndex := section.addressSegmentIndex
-	if startIndex == (IPv6MixedOriginalSegmentCount-int(addressSegmentIndex))<<1 && endIndex == (section.GetSegmentCount()<<1) {
+func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
+	//addressSegmentIndex := section.addressSegmentIndex
+	//if startIndex == (IPv6MixedOriginalSegmentCount-int(addressSegmentIndex))<<1 && endIndex == (section.GetSegmentCount()<<1) {
+	//	return section.getEmbeddedIPv4AddressSection()
+	//}
+	if startIndex == IPv6MixedOriginalSegmentCount<<1 && endIndex == (section.GetSegmentCount()<<1) {
 		return section.getEmbeddedIPv4AddressSection()
 	}
 	segments := make([]*AddressDivision, endIndex-startIndex)
@@ -1139,28 +1164,33 @@ func (section *IPv6AddressSection) getIPv4AddressSection(startIndex, endIndex in
 }
 
 func (section *IPv6AddressSection) createNonMixedSection() *IPv6AddressSection {
-	nonMixedCount := 0
-	addressSegmentIndex := section.addressSegmentIndex
-	if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
-		nonMixedCount = count
-	}
+	nonMixedCount := IPv6MixedOriginalSegmentCount
+	//nonMixedCount := 0
+	//addressSegmentIndex := section.addressSegmentIndex
+	//if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
+	//	nonMixedCount = count
+	//}
+	//if count := IPv6MixedOriginalSegmentCount; count > 0 {
+	//	nonMixedCount = count
+	//}
 	mixedCount := section.GetSegmentCount() - nonMixedCount
 	if mixedCount <= 0 {
 		return section
 	}
 	nonMixed := make([]*AddressDivision, nonMixedCount)
 	section.copySubSegmentsToSlice(0, nonMixedCount, nonMixed)
-	res := createIPv6Section(nonMixed, addressSegmentIndex)
+	res := createIPv6Section(nonMixed)
 	_ = res.initMultAndPrefLen()
 	return res
 }
 
 func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv4AddressSection, err IncompatibleAddressError) {
-	nonMixedCount := 0
-	addressSegmentIndex := section.addressSegmentIndex
-	if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
-		nonMixedCount = count
-	}
+	nonMixedCount := IPv6MixedOriginalSegmentCount
+	//nonMixedCount := 0
+	//addressSegmentIndex := section.addressSegmentIndex
+	//if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
+	//	nonMixedCount = count
+	//}
 	segCount := section.GetSegmentCount()
 	mixedCount := segCount - nonMixedCount
 	lastIndex := segCount - 1

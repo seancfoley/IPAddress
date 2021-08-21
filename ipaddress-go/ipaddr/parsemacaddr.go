@@ -144,7 +144,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 					var newLower, newUpper uint64
 					if isRange {
 						segmentMask := uint64(MACMaxValuePerSegment)
-						shift := uint64(count) << 3
+						shift := uint64(count) << macBitsToSegmentBitshift
 						newLower = (lower >> shift) & segmentMask
 						newUpper = (upper >> shift) & segmentMask
 						if previousAdjustedWasRange && newUpper-newLower != MACMaxValuePerSegment {

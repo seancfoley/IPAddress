@@ -553,12 +553,37 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 	}
 }
 
+func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually
+	if result.value != value || result.upperValue != upperValue {
+		panic("huh")
+	}
+}
+
 func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
 	if result.cache.isSinglePrefBlock != nil {
 		seg := newIPv6Segment(result)
+		var isSinglePBlock bool
+		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+		}
+		if isSinglePBlock != *result.cache.isSinglePrefBlock {
+			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
+				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			}
+			panic("why")
+		}
+	}
+}
+
+func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually
+	if result.value != value || result.upperValue != upperValue {
+		panic("huh")
+	}
+	if result.cache.isSinglePrefBlock != nil {
+		seg := newIPv4Segment(result)
 		var isSinglePBlock bool
 		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
 			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)

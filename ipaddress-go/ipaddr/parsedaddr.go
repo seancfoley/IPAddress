@@ -1166,7 +1166,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 					expandedStart = i
 					expandedEnd = i + missingCount
 				}
-				bits := BitCount(missingCount+1) << 3 // BitCount(missingCount+1) * IPv4BitsPerSegment
+				bits := BitCount(missingCount+1) << ipv4BitsToSegmentBitshift // BitCount(missingCount+1) * IPv4BitsPerSegment
 				var maskedLower, maskedUpper uint64
 				if hasMask {
 					var divMask uint64
@@ -1538,7 +1538,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 						expandedEnd = i + missingSegmentCount
 					}
 				}
-				bits := BitCount(missingSegmentCount+1) << 4 // BitCount(missingSegmentCount+1) * IPv6BitsPerSegment
+				bits := BitCount(missingSegmentCount+1) << ipv6BitsToSegmentBitshift // BitCount(missingSegmentCount+1) * IPv6BitsPerSegment
 				var maskedLower, maskedUpper, maskedLowerHighBytes, maskedUpperHighBytes uint64
 				maskedIsRange := false
 				if hasMask {

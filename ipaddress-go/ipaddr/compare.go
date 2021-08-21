@@ -142,22 +142,21 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 	if result != 0 {
 		return result
 	}
-	oneSec := one.ToAddressSection()
-	twoSec := two.ToAddressSection()
-	if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
-		twoIPv6 := twoSec.ToIPv6AddressSection()
-		result = int(oneIPv6.addressSegmentIndex - twoIPv6.addressSegmentIndex)
-		if result != 0 {
-			return result
-		}
-	}
-	if oneMAC := oneSec.ToMACAddressSection(); oneMAC != nil {
-		twoMAC := twoSec.ToMACAddressSection()
-		result = int(oneMAC.addressSegmentIndex - twoMAC.addressSegmentIndex)
-		if result != 0 {
-			return result
-		}
-	}
+	oneSec, twoSec := one.ToAddressSection(), two.ToAddressSection()
+	//if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
+	//	twoIPv6 := twoSec.ToIPv6AddressSection()
+	//	result = int(oneIPv6.addressSegmentIndex - twoIPv6.addressSegmentIndex)
+	//	if result != 0 {
+	//		return result
+	//	}
+	//}
+	//if oneMAC := oneSec.ToMACAddressSection(); oneMAC != nil {
+	//	twoMAC := twoSec.ToMACAddressSection()
+	//	result = int(oneMAC.addressSegmentIndex - twoMAC.addressSegmentIndex)
+	//	if result != 0 {
+	//		return result
+	//	}
+	//}
 	return comp.compareSectionParts(oneSec, twoSec)
 }
 
@@ -426,7 +425,6 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 						lastBitsCount := oneTotalBitCount - (BitCount(shortCount) << 3)
 						for shortCount > 0 {
 							shortCount--
-
 							oneValue = (oneValue << 8) | uint64(oneBytes[oneByteIndex])
 							oneByteIndex++
 						}

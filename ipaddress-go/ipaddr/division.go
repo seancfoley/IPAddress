@@ -272,7 +272,14 @@ func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount
 }
 
 func (div *addressDivisionInternal) GetMinPrefixLengthForBlock() BitCount {
-	return getMinPrefixLengthForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
+	cache := div.getCache()
+	res := cache.minPrefLenForBlock
+	if res == nil {
+		res = cacheBitCount(getMinPrefixLengthForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()))
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefLenForBlock))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	}
+	return *res
 }
 
 func (div *addressDivisionInternal) GetPrefixLengthForSingleBlock() PrefixLen {

@@ -196,7 +196,7 @@ func incrementRange(
 			increment = revolutions
 		}
 	}
-	return createSection(newSegments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	return createSection(newSegments, prefixLength, section.getAddrType())
 }
 
 //this does not handle overflow, overflow should be checked before calling this
@@ -214,7 +214,7 @@ func addBig(section *AddressSection, increment *big.Int, creator addressSegmentC
 		expectedByteCount,
 		creator,
 		prefixLength)
-	res := createSection(segments, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	res := createSection(segments, prefixLength, section.getAddrType())
 	if expectedByteCount == len(bytes) {
 		res.cache.bytesCache = &bytesCache{
 			lowerBytes: bytes,
@@ -240,5 +240,5 @@ func add(section *AddressSection, fullValue uint64, increment int64, creator add
 		section.GetBitsPerSegment(),
 		creator,
 		prefixLength)
-	return createSection(newSegs, prefixLength, section.getAddrType(), section.addressSegmentIndex)
+	return createSection(newSegs, prefixLength, section.getAddrType())
 }

@@ -50,6 +50,8 @@ type divCache struct {
 	cachedBytes *bytesCache
 
 	isSinglePrefBlock *bool
+
+	minPrefLenForBlock PrefixLen
 }
 
 // addressDivisionBase is a division of any bit-size.

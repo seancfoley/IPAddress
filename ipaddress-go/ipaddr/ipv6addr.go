@@ -30,6 +30,8 @@ const (
 
 	IPv6SegmentMaxChars             = 4
 	IPv6SegmentBitsPerChar BitCount = 4
+
+	ipv6BitsToSegmentBitshift = 4
 )
 
 type Zone string
@@ -47,7 +49,7 @@ func NewIPv6Address(section *IPv6AddressSection) *IPv6Address {
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address {
 	zoneVal := Zone(zone)
 	result := createAddress(section.ToAddressSection(), zoneVal).ToIPv6Address()
-	if zoneVal != NoZone {
+	if zoneVal != NoZone { // will need to cache its own strings
 		result.cache.stringCache = &stringCache{}
 	}
 	return result
@@ -289,7 +291,7 @@ func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() (*IPv4AddressSection, I
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
 func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
-	return addr.init().GetSection().getIPv4AddressSection(startIndex, endIndex)
+	return addr.init().GetSection().GetIPv4AddressSection(startIndex, endIndex)
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -767,6 +769,25 @@ func (addr *IPv6Address) ReverseBits(perByte bool) (*IPv6Address, IncompatibleAd
 
 func (addr *IPv6Address) ReverseSegments() *IPv6Address {
 	return addr.checkIdentity(addr.GetSection().ReverseSegments())
+}
+
+// ReplaceLen replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
+func (addr *IPv6Address) ReplaceLen(startIndex, endIndex int, replacement *IPv6Address, replacementIndex int) *IPv6Address {
+	startIndex, endIndex, replacementIndex =
+		adjust1To1Indices(startIndex, endIndex, IPv6SegmentCount, replacementIndex, IPv6SegmentCount)
+	if startIndex == endIndex {
+		return addr
+	}
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement.GetSection(), replacementIndex, replacementIndex+count))
+}
+
+// Replace replaces segments starting from startIndex with segments from the replacement section
+func (addr *IPv6Address) Replace(startIndex int, replacement *IPv6AddressSection) *IPv6Address {
+	startIndex, endIndex, replacementIndex :=
+		adjust1To1Indices(startIndex, startIndex+replacement.GetSegmentCount(), IPv6SegmentCount, 0, replacement.GetSegmentCount())
+	count := endIndex - startIndex
+	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement, replacementIndex, replacementIndex+count))
 }
 
 func (addr *IPv6Address) GetLeadingBitCount(ones bool) BitCount {

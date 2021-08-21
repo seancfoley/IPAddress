@@ -284,25 +284,6 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 	return
 }
 
-func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually
-	if result.value != value || result.upperValue != upperValue {
-		panic("huh")
-	}
-	if result.cache.isSinglePrefBlock != nil {
-		seg := newIPv4Segment(result)
-		var isSinglePBlock bool
-		if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
-			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
-		}
-		if isSinglePBlock != *result.cache.isSinglePrefBlock {
-			if prefLen := seg.GetSegmentPrefixLength(); prefLen != nil {
-				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
-			}
-			panic("why")
-		}
-	}
-}
-
 //func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 //	res := newIPv4SegmentValX(value)
 //	if res == nil {

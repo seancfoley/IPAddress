@@ -6,9 +6,9 @@ import (
 	"unsafe"
 )
 
-var zeroSection = createSection(zeroDivs, nil, zeroType, 0)
+var zeroSection = createSection(zeroDivs, nil, zeroType)
 
-func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
+func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressSection {
 	sect := &AddressSection{
 		addressSectionInternal{
 			addressDivisionGroupingInternal{
@@ -18,7 +18,6 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 					addrType:     addrType,
 					cache:        &valueCache{},
 				},
-				addressSegmentIndex: startIndex,
 			},
 		},
 	}
@@ -26,20 +25,20 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	return sect
 }
 
-func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8, isMultiple bool) *AddressSection {
-	result := createSection(segments, prefixLength, addrType, startIndex)
+func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressSection {
+	result := createSection(segments, prefixLength, addrType)
 	result.isMultiple = isMultiple
 	return result
 }
 
-func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, startIndex int8) *AddressSection {
-	result := createSection(segments, prefixLength, addrType, startIndex)
+func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressSection {
+	result := createSection(segments, prefixLength, addrType)
 	_ = result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
 	return result
 }
 
 func deriveAddressSectionPrefLen(from *AddressSection, segments []*AddressDivision, prefixLength PrefixLen) *AddressSection {
-	return createInitializedSection(segments, prefixLength, from.getAddrType(), from.addressSegmentIndex)
+	return createInitializedSection(segments, prefixLength, from.getAddrType())
 }
 
 func deriveAddressSection(from *AddressSection, segments []*AddressDivision) (res *AddressSection) {
@@ -80,7 +79,7 @@ func (section *addressSectionInternal) initMultiple() {
 	return
 }
 
-// error returned for nil sements, or inconsistent prefixes
+// error returned for nil sements
 func (section *addressSectionInternal) initMult() AddressValueError {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
@@ -93,6 +92,58 @@ func (section *addressSectionInternal) initMult() AddressValueError {
 			if !isMultiple && segment.IsMultiple() {
 				isMultiple = true
 				section.isMultiple = true
+			}
+		}
+	}
+	return nil
+}
+
+func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCount) {
+	segCount := section.GetSegmentCount()
+	if segCount != 0 {
+		isBlock := true
+		for i := segCount - 1; i >= 0; i-- {
+			segment := section.GetSegment(i)
+			if isBlock {
+				minPref := segment.GetMinPrefixLengthForBlock()
+				if minPref > 0 {
+					if minPref != bitsPerSegment || i != segCount-1 {
+						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
+					}
+					isBlock = false
+					break
+				}
+			}
+		}
+	}
+}
+
+// error returned for nil sements, or inconsistent prefixes
+func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment BitCount, checkAllSegs bool) AddressValueError {
+	segCount := section.GetSegmentCount()
+	if segCount != 0 {
+		isMultiple := false
+		isBlock := true
+		for i := segCount - 1; i >= 0; i-- {
+			segment := section.GetSegment(i)
+			if segment == nil {
+				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+			}
+			if isBlock {
+				minPref := segment.GetMinPrefixLengthForBlock()
+				if minPref > 0 {
+					if minPref != bitsPerSegment || i != segCount-1 {
+						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
+					}
+					isBlock = false
+				}
+			}
+			if !isMultiple && segment.IsMultiple() {
+				isMultiple = true
+				section.isMultiple = true
+			}
+			if isMultiple && !isBlock && !checkAllSegs {
+				break
 			}
 		}
 	}
@@ -278,7 +329,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 		index = 0
 	}
 	thisSegmentCount := section.GetSegmentCount()
-	if endIndex < thisSegmentCount {
+	if endIndex > thisSegmentCount {
 		endIndex = thisSegmentCount
 	}
 	segmentCount := endIndex - index
@@ -297,12 +348,11 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	if newPrefLen != nil && index != 0 {
 		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)
 	}
-	newStartIndex := section.addressSegmentIndex + int8(index)
 	addrType := section.getAddrType()
 	if !section.IsMultiple() {
-		return createSection(segs, newPrefLen, addrType, newStartIndex)
+		return createSection(segs, newPrefLen, addrType)
 	}
-	return createInitializedSection(segs, newPrefLen, addrType, newStartIndex)
+	return createInitializedSection(segs, newPrefLen, addrType)
 }
 
 func (section *addressSectionInternal) copySegmentsToSlice(divs []*AddressDivision) (count int) {
@@ -329,45 +379,127 @@ func (section *addressSectionInternal) copySubSegmentsToSlice(start, end int, di
 	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
 }
 
+// TODO think some more about adjust1To1Indices and adjustIndices.
+// In Java we throw.  Here we could panic, which would match the same behaviour with slices when indices out of bounds.
+// Instead I use two approaches.  When mapping is not 1 to 1, I use adjustIndices, which simply adjusts indices within bounds, no need to keep 1-1 mapping.
+// When mapping is 1-1, I preserve the original mapping, but just adjust indices to account for mappings outside of bounds.
+// Would panic be better?  Hmmmm  I try to stay away from panic.  But am I being overly clever here?
+// And would I want to do the same on the Java side in getSegments() and replace() methods?
+
+// For a source of items ranging from indices 0 to sourceCount, we want to range over indices start to end,
+// mapping those indices to the corresponging indices starting at targetStart in a target ranging from indices 0 to targetCount.
+// Indices in source or target that are negative or too large will have their mappinps skipped, while preserving the original 1-1 mapping.
+// Adjusts start, end and targetStart to account for indices skipped in source or target.
+func adjust1To1Indices(sourceStart, sourceEnd, sourceCount, targetStart, targetCount int) (newSourceStart, newSourceEnd, newTargetStart int) {
+	//targetIndex := 0
+	if sourceStart < 0 {
+		targetStart -= sourceStart
+		sourceStart = 0
+	}
+	// how many to copy?
+	if sourceEnd > sourceCount { // end index exceeds available
+		sourceEnd = sourceCount
+	}
+	calcCount := sourceEnd - sourceStart
+	if calcCount <= 0 { // end index below start index
+		return sourceStart, sourceStart, targetStart
+	}
+	// if not enough space in target, adjust count and end
+	if space := targetCount - targetStart; calcCount > space {
+		if space <= 0 {
+			return sourceStart, sourceStart, targetStart
+		}
+		sourceEnd = sourceStart + space
+	}
+	return sourceStart, sourceEnd, targetStart
+}
+
+func adjustIndices(
+	startIndex, endIndex, sourceCount,
+	replacementStartIndex, replacementEndIndex, replacementSegmentCount int) (int, int, int, int) {
+	//segmentCount := section.GetSegmentCount()
+	if startIndex < 0 {
+		startIndex = 0
+	} else if startIndex > sourceCount {
+		startIndex = sourceCount
+	}
+	if endIndex < startIndex {
+		endIndex = startIndex
+	} else if endIndex > sourceCount {
+		endIndex = sourceCount
+	}
+	if replacementStartIndex < 0 {
+		replacementStartIndex = 0
+	} else if replacementStartIndex > replacementSegmentCount {
+		replacementStartIndex = replacementSegmentCount
+	}
+	if replacementEndIndex < replacementStartIndex {
+		replacementEndIndex = replacementStartIndex
+	} else if replacementEndIndex > replacementSegmentCount {
+		replacementEndIndex = replacementSegmentCount
+	}
+	return startIndex, endIndex, replacementStartIndex, replacementEndIndex
+}
+
 func (section *addressSectionInternal) visitSubSegments(start, end int, target func(index int, div *AddressDivision) (stop bool), targetLen int) (count int) {
 	if section.hasNoDivisions() {
 		return
 	}
 	targetIndex := 0
-	if start < 0 {
-		targetIndex -= start
-		start = 0
-		if targetIndex >= targetLen {
-			return
-		}
-	}
-	// how many to copy?
-	sourceLen := section.GetDivisionCount()
-	if end > sourceLen {
-		end = sourceLen
-	}
-	calcCount := end - start
-	if calcCount <= 0 {
-		return
-	}
-	// if not enough space, adjust count and end
-	space := targetLen - targetIndex
-	if calcCount > space {
-		count = space
-		end = start + space
-	} else {
-		count = calcCount
-	}
-	// now copy
-	for start < end {
-		if target(targetIndex, section.getDivision(start)) {
+	start, end, targetIndex = adjust1To1Indices(start, end, section.GetDivisionCount(), targetIndex, targetLen)
+
+	// now iterate start to end
+	index := start
+	for index < end {
+		exitEarly := target(targetIndex, section.getDivision(index))
+		index++
+		if exitEarly {
 			break
 		}
 		targetIndex++
-		start++
 	}
-	return
+	return index - start
 }
+
+//func (section *addressSectionInternal) visitSubSegments(start, end int, target func(index int, div *AddressDivision) (stop bool), targetLen int) (count int) {
+//	if section.hasNoDivisions() {
+//		return
+//	}
+//	targetIndex := 0
+//	if start < 0 {
+//		targetIndex -= start
+//		start = 0
+//		if targetIndex >= targetLen {
+//			return
+//		}
+//	}
+//	// how many to copy?
+//	sourceLen := section.GetDivisionCount()
+//	if end > sourceLen {
+//		end = sourceLen
+//	}
+//	calcCount := end - start
+//	if calcCount <= 0 {
+//		return
+//	}
+//	// if not enough space, adjust count and end
+//	space := targetLen - targetIndex
+//	if calcCount > space {
+//		count = space
+//		end = start + space
+//	} else {
+//		count = calcCount
+//	}
+//	// now copy
+//	for start < end {
+//		if target(targetIndex, section.getDivision(start)) {
+//			break
+//		}
+//		targetIndex++
+//		start++
+//	}
+//	return
+//}
 
 func (section *addressSectionInternal) getLowestHighestSections() (lower, upper *AddressSection) {
 	if !section.IsMultiple() {
@@ -524,6 +656,110 @@ func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *Addre
 	)
 }
 
+func (section *addressSectionInternal) replace(
+	index,
+	endIndex int,
+	replacement *AddressSection,
+	replacementStartIndex,
+	replacementEndIndex int,
+	prefixLen PrefixLen) *AddressSection {
+	otherSegmentCount := replacementEndIndex - replacementStartIndex
+	segmentCount := section.GetSegmentCount()
+	totalSegmentCount := segmentCount + otherSegmentCount - (endIndex - index)
+	segs := createSegmentArray(totalSegmentCount)
+	sect := section.toAddressSection()
+	sect.copySubSegmentsToSlice(0, index, segs)
+	if index < totalSegmentCount {
+		replacement.copySubSegmentsToSlice(replacementStartIndex, replacementEndIndex, segs[index:])
+		if index+otherSegmentCount < totalSegmentCount {
+			sect.copySubSegmentsToSlice(endIndex, segmentCount, segs[index+otherSegmentCount:])
+		}
+	}
+	return deriveAddressSectionPrefLen(sect, segs, prefixLen)
+}
+
+// Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+//ending before replacementEndIndex from the replacement section
+func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, replacement *AddressSection, replacementStartIndex, replacementEndIndex int, segmentToBitsShift uint) *AddressSection {
+
+	segmentCount := section.GetSegmentCount()
+	startIndex, endIndex, replacementStartIndex, replacementEndIndex =
+		adjustIndices(startIndex, endIndex, segmentCount, replacementStartIndex, replacementEndIndex, replacement.GetSegmentCount())
+
+	replacedCount := endIndex - startIndex
+	replacementCount := replacementEndIndex - replacementStartIndex
+
+	//		if(replacementCount == 0 && replacedCount == 0) {
+	//			return this;
+	//		} else if(addressSegmentIndex == replacement.addressSegmentIndex && extended == replacement.extended && segmentCount == replacedCount) {
+	//			return replacement;
+	//		}
+
+	// unlike ipvx, sections of zero length with 0 prefix are still considered to be applying their prefix during replacement,
+	// because you can have zero length prefixes when there are no bits in the section
+	prefixLength := section.GetPrefixLength()
+	if replacementCount == 0 && replacedCount == 0 {
+		if prefixLength != nil {
+			prefLen := *prefixLength
+			if prefLen <= BitCount(startIndex<<segmentToBitsShift) {
+				return section.toAddressSection()
+			} else {
+				replacementPrefisLength := replacement.GetPrefixLength()
+				if replacementPrefisLength == nil {
+					return section.toAddressSection()
+				} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
+					return section.toAddressSection()
+				}
+			}
+		} else {
+			replacementPrefisLength := replacement.GetPrefixLength()
+			if replacementPrefisLength == nil {
+				return section.toAddressSection()
+			} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
+				return section.toAddressSection()
+			}
+		}
+	} else if segmentCount == replacedCount {
+		if prefixLength == nil || *prefixLength > 0 {
+			return replacement
+		} else {
+			replacementPrefisLength := replacement.GetPrefixLength()
+			if replacementPrefisLength != nil && *replacementPrefisLength == 0 { // prefix length is 0
+				return replacement
+			}
+		}
+	}
+
+	startBits := BitCount(startIndex << segmentToBitsShift)
+	var newPrefixLength PrefixLen
+	if prefixLength != nil && *prefixLength <= startBits {
+		newPrefixLength = prefixLength
+	} else {
+		replacementPrefLen := replacement.GetPrefixLength()
+		if replacementPrefLen != nil && *replacementPrefLen <= BitCount(replacementEndIndex<<segmentToBitsShift) {
+			var replacementPrefixLen BitCount
+			replacementStartBits := BitCount(replacementStartIndex << segmentToBitsShift)
+			if *replacementPrefLen > replacementStartBits {
+				replacementPrefixLen = *replacementPrefLen - replacementStartBits
+			}
+			newPrefixLength = cacheBitCount(startBits + replacementPrefixLen)
+		} else if prefixLength != nil {
+			replacementBits := BitCount(replacementCount << segmentToBitsShift)
+			var endPrefixBits BitCount
+			endIndexBits := BitCount(endIndex << segmentToBitsShift)
+			if *prefixLength > endIndexBits {
+				endPrefixBits = *prefixLength - endIndexBits
+			}
+			newPrefixLength = cacheBitCount(startBits + replacementBits + endPrefixBits)
+		} else {
+			newPrefixLength = nil
+		}
+	}
+	result := section.replace(startIndex, endIndex, replacement, replacementStartIndex, replacementEndIndex, newPrefixLength)
+	return result
+
+}
+
 func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
 	prefixLength := section.GetPrefixLength()
 	if prefixLength == nil {
@@ -582,7 +818,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
-	return createSectionMultiple(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.addressSegmentIndex, section.IsMultiple() || prefLen < bitCount)
+	return createSectionMultiple(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.IsMultiple() || prefLen < bitCount)
 }
 
 func (section *addressSectionInternal) toBlock(segmentIndex int, lower, upper SegInt) *AddressSection {
@@ -617,7 +853,7 @@ func (section *addressSectionInternal) toBlock(segmentIndex int, lower, upper Se
 					newSegs[j] = allSeg
 				}
 			}
-			return createSectionMultiple(newSegs, nil, section.getAddrType(), section.addressSegmentIndex,
+			return createSectionMultiple(newSegs, nil, section.getAddrType(),
 				segmentIndex < segCount-1 || lower != upper)
 		}
 	}
@@ -628,7 +864,7 @@ func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
 	if !section.IsPrefixed() {
 		return section.toAddressSection()
 	}
-	return createSection(section.getDivisionsInternal(), nil, section.getAddrType(), section.addressSegmentIndex)
+	return createSection(section.getDivisionsInternal(), nil, section.getAddrType())
 }
 
 func (section *addressSectionInternal) setPrefixLen(prefixLen BitCount) *AddressSection {
@@ -733,7 +969,7 @@ func (section *addressSectionInternal) PrefixEquals(other AddressSectionType) (r
 	} else if section.getAddrType() != o.getAddrType() {
 		return
 	}
-	return section.addressSegmentIndex >= o.addressSegmentIndex && section.prefixContains(o, int(section.addressSegmentIndex-o.addressSegmentIndex), false)
+	return section.prefixContains(o, false)
 }
 
 func (section *addressSectionInternal) PrefixContains(other AddressSectionType) (res bool) {
@@ -743,31 +979,26 @@ func (section *addressSectionInternal) PrefixContains(other AddressSectionType) 
 	} else if section.getAddrType() != o.getAddrType() {
 		return
 	}
-	return section.addressSegmentIndex >= o.addressSegmentIndex && section.prefixContains(o, int(section.addressSegmentIndex-o.addressSegmentIndex), true)
+	return section.prefixContains(o, true)
 }
 
-func (section *addressSectionInternal) prefixContains(other *AddressSection, otherIndex int, contains bool) (res bool) {
-	if otherIndex < 0 {
-		return
-	}
+func (section *addressSectionInternal) prefixContains(other *AddressSection, contains bool) (res bool) {
 	prefixLength := section.GetPrefixLength()
 	var prefixedSection int
 	if prefixLength == nil {
 		prefixedSection = section.GetSegmentCount()
-		oIndex := prefixedSection + otherIndex
-		if oIndex > other.GetSegmentCount() {
+		if prefixedSection > other.GetSegmentCount() {
 			return
 		}
 	} else {
 		prefLen := *prefixLength
 		prefixedSection = getNetworkSegmentIndex(prefLen, section.GetBytesPerSegment(), section.GetBitsPerSegment())
 		if prefixedSection >= 0 {
-			oIndex := prefixedSection + otherIndex
-			if oIndex >= other.GetSegmentCount() {
+			if prefixedSection >= other.GetSegmentCount() {
 				return
 			}
 			one := section.GetSegment(prefixedSection)
-			two := other.GetSegment(oIndex)
+			two := other.GetSegment(prefixedSection)
 			segPrefixLength := getPrefixedSegmentPrefixLength(one.getBitCount(), prefLen, prefixedSection)
 			if contains {
 				if !one.PrefixContains(two, *segPrefixLength) {
@@ -783,7 +1014,7 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, oth
 
 	for prefixedSection--; prefixedSection >= 0; prefixedSection-- {
 		one := section.GetSegment(prefixedSection)
-		two := other.GetSegment(prefixedSection + otherIndex)
+		two := other.GetSegment(prefixedSection)
 		if contains {
 			if !one.Contains(two) {
 				return
@@ -1518,7 +1749,6 @@ func toSegments(
 	}
 	segments = createSegmentArray(segmentCount)
 	for i, segmentIndex := 0, 0; i < expectedByteCount; segmentIndex++ {
-		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		var value SegInt
 		k := bytesPerSegment + i
 		j := i
@@ -1543,6 +1773,7 @@ func toSegments(
 			value |= SegInt(byteValue)
 		}
 		i = k
+		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		seg := creator.createSegment(value, value, segmentPrefixLength)
 		segments[segmentIndex] = seg
 	}
