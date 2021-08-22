@@ -1024,8 +1024,7 @@ func (addr *IPAddress) IsMulticast() bool {
 	return false
 }
 
-// toCanonicalHostName TODO but requires reverse name lookup, so we need to call into golang net code (net.LookupAddr or LookupCNAME) http://networkbit.ch/golang-dns-lookup/
-// ToUNCHostName //TODO LATER
+// ToUNCHostName //TODO LATER since we are not yet parsing this
 // TODO the static ToNormalizedString methods
 // TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
 
@@ -1203,29 +1202,74 @@ func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAd
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-// Generates an IPAddressString object for this IPAddress object.
-//
-// This same IPAddress object can be retrieved from the resulting IPAddressString object using {@link IPAddressString#getAddress()}
+// Retrieves or generates an IPAddressString object for this IPAddress object.
 //
 // In general, users are intended to create IPAddress objects from IPAddressString objects,
 // while the reverse direction is generally not all that useful, except under specific circumstances.
 //
-// Not all IPAddressString objects can be converted to IPAddress objects,
-// as is the case with IPAddressString objects corresponding to the types invalidType, emptyType and allType
+// Not all IPAddressString objects can be converted to IPAddress objects.
 //
-// So it may be useful to store a set of address strings as a collection of IPAddressString objects,
-// rather than IPAddress objects.
+// So it may be useful to store a set of address strings as a collection of IPAddressString objects, rather than IPAddress objects,
+// which is one reason you might wish to obtain an IPAddressString from an IPAddress.
 func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
-	res := addr.cache.fromString
+	res := addr.cache.identifierStr
 	if res == nil {
 		//str := NewIPAddressString(addr.toCanonicalString())
 		str := newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
-		dataLoc := &addr.cache.fromString
-		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+		res = &IdentifierStr{str}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.identifierStr))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+		//dataLoc := &addr.cache.fromString
+		//atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str
 	}
-	return (*IPAddressString)(res)
+	hostIdStr := res.idStr
+	if str, ok := hostIdStr.(*IPAddressString); ok {
+		return str
+	}
+	return hostIdStr.(*HostName).AsAddressString()
+}
+
+func (addr *IPAddress) ToHostName() *HostName {
+	addr = addr.init()
+	res := addr.cache.identifierStr
+	if res != nil {
+		hostIdStr := res.idStr
+		if h, ok := hostIdStr.(*HostName); ok {
+			return h
+		}
+	}
+	var h *HostName
+	if !addr.IsMultiple() {
+		h, _ = addr.ToCanonicalHostName()
+	}
+	if h == nil {
+		h = NewHostNameFromAddr(addr)
+	}
+	return h
+}
+
+func (addr *IPAddress) ToCanonicalHostName() (*HostName, error) {
+	addr = addr.init()
+	res := addr.cache.canonicalHost
+	if res == nil {
+		if addr.IsMultiple() {
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.unavailable.numeric"}}
+		}
+		names, err := net.LookupAddr(addr.ToNormalizedWildcardString())
+		if err != nil {
+			return nil, err
+		} else if len(names) == 0 {
+			return nil, nil
+		} else if names[0] == "" {
+			return nil, nil
+		}
+		res = NewHostName(names[0])
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.canonicalHost))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	}
+	return res, nil
 }
 
 func (addr *IPAddress) IncludesZeroHostLen(networkPrefixLength BitCount) bool {

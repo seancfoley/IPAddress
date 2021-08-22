@@ -126,13 +126,13 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 
 // TODO survey the MAC API
 
-func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
-	res := NewMACAddress(section)
-	if originator != nil {
-		res.cache.fromString = unsafe.Pointer(originator)
-	}
-	return res
-}
+//func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
+//	res := NewMACAddress(section)
+//	if originator != nil {
+//		res.cache.fromString = unsafe.Pointer(originator)
+//	}
+//	return res
+//}
 
 var zeroMAC = createMACZero()
 
@@ -510,15 +510,15 @@ func (addr *MACAddress) ToColonDelimitedString() string {
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()
-	res := addr.cache.fromString
+	res := addr.cache.identifierStr
 	if res == nil {
 		str := newMACAddressStringFromAddr(addr.toCanonicalString(), addr)
-		//str := NewMACAddressString(addr.ToCanonicalString(), nil)
-		dataLoc := &addr.cache.fromString
-		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
-		return str
+		res = &IdentifierStr{str}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.identifierStr))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
-	return (*MACAddressString)(res)
+	hostIdStr := res.idStr
+	return hostIdStr.(*MACAddressString)
 }
 
 //func (addr *MACAddress) CompareSize(other *MACAddress) int {

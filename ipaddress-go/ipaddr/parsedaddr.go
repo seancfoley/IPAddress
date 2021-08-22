@@ -69,7 +69,7 @@ type parsedIPAddress struct {
 
 	options               IPAddressStringParameters
 	originator            HostIdentifierString
-	valuesx               translatedResult
+	valuesx               translatedResult //TODO rename valuesx
 	skipCntains           boolSetting
 	maskers, mixedMaskers []Masker
 

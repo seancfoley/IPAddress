@@ -41,6 +41,10 @@ type addrsCache struct {
 	lower, upper *Address
 }
 
+type IdentifierStr struct {
+	idStr HostIdentifierString // MACAddressString or IPAddressString or HostName
+}
+
 type addressCache struct {
 	//ip net.IPAddr // lower converted (cloned when returned)
 
@@ -48,8 +52,9 @@ type addressCache struct {
 
 	stringCache *stringCache // only used by IPv6 due to zone
 
-	fromString unsafe.Pointer // MACAddressString or IPAddressString
-	fromHost   *HostName
+	identifierStr *IdentifierStr
+
+	canonicalHost *HostName
 }
 
 type addressInternal struct {
