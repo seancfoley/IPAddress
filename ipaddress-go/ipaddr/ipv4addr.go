@@ -101,6 +101,7 @@ func initZeroIPv4() *IPv4Address {
 }
 
 // TODO survey the  IPv4 API, I've already surveyed IPAddress API
+// missing: getIPv6Address, getIPv4MappedAddress
 
 //
 //

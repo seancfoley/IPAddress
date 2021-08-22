@@ -69,7 +69,7 @@ type parsedIPAddress struct {
 
 	options               IPAddressStringParameters
 	originator            HostIdentifierString
-	valuesx               translatedResult //TODO rename valuesx
+	vals                  translatedResult
 	skipCntains           boolSetting
 	maskers, mixedMaskers []Masker
 
@@ -77,7 +77,7 @@ type parsedIPAddress struct {
 }
 
 func (parseData *parsedIPAddress) values() *translatedResult {
-	return &parseData.valuesx
+	return &parseData.vals
 }
 
 func (parseData *parsedIPAddress) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
@@ -883,8 +883,8 @@ func (parseData *parsedIPAddress) matchesPrefix(other string) (res boolSetting) 
 
 func (parseData *parsedIPAddress) containmentCheck(other ipAddressProvider, networkOnly, equals, checkZone bool) (res boolSetting) {
 	if otherParsed, ok := other.(*parsedIPAddress); ok {
-		addr := parseData.valuesx.sections.address
-		otherAddr := otherParsed.valuesx.sections.address
+		addr := parseData.vals.sections.address
+		otherAddr := otherParsed.vals.sections.address
 		if addr == nil || otherAddr == nil {
 			// one or the other value not yet created, so take the shortcut that provides an answer most (but not all) of the time
 			// An answer is provided for all normalized, conventional or canonical addresses
@@ -1469,7 +1469,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 	} else {
 		return
 	}
-	//finalResult := &parseData.valuesx
+	//finalResult := &parseData.vals
 	//finalResult.creator = creator
 	mixed := parseData.isProvidingMixedIPv6()
 

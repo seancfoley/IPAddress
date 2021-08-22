@@ -15,11 +15,15 @@ var (
 
 type BitCount int16 // using signed integers allows for easier arithmetic and decrement bugs
 
+func GetPrefixLen(i int) PrefixLen {
+	return cacheBits(i)
+}
+
 func cacheBits(i int) PrefixLen {
 	return cacheBitCount(BitCount(i))
 }
 
-//func (p *BitCount) Equals(other *BitCount) bool { this just doesn't work, I tried...
+//func (p PrefixLen) Equals(other PrefixLen) bool { this does not work either, cannot have pointer receiver...
 //	if p == nil {
 //		return other == nil
 //	} else if other == nil {
@@ -28,14 +32,23 @@ func cacheBits(i int) PrefixLen {
 //	return *p == *other
 //}
 
-func PrefixEquals(one, two PrefixLen) bool {
+func (p *BitCount) Equals(other *BitCount) bool {
+	if p == nil {
+		return other == nil
+	} else if other == nil {
+		return false
+	}
+	return *p == *other
+}
+
+func PrefixEquals(one, two PrefixLen) bool { //TODO replace calls to this with the above
 	if one == nil {
 		return two == nil
 	}
 	return two != nil && *one == *two
 }
 
-type PrefixLen *BitCount
+type PrefixLen = *BitCount
 
 var cachedPrefixLens = initPrefLens()
 

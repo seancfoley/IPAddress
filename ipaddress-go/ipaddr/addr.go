@@ -37,6 +37,14 @@ func createAddress(section *AddressSection, zone Zone) *Address {
 
 type SegmentValueProvider func(segmentIndex int) SegInt
 
+type AddressValueProvider interface {
+	GetSegmentCount() int
+
+	GetValues() SegmentValueProvider
+
+	GetUpperValues() SegmentValueProvider
+}
+
 type addrsCache struct {
 	lower, upper *Address
 }

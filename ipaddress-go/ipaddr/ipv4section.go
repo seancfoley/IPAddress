@@ -453,61 +453,6 @@ func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
 	return
 }
 
-//func (section *IPv4AddressSection) getIntValue(lower bool) (result uint32) {
-//	segCount := section.GetSegmentCount() xxx
-//	if segCount == 0 {
-//		return 0
-//	}
-//	cacheBitCountx := section.cacheBitCountx
-//	var val *uint32
-//	if lower {
-//		val = cacheBitCountx.cachedLowerVal
-//	} else {
-//		val = cacheBitCountx.cachedUpperVal
-//	}
-//	if val != nil {
-//		return *val
-//	}
-//	if segCount == 4 {
-//		if lower {
-//			result = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
-//				(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
-//				(uint32(section.GetSegment(2).GetSegmentValue()) << 8) |
-//				uint32(section.GetSegment(3).GetSegmentValue())
-//		} else {
-//			result = (uint32(section.GetSegment(0).GetUpperSegmentValue()) << 24) |
-//				(uint32(section.GetSegment(1).GetUpperSegmentValue()) << 16) |
-//				(uint32(section.GetSegment(2).GetUpperSegmentValue()) << 8) |
-//				uint32(section.GetSegment(3).GetUpperSegmentValue())
-//		}
-//	} else {
-//		seg := section.GetSegment(0)
-//		if lower {
-//			result = uint32(seg.GetSegmentValue())
-//		} else {
-//			result = uint32(seg.GetUpperSegmentValue())
-//		}
-//		bitsPerSegment := section.GetBitsPerSegment()
-//		for i := 1; i < segCount; i++ {
-//			result = (result << bitsPerSegment)
-//			seg = section.GetSegment(i)
-//			if lower {
-//				result |= uint32(seg.GetSegmentValue())
-//			} else {
-//				result |= uint32(seg.GetUpperSegmentValue())
-//			}
-//		}
-//	}
-//	var dataLoc *unsafe.Pointer
-//	if lower {
-//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedLowerVal))
-//	} else {
-//		dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cacheBitCountx.cachedUpperVal))
-//	}
-//	atomic.StorePointer(dataLoc, unsafe.Pointer(&result))
-//	return result
-//}
-
 func (section *IPv4AddressSection) ToPrefixBlock() *IPv4AddressSection {
 	return section.toPrefixBlock().ToIPv4AddressSection()
 }
@@ -904,22 +849,6 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 }
 
 func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision, IncompatibleAddressError) {
-	//  it seems IPv4JoinedSegments override getMaxDigitCount, getBitCount, some others
-	// the design I used was intended to handle IPAddressLargeDivision and other such impls like this
-	// So I guess this must be passed in as AddressDivisionSeries/GenericDivision
-	// We moved a lot of the string methods into stringwriter, wrapping GenericDivision, such as getLowerStandardString
-	// And those methods no longer operate on virtual methods of the target GenericDivision, instead they are top-down interface impl calls
-	//  so we do need those methods in our joined segment type, but should be fine once they're there
-
-	//xxxx
-	//ok, I think I need to supply my own divisionValues
-	//
-	//either that or I override a lot of stuff, inlcuding getDivisionValue and getUpperDivisionValue and getBitCount
-	//
-	//I think it makes the most sense to supply my own divisionValues, why supply ipv4 divisionValues that do not apply then override?
-	//
-	//Once that is done, do I need to override anything?  no
-	//xxx
 	var lower, upper DivInt
 	var prefix PrefixLen
 	var networkPrefixLength BitCount

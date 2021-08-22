@@ -3491,57 +3491,61 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				err = &hostNameError{addressError{str: str, key: "ipaddress.error.segment.too.long"}}
 				return
 			} else if length == 0 {
-				err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.segment.too.short"}}
-				return
-			}
-			if labelCount < maxLocalLabels {
-				if labelCount < 3 {
-					if labelCount == 0 {
-						sep0 = index
-						upper0 = segmentUppercase
-					} else if labelCount == 1 {
-						sep1 = index
-						upper1 = segmentUppercase
-					} else {
-						sep2 = index
-						upper2 = segmentUppercase
-					}
-				} else {
-					if labelCount == 3 {
-						sep3 = index
-						upper3 = segmentUppercase
-					} else if labelCount == 4 {
-						sep4 = index
-						upper4 = segmentUppercase
-					} else {
-						sep5 = index
-						upper5 = segmentUppercase
-					}
-				}
-				labelCount++
-			} else if labelCount == maxLocalLabels {
-				separatorIndices := make([]int, maxHostSegments+1)
-				separatorIndices[labelCount] = index
-				if validationOptions.NormalizesToLowercase() {
-					normalizedFlags = make([]bool, maxHostSegments+1)
-					normalizedFlags[labelCount] = !segmentUppercase
-					isNotNormalized = isNotNormalized || segmentUppercase
-				}
-				labelCount++
-			} else {
-				separatorIndices[labelCount] = index
-				if normalizedFlags != nil {
-					normalizedFlags[labelCount] = !segmentUppercase
-					isNotNormalized = isNotNormalized || segmentUppercase
-				}
-				labelCount++
-				if labelCount > maxHostSegments {
-					err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.too.many.segments"}}
+				if index < addrLen {
+					err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.segment.too.short"}}
 					return
 				}
+				isPossiblyIPv4 = false
+			} else {
+				if labelCount < maxLocalLabels {
+					if labelCount < 3 {
+						if labelCount == 0 {
+							sep0 = index
+							upper0 = segmentUppercase
+						} else if labelCount == 1 {
+							sep1 = index
+							upper1 = segmentUppercase
+						} else {
+							sep2 = index
+							upper2 = segmentUppercase
+						}
+					} else {
+						if labelCount == 3 {
+							sep3 = index
+							upper3 = segmentUppercase
+						} else if labelCount == 4 {
+							sep4 = index
+							upper4 = segmentUppercase
+						} else {
+							sep5 = index
+							upper5 = segmentUppercase
+						}
+					}
+					labelCount++
+				} else if labelCount == maxLocalLabels {
+					separatorIndices := make([]int, maxHostSegments+1)
+					separatorIndices[labelCount] = index
+					if validationOptions.NormalizesToLowercase() {
+						normalizedFlags = make([]bool, maxHostSegments+1)
+						normalizedFlags[labelCount] = !segmentUppercase
+						isNotNormalized = isNotNormalized || segmentUppercase
+					}
+					labelCount++
+				} else {
+					separatorIndices[labelCount] = index
+					if normalizedFlags != nil {
+						normalizedFlags[labelCount] = !segmentUppercase
+						isNotNormalized = isNotNormalized || segmentUppercase
+					}
+					labelCount++
+					if labelCount > maxHostSegments {
+						err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.too.many.segments"}}
+						return
+					}
+				}
+				segmentUppercase = false //this is per segment so reset it
 			}
 			lastSeparatorIndex = index
-			segmentUppercase = false                              //this is per segment so reset it
 			isPossiblyIPv6 = isPossiblyIPv6 && (index == addrLen) //A '.' means not ipv6 (if we see ':' we jump out of loop so mixed address not possible), but for single segment we end up here even without a '.' character in the string
 		} else if currentChar == '_' { //this is not supported in host names but is supported in domain names, see discussion in Host class
 			isAllDigits = false
@@ -3855,7 +3859,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 								ipAddressParseData: ipAddressParseData{addressParseData: addressParseData{str: str}},
 								options:            addressOptions,
 								originator:         fromHost,
-								//valuesx: translatedResult{
+								//vals: translatedResult{
 								//	originator: fromHost,
 								//},
 

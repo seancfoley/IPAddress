@@ -21,3 +21,5 @@ type IPAddressConverter interface {
 	//returns whether the address is IPv6 or can be converted to IPv6.  If true, ToIPv6(IPAddress) returns non-nil.
 	IsIPv6Convertible(address *IPAddress) bool
 }
+
+//TODO add the equivalent of constant DEFAULT_ADDRESS_CONVERTER and the type DefaultAddressConverter (but that's it, since we have no auto conversion like in Java)

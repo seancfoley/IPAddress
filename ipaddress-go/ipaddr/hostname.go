@@ -153,7 +153,8 @@ type hostCache struct {
 	*hostData
 	*resolveData
 	normalizedString,
-	normalizedWildcardString *string
+	normalizedWildcardString,
+	qualifiedString *string
 }
 
 type HostName struct {
@@ -415,7 +416,7 @@ func (host *HostName) ToNormalizedString() string {
 	host = host.init()
 	str := host.normalizedString
 	if str == nil {
-		newStr := host.toNormalizedString(false)
+		newStr := host.toNormalizedString(false, false)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.normalizedString))
 		str = &newStr
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
@@ -428,7 +429,7 @@ func (host *HostName) ToNormalizedWildcardString() string {
 	host = host.init()
 	str := host.normalizedWildcardString
 	if str == nil {
-		newStr := host.toNormalizedString(false)
+		newStr := host.toNormalizedString(false, false)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.normalizedWildcardString))
 		str = &newStr
 		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
@@ -436,7 +437,20 @@ func (host *HostName) ToNormalizedWildcardString() string {
 	return *str
 }
 
-func (host *HostName) toNormalizedString(wildcard bool) string {
+// ToNormalizedString provides a normalized string which is lowercase for host strings, and which is a normalized string for addresses.
+func (host *HostName) ToQualifiedString() string {
+	host = host.init()
+	str := host.qualifiedString
+	if str == nil {
+		newStr := host.toNormalizedString(false, true)
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&host.qualifiedString))
+		str = &newStr
+		atomic.StorePointer(dataLoc, unsafe.Pointer(str))
+	}
+	return *str
+}
+
+func (host *HostName) toNormalizedString(wildcard, addTrailingDot bool) string {
 	if host.IsValid() {
 		var builder strings.Builder
 		if host.IsAddress() {
@@ -445,6 +459,9 @@ func (host *HostName) toNormalizedString(wildcard bool) string {
 			builder.WriteString(host.AsAddressString().ToNormalizedString())
 		} else {
 			builder.WriteString(host.parsedHost.getHost())
+			if addTrailingDot {
+				builder.WriteByte(LabelSeparator)
+			}
 			/*
 			 * If prefix or mask is supplied and there is an address, it is applied directly to the address provider, so
 			 * we need only check for those things here
@@ -543,7 +560,7 @@ func (host *HostName) Equals(other *HostName) bool {
 				return false
 			}
 			return PrefixEquals(parsedHost.getEquivalentPrefixLength(), otherParsedHost.getEquivalentPrefixLength()) &&
-				IPAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
+				ipAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
 				PortEquals(parsedHost.getPort(), otherParsedHost.getPort()) &&
 				parsedHost.getService() == otherParsedHost.getService()
 		}

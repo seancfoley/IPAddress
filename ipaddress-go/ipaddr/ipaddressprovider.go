@@ -867,7 +867,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO NEXT progress
 //
 // - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
-// - try to create the right set of constructors for sections and addresses, hopefully straightforward
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - mac <-> ipv6
