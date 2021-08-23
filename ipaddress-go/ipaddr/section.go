@@ -1754,7 +1754,7 @@ func toSegments(
 		j := i
 		if j < missingBytes {
 			mostSignificantBit := bytes[startIndex] >> 7
-			if mostSignificantBit == 0 { //sign extension
+			if mostSignificantBit == 0 { //sign extension //TODO not so sure this makes sense since bytes are unsigned.  Same goes for the stuff above.  For unisigned, only sign extension is 0.
 				j = missingBytes
 			} else { //sign extension
 				upper := k

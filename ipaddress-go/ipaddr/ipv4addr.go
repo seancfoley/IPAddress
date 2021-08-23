@@ -73,7 +73,7 @@ func NewIPv4AddressFromVals(vals SegmentValueProvider) (addr *IPv4Address) {
 	return
 }
 
-func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
+func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return
@@ -85,7 +85,7 @@ func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Ad
 	return
 }
 
-func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
+func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedRange(vals, upperVals, IPv4SegmentCount, prefixLength)
 	addr = NewIPv4Address(section)
 	return

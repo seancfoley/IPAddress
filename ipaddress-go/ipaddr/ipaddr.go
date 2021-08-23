@@ -29,7 +29,7 @@ func (version IPVersion) isIPv4() bool {
 func (version IPVersion) isIndeterminate() bool {
 	if len(version) == 4 {
 		dig := version[3]
-		return dig != '4' || dig != '6' || !strings.EqualFold(string(version[:3]), "IPv")
+		return (dig != '4' && dig != '6') || !strings.EqualFold(string(version[:3]), "IPv")
 	}
 	return false
 }
@@ -1513,73 +1513,70 @@ func buildNormalizedString(
 	return count
 }
 
-// TODO the general conversion methods in IPAddressGenerator (here they will be "static", ie funcs not methods) which will include or use  addrFromIP and addrFromPrefixedIP
+func FromIP(ip net.IP) *IPAddress {
+	if len(ip) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromIP(ip)
+		return res.ToIPAddress()
+	} else if len(ip) <= IPv6ByteCount {
+		res, _ := NewIPv6AddressFromIP(ip)
+		return res.ToIPAddress()
+	}
+	return nil
+}
 
-//public IPAddress from(InetAddress inetAddress) {
-//	if(inetAddress instanceof Inet4Address) {
-//		return getIPv4Creator().createAddress((Inet4Address) inetAddress);
-//	} else if(inetAddress instanceof Inet6Address) {
-//		return getIPv6Creator().createAddress((Inet6Address) inetAddress);
-//	}
-//	return null;
-//}
-//
-//public IPAddress from(InetAddress inetAddress, Integer prefixLength) {
-//	if(inetAddress instanceof Inet4Address) {
-//		return getIPv4Creator().createAddress((Inet4Address) inetAddress, prefixLength);
-//	} else if(inetAddress instanceof Inet6Address) {
-//		return getIPv6Creator().createAddress((Inet6Address) inetAddress, prefixLength);
-//	}
-//	return null;
-//}
-//
-//public IPAddress from(InterfaceAddress interfaceAddress) {
-//	InetAddress inetAddress = interfaceAddress.getAddress();
-//	if(inetAddress instanceof Inet4Address) {
-//		return getIPv4Creator().createAddress((Inet4Address) inetAddress, cacheBits(interfaceAddress.getNetworkPrefixLength()));
-//	} else if(inetAddress instanceof Inet6Address) {
-//		return getIPv6Creator().createAddress((Inet6Address) inetAddress, cacheBits(interfaceAddress.getNetworkPrefixLength()));
-//	}
-//	return null;
-//}
-//
-//public IPAddress fromBytes(byte bytes[]) {
-//	return from(bytes, null, null);
-//}
-//
-//public IPAddress fromPrefixedBytes(byte bytes[], Integer prefixLength) {
-//	return from(bytes, prefixLength, null);
-//}
-//
-//private IPAddress from(byte bytes[], Integer prefixLength, CharSequence zone) {
-//	if(len(bytes) < IPv6Address.BYTE_COUNT) {
-//		return getIPv4Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength);
-//	}
-//	return getIPv6Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength, zone);
-//}
-//
-//public IPAddress fromVals(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength) {
-//	return from(version, lowerValueProvider, upperValueProvider, prefixLength, null);
-//}
-//
-////private IPv4AddressCreator getIPv4Creator() {
-////	IPv4AddressNetwork network = options.getIPv4Parameters().getNetwork();
-////	IPv4AddressCreator addressCreator = network.getAddressCreator();
-////	return addressCreator;
-////}
-////
-////private IPv6AddressCreator getIPv6Creator() {
-////	IPv6AddressNetwork network = options.getIPv6Parameters().getNetwork();
-////	IPv6AddressCreator addressCreator = network.getAddressCreator();
-////	return addressCreator;
-////}
-//
-//private IPAddress from(IPVersion version, SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer prefixLength, CharSequence zone) {
-//	if(version == IPVersion.IPV4) {
-//		return getIPv4Creator().createAddress(lowerValueProvider, upperValueProvider, prefixLength);
-//	}
-//	if(version == IPVersion.IPV6) {
-//		return getIPv6Creator().createAddress(lowerValueProvider, upperValueProvider, prefixLength, zone);
-//	}
-//	throw new IllegalArgumentException();
-//}
+func FromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
+	if len(ip) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
+		return res.ToIPAddress()
+	} else if len(ip) <= IPv6ByteCount {
+		res, _ := NewIPv6AddressFromPrefixedIP(ip, prefixLength)
+		return res.ToIPAddress()
+	}
+	return nil
+}
+
+func FromIPAddr(addr *net.IPAddr) *IPAddress {
+	bytes := addr.IP
+	if len(bytes) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromIP(bytes)
+		return res.ToIPAddress()
+	} else if len(bytes) <= IPv6ByteCount {
+		res, _ := NewIPv6AddressFromIPAddr(addr)
+		return res.ToIPAddress()
+	}
+	return nil
+}
+
+func FromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
+	bytes := addr.IP
+	if len(bytes) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromPrefixedIP(bytes, prefixLength)
+		return res.ToIPAddress()
+	} else if len(bytes) <= IPv6ByteCount {
+		res, _ := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLength)
+		return res.ToIPAddress()
+	}
+	return nil
+}
+
+func FromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
+	return FromPrefixedZonedVals(version, lowerValueProvider, upperValueProvider, prefixLength, "")
+}
+
+func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
+	if version.isIPv4() {
+		return NewIPv4AddressFromPrefixedRange(lowerValueProvider, upperValueProvider, prefixLength).ToIPAddress()
+	} else if version.isIPv6() {
+		return NewIPv6AddressFromPrefixedZonedRange(lowerValueProvider, upperValueProvider, prefixLength, zone).ToIPAddress()
+	}
+	return nil
+}
+
+func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
+	if valueProvider.GetIPVersion().isIPv4() {
+		return NewIPv4AddressFromPrefixedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength()).ToIPAddress()
+	} else if valueProvider.GetIPVersion().isIPv6() {
+		return NewIPv6AddressFromPrefixedZonedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength(), valueProvider.GetZone()).ToIPAddress()
+	}
+	return nil
+}
