@@ -265,7 +265,7 @@ func validateAddress(
 								extendedCharacterIndex}
 						}
 						//current char is either . or : to handle last segment, unless we have double :: in which case we already handled last segment
-						if version.isIPv4() {
+						if version.IsIPv4() {
 							currentChar = IPv4SegmentSeparator
 						} else { //ipv6
 							if index == segmentStartIndex {
@@ -508,7 +508,7 @@ func validateAddress(
 					canBeBase85 = false
 					parseData.initSegmentData(IPv4SegmentCount)
 					isSegmented = true
-				} else if ipParseData.getProviderIPVersion().isIPv6() {
+				} else if ipParseData.getProviderIPVersion().IsIPv6() {
 					//mixed IPv6 address like 1:2:3:4:5:6:1.2.3.4
 					if !ipv6SpecificOptions.AllowsMixed() {
 						return &addressStringError{addressError{str: str, key: "ipaddress.error.no.mixed"}}
@@ -1232,7 +1232,7 @@ func validateAddress(
 											addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 											index}
 									}
-								} else if version.isIPv6() {
+								} else if version.IsIPv6() {
 									return &addressStringIndexError{
 										addressStringError{addressError{str: str, key: "ipaddress.error.invalid.character.at.index"}},
 										index}
@@ -1400,7 +1400,7 @@ func validateAddress(
 							parseData.initSegmentData(IPv6SegmentCount)
 						}
 					}
-				} else if ipParseData.getProviderIPVersion().isIPv4() {
+				} else if ipParseData.getProviderIPVersion().IsIPv4() {
 					return &addressStringError{addressError{str: str, key: "ipaddress.error.ipv6.separator"}}
 				} else if segCount >= IPv6SegmentCount {
 					return &addressStringError{addressError{str: str, key: "ipaddress.error.too.many.segments"}}
@@ -1915,7 +1915,7 @@ func parseValidatedPrefix(
 		leadingZeros--
 		digitCount++
 	}
-	asIPv4 := ipVersion.isIndeterminate() && ipVersion.isIPv4()
+	asIPv4 := ipVersion.IsIndeterminate() && ipVersion.IsIPv4()
 	//tryCache := false
 	if asIPv4 {
 		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLenLeadingZeros() {
@@ -2146,11 +2146,11 @@ func parsePrefix(
 			return
 		}
 		maskVersion := pa.getProviderIPVersion()
-		if maskVersion.isIPv4() && maskParseData.getSegmentCount() == 1 && !maskParseData.hasWildcard() &&
+		if maskVersion.IsIPv4() && maskParseData.getSegmentCount() == 1 && !maskParseData.hasWildcard() &&
 			!validationOptions.GetIPv4Parameters().Allows_inet_aton_single_segment_mask() { //1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.mask.single.segment"}}
 			return
-		} else if !ipVersion.isIndeterminate() && (maskVersion.isIPv4() != ipVersion.isIPv4() || maskVersion.isIPv6() != ipVersion.isIPv6()) {
+		} else if !ipVersion.IsIndeterminate() && (maskVersion.IsIPv4() != ipVersion.IsIPv4() || maskVersion.IsIPv6() != ipVersion.IsIPv6()) {
 			//note that this also covers the cases of non-standard addresses in the mask, ie mask neither ipv4 or ipv6
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipMismatch"}}
 			return
@@ -2332,7 +2332,7 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 	ipVersion IPVersion) (res IPAddressStringParameters) {
 	//We must provide options that do not allow a mask with wildcards or ranges
 	var builder *IPAddressStringParametersBuilder
-	if ipVersion.isIndeterminate() || ipVersion.isIPv6() {
+	if ipVersion.IsIndeterminate() || ipVersion.IsIPv6() {
 		ipv6Options := validationOptions.GetIPv6Parameters()
 		if !isNoRange(ipv6Options.GetRangeParameters()) {
 			builder = ToIPAddressStringParamsBuilder(validationOptions)
@@ -2345,7 +2345,7 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
 	}
-	if ipVersion.isIndeterminate() || ipVersion.isIPv4() {
+	if ipVersion.IsIndeterminate() || ipVersion.IsIPv4() {
 		ipv4Options := validationOptions.GetIPv4Parameters()
 		if !isNoRange(ipv4Options.GetRangeParameters()) {
 			if builder == nil {
@@ -2657,15 +2657,15 @@ func chooseIPAddressProvider(
 	parseData *parsedIPAddress) (res ipAddressProvider, err AddressStringError) {
 	qualifier := parseData.getQualifier()
 	version := parseData.getProviderIPVersion()
-	if version.isIndeterminate() {
+	if version.IsIndeterminate() {
 		version = qualifier.inferVersion(validationOptions) // checks whether a mask, prefix length, or zone makes the version clear
 		optionsVersion := validationOptions.inferVersion()  // checks whether IPv4 or IPv6 is disallowed
-		if version.isIndeterminate() {
+		if version.IsIndeterminate() {
 			version = optionsVersion
 			parseData.setVersion(version)
-		} else if !optionsVersion.isIndeterminate() && version != optionsVersion {
+		} else if !optionsVersion.IsIndeterminate() && version != optionsVersion {
 			var key string
-			if version.isIPv6() {
+			if version.IsIPv6() {
 				key = "ipaddress.error.ipv6"
 			} else {
 				key = "ipaddress.error.ipv4"
@@ -2677,15 +2677,15 @@ func chooseIPAddressProvider(
 		if addressParseData.isProvidingEmpty() {
 			networkPrefixLength := qualifier.getNetworkPrefixLength()
 			if networkPrefixLength != nil {
-				if version.isIndeterminate() {
+				if version.IsIndeterminate() {
 					version = validationOptions.GetPreferredVersion()
 				}
 				prefLen := *networkPrefixLength
 				if validationOptions == defaultIPAddrParameters && prefLen <= IPv6BitCount {
 					index := 0
-					if version.isIPv4() {
+					if version.IsIPv4() {
 						index = 1
-					} else if version.isIPv6() {
+					} else if version.IsIPv6() {
 						index = 2
 					}
 					res = maskCache[index][prefLen]
@@ -2710,12 +2710,12 @@ func chooseIPAddressProvider(
 			}
 		} else { //isAll
 			// Before reaching here, we already checked whether we allow "all", "allowAll".
-			if version.isIndeterminate() && // version not inferred, nor is a particular version disallowed
+			if version.IsIndeterminate() && // version not inferred, nor is a particular version disallowed
 				validationOptions.AllStrParsedAs() == AllPreferredIPVersion {
 				preferredVersion := validationOptions.GetPreferredVersion()
-				if !preferredVersion.isIndeterminate() {
+				if !preferredVersion.IsIndeterminate() {
 					var formatParams IPAddressStringFormatParameters
-					if preferredVersion.isIPv6() {
+					if preferredVersion.IsIPv6() {
 						formatParams = validationOptions.GetIPv6Parameters()
 					} else {
 						formatParams = validationOptions.GetIPv4Parameters()
@@ -2729,7 +2729,7 @@ func chooseIPAddressProvider(
 			return
 		}
 	} else {
-		if parseData.isZoned() && version.isIPv4() {
+		if parseData.isZoned() && version.IsIPv4() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.only.ipv6.has.zone"}}
 			return
 		}
@@ -2883,7 +2883,7 @@ func checkSegments(
 	addressParseData := parseData.getAddressParseData()
 	segCount := addressParseData.getSegmentCount()
 	version := parseData.getProviderIPVersion()
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		missingCount := IPv4SegmentCount - segCount
 		ipv4Options := validationOptions.GetIPv4Parameters()
 		hasWildcardSeparator := addressParseData.hasWildcard() && ipv4Options.AllowsWildcardedSeparator()
@@ -3776,7 +3776,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				}
 				//SMTP rfc 2821 allows [ipv4address]
 				version := pa.getProviderIPVersion()
-				if !version.isIPv6() && !validationOptions.AllowsBracketedIPv4() {
+				if !version.IsIPv6() && !validationOptions.AllowsBracketedIPv4() {
 					err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.bracketed.not.ipv6"}}
 					return
 				}
@@ -4095,8 +4095,8 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//			if(addrLen > suffix3.length()) {
 	//				suffix = IPv4Address.REVERSE_DNS_SUFFIX;
 	//				String suffix2 = IPv6Address.REVERSE_DNS_SUFFIX;
-	//				boolean isIPv4;
-	//				if(	(isIPv4 = str.regionMatches(true, suffixStartIndex = addrLen - suffix.length(), suffix, 0, suffix.length())) ||
+	//				boolean IsIPv4;
+	//				if(	(IsIPv4 = str.regionMatches(true, suffixStartIndex = addrLen - suffix.length(), suffix, 0, suffix.length())) ||
 	//					(	(addrLen > suffix2.length() && str.regionMatches(true, suffixStartIndex = addrLen - suffix2.length(), suffix2, 0, suffix2.length())) ||
 	//						(addrLen > suffix3.length() && str.regionMatches(true, suffixStartIndex = addrLen - suffix3.length(), suffix3, 0, suffix3.length()))
 	//					)) {
@@ -4104,7 +4104,7 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//					emb.isReverseDNS = true;
 	//					CharSequence sequence;
 	//					IPAddressStringParameters params;
-	//					if(isIPv4) {
+	//					if(IsIPv4) {
 	//						sequence = convertReverseDNSIPv4(str, suffixStartIndex);
 	//						params = REVERSE_DNS_IPV4_OPTS;
 	//					} else {

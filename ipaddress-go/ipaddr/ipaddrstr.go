@@ -325,12 +325,12 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 	} else if version != IndeterminateIPVersion {
 		addrStr = addrStr.init()
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
-		if version.isIPv4() {
-			if !addrVersion.isIPv4() {
+		if version.IsIPv4() {
+			if !addrVersion.IsIPv4() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
 			}
-		} else if version.isIPv6() {
-			if !addrVersion.isIPv6() {
+		} else if version.IsIPv6() {
+			if !addrVersion.IsIPv6() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
 			}
 		}

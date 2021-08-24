@@ -199,6 +199,13 @@ func initZeroIPv6() *IPv6Address {
 }
 
 // TODO survey the IPv6 API (ie take a look at java to see what we are missing), I've already surveyed IPAddress API
+// result, missing:
+//get6To4IPv4Address
+//getEmbeddedIPv4Address
+//isEUI64
+//setZone
+//toConvertedString
+//toEUI
 
 //
 //

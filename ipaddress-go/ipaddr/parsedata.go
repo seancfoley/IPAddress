@@ -478,12 +478,12 @@ func (parseData *ipAddressParseData) setVersion(version IPVersion) {
 
 func (parseData *ipAddressParseData) isProvidingIPv6() bool {
 	version := parseData.getProviderIPVersion()
-	return version.isIPv6()
+	return version.IsIPv6()
 }
 
 func (parseData *ipAddressParseData) isProvidingIPv4() bool {
 	version := parseData.getProviderIPVersion()
-	return version.isIPv4()
+	return version.IsIPv4()
 }
 
 func (parseData *ipAddressParseData) is_inet_aton_joined() bool {

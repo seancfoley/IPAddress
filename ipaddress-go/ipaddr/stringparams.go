@@ -982,8 +982,9 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	// prefix length will have an impact on the string - either we need not print the range at all
 	// because it is equivalent to the prefix length, or we need to adjust the upper value of the
 	// range so that the host is zero when printing the string
-	if div.ContainsSinglePrefixBlock(*divPrefixLen) {
-		// if div.IsSinglePrefixBlock() {
+	if div.IsSinglePrefix(*divPrefixLen) {
+		//if div.ContainsSinglePrefixBlock(*divPrefixLen) {
+		//xxx ContainsSinglePrefix xxxx // this could be slightly quicker since we know it is a prefix block (since the whole part is), all we need to know is that it is single prefix.  Add such a method to divStringProvider.
 		return writer.getLowerStandardString(segmentIndex, params, builder)
 	}
 	return writer.getPrefixAdjustedRangeString(segmentIndex, params, builder)
@@ -1610,7 +1611,7 @@ func (writer stringWriter) getLowerStandardString(segmentIndex int, params addre
 	uppercase := params.isUppercase()
 	if radix == writer.getDefaultTextualRadix() {
 		// equivalent to GetString for ip addresses but not getWildcardString
-		// for addresses, equivalent to either one
+		// For other addresses, equivalent to either one
 		str := writer.getStringAsLower()
 		if appendable == nil {
 			return count + len(str)

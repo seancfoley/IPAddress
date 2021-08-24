@@ -511,7 +511,7 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 }
 
 func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
-	var preferIPv6 bool = version.isIPv6()
+	var preferIPv6 bool = version.IsIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
@@ -716,7 +716,7 @@ type allCreator struct {
 }
 
 func (all *allCreator) getType() ipType {
-	if !all.adjustedVersion.isIndeterminate() {
+	if !all.adjustedVersion.IsIndeterminate() {
 		return fromVersion(all.adjustedVersion)
 	}
 	return allType
@@ -836,7 +836,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //			if(isProvidingAllAddresses()) {
 //				return null;
 //			}
-//			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.isIPv4() ?
+//			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.IsIPv4() ?
 //					options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
 //			IPAddress mask = getProviderMask();
 //			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
@@ -849,11 +849,11 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //				return hostMask.toPrefixBlock();
 //			}
 //			IPAddressDivisionSeries grouping;
-//			if(adjustedVersion.isIPv4()) {
+//			if(adjustedVersion.IsIPv4()) {
 //				grouping = new IPAddressDivisionGrouping(new IPAddressBitsDivision[] {
 //							new IPAddressBitsDivision(0, IPv4Address.MAX_VALUE, IPv4Address.BIT_COUNT, IPv4Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())
 //						}, network);
-//			} else if(adjustedVersion.isIPv6()) {
+//			} else if(adjustedVersion.IsIPv6()) {
 //				byte upperBytes[] = new byte[16];
 //				Arrays.fill(upperBytes, (byte) 0xff);
 //				grouping = new IPAddressLargeDivisionGrouping(new IPAddressLargeDivision[] {new IPAddressLargeDivision(new byte[IPv6Address.BYTE_COUNT], upperBytes, IPv6Address.BIT_COUNT, IPv6Address.DEFAULT_TEXTUAL_RADIX, network, qualifier.getEquivalentPrefixLength())}, network);
@@ -870,6 +870,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - mac <-> ipv6
-// - ipv4 <-> ipv6 (mostly done since I've done the embedded ipv4 stuff)
+// - ipv4 <-> ipv6 (mostly done since I've done the embedded ipv4 stuff, just need to survey ipv4 and ipv6, already added most ipv6)
 //
 // Still a lot of work, BUT, you are clearly past the big hump, way past halfway, on the home stretch

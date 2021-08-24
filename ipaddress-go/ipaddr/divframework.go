@@ -12,8 +12,10 @@ type DivisionType interface {
 	GetString() string
 	GetWildcardString() string
 
+	// Determines if the division has a single prefix for the given prefix length.  You can call GetPrefixCountLen to get the count of prefixes.
+	IsSinglePrefix(BitCount) bool
+
 	divStringProvider
-	// to add: getDefaultTextualRadix()? getDigitCount(int radix)? getMaxDigitCount()?
 }
 
 // Represents any standard address division, all of which can be converted to/from AddressDivision

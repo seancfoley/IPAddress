@@ -125,6 +125,17 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 }
 
 // TODO survey the MAC API
+// result: missing:
+// AdjustPrefixLength (I think maybe you decided to toss it)
+// getDottedAddress
+// getODISection
+//getOUISection
+//isEUI64
+//toEUI64
+//toEUI64IPv6
+//toLinkLocalIPv6
+//The toNOrmalizedString that takes the string options, compare with ipv4 and ipv6
+//toOUIPrefixBlock
 
 //func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
 //	res := NewMACAddress(section)

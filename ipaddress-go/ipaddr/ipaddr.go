@@ -18,15 +18,15 @@ const (
 	IPv6                   IPVersion = "IPv6"
 )
 
-func (version IPVersion) isIPv6() bool { //TODO make these 3 public
+func (version IPVersion) IsIPv6() bool {
 	return strings.EqualFold(string(version), string(IPv6))
 }
 
-func (version IPVersion) isIPv4() bool {
+func (version IPVersion) IsIPv4() bool {
 	return strings.EqualFold(string(version), string(IPv4))
 }
 
-func (version IPVersion) isIndeterminate() bool {
+func (version IPVersion) IsIndeterminate() bool {
 	if len(version) == 4 {
 		dig := version[3]
 		return (dig != '4' && dig != '6') || !strings.EqualFold(string(version[:3]), "IPv")
@@ -36,9 +36,9 @@ func (version IPVersion) isIndeterminate() bool {
 
 // returns an index starting from 0 with IndeterminateIPVersion being the highest
 func (version IPVersion) index() int {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return 0
-	} else if version.isIPv6() {
+	} else if version.IsIPv6() {
 		return 1
 	}
 	return 2
@@ -49,60 +49,60 @@ func (version IPVersion) String() string {
 }
 
 func (version IPVersion) getNetwork() (network IPAddressNetwork) {
-	if version.isIPv6() {
+	if version.IsIPv6() {
 		network = DefaultIPv6Network
-	} else if version.isIPv4() {
+	} else if version.IsIPv4() {
 		network = DefaultIPv4Network
 	}
 	return
 }
 
 func (version IPVersion) toType() (t addrType) {
-	if version.isIPv6() {
+	if version.IsIPv6() {
 		t = ipv4Type
-	} else if version.isIPv4() {
+	} else if version.IsIPv4() {
 		t = ipv6Type
 	}
 	return
 }
 
 func GetMaxSegmentValue(version IPVersion) SegInt {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4MaxValuePerSegment
 	}
 	return IPv6MaxValuePerSegment
 }
 
 func GetBytesPerSegment(version IPVersion) int {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4BytesPerSegment
 	}
 	return IPv6BytesPerSegment
 }
 
 func GetBitsPerSegment(version IPVersion) BitCount {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4BitsPerSegment
 	}
 	return IPv6BitsPerSegment
 }
 
 func GetByteCount(version IPVersion) int {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4ByteCount
 	}
 	return IPv6ByteCount
 }
 
 func GetSegmentCount(version IPVersion) int {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4SegmentCount
 	}
 	return IPv6SegmentCount
 }
 
 func GetBitCount(version IPVersion) BitCount {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return IPv4BitCount
 	}
 	return IPv6BitCount
@@ -1298,13 +1298,248 @@ func ipAddressEquals(one, two *IPAddress) bool {
 	return two != nil && one.Equals(two)
 }
 
+type IPAddressValueProvider interface {
+	//PrefixedAddressValueProvider
+
+	AddressValueProvider
+
+	GetPrefixLength() PrefixLen // return nil if none
+
+	GetIPVersion() IPVersion // should not return IndeterminateVersion
+
+	GetZone() string // return "" or NoZone if none
+}
+
+//type PrefixedAddressValueProvider interface {
+//	AddressValueProvider
+//
+//	GetPrefixLength() PrefixLen // return nil if none
+//}
+
+////// IPv4AddressValueProvider wraps a PrefixedAddressValueProvider to prodice an IPAddressValueProvider
+////type IPv4AddressValueProvider struct {
+////	PrefixedAddressValueProvider
+////}
+////
+////func (IPv4AddressValueProvider) GetIPVersion() IPVersion {
+////	return IPv4
+////}
+////
+////func (IPv4AddressValueProvider) GetZone() string {
+////	return NoZone
+////}
+////
+////// IPv6AddressValueProvider wraps a PrefixedAddressValueProvider to produce an IPAddressValueProvider with no zone
+////type IPv6AddressValueProvider struct {
+////	PrefixedAddressValueProvider
+////}
+////
+////func (IPv6AddressValueProvider) GetIPVersion() IPVersion {
+////	return IPv6
+////}
+////
+////func (IPv6AddressValueProvider) GetZone() string {
+////	return NoZone
+////}
+//
+//// BuildNormalizedString allows for the creation of a normalized string without creating a full IP address object first.
+//// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
+//// The string is appended to the provided Builder instance.
+//func BuildNormalizedString(provider IPAddressValueProvider, builder *strings.Builder) {
+//	version := provider.GetIPVersion()
+//	if version.IsIPv4() {
+//		BuildNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), builder)
+//	} else if version.IsIPv6() {
+//		BuildNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone(), builder)
+//	}
+//}
+//
+////// ToNormalizedString Allows for the creation of a normalized string without creating a full IP address object first.
+////// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
+////func ToNormalizedString(provider IPAddressValueProvider) string {
+////	version := provider.GetIPVersion()
+////	if version.IsIPv4() {
+////		return ToNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength())
+////	} else if version.IsIPv6() {
+////		return ToNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone())
+////	}
+////	return ""
+////}
+//
+////// Creates a normalized IPv4 string for an address without having to create the address objects first.
+////func ToNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) string {
+////	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "")
+////}
+////
+////// Creates a normalized IPv6 string for an address without having to create the address objects first.
+////func ToNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) string {
+////	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone)
+////}
+//
+//// Builds a normalized IPv4 string for an address without having to create the address objects first.
+//func BuildNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, builder *strings.Builder) {
+//	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "", builder)
+//}
+//
+//// Builds a normalized IPv6 string for an address without having to create the address objects first.
+//func BuildNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string, builder *strings.Builder) {
+//	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone, builder)
+//}
+//
+//// Creates the normalized string for an address without having to create the address objects first.
+//func createNormalizedString(
+//	lowerValueProvider,
+//	upperValueProvider SegmentValueProvider,
+//	prefixLength PrefixLen,
+//	segmentCount,
+//	bytesPerSegment int,
+//	bitsPerSegment BitCount,
+//	segmentMaxValue SegInt,
+//	separator byte,
+//	radix int,
+//	zone string) string {
+//	length := buildNormalizedString(
+//		lowerValueProvider,
+//		upperValueProvider,
+//		prefixLength,
+//		segmentCount,
+//		bytesPerSegment,
+//		bitsPerSegment,
+//		segmentMaxValue,
+//		separator,
+//		radix,
+//		zone,
+//		nil)
+//	var builder strings.Builder
+//	builder.Grow(length)
+//	buildNormalizedString(
+//		lowerValueProvider,
+//		upperValueProvider,
+//		prefixLength,
+//		segmentCount,
+//		bytesPerSegment,
+//		bitsPerSegment,
+//		segmentMaxValue,
+//		separator,
+//		radix,
+//		zone,
+//		&builder)
+//	checkLengths(length, &builder)
+//	return builder.String()
+//}
+//
+//// you could call isPrefixSubnet to do prefixed strings, but then the strings not unique anymore
+//// then just prior to the check if value == value2 {
+////Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
+////if(segmentPrefixLength != null) {
+////	int mask = ~0 << (bitsPerSegment - segmentPrefixLength);
+////	value &= mask;
+////	value2 &= mask;
+////}
+////this func (params *ipAddressStringParams) appendSegment shows how we normally do it, checking for prefix block and then single prefix block
+//// But instead, here we can just check for the single prefix like in the above blurb
+//// And I would like to change that appendSegment method too, no need to check for prefix block twice
+//
+//xxxxx change name to normalizedWildcardString then xxxxx
+//xxxxx maybe you should cache the seg values rather than calling the provider multiple times
+//xxxxx The more I think about this the more I dislike.  So do you want to avoid compression?
+//xxxxx And then thre is the caching, with prefixsubnet check you would be getting values three times, unless cached.
+//xxxxx getCompressIndexAndCount handles compression
+//xxxxx You wanted this for keys to maps.  Not so sure going further is much benefit.  Maybe you should toss this whole thing.
+//
+//
+//func buildNormalizedString(
+//	lowerValueProvider,
+//	upperValueProvider SegmentValueProvider,
+//	prefixLength PrefixLen,
+//	segmentCount,
+//	bytesPerSegment int,
+//	bitsPerSegment BitCount,
+//	segmentMaxValue SegInt,
+//	separator byte,
+//	radix int,
+//	zone string,
+//	builder *strings.Builder) int {
+//	var segmentIndex, count int
+//	for {
+//		var value, value2 SegInt
+//		if lowerValueProvider == nil {
+//			value = upperValueProvider(segmentIndex)
+//			value2 = value
+//		} else {
+//			value = lowerValueProvider(segmentIndex)
+//			if upperValueProvider != nil {
+//				value2 = upperValueProvider(segmentIndex)
+//			} else {
+//				value2 = value
+//			}
+//		}
+//			if value == value2 {
+//				if builder == nil {
+//					count += toUnsignedStringLength(uint64(value), radix)
+//				} else {
+//					toUnsignedString(uint64(value), radix, builder)
+//				}
+//			} else {
+//				if value > value2 {
+//					value, value2 = value2, value
+//				}
+//				if value == 0 && value2 == segmentMaxValue {
+//					if builder == nil {
+//						count++ // len(SegmentWildcardStr)
+//					} else {
+//						builder.WriteByte(SegmentWildcard)
+//					}
+//				} else {
+//					if builder == nil {
+//						count += toUnsignedStringLength(uint64(value), radix) +
+//							toUnsignedStringLength(uint64(value2), radix) +
+//							1 // len(RangeSeparatorStr)
+//					} else {
+//						toUnsignedString(uint64(value), radix, builder)
+//						builder.WriteByte(RangeSeparator)
+//						toUnsignedString(uint64(value2), radix, builder)
+//					}
+//				}
+//			}
+//		segmentIndex++
+//		if segmentIndex >= segmentCount {
+//			break
+//		}
+//		if builder != nil {
+//			builder.WriteByte(separator)
+//		} // else counting the separators happens just once outside the loop, just below
+//	}
+//	if builder == nil {
+//		count += segmentCount // separators
+//		count--               // no ending separator
+//	}
+//	if zone != "" {
+//		if builder == nil {
+//			count += len(zone) + 1
+//		} else {
+//			builder.WriteByte(IPv6ZoneSeparator)
+//			builder.WriteString(zone)
+//		}
+//	}
+//	if prefixLength != nil {
+//		if builder == nil {
+//			count += toUnsignedStringLength(uint64(*prefixLength), 10) + 1
+//		} else {
+//			builder.WriteByte(PrefixLenSeparator)
+//			toUnsignedString(uint64(*prefixLength), 10, builder)
+//		}
+//	}
+//	return count
+//}
+
 func addrFromIP(bytes net.IP) (addr *IPAddress, err AddressValueError) {
 	addrLen := len(bytes)
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
 		addr4, err = NewIPv4AddressFromIP(bytes)
 		addr = addr4.ToIPAddress()
-	} else {
+	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
 		addr6, err = NewIPv6AddressFromIP(bytes)
 		addr = addr6.ToIPAddress()
@@ -1318,7 +1553,7 @@ func addrFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (addr *IPAddress, err
 		var addr4 *IPv4Address
 		addr4, err = NewIPv4AddressFromPrefixedIP(bytes, prefixLen)
 		addr = addr4.ToIPAddress()
-	} else {
+	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
 		addr6, err = NewIPv6AddressFromPrefixedIP(bytes, prefixLen)
 		addr = addr6.ToIPAddress()
@@ -1326,213 +1561,30 @@ func addrFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (addr *IPAddress, err
 	return
 }
 
-type IPAddressValueProvider interface {
-	AddressValueProvider
-
-	GetIPVersion() IPVersion // should not return IndeterminateVersion
-
-	GetPrefixLength() PrefixLen // return nil if none
-
-	GetZone() string // return "" if none
-
-}
-
-// BuildNormalizedString allows for the creation of a normalized string without creating a full IP address object first.
-// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
-// The string is appended to the provided Builder instance.
-func BuildNormalizedString(provider IPAddressValueProvider, builder *strings.Builder) {
-	version := provider.GetIPVersion()
-	if version.isIPv4() {
-		BuildNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), builder)
-	} else if version.isIPv6() {
-		BuildNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone(), builder)
-	}
-}
-
-// ToNormalizedString Allows for the creation of a normalized string without creating a full IP address object first.
-// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
-func ToNormalizedString(provider IPAddressValueProvider) string {
-	version := provider.GetIPVersion()
-	if version.isIPv4() {
-		return ToNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength())
-	} else if version.isIPv6() {
-		return ToNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone())
-	}
-	return ""
-}
-
-// Creates a normalized IPv4 string for an address without having to create the address objects first.
-func ToNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) string {
-	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "")
-}
-
-// Creates a normalized IPv6 string for an address without having to create the address objects first.
-func ToNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) string {
-	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone)
-}
-
-// Builds a normalized IPv4 string for an address without having to create the address objects first.
-func BuildNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, builder *strings.Builder) {
-	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "", builder)
-}
-
-// Builds a normalized IPv6 string for an address without having to create the address objects first.
-func BuildNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string, builder *strings.Builder) {
-	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone, builder)
-}
-
-// Creates the normalized string for an address without having to create the address objects first.
-func createNormalizedString(
-	lowerValueProvider,
-	upperValueProvider SegmentValueProvider,
-	prefixLength PrefixLen,
-	segmentCount,
-	bytesPerSegment int,
-	bitsPerSegment BitCount,
-	segmentMaxValue SegInt,
-	separator byte,
-	radix int,
-	zone string) string {
-	length := buildNormalizedString(
-		lowerValueProvider,
-		upperValueProvider,
-		prefixLength,
-		segmentCount,
-		bytesPerSegment,
-		bitsPerSegment,
-		segmentMaxValue,
-		separator,
-		radix,
-		zone,
-		nil)
-	var builder strings.Builder
-	builder.Grow(length)
-	buildNormalizedString(
-		lowerValueProvider,
-		upperValueProvider,
-		prefixLength,
-		segmentCount,
-		bytesPerSegment,
-		bitsPerSegment,
-		segmentMaxValue,
-		separator,
-		radix,
-		zone,
-		&builder)
-	checkLengths(length, &builder)
-	return builder.String()
-}
-
-func buildNormalizedString(
-	lowerValueProvider,
-	upperValueProvider SegmentValueProvider,
-	prefixLength PrefixLen,
-	segmentCount,
-	bytesPerSegment int,
-	bitsPerSegment BitCount,
-	segmentMaxValue SegInt,
-	separator byte,
-	radix int,
-	zone string,
-	builder *strings.Builder) int {
-	var segmentIndex, count int
-	for {
-		var value, value2 SegInt
-		if lowerValueProvider == nil {
-			value = upperValueProvider(segmentIndex)
-		} else {
-			value = lowerValueProvider(segmentIndex)
-			if upperValueProvider != nil {
-				value2 = upperValueProvider(segmentIndex)
-			}
-		}
-		if lowerValueProvider == nil || upperValueProvider == nil {
-			if builder == nil {
-				count += toUnsignedStringLength(uint64(value), radix)
-			} else {
-				toUnsignedString(uint64(value), radix, builder)
-			}
-		} else {
-			if value == value2 {
-				if builder == nil {
-					count += toUnsignedStringLength(uint64(value), radix)
-				} else {
-					toUnsignedString(uint64(value), radix, builder)
-				}
-			} else {
-				if value > value2 {
-					value, value2 = value2, value
-				}
-				if value == 0 && value2 == segmentMaxValue {
-					if builder == nil {
-						count++ // len(SegmentWildcardStr)
-					} else {
-						builder.WriteByte(SegmentWildcard)
-					}
-				} else {
-					if builder == nil {
-						count += toUnsignedStringLength(uint64(value), radix) +
-							toUnsignedStringLength(uint64(value2), radix) +
-							1 // len(RangeSeparatorStr)
-					} else {
-						toUnsignedString(uint64(value), radix, builder)
-						builder.WriteByte(RangeSeparator)
-						toUnsignedString(uint64(value2), radix, builder)
-					}
-				}
-			}
-		}
-		segmentIndex++
-		if segmentIndex >= segmentCount {
-			break
-		}
-		if builder != nil {
-			builder.WriteByte(separator)
-		} // else counting the separators happens just once outside the loop, just below
-	}
-	if builder == nil {
-		count += segmentCount // separators
-		count--               // no ending separator
-	}
-	if zone != "" {
-		if builder == nil {
-			count += len(zone) + 1
-		} else {
-			builder.WriteByte(IPv6ZoneSeparator)
-			builder.WriteString(zone)
-		}
-	}
-	if prefixLength != nil {
-		if builder == nil {
-			count += toUnsignedStringLength(uint64(*prefixLength), 10) + 1
-		} else {
-			builder.WriteByte(PrefixLenSeparator)
-			toUnsignedString(uint64(*prefixLength), 10, builder)
-		}
-	}
-	return count
-}
-
 func FromIP(ip net.IP) *IPAddress {
-	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromIP(ip)
-		return res.ToIPAddress()
-	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromIP(ip)
-		return res.ToIPAddress()
-	}
-	return nil
+	addr, _ := addrFromIP(ip)
+	return addr
+	//if len(ip) <= IPv4ByteCount {
+	//	res, _ := NewIPv4AddressFromIP(ip)
+	//	return res.ToIPAddress()
+	//} else if len(ip) <= IPv6ByteCount {
+	//	res, _ := NewIPv6AddressFromIP(ip)
+	//	return res.ToIPAddress()
+	//}
+	//return nil
 }
 
 func FromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
-	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
-		return res.ToIPAddress()
-	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromPrefixedIP(ip, prefixLength)
-		return res.ToIPAddress()
-	}
-	return nil
+	addr, _ := addrFromPrefixedIP(ip, prefixLength)
+	return addr
+	//if len(ip) <= IPv4ByteCount {
+	//	res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
+	//	return res.ToIPAddress()
+	//} else if len(ip) <= IPv6ByteCount {
+	//	res, _ := NewIPv6AddressFromPrefixedIP(ip, prefixLength)
+	//	return res.ToIPAddress()
+	//}
+	//return nil
 }
 
 func FromIPAddr(addr *net.IPAddr) *IPAddress {
@@ -1564,18 +1616,18 @@ func FromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider 
 }
 
 func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return NewIPv4AddressFromPrefixedRange(lowerValueProvider, upperValueProvider, prefixLength).ToIPAddress()
-	} else if version.isIPv6() {
+	} else if version.IsIPv6() {
 		return NewIPv6AddressFromPrefixedZonedRange(lowerValueProvider, upperValueProvider, prefixLength, zone).ToIPAddress()
 	}
 	return nil
 }
 
 func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
-	if valueProvider.GetIPVersion().isIPv4() {
+	if valueProvider.GetIPVersion().IsIPv4() {
 		return NewIPv4AddressFromPrefixedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength()).ToIPAddress()
-	} else if valueProvider.GetIPVersion().isIPv6() {
+	} else if valueProvider.GetIPVersion().IsIPv6() {
 		return NewIPv6AddressFromPrefixedZonedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength(), valueProvider.GetZone()).ToIPAddress()
 	}
 	return nil

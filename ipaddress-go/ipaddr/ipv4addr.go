@@ -101,7 +101,11 @@ func initZeroIPv4() *IPv4Address {
 }
 
 // TODO survey the  IPv4 API, I've already surveyed IPAddress API
-// missing: getIPv6Address, getIPv4MappedAddress
+// result: missing:
+// GetIPv4MappedAddress()
+// GetIPv6Address(segs)
+// ToBroadcastAddress()
+// ToNetworkAddress()
 
 //
 //
@@ -249,6 +253,7 @@ func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err
 	return addr.bitwiseOrPrefixed(other, false)
 }
 
+//TODO maybe rename, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
 func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }

@@ -245,15 +245,22 @@ func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue 
 }
 
 // Returns whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen
+func (div *addressDivisionInternal) isSinglePrefix(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
+	bitCount := div.GetBitCount()
+	shift := uint(bitCount - divisionPrefixLen)
+	return (divisionValue >> shift) == (upperValue >> shift)
+}
+
+// Returns whether the given range of segmentValue to upperValue is equivalent to the range of segmentValue with the prefix of divisionPrefixLen
 func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValue DivInt, divisionPrefixLen BitCount) bool {
 	if divisionPrefixLen == 0 {
 		return divisionValue == 0 && upperValue == div.getMaxValue()
 	}
 	bitCount := div.GetBitCount()
-	var ones = ^DivInt(0)
-	var divisionBitMask DivInt = ^(ones << uint(bitCount))
-	var divisionPrefixMask DivInt = ones << uint(bitCount-divisionPrefixLen)
-	var divisionHostMask = ^divisionPrefixMask
+	ones := ^DivInt(0)
+	divisionBitMask := ^(ones << uint(bitCount))
+	divisionPrefixMask := ones << uint(bitCount-divisionPrefixLen)
+	divisionHostMask := ^divisionPrefixMask
 	return testRange(divisionValue,
 		divisionValue,
 		upperValue,
@@ -450,6 +457,12 @@ func (div *addressDivisionInternal) GetCount() *big.Int {
 		return res.SetUint64(0xffffffffffffffff).Add(res, bigOneConst())
 	}
 	return bigZero().SetUint64((div.getUpperDivisionValue() - div.getDivisionValue()) + 1)
+}
+
+func (div *addressDivisionInternal) IsSinglePrefix(divisionPrefixLength BitCount) bool {
+	bitCount := div.GetBitCount()
+	divisionPrefixLength = checkBitCount(divisionPrefixLength, bitCount)
+	return div.isSinglePrefix(div.getDivisionValue(), div.getUpperDivisionValue(), divisionPrefixLength)
 }
 
 func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCount) *big.Int {

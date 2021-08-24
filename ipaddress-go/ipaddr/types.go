@@ -32,6 +32,7 @@ func cacheBits(i int) PrefixLen {
 //	return *p == *other
 //}
 
+// Equals compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
 func (p *BitCount) Equals(other *BitCount) bool {
 	if p == nil {
 		return other == nil
@@ -39,6 +40,20 @@ func (p *BitCount) Equals(other *BitCount) bool {
 		return false
 	}
 	return *p == *other
+}
+
+// Equals compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
+// This method is intended for the PrefixLen type.  BitCount values should be compared with ==, >, <, >= amd <= operators.
+func (p *BitCount) Compare(other *BitCount) int {
+	if p == nil {
+		if other == nil {
+			return 0
+		}
+		return 1
+	} else if other == nil {
+		return -1
+	}
+	return int(*p) - int(*other)
 }
 
 func PrefixEquals(one, two PrefixLen) bool { //TODO replace calls to this with the above

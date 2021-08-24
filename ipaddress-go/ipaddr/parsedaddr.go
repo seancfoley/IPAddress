@@ -132,9 +132,9 @@ func (parseData *parsedIPAddress) getIPAddressParseData() *ipAddressParseData {
 
 func (parseData *parsedIPAddress) createSections(doSections, doRangeBoundaries, withUpper bool) (sections sectionResult, boundaries boundaryResult) {
 	version := parseData.getProviderIPVersion()
-	if version.isIPv4() {
+	if version.IsIPv4() {
 		return parseData.createIPv4Sections(doSections, doRangeBoundaries, withUpper)
-	} else if version.isIPv6() {
+	} else if version.IsIPv6() {
 		return parseData.createIPv6Sections(doSections, doRangeBoundaries, withUpper)
 	}
 	return
