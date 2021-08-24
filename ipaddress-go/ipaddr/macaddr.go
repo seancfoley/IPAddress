@@ -126,7 +126,6 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 
 // TODO survey the MAC API
 // result: missing:
-// AdjustPrefixLength (I think maybe you decided to toss it)
 // getDottedAddress
 // getODISection
 //getOUISection
