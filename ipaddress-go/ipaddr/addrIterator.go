@@ -100,6 +100,22 @@ func (iter ipAddrIterator) Next() *IPAddress {
 	return iter.AddressIterator.Next().ToIPAddress()
 }
 
+type ipAddrSliceIterator struct {
+	addrs []*IPAddress
+}
+
+func (iter ipAddrSliceIterator) HasNext() bool {
+	return len(iter.addrs) > 0
+}
+
+func (iter ipAddrSliceIterator) Next() (res *IPAddress) {
+	if iter.HasNext() {
+		res = iter.addrs[0]
+		iter.addrs = iter.addrs[1:]
+	}
+	return
+}
+
 // IPv4AddressIterator iterates through IPv4 addresses, subnets and ranges
 type IPv4AddressIterator interface {
 	iteratorBase
@@ -114,6 +130,14 @@ func (iter ipv4AddressIterator) Next() *IPv4Address {
 	return iter.AddressIterator.Next().ToIPv4Address()
 }
 
+type ipv4IPAddressIterator struct {
+	IPAddressIterator
+}
+
+func (iter ipv4IPAddressIterator) Next() *IPv4Address {
+	return iter.IPAddressIterator.Next().ToIPv4Address()
+}
+
 // IPv6AddressIterator iterates through IPv4 addresses, subnets and ranges
 type IPv6AddressIterator interface {
 	iteratorBase
@@ -126,6 +150,14 @@ type ipv6AddressIterator struct {
 
 func (iter ipv6AddressIterator) Next() *IPv6Address {
 	return iter.AddressIterator.Next().ToIPv6Address()
+}
+
+type ipv6IPAddressIterator struct {
+	IPAddressIterator
+}
+
+func (iter ipv6IPAddressIterator) Next() *IPv6Address {
+	return iter.IPAddressIterator.Next().ToIPv6Address()
 }
 
 // MACAddressIterator iterates through MAC addresses, subnets and ranges
