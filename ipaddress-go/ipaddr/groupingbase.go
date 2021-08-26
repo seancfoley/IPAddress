@@ -268,7 +268,7 @@ func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) 
 }
 
 func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache // IsMultiple checks prior to this ensures cacheBitCountx no nil here
+	cache := grouping.cache // IsMultiple checks prior to this ensures cache not nil here
 	count := cache.cachedPrefixCount
 	if count == nil {
 		count = grouping.calcPrefixCount(counter)
@@ -337,10 +337,10 @@ type valueCache struct {
 	sectionCache *groupingCache
 
 	mixed *mixedCache
-	//xxx group these together, and add the IPV6Section xxx
 
-	//defaultMixedAddressSection *IPv6v4MixedAddressGrouping
-	//embeddedIPv4Section        *IPv4AddressSection
+	minPrefix, equivalentPrefix PrefixLen
+
+	isSinglePrefixBlock *bool
 }
 
 type ipStringCache struct {

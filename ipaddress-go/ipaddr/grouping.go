@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -316,65 +317,132 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 	return true
 }
 
-//TODO cacheBitCountx: GetPrefixLenForSingleBlock: cachedEquivalentPrefix
-// IsSinglePrefixBlock: cachedIsSinglePrefixBlock
-// GetMinPrefixLenForBlock: cachedMinPrefix
-// methods: GetPrefixLenForSingleBlock, AssignPrefixForSingleBlock, IsSinglePrefixBlock, GetMinPrefixLenForBlock
-//
-// already caching prefix length, getNetworkPrefixLen: cachedPrefixLength
-
-func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with GetPrefixLenForSingleBlock
-	prefLen := grouping.GetPrefixLen()
-	return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
-}
-
 func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with GetMinPrefixLenForBlock
 	prefLen := grouping.GetPrefixLen()
 	return prefLen != nil && grouping.ContainsPrefixBlock(*prefLen)
 }
 
-func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCount {
-	count := grouping.GetDivisionCount()
-	totalPrefix := grouping.GetBitCount()
-	for i := count - 1; i >= 0; i-- {
-		div := grouping.getDivision(i)
-		segBitCount := div.getBitCount()
-		segPrefix := div.GetMinPrefixLenForBlock()
-		if segPrefix == segBitCount {
-			break
-		} else {
-			totalPrefix -= segBitCount
-			if segPrefix != 0 {
-				totalPrefix += segPrefix
-				break
-			}
-		}
+func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with GetPrefixLenForSingleBlock
+	calc := func() bool {
+		prefLen := grouping.GetPrefixLen()
+		return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
 	}
-	return totalPrefix
+	cache := grouping.cache
+	if cache == nil {
+		return calc()
+	}
+	res := cache.isSinglePrefixBlock
+	if res == nil {
+		if calc() {
+			res = &trueVal
+
+			// we can also set related cache fields
+			pref := grouping.GetPrefixLen()
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.equivalentPrefix))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
+
+			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
+		} else {
+			res = &falseVal
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.isSinglePrefixBlock))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	}
+	return *res
 }
 
-func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
-	count := grouping.GetDivisionCount()
-	var totalPrefix BitCount
-	for i := 0; i < count; i++ {
-		div := grouping.getDivision(i)
-		divPrefix := div.GetPrefixLenForSingleBlock()
-		if divPrefix == nil {
-			return nil
-		}
-		divPrefLen := *divPrefix
-		totalPrefix += divPrefLen
-		if divPrefLen < div.GetBitCount() {
-			//remaining segments must be full range or we return nil
-			for i++; i < count; i++ {
-				laterDiv := grouping.getDivision(i)
-				if !laterDiv.IsFullRange() {
-					return nil
+func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCount {
+	calc := func() BitCount {
+		count := grouping.GetDivisionCount()
+		totalPrefix := grouping.GetBitCount()
+		for i := count - 1; i >= 0; i-- {
+			div := grouping.getDivision(i)
+			segBitCount := div.getBitCount()
+			segPrefix := div.GetMinPrefixLenForBlock()
+			if segPrefix == segBitCount {
+				break
+			} else {
+				totalPrefix -= segBitCount
+				if segPrefix != 0 {
+					totalPrefix += segPrefix
+					break
 				}
 			}
 		}
+		return totalPrefix
 	}
-	return cacheBitCount(totalPrefix)
+	cache := grouping.cache
+	if cache == nil {
+		return calc()
+	}
+	res := cache.minPrefix
+	if res == nil {
+		val := calc()
+		res = cacheBitCount(val)
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	}
+	return *res
+}
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	calc := func() PrefixLen {
+		count := grouping.GetDivisionCount()
+		var totalPrefix BitCount
+		for i := 0; i < count; i++ {
+			div := grouping.getDivision(i)
+			divPrefix := div.GetPrefixLenForSingleBlock()
+			if divPrefix == nil {
+				return nil
+			}
+			divPrefLen := *divPrefix
+			totalPrefix += divPrefLen
+			if divPrefLen < div.GetBitCount() {
+				//remaining segments must be full range or we return nil
+				for i++; i < count; i++ {
+					laterDiv := grouping.getDivision(i)
+					if !laterDiv.IsFullRange() {
+						return nil
+					}
+				}
+			}
+		}
+		return cacheBitCount(totalPrefix)
+	}
+	cache := grouping.cache
+	if cache == nil {
+		return calc()
+	}
+	res := cache.equivalentPrefix
+	if res == nil {
+		res = calc()
+		if res == nil {
+			res = noPrefix
+			// we can also set related cache fields
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.isSinglePrefixBlock))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(&falseVal))
+		} else {
+			// we can also set related cache fields
+			var isSingleBlock *bool
+			if grouping.IsPrefixed() && PrefixEquals(res, grouping.GetPrefixLen()) {
+				isSingleBlock = &trueVal
+			} else {
+				isSingleBlock = &falseVal
+			}
+			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.isSinglePrefixBlock))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(isSingleBlock))
+
+			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+		}
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.equivalentPrefix))
+		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+	}
+	if res == noPrefix {
+		return nil
+	}
+	return res
 }
 
 func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {

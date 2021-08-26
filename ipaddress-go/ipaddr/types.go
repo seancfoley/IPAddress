@@ -66,6 +66,8 @@ func PrefixEquals(one, two PrefixLen) bool { //TODO replace calls to this with t
 type PrefixLen = *BitCount
 
 var cachedPrefixLens = initPrefLens()
+var minusOne BitCount = -1
+var noPrefix PrefixLen = &minusOne
 
 func cacheBitCount(i BitCount) PrefixLen {
 	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {

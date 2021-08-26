@@ -953,7 +953,12 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 	if newPrefix == nil {
 		return nil
 	}
-	return section.setPrefixLen(*newPrefix)
+	newSect := section.setPrefixLen(*newPrefix)
+	cache := newSect.cache
+	cache.isSinglePrefixBlock = &trueVal
+	cache.equivalentPrefix = newPrefix
+	cache.minPrefix = newPrefix
+	return newSect
 }
 
 // Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
