@@ -59,7 +59,7 @@ func NewIPv4Section(segments []*IPv4AddressSegment) (res *IPv4AddressSection, er
 	return
 }
 
-func NewIPv4AddressPrefixedSection(segments []*IPv4AddressSegment, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
+func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
 	divs := cloneIPv4SegsToDivs(segments)
 	res, err = newIPv4Section(divs, prefixLength == nil)
 	if err == nil && prefixLength != nil {

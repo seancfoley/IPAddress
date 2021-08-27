@@ -42,7 +42,7 @@ func (p *BitCount) Equals(other *BitCount) bool {
 	return *p == *other
 }
 
-// Equals compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
+// Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
 // This method is intended for the PrefixLen type.  BitCount values should be compared with ==, >, <, >= amd <= operators.
 func (p *BitCount) Compare(other *BitCount) int {
 	if p == nil {

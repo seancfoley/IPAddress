@@ -38,14 +38,32 @@ const (
 	macBitsToSegmentBitshift = 3
 )
 
-func NewMACAddress(section *MACAddressSection) *MACAddress {
+func newMACAddress(section *MACAddressSection) *MACAddress {
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress()
+}
+
+func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) {
+	segCount := section.GetSegmentCount()
+	if segCount != MediaAccessControlSegmentCount && segCount != ExtendedUniqueIdentifier64SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
+	}
+	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
 }
 
 func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueError) {
 	section, err := createMACSectionFromBytes(bytes)
 	if err != nil {
 		return nil, err
+	}
+	segCount := section.GetSegmentCount()
+	if segCount != MediaAccessControlSegmentCount && segCount != ExtendedUniqueIdentifier64SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
 	}
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
 }
@@ -77,7 +95,7 @@ func NewMACAddressFromVals(vals SegmentValueProvider) (addr *MACAddress) {
 
 func NewMACAddressFromValsExt(vals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
 	section := NewMACSectionFromVals(vals, getMacSegCount(isExtended))
-	addr = NewMACAddress(section)
+	addr = newMACAddress(section)
 	return
 }
 
@@ -87,7 +105,7 @@ func NewMACAddressFromRange(vals, upperVals SegmentValueProvider) (addr *MACAddr
 
 func NewMACAddressFromRangeExt(vals, upperVals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
 	section := NewMACSectionFromRange(vals, upperVals, getMacSegCount(isExtended))
-	addr = NewMACAddress(section)
+	addr = newMACAddress(section)
 	return
 }
 
@@ -124,7 +142,7 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 	return
 }
 
-// TODO survey the MAC API
+// TODO NEXT time to do the mac ipv6 stuff and the rest of these methods
 // result: missing:
 // getDottedAddress
 // getODISection
@@ -150,7 +168,7 @@ func createMACZero() *MACAddress {
 	div := NewMACSegment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div, div, div}
 	section, _ := newMACSection(segs)
-	return NewMACAddress(section)
+	return newMACAddress(section)
 }
 
 type MACAddress struct {
@@ -200,7 +218,7 @@ func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
 	if sec == addr.section {
 		return addr
 	}
-	return NewMACAddress(section)
+	return newMACAddress(section)
 }
 
 func (addr *MACAddress) GetValue() *big.Int {

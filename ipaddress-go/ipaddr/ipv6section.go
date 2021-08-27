@@ -65,12 +65,12 @@ func newIPv6SectionSingle(segments []*AddressDivision, startIndex int /*cloneSeg
 	return
 }
 
-func NewIPv6AddressFromSection(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6Section(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
 	res, err = newIPv6Section(cloneIPv6SegsToDivs(segments), 0, true)
 	return
 }
 
-func NewIPv6AddressFromPrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
 	divs := cloneIPv6SegsToDivs(segments)
 	res, err = newIPv6Section(divs, 0, prefixLength == nil)
 	if err == nil && prefixLength != nil {
@@ -1135,7 +1135,7 @@ func (section *IPv6AddressSection) getEmbeddedIPv4AddressSection() (*IPv4Address
 	return sect.GetIPv4AddressSection(), nil
 }
 
-// GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
+// GetIPv4AddressSection produces an IPv4 address section from a sequence of bytes in this IPv6 address section
 func (section *IPv6AddressSection) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
 	//addressSegmentIndex := section.addressSegmentIndex
 	//if startIndex == (IPv6MixedOriginalSegmentCount-int(addressSegmentIndex))<<1 && endIndex == (section.GetSegmentCount()<<1) {

@@ -21,11 +21,29 @@ const (
 	ipv4BitsToSegmentBitshift          = 3
 )
 
-func NewIPv4Address(section *IPv4AddressSection) *IPv4Address {
+func newIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
 }
 
+func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueError) {
+	segCount := section.GetSegmentCount()
+	if segCount != IPv4SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
+	}
+	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+}
+
 func NewIPv4AddressFromSegments(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
+	segCount := len(segments)
+	if segCount != IPv4SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
+	}
 	section, err := NewIPv4Section(segments)
 	if err != nil {
 		return nil, err
@@ -34,7 +52,14 @@ func NewIPv4AddressFromSegments(segments []*IPv4AddressSegment) (*IPv4Address, A
 }
 
 func NewIPv4AddressFromPrefixedSegments(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
-	section, err := NewIPv4AddressPrefixedSection(segments, prefixLength)
+	segCount := len(segments)
+	if segCount != IPv4SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
+	}
+	section, err := NewIPv4PrefixedSection(segments, prefixLength)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +79,7 @@ func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4A
 func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueError) {
 	section, err := NewIPv4SectionFromSegmentedBytes(bytes, IPv4SegmentCount)
 	if err == nil {
-		addr = NewIPv4Address(section)
+		addr = newIPv4Address(section)
 	}
 	return
 }
@@ -62,32 +87,32 @@ func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueErro
 func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
 	section, err := NewIPv4SectionFromPrefixedBytes(bytes, IPv4SegmentCount, prefixLength)
 	if err == nil {
-		addr = NewIPv4Address(section)
+		addr = newIPv4Address(section)
 	}
 	return
 }
 
 func NewIPv4AddressFromVals(vals SegmentValueProvider) (addr *IPv4Address) {
 	section := NewIPv4SectionFromVals(vals, IPv4SegmentCount)
-	addr = NewIPv4Address(section)
+	addr = newIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
-	addr = NewIPv4Address(section)
+	addr = newIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Address) {
 	section := NewIPv4SectionFromRange(vals, upperVals, IPv4SegmentCount)
-	addr = NewIPv4Address(section)
+	addr = newIPv4Address(section)
 	return
 }
 
 func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedRange(vals, upperVals, IPv4SegmentCount, prefixLength)
-	addr = NewIPv4Address(section)
+	addr = newIPv4Address(section)
 	return
 }
 
@@ -97,7 +122,7 @@ func initZeroIPv4() *IPv4Address {
 	div := NewIPv4Segment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div}
 	section, _ := newIPv4Section(segs, false)
-	return NewIPv4Address(section)
+	return newIPv4Address(section)
 }
 
 // TODO survey the  IPv4 API, I've already surveyed IPAddress API
@@ -229,7 +254,7 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	if sec == addr.section {
 		return addr
 	}
-	return NewIPv4Address(section)
+	return newIPv4Address(section)
 }
 
 func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
@@ -253,7 +278,8 @@ func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err
 	return addr.bitwiseOrPrefixed(other, false)
 }
 
-//TODO maybe rename, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
+//TODO maybe rename, maybe drop this, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
+// Maybe I should never drop the prefix - If they want to drop it they would before doing the bitwise
 func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
@@ -279,7 +305,7 @@ func (addr *IPv4Address) Subtract(other *IPv4Address) []*IPv4Address {
 	}
 	res := make([]*IPv4Address, sectLen)
 	for i, sect := range sects {
-		res[i] = NewIPv4Address(sect)
+		res[i] = newIPv4Address(sect)
 	}
 	return res
 }
