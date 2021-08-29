@@ -151,7 +151,11 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 //toEUI64
 //toEUI64IPv6
 //toLinkLocalIPv6
-//The toNOrmalizedString that takes the string options, compare with ipv4 and ipv6
+//TODO The toNOrmalizedString that takes the string options,
+//		compare with ipv4 and ipv6 - ok did the compare,
+//		there is ToCustomString and it seems that covers ipv4, ipv6 and mac sections,
+// 		but we need to add to ipv4/6/mac addresses
+//		and ipv6 address needs ToCustomStringZoned
 //toOUIPrefixBlock
 
 //func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {

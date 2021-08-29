@@ -866,10 +866,8 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 
 // TODO NEXT progress
 //
-// - you might take the approach of implementing the use-cases (excluding streams and tries) from the wiki to get the important stuff in, then fill in the gaps later
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
-// - mac <-> ipv6
-// - ipv4 <-> ipv6 (mostly done since I've done the embedded ipv4 stuff, just need to survey ipv4 and ipv6, already added most ipv6)
+// - the test suite is the last big thing
 //
-// Still a lot of work, BUT, you are clearly past the big hump, way past halfway, on the home stretch
+// Still a lot of work, BUT, you are clearly way past the big hump, way past halfway, on the home stretch

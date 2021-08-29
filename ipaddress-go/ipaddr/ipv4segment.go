@@ -210,11 +210,11 @@ func NewIPv4RangeSegment(val, upperVal IPv4SegInt) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentPrefixedValues(val, upperVal, nil))
 }
 
-func NewIPv4PrefixSegment(val IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
+func NewIPv4PrefixedSegment(val IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentPrefixedVal(val, prefixLen))
 }
 
-func NewIPv4RangePrefixSegment(val, upperVal IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
+func NewIPv4RangePrefixedSegment(val, upperVal IPv4SegInt, prefixLen PrefixLen) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentPrefixedValues(val, upperVal, prefixLen))
 }
 

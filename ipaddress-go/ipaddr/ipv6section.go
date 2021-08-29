@@ -27,14 +27,14 @@ func createIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 	}
 }
 
-func newIPv6Section(segments []*AddressDivision, startIndex int /*, cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueError) {
-	if startIndex < 0 {
-		err = &addressPositionError{addressValueError{val: startIndex, addressError: addressError{key: "ipaddress.error.invalid.position"}}}
-		return
-	}
+func newIPv6Section(segments []*AddressDivision /* ,startIndex int , cloneSegments bool*/, normalizeSegments bool) (res *IPv6AddressSection, err AddressValueError) {
+	//if startIndex < 0 {
+	//	err = &addressPositionError{addressValueError{val: startIndex, addressError: addressError{key: "ipaddress.error.invalid.position"}}}
+	//	return
+	//}
 	segsLen := len(segments)
-	if startIndex+segsLen > IPv6SegmentCount {
-		err = &addressValueError{val: startIndex + segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+	if segsLen > IPv6SegmentCount {
+		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
 	res = createIPv6Section(segments)
@@ -45,7 +45,7 @@ func newIPv6Section(segments []*AddressDivision, startIndex int /*, cloneSegment
 	prefLen := res.prefixLength
 	if normalizeSegments && prefLen != nil {
 		normalizePrefixBoundary(*prefLen, segments, IPv6BitsPerSegment, IPv6BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-			return NewIPv6RangePrefixSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
+			return NewIPv6RangePrefixedSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
 		})
 	}
 	return
@@ -57,8 +57,8 @@ func newIPv6SectionParsed(segments []*AddressDivision) (res *IPv6AddressSection)
 	return
 }
 
-func newIPv6SectionSingle(segments []*AddressDivision, startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueError) {
-	res, err = newIPv6Section(segments, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
+func newIPv6SectionSingle(segments []*AddressDivision /* , startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueError) {
+	res, err = newIPv6Section(segments /*, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
 	if err == nil && prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<4))
 	}
@@ -66,13 +66,13 @@ func newIPv6SectionSingle(segments []*AddressDivision, startIndex int /*cloneSeg
 }
 
 func NewIPv6Section(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
-	res, err = newIPv6Section(cloneIPv6SegsToDivs(segments), 0, true)
+	res, err = newIPv6Section(cloneIPv6SegsToDivs(segments), true)
 	return
 }
 
 func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
 	divs := cloneIPv6SegsToDivs(segments)
-	res, err = newIPv6Section(divs, 0, prefixLength == nil)
+	res, err = newIPv6Section(divs, prefixLength == nil)
 	if err == nil && prefixLength != nil {
 		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
 	}
@@ -200,6 +200,17 @@ func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals SegmentValueProvider,
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<3))
 	}
+	return
+}
+
+func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	//segments := make([]*AddressDivision, 4)
+	segments := createSegmentArray(4)
+	if err = toEUI64Segments(segments, 0, eui.GetSection(), nil); err != nil {
+		return
+	}
+	res = createIPv6Section(segments)
+	res.isMultiple = eui.IsMultiple()
 	return
 }
 
@@ -1288,6 +1299,96 @@ func (grouping *IPv6v4MixedAddressGrouping) GetIPv4AddressSection() *IPv4Address
 //	}
 //	return sect.ipv4Section.GetSegment(index)
 //}
+
+func toEUI64Segments(
+	segments []*AddressDivision,
+	ipv6StartIndex int, // the index into the IPv6 segment array to put the MAC-based IPv6 segments
+	eui *MACAddressSection, // must be full 6 or 8 mac sections
+	prefixLength PrefixLen) IncompatibleAddressError {
+	euiSegmentIndex := 0
+	var seg3, seg4 *MACAddressSegment
+	var err IncompatibleAddressError
+	seg0 := eui.GetSegment(euiSegmentIndex)
+	euiSegmentIndex++
+	seg1 := eui.GetSegment(euiSegmentIndex)
+	euiSegmentIndex++
+	seg2 := eui.GetSegment(euiSegmentIndex)
+	euiSegmentIndex++
+	isExtended := eui.GetSegmentCount() == ExtendedUniqueIdentifier64SegmentCount
+	if isExtended {
+		seg3 = eui.GetSegment(euiSegmentIndex)
+		euiSegmentIndex++
+		if !seg3.matches(0xff) {
+			return &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+		}
+		seg4 = eui.GetSegment(euiSegmentIndex)
+		euiSegmentIndex++
+		if !seg4.matches(0xfe) {
+			return &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+		}
+	} else {
+		seg3 = NewMACSegment(0xff)
+		seg4 = NewMACSegment(0xfe)
+	}
+	seg5 := eui.GetSegment(euiSegmentIndex)
+	euiSegmentIndex++
+	seg6 := eui.GetSegment(euiSegmentIndex)
+	euiSegmentIndex++
+	seg7 := eui.GetSegment(euiSegmentIndex)
+	var currentPrefix PrefixLen
+	if prefixLength != nil {
+		//since the prefix comes from the ipv6 section and not the MAC section, any segment prefix for the MAC section is 0 or null
+		//prefixes across segments have the pattern: null, null, ..., null, 0-16, 0, 0, ..., 0
+		//So if the overall prefix is 0, then the prefix of every segment is 0
+		currentPrefix = cacheBitCount(0)
+	}
+	var seg *IPv6AddressSegment
+	if seg, err = joinMacSegsFlip(seg0, seg1, true /* only this first one gets the flipped bit */, currentPrefix); err == nil {
+		segments[ipv6StartIndex] = seg.ToAddressDivision()
+		ipv6StartIndex++
+		if seg, err = joinMacSegs(seg2, seg3, currentPrefix); err == nil {
+			segments[ipv6StartIndex] = seg.ToAddressDivision()
+			ipv6StartIndex++
+			if seg, err = joinMacSegs(seg4, seg5, currentPrefix); err == nil {
+				segments[ipv6StartIndex] = seg.ToAddressDivision()
+				ipv6StartIndex++
+				if seg, err = joinMacSegs(seg6, seg7, currentPrefix); err == nil {
+					segments[ipv6StartIndex] = seg.ToAddressDivision()
+					return nil
+				}
+			}
+		}
+	}
+	return err
+}
+
+func joinMacSegs(macSegment0, macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+	return joinMacSegsFlip(macSegment0, macSegment1, false, prefixLength)
+}
+
+func joinMacSegsFlip(macSegment0, macSegment1 *MACAddressSegment, flip bool, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+	if macSegment0.isMultiple() {
+		// if the high segment has a range, the low segment must match the full range,
+		// otherwise it is not possible to create an equivalent range when joining
+		if !macSegment1.IsFullRange() {
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalidMACIPv6Range"}}
+		}
+	}
+	lower0 := macSegment0.GetSegmentValue()
+	upper0 := macSegment0.GetUpperSegmentValue()
+	if flip {
+		mask2ndBit := SegInt(0x2)
+		if !macSegment0.MatchesWithMask(mask2ndBit&lower0, mask2ndBit) {
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+		}
+		lower0 ^= mask2ndBit //flip the universal/local bit
+		upper0 ^= mask2ndBit
+	}
+	return NewIPv6RangePrefixedSegment(
+		IPv6SegInt((lower0<<8)|macSegment1.getSegmentValue()),
+		IPv6SegInt((upper0<<8)|macSegment1.getUpperSegmentValue()),
+		prefixLength), nil
+}
 
 type Range struct {
 	index, length int

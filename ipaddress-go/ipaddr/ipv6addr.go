@@ -211,20 +211,86 @@ func NewIPv6AddressFromPrefixedZonedRange(vals, upperVals SegmentValueProvider, 
 	return newIPv6AddressZoned(section, zone)
 }
 
+// NewIPv6AddressFromMACSection constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address and an IPv6 address 64-bit prefix.
+//
+// If the supplied MAC address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
+// with the ff-fe section in the middle.
+//
+// If the supplied MAC address section is a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
+//
+// The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
+//
+// The IPv6 address section must be at least 8 bytes.
+//
+// Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
+//
+// The error is either an AddressValueError for sections that are of insufficient segment count,
+// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
+func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
+	zone := prefix.GetZone()
+	zoneStr := NoZone
+	if len(zone) > 0 {
+		zoneStr = string(zone)
+	}
+	prefixSection := prefix.GetSection()
+	return newIPv6AddressFromMAC(prefixSection, suffix.GetSection(), zoneStr)
+}
+
+// when this is called, we know the sections are sufficient length
+func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, IncompatibleAddressError) {
+	prefixLen := prefixSection.GetPrefixLen()
+	if prefixLen != nil && *prefixLen > *getNetworkPrefixLength(IPv6BitsPerSegment, 0, 4) {
+		prefixLen = nil
+	}
+	segments := createSegmentArray(8)
+	if err := toEUI64Segments(segments, 4, suffix, prefixLen); err != nil {
+		return nil, err
+	}
+	prefixSection.copySubSegmentsToSlice(0, 4, segments)
+	res := createIPv6Section(segments)
+	res.isMultiple = suffix.IsMultiple() || prefixSection.isMultipleTo(4)
+	return newIPv6AddressZoned(res, string(zone)), nil
+}
+
+// NewIPv6AddressFromMACSection constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address section and an IPv6 address section network prefix.
+//
+// If the supplied MAC address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
+// with the ff-fe section in the middle.
+//
+// If the supplied MAC address section is a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
+//
+// The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
+//
+// The IPv6 address section must be at least 8 bytes.
+//
+// Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
+//
+// The error is either an AddressValueError for sections that are of insufficient segment count,
+// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
+func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
+	suffixSegCount := suffix.GetSegmentCount()
+	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
+		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	}
+	return newIPv6AddressFromMAC(prefix, suffix, NoZone)
+}
+
+func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
+	suffixSegCount := suffix.GetSegmentCount()
+	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
+		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	}
+	return newIPv6AddressFromMAC(prefix, suffix, zone)
+}
+
 var zeroIPv6 = initZeroIPv6()
 
 func initZeroIPv6() *IPv6Address {
 	div := NewIPv6Segment(0).ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div, div, div, div, div}
-	section, _ := newIPv6Section(segs, 0, false)
+	section := newIPv6SectionParsed(segs)
 	return newIPv6Address(section)
 }
-
-// TODO survey the IPv6 API (ie take a look at java to see what we are missing), I've already surveyed IPAddress API
-// result, missing:
-//isEUI64
-//toConvertedString
-//toEUI
 
 //
 //
@@ -1018,6 +1084,77 @@ func (addr *IPv6Address) GetLeadingBitCount(ones bool) BitCount {
 
 func (addr *IPv6Address) GetTrailingBitCount(ones bool) BitCount {
 	return addr.GetSection().GetTrailingBitCount(ones)
+}
+
+func (addr *IPv6Address) IsEUI64() bool {
+	return addr.GetSegment(6).MatchesWithPrefixMask(0xfe00, 8) &&
+		addr.GetSegment(5).MatchesWithMask(0xff, 0xff)
+}
+
+// ToEUI converts to the associated MACAddress.
+// An error is returned if the 0xfffe pattern is missing in segments 5 and 6,
+// or if an IPv6 segment's range of values cannot be split into two ranges of values.
+func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
+	segs, err := addr.toEUISegments(extended)
+	if err != nil {
+		return nil, err
+	}
+	sect := newMACSectionParsed(segs)
+	return newMACAddress(sect), nil
+}
+
+//prefix length in this section is ignored when converting to MAC
+func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, IncompatibleAddressError) {
+	seg1 := addr.GetSegment(5)
+	seg2 := addr.GetSegment(6)
+	if !seg1.MatchesWithMask(0xff, 0xff) || !seg2.MatchesWithPrefixMask(0xfe00, 8) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	}
+	macStartIndex := 0
+	var macSegCount int
+	if extended {
+		macSegCount = ExtendedUniqueIdentifier64SegmentCount
+	} else {
+		macSegCount = ExtendedUniqueIdentifier48SegmentCount
+	}
+	newSegs := createSegmentArray(macSegCount)
+	seg0 := addr.GetSegment(4)
+	if err := seg0.getSplitMACSegments(newSegs, macStartIndex); err != nil {
+		return nil, err
+	}
+	//toggle the u/l bit
+	macSegment0 := newSegs[0].ToMACAddressSegment()
+	lower0 := macSegment0.GetSegmentValue()
+	upper0 := macSegment0.GetUpperSegmentValue()
+	mask2ndBit := SegInt(0x2)
+	if !macSegment0.MatchesWithMask(mask2ndBit&lower0, mask2ndBit) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	}
+	lower0 ^= mask2ndBit //flip the universal/local bit
+	upper0 ^= mask2ndBit
+	newSegs[0] = NewMACRangeSegment(MACSegInt(lower0), MACSegInt(upper0)).ToAddressDivision()
+	macStartIndex += 2
+	if err := seg1.getSplitMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
+		return nil, err
+	}
+	if extended {
+		macStartIndex += 2
+		if err := seg2.getSplitSegments(newSegs, macStartIndex); err != nil {
+			return nil, err
+		}
+	} else {
+		first := newSegs[macStartIndex]
+		if err := seg2.getSplitSegments(newSegs, macStartIndex); err != nil {
+			return nil, err
+		}
+		newSegs[macStartIndex] = first
+	}
+	macStartIndex += 2
+	seg3 := addr.GetSegment(7)
+	if err := seg3.getSplitSegments(newSegs, macStartIndex); err != nil {
+		return nil, err
+	}
+	return newSegs, nil
 }
 
 func (addr IPv6Address) String() string {

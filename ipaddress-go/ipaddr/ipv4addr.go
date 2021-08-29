@@ -125,12 +125,7 @@ func initZeroIPv4() *IPv4Address {
 	return newIPv4Address(section)
 }
 
-// TODO survey the  IPv4 API, I've already surveyed IPAddress API
-// result: missing:
-// GetIPv4MappedAddress()
-// GetIPv6Address(segs)
-// ToBroadcastAddress()
-// ToNetworkAddress()
+// TODO GetIPv4MappedAddress() and GetIPv6Address(segs)
 
 //
 //
@@ -261,6 +256,7 @@ func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err Inco
 	return addr.maskPrefixed(other, false)
 }
 
+//TODO same as below, KISS, don't drop the prefix
 func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
@@ -528,6 +524,22 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	}
 	addr = addr.init().WithoutPrefixLen()
 	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.IsMultiple()).ToIPv4SequentialRange()
+}
+
+// ToBroadcastAddress returns the broadcast address.
+// The broadcast address has the same prefix but a host that is all 1 bits.
+// If this address or subnet is not prefixed, this returns the address of all 1 bits, the "max" address.
+// This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all ones and remain a range of consecutive values.
+func (addr *IPv4Address) ToBroadcastAddress() (*IPv4Address, IncompatibleAddressError) {
+	return addr.ToMaxHost()
+}
+
+// ToNetworkAddress returns the network address.
+// The network address has the same prefix but a zero host.
+// If this address or subnet is not prefixed, this returns the zero "any" address.
+// This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all zeros and remain a range of consecutive values.
+func (addr *IPv4Address) ToNetworkAddress() (*IPv4Address, IncompatibleAddressError) {
+	return addr.ToZeroHost()
 }
 
 func (addr *IPv4Address) ToAddressString() *IPAddressString {

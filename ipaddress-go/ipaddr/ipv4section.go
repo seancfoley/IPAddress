@@ -42,7 +42,7 @@ func newIPv4Section(segments []*AddressDivision, normalizeSegments bool) (res *I
 	prefLen := res.prefixLength
 	if normalizeSegments && prefLen != nil {
 		normalizePrefixBoundary(*prefLen, segments, IPv4BitsPerSegment, IPv4BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-			return NewIPv4RangePrefixSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToAddressDivision()
+			return NewIPv4RangePrefixedSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToAddressDivision()
 		})
 	}
 	return
@@ -879,7 +879,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
 }
 
-func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
+func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string { //TODO make this public and add to IPv4Address? or is ToCustomString the answer? We also need a ToCustomStringZoned in IPv6
 	return toNormalizedIPString(stringOptions, section)
 }
 

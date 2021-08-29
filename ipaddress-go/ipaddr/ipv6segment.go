@@ -176,12 +176,12 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
 //		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
 //		if index >= 0 && index < boundaryIndex {
-//			seg := NewIPv4PrefixSegment(IPv4SegInt(seg.highByte()), highPrefixBits)
+//			seg := NewIPv4PrefixedSegment(IPv4SegInt(seg.highByte()), highPrefixBits)
 //			target(index, seg)
 //		}
 //		index++
 //		if index >= 0 && index < boundaryIndex {
-//			seg := NewIPv4PrefixSegment(IPv4SegInt(seg.lowByte()), lowPrefixBits)
+//			seg := NewIPv4PrefixedSegment(IPv4SegInt(seg.lowByte()), lowPrefixBits)
 //			target(index, seg)
 //		}
 //	} else {
@@ -197,10 +197,10 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //		highUpper := highByteIpv6(seg.GetUpperSegmentValue())
 //		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
 //		if highLower == highUpper {
-//			seg := NewIPv4PrefixSegment(IPv4SegInt(highLower), highPrefixBits)
+//			seg := NewIPv4PrefixedSegment(IPv4SegInt(highLower), highPrefixBits)
 //			target(index, seg)
 //		} else {
-//			seg := NewIPv4RangePrefixSegment(IPv4SegInt(highLower), IPv4SegInt(highUpper), highPrefixBits)
+//			seg := NewIPv4RangePrefixedSegment(IPv4SegInt(highLower), IPv4SegInt(highUpper), highPrefixBits)
 //			target(index, seg)
 //		}
 //	}
@@ -210,10 +210,10 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //		lowUpper := lowByteIpv6(seg.GetUpperSegmentValue())
 //		lowPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 1)
 //		if lowLower == lowUpper {
-//			seg := NewIPv4PrefixSegment(IPv4SegInt(lowLower), lowPrefixBits)
+//			seg := NewIPv4PrefixedSegment(IPv4SegInt(lowLower), lowPrefixBits)
 //			target(index, seg)
 //		} else {
-//			seg := NewIPv4RangePrefixSegment(IPv4SegInt(lowLower), IPv4SegInt(lowUpper), lowPrefixBits)
+//			seg := NewIPv4RangePrefixedSegment(IPv4SegInt(lowLower), IPv4SegInt(lowUpper), lowPrefixBits)
 //			target(index, seg)
 //		}
 //	}
@@ -306,14 +306,21 @@ func lowByteIpv6(value SegInt) SegInt {
 func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, index int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
-		segs[index] = NewIPv4RangePrefixSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
+		segs[index] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
 	}, len(segs), index)
 }
 
 func (seg *IPv6AddressSegment) getSplitSegments(segs []*AddressDivision, index int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
-		segs[index] = NewIPv4RangePrefixSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen).ToAddressDivision()
+		segs[index] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen).ToAddressDivision()
+	}, len(segs), index)
+}
+
+func (seg *IPv6AddressSegment) getSplitMACSegments(segs []*AddressDivision, index int) IncompatibleAddressError {
+	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
+	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
+		segs[index] = NewMACRangeSegment(MACSegInt(value), MACSegInt(upperValue)).ToAddressDivision()
 	}, len(segs), index)
 }
 
@@ -381,11 +388,11 @@ func NewIPv6RangeSegment(val, upperVal IPv6SegInt) *IPv6AddressSegment {
 	return newIPv6Segment(newIPv6SegmentPrefixedValues(val, upperVal, nil))
 }
 
-func NewIPv6PrefixSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
+func NewIPv6PrefixedSegment(val IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
 	return newIPv6Segment(newIPv6SegmentPrefixedVal(val, prefixLen))
 }
 
-func NewIPv6RangePrefixSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
+func NewIPv6RangePrefixedSegment(val, upperVal IPv6SegInt, prefixLen PrefixLen) *IPv6AddressSegment {
 	return newIPv6Segment(newIPv6SegmentPrefixedValues(val, upperVal, prefixLen))
 }
 
