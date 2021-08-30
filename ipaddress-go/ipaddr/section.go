@@ -461,46 +461,6 @@ func (section *addressSectionInternal) visitSubSegments(start, end int, target f
 	return index - start
 }
 
-//func (section *addressSectionInternal) visitSubSegments(start, end int, target func(index int, div *AddressDivision) (stop bool), targetLen int) (count int) {
-//	if section.hasNoDivisions() {
-//		return
-//	}
-//	targetIndex := 0
-//	if start < 0 {
-//		targetIndex -= start
-//		start = 0
-//		if targetIndex >= targetLen {
-//			return
-//		}
-//	}
-//	// how many to copy?
-//	sourceLen := section.GetDivisionCount()
-//	if end > sourceLen {
-//		end = sourceLen
-//	}
-//	calcCount := end - start
-//	if calcCount <= 0 {
-//		return
-//	}
-//	// if not enough space, adjust count and end
-//	space := targetLen - targetIndex
-//	if calcCount > space {
-//		count = space
-//		end = start + space
-//	} else {
-//		count = calcCount
-//	}
-//	// now copy
-//	for start < end {
-//		if target(targetIndex, section.getDivision(start)) {
-//			break
-//		}
-//		targetIndex++
-//		start++
-//	}
-//	return
-//}
-
 func (section *addressSectionInternal) getLowestHighestSections() (lower, upper *AddressSection) {
 	if !section.IsMultiple() {
 		lower = section.toAddressSection()

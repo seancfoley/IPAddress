@@ -451,6 +451,10 @@ func (grouping standardDivArray) getSubDivisions(index, endIndex int) (divs []*A
 	return grouping.divisions[index:endIndex]
 }
 
+func (grouping standardDivArray) getDivisions() (divs []*AddressDivision) {
+	return grouping.divisions
+}
+
 func (grouping standardDivArray) init() standardDivArray {
 	if grouping.divisions == nil {
 		return zeroStandardDivArray

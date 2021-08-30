@@ -200,6 +200,42 @@ func (seg *MACAddressSegment) ReverseBytes() (*MACAddressSegment, IncompatibleAd
 	return seg, nil
 }
 
+// Join joins with another MAC segment to produce a IPv6 segment.
+func (seg *MACAddressSegment) Join(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+	return seg.joinSegs(macSegment1, false, prefixLength)
+}
+
+//TODO think a bit more about making these two above and below public
+
+// Join joins with another MAC segment to produce a IPv6 segment with the second bit flipped from 1 to 0.
+func (seg *MACAddressSegment) JoinAndFlip2ndBit(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+	return seg.joinSegs(macSegment1, true, prefixLength)
+}
+
+func (seg *MACAddressSegment) joinSegs(macSegment1 *MACAddressSegment, flip bool, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+	if seg.isMultiple() {
+		// if the high segment has a range, the low segment must match the full range,
+		// otherwise it is not possible to create an equivalent range when joining
+		if !macSegment1.IsFullRange() {
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalidMACIPv6Range"}}
+		}
+	}
+	lower0 := seg.GetSegmentValue()
+	upper0 := seg.GetUpperSegmentValue()
+	if flip {
+		mask2ndBit := SegInt(0x2)
+		if !seg.MatchesWithMask(mask2ndBit&lower0, mask2ndBit) { // ensures that bit remains constant
+			return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+		}
+		lower0 ^= mask2ndBit //flip the universal/local bit
+		upper0 ^= mask2ndBit
+	}
+	return NewIPv6RangePrefixedSegment(
+		IPv6SegInt((lower0<<8)|macSegment1.getSegmentValue()),
+		IPv6SegInt((upper0<<8)|macSegment1.getUpperSegmentValue()),
+		prefixLength), nil
+}
+
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	if seg == nil {
 		return nil

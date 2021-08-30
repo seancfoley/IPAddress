@@ -310,14 +310,14 @@ func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, inde
 	}, len(segs), index)
 }
 
-func (seg *IPv6AddressSegment) getSplitSegments(segs []*AddressDivision, index int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) SplitIntoIPv4Segments(segs []*AddressDivision, index int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		segs[index] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen).ToAddressDivision()
 	}, len(segs), index)
 }
 
-func (seg *IPv6AddressSegment) getSplitMACSegments(segs []*AddressDivision, index int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) SplitIntoMACSegments(segs []*AddressDivision, index int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		segs[index] = NewMACRangeSegment(MACSegInt(value), MACSegInt(upperValue)).ToAddressDivision()

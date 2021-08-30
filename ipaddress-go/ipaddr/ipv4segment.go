@@ -191,6 +191,40 @@ func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, Incompatible
 	return seg, nil
 }
 
+//TODO think some more about whether Join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.
+
+// Join joins with another IPv4 segment to produce a IPv6 segment.
+func (seg *IPv4AddressSegment) Join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {
+	prefixLength := seg.getJoinedSegmentPrefixLen(low.GetSegmentPrefixLen())
+	if seg.IsMultiple() {
+		// if the high segment has a range, the low segment must match the full range,
+		// otherwise it is not possible to create an equivalent range when joining
+		if !low.IsFullRange() {
+			return nil, &incompatibleAddressError{
+				addressError: addressError{
+					key: "ipaddress.error.invalidMixedRange",
+				},
+			}
+
+		}
+	}
+	return NewIPv6RangePrefixedSegment(
+		IPv6SegInt((seg.GetSegmentValue()<<8)|low.getSegmentValue()),
+		IPv6SegInt((seg.GetUpperSegmentValue()<<8)|low.getUpperSegmentValue()),
+		prefixLength), nil
+}
+
+func (seg *IPv4AddressSegment) getJoinedSegmentPrefixLen(lowBits PrefixLen) PrefixLen {
+	highBits := seg.GetSegmentPrefixLen()
+	if lowBits == nil {
+		return nil
+	}
+	if *lowBits == 0 {
+		return highBits
+	}
+	return cacheBitCount(*lowBits + IPv4BitsPerSegment)
+}
+
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }

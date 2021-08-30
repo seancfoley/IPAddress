@@ -225,7 +225,7 @@ func NewIPv6AddressFromPrefixedZonedRange(vals, upperVals SegmentValueProvider, 
 // Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
 // The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// or IncompatibleAddressError when attempting to Join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
 	zone := prefix.GetZone()
 	zoneStr := NoZone
@@ -243,7 +243,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 		prefixLen = nil
 	}
 	segments := createSegmentArray(8)
-	if err := toEUI64Segments(segments, 4, suffix, prefixLen); err != nil {
+	if err := toIPv6SegmentsFromEUI(segments, 4, suffix, prefixLen); err != nil {
 		return nil, err
 	}
 	prefixSection.copySubSegmentsToSlice(0, 4, segments)
@@ -266,7 +266,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 // Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
 // The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// or IncompatibleAddressError when attempting to Join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
 	suffixSegCount := suffix.GetSegmentCount()
 	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
@@ -286,7 +286,7 @@ func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSe
 var zeroIPv6 = initZeroIPv6()
 
 func initZeroIPv6() *IPv6Address {
-	div := NewIPv6Segment(0).ToAddressDivision()
+	div := zeroIPv6Seg.ToAddressDivision()
 	segs := []*AddressDivision{div, div, div, div, div, div, div, div}
 	section := newIPv6SectionParsed(segs)
 	return newIPv6Address(section)
@@ -421,6 +421,11 @@ func (addr *IPv6Address) GetEmbeddedIPv4AddressAt(byteIndex int) (*IPv4Address, 
 		return nil, err
 	}
 	return newIPv4Address(section), nil
+}
+
+// GetIPv6Address creates an IPv6 mixed address using the given address for the trailing embedded IPv4 segments
+func (addr *IPv6Address) GetIPv6Address(embedded IPv4Address) (*IPv6Address, IncompatibleAddressError) {
+	return embedded.getIPv6Address(addr.init().getDivisionsInternal())
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -1119,7 +1124,7 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	}
 	newSegs := createSegmentArray(macSegCount)
 	seg0 := addr.GetSegment(4)
-	if err := seg0.getSplitMACSegments(newSegs, macStartIndex); err != nil {
+	if err := seg0.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
 		return nil, err
 	}
 	//toggle the u/l bit
@@ -1127,31 +1132,31 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	lower0 := macSegment0.GetSegmentValue()
 	upper0 := macSegment0.GetUpperSegmentValue()
 	mask2ndBit := SegInt(0x2)
-	if !macSegment0.MatchesWithMask(mask2ndBit&lower0, mask2ndBit) {
+	if !macSegment0.MatchesWithMask(mask2ndBit&lower0, mask2ndBit) { // ensures that bit remains constant
 		return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
 	}
 	lower0 ^= mask2ndBit //flip the universal/local bit
 	upper0 ^= mask2ndBit
 	newSegs[0] = NewMACRangeSegment(MACSegInt(lower0), MACSegInt(upper0)).ToAddressDivision()
 	macStartIndex += 2
-	if err := seg1.getSplitMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
+	if err := seg1.SplitIntoMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
 		return nil, err
 	}
 	if extended {
 		macStartIndex += 2
-		if err := seg2.getSplitSegments(newSegs, macStartIndex); err != nil {
+		if err := seg2.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 	} else {
 		first := newSegs[macStartIndex]
-		if err := seg2.getSplitSegments(newSegs, macStartIndex); err != nil {
+		if err := seg2.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 		newSegs[macStartIndex] = first
 	}
 	macStartIndex += 2
 	seg3 := addr.GetSegment(7)
-	if err := seg3.getSplitSegments(newSegs, macStartIndex); err != nil {
+	if err := seg3.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
 		return nil, err
 	}
 	return newSegs, nil

@@ -125,8 +125,6 @@ func initZeroIPv4() *IPv4Address {
 	return newIPv4Address(section)
 }
 
-// TODO GetIPv4MappedAddress() and GetIPv6Address(segs)
-
 //
 //
 // IPv4Address is an IPv4 address, or a subnet of multiple IPv4 addresses.  Each segment can represent a single value or a range of values.
@@ -753,6 +751,7 @@ func (addr *IPv4Address) ReplaceLen(startIndex, endIndex int, replacement *IPv4A
 		return addr
 	}
 	count := endIndex - startIndex
+	addr = addr.init()
 	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement.GetSection(), replacementIndex, replacementIndex+count))
 }
 
@@ -762,6 +761,7 @@ func (addr *IPv4Address) Replace(startIndex int, replacement *IPv4AddressSection
 	startIndex, endIndex, replacementIndex :=
 		adjust1To1Indices(startIndex, startIndex+replacement.GetSegmentCount(), IPv4SegmentCount, 0, replacement.GetSegmentCount())
 	count := endIndex - startIndex
+	addr = addr.init()
 	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement, replacementIndex, replacementIndex+count))
 }
 
@@ -771,6 +771,69 @@ func (addr *IPv4Address) GetLeadingBitCount(ones bool) BitCount {
 
 func (addr *IPv4Address) GetTrailingBitCount(ones bool) BitCount {
 	return addr.GetSection().GetTrailingBitCount(ones)
+}
+
+// GetIPv6Addresscreates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
+func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
+	if len(segs) < IPv6MixedOriginalSegmentCount {
+		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	}
+	newSegs := createSegmentArray(IPv6SegmentCount)
+	for i, seg := range segs[:IPv6MixedOriginalSegmentCount] {
+		newSegs[i] = seg.ToAddressDivision()
+	}
+	sect, err := createMixedSection(newSegs, addr)
+	if err != nil {
+		return nil, err
+	}
+	return newIPv6Address(sect), nil
+}
+
+func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, IncompatibleAddressError) {
+	zero := zeroIPv6Seg.ToAddressDivision()
+	segs := createSegmentArray(IPv6SegmentCount)
+	segs[0], segs[1], segs[2], segs[3], segs[4] = zero, zero, zero, zero, zero
+	segs[5] = NewIPv6Segment(IPv6MaxValuePerSegment).ToAddressDivision()
+	var sect *IPv6AddressSection
+	sect, err := createMixedSection(segs, addr)
+	if err != nil {
+		return nil, err
+	}
+	return newIPv6Address(sect), nil
+}
+
+// returns an error if the first or 3rd segments have a range of values that cannot be combined with their neighbouting segments into IPv6 segments
+func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Address, IncompatibleAddressError) {
+	newSegs := createSegmentArray(IPv6SegmentCount)
+	copy(newSegs, ipv6Segs)
+	sect, err := createMixedSection(newSegs, addr)
+	if err != nil {
+		return nil, err
+	}
+	return newIPv6Address(sect), nil
+}
+
+func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4Address) (res *IPv6AddressSection, err IncompatibleAddressError) {
+	ipv4Section := mixedSection.GetSection()
+	var seg *IPv6AddressSegment
+	if seg, err = ipv4Section.GetSegment(0).Join(ipv4Section.GetSegment(1)); err == nil {
+		newIPv6Divisions[6] = seg.ToAddressDivision()
+		if seg, err = ipv4Section.GetSegment(2).Join(ipv4Section.GetSegment(3)); err == nil {
+			newIPv6Divisions[7] = seg.ToAddressDivision()
+			result := newIPv6SectionParsed(newIPv6Divisions)
+			mixedGrouping := newIPv6v4MixedGrouping(
+				result.createNonMixedSection(),
+				ipv4Section,
+			)
+			mixed := &mixedCache{
+				defaultMixedAddressSection: mixedGrouping,
+				embeddedIPv6Section:        mixedGrouping.GetIPv6AddressSection(),
+				embeddedIPv4Section:        mixedGrouping.GetIPv4AddressSection(),
+			}
+			result.cache.mixed = mixed
+		}
+	}
+	return
 }
 
 func (addr IPv4Address) String() string {
@@ -845,10 +908,6 @@ func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
 func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
 	return addr.init().GetSection().ToInetAtonJoinedString(radix, joinedCount)
 }
-
-//func (addr *IPv4Address) CompareSize(other *IPv4Address) int {
-//	return addr.initMultAndPrefLen().CompareSize(other.ToIPAddress())
-//}
 
 func (addr *IPv4Address) ToAddress() *Address {
 	if addr != nil {

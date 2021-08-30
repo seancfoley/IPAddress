@@ -142,7 +142,7 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 	return
 }
 
-// TODO NEXT time to do the mac ipv6 stuff and the rest of these methods
+// TODO NEXT   the rest of these methods
 // result: missing:
 // getDottedAddress
 // getODISection

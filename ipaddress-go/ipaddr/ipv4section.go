@@ -90,7 +90,7 @@ func NewIPv4SectionFromPrefixedUint32(bytes uint32, segmentCount int, prefixLeng
 		uint64(bytes),
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
-		DefaultIPv6Network.getIPAddressCreator(),
+		DefaultIPv4Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
 	if prefixLength != nil {

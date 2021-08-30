@@ -78,7 +78,7 @@ func (grouping *addressDivisionGroupingInternal) getDivision(index int) *Address
 func (grouping *addressDivisionGroupingInternal) getDivisionsInternal() []*AddressDivision {
 	divsArray := grouping.divisions
 	if divsArray != nil {
-		return divsArray.(standardDivArray).divisions
+		return divsArray.(standardDivArray).getDivisions()
 	}
 	return nil
 }
@@ -642,9 +642,14 @@ type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
 
-//func (grouping *AddressDivisionGrouping) ContainsPrefixBlock(prefixLen BitCount) bool {
-//	return grouping.containsPrefixBlock(prefixLen)
-//}
+//TODO we have CopySubDivisions/CopyDivisions.  Used nowhere.
+// We have copySubSegmentsToSlice used in a variety of places.  INcluding CopySubSegments and CopySegments.
+// One big difference is the handling of indices.  copySubSegmentsToSlice is very forgiving, using adjust1To1Indices.
+// But, CopySubDivisions/CopyDivisions uses the copy function, which is a bit forgiving.
+// So, do we need both?
+// I'm thinking that these two need to go, OR, they need to do the same as copySubSegmentsToSlice.
+// We certainly cannot tolerate behaviour different from CopySubSegments/CopySegments
+// We may be able to just use adjust1To1Indices and thus continue to use "copy"
 
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
