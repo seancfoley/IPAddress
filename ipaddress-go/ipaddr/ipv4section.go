@@ -860,7 +860,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		thisSeg := section.GetSegment(firstJoinedIndex + j)
 		if firstRange != nil {
 			if !thisSeg.IsFullRange() {
-				return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.segmentMismatch"}}
+				return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalidMixedRange"}}
 			}
 		} else if thisSeg.isMultiple() {
 			firstRange = thisSeg
@@ -879,7 +879,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
 }
 
-func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string { //TODO make this public and add to IPv4Address? or is ToCustomString the answer? We also need a ToCustomStringZoned in IPv6
+func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
 }
 

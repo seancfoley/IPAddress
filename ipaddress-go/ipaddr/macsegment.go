@@ -99,6 +99,7 @@ func (seg *macSegmentValues) getCache() *divCache {
 var _ divisionValues = &macSegmentValues{}
 
 var zeroMACSeg = NewMACSegment(0)
+var allRangeMACSeg = NewMACRangeSegment(0, MACMaxValuePerSegment)
 
 type MACAddressSegment struct {
 	addressSegmentInternal

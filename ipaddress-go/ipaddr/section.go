@@ -66,19 +66,6 @@ type addressSectionInternal struct {
 	addressDivisionGroupingInternal
 }
 
-// error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) initMultiple() {
-	segCount := section.GetSegmentCount()
-	for i := segCount - 1; i >= 0; i-- {
-		segment := section.GetSegment(i)
-		if segment.IsMultiple() {
-			section.isMultiple = true
-			return
-		}
-	}
-	return
-}
-
 // error returned for nil sements
 func (section *addressSectionInternal) initMult() AddressValueError {
 	segCount := section.GetSegmentCount()
@@ -344,8 +331,8 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	}
 	segs := section.getSubDivisions(index, endIndex)
 	newPrefLen := section.GetPrefixLen()
-	if newPrefLen != nil && index != 0 {
-		newPrefLen = getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index)
+	if newPrefLen != nil {
+		newPrefLen = getAdjustedPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index, endIndex)
 	}
 	addrType := section.getAddrType()
 	if !section.IsMultiple() {

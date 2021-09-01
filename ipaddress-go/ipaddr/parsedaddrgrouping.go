@@ -44,6 +44,21 @@ func getSegmentPrefixLength(bitsPerSegment BitCount, prefixLength PrefixLen, seg
 	return nil
 }
 
+func getAdjustedPrefixLength(bitsPerSegment BitCount, prefixLength BitCount, fromIndex, endIndex int) PrefixLen {
+	var decrement, totalBits int
+	if bitsPerSegment == 8 {
+		decrement = fromIndex << ipv4BitsToSegmentBitshift
+		totalBits = endIndex << ipv4BitsToSegmentBitshift
+	} else if bitsPerSegment == 16 {
+		decrement = fromIndex << ipv6BitsToSegmentBitshift
+		totalBits = endIndex << ipv6BitsToSegmentBitshift
+	} else {
+		decrement = fromIndex * int(bitsPerSegment)
+		totalBits = endIndex * int(bitsPerSegment)
+	}
+	return getDivisionPrefixLength(BitCount(totalBits), prefixLength-BitCount(decrement))
+}
+
 func getPrefixedSegmentPrefixLength(bitsPerSegment BitCount, prefixLength BitCount, segmentIndex int) PrefixLen {
 	var decrement int
 	if bitsPerSegment == 8 {

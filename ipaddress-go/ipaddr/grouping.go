@@ -34,7 +34,7 @@ func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, add
 
 func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
 	result := createGrouping(divs, prefixLength, addrType)
-	result.init() // assigns isMultiple
+	result.initMultiple() // assigns isMultiple
 	return result
 }
 
@@ -65,6 +65,18 @@ func createSegmentArray(length int) []*AddressDivision {
 	return make([]*AddressDivision, length)
 }
 
+func (grouping *addressDivisionGroupingInternal) initMultiple() {
+	divCount := grouping.getDivisionCount()
+	for i := divCount - 1; i >= 0; i-- {
+		div := grouping.getDivision(i)
+		if div.IsMultiple() {
+			grouping.isMultiple = true
+			return
+		}
+	}
+	return
+}
+
 // getDivision returns the division or panics if the index is negative or too large
 func (grouping *addressDivisionGroupingInternal) getDivision(index int) *AddressDivision {
 	divsArray := grouping.divisions
@@ -81,6 +93,14 @@ func (grouping *addressDivisionGroupingInternal) getDivisionsInternal() []*Addre
 		return divsArray.(standardDivArray).getDivisions()
 	}
 	return nil
+}
+
+func (grouping *addressDivisionGroupingInternal) getDivisionCount() int {
+	divsArray := grouping.divisions
+	if divsArray != nil {
+		return divsArray.(standardDivArray).getDivisionCount()
+	}
+	return 0
 }
 
 // copySubDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -230,7 +250,7 @@ func (grouping *addressDivisionGroupingInternal) matchesMACSectionType() bool {
 	return addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
-func (grouping *addressDivisionGroupingInternal) init() *addressDivisionGroupingInternal {
+func (grouping *addressDivisionGroupingInternal) initDivs() *addressDivisionGroupingInternal {
 	if grouping.divisions == nil {
 		return &zeroSection.addressDivisionGroupingInternal
 	}
@@ -241,7 +261,7 @@ func (grouping addressDivisionGroupingInternal) String() string {
 	if sect := grouping.toAddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	}
-	return fmt.Sprintf("%v", grouping.init().divisions)
+	return fmt.Sprintf("%v", grouping.initDivs().divisions)
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {

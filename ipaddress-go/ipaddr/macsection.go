@@ -468,7 +468,62 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 		})
 }
 
-func (section *MACAddressSection) GetDottedGrouping() (AddressDivisionSeries, IncompatibleAddressError) {
+//func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping, IncompatibleAddressError) {
+//	segmentCount := section.GetSegmentCount()
+//	//AddressDivision newSegs[];
+//	origBitsPerSegment := section.GetBitsPerSegment()
+//	newSegmentBitCount := origBitsPerSegment << 1
+//	var segIndex, newSegIndex int
+//
+//	newSegmentCount := (segmentCount + 1) >> 1
+//	newSegs := make([]*AddressDivision, newSegmentCount)
+//	//newSegIndex = segIndex = 0;
+//
+//	uBitsPerSegment := uint(origBitsPerSegment)
+//	for segIndex+1 < segmentCount {
+//		segment1 := section.GetSegment(segIndex)
+//		segIndex++
+//		segment2 := section.GetSegment(segIndex)
+//		segIndex++
+//		if segment1.IsMultiple() && !segment2.IsFullRange() {
+//			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+//			//throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
+//		}
+//		newSeg := NewRangeDivision(
+//			DivInt((segment1.GetSegmentValue()<<uBitsPerSegment)|segment2.GetSegmentValue()),
+//			DivInt((segment1.GetUpperSegmentValue()<<uBitsPerSegment)|segment2.GetUpperSegmentValue()),
+//			newSegmentBitCount,
+//			MACDefaultTextualRadix)
+//		//AddressDivision newSeg = new AddressBitsDivision(
+//		//		(segment1.getSegmentValue() << getBitsPerSegment()) | segment2.getSegmentValue(),
+//		//		(segment1.getUpperSegmentValue() << getBitsPerSegment()) | segment2.getUpperSegmentValue(),
+//		//		newSegmentBitCount,
+//		//		MACAddress.DEFAULT_TEXTUAL_RADIX);
+//		newSegs[newSegIndex] = newSeg
+//		newSegIndex++
+//	}
+//	if segIndex < segmentCount {
+//		segment := section.GetSegment(segIndex)
+//		newSegs[newSegIndex] = NewRangeDivision(
+//			DivInt(segment.getSegmentValue()<<uBitsPerSegment),
+//			DivInt(segment.getUpperSegmentValue()<<uBitsPerSegment),
+//			newSegmentBitCount,
+//			MACDefaultTextualRadix)
+//	}
+//	dottedGrouping := createInitializedGrouping(newSegs, section.GetPrefixLen(), zeroType)
+//	//AddressDivisionGrouping dottedGrouping;
+//	//if(cachedPrefixLength == null) {
+//	//	dottedGrouping = new AddressDivisionGrouping(newSegs);
+//	//} else {
+//	//	Integer prefLength = cachedPrefixLength;
+//	//	dottedGrouping = new AddressDivisionGrouping(newSegs) {{
+//	//		cachedPrefixLength = prefLength;
+//	//	}};
+//	//}
+//	return dottedGrouping, nil
+//}
+
+func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping, IncompatibleAddressError) {
 	//start := section.addressSegmentIndex
 	segmentCount := section.GetSegmentCount()
 	var newSegs []*AddressDivision

@@ -1008,6 +1008,8 @@ func (section *IPv6AddressSection) toCompressedWildcardStringZoned(zone Zone) st
 	return section.toNormalizedZonedString(wildcardCompressedParams, zone)
 }
 
+// ToCustomString produces a string given the string options.
+// Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when the segment ranges are incompatible.
 func (section *IPv6AddressSection) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
 	return section.toCustomString(stringOptions, NoZone)
 }

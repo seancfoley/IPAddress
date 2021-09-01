@@ -8,13 +8,11 @@ import (
 )
 
 const (
-	MACBitsPerSegment  BitCount = 8
-	MACBytesPerSegment          = 1
-	//MACByteCount                    = 4
-	//MACBitCount             = 32
-	MACDefaultTextualRadix      = 16
-	MACMaxValuePerSegment       = 0xff
-	MACMaxValuePerDottedSegment = 0xffff
+	MACBitsPerSegment           BitCount = 8
+	MACBytesPerSegment                   = 1
+	MACDefaultTextualRadix               = 16
+	MACMaxValuePerSegment                = 0xff
+	MACMaxValuePerDottedSegment          = 0xffff
 
 	MediaAccessControlSegmentCount         = 6
 	MediaAccessControlDottedSegmentCount   = 3
@@ -23,7 +21,6 @@ const (
 	ExtendedUniqueIdentifier64SegmentCount = 8
 
 	MACOrganizationalUniqueIdentifierSegmentCount = 3
-	//public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_BIT_COUNT = ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT * BITS_PER_SEGMENT;
 
 	MACSegmentMaxChars = 2
 
@@ -144,19 +141,15 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 
 // TODO NEXT   the rest of these methods
 // result: missing:
-// getDottedAddress
-// getODISection
-//getOUISection
-//isEUI64
-//toEUI64
-//toEUI64IPv6
-//toLinkLocalIPv6
+// isEUI64
+// toEUI64
+// toEUI64IPv6
+// toLinkLocalIPv6
 //TODO The toNOrmalizedString that takes the string options,
 //		compare with ipv4 and ipv6 - ok did the compare,
 //		there is ToCustomString and it seems that covers ipv4, ipv6 and mac sections,
 // 		but we need to add to ipv4/6/mac addresses
-//		and ipv6 address needs ToCustomStringZoned
-//toOUIPrefixBlock
+//		and ipv6 address needs ToCustomZonedString
 
 //func NewMACAddressInternal(section *MACAddressSection, originator *MACAddressString) *MACAddress {
 //	res := NewMACAddress(section)
@@ -502,6 +495,44 @@ func (addr *MACAddress) Replace(startIndex int, replacement *MACAddressSection) 
 	return addr.checkIdentity(addr.GetSection().ReplaceLen(startIndex, endIndex, replacement, replacementIndex, replacementIndex+count))
 }
 
+func (addr *MACAddress) GetOUISection() *MACAddressSection {
+	return addr.GetSubSection(0, MACOrganizationalUniqueIdentifierSegmentCount)
+}
+
+func (addr *MACAddress) GetODISection() *MACAddressSection {
+	return addr.GetTrailingSection(MACOrganizationalUniqueIdentifierSegmentCount)
+}
+
+// Returns a section in which the range of values match the full block for the OUI (organizationally unique identifier) bytes
+func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
+	segmentCount := addr.GetSegmentCount()
+	currentPref := addr.GetPrefixLen()
+	newPref := BitCount(MACOrganizationalUniqueIdentifierSegmentCount) << 3 //ouiSegmentCount * MACAddress.BITS_PER_SEGMENT
+	createNew := currentPref == nil || *currentPref > newPref
+	if !createNew {
+		newPref = *currentPref
+		for i := MACOrganizationalUniqueIdentifierSegmentCount; i < segmentCount; i++ {
+			segment := addr.GetSegment(i)
+			if !segment.IsFullRange() {
+				createNew = true
+				break
+			}
+		}
+	}
+	if !createNew {
+		return addr
+	}
+	segmentIndex := MACOrganizationalUniqueIdentifierSegmentCount
+	newSegs := createSegmentArray(segmentCount)
+	addr.GetSection().copySubDivisions(0, segmentIndex, newSegs)
+	allRangeSegment := allRangeMACSeg.ToAddressDivision()
+	for i := segmentIndex; i < segmentCount; i++ {
+		newSegs[i] = allRangeSegment
+	}
+	newSect := createSectionMultiple(newSegs, cacheBitCount(newPref), addr.getAddrType(), true).ToMACAddressSection()
+	return newMACAddress(newSect)
+}
+
 func (addr MACAddress) String() string {
 	return addr.init().addressInternal.String()
 }
@@ -520,6 +551,10 @@ func (addr *MACAddress) ToCompressedString() string {
 
 func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *MACAddress) GetDottedAddress() (*AddressDivisionGrouping, IncompatibleAddressError) {
+	return addr.init().GetSection().GetDottedGrouping()
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc

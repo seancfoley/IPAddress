@@ -29,6 +29,8 @@ import (
 //	toZonedString(addr IPAddressStringDivisionSeries, zone string) string
 //}
 
+// Note: For IPv6, translation from options to params is more complicated and requires the section, so it's done in IPv6AddressSection methods
+
 func toNormalizedIPZonedString(opts IPStringOptions, section AddressDivisionSeries, zone Zone) string {
 	return toIPParams(opts).toZonedString(section, zone)
 }
