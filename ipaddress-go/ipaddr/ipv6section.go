@@ -51,6 +51,11 @@ func newIPv6Section(segments []*AddressDivision /* ,startIndex int , cloneSegmen
 	return
 }
 
+func newIPv6SectionSimple(segments []*AddressDivision) (res *IPv6AddressSection) {
+	res = createIPv6Section(segments)
+	return
+}
+
 func newIPv6SectionParsed(segments []*AddressDivision) (res *IPv6AddressSection) {
 	res = createIPv6Section(segments)
 	_ = res.initMultAndPrefLen()

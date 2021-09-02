@@ -25,6 +25,7 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	return sect
 }
 
+//TODO I call this and createInitializedSection directly from a couple MAC places, maybe I should not do that?
 func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
 	result.isMultiple = isMultiple
