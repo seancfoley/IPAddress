@@ -2,11 +2,14 @@ package ipaddr
 
 // Wildcards specifies the wildcards to use when constructing a address string
 type Wildcards interface {
-	// if this returns an empty string, then the default separator RangeSeparatorStr is used
+	// GetRangeSeparator returns the wildcard used to separate the lower and upper boundary (inclusive) of a range of values.
+	// if this returns an empty string, then the default separator RangeSeparatorStr is used, which is the hyphen '-'
 	GetRangeSeparator() string
 
+	// GetWildcard returns the wildcard used for representing any legitimate value, which is the asterisk '*' by default
 	GetWildcard() string
 
+	// GetSingleWildcard returns the wildcard used for representing any single digit, which is the underscore '_' by default
 	GetSingleWildcard() string
 }
 
@@ -221,9 +224,13 @@ func (w *StringOptionsBuilder) ToOptions() StringOptions {
 
 type WildcardOption string
 
-const (
-	WILDCARDS_NETWORK_ONLY WildcardOption = ""        //only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
-	WILDCARDS_ALL          WildcardOption = "allType" //print wildcards for any visible (non-compressed) segments
+const ( //TODO rename not all caps
+
+	// only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
+	WILDCARDS_NETWORK_ONLY WildcardOption = ""
+
+	// print wildcards for any visible (non-compressed) segments
+	WILDCARDS_ALL WildcardOption = "allType"
 )
 
 type WildcardOptions interface {
@@ -272,8 +279,6 @@ type IPStringOptions interface {
 	StringOptions
 
 	GetAddressSuffix() string
-
-	GetWildcardOptions() WildcardOptions
 
 	GetWildcardOption() WildcardOption
 
@@ -326,6 +331,9 @@ func (w *IPStringOptionsBuilder) SetAddressSuffix(suffix string) *IPStringOption
 	return w
 }
 
+// SetWildcardOptions is a convenience method for setting both the WildcardOption and the Wildcards at the same time
+// It overrides previous calls to SetWildcardOption and SetWildcards,
+// and is overridden by subsequent calls to those methods.
 func (w *IPStringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPStringOptionsBuilder {
 	w.SetWildcards(wildcardOptions.GetWildcards())
 	return w.SetWildcardOption(wildcardOptions.GetWildcardOption())
@@ -336,13 +344,13 @@ func (w *IPStringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption
 	return w
 }
 
-func (w *IPStringOptionsBuilder) SetZoneSeparator(separator byte) *IPStringOptionsBuilder {
-	w.ipStringOptions.zoneSeparator = separator
+func (w *IPStringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPStringOptionsBuilder {
+	w.StringOptionsBuilder.SetWildcards(wildcards)
 	return w
 }
 
-func (w *IPStringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetWildcards(wildcards)
+func (w *IPStringOptionsBuilder) SetZoneSeparator(separator byte) *IPStringOptionsBuilder {
+	w.ipStringOptions.zoneSeparator = separator
 	return w
 }
 
@@ -420,6 +428,9 @@ func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
 type IPv6StringOptions interface {
 	IPStringOptions
 
+	// Returns the options used for creating the embedded IPv4 address string in a mixed IPv6 address,
+	// which comes from the last 32 bits of the IPv6 address.
+	// For example: a:b:c:d:e:f:1.2.3.4
 	GetIPv4Opts() IPStringOptions
 
 	GetCompressOptions() CompressOptions
@@ -583,7 +594,7 @@ func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 
 type CompressionChoiceOptions string
 
-const (
+const ( //TODO rename not all caps
 	HOST_PREFERRED  CompressionChoiceOptions = "host preferred"  //if there is a host section, compress the host along with any adjoining zero segments, otherwise compress a range of zero segments
 	MIXED_PREFERRED CompressionChoiceOptions = "mixed preferred" //if there is a mixed section that is compressible according to the MixedCompressionOptions, compress the mixed section along with any adjoining zero segments, otherwise compress a range of zero segments
 	ZEROS_OR_HOST   CompressionChoiceOptions = ""                //compress the largest range of zero or host segments
@@ -596,16 +607,16 @@ func (c CompressionChoiceOptions) compressHost() bool {
 
 type MixedCompressionOptions string
 
-const (
+const ( //TODO rename not all caps
 	NO_MIXED_COMPRESSION  MixedCompressionOptions = "no mixed compression" //do not allow compression of a mixed section
 	NO_HOST               MixedCompressionOptions = "no host"              ////allow compression of a mixed section when there is no host section
 	COVERED_BY_HOST       MixedCompressionOptions = "covered by host"
-	YES_MIXED_COMPRESSION MixedCompressionOptions = "" //allow compression of a mixed section
+	AllowMixedCompression MixedCompressionOptions = "" //allow compression of a mixed section
 )
 
 func (m MixedCompressionOptions) compressMixed(addressSection *IPv6AddressSection) bool {
 	switch m {
-	case YES_MIXED_COMPRESSION:
+	case AllowMixedCompression:
 		return true
 	case NO_MIXED_COMPRESSION:
 		return false

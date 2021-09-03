@@ -662,6 +662,10 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 	return addr.section.ToHexString(with0xPrefix)
 }
 
+//func (addr *addressInternal) toCustomString(stringOptions StringOptions) string {
+//	return addr.section.toCustomString(stringOptions, addr.zone)
+//}
+
 var zeroAddr = createAddress(zeroSection, NoZone)
 
 type Address struct {
@@ -911,6 +915,10 @@ func (addr *Address) ToCompressedString() string {
 
 func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *Address) ToCustomString(stringOptions StringOptions) string {
+	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

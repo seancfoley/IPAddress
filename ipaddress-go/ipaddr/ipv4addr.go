@@ -902,11 +902,15 @@ func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 }
 
 func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
-	return addr.init().GetSection().ToInetAtonString(radix)
+	return addr.GetSection().ToInetAtonString(radix)
 }
 
 func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
-	return addr.init().GetSection().ToInetAtonJoinedString(radix, joinedCount)
+	return addr.GetSection().ToInetAtonJoinedString(radix, joinedCount)
+}
+
+func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
+	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 
 func (addr *IPv4Address) ToAddress() *Address {

@@ -1205,6 +1205,10 @@ func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAd
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
+func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
+	return addr.GetSection().toCustomString(stringOptions, addr.zone)
+}
+
 // Retrieves or generates an IPAddressString object for this IPAddress object.
 //
 // In general, users are intended to create IPAddress objects from IPAddressString objects,

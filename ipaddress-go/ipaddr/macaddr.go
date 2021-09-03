@@ -139,12 +139,6 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 	return
 }
 
-//TODO The toNOrmalizedString that takes the string options,
-//		compare with ipv4 and ipv6 - ok did the compare,
-//		there is ToCustomString and it seems that covers ipv4, ipv6 and mac sections,
-// 		but we need to add to ipv4/6/mac addresses
-//		and ipv6 address needs ToCustomZonedString
-
 var zeroMAC = createMACZero()
 
 func createMACZero() *MACAddress {
@@ -157,10 +151,6 @@ func createMACZero() *MACAddress {
 type MACAddress struct {
 	addressInternal
 }
-
-//func (addr *MACAddress) IsExtended() bool {
-//	return addr.GetSection().IsExtended()
-//}
 
 func (addr *MACAddress) IsAllAddresses() bool {
 	return addr.GetSection().IsFullRange()

@@ -8,13 +8,19 @@ type DivisionType interface {
 
 	Equals(DivisionType) bool
 
+	// getStringAsLower caches the string from getDefaultLowerString
 	getStringAsLower() string
+
+	// GetString produces a string that avoids wildcards when using prefix length.  Equivalent to GetWildcardString if the prefix length is not part of the string.
 	GetString() string
+
+	// GetWildcardString produces a string that uses wildcards and avoids prefix length
 	GetWildcardString() string
 
 	// Determines if the division has a single prefix for the given prefix length.  You can call GetPrefixCountLen to get the count of prefixes.
 	IsSinglePrefix(BitCount) bool
 
+	// methods for string generation used by the string params and string writer
 	divStringProvider
 }
 

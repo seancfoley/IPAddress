@@ -1241,6 +1241,14 @@ func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 
 }
 
+// ToCustomString produces a string given the string options.
+// Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when a range cannot be split up.
+// Options without split digits or mixed addresses do not produce errors.
+// Single addresses do not produce errors.
+func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
+	return addr.GetSection().toCustomString(stringOptions, addr.zone)
+}
+
 func (addr *IPv6Address) ToAddress() *Address {
 	if addr != nil {
 		addr = addr.init()

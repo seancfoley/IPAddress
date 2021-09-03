@@ -39,6 +39,10 @@ func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) s
 	return toIPParams(opts).toString(section)
 }
 
+func toNormalizedZonedString(opts StringOptions, section AddressDivisionSeries, zone Zone) string {
+	return toParams(opts).toZonedString(section, zone)
+}
+
 func toNormalizedString(opts StringOptions, section AddressDivisionSeries) string {
 	return toParams(opts).toString(section)
 }
@@ -1385,17 +1389,17 @@ type stringWriter struct {
 //	return writer.div.GetWildcardString()
 //}
 
-func (writer stringWriter) getStringAsLower() string {
-	return writer.DivisionType.getStringAsLower()
-}
-
-func (writer stringWriter) getString() string {
-	return writer.GetString()
-}
-
-func (writer stringWriter) getWildcardString() string {
-	return writer.GetWildcardString()
-}
+//func (writer stringWriter) getStringAsLower() string {
+//	return writer.DivisionType.getStringAsLower()
+//}
+//
+//func (writer stringWriter) getString() string {
+//	return writer.GetString()
+//}
+//
+//func (writer stringWriter) getWildcardString() string {
+//	return writer.GetWildcardString()
+//}
 
 // Produces a string to represent the segment, using wildcards and range characters.
 // Use this instead of getWildcardString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
@@ -1497,7 +1501,7 @@ func (writer stringWriter) getPrefixAdjustedRangeString(segmentIndex int, params
 	//Also, we cannot in the case of full range (in which case we are only here because we do not want '*')
 	if rangeDigitCount == 0 && radix == writer.getDefaultTextualRadix() && !writer.IsFullRange() {
 		//we call getString() to cacheBitCountx the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
-		str := writer.getString()
+		str := writer.GetString()
 		rangeSep := writer.getDefaultRangeSeparatorString()
 		stringPrefix := params.getSegmentStrPrefix()
 		prefLen := len(stringPrefix)
@@ -1654,7 +1658,7 @@ func (writer stringWriter) getRangeString(segmentIndex int, params addressSegmen
 		radix == writer.getDefaultTextualRadix() &&
 		!splitDigits &&
 		!writer.IsFullRange() {
-		str := writer.getWildcardString()
+		str := writer.GetWildcardString()
 		rangeSep := writer.getDefaultRangeSeparatorString()
 		stringPrefix := params.getSegmentStrPrefix()
 		prefLen := len(stringPrefix)

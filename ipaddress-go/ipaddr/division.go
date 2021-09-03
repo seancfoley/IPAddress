@@ -544,13 +544,18 @@ func (div *addressDivisionInternal) getStringAsLower() string {
 }
 
 func (div *addressDivisionInternal) getString() string {
-	return div.getStringFromStringer(func() string {
-		if !div.IsMultiple() {
-			return div.getDefaultLowerString()
-		} else {
-			return div.getDefaultRangeString()
-		}
-	})
+	if !div.IsMultiple() {
+		return div.getStringFromStringer(div.getDefaultLowerString)
+	} else {
+		return div.getStringFromStringer(div.getDefaultRangeString)
+	}
+	//return div.getStringFromStringer(func() string {
+	//	if !div.IsMultiple() {
+	//		return div.getDefaultLowerString()
+	//	} else {
+	//		return div.getDefaultRangeString()
+	//	}
+	//})
 }
 
 func (div *addressDivisionInternal) getStringFromStringer(stringer func() string) string {

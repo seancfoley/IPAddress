@@ -1134,9 +1134,31 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 	return section.ToCustomString(params), nil
 }
 
+//func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
+//	return toNormalizedString(stringOptions, section)
+//}
+
 func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
 	return toNormalizedString(stringOptions, section)
 }
+
+func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
+	return toNormalizedZonedString(stringOptions, section, zone)
+}
+
+//func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
+//	if opts, ok := stringOptions.(IPStringOptions); ok {
+//		if sect := section.toAddressSection().ToIPAddressSection(); sect != nil {
+//			if ipv6Opts, ok := stringOptions.(IPv6StringOptions); ok {
+//				if ipv6Sect := sect.ToIPv6AddressSection(); ipv6Sect != nil {
+//					return ipv6Sect.toCustomString(ipv6Opts, zone) xxx the error makes things trickier xxxx
+//				}
+//			}
+//			return sect.ToCustomString(opts)
+//		}
+//	}
+//	return toNormalizedString(stringOptions, section)
+//}
 
 func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
 	count := section.GetSegmentCount()
