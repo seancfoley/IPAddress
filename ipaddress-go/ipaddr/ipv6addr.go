@@ -1230,8 +1230,12 @@ func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 // For some address sections with ranges of values in the IPv4 part of the address, there is not mixed string, and an error is returned.
 func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.GetSection().toMixedStringZoned(addr.zone)
+		}
 		var cacheField **string
-		cacheField = &addr.getStringCache().mixedString
+		cacheField = &cache.mixedString
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {
 				return addr.GetSection().toMixedStringZoned(addr.zone)

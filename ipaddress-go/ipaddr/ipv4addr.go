@@ -820,17 +820,20 @@ func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4A
 		newIPv6Divisions[6] = seg.ToAddressDivision()
 		if seg, err = ipv4Section.GetSegment(2).Join(ipv4Section.GetSegment(3)); err == nil {
 			newIPv6Divisions[7] = seg.ToAddressDivision()
-			result := newIPv6SectionParsed(newIPv6Divisions)
-			mixedGrouping := newIPv6v4MixedGrouping(
-				result.createNonMixedSection(),
-				ipv4Section,
-			)
-			mixed := &mixedCache{
-				defaultMixedAddressSection: mixedGrouping,
-				embeddedIPv6Section:        mixedGrouping.GetIPv6AddressSection(),
-				embeddedIPv4Section:        mixedGrouping.GetIPv4AddressSection(),
+			res = newIPv6SectionParsed(newIPv6Divisions)
+			if res.cache != nil {
+				nonMixedSection := res.createNonMixedSection()
+				mixedGrouping := newIPv6v4MixedGrouping(
+					nonMixedSection,
+					ipv4Section,
+				)
+				mixed := &mixedCache{
+					defaultMixedAddressSection: mixedGrouping,
+					embeddedIPv6Section:        nonMixedSection,
+					embeddedIPv4Section:        ipv4Section,
+				}
+				res.cache.mixed = mixed
 			}
-			result.cache.mixed = mixed
 		}
 	}
 	return

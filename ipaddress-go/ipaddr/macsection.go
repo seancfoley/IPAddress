@@ -430,7 +430,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *MACAddressSection) ToCanonicalString() string {
-	return cacheStr(&section.getStringCache().canonicalString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.ToCustomString(macCanonicalParams)
+	}
+	return cacheStr(&cache.canonicalString,
 		func() string {
 			return section.ToCustomString(macCanonicalParams)
 		})
@@ -438,6 +442,9 @@ func (section *MACAddressSection) ToCanonicalString() string {
 
 func (section *MACAddressSection) ToNormalizedString() string {
 	cch := section.getStringCache()
+	if cch == nil {
+		return section.ToCustomString(macNormalizedParams)
+	}
 	strp := &cch.normalizedMACString
 	return cacheStr(strp,
 		func() string {
@@ -446,7 +453,11 @@ func (section *MACAddressSection) ToNormalizedString() string {
 }
 
 func (section *MACAddressSection) ToCompressedString() string {
-	return cacheStr(&section.getStringCache().compressedMACString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.ToCustomString(macCompressedParams)
+	}
+	return cacheStr(&cache.compressedMACString,
 		func() string {
 			return section.ToCustomString(macCompressedParams)
 		})
@@ -454,17 +465,17 @@ func (section *MACAddressSection) ToCompressedString() string {
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
 func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressError) {
-	return cacheStrErr(&section.getStringCache().dottedString,
+	dottedGrouping, err := section.GetDottedGrouping()
+	if err != nil {
+		return "", err
+	}
+	cache := section.getStringCache()
+	if cache == nil {
+		return toNormalizedString(dottedParams, dottedGrouping), nil
+	}
+	return cacheStrErr(&cache.dottedString,
 		func() (string, IncompatibleAddressError) {
-			dottedGrouping, err := section.GetDottedGrouping()
-			if err != nil {
-				return "", err
-			}
-			//getStringCache().dottedString = result = toNormalizedString(MACStringCache.dottedParams, dottedGrouping);
-			//return section.toNormalizedOptsString(dottedParams)
 			return toNormalizedString(dottedParams, dottedGrouping), nil
-
-			//return ""
 		})
 }
 
@@ -634,7 +645,11 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 
 // ToSpaceDelimitedString produces a string delimited by spaces: aa bb cc dd ee ff
 func (section *MACAddressSection) ToSpaceDelimitedString() string {
-	return cacheStr(&section.getStringCache().spaceDelimitedString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.ToCustomString(spaceDelimitedParams)
+	}
+	return cacheStr(&cache.spaceDelimitedString,
 		func() string {
 			return section.ToCustomString(spaceDelimitedParams)
 		})

@@ -456,6 +456,9 @@ func (section *addressSectionInternal) getLowestHighestSections() (lower, upper 
 		return
 	}
 	cache := section.cache
+	if cache == nil {
+		return section.createLowestHighestSections()
+	}
 	cached := cache.sectionCache
 	if cached == nil {
 		cached = &groupingCache{}
@@ -903,9 +906,11 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 	}
 	newSect := section.setPrefixLen(*newPrefix)
 	cache := newSect.cache
-	cache.isSinglePrefixBlock = &trueVal
-	cache.equivalentPrefix = newPrefix
-	cache.minPrefix = newPrefix
+	if cache != nil {
+		cache.isSinglePrefixBlock = &trueVal
+		cache.equivalentPrefix = newPrefix
+		cache.minPrefix = newPrefix
+	}
 	return newSect
 }
 
@@ -1025,7 +1030,11 @@ func (section *addressSectionInternal) getStringCache() *stringCache {
 	if section.hasNoDivisions() {
 		return &zeroStringCache
 	}
-	return &section.cache.stringCache
+	cache := section.cache
+	if cache == nil {
+		return nil
+	}
+	return &cache.stringCache
 }
 
 func (section *addressSectionInternal) getLower() *AddressSection {
@@ -1103,11 +1112,15 @@ func (section *addressSectionInternal) ToCompressedString() string {
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toHexStringZoned(with0xPrefix, NoZone)
+	}
 	var cacheField **string
 	if with0xPrefix {
-		cacheField = &section.getStringCache().hexStringPrefixed
+		cacheField = &cache.hexStringPrefixed
 	} else {
-		cacheField = &section.getStringCache().hexString
+		cacheField = &cache.hexString
 	}
 	return cacheStrErr(cacheField,
 		func() (string, IncompatibleAddressError) {

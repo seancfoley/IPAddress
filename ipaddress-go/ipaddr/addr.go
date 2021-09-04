@@ -247,6 +247,9 @@ func (addr *addressInternal) getLowestHighestAddrs() (lower, upper *Address) {
 		return
 	}
 	cache := addr.cache
+	if cache == nil {
+		return addr.createLowestHighestAddrs()
+	}
 	cached := cache.addrsCache
 	if cached == nil {
 		cached = &addrsCache{}
@@ -619,12 +622,20 @@ func (addr *addressInternal) incrementBoundary(increment int64) *Address {
 }
 
 func (addr *addressInternal) getStringCache() *stringCache {
+	cache := addr.cache
+	if cache == nil {
+		return nil
+	}
 	return addr.cache.stringCache
 }
 
 func (addr *addressInternal) toCanonicalString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().canonicalString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toCanonicalString(addr.zone)
+		}
+		return cacheStr(&cache.canonicalString,
 			func() string { return addr.section.ToIPv6AddressSection().toCanonicalString(addr.zone) })
 	}
 	return addr.section.ToCanonicalString()
@@ -632,7 +643,11 @@ func (addr *addressInternal) toCanonicalString() string {
 
 func (addr *addressInternal) toNormalizedString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().normalizedIPv6String,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toNormalizedString(addr.zone)
+		}
+		return cacheStr(&cache.normalizedIPv6String,
 			func() string { return addr.section.ToIPv6AddressSection().toNormalizedString(addr.zone) })
 	}
 	return addr.section.ToNormalizedString()
@@ -640,7 +655,11 @@ func (addr *addressInternal) toNormalizedString() string {
 
 func (addr *addressInternal) toCompressedString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().compressedIPv6String,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toCompressedString(addr.zone)
+		}
+		return cacheStr(&cache.compressedIPv6String,
 			func() string { return addr.section.ToIPv6AddressSection().toCompressedString(addr.zone) })
 	}
 	return addr.section.ToCompressedString()
@@ -648,11 +667,15 @@ func (addr *addressInternal) toCompressedString() string {
 
 func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.toHexStringZoned(with0xPrefix, addr.zone)
+		}
 		var cacheField **string
 		if with0xPrefix {
-			cacheField = &addr.getStringCache().hexStringPrefixed
+			cacheField = &cache.hexStringPrefixed
 		} else {
-			cacheField = &addr.getStringCache().hexString
+			cacheField = &cache.hexString
 		}
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {

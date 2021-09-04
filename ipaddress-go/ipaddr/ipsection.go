@@ -1187,7 +1187,11 @@ func (section *ipAddressSectionInternal) replaceLen(
 }
 
 func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
-	return cacheStrErr(&section.getStringCache().octalString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toOctalStringZoned(with0Prefix, NoZone)
+	}
+	return cacheStrErr(&cache.octalString,
 		func() (string, IncompatibleAddressError) {
 			return section.toOctalStringZoned(with0Prefix, NoZone)
 		})
@@ -1201,7 +1205,11 @@ func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zo
 }
 
 func (section *ipAddressSectionInternal) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
-	return cacheStrErr(&section.getStringCache().binaryString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toBinaryStringZoned(with0bPrefix, NoZone)
+	}
+	return cacheStrErr(&cache.binaryString,
 		func() (string, IncompatibleAddressError) {
 			return section.toBinaryStringZoned(with0bPrefix, NoZone)
 		})

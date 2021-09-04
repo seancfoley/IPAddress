@@ -302,7 +302,10 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						if addrErr != nil {
 							return nil, addrErr
 						}
-						ipv6Addr.cache.identifierStr = &IdentifierStr{host}
+						cache := ipv6Addr.cache
+						if cache != nil {
+							cache.identifierStr = &IdentifierStr{host}
+						}
 						addrs[j] = ipv6Addr.ToIPAddress()
 					} else {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
@@ -312,7 +315,10 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						if addrErr != nil {
 							return nil, addrErr
 						}
-						ipv4Addr.cache.identifierStr = &IdentifierStr{host}
+						cache := ipv4Addr.cache
+						if cache != nil {
+							cache.identifierStr = &IdentifierStr{host}
+						}
 						addrs[j] = ipv4Addr.ToIPAddress()
 					}
 				}

@@ -656,6 +656,10 @@ func (addr *MACAddress) ToColonDelimitedString() string {
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {
 	addr = addr.init()
+	cache := addr.cache
+	if cache == nil {
+		return newMACAddressStringFromAddr(addr.toCanonicalString(), addr)
+	}
 	res := addr.cache.identifierStr
 	if res == nil {
 		str := newMACAddressStringFromAddr(addr.toCanonicalString(), addr)

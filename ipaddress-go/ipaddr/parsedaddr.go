@@ -235,9 +235,12 @@ func (parseData *parsedIPAddress) getCachedAddresses(forHostAddr bool) *sectionR
 				} else {
 					// if range created first, stick the lower and upper into the address cache
 					if rng := val.rng; rng != nil {
-						addr.cache.addrsCache = &addrsCache{
-							lower: rng.lower.ToAddress(),
-							upper: rng.upper.ToAddress(),
+						cache := addr.cache
+						if cache != nil {
+							cache.addrsCache = &addrsCache{
+								lower: rng.lower.ToAddress(),
+								upper: rng.upper.ToAddress(),
+							}
 						}
 					}
 					dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&sections.address))

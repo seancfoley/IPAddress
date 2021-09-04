@@ -497,7 +497,7 @@ func (section *IPv6AddressSection) GetZeroRangeSegments() RangeList {
 func (section *IPv6AddressSection) getZeroVals() *zeroRangeCache {
 	cache := section.cache
 	if cache == nil {
-		return nil
+		return section.calcZeroVals()
 	}
 	zeroVals := cache.zeroVals
 	if zeroVals == nil {
@@ -873,7 +873,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
-	return cacheStr(&section.getStringCache().canonicalString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toCanonicalString(NoZone)
+	}
+	return cacheStr(&cache.canonicalString,
 		func() string {
 			return section.toCanonicalString(NoZone)
 		})
@@ -883,14 +887,22 @@ func (section *IPv6AddressSection) ToCanonicalString() string {
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToNormalizedString() string {
-	return cacheStr(&section.getStringCache().normalizedIPv6String,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(NoZone)
+	}
+	return cacheStr(&cache.normalizedIPv6String,
 		func() string {
 			return section.toNormalizedString(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToCompressedString() string {
-	return cacheStr(&section.getStringCache().compressedIPv6String,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toCompressedString(NoZone)
+	}
+	return cacheStr(&cache.compressedIPv6String,
 		func() string {
 			return section.toCompressedString(NoZone)
 		})
@@ -899,56 +911,88 @@ func (section *IPv6AddressSection) ToCompressedString() string {
 // This produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
 // For some address sections with ranges of values in the IPv4 part of the address, there is not mixed string, and an error is returned.
 func (section *IPv6AddressSection) toMixedString() (string, IncompatibleAddressError) {
-	return cacheStrErr(&section.getStringCache().mixedString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toMixedStringZoned(NoZone)
+	}
+	return cacheStrErr(&cache.mixedString,
 		func() (string, IncompatibleAddressError) {
 			return section.toMixedStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToNormalizedWildcardString() string {
-	return cacheStr(&section.getStringCache().normalizedWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedWildcardStringZoned(NoZone)
+	}
+	return cacheStr(&cache.normalizedWildcardString,
 		func() string {
 			return section.toNormalizedWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToCanonicalWildcardString() string {
-	return cacheStr(&section.getStringCache().canonicalWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toCanonicalWildcardStringZoned(NoZone)
+	}
+	return cacheStr(&cache.canonicalWildcardString,
 		func() string {
 			return section.toCanonicalWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToSegmentedBinaryString() string {
-	return cacheStr(&section.getStringCache().segmentedBinaryString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toSegmentedBinaryStringZoned(NoZone)
+	}
+	return cacheStr(&cache.segmentedBinaryString,
 		func() string {
 			return section.toSegmentedBinaryStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToSQLWildcardString() string {
-	return cacheStr(&section.getStringCache().sqlWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toSQLWildcardStringZoned(NoZone)
+	}
+	return cacheStr(&cache.sqlWildcardString,
 		func() string {
 			return section.toSQLWildcardStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToFullString() string {
-	return cacheStr(&section.getStringCache().fullString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toFullStringZoned(NoZone)
+	}
+	return cacheStr(&cache.fullString,
 		func() string {
 			return section.toFullStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToReverseDNSString() (string, IncompatibleAddressError) {
-	return cacheStrErr(&section.getStringCache().reverseDNSString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toReverseDNSStringZoned(NoZone)
+	}
+	return cacheStrErr(&cache.reverseDNSString,
 		func() (string, IncompatibleAddressError) {
 			return section.toReverseDNSStringZoned(NoZone)
 		})
 }
 
 func (section *IPv6AddressSection) ToPrefixLenString() string {
-	return cacheStr(&section.getStringCache().networkPrefixLengthString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toPrefixLenStringZoned(NoZone)
+	}
+	return cacheStr(&cache.networkPrefixLengthString,
 		func() string {
 			return section.toPrefixLenStringZoned(NoZone)
 		})
@@ -959,7 +1003,11 @@ func (section *IPv6AddressSection) ToSubnetString() string {
 }
 
 func (section *IPv6AddressSection) ToCompressedWildcardString() string {
-	return cacheStr(&section.getStringCache().compressedWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toCompressedWildcardStringZoned(NoZone)
+	}
+	return cacheStr(&cache.compressedWildcardString,
 		func() string {
 			return section.toCompressedWildcardStringZoned(NoZone)
 		})
@@ -1292,11 +1340,21 @@ func (grouping *IPv6v4MixedAddressGrouping) ToAddressDivisionGrouping() *Address
 }
 
 func (grouping *IPv6v4MixedAddressGrouping) GetIPv6AddressSection() *IPv6AddressSection {
-	return grouping.cache.mixed.embeddedIPv6Section
+	cache := grouping.cache
+	if cache == nil {
+		subDivs := grouping.getSubDivisions(0, IPv6MixedOriginalSegmentCount)
+		return newIPv6SectionParsed(subDivs)
+	}
+	return cache.mixed.embeddedIPv6Section
 }
 
 func (grouping *IPv6v4MixedAddressGrouping) GetIPv4AddressSection() *IPv4AddressSection {
-	return grouping.cache.mixed.embeddedIPv4Section
+	cache := grouping.cache
+	if cache == nil {
+		subDivs := grouping.getSubDivisions(IPv6MixedOriginalSegmentCount, grouping.GetDivisionCount())
+		return newIPv4SectionParsed(subDivs)
+	}
+	return cache.mixed.embeddedIPv4Section
 }
 
 //func (sect *IPv6v4MixedAddressGrouping) GetGenericIPDivision(index int) IPAddressGenericDivision {

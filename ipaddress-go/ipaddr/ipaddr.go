@@ -343,11 +343,15 @@ func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress 
 
 func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPAddressSection().toOctalStringZoned(with0Prefix, addr.zone)
+		}
 		var cacheField **string
 		if with0Prefix {
-			cacheField = &addr.getStringCache().octalStringPrefixed
+			cacheField = &cache.octalStringPrefixed
 		} else {
-			cacheField = &addr.getStringCache().octalString
+			cacheField = &cache.octalString
 		}
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {
@@ -359,11 +363,15 @@ func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, Incompat
 
 func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPAddressSection().toBinaryStringZoned(with0bPrefix, addr.zone)
+		}
 		var cacheField **string
 		if with0bPrefix {
-			cacheField = &addr.getStringCache().binaryStringPrefixed
+			cacheField = &cache.binaryStringPrefixed
 		} else {
-			cacheField = &addr.getStringCache().binaryString
+			cacheField = &cache.binaryString
 		}
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {
@@ -375,7 +383,11 @@ func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, Incomp
 
 func (addr *ipAddressInternal) toCanonicalWildcardString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().canonicalWildcardString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toCanonicalWildcardStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.canonicalWildcardString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toCanonicalWildcardStringZoned(addr.zone)
 			})
@@ -385,7 +397,11 @@ func (addr *ipAddressInternal) toCanonicalWildcardString() string {
 
 func (addr *ipAddressInternal) toNormalizedWildcardString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().normalizedWildcardString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toNormalizedWildcardStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.normalizedWildcardString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toNormalizedWildcardStringZoned(addr.zone)
 			})
@@ -395,7 +411,11 @@ func (addr *ipAddressInternal) toNormalizedWildcardString() string {
 
 func (addr *ipAddressInternal) toSegmentedBinaryString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().segmentedBinaryString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toSegmentedBinaryStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.segmentedBinaryString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toSegmentedBinaryStringZoned(addr.zone)
 			})
@@ -405,7 +425,11 @@ func (addr *ipAddressInternal) toSegmentedBinaryString() string {
 
 func (addr *ipAddressInternal) toSQLWildcardString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().sqlWildcardString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toSQLWildcardStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.sqlWildcardString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toSQLWildcardStringZoned(addr.zone)
 			})
@@ -415,7 +439,11 @@ func (addr *ipAddressInternal) toSQLWildcardString() string {
 
 func (addr *ipAddressInternal) toFullString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().fullString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toFullStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.fullString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toFullStringZoned(addr.zone)
 			})
@@ -425,7 +453,11 @@ func (addr *ipAddressInternal) toFullString() string {
 
 func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddressError) {
 	if addr.hasZone() {
-		return cacheStrErr(&addr.getStringCache().reverseDNSString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
+		}
+		return cacheStrErr(&cache.reverseDNSString,
 			func() (string, IncompatibleAddressError) {
 				return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
 			})
@@ -435,7 +467,11 @@ func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddress
 
 func (addr *ipAddressInternal) toPrefixLenString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().networkPrefixLengthString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toPrefixLenStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.networkPrefixLengthString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toPrefixLenStringZoned(addr.zone)
 			})
@@ -452,7 +488,11 @@ func (addr *ipAddressInternal) toSubnetString() string {
 
 func (addr *ipAddressInternal) toCompressedWildcardString() string {
 	if addr.hasZone() {
-		return cacheStr(&addr.getStringCache().compressedWildcardString,
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.ToIPv6AddressSection().toCompressedWildcardStringZoned(addr.zone)
+		}
+		return cacheStr(&cache.compressedWildcardString,
 			func() string {
 				return addr.section.ToIPv6AddressSection().toCompressedWildcardStringZoned(addr.zone)
 			})
@@ -1220,15 +1260,16 @@ func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
 // which is one reason you might wish to obtain an IPAddressString from an IPAddress.
 func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
-	res := addr.cache.identifierStr
+	cache := addr.cache
+	if cache == nil {
+		return newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
+	}
+	res := cache.identifierStr
 	if res == nil {
-		//str := NewIPAddressString(addr.toCanonicalString())
 		str := newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
 		res = &IdentifierStr{str}
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.identifierStr))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
-		//dataLoc := &addr.cache.fromString
-		//atomic.StorePointer(dataLoc, unsafe.Pointer(str))
 		return str
 	}
 	hostIdStr := res.idStr
@@ -1240,11 +1281,14 @@ func (addr *IPAddress) ToAddressString() *IPAddressString {
 
 func (addr *IPAddress) ToHostName() *HostName {
 	addr = addr.init()
-	res := addr.cache.identifierStr
-	if res != nil {
-		hostIdStr := res.idStr
-		if h, ok := hostIdStr.(*HostName); ok {
-			return h
+	cache := addr.cache
+	if cache != nil {
+		res := cache.identifierStr
+		if res != nil {
+			hostIdStr := res.idStr
+			if h, ok := hostIdStr.(*HostName); ok {
+				return h
+			}
 		}
 	}
 	var h *HostName
@@ -1259,24 +1303,36 @@ func (addr *IPAddress) ToHostName() *HostName {
 
 func (addr *IPAddress) ToCanonicalHostName() (*HostName, error) {
 	addr = addr.init()
-	res := addr.cache.canonicalHost
+	cache := addr.cache
+	if cache == nil {
+		return addr.lookupAddr()
+	}
+	res := cache.canonicalHost
 	if res == nil {
 		if addr.IsMultiple() {
 			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.unavailable.numeric"}}
 		}
-		names, err := net.LookupAddr(addr.ToNormalizedWildcardString())
-		if err != nil {
-			return nil, err
-		} else if len(names) == 0 {
-			return nil, nil
-		} else if names[0] == "" {
-			return nil, nil
+		var err error
+		res, err = addr.lookupAddr()
+		if res == nil {
+			return res, err
 		}
-		res = NewHostName(names[0])
-		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&addr.cache.canonicalHost))
+		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.canonicalHost))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
 	return res, nil
+}
+
+func (addr *IPAddress) lookupAddr() (*HostName, error) {
+	names, err := net.LookupAddr(addr.ToNormalizedWildcardString())
+	if err != nil {
+		return nil, err
+	} else if len(names) == 0 {
+		return nil, nil
+	} else if names[0] == "" {
+		return nil, nil
+	}
+	return NewHostName(names[0]), nil
 }
 
 func (addr *IPAddress) IncludesZeroHostLen(networkPrefixLength BitCount) bool {

@@ -99,7 +99,10 @@ func (creator *ipv6AddressCreator) createAddressInternalFromSection(section *IPA
 	res := newIPv6AddressZoned(section.ToIPv6AddressSection(), string(zone)).ToIPAddress()
 	if originator != nil {
 		// the originator is assigned to a parsedIPAddress struct in validateHostName or validateIPAddressStr
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }
@@ -108,7 +111,10 @@ func (creator *ipv6AddressCreator) createAddressInternal(section *AddressSection
 	res := newIPv6Address(section.ToIPv6AddressSection()).ToAddress()
 	if originator != nil {
 		// the originator is assigned to a parsedIPAddress struct in validateHostName or validateIPAddressStr
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }
@@ -171,7 +177,10 @@ func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPAddressSection, _ Zone, originator HostIdentifierString) *IPAddress {
 	res := newIPv4Address(section.ToIPv4AddressSection()).ToIPAddress()
 	if originator != nil {
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }
@@ -179,7 +188,10 @@ func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPA
 func (creator *ipv4AddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
 	res := newIPv4Address(section.ToIPv4AddressSection()).ToAddress()
 	if originator != nil {
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }
@@ -234,7 +246,10 @@ func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivis
 func (creator *macAddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
 	res := newMACAddress(section.ToMACAddressSection()).ToAddress()
 	if originator != nil {
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }
@@ -242,7 +257,10 @@ func (creator *macAddressCreator) createAddressInternal(section *AddressSection,
 func (creator *macAddressCreator) createAddressInternalFromSection(section *MACAddressSection, originator HostIdentifierString) *MACAddress {
 	res := newMACAddress(section)
 	if originator != nil {
-		res.cache.identifierStr = &IdentifierStr{originator}
+		cache := res.cache
+		if cache != nil {
+			cache.identifierStr = &IdentifierStr{originator}
+		}
 	}
 	return res
 }

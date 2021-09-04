@@ -404,6 +404,9 @@ func (section *IPv4AddressSection) getIntValues() (lower, upper uint32) {
 		return 0, 0
 	}
 	cache := section.cache
+	if cache == nil {
+		return section.calcIntValues()
+	}
 	cached := cache.intsCache
 	if cached == nil {
 		cached = &intsCache{}
@@ -712,7 +715,11 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToCanonicalString() string {
-	return cacheStr(&section.getStringCache().canonicalString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4CanonicalParams)
+	}
+	return cacheStr(&cache.canonicalString,
 		func() string {
 			return section.toNormalizedString(ipv4CanonicalParams)
 		})
@@ -730,7 +737,11 @@ func (section *IPv4AddressSection) ToCompressedString() string {
 }
 
 func (section *IPv4AddressSection) ToNormalizedWildcardString() string {
-	return cacheStr(&section.getStringCache().normalizedWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4NormalizedWildcardParams)
+	}
+	return cacheStr(&cache.normalizedWildcardString,
 		func() string {
 			return section.toNormalizedString(ipv4NormalizedWildcardParams)
 		})
@@ -741,28 +752,44 @@ func (section *IPv4AddressSection) ToCanonicalWildcardString() string {
 }
 
 func (section *IPv4AddressSection) ToSegmentedBinaryString() string {
-	return cacheStr(&section.getStringCache().segmentedBinaryString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4SegmentedBinaryParams)
+	}
+	return cacheStr(&cache.segmentedBinaryString,
 		func() string {
 			return section.toNormalizedString(ipv4SegmentedBinaryParams)
 		})
 }
 
 func (section *IPv4AddressSection) ToSQLWildcardString() string {
-	return cacheStr(&section.getStringCache().sqlWildcardString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4SqlWildcardParams)
+	}
+	return cacheStr(&cache.sqlWildcardString,
 		func() string {
 			return section.toNormalizedString(ipv4SqlWildcardParams)
 		})
 }
 
 func (section *IPv4AddressSection) ToFullString() string {
-	return cacheStr(&section.getStringCache().fullString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4FullParams)
+	}
+	return cacheStr(&cache.fullString,
 		func() string {
 			return section.toNormalizedString(ipv4FullParams)
 		})
 }
 
 func (section *IPv4AddressSection) ToReverseDNSString() string {
-	return cacheStr(&section.getStringCache().reverseDNSString,
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toNormalizedString(ipv4ReverseDNSParams)
+	}
+	return cacheStr(&cache.reverseDNSString,
 		func() string {
 			return section.toNormalizedString(ipv4ReverseDNSParams)
 		})
@@ -781,13 +808,20 @@ func (section *IPv4AddressSection) ToCompressedWildcardString() string {
 }
 
 func (section *IPv4AddressSection) ToInetAtonString(radix Inet_aton_radix) string {
+	cache := section.getStringCache()
 	if radix == Inet_aton_radix_octal {
-		return cacheStr(&section.getStringCache().inetAtonOctalString,
+		if cache == nil {
+			return section.toNormalizedString(inetAtonOctalParams)
+		}
+		return cacheStr(&cache.inetAtonOctalString,
 			func() string {
 				return section.toNormalizedString(inetAtonOctalParams)
 			})
 	} else if radix == Inet_aton_radix_hex {
-		return cacheStr(&section.getStringCache().inetAtonHexString,
+		if cache == nil {
+			return section.toNormalizedString(inetAtonHexParams)
+		}
+		return cacheStr(&cache.inetAtonHexString,
 			func() string {
 				return section.toNormalizedString(inetAtonHexParams)
 			})

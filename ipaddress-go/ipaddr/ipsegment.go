@@ -28,6 +28,12 @@ func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
 
 func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 	cache := seg.getCache()
+	if cache == nil {
+		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
+			return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+		}
+		return false
+	}
 	res := cache.isSinglePrefBlock
 	if res == nil {
 		var result bool

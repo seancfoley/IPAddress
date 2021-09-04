@@ -280,6 +280,9 @@ func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount
 
 func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
 	cache := div.getCache()
+	if cache == nil {
+		return GetMinPrefixLenForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
+	}
 	res := cache.minPrefLenForBlock
 	if res == nil {
 		res = cacheBitCount(GetMinPrefixLenForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()))

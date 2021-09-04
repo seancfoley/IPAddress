@@ -20,7 +20,6 @@ type addressDivisionGroupingBase struct {
 	// can rely on this field.
 	addrType addrType
 
-	// TODO make sure we always check cache for nil, one way is to change name and check each access
 	// assigned on creation only; for zero-value groupings it is never assigned, but in that case it is not needed since there is nothing to cache
 	cache *valueCache
 }
@@ -251,13 +250,16 @@ func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCoun
 
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
 	cache := grouping.cache // IsMultiple checks prior to this ensures cacheBitCountx no nil here
+	if cache == nil {
+		return grouping.calcCount(counter)
+	}
 	count := cache.cachedCount
 	if count == nil {
 		count = grouping.calcCount(counter)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedCount))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 	}
-	return new(big.Int).Set(cache.cachedCount)
+	return new(big.Int).Set(count)
 }
 
 func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) *big.Int {
@@ -269,13 +271,16 @@ func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) 
 
 func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *big.Int) *big.Int {
 	cache := grouping.cache // IsMultiple checks prior to this ensures cache not nil here
+	if cache == nil {
+		return grouping.calcPrefixCount(counter)
+	}
 	count := cache.cachedPrefixCount
 	if count == nil {
 		count = grouping.calcPrefixCount(counter)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.cachedPrefixCount))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(count))
 	}
-	return new(big.Int).Set(cache.cachedPrefixCount)
+	return new(big.Int).Set(count)
 }
 
 func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big.Int) *big.Int {
