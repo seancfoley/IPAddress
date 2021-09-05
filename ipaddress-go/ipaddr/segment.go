@@ -269,38 +269,13 @@ func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, Incom
 }
 
 func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *AddressSegment, err IncompatibleAddressError) {
-	if isReversible, multiValueByteIndex := seg.isReversibleRange(perByte); isReversible {
-		if perByte {
-			var result, upperResult SegInt
-			byteCount := seg.GetByteCount()
-			bitCount := seg.GetBitCount()
-			val := seg.GetSegmentValue()
-			upperVal := seg.GetUpperSegmentValue()
-			for i := 1; i <= byteCount; i++ {
-				result = result << 8
-				bytes := BitCount(i << 3)
-				b := val >> uint(bitCount-bytes)
-				if i <= multiValueByteIndex {
-					result |= SegInt(reverseUint8(uint8(b)))
-					upperResult = result
-				} else {
-					ub := upperVal >> uint(bitCount-bytes)
-					result |= b
-					upperResult |= ub
-				}
-			}
-			if val == result && upperVal == upperResult && !seg.isPrefixed() {
-				res = seg.toAddressSegment()
-			} else {
-				res = createAddressSegment(seg.deriveNewMultiSeg(result, upperResult, nil))
-			}
-		} else {
-			if seg.isPrefixed() {
-				res = createAddressSegment(seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil))
-				return
-			}
-			res = seg.toAddressSegment()
+	if isReversible := seg.isReversibleRange(perByte); isReversible {
+		// all reversible multi-valued segs reverse to the same segment
+		if seg.isPrefixed() {
+			res = createAddressSegment(seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil))
+			return
 		}
+		res = seg.toAddressSegment()
 		return
 	}
 	err = &incompatibleAddressError{addressError{key: "ipaddress.error.reverseRange"}}
@@ -378,7 +353,7 @@ func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err Inco
 	return
 }
 
-func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible bool, multiValueByteIndex int) {
+func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible bool) {
 	// Consider the case of reversing the bits of a range
 	// Any range that can be successfully reversed must span all bits (otherwise after flipping you'd have a range in which the lower bit is constant, which is impossible in any contiguous range)
 	// So that means at least one value has 0xxxx and another has 1xxxx (using 5 bits for our example). This means you must have the values 01111 and 10000 since the range is contiguous.
@@ -390,13 +365,36 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 
 	//-----------------------
 	// Consider the case of reversing each of the bytes of a range.
-	// If you apply the same argument to the top (multiple) byte, that any top byte value must result in a new range with that top byte reversed,
-	// you have the only possible ranges in the top byte are: 0-11111, 0-11110, 1-11110, and 1-11111.
-	// Any one of those ranges means that all possible values are in the bottom bytes.
-	// So you end up with a similar result.  Whether 0 or 11111 are included in the top byte is optional.
-	// And if each one is included, it reverses to itself, the rest of the range staying the same, and thus the whole range stays the same in that one byte.
-	// That first range byte reverses to itself.  The bottom bytes are full-range and thus reverse to themselves.
-	// The single-valued bytes before that first range byte have their single value reversed.
+	//
+	// You can apply the same argument to the top multiple byte,
+	// which means it is 0 or 1 to 254 or 255.
+	// Suppose there is another byte to follow.
+	// If you take the upper byte range, and you hold it constant, then reversing the next byte applies the same argument to that byte.
+	// And so the lower byte must span from at most 1 to at least 11111110.
+	// This argument holds when holding the upper byte constant at any value.
+	// So the lower byte must span from at most 1 to at least 111111110 for any value.
+	// So you have x 00000001-x 111111110 and y 00000001-y 111111110 and so on.
+
+	// But all the bytes form a range, so you must also have the values in-between.
+	// So that means you have 1 00000001 to 1 111111110 to 10 111111110 to 11 111111110 all the way to x 11111110, where x is at least 11111110.
+	// In all cases, the upper byte lower value is at most 1, and 1 < 10000000.
+	// That means you always have 10000000 00000000.
+	// So you have the reverse as well (as argued above, for any value we also have the reverse).
+	// So you always have 00000001 00000000.
+	//
+	// In other words, if the upper byte has lower 0, then the full bytes lower must be at most 0 00000001
+	// Otherwise, when the upper byte has lower 1, the the full bytes lower is at most 1 00000000.
+	//
+	// In other words, if any upper byte has lower value 1, then all lower values to follow are 0.
+	// If all upper bytes have lower value 0, then the next byte is permitted to have lower value 1.
+	//
+	// In summary, any upper byte having lower of 1 forces the remaining lower values to be 0.
+	//
+	// WHen the upper bytes are all zero, and thus the lower is at most 0 0 0 0 1,
+	// then the only remaining lower value is 0 0 0 0 0.  This reverses to itself, so it is optional.
+	//
+	// The same argument applies to upper boundaries.
+	//
 
 	//-----------------------
 	// Consider the case of reversing the bytes of a range.
@@ -416,38 +414,58 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 	// But once again, the two remaining values are optional, because the byte-reverse to themselves.
 	// So for the byte-reverse case, we have the same potential ranges as in the bit-reverse case: 0-111111, 0-111110, 1-111110, and 1-111111
 	if perByte {
-		// needs to be 0 0 range fullrange fullrange
-		// where range is 0 or 1 to 254 or 255
-		// otherwise, not reversible per byte
 		byteCount := seg.GetByteCount()
 		bitCount := seg.GetBitCount()
 		val := seg.GetSegmentValue()
 		upperVal := seg.GetUpperSegmentValue()
-	top:
 		for i := 1; i <= byteCount; i++ {
 			bitShift := i << 3
 			shift := (bitCount - BitCount(bitShift))
 			byteVal := 0xff & (val >> uint(shift))
 			upperByteVal := 0xff & (upperVal >> uint(shift))
 			if byteVal != upperByteVal {
-				multiValueByteIndex = i - 1
-				if byteVal <= 1 && upperByteVal >= 254 {
-					for i++; i <= byteCount; i++ {
+				if byteVal > 1 || upperByteVal < 254 {
+					return false
+				}
+				i++
+				if i <= byteCount {
+					lowerIsZero := byteVal == 1
+					upperIsMax := upperByteVal == 254
+					for {
 						bitShift = i << 3
-						shift = (bitCount - BitCount(bitShift))
+						shift = bitCount - BitCount(bitShift)
 						byteVal = 0xff & (val >> uint(shift))
 						upperByteVal = 0xff & (upperVal >> uint(shift))
-						if byteVal > 0 || upperByteVal < 255 {
-							break top
+						if lowerIsZero {
+							if byteVal != 0 {
+								return
+							}
+						} else {
+							if byteVal > 1 {
+								return
+							}
+							lowerIsZero = byteVal == 1
+						}
+						if upperIsMax {
+							if upperByteVal != 255 {
+								return
+							}
+						} else {
+							if upperByteVal < 254 {
+								return
+							}
+							upperIsMax = upperByteVal == 254
+						}
+						i++
+						if i > byteCount {
+							break
 						}
 					}
-					isReversible = true
-					return
 				}
-				break
+				return true
 			}
 		}
-		return
+		return true
 	}
 	isReversible = seg.GetSegmentValue() <= 1 && seg.GetUpperSegmentValue() >= seg.GetMaxValue()-1
 	return

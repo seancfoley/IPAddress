@@ -170,7 +170,7 @@ func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err
 		return
 	}
 	if seg.IsMultiple() {
-		if isReversible, _ := seg.isReversibleRange(false); isReversible {
+		if isReversible := seg.isReversibleRange(false); isReversible {
 			res = seg.WithoutPrefixLen()
 			return
 		}
@@ -318,15 +318,6 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 	return
 }
 
-//func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
-//	res := newIPv4SegmentValX(value)
-//	if res == nil {
-//		newIPv4SegmentValX(value)
-//		panic("hi")
-//	}
-//	return res
-//}
-
 func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 	if useIPv4SegmentCache {
 		result := &segmentCacheIPv4[value]
@@ -341,15 +332,6 @@ func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 		},
 	}
 }
-
-//func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv4SegmentValues) {
-//	res := newIPv4SegmentPrefixedValX(value, prefLen)
-//	if res == nil {
-//		res = newIPv4SegmentPrefixedValX(value, prefLen)
-//		panic("hi")
-//	}
-//	return res
-//}
 
 func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv4SegmentValues) {
 	if prefLen == nil {
@@ -407,15 +389,6 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 		},
 	}
 }
-
-//func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLen) *ipv4SegmentValues {
-//	res := newIPv4SegmentPrefixedValuesX(value, upperValue, prefLen)
-//	if res == nil {
-//		newIPv4SegmentPrefixedValuesX(value, upperValue, prefLen)
-//		panic("hi")
-//	}
-//	return res
-//}
 
 func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLen) *ipv4SegmentValues {
 	var isSinglePrefBlock *bool

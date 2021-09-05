@@ -180,7 +180,7 @@ func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err I
 		return
 	}
 	if seg.IsMultiple() {
-		if isReversible, _ := seg.isReversibleRange(false); isReversible {
+		if isReversible := seg.isReversibleRange(false); isReversible {
 			res = seg
 			return
 		}
