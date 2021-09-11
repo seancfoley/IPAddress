@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"strconv"
 )
 
 type boolSetting struct {
@@ -22,15 +23,6 @@ func GetPrefixLen(i int) PrefixLen {
 func cacheBits(i int) PrefixLen {
 	return cacheBitCount(BitCount(i))
 }
-
-//func (p PrefixLen) Equals(other PrefixLen) bool { this does not work either, cannot have pointer receiver...
-//	if p == nil {
-//		return other == nil
-//	} else if other == nil {
-//		return false
-//	}
-//	return *p == *other
-//}
 
 // Equals compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
 func (p *BitCount) Equals(other *BitCount) bool {
@@ -56,6 +48,13 @@ func (p *BitCount) Compare(other *BitCount) int {
 	return int(*p) - int(*other)
 }
 
+func (p *BitCount) String() string {
+	if p == nil {
+		return ""
+	}
+	return strconv.Itoa(int(*p))
+}
+
 func PrefixEquals(one, two PrefixLen) bool { //TODO replace calls to this with the above
 	if one == nil {
 		return two == nil
@@ -69,15 +68,6 @@ var cachedPrefixLens = initPrefLens()
 var minusOne BitCount = -1
 var noPrefix PrefixLen = &minusOne
 
-func cacheBitCount(i BitCount) PrefixLen {
-	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
-		result := cachedPrefixLens[i]
-		return result
-	}
-	bc := BitCount(i)
-	return &bc
-}
-
 func initPrefLens() []PrefixLen {
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
 	for i := BitCount(0); i <= IPv6BitCount; i++ {
@@ -85,6 +75,15 @@ func initPrefLens() []PrefixLen {
 		cachedPrefLens[i] = &bc
 	}
 	return cachedPrefLens
+}
+
+func cacheBitCount(i BitCount) PrefixLen {
+	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
+		result := cachedPrefixLens[i]
+		return result
+	}
+	bc := BitCount(i)
+	return &bc
 }
 
 type Port *PortNum // using signed integers allows for easier arithmetic and decrement bugs

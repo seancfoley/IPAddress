@@ -235,9 +235,9 @@ func (creator *macAddressCreator) createPrefixSegment(value SegInt, _ PrefixLen)
 	return NewMACSegment(MACSegInt(value)).ToAddressDivision()
 }
 
-func (creator *macAddressCreator) createMACRangeSegment(lower, upper SegInt) *AddressDivision {
-	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
-}
+//func (creator *macAddressCreator) createMACRangeSegment(lower, upper SegInt) *AddressDivision {
+//	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
+//}
 
 func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
 	return newMACSectionParsed(segments).ToAddressSection()

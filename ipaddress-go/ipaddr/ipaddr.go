@@ -500,6 +500,10 @@ func (addr *ipAddressInternal) toCompressedWildcardString() string {
 	return addr.section.ToIPAddressSection().ToCompressedWildcardString()
 }
 
+func (addr *ipAddressInternal) getNetwork() IPAddressNetwork {
+	return addr.section.ToIPAddressSection().getNetwork()
+}
+
 //func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
 //	return addr.GetSegment(index)
 //}
@@ -572,10 +576,6 @@ func (addr *IPAddress) GetHostSection() *IPAddressSection {
 
 func (addr *IPAddress) GetHostSectionLen(prefLen BitCount) *IPAddressSection {
 	return addr.GetSection().GetHostSectionLen(prefLen)
-}
-
-func (addr *IPAddress) getNetwork() IPAddressNetwork {
-	return addr.GetSection().getNetwork()
 }
 
 func (addr *IPAddress) GetNetworkMask() *IPAddress {
@@ -1351,6 +1351,10 @@ func (addr *IPAddress) GetTrailingBitCount(ones bool) BitCount {
 	return addr.GetSection().GetTrailingBitCount(ones)
 }
 
+func (addr *IPAddress) GetNetwork() IPAddressNetwork {
+	return addr.getNetwork()
+}
+
 func ipAddressEquals(one, two *IPAddress) bool {
 	if one == nil {
 		return two == nil
@@ -1670,6 +1674,83 @@ func FromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
 	}
 	return nil
 }
+
+type IPAddressCreator struct {
+	IPVersion
+}
+
+func (creator IPAddressCreator) FromPrefixedVals(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
+	return FromPrefixedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength)
+}
+
+func (creator IPAddressCreator) FromPrefixedZonedVals(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
+	return FromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
+}
+
+func (creator IPAddressCreator) CreateSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *IPAddressSegment {
+	if creator.IsIPv4() {
+		return NewIPv4RangePrefixedSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToIPAddressSegment()
+	} else if creator.IsIPv6() {
+		return NewIPv6RangePrefixedSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToIPAddressSegment()
+	}
+	return nil
+}
+
+func (creator IPAddressCreator) CreateRangeSegment(lower, upper SegInt) *IPAddressSegment {
+	if creator.IsIPv4() {
+		return NewIPv4RangeSegment(IPv4SegInt(lower), IPv4SegInt(upper)).ToIPAddressSegment()
+	} else if creator.IsIPv6() {
+		return NewIPv6RangeSegment(IPv6SegInt(lower), IPv6SegInt(upper)).ToIPAddressSegment()
+	}
+	return nil
+}
+
+func (creator IPAddressCreator) CreatePrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *IPAddressSegment {
+	if creator.IsIPv4() {
+		return NewIPv4PrefixedSegment(IPv4SegInt(value), segmentPrefixLength).ToIPAddressSegment()
+	} else if creator.IsIPv6() {
+		return NewIPv6PrefixedSegment(IPv6SegInt(value), segmentPrefixLength).ToIPAddressSegment()
+	}
+	return nil
+}
+
+func (creator IPAddressCreator) FromIP(bytes net.IP) *IPAddress {
+	if creator.IsIPv4() {
+		addr, _ := NewIPv4AddressFromIP(bytes)
+		return addr.ToIPAddress()
+	} else if creator.IsIPv6() {
+		addr, _ := NewIPv6AddressFromIP(bytes)
+		return addr.ToIPAddress()
+	}
+	return nil
+}
+
+func (creator IPAddressCreator) FromPrefixedIP(bytes net.IP, prefLen PrefixLen) *IPAddress {
+	if creator.IsIPv4() {
+		addr, _ := NewIPv4AddressFromPrefixedIP(bytes, prefLen)
+		return addr.ToIPAddress()
+	} else if creator.IsIPv6() {
+		addr, _ := NewIPv6AddressFromPrefixedIP(bytes, prefLen)
+		return addr.ToIPAddress()
+	}
+	return nil
+}
+
+//xxxx
+//our creator object could store the version and then call these
+//does it make sense to combine with the existing creator infrastructure?
+//I am a little skeptical
+//FOr one thing they use AddressDivision (not IPv4 or v6 Address Segment)
+//For another thing, building up from divisions can be done in an anonymous way, but is far from ideal, much easier to just use values and byte slices
+//Now, what about IPADdressProvider?
+//well, for the small things like prefix, it is easier to pass things in to a creator method than to create more funcs
+//So, that is all we need, start from a version, create the thing, use the thing
+//xxx
+//Our test code also wants to use a byte slice too
+//Hmmm we could just call the static methods
+//ok let us rewrite to us SegmentValueProvider, why not?  It is easier
+//But you do want to test getBytes so let us do that instead
+//xxxx
 
 func FromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
 	return FromPrefixedZonedVals(version, lowerValueProvider, upperValueProvider, prefixLength, "")

@@ -773,6 +773,10 @@ func (addr *IPv4Address) GetTrailingBitCount(ones bool) BitCount {
 	return addr.GetSection().GetTrailingBitCount(ones)
 }
 
+func (addr *IPv4Address) GetNetwork() IPAddressNetwork {
+	return DefaultIPv4Network
+}
+
 // GetIPv6Addresscreates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
 func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
 	if len(segs) < IPv6MixedOriginalSegmentCount {

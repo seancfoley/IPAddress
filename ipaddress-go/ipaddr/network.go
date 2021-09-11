@@ -86,7 +86,7 @@ func (network *IPv6AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddr
 
 var _ IPAddressNetwork = &IPv6AddressNetwork{}
 
-var DefaultIPv6Network = &IPv6AddressNetwork{
+var DefaultIPv6Network = &IPv6AddressNetwork{ //TODO rename, remove "Default"
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv6BitCount+1),
 		make([]*IPAddress, IPv6BitCount+1),

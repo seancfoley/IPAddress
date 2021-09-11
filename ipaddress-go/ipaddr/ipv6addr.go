@@ -1091,6 +1091,10 @@ func (addr *IPv6Address) GetTrailingBitCount(ones bool) BitCount {
 	return addr.GetSection().GetTrailingBitCount(ones)
 }
 
+func (addr *IPv6Address) GetNetwork() IPAddressNetwork {
+	return DefaultIPv6Network
+}
+
 func (addr *IPv6Address) IsEUI64() bool {
 	return addr.GetSegment(6).MatchesWithPrefixMask(0xfe00, 8) &&
 		addr.GetSegment(5).MatchesWithMask(0xff, 0xff)
