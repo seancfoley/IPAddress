@@ -120,24 +120,25 @@ type MACAddressStringParametersBuilder struct {
 	formatBuilder MACAddressStringFormatParametersBuilder
 }
 
-func ToMACAddressStringParamsBuilder(params MACAddressStringParameters) *MACAddressStringParametersBuilder {
-	var result MACAddressStringParametersBuilder
-	if p, ok := params.(*macAddressStringParameters); ok {
-		result.params = *p
-	} else {
-		result.params = macAddressStringParameters{
-			noAllowDashed:         !params.AllowsDashed(),
-			noAllowSingleDashed:   !params.AllowsSingleDashed(),
-			noAllowColonDelimited: !params.AllowsColonDelimited(),
-			noAllowDotted:         !params.AllowsDotted(),
-			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
-			allAddresses:          params.AddressSize(),
-		}
-	}
-	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
-	result.formatBuilder = *ToMACAddressStringFormatParamsBuilder(params.GetFormatParameters())
-	return &result
-}
+//func ToMACAddressStringParamsBuilder(params MACAddressStringParameters) *MACAddressStringParametersBuilder {
+//	xxx
+//	var result MACAddressStringParametersBuilder
+//	if p, ok := params.(*macAddressStringParameters); ok {
+//		result.params = *p
+//	} else {
+//		result.params = macAddressStringParameters{
+//			noAllowDashed:         !params.AllowsDashed(),
+//			noAllowSingleDashed:   !params.AllowsSingleDashed(),
+//			noAllowColonDelimited: !params.AllowsColonDelimited(),
+//			noAllowDotted:         !params.AllowsDotted(),
+//			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
+//			allAddresses:          params.AddressSize(),
+//		}
+//	}
+//	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
+//	result.formatBuilder = *ToMACAddressStringFormatParamsBuilder(params.GetFormatParameters())
+//	return &result
+//}
 
 func (builder *MACAddressStringParametersBuilder) ToParams() MACAddressStringParameters {
 	// We do not return a pointer to builder.params because that would make it possible to change a macAddressStringParameters
@@ -154,6 +155,28 @@ func (builder *MACAddressStringParametersBuilder) GetFormatParametersBuilder() (
 	result = &builder.formatBuilder
 	result.parent = builder
 	return
+}
+
+func (builder *MACAddressStringParametersBuilder) Set(params MACAddressStringParameters) *MACAddressStringParametersBuilder {
+	//xxx
+	//var result MACAddressStringParametersBuilder
+	if p, ok := params.(*macAddressStringParameters); ok {
+		builder.params = *p
+	} else {
+		builder.params = macAddressStringParameters{
+			noAllowDashed:         !params.AllowsDashed(),
+			noAllowSingleDashed:   !params.AllowsSingleDashed(),
+			noAllowColonDelimited: !params.AllowsColonDelimited(),
+			noAllowDotted:         !params.AllowsDotted(),
+			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
+			allAddresses:          params.AddressSize(),
+		}
+	}
+	//builder.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
+	//builder.formatBuilder = *ToMACAddressStringFormatParamsBuilder(params.GetFormatParameters())
+	builder.AddressStringParametersBuilder.set(params)
+	builder.formatBuilder.Set(params.GetFormatParameters())
+	return builder
 }
 
 func (builder *MACAddressStringParametersBuilder) AllowEmpty(allow bool) *MACAddressStringParametersBuilder {
@@ -227,18 +250,19 @@ type MACAddressStringFormatParametersBuilder struct {
 	parent *MACAddressStringParametersBuilder
 }
 
-func ToMACAddressStringFormatParamsBuilder(params MACAddressStringFormatParameters) *MACAddressStringFormatParametersBuilder {
-	var result MACAddressStringFormatParametersBuilder
-	if p, ok := params.(*macAddressStringFormatParameters); ok {
-		result.params = *p
-	} else {
-		result.params = macAddressStringFormatParameters{
-			noShortSegments: !params.AllowsShortSegments(),
-		}
-	}
-	result.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(params)
-	return &result
-}
+//func ToMACAddressStringFormatParamsBuilder(params MACAddressStringFormatParameters) *MACAddressStringFormatParametersBuilder {
+//	xxx
+//	var result MACAddressStringFormatParametersBuilder
+//	if p, ok := params.(*macAddressStringFormatParameters); ok {
+//		result.params = *p
+//	} else {
+//		result.params = macAddressStringFormatParameters{
+//			noShortSegments: !params.AllowsShortSegments(),
+//		}
+//	}
+//	result.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(params)
+//	return &result
+//}
 
 func (builder *MACAddressStringFormatParametersBuilder) GetParentBuilder() *MACAddressStringParametersBuilder {
 	return builder.parent
@@ -254,6 +278,21 @@ func (params *MACAddressStringFormatParametersBuilder) GetRangeParametersBuilder
 	result := &params.rangeParamsBuilder
 	result.parent = params
 	return result
+}
+
+func (params *MACAddressStringFormatParametersBuilder) Set(parms MACAddressStringFormatParameters) *MACAddressStringFormatParametersBuilder {
+	//xxx
+	//var result MACAddressStringFormatParametersBuilder
+	if p, ok := parms.(*macAddressStringFormatParameters); ok {
+		params.params = *p
+	} else {
+		params.params = macAddressStringFormatParameters{
+			noShortSegments: !parms.AllowsShortSegments(),
+		}
+	}
+	params.AddressStringFormatParamsBuilder.set(parms)
+	//params.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(parms)
+	return params
 }
 
 func (builder *MACAddressStringFormatParametersBuilder) AllowWildcardedSeparator(allow bool) *MACAddressStringFormatParametersBuilder {

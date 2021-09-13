@@ -216,5 +216,6 @@ func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParam
 	if p, ok := orig.(*macAddressStringParameters); ok {
 		return p
 	}
-	return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
+	return new(MACAddressStringParametersBuilder).Set(orig).ToParams().(*macAddressStringParameters)
+	//return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
 }

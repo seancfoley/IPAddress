@@ -6,70 +6,8 @@ import (
 	"strings"
 )
 
-func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
-	return failure{
-		str:  str,
-		addr: addr,
-	}
-}
-
-func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
-	return failure{
-		str:     str,
-		macAddr: addr,
-	}
-}
-
-func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
-	return failure{
-		str:        str,
-		macAddrStr: addrStr,
-	}
-}
-func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
-	return failure{
-		str:     str,
-		addrStr: addrStr,
-	}
-}
-
-type failure struct {
-	str        string
-	addr       *ipaddr.IPAddress
-	addrStr    *ipaddr.IPAddressString
-	macAddr    *ipaddr.MACAddress
-	macAddrStr *ipaddr.MACAddressString
-}
-
-type testInterface interface {
-	// address creators
-	createAddress(string) *ipaddr.IPAddressString
-
-	createMACAddress(string) *ipaddr.MACAddressString
-
-	// test failures
-	addFailure(failure)
-
-	// store test counts
-	incrementTestCount()
-}
-
-func main() {
-	//TODO create the test interface, then create the ipAddressTester from it,
-	// then call run on the ipAddresstester,
-	// do the same for the macAddressTester
-}
-
-type tester interface {
-	run()
-}
-
-type testBase struct {
-	testInterface
-}
-
 type ipAddressTester struct {
-	testBase
+	testInterface
 }
 
 func (t ipAddressTester) run() {
@@ -288,7 +226,7 @@ func (t ipAddressRangeTester) run() {
 }
 
 type macAddressTester struct {
-	testBase
+	testInterface
 }
 
 type macAddressRangeTester struct {

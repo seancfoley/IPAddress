@@ -39,6 +39,8 @@ type HostNameParameters interface {
 	ExpectsPort() bool
 
 	GetIPAddressParameters() IPAddressStringParameters
+
+	//ToAddressOptionsBuilder() IPAddressStringParametersBuilder
 }
 
 // hostNameParameters has parameters for parsing IP address strings
@@ -53,6 +55,10 @@ type hostNameParameters struct {
 	noEmpty, noBracketedIPv4, noBracketedIPv6,
 	noNormalizeToLower, noIPAddress, noPort, noService, expectPort bool
 }
+
+//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParametersBuilder {xxx no longer use this xxxx
+//	return params.ipParams.ToBuilder()
+//}
 
 func (params *hostNameParameters) AllowsEmpty() bool {
 	return !params.noEmpty
@@ -105,27 +111,35 @@ type HostNameParametersBuilder struct {
 	ipAddressBuilder IPAddressStringParametersBuilder
 }
 
-func ToHostNameParametersBuilder(params HostNameParameters) *HostNameParametersBuilder {
-	var result HostNameParametersBuilder
-	if p, ok := params.(*hostNameParameters); ok {
-		result.hostNameParameters = *p
-	} else {
-		result.hostNameParameters = hostNameParameters{
-			emptyStringOption:  params.EmptyStrParsedAs(),
-			preferredVersion:   params.GetPreferredVersion(),
-			noEmpty:            !params.AllowsEmpty(),
-			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
-			noBracketedIPv6:    !params.AllowsBracketedIPv6(),
-			noNormalizeToLower: !params.NormalizesToLowercase(),
-			noIPAddress:        !params.AllowsIPAddress(),
-			noPort:             !params.AllowsPort(),
-			noService:          !params.AllowsService(),
-			expectPort:         params.ExpectsPort(),
-		}
-	}
-	result.SetIPAddressParameters(params.GetIPAddressParameters())
-	return &result
-}
+//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParametersBuilder {xxx no longer use this xxxx
+//	return params.ipParams.ToBuilder()
+//}
+
+//func ToIPAddressParametersBuilder(params HostNameParameters) *IPAddressStringParametersBuilder {
+//	return ToIPAddressStringParamsBuilder(params.GetIPAddressParameters())
+//}
+
+//func ToHostNameParametersBuilder(params HostNameParameters) *HostNameParametersBuilder {
+//	var result HostNameParametersBuilder
+//	if p, ok := params.(*hostNameParameters); ok {
+//		result.hostNameParameters = *p
+//	} else {
+//		result.hostNameParameters = hostNameParameters{
+//			emptyStringOption:  params.EmptyStrParsedAs(),
+//			preferredVersion:   params.GetPreferredVersion(),
+//			noEmpty:            !params.AllowsEmpty(),
+//			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
+//			noBracketedIPv6:    !params.AllowsBracketedIPv6(),
+//			noNormalizeToLower: !params.NormalizesToLowercase(),
+//			noIPAddress:        !params.AllowsIPAddress(),
+//			noPort:             !params.AllowsPort(),
+//			noService:          !params.AllowsService(),
+//			expectPort:         params.ExpectsPort(),
+//		}
+//	}
+//	result.SetIPAddressParameters(params.GetIPAddressParameters())
+//	return &result
+//}
 
 func (builder *HostNameParametersBuilder) ToParams() HostNameParameters {
 	// We do not return a pointer to builder.params because that would make it possible to change a ipAddressStringParameters
@@ -143,8 +157,31 @@ func (builder *HostNameParametersBuilder) GetIPAddressParametersBuilder() (resul
 	return
 }
 
+func (builder *HostNameParametersBuilder) Set(params HostNameParameters) *HostNameParametersBuilder {
+	//var result HostNameParametersBuilder
+	if p, ok := params.(*hostNameParameters); ok {
+		builder.hostNameParameters = *p
+	} else {
+		builder.hostNameParameters = hostNameParameters{
+			emptyStringOption:  params.EmptyStrParsedAs(),
+			preferredVersion:   params.GetPreferredVersion(),
+			noEmpty:            !params.AllowsEmpty(),
+			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
+			noBracketedIPv6:    !params.AllowsBracketedIPv6(),
+			noNormalizeToLower: !params.NormalizesToLowercase(),
+			noIPAddress:        !params.AllowsIPAddress(),
+			noPort:             !params.AllowsPort(),
+			noService:          !params.AllowsService(),
+			expectPort:         params.ExpectsPort(),
+		}
+	}
+	builder.SetIPAddressParameters(params.GetIPAddressParameters())
+	return builder
+}
+
 func (builder *HostNameParametersBuilder) SetIPAddressParameters(params IPAddressStringParameters) *HostNameParametersBuilder {
-	builder.ipAddressBuilder = *ToIPAddressStringParamsBuilder(params)
+	//builder.ipAddressBuilder = *ToIPAddressStringParamsBuilder(params)
+	builder.ipAddressBuilder.Set(params)
 	return builder
 }
 

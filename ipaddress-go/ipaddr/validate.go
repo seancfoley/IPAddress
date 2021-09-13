@@ -2335,12 +2335,14 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 	if ipVersion.IsIndeterminate() || ipVersion.IsIPv6() {
 		ipv6Options := validationOptions.GetIPv6Parameters()
 		if !isNoRange(ipv6Options.GetRangeParameters()) {
-			builder = ToIPAddressStringParamsBuilder(validationOptions)
+			builder = new(IPAddressStringParametersBuilder).Set(validationOptions)
+			//builder = ToIPAddressStringParamsBuilder(validationOptions)
 			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
 		if ipv6Options.AllowsMixed() && !isNoRange(ipv6Options.GetMixedParameters().GetIPv4Parameters().GetRangeParameters()) {
 			if builder == nil {
-				builder = ToIPAddressStringParamsBuilder(validationOptions)
+				builder = new(IPAddressStringParametersBuilder).Set(validationOptions)
+				//builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
 			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
@@ -2349,14 +2351,16 @@ func toMaskOptions(validationOptions IPAddressStringParameters,
 		ipv4Options := validationOptions.GetIPv4Parameters()
 		if !isNoRange(ipv4Options.GetRangeParameters()) {
 			if builder == nil {
-				builder = ToIPAddressStringParamsBuilder(validationOptions)
+				builder = new(IPAddressStringParametersBuilder).Set(validationOptions)
+				//builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
 			builder.GetIPv4AddressParametersBuilder().SetRangeParameters(NoRange)
 		}
 	}
 	if validationOptions.AllowsAll() {
 		if builder == nil {
-			builder = ToIPAddressStringParamsBuilder(validationOptions)
+			builder = new(IPAddressStringParametersBuilder).Set(validationOptions)
+			//builder = ToIPAddressStringParamsBuilder(validationOptions)
 		}
 		builder.AllowAll(false)
 	}

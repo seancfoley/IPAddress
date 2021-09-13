@@ -567,5 +567,6 @@ func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters
 	if p, ok := orig.(*ipAddressStringParameters); ok {
 		return p
 	}
-	return ToIPAddressStringParamsBuilder(orig).ToParams().(*ipAddressStringParameters)
+	return new(IPAddressStringParametersBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
+	//return ToIPAddressStringParamsBuilder(orig).ToParams().(*ipAddressStringParameters)
 }
