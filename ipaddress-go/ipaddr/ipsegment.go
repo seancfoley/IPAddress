@@ -329,6 +329,17 @@ type IPAddressSegment struct {
 	ipAddressSegmentInternal
 }
 
+//func (seg *IPAddressSegment) Equals(other DivisionType) bool {
+//	if seg == nil {
+//		return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
+//	}
+//	return seg.equals(other)
+//}
+//
+//func (seg *IPAddressSegment) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(seg, item)
+//}
+
 func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
 	return seg.containsPrefixBlock(divisionPrefixLen)
 }

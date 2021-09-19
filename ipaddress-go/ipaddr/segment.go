@@ -477,6 +477,17 @@ type AddressSegment struct {
 	addressSegmentInternal
 }
 
+//func (seg *AddressSegment) Equals(other DivisionType) bool {
+//	if seg == nil {
+//		return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
+//	}
+//	return seg.equals(other)
+//}
+//
+//func (seg *AddressSegment) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(seg, item)
+//}
+
 func (seg *AddressSegment) IsIPAddressSegment() bool {
 	return seg != nil && seg.matchesIPSegment()
 }

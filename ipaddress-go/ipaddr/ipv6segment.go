@@ -108,6 +108,7 @@ type IPv6AddressSegment struct {
 }
 
 func (seg *IPv6AddressSegment) init() *IPv6AddressSegment {
+	//if seg != nil && seg.divisionValues == nil { TODO init() nil
 	if seg.divisionValues == nil {
 		return zeroIPv6Seg
 	}
@@ -115,6 +116,20 @@ func (seg *IPv6AddressSegment) init() *IPv6AddressSegment {
 }
 
 // We must override getBitCount, getByteCount and others for the case when we construct as the zero value
+
+//func (seg *IPv6AddressSegment) Equals(other DivisionType) bool {
+//	if seg == nil {
+//		return seg.getAddrType() == ipv6Type && other.(StandardDivisionType).ToAddressDivision() == nil
+//	}
+//	return seg.init().equals(other)
+//}
+//
+//func (seg *IPv6AddressSegment) CompareTo(item AddressItem) int {
+//	if seg != nil {
+//		seg = seg.init()
+//	}
+//	return CountComparator.Compare(seg, item)
+//}
 
 func (seg *IPv6AddressSegment) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
@@ -560,13 +575,13 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 	}
 }
 
-func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually
+func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
 }
 
-func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually
+func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
@@ -585,7 +600,7 @@ func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TO
 	}
 }
 
-func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually
+func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}

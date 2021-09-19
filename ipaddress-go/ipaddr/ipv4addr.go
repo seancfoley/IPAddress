@@ -151,6 +151,7 @@ func (addr *IPv4Address) GetBytesPerSegment() int {
 
 func (addr *IPv4Address) init() *IPv4Address {
 	if addr.section == nil {
+		//if addr != nil && addr.section == nil {TODO init() nil
 		return zeroIPv4
 	}
 	return addr
@@ -489,6 +490,9 @@ func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 }
 
 func (addr *IPv4Address) CompareTo(item AddressItem) int {
+	//if addr != nil {
+	//	addr = addr.init()
+	//}
 	return CountComparator.Compare(addr.init(), item)
 }
 
@@ -504,6 +508,12 @@ func (addr *IPv4Address) Contains(other AddressType) bool {
 	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection())
 }
 
+//func (addr *IPv4Address) Equals(other AddressType) bool {
+//	if addr == nil {
+//		return other.ToAddress() == nil
+//	}
+//	return other.getAddrType() == ipv4Type && other.ToAddress() != nil && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
+//}
 func (addr *IPv4Address) Equals(other AddressType) bool {
 	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
 }

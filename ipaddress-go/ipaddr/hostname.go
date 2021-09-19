@@ -164,7 +164,8 @@ type HostName struct {
 }
 
 func (host *HostName) init() *HostName {
-	if host.params == nil {
+	if host.params == nil { // the only way params can be nil is when str == "" as well
+		//if host != nil && host.params == nil { TODO init() nil
 		return zeroHost
 	}
 	return host
@@ -542,6 +543,11 @@ func toNormalizedAddrPortString(addr *IPAddress, port PortNum) string {
 // Hosts are not resolved when matching.  Also, hosts must have the same port and service.  They must have the same masks if they are host names.
 // Even if two hosts are invalid, they match if they have the same invalid string.
 func (host *HostName) Equals(other *HostName) bool {
+	//if host == nil {
+	//	return other == nil
+	//} else if other == nil {
+	//	return false
+	//}
 	host = host.init()
 	other = other.init()
 	if host == other {

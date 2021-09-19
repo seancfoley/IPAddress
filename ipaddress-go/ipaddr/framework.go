@@ -144,6 +144,8 @@ type addrSegmentSeries interface {
 	ToCanonicalString() string
 	ToCompressedString() string
 
+	//EqualsSeries(AddressSegmentSeries) bool
+
 	GetGenericSegment(index int) AddressSegmentType
 }
 
@@ -202,7 +204,7 @@ type GenericGroupingType interface {
 
 // StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
-type StandardDivisionGroupingType interface {
+type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionGrouping
 	GenericGroupingType
 
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
@@ -216,7 +218,16 @@ var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
 type AddressSectionType interface {
 	StandardDivisionGroupingType
+
+	//TODO I suspect this addrSegmentSeries weirdness could go away if we dropped GenericGroupingType, and it doesn't seem to be all that useful anyway.
+	//// I did not use it in the comparator.  Using AddressDivisionBase is just as useful, what does the interface give you?
+	// Just a type to use as the argument for Equals(GenericGroupingType).
+	// But equality is a loosy goosey concept anyway for divisions of varying length
+	// If I remove it, then rename EqualsSection to Equals, and make it use AddressSectionType
+	// So then you'd have no equals for all division groupings, just sections, but I think I do not care
+	// We still have CompareTo everywhere anyway
 	addrSegmentSeries
+	//AddressSegmentSeries
 
 	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection

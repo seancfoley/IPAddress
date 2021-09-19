@@ -510,20 +510,21 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 	i := 0
 	isSame := !section.IsPrefixed() //when reversing, the prefix must go
 	for j := count - 1; i < halfCount; i, j = i+1, j-1 {
-		var segi, segj *AddressSegment
-		if segi, err = segProducer(i); err != nil {
+		var newj, newi *AddressSegment
+		if newj, err = segProducer(i); err != nil {
 			return
 		}
-		if segj, err = segProducer(j); err != nil {
+		if newi, err = segProducer(j); err != nil {
 			return
 		}
 		origi := section.GetSegment(i)
 		origj := section.GetSegment(j)
-		newSegs[j] = segi.ToAddressDivision()
-		newSegs[i] = segj.ToAddressDivision()
+		newSegs[j] = newj.ToAddressDivision()
+		newSegs[i] = newi.ToAddressDivision()
 		if isSame &&
-			!(segValsSame(segi.getSegmentValue(), origi.getSegmentValue(), segi.getUpperSegmentValue(), origi.getUpperSegmentValue()) &&
-				segValsSame(segj.getSegmentValue(), origj.getSegmentValue(), segj.getUpperSegmentValue(), origj.getUpperSegmentValue())) {
+			!(segValsSame(newi.getSegmentValue(), origi.getSegmentValue(), newi.getUpperSegmentValue(), origi.getUpperSegmentValue()) &&
+				segValsSame(newj.getSegmentValue(), origj.getSegmentValue(), newj.getUpperSegmentValue(), origj.getUpperSegmentValue())) {
+			//!(segValsSame(newj.getSegmentValue(), newi.getSegmentValue(), newj.getUpperSegmentValue(), newi.getUpperSegmentValue())) {
 			isSame = false
 		}
 	}
@@ -532,7 +533,7 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 		newSegs[i] = seg // gets segment i without prefix length
 	}
 	if isSame {
-		res = section.toAddressSection() //We can do this because for ipv6 startIndex stays the same and for mac startIndex and extended stays the same
+		res = section.toAddressSection()
 		return
 	}
 	res = deriveAddressSectionPrefLen(section.toAddressSection(), newSegs, nil)
@@ -845,10 +846,12 @@ func (section *addressSectionInternal) setPrefixLength(
 	bytesPerSegment := section.GetBytesPerSegment()
 	prefIndex := getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
 	var startIndex int
+	var segmentMaskProducer func(int) SegInt
+	maxVal := section.GetMaxSegmentValue()
 	if existingPrefixLength != nil {
+		verifyMask = true
 		existingPrefLen := *existingPrefixLength
 		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment)
-		verifyMask = true
 		if prefIndex > existingPrefIndex {
 			maxPrefIndex = prefIndex
 			minPrefIndex = existingPrefIndex
@@ -865,15 +868,37 @@ func (section *addressSectionInternal) setPrefixLength(
 				maxPrefLen = networkPrefixLength
 			}
 			startIndex = minPrefIndex
+			segmentMaskProducer = func(i int) SegInt {
+				if i >= minPrefIndex {
+					if i <= maxPrefIndex {
+						minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
+						minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
+						maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
+						if maxSegPrefLen != nil {
+							maxMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
+							return minMask | maxMask
+						}
+						return minMask
+					}
+				}
+				return maxVal
+			}
 		} else {
 			startIndex = minPrefIndex
-			minPrefIndex = section.GetSegmentCount() // used for zeroing, so setting it to the end causes no zeroing
+			//minPrefIndex = section.GetSegmentCount() // used for zeroing - setting it to the end causes no zeroing
 		}
 	} else {
-		minPrefIndex = section.GetSegmentCount()
+		//minPrefIndex = section.GetSegmentCount()
 		startIndex = prefIndex
 	}
-	maxVal := section.GetMaxSegmentValue()
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if segmentMaskProducer == nil {
+		segmentMaskProducer = func(i int) SegInt {
+			return maxVal
+		}
+	}
 	return section.getSubnetSegments(
 		startIndex,
 		cacheBitCount(networkPrefixLength),
@@ -881,21 +906,7 @@ func (section *addressSectionInternal) setPrefixLength(
 		func(i int) *AddressDivision {
 			return section.getDivision(i)
 		},
-		func(i int) SegInt {
-			if i >= minPrefIndex {
-				if i <= maxPrefIndex {
-					minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
-					minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
-					maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
-					if maxSegPrefLen != nil {
-						maxMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
-						return minMask | maxMask
-					}
-					return minMask
-				}
-			}
-			return maxVal
-		},
+		segmentMaskProducer,
 	)
 }
 

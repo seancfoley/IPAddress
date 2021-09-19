@@ -20,6 +20,7 @@ type IPv6AddressSeqRange struct {
 
 func (rng *IPv6AddressSeqRange) init() *IPv6AddressSeqRange {
 	if rng.lower == nil {
+		//if rng != nil && rng.lower == nil {TODO init() nil
 		return zeroIPv6Range
 	}
 	return rng
@@ -122,8 +123,20 @@ func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool 
 }
 
 func (rng *IPv6AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
+	//if rng == nil {
+	//	return other.ToIPAddressSeqRange() == nil
+	//}
 	return rng.init().equals(other)
 }
+
+func (rng *IPv6AddressSeqRange) CompareTo(item AddressItem) int {
+	return rng.init().compareTo(item)
+	//return CountComparator.Compare(rng.init().toIPSequentialRange(), item)
+}
+
+//func (rng *IPv6AddressSeqRange) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(rng, item)
+//}
 
 func (rng *IPv6AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return rng.init().ipAddressSeqRangeInternal.ContainsPrefixBlock(prefixLen)

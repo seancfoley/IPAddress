@@ -3,7 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"time"
 )
+
+//TODO next you want to reorg the test files so they are in test package and not main
+// that way you can just add new files as needed
+// use a cmd dir for the main package
+
+//TODO I decided to start with IPAddresstester.runTest and go in order there
+//But also handling the same tests in the other testers (so not in order in the other ones)
+// So I will need to survey the other oneslater to see what I missed in the others
 
 type failure struct {
 	str string
@@ -12,6 +21,7 @@ type failure struct {
 	addrStr    *ipaddr.IPAddressString
 	macAddr    *ipaddr.MACAddress
 	macAddrStr *ipaddr.MACAddressString
+	series     ipaddr.ExtendedIPSegmentSeries
 }
 
 //TODO String() method for failure
@@ -40,6 +50,13 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	return failure{
 		str:     str,
 		addrStr: addrStr,
+	}
+}
+
+func newAddrSegmentSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
+	return failure{
+		str:    str,
+		series: series,
 	}
 }
 
@@ -151,15 +168,20 @@ var (
 	wildcardAndRangeAddressOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(addressOptions).AllowAll(true).SetRangeParameters(ipaddr.WildcardAndRange).ToParams()
 	wildcardOnlyAddressOptions     = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(ipaddr.WildcardOnly).ToParams()
 	noRangeAddressOptions          = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(ipaddr.NoRange).ToParams()
+
+	wildcardAndRangeMACAddressOptions = new(ipaddr.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
+	wildcardOnlyMACAddressOptions     = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardOnly).GetParentBuilder().ToParams()
+	noRangeMACAddressOptions          = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.NoRange).GetParentBuilder().ToParams()
 )
 
 func (t *rangedAddrTestAccumulator) createAddress(str string) *ipaddr.IPAddressString {
 	return ipaddr.NewIPAddressStringParams(str, wildcardAndRangeAddressOptions)
 }
 
-//func (t *rangedAddrTestAccumulator) createMACAddress(str string) *ipaddr.MACAddressString {
-//	return ipaddr.NewMACAddressStringParams(str, xxxmacAddressOptions)
-//}
+func (t *rangedAddrTestAccumulator) createMACAddress(str string) *ipaddr.MACAddressString {
+	return ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
+}
+
 //
 //func (t *rangedAddrTestAccumulator) createHost(str string) *ipaddr.HostName {
 //	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
@@ -185,17 +207,25 @@ func (t *permissiveAddrTestAccumulator) createAddress(str string) *ipaddr.IPAddr
 
 func main() {
 	var acc addrTestAccumulator
-	tester := ipAddressTester{&acc}
+	tester := ipAddressTester{testBase{&acc}}
+	macTester := macAddressTester{testBase{&acc}}
 	fmt.Println("Starting TestRunner")
+	startTime := time.Now()
 	tester.run()
-	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", acc.counter, len(acc.failures))
-	if len(acc.failures) > 0 {
-		fmt.Printf("%v\n", acc.failures)
+	macTester.run()
+	rangeAcc := rangedAddrTestAccumulator{acc}
+	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{&rangeAcc}}}
+	macRangeTester := macAddressRangeTester{macAddressTester{testBase{&rangeAcc}}}
+	rangeTester.run()
+	macRangeTester.run()
+	endTime := time.Now().Sub(startTime)
+	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", rangeAcc.counter, len(rangeAcc.failures))
+	if len(rangeAcc.failures) > 0 {
+		fmt.Printf("%v\n", rangeAcc.failures)
 	}
-	fmt.Printf("Done: TestRunner\nDone in xxx milliseconds\n", acc.counter, len(acc.failures))
-	//TODO create the testInterface impl, then create the ipAddressTester from it,
-	// then call run on the ipAddresstester,
-	// do the same for the macAddressTester
+	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
+	//fmt.Printf("Done: TestRunner\nDone in %d milliseconds\n", endTime/time.Millisecond)
+	//TODO call the mac tests
 	/*
 		TestRunner
 		test count: 40278
@@ -209,7 +239,109 @@ type tester interface {
 	run()
 }
 
-//
-//type testBase struct {
-//	testInterface
-//}
+type testBase struct {
+	testInterface
+}
+
+func (t testBase) testReverse(series ipaddr.ExtendedIPSegmentSeries, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
+	segmentsReversed := series.ReverseSegments()
+	divCount := series.GetDivisionCount()
+	for i := 0; i < series.GetSegmentCount(); i++ {
+		seg0 := series.GetSegment(i)
+		seg1 := segmentsReversed.GetSegment(divCount - i - 1)
+		if !seg0.Equals(seg1) {
+			t.addFailure(newAddrSegmentSeriesFailure("reversal: "+series.String()+" "+segmentsReversed.String(), series))
+			return
+		}
+	}
+	bytesReversed, err := segmentsReversed.ReverseBytes()
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	bytesReversed, err = bytesReversed.ReverseBytes()
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	bytesReversed = bytesReversed.ReverseSegments()
+	if !series.Equals(bytesReversed) {
+		t.addFailure(newAddrSegmentSeriesFailure("bytes reversal: "+series.String(), series))
+		return
+	}
+	bitsReversed, err := series.ReverseBits(false)
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	var equalityResult = series.Equals(bitsReversed)
+	if bitsReversedIsSame {
+		equalityResult = !equalityResult
+	}
+	if equalityResult {
+		//if(bitsReversedIsSame ? !series.equals(bitsReversed) : series.equals(bitsReversed)) {
+		t.addFailure(newAddrSegmentSeriesFailure("bit reversal 2a: "+series.String()+" "+bitsReversed.String(), series))
+		return
+	}
+	bitsReversed, err = bitsReversed.ReverseBits(false)
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	if !series.Equals(bitsReversed) {
+		t.addFailure(newAddrSegmentSeriesFailure("bit reversal 2: "+series.String(), series))
+		return
+	}
+
+	bitsReversed2, err := series.ReverseBits(true)
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	equalityResult = series.Equals(bitsReversed2)
+	if bitsReversedPerByteIsSame {
+		equalityResult = !equalityResult
+	}
+	if equalityResult {
+		//if(bitsReversedPerByteIsSame ? !series.equals(bitsReversed2) : series.equals(bitsReversed2)) {
+		t.addFailure(newAddrSegmentSeriesFailure("bit reversal 3a: "+series.String(), series))
+		return
+	}
+	bitsReversed2, err = bitsReversed2.ReverseBits(true)
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	if !series.Equals(bitsReversed2) {
+		t.addFailure(newAddrSegmentSeriesFailure("bit reversal 3: "+series.String(), series))
+		return
+	}
+
+	bytes := series.GetBytes() // ab cd ef becomes fe dc ba
+	bitsReversed3, err := series.ReverseBytes()
+	if err != nil {
+		t.addFailure(newAddrSegmentSeriesFailure("failed "+err.Error(), series))
+		return
+	}
+	//bitsReversed3 = bitsReversed3.ReverseBytesPerSegment();
+	for i, j := 0, len(bytes)-1; i < bitsReversed3.GetSegmentCount(); i++ {
+		seg := bitsReversed3.GetSegment(i)
+		segBytes := seg.GetBytes()
+		if !seg.IsMultiple() {
+			bytesLen := len(segBytes) >> 1
+			last := len(segBytes) - 1
+			for m := 0; m < bytesLen; m++ {
+				first, lastByte := segBytes[m], segBytes[last-m]
+				segBytes[m], segBytes[last-m] = lastByte, first
+			}
+		}
+		//for k := 0; k < seg.GetByteCount(); k++ {
+		for k := seg.GetByteCount() - 1; k >= 0; k-- {
+			if segBytes[k] != bytes[j] { //reversal 4: 1:1:1:1-fffe:2:3:3:3 300:300:300:200:1-fffe:100:100:100
+				t.addFailure(newAddrSegmentSeriesFailure("reversal 4: "+series.String()+" "+bitsReversed3.String(), series))
+				return
+			}
+			j--
+		}
+	}
+}

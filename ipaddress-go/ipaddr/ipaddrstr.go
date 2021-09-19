@@ -57,6 +57,7 @@ type IPAddressString struct {
 
 func (addrStr *IPAddressString) init() *IPAddressString {
 	if addrStr.ipAddrStringCache == nil {
+		//if addrStr != nil && addrStr.ipAddrStringCache == nil { TODO init() nil
 		return zeroIPAddressString
 	}
 	return addrStr
@@ -342,6 +343,13 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
 func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
+	//if addrStr == other {
+	//	return 0
+	//} else if addrStr == nil {
+	//	return -1
+	//} else if other == nil {
+	//	return 1
+	//}
 	addrStr = addrStr.init()
 	other = other.init()
 	if addrStr == other {
@@ -481,6 +489,11 @@ func (addrStr *IPAddressString) Contains(other *IPAddressString) bool {
 //
 // If an IPAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
 func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
+	//if addrStr == nil {
+	//	return other == nil
+	//} else if other == nil {
+	//	return false
+	//}
 	addrStr = addrStr.init()
 	other = other.init()
 	if other == addrStr {

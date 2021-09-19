@@ -7,7 +7,7 @@ import (
 )
 
 type ipAddressTester struct {
-	testInterface
+	testBase
 }
 
 func (t ipAddressTester) run() {
@@ -31,6 +31,25 @@ func (t ipAddressTester) run() {
 	t.testEquivalentPrefix("1:2::/1", 128)
 
 	t.testEquivalentPrefix("1:2::/128", 128)
+
+	t.testReverse("255.127.128.255", false, false)
+	t.testReverse("255.127.128.255/16", false, false)
+	t.testReverse("1.2.3.4", false, false)
+	t.testReverse("1.1.2.2", false, false)
+	t.testReverse("1.1.1.1", false, false)
+	t.testReverse("0.0.0.0", true, true)
+
+	t.testReverse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true, true)
+	t.testReverse("ffff:ffff:1:ffff:ffff:ffff:ffff:ffff", false, false)
+	t.testReverse("ffff:ffff:8181:ffff:ffff:ffff:ffff:ffff", false, true)
+	t.testReverse("ffff:ffff:c3c3:ffff:ffff:ffff:ffff:ffff", false, true)
+	t.testReverse("ffff:4242:c3c3:2424:ffff:ffff:ffff:ffff", false, true)
+	t.testReverse("ffff:ffff:8000:ffff:ffff:0001:ffff:ffff", true, false)
+	t.testReverse("ffff:ffff:1:ffff:ffff:ffff:ffff:ffff/64", false, false)
+	t.testReverse("1:2:3:4:5:6:7:8", false, false)
+	t.testReverse("1:1:2:2:3:3:4:4", false, false)
+	t.testReverse("1:1:1:1:1:1:1:1", false, false)
+	t.testReverse("::", true, true)
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -78,17 +97,34 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 				if index >= 0 {
 					bareHost = host[:index]
 				}
-				direct = t.createAddress(bareHost + "/" + equivPrefix.String())
+				direct = t.createAddress(bareHost + "/" + minPrefix.String())
 				directAddress = direct.GetAddress()
 				if h1.IsPrefixed() && h1.IsPrefixBlock() {
 					directAddress = makePrefixSubnet(directAddress)
 				}
+				//if equiv == nil {
+				//	if prefixed != nil {
+				//		t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), minPrefixed))
+				//	}
+				//} else if !directAddress.Equals(minPrefixed) {
+				//	t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), minPrefixed))
+				//}
 				if !directAddress.Equals(minPrefixed) {
 					t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), minPrefixed))
 				}
 			}
 		}
 	}
+	t.incrementTestCount()
+}
+func (t ipAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
+	str := t.createAddress(addressStr)
+	addr := str.GetAddress()
+	//try {
+	t.testBase.testReverse(ipaddr.WrappedIPAddress{addr}, bitsReversedIsSame, bitsReversedPerByteIsSame)
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure("reversal: " + addressStr));
+	//}
 	t.incrementTestCount()
 }
 
@@ -223,11 +259,58 @@ func (t ipAddressRangeTester) run() {
 	t.testEquivalentMinPrefix("1:2:fffc-ffff:0-fffe:*", nil, 64)
 	t.testEquivalentMinPrefix("1:2:fffb-ffff:0-fffe:*", nil, 64)
 	t.testEquivalentMinPrefix("1:2:fffb-ffff:0-ffff:*", nil, 48)
+
+	t.testReverse("1:2:*:4:5:6:a:b", false, false)
+	t.testReverse("1:1:1:1-fffe:2:3:3:3", false, false)                                   // 0x1-0xfffe reverseBitsPerByte throws
+	t.testReverse("1-fffe:0-ffff:0-ffff:0-fffe:1-ffff:1-ffff:1-fffe:1-ffff", false, true) // all reversible
+	t.testReverse("1-fffe:0-ffff:1-ffff:0-fffe:0-fffe:1-ffff:0-ffff:1-fffe", true, true)  // all reversible
+	t.testReverse("1:1:1:0-fffe:1-fffe:*:1:1", false, false)                              // 100-feff or aa01-aafe are byte reversible becoming 100-feff and xx01-xxfe where x is reverse of a
+	t.testReverse("ffff:80:*:ff:01:ffff", false, false)
+	t.testReverse("ffff:8000:fffe::7fff:0001:ffff", true, false)
+	t.testReverse("ffff:8000:*:8000:1:*:01:ffff", true, false)
+	t.testReverse("ffff:8118:ffff:*:1-fffe:ffff", false, true)
+	t.testReverse("ffff:8181:c3c3::4224:2400:0-fffe", false, true)
+	t.testReverse("ffff:1:ff:ff:*:*", false, false)
 }
 
 type macAddressTester struct {
-	testInterface
+	testBase
 }
+
+func (t macAddressTester) run() {
+	//TODO
+	//t.testReverse("1:2:3:4:5:6", false, false)
+	//t.testReverse("1:1:2:2:3:3", false, false)
+	//t.testReverse("1:1:1:1:1:1", false, false)
+	//t.testReverse("0:0:0:0:0:0", true, true)
+	//
+	//t.testReverse("ff:ff:ff:ff:ff:ff", true, true)
+	//t.testReverse("ff:ff:ff:ff:ff:ff:ff:ff", true, true)
+	//
+	//t.testReverse("ff:80:ff:ff:01:ff", true, false)
+	//t.testReverse("ff:81:ff:ff:ff:ff", false, true)
+	//t.testReverse("ff:81:c3:42:24:ff", false, true)
+	//t.testReverse("ff:1:ff:ff:ff:ff", false, false)
+	//
+	//t.testReverse("11:22:33:44:55:66", false, false)
+	//t.testReverse("11:11:22:22:33:33", false, false)
+	//t.testReverse("11:11:22:22:33:33:44:55", false, false)
+	//t.testReverse("11:11:11:11:11:11:11:11", false, false)
+	//t.testReverse("0:0:0:0:0:0:00:00", true, true)
+}
+
+//TODO I have no ExtendedIPSegmentSeries for MAC (boo)
+// So, not sure what you can do (apart from copying the whole damn testReverse for MACAddress
+// Can you have a shared interface?  Only with generics I think
+//func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
+//	str := t.createMACAddress(addressStr)
+//	//try {
+//	t.testBase.testReverse(str.GetAddress(), bitsReversedIsSame, bitsReversedPerByteIsSame)
+//	//} catch(RuntimeException e) {
+//	//addFailure(new Failure("reversal: " + addressStr));
+//	//}
+//	t.incrementTestCount()
+//}
 
 type macAddressRangeTester struct {
 	macAddressTester
@@ -239,10 +322,9 @@ func (t macAddressRangeTester) testEquivalentPrefix(host string, prefix ipaddr.B
 
 func (t macAddressRangeTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr.PrefixLen, minPrefix ipaddr.BitCount) {
 	str := t.createMACAddress(host)
-	//try {
 	h1, err := str.ToAddress()
 	if err != nil {
-		t.addFailure(newMACFailure("failed "+err.Error(), str))
+		t.addFailure(newMACFailure(err.Error(), str))
 	} else {
 		equiv := h1.GetPrefixLenForSingleBlock()
 		if !equivPrefix.Equals(equiv) {
@@ -253,11 +335,6 @@ func (t macAddressRangeTester) testEquivalentMinPrefix(host string, equivPrefix 
 				t.addFailure(newMACAddrFailure("failed: prefix expected: "+minPrefix.String()+" prefix got: "+minPref.String(), h1))
 			}
 		}
-		//} catch(AddressStringException e) {
-		//	addFailure(new Failure("failed " + e, str));
-		//} catch(IncompatibleAddressException e) {
-		//	addFailure(new Failure("failed " + e, str));
-		//}
 	}
 	t.incrementTestCount()
 }
@@ -285,6 +362,17 @@ func (t macAddressRangeTester) run() {
 	t.testEquivalentMinPrefix("1:2:fc-ff:0-fe:*", nil, 32)
 	t.testEquivalentMinPrefix("1:2:fb-ff:0-fe:*", nil, 32)
 	t.testEquivalentMinPrefix("1:2:fb-ff:0-ff:*", nil, 24)
+
+	//TODO
+	//testReverse("1:2:*:4:5:6", false, false);
+	//testReverse("1:1:1-ff:2:3:3", false, false);
+	//testReverse("1:1:0-fe:1-fe:*:1", false, false);
+	//testReverse("ff:80:*:ff:01:ff", false, false);
+	//testReverse("ff:80:fe:7f:01:ff", true, false);
+	//testReverse("ff:80:*:*:01:ff", true, false);
+	//testReverse("ff:81:ff:*:1-fe:ff", false, true);
+	//testReverse("ff:81:c3:42:24:0-fe", false, true);
+	//testReverse("ff:1:ff:ff:*:*", false, false);
 }
 
 func bigOne() *big.Int {

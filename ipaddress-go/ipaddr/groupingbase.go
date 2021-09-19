@@ -28,6 +28,9 @@ type addressDivisionGroupingBase struct {
 // isSinglePrefixBlock, isPrefixBlock, containsPrefixBlock(int), containsSinglePrefixBlock(int), GetMinPrefixLenForBlock() bitcount, GetPrefixLenForSingleBlock() prefixlen
 
 func (grouping *addressDivisionGroupingBase) getAddrType() addrType {
+	//if grouping == nil {
+	//	return zeroType
+	//}
 	return grouping.addrType
 }
 

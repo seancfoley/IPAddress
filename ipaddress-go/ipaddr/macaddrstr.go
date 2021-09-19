@@ -55,6 +55,7 @@ type MACAddressString struct {
 
 func (addrStr *MACAddressString) init() *MACAddressString {
 	if addrStr.macAddrStringCache == nil {
+		//if addrStr != nil && addrStr.macAddrStringCache == nil {TODO init() nil
 		return zeroMACAddressString
 	}
 	return addrStr
@@ -149,6 +150,13 @@ func (addrStr *MACAddressString) Validate() AddressStringError {
 }
 
 func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
+	//if addrStr == other {
+	//	return 0
+	//} else if addrStr == nil {
+	//	return -1
+	//} else if other == nil {
+	//	return 1
+	//}
 	addrStr = addrStr.init()
 	other = other.init()
 	if addrStr == other {
@@ -177,6 +185,13 @@ func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
 //
 // If a MACAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
 func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
+	//if addrStr == nil {
+	//	return other == nil
+	//} else if other == nil {
+	//	return false
+	//}
+	//addrStr = addrStr.init()
+	//other = other.init()
 	if addrStr == other {
 		return true
 	}

@@ -108,7 +108,14 @@ func (rng *ipAddressSeqRangeInternal) contains(other IPAddressType) bool {
 
 func (rng *ipAddressSeqRangeInternal) equals(other IPAddressSeqRangeType) bool {
 	otherRng := other.ToIPAddressSeqRange()
+	//if otherRng == nil {
+	//	return false
+	//}
 	return rng.lower.Equals(otherRng.GetLower()) && rng.upper.Equals(otherRng.GetUpper())
+}
+
+func (rng *ipAddressSeqRangeInternal) compareTo(item AddressItem) int {
+	return CountComparator.Compare(rng.toIPSequentialRange(), item)
 }
 
 func (rng *ipAddressSeqRangeInternal) containsRange(other IPAddressSeqRangeType) bool {
@@ -400,10 +407,6 @@ func (rng *ipAddressSeqRangeInternal) GetMinPrefixLenForBlock() BitCount {
 	return totalPrefix
 }
 
-func (rng *ipAddressSeqRangeInternal) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(rng.toIPSequentialRange(), item)
-}
-
 func (rng *ipAddressSeqRangeInternal) IsZero() bool {
 	return rng.IncludesZero() && !rng.IsMultiple()
 }
@@ -663,6 +666,7 @@ type IPAddressSeqRange struct {
 
 func (rng *IPAddressSeqRange) init() *IPAddressSeqRange {
 	if rng.lower == nil {
+		//if rng != nil && rng.lower == nil {TODO init() nil
 		return zeroRange
 	}
 	return rng
@@ -749,8 +753,20 @@ func (rng *IPAddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
 }
 
 func (rng *IPAddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
+	//if rng == nil {
+	//	return other.ToIPAddressSeqRange() == nil
+	//}
 	return rng.init().equals(other)
 }
+
+func (rng *IPAddressSeqRange) CompareTo(item AddressItem) int {
+	return rng.init().compareTo(item)
+	//return CountComparator.Compare(rng.init().toIPSequentialRange(), item)
+}
+
+//func (rng *IPAddressSeqRange) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(rng, item)
+//}
 
 func (rng *IPAddressSeqRange) GetValue() *big.Int {
 	return rng.GetLower().GetValue()

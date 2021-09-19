@@ -318,6 +318,7 @@ func (addr *IPv6Address) GetBytesPerSegment() int {
 
 func (addr *IPv6Address) init() *IPv6Address {
 	if addr.section == nil {
+		//if addr != nil && addr.section == nil {TODO init() nil
 		return zeroIPv6
 	}
 	return addr
@@ -710,6 +711,9 @@ func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
 }
 
 func (addr *IPv6Address) CompareTo(item AddressItem) int {
+	//if addr != nil {
+	//	addr = addr.init()
+	//}
 	return CountComparator.Compare(addr.init(), item)
 }
 
@@ -730,6 +734,14 @@ func (addr *IPv6Address) Equals(other AddressType) bool {
 	return other.getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
 		addr.isSameZone(other.ToAddress())
 }
+
+//func (addr *IPv6Address) Equals(other AddressType) bool {
+//	if addr == nil {
+//		return other.ToAddress() == nil
+//	}
+//	return other.getAddrType() == ipv6Type && other.ToAddress() != nil && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
+//		addr.isSameZone(other.ToAddress())
+//}
 
 func (addr *IPv6Address) MatchesWithMask(other *IPv6Address, mask *IPv6Address) bool {
 	return addr.init().GetSection().MatchesWithMask(other.GetSection(), mask.GetSection())

@@ -120,6 +120,14 @@ func mapRange(rngType IPAddressSeqRangeType) int {
 func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 	oneAddr := one.ToAddress()
 	twoAddr := two.ToAddress()
+	if oneAddr == nil {
+		if twoAddr == nil {
+			return 0
+		}
+		return -1
+	} else if twoAddr == nil {
+		return 1
+	}
 	result := comp.CompareAddressSections(oneAddr.GetSection(), twoAddr.GetSection())
 	if result == 0 {
 		if oneIPv6 := oneAddr.ToIPv6Address(); oneIPv6 != nil {
@@ -143,6 +151,14 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 		return result
 	}
 	oneSec, twoSec := one.ToAddressSection(), two.ToAddressSection()
+	if oneSec == nil {
+		if twoSec == nil {
+			return 0
+		}
+		return -1
+	} else if twoSec == nil {
+		return 1
+	}
 	//if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
 	//	twoIPv6 := twoSec.ToIPv6AddressSection()
 	//	result = int(oneIPv6.addressSegmentIndex - twoIPv6.addressSegmentIndex)
@@ -195,6 +211,14 @@ func (comp AddressComparator) CompareSegments(one, two AddressSegmentType) int {
 	if result != 0 {
 		return result
 	}
+	if one.ToAddressSegment() == nil {
+		if two.ToAddressSegment() == nil {
+			return 0
+		}
+		return -1
+	} else if two.ToAddressSegment() == nil {
+		return 1
+	}
 	return comp.compareSegValues(one.GetUpperSegmentValue(), one.GetSegmentValue(), two.GetUpperSegmentValue(), two.GetSegmentValue())
 }
 
@@ -208,16 +232,28 @@ func (comp AddressComparator) CompareDivisions(one, two DivisionType) int {
 	if result != 0 {
 		return result
 	}
-	result = int(one.GetBitCount()) - int(two.GetBitCount())
-	if result != 0 {
-		return result
-	}
 	if addrDiv1, ok := one.(StandardDivisionType); ok {
 		if addrDiv2, ok := two.(StandardDivisionType); ok {
 			div1 := addrDiv1.ToAddressDivision()
 			div2 := addrDiv2.ToAddressDivision()
+			if div1 == nil {
+				if div2 == nil {
+					return 0
+				}
+				return -1
+			} else if div2 == nil {
+				return 1
+			}
+			result = int(one.GetBitCount()) - int(two.GetBitCount())
+			if result != 0 {
+				return result
+			}
 			return comp.compareValues(div1.GetUpperDivisionValue(), div1.GetDivisionValue(), div2.GetUpperDivisionValue(), div2.GetDivisionValue())
 		}
+	}
+	result = int(one.GetBitCount()) - int(two.GetBitCount())
+	if result != 0 {
+		return result
 	}
 	return comp.compareLargeValues(one.GetUpperValue(), one.GetValue(), two.GetUpperValue(), two.GetValue())
 }
@@ -231,6 +267,14 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 	if r1Type == ipv4rangetype {
 		r1 := one.ToIPAddressSeqRange().ToIPv4SequentialRange()
 		r2 := two.ToIPAddressSeqRange().ToIPv4SequentialRange()
+		if r1 == nil {
+			if r2 == nil {
+				return 0
+			}
+			return -1
+		} else if r2 == nil {
+			return 1
+		}
 		return comp.compareValues(uint64(r1.GetUpper().Uint32Value()), uint64(r1.GetLower().Uint32Value()), uint64(r2.GetUpper().Uint32Value()), uint64(r2.GetLower().Uint32Value()))
 	}
 	r1 := one.ToIPAddressSeqRange()

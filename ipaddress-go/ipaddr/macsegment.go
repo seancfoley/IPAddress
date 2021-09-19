@@ -107,12 +107,24 @@ type MACAddressSegment struct {
 
 func (seg *MACAddressSegment) init() *MACAddressSegment {
 	if seg.divisionValues == nil {
+		//if seg != nil && seg.divisionValues == nil {TODO init() nil
 		return zeroMACSeg
 	}
 	return seg
 }
 
 // We must override getBitCount, getByteCount and others for the case when we construct as the zero value
+
+//func (seg *MACAddressSegment) Equals(other DivisionType) bool {
+//	if seg == nil {
+//		return seg.getAddrType() == macType && other.(StandardDivisionType).ToAddressDivision() == nil
+//	}
+//	return seg.init().equals(other)
+//}
+//
+//func (seg *MACAddressSegment) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(seg, item)
+//}
 
 func (seg *MACAddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment

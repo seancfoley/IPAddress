@@ -480,7 +480,11 @@ func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCo
 }
 
 func (div *addressDivisionInternal) Equals(other DivisionType) bool {
+	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
 	if otherDiv, ok := other.(StandardDivisionType); ok {
+		//if otherDiv.ToAddressDivision() == nil {
+		//	return false
+		//}
 		if div.IsMultiple() {
 			if other.IsMultiple() {
 				matches, _ := div.matchesStructure(other)
@@ -502,6 +506,11 @@ func (div *addressDivisionInternal) Equals(other DivisionType) bool {
 		}
 	}
 	return div.addressDivisionBase.Equals(other)
+	//return div.addressDivisionBase.equals(other)
+}
+
+func (div *addressDivisionInternal) CompareTo(item AddressItem) int {
+	return CountComparator.Compare(div.toAddressDivision(), item)
 }
 
 func (div *addressDivisionInternal) matchesIPSegment() bool {
@@ -533,10 +542,6 @@ func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
-}
-
-func (div *addressDivisionInternal) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(div.toAddressDivision(), item)
 }
 
 func (div *addressDivisionInternal) getStringAsLower() string {
@@ -835,6 +840,20 @@ func (div *AddressDivision) GetDivisionValue() DivInt {
 func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	return div.getUpperDivisionValue()
 }
+
+//func (div *AddressDivision) Equals(other DivisionType) bool {
+//	if div == nil {
+//		if otherDiv, ok := other.(StandardDivisionType); ok {
+//			return otherDiv.ToAddressDivision() == nil
+//		}
+//		return false
+//	}
+//	return div.equals(other)
+//}
+//
+//func (div *AddressDivision) CompareTo(item AddressItem) int {
+//	return CountComparator.Compare(div, item)
+//}
 
 func (div *AddressDivision) Matches(value DivInt) bool {
 	return div.matches(value)

@@ -109,12 +109,27 @@ type IPv4AddressSegment struct {
 
 func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
 	if seg.divisionValues == nil {
+		//if seg != nil && seg.divisionValues == nil { TODO init() nil
 		return zeroIPv4Seg
 	}
 	return seg
 }
 
 // We must override getBitCount, getByteCount and others for the case when we construct as the zero value and there are no divisionValues
+
+//func (seg *IPv4AddressSegment) Equals(other DivisionType) bool {
+//	if seg == nil {
+//		return seg.getAddrType() == ipv4Type && other.(StandardDivisionType).ToAddressDivision() == nil
+//	}
+//	return seg.init().equals(other)
+//}
+//
+//func (seg *IPv4AddressSegment) CompareTo(item AddressItem) int {
+//	if seg != nil {
+//		seg = seg.init()
+//	}
+//	return CountComparator.Compare(seg, item)
+//}
 
 func (seg *IPv4AddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment

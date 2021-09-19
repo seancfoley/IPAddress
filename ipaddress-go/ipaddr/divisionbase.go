@@ -238,6 +238,9 @@ func (div *addressDivisionBase) IsMultiple() bool {
 }
 
 func (div *addressDivisionBase) getAddrType() addrType {
+	//if div == nil {
+	//	return zeroType
+	//}
 	vals := div.divisionValues
 	if vals == nil {
 		return zeroType
@@ -255,6 +258,7 @@ func (div *addressDivisionBase) matchesStructure(other DivisionType) (res bool, 
 }
 
 func (div *addressDivisionBase) Equals(other DivisionType) (res bool) {
+	//func (div *addressDivisionBase) equals(other DivisionType) (res bool) {
 	matches, _ := div.matchesStructure(other)
 	if div.isMultiple() {
 		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),

@@ -9,6 +9,9 @@ type ExtendedIPSegmentSeries interface {
 	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
+	Equals(ExtendedIPSegmentSeries) bool
+	Contains(ExtendedIPSegmentSeries) bool
+
 	// GetSection returns the full address section
 	GetSection() *IPAddressSection
 
@@ -66,8 +69,6 @@ type ExtendedIPSegmentSeries interface {
 	SpanWithSequentialBlocks() []ExtendedIPSegmentSeries
 
 	CoverWithPrefixBlock() ExtendedIPSegmentSeries
-
-	Contains(other ExtendedIPSegmentSeries) bool
 
 	AdjustPrefixLen(BitCount) ExtendedIPSegmentSeries
 	AdjustPrefixLenZeroed(BitCount) ExtendedIPSegmentSeries
@@ -197,6 +198,11 @@ func (w WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
 func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressType)
 	return ok && w.IPAddress.Contains(addr)
+}
+
+func (w WrappedIPAddress) Equals(other ExtendedIPSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressType)
+	return ok && w.IPAddress.Equals(addr)
 }
 
 func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
@@ -352,6 +358,11 @@ func (w WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries 
 func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressSectionType)
 	return ok && w.IPAddressSection.Contains(addr)
+}
+
+func (w WrappedIPAddressSection) Equals(other ExtendedIPSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressSectionType)
+	return ok && w.IPAddressSection.Equals(addr)
 }
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {

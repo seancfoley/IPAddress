@@ -525,6 +525,7 @@ type IPAddress struct {
 
 func (addr *IPAddress) init() *IPAddress {
 	if addr.section == nil {
+		//if addr != nil && addr.section == nil { TODO init() nil
 		return zeroIPAddr // this has a zero section
 	}
 	return addr
@@ -797,6 +798,9 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 }
 
 func (addr *IPAddress) CompareTo(item AddressItem) int {
+	//if addr != nil {
+	//	addr = addr.init()
+	//}
 	return CountComparator.Compare(addr.init(), item)
 }
 
@@ -813,6 +817,9 @@ func (addr *IPAddress) Contains(other AddressType) bool {
 }
 
 func (addr *IPAddress) Equals(other AddressType) bool {
+	//if addr == nil {
+	//	return other.ToAddress() == nil
+	//}
 	return addr.init().equals(other)
 }
 

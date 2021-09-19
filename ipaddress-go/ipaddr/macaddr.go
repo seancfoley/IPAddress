@@ -181,6 +181,7 @@ func (addr *MACAddress) ToAddress() *Address {
 
 func (addr *MACAddress) init() *MACAddress {
 	if addr.section == nil {
+		//if addr != nil && addr.section == nil {TODO init() nil
 		return zeroMAC
 	}
 	return addr
@@ -372,6 +373,9 @@ func (addr *MACAddress) GetPrefixLenForSingleBlock() PrefixLen {
 }
 
 func (addr *MACAddress) CompareTo(item AddressItem) int {
+	//if addr != nil {
+	//	addr = addr.init()
+	//}
 	return CountComparator.Compare(addr.init(), item)
 }
 
@@ -389,6 +393,9 @@ func (addr *MACAddress) Contains(other AddressType) bool {
 }
 
 func (addr *MACAddress) Equals(other AddressType) bool {
+	//if addr == nil {
+	//	return other.ToAddress() == nil
+	//}
 	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MAC
 	return addr.init().equals(other)
 }

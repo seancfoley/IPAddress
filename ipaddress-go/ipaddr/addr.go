@@ -416,6 +416,9 @@ func (addr *addressInternal) contains(other AddressType) bool {
 
 func (addr *addressInternal) equals(other AddressType) bool {
 	otherAddr := other.ToAddress()
+	//if otherAddr == nil {
+	//	return false
+	//}
 	if addr.toAddress() == otherAddr {
 		return true
 	}
@@ -697,6 +700,7 @@ type Address struct {
 
 func (addr *Address) init() *Address {
 	if addr.section == nil {
+		//if addr != nil && addr.section == nil { TODO init() nil
 		return zeroAddr // this has a zero section rather that a nil section
 	}
 	return addr
@@ -719,6 +723,9 @@ func (addr *Address) Contains(other AddressType) bool {
 }
 
 func (addr *Address) Equals(other AddressType) bool {
+	//if addr == nil {
+	//	return other.ToAddress() == nil
+	//}
 	return addr.init().equals(other)
 }
 
