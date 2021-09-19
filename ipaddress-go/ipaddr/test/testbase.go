@@ -21,7 +21,8 @@ type failure struct {
 	addrStr    *ipaddr.IPAddressString
 	macAddr    *ipaddr.MACAddress
 	macAddrStr *ipaddr.MACAddressString
-	series     ipaddr.ExtendedIPSegmentSeries
+	ipseries   ipaddr.ExtendedIPSegmentSeries
+	series     ipaddr.ExtendedSegmentSeries
 }
 
 //TODO String() method for failure
@@ -53,10 +54,17 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	}
 }
 
-func newAddrSegmentSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
+func newAddrSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
 	return failure{
 		str:    str,
 		series: series,
+	}
+}
+
+func newAddrSegmentIPSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
+	return failure{
+		str:      str,
+		ipseries: series,
 	}
 }
 
@@ -225,14 +233,6 @@ func main() {
 	}
 	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
 	//fmt.Printf("Done: TestRunner\nDone in %d milliseconds\n", endTime/time.Millisecond)
-	//TODO call the mac tests
-	/*
-		TestRunner
-		test count: 40278
-		fail count: 0
-		Done: TestRunner
-		Done in 10845 milliseconds
-	*/
 }
 
 type tester interface {
@@ -243,7 +243,7 @@ type testBase struct {
 	testInterface
 }
 
-func (t testBase) testReverse(series ipaddr.ExtendedIPSegmentSeries, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
+func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	segmentsReversed := series.ReverseSegments()
 	divCount := series.GetDivisionCount()
 	for i := 0; i < series.GetSegmentCount(); i++ {

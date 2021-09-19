@@ -174,23 +174,44 @@ func (iter macAddressIterator) Next() *MACAddress {
 	return iter.AddressIterator.Next().ToMACAddress()
 }
 
+type ExtendedSegmentSeriesIterator interface {
+	iteratorBase
+	Next() ExtendedSegmentSeries
+}
+
 type ExtendedIPSegmentSeriesIterator interface {
 	iteratorBase
 	Next() ExtendedIPSegmentSeries
 }
 
 type addressSeriesIterator struct {
+	AddressIterator
+}
+
+func (iter addressSeriesIterator) Next() ExtendedSegmentSeries {
+	return WrappedAddress{iter.AddressIterator.Next()}
+}
+
+type ipaddressSeriesIterator struct {
 	IPAddressIterator
 }
 
-func (iter addressSeriesIterator) Next() ExtendedIPSegmentSeries {
+func (iter ipaddressSeriesIterator) Next() ExtendedIPSegmentSeries {
 	return WrappedIPAddress{iter.IPAddressIterator.Next()}
 }
 
 type sectionSeriesIterator struct {
+	SectionIterator
+}
+
+func (iter sectionSeriesIterator) Next() ExtendedSegmentSeries {
+	return WrappedAddressSection{iter.SectionIterator.Next()}
+}
+
+type ipsectionSeriesIterator struct {
 	IPSectionIterator
 }
 
-func (iter sectionSeriesIterator) Next() ExtendedIPSegmentSeries {
+func (iter ipsectionSeriesIterator) Next() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{iter.IPSectionIterator.Next()}
 }

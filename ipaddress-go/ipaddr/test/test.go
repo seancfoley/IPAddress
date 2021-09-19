@@ -121,7 +121,7 @@ func (t ipAddressTester) testReverse(addressStr string, bitsReversedIsSame, bits
 	str := t.createAddress(addressStr)
 	addr := str.GetAddress()
 	//try {
-	t.testBase.testReverse(ipaddr.WrappedIPAddress{addr}, bitsReversedIsSame, bitsReversedPerByteIsSame)
+	t.testBase.testReverse(ipaddr.WrappedAddress{addr.ToAddress()}, bitsReversedIsSame, bitsReversedPerByteIsSame)
 	//} catch(RuntimeException e) {
 	//	addFailure(new Failure("reversal: " + addressStr));
 	//}
@@ -279,38 +279,38 @@ type macAddressTester struct {
 
 func (t macAddressTester) run() {
 	//TODO
-	//t.testReverse("1:2:3:4:5:6", false, false)
-	//t.testReverse("1:1:2:2:3:3", false, false)
-	//t.testReverse("1:1:1:1:1:1", false, false)
-	//t.testReverse("0:0:0:0:0:0", true, true)
-	//
-	//t.testReverse("ff:ff:ff:ff:ff:ff", true, true)
-	//t.testReverse("ff:ff:ff:ff:ff:ff:ff:ff", true, true)
-	//
-	//t.testReverse("ff:80:ff:ff:01:ff", true, false)
-	//t.testReverse("ff:81:ff:ff:ff:ff", false, true)
-	//t.testReverse("ff:81:c3:42:24:ff", false, true)
-	//t.testReverse("ff:1:ff:ff:ff:ff", false, false)
-	//
-	//t.testReverse("11:22:33:44:55:66", false, false)
-	//t.testReverse("11:11:22:22:33:33", false, false)
-	//t.testReverse("11:11:22:22:33:33:44:55", false, false)
-	//t.testReverse("11:11:11:11:11:11:11:11", false, false)
-	//t.testReverse("0:0:0:0:0:0:00:00", true, true)
+	t.testReverse("1:2:3:4:5:6", false, false)
+	t.testReverse("1:1:2:2:3:3", false, false)
+	t.testReverse("1:1:1:1:1:1", false, false)
+	t.testReverse("0:0:0:0:0:0", true, true)
+
+	t.testReverse("ff:ff:ff:ff:ff:ff", true, true)
+	t.testReverse("ff:ff:ff:ff:ff:ff:ff:ff", true, true)
+
+	t.testReverse("ff:80:ff:ff:01:ff", true, false)
+	t.testReverse("ff:81:ff:ff:ff:ff", false, true)
+	t.testReverse("ff:81:c3:42:24:ff", false, true)
+	t.testReverse("ff:1:ff:ff:ff:ff", false, false)
+
+	t.testReverse("11:22:33:44:55:66", false, false)
+	t.testReverse("11:11:22:22:33:33", false, false)
+	t.testReverse("11:11:22:22:33:33:44:55", false, false)
+	t.testReverse("11:11:11:11:11:11:11:11", false, false)
+	t.testReverse("0:0:0:0:0:0:00:00", true, true)
 }
 
 //TODO I have no ExtendedIPSegmentSeries for MAC (boo)
 // So, not sure what you can do (apart from copying the whole damn testReverse for MACAddress
 // Can you have a shared interface?  Only with generics I think
-//func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
-//	str := t.createMACAddress(addressStr)
-//	//try {
-//	t.testBase.testReverse(str.GetAddress(), bitsReversedIsSame, bitsReversedPerByteIsSame)
-//	//} catch(RuntimeException e) {
-//	//addFailure(new Failure("reversal: " + addressStr));
-//	//}
-//	t.incrementTestCount()
-//}
+func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
+	str := t.createMACAddress(addressStr)
+	//try {
+	t.testBase.testReverse(ipaddr.WrappedAddress{str.GetAddress().ToAddress()}, bitsReversedIsSame, bitsReversedPerByteIsSame)
+	//} catch(RuntimeException e) {
+	//addFailure(new Failure("reversal: " + addressStr));
+	//}
+	t.incrementTestCount()
+}
 
 type macAddressRangeTester struct {
 	macAddressTester
@@ -363,16 +363,15 @@ func (t macAddressRangeTester) run() {
 	t.testEquivalentMinPrefix("1:2:fb-ff:0-fe:*", nil, 32)
 	t.testEquivalentMinPrefix("1:2:fb-ff:0-ff:*", nil, 24)
 
-	//TODO
-	//testReverse("1:2:*:4:5:6", false, false);
-	//testReverse("1:1:1-ff:2:3:3", false, false);
-	//testReverse("1:1:0-fe:1-fe:*:1", false, false);
-	//testReverse("ff:80:*:ff:01:ff", false, false);
-	//testReverse("ff:80:fe:7f:01:ff", true, false);
-	//testReverse("ff:80:*:*:01:ff", true, false);
-	//testReverse("ff:81:ff:*:1-fe:ff", false, true);
-	//testReverse("ff:81:c3:42:24:0-fe", false, true);
-	//testReverse("ff:1:ff:ff:*:*", false, false);
+	t.testReverse("1:2:*:4:5:6", false, false)
+	t.testReverse("1:1:1-ff:2:3:3", false, false)
+	t.testReverse("1:1:0-fe:1-fe:*:1", false, false)
+	t.testReverse("ff:80:*:ff:01:ff", false, false)
+	t.testReverse("ff:80:fe:7f:01:ff", true, false)
+	t.testReverse("ff:80:*:*:01:ff", true, false)
+	t.testReverse("ff:81:ff:*:1-fe:ff", false, true)
+	t.testReverse("ff:81:c3:42:24:0-fe", false, true)
+	t.testReverse("ff:1:ff:ff:*:*", false, false)
 }
 
 func bigOne() *big.Int {

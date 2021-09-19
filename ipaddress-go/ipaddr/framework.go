@@ -156,6 +156,11 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	addrSegmentSeries
 }
 
+var _, _, _, _ AddressSegmentSeries = &Address{},
+	&MACAddress{},
+	&AddressSection{},
+	&MACAddressSection{}
+
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
 
 	AddressSegmentSeries
@@ -185,13 +190,20 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	ToCanonicalWildcardString() string
 	ToCompressedWildcardString() string
 	ToSQLWildcardString() string
-	ToReverseDNSString() (string, IncompatibleAddressError)
+	//ToReverseDNSString() (string, IncompatibleAddressError)
 	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToSegmentedBinaryString() string
 	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
 
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }
+
+var _, _, _, _, _, _ IPAddressSegmentSeries = &IPAddress{},
+	&IPv4Address{},
+	&IPv6Address{},
+	&IPAddressSection{},
+	&IPv4AddressSection{},
+	&IPv6AddressSection{}
 
 // GenericGroupingType represents any division grouping, including groupings of both standard and large divisions
 type GenericGroupingType interface {

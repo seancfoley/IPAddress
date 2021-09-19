@@ -1,434 +1,442 @@
 package ipaddr
 
-// ExtendedIPSegmentSeries can be used to write code that works on either IP Addresses or IP Address Sections,
-// going further than IPAddressSegmentSeries to offer additional methods with the series types in their signature.
-// An ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
-type ExtendedIPSegmentSeries interface {
-	IPAddressSegmentSeries
+// ExtendedSegmentSeries can be used to write code that works on either IP Addresses or IP Address Sections,
+// going further than AddressSegmentSeries to offer additional methods with the series types in their signature.
+// An ExtendedSegmentSeries wraps either an Address or AddressSection.
+type ExtendedSegmentSeries interface {
+	AddressSegmentSeries
 
-	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
-	Unwrap() IPAddressSegmentSeries
+	// Unwrap returns the wrapped *Address or *AddressSection as an interface, AddressSegmentSeries
+	Unwrap() AddressSegmentSeries
 
-	Equals(ExtendedIPSegmentSeries) bool
-	Contains(ExtendedIPSegmentSeries) bool
+	Equals(ExtendedSegmentSeries) bool
+	Contains(ExtendedSegmentSeries) bool
 
 	// GetSection returns the full address section
-	GetSection() *IPAddressSection
+	GetSection() *AddressSection
 
 	// GetTrailingSection returns an ending subsection of the full address section
-	GetTrailingSection(index int) *IPAddressSection
+	GetTrailingSection(index int) *AddressSection
 
 	// GetSubSection returns a subsection of the full address section
-	GetSubSection(index, endIndex int) *IPAddressSection
+	GetSubSection(index, endIndex int) *AddressSection
 
-	GetNetworkSection() *IPAddressSection
-	GetHostSection() *IPAddressSection
-	GetNetworkSectionLen(BitCount) *IPAddressSection
-	GetHostSectionLen(BitCount) *IPAddressSection
+	//GetNetworkSection() *AddressSection
+	//GetHostSection() *AddressSection
+	//GetNetworkSectionLen(BitCount) *AddressSection
+	//GetHostSectionLen(BitCount) *AddressSection
 
-	GetNetworkMask() ExtendedIPSegmentSeries
-	GetHostMask() ExtendedIPSegmentSeries
+	//GetNetworkMask() ExtendedSegmentSeries
+	//GetHostMask() ExtendedSegmentSeries
 
-	GetSegment(index int) *IPAddressSegment
-	GetSegments() []*IPAddressSegment
-	CopySegments(segs []*IPAddressSegment) (count int)
-	CopySubSegments(start, end int, segs []*IPAddressSegment) (count int)
+	GetSegment(index int) *AddressSegment
+	GetSegments() []*AddressSegment
+	CopySegments(segs []*AddressSegment) (count int)
+	CopySubSegments(start, end int, segs []*AddressSegment) (count int)
 
-	IsIPv4() bool
-	IsIPv6() bool
+	//IsIPv4() bool
+	//IsIPv6() bool
 
 	// ToBlock creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 	// and changing the following segments to be full-range
-	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries
+	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries
 
-	ToPrefixBlockLen(BitCount) ExtendedIPSegmentSeries
-	ToPrefixBlock() ExtendedIPSegmentSeries
+	//ToPrefixBlockLen(BitCount) ExtendedSegmentSeries
+	ToPrefixBlock() ExtendedSegmentSeries
 
-	ToZeroHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ToMaxHostLen(BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ToZeroNetwork() ExtendedIPSegmentSeries
+	//ToZeroHostLen(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
+	//ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError)
+	//ToMaxHostLen(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
+	//ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError)
+	//ToZeroNetwork() ExtendedSegmentSeries
 
-	Increment(int64) ExtendedIPSegmentSeries
-	IncrementBoundary(int64) ExtendedIPSegmentSeries
+	Increment(int64) ExtendedSegmentSeries
+	IncrementBoundary(int64) ExtendedSegmentSeries
 
-	GetLower() ExtendedIPSegmentSeries
-	GetUpper() ExtendedIPSegmentSeries
+	GetLower() ExtendedSegmentSeries
+	GetUpper() ExtendedSegmentSeries
 
-	AssignPrefixForSingleBlock() ExtendedIPSegmentSeries
-	AssignMinPrefixForBlock() ExtendedIPSegmentSeries
+	AssignPrefixForSingleBlock() ExtendedSegmentSeries
+	AssignMinPrefixForBlock() ExtendedSegmentSeries
 
-	SequentialBlockIterator() ExtendedIPSegmentSeriesIterator
-	BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator
-	Iterator() ExtendedIPSegmentSeriesIterator
-	PrefixIterator() ExtendedIPSegmentSeriesIterator
-	PrefixBlockIterator() ExtendedIPSegmentSeriesIterator
+	//SequentialBlockIterator() ExtendedSegmentSeriesIterator
+	//BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator
+	Iterator() ExtendedSegmentSeriesIterator
+	//PrefixIterator() ExtendedSegmentSeriesIterator
+	PrefixBlockIterator() ExtendedSegmentSeriesIterator
 
-	SpanWithPrefixBlocks() []ExtendedIPSegmentSeries
-	SpanWithSequentialBlocks() []ExtendedIPSegmentSeries
+	//SpanWithPrefixBlocks() []ExtendedSegmentSeries
+	//SpanWithSequentialBlocks() []ExtendedSegmentSeries
 
-	CoverWithPrefixBlock() ExtendedIPSegmentSeries
+	//CoverWithPrefixBlock() ExtendedSegmentSeries
 
-	AdjustPrefixLen(BitCount) ExtendedIPSegmentSeries
-	AdjustPrefixLenZeroed(BitCount) ExtendedIPSegmentSeries
-	SetPrefixLen(BitCount) ExtendedIPSegmentSeries
-	SetPrefixLenZeroed(BitCount) ExtendedIPSegmentSeries
-	WithoutPrefixLen() ExtendedIPSegmentSeries
+	//AdjustPrefixLen(BitCount) ExtendedSegmentSeries
+	//AdjustPrefixLenZeroed(BitCount) ExtendedSegmentSeries
+	SetPrefixLen(BitCount) ExtendedSegmentSeries
+	SetPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
+	WithoutPrefixLen() ExtendedSegmentSeries
 
-	ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError)
-	ReverseSegments() ExtendedIPSegmentSeries
+	ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError)
+	ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError)
+	ReverseSegments() ExtendedSegmentSeries
 }
 
-type WrappedIPAddress struct {
-	*IPAddress
+type WrappedAddress struct {
+	*Address
 }
 
-func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
-	return w.IPAddress
+func (w WrappedAddress) Unwrap() AddressSegmentSeries {
+	return w.Address
 }
 
-func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetNetworkMask()}
+//func (w WrappedAddress) GetNetworkMask() ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.GetNetworkMask()}
+//}
+//
+//func (w WrappedAddress) GetHostMask() ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.GetHostMask()}
+//}
+//
+//func (w WrappedAddress) SequentialBlockIterator() ExtendedSegmentSeriesIterator {
+//	return ipaddressSeriesIterator{w.Address.SequentialBlockIterator()}
+//}
+//
+//func (w WrappedAddress) BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator {
+//	return ipaddressSeriesIterator{w.Address.BlockIterator(segmentCount)}
+//}
+
+func (w WrappedAddress) Iterator() ExtendedSegmentSeriesIterator {
+	return addressSeriesIterator{w.Address.Iterator()}
 }
 
-func (w WrappedIPAddress) GetHostMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetHostMask()}
-}
+//func (w WrappedAddress) PrefixIterator() ExtendedSegmentSeriesIterator {
+//	return ipaddressSeriesIterator{w.Address.PrefixIterator()}
+//}
 
-func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return addressSeriesIterator{w.IPAddress.SequentialBlockIterator()}
-}
-
-func (w WrappedIPAddress) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
-	return addressSeriesIterator{w.IPAddress.BlockIterator(segmentCount)}
-}
-
-func (w WrappedIPAddress) Iterator() ExtendedIPSegmentSeriesIterator {
-	return addressSeriesIterator{w.IPAddress.Iterator()}
-}
-
-func (w WrappedIPAddress) PrefixIterator() ExtendedIPSegmentSeriesIterator {
-	return addressSeriesIterator{w.IPAddress.PrefixIterator()}
-}
-
-func (w WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return addressSeriesIterator{w.IPAddress.PrefixBlockIterator()}
-}
-
-// creates a sequential block by changing the segment at the given index to have the given lower and upper value,
-// and changing the following segments to be full-range
-func (w WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToBlock(segmentIndex, lower, upper)}
-}
-
-func (w WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToPrefixBlockLen(bitCount)}
-}
-
-func (w WrappedIPAddress) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToPrefixBlock()}
-}
-
-func (w WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapAddrWithErr(w.IPAddress.ToZeroHostLen(bitCount)) //in IPAddress/Section
-}
-
-func (w WrappedIPAddress) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapAddrWithErr(w.IPAddress.ToZeroHost()) // in IPAddress/Section/Segment
-}
-
-func (w WrappedIPAddress) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapAddrWithErr(w.IPAddress.ToMaxHostLen(bitCount))
-}
-
-func (w WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapAddrWithErr(w.IPAddress.ToMaxHost())
-}
-
-func (w WrappedIPAddress) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToZeroNetwork()} //IPAddress/Section.  ToZeroHost() is in IPAddress/Section/Segment
-}
-
-func (w WrappedIPAddress) Increment(i int64) ExtendedIPSegmentSeries {
-	return convAddrToIntf(w.IPAddress.Increment(i))
-}
-
-func (w WrappedIPAddress) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
-	return convAddrToIntf(w.IPAddress.IncrementBoundary(i))
-}
-
-func (w WrappedIPAddress) GetLower() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetLower()}
-}
-
-func (w WrappedIPAddress) GetUpper() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetUpper()}
-}
-
-func (w WrappedIPAddress) GetSection() *IPAddressSection {
-	return w.IPAddress.GetSection()
-}
-
-func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
-	return convAddrToIntf(w.IPAddress.AssignPrefixForSingleBlock())
-}
-
-func (w WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.AssignMinPrefixForBlock()}
-}
-
-func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.WithoutPrefixLen()}
-}
-
-func (w WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddress.spanWithPrefixBlocks()
-}
-
-func (w WrappedIPAddress) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddress.spanWithSequentialBlocks()
-}
-
-func (w WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
-	return w.IPAddress.coverSeriesWithPrefixBlock()
-}
-
-func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.IPAddress.Contains(addr)
-}
-
-func (w WrappedIPAddress) Equals(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.IPAddress.Equals(addr)
-}
-
-func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddress) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.ReverseBytes()
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
-}
-
-func (w WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.ReverseBits(perByte)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
-}
-
-func (w WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ReverseSegments()}
-}
-
-type WrappedIPAddressSection struct {
-	*IPAddressSection
-}
-
-func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
-	return w.IPAddressSection
-}
-
-func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetNetworkMask()}
-}
-
-func (w WrappedIPAddressSection) GetHostMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetHostMask()}
-}
-
-func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return sectionSeriesIterator{w.IPAddressSection.SequentialBlockIterator()}
-}
-
-func (w WrappedIPAddressSection) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
-	return sectionSeriesIterator{w.IPAddressSection.BlockIterator(segmentCount)}
-}
-
-func (w WrappedIPAddressSection) Iterator() ExtendedIPSegmentSeriesIterator {
-	return sectionSeriesIterator{w.IPAddressSection.Iterator()}
-}
-
-func (w WrappedIPAddressSection) PrefixIterator() ExtendedIPSegmentSeriesIterator {
-	return sectionSeriesIterator{w.IPAddressSection.PrefixIterator()}
-}
-
-func (w WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return sectionSeriesIterator{w.IPAddressSection.PrefixBlockIterator()}
+func (w WrappedAddress) PrefixBlockIterator() ExtendedSegmentSeriesIterator {
+	return addressSeriesIterator{w.Address.PrefixBlockIterator()}
 }
 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
-func (w WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToBlock(segmentIndex, lower, upper)}
+func (w WrappedAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.ToBlock(segmentIndex, lower, upper)}
 }
 
-func (w WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlockLen(bitCount)}
+//func (w WrappedAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.ToPrefixBlockLen(bitCount)}
+//}
+
+func (w WrappedAddress) ToPrefixBlock() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.ToPrefixBlock()}
 }
 
-func (w WrappedIPAddressSection) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlock()}
+//func (w WrappedAddress) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapAddrWithErr(w.Address.ToZeroHostLen(bitCount)) //in Address/Section
+//}
+//
+//func (w WrappedAddress) ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapAddrWithErr(w.Address.ToZeroHost()) // in Address/Section/Segment
+//}
+//
+//func (w WrappedAddress) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapAddrWithErr(w.Address.ToMaxHostLen(bitCount))
+//}
+//
+//func (w WrappedAddress) ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapAddrWithErr(w.Address.ToMaxHost())
+//}
+//
+//func (w WrappedAddress) ToZeroNetwork() ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.ToZeroNetwork()} //Address/Section.  ToZeroHost() is in Address/Section/Segment
+//}
+
+func (w WrappedAddress) Increment(i int64) ExtendedSegmentSeries {
+	return convAddrToIntf(w.Address.Increment(i))
 }
 
-func (w WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapSectWithErr(w.IPAddressSection.ToZeroHostLen(bitCount))
+func (w WrappedAddress) IncrementBoundary(i int64) ExtendedSegmentSeries {
+	return convAddrToIntf(w.Address.IncrementBoundary(i))
 }
 
-func (w WrappedIPAddressSection) ToZeroHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapSectWithErr(w.IPAddressSection.ToZeroHost())
+func (w WrappedAddress) GetLower() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.GetLower()}
 }
 
-func (w WrappedIPAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapSectWithErr(w.IPAddressSection.ToMaxHostLen(bitCount))
+func (w WrappedAddress) GetUpper() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.GetUpper()}
 }
 
-func (w WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	return wrapSectWithErr(w.IPAddressSection.ToMaxHost())
+func (w WrappedAddress) GetSection() *AddressSection {
+	return w.Address.GetSection()
 }
 
-func (w WrappedIPAddressSection) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToZeroNetwork()}
+func (w WrappedAddress) AssignPrefixForSingleBlock() ExtendedSegmentSeries {
+	return convAddrToIntf(w.Address.AssignPrefixForSingleBlock())
 }
 
-func (w WrappedIPAddressSection) Increment(i int64) ExtendedIPSegmentSeries {
-	return convSectToIntf(w.IPAddressSection.Increment(i))
+func (w WrappedAddress) AssignMinPrefixForBlock() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.AssignMinPrefixForBlock()}
 }
 
-func (w WrappedIPAddressSection) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
-	return convSectToIntf(w.IPAddressSection.IncrementBoundary(i))
+func (w WrappedAddress) WithoutPrefixLen() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.WithoutPrefixLen()}
 }
 
-func (w WrappedIPAddressSection) GetLower() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetLower()}
+//func (w WrappedAddress) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
+//	return w.Address.spanWithPrefixBlocks()
+//}
+//
+//func (w WrappedAddress) SpanWithSequentialBlocks() []ExtendedSegmentSeries {
+//	return w.Address.spanWithSequentialBlocks()
+//}
+//
+//func (w WrappedAddress) CoverWithPrefixBlock() ExtendedSegmentSeries {
+//	return w.Address.coverSeriesWithPrefixBlock()
+//}
+
+func (w WrappedAddress) Contains(other ExtendedSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressType)
+	return ok && w.Address.Contains(addr)
 }
 
-func (w WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetUpper()}
+func (w WrappedAddress) Equals(other ExtendedSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressType)
+	return ok && w.Address.Equals(addr)
 }
 
-func (w WrappedIPAddressSection) GetSection() *IPAddressSection {
-	return w.IPAddressSection
+func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.SetPrefixLen(prefixLen)}
 }
 
-func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
-	return convSectToIntf(w.IPAddressSection.AssignPrefixForSingleBlock())
-}
-
-func (w WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.AssignMinPrefixForBlock()}
-}
-
-func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.WithoutPrefixLen()}
-}
-
-func (w WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddressSection.spanWithPrefixBlocks()
-}
-
-func (w WrappedIPAddressSection) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddressSection.spanWithSequentialBlocks()
-}
-
-func (w WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
-	return w.IPAddressSection.coverSeriesWithPrefixBlock()
-}
-
-func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.IPAddressSection.Contains(addr)
-}
-
-func (w WrappedIPAddressSection) Equals(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.IPAddressSection.Equals(addr)
-}
-
-func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
-}
-
-func (w WrappedIPAddressSection) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.ReverseBytes()
+func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+	addr, err := w.Address.SetPrefixLenZeroed(prefixLen)
 	if err != nil {
 		return nil, err
 	}
-	return WrappedIPAddressSection{sect}, nil
+	return WrappedAddress{addr}, nil
 }
 
-func (w WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.ReverseBits(perByte)
+//func (w WrappedAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.AdjustPrefixLen(prefixLen)}
+//}
+//
+//func (w WrappedAddress) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedSegmentSeries {
+//	return WrappedAddress{w.Address.AdjustPrefixLenZeroed(prefixLen)}
+//}
+
+func (w WrappedAddress) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
+	addr, err := w.Address.ReverseBytes()
 	if err != nil {
 		return nil, err
 	}
-	return WrappedIPAddressSection{sect}, nil
+	return WrappedAddress{addr}, nil
 }
 
-func (w WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ReverseSegments()}
+func (w WrappedAddress) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
+	addr, err := w.Address.ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return WrappedAddress{addr}, nil
 }
 
-var _ ExtendedIPSegmentSeries = WrappedIPAddress{}
-var _ ExtendedIPSegmentSeries = WrappedIPAddressSection{}
+func (w WrappedAddress) ReverseSegments() ExtendedSegmentSeries {
+	return WrappedAddress{w.Address.ReverseSegments()}
+}
+
+type WrappedAddressSection struct {
+	*AddressSection
+}
+
+func (w WrappedAddressSection) Unwrap() AddressSegmentSeries {
+	return w.AddressSection
+}
+
+//func (w WrappedAddressSection) GetNetworkMask() ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.GetNetworkMask()}
+//}
+//
+//func (w WrappedAddressSection) GetHostMask() ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.GetHostMask()}
+//}
+//
+//func (w WrappedAddressSection) SequentialBlockIterator() ExtendedSegmentSeriesIterator {
+//	return ipsectionSeriesIterator{w.AddressSection.SequentialBlockIterator()}
+//}
+//
+//func (w WrappedAddressSection) BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator {
+//	return ipsectionSeriesIterator{w.AddressSection.BlockIterator(segmentCount)}
+//}
+
+func (w WrappedAddressSection) Iterator() ExtendedSegmentSeriesIterator {
+	return sectionSeriesIterator{w.AddressSection.Iterator()}
+}
+
+//func (w WrappedAddressSection) PrefixIterator() ExtendedSegmentSeriesIterator {
+//	return ipsectionSeriesIterator{w.AddressSection.PrefixIterator()}
+//}
+
+func (w WrappedAddressSection) PrefixBlockIterator() ExtendedSegmentSeriesIterator {
+	return sectionSeriesIterator{w.AddressSection.PrefixBlockIterator()}
+}
+
+// creates a sequential block by changing the segment at the given index to have the given lower and upper value,
+// and changing the following segments to be full-range
+func (w WrappedAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.ToBlock(segmentIndex, lower, upper)}
+}
+
+//func (w WrappedAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.ToPrefixBlockLen(bitCount)}
+//}
+
+func (w WrappedAddressSection) ToPrefixBlock() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.ToPrefixBlock()}
+}
+
+//func (w WrappedAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapSectWithErr(w.AddressSection.ToZeroHostLen(bitCount))
+//}
+//
+//func (w WrappedAddressSection) ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapSectWithErr(w.AddressSection.ToZeroHost())
+//}
+//
+//func (w WrappedAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapSectWithErr(w.AddressSection.ToMaxHostLen(bitCount))
+//}
+//
+//func (w WrappedAddressSection) ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//	return wrapSectWithErr(w.AddressSection.ToMaxHost())
+//}
+//
+//func (w WrappedAddressSection) ToZeroNetwork() ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.ToZeroNetwork()}
+//}
+
+func (w WrappedAddressSection) Increment(i int64) ExtendedSegmentSeries {
+	return convSectToIntf(w.AddressSection.Increment(i))
+}
+
+func (w WrappedAddressSection) IncrementBoundary(i int64) ExtendedSegmentSeries {
+	return convSectToIntf(w.AddressSection.IncrementBoundary(i))
+}
+
+func (w WrappedAddressSection) GetLower() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.GetLower()}
+}
+
+func (w WrappedAddressSection) GetUpper() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.GetUpper()}
+}
+
+func (w WrappedAddressSection) GetSection() *AddressSection {
+	return w.AddressSection
+}
+
+func (w WrappedAddressSection) AssignPrefixForSingleBlock() ExtendedSegmentSeries {
+	return convSectToIntf(w.AddressSection.AssignPrefixForSingleBlock())
+}
+
+func (w WrappedAddressSection) AssignMinPrefixForBlock() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.AssignMinPrefixForBlock()}
+}
+
+func (w WrappedAddressSection) WithoutPrefixLen() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.WithoutPrefixLen()}
+}
+
+//func (w WrappedAddressSection) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
+//	return w.AddressSection.spanWithPrefixBlocks()
+//}
+//
+//func (w WrappedAddressSection) SpanWithSequentialBlocks() []ExtendedSegmentSeries {
+//	return w.AddressSection.spanWithSequentialBlocks()
+//}
+//
+//func (w WrappedAddressSection) CoverWithPrefixBlock() ExtendedSegmentSeries {
+//	return w.AddressSection.coverSeriesWithPrefixBlock()
+//}
+
+func (w WrappedAddressSection) Contains(other ExtendedSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressSectionType)
+	return ok && w.AddressSection.Contains(addr)
+}
+
+func (w WrappedAddressSection) Equals(other ExtendedSegmentSeries) bool {
+	addr, ok := other.Unwrap().(AddressSectionType)
+	return ok && w.AddressSection.Equals(addr)
+}
+
+func (w WrappedAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.SetPrefixLen(prefixLen)}
+}
+
+func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+	sect, err := w.AddressSection.SetPrefixLenZeroed(prefixLen)
+	if err != nil {
+		return nil, err
+	}
+	return WrappedAddressSection{sect}, nil
+}
+
+//func (w WrappedAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.SetPrefixLen(prefixLen)}
+//}
+//
+//func (w WrappedAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) ExtendedSegmentSeries {
+//	return WrappedAddressSection{w.AddressSection.SetPrefixLen(prefixLen)}
+//}
+
+func (w WrappedAddressSection) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
+	sect, err := w.AddressSection.ReverseBytes()
+	if err != nil {
+		return nil, err
+	}
+	return WrappedAddressSection{sect}, nil
+}
+
+func (w WrappedAddressSection) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
+	sect, err := w.AddressSection.ReverseBits(perByte)
+	if err != nil {
+		return nil, err
+	}
+	return WrappedAddressSection{sect}, nil
+}
+
+func (w WrappedAddressSection) ReverseSegments() ExtendedSegmentSeries {
+	return WrappedAddressSection{w.AddressSection.ReverseSegments()}
+}
+
+var _ ExtendedSegmentSeries = WrappedAddress{}
+var _ ExtendedSegmentSeries = WrappedAddressSection{}
 
 // In go, a nil value is not coverted to a nil interface, it is converted to a non-nil interface instance with underlying value nil
-func convAddrToIntf(addr *IPAddress) ExtendedIPSegmentSeries {
+func convAddrToIntf(addr *Address) ExtendedSegmentSeries {
 	if addr == nil {
 		return nil
 	}
-	return WrappedIPAddress{addr}
+	return WrappedAddress{addr}
 }
 
-func convSectToIntf(sect *IPAddressSection) ExtendedIPSegmentSeries {
+func convSectToIntf(sect *AddressSection) ExtendedSegmentSeries {
 	if sect == nil {
 		return nil
 	}
-	return WrappedIPAddressSection{sect}
+	return WrappedAddressSection{sect}
 }
 
-func wrapSectWithErr(section *IPAddressSection, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+func wrapSectWithErr(section *AddressSection, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedIPAddressSection{section}, nil
+		return WrappedAddressSection{section}, nil
 	}
 	return nil, err
 }
 
-func wrapAddrWithErr(addr *IPAddress, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
+func wrapAddrWithErr(addr *Address, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedIPAddress{addr}, nil
+		return WrappedAddress{addr}, nil
 	}
 	return nil, err
 }
