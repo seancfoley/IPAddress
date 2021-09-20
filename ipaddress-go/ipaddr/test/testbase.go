@@ -11,93 +11,29 @@ import (
 // that way you can just add new files as needed
 // use a cmd dir for the main package
 
-//xxxx
-
-type failure struct {
-	str string
-
-	addr       *ipaddr.IPAddress
-	addrStr    *ipaddr.IPAddressString
-	macAddr    *ipaddr.MACAddress
-	macAddrStr *ipaddr.MACAddressString
-	ipseries   ipaddr.ExtendedIPSegmentSeries
-	series     ipaddr.ExtendedSegmentSeries
-}
-
-func (f *failure) String() string {
-	return concat(
-		concat(
-			concat(
-				concat(
-					concat(
-						concat(f.str, f.addr),
-						f.addrStr),
-					f.macAddr),
-				f.macAddrStr),
-			f.ipseries),
-		f.series)
-}
-
-func concat(str string, stringer fmt.Stringer) string {
-	if stringer != nil {
-		if str != "" {
-			return stringer.String() + ": " + str
-		}
-		return stringer.String()
+func Test() {
+	var acc testAccumulator
+	var addresses addresses
+	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
+	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
+	fmt.Println("Starting TestRunner")
+	startTime := time.Now()
+	tester.run()
+	macTester.run()
+	rangedAddresses := rangedAddresses{addresses}
+	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
+	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
+	rangeTester.run()
+	macRangeTester.run()
+	endTime := time.Now().Sub(startTime)
+	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", acc.counter, len(acc.failures))
+	if len(acc.failures) > 0 {
+		fmt.Printf("%v\n", acc.failures)
 	}
-	return str
+	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
 }
 
-func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
-	return failure{
-		str:  str,
-		addr: addr,
-	}
-}
-
-func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
-	return failure{
-		str:     str,
-		macAddr: addr,
-	}
-}
-
-func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
-	return failure{
-		str:        str,
-		macAddrStr: addrStr,
-	}
-}
-func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
-	return failure{
-		str:     str,
-		addrStr: addrStr,
-	}
-}
-
-func newAddrSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
-	return failure{
-		str:    str,
-		series: series,
-	}
-}
-
-func newAddrSegmentIPSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
-	return failure{
-		str:      str,
-		ipseries: series,
-	}
-}
-
-type testInterface interface {
-	// address creators
-	createAddress(string) *ipaddr.IPAddressString
-
-	//createInetAtonAddress(string) *ipaddr.IPAddressString
-
-	createHost(string) *ipaddr.HostName
-
-	createMACAddress(string) *ipaddr.MACAddressString
+type testResults interface {
 
 	// test failures
 	addFailure(failure)
@@ -106,61 +42,6 @@ type testInterface interface {
 	incrementTestCount()
 }
 
-var (
-	hostOptions = new(ipaddr.HostNameParametersBuilder).
-			AllowEmpty(false).
-			ParseEmptyStrAs(ipaddr.NoAddress).
-			NormalizeToLowercase(true).
-			AllowPort(true).
-			AllowService(true).
-			AllowBracketedIPv6(true).
-			AllowBracketedIPv4(true).
-			GetIPAddressParametersBuilder(). //GetAddressOptionsBuilder().
-			AllowPrefix(true).
-			AllowMask(true).
-			SetRangeParameters(ipaddr.NoRange).
-			Allow_inet_aton(false).
-			AllowEmpty(false).
-			ParseEmptyStrAs(ipaddr.NoAddress).
-			AllowAll(false).
-		//allowPrefixOnly(true).
-		AllowSingleSegment(false).
-		GetIPv4AddressParametersBuilder().
-		AllowLeadingZeros(true).
-		AllowUnlimitedLeadingZeros(false).
-		AllowPrefixLenLeadingZeros(true).
-		AllowPrefixesBeyondAddressSize(false).
-		AllowWildcardedSeparator(true).
-		AllowBinary(true).
-		GetParentBuilder().
-		GetIPv6AddressParametersBuilder().
-		AllowLeadingZeros(true).
-		AllowUnlimitedLeadingZeros(false).
-		AllowPrefixLenLeadingZeros(true).
-		AllowPrefixesBeyondAddressSize(false).
-		AllowWildcardedSeparator(true).
-		AllowMixed(true).
-		AllowZone(true).
-		AllowBinary(true).
-		GetParentBuilder().GetParentBuilder().ToParams()
-
-	//var addressOptions = ipaddr.ToIPAddressParametersBuilder(hostOptions).ToParams()
-	addressOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostOptions.GetIPAddressParameters()).ToParams()
-
-	macAddressOptions = new(ipaddr.MACAddressStringParametersBuilder).
-				AllowEmpty(false).
-				AllowAll(false).
-				GetFormatParametersBuilder().
-				SetRangeParameters(ipaddr.NoRange).
-				AllowLeadingZeros(true).
-				AllowUnlimitedLeadingZeros(false).
-				AllowWildcardedSeparator(true).
-				AllowShortSegments(true).
-				GetParentBuilder().
-				ToParams()
-)
-
-//TODO there should be just one of these, use some other type for the address creation and inheritance
 type testAccumulator struct {
 	counter  int64
 	failures []failure
@@ -174,95 +55,13 @@ func (t *testAccumulator) incrementTestCount() {
 	t.counter++
 }
 
-type addrTestAccumulator struct {
-	testAccumulator
-}
-
-func (t *addrTestAccumulator) createAddress(str string) *ipaddr.IPAddressString {
-	return ipaddr.NewIPAddressStringParams(str, addressOptions)
-}
-
-func (t *addrTestAccumulator) createMACAddress(str string) *ipaddr.MACAddressString {
-	return ipaddr.NewMACAddressStringParams(str, macAddressOptions)
-}
-
-func (t *addrTestAccumulator) createHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, hostOptions)
-}
-
-type rangedAddrTestAccumulator struct {
-	addrTestAccumulator
-}
-
-var (
-	wildcardAndRangeAddressOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(addressOptions).AllowAll(true).SetRangeParameters(ipaddr.WildcardAndRange).ToParams()
-	wildcardOnlyAddressOptions     = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(ipaddr.WildcardOnly).ToParams()
-	noRangeAddressOptions          = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(ipaddr.NoRange).ToParams()
-
-	wildcardAndRangeMACAddressOptions = new(ipaddr.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
-	wildcardOnlyMACAddressOptions     = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardOnly).GetParentBuilder().ToParams()
-	noRangeMACAddressOptions          = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.NoRange).GetParentBuilder().ToParams()
-)
-
-func (t *rangedAddrTestAccumulator) createAddress(str string) *ipaddr.IPAddressString {
-	return ipaddr.NewIPAddressStringParams(str, wildcardAndRangeAddressOptions)
-}
-
-func (t *rangedAddrTestAccumulator) createMACAddress(str string) *ipaddr.MACAddressString {
-	return ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
-}
-
-//
-//func (t *rangedAddrTestAccumulator) createHost(str string) *ipaddr.HostName {
-//	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
-//}
-
-var defaultOptions = new(ipaddr.IPAddressStringParametersBuilder).ToParams()
-
-type permissiveAddrTestAccumulator struct {
-	rangedAddrTestAccumulator
-}
-
-func (t *permissiveAddrTestAccumulator) createAddress(str string) *ipaddr.IPAddressString {
-	return ipaddr.NewIPAddressStringParams(str, defaultOptions)
-}
-
-//func (t *permissiveAddrTestAccumulator) createMACAddress(str string) *ipaddr.MACAddressString {
-//	return ipaddr.NewMACAddressStringParams(str, xxxmacAddressOptions)
-//}
-//
-//func (t *permissiveAddrTestAccumulator) createHost(str string) *ipaddr.HostName {
-//	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
-//}
-
-func Test() {
-	var acc addrTestAccumulator
-	tester := ipAddressTester{testBase{&acc}}
-	macTester := macAddressTester{testBase{&acc}}
-	fmt.Println("Starting TestRunner")
-	startTime := time.Now()
-	tester.run()
-	macTester.run()
-	rangeAcc := rangedAddrTestAccumulator{acc}
-	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{&rangeAcc}}}
-	macRangeTester := macAddressRangeTester{macAddressTester{testBase{&rangeAcc}}}
-	rangeTester.run()
-	macRangeTester.run()
-	endTime := time.Now().Sub(startTime)
-	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", rangeAcc.counter, len(rangeAcc.failures))
-	if len(rangeAcc.failures) > 0 {
-		fmt.Printf("%v\n", rangeAcc.failures)
-	}
-	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
-	//fmt.Printf("Done: TestRunner\nDone in %d milliseconds\n", endTime/time.Millisecond)
-}
-
 type tester interface {
 	run()
 }
 
 type testBase struct {
-	testInterface
+	testResults
+	testAddresses
 }
 
 func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
@@ -365,6 +164,82 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 			}
 			j--
 		}
+	}
+}
+
+type failure struct {
+	str string
+
+	addr       *ipaddr.IPAddress
+	addrStr    *ipaddr.IPAddressString
+	macAddr    *ipaddr.MACAddress
+	macAddrStr *ipaddr.MACAddressString
+	ipseries   ipaddr.ExtendedIPSegmentSeries
+	series     ipaddr.ExtendedSegmentSeries
+}
+
+func (f *failure) String() string {
+	return concat(
+		concat(
+			concat(
+				concat(
+					concat(
+						concat(f.str, f.addr),
+						f.addrStr),
+					f.macAddr),
+				f.macAddrStr),
+			f.ipseries),
+		f.series)
+}
+
+func concat(str string, stringer fmt.Stringer) string {
+	if stringer != nil {
+		if str != "" {
+			return stringer.String() + ": " + str
+		}
+		return stringer.String()
+	}
+	return str
+}
+
+func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
+	return failure{
+		str:  str,
+		addr: addr,
+	}
+}
+
+func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
+	return failure{
+		str:     str,
+		macAddr: addr,
+	}
+}
+
+func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
+	return failure{
+		str:        str,
+		macAddrStr: addrStr,
+	}
+}
+func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
+	return failure{
+		str:     str,
+		addrStr: addrStr,
+	}
+}
+
+func newAddrSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
+	return failure{
+		str:    str,
+		series: series,
+	}
+}
+
+func newAddrSegmentIPSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
+	return failure{
+		str:      str,
+		ipseries: series,
 	}
 }
 
