@@ -231,10 +231,18 @@ var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
 type AddressSectionType interface {
 	StandardDivisionGroupingType
 
-	//TODO I suspect this addrSegmentSeries weirdness could go away if we dropped GenericGroupingType, and it doesn't seem to be all that useful anyway.
-	//// I did not use it in the comparator.  Using AddressDivisionBase is just as useful, what does the interface give you?
+	//TODO I suspect this addrSegmentSeries weirdness could go away if we dropped GenericGroupingType,
+	// because it extends AddressDivisionSeries,
+	// and it doesn't seem to be all that useful anyway.
+	// I did not use it in the comparator.  Using addressDivisionGroupingBases is just as useful, what does the interface give you?
 	// Just a type to use as the argument for Equals(GenericGroupingType).
 	// But equality is a loosy goosey concept anyway for divisions of varying length
+	//
+	// But would I need to make StandardDivisionGroupingType extend AddressDivisionSeries, and thus result in the same dual path to AddressDivisionSeries?
+	// How would you avoid the dual path?  Do you need StandardDivisionGroupingType to extend AddressDivisionSeries?
+	// Without it, AddressSectionType has no path to AddressDivisionSeries, but it would once we put back AddressSegmentSeries
+	// Other than that, it is just used by the equals stuff.  So no, it is not needed, I think you're good.
+	//
 	// If I remove it, then rename EqualsSection to Equals, and make it use AddressSectionType
 	// So then you'd have no equals for all division groupings, just sections, but I think I do not care
 	// We still have CompareTo everywhere anyway

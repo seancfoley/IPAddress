@@ -210,11 +210,7 @@ func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
 }
 
 func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.Address.SetPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedAddress{addr}, nil
+	return wrapAddrWithErr(w.Address.SetPrefixLenZeroed(prefixLen))
 }
 
 //func (w WrappedAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
@@ -226,11 +222,7 @@ func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentS
 //}
 
 func (w WrappedAddress) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.Address.ReverseBytes()
-	if err != nil {
-		return nil, err
-	}
-	return WrappedAddress{addr}, nil
+	return wrapAddrWithErr(w.Address.ReverseBytes())
 }
 
 func (w WrappedAddress) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -374,11 +366,7 @@ func (w WrappedAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedSegmentS
 }
 
 func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.AddressSection.SetPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedAddressSection{sect}, nil
+	return wrapSectWithErr(w.AddressSection.SetPrefixLenZeroed(prefixLen))
 }
 
 //func (w WrappedAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
@@ -390,19 +378,11 @@ func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedS
 //}
 
 func (w WrappedAddressSection) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.AddressSection.ReverseBytes()
-	if err != nil {
-		return nil, err
-	}
-	return WrappedAddressSection{sect}, nil
+	return wrapSectWithErr(w.AddressSection.ReverseBytes())
 }
 
 func (w WrappedAddressSection) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.AddressSection.ReverseBits(perByte)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedAddressSection{sect}, nil
+	return wrapSectWithErr(w.AddressSection.ReverseBits(perByte))
 }
 
 func (w WrappedAddressSection) ReverseSegments() ExtendedSegmentSeries {

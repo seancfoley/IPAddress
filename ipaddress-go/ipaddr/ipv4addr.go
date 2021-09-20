@@ -3,7 +3,6 @@ package ipaddr
 import (
 	"math/big"
 	"net"
-	"unsafe"
 )
 
 const (
@@ -931,15 +930,12 @@ func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
 }
 
 func (addr *IPv4Address) ToAddress() *Address {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*Address)(unsafe.Pointer(addr))
+	return addr.ToIPAddress().ToAddress()
 }
 
 func (addr *IPv4Address) ToIPAddress() *IPAddress {
 	if addr != nil {
 		addr = addr.init()
 	}
-	return (*IPAddress)(unsafe.Pointer(addr))
+	return (*IPAddress)(addr)
 }

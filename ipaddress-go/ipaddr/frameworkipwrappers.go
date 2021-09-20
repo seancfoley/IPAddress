@@ -210,11 +210,7 @@ func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeri
 }
 
 func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.SetPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
+	return wrapIPAddrWithErr(w.IPAddress.SetPrefixLenZeroed(prefixLen))
 }
 
 func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
@@ -222,27 +218,15 @@ func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentS
 }
 
 func (w WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.AdjustPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
+	return wrapIPAddrWithErr(w.IPAddress.AdjustPrefixLenZeroed(prefixLen))
 }
 
 func (w WrappedIPAddress) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.ReverseBytes()
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
+	return wrapIPAddrWithErr(w.IPAddress.ReverseBytes())
 }
 
 func (w WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	addr, err := w.IPAddress.ReverseBits(perByte)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddress{addr}, nil
+	return wrapIPAddrWithErr(w.IPAddress.ReverseBits(perByte))
 }
 
 func (w WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
@@ -378,11 +362,7 @@ func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegm
 }
 
 func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.SetPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddressSection{sect}, nil
+	return wrapIPSectWithErr(w.IPAddressSection.SetPrefixLenZeroed(prefixLen))
 }
 
 func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
@@ -390,27 +370,15 @@ func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPS
 }
 
 func (w WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.AdjustPrefixLenZeroed(prefixLen)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddressSection{sect}, nil
+	return wrapIPSectWithErr(w.IPAddressSection.AdjustPrefixLenZeroed(prefixLen))
 }
 
 func (w WrappedIPAddressSection) ReverseBytes() (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.ReverseBytes()
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddressSection{sect}, nil
+	return wrapIPSectWithErr(w.IPAddressSection.ReverseBytes())
 }
 
 func (w WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
-	sect, err := w.IPAddressSection.ReverseBits(perByte)
-	if err != nil {
-		return nil, err
-	}
-	return WrappedIPAddressSection{sect}, nil
+	return wrapIPSectWithErr(w.IPAddressSection.ReverseBits(perByte))
 }
 
 func (w WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {

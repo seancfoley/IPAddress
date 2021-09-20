@@ -1,18 +1,17 @@
-package main
+package test
 
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math/big"
 	"time"
 )
 
-//TODO next you want to reorg the test files so they are in test package and not main
+//TODO NEXT you want to reorg the test files so they are in test package and not main
 // that way you can just add new files as needed
 // use a cmd dir for the main package
 
-//TODO I decided to start with IPAddresstester.runTest and go in order there
-//But also handling the same tests in the other testers (so not in order in the other ones)
-// So I will need to survey the other oneslater to see what I missed in the others
+//xxxx
 
 type failure struct {
 	str string
@@ -25,7 +24,29 @@ type failure struct {
 	series     ipaddr.ExtendedSegmentSeries
 }
 
-//TODO String() method for failure
+func (f *failure) String() string {
+	return concat(
+		concat(
+			concat(
+				concat(
+					concat(
+						concat(f.str, f.addr),
+						f.addrStr),
+					f.macAddr),
+				f.macAddrStr),
+			f.ipseries),
+		f.series)
+}
+
+func concat(str string, stringer fmt.Stringer) string {
+	if stringer != nil {
+		if str != "" {
+			return stringer.String() + ": " + str
+		}
+		return stringer.String()
+	}
+	return str
+}
 
 func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
 	return failure{
@@ -139,6 +160,7 @@ var (
 				ToParams()
 )
 
+//TODO there should be just one of these, use some other type for the address creation and inheritance
 type testAccumulator struct {
 	counter  int64
 	failures []failure
@@ -213,7 +235,7 @@ func (t *permissiveAddrTestAccumulator) createAddress(str string) *ipaddr.IPAddr
 //	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
 //}
 
-func main() {
+func Test() {
 	var acc addrTestAccumulator
 	tester := ipAddressTester{testBase{&acc}}
 	macTester := macAddressTester{testBase{&acc}}
@@ -344,4 +366,33 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 			j--
 		}
 	}
+}
+
+var cachedPrefixLens = initPrefLens()
+
+func initPrefLens() []ipaddr.PrefixLen {
+	cachedPrefLens := make([]ipaddr.PrefixLen, ipaddr.IPv6BitCount+1)
+	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
+		bc := i
+		cachedPrefLens[i] = &bc
+	}
+	return cachedPrefLens
+}
+
+func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
+	if i >= 0 && int(i) < len(cachedPrefixLens) {
+		return cachedPrefixLens[i]
+
+	}
+	return &i
+}
+
+func bigOne() *big.Int {
+	return big.NewInt(1)
+}
+
+var one = bigOne()
+
+func bigOneConst() *big.Int {
+	return one
 }

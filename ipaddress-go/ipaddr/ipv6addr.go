@@ -3,7 +3,6 @@ package ipaddr
 import (
 	"math/big"
 	"net"
-	"unsafe"
 )
 
 const (
@@ -1270,15 +1269,19 @@ func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string
 }
 
 func (addr *IPv6Address) ToAddress() *Address {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*Address)(unsafe.Pointer(addr))
+	return addr.ToIPAddress().ToAddress()
 }
 
 func (addr *IPv6Address) ToIPAddress() *IPAddress {
 	if addr != nil {
 		addr = addr.init()
 	}
-	return (*IPAddress)(unsafe.Pointer(addr))
+	return (*IPAddress)(addr)
 }
+
+//TODO think some more about adding ToExtendedIPSegmentSeries() or Wrap()
+// in golang you normally do not add methods to convert to interface types (eg ToStringer() Stringer)
+// BUT in this case you also have the (a) ToIPAddress() and (b) wrapping (so not a direct conversion to the interface)
+// You could put one of these in each of the top level address and section classes IPv6/6/MAC
+// The downside is going from the more specific type to the more generic type.
+// But it would make clear how to get to that interface.  Maybe call it Wrap() to make the association with UnWrap() in the interface

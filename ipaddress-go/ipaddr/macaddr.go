@@ -172,13 +172,6 @@ func (addr *MACAddress) GetBytesPerSegment() int {
 	return MACBytesPerSegment
 }
 
-func (addr *MACAddress) ToAddress() *Address {
-	if addr != nil {
-		addr = addr.init()
-	}
-	return (*Address)(addr)
-}
-
 func (addr *MACAddress) init() *MACAddress {
 	if addr.section == nil {
 		//if addr != nil && addr.section == nil {TODO init() nil
@@ -676,6 +669,13 @@ func (addr *MACAddress) ToAddressString() *MACAddressString {
 	}
 	hostIdStr := res.idStr
 	return hostIdStr.(*MACAddressString)
+}
+
+func (addr *MACAddress) ToAddress() *Address {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*Address)(addr)
 }
 
 //func (addr *MACAddress) CompareSize(other *MACAddress) int {
