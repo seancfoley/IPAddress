@@ -332,6 +332,10 @@ func (addr *IPv4Address) GetUpperIPAddress() *IPAddress {
 	return addr.GetUpper().ToIPAddress()
 }
 
+func (addr *IPv4Address) IsZeroHostLen(prefLen BitCount) bool {
+	return addr.init().isZeroHostLen(prefLen)
+}
+
 func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv4Address(), err
@@ -344,6 +348,10 @@ func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, Inc
 
 func (addr *IPv4Address) ToZeroNetwork() *IPv4Address {
 	return addr.init().toZeroNetwork().ToIPv4Address()
+}
+
+func (addr *IPv4Address) IsMaxHostLen(prefLen BitCount) bool {
+	return addr.init().isMaxHostLen(prefLen)
 }
 
 func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressError) {
@@ -938,4 +946,8 @@ func (addr *IPv4Address) ToIPAddress() *IPAddress {
 		addr = addr.init()
 	}
 	return (*IPAddress)(addr)
+}
+
+func (addr *IPv4Address) Wrap() WrappedIPAddress {
+	return WrappedIPAddress{addr.ToIPAddress()}
 }

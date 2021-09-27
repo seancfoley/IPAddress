@@ -15,7 +15,7 @@ type ipAddressSegmentInternal struct {
 }
 
 func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
-	return (*AddressSegment)(unsafe.Pointer(seg))
+	return (*AddressSegment)(seg)
 }
 
 func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
@@ -390,14 +390,14 @@ func (seg *IPAddressSegment) IsIPv6AddressSegment() bool {
 
 func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
 	if seg.IsIPv4AddressSegment() {
-		return (*IPv4AddressSegment)(unsafe.Pointer(seg))
+		return (*IPv4AddressSegment)(seg)
 	}
 	return nil
 }
 
 func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 	if seg.IsIPv6AddressSegment() {
-		return (*IPv6AddressSegment)(unsafe.Pointer(seg))
+		return (*IPv6AddressSegment)(seg)
 	}
 	return nil
 }

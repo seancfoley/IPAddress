@@ -1,9 +1,5 @@
 package test
 
-import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-)
-
 type macAddressTester struct {
 	testBase
 }
@@ -27,14 +23,42 @@ func (t macAddressTester) run() {
 	t.testReverse("11:11:22:22:33:33:44:55", false, false)
 	t.testReverse("11:11:11:11:11:11:11:11", false, false)
 	t.testReverse("0:0:0:0:0:0:00:00", true, true)
+
+	//TODO
+	//t.testPrefixes("25:51:27:12:82:55",
+	//	16, -5,
+	//	"25:51:27:12:82:55",
+	//	"25:51:27:12:82:0",
+	//	"25:51:27:12:82:40",
+	//	"25:51:0:0:0:0",
+	//	"25:51:0:0:0:0")
+
 }
 
 func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	str := t.createMACAddress(addressStr)
 	//try {
-	t.testBase.testReverse(ipaddr.WrappedAddress{str.GetAddress().ToAddress()}, bitsReversedIsSame, bitsReversedPerByteIsSame)
+	t.testBase.testReverse(str.GetAddress().ToAddress().Wrap(), bitsReversedIsSame, bitsReversedPerByteIsSame)
 	//} catch(RuntimeException e) {
 	//addFailure(new Failure("reversal: " + addressStr));
 	//}
 	t.incrementTestCount()
 }
+
+//TODO
+//func (t macAddressTester) testPrefixes(original string,
+//	prefix, adjustment ipaddr.BitCount,
+//	next string,
+//	previous,
+//	adjusted,
+//	prefixSet,
+//	prefixApplied string) {
+//	t.testBase.testPrefixes(t.createMACAddress(original).GetAddress().Wrap(),
+//		prefix, adjustment,
+//		t.createMACAddress(next).GetAddress().Wrap(),
+//		t.createMACAddress(previous).GetAddress().Wrap(),
+//		t.createMACAddress(adjusted).GetAddress().Wrap(),
+//		t.createMACAddress(prefixSet).GetAddress().Wrap(),
+//		t.createMACAddress(prefixApplied).GetAddress().Wrap())
+//	t.incrementTestCount()
+//}

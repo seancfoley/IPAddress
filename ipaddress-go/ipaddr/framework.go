@@ -136,6 +136,8 @@ type AddressDivisionSeries interface {
 type addrSegmentSeries interface {
 	AddressComponent
 
+	//IsZeroHost() bool
+
 	GetMaxSegmentValue() SegInt
 	GetSegmentCount() int
 	GetBitsPerSegment() BitCount
@@ -170,7 +172,9 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	IncludesZeroHost() bool
 	IncludesMaxHost() bool
 	IsZeroHostLen(BitCount) bool
+	IsMaxHostLen(BitCount) bool
 	IsZeroHost() bool
+	IsMaxHost() bool
 	IsSingleNetwork() bool
 
 	GetSequentialBlockIndex() int
@@ -241,7 +245,7 @@ type AddressSectionType interface {
 	// But would I need to make StandardDivisionGroupingType extend AddressDivisionSeries, and thus result in the same dual path to AddressDivisionSeries?
 	// How would you avoid the dual path?  Do you need StandardDivisionGroupingType to extend AddressDivisionSeries?
 	// Without it, AddressSectionType has no path to AddressDivisionSeries, but it would once we put back AddressSegmentSeries
-	// Other than that, it is just used by the equals stuff.  So no, it is not needed, I think you're good.
+	// Other than that, the generic grouping code is just used by the equals stuff.  So no, it is not needed, I think you're good if you remove it.
 	//
 	// If I remove it, then rename EqualsSection to Equals, and make it use AddressSectionType
 	// So then you'd have no equals for all division groupings, just sections, but I think I do not care
@@ -252,6 +256,8 @@ type AddressSectionType interface {
 	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection
 }
+
+//Note: if we had an IPAddressSectionType we could add Wrap() WrappedIPAddressSection to it, but I guess not much else
 
 var _, _, _, _, _ AddressSectionType = &AddressSection{},
 	&IPAddressSection{},
@@ -281,6 +287,7 @@ type IPAddressType interface {
 	AddressType
 	ipAddressRange
 
+	Wrap() WrappedIPAddress
 	ToIPAddress() *IPAddress
 	ToAddressString() *IPAddressString
 }

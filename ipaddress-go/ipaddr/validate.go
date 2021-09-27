@@ -11,8 +11,8 @@ import (
 var chars, extendedChars = createChars()
 
 func createChars() (chars [int('z') + 1]byte, extendedChars [int('~') + 1]byte) {
-	i := byte(0)
-	for c := '0'; i < 10; i, c = i+1, c+1 {
+	i := byte(1)
+	for c := '1'; i < 10; i, c = i+1, c+1 {
 		chars[c] = i
 	}
 	for c, c2 := 'a', 'A'; i < 26; i, c, c2 = i+1, c+1, c2+1 {

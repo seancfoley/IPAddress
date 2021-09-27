@@ -315,6 +315,23 @@ func (addr *addressInternal) getDivisionsInternal() []*AddressDivision {
 	return addr.section.getDivisionsInternal()
 }
 
+// when boundariesOnly is true, there will be no error
+//func (addr *addressInternal) toZeroHost(boundariesOnly bool) (res *Address, err IncompatibleAddressError) {
+//	section, err := addr.section.toZeroHost(boundariesOnly)
+//	if err == nil {
+//		res = addr.checkIdentity(section)
+//	}
+//	return
+//}
+
+//func (addr *addressInternal) toMaxHost() (res *Address, err IncompatibleAddressError) {
+//	section, err := addr.section.toMaxHost()
+//	if err == nil {
+//		res = addr.checkIdentity(section)
+//	}
+//	return
+//}
+
 func (addr *addressInternal) toPrefixBlock() *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlock())
 }
@@ -446,12 +463,24 @@ func (addr *addressInternal) withoutPrefixLen() *Address {
 	return addr.checkIdentity(addr.section.withoutPrefixLen())
 }
 
+func (addr *addressInternal) adjustPrefixLen(prefixLen BitCount) *Address {
+	return addr.checkIdentity(addr.section.adjustPrefixLen(prefixLen))
+}
+
+func (addr *addressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressError) {
+	section, err := addr.section.adjustPrefixLenZeroed(prefixLen)
+	if err == nil {
+		res = addr.checkIdentity(section)
+	}
+	return
+}
+
 func (addr *addressInternal) setPrefixLen(prefixLen BitCount) *Address {
-	return addr.checkIdentity(addr.section.toAddressSection().setPrefixLen(prefixLen))
+	return addr.checkIdentity(addr.section.setPrefixLen(prefixLen))
 }
 
 func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressError) {
-	section, err := addr.section.toAddressSection().setPrefixLenZeroed(prefixLen)
+	section, err := addr.section.setPrefixLenZeroed(prefixLen)
 	if err == nil {
 		res = addr.checkIdentity(section)
 	}
@@ -841,6 +870,18 @@ func (addr *Address) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
+//func (addr *Address) IsZeroHost() bool {
+//	return addr.init().section.IsZeroHost()
+//}
+//
+//func (addr *Address) ToZeroHost() (*Address, IncompatibleAddressError) {
+//	return addr.init().toZeroHost(false)
+//}
+
+//func (addr *Address) ToMaxHost() (*Address, IncompatibleAddressError) {
+//	return addr.init().toMaxHost()
+//}
+
 func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
 }
@@ -859,6 +900,15 @@ func (addr *Address) SetPrefixLen(prefixLen BitCount) *Address {
 
 func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
 	return addr.init().setPrefixLenZeroed(prefixLen)
+}
+
+func (addr *Address) AdjustPrefixLen(prefixLen BitCount) *Address {
+	return addr.adjustPrefixLen(prefixLen).ToAddress()
+}
+
+func (addr *Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
+	res, err := addr.adjustPrefixLenZeroed(prefixLen)
+	return res.ToAddress(), err
 }
 
 func (addr *Address) AssignPrefixForSingleBlock() *Address {
@@ -1006,4 +1056,8 @@ func (addr *Address) ToMACAddress() *MACAddress {
 		return (*MACAddress)(addr)
 	}
 	return nil
+}
+
+func (addr *Address) Wrap() WrappedAddress {
+	return WrappedAddress{addr.init()}
 }

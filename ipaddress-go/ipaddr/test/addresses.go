@@ -4,10 +4,6 @@ import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 )
 
-//TODO NEXT you want to reorg the test files so they are in test package and not main
-// that way you can just add new files as needed
-// use a cmd dir for the main package
-
 var (
 	hostOptions = new(ipaddr.HostNameParametersBuilder).
 			AllowEmpty(false).

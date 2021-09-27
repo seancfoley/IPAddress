@@ -133,9 +133,9 @@ type ipAddressInternal struct {
 	addressInternal
 }
 
-func (addr *ipAddressInternal) ToAddress() *Address {
-	return (*Address)(addr)
-}
+//func (addr *ipAddressInternal) ToAddress() *Address {
+//	return (*Address)(addr)
+//}
 
 func (addr *ipAddressInternal) toIPAddress() *IPAddress {
 	return (*IPAddress)(unsafe.Pointer(addr))
@@ -167,7 +167,7 @@ func (addr *ipAddressInternal) IncludesZeroHost() bool {
 }
 
 func (addr *ipAddressInternal) includesZeroHostLen(networkPrefixLength BitCount) bool {
-	return addr.section.ToIPAddressSection().IncludesZeroHostLen(networkPrefixLength)
+	return addr.getSection().IncludesZeroHostLen(networkPrefixLength)
 }
 
 func (addr *ipAddressInternal) IncludesMaxHost() bool {
@@ -179,7 +179,7 @@ func (addr *ipAddressInternal) IncludesMaxHost() bool {
 }
 
 func (addr *ipAddressInternal) includesMaxHostLen(networkPrefixLength BitCount) bool {
-	return addr.section.ToIPAddressSection().IncludesMaxHostLen(networkPrefixLength)
+	return addr.getSection().IncludesMaxHostLen(networkPrefixLength)
 }
 
 // IsSingleNetwork returns whether the network section of the address, the prefix, consists of a single value
@@ -188,20 +188,32 @@ func (addr *ipAddressInternal) IsSingleNetwork() bool {
 	return section == nil || section.ToIPAddressSection().IsSingleNetwork()
 }
 
+// IsMaxHost returns whether this section has a prefix length and if so,
+// whether the host section is the max value.
+func (addr *ipAddressInternal) IsMaxHost() bool {
+	section := addr.section
+	return section != nil && section.ToIPAddressSection().IsMaxHost()
+}
+
+// IsMaxHostLen returns whether the host is zero for the given prefix length.
+// If this address already has a prefix length, then that prefix length is ignored.
+// If the host section is zero length (there are no host bits at all), returns true.
+func (addr *ipAddressInternal) isMaxHostLen(prefLen BitCount) bool {
+	return addr.getSection().IsMaxHostLen(prefLen)
+}
+
 // IsZeroHost returns whether this section has a prefix length and if so,
-// whether the host section is zero for this section or all sections in this set of address sections.
-// If the host section is zero length (there are no host bits at all), returns false.
+// whether the host section is zero.
 func (addr *ipAddressInternal) IsZeroHost() bool {
 	section := addr.section
 	return section != nil && section.ToIPAddressSection().IsZeroHost()
 }
 
-// IsZeroHostLen returns whether the host is zero for the given prefix length for this section or all sections in this set of address sections.
-// If this section already has a prefix length, then that prefix length is ignored.
-// If the host section is zero length (there are no host bits at all), returns false.
-func (addr *ipAddressInternal) IsZeroHostLen(prefLen BitCount) bool {
-	section := addr.section
-	return section == nil || section.ToIPAddressSection().IsZeroHostLen(prefLen)
+// IsZeroHostLen returns whether the host is zero for the given prefix length.
+// If this address already has a prefix length, then that prefix length is ignored.
+// If the host section is zero length (there are no host bits at all), returns true.
+func (addr *ipAddressInternal) isZeroHostLen(prefLen BitCount) bool {
+	return addr.getSection().IsZeroHostLen(prefLen)
 }
 
 // when boundariesOnly is true, there will be no error
@@ -214,7 +226,7 @@ func (addr *ipAddressInternal) toZeroHost(boundariesOnly bool) (res *IPAddress, 
 }
 
 func (addr *ipAddressInternal) toZeroHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressError) {
-	section, err := addr.section.toIPAddressSection().toZeroHostLen(prefixLength)
+	section, err := addr.getSection().toZeroHostLen(prefixLength)
 	if err == nil {
 		res = addr.checkIdentity(section)
 	}
@@ -222,7 +234,7 @@ func (addr *ipAddressInternal) toZeroHostLen(prefixLength BitCount) (res *IPAddr
 }
 
 func (addr *ipAddressInternal) toZeroNetwork() *IPAddress {
-	return addr.checkIdentity(addr.section.toIPAddressSection().toZeroNetwork())
+	return addr.checkIdentity(addr.getSection().toZeroNetwork())
 }
 
 func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddressError) {
@@ -234,7 +246,7 @@ func (addr *ipAddressInternal) toMaxHost() (res *IPAddress, err IncompatibleAddr
 }
 
 func (addr *ipAddressInternal) toMaxHostLen(prefixLength BitCount) (res *IPAddress, err IncompatibleAddressError) {
-	section, err := addr.section.toIPAddressSection().toMaxHostLen(prefixLength)
+	section, err := addr.getSection().toMaxHostLen(prefixLength)
 	if err == nil {
 		res = addr.checkIdentity(section)
 	}
@@ -249,12 +261,16 @@ func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddre
 	return createIPAddress(sect, addr.zone)
 }
 
+func (addr *ipAddressInternal) getSection() *IPAddressSection {
+	return addr.section.ToIPAddressSection()
+}
+
 func (addr *ipAddressInternal) adjustPrefixLen(prefixLen BitCount) *IPAddress {
-	return addr.checkIdentity(addr.section.toIPAddressSection().adjustPrefixLen(prefixLen))
+	return addr.checkIdentity(addr.getSection().adjustPrefixLen(prefixLen))
 }
 
 func (addr *ipAddressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *IPAddress, err IncompatibleAddressError) {
-	section, err := addr.section.toIPAddressSection().adjustPrefixLenZeroed(prefixLen)
+	section, err := addr.getSection().adjustPrefixLenZeroed(prefixLen)
 	if err == nil {
 		res = addr.checkIdentity(section)
 	}
@@ -274,7 +290,7 @@ func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
 }
 
 func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-	wrapped := WrappedIPAddress{addr.toIPAddress()}
+	wrapped := addr.toIPAddress().Wrap()
 	if addr.IsSequential() {
 		if addr.IsSinglePrefixBlock() {
 			return []ExtendedIPSegmentSeries{wrapped}
@@ -285,7 +301,7 @@ func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries 
 }
 
 func (addr *ipAddressInternal) spanWithSequentialBlocks() []ExtendedIPSegmentSeries {
-	wrapped := WrappedIPAddress{addr.toIPAddress()}
+	wrapped := addr.toIPAddress().Wrap()
 	if addr.IsSequential() {
 		return []ExtendedIPSegmentSeries{wrapped}
 	}
@@ -295,11 +311,11 @@ func (addr *ipAddressInternal) spanWithSequentialBlocks() []ExtendedIPSegmentSer
 func (addr *ipAddressInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSeries {
 	// call from wrapper
 	if addr.IsSinglePrefixBlock() {
-		return WrappedIPAddress{addr.toIPAddress()}
+		return addr.toIPAddress().Wrap()
 	}
 	return coverWithPrefixBlock(
-		WrappedIPAddress{addr.getLower().ToIPAddress()},
-		WrappedIPAddress{addr.getUpper().ToIPAddress()},
+		addr.getLower().ToIPAddress().Wrap(),
+		addr.getUpper().ToIPAddress().Wrap(),
 	)
 }
 
@@ -309,16 +325,16 @@ func (addr *ipAddressInternal) coverWithPrefixBlock() *IPAddress {
 		return addr.toIPAddress()
 	}
 	res := coverWithPrefixBlock(
-		WrappedIPAddress{addr.getLower().ToIPAddress()},
-		WrappedIPAddress{addr.getUpper().ToIPAddress()},
+		addr.getLower().ToIPAddress().Wrap(),
+		addr.getUpper().ToIPAddress().Wrap(),
 	)
 	return res.(WrappedIPAddress).IPAddress
 }
 
 func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddress {
 	res := getCoveringPrefixBlock(
-		WrappedIPAddress{addr.toIPAddress()},
-		WrappedIPAddress{other},
+		addr.toIPAddress().Wrap(),
+		other.Wrap(),
 	)
 	return res.(WrappedIPAddress).IPAddress
 }
@@ -345,7 +361,7 @@ func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, Incompat
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
-			return addr.section.ToIPAddressSection().toOctalStringZoned(with0Prefix, addr.zone)
+			return addr.getSection().toOctalStringZoned(with0Prefix, addr.zone)
 		}
 		var cacheField **string
 		if with0Prefix {
@@ -355,17 +371,17 @@ func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, Incompat
 		}
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {
-				return addr.section.ToIPAddressSection().toOctalStringZoned(with0Prefix, addr.zone)
+				return addr.getSection().toOctalStringZoned(with0Prefix, addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToOctalString(with0Prefix)
+	return addr.getSection().ToOctalString(with0Prefix)
 }
 
 func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
-			return addr.section.ToIPAddressSection().toBinaryStringZoned(with0bPrefix, addr.zone)
+			return addr.getSection().toBinaryStringZoned(with0bPrefix, addr.zone)
 		}
 		var cacheField **string
 		if with0bPrefix {
@@ -375,10 +391,10 @@ func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, Incomp
 		}
 		return cacheStrErr(cacheField,
 			func() (string, IncompatibleAddressError) {
-				return addr.section.ToIPAddressSection().toBinaryStringZoned(with0bPrefix, addr.zone)
+				return addr.getSection().toBinaryStringZoned(with0bPrefix, addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToBinaryString(with0bPrefix)
+	return addr.getSection().ToBinaryString(with0bPrefix)
 }
 
 func (addr *ipAddressInternal) toCanonicalWildcardString() string {
@@ -392,7 +408,7 @@ func (addr *ipAddressInternal) toCanonicalWildcardString() string {
 				return addr.section.ToIPv6AddressSection().toCanonicalWildcardStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToCanonicalWildcardString()
+	return addr.getSection().ToCanonicalWildcardString()
 }
 
 func (addr *ipAddressInternal) toNormalizedWildcardString() string {
@@ -406,7 +422,7 @@ func (addr *ipAddressInternal) toNormalizedWildcardString() string {
 				return addr.section.ToIPv6AddressSection().toNormalizedWildcardStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToNormalizedWildcardString()
+	return addr.getSection().ToNormalizedWildcardString()
 }
 
 func (addr *ipAddressInternal) toSegmentedBinaryString() string {
@@ -420,7 +436,7 @@ func (addr *ipAddressInternal) toSegmentedBinaryString() string {
 				return addr.section.ToIPv6AddressSection().toSegmentedBinaryStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToSegmentedBinaryString()
+	return addr.getSection().ToSegmentedBinaryString()
 }
 
 func (addr *ipAddressInternal) toSQLWildcardString() string {
@@ -434,7 +450,7 @@ func (addr *ipAddressInternal) toSQLWildcardString() string {
 				return addr.section.ToIPv6AddressSection().toSQLWildcardStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToSQLWildcardString()
+	return addr.getSection().ToSQLWildcardString()
 }
 
 func (addr *ipAddressInternal) toFullString() string {
@@ -448,7 +464,7 @@ func (addr *ipAddressInternal) toFullString() string {
 				return addr.section.ToIPv6AddressSection().toFullStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToFullString()
+	return addr.getSection().ToFullString()
 }
 
 func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddressError) {
@@ -462,7 +478,7 @@ func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddress
 				return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToReverseDNSString()
+	return addr.getSection().ToReverseDNSString()
 }
 
 func (addr *ipAddressInternal) toPrefixLenString() string {
@@ -476,14 +492,14 @@ func (addr *ipAddressInternal) toPrefixLenString() string {
 				return addr.section.ToIPv6AddressSection().toPrefixLenStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToPrefixLenString()
+	return addr.getSection().ToPrefixLenString()
 }
 
 func (addr *ipAddressInternal) toSubnetString() string {
 	if addr.hasZone() {
 		return addr.toPrefixLenString()
 	}
-	return addr.section.ToIPAddressSection().ToSubnetString()
+	return addr.getSection().ToSubnetString()
 }
 
 func (addr *ipAddressInternal) toCompressedWildcardString() string {
@@ -497,11 +513,11 @@ func (addr *ipAddressInternal) toCompressedWildcardString() string {
 				return addr.section.ToIPv6AddressSection().toCompressedWildcardStringZoned(addr.zone)
 			})
 	}
-	return addr.section.ToIPAddressSection().ToCompressedWildcardString()
+	return addr.getSection().ToCompressedWildcardString()
 }
 
 func (addr *ipAddressInternal) getNetwork() IPAddressNetwork {
-	return addr.section.ToIPAddressSection().getNetwork()
+	return addr.getSection().getNetwork()
 }
 
 //func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
@@ -665,9 +681,18 @@ func (addr *IPAddress) GetUpper() *IPAddress {
 	return addr.init().getUpper().ToIPAddress()
 }
 
+func (addr *IPAddress) IsZeroHostLen(prefLen BitCount) bool {
+	return addr.init().isZeroHostLen(prefLen)
+}
+
 func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHost(false)
 }
+
+//func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
+//	res, err := addr.init().toZeroHost(false)
+//	return res.ToIPAddress(), err
+//}
 
 func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHostLen(prefixLength)
@@ -675,6 +700,10 @@ func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, Incompa
 
 func (addr *IPAddress) ToZeroNetwork() *IPAddress {
 	return addr.init().toZeroNetwork()
+}
+
+func (addr *IPAddress) IsMaxHostLen(prefLen BitCount) bool {
+	return addr.init().isMaxHostLen(prefLen)
 }
 
 func (addr *IPAddress) ToMaxHost() (*IPAddress, IncompatibleAddressError) {
@@ -852,6 +881,13 @@ func (addr *IPAddress) GetIPVersion() IPVersion {
 	return addr.getIPVersion()
 }
 
+func (addr *IPAddress) ToAddress() *Address {
+	if addr != nil {
+		addr = addr.init()
+	}
+	return (*Address)(unsafe.Pointer(addr))
+}
+
 func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
@@ -868,6 +904,10 @@ func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 		return (*IPv4Address)(addr)
 	}
 	return nil
+}
+
+func (addr *IPAddress) Wrap() WrappedIPAddress {
+	return WrappedIPAddress{addr}
 }
 
 func (addr *IPAddress) GetMaxSegmentValue() SegInt {
@@ -1124,11 +1164,11 @@ func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPAddress{addr}
 		}
-		wrapped := WrappedIPAddress{addr}
+		wrapped := addr.Wrap()
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPAddrs(spanning)
 	}
-	wrapped := WrappedIPAddress{addr}
+	wrapped := addr.Wrap()
 	return cloneToIPAddrs(spanWithPrefixBlocks(wrapped))
 }
 
@@ -1138,8 +1178,8 @@ func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, I
 	}
 	return cloneToIPAddrs(
 		getSpanningPrefixBlocks(
-			WrappedIPAddress{addr.init()},
-			WrappedIPAddress{other.init()},
+			addr.init().Wrap(),
+			other.init().Wrap(),
 		),
 	), nil
 }
@@ -1160,8 +1200,7 @@ func (addr *IPAddress) SpanWithSequentialBlocks() []*IPAddress {
 	if addr.IsSequential() {
 		return []*IPAddress{addr}
 	}
-	wrapped := WrappedIPAddress{addr}
-	return cloneToIPAddrs(spanWithSequentialBlocks(wrapped))
+	return cloneToIPAddrs(spanWithSequentialBlocks(addr.Wrap()))
 }
 
 func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
@@ -1172,8 +1211,8 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddres
 	}
 	return cloneToIPAddrs(
 		getSpanningSequentialBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
+			addr.ToIPAddress().Wrap(),
+			other.ToIPAddress().Wrap(),
 		),
 	), nil
 }
@@ -1374,7 +1413,7 @@ type IPAddressValueProvider interface {
 
 	AddressValueProvider
 
-	GetPrefixLength() PrefixLen // return nil if none
+	GetPrefixLen() PrefixLen // return nil if none
 
 	GetIPVersion() IPVersion // should not return IndeterminateVersion
 
@@ -1384,7 +1423,7 @@ type IPAddressValueProvider interface {
 //type PrefixedAddressValueProvider interface {
 //	AddressValueProvider
 //
-//	GetPrefixLength() PrefixLen // return nil if none
+//	GetPrefixLen() PrefixLen // return nil if none
 //}
 
 ////// IPv4AddressValueProvider wraps a PrefixedAddressValueProvider to prodice an IPAddressValueProvider
@@ -1419,9 +1458,9 @@ type IPAddressValueProvider interface {
 //func BuildNormalizedString(provider IPAddressValueProvider, builder *strings.Builder) {
 //	version := provider.GetIPVersion()
 //	if version.IsIPv4() {
-//		BuildNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), builder)
+//		BuildNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), builder)
 //	} else if version.IsIPv6() {
-//		BuildNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone(), builder)
+//		BuildNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), provider.GetZone(), builder)
 //	}
 //}
 //
@@ -1430,9 +1469,9 @@ type IPAddressValueProvider interface {
 ////func ToNormalizedString(provider IPAddressValueProvider) string {
 ////	version := provider.GetIPVersion()
 ////	if version.IsIPv4() {
-////		return ToNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength())
+////		return ToNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen())
 ////	} else if version.IsIPv6() {
-////		return ToNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLength(), provider.GetZone())
+////		return ToNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), provider.GetZone())
 ////	}
 ////	return ""
 ////}
@@ -1632,6 +1671,8 @@ func addrFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (addr *IPAddress, err
 	return
 }
 
+//TODO you could rename these to "New" methods instead of From, they're no different than the New methods construcitng ipv4/6
+
 func FromIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
 	return addr
@@ -1774,9 +1815,9 @@ func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProv
 
 func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
 	if valueProvider.GetIPVersion().IsIPv4() {
-		return NewIPv4AddressFromPrefixedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength()).ToIPAddress()
+		return NewIPv4AddressFromPrefixedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLen()).ToIPAddress()
 	} else if valueProvider.GetIPVersion().IsIPv6() {
-		return NewIPv6AddressFromPrefixedZonedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLength(), valueProvider.GetZone()).ToIPAddress()
+		return NewIPv6AddressFromPrefixedZonedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLen(), valueProvider.GetZone()).ToIPAddress()
 	}
 	return nil
 }

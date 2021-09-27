@@ -288,6 +288,9 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 //	}
 //	return true;
 //}
+
+const zerosOnly = true // whether prefix subnets must be all zeros (and not some zeros followed by full range)
+
 //
 // For explicit prefix config this always returns false.
 // For all prefix subnets config this always returns true if the prefix length does not extend beyond the address end.
@@ -350,43 +353,54 @@ func isPrefixSubnet(
 					if upper != segmentMaxValue {
 						return false
 					}
-				} else {
+				} else if zerosOnly {
+					if upper != 0 {
+						return false
+					}
+				} else if upper != 0 {
 					upperOnes := bits.TrailingZeros64(^uint64(upper))
 					if upperOnes > 0 {
 						if (upper >> uint(upperOnes)) != 0 {
 							return false
 						}
 						fullRangeOnly = true
-					} else if upper != 0 {
+					} else {
 						return false
 					}
 				}
+
 			} else if prefLen < bitsPerSegment {
 				segHostBits := bitsPerSegment - prefLen
+				hostMask := ^(^SegInt(0) << uint(segHostBits))
+				if (hostMask & lower) != 0 {
+					return false
+				}
+				upper := upperValueProvider(i)
 				if fullRangeOnly {
-					hostMask := ^(^SegInt(0) << uint(segHostBits))
-					if (hostMask & lower) != 0 {
-						return false
-					}
-					upper := upperValueProvider(i)
 					if (hostMask & upper) != hostMask {
 						return false
 					}
-				} else {
-					lowerZeros := BitCount(bits.TrailingZeros64(uint64(lower)))
-					if lowerZeros < segHostBits {
+				} else if zerosOnly {
+					if (hostMask & upper) != 0 {
 						return false
 					}
-					upper := upperValueProvider(i)
-					upperOnes := BitCount(bits.TrailingZeros64(^uint64(upper)))
-					if upperOnes < segHostBits {
-						upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<uint(bitsPerSegment))) >> uint(upperOnes)))
-						if upperOnes+upperZeros < segHostBits {
-							return false
-						}
-						fullRangeOnly = upperOnes > 0
-					} else {
+				} else {
+					if (hostMask & upper) != 0 {
+						upperOnes := BitCount(bits.TrailingZeros64(^uint64(upper)))
+						if upperOnes < segHostBits {
+							hostMask >>= uint(segHostBits)
+							upper >>= uint(segHostBits)
+							if (hostMask & upper) != 0 {
+								return false
+							}
+							//upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<uint(bitsPerSegment))) >> uint(upperOnes)))
+							//	if upperOnes+upperZeros < segHostBits {
+							//return false
+							//}
+							//fullRangeOnly = upperOnes > 0
+						} //else {
 						fullRangeOnly = true
+						//}
 					}
 				}
 			}

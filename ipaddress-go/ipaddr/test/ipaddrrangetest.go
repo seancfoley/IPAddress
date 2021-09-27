@@ -9,7 +9,8 @@ func (t ipAddressRangeTester) run() {
 	t.testEquivalentPrefix("0-127.*.*.*", 1)
 	t.testEquivalentPrefix("128-255.*.*.*", 1)
 	t.testEquivalentPrefix("*.*.*.*/1", 0)
-	t.testEquivalentPrefix("0.*.*.*/1", 1)
+	//t.testEquivalentPrefix("0.*.*.*/1", 1)
+	t.testEquivalentPrefix("0.*.*.*/1", 8)
 	t.testEquivalentPrefix("128-255.*.*.*/1", 1)
 	t.testEquivalentPrefix("1.2.*.*", 16)
 	t.testEquivalentPrefix("1.2.*.*/24", 16)
@@ -72,4 +73,43 @@ func (t ipAddressRangeTester) run() {
 	t.testReverse("ffff:8118:ffff:*:1-fffe:ffff", false, true)
 	t.testReverse("ffff:8181:c3c3::4224:2400:0-fffe", false, true)
 	t.testReverse("ffff:1:ff:ff:*:*", false, false)
+
+	t.testPrefixes("255.127.0.0/16",
+		16, -5,
+		"255.127.0.0/24",
+		"255.0.0.0/8",
+		"255.96.*.*/11",
+		//"255.96.0.0/11",
+		"255.127.0.0/16",
+		"255.127.0.0/16")
+
+	t.testPrefixes("255.127.0.0/17",
+		16, -17,
+		"255.127.0.0/24",
+		"255.127.0.0/16",
+		//"0.0.0.0/0",
+		"0.0.0-127.*/0",
+		"255.127.0-127.*/16",
+		//"255.127.0.0/16",
+		"255.127.0.0/16")
+
+	t.testPrefixes("ffff:ffff:1:ffff::/64",
+		16, -5,
+		"ffff:ffff:1:ffff::/80",
+		"ffff:ffff:1::/48",
+		"ffff:ffff:1:ffe0:*:*:*:*/59",
+		//"ffff:ffff:1:ffe0::/59",
+		//"ffff::/16",
+		"ffff::*:*:*:*/16",
+		"ffff::/16")
+
+	t.testPrefixes("ffff:ffff:1:ffff::/64",
+		16, 1,
+		"ffff:ffff:1:ffff::/80",
+		"ffff:ffff:1::/48",
+		"ffff:ffff:1:ffff::/65",
+		//"ffff::/16",
+		"ffff::*:*:*:*/16",
+		"ffff::/16")
+
 }

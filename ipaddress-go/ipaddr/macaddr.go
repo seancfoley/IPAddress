@@ -152,7 +152,7 @@ type MACAddress struct {
 	addressInternal
 }
 
-func (addr *MACAddress) IsAllAddresses() bool {
+func (addr *MACAddress) IsFullRange() bool {
 	return addr.GetSection().IsFullRange()
 }
 
@@ -338,6 +338,15 @@ func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {
 
 func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
+	return res.ToMACAddress(), err
+}
+
+func (addr *MACAddress) AdjustPrefixLen(prefixLen BitCount) *MACAddress {
+	return addr.init().adjustPrefixLen(prefixLen).ToMACAddress()
+}
+
+func (addr *MACAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
+	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
 	return res.ToMACAddress(), err
 }
 
@@ -676,6 +685,10 @@ func (addr *MACAddress) ToAddress() *Address {
 		addr = addr.init()
 	}
 	return (*Address)(addr)
+}
+
+func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  Maybe this is a snake pit.
+	return WrappedAddress{addr.ToAddress()}
 }
 
 //func (addr *MACAddress) CompareSize(other *MACAddress) int {

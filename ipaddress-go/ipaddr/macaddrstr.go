@@ -82,7 +82,10 @@ func (addrStr *MACAddressString) ToNormalizedString() string {
 }
 
 func (addrStr *MACAddressString) GetAddress() *MACAddress {
-	provider, _ := addrStr.getAddressProvider()
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil
+	}
 	addr, _ := provider.getAddress()
 	return addr
 }
@@ -97,11 +100,11 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressError) {
 
 // IsPrefixed returns whether this address represents the set of all addresses with the same prefix
 func (addrStr *MACAddressString) IsPrefixed() bool {
-	return addrStr.GetPrefixLength() != nil
+	return addrStr.GetPrefixLen() != nil
 }
 
-// GetPrefixLength returns the prefix length if this address is a valid prefixed address, otherwise returns null
-func (addrStr *MACAddressString) GetPrefixLength() PrefixLen {
+// GetPrefixLen returns the prefix length if this address is a valid prefixed address, otherwise returns null
+func (addrStr *MACAddressString) GetPrefixLen() PrefixLen {
 	addr := addrStr.GetAddress()
 	if addr != nil {
 		return addr.GetPrefixLen()
@@ -109,10 +112,10 @@ func (addrStr *MACAddressString) GetPrefixLength() PrefixLen {
 	return nil
 }
 
-// IsAllAddresses returns whether the address represents the set all all valid MAC addresses for its address length
-func (addrStr *MACAddressString) IsAllAddresses() bool {
+// IsFullRange returns whether the address represents the set all all valid MAC addresses for its address length
+func (addrStr *MACAddressString) IsFullRange() bool {
 	addr := addrStr.GetAddress()
-	return addr != nil && addr.IsAllAddresses()
+	return addr != nil && addr.IsFullRange()
 }
 
 //IsEmpty returns true if the address is empty (zero-length).

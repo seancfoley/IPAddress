@@ -2,7 +2,6 @@ package ipaddr
 
 import (
 	"math/big"
-	"unsafe"
 )
 
 func createMACSection(segments []*AddressDivision) *MACAddressSection {
@@ -179,6 +178,15 @@ func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAd
 	return res.ToMACAddressSection(), err
 }
 
+func (section *MACAddressSection) AdjustPrefixLen(prefixLen BitCount) *AddressSection {
+	return section.adjustPrefixLen(prefixLen).ToAddressSection()
+}
+
+func (section *MACAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
+	res, err := section.adjustPrefixLenZeroed(prefixLen)
+	return res.ToAddressSection(), err
+}
+
 func (section *MACAddressSection) AssignPrefixForSingleBlock() *MACAddressSection {
 	return section.assignPrefixForSingleBlock().ToMACAddressSection()
 }
@@ -192,7 +200,11 @@ func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 }
 
 func (section *MACAddressSection) ToAddressSection() *AddressSection {
-	return (*AddressSection)(unsafe.Pointer(section))
+	return (*AddressSection)(section)
+}
+
+func (section *MACAddressSection) Wrap() WrappedAddressSection {
+	return WrappedAddressSection{section.ToAddressSection()}
 }
 
 // Gets the subsection from the series starting from the given index

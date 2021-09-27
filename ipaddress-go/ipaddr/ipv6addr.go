@@ -562,6 +562,10 @@ func (addr *IPv6Address) GetUpperIPAddress() *IPAddress {
 	return addr.GetUpper().ToIPAddress()
 }
 
+func (addr *IPv6Address) IsZeroHostLen(prefLen BitCount) bool {
+	return addr.init().isZeroHostLen(prefLen)
+}
+
 func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv6Address(), err
@@ -574,6 +578,10 @@ func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, Inc
 
 func (addr *IPv6Address) ToZeroNetwork() *IPv6Address {
 	return addr.init().toZeroNetwork().ToIPv6Address()
+}
+
+func (addr *IPv6Address) IsMaxHostLen(prefLen BitCount) bool {
+	return addr.init().isMaxHostLen(prefLen)
 }
 
 func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressError) {
@@ -1279,9 +1287,6 @@ func (addr *IPv6Address) ToIPAddress() *IPAddress {
 	return (*IPAddress)(addr)
 }
 
-//TODO think some more about adding ToExtendedIPSegmentSeries() or Wrap()
-// in golang you normally do not add methods to convert to interface types (eg ToStringer() Stringer)
-// BUT in this case you also have the (a) ToIPAddress() and (b) wrapping (so not a direct conversion to the interface)
-// You could put one of these in each of the top level address and section classes IPv6/6/MAC
-// The downside is going from the more specific type to the more generic type.
-// But it would make clear how to get to that interface.  Maybe call it Wrap() to make the association with UnWrap() in the interface
+func (addr *IPv6Address) Wrap() WrappedIPAddress {
+	return WrappedIPAddress{addr.ToIPAddress()}
+}

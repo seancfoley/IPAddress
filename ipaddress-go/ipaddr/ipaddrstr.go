@@ -186,7 +186,10 @@ func (addrStr *IPAddressString) IsValid() bool {
 }
 
 func (addrStr *IPAddressString) GetAddress() *IPAddress {
-	provider, _ := addrStr.getAddressProvider()
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil
+	}
 	addr, _ := provider.getProviderAddress()
 	return addr
 }
@@ -202,7 +205,10 @@ func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressError) {
 
 // GetVersionedAddress is similar to ToVersionedAddress, but returns nil rather than an error when the address is invalid or does not match the supplied version.
 func (addrStr *IPAddressString) GetVersionedAddress(version IPVersion) *IPAddress {
-	provider, _ := addrStr.getAddressProvider()
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil
+	}
 	addr, _ := provider.getVersionedAddress(version)
 	return addr
 }
@@ -233,7 +239,10 @@ func (addrStr *IPAddressString) ToVersionedAddress(version IPVersion) (*IPAddres
 }
 
 func (addrStr *IPAddressString) GetHostAddress() *IPAddress {
-	provider, _ := addrStr.getAddressProvider()
+	provider, err := addrStr.getAddressProvider()
+	if err != nil {
+		return nil
+	}
 	addr, _ := provider.getProviderHostAddress()
 	return addr
 }
@@ -355,13 +364,35 @@ func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
 	if addrStr == other {
 		return 0
 	}
-	isValid, otherIsValid := addrStr.IsValid(), other.IsValid()
-	if isValid || otherIsValid {
-		if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
-			return res
+
+	if addrStr.IsValid() {
+		if other.IsValid() {
+			if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
+				return res
+			}
+			//addr := addrStr.GetAddress()
+			//if addr != nil {
+			//	otherAddr := other.GetAddress()
+			//	if otherAddr != nil {
+			//		return addr.CompareTo(otherAddr)
+			//	}
+			//}
+			// one or the other is null, either empty or IncompatibleAddressException
+			return strings.Compare(addrStr.String(), other.String())
 		}
+		return 1
+	} else if other.IsValid() {
+		return -1
 	}
 	return strings.Compare(addrStr.String(), other.String())
+
+	//isValid, otherIsValid := addrStr.IsValid(), other.IsValid()
+	//if isValid || otherIsValid {xxx both need to be valid to have addressProviders see mac xxxx
+	//	if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
+	//		return res
+	//	}
+	//}
+	//return strings.Compare(addrStr.String(), other.String())
 }
 
 // Similar to {@link #equals(Object)}, but instead returns whether the prefix of this address matches the same of the given address,

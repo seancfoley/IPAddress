@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	//TODO rename so not capitalized
+
 	DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 	EXTENDED_DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-';<=>?@^_`{|}~"

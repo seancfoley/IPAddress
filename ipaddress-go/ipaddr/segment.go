@@ -223,6 +223,18 @@ func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefi
 	)
 }
 
+//func (seg *addressSegmentInternal) GetSegmentNetworkMask(networkBits BitCount) SegInt {
+//	bc := seg.GetBitCount()
+//	networkBits = checkBitCount(networkBits, bc)
+//	return seg.GetMaxValue() & (^SegInt(0) << uint(bc-networkBits))
+//}
+//
+//func (seg *addressSegmentInternal) GetSegmentHostMask(networkBits BitCount) SegInt {
+//	bc := seg.GetBitCount()
+//	networkBits = checkBitCount(networkBits, bc)
+//	return ^(^SegInt(0) << uint(bc-networkBits))
+//}
+
 var (
 	// wildcards differ, for divs we use only range since div size not implicit, here we use both range and *
 	hexParamsSeg     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).ToOptions()

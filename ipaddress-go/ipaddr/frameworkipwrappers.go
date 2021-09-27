@@ -1,8 +1,8 @@
 package ipaddr
 
-// ExtendedIPSegmentSeries can be used to write code that works on either IP Addresses or IP Address Sections,
+// ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
+// ExtendedIPSegmentSeries can be used to write code that works with both IP Addresses and IP Address Sections,
 // going further than IPAddressSegmentSeries to offer additional methods with the series types in their signature.
-// An ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
@@ -81,7 +81,7 @@ type ExtendedIPSegmentSeries interface {
 	ReverseSegments() ExtendedIPSegmentSeries
 }
 
-type WrappedIPAddress struct {
+type WrappedIPAddress struct { //TODO replace all the WrappedIPAddress{ you can with Wrap()
 	*IPAddress
 }
 

@@ -65,7 +65,7 @@ func (res *sectionResult) withoutAddressException() bool {
 type parsedIPAddress struct {
 	ipAddressParseData
 
-	ipAddrProvider
+	ipAddrProvider //TODO why is this here?  does it supply any methods we need?  because I do not know which ones
 
 	options               IPAddressStringParameters
 	originator            HostIdentifierString
