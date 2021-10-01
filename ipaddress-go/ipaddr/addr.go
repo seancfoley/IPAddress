@@ -729,7 +729,6 @@ type Address struct {
 
 func (addr *Address) init() *Address {
 	if addr.section == nil {
-		//if addr != nil && addr.section == nil { TODO init() nil
 		return zeroAddr // this has a zero section rather that a nil section
 	}
 	return addr

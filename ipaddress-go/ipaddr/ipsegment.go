@@ -142,11 +142,11 @@ func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) Pref
 func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
 	val := seg.GetSegmentValue()
 	if ones {
-		//trailing zeros
-		return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << uint(seg.GetBitCount())))))
+		// trailing ones
+		return BitCount(bits.TrailingZeros32(uint32(^val)))
 	}
-	// trailing ones
-	return BitCount(bits.TrailingZeros32(uint32(^val)))
+	//trailing zeros
+	return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << uint(seg.GetBitCount())))))
 }
 
 //	GetLeadingBitCount returns the number of consecutive leading one or zero bits.

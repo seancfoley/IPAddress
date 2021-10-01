@@ -541,7 +541,6 @@ type IPAddress struct {
 
 func (addr *IPAddress) init() *IPAddress {
 	if addr.section == nil {
-		//if addr != nil && addr.section == nil { TODO init() nil
 		return zeroIPAddr // this has a zero section
 	}
 	return addr
@@ -988,12 +987,12 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 // If this represents multiple addresses, and applying the mask to all addresses creates a set of addresses
 // that cannot be represented as a contiguous range within each segment, then an error is returned
 func (addr *IPAddress) Mask(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
-	return addr.maskPrefixed(other, false)
-}
-
-func (addr *IPAddress) MaskPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
+
+//func (addr *IPAddress) MaskPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+//	return addr.maskPrefixed(other, true)
+//}
 
 func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
@@ -1011,12 +1010,12 @@ func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAdd
 }
 
 func (addr *IPAddress) BitwiseOr(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
-	return addr.bitwiseOrPrefixed(other, false)
-}
-
-func (addr *IPAddress) BitwiseOrPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
+
+//func (addr *IPAddress) BitwiseOrPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
+//	return addr.bitwiseOrPrefixed(other, true)
+//}
 
 func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {

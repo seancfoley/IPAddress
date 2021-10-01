@@ -297,12 +297,12 @@ func (section *IPv4AddressSection) GetSegments() (res []*IPv4AddressSegment) {
 }
 
 func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
-	return section.maskPrefixed(other, false)
-}
-
-func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	return section.maskPrefixed(other, true)
 }
+
+//func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
+//	return section.maskPrefixed(other, true)
+//}
 
 func (section *IPv4AddressSection) maskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
@@ -313,12 +313,12 @@ func (section *IPv4AddressSection) maskPrefixed(other *IPv4AddressSection, retai
 }
 
 func (section *IPv4AddressSection) BitwiseOr(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
-	return section.bitwiseOrPrefixed(other, false)
-}
-
-func (section *IPv4AddressSection) BitwiseOrPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	return section.bitwiseOrPrefixed(other, true)
 }
+
+//func (section *IPv4AddressSection) BitwiseOrPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err IncompatibleAddressError) {
+//	return section.bitwiseOrPrefixed(other, true)
+//}
 
 func (section *IPv4AddressSection) bitwiseOrPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err IncompatibleAddressError) {
 	sec, err := section.bitwiseOr(other.ToIPAddressSection(), retainPrefix)
@@ -519,7 +519,7 @@ func (section *IPv4AddressSection) SequentialBlockIterator() IPv4SectionIterator
 }
 
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
-	return (*IPAddressSection)(unsafe.Pointer(section))
+	return (*IPAddressSection)(section)
 }
 
 func (section *IPv4AddressSection) IncrementBoundary(increment int64) *IPv4AddressSection {

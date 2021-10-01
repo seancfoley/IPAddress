@@ -150,7 +150,6 @@ func (addr *IPv4Address) GetBytesPerSegment() int {
 
 func (addr *IPv4Address) init() *IPv4Address {
 	if addr.section == nil {
-		//if addr != nil && addr.section == nil {TODO init() nil
 		return zeroIPv4
 	}
 	return addr
@@ -251,13 +250,12 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 }
 
 func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
-	return addr.maskPrefixed(other, false)
-}
-
-//TODO same as below, KISS, don't drop the prefix
-func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
+
+//func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+//	return addr.maskPrefixed(other, true)
+//}
 
 func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
 	addr = addr.init()
@@ -269,14 +267,15 @@ func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (ma
 }
 
 func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
-	return addr.bitwiseOrPrefixed(other, false)
-}
-
-//TODO maybe rename, maybe drop this, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
-// Maybe I should never drop the prefix - If they want to drop it they would before doing the bitwise
-func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
+
+//xxxx this is not bitwiseOrNetwork and I think it should go xxxx
+//// maybe rename, maybe drop this, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
+//// Maybe I should never drop the prefix - If they want to drop it they would before doing the bitwise
+//func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+//	return addr.bitwiseOrPrefixed(other, true)
+//}
 
 func (addr *IPv4Address) bitwiseOrPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
 	addr = addr.init()

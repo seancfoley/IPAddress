@@ -175,7 +175,7 @@ func (parseData *parsedIPAddress) getValForMask() *IPAddress {
 	mask := val.mask
 	if mask == nil {
 		parseData.creationLock.Lock()
-		mask := val.mask
+		mask = val.mask
 		if mask == nil {
 			_, boundaries := parseData.createSections(false, true, false)
 			mask = boundaries.createMask()
@@ -424,9 +424,8 @@ func (parseData *parsedIPAddress) isPrefixSubnet(networkPrefixLength BitCount) b
 			max,
 			networkPrefixLength,
 			//prefConf,
-			false)
+			zerosOrFullRange)
 	}
-	//we do not enter this method with parse data from inet_aton or single segment strings, so the cast to int is fine
 	return isPrefixSubnet(
 		func(segmentIndex int) SegInt {
 			//segmentIndex -> (int)
@@ -442,7 +441,7 @@ func (parseData *parsedIPAddress) isPrefixSubnet(networkPrefixLength BitCount) b
 		max,
 		networkPrefixLength,
 		//prefConf,
-		false)
+		zerosOrFullRange)
 }
 
 func (parseData *parsedIPAddress) matchesPrefix(other string) (res boolSetting) {
@@ -886,9 +885,11 @@ func (parseData *parsedIPAddress) matchesPrefix(other string) (res boolSetting) 
 
 func (parseData *parsedIPAddress) containmentCheck(other ipAddressProvider, networkOnly, equals, checkZone bool) (res boolSetting) {
 	if otherParsed, ok := other.(*parsedIPAddress); ok {
-		addr := parseData.vals.sections.address
-		otherAddr := otherParsed.vals.sections.address
-		if addr == nil || otherAddr == nil {
+		sect := parseData.vals.sections
+		otherSect := otherParsed.vals.sections
+		//addr := parseData.vals.sections.address
+		//otherAddr := otherParsed.vals.sections.address
+		if sect == nil || otherSect == nil {
 			// one or the other value not yet created, so take the shortcut that provides an answer most (but not all) of the time
 			// An answer is provided for all normalized, conventional or canonical addresses
 			res = parseData.containsProv(otherParsed, networkOnly, equals)
@@ -1042,8 +1043,8 @@ func (parseData *parsedIPAddress) containsProv(other *parsedIPAddress, networkOn
 			otherUpper = max
 		} else {
 			if otherCompressedCount <= 0 {
-				otherLower = SegInt(parseData.getValue(j, keyLower))
-				otherUpper = SegInt(parseData.getValue(j, keyUpper))
+				otherLower = SegInt(otherParseData.getValue(j, keyLower))
+				otherUpper = SegInt(otherParseData.getValue(j, keyUpper))
 			}
 			if normalizedCount == otherHostAllSegIndex { // we've reached the prefixed segment
 				segPrefLength := getSegmentPrefixLength(bitsPerSegment, otherPref, normalizedCount)
@@ -1422,7 +1423,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 				IPv4BitsPerSegment,
 				IPv4MaxValuePerSegment,
 				*prefixLength,
-				false)
+				zerosOnly)
 			if isPrefixSub {
 				if lowerSegments == nil {
 					//allocate lower segments from address segments
@@ -2006,7 +2007,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 				IPv6MaxValuePerSegment,
 				*prefixLength,
 				//network.getPrefixConfiguration(),
-				false)
+				zerosOnly)
 			if isPrefixSub {
 				if lowerSegments == nil {
 					//allocate lower segments from address segments

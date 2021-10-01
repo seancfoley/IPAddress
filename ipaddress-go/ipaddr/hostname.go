@@ -165,7 +165,6 @@ type HostName struct {
 
 func (host *HostName) init() *HostName {
 	if host.params == nil { // the only way params can be nil is when str == "" as well
-		//if host != nil && host.params == nil { TODO init() nil
 		return zeroHost
 	}
 	return host

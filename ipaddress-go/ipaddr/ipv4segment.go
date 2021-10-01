@@ -109,7 +109,6 @@ type IPv4AddressSegment struct {
 
 func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
 	if seg.divisionValues == nil {
-		//if seg != nil && seg.divisionValues == nil { TODO init() nil
 		return zeroIPv4Seg
 	}
 	return seg
@@ -206,22 +205,19 @@ func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, Incompatible
 	return seg, nil
 }
 
-//TODO think some more about whether Join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.
+func (seg *IPv4AddressSegment) isJoinableTo(low *IPv4AddressSegment) bool {
+	// if the high segment has a range, the low segment must match the full range,
+	// otherwise it is not possible to create an equivalent range when joining
+	return !seg.IsMultiple() || low.IsFullRange()
+}
+
+//TODO think some more about whether Join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.  Not sure.
 
 // Join joins with another IPv4 segment to produce a IPv6 segment.
 func (seg *IPv4AddressSegment) Join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {
 	prefixLength := seg.getJoinedSegmentPrefixLen(low.GetSegmentPrefixLen())
-	if seg.IsMultiple() {
-		// if the high segment has a range, the low segment must match the full range,
-		// otherwise it is not possible to create an equivalent range when joining
-		if !low.IsFullRange() {
-			return nil, &incompatibleAddressError{
-				addressError: addressError{
-					key: "ipaddress.error.invalidMixedRange",
-				},
-			}
-
-		}
+	if !seg.isJoinableTo(low) {
+		return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalidMixedRange"}}
 	}
 	return NewIPv6RangePrefixedSegment(
 		IPv6SegInt((seg.GetSegmentValue()<<8)|low.getSegmentValue()),

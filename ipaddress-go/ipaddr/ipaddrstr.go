@@ -57,7 +57,6 @@ type IPAddressString struct {
 
 func (addrStr *IPAddressString) init() *IPAddressString {
 	if addrStr.ipAddrStringCache == nil {
-		//if addrStr != nil && addrStr.ipAddrStringCache == nil { TODO init() nil
 		return zeroIPAddressString
 	}
 	return addrStr
@@ -79,7 +78,7 @@ func (addrStr *IPAddressString) IsPrefixed() bool {
 
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
 // The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
-func (addrStr *IPAddressString) GetNetworkPrefixLength() PrefixLen {
+func (addrStr *IPAddressString) GetNetworkPrefixLength() PrefixLen { //TODO rename to GetNetworkPrefixLen
 	addrStr = addrStr.init()
 	if addrStr.IsValid() {
 		return addrStr.addressProvider.getProviderNetworkPrefixLength()
@@ -182,7 +181,7 @@ func (addrStr *IPAddressString) IsValid() bool {
 	if err != nil {
 		return false
 	}
-	return provider.isInvalid()
+	return !provider.isInvalid()
 }
 
 func (addrStr *IPAddressString) GetAddress() *IPAddress {

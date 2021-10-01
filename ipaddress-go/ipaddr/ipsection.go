@@ -1651,7 +1651,7 @@ func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res
 	segLen := len(segments)
 	if segLen > 0 {
 		prefLen := *prefixLength
-		if isPrefixSubnetSegs(segments, prefLen, false) {
+		if isPrefixSubnetSegs(segments, prefLen) {
 			applyPrefixToSegments(
 				prefLen,
 				segments,
@@ -1686,7 +1686,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			}
 		}
 		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
-		applyPrefixSubnet := !singleOnly && isPrefixSubnetSegs(segments, prefLen, false)
+		applyPrefixSubnet := !singleOnly && isPrefixSubnetSegs(segments, prefLen)
 		if applyPrefixSubnet {
 			segProducer = (*AddressDivision).toPrefixedNetworkDivision
 		} else {
@@ -1712,7 +1712,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 // Note that this includes sections where hosts are all zeros, or sections where hosts are full range of values,
 // so the sequence of zeros can be empty and the sequence of where low values are zero and high values are 1 can be empty as well.
 // However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
-func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength BitCount, fullRangeOnly bool) bool {
+func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength BitCount) bool {
 	segmentCount := len(sectionSegments)
 	if segmentCount == 0 {
 		return false
@@ -1730,7 +1730,7 @@ func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength 
 		seg.GetBitCount(),
 		seg.ToAddressSegment().GetMaxValue(),
 		networkPrefixLength,
-		fullRangeOnly)
+		zerosOnly)
 }
 
 func applyPrefixToSegments(

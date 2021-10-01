@@ -98,7 +98,7 @@ type IPAddressStringParameters interface {
 
 	// AllowsPrefixOnly indicates whether strings like /16 are interpreted as the corresponding network mask like 255.255.0.0
 	// The mask version is determined by GetPreferredVersion() in the cases where it is ambiguous.
-	AllowsPrefixOnly() bool
+	//AllowsPrefixOnly() bool
 
 	// AllowsPrefix indicates whether addresses with prefix length like 1.2.0.0/16 are allowed.
 	AllowsPrefix() bool
@@ -212,7 +212,7 @@ func init() {
 		AllowEmpty(false).
 		AllowPrefix(false).
 		AllowMask(false).
-		AllowPrefixOnly(false).
+		//AllowPrefixOnly(false).
 		AllowAll(false).
 		AllowIPv6(false).
 		GetIPv6AddressParametersBuilder().
@@ -238,14 +238,15 @@ type ipAddressStringParameters struct {
 	preferredVersion  IPVersion
 
 	//emptyIsNotLoopback,
-	noPrefixOnly, noPrefix, noMask, noIPv6, noIPv4 bool
+	//noPrefixOnly,
+	noPrefix, noMask, noIPv6, noIPv4 bool
 }
 
-// Whether a string like "/16" is allowed as a stand-in for the associated network mask 255.255.0.0 or ffff::
-// The mask version is dependent on the preferred IP version
-func (params *ipAddressStringParameters) AllowsPrefixOnly() bool {
-	return !params.noPrefixOnly
-}
+//// Whether a string like "/16" is allowed as a stand-in for the associated network mask 255.255.0.0 or ffff::
+//// The mask version is dependent on the preferred IP version
+//func (params *ipAddressStringParameters) AllowsPrefixOnly() bool {
+//	return !params.noPrefixOnly
+//}
 
 func (params *ipAddressStringParameters) AllowsPrefix() bool {
 	return !params.noPrefix
@@ -385,7 +386,7 @@ func (builder *IPAddressStringParametersBuilder) set(params IPAddressStringParam
 		builder.params = *p
 	} else {
 		builder.params = ipAddressStringParameters{
-			noPrefixOnly:      !params.AllowsPrefixOnly(),
+			//noPrefixOnly:      !params.AllowsPrefixOnly(),
 			preferredVersion:  params.GetPreferredVersion(),
 			emptyStringOption: params.EmptyStrParsedAs(),
 			allStringOption:   params.AllStrParsedAs(),
@@ -444,10 +445,10 @@ func (builder *IPAddressStringParametersBuilder) AllowMask(allow bool) *IPAddres
 	return builder
 }
 
-func (builder *IPAddressStringParametersBuilder) AllowPrefixOnly(allow bool) *IPAddressStringParametersBuilder {
-	builder.params.noPrefixOnly = !allow
-	return builder
-}
+//func (builder *IPAddressStringParametersBuilder) AllowPrefixOnly(allow bool) *IPAddressStringParametersBuilder {
+//	builder.params.noPrefixOnly = !allow
+//	return builder
+//}
 
 func (builder *IPAddressStringParametersBuilder) AllowIPv4(allow bool) *IPAddressStringParametersBuilder {
 	builder.params.noIPv4 = !allow

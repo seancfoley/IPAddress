@@ -484,12 +484,12 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 }
 
 func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
-	return addr.maskPrefixed(other, false)
-}
-
-func (addr *IPv6Address) MaskPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
+
+//func (addr *IPv6Address) MaskPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+//	return addr.maskPrefixed(other, true)
+//}
 
 func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()
@@ -501,12 +501,12 @@ func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (ma
 }
 
 func (addr *IPv6Address) BitwiseOr(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
-	return addr.bitwiseOrPrefixed(other, false)
-}
-
-func (addr *IPv6Address) BitwiseOrPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
+
+//func (addr *IPv6Address) BitwiseOrPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+//	return addr.bitwiseOrPrefixed(other, true)
+//}
 
 func (addr *IPv6Address) bitwiseOrPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
 	addr = addr.init()

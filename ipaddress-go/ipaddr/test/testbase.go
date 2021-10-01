@@ -449,7 +449,7 @@ func (f failure) String() string {
 	//	panic(nil)
 	//}
 	return f.str
-	//return concat( TODO fix this up
+	//return concat( TODO fix this up could not get it to print the strings as I wanted due to interface arg, see below, easy to fix though
 	//	concat(
 	//		concat(
 	//			concat(

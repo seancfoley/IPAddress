@@ -333,12 +333,12 @@ func (section *IPv6AddressSection) GetSegments() (res []*IPv6AddressSegment) {
 }
 
 func (section *IPv6AddressSection) Mask(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
-	return section.maskPrefixed(other, false)
-}
-
-func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
 	return section.maskPrefixed(other, true)
 }
+
+//func (section *IPv6AddressSection) MaskPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
+//	return section.maskPrefixed(other, true)
+//}
 
 func (section *IPv6AddressSection) maskPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIPAddressSection(), retainPrefix)
@@ -349,12 +349,12 @@ func (section *IPv6AddressSection) maskPrefixed(other *IPv6AddressSection, retai
 }
 
 func (section *IPv6AddressSection) BitwiseOr(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
-	return section.bitwiseOrPrefixed(other, false)
+	return section.bitwiseOrPrefixed(other, true)
 }
 
-func (section *IPv6AddressSection) BitwiseOrPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
-	return section.bitwiseOrPrefixed(other, false)
-}
+//func (section *IPv6AddressSection) BitwiseOrPrefixed(other *IPv6AddressSection) (res *IPv6AddressSection, err IncompatibleAddressError) {
+//	return section.bitwiseOrPrefixed(other, false)
+//}
 
 func (section *IPv6AddressSection) bitwiseOrPrefixed(other *IPv6AddressSection, retainPrefix bool) (res *IPv6AddressSection, err IncompatibleAddressError) {
 	sec, err := section.bitwiseOr(other.ToIPAddressSection(), retainPrefix)

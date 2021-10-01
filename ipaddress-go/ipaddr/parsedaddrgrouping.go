@@ -289,7 +289,16 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 //	return true;
 //}
 
-const zerosOnly = true // whether prefix subnets must be all zeros (and not some zeros followed by full range)
+//const zerosOnly = true // whether prefix subnets must be all zeros (and not some zeros followed by full range)
+
+type subnetOption int
+
+const (
+	zerosOnly = subnetOption(iota)
+	fullRangeOnly
+	zerosToFullRange
+	zerosOrFullRange
+)
 
 //
 // For explicit prefix config this always returns false.
@@ -303,7 +312,9 @@ func isPrefixSubnet(
 	segmentMaxValue SegInt,
 	prefLen BitCount,
 	//networkPrefixLength BitCount,
-	fullRangeOnly bool) bool {
+
+	//zerosOnly,
+	subnetOption subnetOption) bool {
 	//if networkPrefixLength == nil {
 	//	return false
 	//}
@@ -349,23 +360,23 @@ func isPrefixSubnet(
 					return false
 				}
 				upper := upperValueProvider(i)
-				if fullRangeOnly {
+				if subnetOption == fullRangeOnly {
 					if upper != segmentMaxValue {
 						return false
 					}
-				} else if zerosOnly {
-					if upper != 0 {
-						return false
-					}
 				} else if upper != 0 {
-					upperOnes := bits.TrailingZeros64(^uint64(upper))
-					if upperOnes > 0 {
-						if (upper >> uint(upperOnes)) != 0 {
+					if subnetOption == zerosOnly {
+						return false
+					} else if upper == segmentMaxValue {
+						subnetOption = fullRangeOnly
+					} else if subnetOption == zerosOrFullRange {
+						return false
+					} else {
+						upperTrailingOnes := bits.TrailingZeros64(^uint64(upper))
+						if (upper >> uint(upperTrailingOnes)) != 0 {
 							return false
 						}
-						fullRangeOnly = true
-					} else {
-						return false
+						subnetOption = fullRangeOnly
 					}
 				}
 
@@ -376,20 +387,24 @@ func isPrefixSubnet(
 					return false
 				}
 				upper := upperValueProvider(i)
-				if fullRangeOnly {
+				if subnetOption == fullRangeOnly {
 					if (hostMask & upper) != hostMask {
 						return false
 					}
-				} else if zerosOnly {
-					if (hostMask & upper) != 0 {
-						return false
-					}
 				} else {
-					if (hostMask & upper) != 0 {
-						upperOnes := BitCount(bits.TrailingZeros64(^uint64(upper)))
-						if upperOnes < segHostBits {
-							hostMask >>= uint(segHostBits)
-							upper >>= uint(segHostBits)
+					hostUpper := hostMask & upper
+					if hostUpper != 0 {
+						if subnetOption == zerosOnly {
+							return false
+						} else if hostUpper == hostMask { //subnetOption == zeroOrFullRange {
+							subnetOption = fullRangeOnly
+						} else if subnetOption == zerosOrFullRange {
+							return false
+						} else {
+							upperTrailingOnes := uint(bits.TrailingZeros64(^uint64(upper)))
+							//if upperOnes < segHostBits {
+							hostMask >>= upperTrailingOnes
+							upper >>= upperTrailingOnes
 							if (hostMask & upper) != 0 {
 								return false
 							}
@@ -398,9 +413,10 @@ func isPrefixSubnet(
 							//return false
 							//}
 							//fullRangeOnly = upperOnes > 0
-						} //else {
-						fullRangeOnly = true
-						//}
+							//} //else {
+							subnetOption = fullRangeOnly
+							//}
+						}
 					}
 				}
 			}

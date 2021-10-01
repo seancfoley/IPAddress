@@ -289,9 +289,9 @@ func validateAddress(
 					if totalCharacterCount == 0 {
 						//it is prefix-only or ""
 						if !isMac && ipParseData.hasPrefixSeparator() {
-							if !validationOptions.AllowsPrefixOnly() {
-								return &addressStringError{addressError{str: str, key: "ipaddress.error.prefix.only"}}
-							}
+							//if !validationOptions.AllowsPrefixOnly() {
+							return &addressStringError{addressError{str: str, key: "ipaddress.error.prefix.only"}}
+							//}
 						} else if !baseOptions.AllowsEmpty() {
 							return &addressStringError{addressError{str: str, key: "ipaddress.error.empty"}}
 						}
