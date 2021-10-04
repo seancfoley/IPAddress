@@ -16,17 +16,24 @@ import (
 func Test() {
 	var acc testAccumulator
 	var addresses addresses
-	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
-	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
+
+	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
+	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	tester.run()
 	macTester.run()
+
 	rangedAddresses := rangedAddresses{addresses}
 	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	rangeTester.run()
 	macRangeTester.run()
+
+	allAddresses := allAddresses{rangedAddresses}
+	allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses}}}}
+	allTester.run()
+
 	endTime := time.Now().Sub(startTime)
 	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", acc.counter, len(acc.failures))
 	if len(acc.failures) > 0 {

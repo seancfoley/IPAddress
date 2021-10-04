@@ -1,7 +1,13 @@
 package test
 
+import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+
 type ipAddressRangeTester struct {
 	ipAddressTester
+}
+
+func (t ipAddressRangeTester) testStrings() {
+
 }
 
 func (t ipAddressRangeTester) run() {
@@ -369,4 +375,799 @@ func (t ipAddressRangeTester) run() {
 	t.testMatches(true, "::f0f-0b1111000011110000:3", "::f0f-f0f0:3")
 	t.testMatches(true, "::0b0000111100001111-f0f0:3", "::f0f-f0f0:3")
 	t.testMatches(true, "::0B0000111100001111-f0f0:3", "::f0f-f0f0:3")
+
+	t.ipv4test(true, "1.2.*.4/1")
+	t.ipv4test(false, "1.2.*.4/-1")
+	t.ipv4test(false, "1.2.*.4/")
+	t.ipv4test(false, "1.2.*.4/x")
+	t.ipv4test(false, "1.2.*.4/33") //we are not allowing extra-large prefixes
+	t.ipv6test(true, "1:*::1/1")
+	t.ipv6test(false, "1:*::1/-1")
+	t.ipv6test(false, "1:*::1/")
+	t.ipv6test(false, "1:*::1/x")
+	t.ipv6test(false, "1:*::1/129") //we are not allowing extra-large prefixes
+
+	//masks that have wildcards in them
+	t.ipv4test(false, "1.2.3.4/*")
+	t.ipv4test(false, "1.2.*.4/*")
+	t.ipv4test(false, "1.2.3.4/1-2.2.3.4")
+	t.ipv4test(false, "1.2.*.4/1-2.2.3.4")
+	t.ipv4test(false, "1.2.3.4/**")
+	t.ipv4test(false, "1.2.*.4/**")
+	t.ipv4test(false, "1.2.3.4/*.*")
+	t.ipv4test(false, "1.2.*.4/*.*")
+	t.ipv4test(false, "1.2.3.4/*:*")
+	t.ipv4test(false, "1.2.*.4/*:*")
+	t.ipv4test(false, "1.2.3.4/*:*:*:*:*:*:*:*")
+	t.ipv4test(false, "1.2.*.4/*:*:*:*:*:*:*:*")
+	t.ipv4test(false, "1.2.3.4/1.2.*.4")
+	t.ipv4test(false, "1.2.*.4/1.2.*.4")
+	t.ipv4test(true, "1.2.*.4/1.2.3.4")
+	t.ipv6test(false, "1:2::1/*")
+	t.ipv6test(false, "1:*::1/*")
+	t.ipv6test(false, "1:2::1/1:1-2:3:4:5:6:7:8")
+	t.ipv6test(false, "1:*::1/1:1-2:3:4:5:6:7:8")
+	t.ipv6test(false, "1:2::1/**")
+	t.ipv6test(false, "1:*::1/**")
+	t.ipv6test(false, "1:2::1/*:*")
+	t.ipv6test(false, "1:*::1/*:*")
+	t.ipv6test(false, "1:2::1/*.*")
+	t.ipv6test(false, "1:*::1/*.*")
+	t.ipv6test(false, "1:2::1/*.*.*.*")
+	t.ipv6test(false, "1:*::1/*.*.*.*")
+	t.ipv6test(false, "1:2::1/1:*::2")
+	t.ipv6test(false, "1:*::1/1:*::2")
+	t.ipv6test(true, "1:*::1/1::2")
+
+	t.ipv4rangetest(true, "1.1.*.100-101", ipaddr.WildcardAndRange)
+	t.ipv4rangetest(true, "1.2.*.101-100", ipaddr.WildcardAndRange)   //downwards range
+	t.ipv4rangetest(false, "1.2.*.1010-100", ipaddr.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-101", ipaddr.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:f4:a-ff:0-2::1", ipaddr.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:4:ff-a:0-2::1", ipaddr.WildcardAndRange)     //downwards range
+	t.ipv6rangetest(false, "1:2:4:ff1ff-a:0-2::1", ipaddr.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-100/24", ipaddr.WildcardAndRange)      //downwards range but covered CIDR
+
+	//these tests create strings that validate ipv4 and ipv6 differently, allowing ranges for one and not the other
+	t.ipv4rangestest(true, "1.*.3.4", ipaddr.WildcardAndRange, ipaddr.NoRange)
+	t.ipv4rangestest(false, "1.*.3.4", ipaddr.NoRange, ipaddr.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::1.*.3.4", ipaddr.WildcardAndRange, ipaddr.NoRange)
+	t.ipv6rangestest(true, "a:*::1.*.3.4", ipaddr.NoRange, ipaddr.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::", ipaddr.WildcardAndRange, ipaddr.NoRange)
+	t.ipv6rangestest(true, "a:*::", ipaddr.NoRange, ipaddr.WildcardAndRange)
+
+	//		octal, hex, dec overflow
+	//		do it with 1, 2, 3, 4 segments
+	t.ipv4_inet_aton_test(true, "0.0.0.1-255")
+	t.ipv4_inet_aton_test(false, "0.0.0.1-256")
+	t.ipv4_inet_aton_test(true, "0.0.512-65535")
+	t.ipv4_inet_aton_test(false, "0.0.512-65536")
+	t.ipv4_inet_aton_test(true, "0.65536-16777215")
+	t.ipv4_inet_aton_test(false, "0.65536-16777216")
+	t.ipv4_inet_aton_test(true, "16777216-4294967295")
+	t.ipv4_inet_aton_test(true, "0b00000001000000000000000000000000-4294967295")
+	//t.ipv4_inet_aton_test(true, "0b1000000000000000000000000-4294967295");
+	t.ipv4_inet_aton_test(false, "16777216-4294967296")
+	t.ipv4_inet_aton_test(false, "0.0.0.0x1x")
+	t.ipv4_inet_aton_test(false, "0.0.0.1x")
+	t.ipv4_inet_aton_test(true, "0.0.0.0x1-0xff")
+	t.ipv4_inet_aton_test(false, "0.0.0.0x1-0x100")
+	t.ipv4_inet_aton_test(true, "0.0.0xfffe-0xffff")
+	t.ipv4_inet_aton_test(false, "0.0.0xfffe-0x10000")
+	t.ipv4_inet_aton_test(false, "0.0.0x10000-0x10001")
+	t.ipv4_inet_aton_test(true, "0.0-0xffffff")
+	t.ipv4_inet_aton_test(false, "0.0-0x1000000")
+	t.ipv4_inet_aton_test(true, "0x11000000-0xffffffff")
+	t.ipv4_inet_aton_test(false, "0x11000000-0x100000000")
+	t.ipv4_inet_aton_test(false, "0x100000000-0x100ffffff")
+	t.ipv4_inet_aton_test(true, "0.0.0.00-0377")
+	t.ipv4_inet_aton_test(false, "0.0.0.00-0400")
+	t.ipv4_inet_aton_test(true, "0.0.0x100-017777")
+	t.ipv4_inet_aton_test(false, "0.0.0x100-0200000")
+	t.ipv4_inet_aton_test(true, "0.0x10000-077777777")
+	//t.ipv4_inet_aton_test(false, "0.0x1-077777777"); the given address throw IncompatibleAddressException as expected, would need to rewrite the test to make that a pass
+	t.ipv4_inet_aton_test(false, "0.0x10000-0100000000")
+	t.ipv4_inet_aton_test(true, "0x1000000-03777777777")
+	t.ipv4_inet_aton_test(true, "0x1000000-037777777777")
+	t.ipv4_inet_aton_test(true, "0x1000000-0b11111111111111111111111111111111") //[0-1, 0, 0-255, 0-255]
+	t.ipv4_inet_aton_test(false, "0x1000000-040000000000")
+
+	t.ipv4test(true, "*") //toAddress() should not work on this, toAddress(Version) should.
+
+	//TODO reinstate these two
+	//t.ipv4test2(false, "*%", false, true)  //because the string could represent ipv6, and we are allowing zone, we treat the % as ipv6 zone, and then we invalidate because no zone for ipv4
+	//t.ipv4test2(false, "*%x", false, true) //no zone for ipv4
+	t.ipv4test(true, "**")  //toAddress() should not work on this, toAddress(Version) should.
+	t.ipv6test(true, "*%x") //ipv6 which allows zone
+
+	t.ipv4test(true, "*.*.*.*") //toAddress() should work on this
+
+	t.ipv4test(true, "1.*.3")
+
+	t.ipv4test(false, "a.*.3.4")
+	t.ipv4test(false, "*.a.3.4")
+	t.ipv4test(false, "1.*.a.4")
+	t.ipv4test(false, "1.*.3.a")
+
+	t.ipv4test(false, ".2.3.*")
+	t.ipv4test(false, "1..*.4")
+	t.ipv4test(false, "1.*..4")
+	t.ipv4test(false, "*.2.3.")
+
+	t.ipv4test(false, "256.*.3.4")
+	t.ipv4test(false, "1.256.*.4")
+	t.ipv4test(false, "*.2.256.4")
+	t.ipv4test(false, "1.*.3.256")
+
+	t.ipv4test(true, "0.0.*.0")
+	t.ipv4test(true, "00.*.0.0")
+	t.ipv4test(true, "0.00.*.0")
+	t.ipv4test(true, "0.*.00.0")
+	t.ipv4test(true, "*.0.0.00")
+	t.ipv4test(true, "000.0.*.0")
+	t.ipv4test(true, "0.000.0.*")
+	t.ipv4test(true, "*.0.000.0")
+	t.ipv4test(true, "0.0.*.000")
+
+	t.ipv4test(true, "0.0.*.0")
+	t.ipv4test(true, "00.*.0.0")
+	t.ipv4test(true, "0.00.*.0")
+	t.ipv4test(true, "0.*.00.0")
+	t.ipv4test(true, "*.0.0.00")
+	t.ipv4test(true, "000.0.*.0")
+	t.ipv4test(true, "0.000.0.*")
+	t.ipv4test(true, "*.0.000.0")
+	t.ipv4test(true, "0.0.*.000")
+
+	t.ipv4test(true, "000.000.000.*")
+
+	t.ipv4test(t.isLenient(), "0000.0.*.0")
+	t.ipv4test(t.isLenient(), "*.0000.0.0")
+	t.ipv4test(t.isLenient(), "0.*.0000.0")
+	t.ipv4test(t.isLenient(), "*.0.0.0000")
+
+	t.ipv4test(false, ".0.*.0")
+	t.ipv4test(false, "0..*.0")
+	t.ipv4test(false, "0.*..0")
+	t.ipv4test(false, "*.0.0.")
+
+	t.ipv4test(true, "1.*.3.4/255.1.0.0")
+	t.ipv4test(false, "1.*.3.4/255.1.0.0/16")
+	t.ipv4test(false, "1.*.3.4/255.*.0.0")   //range in mask
+	t.ipv4test(false, "1.*.3.4/255.1-2.0.0") //range in mask
+	t.ipv4test(false, "1.*.3.4/1::1")        //mask mismatch
+	t.ipv6test(false, "1:*::/1.2.3.4")       //mask mismatch
+
+	t.ipv4test(false, "1.2.3.4/255.*.0.0")   //range in mask
+	t.ipv4test(false, "1.2.3.4/255.1-2.0.0") //range in mask
+	t.ipv6test(false, "1:2::/1:*::")         //range in mask
+	t.ipv6test(false, "1:2::/1:1-2::")       //range in mask
+
+	t.ipv4testOnly(false, "1:2:3:4:5:*:7:8") //fixed
+	t.ipv4testOnly(false, "*::1")            //fixed
+
+	t.ipv6test(true, "*")  //toAddress() should not work on this, toAddress(version) should
+	t.ipv6test(true, "*%") //toAddress() should not work on this, toAddress(version) should
+
+	t.ipv6test(true, "*:*:*:*:*:*:*:*") //toAddress() should work on this
+
+	t.ipv6test(true, "*::1") // loopback, compressed, non-routable
+
+	t.ipv4test(true, "1.0-0.3.0")
+	t.ipv4test(true, "1.0-3.3.0")
+	t.ipv4test(true, "1.1-3.3.0")
+	t.ipv4test(true, "1-8.1-3.2-4.0-5")
+
+	t.ipv6test(true, "1:0-0:2:0::")
+	t.ipv6test(true, "1:0-3:2:0::")
+	t.ipv6test(true, "1:1-3:2:0::")
+	t.ipv6test(true, "1-fff:1-3:2-4:0-5::")
+
+	t.ipv6test(false, "-:0:0:0:0:0:0:0:0")
+	t.ipv6test(true, "-:0:0:0:0:0:0:0") // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+	t.ipv6test(false, "-:0:0:0:0:0:0")
+	t.ipv6test(false, "-:0:0:0:0:0")
+	t.ipv6test(false, "-:0:0:0:0")
+	t.ipv6test(false, "-:0:0:0")
+	t.ipv6test(false, "-:0:0")
+	t.ipv6test(false, "-:0")
+
+	t.ipv6test(false, ":-0:0:0:0:0:0:0")
+	t.ipv6test(false, ":-0:0:0:0:0:0")
+	t.ipv6test(false, ":-0:0:0:0:0")
+	t.ipv6test(false, ":-0:0:0:0")
+	t.ipv6test(false, ":-0:0:0")
+	t.ipv6test(false, ":-0:0")
+	t.ipv6test(false, ":-0")
+
+	t.ipv6test(false, "-:1:1:1:1:1:1:1:1")
+	t.ipv6test(true, "-:1:1:1:1:1:1:1") // this is actually equivalent to 0-ffff:0:0:0:0:0:0:0 or 0-:0:0:0:0:0:0:0 or -ffff:0:0:0:0:0:0:0
+	t.ipv6test(false, "-:1:1:1:1:1:1")
+	t.ipv6test(false, "-:1:1:1:1:1")
+	t.ipv6test(false, "-:1:1:1:1")
+	t.ipv6test(false, "-:1:1:1")
+	t.ipv6test(false, "-:1:1")
+	t.ipv6test(false, "-:1")
+
+	t.ipv6test(false, ":-1:1:1:1:1:1:1")
+	t.ipv6test(false, ":-1:1:1:1:1:1")
+	t.ipv6test(false, ":-1:1:1:1:1")
+	t.ipv6test(false, ":-1:1:1:1")
+	t.ipv6test(false, ":-1:1:1")
+	t.ipv6test(false, ":-1:1")
+	t.ipv6test(false, ":-1")
+
+	t.ipv6test(true, "::*")                             // unspecified, compressed, non-routable
+	t.ipv6test(true, "0:0:*:0:0:0:0:1")                 // loopback, full
+	t.ipv6test(true, "0:0:*:0:0:0:0:0")                 // unspecified, full
+	t.ipv6test(true, "2001:*:0:0:8:800:200C:417A")      // unicast, full
+	t.ipv6test(true, "FF01:*:0:0:0:0:0:101")            // multicast, full
+	t.ipv6test(true, "2001:DB8::8:800:200C:*")          // unicast, compressed
+	t.ipv6test(true, "FF01::*:101")                     // multicast, compressed
+	t.ipv6test(false, "2001:DB8:0:0:8:*:200C:417A:221") // unicast, full
+	t.ipv6test(false, "FF01::101::*")                   // multicast, compressed
+	t.ipv6test(true, "fe80::217:f2ff:*:ed62")
+
+	t.ipv6test(true, "2001:*:1234:0000:0000:C1C0:ABCD:0876")
+	t.ipv6test(true, "3ffe:0b00:0000:0000:0001:0000:*:000a")
+	t.ipv6test(true, "FF02:0000:0000:0000:0000:0000:*:0001")
+	t.ipv6test(true, "*:0000:0000:0000:0000:0000:0000:0001")
+	t.ipv6zerotest(false, "0000:0000:0000:0000:*0000:0000:0000:*0")
+	t.ipv6test(t.isLenient(), "02001:*:1234:0000:0000:C1C0:ABCD:0876") // extra 0 not allowed!
+	t.ipv6test(false, "2001:0000:1234:0000:0*:C1C0:ABCD:0876")         // extra 0 not allowed!
+	t.ipv6test(true, "2001:0000:1234:0000:*:C1C0:ABCD:0876")
+
+	//t.ipv6test(true," 2001:0000:1234:0000:0000:C1C0:ABCD:0876"); // leading space
+	//t.ipv6test(true,"2001:0000:1234:0000:0000:C1C0:ABCD:0876 "); // trailing space
+	//t.ipv6test(true," 2001:0000:1234:0000:0000:C1C0:ABCD:0876  "); // leading and trailing space
+
+	t.ipv6test(false, "2001:0000:1234:0000:0000:C1C0*:ABCD:0876  0") // junk after valid address
+	t.ipv6test(false, "0 2001:0000:123*:0000:0000:C1C0:ABCD:0876")   // junk before valid address
+	t.ipv6test(false, "2001:0000:1234: 0000:0000:C1C0:*:0876")       // internal space
+
+	t.ipv6test(true, "3ffe:0b00:*:0001:0000:0000:000a")
+	t.ipv6test(false, "3ffe:0b00:1:0001:0000:0000:000a")           // seven segments
+	t.ipv6test(false, "FF02:0000:0000:0000:0000:0000:0000:*:0001") // nine segments
+	t.ipv6test(false, "3ffe:*::1::a")                              // double "::"
+	t.ipv6test(false, "::1111:2222:3333:4444:5555:*::")            // double "::"
+	t.ipv6test(true, "2::10")
+	t.ipv6test(true, "ff02::1")
+	t.ipv6test(true, "fe80:*::")
+	t.ipv6test(true, "2002:*::")
+	t.ipv6test(true, "2001:*::")
+	t.ipv6test(true, "*:0db8:1234::")
+	t.ipv6test(true, "::ffff:*:0")
+	t.ipv6test(true, "*::1")
+	t.ipv6test(true, "1:2:3:4:*:6:7:8")
+	t.ipv6test(true, "1:2:*:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::*")
+	t.ipv6test(true, "1:2:3:*::8")
+	t.ipv6test(true, "1:2:3::8")
+	t.ipv6test(true, "*:2::8")
+	t.ipv6test(true, "1::*")
+	t.ipv6test(true, "*::2:3:4:5:6:7")
+	t.ipv6test(true, "*::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:*")
+	t.ipv6test(true, "1::2:*:4")
+	t.ipv6test(true, "1::*:3")
+	t.ipv6test(true, "1::*")
+
+	t.ipv6test(true, "::*:3:4:5:6:7:8")
+	t.ipv6test(true, "*::2:3:4:5:6:7")
+	t.ipv6test(true, "::*:3:4:5:6")
+	t.ipv6test(true, "::*:3:4:5")
+	t.ipv6test(true, "::2:3:*")
+	t.ipv6test(true, "*::2:3")
+	t.ipv6test(true, "::*")
+	t.ipv6test(true, "1:*:3:4:5:6::")
+	t.ipv6test(true, "1:2:3:4:*::")
+	t.ipv6test(true, "1:2:3:*::")
+	t.ipv6test(true, "1:2:3::*")
+	t.ipv6test(true, "*:2::")
+	t.ipv6test(true, "*::")
+	t.ipv6test(true, "*:2:3:4:5::7:8")
+	t.ipv6test(false, "1:2:3::4:5::7:*") // Double "::"
+	t.ipv6test(false, "12345::6:7:*")
+	t.ipv6test(true, "1:2:3:4::*:*")
+	t.ipv6test(true, "1:*:3::7:8")
+	t.ipv6test(true, "*:*::7:8")
+	t.ipv6test(true, "*::*:8")
+
+	// Testing IPv4 addresses represented as dotted-quads
+	// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
+	// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
+	//t.ipv6test(false,"fe80:0000:0000:*:0204:61ff:254.157.241.086");
+	t.ipv6test(!t.isLenient(), "fe80:0000:0000:*:0204:61ff:254.157.241.086")
+	t.ipv6test(true, "::*:192.0.128.*")
+	t.ipv6test(false, "XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:1.2.3.4")
+	t.ipv6test(true, "1111:2222:*:4444:5555:6666:00.00.00.00")
+	t.ipv6test(true, "1111:2222:3333:4444:5555:6666:000.*.000.000")
+	t.ipv6test(false, "*:2222:3333:4444:5555:6666:256.256.256.256")
+
+	t.ipv6test(true, "*:2222:3333:4444:5555:6666:123.123.123.123")
+	t.ipv6test(true, "1111:*:3333:4444:5555::123.123.123.123")
+	t.ipv6test(true, "1111:2222:*:4444::123.123.123.123")
+	t.ipv6test(true, "1111:2222:3333::*.*.123.123")
+	t.ipv6test(true, "1111:2222::123.123.*.*")
+	t.ipv6test(true, "1111:2222::123.123.123.*")
+	t.ipv6test(true, "1111::123.*.123.123")
+	t.ipv6test(true, "::123.123.123.*")
+	t.ipv6test(true, "1111:2222:3333:4444::*:123.123.123.123")
+	t.ipv6test(true, "1111:2222:*::6666:123.123.123.123")
+	t.ipv6test(true, "*:2222::6666:123.123.123.123")
+	t.ipv6test(true, "1111::6666:*.*.*.*")
+	t.ipv6test(true, "::6666:123.123.2.123")
+	t.ipv6test(true, "1111:*:3333::5555:6666:123.*.123.123")
+	t.ipv6test(true, "1111:2222::*:6666:123.123.*.*")
+	t.ipv6test(true, "1111::*:6666:*.*.123.123")
+	t.ipv6test(true, "1111::*:6666:*.0-255.123.123") //1111::*:6666:*.123.123
+	t.ipv6test(true, "::5555:6666:123.123.123.123")
+	t.ipv6test(true, "1111:2222::4444:5555:*:123.123.123.123")
+	t.ipv6test(true, "1111::4444:5555:6666:123.*.123.123")
+	t.ipv6test(true, "*::4444:5555:6666:123.123.123.123")
+	t.ipv6test(true, "1111::*:4444:5555:6666:123.123.123.123")
+	t.ipv6test(true, "::2222:*:4444:5555:6666:123.123.123.123")
+	t.ipv6test(true, "::*:*:*:*:*:*.*.*.*")
+	t.ipv6test(true, "*::*:*:*:*:*.*.*.*")
+	t.ipv6test(false, "*:::*:*:*:*.*.*.*")
+	t.ipv6test(false, "*:::*:*:*:*:*.*.*.*")
+	t.ipv6test(true, "*::*:*:*:*:*.*.*.*")
+	t.ipv6test(false, "*::*:*:*:*:*:*.*.*.*")
+	t.ipv6test(false, "*:*:*:*:*:*:*:*:*.*.*.*")
+	t.ipv6test(false, "*:*:*:*:*:*:*::*.*.*.*")
+	t.ipv6test(false, "*:*:*:*:*:*::*:*.*.*.*")
+	t.ipv6test(true, "*:*:*:*:*:*:*.*.*.*")
+	t.ipv6test(true, "*:*:*:*:*::*.*.*.*")
+	t.ipv6test(true, "*:*:*:*::*:*.*.*.*")
+
+	t.ipv6test(true, "::*")
+	t.ipv6test(true, "*:0:0:0:0:0:0:*")
+
+	// Additional cases: http://crisp.tweakblogs.net/blog/2031/ipv6-validation-%28and-caveats%29.html
+	t.ipv6test(true, "0:a:b:*:d:e:f::")
+	t.ipv6test(true, "::0:a:*:*:d:e:f") // syntactically correct, but bad form (::0:... could be combined)
+	t.ipv6test(true, "a:b:c:*:*:f:0::")
+	t.ipv6test(false, "':10.*.0.1")
+
+	t.ipv4test(true, "1.*.4")
+	t.ipv4test(true, "1.2.*")
+	t.ipv4test(true, "*.1")
+	t.ipv4test(true, "1.*")
+	t.ipv4test(true, "1.*.1")
+	t.ipv4test(true, "1.*.*")
+	t.ipv4test(true, "*.*.1")
+	t.ipv4test(true, "*.1.*")
+	t.ipv4test(t.isLenient(), "1")
+	t.ipv4test(t.isLenient(), "1.1")
+	t.ipv4test(t.isLenient(), "1.1.1")
+
+	t.ipv4test(true, "*.1.2.*")
+	t.ipv4test(true, "*.1.*.2")
+	t.ipv4test(true, "*.*.*.2")
+	t.ipv4test(true, "*.*.*.*")
+	t.ipv4test(true, "1.*.2.*")
+	t.ipv4test(true, "1.2.*.*")
+
+	t.ipv4test(true, "*.*")
+	t.ipv6test(true, "1::1.2.*")
+	t.ipv6test(true, "1::1.2.**")
+	t.ipv6test(false, "1::1.2.**z")
+	t.ipv6test(true, "1::1.2.3.4")
+	t.ipv6test(true, "1:*:1")
+	t.ipv4test(true, "1.2.*")
+
+	t.ipv4test(false, "%.%")
+	t.ipv6test(false, "1::1.2.%")
+	t.ipv6test(true, "1::1.2.*%")
+	t.ipv6test(true, "1::1.2.*%z")
+	t.ipv6test(false, "1:%:1")
+
+	t.ipv6test(true, "1::%-.1")
+	t.ipv6test(true, "1::%-.1/16") //that is a zone of "-." and a prefix of 16
+	t.ipv6test(true, "1::%-1/16")  //that is a zone of "-" and a prefix of 16
+	t.ipv6test(true, "1::-1:16")   //that is just an address with a ranged segment 0-1
+
+	t.ipv6test(true, "1::%-.1-16")  // -.1-16 is the zone
+	t.ipv6test(true, "1::%-.1/16")  //we treat /16 as prefix length
+	t.ipv6test(false, "1::%-.1:16") //we reject ':' as part of zone
+	t.ipv6test(false, "1::%-.1/1a") //prefix has 'a'
+	t.ipv6test(false, "1::%-1/1a")  //prefix has 'a'
+	t.ipv6test(true, "1::%%1")      //zone has '%'
+	t.ipv6test(true, "1::%%1/16")   //zone has '%'
+	t.ipv6test(true, "1::%%ab")     //zone has '%'
+	t.ipv6test(true, "1::%%ab/16")  //zone has '%'
+	t.ipv6test(true, "1::%$1")      //zone has '$'
+	t.ipv6test(true, "1::%$1/16")   //zone has '$'
+
+	t.ipv4test(true, "1.2.%") //we allow this now, the % is seen as a wildcard because we are ipv4 - if we allow zone and the string can be interpreted as ipv6 then % is seen as zone character
+
+	t.ipv6test(true, "1:*")
+	t.ipv6test(true, "*:1:*")
+	t.ipv6test(true, "*:1")
+
+	//t.ipv6test(true, "*:1:1.*.1");//cannot be converted to ipv6 range
+	t.ipv6test(true, "*:1:1.*.*")
+	//t.ipv6test(true, "*:1:*.1");//cannot be converted to ipv6 range
+	t.ipv6test(true, "*:1:*.0-255.1.1")
+	t.ipv6test(true, "*:1:1.*")
+
+	t.ipv6test(false, "1:1:1.*.1")
+	t.ipv6test(false, "1:1:1.*.1.1")
+	t.ipv6test(true, "1:1:*.*")
+	t.ipv6test(true, "1:2:3:4:5:*.*")
+	t.ipv6test(true, "1:2:3:4:5:6:*.*")
+	t.ipv6test(false, "1:1:1.*")
+
+	t.ipv6test(true, "1::1:1.*.*")
+	t.ipv6test(true, "1::1:*.*.1.1")
+	t.ipv6test(true, "1::1:1.*")
+
+	t.ipv6test(true, "1:*.*.*.*") //in this one, the wildcard covers both ipv6 and ipv4 parts
+	t.ipv6test(true, "1::*.*.*.*")
+	t.ipv6test(true, "1:*.*.1.2")    //in this one, the wildcard covers both ipv6 and ipv4 parts
+	t.ipv6test(true, "1::*.*.1.2")   //compression takes precedence so the wildcard does not cover both ipv6 and ipv4 parts
+	t.ipv6test(true, "1::2:*.*.1.2") //compression takes precedence so the wildcard does not cover both ipv6 and ipv4 parts
+	t.ipv6test(true, "::2:*.*.1.2")  //compression takes precedence so the wildcard does not cover both ipv6 and ipv4 parts
+	t.ipv6test(false, "1:1.*.2")
+	t.ipv6test(false, "1:1.*.2.2")
+	t.ipv6test(t.isLenient(), "1:*:1.2")
+
+	t.ipv6test(true, "*:1:1.*")
+	t.ipv6test(t.isLenient(), "*:1:1.2.3")
+	t.ipv6test(true, "::1:1.*")
+	t.ipv6test(t.isLenient(), "::1:1.2.3")
+
+	t.ipv6test(true, "1:*:1")
+	t.ipv6test(true, "1:*:1:1.1.*")
+	t.ipv6test(true, "1:*:1:1.1.*.*")
+	t.ipv6test(true, "1:*:1:*")
+	t.ipv6test(true, "1:*:1:*.*.1.2")
+	t.ipv6test(true, "1:*:1:1.*")
+	t.ipv6test(t.isLenient(), "1:*:1:1.2.3")
+
+	t.ipv6test(false, "1:*:1:2:3:4:5:6:7")
+	t.ipv6test(false, "1:*:1:2:3:4:5:1.2.3.4")
+	t.ipv6test(true, "1:*:2:3:4:5:1.2.3.4")
+	t.ipv6test(false, "1:*:2:3:4:5:1.2.3.4.5")
+	t.ipv6test(false, "1:1:2:3:4:5:1.2.3.4.5")
+	t.ipv6test(false, "1:1:2:3:4:5:6:1.2.3.4")
+	t.ipv6test(false, "1:1:2:3:4:5:6:1.*.3.4")
+	t.ipv6test(true, "1:2:3:4:5:6:1.2.3.4")
+	t.ipv6test(true, "1:2:3:4:5:6:1.*.3.4")
+
+	t.ipv4test(true, "255._.3.4")
+	t.ipv4test(true, "1.255._.4")
+	t.ipv4test(true, "_.2.255.4")
+	t.ipv4test(true, "1._.3.255")
+
+	t.ipv4test(true, "255.__.3.4")
+	t.ipv4test(true, "1.255.__.4")
+	t.ipv4test(true, "__.2.255.4")
+	t.ipv4test(true, "1.__.3.255")
+
+	t.ipv4test(true, "255.___.3.4")
+	t.ipv4test(true, "1.255.___.4")
+	t.ipv4test(true, "___.2.255.4")
+	t.ipv4test(true, "1.___.3.255")
+
+	t.ipv4test(t.isLenient(), "255.____.3.4")
+	t.ipv4test(t.isLenient(), "1.255.____.4")
+	t.ipv4test(t.isLenient(), "____.2.255.4")
+	t.ipv4test(t.isLenient(), "1.____.3.255")
+
+	t.ipv4test(false, "255._2_.3.4")
+	t.ipv4test(false, "1.255._2_.4")
+	t.ipv4test(false, "_2_.2.255.4")
+	t.ipv4test(false, "1._2_.3.255")
+
+	t.ipv4test(true, "255.2__.3.4")
+	t.ipv4test(true, "1.255.2__.4")
+	t.ipv4test(true, "2__.2.255.4")
+	t.ipv4test(true, "1.2__.3.255")
+
+	t.ipv4test(true, "255.2_.3.4")
+	t.ipv4test(true, "1.255.2_.4")
+	t.ipv4test(true, "2_.2.255.4")
+	t.ipv4test(true, "1.2_.3.255")
+
+	t.ipv4test(false, "255.__2.3.4")
+	t.ipv4test(false, "1.255.__2.4")
+	t.ipv4test(false, "__2.2.255.4")
+	t.ipv4test(false, "1.__2.3.255")
+
+	t.ipv4test(true, "25_.__.3.4")
+	t.ipv4test(true, "1.255.2__._")
+	t.ipv4test(true, "2_.2_.255.__")
+	t.ipv4test(false, "1.2__.3__.25_")
+	t.ipv4test(true, "1.2__.3_.25_")
+	t.ipv4test(true, "1.2__.2__.25_")
+
+	t.ipv4test(false, "1.1--2.1.1")
+	t.ipv4test(false, "1.1-2-3.1.1")
+	t.ipv4test(false, "1.1-2-.1.1")
+	t.ipv4test(false, "1.-1-2.1.1")
+
+	t.ipv4test(false, "1.1_2_.1.1")
+	t.ipv4test(false, "1.1_2.1.1")
+	t.ipv4test(true, "1.1_.1.1")
+	t.ipv4test(false, "1.1_-2.1.1")
+	t.ipv4test(false, "1.1-2_.1.1")
+	t.ipv4test(false, "1.1*-2.1.1")
+	t.ipv4test(false, "1.1-2*.1.1")
+	t.ipv4test(false, "1.*1-2.1.1")
+	t.ipv4test(false, "1.1-*2.1.1")
+	t.ipv4test(false, "1.*-2.1.1")
+	t.ipv4test(false, "1.1-*.1.1")
+
+	t.ipv6test(false, "1:1--2:1:1::")
+	t.ipv6test(false, "1:1-2-3:1:1::")
+	t.ipv6test(false, "1:1-2-:1:1::")
+	t.ipv6test(false, "1:-1-2:1:1::")
+
+	t.ipv6test(false, "1:1_2_:1.1::")
+	t.ipv6test(false, "1:1_2:1:1::")
+	t.ipv6test(true, "1:1_:1:1::")
+
+	t.ipv6test(false, "1:1_-2:1:1::")
+	t.ipv6test(false, "1:1-2_:1:1::")
+	t.ipv6test(false, "1:1-_2:1:1::")
+	t.ipv6test(false, "1:1*-2:1:1::")
+	t.ipv6test(false, "1:1-2*:1:1::")
+	t.ipv6test(false, "1:*-2:1:1::")
+	t.ipv6test(false, "1:1-*:1:1::")
+	t.ipv6test(false, "1:*1-2:1:1::")
+	t.ipv6test(false, "1:1-*2:1:1::")
+
+	//double -
+	// _4_ single char wildcards not in trailing position
+
+	t.ipv6test(true, "::ffff:_:0")
+	t.ipv6test(true, "_::1")
+	t.ipv6test(true, "1:2:3:4:_:6:7:8")
+	t.ipv6test(true, "1:2:_:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::_")
+	t.ipv6test(true, "1:2:3:_::8")
+	t.ipv6test(true, "_:2::8")
+	t.ipv6test(true, "1::_")
+	t.ipv6test(true, "_::2:3:4:5:6:7")
+	t.ipv6test(true, "_::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:_")
+	t.ipv6test(true, "1::2:_:4")
+	t.ipv6test(true, "1::_:3")
+	t.ipv6test(true, "1::_")
+
+	t.ipv6test(true, "::ffff:__:0")
+	t.ipv6test(true, "__::1")
+	t.ipv6test(true, "1:2:3:4:__:6:7:8")
+	t.ipv6test(true, "1:2:__:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::__")
+	t.ipv6test(true, "1:2:3:__::8")
+	t.ipv6test(true, "__:2::8")
+	t.ipv6test(true, "1::__")
+	t.ipv6test(true, "__::2:3:4:5:6:7")
+	t.ipv6test(true, "__::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:__")
+	t.ipv6test(true, "1::2:__:4")
+	t.ipv6test(true, "1::__:3")
+	t.ipv6test(true, "1::__")
+
+	t.ipv6test(true, "::ffff:___:0")
+	t.ipv6test(true, "___::1")
+	t.ipv6test(true, "1:2:3:4:___:6:7:8")
+	t.ipv6test(true, "1:2:___:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::___")
+	t.ipv6test(true, "1:2:3:___::8")
+	t.ipv6test(true, "___:2::8")
+	t.ipv6test(true, "1::___")
+	t.ipv6test(true, "___::2:3:4:5:6:7")
+	t.ipv6test(true, "___::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:___")
+	t.ipv6test(true, "1::2:___:4")
+	t.ipv6test(true, "1::___:3")
+	t.ipv6test(true, "1::___")
+
+	t.ipv6test(true, "::ffff:____:0")
+	t.ipv6test(true, "____::1")
+	t.ipv6test(true, "1:2:3:4:____:6:7:8")
+	t.ipv6test(true, "1:2:____:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::____")
+	t.ipv6test(true, "1:2:3:____::8")
+	t.ipv6test(true, "____:2::8")
+	t.ipv6test(true, "1::____")
+	t.ipv6test(true, "____::2:3:4:5:6:7")
+	t.ipv6test(true, "____::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:____")
+	t.ipv6test(true, "1::2:____:4")
+	t.ipv6test(true, "1::____:3")
+	t.ipv6test(true, "1::____")
+
+	t.ipv6test(false, "::ffff:_____:0")
+	t.ipv6test(false, "_____::1")
+	t.ipv6test(false, "1:2:3:4:_____:6:7:8")
+	t.ipv6test(false, "1:2:_____:4:5:6::8")
+	t.ipv6test(false, "1:2:3:4:5::_____")
+	t.ipv6test(false, "1:2:3:_____::8")
+	t.ipv6test(false, "_____:2::8")
+	t.ipv6test(false, "1::_____")
+	t.ipv6test(false, "_____::2:3:4:5:6:7")
+	t.ipv6test(false, "_____::2:3:4:5:6")
+	t.ipv6test(false, "1::2:3:4:_____")
+	t.ipv6test(false, "1::2:_____:4")
+	t.ipv6test(false, "1::_____:3")
+	t.ipv6test(false, "1::_____")
+
+	t.ipv6test(false, "::ffff:ff___:0")
+	t.ipv6test(false, "f____::1")
+	t.ipv6test(false, "1:2:3:4:ffff_:6:7:8")
+	t.ipv6test(false, "1:2:ffff_:4:5:6::8")
+	t.ipv6test(false, "1:2:3:4:5::f_f__")
+	t.ipv6test(false, "1:2:3:fff__::8")
+	t.ipv6test(false, "f___f:2::8")
+	t.ipv6test(false, "1::ff_ff")
+	t.ipv6test(false, "ff_ff::2:3:4:5:6:7")
+	t.ipv6test(false, "f____::2:3:4:5:6")
+	t.ipv6test(false, "1::2:3:4:F____")
+	t.ipv6test(false, "1::2:FF___:4")
+	t.ipv6test(false, "1::FFF__:3")
+	t.ipv6test(false, "1::FFFF_")
+
+	t.ipv6test(false, "::ffff:_2_:0")
+	t.ipv6test(false, "_2_::1")
+	t.ipv6test(false, "1:2:3:4:_2_:6:7:8")
+	t.ipv6test(false, "1:2:_2_:4:5:6::8")
+	t.ipv6test(false, "1:2:3:4:5::_2_")
+	t.ipv6test(false, "1:2:3:_2_::8")
+	t.ipv6test(false, "_2_:2::8")
+	t.ipv6test(false, "1::_2_")
+	t.ipv6test(false, "_2_::2:3:4:5:6:7")
+	t.ipv6test(false, "_2_::2:3:4:5:6")
+	t.ipv6test(false, "1::2:3:4:_2_")
+	t.ipv6test(false, "1::2:_2_:4")
+	t.ipv6test(false, "1::_2_:3")
+	t.ipv6test(false, "1::_2_")
+
+	t.ipv6test(false, "::ffff:_2:0")
+	t.ipv6test(false, "_2::1")
+	t.ipv6test(false, "1:2:3:4:_2:6:7:8")
+	t.ipv6test(false, "1:2:_2:4:5:6::8")
+	t.ipv6test(false, "1:2:3:4:5::_2")
+	t.ipv6test(false, "1:2:3:_2::8")
+	t.ipv6test(false, "_2:2::8")
+	t.ipv6test(false, "1::_2")
+	t.ipv6test(false, "_2::2:3:4:5:6:7")
+	t.ipv6test(false, "_2::2:3:4:5:6")
+	t.ipv6test(false, "1::2:3:4:_2")
+	t.ipv6test(false, "1::2:_2:4")
+	t.ipv6test(false, "1::_2:3")
+	t.ipv6test(false, "1::_2")
+
+	t.ipv6test(true, "::ffff:2_:0")
+	t.ipv6test(true, "2_::1")
+	t.ipv6test(true, "1:2:3:4:2_:6:7:8")
+	t.ipv6test(true, "1:2:2_:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::2_")
+	t.ipv6test(true, "1:2:3:2_::8")
+	t.ipv6test(true, "2_:2::8")
+	t.ipv6test(true, "1::2_")
+	t.ipv6test(true, "2_::2:3:4:5:6:7")
+	t.ipv6test(true, "2_::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:2_")
+	t.ipv6test(true, "1::2:2_:4")
+	t.ipv6test(true, "1::2_:3")
+	t.ipv6test(true, "1::2_")
+
+	t.ipv6test(true, "::ffff:2___:0")
+	t.ipv6test(true, "2___::1")
+	t.ipv6test(true, "1:2:3:4:2___:6:7:8")
+	t.ipv6test(true, "1:2:2___:4:5:6::8")
+	t.ipv6test(true, "1:2:3:4:5::2___")
+	t.ipv6test(true, "1:2:3:2___::8")
+	t.ipv6test(true, "2___:2::8")
+	t.ipv6test(true, "1::2___")
+	t.ipv6test(true, "2___::2:3:4:5:6:7")
+	t.ipv6test(true, "2___::2:3:4:5:6")
+	t.ipv6test(true, "1::2:3:4:2___")
+	t.ipv6test(true, "1::2:2___:4")
+	t.ipv6test(true, "1::2___:3")
+	t.ipv6test(true, "1::2___")
+
+	t.ipv6test(true, "::fff_:2___:0")
+	t.ipv6test(true, "2___::_")
+	t.ipv6test(true, "1:2:3:4:2___:6_:7_:8")
+	t.ipv6test(true, "1:2:2___:4:5:6::8__")
+	t.ipv6test(true, "1:2:3_:4:5::2___")
+	t.ipv6test(true, "1:2:3:2___::8")
+	t.ipv6test(true, "2___:2::8")
+	t.ipv6test(true, "1::2___")
+	t.ipv6test(true, "2___::2_:3__:4:5:6:7")
+	t.ipv6test(true, "2___::2:3_:4:5:6")
+	t.ipv6test(true, "1::2:3:4_:2___")
+	t.ipv6test(true, "1::2:2___:4f__")
+	t.ipv6test(true, "1___::2___:3___")
+	t.ipv6test(true, "1_::2___")
+
+	t.ipv6test(t.isLenient(), "*:1:1._.__")
+	t.ipv6test(true, "*:1:1._.__.___")
+	//t.ipv6test(false, "*:_:1:_.1.1._");//this passes validation but conversion to mask fails because the ipv4 ranges cannot be converted to ipv6 ranges
+	t.ipv6test(true, "*:_:1:1._.1._")
+	t.ipv6test(true, "*:_:1:_.___.1._")
+	t.ipv6test(true, "*:_:1:_.___._.___")
+	t.ipv6test(true, "1:*:1_:1:1.1_.1.1")
+
+	t.ipv6test(false, "1:1:1.2_.1")
+	t.ipv6test(false, "1:1:1.2__.1.1")
+	t.ipv6test(false, "1:1:_.*")
+	t.ipv6test(false, "1:1:1._")
+
+	t.ipv6test(true, "a-f:b:c:d:e:f:a:bb")
+	t.ipv6test(true, "-f:b:c:d:e:f:a:bb")
+
+	//TODO next
+	//testMasked("1.*.3.4", null, null, "1.*.3.4");
+	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
+	//testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, isAllSubnets ? "1.*.2.0/23" : "1.*.3.4/23");
+	//
+	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", null, null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", null, "0:101:0:101:0:101:0:101");
+	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, isAllSubnets ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
+	//testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
+
+	t.ipAddressTester.run()
 }
+
+func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {
+	t.iprangestest(pass, x, false, false, true, ipv4RangeOptions, ipv6RangeOptions)
+}
+
+func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions ipaddr.RangeParameters) {
+	t.iprangetest(pass, x, false, false, true, rangeOptions)
+}
+
+func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options ipaddr.RangeParameters) {
+	t.iprangestest(pass, x, false, false, false, ipv4Options, ipv6Options)
+}
+
+func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options ipaddr.RangeParameters) {
+	t.iprangetest(pass, x, false, false, false, options)
+}
+
+func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {
+
+	addr := t.createDoubleParametrizedAddress(x, ipv4RangeOptions, ipv6RangeOptions)
+	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
+		//do it a second time to test the caching
+		t.iptest(pass, addr, isZero, notBoth, ipv4Test)
+	}
+}
+
+func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions ipaddr.RangeParameters) {
+	addr := t.createParametrizedAddress(x, rangeOptions)
+	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
+		//do it a second time to test the caching
+		t.iptest(pass, addr, isZero, notBoth, ipv4Test)
+	}
+}
+
+/*
+
+
+	void ipv4test(boolean pass, String x, boolean isZero, RangeParameters rangeOptions) {
+		iptest(pass, x, isZero, false, true, rangeOptions);
+	}
+
+	void ipv4test(boolean pass, String x, boolean isZero, RangeParameters ipv4RangeOptions, RangeParameters ipv6RangeOptions) {
+		iptest(pass, x, isZero, false, true, ipv4RangeOptions, ipv6RangeOptions);
+	}
+
+	void ipv6test(boolean pass, String x, RangeParameters options) {
+		ipv6test(pass, x, false, options);
+	}
+
+
+
+	void ipv6test(boolean pass, String x, boolean isZero, RangeParameters ipv4Options, RangeParameters ipv6Options) {
+		iptest(pass, x, isZero, false, false, ipv4Options, ipv6Options);
+	}
+
+
+*/

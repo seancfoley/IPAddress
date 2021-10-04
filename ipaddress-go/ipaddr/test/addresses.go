@@ -83,13 +83,56 @@ type testAddresses interface {
 
 	createInetAtonAddress(string) *ipaddr.IPAddressString
 
+	createParametrizedAddress(string, ipaddr.RangeParameters) *ipaddr.IPAddressString
+
+	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString
+
 	createHost(string) *ipaddr.HostName
 
 	createMACAddress(string) *ipaddr.MACAddressString
+
+	isLenient() bool
+
+	allowsRange() bool
 }
 
 type addresses struct {
-	//testAccumulator
+	// eventually we could have caching in here
+}
+
+func (t *addresses) createParametrizedAddress(str string, params ipaddr.RangeParameters) *ipaddr.IPAddressString {
+	var opts ipaddr.IPAddressStringParameters
+	if params == ipaddr.NoRange {
+		opts = noRangeAddressOptions
+	} else if params == ipaddr.WildcardOnly {
+		opts = wildcardOnlyAddressOptions
+	} else if params == ipaddr.WildcardAndRange {
+		opts = wildcardAndRangeAddressOptions
+	} else {
+		opts = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
+			SetRangeParameters(params).ToParams()
+	}
+	return ipaddr.NewIPAddressStringParams(str, opts)
+
+}
+
+func (t *addresses) createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString {
+	var opts ipaddr.IPAddressStringParameters
+	if ipv4Params == ipv6Params {
+		if ipv4Params == ipaddr.NoRange {
+			opts = noRangeAddressOptions
+		} else if ipv4Params == ipaddr.WildcardOnly {
+			opts = wildcardOnlyAddressOptions
+		} else if ipv4Params == ipaddr.WildcardAndRange {
+			opts = wildcardAndRangeAddressOptions
+		}
+	}
+	if opts == nil {
+		opts = new(ipaddr.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
+			GetIPv4AddressParametersBuilder().SetRangeParameters(ipv4Params).GetParentBuilder().
+			GetIPv6AddressParametersBuilder().SetRangeParameters(ipv6Params).GetParentBuilder().ToParams()
+	}
+	return ipaddr.NewIPAddressStringParams(str, opts)
 }
 
 func (t *addresses) createAddress(str string) *ipaddr.IPAddressString {
@@ -106,6 +149,14 @@ func (t *addresses) createMACAddress(str string) *ipaddr.MACAddressString {
 
 func (t *addresses) createHost(str string) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, hostOptions)
+}
+
+func (t *addresses) isLenient() bool {
+	return false
+}
+
+func (t *addresses) allowsRange() bool {
+	return false
 }
 
 type rangedAddresses struct {
@@ -130,6 +181,10 @@ func (t *rangedAddresses) createMACAddress(str string) *ipaddr.MACAddressString 
 	return ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
 }
 
+func (t *rangedAddresses) allowsRange() bool {
+	return true
+}
+
 //
 //func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
 //	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
@@ -148,3 +203,9 @@ func (t *allAddresses) createAddress(str string) *ipaddr.IPAddressString {
 func (t *allAddresses) createInetAtonAddress(str string) *ipaddr.IPAddressString {
 	return t.createAddress(str)
 }
+
+func (t *allAddresses) isLenient() bool {
+	return true
+}
+
+var _, _, _ testAddresses = &addresses{}, &rangedAddresses{}, &allAddresses{}

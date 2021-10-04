@@ -112,7 +112,7 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 	return BitCount(segmentCount) * bitsPerSegment
 }
 
-// TODO LATER This extended prefix subnet
+// TODO LATER This extended prefix subnet, follow the latest Java code which has been updated.
 //
 //public static boolean isPrefixSubnet(
 //		DivisionValueProvider lowerValueProvider,
@@ -311,18 +311,10 @@ func isPrefixSubnet(
 	bitsPerSegment BitCount,
 	segmentMaxValue SegInt,
 	prefLen BitCount,
-	//networkPrefixLength BitCount,
-
-	//zerosOnly,
 	subnetOption subnetOption) bool {
-	//if networkPrefixLength == nil {
-	//	return false
-	//}
-	//prefLen := *networkPrefixLength
 	zero := BitCount(0)
 	if prefLen < 0 {
 		prefLen = 0
-		//networkPrefixLength = &zero
 	} else {
 		var totalBitCount BitCount
 		if bitsPerSegment == 8 {
@@ -368,18 +360,19 @@ func isPrefixSubnet(
 					if subnetOption == zerosOnly {
 						return false
 					} else if upper == segmentMaxValue {
-						subnetOption = fullRangeOnly
+						if subnetOption == zerosOrFullRange && i > prefixedSegment {
+							return false
+						}
 					} else if subnetOption == zerosOrFullRange {
 						return false
-					} else {
+					} else { //zerosToFullRange
 						upperTrailingOnes := bits.TrailingZeros64(^uint64(upper))
 						if (upper >> uint(upperTrailingOnes)) != 0 {
 							return false
 						}
-						subnetOption = fullRangeOnly
 					}
+					subnetOption = fullRangeOnly
 				}
-
 			} else if prefLen < bitsPerSegment {
 				segHostBits := bitsPerSegment - prefLen
 				hostMask := ^(^SegInt(0) << uint(segHostBits))
@@ -396,27 +389,21 @@ func isPrefixSubnet(
 					if hostUpper != 0 {
 						if subnetOption == zerosOnly {
 							return false
-						} else if hostUpper == hostMask { //subnetOption == zeroOrFullRange {
-							subnetOption = fullRangeOnly
+						} else if hostUpper == hostMask {
+							if subnetOption == zerosOrFullRange && i > prefixedSegment {
+								return false
+							}
 						} else if subnetOption == zerosOrFullRange {
 							return false
-						} else {
+						} else { // zerosToFullRange
 							upperTrailingOnes := uint(bits.TrailingZeros64(^uint64(upper)))
-							//if upperOnes < segHostBits {
 							hostMask >>= upperTrailingOnes
 							upper >>= upperTrailingOnes
 							if (hostMask & upper) != 0 {
 								return false
 							}
-							//upperZeros := BitCount(bits.TrailingZeros64(uint64(upper|(^SegInt(0)<<uint(bitsPerSegment))) >> uint(upperOnes)))
-							//	if upperOnes+upperZeros < segHostBits {
-							//return false
-							//}
-							//fullRangeOnly = upperOnes > 0
-							//} //else {
-							subnetOption = fullRangeOnly
-							//}
 						}
+						subnetOption = fullRangeOnly
 					}
 				}
 			}
@@ -429,137 +416,3 @@ func isPrefixSubnet(
 	}
 	return true
 }
-
-/*
-In Go, << is left shift, >> is sign-extending right shift.
-Conversion just grabs the low bits.
-
-For conversion, the spec says:
-When converting between integer types, if the value is a signed integer,
-it is sign extended to implicit infinite precision;
-otherwise it is zero extended. It is then truncated to fit in the result type's size.
-For example, if v := uint16(0x10F0), then uint32(int8(v)) == 0xFFFFFFF0.
-The conversion always yields a valid value; there is no indication of overflow.
-
-var i  int32 = -1
-var i2  uint32 = 0xffffffff
-var i3  int32 = 0x7fffffff
-var i4  int32 = -1
-
-func main() {
-	fmt.Printf("%d %d, %d %d\n",i, i >> 1, i2, i2 >> 1) // -1 -1, 4294967295 2147483647
-
-	fmt.Printf("%d %d\n", uint32(i), uint32(i) >> 1) // 4294967295 2147483647
-
-	fmt.Printf("%d %d\n", i3, i3 << 1) // 2147483647 -2 or 0x7fffffff << 1 becomes 0xfffffff0
-
-	fmt.Printf("%d %d\n", uint16(i2), int16(i3)) // 65535 -1 or both become 0xffff
-
-	fmt.Printf("%d %d\n", uint16(i4), int16(uint32(i4))) // 65535 -1 or both become 0xffff
-}
-*/
-
-// the methods below not needed because of math.bits
-
-//func numberOfTrailingZerosi64(i int64) BitCount {
-//	return numberOfTrailingZeros64(uint64(i))
-//}
-//
-//func numberOfTrailingZeros64(i uint64) BitCount {
-//	half := uint32(i & 0xffffffff)
-//	if half == 0 {
-//		return 32 + numberOfLeadingZeros32(uint32(i>>32))
-//	}
-//	return numberOfLeadingZeros32(half)
-//}
-//
-//func numberOfTrailingZerosi32(i int32) BitCount {
-//	return numberOfTrailingZeros32(uint32(i))
-//}
-//
-//func numberOfTrailingZeros32(i uint32) BitCount {
-//	if i == 0 {
-//		return 32
-//	}
-//	result := BitCount(31)
-//	half := i << 16
-//	if half != 0 {
-//		result -= 16
-//		i = half
-//	}
-//	half = i << 8
-//	if half != 0 {
-//		result -= 8
-//		i = half
-//	}
-//	half = i << 4
-//	if half != 0 {
-//		result -= 4
-//		i = half
-//	}
-//	half = i << 2
-//	if half != 0 {
-//		result -= 2
-//		i = half
-//	}
-//	return result - BitCount((i<<1)>>31)
-//}
-//
-//func numberOfLeadingZerosi64(i int64) BitCount {
-//	return numberOfLeadingZeros64(uint64(i))
-//}
-//
-//func numberOfLeadingZeros64(i uint64) BitCount {
-//	half := uint32(i >> 32)
-//	if half == 0 {
-//		return 32 + numberOfLeadingZeros32(uint32(i))
-//	}
-//	return numberOfLeadingZeros32(half)
-//}
-//
-//func numberOfLeadingZerosi32(i int32) BitCount {
-//	return numberOfLeadingZeros32(uint32(i))
-//}
-//
-//func numberOfLeadingZeros32(i uint32) BitCount {
-//	half := uint16(i >> 16)
-//	if half == 0 {
-//		return 16 + numberOfLeadingZeros16(uint16(i))
-//	}
-//	return numberOfLeadingZeros16(half)
-//}
-//
-//func numberOfLeadingZerosi16(i int16) BitCount {
-//	return numberOfLeadingZeros16(uint16(i))
-//}
-//
-//func numberOfLeadingZeros16(i uint16) BitCount {
-//	half := uint8(i >> 8)
-//	if half == 0 {
-//		return 8 + numberOfLeadingZeros8(uint8(i))
-//	}
-//	return numberOfLeadingZeros8(half)
-//}
-//
-//func numberOfLeadingZerosi8(i int8) BitCount {
-//	return numberOfLeadingZeros8(uint8(i))
-//}
-//
-//func numberOfLeadingZeros8(i uint8) BitCount {
-//	if i == 0 {
-//		return 8
-//	}
-//	result := BitCount(1)
-//	half := i >> 4
-//	if half == 0 {
-//		result += 4
-//		i <<= 4
-//	}
-//	half = i >> 6
-//	if half == 0 {
-//		result += 2
-//		i <<= 2
-//	}
-//	result -= BitCount(i >> 7)
-//	return result
-//}
