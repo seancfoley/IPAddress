@@ -129,7 +129,7 @@ The library was intended to satisfy the following primary goals:
     splitting into sections and segments, splitting into network and
     host sections, reconstituting from sections and segments
 
-  - **Address operations**, such as obtaining the prefix block subnet for a
+  - **Address operations and subnetting**, such as obtaining the prefix block subnet for a
     prefixed address, iterating, spliterating or streaming through subnets, iterating, spliterating or streaming through
     prefix blocks, incrementing and decrementing addresses by integer
     values, reversing address bits for endianness or DNS lookup,
@@ -139,7 +139,7 @@ The library was intended to satisfy the following primary goals:
 
   - **Sorting and comparison** of host names, addresses, address strings and subnets
 
-  - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as containment operations, sorting operations, prefix block operations, and subnet traversals
+  - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
 
   - **Integrate with the java primitive types and the standard java
     classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.
@@ -149,7 +149,7 @@ The library was intended to satisfy the following primary goals:
 &#8203;
 ## Code Examples
 
-This document provides in-depth and extensive documentation for the library, and includes some code snippets throughout.  However, for common use-cases, you may wish to go straight to the wiki <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">code examples which cover a wide breadth of common use-cases</a>.  The code examples are focused more on common use-cases and operations, while this document is focused more on covering all areas in more detail with more words.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
+This document provides in-depth and extensive documentation for the library, and includes some code snippets.  However, for common use-cases, you may wish to go straight to the wiki <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">code examples which cover a wide breadth of common use-cases</a>.  The code examples are focused more on covering common use-cases and operations, while this document is focused more on covering all areas in more detail with smaller code snippets.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
 
 &#8203;
 ## Supported IP Address Parsing Formats
