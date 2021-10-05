@@ -860,6 +860,9 @@ func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4A
 }
 
 func (addr IPv4Address) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
 	return addr.init().ipAddressInternal.String()
 }
 

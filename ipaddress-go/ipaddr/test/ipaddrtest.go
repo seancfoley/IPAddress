@@ -427,7 +427,7 @@ func (t ipAddressTester) run() {
 	t.ipv4test(false, "1.2.3.4/")
 	t.ipv4test(true, "1.2.3.4/1.2.3.4")
 	t.ipv4test(false, "1.2.3.4/x")
-	t.ipv4test(false, "1.2.3.4/33") //we are not allowing extra-large prefixes
+	t.ipv4test(true, "1.2.3.4/33") //we are now allowing extra-large prefixes
 	t.ipv6test(true, "1::1/1")
 	t.ipv6test(false, "1::1/-1")
 	t.ipv6test(false, "1::1/")
@@ -435,7 +435,8 @@ func (t ipAddressTester) run() {
 	t.ipv6test(false, "1::1/129") //we are not allowing extra-large prefixes
 	t.ipv6test(true, "1::1/1::1")
 
-	t.ipv4test(t.isLenient(), "") //this needs special validation options to be valid
+	t.ipv4test2(t.isLenient(), "", true, false)
+	//t.ipv4test(t.isLenient(), "") xxx problem is this now evaluates to zero not loopback xxx //this needs special validation options to be valid
 
 	t.ipv4test(true, "1.2.3.4")
 	t.ipv4test(false, "[1.2.3.4]") //HostName accepts square brackets, not addresses
@@ -577,11 +578,17 @@ func (t ipAddressTester) run() {
 	t.ipv4test(false, "0.0..0")
 	t.ipv4test(false, "0.0.0.")
 
-	t.ipv4test(true, "/0")
-	t.ipv4test(true, "/1")
-	t.ipv4test(true, "/31")
-	t.ipv4test(true, "/32")
-	t.ipv4test2(false, "/33", false, true)
+	//t.ipv4test(true, "/0")
+	//t.ipv4test(true, "/1")
+	//t.ipv4test(true, "/31")
+	//t.ipv4test(true, "/32")
+	//t.ipv4test2(false, "/33", false, true)
+
+	t.ipv4test(false, "/0")
+	t.ipv4test(false, "/1")
+	t.ipv4test(false, "/31")
+	t.ipv4test(false, "/32")
+	t.ipv4test(false, "/33")
 
 	t.ipv4test(false, "1.2.3.4//16")
 	t.ipv4test(false, "1.2.3.4//")
@@ -655,20 +662,21 @@ func (t ipAddressTester) run() {
 	t.ipv4testOnly(false, "1:2:3:4:5:6:7:8")
 	t.ipv4testOnly(false, "::1")
 
-	//in this test, the validation will fail unless validation options have allowEmpty
-	//if you allowempty and also emptyIsLoopback, then this will evaluate to either ipv4
-	//or ipv6 depending on the loopback
-	//if loopback is ipv4, then ipv6 validation fails but general validation passes because ipv4 passes because loopback is ipv4
-	t.ipv6test2(false, "", false, t.isLenient())
+	// in this test, the validation will fail unless validation options have allowEmpty
+	t.ipv6test2(t.isLenient(), "", true, false)
 	//t.ipv6test(false, ""); // empty string //this needs special validation options to be valid
 
-	t.ipv6test(true, "/0")
-	t.ipv6test(true, "/1")
-	t.ipv6test(true, "/127")
-	t.ipv6test(true, "/128")
+	//t.ipv6test(true, "/0")
+	//t.ipv6test(true, "/1")
+	//t.ipv6test(true, "/127")
+	//t.ipv6test(true, "/128")
+	t.ipv6test(false, "/0")
+	t.ipv6test(false, "/1")
+	t.ipv6test(false, "/127")
+	t.ipv6test(false, "/128")
 	t.ipv6test(false, "/129")
 
-	t.ipv6zerotest(true, "::/0")
+	t.ipv6test(true, "::/0")
 	t.ipv6test(false, ":1.2.3.4") //invalid
 	t.ipv6test(true, "::1.2.3.4")
 
@@ -1695,14 +1703,17 @@ func (t ipAddressTester) iptest(pass bool, addr *ipaddr.IPAddressString, isZero,
 	//try {
 	if t.isNotExpected(pass, addr, ipv4Test, !ipv4Test) || t.isNotExpected(pass2, addr, false, false) {
 		failed = true
-		t.addFailure(newFailure("parse failure", addr))
-
+		if addr.GetAddress() != nil {
+			t.addFailure(newFailure("parse failure for "+addr.String()+" parsed to "+addr.GetAddress().String(), addr))
+		} else {
+			t.addFailure(newFailure("parse failure for "+addr.String(), addr))
+		}
 		////this part just for debugging
-		//if(isNotExpected(pass, addr, ipv4Test, !ipv4Test)) {
-		//	isNotExpected(pass, addr, ipv4Test, !ipv4Test);
-		//} else {
-		//	isNotExpected(pass2, addr, false, false);
-		//}
+		if t.isNotExpected(pass, addr, ipv4Test, !ipv4Test) {
+			t.isNotExpected(pass, addr, ipv4Test, !ipv4Test)
+		} else {
+			t.isNotExpected(pass2, addr, false, false)
+		}
 	} else {
 		var zeroPass bool
 		if notBothTheSame {
@@ -1716,11 +1727,14 @@ func (t ipAddressTester) iptest(pass bool, addr *ipaddr.IPAddressString, isZero,
 
 			//this part just for debugging
 			//boolean val = isNotExpectedNonZero(zeroPass, addr);
-			//val = isNotExpectedNonZero(zeroPass, addr);
+			t.isNotExpectedNonZero(zeroPass, addr)
 		} else {
 			//test the bytes
 			if pass && len(addr.String()) > 0 && addr.GetAddress() != nil && !(addr.GetAddress().IsIPv6() && addr.GetAddress().ToIPv6Address().HasZone()) && !addr.IsPrefixed() { //only for valid addresses
-				failed = !t.testBytes(addr.GetAddress())
+				address := addr.GetAddress()
+
+				failed = !t.testBytes(address)
+
 			}
 		}
 	}
@@ -1765,10 +1779,10 @@ func (t ipAddressTester) isNotExpected(expectedPass bool, addr *ipaddr.IPAddress
 }
 
 func (t ipAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.IPAddressString) bool {
-	//if !addr.IsIPAddress() && !addr.IsAllAddresses() {
-	//	//if(!addr.isIPAddress() && !addr.isPrefixOnly() && !addr.isAllAddresses()) {
-	//	return expectedPass
-	//}
+	if !addr.IsValid() && !addr.IsAllAddresses() {
+		//	//if(!addr.isIPAddress() && !addr.isPrefixOnly() && !addr.isAllAddresses()) {
+		return expectedPass
+	}
 	//if expectedPass is true, we are expecting a non-zero address
 	//return true to indicate we have gotten something not expected
 	if addr.GetAddress() != nil && addr.GetAddress().IsZero() {
@@ -1780,6 +1794,16 @@ func (t ipAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.IP
 func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	failed := false
 	//try {
+
+	if t.allowsRange() && addr.IsMultiple() {
+		b := addr.GetBytes()
+		b2 := addr.GetLower().GetBytes()
+		if !bytes.Equal(b, b2) {
+			t.addFailure(newIPAddrFailure("bytes on addr "+addr.String(), addr.ToIPAddress()))
+			failed = true
+		}
+		return !failed
+	}
 	addrString := addr.String()
 	index := strings.Index(addrString, "/")
 	//int index = addrString.indexOf('/');
@@ -1788,6 +1812,9 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 		//addrString = addrString.substring(0, index);
 	}
 	inetAddress := net.ParseIP(addrString)
+	if addr.IsIPv4() {
+		inetAddress = inetAddress.To4()
+	}
 	//InetAddress inetAddress = InetAddress.getByName(addrString);
 	//byte[] b = inetAddress.getAddress();
 	b2 := addr.GetBytes()
@@ -1796,6 +1823,7 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 		var b3 []byte
 		if addr.IsIPv4() {
 			b3 = addr.GetSection().GetBytes()
+			//inetAddress = inetAddress.To4()
 		} else {
 			addr, err := addr.ToIPv6Address().GetEmbeddedIPv4Address()
 			if err != nil {

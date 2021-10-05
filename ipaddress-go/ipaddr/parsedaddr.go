@@ -2194,6 +2194,9 @@ func createFullRangeSegment(
 		maskedLower = SegInt(masker.GetMaskedLower(lstringLower, maskInt))
 		maskedUpper = SegInt(masker.GetMaskedUpper(lstringUpper, maskInt))
 		maskedIsDifferent = maskedLower != stringLower || maskedUpper != stringUpper
+	} else {
+		maskedLower = stringLower
+		maskedUpper = stringUpper
 	}
 	result = createRangeSeg("", version, maskedLower, maskedUpper,
 		false, nil, parsedSegIndex, segmentPrefixLength, creator)

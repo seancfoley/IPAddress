@@ -1877,7 +1877,7 @@ func parsePortOrService(
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.host.error.invalidPort.too.large"}}
 			return
 		}
-		res.zone = zone
+		res.setZone(zone)
 		res.port = cachePorts(PortNum(port))
 		//res = &parsedHostIdentifierStringQualifier{zone: zone, port: &port}
 		return
@@ -1894,7 +1894,7 @@ func parsePortOrService(
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.host.error.invalidService.no.letter"}}
 		return
 	}
-	res.zone = zone
+	res.setZone(zone)
 	res.service = fullAddr[index:endIndex]
 	//res.service = Service(fullAddr[index:endIndex])
 	//res = &parsedHostIdentifierStringQualifier{zone: zone, service: Service(fullAddr[index:endIndex])}xx
@@ -1954,7 +1954,7 @@ func parseValidatedPrefix(
 	//}
 	//res = &parsedHostIdentifierStringQualifier{networkPrefixLength: cacheBits(result), zone: zone}xx
 	res.networkPrefixLength = cacheBitCount(result)
-	res.zone = zone
+	res.setZone(zone)
 	return
 }
 
@@ -2156,7 +2156,7 @@ func parsePrefix(
 			return
 		}
 		res.mask = pa
-		res.zone = zone
+		res.setZone(zone)
 		//res = &parsedHostIdentifierStringQualifier{mask: pa, zone: zone}
 	} else if validationOptions.AllowsPrefix() {
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefixOrMask"}}
@@ -2241,7 +2241,7 @@ func parseZone(
 			return
 		}
 	}
-	res.zone = Zone(fullAddr[index:endIndex])
+	res.setZone(Zone(fullAddr[index:endIndex]))
 	return
 }
 
@@ -2312,7 +2312,7 @@ func parseEncodedZone(
 		zone = result.String()
 		//res = &parsedHostIdentifierStringQualifier{zone: Zone(result.String())}xx
 	}
-	res.zone = Zone(zone)
+	res.setZone(Zone(zone))
 	return
 }
 

@@ -21,6 +21,7 @@ const (
 	SegmentSqlWildcardStr             = string(SegmentSqlWildcard)
 	SegmentSqlSingleWildcard     byte = '_'
 	SegmentSqlSingleWildcardStr       = string(SegmentSqlSingleWildcard)
+	nilAddress                        = "<nil>"
 )
 
 var segmentWildcardStr = SegmentWildcardStr
@@ -757,7 +758,10 @@ func (addr *Address) Equals(other AddressType) bool {
 	return addr.init().equals(other)
 }
 
-func (addr *Address) String() string {
+func (addr Address) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
 	return addr.init().addressInternal.String()
 }
 

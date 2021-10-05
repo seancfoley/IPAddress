@@ -62,6 +62,9 @@ func main() {
 	fmt.Printf("zero addr is %+v\n", addr4)
 	addr2 := addr4.ToIPAddress()
 	fmt.Printf("zero addr is %+v\n", addr2)
+	addr2.String()
+	addr2.GetSection()
+	fmt.Printf("zero addr is %+v\n", addr2.String())
 	//fmt.Printf("%+v\n", &addr2)
 
 	ipv4Prefixed := addr4.ToPrefixBlockLen(16)

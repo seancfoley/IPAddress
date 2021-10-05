@@ -380,7 +380,7 @@ func (t ipAddressRangeTester) run() {
 	t.ipv4test(false, "1.2.*.4/-1")
 	t.ipv4test(false, "1.2.*.4/")
 	t.ipv4test(false, "1.2.*.4/x")
-	t.ipv4test(false, "1.2.*.4/33") //we are not allowing extra-large prefixes
+	t.ipv4test(true, "1.2.*.4/33") //we are now allowing extra-large prefixes
 	t.ipv6test(true, "1:*::1/1")
 	t.ipv6test(false, "1:*::1/-1")
 	t.ipv6test(false, "1:*::1/")
@@ -402,7 +402,7 @@ func (t ipAddressRangeTester) run() {
 	t.ipv4test(false, "1.2.*.4/*:*:*:*:*:*:*:*")
 	t.ipv4test(false, "1.2.3.4/1.2.*.4")
 	t.ipv4test(false, "1.2.*.4/1.2.*.4")
-	t.ipv4test(true, "1.2.*.4/1.2.3.4")
+	t.ipv4test(true, "1.2.*.4/1.2.3.4") //TODO not sure masking working as expected here
 	t.ipv6test(false, "1:2::1/*")
 	t.ipv6test(false, "1:*::1/*")
 	t.ipv6test(false, "1:2::1/1:1-2:3:4:5:6:7:8")
@@ -474,11 +474,11 @@ func (t ipAddressRangeTester) run() {
 
 	t.ipv4test(true, "*") //toAddress() should not work on this, toAddress(Version) should.
 
-	//TODO reinstate these two
-	//t.ipv4test2(false, "*%", false, true)  //because the string could represent ipv6, and we are allowing zone, we treat the % as ipv6 zone, and then we invalidate because no zone for ipv4
-	//t.ipv4test2(false, "*%x", false, true) //no zone for ipv4
-	t.ipv4test(true, "**")  //toAddress() should not work on this, toAddress(Version) should.
-	t.ipv6test(true, "*%x") //ipv6 which allows zone
+	t.ipv4test2(false, "*%", false, true)  //because the string could represent ipv6, and we are allowing zone, we treat the % as ipv6 zone, and then we invalidate because no zone for ipv4
+	t.ipv4test2(false, "*%x", false, true) //no zone for ipv4
+	t.ipv4test(true, "**")                 // toAddress() should not work on this, toAddress(Version) should.
+	t.ipv6test(true, "**")                 // toAddress() should not work on this, toAddress(Version) should.
+	t.ipv6test(true, "*%x")                //ipv6 which allows zone
 
 	t.ipv4test(true, "*.*.*.*") //toAddress() should work on this
 

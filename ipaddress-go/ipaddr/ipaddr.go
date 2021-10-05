@@ -28,10 +28,11 @@ func (version IPVersion) IsIPv4() bool {
 
 func (version IPVersion) IsIndeterminate() bool {
 	if len(version) == 4 {
+		// we allow mixed case in the event code is converted a string to IPVersion
 		dig := version[3]
 		return (dig != '4' && dig != '6') || !strings.EqualFold(string(version[:3]), "IPv")
 	}
-	return false
+	return true
 }
 
 // returns an index starting from 0 with IndeterminateIPVersion being the highest
@@ -559,6 +560,9 @@ func (addr *IPAddress) getProvider() ipAddressProvider {
 }
 
 func (addr IPAddress) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
 	return addr.init().ipAddressInternal.String()
 }
 

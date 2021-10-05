@@ -17,7 +17,8 @@ type parsedHostIdentifierStringQualifier struct {
 	mergedMask *IPAddress
 
 	// this is the IPv6 scope id or network interface name
-	zone Zone
+	zone    Zone
+	isZoned bool
 }
 
 func (parsedQual *parsedHostIdentifierStringQualifier) clearPortOrService() {
@@ -68,6 +69,11 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLength
 	return pref
 }
 
+func (parsedQual *parsedHostIdentifierStringQualifier) setZone(z Zone) {
+	parsedQual.zone = z
+	parsedQual.isZoned = true
+}
+
 func (parsedQual *parsedHostIdentifierStringQualifier) getZone() Zone {
 	return parsedQual.zone
 }
@@ -93,7 +99,8 @@ func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOp
 			return IPv4
 		}
 	}
-	if parsedQual.zone != "" {
+	if parsedQual.isZoned {
+		//if parsedQual.zone != "" {
 		return IPv6
 	}
 	return IndeterminateIPVersion

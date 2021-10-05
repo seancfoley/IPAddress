@@ -331,16 +331,24 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 	err := addrStr.Validate()
 	if err != nil {
 		return err
-	} else if version != IndeterminateIPVersion {
-		addrStr = addrStr.init()
+	} else if version.IsIndeterminate() {
+		return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.ipVersionIndeterminate"}}
+	} else {
+		//addrStr = addrStr.init()
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.IsIPv4() {
-			if !addrVersion.IsIPv4() {
+			if addrVersion.IsIPv6() {
+				//if !addrVersion.IsIPv4() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
+			} else if addrStr.validateException != nil {
+				return addrStr.validateException
 			}
 		} else if version.IsIPv6() {
-			if !addrVersion.IsIPv6() {
+			if addrVersion.IsIPv4() {
+				//if !addrVersion.IsIPv6() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
+			} else if addrStr.validateException != nil {
+				return addrStr.validateException
 			}
 		}
 	}

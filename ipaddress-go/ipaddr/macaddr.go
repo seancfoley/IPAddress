@@ -622,6 +622,9 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressErr
 }
 
 func (addr MACAddress) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
 	return addr.init().addressInternal.String()
 }
 

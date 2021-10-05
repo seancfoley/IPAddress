@@ -1186,6 +1186,9 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 }
 
 func (addr IPv6Address) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
 	return addr.init().addressInternal.String()
 }
 
