@@ -1412,13 +1412,31 @@ func (t ipAddressTester) run() {
 	t.testNotContains("1:10::/32", "1:123::")
 	t.testNotContains("1:10::/40", "1:123::")
 
-	t.testContains("1.0.0.0/16", "1.0.0.0/24", !true)
+	t.testContains("1.0.0.0/16", "1.0.0.0/24", false)
 
 	t.testContains("5.62.62.0/23", "5.62.63.1", false)
 
 	t.testNotContains("5.62.62.0/23", "5.62.64.1")
 	t.testNotContains("5.62.62.0/23", "5.62.68.1")
 	t.testNotContains("5.62.62.0/23", "5.62.78.1")
+
+	t.testNetmasks(0, "0.0.0.0/0", "0.0.0.0", "255.255.255.255", "::/0", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") //test that the given prefix gives ipv4 and ipv6 addresses matching the netmasks
+	t.testNetmasks(1, "128.0.0.0/1", "128.0.0.0", "127.255.255.255", "8000::/1", "8000::", "7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(15, "255.254.0.0/15", "255.254.0.0", "0.1.255.255", "fffe::/15", "fffe::", "1:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(16, "255.255.0.0/16", "255.255.0.0", "0.0.255.255", "ffff::/16", "ffff::", "::ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(17, "255.255.128.0/17", "255.255.128.0", "0.0.127.255", "ffff:8000::/17", "ffff:8000::", "::7fff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(31, "255.255.255.254/31", "255.255.255.254", "0.0.0.1", "ffff:fffe::/31", "ffff:fffe::", "::1:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(32, "255.255.255.255/32", "255.255.255.255", "0.0.0.0", "ffff:ffff::/32", "ffff:ffff::", "::ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testNetmasks(127, "255.255.255.255/127", "", "0.0.0.0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe/127", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "::1")
+
+	t.testNetmasks(128, "255.255.255.255/128", "", "0.0.0.0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "::")
+	t.testNetmasks(129, "255.255.255.255/129", "", "0.0.0.0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/129", "", "::")
+
+	t.checkNotMask("254.255.0.0")
+	t.checkNotMask("255.255.0.1")
+	t.checkNotMask("0.1.0.0")
+	t.checkNotMask("0::10")
+	t.checkNotMask("1::0")
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -2513,6 +2531,162 @@ func (t ipAddressTester) testStringContains(result, equal bool, wstr, w2str *ipa
 			}
 
 		}
+	}
+}
+
+func isSameAllAround(supplied, internal *ipaddr.IPAddress) bool {
+	return supplied.Equals(internal) &&
+		internal.Equals(supplied) &&
+		internal.GetNetworkPrefixLen().Equals(supplied.GetNetworkPrefixLen()) &&
+		internal.GetMinPrefixLenForBlock() == supplied.GetMinPrefixLenForBlock() &&
+		internal.GetPrefixLenForSingleBlock().Equals(supplied.GetPrefixLenForSingleBlock()) &&
+		internal.GetCount().Cmp(supplied.GetCount()) == 0
+}
+
+func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress, ipv4NetworkAddressNoPrefix, ipv4HostAddress, ipv6NetworkAddress, ipv6NetworkAddressNoPrefix, ipv6HostAddress string) {
+	ipv6Addr := t.createAddress(ipv6NetworkAddress)
+	ipv4Addr := t.createAddress(ipv4NetworkAddress)
+	if prefix <= ipaddr.IPv6BitCount {
+		w2NoPrefix := t.createAddress(ipv6NetworkAddressNoPrefix)
+		//try {
+		_, err := ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv6)
+		if err != nil {
+			t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix))+": "+err.Error(), w2NoPrefix))
+		}
+		ipv6AddrValue := ipv6Addr.GetAddress()
+		ipv6network := ipv6AddrValue.GetNetwork()
+		//if(ipv6network.getPrefixConfiguration().zeroHostsAreSubnets()) {
+		//	IPAddress networkAddress = ipv6network.GetNetworkAddress(prefix);
+		//	//IPAddress networkAddress = ipv6network.getNetworkMask(prefix).toPrefixBlock();
+		//	if(!isSameAllAround(networkAddress, ipv6AddrValue)) {
+		//		addFailure(new Failure("network address mismatch " + networkAddress, ipv6AddrValue));
+		//	}
+		ipv6AddrValue = ipv6AddrValue.GetLower()
+		//}
+		addr6 := ipv6network.GetPrefixedNetworkMask(prefix)
+		addr6NoPrefix := ipv6network.GetNetworkMask(prefix)
+		w2ValueNoPrefix := w2NoPrefix.GetAddress()
+		//boolean one;
+		if (!isSameAllAround(ipv6AddrValue, addr6)) || !isSameAllAround(w2ValueNoPrefix, addr6NoPrefix) {
+			//one = !isSameAllAround(ipv6AddrValue, addr6);//min prefix is 0 vs 128
+			//isSameAllAround(w2ValueNoPrefix, addr6NoPrefix);
+			if !isSameAllAround(ipv6AddrValue, addr6) {
+				t.addFailure(newIPAddrFailure("failed "+addr6.String(), ipv6AddrValue))
+			} else {
+				t.addFailure(newIPAddrFailure("failed "+addr6NoPrefix.String(), w2ValueNoPrefix))
+			}
+		} else {
+			addrHost6 := ipv6network.GetHostMask(prefix)
+			ipv6HostAddrString := t.createAddress(ipv6HostAddress)
+			//try {
+			ipv6HostAddrValue := ipv6HostAddrString.GetAddress()
+			if !isSameAllAround(ipv6HostAddrValue, addrHost6) {
+				t.addFailure(newFailure("failed "+addrHost6.String(), ipv6HostAddrString))
+			} else if prefix <= ipaddr.IPv4BitCount {
+				wNoPrefix := t.createAddress(ipv4NetworkAddressNoPrefix)
+				//try {
+				//prefix, err := ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv6);
+				//if err != nil {
+				//	t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix)) + ": " + err.Error(), w2NoPrefix))
+				//}
+				_, err = ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv4)
+				if err != nil {
+					t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix))+": "+err.Error(), wNoPrefix))
+				}
+				wValue := ipv4Addr.GetAddress()
+				ipv4network := wValue.GetNetwork()
+				//if(ipv4network.getPrefixConfiguration().zeroHostsAreSubnets()) {
+				//	IPAddress networkAddress = ipv4network.getNetworkAddress(prefix);
+				//	//IPAddress networkAddress = ipv6network.getNetworkMask(prefix).toPrefixBlock();
+				//	if(!isSameAllAround(networkAddress, wValue)) {
+				//		addFailure(new Failure("network address mismatch " + networkAddress, wValue));
+				//	}
+				wValue = wValue.GetLower()
+				//}
+				addr4 := ipv4network.GetPrefixedNetworkMask(prefix)
+				addr4NoPrefix := ipv4network.GetNetworkMask(prefix)
+				wValueNoPrefix := wNoPrefix.GetAddress()
+				if (!isSameAllAround(wValue, addr4)) || !isSameAllAround(wValueNoPrefix, addr4NoPrefix) {
+					//isSameAllAround(wValue, addr4);
+					//isSameAllAround(wValueNoPrefix, addr4NoPrefix);
+					if !isSameAllAround(wValue, addr4) {
+						t.addFailure(newIPAddrFailure("failed "+addr4.String(), wValue))
+					} else {
+						t.addFailure(newIPAddrFailure("failed "+addr4NoPrefix.String(), wValueNoPrefix))
+					}
+				} else {
+					addr4 := ipv4network.GetHostMask(prefix)
+					ipv4Addr = t.createAddress(ipv4HostAddress)
+					//try {
+					wValue = ipv4Addr.GetAddress()
+					if !isSameAllAround(wValue, addr4) {
+						t.addFailure(newFailure("failed "+addr4.String(), ipv4Addr))
+					}
+					//} catch(AddressStringException e) {
+					//	addFailure(new Failure("failed " + addr4, ipv4Addr));
+					//}
+				}
+				//} catch(AddressStringException | IncompatibleAddressException e) {
+				//	addFailure(new Failure("failed prefix val", ipv4Addr));
+				//}
+			} else { //prefix > IPv4Address.BIT_COUNT
+				//try {
+				_, err := ipv4Addr.ToAddress()
+				if err != nil {
+					t.addFailure(newFailure("did not succeed with extra-large prefix", ipv4Addr))
+				}
+
+				//} catch(AddressStringException e) {}
+			}
+			//} catch(AddressStringException e) {
+			//	addFailure(new Failure("failed " + addrHost6, ipv6HostAddrString));
+			//}
+		}
+		//} catch(AddressStringException | IncompatibleAddressException e) {
+		//	addFailure(new Failure("failed prefix val", ipv6Addr));
+		//}
+	} else {
+		//try {
+		_, err := ipv6Addr.ToAddress()
+		if err == nil {
+			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv6Addr.String()+": "+err.Error(), ipv4Addr))
+		}
+		//addFailure(new Failure("succeeded with invalid prefix", ipv6Addr));
+		//} catch(AddressStringException e) {
+		_, err = ipv4Addr.ToAddress()
+		if err == nil {
+			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String()+": "+err.Error(), ipv4Addr))
+		}
+		//try {
+		//	ipv4Addr.toAddress();
+		//	addFailure(new Failure("succeeded with invalid prefix", ipv4Addr));
+		//} catch(AddressStringException e4) {}
+		//}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) checkAddrNotMask(address *ipaddr.IPAddress, network bool) bool {
+	maskPrefix := address.GetBlockMaskPrefixLen(network)
+	otherMaskPrefix := address.GetBlockMaskPrefixLen(!network)
+	if maskPrefix != nil {
+		t.addFailure(newIPAddrFailure("failed not mask "+maskPrefix.String(), address))
+		return false
+	}
+	if otherMaskPrefix != nil {
+		t.addFailure(newIPAddrFailure("failed not mask "+otherMaskPrefix.String(), address))
+		return false
+	}
+	t.incrementTestCount()
+	return true
+}
+
+func (t ipAddressTester) checkNotMask(addr string) {
+	addressStr := t.createAddress(addr)
+	address := addressStr.GetAddress()
+	val := (address.GetBytes()[0] & 1) == 0
+	if t.checkAddrNotMask(address, val) {
+		t.checkAddrNotMask(address, !val)
 	}
 }
 

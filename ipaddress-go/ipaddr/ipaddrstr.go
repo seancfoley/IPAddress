@@ -355,10 +355,6 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 	return nil
 }
 
-func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
-	return validator.validatePrefixLenStr(str, version)
-}
-
 // All address strings are comparable.  If two address strings are invalid, their strings are compared.
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
@@ -616,6 +612,10 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 		}
 	}
 	return addr.ToAddressString(), nil
+}
+
+func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
+	return validator.validatePrefixLenStr(str, version)
 }
 
 func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
