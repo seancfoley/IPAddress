@@ -156,7 +156,7 @@ func (network *IPv4AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddr
 
 var _ IPAddressNetwork = &IPv4AddressNetwork{}
 
-var DefaultIPv4Network = &IPv4AddressNetwork{
+var DefaultIPv4Network = &IPv4AddressNetwork{ //TODO rename this and the other default networks, to IPv4Network
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv4BitCount+1),
 		make([]*IPAddress, IPv4BitCount+1),

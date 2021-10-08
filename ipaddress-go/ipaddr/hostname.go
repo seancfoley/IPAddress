@@ -283,7 +283,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 				addrs = make([]*IPAddress, count)
 				for j := 0; j < count; j++ {
 					addr := ips[j]
-					networkPrefixLength := parsedHost.getNetworkPrefixLength()
+					networkPrefixLength := parsedHost.getNetworkPrefixLen()
 					byteLen := len(addr)
 					if networkPrefixLength == nil {
 						mask := parsedHost.getMask()
@@ -474,7 +474,7 @@ func (host *HostName) toNormalizedString(wildcard, addTrailingDot bool) string {
 			 *
 			 * Also note that ports and prefix/mask cannot appear at the same time, so this does not interfere with the port code below.
 			 */
-			networkPrefixLength := host.parsedHost.getEquivalentPrefixLength()
+			networkPrefixLength := host.parsedHost.getEquivalentPrefixLen()
 			if networkPrefixLength != nil {
 				builder.WriteByte(PrefixLenSeparator)
 				toUnsignedString(uint64(*networkPrefixLength), 10, &builder)
@@ -570,7 +570,7 @@ func (host *HostName) Equals(other *HostName) bool {
 			if thisHost != otherHost {
 				return false
 			}
-			return PrefixEquals(parsedHost.getEquivalentPrefixLength(), otherParsedHost.getEquivalentPrefixLength()) &&
+			return PrefixEquals(parsedHost.getEquivalentPrefixLen(), otherParsedHost.getEquivalentPrefixLen()) &&
 				ipAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
 				PortEquals(parsedHost.getPort(), otherParsedHost.getPort()) &&
 				parsedHost.getService() == otherParsedHost.getService()
@@ -638,19 +638,19 @@ TODO LATER isUNCIPv6Literal and isReverseDNS
 //	return isValid() && parsedHost.isReverseDNS();
 //}
 
-// GetNetworkPrefixLength() returns the prefix length, if a prefix length was supplied,
+// GetNetworkPrefixLen() returns the prefix length, if a prefix length was supplied,
 // either as part of an address or as part of a domain (in which case the prefix applies to any resolved address),
 // Otherwise, returns nil.
-func (host *HostName) GetNetworkPrefixLength() PrefixLen {
+func (host *HostName) GetNetworkPrefixLen() PrefixLen {
 	if host.IsAddress() {
 		addr, err := host.parsedHost.asAddress()
 		if err != nil {
-			return addr.GetNetworkPrefixLength()
+			return addr.GetNetworkPrefixLen()
 		}
 	} else if host.IsAddressString() {
-		return host.parsedHost.asGenericAddressString().GetNetworkPrefixLength()
+		return host.parsedHost.asGenericAddressString().GetNetworkPrefixLen()
 	} else if host.IsValid() {
-		return host.parsedHost.getEquivalentPrefixLength()
+		return host.parsedHost.getEquivalentPrefixLen()
 	}
 	return nil
 }
@@ -801,8 +801,8 @@ func (host *HostName) compareTo(other *HostName) int {
 				}
 
 				//keep in mind that hosts can has masks/prefixes or ports, but not both
-				networkPrefixLength := parsedHost.getEquivalentPrefixLength()
-				otherPrefixLength := otherParsedHost.getEquivalentPrefixLength()
+				networkPrefixLength := parsedHost.getEquivalentPrefixLen()
+				otherPrefixLength := otherParsedHost.getEquivalentPrefixLen()
 				if networkPrefixLength != nil {
 					if otherPrefixLength != nil {
 						if *networkPrefixLength != *otherPrefixLength {

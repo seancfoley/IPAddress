@@ -288,8 +288,8 @@ func (parseData *parsedIPAddress) getVersionedAddress(version IPVersion) (*IPAdd
 	return parseData.getProviderAddress()
 }
 
-func (parseData *parsedIPAddress) getProviderNetworkPrefixLength() PrefixLen {
-	return parseData.getQualifier().getEquivalentPrefixLength()
+func (parseData *parsedIPAddress) getProviderNetworkPrefixLen() PrefixLen {
+	return parseData.getQualifier().getEquivalentPrefixLen()
 }
 
 func (parseData *parsedIPAddress) contains(other string) (res boolSetting) {
@@ -308,7 +308,7 @@ func (parseData *parsedIPAddress) contains(other string) (res boolSetting) {
 		return
 		//return null;
 	}
-	pref := parseData.getProviderNetworkPrefixLength()
+	pref := parseData.getProviderNetworkPrefixLen()
 	//options := parseData.getParameters();
 	//IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network = (isProvidingIPv4() ? options.getIPv4Parameters() : options.getIPv6Parameters()).getNetwork();
 	if pref != nil && !parseData.isPrefixSubnet(*pref) {
@@ -464,7 +464,7 @@ func (parseData *parsedIPAddress) matchesPrefix(other string) (res boolSetting) 
 		}
 	}
 	pd := parseData.getAddressParseData()
-	pref := parseData.getProviderNetworkPrefixLength()
+	pref := parseData.getProviderNetworkPrefixLen()
 	var expectedCount int
 	compressedAlready := false
 	networkSegIsCompressed := false
@@ -961,8 +961,8 @@ func (parseData *parsedIPAddress) containsProv(other *parsedIPAddress, networkOn
 	//PrefixConfiguration prefConf = network.getPrefixConfiguration();
 	//boolean zeroHostsAreSubnets = prefConf.zeroHostsAreSubnets();
 	//boolean allPrefixedAddressesAreSubnets = prefConf.allPrefixedAddressesAreSubnets();
-	pref := parseData.getProviderNetworkPrefixLength()
-	otherPref := other.getProviderNetworkPrefixLength()
+	pref := parseData.getProviderNetworkPrefixLen()
+	otherPref := other.getProviderNetworkPrefixLen()
 	var networkSegIndex, hostSegIndex, endIndex, otherHostAllSegIndex, hostAllSegIndex int
 	endIndex = segmentCount
 
@@ -2279,7 +2279,7 @@ func createAllAddress(
 }
 
 func getPrefixLength(qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
-	return qualifier.getEquivalentPrefixLength()
+	return qualifier.getEquivalentPrefixLen()
 }
 
 /**

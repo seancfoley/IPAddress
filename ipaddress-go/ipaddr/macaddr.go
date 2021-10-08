@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	MACBitsPerSegment           BitCount = 8
-	MACBytesPerSegment                   = 1
-	MACDefaultTextualRadix               = 16
-	MACMaxValuePerSegment                = 0xff
-	MACMaxValuePerDottedSegment          = 0xffff
+	MACBitsPerSegment           = 8
+	MACBytesPerSegment          = 1
+	MACDefaultTextualRadix      = 16
+	MACMaxValuePerSegment       = 0xff
+	MACMaxValuePerDottedSegment = 0xffff
 
 	MediaAccessControlSegmentCount         = 6
 	MediaAccessControlDottedSegmentCount   = 3

@@ -71,7 +71,7 @@ func (seg *addressSegmentInternal) PrefixEquals(other AddressSegmentType, prefix
 		return seg.GetSegmentValue() == other.GetSegmentValue() && seg.GetUpperSegmentValue() == other.GetUpperSegmentValue()
 	}
 	return (other.GetSegmentValue()>>uint(shift)) == (seg.GetSegmentValue()>>uint(shift)) &&
-		(other.GetSegmentValue()>>uint(shift)) == (seg.GetUpperSegmentValue()>>uint(shift))
+		(other.GetUpperSegmentValue()>>uint(shift)) == (seg.GetUpperSegmentValue()>>uint(shift))
 }
 
 func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
@@ -79,7 +79,7 @@ func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 }
 
 func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
-	return (*AddressDivision)(unsafe.Pointer(seg))
+	return (*AddressDivision)(seg)
 }
 
 func (seg *addressSegmentInternal) GetSegmentValue() SegInt {

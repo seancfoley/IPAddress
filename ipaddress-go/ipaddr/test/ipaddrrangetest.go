@@ -402,7 +402,7 @@ func (t ipAddressRangeTester) run() {
 	t.ipv4test(false, "1.2.*.4/*:*:*:*:*:*:*:*")
 	t.ipv4test(false, "1.2.3.4/1.2.*.4")
 	t.ipv4test(false, "1.2.*.4/1.2.*.4")
-	t.ipv4test(true, "1.2.*.4/1.2.3.4") //TODO not sure masking working as expected here
+	t.ipv4test(true, "1.2.*.4/1.2.3.4")
 	t.ipv6test(false, "1:2::1/*")
 	t.ipv6test(false, "1:*::1/*")
 	t.ipv6test(false, "1:2::1/1:1-2:3:4:5:6:7:8")
@@ -1102,14 +1102,214 @@ func (t ipAddressRangeTester) run() {
 	t.ipv6test(true, "a-f:b:c:d:e:f:a:bb")
 	t.ipv6test(true, "-f:b:c:d:e:f:a:bb")
 
-	//TODO next
+	t.testCIDRSubnets("9.*.237.26/0", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/1", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/4", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/5", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/7", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/8", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/9", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/16", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/30", "9.*.237.26")
+	t.testCIDRSubnets("9.*.237.26/31", "9.*.237.26-27")
+	t.testCIDRSubnets("9.*.237.26/32", "9.*.237.26")
+
+	t.testContains("0.0.0.0/0", "1-2.*.3.*", false)
+
+	t.testContains("0-127.0.0.0/8", "127-127.*.3.*", false)
+	t.testContains("0.0.0.0/4", "13-15.*.3.*", false)
+	t.testContains("0-15.*.*.*/4", "13-15.*.3.*", false)
+	t.testContains("0.0.0.0/4", "9.*.237.*/16", false)
+	t.testContains("0.0.0.0/4", "8-9.*.237.*/16", false)
+
+	t.testNotContains("1-2.0.0.0/4", "9.*.237.*/16")
+	t.testNotContains("1-2.0.0.0/4", "8-9.*.237.*/16")
+
+	t.testNotContains("1-2.0.0.0/4", "9-17.*.237.*/16")
+	t.testContains("8.0.0.0/5", "15.2.3.4", false)
+	t.testContains("8.0.0.0/7", "8-9.*.3.*", false)
+	t.testContains("9.0.0.0/8", "9.*.3.*", false)
+	t.testContains("9.128.0.0/9", "9.128-255.*.0", false)
+	t.testContains("9.128.0.0/15", "9.128-129.3.*", false)
+	t.testContains("9.129.0.0/16", "9.129.3.*", false)
+	t.testNotContains("9.129.0.0/16", "9.128-129.3.*")
+	t.testNotContains("9.129.0.0/16", "9.128.3.*")
+	t.testContains("9.129.237.24/30", "9.129.237.24-27", true)
+	t.testContains("9.129.237.24/30", "9.129.237.24-27/31", true)
+	t.testContains("9.129.237.24-27/30", "9.129.237.24-27/31", true)
+
+	t.testContains("*.*.*.*/0", "9.129.237.26/0", false)
+	t.testContains("0.0.0.0/0", "*.*.*.*/0", true)
+	t.testContains("0.0.0.0/4", "0-15.0.0.*/4", false)
+	t.testNotContains("192.0.0.0/4", "0-15.0.0.*/4")
+
+	t.testNotContains("0-127.129.237.26/1", "0-127.0.*.0/1")
+	t.testNotContains("9.129.237.26/0", "*.*.*.1/0")
+	t.testNotContains("9.129.237.26/4", "0-15.0.1.*/4")
+	t.testNotContains("1-16.0.0.*/4", "9.129.237.26/4")
+	t.testNotContains("9.129.237.26/5", "8-15.0.0.0/5")
+	t.testNotContains("9.129.237.26/7", "8-9.0.0.1-3/7")
+	t.testNotContains("7-9.0.0.1-3/7", "9.129.237.26/7")
+	t.testNotContains("9.129.237.26/8", "9.*.0.0/8")
+	t.testNotContains("9.129.237.26/9", "9.128-255.0.0/9")
+	t.testNotContains("9.129.237.26/15", "9.128-129.0.*/15")
+	t.testNotContains("9.129.237.26/16", "9.129.*.1/16")
+	t.testNotContains("9.129.237.26/30", "9.129.237.27/30")
+
+	t.testContains("0.0.0.0/4", "9.129.237.26/4", false)
+	t.testContains("8.0.0.0/5", "8-15.0.0.0/5", false)
+	t.testContains("8.0.0.0/7", "8-9.0.0.1-3/7", false)
+	t.testContains("7-9.*.*.*/7", "9.129.237.26/7", false)
+	t.testContains("9.0.0.0/8", "9.*.0.0/8", false)
+	t.testContains("9.128.0.0/9", "9.128-255.0.0/9", false)
+	t.testContains("9.128.0.0/15", "9.128-129.0.*/15", false)
+	t.testContains("9.128.0.0/15", "9.128.0.0/15", true)
+	t.testContains("9.129.0.0/16", "9.129.*.*/16", true)
+	t.testContains("9.128-129.*.*/15", "9.128.0.0/15", true)
+	t.testContains("9.128.*.*/16", "9.128.0.0/16", true)
+	t.testContains("9.129.*.*/16", "9.129.*.*/16", true)
+	t.testContains("9.129.*.*/16", "9.129.*.0/16", false)
+	t.testContains("9.129.237.24/30", "9.129.237.24-27/30", true)
+	t.testContains("9.128-129.*.26/32", "9.128-129.*.26/32", true)
+
+	t.testNotContains("1-16.0.0.0/4", "9.129.237.26/4")
+	t.testNotContains("9.129.237.26/5", "8-15.0.0.0/5")
+	t.testNotContains("9.129.237.26/7", "8-9.0.0.1-3/7")
+	t.testNotContains("7-9.0.0.1-3/7", "9.129.237.26/7")
+	t.testNotContains("9.129.237.26/8", "9.*.0.0/8")
+	t.testNotContains("9.129.237.26/9", "9.128-255.0.0/9")
+	t.testNotContains("9.129.237.26/15", "9.128-129.0.*/15")
+	t.testNotContains("9.129.237.26/16", "9.129.*.1/16")
+	t.testNotContains("9.129.237.26/16", "9.129.1.*/16")
+	t.testNotContains("9.129.237.25/30", "9.129.237.26/30")
+
+	t.testContains("1-16.0.0.*/4", "9.0.0.*/4", false)
+	t.testNotContains("1-16.0.0.0-254/4", "9.0.0.*/4")
+	t.testContains("0-16.0.0.0/4", "9.0.0.*/4", false)
+	t.testContains("8-15.129.237.26/5", "9.129.237.26/5", false)
+	t.testContains("8-9.129.237.26/7", "9.129.237.26/7", false)
+	t.testContains("7-9.0.0.1-3/7", "9.0.0.2/7", false)
+	t.testContains("9.*.237.26/8", "9.*.237.26/8", true)
+	t.testContains("9.128-255.237.26/9", "9.129.237.26/9", false)
+	t.testContains("9.128-129.237.26/15", "9.129.237.26/15", false)
+	t.testContains("9.129.*.*/16", "9.129.237.26/16", false)
+	t.testContains("9.129.237.24-27/30", "9.129.237.26/30", false)
+	t.testContains("9.128-129.*.26/32", "9.128-129.*.26/32", true)
+
+	t.testNotContains("9.129.237.26/4", "16-17.0.0.*/4")
+	t.testNotContains("9.129.237.26/7", "2.0.0.1-3/7")
+
+	t.testContains("::ffff:1.*.3.4", "1.2.3.4", false) //ipv4 mapped
+
+	t.testNotContains("::ffff:1.2-4.3.4/112", "1.2-3.3.*")
+	t.testNotContains("ffff:0:0:0:0:0:*:0/32", "ffff:0:ffff:1-d:e:f:*:b")
+	t.testNotContains("fffc-ffff::ffff/30", "fffd-fffe:0:0:0:0:0:0:0/30")
+	t.testNotContains("ffff:0-d::ffff/32", "ffff:a-c:0:0:0:0:0:0/32")
+	t.testNotContains("ffff::ffff/0", "a-b:0:b:0:c:d-e:*:0/0")
+	t.testNotContains("ffff::ffff/1", "8000-8fff:0:0:0:0:*:a-b:0/1")
+	t.testNotContains("ffff:*::fffb/126", "ffff:*:0:0:0:0:0:fffc-ffff/126")
+	t.testNotContains("ffff:1-2::fffb/126", "ffff:1-2:0:0:0:0:0:fffc-ffff/126")
+
+	t.testContains("::ffff:1.2-4.0.0/112", "1.2-3.3.*", false)
+
+	t.testContains("0:0:0:0:0:0:0:0/0", "a:*:c:d:e:1-ffff:a:b", false)
+	t.testContains("8000:0:0:0:0:0:0:0/1", "8000-8fff:b:c:d:e:f:*:b", false)
+	t.testNotContains("8000:0:0:0:0:0:0:0/1", "7fff-8fff:b:c:d:e:f:*:b")
+	t.testContains("ffff:0:0:0:0:0:0:0/30", "ffff:0-3:c:d:e:f:a:b", false)
+	t.testNotContains("ffff:0:0:0:0:0:0:0/30", "ffff:0-4:c:d:e:f:a:b")
+
+	t.testContains("ffff:0:0:0:0:0:0:0/32", "ffff:0:ffff:1-d:e:f:*:b", false)
+	t.testContains("fffc-ffff::/30", "fffd-fffe:0:0:0:0:0:0:0/30", false)
+	t.testContains("ffff:0-d::/32", "ffff:a-c:0:0:0:0:0:0/32", false)
+
+	t.testNotContains("ffff:0:0:0:0:1-2:0:0/32", "ffff:0-1:ffff:d:e:f:a:b")
+	t.testContains("ffff:0:0:0:0:4-ffff:0:fffc-ffff", "ffff:0:0:0:0:4-ffff:0:fffd-ffff", false)
+	t.testContains("ffff:0:0:0:0:4-ffff:0:fffc/126", "ffff:0:0:0:0:4-ffff:0:fffd-ffff", false)
+	t.testContains("ffff:0:0:0:0:4-ffff:0:fffc/126", "ffff:0:0:0:0:4-ffff:0:fffc-ffff", true)
+	t.testContains("ffff:0:*:0:0:4-ffff:0:ffff/128", "ffff:0:*:0:0:4-ffff:0:ffff", true)
+
+	t.testContains("ffff:*:0:0:0:0:0:fffa-ffff/126", "ffff:*::ffff/126", false)
+
+	t.testContains("::/0", "a-b:0:b:0:c:d-e:*:0/0", false)
+	t.testContains("8000::/1", "8000-8fff:0:0:0:0:*:a-b:0/1", false)
+	t.testContains("ffff:*::fffc/126", "ffff:*:0:0:0:0:0:fffc-ffff/126", true)
+	t.testContains("ffff:1-2::fffc/126", "ffff:1-2:0:0:0:0:0:fffc-ffff/126", true)
+
+	t.testContains("10.162.155.1-255", "10.162.155.1-51", false)
+	t.testContains("10.162.155.1-51", "10.162.155.1-51", true)
+	t.testContains("10.162.1-51.155", "10.162.1-51.155", true)
+	t.testContains("10.162.1-255.155", "10.162.1-51.155", false)
+	t.testContains("1-255.10.162.155", "1-51.10.162.155", false)
+
+	t.testContains("10.162.155.0-255", "10.162.155.0-51", false)
+	t.testContains("10.162.155.0-51", "10.162.155.0-51", true)
+	t.testContains("10.162.0-51.155", "10.162.0-51.155", true)
+	t.testContains("10.162.0-255.155", "10.162.0-51.155", false)
+	t.testContains("0-255.10.162.155", "0-51.10.162.155", false)
+
+	t.testNotContains("192.13.1.0/25", "192.13.1.1-255")
+	t.testNotContains("192.13.1.1-255", "192.13.1.0/25")
+
+	t.testContains("192.13.1.0/25", "192.13.1.1-127", false)
+	t.testContains("192.13.1.0/25", "192.13.1.0-127", true)
+
+	t.testContains("192.13.1.0-127", "192.13.1.0/25", true)
+
+	t.testContains("ffff:1-3::/32", "ffff:2::", false)
+	t.testContains("ffff:2-3::/32", "ffff:2::", false)
+	t.testContains("ffff:1-3::/32", "ffff:3::", false)
+
+	t.testNotContains("ffff:1-3::/32", "ffff:4::")
+
+	t.testContains("ffff:1000-3000::/20", "ffff:2000::", false)
+	t.testContains("ffff:2000-3000::/20", "ffff:2000::", false)
+	t.testContains("ffff:1000-3000::/20", "ffff:3000::", false)
+
+	t.testNotContains("ffff:1000-3000::/20", "ffff:4000::")
+	t.testNotContains("ffff:2000-3000::/20", "ffff:4000::")
+
+	t.testContains("ffff:1000::/20", "ffff:1111-1222::", false)
+	t.testNotContains("ffff:1000::/20", "ffff:1-::")
+
+	t.testContains("ffff:1-:*", "ffff:1000::/20", false)
+	t.testNotContains("ffff:1000::/20", "ffff:1111-2222::")
+	t.testNotContains("ffff:1000::/20", "ffff:1-10::")
+	t.testNotContains("ffff:1000::/20", "ffff:1-1::")
+
+	t.testContains("::/64", "::", false)
+	t.testNotContains("1:2::/64", "::")
+	t.testContains("1:2::/64", "1:2::", false)
+
+	t.testNotContains("5.62.62-63.*", "5.62.64.1")
+	t.testNotContains("5.62.62-63.*", "5.62.68.1")
+	t.testNotContains("5.62.62-63.*", "5.62.78.1")
+
+	t.testContains("192.13.1.0/25", "192.13.1.1-127", false)
+
+	t.testNotContains("192.13.1.0/25", "192.13.1.1-255")
+	//testContainsNonZeroHosts("192.13.1.1-127", "192.13.1.0/25")
+	//testContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/24")
+	//testNotContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/23")
+	//
+	//testContainsNonZeroHosts("192.13.1.0-255", "192.13.1.0/23")
+
+	t.testContains("192.13.1.0-255", "192.13.1.0/23", false)
+
+	t.testContains("192.13.0-1.0-255", "192.13.1.0/23", false)
+	t.testContains("192.13.0-1.0-255", "192.13.0.0/23", true)
+
+	//testContainsNonZeroHosts("::192:13:1:1-7fff", "::192:13:1:0/113")
+	//testContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/112")
+	//testNotContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/111")
+
+	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
-	//testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, isAllSubnets ? "1.*.2.0/23" : "1.*.3.4/23");
+	//testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, false ? "1.*.2.0/23" : "1.*.3.4/23");
 	//
 	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", null, null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", null, "0:101:0:101:0:101:0:101");
-	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, isAllSubnets ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
+	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, false ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
 	//testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
 
 	t.ipAddressTester.run()

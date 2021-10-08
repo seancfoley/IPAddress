@@ -96,7 +96,7 @@ func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCou
 				minPref := segment.GetMinPrefixLenForBlock()
 				if minPref > 0 {
 					if minPref != bitsPerSegment || i != segCount-1 {
-						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
+						section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
 					}
 					isBlock = false
 					break
@@ -121,7 +121,7 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 				minPref := segment.GetMinPrefixLenForBlock()
 				if minPref > 0 {
 					if minPref != bitsPerSegment || i != segCount-1 {
-						section.prefixLength = getNetworkPrefixLength(bitsPerSegment, minPref, i)
+						section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
 					}
 					isBlock = false
 				}
@@ -168,7 +168,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 			if previousSegmentPrefix == nil {
 				if segPrefix != nil {
 					pref := *segPrefix
-					newPref := getNetworkPrefixLength(bitsPerSegment, pref, i)
+					newPref := getNetworkPrefixLen(bitsPerSegment, pref, i)
 					// if a section prefix was supplied, it will be assigned already and must align with the segments
 					if section.prefixLength != nil {
 						if *section.prefixLength != *newPref {
@@ -1146,7 +1146,6 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 			}
 		}
 	}
-
 	for prefixedSection--; prefixedSection >= 0; prefixedSection-- {
 		one := section.GetSegment(prefixedSection)
 		two := other.GetSegment(prefixedSection)

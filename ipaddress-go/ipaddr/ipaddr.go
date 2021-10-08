@@ -45,6 +45,10 @@ func (version IPVersion) index() int {
 	return 2
 }
 
+func (version IPVersion) Equals(other IPVersion) bool {
+	return strings.EqualFold(string(version), string(other)) || (version.IsIndeterminate() && other.IsIndeterminate())
+}
+
 func (version IPVersion) String() string {
 	return string(version)
 }
@@ -60,9 +64,9 @@ func (version IPVersion) getNetwork() (network IPAddressNetwork) {
 
 func (version IPVersion) toType() (t addrType) {
 	if version.IsIPv6() {
-		t = ipv4Type
-	} else if version.IsIPv4() {
 		t = ipv6Type
+	} else if version.IsIPv4() {
+		t = ipv4Type
 	}
 	return
 }
@@ -151,12 +155,12 @@ func (addr *ipAddressInternal) getIPVersion() IPVersion {
 	return IndeterminateIPVersion
 }
 
-func (addr *ipAddressInternal) GetNetworkPrefixLength() PrefixLen {
+func (addr *ipAddressInternal) GetNetworkPrefixLen() PrefixLen {
 	section := addr.section
 	if section == nil {
 		return nil
 	}
-	return section.ToIPAddressSection().GetNetworkPrefixLength()
+	return section.ToIPAddressSection().GetNetworkPrefixLen()
 }
 
 func (addr *ipAddressInternal) IncludesZeroHost() bool {
@@ -343,7 +347,7 @@ func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddre
 func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
 	if addr.IsPrefixed() {
-		prefLen = *addr.GetNetworkPrefixLength()
+		prefLen = *addr.GetNetworkPrefixLen()
 	} else {
 		prefLen = addr.GetBitCount()
 	}
@@ -353,9 +357,9 @@ func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddre
 func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
 	if addr.IsPrefixed() {
-		prefLen = *addr.GetNetworkPrefixLength()
+		prefLen = *addr.GetNetworkPrefixLen()
 	}
-	return network.GetNetworkMask(prefLen)
+	return network.GetHostMask(prefLen)
 }
 
 func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
@@ -1690,7 +1694,7 @@ func FromIP(ip net.IP) *IPAddress {
 }
 
 func FromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
-	addr, _ := addrFromPrefixedIP(ip, prefixLength)
+	addr, _ := addrFromPrefixedIP(ip, prefixLength) //TODO going wrong here
 	return addr
 	//if len(ip) <= IPv4ByteCount {
 	//	res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)

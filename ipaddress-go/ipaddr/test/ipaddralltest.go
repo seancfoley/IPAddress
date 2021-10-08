@@ -91,5 +91,24 @@ func (t ipAddressAllTester) run() {
 	//t.ipv6test(true, "=q{+M|w0(OeO5^F85=Cb"+ipaddr.AlternativeRangeSeparatorStr+"eth0") // ok
 	t.ipv6test(false, "=q{+M|w0(OeO5^F85=C"+ipaddr.AlternativeRangeSeparatorStr+"eth0") // too soon
 
+	t.testAllContains("*", "1:2:3:4:1:2:3:4", true)
+	t.testAllContains("*", "1.2.3.4.5", false)
+	t.testAllContains("*", "1.2.3.4", true)
+	t.testAllContains("*/64", "1.2.3.4", false)
+	t.testAllContains("*.*", "1::", false)
+	t.testAllContains("*:*", "1::", true)
+	t.testAllContains("*:*", "1.2.3.4", false)
+	t.testAllContains("*.*", "1.2.3.4", true)
+	t.testAllContains("*/64", "::", true)
+
 	t.ipAddressRangeTester.run()
+}
+
+func (t ipAddressAllTester) testAllContains(cidr1, cidr2 string, result bool) {
+	wstr := t.createAddress(cidr1)
+	w2str := t.createAddress(cidr2)
+
+	t.testStringContains(result, false, wstr, w2str)
+
+	t.incrementTestCount()
 }

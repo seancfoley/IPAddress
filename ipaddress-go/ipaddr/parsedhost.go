@@ -60,12 +60,12 @@ func (host *parsedHost) getService() string {
 	return host.labelsQualifier.getService()
 }
 
-func (host *parsedHost) getNetworkPrefixLength() PrefixLen {
-	return host.labelsQualifier.getNetworkPrefixLength()
+func (host *parsedHost) getNetworkPrefixLen() PrefixLen {
+	return host.labelsQualifier.getNetworkPrefixLen()
 }
 
-func (host *parsedHost) getEquivalentPrefixLength() PrefixLen {
-	return host.labelsQualifier.getEquivalentPrefixLength()
+func (host *parsedHost) getEquivalentPrefixLen() PrefixLen {
+	return host.labelsQualifier.getEquivalentPrefixLen()
 }
 
 func (host *parsedHost) getMask() *IPAddress {

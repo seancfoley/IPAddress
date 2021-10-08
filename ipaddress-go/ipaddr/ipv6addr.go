@@ -238,7 +238,7 @@ func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Addres
 // when this is called, we know the sections are sufficient length
 func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, IncompatibleAddressError) {
 	prefixLen := prefixSection.GetPrefixLen()
-	if prefixLen != nil && *prefixLen > *getNetworkPrefixLength(IPv6BitsPerSegment, 0, 4) {
+	if prefixLen != nil && *prefixLen > *getNetworkPrefixLen(IPv6BitsPerSegment, 0, 4) {
 		prefixLen = nil
 	}
 	segments := createSegmentArray(8)

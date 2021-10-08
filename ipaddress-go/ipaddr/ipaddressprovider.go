@@ -78,7 +78,7 @@ type ipAddressProvider interface {
 
 	isProvidingBase85IPv6() bool
 
-	getProviderNetworkPrefixLength() PrefixLen
+	getProviderNetworkPrefixLen() PrefixLen
 
 	isInvalid() bool
 
@@ -193,7 +193,7 @@ func (p *ipAddrProvider) isProvidingBase85IPv6() bool {
 	return false
 }
 
-func (p *ipAddrProvider) getProviderNetworkPrefixLength() PrefixLen {
+func (p *ipAddrProvider) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
@@ -427,9 +427,9 @@ func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress 
 	return
 }
 
-func (cached *cachedAddressProvider) getProviderNetworkPrefixLength() (p PrefixLen) {
+func (cached *cachedAddressProvider) getProviderNetworkPrefixLen() (p PrefixLen) {
 	if addr, _ := cached.getProviderAddress(); addr != nil {
-		p = addr.GetNetworkPrefixLength()
+		p = addr.GetNetworkPrefixLen()
 	}
 	return
 }
@@ -617,7 +617,7 @@ func (loop *loopbackCreator) providerEquals(other ipAddressProvider) (bool, Inco
 	return providerEquals(loop, other)
 }
 
-func (loop *loopbackCreator) getProviderNetworkPrefixLength() PrefixLen {
+func (loop *loopbackCreator) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
@@ -627,7 +627,7 @@ type adjustedAddressCreator struct {
 	networkPrefixLength PrefixLen
 }
 
-func (adjusted *adjustedAddressCreator) getProviderNetworkPrefixLength() PrefixLen {
+func (adjusted *adjustedAddressCreator) getProviderNetworkPrefixLen() PrefixLen {
 	return adjusted.networkPrefixLength
 }
 
@@ -692,7 +692,7 @@ type maskCreator struct {
 func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
-			networkPrefixLength: qualifier.getEquivalentPrefixLength(),
+			networkPrefixLength: qualifier.getEquivalentPrefixLen(),
 			versionedAddressCreator: versionedAddressCreator{
 				adjustedVersion: adjustedVersion,
 				parameters:      options,
@@ -734,8 +734,8 @@ func (all *allCreator) isProvidingAllAddresses() bool {
 	return all.adjustedVersion == IndeterminateIPVersion
 }
 
-func (all *allCreator) getProviderNetworkPrefixLength() PrefixLen {
-	return all.qualifier.getEquivalentPrefixLength()
+func (all *allCreator) getProviderNetworkPrefixLen() PrefixLen {
+	return all.qualifier.getEquivalentPrefixLen()
 }
 
 func (all *allCreator) getProviderMask() *IPAddress {

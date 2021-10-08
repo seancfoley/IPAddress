@@ -1777,7 +1777,7 @@ func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (pr
 	if !isPrefix {
 		err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalidCIDRPrefix"}}
 	} else {
-		prefixLen = qualifier.getNetworkPrefixLength()
+		prefixLen = qualifier.getNetworkPrefixLen()
 	}
 	return
 }
@@ -2679,7 +2679,7 @@ func chooseIPAddressProvider(
 		}
 		addressParseData := parseData.getAddressParseData()
 		if addressParseData.isProvidingEmpty() {
-			networkPrefixLength := qualifier.getNetworkPrefixLength()
+			networkPrefixLength := qualifier.getNetworkPrefixLen()
 			if networkPrefixLength != nil {
 				if version.IsIndeterminate() {
 					version = validationOptions.GetPreferredVersion()

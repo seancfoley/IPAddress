@@ -54,12 +54,12 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getMaskLower() *IPAddress
 	return nil
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) getNetworkPrefixLength() PrefixLen {
+func (parsedQual *parsedHostIdentifierStringQualifier) getNetworkPrefixLen() PrefixLen {
 	return parsedQual.networkPrefixLength
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLength() PrefixLen {
-	pref := parsedQual.getNetworkPrefixLength()
+func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLen() PrefixLen {
+	pref := parsedQual.getNetworkPrefixLen()
 	if pref == nil {
 		mask := parsedQual.getMaskLower()
 		if mask != nil {

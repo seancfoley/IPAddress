@@ -91,7 +91,7 @@ func getDivisionPrefixLength(divisionBits, divisionPrefixedBits BitCount) Prefix
 // Across an address prefixes are:
 // IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 // or IPv4: ...(null).(1 to 8).(0)...
-func getNetworkPrefixLength(bitsPerSegment, segmentPrefixLength BitCount, segmentIndex int) PrefixLen {
+func getNetworkPrefixLen(bitsPerSegment, segmentPrefixLength BitCount, segmentIndex int) PrefixLen {
 	var increment BitCount
 	if bitsPerSegment == 8 {
 		increment = BitCount(segmentIndex) << ipv4BitsToSegmentBitshift

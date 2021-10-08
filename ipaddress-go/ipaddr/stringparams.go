@@ -187,7 +187,7 @@ func from(opts IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringPara
 			res.hostCompressed = compressOptions.GetCompressionChoiceOptions().compressHost() &&
 				addr.IsPrefixed() &&
 				(res.nextUncompressedIndex >
-					getHostSegmentIndex(*addr.GetNetworkPrefixLength(), IPv6BytesPerSegment, IPv6BitsPerSegment))
+					getHostSegmentIndex(*addr.GetNetworkPrefixLen(), IPv6BytesPerSegment, IPv6BitsPerSegment))
 		}
 	}
 	return res

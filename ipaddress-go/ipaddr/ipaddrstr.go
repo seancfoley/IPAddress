@@ -71,17 +71,17 @@ func (addrStr *IPAddressString) GetValidationOptions() IPAddressStringParameters
 }
 
 // IsPrefixed returns whether this address string has an associated prefix length.
-// If so, the prefix length is given by GetNetworkPrefixLength()
+// If so, the prefix length is given by GetNetworkPrefixLen()
 func (addrStr *IPAddressString) IsPrefixed() bool {
-	return addrStr.GetNetworkPrefixLength() != nil
+	return addrStr.GetNetworkPrefixLen() != nil
 }
 
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
 // The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
-func (addrStr *IPAddressString) GetNetworkPrefixLength() PrefixLen { //TODO rename to GetNetworkPrefixLen
+func (addrStr *IPAddressString) GetNetworkPrefixLen() PrefixLen { //TODO rename to GetNetworkPrefixLen
 	addrStr = addrStr.init()
 	if addrStr.IsValid() {
-		return addrStr.addressProvider.getProviderNetworkPrefixLength()
+		return addrStr.addressProvider.getProviderNetworkPrefixLen()
 	}
 	return nil
 }
@@ -355,6 +355,10 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 	return nil
 }
 
+func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
+	return validator.validatePrefixLenStr(str, version)
+}
+
 // All address strings are comparable.  If two address strings are invalid, their strings are compared.
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
@@ -592,7 +596,7 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	if adjustment == 0 && addrStr.IsPrefixed() {
 		return addrStr, nil
 	}
-	prefix := address.GetNetworkPrefixLength()
+	prefix := address.GetNetworkPrefixLen()
 	isPrefBlock := address.IsPrefixBlock()
 	var addr *IPAddress
 	var err IncompatibleAddressError
