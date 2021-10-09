@@ -1302,6 +1302,24 @@ func (t ipAddressRangeTester) run() {
 	//testContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/112")
 	//testNotContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/111")
 
+	t.testSubnet("1.2-4.3.4", "255.255.254.255", 24, "1.2-4.2.4/24", "1.2-4.2.4", "1.2-4.3.4/24")
+	t.testSubnet("1.2-4.3.4", "255.248.254.255", 24, "1.0.2.4/24", "1.0.2.4", "1.2-4.3.4/24")
+
+	t.testSubnet("__::", "ffff::", 128, "0-ff:0:0:0:0:0:0:0/128", "0-ff:0:0:0:0:0:0:0", "0-ff:0:0:0:0:0:0:0/128")
+	t.testSubnet("0-ff::", "fff0::", 128, "", "", "0-ff:0:0:0:0:0:0:0/128")
+
+	t.testSubnet("0-ff::", "fff0::", 12, "0-ff:0:0:0:0:0:0:0/12", "", "0-ff:0:0:0:0:0:0:0/12")
+	//testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "0-f0:0:0:0:0:0:0:0", "0-f0:0:0:0:0:0:0:0/12");
+	t.testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "", "0-f0:0:0:0:0:0:0:0/12")
+	t.testSubnet("0-f::", "fff0::", 12, "0-f:0:0:0:0:0:0:0/12", "0:0:0:0:0:0:0:0", "0-f:0:0:0:0:0:0:0/12")
+	t.testSubnet("0-f::*", "fff0::ffff", 12, "0-f:0:0:0:0:0:0:*/12", "0:0:0:0:0:0:0:*", "0-f:0:0:0:0:0:0:*/12")
+
+	t.testSubnet("::1:__", "::1:ffff", 128, "0:0:0:0:0:0:1:0-ff/128", "0:0:0:0:0:0:1:0-ff", "0:0:0:0:0:0:1:0-ff/128")
+	t.testSubnet("::1:__", "::1:ffff", 126, "0:0:0:0:0:0:1:0-fc/126", "0:0:0:0:0:0:1:0-ff", "0:0:0:0:0:0:1:0-fc/126")
+	t.testSubnet("::1:0-ff", "::1:fff0", 128, "", "", "0:0:0:0:0:0:1:0-ff/128")
+	t.testSubnet("::1:0-ff", "::1:fff0", 124, "0:0:0:0:0:0:1:0-f0/124", "", "0:0:0:0:0:0:1:0-f0/124")
+	t.testSubnet("*::1:0-f", "ffff::1:fff0", 124, "*:0:0:0:0:0:1:0/124", "*:0:0:0:0:0:1:0", "*:0:0:0:0:0:1:0/124")
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
@@ -1347,27 +1365,3 @@ func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, 
 		t.iptest(pass, addr, isZero, notBoth, ipv4Test)
 	}
 }
-
-/*
-
-
-	void ipv4test(boolean pass, String x, boolean isZero, RangeParameters rangeOptions) {
-		iptest(pass, x, isZero, false, true, rangeOptions);
-	}
-
-	void ipv4test(boolean pass, String x, boolean isZero, RangeParameters ipv4RangeOptions, RangeParameters ipv6RangeOptions) {
-		iptest(pass, x, isZero, false, true, ipv4RangeOptions, ipv6RangeOptions);
-	}
-
-	void ipv6test(boolean pass, String x, RangeParameters options) {
-		ipv6test(pass, x, false, options);
-	}
-
-
-
-	void ipv6test(boolean pass, String x, boolean isZero, RangeParameters ipv4Options, RangeParameters ipv6Options) {
-		iptest(pass, x, isZero, false, false, ipv4Options, ipv6Options);
-	}
-
-
-*/

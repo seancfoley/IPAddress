@@ -604,6 +604,7 @@ func getDefaultRangeStringVals(strProvider divStringProvider, val1, val2 uint64,
 					break
 				}
 			}
+			charsStr.WriteByte(dig[value1&15])
 		}
 		charsStr.WriteByte(RangeSeparator)
 		value2 = uint(val2)
@@ -627,6 +628,7 @@ func getDefaultRangeStringVals(strProvider divStringProvider, val1, val2 uint64,
 					break
 				}
 			}
+			charsStr.WriteByte(dig[value2&15])
 		}
 		return charsStr.String()
 	}

@@ -1437,6 +1437,149 @@ func (t ipAddressTester) run() {
 	t.checkNotMask("0.1.0.0")
 	t.checkNotMask("0::10")
 	t.checkNotMask("1::0")
+
+	//Some mask/address combinations do not result in a contiguous range and thus don't work
+	//The underlying rule is that mask bits that are 0 must be above the resulting segment range.
+	//Any bit in the mask that is 0 must not fall below any bit in the masked segment range that is different between low and high
+	//Any network mask must eliminate the entire range in the segment
+	//Any host mask is fine
+
+	t.testSubnet("1.2.0.0", "0.0.255.255", 16 /* mask is valid with prefix */, "0.0.0.0/16" /* mask is valid alone */, "0.0.0.0", "1.2.0.0/16" /* prefix alone */)
+	t.testSubnet("1.2.0.0", "0.0.255.255", 17, "0.0.0.0/17", "0.0.0.0", "1.2.0.0/17")
+	t.testSubnet("1.2.128.0", "0.0.255.255", 17, "0.0.128.0/17", "0.0.128.0", "1.2.128.0/17")
+	t.testSubnet("1.2.0.0", "0.0.255.255", 15, "0.0.0.0/15", "0.0.0.0", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0", "0.0.255.255", 15, "0.0.0.0/15", "0.0.0.0", "1.2.0.0/15")
+
+	t.testSubnet("1.2.0.0/15", "0.0.255.255", 16, "0.0.0.0/16", "0.0.*.*", "1.2.0.0/15") //
+	t.testSubnet("1.2.0.0/15", "0.0.255.255", 15, "0.0.0.0/15", "0.0.*.*", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "0.0.255.255", 15, "0.0.0.0/15", "0.0.*.*", "1.2.0.0/15")
+	t.testSubnet("1.0.0.0/15", "0.1.255.255", 15, "0.0.0.0/15", "0.0-1.*.*", "1.0.0.0/15")
+
+	t.testSubnet("1.2.0.0/17", "0.0.255.255", 16, "0.0.0-127.*/16", "0.0.0-127.*", "1.2.0-127.*/16")
+	t.testSubnet("1.2.0.0/17", "0.0.255.255", 17, "0.0.0.0/17", "0.0.0-127.*", "1.2.0.0/17")
+	t.testSubnet("1.2.128.0/17", "0.0.255.255", 17, "0.0.128.0/17", "0.0.128-255.*", "1.2.128.0/17")
+	t.testSubnet("1.2.0.0/17", "0.0.255.255", 15, "0.0.0-127.*/15", "0.0.0-127.*", "1.2.0-127.*/15")       //
+	t.testSubnet("1.3.128.0/17", "0.0.255.255", 15, "0.1.128-255.*/15", "0.0.128-255.*", "1.2.0-127.*/15") //
+	t.testSubnet("1.3.128.0/17", "255.255.255.255", 15, ("1.3.128-255.*/15"), "1.3.128-255.*", "1.2.0-127.*/15")
+	t.testSubnet("1.3.0.0/16", "255.255.255.255", 8, ("1.3.*.*/8"), "1.3.*.*", "1.0.*.*/8")
+	t.testSubnet("1.0.0.0/16", "255.255.255.255", 8, "1.0.*.*/8", "1.0.*.*", "1.0.*.*/8")
+	t.testSubnet("1.0.0.0/18", "255.255.255.255", 16, "1.0.0-63.*/16", "1.0.0-63.*", "1.0.0-63.*/16")
+
+	t.testSubnet("1.2.0.0", "255.255.0.0", 16, "1.2.0.0/16", "1.2.0.0", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.0.0/17")
+	t.testSubnet("1.2.128.0", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.128.0/17")
+	t.testSubnet("1.2.128.0", "255.255.128.0", 17, "1.2.128.0/17", "1.2.128.0", "1.2.128.0/17")
+	t.testSubnet("1.2.0.0", "255.255.0.0", 15, "1.2.0.0/15", "1.2.0.0", "1.2.0.0/15")
+
+	t.testSubnet("1.2.0.0/17", "255.255.0.0", 16, "1.2.0-127.*/16", "1.2.0.0", "1.2.0-127.*/16")
+	t.testSubnet("1.2.0.0/17", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.0.0/17")
+	t.testSubnet("1.2.128.0/17", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.128.0/17")
+	t.testSubnet("1.2.128.0/17", "255.255.128.0", 17, "1.2.128.0/17", "1.2.128.0", "1.2.128.0/17")
+	t.testSubnet("1.2.0.0/17", "255.255.0.0", 15, "1.2.0-127.*/15", "1.2.0.0", "1.2.0-127.*/15")
+
+	t.testSubnet("1.2.0.0/16", "255.255.0.0", 16, "1.2.0.0/16", "1.2.0.0", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.0.0", 17, "1.2.0.0/17", "1.2.0.0", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.128.0", 17, "1.2.0-128.0/17", "", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.0.0", 15, "1.2.*.*/15", "1.2.0.0", "1.2.*.*/15")
+
+	t.testSubnet("1.2.0.0/15", "255.255.0.0", 16, "1.2-3.0.0/16", "1.2-3.0.0", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.0.0", 17, "1.2-3.0.0/17", "1.2-3.0.0", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.128.0", 17, "1.2-3.0-128.0/17", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.128.0", 18, "", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.192.0", 18, "1.2-3.0-192.0/18", "", "1.2.0.0/15")
+
+	t.testSubnet("1.0.0.0/12", "255.254.0.0", 16, "", "", "1.0.0.0/12")
+	t.testSubnet("1.0.0.0/12", "255.243.0.255", 16, "1.0-3.0.0/16", "1.0-3.0.*", "1.0.0.0/12")
+	t.testSubnet("1.0.0.0/12", "255.255.0.0", 16, "1.0-15.0.0/16", "1.0-15.0.0", "1.0.0.0/12")
+	t.testSubnet("1.0.0.0/12", "255.240.0.0", 16, "1.0.0.0/16", "1.0.0.0", "1.0.0.0/12")
+	t.testSubnet("1.0.0.0/12", "255.248.0.0", 13, "1.0-8.0.0/13", "", "1.0.0.0/12")
+
+	t.testSubnet("1.2.0.0/15", "255.254.128.0", 17, "1.2.0-128.0/17", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.128.0", 17, "1.2-3.0-128.0/17", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.252.128.0", 17, "1.0.0-128.0/17", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.252.128.0", 18, "", "", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.127.0", 15, "1.2.0.0/15", "1.2-3.0-127.0", "1.2.0.0/15")
+	t.testSubnet("1.2.0.0/15", "255.255.0.255", 15, "1.2.0.0/15", "1.2-3.0.*", "1.2.0.0/15")
+
+	t.testSubnet("1.2.128.1/17", "0.0.255.255", 17, "0.0.128.1/17", "0.0.128.1", "1.2.128.1/17")
+
+	t.testSubnet("1.2.3.4", "0.0.255.255", 16 /* mask is valid with prefix */, "0.0.3.4/16" /* mask is valid alone */, "0.0.3.4", "1.2.3.4/16" /* prefix alone */)
+	t.testSubnet("1.2.3.4", "0.0.255.255", 17, "0.0.3.4/17", "0.0.3.4", "1.2.3.4/17")
+	t.testSubnet("1.2.128.4", "0.0.255.255", 17, "0.0.128.4/17", "0.0.128.4", "1.2.128.4/17")
+	t.testSubnet("1.2.3.4", "0.0.255.255", 15, "0.0.3.4/15", "0.0.3.4", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4", "0.0.255.255", 15, "0.1.3.4/15", "0.0.3.4", "1.1.3.4/15")
+	t.testSubnet("1.2.128.4", "0.0.255.255", 15, "0.0.128.4/15", "0.0.128.4", "1.2.128.4/15")
+
+	t.testSubnet("1.2.3.4/15", "0.0.255.255", 16, "0.0.3.4/16", "0.0.3.4", "1.2.3.4/15") //second to last is 0.0.0.0/15 and I don't know why. we are applying the mask only.  I can see how the range becomes /16 but why the string look ike that?
+	t.testSubnet("1.2.3.4/15", "0.0.255.255", 17, "0.0.3.4/17", "0.0.3.4", "1.2.3.4/15")
+	t.testSubnet("1.2.128.4/15", "0.0.255.255", 17, "0.0.128.4/17", "0.0.128.4", "1.2.128.4/15")
+	t.testSubnet("1.2.3.4/15", "0.0.255.255", 15, "0.0.3.4/15", "0.0.3.4", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4/15", "0.0.255.255", 15, "0.1.3.4/15", "0.0.3.4", "1.1.3.4/15")
+	t.testSubnet("1.2.128.4/15", "0.0.255.255", 15, "0.0.128.4/15", "0.0.128.4", "1.2.128.4/15")
+	t.testSubnet("1.1.3.4/15", "0.1.255.255", 15, "0.1.3.4/15", "0.1.3.4", "1.1.3.4/15")
+	t.testSubnet("1.0.3.4/15", "0.1.255.255", 15, "0.0.3.4/15", "0.0.3.4", "1.0.3.4/15")
+
+	t.testSubnet("1.2.3.4/17", "0.0.255.255", 16, "0.0.3.4/16", "0.0.3.4", "1.2.3.4/16")
+	t.testSubnet("1.2.3.4/17", "0.0.255.255", 17, "0.0.3.4/17", "0.0.3.4", "1.2.3.4/17")
+	t.testSubnet("1.2.128.4/17", "0.0.255.255", 17, "0.0.128.4/17", "0.0.128.4", "1.2.128.4/17")
+	t.testSubnet("1.2.3.4/17", "0.0.255.255", 15, "0.0.3.4/15", "0.0.3.4", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4/17", "0.0.255.255", 15, "0.1.3.4/15", "0.0.3.4", "1.0.3.4/15")
+	t.testSubnet("1.2.128.4/17", "0.0.255.255", 15, "0.0.128.4/15", "0.0.128.4", "1.2.0.4/15")
+
+	t.testSubnet("1.2.3.4", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/16")
+	t.testSubnet("1.2.3.4", "255.255.0.0", 17, "1.2.3.4/17", "1.2.0.0", "1.2.3.4/17")
+	t.testSubnet("1.2.128.4", "255.255.0.0", 17, "1.2.0.4/17", "1.2.0.0", "1.2.128.4/17")
+	t.testSubnet("1.2.128.4", "255.255.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/17")
+	t.testSubnet("1.2.3.4", "255.255.0.0", 15, "1.2.3.4/15", "1.2.0.0", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4", "255.255.0.0", 15, "1.1.3.4/15", "1.1.0.0", "1.1.3.4/15")
+	t.testSubnet("1.2.128.4", "255.255.0.0", 15, "1.2.128.4/15", "1.2.0.0", "1.2.128.4/15")
+
+	t.testSubnet("1.2.3.4/17", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/16")
+	t.testSubnet("1.2.3.4/17", "255.255.0.0", 17, "1.2.3.4/17", "1.2.0.0", "1.2.3.4/17")
+	t.testSubnet("1.2.128.4/17", "255.255.0.0", 17, "1.2.0.4/17", "1.2.0.0", "1.2.128.4/17")
+	t.testSubnet("1.2.128.4/17", "255.255.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/17")
+	t.testSubnet("1.2.3.4/17", "255.255.0.0", 15, "1.2.3.4/15", "1.2.0.0", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4/17", "255.255.0.0", 15, "1.1.3.4/15", "1.1.0.0", "1.0.3.4/15")
+	t.testSubnet("1.2.128.4/17", "255.255.0.0", 15, "1.2.128.4/15", "1.2.0.0", "1.2.0.4/15")
+
+	t.testSubnet("1.2.3.4/16", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/16")
+	t.testSubnet("1.2.3.4/16", "255.255.0.0", 17, "1.2.3.4/17", "1.2.0.0", "1.2.3.4/16")
+	t.testSubnet("1.2.128.4/16", "255.255.0.0", 17, "1.2.0.4/17", "1.2.0.0", "1.2.128.4/16")
+	t.testSubnet("1.2.128.4/16", "255.255.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/16")
+	t.testSubnet("1.2.3.4/16", "255.255.0.0", 15, "1.2.3.4/15", "1.2.0.0", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4/16", "255.255.0.0", 15, "1.1.3.4/15", "1.1.0.0", "1.0.3.4/15")
+	t.testSubnet("1.2.128.4/16", "255.255.0.0", 15, "1.2.128.4/15", "1.2.0.0", "1.2.128.4/15")
+
+	t.testSubnet("1.2.3.4/15", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/15")
+	t.testSubnet("1.2.3.4/15", "255.255.0.0", 17, "1.2.3.4/17", "1.2.0.0", "1.2.3.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.0.0", 17, "1.2.0.4/17", "1.2.0.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.128.0", 18, "1.2.128.4/18", "1.2.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.192.0", 18, "1.2.128.4/18", "1.2.128.0", "1.2.128.4/15")
+
+	t.testSubnet("1.2.3.4/12", "255.254.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/12")
+	t.testSubnet("1.2.3.4/12", "255.243.0.255", 16, "1.2.3.4/16", "1.2.0.4", "1.2.3.4/12")
+	t.testSubnet("1.2.3.4/12", "255.255.0.0", 16, "1.2.3.4/16", "1.2.0.0", "1.2.3.4/12")
+	t.testSubnet("1.2.3.4/12", "255.240.0.0", 16, "1.0.3.4/16", "1.0.0.0", "1.2.3.4/12")
+	t.testSubnet("1.2.3.4/12", "255.248.0.0", 13, "1.2.3.4/13", "1.0.0.0", "1.2.3.4/12")
+
+	t.testSubnet("1.2.128.4/15", "255.254.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.128.0", 17, "1.2.128.4/17", "1.2.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.252.128.0", 17, "1.0.128.4/17", "1.0.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.128.4/15", "255.252.128.0", 18, "1.0.128.4/18", "1.0.128.0", "1.2.128.4/15")
+	t.testSubnet("1.2.3.4/15", "255.255.127.0", 15, "1.2.3.4/15", "1.2.3.0", "1.2.3.4/15")
+	t.testSubnet("1.1.3.4/15", "255.255.0.0", 15, "1.1.3.4/15", "1.1.0.0", "1.1.3.4/15")
+	t.testSubnet("1.2.128.4/15", "255.255.0.255", 15, "1.2.128.4/15", "1.2.0.4", "1.2.128.4/15")
+
+	t.testSubnet("::/8", "ffff::", 128, "0-ff:0:0:0:0:0:0:0/128", "0-ff:0:0:0:0:0:0:0", "0:0:0:0:0:0:0:0/8")
+	t.testSubnet("::/8", "fff0::", 128, "", "", "0:0:0:0:0:0:0:0/8")
+	/*x*/ t.testSubnet("::/8", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "", "0:0:0:0:0:0:0:0/8")
+
+	t.testSubnet("1.2.0.0/16", "255.255.0.1", 24, "1.2.0.0/24", "1.2.0.0-1", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.0.3", 24, "1.2.0.0/24", "1.2.0.0-3", "1.2.0.0/16")
+	t.testSubnet("1.2.0.0/16", "255.255.3.3", 24, "1.2.0-3.0/24", "1.2.0-3.0-3", "1.2.0.0/16")
+
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -1506,6 +1649,153 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 	}
 	t.incrementTestCount()
 }
+
+//var counter int
+
+func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.BitCount,
+	normalizedPrefixSubnetString,
+	normalizedSubnetString,
+	normalizedPrefixString string) {
+	//counter++
+	//fmt.Printf("test %v\n", counter)
+	t.testHostAddress(addressStr)
+	//isValidWithPrefix := normalizedPrefixSubnetString != ""
+	isValidMask := normalizedSubnetString != ""
+	str := t.createAddress(addressStr)
+	maskString := t.createAddress(maskStr)
+	//try {
+	value := str.GetAddress()
+	originalPrefix := value.GetNetworkPrefixLen()
+	//try {
+	mask := maskString.GetAddress()
+	var subnet3 *ipaddr.IPAddress
+	if originalPrefix == nil || *originalPrefix > prefix {
+		var perr error
+		subnet3, perr = value.SetPrefixLenZeroed(prefix)
+		if perr != nil {
+			t.addFailure(newIPAddrFailure("testSubnet failed setting prefix "+prefix.String()+" to: "+value.String()+" error: "+perr.Error(), subnet3))
+		}
+	} else {
+		subnet3 = value
+	}
+	string3 := subnet3.ToNormalizedString()
+	if string3 != normalizedPrefixString {
+		t.addFailure(newIPAddrFailure("testSubnet failed normalizedPrefixString: "+string3+" expected: "+normalizedPrefixString, subnet3))
+	} else {
+		//try {
+		//IPAddress subnet = value.maskNetwork(mask, prefix);
+		//if(!isValidWithPrefix) {
+		//	addFailure(new Failure("testSubnet failed to throw with mask " + mask + " and prefix " + prefix, value));
+		//} else {
+		//	 string := subnet.toNormalizedString();
+		//	if(!string.equals(normalizedPrefixSubnetString)) {
+		//		addFailure(new Failure("testSubnet failed: " + string + " expected: " + normalizedPrefixSubnetString, subnet));
+		//		//0.0.0.0/16 is normalizedPrefixSubnetString and 0.0.0-127.*/16 is string
+		//		//1.2.0.0/17 becomes 1.2.0.0/16 after we apply prefix length.
+		//		//Then 1.2.0.0/17 is network-masked with 0.0.255.255 and prefix 16.
+		//		// So that becomes 0.0.0-127.*/16.
+		//		// That used to be 0.0.0.0/16
+		//	} else {
+		//try {
+		//fmt.Printf("masking %v with %v\n", value, mask) // masking ::/8 with ffff::
+		subnet2, err := value.Mask(mask) //here?
+		if isValidMask && err != nil {
+			t.addFailure(newIPAddrFailure("testSubnet errored with mask "+mask.String(), value))
+		} else if !isValidMask && err == nil {
+			t.addFailure(newIPAddrFailure("testSubnet failed to error with mask "+mask.String(), value))
+		} else if isValidMask {
+			subnet2 = subnet2.WithoutPrefixLen()
+			string2 := subnet2.ToNormalizedString()
+			if string2 != normalizedSubnetString {
+				t.addFailure(newIPAddrFailure("testSubnet failed: "+string2+" expected: "+normalizedSubnetString, subnet2))
+			} else {
+				if subnet2.GetNetworkPrefixLen() != nil {
+					t.addFailure(newIPAddrFailure("testSubnet failed, expected null prefix, got: "+subnet2.GetNetworkPrefixLen().String(), subnet2))
+				} else {
+					subnet4, err := value.Mask(mask) //1.2.0.0/15 masked with 0.0.255.255, does this result in full host or not?  previously I had it that way, but now I wonder why
+					if err != nil {
+						t.addFailure(newIPAddrFailure("testSubnet errored with mask "+mask.String(), value))
+					}
+					if !subnet4.GetNetworkPrefixLen().Equals(originalPrefix) {
+						t.addFailure(newIPAddrFailure("testSubnet failed, expected "+originalPrefix.String()+" prefix, got: "+subnet4.GetNetworkPrefixLen().String(), subnet2))
+					} else {
+						if originalPrefix != nil {
+							//the prefix will be different, but the addresses will be the same, except for full subnets
+							//IPAddress addr = subnet2.setPrefixLength(originalPrefix, false);//0.0.*.* set to have prefix 15
+							addr := subnet2.SetPrefixLen(*originalPrefix) //0.0.*.* set to have prefix 15
+							if !subnet4.Equals(addr) {
+								t.addFailure(newIPAddrFailure("testSubnet failed: "+subnet4.String()+" expected: "+addr.String(), subnet4))
+								//subnet2.SetPrefixLen(originalPrefix); //addr second div 0-1,  subnet4 second div 0-0
+							}
+						} else {
+							if !subnet4.Equals(subnet2) {
+								t.addFailure(newIPAddrFailure("testSubnet failed: "+subnet4.String()+" expected: "+subnet2.String(), subnet4))
+							}
+						}
+					}
+				}
+			}
+		}
+		//} catch(IncompatibleAddressException e) {
+		//	if(isValidMask) {
+		//		addFailure(new Failure("testSubnet failed with mask " + mask + " " + e, value));
+		//	}
+		//}
+		//}
+		//}
+		//} catch(IncompatibleAddressException e) {
+		//if(isValidWithPrefix) {
+		//	addFailure(new Failure("testSubnet failed with mask " + mask + " and prefix " + prefix + ": " + e, value));
+		//} else {
+		//	try {
+		//		IPAddress subnet2 = value.mask(mask);
+		//		if(!isValidMask) {
+		//			addFailure(new Failure("testSubnet failed to throw with mask " + mask, value));
+		//		} else {
+		//			String string2 = subnet2.toNormalizedString();
+		//			if(!string2.equals(normalizedSubnetString)) {
+		//				addFailure(new Failure("testSubnet failed: " + normalizedSubnetString + " expected: " + string2, subnet2));
+		//			}
+		//		}
+		//	} catch(IncompatibleAddressException e2) {
+		//		if(isValidMask) {
+		//			addFailure(new Failure("testSubnet failed with mask " + mask + " " + e2, value));
+		//		}
+		//	}
+		//	}
+		//}
+	}
+	//} catch(AddressStringException e) {
+	//	addFailure(new Failure("t.testSubnet failed " + e, maskString));
+	//}
+	//} catch(AddressStringException | IncompatibleAddressException e) {
+	//	addFailure(new Failure("t.testSubnet failed " + e, str));
+	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testHostAddress(addressStr string) {
+	str := t.createAddress(addressStr)
+	address := str.GetAddress()
+	if address != nil {
+		hostAddress := str.GetHostAddress()
+		prefixIndex := strings.Index(addressStr, ipaddr.PrefixLenSeparatorStr)
+		//int prefixIndex = addressStr.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
+		if prefixIndex < 0 {
+			if !address.Equals(hostAddress) || !address.Contains(hostAddress) {
+				t.addFailure(newFailure("failed host address with no prefix: "+hostAddress.String()+" expected: "+address.String(), str))
+			}
+		} else {
+			substr := addressStr[:prefixIndex]
+			str2 := t.createAddress(substr)
+			address2 := str2.GetAddress()
+			if !address2.Equals(hostAddress) {
+				t.addFailure(newFailure("failed host address: "+hostAddress.String()+" expected: "+address2.String(), str))
+			}
+		}
+	}
+}
+
 func (t ipAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	str := t.createAddress(addressStr)
 	addr := str.GetAddress()

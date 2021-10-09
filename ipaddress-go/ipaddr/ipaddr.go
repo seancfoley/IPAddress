@@ -11,7 +11,8 @@ import (
 type IPVersion string
 
 const (
-	PrefixLenSeparator = '/'
+	PrefixLenSeparator    = '/'
+	PrefixLenSeparatorStr = "/"
 
 	IndeterminateIPVersion IPVersion = ""
 	IPv4                   IPVersion = "IPv4"
@@ -988,7 +989,6 @@ func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, Inco
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
 // The mask is applied to all individual addresses.
-// Any existing prefix length is removed beforehand.  If the retainPrefix argument is true, then the existing prefix length will be applied to the result.
 //
 // If the mask is a different version than this, then an error is returned
 //
