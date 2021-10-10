@@ -25,7 +25,7 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	return sect
 }
 
-//TODO I call this and createInitializedSection directly from a couple MAC places, maybe I should not do that?
+//TODO I call this and createInitializedSection directly from a couple MAC places, maybe I should not do that, instead use the derive methods?
 func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
 	result.isMultiple = isMultiple
@@ -932,7 +932,10 @@ func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
 	if !section.IsPrefixed() {
 		return section.toAddressSection()
 	}
-	return createSection(section.getDivisionsInternal(), nil, section.getAddrType())
+	if sect := section.toIPAddressSection(); sect != nil {
+		return sect.withoutPrefixLen().ToAddressSection()
+	}
+	return createSectionMultiple(section.getDivisionsInternal(), nil, section.getAddrType(), section.IsMultiple())
 }
 
 func (section *addressSectionInternal) getAdjustedPrefix(adjustment BitCount, floor, ceiling bool) BitCount {

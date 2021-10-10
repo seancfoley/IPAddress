@@ -1580,6 +1580,38 @@ func (t ipAddressTester) run() {
 	t.testSubnet("1.2.0.0/16", "255.255.0.3", 24, "1.2.0.0/24", "1.2.0.0-3", "1.2.0.0/16")
 	t.testSubnet("1.2.0.0/16", "255.255.3.3", 24, "1.2.0-3.0/24", "1.2.0-3.0-3", "1.2.0.0/16")
 
+	t.testSplit("9.129.237.26", 0, "", "", "", 1, "9.129.237.26", 2) //compare the two for equality.  compare the bytes of the second one with the bytes of the second one having no mask.
+	t.testSplit("9.129.237.26", 8, "9", "9", "9/8", 2, "129.237.26", 2)
+	t.testSplit("9.129.237.26", 16, "9.129", "9.129", "9.129/16", 2, "237.26", 2)
+
+	t.testSplit("9.129.237.26", 31, "9.129.237.26-27", "9.129.237.26", "9.129.237.26/31", 2, "0", 2)
+	t.testSplit("9.129.237.26", 32, "9.129.237.26", "9.129.237.26", "9.129.237.26/32", 2, "", 1)
+
+	t.testSplit("1.2.3.4", 4, "0-15", "0", "0/4", 2, "1.2.3.4", 2)
+	t.testSplit("255.2.3.4", 4, "240-255", "240", "240/4", 1, "15.2.3.4", 2)
+
+	t.testSplit("9:129::237:26", 0, "", "", "", 1, "9:129:0:0:0:0:237:26", 12) //compare the two for equality.  compare the bytes of the second one with the bytes of the second one having no mask.
+	t.testSplit("9:129::237:26", 16, "9", "9", "9/16", 2, "129:0:0:0:0:237:26", 12)
+	t.testSplit("9:129::237:26", 31, "9:128-129", "9:128", "9:128/31", 2, "1:0:0:0:0:237:26", 12)
+
+	t.testSplit("9:129::237:26", 32, "9:129", "9:129", "9:129/32", 2, "0:0:0:0:237:26", 10)
+	t.testSplit("9:129::237:26", 33, "9:129:0-7fff", "9:129:0", "9:129:0/33", 2, "0:0:0:0:237:26", 10)
+	t.testSplit("9:129::237:26", 63, "9:129:0:0-1", "9:129:0:0", "9:129:0:0/63", 4, "0:0:0:237:26", 10)
+	t.testSplit("9:129::237:26", 64, "9:129:0:0", "9:129:0:0", "9:129:0:0/64", 4, "0:0:237:26", 10)
+	t.testSplit("9:129::237:26", 96, "9:129:0:0:0:0", "9:129:0:0:0:0", "9:129:0:0:0:0/96", 4, "237:26", 4)
+	t.testSplit("9:129::237:26", 111, "9:129:0:0:0:0:236-237", "9:129:0:0:0:0:236", "9:129:0:0:0:0:236/111", 12, "1:26", 4)
+	t.testSplit("9:129::237:26", 112, "9:129:0:0:0:0:237", "9:129:0:0:0:0:237", "9:129:0:0:0:0:237/112", 12, "26", 4)
+	t.testSplit("9:129::237:26", 113, "9:129:0:0:0:0:237:0-7fff", "9:129:0:0:0:0:237:0", "9:129:0:0:0:0:237:0/113", 12, "26", 4)
+	t.testSplit("9:129::237:ffff", 113, "9:129:0:0:0:0:237:8000-ffff", "9:129:0:0:0:0:237:8000", "9:129:0:0:0:0:237:8000/113", 12, "7fff", 3)
+	t.testSplit("9:129::237:26", 127, "9:129:0:0:0:0:237:26-27", "9:129:0:0:0:0:237:26", "9:129:0:0:0:0:237:26/127", 12, "0", 5) //previously when splitting host we would have just one ipv4 segment, but now we have two ipv4 segments
+	t.testSplit("9:129::237:26", 128, "9:129:0:0:0:0:237:26", "9:129:0:0:0:0:237:26", "9:129:0:0:0:0:237:26/128", 12, "", 1)
+
+	USE_UPPERCASE := 2
+
+	t.testSplit("a:b:c:d:e:f:a:b", 4, "0-fff", "0", "0/4", 2, "a:b:c:d:e:f:a:b", 6*USE_UPPERCASE)
+	t.testSplit("ffff:b:c:d:e:f:a:b", 4, "f000-ffff", "f000", "f000/4", 1*USE_UPPERCASE, "fff:b:c:d:e:f:a:b", 6*USE_UPPERCASE)
+	t.testSplit("ffff:b:c:d:e:f:a:b", 2, "c000-ffff", "c000", "c000/2", 1*USE_UPPERCASE, "3fff:b:c:d:e:f:a:b", 6*USE_UPPERCASE)
+
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -2978,6 +3010,58 @@ func (t ipAddressTester) checkNotMask(addr string) {
 	if t.checkAddrNotMask(address, val) {
 		t.checkAddrNotMask(address, !val)
 	}
+}
+
+//TODO you wqnt to see what strings look like when you have an empty section with a prefix length, in both go and java
+
+func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network, networkNoRange, networkWithPrefix string, networkStringCount int, host string, hostStringCount int) {
+	//try {
+	w := t.createAddress(address)
+	v := w.GetAddress()
+	section := v.GetNetworkSectionLen(bits)
+	section = section.WithoutPrefixLen()
+	sectionStr := section.ToNormalizedString()
+	//printStrings(section);
+	if sectionStr != network {
+		t.addFailure(newFailure("failed got "+sectionStr+" expected "+network, w))
+	} else {
+		sectionWithPrefix := v.GetNetworkSectionLen(bits)
+		sectionStrWithPrefix := sectionWithPrefix.ToNormalizedString()
+		if sectionStrWithPrefix != (networkWithPrefix) {
+			t.addFailure(newFailure("failed got "+sectionStrWithPrefix+" expected "+networkWithPrefix, w))
+		} else {
+			s := section.GetLower()
+			//fmt.Printf("%v %v\n", s, section)
+			sectionStrNoRange := s.ToNormalizedString()
+			if sectionStrNoRange != networkNoRange || s.GetCount().Int64() != 1 {
+				t.addFailure(newFailure("failed got "+sectionStrNoRange+" expected "+networkNoRange, w))
+			} else {
+				//IPAddressPartStringCollection coll = sectionWithPrefix.toStandardStringCollection(); TODO LATER string collections
+				//String standards[] = coll.toStrings();
+				//if(standards.length != networkStringCount) {
+				//	addFailure(new Failure("failed " + section + " expected count " + networkStringCount + " was " + standards.length, w));
+				//} else {
+				section = v.GetHostSectionLen(bits)
+				section = section.WithoutPrefixLen()
+				//printStrings(section);
+				sectionStr = section.ToNormalizedString()
+				if sectionStr != (host) {
+					t.addFailure(newFailure("failed "+sectionStr+" expected "+host, w))
+				} //else { TODO LATER string collections
+				//	String standardStrs[] = section.toStandardStringCollection().toStrings();
+				//	if(standardStrs.length != hostStringCount) {
+				//		addFailure(new Failure("failed " + section + " expected count " + hostStringCount + " was " + standardStrs.length, w));
+				//		//standardStrs = section.toStandardStringCollection().toStrings();
+				//	}
+				//}
+				//}
+			}
+		}
+	}
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure("unexpected throw: " + e));
+	//}
+	t.incrementTestCount()
 }
 
 var conv = ipaddr.DefaultAddressConverter{}

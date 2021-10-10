@@ -400,7 +400,12 @@ type stringCache struct {
 	*macStringCache
 }
 
-var zeroStringCache stringCache
+var zeroStringCache = stringCache{
+	ipv6StringCache: &ipv6StringCache{},
+	ipv4StringCache: &ipv4StringCache{},
+	ipStringCache:   &ipStringCache{},
+	macStringCache:  &macStringCache{},
+}
 
 type groupingCache struct {
 	lower, upper *AddressSection

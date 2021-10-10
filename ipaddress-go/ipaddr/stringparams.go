@@ -742,9 +742,11 @@ func (params *addressStringParams) appendZone(builder *strings.Builder, zone Zon
 }
 
 func (params *addressStringParams) appendZoned(builder *strings.Builder, addr AddressDivisionSeries, zone Zone) *strings.Builder {
-	params.appendLabel(builder)
-	params.appendSegments(builder, addr)
-	params.appendZone(builder, zone)
+	if addr.GetDivisionCount() > 0 {
+		params.appendLabel(builder)
+		params.appendSegments(builder, addr)
+		params.appendZone(builder, zone)
+	}
 	return builder
 }
 
@@ -963,9 +965,11 @@ func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, pa
 }
 
 func (params *ipAddressStringParams) append(builder *strings.Builder, addr AddressDivisionSeries, zone Zone) *strings.Builder {
-	params.appendSuffix(params.appendZone(params.appendSegments(params.appendLabel(builder), addr), zone))
-	if !params.reverse && !params.preferWildcards() {
-		params.appendPrefixIndicator(builder, addr)
+	if addr.GetDivisionCount() > 0 {
+		params.appendSuffix(params.appendZone(params.appendSegments(params.appendLabel(builder), addr), zone))
+		if !params.reverse && !params.preferWildcards() {
+			params.appendPrefixIndicator(builder, addr)
+		}
 	}
 	return builder
 }
@@ -1094,14 +1098,16 @@ func (params *ipv6StringParams) getTrailingSepCount(addr IPAddressSegmentSeries)
 }
 
 func (params *ipv6StringParams) append(builder *strings.Builder, addr *IPv6AddressSection, zone Zone) (err IncompatibleAddressError) {
-	// Our order is label, then segments, then zone, then suffix, then prefix length.
-	err = params.appendSegments(params.appendLabel(builder), addr)
-	if err != nil {
-		return
-	}
-	params.appendSuffix(params.appendZone(builder, zone))
-	if !params.reverse && (!params.preferWildcards() || params.hostCompressed) {
-		params.appendPrefixIndicator(builder, addr)
+	if addr.GetDivisionCount() > 0 {
+		// Our order is label, then segments, then zone, then suffix, then prefix length.
+		err = params.appendSegments(params.appendLabel(builder), addr)
+		if err != nil {
+			return
+		}
+		params.appendSuffix(params.appendZone(builder, zone))
+		if !params.reverse && (!params.preferWildcards() || params.hostCompressed) {
+			params.appendPrefixIndicator(builder, addr)
+		}
 	}
 	return
 }
@@ -1300,27 +1306,29 @@ func (params *ipv6v4MixedParams) appendDivision(builder *strings.Builder, seg *A
 }
 
 func (params *ipv6v4MixedParams) append(builder *strings.Builder, addr *IPv6v4MixedAddressGrouping, zone Zone) *strings.Builder {
-	ipv6Params := params.ipv6Params
-	ipv6Params.appendLabel(builder)
-	ipv6Params.appendSegments(builder, addr.GetIPv6AddressSection())
-	if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
-		builder.WriteByte(ipv6Params.getTrailingSegmentSeparator())
-	}
-	params.ipv4Params.appendSegments(builder, addr.GetIPv4AddressSection())
+	if addr.GetDivisionCount() > 0 {
+		ipv6Params := params.ipv6Params
+		ipv6Params.appendLabel(builder)
+		ipv6Params.appendSegments(builder, addr.GetIPv6AddressSection())
+		if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
+			builder.WriteByte(ipv6Params.getTrailingSegmentSeparator())
+		}
+		params.ipv4Params.appendSegments(builder, addr.GetIPv4AddressSection())
 
-	/*
-	 * rfc 4038: for bracketed addresses, zone is inside and prefix outside, putting prefix after zone.
-	 *
-	 * Suffixes are things like .in-addr.arpa, .ip6.arpa, .ipv6-literal.net
-	 * which generally convert an address string to a host
-	 * As with our HostName, we support host/prefix in which case the prefix is applied
-	 * to the resolved address.
-	 *
-	 * So in summary, our order is zone, then suffix, then prefix length.
-	 */
-	ipv6Params.appendZone(builder, zone)
-	ipv6Params.appendSuffix(builder)
-	params.appendPrefixIndicator(builder, addr)
+		/*
+		 * rfc 4038: for bracketed addresses, zone is inside and prefix outside, putting prefix after zone.
+		 *
+		 * Suffixes are things like .in-addr.arpa, .ip6.arpa, .ipv6-literal.net
+		 * which generally convert an address string to a host
+		 * As with our HostName, we support host/prefix in which case the prefix is applied
+		 * to the resolved address.
+		 *
+		 * So in summary, our order is zone, then suffix, then prefix length.
+		 */
+		ipv6Params.appendZone(builder, zone)
+		ipv6Params.appendSuffix(builder)
+		params.appendPrefixIndicator(builder, addr)
+	}
 	return builder
 }
 
