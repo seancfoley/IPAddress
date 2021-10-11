@@ -788,16 +788,22 @@ func (addr *IPAddress) GetIP() net.IP {
 	return addr.GetBytes()
 }
 
-func (addr *IPAddress) CopyIP(bytes net.IP) net.IP {
-	return addr.CopyBytes(bytes)
+func (addr *IPAddress) CopyIP(ip net.IP) net.IP {
+	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
+		return ipv4Addr.CopyBytes(ip)
+	}
+	return addr.CopyBytes(ip)
 }
 
 func (addr *IPAddress) GetUpperIP() net.IP {
 	return addr.GetUpperBytes()
 }
 
-func (addr *IPAddress) CopyUpperIP(bytes net.IP) net.IP {
-	return addr.CopyUpperBytes(bytes)
+func (addr *IPAddress) CopyUpperIP(ip net.IP) net.IP {
+	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
+		return ipv4Addr.CopyBytes(ip)
+	}
+	return addr.CopyUpperBytes(ip)
 }
 
 func (addr *IPAddress) GetBytes() []byte {
@@ -1650,68 +1656,62 @@ type IPAddressValueProvider interface {
 //	return count
 //}
 
-func addrFromIP(bytes net.IP) (addr *IPAddress, err AddressValueError) {
-	addrLen := len(bytes)
+func addrFromIP(ip net.IP) (addr *IPAddress, err AddressValueError) {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	addrLen := len(ip)
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
-		addr4, err = NewIPv4AddressFromIP(bytes)
+		addr4, err = NewIPv4AddressFromIP(ip)
 		addr = addr4.ToIPAddress()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
-		addr6, err = NewIPv6AddressFromIP(bytes)
+		addr6, err = NewIPv6AddressFromIP(ip)
 		addr = addr6.ToIPAddress()
 	}
 	return
 }
 
-func addrFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (addr *IPAddress, err AddressValueError) {
-	addrLen := len(bytes)
+func addrFromPrefixedIP(ip net.IP, prefixLen PrefixLen) (addr *IPAddress, err AddressValueError) {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	addrLen := len(ip)
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
-		addr4, err = NewIPv4AddressFromPrefixedIP(bytes, prefixLen)
+		addr4, err = NewIPv4AddressFromPrefixedIP(ip, prefixLen)
 		addr = addr4.ToIPAddress()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
-		addr6, err = NewIPv6AddressFromPrefixedIP(bytes, prefixLen)
+		addr6, err = NewIPv6AddressFromPrefixedIP(ip, prefixLen)
 		addr = addr6.ToIPAddress()
 	}
 	return
 }
 
 //TODO you could rename these to "New" methods instead of From, they're no different than the New methods construcitng ipv4/6
+// so that would be NewIPAddressFromIP
 
 func FromIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
 	return addr
-	//if len(ip) <= IPv4ByteCount {
-	//	res, _ := NewIPv4AddressFromIP(ip)
-	//	return res.ToIPAddress()
-	//} else if len(ip) <= IPv6ByteCount {
-	//	res, _ := NewIPv6AddressFromIP(ip)
-	//	return res.ToIPAddress()
-	//}
-	//return nil
 }
 
 func FromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
-	addr, _ := addrFromPrefixedIP(ip, prefixLength) //TODO going wrong here
+	addr, _ := addrFromPrefixedIP(ip, prefixLength)
 	return addr
-	//if len(ip) <= IPv4ByteCount {
-	//	res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
-	//	return res.ToIPAddress()
-	//} else if len(ip) <= IPv6ByteCount {
-	//	res, _ := NewIPv6AddressFromPrefixedIP(ip, prefixLength)
-	//	return res.ToIPAddress()
-	//}
-	//return nil
 }
 
 func FromIPAddr(addr *net.IPAddr) *IPAddress {
-	bytes := addr.IP
-	if len(bytes) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromIP(bytes)
+	ip := addr.IP
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	if len(ip) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromIP(ip)
 		return res.ToIPAddress()
-	} else if len(bytes) <= IPv6ByteCount {
+	} else if len(ip) <= IPv6ByteCount {
 		res, _ := NewIPv6AddressFromIPAddr(addr)
 		return res.ToIPAddress()
 	}
@@ -1719,11 +1719,14 @@ func FromIPAddr(addr *net.IPAddr) *IPAddress {
 }
 
 func FromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
-	bytes := addr.IP
-	if len(bytes) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromPrefixedIP(bytes, prefixLength)
+	ip := addr.IP
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	if len(ip) <= IPv4ByteCount {
+		res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
 		return res.ToIPAddress()
-	} else if len(bytes) <= IPv6ByteCount {
+	} else if len(ip) <= IPv6ByteCount {
 		res, _ := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLength)
 		return res.ToIPAddress()
 	}

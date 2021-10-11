@@ -16,22 +16,23 @@ import (
 func Test() {
 	var acc testAccumulator
 	var addresses addresses
+	fullTest := true
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
 
-	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
+	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	tester.run()
 	macTester.run()
 
 	rangedAddresses := rangedAddresses{addresses}
-	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
+	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
 	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	rangeTester.run()
 	macRangeTester.run()
 
 	allAddresses := allAddresses{rangedAddresses}
-	allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses}}}}
+	allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses, fullTest: fullTest}}}}
 	allTester.run()
 
 	endTime := time.Now().Sub(startTime)
@@ -69,6 +70,7 @@ type tester interface {
 }
 
 type testBase struct {
+	fullTest bool
 	testResults
 	testAddresses
 }

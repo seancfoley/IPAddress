@@ -1612,6 +1612,81 @@ func (t ipAddressTester) run() {
 	t.testSplit("ffff:b:c:d:e:f:a:b", 4, "f000-ffff", "f000", "f000/4", 1*USE_UPPERCASE, "fff:b:c:d:e:f:a:b", 6*USE_UPPERCASE)
 	t.testSplit("ffff:b:c:d:e:f:a:b", 2, "c000-ffff", "c000", "c000/2", 1*USE_UPPERCASE, "3fff:b:c:d:e:f:a:b", 6*USE_UPPERCASE)
 
+	t.testURL("http://1.2.3.4")
+	t.testURL("http://[a:a:a:a:b:b:b:b]")
+	t.testURL("http://a:a:a:a:b:b:b:b")
+
+	//TODO LATER maybe - test sections works with getStartsWithSQLClause
+	//testSections("9.129.237.26", 0, 1)
+	//testSections("9.129.237.26", 8, 1 /* 2 */)
+	//testSections("9.129.237.26", 16, 1 /* 2 */)
+	//testSections("9.129.237.26", 24, 1 /* 2 */)
+	//testSections("9.129.237.26", 32, 1 /* 2 */)
+	//testSections("9:129::237:26", 0, 1)
+	//testSections("9:129::237:26", 16, 1 /* 2 */)
+	//testSections("9:129::237:26", 64, 2 /* 4 */)
+	//testSections("9:129::237:26", 80, 2 /* 4 */)
+	//testSections("9:129::237:26", 96, 2 /* 4 */)
+	//testSections("9:129::237:26", 112, 2 /* 12 */)
+	//testSections("9:129::237:26", 128, 2 /* 12 */)
+	//
+	//testSections("9.129.237.26", 7, 2 /* 4 */)
+	//testSections("9.129.237.26", 9, 128 /* 256 */) //129 is 10000001
+	//testSections("9.129.237.26", 10, 64 /* 128 */)
+	//testSections("9.129.237.26", 11, 32 /* 64 */)
+	//testSections("9.129.237.26", 12, 16 /* 32 */)
+	//testSections("9.129.237.26", 13, 8 /* 16 */)
+	//testSections("9.129.237.26", 14, 4 /* 8 */) //10000000 to 10000011 (128 to 131)
+	//testSections("9.129.237.26", 15, 2 /* 4 */) //10000000 to 10000001 (128 to 129)
+
+	// TODO LATER testVariantCounts works with string collections
+	////test that the given address has the given number of standard variants and total variants
+	//testVariantCounts("::", 2, 2, 9, 1297);
+	//testVariantCounts("::1", 2, 2, 10, 1298);
+	////testVariantCounts("::1", 2, 2, IPv6Address.network().getStandardLoopbackStrings().length, 1298);//this confirms that IPv6Address.getStandardLoopbackStrings() is being initialized properly
+	//testVariantCounts("::ffff:1.2.3.4", 6, 4, 20, 1410, 1320);//ipv4 mapped
+	//testVariantCounts("::fffe:1.2.3.4", 2, 4, 20, 1320, 1320);//almost identical but not ipv4 mapped
+	//testVariantCounts("::ffff:0:0", 6, 4, 24, 1474, 1384);//ipv4 mapped
+	//testVariantCounts("::fffe:0:0", 2, 4, 24, 1384, 1384);//almost identical but not ipv4 mapped
+	//testVariantCounts("2:2:2:2:2:2:2:2", 2, 1, 6, 1280);
+	//testVariantCounts("2:0:0:2:0:2:2:2", 2, 2, 18, 2240);
+	//testVariantCounts("a:b:c:0:d:e:f:1", 2, 4, 12 * USE_UPPERCASE, 1920 * USE_UPPERCASE);
+	//testVariantCounts("a:b:c:0:0:d:e:f", 2, 4, 12 * USE_UPPERCASE, 1600 * USE_UPPERCASE);
+	//testVariantCounts("a:b:c:d:e:f:0:1", 2, 4, 8 * USE_UPPERCASE, 1408 * USE_UPPERCASE);
+	//testVariantCounts("a:b:c:d:e:f:0:0", 2, 4, 8 * USE_UPPERCASE, 1344 * USE_UPPERCASE);
+	//testVariantCounts("a:b:c:d:e:f:a:b", 2, 2, 6 * USE_UPPERCASE, 1280 * USE_UPPERCASE);
+	//testVariantCounts("aaaa:bbbb:cccc:dddd:eeee:ffff:aaaa:bbbb", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
+	//testVariantCounts("a111:1111:1111:1111:1111:1111:9999:9999", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
+	//testVariantCounts("1a11:1111:1111:1111:1111:1111:9999:9999", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
+	//testVariantCounts("11a1:1111:1111:1111:1111:1111:9999:9999", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
+	//testVariantCounts("111a:1111:1111:1111:1111:1111:9999:9999", 2, 2, 2 * USE_UPPERCASE, 2 * USE_UPPERCASE);
+	//testVariantCounts("aaaa:b:cccc:dddd:eeee:ffff:aaaa:bbbb", 2, 2, 4 * USE_UPPERCASE, 4 * USE_UPPERCASE);
+	//testVariantCounts("aaaa:b:cc:dddd:eeee:ffff:aaaa:bbbb", 2, 2, 4 * USE_UPPERCASE, 8 * USE_UPPERCASE);
+	//testVariantCounts("1.2.3.4", 6, 1, 2, 420, 90, 16);
+	//testVariantCounts("0.0.0.0", 6, 1, 2, 484, 90, 16);
+	//testVariantCounts("1111:2222:aaaa:4444:5555:6666:7070:700a", 2,  1 * USE_UPPERCASE, 1 * USE_UPPERCASE + 2 * USE_UPPERCASE, 1 * USE_UPPERCASE + 2 * USE_UPPERCASE);//this one can be capitalized when mixed
+	//testVariantCounts("1111:2222:3333:4444:5555:6666:7070:700a", 2, 2, 1 * USE_UPPERCASE + 2, 1 * USE_UPPERCASE + 2);//this one can only be capitalized when not mixed, so the 2 mixed cases are not doubled
+
+	t.testReverseHostAddress("1.2.0.0/20")
+	t.testReverseHostAddress("1.2.3.4")
+	t.testReverseHostAddress("1:f000::/20")
+
+	b1 := -1
+	t.testFromBytes([]byte{byte(b1), byte(b1), byte(b1), byte(b1)}, "255.255.255.255")
+	t.testFromBytes([]byte{1, 2, 3, 4}, "1.2.3.4")
+	b := [16]byte{}
+	t.testFromBytes(b[:], "::")
+	t.testFromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, "::1")
+	t.testFromBytes([]byte{0, 10, 0, 11, 0, 12, 0, 13, 0, 14, 0, 15, 0, 1, 0, 2}, "a:b:c:d:e:f:1:2")
+
+	if t.fullTest && runDNS {
+		//t.testResolved("espn.com", "199.181.132.250")
+		//t.testResolved("instapundit.com", "72.32.173.45")
+		t.testResolved("espn.com", "::ffff:df9:b87b")
+		t.testResolved("instapundit.com", "::ffff:ac43:b0af")
+	}
+	t.testResolved("9.32.237.26", "9.32.237.26")
+	t.testResolved("9.70.146.84", "9.70.146.84")
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -2402,7 +2477,6 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 	if !ipv4SampleHostMask.Equals(onesHostMaskv4) {
 		t.addFailure(newIPAddrFailure("mask mismatch between address "+ipv4SampleHostMask.String()+" and network "+onesHostMaskv4.String(), sampleIpv4.ToIPAddress()))
 	}
-
 	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
 		bits := i
 		ipv6HostMask := ipv6Network.GetHostMask(bits)
@@ -2444,8 +2518,8 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 
 func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.BitCount, network bool, secondTry bool) bool {
 	//fmt.Println("Handling 1 " + address.String())
-	//if prefixBits == 65 {
-	//	fmt.Println("how do we go back to 64?")
+	//if prefixBits == 80 {
+	//	fmt.Println("huh? getting block pref len for " + address.String())
 	//}
 	maskPrefix := address.GetBlockMaskPrefixLen(network)
 	otherMaskPrefix := address.GetBlockMaskPrefixLen(!network)
@@ -2565,9 +2639,13 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		// if address.IsIPv4() {
 		//ipaddr.DefaultIPv4Network.
 		if network {
-			another = ipaddr.FromPrefixedIP(bytes, cacheTestBits(prefixBits)) //TODO here
+			another = ipaddr.FromPrefixedIP(bytes, cacheTestBits(prefixBits))
 		} else {
 			another = ipaddr.FromIP(bytes)
+			if another.IsIPv4() && prefixBits > ipaddr.IPv4BitCount {
+				// ::ffff:ffff:ffff is interpreted as IPv4-mapped and gives the IPv4 address 255.255.255.255, so we flip it back to IPv6
+				another = ipaddr.DefaultAddressConverter{}.ToIPv6(another).ToIPAddress()
+			}
 		}
 		// }
 		//IPAddressStringFormatParameters params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
@@ -3012,8 +3090,6 @@ func (t ipAddressTester) checkNotMask(addr string) {
 	}
 }
 
-//TODO you wqnt to see what strings look like when you have an empty section with a prefix length, in both go and java
-
 func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network, networkNoRange, networkWithPrefix string, networkStringCount int, host string, hostStringCount int) {
 	//try {
 	w := t.createAddress(address)
@@ -3061,6 +3137,118 @@ func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network
 	//} catch(RuntimeException e) {
 	//	addFailure(new Failure("unexpected throw: " + e));
 	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testURL(url string) {
+	w := t.createAddress(url)
+	//try {
+	_, err := w.ToAddress()
+	if err == nil {
+		t.addFailure(newFailure("failed: "+"URL "+url, w))
+	}
+	addr := w.GetAddress()
+	if addr != nil {
+		t.addFailure(newFailure("failed: "+"URL "+url, w))
+	}
+	w2 := t.createAddress(url)
+	addr = w2.GetAddress()
+	if addr != nil {
+		t.addFailure(newFailure("failed: "+"URL "+url, w2))
+	}
+	_, err = w2.ToAddress()
+	if err == nil {
+		t.addFailure(newFailure("failed: "+"URL "+url, w2))
+	}
+	//} catch(AddressStringException e) {
+	//pass
+	//e.getMessage();
+	//}
+}
+
+// gets host address, then creates a second ip addr to match the original and gets host address that way
+// then checks that they match
+func (t ipAddressTester) testReverseHostAddress(str string) {
+	addrStr := t.createAddress(str)
+	addr := addrStr.GetAddress()
+	hostAddr := addrStr.GetHostAddress()
+	var hostAddr2 *ipaddr.IPAddress
+	if addr.IsIPv6() {
+		newAddr, err := ipaddr.NewIPv6Address(addr.ToIPv6Address().GetSection())
+		if err != nil {
+			t.addFailure(newIPAddrFailure("error creating address from "+addr.String()+": "+err.Error(), addr))
+		}
+		newAddrString := newAddr.ToAddressString()
+		hostAddr2 = newAddrString.GetHostAddress()
+	} else {
+		newAddr, err := ipaddr.NewIPv4Address(addr.ToIPv4Address().GetSection())
+		if err != nil {
+			t.addFailure(newIPAddrFailure("error creating address from "+addr.String()+": "+err.Error(), addr))
+		}
+		newAddrString := newAddr.ToAddressString()
+		hostAddr2 = newAddrString.GetHostAddress()
+	}
+	if !hostAddr.Equals(hostAddr2) {
+		t.addFailure(newIPAddrFailure("expected "+hostAddr.String()+" got "+hostAddr2.String(), addr))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testFromBytes(bytes []byte, expected string) {
+	addr := t.createAddressFromIP(bytes)
+	addr2 := t.createAddress(expected)
+	result := addr.Equals(addr2.GetAddress())
+	if !result {
+		t.addFailure(newIPAddrFailure("created was "+addr.String()+" expected was "+addr2.String(), addr))
+	} else {
+		if addr.IsIPv4() {
+			val := uint32(0)
+			for i := 0; i < len(bytes); i++ {
+				val <<= 8
+				val |= uint32(bytes[i])
+			}
+			addr := t.createIPv4Address(val)
+			result = addr.Equals(addr2.GetAddress())
+			if !result {
+				t.addFailure(newIPAddrFailure("created was "+addr.String()+" expected was "+addr2.String(), addr.ToIPAddress()))
+			}
+		} else {
+			var highVal, lowVal uint64
+			i := 0
+			for ; i < 8; i++ {
+				highVal <<= 8
+				highVal |= uint64(bytes[i])
+			}
+			for ; i < 16; i++ {
+				lowVal <<= 8
+				lowVal |= uint64(bytes[i])
+			}
+			addr := t.createIPv6Address(highVal, lowVal)
+			result = addr.Equals(addr2.GetAddress())
+			if !result {
+				t.addFailure(newIPAddrFailure("created was "+addr.String()+" expected was "+addr2.String(), addr.ToIPAddress()))
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testResolved(original, expected string) {
+	origAddress := t.createAddress(original)
+	resolvedAddress := origAddress.GetAddress()
+	if resolvedAddress == nil {
+		resolvedAddress = t.createHost(original).GetAddress()
+	}
+	expectedAddress := t.createAddress(expected)
+	var result bool
+	if resolvedAddress == nil {
+		result = expected == ""
+	} else {
+		result = resolvedAddress.Equals(expectedAddress.GetAddress())
+	}
+	if !result {
+		t.addFailure(newFailure("resolved was "+resolvedAddress.String()+" original was "+original, origAddress))
+	}
 	t.incrementTestCount()
 }
 

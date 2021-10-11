@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"net"
 )
 
 var (
@@ -85,6 +86,12 @@ type testAddresses interface {
 
 	createParametrizedAddress(string, ipaddr.RangeParameters) *ipaddr.IPAddressString
 
+	createAddressFromIP(ip net.IP) *ipaddr.IPAddress
+
+	createIPv4Address(uint32) *ipaddr.IPv4Address
+
+	createIPv6Address(high, low uint64) *ipaddr.IPv6Address
+
 	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString
 
 	createHost(string) *ipaddr.HostName
@@ -141,6 +148,18 @@ func (t *addresses) createAddress(str string) *ipaddr.IPAddressString {
 
 func (t *addresses) createInetAtonAddress(str string) *ipaddr.IPAddressString {
 	return ipaddr.NewIPAddressStringParams(str, inetAtonwildcardAndRangeOptions)
+}
+
+func (t *addresses) createAddressFromIP(ip net.IP) *ipaddr.IPAddress {
+	return ipaddr.FromIP(ip)
+}
+
+func (t *addresses) createIPv4Address(val uint32) *ipaddr.IPv4Address {
+	return ipaddr.NewIPv4AddressFromUint32(val)
+}
+
+func (t *addresses) createIPv6Address(high, low uint64) *ipaddr.IPv6Address {
+	return ipaddr.NewIPv6AddressFromUint64(high, low)
 }
 
 func (t *addresses) createMACAddress(str string) *ipaddr.MACAddressString {

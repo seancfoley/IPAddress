@@ -112,20 +112,20 @@ func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (
 	return
 }
 
-func NewIPv6AddressFromBigInt(bytes *big.Int) (addr *IPv6Address, err AddressValueError) {
-	return NewIPv6AddressFromIP(bytes.Bytes())
+func NewIPv6AddressFromBigInt(val *big.Int) (addr *IPv6Address, err AddressValueError) {
+	return NewIPv6AddressFromIP(val.Bytes())
 }
 
-func NewIPv6AddressFromPrefixedBigInt(bytes *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
-	return NewIPv6AddressFromPrefixedIP(bytes.Bytes(), prefixLength)
+func NewIPv6AddressFromPrefixedBigInt(val *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+	return NewIPv6AddressFromPrefixedIP(val.Bytes(), prefixLength)
 }
 
-func NewIPv6AddressFromZonedBigInt(bytes *big.Int, zone string) (addr *IPv6Address, err AddressValueError) {
-	return newIPv6AddressFromZonedIP(bytes.Bytes(), zone)
+func NewIPv6AddressFromZonedBigInt(val *big.Int, zone string) (addr *IPv6Address, err AddressValueError) {
+	return newIPv6AddressFromZonedIP(val.Bytes(), zone)
 }
 
-func NewIPv6AddressFromPrefixedZonedBigInt(bytes *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
-	return NewIPv6AddressFromPrefixedIPAddr(&net.IPAddr{IP: bytes.Bytes(), Zone: zone}, prefixLength)
+func NewIPv6AddressFromPrefixedZonedBigInt(val *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+	return NewIPv6AddressFromPrefixedIPAddr(&net.IPAddr{IP: val.Bytes(), Zone: zone}, prefixLength)
 }
 
 func NewIPv6AddressFromSegments(segments []*IPv6AddressSegment) (addr *IPv6Address, err AddressValueError) {

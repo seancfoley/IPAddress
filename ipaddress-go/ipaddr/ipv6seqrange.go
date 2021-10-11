@@ -79,7 +79,7 @@ func (rng *IPv6AddressSeqRange) GetIP() net.IP {
 }
 
 func (rng *IPv6AddressSeqRange) CopyIP(bytes net.IP) net.IP {
-	return rng.CopyBytes(bytes)
+	return rng.GetLower().CopyIP(bytes)
 }
 
 func (rng *IPv6AddressSeqRange) GetUpperIP() net.IP {
@@ -87,7 +87,7 @@ func (rng *IPv6AddressSeqRange) GetUpperIP() net.IP {
 }
 
 func (rng *IPv6AddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
-	return rng.CopyUpperBytes(bytes)
+	return rng.GetUpper().CopyUpperIP(bytes)
 }
 
 func (rng *IPv6AddressSeqRange) GetBytes() []byte {

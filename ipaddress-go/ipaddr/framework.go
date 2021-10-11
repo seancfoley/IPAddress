@@ -82,7 +82,7 @@ type ipAddressRange interface {
 	GetLowerIPAddress() *IPAddress
 	GetUpperIPAddress() *IPAddress
 
-	CopyIP(bytes net.IP) net.IP
+	CopyIP(bytes net.IP) net.IP //TODO make sure this handles the ipv4-mapped ipv4 addresses
 	CopyUpperIP(bytes net.IP) net.IP
 
 	GetIP() net.IP

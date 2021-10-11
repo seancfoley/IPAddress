@@ -59,6 +59,20 @@ func (a *addressError) GetKey() string {
 	return a.key
 }
 
+type MergedAddressError interface {
+	AddressError
+	GetMerged() AddressError
+}
+
+type mergedError struct {
+	AddressError
+	merged []AddressError
+}
+
+func (a *mergedError) GetMerged() []AddressError {
+	return a.merged
+}
+
 type HostIdentifierError interface {
 	AddressError
 }
@@ -205,6 +219,8 @@ func (wrappedErr *wrappedErr) Error() string {
 func newError(str string) error {
 	return errors.New(str)
 }
+
+// TODO stuff below should not be public
 
 // Errorf returns a formatted error
 func Errorf(format string, a ...interface{}) error {

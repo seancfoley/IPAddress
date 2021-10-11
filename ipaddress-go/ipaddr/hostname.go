@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"net"
 	//"strconv"
 	"strings"
@@ -231,6 +232,8 @@ func (host *HostName) GetAddress() *IPAddress {
 	return addr
 }
 
+// ToAddress resolves to an address.
+// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
 func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
 	addresses, err := host.ToAddresses()
 	if len(addresses) > 0 {
@@ -239,7 +242,9 @@ func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
 	return
 }
 
-// error can be AddressStringError or IncompatibleAddressError
+// ToAddresses resolves to one or more addresses.
+// error can be AddressStringError, IncompatibleAddressError, HostNameError
+// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
 func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 	host = host.init()
 	data := host.resolveData
@@ -280,100 +285,114 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 					return
 				}
 				count := len(ips)
-				addrs = make([]*IPAddress, count)
+				addrs = make([]*IPAddress, 0, count)
+				var errs []AddressError
 				for j := 0; j < count; j++ {
-					addr := ips[j]
+					ip := ips[j]
+					if ipv4 := ip.To4(); ipv4 != nil {
+						ip = ipv4
+					}
 					networkPrefixLength := parsedHost.getNetworkPrefixLen()
-					byteLen := len(addr)
+					byteLen := len(ip)
 					if networkPrefixLength == nil {
 						mask := parsedHost.getMask()
 						if mask != nil {
 							maskBytes := mask.GetBytes()
 							if len(maskBytes) == byteLen {
 								for i := 0; i < byteLen; i++ {
-									addr[i] &= maskBytes[i]
+									ip[i] &= maskBytes[i]
 								}
 								networkPrefixLength = mask.GetBlockMaskPrefixLen(true)
 							}
 						}
 					}
 					if byteLen == IPv6ByteCount {
-						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueError
+						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(ip, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
-							return nil, addrErr
+							errs = append(errs, addrErr)
+						} else {
+							cache := ipv6Addr.cache
+							if cache != nil {
+								cache.identifierStr = &IdentifierStr{host}
+							}
+							addrs = append(addrs, ipv6Addr.ToIPAddress())
 						}
-						cache := ipv6Addr.cache
-						if cache != nil {
-							cache.identifierStr = &IdentifierStr{host}
-						}
-						addrs[j] = ipv6Addr.ToIPAddress()
-					} else {
+					} else if byteLen == IPv4ByteCount {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
 							networkPrefixLength = cacheBitCount(IPv4BitCount)
 						}
-						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(addr, networkPrefixLength) // AddressValueError
+						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(ip, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
-							return nil, addrErr
+							errs = append(errs, addrErr)
+						} else {
+							cache := ipv4Addr.cache
+							if cache != nil {
+								cache.identifierStr = &IdentifierStr{host}
+							}
+							addrs = append(addrs, ipv4Addr.ToIPAddress())
 						}
-						cache := ipv4Addr.cache
-						if cache != nil {
-							cache.identifierStr = &IdentifierStr{host}
-						}
-						addrs[j] = ipv4Addr.ToIPAddress()
 					}
 				}
-				// sort by preferred version
-				preferredVersion := validationOptions.GetPreferredVersion()
-				boundaryCase := 8
-				if count > boundaryCase {
-					c := 0
-					newAddrs := make([]*IPAddress, count)
-					for _, val := range addrs {
-						if val.getIPVersion() == preferredVersion {
-							newAddrs[c] = val
-							c++
-						}
-					}
-					for i := 0; c < count; i++ {
-						val := addrs[i]
-						if val.getIPVersion() != preferredVersion {
-							newAddrs[c] = val
-							c++
-						}
-					}
-					addrs = newAddrs
-				} else {
-					preferredIndex := 0
-				top:
-					for i := 0; i < count; i++ {
-						notPreferred := addrs[i]
-						if notPreferred.getIPVersion() != preferredVersion {
-							var j int
-							if preferredIndex == 0 {
-								j = i + 1
-							} else {
-								j = preferredIndex
+				if len(errs) > 0 {
+					err = &mergedError{AddressError: &hostNameError{addressError{str: strHost, key: "ipaddress.host.error.host.resolve"}}, merged: errs}
+				}
+				count = len(addrs)
+				if count > 0 {
+					// sort by preferred version
+					preferredVersion := validationOptions.GetPreferredVersion()
+					boundaryCase := 8
+					if count > boundaryCase {
+						c := 0
+						newAddrs := make([]*IPAddress, count)
+						for _, val := range addrs {
+							if val.getIPVersion() == preferredVersion {
+								newAddrs[c] = val
+								c++
 							}
-							for ; j < len(addrs); j++ {
-								preferred := addrs[j]
-								if preferred.getIPVersion() == preferredVersion {
-									addrs[i] = preferred
-									// don't swap so the non-preferred order is preserved,
-									// instead shift each upwards by one spot
-									k := i + 1
-									for ; k < j; k++ {
-										addrs[k], notPreferred = notPreferred, addrs[k]
-									}
-									addrs[k] = notPreferred
-									preferredIndex = j + 1
-									continue top
+						}
+						for i := 0; c < count; i++ {
+							val := addrs[i]
+							if val.getIPVersion() != preferredVersion {
+								newAddrs[c] = val
+								c++
+							}
+						}
+						addrs = newAddrs
+					} else {
+						preferredIndex := 0
+					top:
+						for i := 0; i < count; i++ {
+							notPreferred := addrs[i]
+							if notPreferred.getIPVersion() != preferredVersion {
+								var j int
+								if preferredIndex == 0 {
+									j = i + 1
+								} else {
+									j = preferredIndex
 								}
+								for ; j < len(addrs); j++ {
+									preferred := addrs[j]
+									if preferred.getIPVersion() == preferredVersion {
+										addrs[i] = preferred
+										// don't swap so the non-preferred order is preserved,
+										// instead shift each upwards by one spot
+										k := i + 1
+										for ; k < j; k++ {
+											addrs[k], notPreferred = notPreferred, addrs[k]
+										}
+										addrs[k] = notPreferred
+										preferredIndex = j + 1
+										continue top
+									}
+								}
+								// no more preferred
+								break
 							}
-							// no more preferred
-							break
 						}
 					}
 				}
+				fmt.Printf("resolved addrs %v\n", addrs)
+				fmt.Println()
 			}
 		}
 		data = &resolveData{addrs, err}

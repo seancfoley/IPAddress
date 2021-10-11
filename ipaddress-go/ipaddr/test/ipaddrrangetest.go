@@ -1320,6 +1320,14 @@ func (t ipAddressRangeTester) run() {
 	t.testSubnet("::1:0-ff", "::1:fff0", 124, "0:0:0:0:0:0:1:0-f0/124", "", "0:0:0:0:0:0:1:0-f0/124")
 	t.testSubnet("*::1:0-f", "ffff::1:fff0", 124, "*:0:0:0:0:0:1:0/124", "*:0:0:0:0:0:1:0", "*:0:0:0:0:0:1:0/124")
 
+	t.testReverseHostAddress("*.*.0-240.0/20")
+	t.testReverseHostAddress("*.*.0.0/16")
+	t.testReverseHostAddress("*:0-f000::/20")
+
+	t.testResolved("8.*.27.26", "8.*.27.26")
+
+	t.testResolved("2001:*:0:0:8:800:200C:417A", "2001:*:0:0:8:800:200C:417A")
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");

@@ -75,16 +75,22 @@ func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4A
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
 }
 
-func NewIPv4AddressFromIP(bytes net.IP) (addr *IPv4Address, err AddressValueError) {
-	section, err := NewIPv4SectionFromSegmentedBytes(bytes, IPv4SegmentCount)
+func NewIPv4AddressFromIP(ip net.IP) (addr *IPv4Address, err AddressValueError) {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	section, err := NewIPv4SectionFromSegmentedBytes(ip, IPv4SegmentCount)
 	if err == nil {
 		addr = newIPv4Address(section)
 	}
 	return
 }
 
-func NewIPv4AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
-	section, err := NewIPv4SectionFromPrefixedBytes(bytes, IPv4SegmentCount, prefixLength)
+func NewIPv4AddressFromPrefixedIP(ip net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	section, err := NewIPv4SectionFromPrefixedBytes(ip, IPv4SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv4Address(section)
 	}
@@ -449,16 +455,22 @@ func (addr *IPv4Address) GetIP() net.IP {
 	return addr.GetBytes()
 }
 
-func (addr *IPv4Address) CopyIP(bytes net.IP) net.IP {
-	return addr.CopyBytes(bytes)
+func (addr *IPv4Address) CopyIP(ip net.IP) net.IP {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	return addr.CopyBytes(ip)
 }
 
 func (addr *IPv4Address) GetUpperIP() net.IP {
 	return addr.GetUpperBytes()
 }
 
-func (addr *IPv4Address) CopyUpperIP(bytes net.IP) net.IP {
-	return addr.CopyUpperBytes(bytes)
+func (addr *IPv4Address) CopyUpperIP(ip net.IP) net.IP {
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+	}
+	return addr.CopyUpperBytes(ip)
 }
 
 func (addr *IPv4Address) GetBytes() []byte {
