@@ -683,6 +683,8 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 	if prefLen == nil {
 		if value == upperValue {
 			return newIPv6SegmentVal(value)
+		} else if value > upperValue {
+			value, upperValue = upperValue, value
 		}
 		if useIPv6SegmentCache && value == 0 && upperValue == IPv6MaxValuePerSegment {
 			return allRangeValsIPv6
@@ -691,6 +693,8 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 	} else {
 		if value == upperValue {
 			return newIPv6SegmentPrefixedVal(value, prefLen)
+		} else if value > upperValue {
+			value, upperValue = upperValue, value
 		}
 		prefixIndex := *prefLen
 		if prefixIndex < 0 {

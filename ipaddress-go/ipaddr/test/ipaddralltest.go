@@ -8,6 +8,8 @@ type ipAddressAllTester struct {
 
 func (t ipAddressAllTester) testStrings() {
 	t.testMatches(true, "aaaabbbbccccddddeeeeffffaaaabbbb", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaaa:bbbb")
+	t.testMatches(true, "aaaabbbbcccccdddffffffffffffffff-aaaabbbbccccdddd0000000000000000", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
+	// failed: matching aaaabbbbccccdddd0000000000000000-aaaabbbbcccccdddffffffffffffffff with aaaa:bbbb:cc
 	t.testMatches(true, "aaaabbbbccccdddd0000000000000000-aaaabbbbcccccdddffffffffffffffff", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
 
 	// TODO base85
@@ -19,6 +21,8 @@ func (t ipAddressAllTester) testStrings() {
 }
 
 func (t ipAddressAllTester) run() {
+	t.testStrings()
+
 	// TODO base85
 	//testMatches(true, "ef86:1dc3:deba:d48:612d:f19c:de7d:e89c", "********************") // base 85
 	//testMatches(true, "--------------------", "f677:73f6:11b4:5073:4a06:76c2:ceae:1474")
@@ -100,6 +104,9 @@ func (t ipAddressAllTester) run() {
 	t.testAllContains("*:*", "1.2.3.4", false)
 	t.testAllContains("*.*", "1.2.3.4", true)
 	t.testAllContains("*/64", "::", true)
+
+	t.testNormalized("aaaabbbbcccccddd0000000000000000-aaaabbbbccccddddffffffffffffffff", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
+	t.testCanonical("aaaabbbbcccccddd0000000000000000-aaaabbbbccccddddffffffffffffffff", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
 
 	t.ipAddressRangeTester.run()
 }

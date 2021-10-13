@@ -906,7 +906,7 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
 
-func (addr *IPAddress) ToIPv6Address() *IPv6Address {
+func (addr *IPAddress) ToIPv6Address() *IPv6Address { //TODO maybe rename to ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
 	if addr != nil && addr.IsIPv6() {
 		return (*IPv6Address)(addr)
 	}
@@ -1317,7 +1317,7 @@ func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
 //
 // So it may be useful to store a set of address strings as a collection of IPAddressString objects, rather than IPAddress objects,
 // which is one reason you might wish to obtain an IPAddressString from an IPAddress.
-func (addr *IPAddress) ToAddressString() *IPAddressString {
+func (addr *IPAddress) ToAddressString() *IPAddressString { //TODO rename FromString()
 	addr = addr.init()
 	cache := addr.cache
 	if cache == nil {

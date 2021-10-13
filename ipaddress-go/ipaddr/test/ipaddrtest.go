@@ -1687,6 +1687,93 @@ func (t ipAddressTester) run() {
 	}
 	t.testResolved("9.32.237.26", "9.32.237.26")
 	t.testResolved("9.70.146.84", "9.70.146.84")
+
+	t.testNormalized("1.2.3.4", "1.2.3.4")
+	t.testNormalized("1.2.00.4", "1.2.0.4")
+	t.testNormalized("000.2.00.4", "0.2.0.4")
+	t.testNormalized("00.2.00.000", "0.2.0.0")
+	t.testNormalized("000.000.000.000", "0.0.0.0")
+
+	t.testNormalized("A:B:C:D:E:F:A:B", "a:b:c:d:e:f:a:b")
+	t.testNormalized("ABCD:ABCD:CCCC:Dddd:EeEe:fFfF:aAAA:Bbbb", "abcd:abcd:cccc:dddd:eeee:ffff:aaaa:bbbb")
+	t.testNormalized("AB12:12CD:CCCC:Dddd:EeEe:fFfF:aAAA:Bbbb", "ab12:12cd:cccc:dddd:eeee:ffff:aaaa:bbbb")
+	t.testNormalized("ABCD::CCCC:Dddd:EeEe:fFfF:aAAA:Bbbb", "abcd::cccc:dddd:eeee:ffff:aaaa:bbbb")
+	t.testNormalized("::ABCD:CCCC:Dddd:EeEe:fFfF:aAAA:Bbbb", "::abcd:cccc:dddd:eeee:ffff:aaaa:bbbb")
+	t.testNormalized("ABCD:ABCD:CCCC:Dddd:EeEe:fFfF:aAAA::", "abcd:abcd:cccc:dddd:eeee:ffff:aaaa::")
+	t.testNormalized("::ABCD:Dddd:EeEe:fFfF:aAAA:Bbbb", "::abcd:dddd:eeee:ffff:aaaa:bbbb")
+	t.testNormalized("ABCD:ABCD:CCCC:Dddd:fFfF:aAAA::", "abcd:abcd:cccc:dddd:ffff:aaaa::")
+	t.testNormalized("::ABCD", "::abcd")
+	t.testNormalized("aAAA::", "aaaa::")
+
+	t.testNormalized("0:0:0:0:0:0:0:0", "::")
+	t.testNormalized("0000:0000:0000:0000:0000:0000:0000:0000", "::")
+	t.testNormalizedMC("0000:0000:0000:0000:0000:0000:0000:0000", "0:0:0:0:0:0:0:0", true, false)
+	t.testNormalized("0:0:0:0:0:0:0:1", "::1")
+	t.testNormalizedMC("0:0:0:0:0:0:0:1", "0:0:0:0:0:0:0:1", true, false)
+	t.testNormalizedMC("0:0:0:0::0:0:1", "0:0:0:0:0:0:0:1", true, false)
+	t.testNormalized("0000:0000:0000:0000:0000:0000:0000:0001", "::1")
+	t.testNormalized("1:0:0:0:0:0:0:0", "1::")
+	t.testNormalized("0001:0000:0000:0000:0000:0000:0000:0000", "1::")
+	t.testNormalized("1:0:0:0:0:0:0:1", "1::1")
+	t.testNormalized("0001:0000:0000:0000:0000:0000:0000:0001", "1::1")
+	t.testNormalized("1:0:0:0::0:0:1", "1::1")
+	t.testNormalized("0001::0000:0000:0000:0000:0000:0001", "1::1")
+	t.testNormalized("0001:0000:0000:0000:0000:0000::0001", "1::1")
+	t.testNormalized("::0000:0000:0000:0000:0000:0001", "::1")
+	t.testNormalized("0001:0000:0000:0000:0000:0000::", "1::")
+	t.testNormalized("1:0::1", "1::1")
+	t.testNormalized("0001:0000::0001", "1::1")
+	t.testNormalized("0::", "::")
+	t.testNormalized("0000::", "::")
+	t.testNormalized("::0", "::")
+	t.testNormalized("::0000", "::")
+	t.testNormalized("0:0:0:0:1:0:0:0", "::1:0:0:0")
+	t.testNormalized("0000:0000:0000:0000:0001:0000:0000:0000", "::1:0:0:0")
+	t.testNormalized("0:0:0:1:0:0:0:0", "0:0:0:1::")
+	t.testNormalized("0000:0000:0000:0001:0000:0000:0000:0000", "0:0:0:1::")
+	t.testNormalized("0:1:0:1:0:1:0:1", "::1:0:1:0:1:0:1")
+	t.testNormalized("0000:0001:0000:0001:0000:0001:0000:0001", "::1:0:1:0:1:0:1")
+	t.testNormalized("1:1:0:1:0:1:0:1", "1:1::1:0:1:0:1")
+	t.testNormalized("0001:0001:0000:0001:0000:0001:0000:0001", "1:1::1:0:1:0:1")
+
+	t.testNormalizedMC("A:B:C:D:E:F:000.000.000.000", "a:b:c:d:e:f::", true, true)
+	t.testNormalizedMC("A:B:C:D:E::000.000.000.000", "a:b:c:d:e::", true, true)
+	t.testNormalizedMC("::B:C:D:E:F:000.000.000.000", "0:b:c:d:e:f::", true, true)
+	t.testNormalizedMC("A:B:C:D::000.000.000.000", "a:b:c:d::", true, true)
+	t.testNormalizedMC("::C:D:E:F:000.000.000.000", "::c:d:e:f:0.0.0.0", true, true)
+	t.testNormalizedMC("::C:D:E:F:000.000.000.000", "0:0:c:d:e:f:0.0.0.0", true, false)
+	t.testNormalizedMC("A:B:C::E:F:000.000.000.000", "a:b:c:0:e:f::", true, true)
+	t.testNormalizedMC("A:B::E:F:000.000.000.000", "a:b::e:f:0.0.0.0", true, true)
+
+	t.testNormalizedMC("A:B:C:D:E:F:000.000.000.001", "a:b:c:d:e:f:0.0.0.1", true, true)
+	t.testNormalizedMC("A:B:C:D:E::000.000.000.001", "a:b:c:d:e::0.0.0.1", true, true)
+	t.testNormalizedMC("::B:C:D:E:F:000.000.000.001", "::b:c:d:e:f:0.0.0.1", true, true)
+	t.testNormalizedMC("A:B:C:D::000.000.000.001", "a:b:c:d::0.0.0.1", true, true)
+	t.testNormalizedMC("::C:D:E:F:000.000.000.001", "::c:d:e:f:0.0.0.1", true, true)
+	t.testNormalizedMC("::C:D:E:F:000.000.000.001", "0:0:c:d:e:f:0.0.0.1", true, false)
+	t.testNormalizedMC("A:B:C::E:F:000.000.000.001", "a:b:c::e:f:0.0.0.1", true, true)
+	t.testNormalizedMC("A:B::E:F:000.000.000.001", "a:b::e:f:0.0.0.1", true, true)
+
+	t.testNormalizedMC("A:B:C:D:E:F:001.000.000.000", "a:b:c:d:e:f:1.0.0.0", true, true)
+	t.testNormalizedMC("A:B:C:D:E::001.000.000.000", "a:b:c:d:e::1.0.0.0", true, true)
+	t.testNormalizedMC("::B:C:D:E:F:001.000.000.000", "::b:c:d:e:f:1.0.0.0", true, true)
+	t.testNormalizedMC("A:B:C:D::001.000.000.000", "a:b:c:d::1.0.0.0", true, true)
+	t.testNormalizedMC("::C:D:E:F:001.000.000.000", "::c:d:e:f:1.0.0.0", true, true)
+	t.testNormalizedMC("::C:D:E:F:001.000.000.000", "0:0:c:d:e:f:1.0.0.0", true, false)
+	t.testNormalizedMC("A:B:C::E:F:001.000.000.000", "a:b:c::e:f:1.0.0.0", true, true)
+	t.testNormalizedMC("A:B::E:F:001.000.000.000", "a:b::e:f:1.0.0.0", true, true)
+
+	t.testCanonical("0001:0000:0000:000F:0000:0000:0001:0001", "1::f:0:0:1:1")    //must be leftmost
+	t.testCanonical("0001:0001:0000:000F:0000:0001:0000:0001", "1:1:0:f:0:1:0:1") //but singles not compressed
+	t.testMixed("0001:0001:0000:000F:0000:0001:0000:0001", "1:1::f:0:1:0.0.0.1")  //singles compressed in mixed
+	t.testCompressed("a.b.c.d", "a.b.c.d")
+
+	t.testCompressed("1:0:1:1:1:1:1:1", "1::1:1:1:1:1:1")
+	t.testCanonical("1:0:1:1:1:1:1:1", "1:0:1:1:1:1:1:1")
+	t.testMixed("1:0:1:1:1:1:1:1", "1::1:1:1:1:0.1.0.1")
+
+	t.testMixedNoComp("::", "::", "::0.0.0.0")
+	t.testMixed("::1", "::0.0.0.1")
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -3248,6 +3335,125 @@ func (t ipAddressTester) testResolved(original, expected string) {
 	}
 	if !result {
 		t.addFailure(newFailure("resolved was "+resolvedAddress.String()+" original was "+original, origAddress))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testNormalized(original, expected string) {
+	t.testNormalizedMC(original, expected, false, true)
+}
+
+func (t ipAddressTester) testMask(original, mask, expected string) {
+	w := t.createAddress(original)
+	orig := w.GetAddress()
+	maskString := t.createAddress(mask)
+	maskAddr := maskString.GetAddress()
+	masked, err := orig.Mask(maskAddr)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("testMask errored with mask "+maskAddr.String()+" error: "+err.Error(), orig))
+	}
+	expectedStr := t.createAddress(expected)
+	expectedAddr := expectedStr.GetAddress()
+	if !masked.Equals(expectedAddr) {
+		t.addFailure(newFailure("mask was "+mask+" and masked was "+masked.String(), w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, compress bool) {
+	w := t.createAddress(original)
+	//String normalized;
+	if w.IsIPv6() {
+		val := w.GetAddress().ToIPv6Address()
+		var paramsBuilder = new(ipaddr.IPv6StringOptionsBuilder)
+		if compress {
+			compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).ToOptions()
+			//CompressOptions opts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST);
+			paramsBuilder = paramsBuilder.SetCompressOptions(compressOpts)
+		}
+		fromString := val.ToAddressString()
+		if fromString != nil && fromString.IsMixedIPv6() {
+			paramsBuilder.SetMixed(true)
+		}
+		params := paramsBuilder.ToOptions()
+		//normalized := val.toNormalizedString(keepMixed, params)
+		normalized, err := val.ToCustomString(params)
+		if err != nil {
+			t.addFailure(newIPAddrFailure("ToCustomString errored with error: "+err.Error(), val.ToIPAddress()))
+		}
+		if normalized != expected {
+
+			//xxxx problem is we are not "keeping" mixed as in the toNormalizedString that does that xxxx
+			//xxxx Maybe we can add it, does not seem hard, but give it a different name than ToCustomString xxx
+			//xxxx or, in here we could do the same thing checking the string that created it xxxx
+			//xxx let us keep it, so what is new name ToPreservedMixedString xxx
+
+			t.addFailure(newFailure("normalization 1 was "+normalized+" expected was "+expected, w))
+		}
+	} else if w.IsIPv4() {
+		val := w.GetAddress().ToIPv4Address()
+		normalized := val.ToNormalizedString()
+		if normalized != expected {
+			t.addFailure(newFailure("normalization 2 was "+normalized, w))
+		}
+	} else {
+		t.addFailure(newFailure("normalization failed on "+original, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testCompressed(original, expected string) {
+	w := t.createAddress(original)
+	var normalized string
+	//if(w.isIPAddress()) {
+	val := w.GetAddress()
+	if val != nil {
+		normalized = val.ToCompressedString()
+	} else {
+		//} else {
+		normalized = w.String()
+	}
+	//}
+	if normalized != expected {
+		t.addFailure(newFailure("canonical was "+normalized, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testCanonical(original, expected string) {
+	w := t.createAddress(original)
+	addr := w.GetAddress()
+	normalized := addr.ToCanonicalString()
+	if normalized != expected {
+		t.addFailure(newFailure("canonical was "+normalized, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testMixed(original, expected string) {
+	t.testMixedNoComp(original, expected, expected)
+}
+
+func (t ipAddressTester) testMixedNoComp(original, expected, expectedNoCompression string) {
+	w := t.createAddress(original)
+	val := w.GetAddress().ToIPv6Address()
+	normalized, err := val.ToMixedString()
+	if err != nil {
+		t.addFailure(newIPAddrFailure("testMixedNoComp errored with error: "+err.Error(), val.ToIPAddress()))
+	}
+	if normalized != expected {
+		t.addFailure(newFailure("mixed was "+normalized+" expected was "+expected, w))
+	} else {
+		compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.NO_MIXED_COMPRESSION).ToOptions()
+		//CompressOptions opts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST, CompressOptions.MixedCompressionOptions.NO);
+		normalized, err := val.ToCustomString(new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
+		if err != nil {
+			t.addFailure(newIPAddrFailure("ToCustomString errored with error: "+err.Error(), val.ToIPAddress()))
+		}
+		//normalized = val.ToNormalizedString(new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
+		if normalized != expectedNoCompression {
+			t.addFailure(newFailure("mixed was "+normalized+" expected was "+expectedNoCompression, w))
+		}
 	}
 	t.incrementTestCount()
 }

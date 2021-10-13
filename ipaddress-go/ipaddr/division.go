@@ -52,6 +52,9 @@ type divisionValues interface {
 }
 
 func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount, defaultRadix int) *divValues {
+	if value > upperValue {
+		value, upperValue = upperValue, value
+	}
 	return &divValues{
 		value:        value,
 		upperValue:   upperValue,

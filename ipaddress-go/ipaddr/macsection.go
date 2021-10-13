@@ -429,13 +429,13 @@ func (section *MACAddressSection) ReplaceLen(startIndex, endIndex int, replaceme
 var (
 	canonicalWildcards = new(WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
 
-	//macHexParams         = NewMACStringOptionsBuilder().SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	//macHexPrefixedParams = NewMACStringOptionsBuilder().SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
-	macNormalizedParams  = NewMACStringOptionsBuilder().SetExpandedSegments(true).ToOptions()
-	macCanonicalParams   = NewMACStringOptionsBuilder().SetSeparator(MACDashSegmentSeparator).SetExpandedSegments(true).SetWildcards(canonicalWildcards).ToOptions()
-	macCompressedParams  = NewMACStringOptionsBuilder().ToOptions()
-	dottedParams         = NewMACStringOptionsBuilder().SetSeparator(MacDottedSegmentSeparator).SetExpandedSegments(true).ToOptions()
-	spaceDelimitedParams = NewMACStringOptionsBuilder().SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
+	//macHexParams         = new(MACStringOptionsBuilder).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	//macHexPrefixedParams = new(MACStringOptionsBuilder).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	macNormalizedParams  = new(MACStringOptionsBuilder).SetExpandedSegments(true).ToOptions()
+	macCanonicalParams   = new(MACStringOptionsBuilder).SetSeparator(MACDashSegmentSeparator).SetExpandedSegments(true).SetWildcards(canonicalWildcards).ToOptions()
+	macCompressedParams  = new(MACStringOptionsBuilder).ToOptions()
+	dottedParams         = new(MACStringOptionsBuilder).SetSeparator(MacDottedSegmentSeparator).SetExpandedSegments(true).ToOptions()
+	spaceDelimitedParams = new(MACStringOptionsBuilder).SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
 )
 
 // ToCanonicalString produces a canonical string.

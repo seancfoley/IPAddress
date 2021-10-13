@@ -5,6 +5,7 @@ type macAddressTester struct {
 }
 
 func (t macAddressTester) run() {
+
 	t.testReverse("1:2:3:4:5:6", false, false)
 	t.testReverse("1:1:2:2:3:3", false, false)
 	t.testReverse("1:1:1:1:1:1", false, false)

@@ -700,14 +700,14 @@ func (section *IPv4AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 }
 
 var (
-	ipv4CanonicalParams          = NewIPv4StringOptionsBuilder().ToOptions()
-	ipv4FullParams               = NewIPv4StringOptionsBuilder().SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
-	ipv4NormalizedWildcardParams = NewIPv4StringOptionsBuilder().SetWildcardOptions(allWildcards).ToOptions()
-	ipv4SqlWildcardParams        = NewIPv4StringOptionsBuilder().SetWildcardOptions(allSQLWildcards).ToOptions()
+	ipv4CanonicalParams          = new(IPv4StringOptionsBuilder).ToOptions()
+	ipv4FullParams               = new(IPv4StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
+	ipv4NormalizedWildcardParams = new(IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).ToOptions()
+	ipv4SqlWildcardParams        = new(IPv4StringOptionsBuilder).SetWildcardOptions(allSQLWildcards).ToOptions()
 
-	inetAtonOctalParams       = NewIPv4StringOptionsBuilder().SetRadix(Inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
-	inetAtonHexParams         = NewIPv4StringOptionsBuilder().SetRadix(Inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
-	ipv4ReverseDNSParams      = NewIPv4StringOptionsBuilder().SetWildcardOptions(allWildcards).SetReverse(true).SetAddressSuffix(IPv4ReverseDnsSuffix).ToOptions()
+	inetAtonOctalParams       = new(IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
+	inetAtonHexParams         = new(IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
+	ipv4ReverseDNSParams      = new(IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).SetReverse(true).SetAddressSuffix(IPv4ReverseDnsSuffix).ToOptions()
 	ipv4SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv4SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).ToOptions()
 )
 

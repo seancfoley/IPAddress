@@ -86,11 +86,14 @@ type StringOptions interface {
 
 	IsExpandedSegments() bool
 
+	// the default is hexadecimal unless build using an IPv4 options build in which case the default is decimal
 	GetRadix() int
 
 	// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
+	// the default is a space, unless built using a MAC, IPv6 or IPv4 options builder in which case the separator is ':' for MAC and IPv6 wand '.' for IPv4
 	GetSeparator() byte
 
+	// default is false, no separator, unless built using a MAC, IPv6 or IPv4 options builder in which case there is a default separator
 	HasSeparator() bool
 
 	GetAddressLabel() string
@@ -110,9 +113,10 @@ type stringOptions struct {
 	addrLabel string
 
 	expandSegments,
-	hasSeparator,
 	reverse,
 	uppercase bool
+
+	hasSeparator *bool // default is false, no separator
 
 	cached *addressStringParams
 }
@@ -147,7 +151,10 @@ func (w *stringOptions) GetSeparator() byte {
 }
 
 func (w *stringOptions) HasSeparator() bool {
-	return w.hasSeparator
+	if w.hasSeparator == nil {
+		return false
+	}
+	return *w.hasSeparator
 }
 
 func (w *stringOptions) GetAddressLabel() string {
@@ -159,6 +166,59 @@ func (w *stringOptions) GetSegmentStrPrefix() string {
 }
 
 var _ StringOptions = &stringOptions{}
+
+func getDefaults(radix int, wildcards Wildcards, separator byte) (int, Wildcards, byte) {
+	if radix == 0 {
+		radix = 16
+	}
+	if wildcards == nil {
+		wildcards = DefaultWildcards
+	}
+	if separator == 0 {
+		separator = ' '
+	}
+	return radix, wildcards, separator
+}
+
+func getIPDefaults(zoneSeparator byte) byte {
+	if zoneSeparator == 0 {
+		zoneSeparator = IPv6ZoneSeparator
+	}
+	return zoneSeparator
+}
+
+func getIPv6Defaults(hasSeparator *bool, separator byte) (*bool, byte) {
+	if hasSeparator == nil {
+		hasSeparator = &trueVal
+	}
+	if separator == 0 {
+		separator = IPv6SegmentSeparator
+	}
+	return hasSeparator, separator
+}
+
+func getIPv4Defaults(hasSeparator *bool, separator byte, radix int) (*bool, byte, int) {
+	if hasSeparator == nil {
+		hasSeparator = &trueVal
+	}
+	if radix == 0 {
+		radix = 10
+	}
+	if separator == 0 {
+		separator = IPv4SegmentSeparator
+	}
+	return hasSeparator, separator, radix
+}
+
+func getMACDefaults(hasSeparator *bool, separator byte) (*bool, byte) {
+	if hasSeparator == nil {
+		hasSeparator = &trueVal
+	}
+	if separator == 0 {
+		separator = MacDottedSegmentSeparator
+	}
+	return hasSeparator, separator
+}
 
 type StringOptionsBuilder struct {
 	stringOptions
@@ -179,11 +239,6 @@ func (w *StringOptionsBuilder) SetUppercase(uppercase bool) *StringOptionsBuilde
 	return w
 }
 
-//func (w *StringOptionsBuilder) setSplitDigits(splitDigits bool) *StringOptionsBuilder { // not public since only supported for IPv6 because it produces errors for ranged segments
-//	w.splitDigits = splitDigits
-//	return w
-//}
-
 func (w *StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *StringOptionsBuilder {
 	w.expandSegments = expandSegments
 	return w
@@ -195,7 +250,11 @@ func (w *StringOptionsBuilder) SetRadix(base int) *StringOptionsBuilder {
 }
 
 func (w *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
-	w.hasSeparator = has
+	if has {
+		w.hasSeparator = &trueVal
+	} else {
+		w.hasSeparator = &falseVal
+	}
 	return w
 }
 
@@ -218,8 +277,64 @@ func (w *StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *StringOptions
 
 func (w *StringOptionsBuilder) ToOptions() StringOptions {
 	res := w.stringOptions
-	res.base, res.wildcards, res.separator, _ = getDefaults(res.base, res.wildcards, res.separator, 0)
+	res.base, res.wildcards, res.separator = getDefaults(res.base, res.wildcards, res.separator)
 	return &res
+}
+
+type MACStringOptionsBuilder struct {
+	StringOptionsBuilder
+}
+
+func (w *MACStringOptionsBuilder) SetWildcards(wildcards Wildcards) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetWildcards(wildcards)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetReverse(reverse bool) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetReverse(reverse)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetUppercase(uppercase bool) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetUppercase(uppercase)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetExpandedSegments(expandSegments)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetRadix(base int) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetRadix(base)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetHasSeparator(has bool) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetHasSeparator(has)
+	return w
+}
+
+// separates the divisions of the address, typically ':' or '.'
+func (w *MACStringOptionsBuilder) SetSeparator(separator byte) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetSeparator(separator)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetAddressLabel(label string) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetAddressLabel(label)
+	return w
+}
+
+func (w *MACStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *MACStringOptionsBuilder {
+	w.StringOptionsBuilder.SetSegmentStrPrefix(prefix)
+	return w
+}
+
+func (builder *MACStringOptionsBuilder) ToOptions() StringOptions {
+	b := &builder.StringOptionsBuilder
+	b.hasSeparator, b.separator = getMACDefaults(b.hasSeparator, b.separator)
+	return builder.StringOptionsBuilder.ToOptions()
 }
 
 type WildcardOption string
@@ -387,7 +502,6 @@ func (w *IPStringOptionsBuilder) SetHasSeparator(has bool) *IPStringOptionsBuild
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
 func (w *IPStringOptionsBuilder) SetSeparator(separator byte) *IPStringOptionsBuilder {
 	w.StringOptionsBuilder.SetSeparator(separator)
-	w.SetHasSeparator(true)
 	return w
 }
 
@@ -402,28 +516,121 @@ func (w *IPStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPStringOpt
 }
 
 func (w *IPStringOptionsBuilder) ToOptions() IPStringOptions {
+	w.ipStringOptions.zoneSeparator = getIPDefaults(w.ipStringOptions.zoneSeparator)
 	res := w.ipStringOptions
 	res.stringOptions = *w.StringOptionsBuilder.ToOptions().(*stringOptions)
 	return &res
 }
 
-// NewIPv4StringOptionsBuilder returns a builder with default options set to create a specific type of IPv4 address string.
-func NewIPv4StringOptionsBuilder() *IPStringOptionsBuilder {
-	opts := IPStringOptionsBuilder{}
-	return opts.SetRadix(IPv4DefaultTextualRadix).SetSeparator(IPv4SegmentSeparator)
+type IPv4StringOptionsBuilder struct {
+	IPStringOptionsBuilder
 }
 
-// NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MAC address string.
-func NewMACStringOptionsBuilder() *StringOptionsBuilder {
-	opts := StringOptionsBuilder{}
-	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)
+// .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
+func (w *IPv4StringOptionsBuilder) SetAddressSuffix(suffix string) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetAddressSuffix(suffix)
+	return w
 }
 
-// NewIPv6StringOptionsBuilder returns a builder with default options set to create a specific type of IPv6 address string.
-func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
-	opts := IPv6StringOptionsBuilder{}
-	return opts.SetRadix(IPv6DefaultTextualRadix).SetSeparator(IPv6SegmentSeparator)
+// SetWildcardOptions is a convenience method for setting both the WildcardOption and the Wildcards at the same time
+// It overrides previous calls to SetWildcardOption and SetWildcards,
+// and is overridden by subsequent calls to those methods.
+func (w *IPv4StringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetWildcardOptions(wildcardOptions)
+	return w.SetWildcardOption(wildcardOptions.GetWildcardOption())
 }
+
+func (w *IPv4StringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetWildcardOption(wildcardOption)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetWildcards(wildcards)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetZoneSeparator(separator byte) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetZoneSeparator(separator)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetReverse(reverse bool) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetReverse(reverse)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetUppercase(uppercase bool) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetUppercase(uppercase)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetExpandedSegments(expandSegments)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetRadix(base int) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetRadix(base)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetHasSeparator(has bool) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetHasSeparator(has)
+	return w
+}
+
+// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
+func (w *IPv4StringOptionsBuilder) SetSeparator(separator byte) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetSeparator(separator)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetAddressLabel(label string) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetAddressLabel(label)
+	return w
+}
+
+func (w *IPv4StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPv4StringOptionsBuilder {
+	w.IPStringOptionsBuilder.SetSegmentStrPrefix(prefix)
+	return w
+}
+
+func (builder *IPv4StringOptionsBuilder) ToOptions() IPStringOptions {
+	b := &builder.StringOptionsBuilder
+	b.hasSeparator, b.separator, b.base = getIPv4Defaults(b.hasSeparator, b.separator, b.base)
+	return builder.IPStringOptionsBuilder.ToOptions()
+}
+
+//xxx this blows xxxx
+//xxx use a bool and get rid of these xxx
+//xxx actually, can just use zero values for the separator and radix
+//BUT how to handle ipv4? maybe IPStringOptionsBuilder has defaults of radix 10 and sep ., ipv6 otherwise
+//OR you create a new IPv4StringOptionsBuilder?  It just wraps IPStringOptionsBuilder?
+//If you do that, maybe you remove the default separator
+//but then, you already have hex as the default radix - so not so sure
+//hmmmmm
+//Let us wrap both MAC and IPv4
+//and then all three MAC/IPv4/6 will all have their own getDefaults
+//xxx
+
+//// NewIPv4StringOptionsBuilder returns a builder with default options set to create a specific type of IPv4 address string.
+//func NewIPv4StringOptionsBuilder() *IPStringOptionsBuilder {
+//	opts := IPStringOptionsBuilder{}
+//	return opts.SetRadix(IPv4DefaultTextualRadix).SetSeparator(IPv4SegmentSeparator)
+//}
+//
+//// NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MAC address string.
+//func NewMACStringOptionsBuilder() *StringOptionsBuilder {
+//	opts := StringOptionsBuilder{}
+//	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)
+//}
+//
+//// NewIPv6StringOptionsBuilder returns a builder with default options set to create a specific type of IPv6 address string.
+//func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
+//	opts := IPv6StringOptionsBuilder{}
+//	return opts.SetRadix(IPv6DefaultTextualRadix).SetSeparator(IPv6SegmentSeparator)
+//}
 
 type IPv6StringOptions interface {
 	IPStringOptions
@@ -579,16 +786,17 @@ func (builder *IPv6StringOptionsBuilder) SetUppercase(upper bool) *IPv6StringOpt
 func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 	if builder.makeMixed {
 		if builder.opts.ipv4Opts == nil {
-			builder.opts.ipv4Opts = NewIPv4StringOptionsBuilder().SetExpandedSegments(builder.expandSegments).
+			builder.opts.ipv4Opts = new(IPv4StringOptionsBuilder).SetExpandedSegments(builder.expandSegments).
 				SetWildcardOption(builder.ipStringOptions.wildcardOption).
 				SetWildcards(builder.wildcards).ToOptions()
 		}
 	} else {
 		builder.opts.ipv4Opts = nil
 	}
+	b := &builder.IPStringOptionsBuilder.StringOptionsBuilder
+	b.hasSeparator, b.separator = getIPv6Defaults(b.hasSeparator, b.separator)
 	res := builder.opts
 	res.ipStringOptions = *builder.IPStringOptionsBuilder.ToOptions().(*ipStringOptions)
-	res.base, res.wildcards, res.separator, res.zoneSeparator = getDefaults(res.base, res.wildcards, res.separator, res.zoneSeparator)
 	return &res
 }
 

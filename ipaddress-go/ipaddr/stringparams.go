@@ -56,20 +56,20 @@ func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
 		res = options.cachedIPAddr
 	}
 	if res == nil {
-		radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
+		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 		res = &ipAddressStringParams{
 			addressStringParams: addressStringParams{
-				radix:            radix,
-				separator:        separator,
+				radix:            opts.GetRadix(),
+				separator:        opts.GetSeparator(),
 				hasSep:           opts.HasSeparator(),
 				uppercase:        opts.IsUppercase(),
 				expandSegments:   opts.IsExpandedSegments(),
-				wildcards:        wildcards,
+				wildcards:        opts.GetWildcards(),
 				segmentStrPrefix: opts.GetSegmentStrPrefix(),
 				reverse:          opts.IsReverse(),
 				//splitDigits:      opts.isSplitDigits(),
 				addressLabel:  opts.GetAddressLabel(),
-				zoneSeparator: zoneSeparator,
+				zoneSeparator: opts.GetZoneSeparator(),
 			},
 			wildcardOption: opts.GetWildcardOption(),
 			addressSuffix:  opts.GetAddressSuffix(),
@@ -82,22 +82,6 @@ func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
 	return
 }
 
-func getDefaults(radix int, wildcards Wildcards, separator, zoneSeparator byte) (int, Wildcards, byte, byte) {
-	if radix == 0 {
-		radix = 16
-	}
-	if wildcards == nil {
-		wildcards = DefaultWildcards
-	}
-	if separator == 0 {
-		separator = ' '
-	}
-	if zoneSeparator == 0 {
-		zoneSeparator = IPv6ZoneSeparator
-	}
-	return radix, wildcards, separator, zoneSeparator
-}
-
 func toParams(opts StringOptions) (res *addressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
@@ -106,14 +90,14 @@ func toParams(opts StringOptions) (res *addressStringParams) {
 		res = options.cached
 	}
 	if res == nil {
-		radix, wildcards, separator, _ := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), 0)
+		//radix, wildcards, separator, _ := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), 0)
 		res = &addressStringParams{
-			radix:            radix,
-			separator:        separator,
+			radix:            opts.GetRadix(),
+			separator:        opts.GetSeparator(),
 			hasSep:           opts.HasSeparator(),
 			uppercase:        opts.IsUppercase(),
 			expandSegments:   opts.IsExpandedSegments(),
-			wildcards:        wildcards,
+			wildcards:        opts.GetWildcards(),
 			segmentStrPrefix: opts.GetSegmentStrPrefix(),
 			addressLabel:     opts.GetAddressLabel(),
 			reverse:          opts.IsReverse(),
@@ -135,19 +119,19 @@ func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
 		res = options.cachedAddr
 	}
 	if res == nil {
-		radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
+		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 		res = &addressStringParams{
-			radix:            radix,
-			separator:        separator,
+			radix:            opts.GetRadix(),
+			separator:        opts.GetSeparator(),
 			hasSep:           opts.HasSeparator(),
 			uppercase:        opts.IsUppercase(),
 			expandSegments:   opts.IsExpandedSegments(),
-			wildcards:        wildcards,
+			wildcards:        opts.GetWildcards(),
 			segmentStrPrefix: opts.GetSegmentStrPrefix(),
 			addressLabel:     opts.GetAddressLabel(),
 			reverse:          opts.IsReverse(),
 			//splitDigits:      opts.isSplitDigits(),
-			zoneSeparator: zoneSeparator,
+			zoneSeparator: opts.GetZoneSeparator(),
 		}
 		if hasCache {
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
@@ -158,21 +142,21 @@ func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
 }
 
 func from(opts IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringParams) {
-	radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
+	//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 	res = &ipv6StringParams{
 		ipAddressStringParams: ipAddressStringParams{
 			addressStringParams: addressStringParams{
-				radix:            radix,
-				separator:        separator,
+				radix:            opts.GetRadix(),
+				separator:        opts.GetSeparator(),
 				hasSep:           opts.HasSeparator(),
 				uppercase:        opts.IsUppercase(),
 				expandSegments:   opts.IsExpandedSegments(),
-				wildcards:        wildcards,
+				wildcards:        opts.GetWildcards(),
 				segmentStrPrefix: opts.GetSegmentStrPrefix(),
 				reverse:          opts.IsReverse(),
 				splitDigits:      opts.IsSplitDigits(),
 				addressLabel:     opts.GetAddressLabel(),
-				zoneSeparator:    zoneSeparator,
+				zoneSeparator:    opts.GetZoneSeparator(),
 			},
 			wildcardOption: opts.GetWildcardOption(),
 			addressSuffix:  opts.GetAddressSuffix(),
@@ -295,7 +279,7 @@ type addressStringParams struct {
 	radix int
 
 	//the segment separator and in the case of split digits, the digit separator
-	separator byte
+	separator byte // default is ' '
 	hasSep    bool // whether there is a separator at all
 	uppercase bool //whether to print A or a
 

@@ -306,6 +306,8 @@ func newMACSegmentVal(value MACSegInt) *macSegmentValues {
 func newMACSegmentValues(value, upperValue MACSegInt) *macSegmentValues {
 	if value == upperValue {
 		return newMACSegmentVal(value)
+	} else if value > upperValue {
+		value, upperValue = upperValue, value
 	}
 	if useMACSegmentCache && value == 0 && upperValue == MACMaxValuePerSegment {
 		return allRangeValsMAC

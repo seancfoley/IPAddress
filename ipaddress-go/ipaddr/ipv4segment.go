@@ -406,6 +406,8 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 	if prefLen == nil {
 		if value == upperValue {
 			return newIPv4SegmentVal(value)
+		} else if value > upperValue {
+			value, upperValue = upperValue, value
 		}
 		if useIPv4SegmentCache && value == 0 && upperValue == IPv4MaxValuePerSegment {
 			return allRangeValsIPv4
@@ -414,6 +416,8 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 	} else {
 		if value == upperValue {
 			return newIPv4SegmentPrefixedVal(value, prefLen)
+		} else if value > upperValue {
+			value, upperValue = upperValue, value
 		}
 		segmentPrefixLength := *prefLen
 		if segmentPrefixLength < 0 {

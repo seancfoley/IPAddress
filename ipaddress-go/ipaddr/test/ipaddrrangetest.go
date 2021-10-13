@@ -1328,6 +1328,15 @@ func (t ipAddressRangeTester) run() {
 
 	t.testResolved("2001:*:0:0:8:800:200C:417A", "2001:*:0:0:8:800:200C:417A")
 
+	t.testNormalized("ABCD:EF12:*:*:***:A:*:BBBB", "abcd:ef12:*:*:*:a:*:bbbb")
+	t.testNormalized("ABCD:EF12:*:*:**:A:***:BBBB%g", "abcd:ef12:*:*:*:a:*:bbbb%g")
+
+	t.testNormalized("1.*", "1.*.*.*")
+	t.testNormalized("*.1.*", "*.1.*.*")
+	t.testNormalized("*:1::*", "*:1::*")
+	t.testNormalized("*:1:*", "*:1:*:*:*:*:*:*")
+	t.testNormalized("001-002:0001-0002:01-2:1-02:01-02:*", "1-2:1-2:1-2:1-2:1-2:*:*:*")
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
