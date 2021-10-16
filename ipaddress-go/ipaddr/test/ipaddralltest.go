@@ -9,7 +9,6 @@ type ipAddressAllTester struct {
 func (t ipAddressAllTester) testStrings() {
 	t.testMatches(true, "aaaabbbbccccddddeeeeffffaaaabbbb", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaaa:bbbb")
 	t.testMatches(true, "aaaabbbbcccccdddffffffffffffffff-aaaabbbbccccdddd0000000000000000", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
-	// failed: matching aaaabbbbccccdddd0000000000000000-aaaabbbbcccccdddffffffffffffffff with aaaa:bbbb:cc
 	t.testMatches(true, "aaaabbbbccccdddd0000000000000000-aaaabbbbcccccdddffffffffffffffff", "aaaa:bbbb:cccc:cddd-dddd:*:*:*:*")
 
 	// TODO base85

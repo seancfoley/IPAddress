@@ -7,6 +7,25 @@ import (
 )
 
 type IPv4SegInt uint8
+type IPv4SegmentValueProvider func(segmentIndex int) IPv4SegInt
+
+func WrappedIPv4SegmentValueProvider(f IPv4SegmentValueProvider) SegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) SegInt {
+		return SegInt(f(segmentIndex))
+	}
+}
+
+func WrappedSegmentValueProviderForIPv4(f SegmentValueProvider) IPv4SegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) IPv4SegInt {
+		return IPv4SegInt(f(segmentIndex))
+	}
+}
 
 const useIPv4SegmentCache = true
 
@@ -140,6 +159,14 @@ func (seg *IPv4AddressSegment) GetByteCount() int {
 
 func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
+}
+
+func (seg *IPv4AddressSegment) GetLower() *IPv4AddressSegment {
+	return seg.getLower().ToIPv4AddressSegment()
+}
+
+func (seg *IPv4AddressSegment) GetUpper() *IPv4AddressSegment {
+	return seg.getUpper().ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {

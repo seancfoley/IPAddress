@@ -139,7 +139,7 @@ func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
 	return (value & (1 << uint(bitCount-(segmentBitIndex+1)))) != 0
 }
 
-func (seg *addressSegmentInternal) GetLower() *AddressSegment {
+func (seg *addressSegmentInternal) getLower() *AddressSegment {
 	if !seg.IsMultiple() {
 		return seg.toAddressSegment()
 	}
@@ -151,7 +151,7 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	return createAddressSegment(newVals)
 }
 
-func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
+func (seg *addressSegmentInternal) getUpper() *AddressSegment {
 	if !seg.IsMultiple() {
 		return seg.toAddressSegment()
 	}
@@ -499,6 +499,14 @@ type AddressSegment struct {
 //func (seg *AddressSegment) CompareTo(item AddressItem) int {
 //	return CountComparator.Compare(seg, item)
 //}
+
+func (seg *addressSegmentInternal) GetLower() *AddressSegment {
+	return seg.getLower()
+}
+
+func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
+	return seg.getUpper()
+}
 
 func (seg *AddressSegment) IsIPAddressSegment() bool {
 	return seg != nil && seg.matchesIPSegment()

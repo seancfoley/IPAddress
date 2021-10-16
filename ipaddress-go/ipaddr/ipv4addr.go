@@ -35,7 +35,7 @@ func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueErro
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
 }
 
-func NewIPv4AddressFromSegments(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
+func NewIPv4AddressFromSegments(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) { //TODO abbreviate Segments to Segs in all constructor methods
 	segCount := len(segments)
 	if segCount != IPv4SegmentCount {
 		return nil, &addressValueError{
@@ -97,25 +97,25 @@ func NewIPv4AddressFromPrefixedIP(ip net.IP, prefixLength PrefixLen) (addr *IPv4
 	return
 }
 
-func NewIPv4AddressFromVals(vals SegmentValueProvider) (addr *IPv4Address) {
+func NewIPv4AddressFromVals(vals IPv4SegmentValueProvider) (addr *IPv4Address) {
 	section := NewIPv4SectionFromVals(vals, IPv4SegmentCount)
 	addr = newIPv4Address(section)
 	return
 }
 
-func NewIPv4AddressFromPrefixedVals(vals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
+func NewIPv4AddressFromPrefixedVals(vals IPv4SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedVals(vals, IPv4SegmentCount, prefixLength)
 	addr = newIPv4Address(section)
 	return
 }
 
-func NewIPv4AddressFromRange(vals, upperVals SegmentValueProvider) (addr *IPv4Address) {
+func NewIPv4AddressFromRange(vals, upperVals IPv4SegmentValueProvider) (addr *IPv4Address) {
 	section := NewIPv4SectionFromRange(vals, upperVals, IPv4SegmentCount)
 	addr = newIPv4Address(section)
 	return
 }
 
-func NewIPv4AddressFromPrefixedRange(vals, upperVals SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
+func NewIPv4AddressFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, prefixLength PrefixLen) (addr *IPv4Address) {
 	section := NewIPv4SectionFromPrefixedRange(vals, upperVals, IPv4SegmentCount, prefixLength)
 	addr = newIPv4Address(section)
 	return
@@ -312,6 +312,9 @@ func (addr *IPv4Address) Subtract(other *IPv4Address) []*IPv4Address {
 func (addr *IPv4Address) Intersect(other *IPv4Address) *IPv4Address {
 	addr = addr.init()
 	section, _ := addr.GetSection().Intersect(other.GetSection())
+	if section == nil {
+		return nil
+	}
 	return addr.checkIdentity(section)
 }
 
@@ -876,6 +879,10 @@ func (addr IPv4Address) String() string {
 	//	return nilAddress
 	//}
 	return addr.init().ipAddressInternal.String()
+}
+
+func (addr *IPv4Address) GetSegmentStrings() []string {
+	return addr.init().getSegmentStrings()
 }
 
 func (addr *IPv4Address) ToCanonicalString() string {

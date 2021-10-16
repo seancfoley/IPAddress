@@ -197,6 +197,28 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixCountLen(prefixLen Bit
 	return grouping.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
 }
 
+func (grouping *addressDivisionGroupingInternal) getDivisionStrings() []string {
+	if grouping.hasNoDivisions() {
+		return []string{}
+	}
+	result := make([]string, grouping.GetDivisionCount())
+	for i := range result {
+		result[i] = grouping.getDivision(i).String()
+	}
+	return result
+}
+
+func (grouping *addressDivisionGroupingInternal) getSegmentStrings() []string {
+	if grouping.hasNoDivisions() {
+		return []string{}
+	}
+	result := make([]string, grouping.GetDivisionCount())
+	for i := range result {
+		result[i] = grouping.getDivision(i).GetWildcardString()
+	}
+	return result
+}
+
 func (grouping *addressDivisionGroupingInternal) toAddressDivisionGrouping() *AddressDivisionGrouping {
 	return (*AddressDivisionGrouping)(unsafe.Pointer(grouping))
 }
@@ -700,7 +722,7 @@ type AddressDivisionGrouping struct {
 // One big difference is the handling of indices.  copySubSegmentsToSlice is very forgiving, using adjust1To1Indices.
 // But, CopySubDivisions/CopyDivisions uses the copy function, which is a bit forgiving.
 // So, do we need both?
-// I'm thinking that these two need to go, OR, they need to do the same as copySubSegmentsToSlice.
+// I'm thinking that these two here need to go, OR, they need to do the same as copySubSegmentsToSlice.
 // We certainly cannot tolerate behaviour different from CopySubSegments/CopySegments
 // We may be able to just use adjust1To1Indices and thus continue to use "copy"
 
@@ -714,6 +736,10 @@ func (grouping *AddressDivisionGrouping) CopySubDivisions(start, end int, divs [
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (grouping *AddressDivisionGrouping) CopyDivisions(divs []*AddressDivision) (count int) {
 	return grouping.copyDivisions(divs)
+}
+
+func (grouping *AddressDivisionGrouping) GetDivisionStrings() []string {
+	return grouping.getDivisionStrings()
 }
 
 func (grouping *AddressDivisionGrouping) IsAddressSection() bool {

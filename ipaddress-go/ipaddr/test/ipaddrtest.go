@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math/big"
+	//"math/bits"
 	"net"
 	"strconv"
 	"strings"
@@ -1774,6 +1776,108 @@ func (t ipAddressTester) run() {
 
 	t.testMixedNoComp("::", "::", "::0.0.0.0")
 	t.testMixed("::1", "::0.0.0.1")
+
+	t.testMask("1.2.3.4", "0.0.2.0", "0.0.2.0")
+	t.testMask("1.2.3.4", "0.0.1.0", "0.0.1.0")
+	t.testMask("A:B:C:D:E:F:A:B", "A:0:C:0:E:0:A:0", "A:0:C:0:E:0:A:0")
+	t.testMask("A:B:C:D:E:F:A:B", "FFFF:FFFF:FFFF:FFFF::", "A:B:C:D::")
+	t.testMask("A:B:C:D:E:F:A:B", "::FFFF:FFFF:FFFF:FFFF", "::E:F:A:B")
+
+	t.testRadices("255.127.254.2", "11111111.1111111.11111110.10", 2)
+	t.testRadices("2.254.127.255", "10.11111110.1111111.11111111", 2)
+	t.testRadices("1.12.4.8", "1.1100.100.1000", 2)
+	t.testRadices("8.4.12.1", "1000.100.1100.1", 2)
+	t.testRadices("10.5.10.5", "1010.101.1010.101", 2)
+	t.testRadices("5.10.5.10", "101.1010.101.1010", 2)
+	t.testRadices("0.1.0.1", "0.1.0.1", 2)
+	t.testRadices("1.0.1.0", "1.0.1.0", 2)
+
+	t.testRadices("255.127.254.2", "513.241.512.2", 7)
+	t.testRadices("2.254.127.255", "2.512.241.513", 7)
+	t.testRadices("0.1.0.1", "0.1.0.1", 7)
+	t.testRadices("1.0.1.0", "1.0.1.0", 7)
+
+	t.testRadices("255.127.254.2", "120.87.11e.2", 15)
+	t.testRadices("2.254.127.255", "2.11e.87.120", 15)
+	t.testRadices("0.1.0.1", "0.1.0.1", 15)
+	t.testRadices("1.0.1.0", "1.0.1.0", 15)
+
+	var ninePrefs [9]ipaddr.PrefixLen
+
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8", ninePrefs[:])
+	t.testInsertAndAppendPrefs("1.2.3.4", "5.6.7.8", ninePrefs[:5])
+
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8")
+	t.testReplace("1.2.3.4", "5.6.7.8")
+
+	//testSQLMatching();
+
+	t.testInvalidIpv4Values()
+
+	t.testInvalidIpv6Values()
+
+	t.testIPv4Values([]int{1, 2, 3, 4}, "16909060")
+	t.testIPv4Values([]int{0, 0, 0, 0}, "0")
+	t.testIPv4Values([]int{255, 255, 255, 255}, strconv.FormatUint(0xffffffff, 10))
+
+	t.testIPv6Values([]int{1, 2, 3, 4, 5, 6, 7, 8}, "5192455318486707404433266433261576")
+	t.testIPv6Values([]int{0, 0, 0, 0, 0, 0, 0, 0}, "0")
+	t.testIPv6Values([]int{0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}, one28().String())
+
+	t.testSub("10.0.0.0/22", "10.0.1.0/24", []string{"10.0.0.0/24", "10.0.2.0/23"})
+
+	t.testIntersect("1:1::/32", "1:1:1:1:1:1:1:1", "1:1:1:1:1:1:1:1") //1:1:0:0:0:0:0:0/32
+	t.testIntersectLowest("1:1::/32", "1:1::/16", "1:1::/32", true)   //1:1::/16 1:1:0:0:0:0:0:0/32
+	t.testIntersect("1:1::/32", "1:1::/48", "1:1::/48")
+	t.testIntersect("1:1::/32", "1:1::/64", "1:1::/64")
+	t.testIntersect("1:1::/32", "1:1:2:2::/64", "1:1:2:2::/64")
+	t.testIntersect("1:1::/32", "1:0:2:2::/64", "")
+	t.testIntersect("10.0.0.0/22", "10.0.0.0/24", "10.0.0.0/24") //[10.0.0.0/24, 10.0.2.0/23]
+	t.testIntersect("10.0.0.0/22", "10.0.1.0/24", "10.0.1.0/24") //[10.0.1-3.0/24]
+
+	t.testToPrefixBlock("1:3::3:4", "1:3::3:4")
+	t.testToPrefixBlock("1.3.3.4", "1.3.3.4")
+
+	t.testMaxHost("1.2.3.4", "255.255.255.255/0")
+	t.testMaxHost("1.2.255.255/16", "1.2.255.255/16")
+
+	t.testMaxHost("1:2:3:4:5:6:7:8", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0")
+	t.testMaxHost("1:2:ffff:ffff:ffff:ffff:ffff:ffff/64", "1:2:ffff:ffff:ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:2:3:4:5:6:7:8/64", "1:2:3:4:ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:2:3:4:5:6:7:8/128", "1:2:3:4:5:6:7:8/128")
+
+	t.testZeroHost("1.2.3.4", "0.0.0.0/0")
+	t.testZeroHost("1.2.0.0/16", "1.2.0.0/16")
+
+	t.testZeroHost("1:2:3:4:5:6:7:8", "::/0")
+	t.testZeroHost("1:2::/64", "1:2::/64")
+	t.testZeroHost("1:2:3:4:5:6:7:8/64", "1:2:3:4::/64")
+	t.testZeroHost("1:2:3:4:5:6:7:8/128", "1:2:3:4:5:6:7:8/128")
+
+	t.testZeroNetwork("1.2.3.4", "0.0.0.0")
+	t.testZeroNetwork("1.2.0.0/16", "0.0.0.0/16")
+
+	t.testZeroNetwork("1:2:3:4:5:6:7:8", "::")
+	t.testZeroNetwork("1:2::/64", "::/64")
+	t.testZeroNetwork("1:2:3:4:5:6:7:8/64", "::5:6:7:8/64")
+	t.testZeroNetwork("1:2:3:4:5:6:7:8/128", "::/128")
+}
+
+//func one28() *big.Int {
+//	thirtyTwo := new(big.Int).SetUint64(0xffffffff);
+//	thirtyTwoA := new(big.Int).Set(thirtyTwo);
+//	thirtyTwoB := new(big.Int).Set(thirtyTwo);
+//	thirtyTwoC := new(big.Int).Set(thirtyTwo);
+//	//zeroBig := new(big.Int)
+//	one28 := new(big.Int).Or(thirtyTwoA.Lsh(thirtyTwoA, 96),new(big.Int).Or(thirtyTwoB.Lsh(thirtyTwoB, 64),new(big.Int).Or(thirtyTwoC.Lsh(thirtyTwoC,32),thirtyTwo)));
+//	//one28 := thirtyTwoA.Lsh(thirtyTwoA, 96).Or(zeroBig,thirtyTwoB.Lsh(thirtyTwoB, 64).Or(zeroBig,thirtyTwoC.Lsh(thirtyTwoC,32).Or(zeroBig,thirtyTwo)));
+//return one28
+//}
+func one28() *big.Int {
+	sixty4 := new(big.Int).SetUint64(0xffffffffffffffff)
+	sixtyFour := new(big.Int).Set(sixty4)
+	sixty4.Or(sixtyFour.Lsh(sixtyFour, 64), sixty4)
+	return sixty4
 }
 
 func (t ipAddressTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -1807,7 +1911,8 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 		if equiv == nil {
 			isFailed = prefixed != nil
 		} else {
-			isFailed = !directAddress.Equals(prefixed)
+			//fmt.Printf("%v %v %v\n", direct, directAddress.ToNormalizedWildcardString(), prefixed.ToNormalizedWildcardString())
+			isFailed = !directAddress.Equals(prefixed) // prefixed is prefix block, directAddress is not
 		}
 		if isFailed {
 			t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), prefixed))
@@ -3368,7 +3473,6 @@ func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, 
 		var paramsBuilder = new(ipaddr.IPv6StringOptionsBuilder)
 		if compress {
 			compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).ToOptions()
-			//CompressOptions opts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZEROS_OR_HOST);
 			paramsBuilder = paramsBuilder.SetCompressOptions(compressOpts)
 		}
 		fromString := val.ToAddressString()
@@ -3376,18 +3480,11 @@ func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, 
 			paramsBuilder.SetMixed(true)
 		}
 		params := paramsBuilder.ToOptions()
-		//normalized := val.toNormalizedString(keepMixed, params)
 		normalized, err := val.ToCustomString(params)
 		if err != nil {
 			t.addFailure(newIPAddrFailure("ToCustomString errored with error: "+err.Error(), val.ToIPAddress()))
 		}
 		if normalized != expected {
-
-			//xxxx problem is we are not "keeping" mixed as in the toNormalizedString that does that xxxx
-			//xxxx Maybe we can add it, does not seem hard, but give it a different name than ToCustomString xxx
-			//xxxx or, in here we could do the same thing checking the string that created it xxxx
-			//xxx let us keep it, so what is new name ToPreservedMixedString xxx
-
 			t.addFailure(newFailure("normalization 1 was "+normalized+" expected was "+expected, w))
 		}
 	} else if w.IsIPv4() {
@@ -3454,6 +3551,608 @@ func (t ipAddressTester) testMixedNoComp(original, expected, expectedNoCompressi
 		if normalized != expectedNoCompression {
 			t.addFailure(newFailure("mixed was "+normalized+" expected was "+expectedNoCompression, w))
 		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testRadices(original, expected string, radix int) {
+	w := t.createAddress(original)
+	val := w.GetAddress()
+	options := new(ipaddr.IPv4StringOptionsBuilder).SetRadix(radix).ToOptions()
+	normalized := val.ToCustomString(options)
+	if normalized != expected {
+		t.addFailure(newFailure("string was "+normalized+" expected was "+expected, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testInsertAndAppend(front, back string, expectedPref []ipaddr.BitCount) {
+	is := make([]ipaddr.PrefixLen, len(expectedPref))
+	for i := 0; i < len(expectedPref); i++ {
+		is[i] = cacheTestBits(expectedPref[i])
+	}
+	t.testInsertAndAppendPrefs(front, back, is)
+}
+
+func (t ipAddressTester) testInsertAndAppendPrefs(front, back string, expectedPref []ipaddr.PrefixLen) {
+	f := t.createAddress(front).GetAddress()
+	b := t.createAddress(back).GetAddress()
+	sep := byte(ipaddr.IPv4SegmentSeparator)
+	if f.IsIPv6() {
+		sep = ipaddr.IPv6SegmentSeparator
+	}
+	t.testAppendAndInsert(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(), sep, expectedPref, false)
+}
+
+func (t ipAddressTester) testReplace(front, back string) {
+	f := t.createAddress(front).GetAddress()
+	b := t.createAddress(back).GetAddress()
+	sep := byte(ipaddr.IPv4SegmentSeparator)
+	if f.IsIPv6() {
+		sep = ipaddr.IPv6SegmentSeparator
+	}
+	t.testBase.testReplace(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(), sep, false)
+}
+
+func (t ipAddressTester) testInvalidIpv4Values() {
+	//try {
+	bytes := []byte{1, 0, 0, 0, 0}
+	bytes[0] = 1
+	addr, err := ipaddr.NewIPv4AddressFromIP(bytes)
+	if err == nil {
+		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	//new IPv4Address(new byte[4]);
+	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	//new IPv4Address(new byte[3]);
+	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	//new IPv4Address(new byte[2]);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
+		var val = 256 // will be truncated to 0
+		return ipaddr.IPv4SegInt(val)
+	})
+	if !addr.IsZero() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
+		var val = -1 // will be truncated to 0
+		return ipaddr.IPv4SegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
+		var val = 255 // will be truncated to 0
+		return ipaddr.IPv4SegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+	//new IPv4Address(new SegmentValueProvider() {
+	//	@Override
+	//	public int getValue(int segmentIndex) {
+	//		return 255;
+	//	}
+	//});
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+}
+
+func (t ipAddressTester) testIPv4Values(segs []int, decimal string) {
+	vals := make([]byte, len(segs))
+	strb := strings.Builder{}
+	//longval := 0;
+	intval := uint32(0)
+	bigInt := new(big.Int)
+	//BigInteger bigInteger = BigInteger.ZERO;
+	bitsPerSegment := ipaddr.IPv4BitsPerSegment
+	for i := 0; i < len(segs); i++ {
+		seg := segs[i]
+		if strb.Len() > 0 {
+			strb.WriteByte('.')
+		}
+		strb.WriteString(strconv.Itoa(seg))
+		vals[i] = byte(seg)
+		//longval = (longval << bitsPerSegment) | seg;
+		intval = (intval << uint(bitsPerSegment)) | uint32(seg)
+		bigInt = bigInt.Lsh(bigInt, uint(bitsPerSegment)).Or(bigInt, new(big.Int).SetInt64(int64(seg)))
+	}
+	//try {
+	strbStr := strb.String()
+	ipaddressStr := t.createAddress(strbStr)
+	addr := [7]*ipaddr.IPv4Address{}
+	//IPv4Address addr[] = new IPv4Address[7];
+	//int i = 0;
+	addr[0] = t.createAddressFromIP(vals).ToIPv4Address()
+	addr[1] = ipaddressStr.GetAddress().ToIPv4Address()
+	addr[2] = t.createIPv4Address(intval)
+	ips := net.ParseIP(strbStr)
+	ips2 := net.IPv4(vals[0], vals[1], vals[2], vals[3])
+	//InetAddress inetAddress1 = InetAddress.getByName(strbStr);
+	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
+	ip, err := ipaddr.NewIPv4AddressFromIP(ips)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIPAddress()))
+	}
+	ip2, err := ipaddr.NewIPv4AddressFromIP(ips2)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
+	}
+	addr[3] = ip
+	addr[4] = ip2
+	addr[5] = ipaddr.NewIPv4AddressFromUint32(intval)
+	addr[6] = ipaddr.NewIPv4AddressFromUint32(uint32(bigInt.Uint64()))
+	for j := 0; j < len(addr); j++ {
+		for k := j; k < len(addr); k++ {
+			if !addr[k].Equals(addr[j]) || !addr[j].Equals(addr[k]) {
+				t.addFailure(newFailure("failed equals: "+addr[k].String()+" and "+addr[j].String(), ipaddressStr))
+			}
+		}
+	}
+	if decimal != "" {
+		for i := 0; i < len(addr); i++ {
+			if decimal != addr[i].GetValue().String() {
+				t.addFailure(newFailure("failed equals: "+addr[i].GetValue().String()+" and "+decimal, ipaddressStr))
+			}
+			if decimal != strconv.FormatUint(uint64(addr[i].Uint32Value()), 10) {
+				t.addFailure(newFailure("failed equals: "+strconv.FormatUint(uint64(addr[i].Uint32Value()), 10)+" and "+decimal, ipaddressStr))
+			}
+		}
+	}
+	//} catch(UnknownHostException e) {
+	//	addFailure(new Failure("failed unexpected: " + e));
+	//}
+}
+
+func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
+	vals := make([]byte, len(segs)*int(ipaddr.IPv6BytesPerSegment))
+	strb := strings.Builder{}
+	bigInt := new(big.Int)
+	bitsPerSegment := ipaddr.IPv6BitsPerSegment
+	for i := 0; i < len(segs); i++ {
+		seg := segs[i]
+		if strb.Len() > 0 {
+			strb.WriteByte(':')
+		}
+		strb.WriteString(strconv.FormatUint(uint64(seg), 16))
+		vals[i<<1] = byte(seg >> 8)
+		vals[(i<<1)+1] = byte(seg)
+		bigInt = bigInt.Lsh(bigInt, uint(bitsPerSegment)).Or(bigInt, new(big.Int).SetInt64(int64(seg)))
+		//bigInteger = bigInteger.shiftLeft(bitsPerSegment).add(BigInteger.valueOf(seg));
+	}
+	//try {
+	strbStr := strb.String()
+	ipaddressStr := t.createAddress(strbStr)
+	addr := [5]*ipaddr.IPv6Address{}
+	//IPv6Address addr[] = new IPv6Address[5];
+	//int i = 0;
+	addr[0] = t.createAddressFromIP(vals).ToIPv6Address()
+	addr[1] = ipaddressStr.GetAddress().ToIPv6Address()
+	ips := net.ParseIP(strbStr)
+	ips2 := net.IP{vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15]}
+	//InetAddress inetAddress1 = InetAddress.getByName(strb.toString());
+	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
+	ip, err := ipaddr.NewIPv6AddressFromIP(ips)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIPAddress()))
+	}
+	ip2, err := ipaddr.NewIPv6AddressFromIP(ips2)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
+	}
+	addr[2] = ip
+	addr[3] = ip2
+	//addr[2] = new IPv6Address((Inet6Address) inetAddress1);
+	//addr[3] = new IPv6Address((Inet6Address) inetAddress2);
+	ip3, err := ipaddr.NewIPv6AddressFromBigInt(bigInt)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
+	}
+	addr[4] = ip3
+	/*
+		addr[0] = t.createAddressFromIP(vals).ToIPv4Address();
+					addr[1] = ipaddressStr.GetAddress().ToIPv4Address();
+					addr[2] = t.createIPv4Address(intval);
+					ips := net.ParseIP(strbStr)
+					ips2 := net.IPv4(vals[0],vals[1],vals[2],vals[3])
+			ip, err := ipaddr.NewIPv4AddressFromIP(ips);
+			if err != nil {
+				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip.ToIPAddress()));
+			}
+			ip2, err := ipaddr.NewIPv4AddressFromIP(ips2);
+			if err != nil {
+				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip2.ToIPAddress()));
+			}
+			addr[3] = ip;
+					addr[4] = ip2;
+					addr[5] = ipaddr.NewIPv4AddressFromUint32(intval);
+					addr[6] = ipaddr.NewIPv4AddressFromUint32(uint32(bigInt.Uint64()));
+	*/
+	for j := 0; j < len(addr); j++ {
+		for k := j; k < len(addr); k++ {
+			if !addr[k].Equals(addr[j]) || !addr[j].Equals(addr[k]) {
+				// 0 and 3 not matching ::1:2:3:4 and 1:2:3:4:5:6:7:8
+				t.addFailure(newFailure("failed equals: "+addr[k].String()+" and "+addr[j].String(), ipaddressStr))
+			}
+		}
+	}
+	if decimal != "" {
+		for i := 0; i < len(addr); i++ {
+			if decimal != addr[i].GetValue().String() {
+				t.addFailure(newFailure("failed equals: "+addr[i].GetValue().String()+" and "+decimal, ipaddressStr))
+			}
+			//if decimal != strconv.FormatUint(uint64(addr[i].Uint32Value()), 10)  {
+			//	t.addFailure(newFailure("failed equals: " + strconv.FormatUint(uint64(addr[i].Uint32Value()), 10) + " and " + decimal,ipaddressStr));
+			//}
+		}
+	}
+	//if(decimal != null) {
+	//	for(i = 0; i < addr.length; i++) {
+	//		if(!decimal.equals(addr[i].getValue().toString())) {
+	//			addFailure(new Failure("failed equals: " + addr[i].getValue() + " and " + decimal));
+	//		}
+	//	}
+	//}
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("failed unexpected: " + e));
+	//} catch(UnknownHostException e) {
+	//	addFailure(new Failure("failed unexpected: " + e));
+	//}
+
+}
+
+func (t ipAddressTester) testInvalidIpv6Values() {
+	bytes := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	bytes[0] = 1
+	addr, err := ipaddr.NewIPv6AddressFromIP(bytes)
+	if err == nil {
+		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
+	}
+	addr = ipaddr.NewIPv6AddressFromVals(func(segmentIndex int) ipaddr.IPv6SegInt {
+		var val = 0x10000 // will be truncated to 0
+		return ipaddr.IPv6SegInt(val)
+	})
+	if !addr.IsZero() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+	addr = ipaddr.NewIPv6AddressFromVals(func(segmentIndex int) ipaddr.IPv6SegInt {
+		var val = -1 // will be truncated to 0
+		return ipaddr.IPv6SegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+	addr = ipaddr.NewIPv6AddressFromVals(func(segmentIndex int) ipaddr.IPv6SegInt {
+		var val = 0xffff // will be truncated to 0
+		return ipaddr.IPv6SegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIPAddress()))
+	}
+
+	//try {
+	//	byte bytes[] = new byte[17];
+	//	bytes[0] = 1;
+	//	IPv6Address addr = new IPv6Address(bytes);
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	new IPv6Address(new byte[17]);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	//	new IPv6Address(new byte[16]);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}try {
+	//	new IPv6Address(new byte[15]);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	//	new IPv6Address(new byte[14]);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetInt64(-1))
+	if err == nil {
+		t.addFailure(newIPAddrFailure("failed, expected error for -1", addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int))
+	if err != nil || !addr.IsZero() {
+		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).String(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(one28())
+	if err != nil || !addr.IsMax() {
+		t.addFailure(newIPAddrFailure("failed, unexpected error for "+one28().String(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).Add(one28(), bigOneConst()))
+	if err == nil {
+		t.addFailure(newIPAddrFailure("failed, expected error for "+new(big.Int).Add(one28(), bigOneConst()).String(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetUint64(0xffffffff))
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0xffffffff).String(), addr.ToIPAddress()))
+	}
+	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetUint64(0x1ffffffff))
+	if err != nil {
+		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0x1ffffffff).String(), addr.ToIPAddress()))
+	}
+	//try {
+	//	new IPv6Address(BigInteger.valueOf(-1));//-1 becomes [ff] which is sign extended to 16 bytes like [ff][ff]...[ff]
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
+	//BigInteger one28 = thirtyTwo.shiftLeft(96).or(thirtyTwo.shiftLeft(64).or(thirtyTwo.shiftLeft(32).or(thirtyTwo)));
+	//try {
+	//	new IPv6Address(one28);
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+	//try {
+	//	IPv6Address addr = new IPv6Address(one28.add(BigInteger.ONE));
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	new IPv6Address(BigInteger.valueOf(0xffffffffL));//must make it a long so it is not negative
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("failed unexpected: " + e));
+	//}
+	//try {
+	//	IPv6Address addr = new IPv6Address(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return 0x10000;
+	//		}
+	//	});
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	IPv6Address addr = new IPv6Address(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return -1;
+	//		}
+	//	});
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	new IPv6Address(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return 0xffff;
+	//		}
+	//	});
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//	e.printStackTrace();
+	//}
+}
+
+func (t ipAddressTester) testSub(one, two string, resultStrings []string) {
+	string := t.createAddress(one)
+	sub := t.createAddress(two)
+	addr := string.GetAddress()
+	subAddr := sub.GetAddress()
+	//try {
+	res := addr.Subtract(subAddr)
+	if len(resultStrings) == 0 {
+		if len(res) != 0 {
+			t.addFailure(newIPAddrFailure("non-null subtraction with "+addr.String(), subAddr))
+		}
+	} else {
+		if len(resultStrings) != len(res) {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("length mismatch %v with %v", res, resultStrings), subAddr))
+		} else {
+			results := make([]*ipaddr.IPAddress, len(resultStrings))
+			for i := 0; i < len(resultStrings); i++ {
+				results[i] = t.createAddress(resultStrings[i]).GetAddress()
+			}
+			for _, r := range res {
+				found := false
+				for _, result := range results {
+					if r.Equals(result) && r.GetNetworkPrefixLen().Equals(result.GetNetworkPrefixLen()) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch with %v", resultStrings), r))
+				}
+			}
+		}
+	}
+	//} catch(IncompatibleAddressException e) {
+	//	addFailure(new Failure("threw " + e + " when subtracting " + subAddr, addr));
+	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testIntersect(one, two, resultString string) {
+	t.testIntersectLowest(one, two, resultString, false)
+}
+
+func (t ipAddressTester) testIntersectLowest(one, two, resultString string, lowest bool) {
+	str := t.createAddress(one)
+	string2 := t.createAddress(two)
+	addr := str.GetAddress()
+	addr2 := string2.GetAddress()
+	r := addr.Intersect(addr2)
+	if resultString == "" {
+		if r != nil {
+			t.addFailure(newIPAddrFailure("non-null intersection with "+addr.String(), addr2))
+		}
+	} else {
+		result := t.createAddress(resultString).GetAddress()
+		if lowest {
+			result = result.GetLower()
+		}
+		if !r.Equals(result) || !r.GetNetworkPrefixLen().Equals(result.GetNetworkPrefixLen()) {
+			t.addFailure(newIPAddrFailure("mismatch with "+result.String(), r))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testToPrefixBlock(addrString, subnetString string) {
+	str := t.createAddress(addrString)
+	string2 := t.createAddress(subnetString)
+	addr := str.GetAddress()
+	subnet := string2.GetAddress()
+	prefixBlock := addr.ToPrefixBlock()
+	if !subnet.Equals(prefixBlock) {
+		t.addFailure(newIPAddrFailure("prefix block mismatch "+subnet.String()+" with block "+prefixBlock.String(), addr))
+	} else if !subnet.GetNetworkPrefixLen().Equals(prefixBlock.GetNetworkPrefixLen()) {
+		t.addFailure(newIPAddrFailure("prefix block length mismatch "+subnet.GetNetworkPrefixLen().String()+" and "+prefixBlock.GetNetworkPrefixLen().String(), addr))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testZeroHost(addrString, zeroHostString string) {
+	str := t.createAddress(addrString)
+	string2 := t.createAddress(zeroHostString)
+	addr := str.GetAddress()
+	specialHost := string2.GetAddress()
+	transformedHost, err := addr.ToZeroHost()
+	if err != nil {
+		t.addFailure(newIPAddrFailure("unexpected error max host: "+err.Error(), addr))
+	}
+
+	hostSection := transformedHost.GetHostSection()
+	if hostSection.GetSegmentCount() > 0 && !hostSection.IsZero() {
+		t.addFailure(newIPAddrFailure("non-zero host "+hostSection.String(), addr))
+	}
+
+	if !transformedHost.GetNetworkPrefixLen().Equals(specialHost.GetNetworkPrefixLen()) {
+		t.addFailure(newIPAddrFailure("prefix length mismatch "+transformedHost.GetNetworkPrefixLen().String()+" and "+specialHost.GetNetworkPrefixLen().String(), addr))
+	}
+
+	//for i := 0; i < addr.GetSegmentCount(); i++ {
+	//	seg := addr.GetSegment(i)
+	//	for j := 0; j < 2; j++ {
+	//TODO consider re-adding toZeroHost on segments, and then if you do, put back the old tests here using it
+	//IPAddressSegment newSeg = seg.toZeroHost();
+	//if(seg.isPrefixed()) {
+	//	Integer segPrefix = seg.getSegmentPrefixLength();
+	//	boolean allPrefsSubnets = seg.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+	//	if(allPrefsSubnets) {
+	//		if(newSeg.isPrefixed()) {
+	//			addFailure(new Failure("prefix length unexpected " + newSeg.getSegmentPrefixLength(), seg));
+	//		}
+	//	} else {
+	//		if(!newSeg.isPrefixed() || !segPrefix.equals(newSeg.getSegmentPrefixLength())) {
+	//			addFailure(new Failure("prefix length mismatch " + segPrefix + " and " + newSeg.getSegmentPrefixLength(), seg));
+	//		}
+	//		IPAddressSegment expected = seg.toNetworkSegment(segPrefix).getLower();
+	//		if(!newSeg.getLower().equals(expected)) {
+	//			newSeg = seg.toZeroHost();
+	//			addFailure(new Failure("new seg mismatch " + newSeg + " expected: " + expected, newSeg));
+	//		}
+	//		expected = seg.toNetworkSegment(segPrefix).getUpper().toZeroHost();
+	//		if(!newSeg.getUpper().equals(expected)) {
+	//			newSeg = seg.toZeroHost();
+	//			addFailure(new Failure("new seg mismatch " + newSeg + " expected: " + expected, newSeg));
+	//		}
+	//	}
+	//} else if(newSeg.isPrefixed() || !newSeg.isZero()) {
+	//	addFailure(new Failure("new seg not zero " + newSeg, newSeg));
+	//}
+	//seg = newSeg
+	//	}
+	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testZeroNetwork(addrString, zeroNetworkString string) {
+	str := t.createAddress(addrString)
+	string2 := t.createAddress(zeroNetworkString)
+	addr := str.GetAddress()
+	zeroNetwork := string2.GetAddress()
+	transformedNetwork := addr.ToZeroNetwork()
+	if !zeroNetwork.Equals(transformedNetwork) {
+		//if(!prefixConfiguration.zeroHostsAreSubnets() && !zeroNetwork.equals(transformedNetwork)) {
+		t.addFailure(newIPAddrFailure("mismatch "+zeroNetwork.String()+" with network "+transformedNetwork.String(), addr))
+	}
+	//if(!prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+	networkSection := transformedNetwork.GetNetworkSection()
+	if networkSection.GetSegmentCount() > 0 && !networkSection.IsZero() {
+		t.addFailure(newIPAddrFailure("non-zero network "+networkSection.String(), addr))
+	}
+	//}
+	if !transformedNetwork.GetNetworkPrefixLen().Equals(zeroNetwork.GetNetworkPrefixLen()) {
+		t.addFailure(newIPAddrFailure("network prefix length mismatch "+transformedNetwork.GetNetworkPrefixLen().String()+" and "+zeroNetwork.GetNetworkPrefixLen().String(), addr))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testMaxHost(addrString, maxHostString string) {
+	str := t.createAddress(addrString)
+	string2 := t.createAddress(maxHostString)
+	addr := str.GetAddress()
+	specialHost := string2.GetAddress()
+	transformedHost, err := addr.ToMaxHost()
+	if err != nil {
+		t.addFailure(newIPAddrFailure("unexpected error max host: "+err.Error(), addr))
+	}
+	if !specialHost.Equals(transformedHost) {
+		t.addFailure(newIPAddrFailure("mismatch "+specialHost.String()+" with host "+transformedHost.String(), addr))
+	} else if !transformedHost.GetNetworkPrefixLen().Equals(specialHost.GetNetworkPrefixLen()) {
+		t.addFailure(newIPAddrFailure("prefix length mismatch "+transformedHost.GetNetworkPrefixLen().String()+" and "+specialHost.GetNetworkPrefixLen().String(), addr))
 	}
 	t.incrementTestCount()
 }

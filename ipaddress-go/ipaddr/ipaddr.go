@@ -906,7 +906,12 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
 
-func (addr *IPAddress) ToIPv6Address() *IPv6Address { //TODO maybe rename to ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+//TODO maybe rename to ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+// This also makes sense because "ToIPv6Address" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
+// Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
+
+//
+func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 	if addr != nil && addr.IsIPv6() {
 		return (*IPv6Address)(addr)
 	}
@@ -1059,11 +1064,17 @@ func (addr *IPAddress) Intersect(other *IPAddress) *IPAddress {
 	return nil
 }
 
+// Subtract substracts the given subnet from this subnet, returning an array of subnets for the result (the subnets will not be contiguous so an array is required).
+// Computes the subnet difference, the set of addresses in this address subnet but not in the provided subnet.  This is also known as the relative complement of the given argument in this subnet.
+// This is set subtraction, not subtraction of segment values.  We have a subnet of addresses and we are removing those addresses found in the argument subnet.
+// If there are no remaining addresses, nil is returned.
 func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 	addr = addr.init()
 	sects, _ := addr.GetSection().subtract(other.GetSection())
 	sectLen := len(sects)
-	if sectLen == 1 {
+	if sectLen == 0 {
+		return nil
+	} else if sectLen == 1 {
 		sec := sects[0]
 		if sec.ToAddressSection() == addr.section {
 			return []*IPAddress{addr}
@@ -1242,6 +1253,10 @@ func (addr *IPAddress) ReverseBits(perByte bool) (*IPAddress, IncompatibleAddres
 
 func (addr *IPAddress) ReverseSegments() *IPAddress {
 	return addr.init().reverseSegments().ToIPAddress()
+}
+
+func (addr *IPAddress) GetSegmentStrings() []string {
+	return addr.init().getSegmentStrings()
 }
 
 func (addr *IPAddress) ToCanonicalString() string {
@@ -1816,18 +1831,32 @@ func FromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider 
 
 func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
 	if version.IsIPv4() {
-		return NewIPv4AddressFromPrefixedRange(lowerValueProvider, upperValueProvider, prefixLength).ToIPAddress()
+		return NewIPv4AddressFromPrefixedRange(
+			WrappedSegmentValueProviderForIPv4(lowerValueProvider),
+			WrappedSegmentValueProviderForIPv4(upperValueProvider),
+			prefixLength).ToIPAddress()
 	} else if version.IsIPv6() {
-		return NewIPv6AddressFromPrefixedZonedRange(lowerValueProvider, upperValueProvider, prefixLength, zone).ToIPAddress()
+		return NewIPv6AddressFromPrefixedZonedRange(
+			WrappedSegmentValueProviderForIPv6(lowerValueProvider),
+			WrappedSegmentValueProviderForIPv6(upperValueProvider),
+			prefixLength,
+			zone).ToIPAddress()
 	}
 	return nil
 }
 
 func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
 	if valueProvider.GetIPVersion().IsIPv4() {
-		return NewIPv4AddressFromPrefixedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLen()).ToIPAddress()
+		return NewIPv4AddressFromPrefixedRange(
+			WrappedSegmentValueProviderForIPv4(valueProvider.GetValues()),
+			WrappedSegmentValueProviderForIPv4(valueProvider.GetUpperValues()),
+			valueProvider.GetPrefixLen()).ToIPAddress()
 	} else if valueProvider.GetIPVersion().IsIPv6() {
-		return NewIPv6AddressFromPrefixedZonedRange(valueProvider.GetValues(), valueProvider.GetUpperValues(), valueProvider.GetPrefixLen(), valueProvider.GetZone()).ToIPAddress()
+		return NewIPv6AddressFromPrefixedZonedRange(
+			WrappedSegmentValueProviderForIPv6(valueProvider.GetValues()),
+			WrappedSegmentValueProviderForIPv6(valueProvider.GetUpperValues()),
+			valueProvider.GetPrefixLen(),
+			valueProvider.GetZone()).ToIPAddress()
 	}
 	return nil
 }

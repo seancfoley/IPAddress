@@ -5,6 +5,25 @@ import (
 )
 
 type MACSegInt uint8
+type MACSegmentValueProvider func(segmentIndex int) MACSegInt
+
+func WrappedMACSegmentValueProvider(f MACSegmentValueProvider) SegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) SegInt {
+		return SegInt(f(segmentIndex))
+	}
+}
+
+func WrappedSegmentValueProviderForMAC(f SegmentValueProvider) MACSegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) MACSegInt {
+		return MACSegInt(f(segmentIndex))
+	}
+}
 
 const useMACSegmentCache = true
 
@@ -136,6 +155,14 @@ func (seg *MACAddressSegment) GetByteCount() int {
 
 func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 	return 0xff
+}
+
+func (seg *MACAddressSegment) GetLower() *MACAddressSegment {
+	return seg.getLower().ToMACAddressSegment()
+}
+
+func (seg *MACAddressSegment) GetUpper() *MACAddressSegment {
+	return seg.getUpper().ToMACAddressSegment()
 }
 
 func (seg *MACAddressSegment) setString(

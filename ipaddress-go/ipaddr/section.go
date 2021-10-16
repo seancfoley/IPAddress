@@ -627,7 +627,12 @@ func (section *addressSectionInternal) replace(
 			sect.copySubSegmentsToSlice(endIndex, segmentCount, segs[index+otherSegmentCount:])
 		}
 	}
-	return deriveAddressSectionPrefLen(sect, segs, prefixLen)
+	addrType := sect.getAddrType()
+	if addrType.isNil() { // zero-length section
+		addrType = replacement.getAddrType()
+	}
+	return createInitializedSection(segs, prefixLen, addrType)
+	//return deriveAddressSectionPrefLen(sect, segs, prefixLen) xxx
 }
 
 // Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
@@ -1256,6 +1261,10 @@ var (
 	binaryPrefixedParams = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
 
+func (grouping *addressSectionInternal) GetSegmentStrings() []string {
+	return grouping.getSegmentStrings()
+}
+
 func (section *addressSectionInternal) ToCanonicalString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
@@ -1376,14 +1385,14 @@ func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddress
 	return false, nil
 }
 
-func (section *addressSectionInternal) GetSegmentStrings() []string {
-	count := section.GetSegmentCount()
-	res := make([]string, count)
-	for i := 0; i < count; i++ {
-		res[i] = section.GetSegment(i).String()
-	}
-	return res
-}
+//func (section *addressSectionInternal) GetSegmentStrings() []string {
+//	count := section.GetSegmentCount()
+//	res := make([]string, count)
+//	for i := 0; i < count; i++ {
+//		res[i] = section.GetSegment(i).String()
+//	}
+//	return res
+//}
 
 // used by iterator() and nonZeroHostIterator() in section classes
 func (section *addressSectionInternal) sectionIterator(excludeFunc func([]*AddressDivision) bool) SectionIterator {
@@ -1866,100 +1875,231 @@ func seriesValsSame(one, two AddressSegmentSeries) bool {
 	return true
 }
 
+//func toSegments(
+//	bytes []byte,
+//	segmentCount int,
+//	bytesPerSegment int,
+//	bitsPerSegment BitCount,
+//	expectedByteCount int,
+//	creator addressSegmentCreator,
+//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//
+//	//We allow two formats of bytes:
+//	//1. two's complement: top bit indicates sign.  Ranging over all 16-byte lengths gives all addresses, from both positive and negative numbers
+//	//  Also, we allow sign extension to shorter and longer byte lengths.  For example, -1, -1, -2 is the same as just -2.  So if this were IPv4, we allow -1, -1, -1, -1, -2 and we allow -2.
+//	//  This is compatible with BigInteger.  If we have a positive number like 2, we allow 0, 0, 0, 0, 2 and we allow just 2.
+//	//  But the top bit must be 0 for 0-sign extension. So if we have 255 as a positive number, we allow 0, 255 but not 255.
+//	//  Just 255 is considered negative and equivalent to -1, and extends to -1, -1, -1, -1 or the address 255.255.255.255, not 0.0.0.255
+//	//
+//	//2. Unsigned values
+//	//  We interpret 0, -1, -1, -1, -1 as 255.255.255.255 even though this is not a sign extension of -1, -1, -1, -1.
+//	//  In this case, we also allow any 4 byte value to be considered a positive unsigned number, and thus we always allow leading zeros.
+//	//  In the case of extending byte array values that are shorter than the required length,
+//	//  unsigned values must have a leading zero in cases where the top bit is 1, because the two's complement format takes precedence.
+//	//  So the single value 255 must have an additional 0 byte in front to be considered unsigned, as previously shown.
+//	//  The single value 255 is considered -1 and is extended to become the address 255.255.255.255,
+//	//  but for the unsigned positive value 255 you must use the two bytes 0, 255 which become the address 0.0.0.255.
+//	//  Once again, this is compatible with BigInteger.
+//	byteLen := len(bytes)
+//	missingBytes := expectedByteCount - byteLen
+//	startIndex := 0
+//
+//	//First we handle the situation where we have too many bytes.  Extra bytes can be all zero-bits, or they can be the negative sign extension of all one-bits.
+//	if missingBytes < 0 {
+//		expectedStartIndex := byteLen - expectedByteCount
+//		higherStartIndex := expectedStartIndex - 1
+//		expectedExtendedValue := bytes[higherStartIndex]
+//		if expectedExtendedValue != 0 {
+//			mostSignificantBit := bytes[expectedStartIndex] >> 7
+//			if mostSignificantBit != 0 {
+//				if expectedExtendedValue != 0xff { //0xff or -1
+//					err = &addressValueError{
+//						addressError: addressError{key: "ipaddress.error.exceeds.size"},
+//						val:          int(expectedExtendedValue),
+//					}
+//					return
+//				}
+//			} else {
+//				err = &addressValueError{
+//					addressError: addressError{key: "ipaddress.error.exceeds.size"},
+//					val:          int(expectedExtendedValue),
+//				}
+//				return
+//			}
+//		}
+//		for startIndex < higherStartIndex {
+//			higherStartIndex--
+//			if bytes[higherStartIndex] != expectedExtendedValue {
+//				err = &addressValueError{
+//					addressError: addressError{key: "ipaddress.error.exceeds.size"},
+//					val:          int(expectedExtendedValue),
+//				}
+//				return
+//			}
+//		}
+//		startIndex = expectedStartIndex
+//		missingBytes = 0
+//	}
+//	segments = createSegmentArray(segmentCount)
+//	for i, segmentIndex := 0, 0; i < expectedByteCount; segmentIndex++ {
+//		var value SegInt
+//		k := bytesPerSegment + i
+//		j := i
+//		if j < missingBytes {
+//			mostSignificantBit := bytes[startIndex] >> 7
+//			if mostSignificantBit == 0 { //sign extension
+//				j = missingBytes
+//			} else { //sign extension
+//				upper := k
+//				if missingBytes < k {
+//					upper = missingBytes
+//				}
+//				for ; j < upper; j++ {
+//					value <<= 8
+//					value |= 0xff
+//				}
+//			}
+//		}
+//		for ; j < k; j++ {
+//			byteValue := bytes[startIndex+j-missingBytes]
+//			value <<= 8
+//			value |= SegInt(byteValue)
+//		}
+//		i = k
+//		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+//		seg := creator.createSegment(value, value, segmentPrefixLength)
+//		segments[segmentIndex] = seg
+//	}
+//	return
+//}
+
+//func toSegments(
+//	bytes []byte,
+//	segmentCount int,
+//	bytesPerSegment int,
+//	bitsPerSegment BitCount,
+//	expectedByteCount int,
+//	creator addressSegmentCreator,
+//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//
+//	byteLen := len(bytes)
+//	missingBytes := expectedByteCount - byteLen
+//	startIndex := 0
+//
+//	//First we handle the situation where we have too many bytes.  Extra bytes must be all zero-bits.
+//	if missingBytes < 0 {
+//		expectedStartIndex := byteLen - expectedByteCount
+//		higherStartIndex := expectedStartIndex - 1
+//		for startIndex < higherStartIndex {
+//			higherStartIndex--
+//			if bytes[higherStartIndex] != 0 {
+//				err = &addressValueError{
+//					addressError: addressError{key: "ipaddress.error.exceeds.size"},
+//					val:          int(bytes[higherStartIndex]),
+//				}
+//				return
+//			}
+//		}
+//		startIndex = expectedStartIndex
+//		missingBytes = 0
+//	}
+//	segments = createSegmentArray(segmentCount)
+//
+//	for i, segmentIndex := 0, 0; i < expectedByteCount; segmentIndex++ {
+//		var value SegInt
+//		k := bytesPerSegment + i
+//		for j := missingBytes; j < k; j++ {
+//			byteValue := bytes[startIndex+j-missingBytes]
+//			value <<= 8
+//			value |= SegInt(byteValue)
+//		}
+//		i = k
+//		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+//		seg := creator.createSegment(value, value, segmentPrefixLength)
+//		segments[segmentIndex] = seg
+//	}
+//	return
+//}
+
+//func toSegments(
+//	bytes []byte,
+//	segmentCount int,
+//	bytesPerSegment int,
+//	bitsPerSegment BitCount,
+//	creator addressSegmentCreator,
+//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//
+//	byteLen := len(bytes)
+//	segments = createSegmentArray(segmentCount)
+//	for byteIndex, segmentIndex := 0, segmentCount-1; ; segmentIndex-- {
+//		var value SegInt
+//		k := byteIndex + bytesPerSegment
+//		if k > byteLen {
+//			k = byteLen
+//		}
+//		for j := byteIndex; j < k; j++ {
+//			byteValue := bytes[j]
+//			value <<= 8
+//			value |= SegInt(byteValue)
+//		}
+//		byteIndex = k
+//		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+//		seg := creator.createSegment(value, value, segmentPrefixLength)
+//		segments[segmentIndex] = seg
+//		if segmentIndex == 0 {
+//			// any remaining bytes should be zero
+//			for ; byteIndex < byteLen; byteIndex++ {
+//				if bytes[byteIndex] != 0 {
+//					err = &addressValueError{
+//						addressError: addressError{key: "ipaddress.error.exceeds.size"},
+//						val:          int(bytes[byteIndex]),
+//					}
+//					break
+//				}
+//			}
+//			break
+//		}
+//	}
+//	return
+//}
+
 func toSegments(
 	bytes []byte,
 	segmentCount int,
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
-	expectedByteCount int,
 	creator addressSegmentCreator,
 	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
 
-	//We allow two formats of bytes:
-	//1. two's complement: top bit indicates sign.  Ranging over all 16-byte lengths gives all addresses, from both positive and negative numbers
-	//  Also, we allow sign extension to shorter and longer byte lengths.  For example, -1, -1, -2 is the same as just -2.  So if this were IPv4, we allow -1, -1, -1, -1, -2 and we allow -2.
-	//  This is compatible with BigInteger.  If we have a positive number like 2, we allow 0, 0, 0, 0, 2 and we allow just 2.
-	//  But the top bit must be 0 for 0-sign extension. So if we have 255 as a positive number, we allow 0, 255 but not 255.
-	//  Just 255 is considered negative and equivalent to -1, and extends to -1, -1, -1, -1 or the address 255.255.255.255, not 0.0.0.255
-	//
-	//2. Unsigned values
-	//  We interpret 0, -1, -1, -1, -1 as 255.255.255.255 even though this is not a sign extension of -1, -1, -1, -1.
-	//  In this case, we also allow any 4 byte value to be considered a positive unsigned number, and thus we always allow leading zeros.
-	//  In the case of extending byte array values that are shorter than the required length,
-	//  unsigned values must have a leading zero in cases where the top bit is 1, because the two's complement format takes precedence.
-	//  So the single value 255 must have an additional 0 byte in front to be considered unsigned, as previously shown.
-	//  The single value 255 is considered -1 and is extended to become the address 255.255.255.255,
-	//  but for the unsigned positive value 255 you must use the two bytes 0, 255 which become the address 0.0.0.255.
-	//  Once again, this is compatible with BigInteger.
-	byteLen := len(bytes)
-	missingBytes := expectedByteCount - byteLen
-	startIndex := 0
-
-	//First we handle the situation where we have too many bytes.  Extra bytes can be all zero-bits, or they can be the negative sign extension of all one-bits.
-	if missingBytes < 0 {
-		expectedStartIndex := byteLen - expectedByteCount
-		higherStartIndex := expectedStartIndex - 1
-		expectedExtendedValue := bytes[higherStartIndex]
-		if expectedExtendedValue != 0 {
-			mostSignificantBit := bytes[expectedStartIndex] >> 7
-			if mostSignificantBit != 0 {
-				if expectedExtendedValue != 0xff { //0xff or -1
-					err = &addressValueError{
-						addressError: addressError{key: "ipaddress.error.exceeds.size"},
-						val:          int(expectedExtendedValue),
-					}
-					return
-				}
-			} else {
-				err = &addressValueError{
-					addressError: addressError{key: "ipaddress.error.exceeds.size"},
-					val:          int(expectedExtendedValue),
-				}
-				return
-			}
-		}
-		for startIndex < higherStartIndex {
-			higherStartIndex--
-			if bytes[higherStartIndex] != expectedExtendedValue {
-				err = &addressValueError{
-					addressError: addressError{key: "ipaddress.error.exceeds.size"},
-					val:          int(expectedExtendedValue),
-				}
-				return
-			}
-		}
-		startIndex = expectedStartIndex
-		missingBytes = 0
-	}
 	segments = createSegmentArray(segmentCount)
-	for i, segmentIndex := 0, 0; i < expectedByteCount; segmentIndex++ {
+	for byteIndex, segmentIndex := len(bytes), segmentCount-1; ; segmentIndex-- {
 		var value SegInt
-		k := bytesPerSegment + i
-		j := i
-		if j < missingBytes {
-			mostSignificantBit := bytes[startIndex] >> 7
-			if mostSignificantBit == 0 { //sign extension //TODO not so sure this makes sense since bytes are unsigned.  Same goes for the stuff above.  For unisigned, only sign extension is 0.  On the flip side, doesn't hurt to have this.  Or does it?  If we sign extend 255, maybe we should instead be putting zeros in there.
-				j = missingBytes
-			} else { //sign extension
-				upper := k
-				if missingBytes < k {
-					upper = missingBytes
-				}
-				for ; j < upper; j++ {
-					value <<= 8
-					value |= 0xff
-				}
-			}
+		k := byteIndex - bytesPerSegment
+		if k < 0 {
+			k = 0
 		}
-		for ; j < k; j++ {
-			byteValue := bytes[startIndex+j-missingBytes]
+		for j := k; j < byteIndex; j++ {
+			byteValue := bytes[j]
 			value <<= 8
 			value |= SegInt(byteValue)
 		}
-		i = k
+		byteIndex = k
 		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		seg := creator.createSegment(value, value, segmentPrefixLength)
 		segments[segmentIndex] = seg
+		if segmentIndex == 0 {
+			// any remaining bytes should be zero
+			for byteIndex--; byteIndex >= 0; byteIndex-- {
+				if bytes[byteIndex] != 0 {
+					err = &addressValueError{
+						addressError: addressError{key: "ipaddress.error.exceeds.size"},
+						val:          int(bytes[byteIndex]),
+					}
+					break
+				}
+			}
+			break
+		}
 	}
 	return
 }

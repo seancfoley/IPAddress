@@ -7,6 +7,25 @@ import (
 )
 
 type IPv6SegInt uint16
+type IPv6SegmentValueProvider func(segmentIndex int) IPv6SegInt
+
+func WrappedIPv6SegmentValueProvider(f IPv6SegmentValueProvider) SegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) SegInt {
+		return SegInt(f(segmentIndex))
+	}
+}
+
+func WrappedSegmentValueProviderForIPv6(f SegmentValueProvider) IPv6SegmentValueProvider {
+	if f == nil {
+		return nil
+	}
+	return func(segmentIndex int) IPv6SegInt {
+		return IPv6SegInt(f(segmentIndex))
+	}
+}
 
 const useIPv6SegmentCache = true
 
@@ -142,11 +161,19 @@ func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 	return 0xffff
 }
 
+func (seg *IPv6AddressSegment) GetLower() *IPv6AddressSegment {
+	return seg.getLower().ToIPv6AddressSegment()
+}
+
+func (seg *IPv6AddressSegment) GetUpper() *IPv6AddressSegment {
+	return seg.getUpper().ToIPv6AddressSegment()
+}
+
 func (seg *IPv6AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
 	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
 }
 
-func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
+func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment { //TODO rename ToPrefixBlockLen?  What is the diff with ToPrefixedNetworkSegment?
 	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
 }
 

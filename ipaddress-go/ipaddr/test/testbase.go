@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -180,8 +181,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 
 func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	prefix, adjustment ipaddr.BitCount,
-	_,
-	_,
+	_, _,
 	adjusted,
 	prefixSet,
 	_ ipaddr.ExtendedIPSegmentSeries) {
@@ -194,14 +194,14 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			//if removed.IsPrefixed() {
 			//	original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
 			//}
-			//	removed = original.WithoutPrefixLen() //TODO might have to call AdjustPrefixLenZeroed here too
+			//	removed = original.WithoutPrefixLen()
 		} else {
 			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount())
-			//removed = original.AdjustPrefixLen(original.GetBitCount()) //TODO might have to call AdjustPrefixLenZeroed
+			//removed = original.AdjustPrefixLen(original.GetBitCount())
 			//fmt.Println("not beyond " + removed.String())
 		}
 		if err != nil {
-			t.addFailure(newIPSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
+			t.addFailure(newSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
 			break
 		}
 		if j == 1 && original.GetPrefixLen() != nil && *original.GetPrefixLen() == 0 {
@@ -216,12 +216,12 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 				bitsSoFar += seg.GetBitCount()
 				if prefLength >= bitsSoFar {
 					if !seg.Equals(original.GetSegment(i)) {
-						t.addFailure(newIPSegmentSeriesFailure("removed prefix: "+removed.String(), original))
+						t.addFailure(newSegmentSeriesFailure("removed prefix: "+removed.String(), original))
 						break
 					}
 				} else if prefLength <= prevBitsSoFar {
 					if !seg.IsZero() {
-						t.addFailure(newIPSegmentSeriesFailure("removed prefix all: "+removed.String(), original))
+						t.addFailure(newSegmentSeriesFailure("removed prefix all: "+removed.String(), original))
 						break
 					}
 				} else {
@@ -231,7 +231,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 					upper := seg.GetUpperSegmentValue()
 					if (lower&mask) != lower || (upper&mask) != upper {
 						//removed = original.removePrefixLength();
-						t.addFailure(newIPSegmentSeriesFailure("prefix app: "+removed.String()+" "+strconv.Itoa(int(lower&mask))+" "+strconv.Itoa(int(upper&mask)), original))
+						t.addFailure(newSegmentSeriesFailure("prefix app: "+removed.String()+" "+strconv.Itoa(int(lower&mask))+" "+strconv.Itoa(int(upper&mask)), original))
 						break
 					}
 				}
@@ -240,7 +240,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
 			//}
 		} else if !removed.Equals(original) {
-			t.addFailure(newIPSegmentSeriesFailure("prefix removed: "+removed.String(), original))
+			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
 		} //else if removed.IsPrefixed() {
 		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
 		//}
@@ -258,7 +258,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	//} else {
 	adjustedSeries, err := original.AdjustPrefixLenZeroed(adjustment)
 	if err != nil {
-		t.addFailure(newIPSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
+		t.addFailure(newSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
 		return
 	}
 	adjustedPrefix := adjustedSeries.GetPrefixLen()
@@ -275,16 +275,16 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	if (original.IsPrefixed() && adjustedPrefix.Matches(original.GetBitCount()+adjustment)) ||
 		(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) { //xxxxx if we do not have prefix block, then our positive adjustment creates what would be one, then our expected is one which is wrong
 		//xxx if adjustment is negative and original is pref block xxx
-		// TODO case 3 - original is prefix block, adjustment is negative, so we are not prefix block but expected is
+		//  case 3 - original is prefix block, adjustment is negative, so we are not prefix block but expected is
 		// either we are converted to prefix block or what? that is the only option
 		// OR consider that we do have the correct expected but it is converted to prefix block: 255.96.*.*/11
 		// maybe we need to change the fact that address is converted to prefix block
 		// I think we do.
 
 		// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
-		adjusted, err = adjusted.ToZeroHost() //TODO xxxx when original not prefixed, we do not zero, we just set xxxx
+		adjusted, err = adjusted.ToZeroHost()
 		if err != nil {
-			t.addFailure(newIPSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
+			t.addFailure(newSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
 			return
 		}
 	}
@@ -292,9 +292,9 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	if !adjustedSeries.Equals(adjusted) {
 		//TWO things wrong: 1. the new series is not a prefix subnet (which is actually correct, I think, since I wanted to stop doing that).  But how am I supposed to specify the result?  I guess with the toZeroHost
 		// 2. the canonical string things otherwise!  how is that possible?  wrong, it is correct
-		fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
-		fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.ToNormalizedWildcardString() + " expected: " + adjusted.ToNormalizedWildcardString() + " increment: " + adjustment.String())
-		t.addFailure(newIPSegmentSeriesFailure("prefix adjusted: "+adjustedSeries.String(), adjusted))
+		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
+		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.ToNormalizedWildcardString() + " expected: " + adjusted.ToNormalizedWildcardString() + " increment: " + adjustment.String())
+		t.addFailure(newSegmentSeriesFailure("prefix adjusted: "+adjustedSeries.String(), adjusted))
 		original.AdjustPrefixLenZeroed(adjustment)
 		//a, berr := original.AdjustPrefixLenZeroed(adjustment)
 		//_ = berr
@@ -303,7 +303,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		adjustedSeries, err = original.SetPrefixLenZeroed(prefix)
 		//adjustedSeries = original.SetPrefixLen(prefix)
 		if err != nil {
-			t.addFailure(newIPSegmentSeriesFailure("set prefix error: "+err.Error(), original))
+			t.addFailure(newSegmentSeriesFailure("set prefix error: "+err.Error(), original))
 			return
 		}
 		//if original.IsPrefixBlock() && original.GetPrefixLen().Exceeds(prefix) {
@@ -313,9 +313,9 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 
 			//if original.IsPrefixed() && *original.GetPrefixLen() == original.GetBitCount() && original.GetPrefixLen().Is(original.GetBitCount()) { //TODO we need a method on prefix len to compare with a bit count
 			// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
-			prefixSet, err = prefixSet.ToZeroHost() //TODO xxxx when original not prefixed, we do not zero, we just set xxxx
+			prefixSet, err = prefixSet.ToZeroHost()
 			if err != nil {
-				t.addFailure(newIPSegmentSeriesFailure("set prefix error: "+err.Error(), original))
+				t.addFailure(newSegmentSeriesFailure("set prefix error: "+err.Error(), original))
 				return
 			}
 		}
@@ -323,7 +323,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		setPrefix := adjustedSeries.GetPrefixLen()
 		if !adjustedSeries.Equals(prefixSet) {
 			fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + prefix.String())
-			t.addFailure(newIPSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
+			t.addFailure(newSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
 		} else {
 			//adjustedSeries = original.ApplyPrefixLen(prefix);
 			//appliedPrefix := adjustedSeries.GetPrefixLen();
@@ -364,7 +364,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			//ExpectedPrefixes expected = new ExpectedPrefixes(original instanceof MACAddress, original.getPrefixLength(), original.getBitCount(), original.getBitsPerSegment(), prefix, adjustment);
 			if !expected.compare(adjustedPrefix, setPrefix) {
 				//if(!expected.compare(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)) {
-				t.addFailure(newIPSegmentSeriesFailure("expected: "+expected.adjusted.String()+" actual "+adjustedPrefix.String()+" expected: "+expected.set.String()+" actual "+setPrefix.String(), original))
+				t.addFailure(newSegmentSeriesFailure("expected: "+expected.adjusted.String()+" actual "+adjustedPrefix.String()+" expected: "+expected.set.String()+" actual "+setPrefix.String(), original))
 				//t.addFailure(newSegmentSeriesFailure(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)))
 			}
 			//}
@@ -372,6 +372,411 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	}
 	//}
 	//	}
+}
+
+func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []string, sep byte, isMac bool) {
+	bitsPerSegment := front.GetBitsPerSegment()
+	segmentCount := front.GetSegmentCount()
+	isIpv4 := !isMac && segmentCount == ipaddr.IPv4SegmentCount
+	prefixes := strings.Builder{}
+	prefixes.WriteString("[\n")
+	//StringBuilder prefixes = new StringBuilder("[\n");//currently unused
+	for replaceTargetIndex := 0; replaceTargetIndex < len(fronts); replaceTargetIndex++ {
+		if replaceTargetIndex > 0 {
+			prefixes.WriteString(",\n")
+		}
+		prefixes.WriteString("[")
+		for replaceCount := 0; replaceCount < len(fronts)-replaceTargetIndex; replaceCount++ {
+			if replaceCount > 0 {
+				prefixes.WriteString(",\n")
+			}
+			prefixes.WriteString("    [")
+			lowest := strings.Builder{}
+			for replaceSourceIndex := 0; replaceSourceIndex < len(backs)-replaceCount; replaceSourceIndex++ {
+				//We are replacing replaceCount segments in front at index replaceTargetIndex with the same number of segments starting at replaceSourceIndex in back
+				str := strings.Builder{}
+				k := 0
+				for ; k < replaceTargetIndex; k++ {
+					if str.Len() > 0 {
+						str.WriteByte(sep)
+					}
+					str.WriteString(fronts[k])
+				}
+				current := k
+				limit := replaceCount + current
+				for ; k < limit; k++ {
+					if str.Len() > 0 {
+						str.WriteByte(sep)
+					}
+					str.WriteString(backs[replaceSourceIndex+k-current])
+				}
+				for ; k < segmentCount; k++ {
+					if str.Len() > 0 {
+						str.WriteByte(sep)
+					}
+					str.WriteString(fronts[k])
+				}
+				var prefix ipaddr.PrefixLen
+				frontPrefixed := front.IsPrefixed()
+				if frontPrefixed && (*front.GetPrefixLen() <= ipaddr.BitCount(replaceTargetIndex)*bitsPerSegment) && (isMac || replaceTargetIndex > 0) { //when replaceTargetIndex is 0, slight difference between mac and ipvx, for ipvx we do not account for a front prefix of 0
+					prefix = front.GetPrefixLen()
+				} else if back.IsPrefixed() && (*back.GetPrefixLen() <= ipaddr.BitCount(replaceSourceIndex+replaceCount)*bitsPerSegment) && (isMac || replaceCount > 0) { //when replaceCount 0, slight difference between mac and ipvx, for ipvx we do not account for a back prefix
+					prefix = cacheTestBits((ipaddr.BitCount(replaceTargetIndex) * bitsPerSegment) + max(0, *back.GetPrefixLen()-(ipaddr.BitCount(replaceSourceIndex)*bitsPerSegment)))
+				} else if frontPrefixed {
+					if *front.GetPrefixLen() <= ipaddr.BitCount(replaceTargetIndex+replaceCount)*bitsPerSegment {
+						prefix = cacheTestBits(ipaddr.BitCount(replaceTargetIndex+replaceCount) * bitsPerSegment)
+					} else {
+						prefix = front.GetPrefixLen()
+					}
+				} //else {
+				//	prefix = null;
+				//}
+				replaceStr := " replacing " + strconv.Itoa(replaceCount) + " segments in " + front.String() + " at index " + strconv.Itoa(replaceTargetIndex) +
+					" with segments from " + back.String() + " starting at " + strconv.Itoa(replaceSourceIndex)
+
+				var new1, new2 *ipaddr.Address
+				if isMac {
+					fromMac := front.ToMACAddress()
+					new1 = fromMac.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToMACAddress(), replaceSourceIndex).ToAddress()
+					hostIdStr := t.createMACAddress(str.String())
+					new2 = hostIdStr.GetAddress().ToAddress()
+					if prefix != nil {
+						new2 = new2.SetPrefixLen(*prefix)
+					}
+				} else {
+					if prefix != nil {
+						str.WriteByte('/')
+						str.WriteString(prefix.String())
+					}
+					hostIdStr := t.createAddress(str.String())
+					new2 = hostIdStr.GetAddress().ToAddress()
+					if isIpv4 {
+						frontIPv4 := front.ToIPv4Address()
+						new1 = frontIPv4.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv4Address(), replaceSourceIndex).ToAddress()
+					} else {
+						frontIPv6 := front.ToIPv6Address()
+						new1 = frontIPv6.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv6Address(), replaceSourceIndex).ToAddress()
+					}
+				}
+				if !new1.Equals(new2) {
+					failStr := "Replacement was " + new1.String() + " expected was " + new2.String() + " " + replaceStr
+					t.addFailure(newIPAddrFailure(failStr, front.ToIPAddress()))
+
+					//this was debug
+					//IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
+					//IPv6AddressSection backSection = ((IPv6Address) back).getSection();
+					//frontSection.replace(replaceTargetIndex, replaceTargetIndex + replaceCount, backSection, replaceSourceIndex, replaceSourceIndex + replaceCount);
+				}
+				if lowest.Len() > 0 {
+					lowest.WriteByte(',')
+				}
+				lowest.WriteString(prefix.String())
+			}
+			prefixes.WriteString(lowest.String())
+			prefixes.WriteByte(']')
+		}
+		prefixes.WriteByte(']')
+	}
+	prefixes.WriteByte(']')
+}
+
+func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs []string, sep byte, expectedPref []ipaddr.PrefixLen, isMac bool) {
+	//if(front.getSegmentCount() >= expectedPref.length) {
+	//	throw new IllegalArgumentException();
+	//}
+	extra := 0
+	if isMac {
+		extra = ipaddr.ExtendedUniqueIdentifier64SegmentCount - front.GetSegmentCount()
+	}
+	bitsPerSegment := front.GetBitsPerSegment()
+	isIpv4 := !isMac && front.GetSegmentCount() == ipaddr.IPv4SegmentCount
+	for i := 0; i < len(fronts); i++ {
+		str := strings.Builder{}
+		k := 0
+		for ; k < i; k++ {
+			if str.Len() > 0 {
+				str.WriteByte(sep)
+			}
+			str.WriteString(fronts[k])
+		}
+		for ; k < len(fronts); k++ {
+			if str.Len() > 0 {
+				str.WriteByte(sep)
+			}
+			str.WriteString(backs[k])
+		}
+		//var hostIdStr ipaddr.HostIdentifierString
+
+		//Split up into two sections to test append
+		frontSection := front.GetSubSection(0, i)
+		backSection := back.GetTrailingSection(i)
+		var backSectionInvalid, frontSectionInvalid *ipaddr.AddressSection
+		if i-(1+extra) >= 0 && i+1+extra <= front.GetSegmentCount() {
+			backSectionInvalid = back.GetTrailingSection(i - (1 + extra))
+			frontSectionInvalid = front.GetSubSection(0, i+1+extra)
+		}
+
+		//Split up even further into 3 sections to test insert
+		//List<AddressSection[]> splits = new ArrayList<AddressSection[]>(front.getSegmentCount() + 3);
+		var splits [][]*ipaddr.AddressSection
+		for m := 0; m <= frontSection.GetSegmentCount(); m++ {
+			sub1 := frontSection.GetSubSection(0, m)
+			sub2 := frontSection.GetSubSection(m, frontSection.GetSegmentCount())
+			splits = append(splits, []*ipaddr.AddressSection{sub1, sub2, backSection})
+		}
+		for m := 0; m <= backSection.GetSegmentCount(); m++ {
+			sub1 := backSection.GetSubSection(0, m)
+			sub2 := backSection.GetSubSection(m, backSection.GetSegmentCount())
+			splits = append(splits, []*ipaddr.AddressSection{frontSection, sub1, sub2})
+		}
+		//now you can insert the middle one after appending the first and last
+		//Keep in mind that inserting the first one is like a prepend, which is like an append
+		//Inserting the last one is an append
+		//We already test append pretty good
+		//So really, just insert the middle one after appending first and last
+		var splitsJoined []*ipaddr.Address
+		//List<Address> splitsJoined = new ArrayList<Address>(splits.size());
+		//try {
+		var mixed, mixed2 *ipaddr.Address
+		if isMac {
+			hostIdStr := t.createMACAddress(str.String())
+			mixed = hostIdStr.GetAddress().ToAddress()
+			if front.IsPrefixed() && *front.GetPrefixLen() <= ipaddr.BitCount(i)*bitsPerSegment {
+				mixed = mixed.SetPrefixLen(*front.GetPrefixLen())
+			} else if back.IsPrefixed() {
+				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, *back.GetPrefixLen()))
+			}
+			sec := frontSection.ToMACAddressSection().Append(backSection.ToMACAddressSection())
+			//mixed2 = (back.ToMACAddress()).GetNetwork().getAddressCreator().createAddress(sec);
+			mixed2x, err := ipaddr.NewMACAddress(sec)
+			if err != nil {
+				t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+			}
+			mixed2 = mixed2x.ToAddress()
+
+			if frontSectionInvalid != nil && backSectionInvalid != nil {
+				//This doesn't fail anymore because we allow large sections
+				//try {
+				newSec := (frontSection.ToMACAddressSection()).Append(backSectionInvalid.ToMACAddressSection())
+				if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
+					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+				}
+				//addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+				//} catch(AddressValueException e) {
+				//pass
+				//}
+				//try {
+				newSec = (frontSectionInvalid.ToMACAddressSection()).Append(backSection.ToMACAddressSection())
+				if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
+					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+				}
+				//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+				//} catch(AddressValueException e) {
+				//pass
+				//}
+			}
+			for o := 0; o < len(splits); o++ {
+				split := splits[o]
+				f := split[0]
+				g := split[1]
+				h := split[2]
+				sec = f.ToMACAddressSection().Append(h.ToMACAddressSection())
+				//if(h.IsPrefixed() && h.GetPrefixLen() == 0 && !f.IsPrefixed()) {
+				//	sec = sec.AppendToPrefix((MACAddressSection) g);
+				//} else {
+				sec = sec.Insert(f.GetSegmentCount(), g.ToMACAddressSection())
+				if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+					gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.MACBitsPerSegment
+					if g.IsPrefixed() {
+						gPref = *g.GetPrefixLen()
+					}
+					sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.MACBitsPerSegment + gPref)
+				}
+
+				//}
+				mixed3, err := ipaddr.NewMACAddress(sec)
+
+				//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+				if err != nil {
+					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+				}
+				splitsJoined = append(splitsJoined, mixed3.ToAddress())
+			}
+		} else {
+			if front.IsPrefixed() && *front.GetPrefixLen() <= (ipaddr.BitCount(i)*bitsPerSegment) && i > 0 {
+				str.WriteByte('/')
+				str.WriteString(strconv.Itoa(int(*front.GetPrefixLen())))
+			} else if back.IsPrefixed() {
+				str.WriteByte('/')
+				if ipaddr.BitCount(i)*bitsPerSegment > *back.GetPrefixLen() {
+					str.WriteString(strconv.Itoa(i * int(bitsPerSegment)))
+				} else {
+					str.WriteString(strconv.Itoa(int(*back.GetPrefixLen())))
+				}
+			}
+			hostIdStr := t.createAddress(str.String())
+			mixed = hostIdStr.GetAddress().ToAddress()
+
+			if isIpv4 {
+				sec := (frontSection.ToIPv4AddressSection()).Append(backSection.ToIPv4AddressSection())
+				mixed2x, err := ipaddr.NewIPv4Address(sec)
+				//mixed2 = ( back.ToIPv4Address()).GetNetwork().GetAddressCreator().createAddress(sec);
+				if err != nil {
+					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+				}
+				mixed2 = mixed2x.ToAddress()
+
+				if frontSectionInvalid != nil && backSectionInvalid != nil {
+					//try {
+					newSec := (frontSection.ToIPv4AddressSection()).Append(backSectionInvalid.ToIPv4AddressSection())
+					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
+						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+					}
+					//((IPv4AddressSection) frontSection).append((IPv4AddressSection) backSectionInvalid);
+					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+					//} catch(AddressValueException e) {
+					//pass
+					//}
+					//try {
+					newSec = (frontSectionInvalid.ToIPv4AddressSection()).Append(backSection.ToIPv4AddressSection())
+					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
+						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+					}
+					//((IPv4AddressSection) frontSectionInvalid).append((IPv4AddressSection) backSection);
+					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+					//} catch(AddressValueException e) {
+					//pass
+					//}
+				}
+				for o := 0; o < len(splits); o++ {
+					split := splits[o]
+					f := split[0]
+					g := split[1]
+					h := split[2]
+					sec = (f.ToIPv4AddressSection()).Append(h.ToIPv4AddressSection())
+					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
+					//	sec = sec.appendToNetwork((IPv4AddressSection) g);
+					//} else {
+					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv4AddressSection())
+					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv4BitsPerSegment
+						if g.IsPrefixed() {
+							gPref = *g.GetPrefixLen()
+						}
+						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv4BitsPerSegment + gPref)
+					}
+					//}
+					mixed3, err := ipaddr.NewIPv4Address(sec)
+					//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+					if err != nil {
+						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+					}
+					splitsJoined = append(splitsJoined, mixed3.ToAddress())
+					//IPv4Address mixed3 = ((IPv4Address) back).getNetwork().getAddressCreator().createAddress(sec);
+					//splitsJoined.add(mixed3);
+				}
+			} else { // IPv6
+				sec := frontSection.ToIPv6AddressSection().Append(backSection.ToIPv6AddressSection())
+				mixed2x, err := ipaddr.NewIPv6Address(sec)
+				//mixed2x, err := ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
+				if err != nil {
+					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+				}
+				mixed2 = mixed2x.ToAddress()
+				if frontSectionInvalid != nil && backSectionInvalid != nil {
+					//try {
+					newSec := (frontSection.ToIPv6AddressSection()).Append(backSectionInvalid.ToIPv6AddressSection())
+					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
+						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+					}
+					//	addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
+					//} catch(AddressValueException e) {
+					//pass
+					//}
+					//try {
+					newSec = (frontSectionInvalid.ToIPv6AddressSection()).Append(backSection.ToIPv6AddressSection())
+					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
+						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
+					}
+					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
+					//} catch(AddressValueException e) {
+					//pass
+					//}
+				}
+				for o := 0; o < len(splits); o++ {
+					split := splits[o]
+					f := split[0]
+					g := split[1]
+					h := split[2]
+					sec = f.ToIPv6AddressSection().Append(h.ToIPv6AddressSection())
+					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
+					//	sec = sec.appendToNetwork((IPv6AddressSection) g);
+					//} else {
+					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv6AddressSection())
+					//}
+					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv6BitsPerSegment
+						if g.IsPrefixed() {
+							gPref = *g.GetPrefixLen()
+						}
+						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv6BitsPerSegment + gPref)
+					}
+					mixed3, err := ipaddr.NewIPv6Address(sec)
+					//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+					if err != nil {
+						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
+					}
+					splitsJoined = append(splitsJoined, mixed3.ToAddress())
+					//IPv6Address mixed3 = ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
+					//splitsJoined.add(mixed3);
+				}
+			}
+		}
+		if !mixed.Equals(mixed2) {
+			t.addFailure(newSegmentSeriesFailure("mixed was "+mixed.String()+" expected was "+mixed2.String(), mixed))
+			//hostIdStr = createMACAddress(str.toString());
+			//mixed = hostIdStr.GetAddress();
+			//if(front.isPrefixed() && front.getPrefixLength() <= i * bitsPerSegment) {
+			//	mixed = mixed.setPrefixLength(front.getPrefixLength(), false);
+			//} else if(back.isPrefixed()) {
+			//	mixed = mixed.setPrefixLength(Math.max(i * bitsPerSegment, back.getPrefixLength()), false);
+			//}
+			//MACAddressSection sec = ((MACAddressSection) frontSection).append((MACAddressSection) backSection);
+			//mixed2 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
+			//System.out.println("mixed is " + mixed);
+			//System.out.println("mixed2 is " + mixed2);
+		}
+		if !expectedPref[i].Equals(mixed.GetPrefixLen()) {
+			t.addFailure(newSegmentSeriesFailure("mixed prefix was "+mixed.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed))
+		}
+		if !expectedPref[i].Equals(mixed2.GetPrefixLen()) {
+			t.addFailure(newSegmentSeriesFailure("mixed2 prefix was "+mixed2.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed2))
+		}
+		for o := 0; o < len(splitsJoined); o++ {
+			mixed3 := splitsJoined[o]
+			if !mixed.Equals(mixed3) {
+				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed.String(), mixed3))
+			}
+			if !mixed3.Equals(mixed2) {
+				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed2.String(), mixed3))
+			}
+			if !expectedPref[i].Equals(mixed3.GetPrefixLen()) {
+				fmt.Printf("%v\n", splitsJoined)
+				fmt.Printf("%v\n", splits)
+				t.addFailure(newSegmentSeriesFailure("mixed3 prefix was "+mixed3.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed3))
+			}
+		}
+		//} catch(IncompatibleAddressException e) {
+		//	if(expectedPref[i] == null || expectedPref[i] >= 0) {
+		//		addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
+		//	}
+		//} catch(IllegalArgumentException e) {
+		//	if(expectedPref[i] == null || expectedPref[i] >= 0) {
+		//		addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
+		//	}
+		//}
+	}
+	t.incrementTestCount()
 }
 
 func min(a, b ipaddr.BitCount) ipaddr.BitCount {
@@ -396,52 +801,6 @@ func (exp ExpectedPrefixes) compare(adjusted, set ipaddr.PrefixLen) bool {
 	return adjusted.Equals(exp.adjusted) && set.Equals(exp.set)
 }
 
-/*
-	static class ExpectedPrefixes {
-			Integer next;
-			Integer previous;
-			Integer adjusted;
-			Integer set;
-			Integer applied;
-
-			ExpectedPrefixes(boolean isMac, Integer original, int bitLength, int segmentBitLength, int set, int adjustment) {
-				if(original == null) {
-					next = null;
-					previous = isMac ? bitLength - segmentBitLength : bitLength;//bitLength is not a possible prefix with MAC (a prefix of bitlength is interpreted as null prefix length)
-					adjusted = adjustment > 0 ? null : bitLength + adjustment;
-					applied = this.set = set;
-				} else {
-					next = original == bitLength ? null : Math.min(bitLength, ((original + segmentBitLength) / segmentBitLength) * segmentBitLength);
-					previous = Math.max(0, ((original - 1) / segmentBitLength) * segmentBitLength);
-					int adj = Math.max(0, original + adjustment);
-					adjusted = adj > bitLength ? null : adj;
-					this.set = set;
-					applied = Math.min(original, set);
-				}
-			}
-
-			boolean compare(Integer next, Integer previous, Integer adjusted, Integer set, Integer applied) {
-				return Objects.equals(next, this.next) &&
-						Objects.equals(previous, this.previous) &&
-						Objects.equals(adjusted, this.adjusted) &&
-						Objects.equals(set, this.set) &&
-						Objects.equals(applied, this.applied);
-			}
-
-			String print(Integer next, Integer previous, Integer adjusted, Integer set, Integer applied) {
-				return print(next, this.next, "next") + "\n" +
-						print(previous, this.previous, "previous") + "\n" +
-						print(adjusted, this.adjusted, "adjusted") + "\n" +
-						print(set, this.set, "set") + "\n" +
-						print(applied, this.applied, "applied");
-			}
-
-			String print(Integer result, Integer expected, String label) {
-				return "expected " + label + ": " + expected + " result: " + result;
-			}
-		}
-*/
-
 type failure struct {
 	str string
 
@@ -449,8 +808,9 @@ type failure struct {
 	addrStr    *ipaddr.IPAddressString
 	macAddr    *ipaddr.MACAddress
 	macAddrStr *ipaddr.MACAddressString
-	ipseries   ipaddr.ExtendedIPSegmentSeries
-	series     ipaddr.ExtendedSegmentSeries
+	//ipseries   ipaddr.ExtendedIPSegmentSeries
+	//exseries     ipaddr.ExtendedSegmentSeries
+	series ipaddr.AddressSegmentSeries //TODO fold the addresses into this
 }
 
 func (f failure) String() string {
@@ -530,19 +890,26 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	}
 }
 
-func newSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
+func newSegmentSeriesFailure(str string, series ipaddr.AddressSegmentSeries) failure {
 	return failure{
 		str:    str,
 		series: series,
 	}
 }
 
-func newIPSegmentSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
-	return failure{
-		str:      str,
-		ipseries: series,
-	}
-}
+//func newSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
+//	return failure{
+//		str:    str,
+//		series: series,
+//	}
+//}
+//
+//func newSegmentSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
+//	return failure{
+//		str:      str,
+//		series: series,
+//	}
+//}
 
 var cachedPrefixLens = initPrefLens()
 

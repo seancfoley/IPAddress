@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"math/big"
+	"math/bits"
 	"sync/atomic"
 	"unsafe"
 )
@@ -84,19 +85,35 @@ func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixL
 	return
 }
 
+// NewIPv6SectionFromBigInt creates an IPv6 section from the given big integer, returning an error if the value is too large for the given number of segments.
 func NewIPv6SectionFromBigInt(val *big.Int, segmentCount int) (res *IPv6AddressSection, err AddressValueError) {
-	return NewIPv6SectionFromSegmentedBytes(val.Bytes(), segmentCount)
+	//return NewIPv6SectionFromSegmentedBytes(val.Bytes(), segmentCount)
+	if val.Sign() < 0 {
+		err = &addressValueError{
+			addressError: addressError{key: "ipaddress.error.negative"},
+		}
+		return
+	}
+	return newIPv6SectionFromWords(val.Bits(), segmentCount, nil, false)
 }
 
 func NewIPv6SectionFromPrefixedBigInt(val *big.Int, segmentCount int, prefixLen PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
-	return NewIPv6SectionFromPrefixedBytes(val.Bytes(), segmentCount, prefixLen)
+	if val.Sign() < 0 {
+		err = &addressValueError{
+			addressError: addressError{key: "ipaddress.error.negative"},
+		}
+		return
+	}
+	//return NewIPv6SectionFromPrefixedBytes(val.Bytes(), segmentCount, prefixLen)
+	return newIPv6SectionFromWords(val.Bits(), segmentCount, prefixLen, false)
 }
 
 func NewIPv6SectionFromBytes(bytes []byte) (res *IPv6AddressSection, err AddressValueError) {
 	return newIPv6SectionFromBytes(bytes, len(bytes), nil, false)
 }
 
-// Useful if the byte array has leading zeros or leading sign extension
+// NewIPv6SectionFromSegmentedBytes allows you to specify the segment count from the supplied bytes.
+// It is useful if the byte array has leading zeros.
 func NewIPv6SectionFromSegmentedBytes(bytes []byte, segmentCount int) (res *IPv6AddressSection, err AddressValueError) {
 	return newIPv6SectionFromBytes(bytes, segmentCount, nil, false)
 }
@@ -107,7 +124,7 @@ func NewIPv6SectionFromPrefixedBytes(bytes []byte, segmentCount int, prefixLengt
 
 func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueError) {
 	if segmentCount < 0 {
-		segmentCount = len(bytes)
+		segmentCount = len(bytes) >> 1
 	}
 	expectedByteCount := segmentCount << 1
 	segments, err := toSegments(
@@ -115,7 +132,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		segmentCount,
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
-		expectedByteCount,
+		//expectedByteCount,
 		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
@@ -129,6 +146,105 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 			if !res.isMultiple { // not a prefix block
 				res.cache.bytesCache.upperBytes = bytes
 			}
+		}
+	}
+	return
+}
+
+func newIPv6SectionFromWords(words []big.Word, segmentCount int, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection, err AddressValueError) {
+	if segmentCount < 0 {
+		wordBitSize := bits.UintSize
+		segmentCount = (len(words) * wordBitSize) >> 4
+	}
+	//expectedByteCount := segmentCount << 1
+	segments, err := toSegmentsFromWords(
+		words,
+		segmentCount,
+		//IPv6BytesPerSegment,
+		//IPv6BitsPerSegment,
+		//expectedByteCount,
+		//DefaultIPv6Network.getIPAddressCreator(),
+		prefixLength)
+	if err == nil {
+		res = createIPv6Section(segments)
+		if prefixLength != nil {
+			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
+		}
+	}
+	return
+}
+
+func toSegmentsFromWords(
+	words []big.Word,
+	segmentCount int,
+	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+
+	//wordByteSize := bits.UintSize >> 3
+	wordLen := len(words)
+	wordBitSize := bits.UintSize
+	segmentsPerWord := wordBitSize >> ipv6BitsToSegmentBitshift
+	//expectedWordCount := (segmentCount + (segmentsPerWord - 1)) / segmentsPerWord
+
+	//expectedWordCount := (expectedByteCount + (wordByteSize - 1)) / wordByteSize
+	//missingWords := expectedWordCount - wordLen
+	//startIndex := 0
+
+	//First we handle the situation where we have too many words.  Extra words must be all zero-bits.
+	//if missingWords < 0 {
+	//	expectedEndIndex := wordLen - expectedWordCount
+	//	for unusedWordIndex := expectedEndIndex; unusedWordIndex < wordLen; unusedWordIndex++ {
+	//		if words[expectedEndIndex] != 0 {
+	//			err = &addressValueError{
+	//				addressError: addressError{key: "ipaddress.error.exceeds.size"},
+	//				val:          int(words[unusedWordIndex]),
+	//			}
+	//			return
+	//		}
+	//	}
+	//	words = words[:expectedEndIndex]
+	//	missingWords = 0
+	//}
+	segments = createSegmentArray(segmentCount)
+	var currentWord big.Word
+	if wordLen > 0 {
+		currentWord = words[0]
+	}
+	// start with little end
+	for wordIndex, wordSegmentIndex, segmentIndex := 0, 0, segmentCount-1; ; segmentIndex-- {
+		var value IPv6SegInt
+		if wordIndex < wordLen {
+			value = IPv6SegInt(currentWord)
+			currentWord >>= uint(IPv6BitsPerSegment)
+			wordSegmentIndex++
+		}
+		segmentPrefixLength := getSegmentPrefixLength(IPv6BitsPerSegment, prefixLength, segmentIndex)
+		seg := NewIPv6PrefixedSegment(value, segmentPrefixLength)
+		//seg := creator.createSegment(value, value, segmentPrefixLength)
+		segments[segmentIndex] = seg.ToAddressDivision()
+		if wordSegmentIndex == segmentsPerWord {
+			wordSegmentIndex = 0
+			wordIndex++
+			if wordIndex < wordLen {
+				currentWord = words[wordIndex]
+			}
+		}
+		if segmentIndex == 0 {
+			// any remaining words should be zero
+			var isErr bool
+			if isErr = currentWord != 0; !isErr {
+				for wordIndex++; wordIndex < wordLen; wordIndex++ {
+					if isErr = words[wordIndex] != 0; isErr {
+						break
+					}
+				}
+			}
+			if isErr {
+				err = &addressValueError{
+					addressError: addressError{key: "ipaddress.error.exceeds.size"},
+					val:          int(words[wordIndex]),
+				}
+			}
+			break
 		}
 	}
 	return
@@ -176,26 +292,27 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	return
 }
 
-func NewIPv6SectionFromValues(vals SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
+func NewIPv6SectionFromValues(vals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
 	res = NewIPv6SectionFromPrefixedRangeValues(vals, nil, segmentCount, nil)
 	return
 }
 
-func NewIPv6SectionFromPrefixedValues(vals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
+func NewIPv6SectionFromPrefixedValues(vals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
 	return NewIPv6SectionFromPrefixedRangeValues(vals, nil, segmentCount, prefixLength)
 }
 
-func NewIPv6SectionFromRangeValues(vals, upperVals SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
+func NewIPv6SectionFromRangeValues(vals, upperVals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
 	res = NewIPv6SectionFromPrefixedRangeValues(vals, upperVals, segmentCount, nil)
 	return
 }
 
-func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
+func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
 	segments, isMultiple := createSegments(
-		vals, upperVals,
+		WrappedIPv6SegmentValueProvider(vals),
+		WrappedIPv6SegmentValueProvider(upperVals),
 		segmentCount,
 		IPv6BitsPerSegment,
 		DefaultIPv6Network.getIPAddressCreator(),
@@ -432,6 +549,15 @@ func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
 	return section.withoutPrefixLen().ToIPv6AddressSection()
 }
 
+//TODO just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
+//But does this lead to hidden conversion bugs large ints?
+//Maybe just using int for BitCount would be better!  But that doesn't seem to work.
+//Why not?  you can always pass in []byte for net.IP, or maybe it's the other way around, net.Ip for []byte
+// It works OK with type BitCount = int16, but then you cannot have the method set
+// But for net.IP, it works with type IP []byte
+// Is it something abotu slices?  Maybe, because with ints you really have a different type possibly, not with slices
+
+//
 func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {
 	return section.setPrefixLen(prefixLen).ToIPv6AddressSection()
 }

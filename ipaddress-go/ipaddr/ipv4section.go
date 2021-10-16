@@ -122,7 +122,7 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		segmentCount,
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
-		expectedByteCount,
+		//expectedByteCount,
 		DefaultIPv4Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
@@ -141,26 +141,27 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 	return
 }
 
-func NewIPv4SectionFromVals(vals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
+func NewIPv4SectionFromVals(vals IPv4SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
 	res = NewIPv4SectionFromPrefixedRange(vals, nil, segmentCount, nil)
 	return
 }
 
-func NewIPv4SectionFromPrefixedVals(vals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
+func NewIPv4SectionFromPrefixedVals(vals IPv4SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
 	return NewIPv4SectionFromPrefixedRange(vals, nil, segmentCount, prefixLength)
 }
 
-func NewIPv4SectionFromRange(vals, upperVals SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
+func NewIPv4SectionFromRange(vals, upperVals IPv4SegmentValueProvider, segmentCount int) (res *IPv4AddressSection) {
 	res = NewIPv4SectionFromPrefixedRange(vals, upperVals, segmentCount, nil)
 	return
 }
 
-func NewIPv4SectionFromPrefixedRange(vals, upperVals SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
+func NewIPv4SectionFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv4AddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
 	segments, isMultiple := createSegments(
-		vals, upperVals,
+		WrappedIPv4SegmentValueProvider(vals),
+		WrappedIPv4SegmentValueProvider(upperVals),
 		segmentCount,
 		IPv4BitsPerSegment,
 		DefaultIPv4Network.getIPAddressCreator(),

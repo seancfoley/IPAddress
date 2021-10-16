@@ -86,21 +86,21 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, Addr
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
 }
 
-func NewMACAddressFromVals(vals SegmentValueProvider) (addr *MACAddress) {
+func NewMACAddressFromVals(vals MACSegmentValueProvider) (addr *MACAddress) {
 	return NewMACAddressFromValsExt(vals, false)
 }
 
-func NewMACAddressFromValsExt(vals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
+func NewMACAddressFromValsExt(vals MACSegmentValueProvider, isExtended bool) (addr *MACAddress) {
 	section := NewMACSectionFromVals(vals, getMacSegCount(isExtended))
 	addr = newMACAddress(section)
 	return
 }
 
-func NewMACAddressFromRange(vals, upperVals SegmentValueProvider) (addr *MACAddress) {
+func NewMACAddressFromRange(vals, upperVals MACSegmentValueProvider) (addr *MACAddress) {
 	return NewMACAddressFromRangeExt(vals, upperVals, false)
 }
 
-func NewMACAddressFromRangeExt(vals, upperVals SegmentValueProvider, isExtended bool) (addr *MACAddress) {
+func NewMACAddressFromRangeExt(vals, upperVals MACSegmentValueProvider, isExtended bool) (addr *MACAddress) {
 	section := NewMACSectionFromRange(vals, upperVals, getMacSegCount(isExtended))
 	addr = newMACAddress(section)
 	return
@@ -626,6 +626,10 @@ func (addr MACAddress) String() string {
 	//	return nilAddress
 	//}
 	return addr.init().addressInternal.String()
+}
+
+func (addr *MACAddress) GetSegmentStrings() []string {
+	return addr.init().getSegmentStrings()
 }
 
 func (addr *MACAddress) ToCanonicalString() string {

@@ -329,6 +329,14 @@ type IPAddressSegment struct {
 	ipAddressSegmentInternal
 }
 
+func (seg *IPAddressSegment) GetLower() *IPAddressSegment {
+	return seg.getLower().ToIPAddressSegment()
+}
+
+func (seg *IPAddressSegment) GetUpper() *IPAddressSegment {
+	return seg.getUpper().ToIPAddressSegment()
+}
+
 //func (seg *IPAddressSegment) Equals(other DivisionType) bool {
 //	if seg == nil {
 //		return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil

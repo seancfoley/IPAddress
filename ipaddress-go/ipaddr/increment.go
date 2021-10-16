@@ -211,7 +211,7 @@ func addBig(section *AddressSection, increment *big.Int, creator addressSegmentC
 		segCount,
 		section.GetBytesPerSegment(),
 		section.GetBitsPerSegment(),
-		expectedByteCount,
+		//expectedByteCount,
 		creator,
 		prefixLength)
 	res := createSection(segments, prefixLength, section.getAddrType())

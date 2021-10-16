@@ -58,7 +58,7 @@ func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSect
 		segmentCount,
 		MACBytesPerSegment,
 		MACBitsPerSegment,
-		expectedByteCount,
+		//expectedByteCount,
 		DefaultMACNetwork.getAddressCreator(),
 		nil)
 	if err == nil {
@@ -92,18 +92,18 @@ func NewMACSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSec
 	return
 }
 
-func NewMACSectionFromVals(vals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+func NewMACSectionFromVals(vals MACSegmentValueProvider, segmentCount int) (res *MACAddressSection) {
 	res = NewMACSectionFromRange(vals, nil, segmentCount)
 	return
 }
 
-func NewMACSectionFromRange(vals, upperVals SegmentValueProvider, segmentCount int) (res *MACAddressSection) {
+func NewMACSectionFromRange(vals, upperVals MACSegmentValueProvider, segmentCount int) (res *MACAddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
 	segments, isMultiple := createSegments(
-		vals,
-		upperVals,
+		WrappedMACSegmentValueProvider(vals),
+		WrappedMACSegmentValueProvider(upperVals),
 		segmentCount,
 		MACBitsPerSegment,
 		DefaultMACNetwork.getAddressCreator(),

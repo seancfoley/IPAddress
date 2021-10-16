@@ -1337,6 +1337,207 @@ func (t ipAddressRangeTester) run() {
 	t.testNormalized("*:1:*", "*:1:*:*:*:*:*:*")
 	t.testNormalized("001-002:0001-0002:01-2:1-02:01-02:*", "1-2:1-2:1-2:1-2:1-2:*:*:*")
 
+	p0 := cacheTestBits(0)
+	p16 := cacheTestBits(16)
+	p31 := cacheTestBits(31)
+	p32 := cacheTestBits(32)
+	p63 := cacheTestBits(63)
+	p64 := cacheTestBits(64)
+	p65 := cacheTestBits(65)
+	p128 := cacheTestBits(65)
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 16, 32, 48, 64, 80, 96, 112, 128})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0, p0, p0, p0, p0})
+
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/64", []ipaddr.BitCount{64, 64, 64, 64, 64, 64, 64, 64, 64})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/64", []ipaddr.BitCount{64, 64, 64, 64, 64, 80, 96, 112, 128})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/63", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, nil, nil, nil, p63, p63, p63, p63, p63})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, nil, nil, nil, p64, p64, p64, p64, p64})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/65", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, nil, nil, nil, nil, p65, p65, p65, p65})
+
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8/128", []ipaddr.BitCount{128, 128, 128, 128, 128, 128, 128, 128, 128})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/128", []ipaddr.BitCount{128, 128, 128, 128, 128, 128, 128, 128, 128})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, nil, nil, nil, nil, nil, nil, nil, p128})
+
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/32", "1:2:3:4:5:6:7:8/64", []ipaddr.BitCount{64, 64, 32, 32, 32, 32, 32, 32, 32})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/32", []ipaddr.BitCount{32, 32, 32, 48, 64, 64, 64, 64, 64})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/64", []ipaddr.BitCount{64, 0, 0, 0, 0, 0, 0, 0, 0})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 16, 32, 48, 64, 64, 64, 64, 64})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/128", []ipaddr.BitCount{128, 128, 128, 128, 64, 64, 64, 64, 64})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8/64", []ipaddr.BitCount{64, 64, 64, 64, 64, 80, 96, 112, 128})
+
+	t.testInsertAndAppend("1.2.3.4/0", "5.6.7.8/0", []ipaddr.BitCount{0, 0, 0, 0, 0})
+	t.testInsertAndAppend("1.2.3.4", "5.6.7.8/0", []ipaddr.BitCount{0, 8, 16, 24, 32})
+	t.testInsertAndAppendPrefs("1.2.3.4/0", "5.6.7.8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0})
+
+	t.testInsertAndAppend("1.2.3.4/16", "5.6.7.8/16", []ipaddr.BitCount{16, 16, 16, 16, 16})
+	t.testInsertAndAppend("1.2.3.4", "5.6.7.8/16", []ipaddr.BitCount{16, 16, 16, 24, 32})
+	t.testInsertAndAppendPrefs("1.2.3.4/16", "5.6.7.8", []ipaddr.PrefixLen{nil, nil, p16, p16, p16})
+
+	t.testInsertAndAppend("1.2.3.4/32", "5.6.7.8/32", []ipaddr.BitCount{32, 32, 32, 32, 32})
+	t.testInsertAndAppend("1.2.3.4", "5.6.7.8/32", []ipaddr.BitCount{32, 32, 32, 32, 32})
+	t.testInsertAndAppendPrefs("1.2.3.4/31", "5.6.7.8", []ipaddr.PrefixLen{nil, nil, nil, nil, p31})
+	t.testInsertAndAppendPrefs("1.2.3.4/32", "5.6.7.8", []ipaddr.PrefixLen{nil, nil, nil, nil, p32})
+
+	t.testInsertAndAppend("1.2.3.4/16", "5.6.7.8/24", []ipaddr.BitCount{24, 24, 16, 16, 16})
+	t.testInsertAndAppend("1.2.3.4/24", "5.6.7.8/7", []ipaddr.BitCount{7, 8, 16, 24, 24})
+	t.testInsertAndAppend("1.2.3.4/24", "5.6.7.8/16", []ipaddr.BitCount{16, 16, 16, 24, 24})
+	t.testInsertAndAppend("1.2.3.4/0", "5.6.7.8/16", []ipaddr.BitCount{16, 0, 0, 0, 0})
+	t.testInsertAndAppend("1.2.3.4/16", "5.6.7.8/0", []ipaddr.BitCount{0, 8, 16, 16, 16})
+	t.testInsertAndAppend("1.2.3.4/17", "5.6.7.8/0", []ipaddr.BitCount{0, 8, 16, 17, 17})
+	t.testInsertAndAppend("1.2.3.4/16", "5.6.7.8/32", []ipaddr.BitCount{32, 32, 16, 16, 16})
+	t.testInsertAndAppend("1.2.3.4/32", "5.6.7.8/16", []ipaddr.BitCount{16, 16, 16, 24, 32})
+
+	t.testReplace("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0")
+	t.testReplace("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8")
+
+	t.testReplace("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/64")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/64")
+	t.testReplace("a:b:c:d:e:f:aa:bb/63", "1:2:3:4:5:6:7:8")
+	t.testReplace("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8")
+	t.testReplace("a:b:c:d:e:f:aa:bb/65", "1:2:3:4:5:6:7:8")
+
+	t.testReplace("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8/128")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/128")
+	t.testReplace("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8")
+
+	t.testReplace("a:b:c:d:e:f:aa:bb/32", "1:2:3:4:5:6:7:8/64")
+	t.testReplace("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/32")
+	t.testReplace("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/64")
+	t.testReplace("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/0")
+	t.testReplace("a:b:c:d:e:f:aa:bb/64", "1:2:3:4:5:6:7:8/128")
+	t.testReplace("a:b:c:d:e:f:aa:bb/128", "1:2:3:4:5:6:7:8/64")
+
+	t.testReplace("1.2.3.4/0", "5.6.7.8/0")
+	t.testReplace("1.2.3.4", "5.6.7.8/0")
+	t.testReplace("1.2.3.4/0", "5.6.7.8")
+
+	t.testReplace("1.2.3.4/16", "5.6.7.8/16")
+	t.testReplace("1.2.3.4", "5.6.7.8/16")
+	t.testReplace("1.2.3.4/16", "5.6.7.8")
+
+	t.testReplace("1.2.3.4/32", "5.6.7.8/32")
+	t.testReplace("1.2.3.4", "5.6.7.8/32")
+	t.testReplace("1.2.3.4/31", "5.6.7.8")
+	t.testReplace("1.2.3.4/32", "5.6.7.8")
+
+	t.testReplace("1.2.3.4/16", "5.6.7.8/24")
+	t.testReplace("1.2.3.4/24", "5.6.7.8/7")
+	t.testReplace("1.2.3.4/24", "5.6.7.8/16")
+	t.testReplace("1.2.3.4/0", "5.6.7.8/16")
+	t.testReplace("1.2.3.4/16", "5.6.7.8/0")
+	t.testReplace("1.2.3.4/17", "5.6.7.8/0")
+	t.testReplace("1.2.3.4/16", "5.6.7.8/32")
+	t.testReplace("1.2.3.4/32", "5.6.7.8/16")
+
+	t.testSub("1:1::/32", "1:1:1:1:1:1:1:1", []string{
+		"1:1:0:0:0:0:0:0/48",
+		"1:1:2-fffe:0:0:0:0:0/47",
+		"1:1:1:0:0:0:0:0/64",
+		"1:1:1:2-fffe:0:0:0:0/63",
+		"1:1:1:1:0:0:0:0/80",
+		"1:1:1:1:2-fffe:0:0:0/79",
+		"1:1:1:1:1:0:0:0/96",
+		"1:1:1:1:1:2-fffe:0:0/95",
+		"1:1:1:1:1:1:0:0/112",
+		"1:1:1:1:1:1:2-fffe:0/111",
+		"1:1:1:1:1:1:1:0",
+		"1:1:1:1:1:1:1:2-fffe/127",
+	})
+	t.testSub("1:1::/32", "1:1::/16", []string{
+		"1:1:1-ffff:0:0:0:0:0/48",
+		"1:1:0:1-ffff:0:0:0:0/64",
+		"1:1:0:0:1-ffff:0:0:0/80",
+		"1:1:0:0:0:1-ffff:0:0/96",
+		"1:1:0:0:0:0:1-ffff:0/112",
+		"1:1:0:0:0:0:0:1-ffff"},
+	)
+	t.testSub("1:1::/32", "1:1::/48", []string{"1:1:1-ffff:0:0:0:0:0/48"})
+	t.testSub("1:1::/32", "1:1::/64", []string{
+		"1:1:1-ffff:0:0:0:0:0/48",
+		"1:1:0:1-ffff:0:0:0:0/64",
+	})
+	t.testSub("1:1::/32", "1:1:2:2::/64", []string{
+		"1:1:0:0:0:0:0:0/47",
+		"1:1:3-ffff:0:0:0:0:0/48",
+		"1:1:2:0:0:0:0:0/63",
+		"1:1:2:3-ffff:0:0:0:0/64",
+	})
+	t.testSub("10.0.0.0/22", "10.0.0.0/24", []string{"10.0.1-3.0/24"}) //[10.0.1-3.0/24]
+
+	t.testIntersect("1:1:1-3:1:1:1:1:1", "1:1:2-4:1:1:1:1:1", "1:1:2-3:1:1:1:1:1")
+	t.testIntersect("1:1:1-3:1:0:1:1:1", "1:1:2-4:1:1:1:1:1", "")
+
+	t.testToPrefixBlock("1.3.*.*", "1.3.*.*")
+	t.testToPrefixBlock("1.2-3.*.*", "1.2-3.*.*")
+	t.testToPrefixBlock("1.3.3.4/15", "1.2-3.*.*/15")
+	t.testToPrefixBlock("*.3.3.4/15", "*.2-3.*.*/15")
+	t.testToPrefixBlock("1.3.3.4/16", "1.3.*.*/16")
+
+	t.testToPrefixBlock("1:3:3:4::/15", "0-1:*/15")
+	t.testToPrefixBlock("*:3:3:4::/15", "0-fffe::/15")
+	t.testToPrefixBlock("1:3:3:4::/16", "1:*/16")
+
+	t.testMaxHost("1.*.255.255/16", "1.*.255.255/16")
+	t.testMaxHost("1.2.*.*/16", "1.2.255.255/16")
+	t.testMaxHost("1.*.*.*/16", "1.*.255.255/16")
+	t.testMaxHost("1.2.*.1/16", "1.2.255.255/16")
+	t.testMaxHost("1.*.*.1/16", "1.*.255.255/16")
+
+	t.testZeroHost("1.*.0.0/16", "1.*.0.0/16")
+	t.testZeroHost("1.2.*.*/16", "1.2.0.0/16")
+	t.testZeroHost("1.*.*.*/16", "1.*.0.0/16")
+	t.testZeroHost("1.2.*.1/16", "1.2.0.0/16")
+	t.testZeroHost("1.*.*.1/16", "1.*.0.0/16")
+
+	t.testZeroNetwork("1.*.0.0/16", "0.0.0.0/16")
+	t.testZeroNetwork("1.2.*.*/16", "0.0.*.*/16")
+	t.testZeroNetwork("1.*.*.*/16", "0.0.*.*/16")
+	t.testZeroNetwork("1.2.*.1/16", "0.0.*.1/16")
+	t.testZeroNetwork("1.*.*.1/16", "0.0.*.1/16")
+
+	t.testMaxHost("1:*::ffff:ffff:ffff:ffff/64", "1:*::ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:2::ffff:ffff:ffff:ffff/64", "1:2::ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:*::*:*:*:*/64", "1:*::ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:2::*:*:*:*/64", "1:2::ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:2::*:*:*:1/64", "1:2::ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("1:*:1/64", "1:*:ffff:ffff:ffff:ffff/64")
+	t.testMaxHost("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0")
+	t.testMaxHost("*:*/0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0")
+	t.testMaxHost("::/128", "::/128")
+
+	t.testZeroHost("1:*::/64", "1:*::/64")
+	t.testZeroHost("1:2::/64", "1:2::/64")
+	t.testZeroHost("1:*::*:*:*:*/64", "1:*::/64")
+	t.testZeroHost("1:2::*:*:*:*/64", "1:2::/64")
+	t.testZeroHost("1:2::*:*:*:1/64", "1:2::/64")
+	t.testZeroHost("1:*:1/64", "1:*:*:*::/64")
+	t.testZeroHost("::/0", "::/0")
+	t.testZeroHost("*:*/0", "::/0")
+	t.testZeroHost("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128")
+
+	t.testZeroHost("1:2:3:4::/64", "1:2:3:4::/64")
+	t.testZeroHost("1:2:*/64", "1:2:*:*::/64")
+	t.testZeroHost("1:2:3:4:*:1/64", "1:2:3:4::/64")
+	t.testZeroHost("1:*:1/64", "1:*:*:*::/64")
+
+	t.testZeroNetwork("1:*::/64", "::/64")
+	t.testZeroNetwork("1:2::/64", "::/64")
+	t.testZeroNetwork("1:*::*:*:*:*/64", "::*:*:*:*/64")
+	t.testZeroNetwork("1:2::*:*:*:*/64", "::*:*:*:*/64")
+	t.testZeroNetwork("1:2::*:*:*:1/64", "::*:*:*:1/64")
+	t.testZeroNetwork("1:*:1/64", "::*:*:*:1/64")
+	t.testZeroNetwork("::/0", "::/0")
+	t.testZeroNetwork("*:*/0", "*:*/0")
+	t.testZeroNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", "::/128")
+
+	t.testZeroNetwork("1:2:3:4::/64", "::/64")
+	t.testZeroNetwork("1:2:3:4:*/64", "0:0:0:0:*/64")
+	t.testZeroNetwork("1:2:*/64", "0:0:0:0:*/64")
+	t.testZeroNetwork("1:2:3:4:*:1/64", "0:0:0:0:*:1/64")
+	t.testZeroNetwork("1:*:1/64", "0:0:0:0:*:1/64")
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");

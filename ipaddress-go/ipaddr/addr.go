@@ -36,6 +36,7 @@ func createAddress(section *AddressSection, zone Zone) *Address {
 	}
 }
 
+// values that fall outside the segment value type range are truncated using standard golang integer type conversions https://golang.org/ref/spec#Conversions
 type SegmentValueProvider func(segmentIndex int) SegInt
 
 type AddressValueProvider interface {
@@ -662,6 +663,10 @@ func (addr *addressInternal) getStringCache() *stringCache {
 	return addr.cache.stringCache
 }
 
+func (addr *addressInternal) getSegmentStrings() []string {
+	return addr.section.getSegmentStrings()
+}
+
 func (addr *addressInternal) toCanonicalString() string {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
@@ -756,13 +761,6 @@ func (addr *Address) Equals(other AddressType) bool {
 	//	return other.ToAddress() == nil
 	//}
 	return addr.init().equals(other)
-}
-
-func (addr Address) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().addressInternal.String()
 }
 
 func (addr *Address) GetSection() *AddressSection {
@@ -982,6 +980,17 @@ func (addr *Address) IsLocal() bool {
 		return thisAddr.IsLocal()
 	}
 	return false
+}
+
+func (addr Address) String() string {
+	//if addr == nil {
+	//	return nilAddress
+	//}
+	return addr.init().addressInternal.String()
+}
+
+func (addr *Address) GetSegmentStrings() []string {
+	return addr.init().getSegmentStrings()
 }
 
 func (addr *Address) ToCanonicalString() string {
