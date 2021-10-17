@@ -157,7 +157,7 @@ func (t ipAddressRangeTester) run() {
 	t.testDelimitedCount("1:2,3,*:3:ffff:ffff:6:4:5,ff,7,8,99", 15)
 	t.testDelimitedCount("0,1-2,3,5:3::6:4:5,ffff,7,8,99", 30)
 
-	//if(allPrefixesAreSubnets) {
+	//if(false) {
 	//	testMatches(true, "1.2.3.4/16", "1.2.*.*");
 	//	testMatches(true, "1.2.3.4/16", "1.2.*");
 	//	testMatches(false, "1.2.3.4/15", "1.2.*.*");
@@ -355,7 +355,7 @@ func (t ipAddressRangeTester) run() {
 	//	t.testMatches(true, "1::-1:16", "1::0-1:16/16")
 	//	t.testMatches(true, "1:-1::16/16", "1:0-1::16")
 	//	t.testMatches(true, "1:-1::16", "1:0-1::16/16")
-	//} else if allPrefixesAreSubnets {
+	//} else if false {
 	//	t.testMatches(true, "1:-1::16/32", "1:0-1:*")
 	//	t.testMatches(true, "1:-1:*", "1:0-1::16/32")
 	//} else {
@@ -1537,6 +1537,94 @@ func (t ipAddressRangeTester) run() {
 	t.testZeroNetwork("1:2:*/64", "0:0:0:0:*/64")
 	t.testZeroNetwork("1:2:3:4:*:1/64", "0:0:0:0:*:1/64")
 	t.testZeroNetwork("1:*:1/64", "0:0:0:0:*:1/64")
+
+	t.testIsPrefixBlock("1.2.*.*", false, false)
+	t.testIsPrefixBlock("1.2.3.*", false, false)
+	t.testIsPrefixBlock("1.*.*.*", false, false)
+	t.testIsPrefixBlock("1.2-3.*.*", false, false)
+	t.testIsPrefixBlock("1.2.128-255.*", false, false)
+	t.testIsPrefixBlock("*.*/0", true, true)
+	t.testIsPrefixBlock("1.2.*.*/16", true, true)
+	t.testIsPrefixBlock("1.2.3.*/16", false, false)
+	t.testIsPrefixBlock("1.*.*.*/16", true, false)
+	t.testIsPrefixBlock("1.2-3.*.*/16", true, false)
+	t.testIsPrefixBlock("1.2.128-255.*/16", false, false)
+
+	t.testPrefixBlocks("1.2.*.*", 8, false, false)
+	t.testPrefixBlocks("1.2.3.*", 8, false, false)
+	t.testPrefixBlocks("1.*.*.*", 8, true, true)
+	t.testPrefixBlocks("1.2-3.*.*", 8, false, false)
+	t.testPrefixBlocks("1.2.128-255.*", 8, false, false)
+	t.testPrefixBlocks("*.*/0", 8, true, false)
+	t.testPrefixBlocks("1.2.*.*/16", 8, false, false)
+	t.testPrefixBlocks("1.2.3.*/16", 8, false, false)
+	t.testPrefixBlocks("1.*.*.*/16", 8, true, true)
+	t.testPrefixBlocks("1.2-3.*.*/16", 8, false, false)
+	t.testPrefixBlocks("1.2.128-255.*/16", 8, false, false)
+
+	t.testPrefixBlocks("1.2.*.*", 24, true, false)
+	t.testPrefixBlocks("1.2.3.*", 24, true, true)
+	t.testPrefixBlocks("1.*.*.*", 24, true, false)
+	t.testPrefixBlocks("1.2-3.*.*", 24, true, false)
+	t.testPrefixBlocks("1.2.128-255.*", 24, true, false)
+	t.testPrefixBlocks("*.*/0", 24, true, false)
+	t.testPrefixBlocks("1.2.*.*/16", 24, true, false)
+	t.testPrefixBlocks("1.2.3.*/16", 24, true, !false)
+	t.testPrefixBlocks("1.*.*.*/16", 24, true, false)
+	t.testPrefixBlocks("1.2-3.*.*/16", 24, true, false)
+	t.testPrefixBlocks("1.2.128-255.*/16", 24, true, false)
+
+	t.testIsPrefixBlock("a:b:c:d:*/64", true, true)
+	t.testIsPrefixBlock("a:b:c:*/64", true, false)
+	t.testIsPrefixBlock("a:b:c:d-e:*/64", true, false)
+	t.testIsPrefixBlock("a:b:c:d:e:*/64", false, false)
+	t.testIsPrefixBlock("a:b:c:d:0-ffff:*/64", true, true)
+	t.testIsPrefixBlock("a:b:c:d:8000-ffff:*/64", false, false)
+
+	t.testPrefixBlocks("a:b:c:d:*/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:*/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d-e:*/64", 0, false, false)
+	t.testPrefixBlocks("*:*/64", 0, true, true)
+	t.testPrefixBlocks("a:b:c:d:e:*/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 0, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:*/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:*/64", 63, true, false)
+	t.testPrefixBlocks("a:b:c:d-e:*/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:e-f:*/64", 63, true, true)
+	t.testPrefixBlocks("a:b:c:d:e:*/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 63, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:*/64", 64, true, true)
+	t.testPrefixBlocks("a:b:c:*/64", 64, true, false)
+	t.testPrefixBlocks("a:b:c:d-e:*/64", 64, true, false)
+	t.testPrefixBlocks("a:b:c:d:e:*/64", 64, false, false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 64, true, true)
+	t.testPrefixBlocks("a:b:c:d:8000-ffff:*/64", 64, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:*/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:*/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:d-e:*/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:d:e:*/64", 65, false, false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 65, true, !true)
+	t.testPrefixBlocks("a:b:c:d:8000-ffff:*/64", 65, true, !false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 65, true, false)
+
+	t.testPrefixBlocks("a:b:c:d:*/64", 128, true, false)
+	t.testPrefixBlocks("a:b:c:*/64", 128, true, false)
+	t.testPrefixBlocks("a:b:c:d-e:*/64", 128, true, false)
+	t.testPrefixBlocks("a:b:c:d:e:*/64", 128, true, false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 128, true, false)
+
+	t.testSplitBytes("1.2.*.4")
+	t.testSplitBytes("1.2-4.3.4/16")
+	t.testSplitBytes("1.2.3.4-5/0")
+	t.testSplitBytes("1.2.*/32")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc-dddd:bbbb")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64")
+	t.testSplitBytes("ffff:2:3:4:*:dddd:cccc:bbbb/0")
+	t.testSplitBytes("*:*/128")
+	t.testSplitBytes("*:*")
 
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");

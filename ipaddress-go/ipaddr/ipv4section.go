@@ -31,6 +31,10 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 func newIPv4Section(segments []*AddressDivision, normalizeSegments bool) (res *IPv4AddressSection, err AddressValueError) {
 	segsLen := len(segments)
 	if segsLen > IPv4SegmentCount {
+		//TODO I think I wanted to get rid of this requirement since I tossed it when doing insert and append
+		// the only other error in here is inconsistent prefix in the segments in initMultAndPrefLen
+		// maybe you could avoid the error there too by using the first prefixed segment to determine the prefix?
+		// so you could call assignPrefix?
 		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 		return
 	}
@@ -48,24 +52,26 @@ func newIPv4Section(segments []*AddressDivision, normalizeSegments bool) (res *I
 	return
 }
 
+func newIPv4PrefixedSection(segments []*AddressDivision, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
+	res, err = newIPv4Section(segments, prefixLength == nil)
+	if err == nil && prefixLength != nil {
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
+	}
+	return
+}
+
 func newIPv4SectionParsed(segments []*AddressDivision) (res *IPv4AddressSection) {
 	res = createIPv4Section(segments)
 	_ = res.initMultAndPrefLen()
 	return
 }
 
-func NewIPv4Section(segments []*IPv4AddressSegment) (res *IPv4AddressSection, err AddressValueError) {
-	res, err = newIPv4Section(cloneIPv4SegsToDivs(segments), true)
-	return
+func NewIPv4Section(segments []*IPv4AddressSegment) (*IPv4AddressSection, AddressValueError) {
+	return newIPv4Section(cloneIPv4SegsToDivs(segments), true)
 }
 
-func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
-	divs := cloneIPv4SegsToDivs(segments)
-	res, err = newIPv4Section(divs, prefixLength == nil)
-	if err == nil && prefixLength != nil {
-		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
-	}
-	return
+func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLen PrefixLen) (*IPv4AddressSection, AddressValueError) {
+	return newIPv4PrefixedSection(cloneIPv4SegsToDivs(segments), prefixLen)
 }
 
 func newIPv4SectionSingle(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection, err AddressValueError) {
@@ -103,7 +109,7 @@ func NewIPv4SectionFromBytes(bytes []byte) (res *IPv4AddressSection, err Address
 	return newIPv4SectionFromBytes(bytes, len(bytes), nil, false)
 }
 
-// Useful if the byte array has leading zeros or leading sign extension
+// Useful if the byte array has leading zeros
 func NewIPv4SectionFromSegmentedBytes(bytes []byte, segmentCount int) (res *IPv4AddressSection, err AddressValueError) {
 	return newIPv4SectionFromBytes(bytes, segmentCount, nil, false)
 }

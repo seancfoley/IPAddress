@@ -1861,6 +1861,93 @@ func (t ipAddressTester) run() {
 	t.testZeroNetwork("1:2::/64", "::/64")
 	t.testZeroNetwork("1:2:3:4:5:6:7:8/64", "::5:6:7:8/64")
 	t.testZeroNetwork("1:2:3:4:5:6:7:8/128", "::/128")
+
+	t.testIsPrefixBlock("1.2.3.4", false, false)
+	t.testIsPrefixBlock("1.2.3.4/16", false, false)
+	t.testIsPrefixBlock("1.2.0.0/16", true, true)
+	t.testIsPrefixBlock("1.2.3.4/0", false, false)
+	t.testIsPrefixBlock("1.2.3.3/31", false, false)
+	t.testIsPrefixBlock("1.2.3.4/31", true, true)
+	t.testIsPrefixBlock("1.2.3.4/32", true, true)
+
+	t.testPrefixBlocks("1.2.3.4", 8, false, false)
+	t.testPrefixBlocks("1.2.3.4/16", 8, false, false)
+	t.testPrefixBlocks("1.2.0.0/16", 8, false, false)
+	t.testPrefixBlocks("1.2.3.4/0", 8, false, false)
+	t.testPrefixBlocks("1.2.3.4/8", 8, false, false)
+	t.testPrefixBlocks("1.2.3.4/31", 8, false, false)
+	t.testPrefixBlocks("1.2.3.4/32", 8, false, false)
+
+	t.testPrefixBlocks("1.2.3.4", 24, false, false)
+	t.testPrefixBlocks("1.2.3.4/16", 24, false, false)
+	t.testPrefixBlocks("1.2.0.0/16", 24, true, false)
+	t.testPrefixBlocks("1.2.3.4/0", 24, false, false)
+	t.testPrefixBlocks("1.2.3.4/24", 24, false, false)
+	t.testPrefixBlocks("1.2.3.4/31", 24, false, false)
+	t.testPrefixBlocks("1.2.3.4/32", 24, false, false)
+
+	t.testIsPrefixBlock("a:b:c:d:e:f:a:b", false, false)
+	t.testIsPrefixBlock("a:b:c:d:e:f:a:b/64", false, false)
+	t.testIsPrefixBlock("a:b:c:d::/64", true, true)
+	t.testIsPrefixBlock("a:b:c:d:e::/64", false, false)
+	t.testIsPrefixBlock("a:b:c::/64", true, true)
+	t.testIsPrefixBlock("a:b:c:d:e:f:a:b/0", false, false)
+	t.testIsPrefixBlock("a:b:c:d:e:f:a:b/127", false, false)
+	t.testIsPrefixBlock("a:b:c:d:e:f:a:b/128", true, true)
+
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d::/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:e::/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c::/64", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/0", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/127", 0, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/128", 0, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d::/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:e::/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c::/64", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/0", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/127", 63, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/128", 63, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b", 64, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/64", 64, false, false)
+	t.testPrefixBlocks("a:b:c:d::/64", 64, true, true)
+	t.testPrefixBlocks("a:b:c:d:e::/64", 64, false, false)
+	t.testPrefixBlocks("a:b:c::/64", 64, true, true)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/0", 64, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/127", 64, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/128", 64, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b", 65, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/64", 65, false, false)
+	t.testPrefixBlocks("a:b:c:d::/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:d:e::/64", 65, false, false)
+	t.testPrefixBlocks("a:b:c::/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/0", 65, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/127", 65, false, false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/128", 65, false, false)
+
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b", 128, true, true)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/64", 128, true, !false)
+	t.testPrefixBlocks("a:b:c:d::/64", 128, true, !true)
+	t.testPrefixBlocks("a:b:c:d:e::/64", 128, true, !false)
+	t.testPrefixBlocks("a:b:c::/64", 128, true, !true)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/0", 128, true, !false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/127", 128, true, !false)
+	t.testPrefixBlocks("a:b:c:d:e:f:a:b/128", 128, true, true)
+
+	t.testSplitBytes("1.2.3.4")
+	t.testSplitBytes("1.2.3.4/16")
+	t.testSplitBytes("1.2.3.4/0")
+	t.testSplitBytes("1.2.3.4/32")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/0")
+	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/128")
 }
 
 //func one28() *big.Int {
@@ -2964,8 +3051,8 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 		t.testStringContains(result, equal, t.createAddress(cidr1), t.createAddress(cidr2))
 
 	}
-	//boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
-	//if(allPrefixesAreSubnets) {
+	//boolean false = prefixConfiguration.allPrefixedAddressesAreSubnets();
+	//if(false) {
 	//	wstr = createAddress(cidr1);
 	//	w2str = createAddress(cidr2);
 	//	boolean prefixMatches = wstr.prefixEquals(w2str);
@@ -4157,6 +4244,124 @@ func (t ipAddressTester) testMaxHost(addrString, maxHostString string) {
 	t.incrementTestCount()
 }
 
+func (t ipAddressTester) testSplitBytes(addressStr string) {
+	addr := t.createAddress(addressStr).GetAddress()
+	t.testSplitBytesAddr(addr)
+}
+
+func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
+	bytes := addr.GetBytes()
+	addresses := reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
+	if addr.IsMultiple() {
+		for _, addrNext := range addresses {
+			if !addr.GetLower().Equals(addrNext) {
+				t.addFailure(newIPAddrFailure("lower reconstitute failure: "+addrNext.String(), addr))
+			}
+		}
+		bytes = addr.GetUpperBytes()
+		addresses = reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
+		for _, addrNext := range addresses {
+			if !addr.GetUpper().Equals(addrNext) {
+				t.addFailure(newIPAddrFailure("upper reconstitute failure: "+addrNext.String(), addr))
+			}
+		}
+	} else {
+		for _, addrNext := range addresses {
+			if !addr.Equals(addrNext) {
+				t.addFailure(newIPAddrFailure("reconstitute failure: "+addrNext.String(), addr))
+			}
+		}
+	}
+}
+
+func reconstitute(version ipaddr.IPVersion, bytes []byte, segmentByteSize int) []*ipaddr.IPAddress {
+	//IPAddressCreator<?, ?, ?, S, ?> creator = (IPAddressCreator<?, ?, ?, S, ?>) originalAddress.getNetwork().getAddressCreator();
+	var addresses []*ipaddr.IPAddress
+	//ArrayList<IPAddress> addresses = new ArrayList<IPAddress>();
+	sets := createSets(bytes, segmentByteSize)
+	creator := ipaddr.IPAddressCreator{version}
+	for _, set := range sets {
+		//for(byte set[][] : sets) {
+		//ArrayList<S> segments = new ArrayList<S>();
+		//ArrayList<S> segments2 = new ArrayList<S>();
+		var segments, segments2 []*ipaddr.IPAddressSegment
+
+		for i, ind := 0, 0; i < len(set); i++ {
+			setBytes := set[i]
+			segs := creator.NewIPSectionFromBytes(setBytes).GetSegments()
+			segs2 := creator.NewIPSectionFromBytes(bytes[ind : ind+len(setBytes)]).GetSegments()
+
+			if i%2 == 1 {
+				segs, segs2 = segs2, segs
+			}
+			ind += len(setBytes)
+			segments = append(segments, segs...)
+			segments2 = append(segments2, segs2...)
+			//segments.addAll(Arrays.asList(segs));
+			//segments2.addAll(Arrays.asList(seg2));
+		}
+		addr1 := ipaddr.NewIPAddressFromSegments(segments)
+		addr2 := ipaddr.NewIPAddressFromSegments(segments2)
+		addresses = append(addresses, addr1)
+		addresses = append(addresses, addr2)
+		//S segs[] = creator.createSegmentArray(segments.size());
+		//IPAddress addr1 = creator.createAddress(segments.toArray(segs));
+		//IPAddress addr2 = creator.createAddress(segments2.toArray(segs));
+		//addresses.add(addr1);
+		//addresses.add(addr2);
+	}
+	return addresses
+}
+
+func createSets(bytes []byte, segmentByteSize int) [][][]byte {
+	//break into two, and three
+	segmentLength := len(bytes) / segmentByteSize
+	sets := [][][]byte{
+		{
+			make([]byte, (segmentLength/2)*segmentByteSize), make([]byte, (segmentLength-segmentLength/2)*segmentByteSize),
+		},
+		{
+			make([]byte, (segmentLength/3)*segmentByteSize), make([]byte, (segmentLength/3)*segmentByteSize), make([]byte, (segmentLength-2*(segmentLength/3))*segmentByteSize),
+		},
+	}
+	for _, set := range sets {
+		for i, ind := 0, 0; i < len(set); i++ {
+			part := set[i]
+			copy(part, bytes[ind:])
+			//System.arraycopy(bytes, ind, part, 0, part.length);
+			ind += len(part)
+		}
+	}
+	return sets
+}
+
+func (t ipAddressTester) testIsPrefixBlock(
+	orig string,
+	isPrefixBlock,
+	isSinglePrefixBlock bool) {
+	original := t.createAddress(orig).GetAddress()
+	if isPrefixBlock != original.IsPrefixBlock() {
+		t.addFailure(newIPAddrFailure("is prefix block: "+strconv.FormatBool(original.IsPrefixBlock())+" expected: "+strconv.FormatBool(isPrefixBlock), original))
+	} else if isSinglePrefixBlock != original.IsSinglePrefixBlock() {
+		t.addFailure(newIPAddrFailure("is single prefix block: "+strconv.FormatBool(original.IsSinglePrefixBlock())+" expected: "+strconv.FormatBool(isSinglePrefixBlock), original))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testPrefixBlocks(
+	orig string,
+	prefix ipaddr.BitCount,
+	containsPrefixBlock,
+	containsSinglePrefixBlock bool) {
+	original := t.createAddress(orig).GetAddress()
+	if containsPrefixBlock != original.ContainsPrefixBlock(prefix) {
+		t.addFailure(newIPAddrFailure("contains prefix block: "+strconv.FormatBool(original.ContainsPrefixBlock(prefix))+" expected: "+strconv.FormatBool(containsPrefixBlock), original))
+	} else if containsSinglePrefixBlock != original.ContainsSinglePrefixBlock(prefix) {
+		t.addFailure(newIPAddrFailure("contains single prefix block: "+strconv.FormatBool(original.ContainsSinglePrefixBlock(prefix))+" expected: "+strconv.FormatBool(containsPrefixBlock), original))
+	}
+	t.incrementTestCount()
+}
+
 var conv = ipaddr.DefaultAddressConverter{}
 
 func conversionContains(h1, h2 *ipaddr.IPAddress) bool {
@@ -4231,13 +4436,14 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 				segs[i].CopyBytes(bytes[j:])
 				j += bytesPerSegment
 			}
-			directAddress = creator.FromPrefixedIP(bytes, pref)
+			//directAddress = creator.FromPrefixedIP(bytes, pref)
+			directAddress = ipaddr.FromPrefixedIP(bytes, pref)
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]
 			mask := origSeg.GetSegmentNetworkMask(*pref % directAddress.GetBitsPerSegment())
 			//maxValue := directAddress.GetMaxSegmentValue()
-			directAddress = creator.FromPrefixedVals(
+			directAddress = creator.NewIPAddressFromPrefixedVals(
 				func(segmentIndex int) ipaddr.SegInt {
 					if segmentIndex < prefSeg {
 						return segs[segmentIndex].GetSegmentValue()

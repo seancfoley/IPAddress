@@ -52,6 +52,14 @@ func newIPv6Section(segments []*AddressDivision /* ,startIndex int , cloneSegmen
 	return
 }
 
+func newIPv6PrefixedSection(segments []*AddressDivision, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
+	res, err = newIPv6Section(segments, prefixLength == nil)
+	if err == nil && prefixLength != nil {
+		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
+	}
+	return
+}
+
 func newIPv6SectionSimple(segments []*AddressDivision) (res *IPv6AddressSection) {
 	res = createIPv6Section(segments)
 	return
@@ -71,18 +79,12 @@ func newIPv6SectionSingle(segments []*AddressDivision /* , startIndex int /*clon
 	return
 }
 
-func NewIPv6Section(segments []*IPv6AddressSegment) (res *IPv6AddressSection, err AddressValueError) {
-	res, err = newIPv6Section(cloneIPv6SegsToDivs(segments), true)
-	return
+func NewIPv6Section(segments []*IPv6AddressSegment) (*IPv6AddressSection, AddressValueError) {
+	return newIPv6Section(cloneIPv6SegsToDivs(segments), true)
 }
 
-func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLength PrefixLen) (res *IPv6AddressSection, err AddressValueError) {
-	divs := cloneIPv6SegsToDivs(segments)
-	res, err = newIPv6Section(divs, prefixLength == nil)
-	if err == nil && prefixLength != nil {
-		assignPrefix(prefixLength, divs, res.ToIPAddressSection(), false, BitCount(len(segments)<<3))
-	}
-	return
+func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLen PrefixLen) (*IPv6AddressSection, AddressValueError) {
+	return newIPv6PrefixedSection(cloneIPv6SegsToDivs(segments), prefixLen)
 }
 
 // NewIPv6SectionFromBigInt creates an IPv6 section from the given big integer, returning an error if the value is too large for the given number of segments.
@@ -109,7 +111,7 @@ func NewIPv6SectionFromPrefixedBigInt(val *big.Int, segmentCount int, prefixLen 
 }
 
 func NewIPv6SectionFromBytes(bytes []byte) (res *IPv6AddressSection, err AddressValueError) {
-	return newIPv6SectionFromBytes(bytes, len(bytes), nil, false)
+	return newIPv6SectionFromBytes(bytes, len(bytes)>>1, nil, false)
 }
 
 // NewIPv6SectionFromSegmentedBytes allows you to specify the segment count from the supplied bytes.
