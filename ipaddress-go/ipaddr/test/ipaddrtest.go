@@ -2160,6 +2160,59 @@ func (t ipAddressTester) run() {
 	t.testLeadingZeroAddr("1:0:2:3::", false)
 	t.testLeadingZeroAddr("1:2:0:3::", false)
 	t.testLeadingZeroAddr("1:2:3:0::", false)
+
+	//a b x y
+	t.testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "", "")
+	t.testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "", "")
+	t.testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3")
+
+	t.testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.5.6")
+	t.testRangeExtend("1.2.3.4", "", "1.2.5.6", "", "1.2.3.4", "1.2.5.6")
+	t.testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.5.6", "", "1.2.3.4", "1.2.5.6")
+
+	//a x b y
+	t.testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6")
+	t.testRangeIntersect("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.4.3", "1.2.4.5")
+	t.testRangeSubtract("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.2")
+
+	t.testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6")
+	t.testRangeExtend("1.2.3.4", "", "1.2.5.6", "", "1.2.3.4", "1.2.5.6")
+	t.testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.5.6", "", "1.2.3.4", "1.2.5.6")
+
+	//a x y b
+	t.testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6")
+	t.testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.4.3", "1.2.4.5")
+	t.testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.2", "1.2.4.6", "1.2.5.6")
+
+	t.testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6")
+	t.testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", "", "1.2.3.4", "1.2.5.6")
+
+	//a b x y
+	t.testRangeJoin("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "", "")
+	t.testRangeIntersect("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "", "")
+	t.testRangeSubtract("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::")
+
+	t.testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:3:4::", "", "1:2:5:6::", "", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:5:6::", "", "1:2:3:4::", "1:2:5:6::")
+
+	//a x b y
+	t.testRangeJoin("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeIntersect("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::")
+	t.testRangeSubtract("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff")
+
+	t.testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:3:4::", "", "1:2:5:6::", "", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:5:6::", "", "1:2:3:4::", "1:2:5:6::")
+
+	//a x y b
+	t.testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:4:3::", "1:2:4:5::")
+	t.testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::")
+
+	t.testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:5:6::", "", "1:2:3:4::", "", "1:2:3:4::", "1:2:5:6::")
+	t.testRangeExtend("1:2:5:6::", "", "1:2:3:4::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::")
 }
 
 func one28() *big.Int {
@@ -4802,6 +4855,148 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 	//} catch(RuntimeException e) {
 	//	addFailure(new Failure(e.toString()));
 	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testRangeExtend(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	t.testRangeExtendImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher)
+	t.testRangeExtendImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower)
+}
+
+func (t ipAddressTester) testRangeExtendImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	var addr, addr2 *ipaddr.IPAddress
+	var range1, range2, result2 *ipaddr.IPAddressSeqRange
+
+	addr = t.createAddress(lower1).GetAddress()
+	if higher1 == "" {
+		range1 = addr.ToSequentialRange()
+	} else {
+		addr2 = t.createAddress(higher1).GetAddress()
+		range1, _ = addr.SpanWithRange(addr2)
+	}
+
+	addr = t.createAddress(lower2).GetAddress()
+	if higher2 == "" {
+		result2 = range1.Extend(addr.ToSequentialRange())
+		range2 = addr.ToSequentialRange()
+	} else {
+		addr2 = t.createAddress(higher2).GetAddress()
+		range2, _ = addr.SpanWithRange(addr2)
+	}
+
+	result := range1.Extend(range2)
+	if result2 != nil {
+		if !result.Equals(result2) {
+			t.addFailure(newIPAddrFailure("mismatch result "+result.String()+"' with '"+result2.String()+"'", addr))
+		}
+	}
+	if resultLower == "" {
+		if result != nil {
+			t.addFailure(newIPAddrFailure("mismatch result "+result.String()+" expected null extending '"+range1.String()+"' with '"+range2.String()+"'", addr))
+		}
+	} else {
+		addr = t.createAddress(resultLower).GetAddress()
+		addr2 = t.createAddress(resultHigher).GetAddress()
+		expectedResult, _ := addr.SpanWithRange(addr2)
+		if !result.Equals(expectedResult) {
+			t.addFailure(newIPAddrFailure("mismatch result '"+result.String()+"' expected '"+expectedResult.String()+"' extending '"+range1.String()+"' with '"+range2.String()+"'", addr))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testRangeJoin(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	t.testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher)
+	t.testRangeJoinImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower)
+}
+
+func (t ipAddressTester) testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	addr := t.createAddress(lower1).GetAddress()
+	addr2 := t.createAddress(higher1).GetAddress()
+	range1, _ := addr.SpanWithRange(addr2)
+
+	addr = t.createAddress(lower2).GetAddress()
+	addr2 = t.createAddress(higher2).GetAddress()
+	range2, _ := addr.SpanWithRange(addr2)
+
+	result := range1.JoinTo(range2)
+	if resultLower == "" {
+		if result != nil {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected null joining '"+addr.String()+"' with '"+addr2.String()+"'", result), addr))
+		}
+	} else {
+		addr = t.createAddress(resultLower).GetAddress()
+		addr2 = t.createAddress(resultHigher).GetAddress()
+		expectedResult, _ := addr.SpanWithRange(addr2)
+		if !result.Equals(expectedResult) {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' joining '"+addr.String()+"' with '"+addr2.String()+"'", result), addr))
+		}
+
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testRangeIntersect(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	t.testRangeIntersectImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher)
+	t.testRangeIntersectImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower)
+}
+
+func (t ipAddressTester) testRangeIntersectImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
+	addr := t.createAddress(lower1).GetAddress()
+	addr2 := t.createAddress(higher1).GetAddress()
+	range1, _ := addr.SpanWithRange(addr2)
+
+	addr = t.createAddress(lower2).GetAddress()
+	addr2 = t.createAddress(higher2).GetAddress()
+	range2, _ := addr.SpanWithRange(addr2)
+
+	result := range1.Intersect(range2)
+	if resultLower == "" {
+		if result != nil {
+			t.addFailure(newIPAddrFailure("mismatch result "+result.String()+" expected null intersecting '"+addr.String()+"' with '"+addr2.String()+"'", addr))
+		}
+	} else {
+		addr := t.createAddress(resultLower).GetAddress()
+		addr2 := t.createAddress(resultHigher).GetAddress()
+		expectedResult, _ := addr.SpanWithRange(addr2)
+		if !result.Equals(expectedResult) {
+			t.addFailure(newIPAddrFailure("mismatch result '"+result.String()+"' expected '"+expectedResult.String()+"' intersecting '"+addr.String()+"' with '"+addr2.String()+"'", addr))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testRangeSubtract(lower1, higher1, lower2, higher2 string, resultPairs ...string) {
+	addr := t.createAddress(lower1).GetAddress()
+	addr2 := t.createAddress(higher1).GetAddress()
+	range1, _ := addr.SpanWithRange(addr2)
+
+	addr = t.createAddress(lower2).GetAddress()
+	addr2 = t.createAddress(higher2).GetAddress()
+	range2, _ := addr.SpanWithRange(addr2)
+
+	result := range1.Subtract(range2)
+	if len(resultPairs) == 0 {
+		if len(result) != 0 {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected zero length result subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result), addr))
+		}
+	} else { //resultPairs.length >= 2
+		addr = t.createAddress(resultPairs[0]).GetAddress()
+		addr2 = t.createAddress(resultPairs[1]).GetAddress()
+		expectedResult, _ := addr.SpanWithRange(addr2)
+		if len(result) == 0 || !result[0].Equals(expectedResult) {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result), addr))
+		} else if len(resultPairs) == 4 {
+			addr = t.createAddress(resultPairs[2]).GetAddress()
+			addr2 = t.createAddress(resultPairs[3]).GetAddress()
+			expectedResult, _ = addr.SpanWithRange(addr2)
+			if len(result) == 1 || !result[1].Equals(expectedResult) {
+				t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result), addr))
+			}
+		} else if len(result) > 1 {
+			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected %v ranges subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result, len(resultPairs)/2), addr))
+		}
+	}
 	t.incrementTestCount()
 }
 

@@ -992,7 +992,7 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
+func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) { //TODO consider dropping the error
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
