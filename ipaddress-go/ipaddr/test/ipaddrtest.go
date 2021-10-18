@@ -2102,6 +2102,64 @@ func (t ipAddressTester) run() {
 	t.testIncrement("::1:ffff", -2, "::1:fffd")
 	t.testIncrement("::1:ffff", -0x10000, "::ffff")
 	t.testIncrement("::1:ffff", -0x10001, "::fffe")
+
+	t.testLeadingZeroAddr("00.1.2.3", true)
+	t.testLeadingZeroAddr("1.00.2.3", true)
+	t.testLeadingZeroAddr("1.2.00.3", true)
+	t.testLeadingZeroAddr("1.2.3.00", true)
+	t.testLeadingZeroAddr("01.1.2.3", true)
+	t.testLeadingZeroAddr("1.01.2.3", true)
+	t.testLeadingZeroAddr("1.2.01.3", true)
+	t.testLeadingZeroAddr("1.2.3.01", true)
+	t.testLeadingZeroAddr("0.1.2.3", false)
+	t.testLeadingZeroAddr("1.0.2.3", false)
+	t.testLeadingZeroAddr("1.2.0.3", false)
+	t.testLeadingZeroAddr("1.2.3.0", false)
+
+	// octal and hex addresses are not allowed when we disallow leading zeros.
+	// if we allow leading zeros, the inet aton settings determine if hex is allowed,
+	// or whether leading zeros are interpreted as octal.
+	// We can also disallow octal leading zeros, which are extra zeros after the 0x for hex or the 0 for octal.
+	// We never allow 00x regardless of the settings.
+	// Note that having a flag to disallow leading zeros and then seeing 1.02.3.4 being allowed, that would be annoying, so we do not do that anymore.
+	t.testInetAtonLeadingZeroAddr("11.1.2.3", false, false, false) // boolean are (a) has a leading zero (b) has a leading zero following 0x or 0 and (c) the leading zeros are octal (not hex)
+	t.testInetAtonLeadingZeroAddr("0.1.2.3", false, false, false)
+	t.testInetAtonLeadingZeroAddr("1.0.2.3", false, false, false)
+	t.testInetAtonLeadingZeroAddr("1.2.0.3", false, false, false)
+	t.testInetAtonLeadingZeroAddr("1.2.3.0", false, false, false)
+	t.testInetAtonLeadingZeroAddr("0x1.1.2.3", true, false, false)
+	t.testInetAtonLeadingZeroAddr("1.0x1.2.3", true, false, false)
+	t.testInetAtonLeadingZeroAddr("1.2.0x1.3", true, false, false)
+	t.testInetAtonLeadingZeroAddr("1.2.3.0x1", true, false, false)
+	t.testInetAtonLeadingZeroAddr("0x01.1.2.3", true, true, false)
+	t.testInetAtonLeadingZeroAddr("1.0x01.2.3", true, true, false)
+	t.testInetAtonLeadingZeroAddr("1.2.0x01.3", true, true, false)
+	t.testInetAtonLeadingZeroAddr("1.2.3.0x01", true, true, false)
+	t.testInetAtonLeadingZeroAddr("01.1.2.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.01.2.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.2.01.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.2.3.01", true, false, true)
+	t.testInetAtonLeadingZeroAddr("010.1.2.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.010.2.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.2.010.3", true, false, true)
+	t.testInetAtonLeadingZeroAddr("1.2.3.010", true, false, true)
+	t.testInetAtonLeadingZeroAddr("001.1.2.3", true, true, true)
+	t.testInetAtonLeadingZeroAddr("1.001.2.3", true, true, true)
+	t.testInetAtonLeadingZeroAddr("1.2.001.3", true, true, true)
+	t.testInetAtonLeadingZeroAddr("1.2.3.001", true, true, true)
+
+	t.testLeadingZeroAddr("00:1:2:3::", true)
+	t.testLeadingZeroAddr("1:00:2:3::", true)
+	t.testLeadingZeroAddr("1:2:00:3::", true)
+	t.testLeadingZeroAddr("1:2:3:00::", true)
+	t.testLeadingZeroAddr("01:1:2:3::", true)
+	t.testLeadingZeroAddr("1:01:2:3::", true)
+	t.testLeadingZeroAddr("1:2:01:3::", true)
+	t.testLeadingZeroAddr("1:2:3:01::", true)
+	t.testLeadingZeroAddr("0:1:2:3::", false)
+	t.testLeadingZeroAddr("1:0:2:3::", false)
+	t.testLeadingZeroAddr("1:2:0:3::", false)
+	t.testLeadingZeroAddr("1:2:3:0::", false)
 }
 
 func one28() *big.Int {
@@ -4630,6 +4688,121 @@ func (t ipAddressTester) testIncrement(originalStr string, increment int64, resu
 		addr = t.createAddress(resultStr).GetAddress()
 	}
 	t.testBase.testIncrement(t.createAddress(originalStr).GetAddress().ToAddress(), increment, addr.ToAddress())
+}
+
+func (t ipAddressTester) testLeadingZeroAddr(addrStr string, hasLeadingZeros bool) {
+	//try {
+	str := t.createAddress(addrStr)
+	_, err := str.ToAddress()
+	if err != nil {
+		t.addFailure(newFailure("unexpected error "+err.Error(), str))
+	}
+	//try {
+	params := new(ipaddr.IPAddressStringParametersBuilder).
+		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().
+		GetIPv6AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
+	str = ipaddr.NewIPAddressStringParams(addrStr, params)
+	_, err = str.ToAddress()
+	if err == nil {
+		if hasLeadingZeros {
+			t.addFailure(newFailure("leading zeros allowed when forbidden", str))
+		}
+	} else {
+		if !hasLeadingZeros {
+			t.addFailure(newFailure("leading zeros not there", str))
+		}
+	}
+
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZeros, hasInetAtonLeadingZeros, isInetAtonOctal bool) {
+	//try {
+	str := t.createInetAtonAddress(addrStr)
+	addr, err := str.ToAddress()
+	if err != nil {
+		t.addFailure(newFailure("unexpected error "+err.Error(), str))
+	}
+	value := addr.GetValue()
+
+	params := new(ipaddr.IPAddressStringParametersBuilder).
+		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
+	str = ipaddr.NewIPAddressStringParams(addrStr, params)
+	_, err = str.ToAddress()
+	if err == nil {
+		if hasLeadingZeros {
+			t.addFailure(newFailure("leading zeros allowed when forbidden", str))
+		}
+	} else {
+		if !hasLeadingZeros {
+			t.addFailure(newFailure("leading zeros not there", str))
+		}
+	}
+
+	params = new(ipaddr.IPAddressStringParametersBuilder).Set(params).GetIPv4AddressParametersBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
+	str = ipaddr.NewIPAddressStringParams(addrStr, params)
+	_, err = str.ToAddress()
+	if err == nil {
+		if hasInetAtonLeadingZeros {
+			t.addFailure(newFailure("leading zeros allowed when forbidden", str))
+		}
+	} else {
+		if !hasInetAtonLeadingZeros {
+			t.addFailure(newFailure("leading zeros not there", str))
+		}
+	}
+
+	params = new(ipaddr.IPAddressStringParametersBuilder).Set(params).Allow_inet_aton(false).ToParams()
+	str = ipaddr.NewIPAddressStringParams(addrStr, params)
+	_, err = str.ToAddress()
+	if isInetAtonOctal {
+		//try {
+		addr, err = str.ToAddress()
+		if err != nil {
+			t.addFailure(newFailure("inet aton octal should be decimal, unexpected error: "+err.Error(), str))
+		}
+		value2 := addr.GetValue()
+		octalDiffers := false
+		for i := 0; i < addr.GetSegmentCount(); i++ {
+			octalDiffers = octalDiffers || addr.GetSegment(i).GetSegmentValue() >= 7
+		}
+		valsEqual := value.Cmp(value2) == 0
+		if !octalDiffers {
+			valsEqual = !valsEqual
+		}
+		if valsEqual {
+			t.addFailure(newFailure("inet aton octal should be unequal", str))
+		}
+		//} catch(AddressStringException e) {
+		//	addFailure(new Failure("inet aton octal should be decimal", str));
+		//}
+	} else if hasLeadingZeros { // if not octal but has leading zeros, then must be hex
+		_, err = str.ToAddress()
+		if err == nil {
+			t.addFailure(newFailure("inet aton hex should be forbidden", str))
+		}
+	} else { // neither octal nor hex
+		//try {
+		addr, err = str.ToAddress()
+		if err != nil {
+			t.addFailure(newFailure("inet aton should have no effect, unexpected error: "+err.Error(), str))
+		}
+		value2 := addr.GetValue()
+		if value.Cmp(value2) != 0 {
+			t.addFailure(newFailure("should be same value", str))
+		}
+		//} catch(AddressStringException e) {
+		//	addFailure(new Failure("inet aton should have no effect", string));
+		//}
+	}
+	//} catch(AddressStringException e) {
+	//	addFailure(new Failure(e.toString()));
+	//} catch(IncompatibleAddressException e) {
+	//	addFailure(new Failure(e.toString()));
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure(e.toString()));
+	//}
+	t.incrementTestCount()
 }
 
 var conv = ipaddr.DefaultAddressConverter{}

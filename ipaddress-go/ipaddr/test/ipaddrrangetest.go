@@ -1651,6 +1651,32 @@ func (t ipAddressRangeTester) run() {
 	t.testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::")
 	t.testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2")
 
+	t.testLeadingZeroAddr("00-1.1.2.3", true)
+	t.testLeadingZeroAddr("1.00-1.2.3", true)
+	t.testLeadingZeroAddr("1.2.00-1.3", true)
+	t.testLeadingZeroAddr("1.2.3.00-1", true)
+	t.testLeadingZeroAddr("1-01.1.2.3", true)
+	t.testLeadingZeroAddr("1.01-1.2.3", true)
+	t.testLeadingZeroAddr("1.2.1-01.3", true)
+	t.testLeadingZeroAddr("1.2.3.01-1", true)
+	t.testLeadingZeroAddr("0-1.1.2.3", false)
+	t.testLeadingZeroAddr("1.0-1.2.3", false)
+	t.testLeadingZeroAddr("1.2.0-1.3", false)
+	t.testLeadingZeroAddr("1.2.3.0-1", false)
+
+	t.testLeadingZeroAddr("00-1:1:2:3::", true)
+	t.testLeadingZeroAddr("1:00-1:2:3::", true)
+	t.testLeadingZeroAddr("1:2:00-1:3::", true)
+	t.testLeadingZeroAddr("1:2:3:00-1::", true)
+	t.testLeadingZeroAddr("1-01:1:2:3::", true)
+	t.testLeadingZeroAddr("1:1-01:2:3::", true)
+	t.testLeadingZeroAddr("1:2:1-01:3::", true)
+	t.testLeadingZeroAddr("1:2:3:1-01::", true)
+	t.testLeadingZeroAddr("0-1:1:2:3::", false)
+	t.testLeadingZeroAddr("1:0-1:2:3::", false)
+	t.testLeadingZeroAddr("1:2:0-1:3::", false)
+	t.testLeadingZeroAddr("1:2:3:0-1::", false)
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");

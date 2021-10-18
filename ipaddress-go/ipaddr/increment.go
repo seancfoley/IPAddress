@@ -68,7 +68,8 @@ func fastIncrement( // used by IPv6
 		uincrement := uint64(inc)
 		var maxUint64 big.Int
 		maxUint64.SetUint64(math.MaxUint64)
-		if count.CmpAbs(&maxUint64) <= 0 {
+		countMinus1 := count.Sub(count, bigOneConst())
+		if countMinus1.CmpAbs(&maxUint64) <= 0 {
 			longCount := count.Uint64()
 			if longCount > uincrement {
 				if longCount == uincrement+1 {
@@ -78,14 +79,12 @@ func fastIncrement( // used by IPv6
 			}
 			upperValue := section.GetUpperValue()
 			if upperValue.CmpAbs(&maxUint64) <= 0 {
-				countMinus1 := count.Sub(count, bigOneConst()).Uint64()
 				value := section.GetValue()
 				return increment(
 					section,
 					inc,
 					creator,
-					countMinus1,
-					//count.Uint64() - 1,
+					countMinus1.Uint64(),
 					value.Uint64(),
 					upperValue.Uint64(),
 					lowerProducer,

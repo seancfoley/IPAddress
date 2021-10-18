@@ -892,11 +892,11 @@ func (builder *IPv4AddressStringParametersBuilder) Set(params IPv4AddressStringP
 		builder.params = *p
 	} else {
 		builder.params = ipv4AddressStringParameters{
-			no_inet_aton_hex:              params.Allows_inet_aton_hex(),
-			no_inet_aton_octal:            params.Allows_inet_aton_octal(),
-			no_inet_aton_joinedSegments:   params.Allows_inet_aton_joinedSegments(),
+			no_inet_aton_hex:              !params.Allows_inet_aton_hex(),
+			no_inet_aton_octal:            !params.Allows_inet_aton_octal(),
+			no_inet_aton_joinedSegments:   !params.Allows_inet_aton_joinedSegments(),
 			inet_aton_single_segment_mask: params.Allows_inet_aton_single_segment_mask(),
-			no_inet_aton_leading_zeros:    params.Allows_inet_aton_leading_zeros(),
+			no_inet_aton_leading_zeros:    !params.Allows_inet_aton_leading_zeros(),
 			//network:                       params.GetNetwork(),
 		}
 	}
