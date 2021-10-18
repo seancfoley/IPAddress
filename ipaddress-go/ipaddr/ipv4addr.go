@@ -248,6 +248,9 @@ func (addr *IPv4Address) GetIPVersion() IPVersion {
 }
 
 func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address {
+	if section == nil {
+		return nil
+	}
 	sec := section.ToAddressSection()
 	if sec == addr.section {
 		return addr

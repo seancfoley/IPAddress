@@ -14,7 +14,7 @@ type AddressItem interface {
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
-	GetBytes() []byte
+	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes
 	GetUpperBytes() []byte
 
 	GetCount() *big.Int
@@ -54,6 +54,10 @@ type AddressItem interface {
 
 	// The count of the number of distinct values within the prefix part of the range of values for this item
 	GetPrefixCountLen(BitCount) *big.Int
+
+	//TODO consider renaming to Compare to be consistent with package bytes and strings - it seems sometimes methods with the right name gets special treatment https://github.com/google/go-cmp/issues/61
+	// Or maybe Cmp https://pkg.go.dev/math/big#Int.Cmp
+	// Since an address is more like a sequence of bytes, probably want the former, Compare
 
 	// Any address item is comparable to any other
 	CompareTo(item AddressItem) int
@@ -215,7 +219,7 @@ type GenericGroupingType interface {
 
 	getAddrType() addrType
 
-	Equals(GenericGroupingType) bool
+	Equals(GenericGroupingType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627
 }
 
 // StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
@@ -272,7 +276,7 @@ type AddressType interface {
 
 	getAddrType() addrType
 
-	Equals(AddressType) bool
+	Equals(AddressType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual too
 	PrefixEquals(AddressType) bool
 	Contains(AddressType) bool
 	PrefixContains(AddressType) bool

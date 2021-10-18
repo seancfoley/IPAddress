@@ -181,6 +181,9 @@ func (addr *MACAddress) init() *MACAddress {
 }
 
 func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
+	if section == nil {
+		return nil
+	}
 	sec := section.ToAddressSection()
 	if sec == addr.section {
 		return addr

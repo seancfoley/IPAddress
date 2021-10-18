@@ -1283,6 +1283,14 @@ func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4Mi
 	return result, nil
 }
 
+func (section *IPv6AddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return section.ToAddressSection().ToAddressDivisionGrouping()
+}
+
+func (section *IPv6AddressSection) ToAddressSection() *AddressSection {
+	return section.ToIPAddressSection().ToAddressSection()
+}
+
 func (section *IPv6AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(section)
 }

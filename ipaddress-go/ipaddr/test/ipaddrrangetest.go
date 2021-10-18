@@ -1626,6 +1626,31 @@ func (t ipAddressRangeTester) run() {
 	t.testSplitBytes("*:*/128")
 	t.testSplitBytes("*:*")
 
+	t.testIncrement("1.2.*.*/16", 0, "1.2.0.0")
+	t.testIncrement("1.2.*.*/16", 1, "1.2.0.1")
+	t.testIncrement("1.2.*.*/16", 65535, "1.2.255.255")
+	t.testIncrement("1.2.*.*/16", 65536, "1.3.0.0")
+	t.testIncrement("1.2.*.*/16", -1, "1.1.255.255")
+	t.testIncrement("1.2.*.*/16", -65536, "1.1.0.0")
+	t.testIncrement("1.2.*.*/16", -65537, "1.0.255.255")
+
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 0, "ffff:ffff:ffff:ffff:ffff:1:2:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 1, "ffff:ffff:ffff:ffff:ffff:1:3:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 3, "ffff:ffff:ffff:ffff:ffff:2:3:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 4, "ffff:ffff:ffff:ffff:ffff:2:4::")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 5, "ffff:ffff:ffff:ffff:ffff:2:4:1")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:fffe-ffff:fffe-ffff:ffff", 5, "")
+
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x10002ffff, "ffff:ffff:ffff:ffff:ffff::")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030000, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030003, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:fffc")
+	t.testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", -0x100030004, "ffff:ffff:ffff:ffff:fffe:ffff:ffff:fffb")
+
+	t.testIncrement("::1-2:2-3:ffff", -0x100030000, "")
+
+	t.testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::")
+	t.testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2")
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");

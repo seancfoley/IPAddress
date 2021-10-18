@@ -359,7 +359,7 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
 func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
-	//if addrStr == other {
+	//if addrStr == other { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	return 0
 	//} else if addrStr == nil {
 	//	return -1

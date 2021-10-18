@@ -470,6 +470,10 @@ func (seg *IPv6AddressSegment) ReverseBytes() (res *IPv6AddressSegment, err Inco
 	return
 }
 
+func (seg *IPv6AddressSegment) ToAddressDivision() *AddressDivision {
+	return seg.ToAddressSegment().ToAddressDivision()
+}
+
 func (seg *IPv6AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }

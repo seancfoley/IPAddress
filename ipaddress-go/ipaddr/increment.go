@@ -22,7 +22,8 @@ func checkOverflow( // used by IPv4 and MAC
 			if countMinus1 > 0 {
 				uIncrement -= countMinus1
 			}
-			if uIncrement > maxValue-upperValue {
+			room := maxValue - upperValue
+			if uIncrement > room {
 				return true
 			}
 		}
@@ -77,12 +78,14 @@ func fastIncrement( // used by IPv6
 			}
 			upperValue := section.GetUpperValue()
 			if upperValue.CmpAbs(&maxUint64) <= 0 {
+				countMinus1 := count.Sub(count, bigOneConst()).Uint64()
 				value := section.GetValue()
 				return increment(
 					section,
 					inc,
 					creator,
-					count.Uint64(),
+					countMinus1,
+					//count.Uint64() - 1,
 					value.Uint64(),
 					upperValue.Uint64(),
 					lowerProducer,

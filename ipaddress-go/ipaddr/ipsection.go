@@ -675,7 +675,7 @@ func (section *ipAddressSectionInternal) intersect(
 		}
 	}
 
-	if other.Contains(section) {
+	if other.Contains(section.toIPAddressSection()) {
 		if PrefixEquals(pref, section.GetNetworkPrefixLen()) {
 			res = section.toIPAddressSection()
 			return
@@ -760,7 +760,7 @@ func (section *ipAddressSectionInternal) subtract(
 	}
 
 	if !section.IsMultiple() {
-		if other.Contains(section) {
+		if other.Contains(section.toIPAddressSection()) {
 			return
 		}
 		res = []*IPAddressSection{section.toIPAddressSection()}
@@ -1214,7 +1214,7 @@ func (section *ipAddressSectionInternal) replaceLen(
 		adjustIndices(startIndex, endIndex, segmentCount, replacementStartIndex, replacementEndIndex, replacement.GetSegmentCount())
 	replacedCount := endIndex - startIndex
 	replacementCount := replacementEndIndex - replacementStartIndex
-	thizz := section.ToAddressSection()
+	thizz := section.toAddressSection()
 	if replacementCount == 0 && replacedCount == 0 { //keep in mind for ipvx, empty sections cannot have prefix lengths
 		return section.toIPAddressSection()
 	} else if segmentCount == replacedCount { //keep in mind for ipvx, empty sections cannot have prefix lengths
@@ -1396,9 +1396,10 @@ func (section *ipAddressSectionInternal) toCustomString(stringOptions IPStringOp
 	return toNormalizedIPZonedString(stringOptions, section, zone)
 }
 
-func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
-	return (*AddressSection)(section)
-}
+//func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
+//
+//	return (*AddressSection)(section)
+//}
 
 func (section *ipAddressSectionInternal) Wrap() WrappedIPAddressSection {
 	return WrappedIPAddressSection{section.toIPAddressSection()}
@@ -1451,9 +1452,17 @@ func (section *IPAddressSection) IsIPv6AddressSection() bool {
 	return section != nil && section.matchesIPv6SectionType()
 }
 
+func (section *IPAddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return section.ToAddressSection().ToAddressDivisionGrouping()
+}
+
+func (section *IPAddressSection) ToAddressSection() *AddressSection {
+	return (*AddressSection)(unsafe.Pointer(section))
+}
+
 func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
 	if section.IsIPv6AddressSection() {
-		return (*IPv6AddressSection)(unsafe.Pointer(section))
+		return (*IPv6AddressSection)(section)
 	}
 	return nil
 }

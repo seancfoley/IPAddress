@@ -199,6 +199,10 @@ func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 	return section.getDivision(index).ToMACAddressSegment()
 }
 
+func (section *MACAddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return section.ToAddressSection().ToAddressDivisionGrouping()
+}
+
 func (section *MACAddressSection) ToAddressSection() *AddressSection {
 	return (*AddressSection)(section)
 }

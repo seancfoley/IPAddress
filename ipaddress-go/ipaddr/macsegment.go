@@ -276,6 +276,10 @@ func (seg *MACAddressSegment) joinSegs(macSegment1 *MACAddressSegment, flip bool
 		prefixLength), nil
 }
 
+func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
+	return seg.ToAddressSegment().ToAddressDivision()
+}
+
 func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	if seg == nil {
 		return nil

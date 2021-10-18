@@ -1243,6 +1243,8 @@ func (section *addressSectionInternal) incrementBoundary(increment int64) *Addre
 
 func (section *addressSectionInternal) increment(increment int64) *AddressSection {
 	if sect := section.toIPv4AddressSection(); sect != nil {
+		//inc := sect.Increment(increment)
+		//return inc.ToAddressSection()
 		return sect.Increment(increment).ToAddressSection()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.Increment(increment).ToAddressSection()
@@ -1622,10 +1624,6 @@ func (section *addressSectionInternal) toMACAddressSection() *MACAddressSection 
 	return section.toAddressSection().ToMACAddressSection()
 }
 
-func (section *addressSectionInternal) ToAddressDivisionGrouping() *AddressDivisionGrouping {
-	return (*AddressDivisionGrouping)(section)
-}
-
 //
 //
 //
@@ -1771,6 +1769,10 @@ func (section *AddressSection) IsIPv6AddressSection() bool {
 
 func (section *AddressSection) IsMACAddressSection() bool {
 	return section != nil && section.matchesMACSectionType()
+}
+
+func (section *AddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
 }
 
 func (section *AddressSection) ToIPAddressSection() *IPAddressSection {

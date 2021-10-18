@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math"
 	"math/big"
 	//"math/bits"
 	"net"
@@ -1948,18 +1949,161 @@ func (t ipAddressTester) run() {
 	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64")
 	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/0")
 	t.testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/128")
+
+	t.testByteExtension("255.255.255.255", [][]byte{
+		{0, 0, 255, 255, 255, 255},
+		{0, 255, 255, 255, 255},
+		{255, 255, 255, 255},
+	})
+
+	t.testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", [][]byte{
+		{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		{0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		{0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		{0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	})
+	t.testByteExtension("0.0.0.255", [][]byte{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 255},
+		{0, 0, 0, 0, 0, 0, 0, 0, 255},
+		{0, 0, 0, 0, 255},
+		{0, 0, 0, 255},
+	})
+	t.testByteExtension("::ff", [][]byte{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff},
+		{0, 0xff},
+		{0xff},
+	})
+	t.testByteExtension("0.0.0.127", [][]byte{
+		{0, 0, 0, 0, 0, 127},
+		{0, 0, 0, 0, 127},
+		{0, 0, 0, 127},
+		{0, 127},
+		{127},
+	})
+	t.testByteExtension("::7f", [][]byte{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 127},
+		{0, 0, 127},
+		{0, 127},
+		{127},
+	})
+	t.testByteExtension("255.255.255.128", [][]byte{
+		{0, 0, 0, 0, 0, 0, 255, 255, 255, 128},
+		{0, 255, 255, 255, 128},
+		{0, 0, 255, 255, 255, 128},
+		{0, 255, 255, 255, 128},
+		{255, 255, 255, 128},
+	})
+	t.testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80", [][]byte{
+		{0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
+		{0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
+		{0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
+		{0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
+		{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80},
+	})
+	t.testByteExtension("ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000", [][]byte{
+		{0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0},
+		{0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0},
+		{0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0},
+		{0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0},
+		{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x80, 0},
+	})
+	t.testByteExtension("1.2.3.4", [][]byte{
+		{1, 2, 3, 4},
+		{0, 1, 2, 3, 4},
+	})
+	t.testByteExtension("102:304:506:708:90a:b0c:d0e:f10", [][]byte{
+		{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+	})
+
+	//TODO LATER when we have large divisions
+	//testLargeDivs(new byte[][] {
+	//	new byte[] {1, 2, 3, 4, 5},
+	//	new byte[] {6, 7, 8, 9, 10, 11, 12},
+	//	new byte[] {13, 14, 15, 16}
+	//});
+	//testLargeDivs(new byte[][] {
+	//	new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	//});
+	//testLargeDivs(new byte[][] {
+	//	new byte[] {1, 2, 3, 4, 5},
+	//	//new byte[] {},
+	//	new byte[] {6, 7, 8, 9, 10, 11, 12},
+	//	new byte[] {13, 14, 15, 16}
+	//});
+	//testLargeDivs(new byte[][] {
+	//	new byte[] {1}, new byte[] {2}, new byte[] {3}, new byte[] {4}, new byte[] {5},
+	//	new byte[] {6, 7}, new byte[] {8}, new byte[] {9}, new byte[] {10}, new byte[] {11}, new byte[] {12},
+	//	new byte[] {13}, new byte[] {14}, new byte[] {15}, new byte[] {16}
+	//});
+	//testLargeDivs(new byte[][] {
+	//	new byte[] {1},
+	//	new byte[] {2, 3},
+	//	new byte[] {4}
+	//});
+
+	t.testIncrement("1.2.3.4", 0, "1.2.3.4")
+	t.testIncrement("1.2.3.4", 1, "1.2.3.5")
+	t.testIncrement("1.2.3.4", -1, "1.2.3.3")
+	t.testIncrement("1.2.3.4", -4, "1.2.3.0")
+	t.testIncrement("1.2.3.4", -5, "1.2.2.255")
+	t.testIncrement("0.0.0.4", -5, "")
+	t.testIncrement("1.2.3.4", 251, "1.2.3.255")
+	t.testIncrement("1.2.3.4", 252, "1.2.4.0")
+	t.testIncrement("1.2.3.4", 256, "1.2.4.4")
+	t.testIncrement("1.2.3.4", 256, "1.2.4.4")
+	t.testIncrement("1.2.3.4", 65536, "1.3.3.4")
+	t.testIncrement("1.2.3.4", 16777216, "2.2.3.4")
+	t.testIncrement("1.2.3.4", 4261412864, "255.2.3.4")
+	t.testIncrement("1.2.3.4", 4278190080, "")
+	t.testIncrement("1.2.3.4", 4278058236, "")
+	t.testIncrement("1.2.3.4", 4278058237, "")
+	t.testIncrement("1.2.3.4", 4278058235, "255.255.255.255")
+	t.testIncrement("255.0.0.4", -4278190084, "0.0.0.0")
+	t.testIncrement("255.0.0.4", -4278190085, "")
+
+	t.testIncrement("ffff:ffff:ffff:ffff:f000::0", 1, "ffff:ffff:ffff:ffff:f000::1")
+	t.testIncrement("ffff:ffff:ffff:ffff:f000::0", -1, "ffff:ffff:ffff:ffff:efff:ffff:ffff:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:8000::", math.MinInt64, "ffff:ffff:ffff:ffff::")
+	t.testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", math.MinInt64, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", math.MinInt64, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe")
+	t.testIncrement("::8000:0:0:0", math.MinInt64, "::")
+	t.testIncrement("::7fff:ffff:ffff:ffff", math.MinInt64, "")
+	t.testIncrement("::7fff:ffff:ffff:ffff", math.MinInt64, "")
+	t.testIncrement("::7fff:ffff:ffff:fffe", math.MinInt64, "")
+	t.testIncrement("ffff:ffff:ffff:ffff:8000::0", math.MaxInt64, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testIncrement("ffff:ffff:ffff:ffff:8000::1", math.MaxInt64, "")
+	t.testIncrement("::1", 1, "::2")
+	t.testIncrement("::1", 0, "::1")
+	t.testIncrement("::1", -1, "::")
+	t.testIncrement("::1", -2, "")
+	t.testIncrement("::2", 1, "::3")
+	t.testIncrement("::2", -1, "::1")
+	t.testIncrement("::2", -2, "::")
+	t.testIncrement("::2", -3, "")
+
+	t.testIncrement("1::1", 0, "1::1")
+	t.testIncrement("1::1", 1, "1::2")
+	t.testIncrement("1::1", -1, "1::")
+	t.testIncrement("1::1", -2, "::ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testIncrement("1::2", 1, "1::3")
+	t.testIncrement("1::2", -1, "1::1")
+	t.testIncrement("1::2", -2, "1::")
+	t.testIncrement("1::2", -3, "::ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+
+	t.testIncrement("::fffe", 2, "::1:0")
+	t.testIncrement("::ffff", 2, "::1:1")
+	t.testIncrement("::1:ffff", 2, "::2:1")
+	t.testIncrement("::1:ffff", -2, "::1:fffd")
+	t.testIncrement("::1:ffff", -0x10000, "::ffff")
+	t.testIncrement("::1:ffff", -0x10001, "::fffe")
 }
 
-//func one28() *big.Int {
-//	thirtyTwo := new(big.Int).SetUint64(0xffffffff);
-//	thirtyTwoA := new(big.Int).Set(thirtyTwo);
-//	thirtyTwoB := new(big.Int).Set(thirtyTwo);
-//	thirtyTwoC := new(big.Int).Set(thirtyTwo);
-//	//zeroBig := new(big.Int)
-//	one28 := new(big.Int).Or(thirtyTwoA.Lsh(thirtyTwoA, 96),new(big.Int).Or(thirtyTwoB.Lsh(thirtyTwoB, 64),new(big.Int).Or(thirtyTwoC.Lsh(thirtyTwoC,32),thirtyTwo)));
-//	//one28 := thirtyTwoA.Lsh(thirtyTwoA, 96).Or(zeroBig,thirtyTwoB.Lsh(thirtyTwoB, 64).Or(zeroBig,thirtyTwoC.Lsh(thirtyTwoC,32).Or(zeroBig,thirtyTwo)));
-//return one28
-//}
 func one28() *big.Int {
 	sixty4 := new(big.Int).SetUint64(0xffffffffffffffff)
 	sixtyFour := new(big.Int).Set(sixty4)
@@ -4274,6 +4418,124 @@ func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
 	}
 }
 
+func (t ipAddressTester) testByteExtension(addrString string, byteRepresentations [][]byte) {
+	addrStr := t.createAddress(addrString)
+	addr := addrStr.GetAddress()
+	//ArrayList<IPAddress> all = new ArrayList<IPAddress>();
+	var all []*ipaddr.IPAddress
+	if addr.IsIPv4() {
+		for _, byteRepresentation := range byteRepresentations {
+			ipv4Addr, err := ipaddr.NewIPv4AddressFromIP(byteRepresentation)
+			if err != nil {
+				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+			}
+			all = append(all, ipv4Addr.ToIPAddress())
+
+			//byte bytes[] = new byte[48];
+			//Arrays.fill(bytes, (byte) 5); // this just throws some garbage in those bytes
+			//System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
+			//ipv4Addr = new IPv4Address(bytes, 5, 5 + byteRepresentation.length);
+
+			//bytes := make([]byte, 32);
+			//ipv4Addr, err = ipaddr.NewIPv4AddressFromIP(bytes);
+			//if err != nil {
+			//	t.addFailure(newIPAddrFailure("failed unexpected error for "+addrString+" error: "+err.Error(), ipv4Addr.ToIPAddress()))
+			//}
+			//all = append(all, ipv4Addr.ToIPAddress())
+		}
+		all = append(all, addr)
+		var lastBytes []byte
+		//byte lastBytes[] = null;
+		for i := 0; i < len(all); i++ {
+			byts := all[i].GetBytes()
+			//byte bytes[] = all.get(i).getBytes();
+			if lastBytes == nil {
+				lastBytes = byts
+				if len(byts) != ipaddr.IPv4ByteCount {
+					t.addFailure(newFailure("bytes length "+strconv.Itoa(len(byts)), addrStr))
+				}
+				ipv4Addr, err := ipaddr.NewIPv4AddressFromIP(byts)
+				if err != nil {
+					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+				}
+				all = append(all, ipv4Addr.ToIPAddress())
+				ipv4Addr = ipaddr.NewIPv4AddressFromUint32(uint32(new(big.Int).SetBytes(byts).Uint64()))
+				all = append(all, ipv4Addr.ToIPAddress())
+			} else if !bytes.Equal(lastBytes, byts) {
+				t.addFailure(newFailure(fmt.Sprintf("generated addr bytes mismatch %v and %v", byts, lastBytes), addrStr))
+			}
+		}
+	} else {
+		for _, byteRepresentation := range byteRepresentations {
+			ipv6Addr, err := ipaddr.NewIPv6AddressFromIP(byteRepresentation)
+			if err != nil {
+				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+			}
+			all = append(all, ipv6Addr.ToIPAddress())
+
+			//byte bytes[] = new byte[48];
+			//Arrays.fill(bytes, (byte) 5);
+			//System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
+			//ipv6Addr = new IPv6Address(bytes, 5, 5 + byteRepresentation.length);
+			//all.add(ipv6Addr);
+		}
+
+		all = append(all, addr)
+		var lastBytes []byte
+		//byte lastBytes[] = null;
+		for i := 0; i < len(all); i++ {
+			byts := all[i].GetBytes()
+			//byte bytes[] = all.get(i).getBytes();
+			if lastBytes == nil {
+				lastBytes = byts
+				if len(byts) != ipaddr.IPv6ByteCount {
+					t.addFailure(newFailure("bytes length "+strconv.Itoa(len(byts)), addrStr))
+				}
+				ipv6Addr, err := ipaddr.NewIPv6AddressFromIP(byts)
+				if err != nil {
+					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+				}
+				all = append(all, ipv6Addr.ToIPAddress())
+
+				b := new(big.Int).SetBytes(byts)
+				//BigInteger b = new BigInteger(bytes);
+				//ipv6Addr = new IPv6Address(b);
+				all = append(all, ipv6Addr.ToIPAddress())
+				bs := b.Bytes()
+				ipv6Addr, err = ipaddr.NewIPv6AddressFromIP(bs)
+				if err != nil {
+					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+				}
+				all = append(all, ipv6Addr.ToIPAddress())
+
+				//ipv4Addr = ipaddr.NewIPv4AddressFromUint32(uint32(new(big.Int).SetBytes(byts).Uint64()));
+				//all = append(all, ipv4Addr.ToIPAddress())
+			} else if !bytes.Equal(lastBytes, byts) {
+				t.addFailure(newFailure(fmt.Sprintf("generated addr bytes mismatch %v and %v", byts, lastBytes), addrStr))
+			}
+		}
+	}
+	var allBytes [][]byte
+	for _, addr := range all {
+		allBytes = append(allBytes, addr.GetBytes())
+	}
+	for _, addr := range all {
+		for _, addr2 := range all {
+			if !addr.Equals(addr2) {
+				t.addFailure(newFailure("addr mismatch "+addr.String()+" and "+addr2.String(), addrStr))
+			}
+		}
+	}
+	for _, b := range allBytes {
+		for _, b2 := range allBytes {
+			if !bytes.Equal(b, b2) {
+				t.addFailure(newFailure(fmt.Sprintf("addr mismatch %v and %v", b, b2), addrStr))
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
 func reconstitute(version ipaddr.IPVersion, bytes []byte, segmentByteSize int) []*ipaddr.IPAddress {
 	//IPAddressCreator<?, ?, ?, S, ?> creator = (IPAddressCreator<?, ?, ?, S, ?>) originalAddress.getNetwork().getAddressCreator();
 	var addresses []*ipaddr.IPAddress
@@ -4360,6 +4622,14 @@ func (t ipAddressTester) testPrefixBlocks(
 		t.addFailure(newIPAddrFailure("contains single prefix block: "+strconv.FormatBool(original.ContainsSinglePrefixBlock(prefix))+" expected: "+strconv.FormatBool(containsPrefixBlock), original))
 	}
 	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testIncrement(originalStr string, increment int64, resultStr string) {
+	var addr *ipaddr.IPAddress
+	if resultStr != "" {
+		addr = t.createAddress(resultStr).GetAddress()
+	}
+	t.testBase.testIncrement(t.createAddress(originalStr).GetAddress().ToAddress(), increment, addr.ToAddress())
 }
 
 var conv = ipaddr.DefaultAddressConverter{}

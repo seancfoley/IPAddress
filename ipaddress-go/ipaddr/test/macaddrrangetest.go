@@ -65,6 +65,36 @@ func (t macAddressRangeTester) run() {
 	t.testReverse("ff:81:c3:42:24:0-fe", false, true)
 	t.testReverse("ff:1:ff:ff:*:*", false, false)
 
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:ff:ff:1:2:ff")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 2, "ff:ff:ff:ff:ff:2:2:ff")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:ff:ff:2:3:ff")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:ff:ff:2:4:0")
+	t.testIncrement("ff:ff:ff:ff:ff:fe-ff:fe-ff:ff", 4, "")
+
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", 0, "ff:ff:ff:1:2:ff")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", 2, "ff:ff:ff:2:2:ff")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", 3, "ff:ff:ff:2:3:ff")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", 4, "ff:ff:ff:2:4:0")
+	t.testIncrement("ff:ff:ff:fe-ff:fe-ff:ff", 4, "")
+
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102fb, "ff:ff:ff:ff:ff:0:0:4")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102fc, "ff:ff:ff:ff:ff:0:0:3")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x102ff, "ff:ff:ff:ff:ff:0:0:0")
+	t.testIncrement("ff:ff:ff:ff:ff:1-2:2-3:ff", -0x10300, "ff:ff:ff:ff:fe:ff:ff:ff")
+	t.testIncrement("0:0:0:0:0:1-2:2-3:ff", -0x10300, "")
+
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102fb, "ff:ff:ff:0:0:4")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102fc, "ff:ff:ff:0:0:3")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", -0x102ff, "ff:ff:ff:0:0:0")
+	t.testIncrement("ff:ff:ff:1-2:2-3:ff", -0x10300, "ff:ff:fe:ff:ff:ff")
+	t.testIncrement("0:0:0:1-2:2-3:ff", -0x10300, "")
+
+	t.testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 6, "ff:4:ff:ff:ff:2:2:0")
+	t.testIncrement("ff:3-4:ff:ff:ff:1-2:2-3:0", 8, "ff:4:ff:ff:ff:2:3:1")
+
+	t.testIncrement("3-4:ff:ff:1-2:2-3:0", 6, "4:ff:ff:2:2:0")
+	t.testIncrement("3-4:ff:ff:1-2:2-3:0", 8, "4:ff:ff:2:3:1")
+
 	//TODO
 	//t.testPrefixes("25:51:27:*:*:*",
 	//	16, -5,

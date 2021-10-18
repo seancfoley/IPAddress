@@ -78,9 +78,9 @@ func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
 
-func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
-	return (*AddressDivision)(seg)
-}
+//func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
+//	return (*AddressDivision)(seg)
+//}
 
 func (seg *addressSegmentInternal) GetSegmentValue() SegInt {
 	vals := seg.divisionValues
@@ -551,13 +551,17 @@ func (seg *AddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 
 func (seg *AddressSegment) ToMACAddressSegment() *MACAddressSegment {
 	if seg.IsMACAddressSegment() {
-		return (*MACAddressSegment)(unsafe.Pointer(seg))
+		return (*MACAddressSegment)(seg)
 	}
 	return nil
 }
 
 func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg
+}
+
+func (seg *AddressSegment) ToAddressDivision() *AddressDivision {
+	return (*AddressDivision)(unsafe.Pointer(seg))
 }
 
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {

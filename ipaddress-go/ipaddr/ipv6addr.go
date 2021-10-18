@@ -494,6 +494,9 @@ func (addr *IPv6Address) GetIPVersion() IPVersion {
 }
 
 func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address {
+	if section == nil {
+		return nil
+	}
 	sec := section.ToAddressSection()
 	if sec == addr.section {
 		return addr

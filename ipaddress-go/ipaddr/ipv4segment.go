@@ -263,6 +263,10 @@ func (seg *IPv4AddressSegment) getJoinedSegmentPrefixLen(lowBits PrefixLen) Pref
 	return cacheBitCount(*lowBits + IPv4BitsPerSegment)
 }
 
+func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
+	return seg.ToAddressSegment().ToAddressDivision()
+}
+
 func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
 	return seg.ToIPAddressSegment().ToAddressSegment()
 }

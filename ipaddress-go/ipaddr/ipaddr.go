@@ -260,6 +260,9 @@ func (addr *ipAddressInternal) toMaxHostLen(prefixLength BitCount) (res *IPAddre
 }
 
 func (addr *ipAddressInternal) checkIdentity(section *IPAddressSection) *IPAddress {
+	if section == nil {
+		return nil
+	}
 	sect := section.ToAddressSection()
 	if sect == addr.section {
 		return addr.toIPAddress()
@@ -841,7 +844,7 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 }
 
 func (addr *IPAddress) CompareTo(item AddressItem) int {
-	//if addr != nil {
+	//if addr != nil { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 - I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	addr = addr.init()
 	//}
 	return CountComparator.Compare(addr.init(), item)
@@ -860,7 +863,7 @@ func (addr *IPAddress) Contains(other AddressType) bool {
 }
 
 func (addr *IPAddress) Equals(other AddressType) bool {
-	//if addr == nil {
+	//if addr == nil { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	return other.ToAddress() == nil
 	//}
 	return addr.init().equals(other)
@@ -906,9 +909,13 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
 
-//TODO maybe rename to ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+//TODO maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
 // This also makes sense because "ToIPv6Address" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
 // Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
+// ALso consider code like this:
+// t.createAddress(originalStr).GetAddress().ToAddress()
+// the combination of using GetAddress/ToAddress in IPAddressString and the name ToAddress to downgrade to *Address is ugly.
+// Maybe drop the "To" in this case?  Just .Address()?  or AsAddress?  nah to AsAddress, it's already an address.
 
 //
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {

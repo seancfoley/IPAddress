@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -776,6 +777,34 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 		//	}
 		//}
 	}
+	t.incrementTestCount()
+}
+
+func (t testBase) testIncrement(orig *ipaddr.Address, increment int64, expectedResult *ipaddr.Address) {
+	t.testIncrementF(orig, increment, expectedResult, true)
+}
+
+func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expectedResult *ipaddr.Address, first bool) {
+	//try {
+	result := orig.Increment(increment)
+	if expectedResult == nil {
+		if result != nil {
+			t.addFailure(newSegmentSeriesFailure("increment mismatch result "+result.String()+" vs none expected", orig))
+		}
+	} else {
+		if !result.Equals(expectedResult) {
+			t.addFailure(newSegmentSeriesFailure("increment mismatch result "+result.String()+" vs expected "+expectedResult.String(), orig))
+		}
+		if first && !orig.IsMultiple() && increment > math.MinInt64 { //negating Long.MIN_VALUE results in same address
+			//if(first && !orig.isMultiple() && increment > Long.MIN_VALUE) {//negating Long.MIN_VALUE results in same address
+			t.testIncrementF(expectedResult, -increment, orig, false)
+		}
+	}
+	//} catch(AddressValueException e) {
+	//if(expectedResult != null) {
+	//	addFailure(newIPAddrFailure("increment mismatch exception " +  e.Error() + ", expected " + expectedResult, orig));
+	//}
+	//}
 	t.incrementTestCount()
 }
 

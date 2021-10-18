@@ -226,7 +226,9 @@ func (addr *addressInternal) getMaxSegmentValue() SegInt {
 }
 
 func (addr *addressInternal) checkIdentity(section *AddressSection) *Address {
-	if section == addr.section {
+	if section == nil {
+		return nil
+	} else if section == addr.section {
 		return addr.toAddress()
 	}
 	return createAddress(section, addr.zone)
@@ -939,11 +941,11 @@ func (addr *Address) PrefixBlockIterator() AddressIterator {
 }
 
 func (addr *Address) IncrementBoundary(increment int64) *Address {
-	return addr.init().IncrementBoundary(increment).ToAddress()
+	return addr.init().IncrementBoundary(increment)
 }
 
 func (addr *Address) Increment(increment int64) *Address {
-	return addr.init().increment(increment).ToAddress()
+	return addr.init().increment(increment)
 }
 
 func (addr *Address) ReverseBytes() (*Address, IncompatibleAddressError) {
@@ -1039,7 +1041,7 @@ func (addr *Address) IsMAC() bool {
 }
 
 func (addr *Address) ToAddress() *Address {
-	return addr.init()
+	return addr
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {

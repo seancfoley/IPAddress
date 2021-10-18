@@ -525,6 +525,14 @@ func (section *IPv4AddressSection) SequentialBlockIterator() IPv4SectionIterator
 	return ipv4SectionIterator{section.sequentialBlockIterator()}
 }
 
+func (section *IPv4AddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+	return section.ToAddressSection().ToAddressDivisionGrouping()
+}
+
+func (section *IPv4AddressSection) ToAddressSection() *AddressSection {
+	return section.ToIPAddressSection().ToAddressSection()
+}
+
 func (section *IPv4AddressSection) ToIPAddressSection() *IPAddressSection {
 	return (*IPAddressSection)(section)
 }
@@ -544,7 +552,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	lowerValue := uint64(section.Uint32Value())
 	upperValue := uint64(section.UpperUint32Value())
 	count := section.GetIPv4Count()
-	isOverflow := checkOverflow(inc, lowerValue, upperValue, count, getIPv4MaxValueLong(section.GetSegmentCount()))
+	isOverflow := checkOverflow(inc, lowerValue, upperValue, count-1, getIPv4MaxValueLong(section.GetSegmentCount()))
 	if isOverflow {
 		return nil
 	}
@@ -552,7 +560,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 		section.ToAddressSection(),
 		inc,
 		DefaultIPv4Network.getIPAddressCreator(),
-		count,
+		count-1,
 		lowerValue,
 		upperValue,
 		section.getLower,
