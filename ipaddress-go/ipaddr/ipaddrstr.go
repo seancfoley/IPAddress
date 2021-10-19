@@ -262,10 +262,10 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 // When the IPAddressString is sequential, it can be represented exactly by the IPAddressSeqRange returned from {@link #getSequentialRange()}.
 // In some cases, no IPAddress instance can be obtained from {@link #getAddress()} or {@link #toAddress()}, in the cases where {@link #toAddress()} throws IncompatibleAddressException,
 // but if the IPAddressString is sequential, you can obtain a IPAddressSeqRange to represent the IPAddressString instead.
-func (addrStr *IPAddressString) IsSequential() bool {
-	addrStr = addrStr.init()
-	return addrStr.IsValid() && addrStr.addressProvider.isSequential()
-}
+//func (addrStr *IPAddressString) IsSequential() bool {
+//	addrStr = addrStr.init()
+//	return addrStr.IsValid() && addrStr.addressProvider.isSequential()
+//} // TODO LATER this needs ToAddressDivisionGrouping
 
 // GetSequentialRange returns the range of sequential addresses from the lowest address specified in this address string to the highest.
 //

@@ -1,6 +1,9 @@
 package test
 
-import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math/big"
+)
 
 type ipAddressRangeTester struct {
 	ipAddressTester
@@ -1338,13 +1341,19 @@ func (t ipAddressRangeTester) run() {
 	t.testNormalized("001-002:0001-0002:01-2:1-02:01-02:*", "1-2:1-2:1-2:1-2:1-2:*:*:*")
 
 	p0 := cacheTestBits(0)
+	p4 := cacheTestBits(4)
+	p11 := cacheTestBits(11)
 	p16 := cacheTestBits(16)
+	p23 := cacheTestBits(23)
+	p24 := cacheTestBits(24)
 	p31 := cacheTestBits(31)
 	p32 := cacheTestBits(32)
+	p48 := cacheTestBits(48)
 	p63 := cacheTestBits(63)
 	p64 := cacheTestBits(64)
 	p65 := cacheTestBits(65)
-	p128 := cacheTestBits(65)
+	p112 := cacheTestBits(112)
+	p128 := cacheTestBits(128)
 	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
 	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 16, 32, 48, 64, 80, 96, 112, 128})
 	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0, p0, p0, p0, p0})
@@ -1680,6 +1689,143 @@ func (t ipAddressRangeTester) run() {
 	t.testRangeExtend("1.2.3.4-5", "1.2.4.3", "1.2.3-5.6", "", "1.2.3.4", "1.2.5.6")
 	t.testRangeExtend("1.2.3.4-5", "1.2.4.3", "1.2.1-5.6", "", "1.2.1.6", "1.2.5.6")
 
+	t.testIncompatibleAddress2("a:b:c:d:e:f:1.2.*.4", "a:b:c:d:e:f:1.2.0.4", "a:b:c:d:e:f:1.2.255.4", []interface{}{0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 1, 2, []uint{0, 0xff}, 4}) //[a, b, c, d, e, f, 1, 2, 0-ff, 4]
+	t.testIncompatibleAddress2("::ffff:0.0.*.0", "::ffff:0.0.0.0", "::ffff:0.0.255.0", []interface{}{0, 0xffff, 0, 0, []uint{0, 0xff}, 0})                                   //[0, ffff, 0, 0, 0-ff, 0]
+	t.testIncompatibleAddress2("::ffff:*.0.0.0", "::ffff:0.0.0.0", "::ffff:255.0.0.0", []interface{}{0, 0xffff, []uint{0, 0xff}, 0, 0, 0})                                   //[0, ffff, 0-ff, 0, 0, 0]
+	t.testMaskedIncompatibleAddress("0-ffff::1/f000::10", "::", "f000::")
+	t.testSubnetStringRange("0-ffff::1/f000::", "::1", "ffff::1", []interface{}{[]uint{0, 0xffff}, 0, 1}, p4)
+	t.testSubnetStringRange("0-ffff::/f000::", "::", "ffff::", []interface{}{[]uint{0, 0xffff}, 0}, p4)
+	t.testSubnetStringRange("0-f000::/f000::", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", []interface{}{[]uint{0, 0xffff}, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffffffffffffffff", 16)}}, p4) //[0-f000, 0]
+
+	t.testSubnetStringRange2("0-ffff::/0fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "::", "fff::", []interface{}{[]uint{0, 0xfff}, 0}) // [0-fff, 0]  // /8 prefix?
+
+	t.testSubnetStringRange2("1.*.*.*", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xff}, []uint{0, 0xff}, []uint{0, 0xff}})                                                       //[1, 0-255, 0-255, 0-255]
+	t.testSubnetStringRange2("1.*.*", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xff}, []uint{0, 0xffff}})                                                                        //[1, 0-255, 0-65535]
+	t.testSubnetStringRange2("1.*", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xffffff}})                                                                                         //[1, 0-16777215]
+	t.testSubnetStringRange2("a:b:c:*:cc:d:e:f", "a:b:c:0:cc:d:e:f", "a:b:c:ffff:cc:d:e:f", []interface{}{0xa, 0xb, 0xc, []uint{0, 0xffff}, 0xcc, 0xd, 0xe, 0xf})                              //[a, b, c, 0-ffff, cc, d, e, f]
+	t.testSubnetStringRange2("a:*:cc:d:e:f", "a::cc:d:e:f", "a:ffff:ffff:ffff:cc:d:e:f", []interface{}{0xa, []uint64{0, 0xffffffffffff}, 0xcc, 0xd, 0xe, 0xf})                                 //[a, 0-ffffffffffff, cc, d, e, f]
+	t.testSubnetStringRange2("*:cc:d:e:f", "::cc:d:e:f", "ffff:ffff:ffff:ffff:cc:d:e:f", []interface{}{[]*big.Int{bigZeroConst(), setBigString("ffffffffffffffff", 16)}, 0xcc, 0xd, 0xe, 0xf}) //[0-ffffffffffffffff, cc, d, e, f]
+
+	t.testSubnetStringRange2("a:b:c:*:cc:d:1.255.3.128", "a:b:c:0:cc:d:1.255.3.128", "a:b:c:ffff:cc:d:1.255.3.128", []interface{}{0xa, 0xb, 0xc, []uint{0, 0xffff}, 0xcc, 0xd, 1, 255, 3, 128})                              //[a, b, c, 0-ffff, cc, d, e, f]
+	t.testSubnetStringRange2("a:*:cc:d:1.255.3.128", "a::cc:d:1.255.3.128", "a:ffff:ffff:ffff:cc:d:1.255.3.128", []interface{}{0xa, []uint64{0, 0xffffffffffff}, 0xcc, 0xd, 1, 255, 3, 128})                                 //[a, 0-ffffffffffff, cc, d, e, f]
+	t.testSubnetStringRange2("*:cc:d:1.255.3.128", "::cc:d:1.255.3.128", "ffff:ffff:ffff:ffff:cc:d:1.255.3.128", []interface{}{[]*big.Int{bigZeroConst(), setBigString("ffffffffffffffff", 16)}, 0xcc, 0xd, 1, 255, 3, 128}) //[0-ffffffffffffffff, cc, d, e, f]
+
+	if t.isLenient() {
+		// inet_aton
+		t.testSubnetStringRange2("1.*.1", "1.0.0.1", "1.255.0.1", []interface{}{1, []uint{0, 0xff}, 1})                                                                                                       //[1, 0-255, 1]
+		t.testSubnetStringRange2("*.1", "0.0.0.1", "255.0.0.1", []interface{}{[]uint{0, 0xff}, 1})                                                                                                            //[0-255, 1]
+		t.testIncompatibleAddress2("a:b:cc:*.4", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.0.0.4", []interface{}{0xa, 0xb, 0xcc, []*big.Int{bigZeroConst(), setBigString("ffffffffffffff", 16)}, 4}) //[a, b, cc, 0-ffffffffffffff, 4]
+		t.testIncompatibleAddress2("1:2:3:4:*.3.4", "1:2:3:4::0.3.0.4", "1:2:3:4:ffff:ffff:255.3.0.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffff}, 3, 4})                                            //[1, 2, 3, 4, 0-ffffffffff, 3, 4]
+		t.testIncompatibleAddress2("1:2:3:4:*.4", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.0.0.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffff}, 4})                                                 //[1, 2, 3, 4, 0-ffffffffff, 4]
+	} else {
+		// not inet_aton
+		t.testSubnetStringRange2("1.*.1", "1.0.0.1", "1.255.255.1", []interface{}{1, []uint{0, 0xffff}, 1})
+		t.testSubnetStringRange2("*.1", "0.0.0.1", "255.255.255.1", []interface{}{[]uint{0, 0xffffff}, 1})
+		t.testIncompatibleAddress2("a:b:cc:*.4", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.255.255.4", []interface{}{0xa, 0xb, 0xcc, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffffff", 16)}, 4}) //[a, b, cc, 0-ffffffffffffffffff, 4]
+		t.testSubnetStringRange2("1:2:3:4:*.3.4", "1:2:3:4::0.0.3.4", "1:2:3:4:ffff:ffff:255.255.3.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffffff}, 3, 4})                                                  //[1, 2, 3, 4, 0-ffffffffffff, 3, 4]
+		t.testIncompatibleAddress2("1:2:3:4:*.4", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.255.255.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffffffff}, 4})                                                 //[1, 2, 3, 4, 0-ffffffffffffff, 4]
+	}
+	t.testSubnetStringRange1("1-2.3.4-5.6", "1.3.4.6", "2.3.5.6", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, 6}, nil, false)                                                         //[1-2, 3, 4-5, 6]
+	t.testSubnetStringRange1("1-2:3:4-5:6::", "1:3:4:6::", "2:3:5:6::", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, 6, 0}, nil, false)                                                //[1-2, 3, 4-5, 6, 0]
+	t.testIncompatibleAddress1("1:2:3:4:5:6:1-3.2.0.4-5", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5", []interface{}{1, 2, 3, 4, 5, 6, []uint{1, 3}, 2, 0, []uint{4, 5}}, nil, false) //[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+	t.testMaskedIncompatibleAddress("0.0.0.*/0.0.0.128", "0.0.0.0", "0.0.0.128")                                                                                                       //iae
+
+	t.testSubnetStringRange1("1.2-3.4.5", "1.2.4.5", "1.3.4.5", []interface{}{1, []uint{2, 3}, 4, 5}, nil, false)                                                                                  //[1, 2-3, 4, 5]
+	t.testSubnetStringRange1("1:2-3:4:5::", "1:2:4:5::", "1:3:4:5::", []interface{}{1, []uint{2, 3}, 4, 5, 0}, nil, false)                                                                         //[1, 2-3, 4, 5, 0]
+	t.testSubnetStringRange1("1:2:4:5:6-9:7:8:f", "1:2:4:5:6:7:8:f", "1:2:4:5:9:7:8:f", []interface{}{1, 2, 4, 5, []uint{6, 9}, 7, 8, 0xf}, nil, false)                                            //[1, 2, 4, 5, 6-9, 7, 8, f]
+	t.testIncompatibleAddress1("a:b:cc:dd:e:*.2.3.4", "a:b:cc:dd:e:0:0.2.3.4", "a:b:cc:dd:e:ffff:255.2.3.4", []interface{}{0xa, 0xb, 0xcc, 0xdd, 0xe, []uint{0, 0xffffff}, 2, 3, 4}, nil, false)   // [a, b, cc, dd, e, 0-ffffff, 2, 3, 4]
+	t.testIncompatibleAddress1("a:b:cc:dd:*.2.3.4", "a:b:cc:dd:0:0:0.2.3.4", "a:b:cc:dd:ffff:ffff:255.2.3.4", []interface{}{0xa, 0xb, 0xcc, 0xdd, []uint64{0, 0xffffffffff}, 2, 3, 4}, nil, false) // [a, b, cc, dd, 0-ffffffffff, 2, 3, 4]
+	t.testIncompatibleAddress1("a:b:cc:*.2.3.4", "a:b:cc:0:0:0:0.2.3.4", "a:b:cc:ffff:ffff:ffff:255.2.3.4", []interface{}{0xa, 0xb, 0xcc, []uint64{0, 0xffffffffffffff}, 2, 3, 4}, nil, false)     // [a, b, cc, 0-ffffffffffffff, 2, 3, 4]
+
+	t.testSubnetStringRange1("1:2:4:5:6-9:7:8:f/ffff:0:ffff:0:ffff:0:ffff:0", "1:0:4:0:6:0:8:0", "1:0:4:0:9:0:8:0", []interface{}{1, 0, 4, 0, []uint{6, 9}, 0, 8, 0}, nil, false) //[1, 2, 4, 5, 6-9, 7, 8, f]
+	t.testSubnetStringRange1("1:2:4:5-6:6:7:8:f/ffff:0:ffff:0:ffff:0:ffff:0", "1:0:4:0:6:0:8:0", "1:0:4:0:6:0:8:0", []interface{}{1, 0, 4, 0, 6, 0, 8, 0}, nil, true)             //[1, 2, 4, 5, 6-9, 7, 8, f]
+
+	t.testSubnetStringRange1("1.*.*.*/11", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xff}, []uint{0, 0xff}, []uint{0, 0xff}}, p11, true) //[1, 0-255, 0-255, 0-255]
+	t.testSubnetStringRange1("1.*.*/32", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xff}, []uint{0, 0xffff}}, p32, true)                  //[1, 0-255, 0-65535]
+	t.testSubnetStringRange1("1.*/24", "1.0.0.0", "1.255.255.255", []interface{}{1, []uint{0, 0xffffff}}, p24, true)                                   //[1, 0-16777215]
+
+	t.testSubnetStringRange("a:b:c:*:cc:d:e:f/64", "a:b:c:0:cc:d:e:f", "a:b:c:ffff:cc:d:e:f", []interface{}{0xa, 0xb, 0xc, []uint{0, 0xffff}, 0xcc, 0xd, 0xe, 0xf}, p64)                              //[a, b, c, 0-ffff, cc, d, e, f]
+	t.testSubnetStringRange("a:*:cc:d:e:f/64", "a::cc:d:e:f", "a:ffff:ffff:ffff:cc:d:e:f", []interface{}{0xa, []uint64{0, 0xffffffffffff}, 0xcc, 0xd, 0xe, 0xf}, p64)                                 //[a, 0-ffffffffffff, cc, d, e, f]
+	t.testSubnetStringRange("*:cc:d:e:f/64", "::cc:d:e:f", "ffff:ffff:ffff:ffff:cc:d:e:f", []interface{}{[]*big.Int{bigZeroConst(), setBigString("ffffffffffffffff", 16)}, 0xcc, 0xd, 0xe, 0xf}, p64) //[0-ffffffffffffffff, cc, d, e, f]
+
+	//prefix subnets
+	t.testSubnetStringRange("a:*::/64", "a::", "a:ffff::ffff:ffff:ffff:ffff", []interface{}{0xa, []uint{0, 0xffff}, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffff", 16)}}, p64) //[a, 0-ffffffffffff, cc, d, e, f]
+	t.testSubnetStringRange("1.128.0.0/11", "1.128.0.0", "1.159.255.255", []interface{}{1, []uint{128, 159}, []uint{0, 0xff}, []uint{0, 0xff}}, p11)                                        //[1, 0-255, 0-255, 0-255]
+
+	if t.isLenient() {
+		// inet_aton
+
+		t.testSubnetStringRange("1.*.1/16", "1.0.0.1", "1.255.0.1", []interface{}{1, []uint{0, 0xff}, 1}, p16) //[1, 0-255, 1]
+		t.testSubnetStringRange("*.1/16", "0.0.0.1", "255.0.0.1", []interface{}{[]uint{0, 0xff}, 1}, p16)      //[0-255, 1]
+		t.testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.0.0.4",
+			[]interface{}{0xa, 0xb, 0xcc, []*big.Int{bigZeroConst(), setBigString("ffffffffffffff", 16)}, 4}, p112) //[a, b, cc, 0-ffffffffffffff, 4]
+		t.testIncompatibleAddress("1:2:3:4:*.3.4/112", "1:2:3:4::0.3.0.4", "1:2:3:4:ffff:ffff:255.3.0.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffff}, 3, 4}, p112) //[1, 2, 3, 4, 0-ffffffffff, 3, 4]
+		t.testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.0.0.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffff}, 4}, p112)      //[1, 2, 3, 4, 0-ffffffffff, 4]
+
+		// prefix subnet
+
+		t.testIncompatibleAddress("a:b:cc:*.0/112", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc:ffff:ffff:ffff:255.0.255.255", []interface{}{0xa, 0xb, 0xcc, []*big.Int{bigZeroConst(), setBigString("ffffffffffffff", 16)}, []uint{0, 0xffff}}, p112) //[a, b, cc, 0-ffffffffffffff, 4]
+	} else {
+		// not inet_aton
+
+		t.testSubnetStringRange("1.*.1/16", "1.0.0.1", "1.255.255.1", []interface{}{1, []uint{0, 0xffff}, 1}, p16)
+		t.testSubnetStringRange("*.1/16", "0.0.0.1", "255.255.255.1", []interface{}{[]uint{0, 0xffffff}, 1}, p16)
+		t.testIncompatibleAddress("a:b:cc:*.4/112", "a:b:cc:0:0:0:0.0.0.4", "a:b:cc:ffff:ffff:ffff:255.255.255.4", []interface{}{0xa, 0xb, 0xcc, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffffff", 16)}, 4}, p112) //[a, b, cc, 0-ffffffffffffffffff, 4]
+		t.testSubnetStringRange("1:2:3:4:*.3.4/112", "1:2:3:4::0.0.3.4", "1:2:3:4:ffff:ffff:255.255.3.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffffff}, 3, 4}, p112)                                                  //[1, 2, 3, 4, 0-ffffffffffff, 3, 4]
+		t.testIncompatibleAddress("1:2:3:4:*.4/112", "1:2:3:4::0.0.0.4", "1:2:3:4:ffff:ffff:255.255.255.4", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffffffff}, 4}, p112)                                                 //[1, 2, 3, 4, 0-ffffffffffffff, 4]
+
+		// prefix subnet
+
+		t.testSubnetStringRange("1:2:3:4:*.0.0/112", "1:2:3:4::0.0.0.0", "1:2:3:4:ffff:ffff:255.255.255.255", []interface{}{1, 2, 3, 4, []uint64{0, 0xffffffffffff}, []uint{0, 0xff}, []uint{0, 0xff}}, p112) //[1, 2, 3, 4, 0-ffffffffffffff, 4]
+
+	}
+	// prefix subnet
+
+	t.testSubnetStringRange("a:b:cc::0.0.0.0/64", "a:b:cc:0:0:0:0.0.0.0", "a:b:cc::ffff:ffff:255.255.255.255",
+		[]interface{}{0xa, 0xb, 0xcc, []uint64{0, 0xffffffff}, []uint{0, 0xff}, []uint{0, 0xff}, []uint{0, 0xff}, []uint{0, 0xff}}, p64) //[a, b, cc, 0-ffffffffffffff, 4]
+
+	t.testSubnetStringRange("1-2.3.4-5.6/16", "1.3.4.6", "2.3.5.6", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, 6}, p16) //[1-2, 3, 4-5, 6]
+	t.testSubnetStringRange("1-2.3.4-5.0/23", "1.3.4.0", "2.3.5.0", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, 0}, p23) //[1-2, 3, 4-5, 6]
+
+	t.testSubnetStringRange("1-2.3.4-5.0/24", "1.3.4.0", "2.3.5.255", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, []uint{0, 0xff}}, p24) //[1-2, 3, 4-5, 6]
+
+	t.testSubnetStringRange("1-2:3:4-5:6::/48", "1:3:4:6::", "2:3:5:6::", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, 6, 0}, p48) //[1-2, 3, 4-5, 6, 0]
+
+	t.testSubnetStringRange("1-2:3:4-5::/48", "1:3:4::", "2:3:5:ffff:ffff:ffff:ffff:ffff", []interface{}{[]uint{1, 2}, 3, []uint{4, 5}, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffffffff", 16)}}, p48) //[1-2, 3, 4-5, 6, 0]
+
+	t.testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.0/112", "1:2:3:4:5:6:1.2.0.0", "1:2:3:4:5:6:3.2.255.255", []interface{}{1, 2, 3, 4, 5, 6, []uint{1, 3}, 2, []uint{0, 0xff}, []uint{0, 0xff}}, p112) //[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+
+	t.testIncompatibleAddress("1:2:3:4:5:6:1-3.2.0.4-5/112", "1:2:3:4:5:6:1.2.0.4", "1:2:3:4:5:6:3.2.0.5", []interface{}{1, 2, 3, 4, 5, 6, []uint{1, 3}, 2, 0, []uint{4, 5}}, p112) //[1, 2, 3, 4, 5, 6, 1-3, 2, 0, 4-5]
+
+	t.testSubnetStringRange1("1-3.1-3.1-3.1-3/175.80.81.83",
+		"1.0.0.1", "3.0.1.3",
+		[]interface{}{[]int{1, 3}, 0, []int{0, 1}, []int{1, 3}},
+		nil, false)
+
+	t.testMaskedIncompatibleAddress("*.*/202.63.240.51", "0.0.0.0", "202.63.240.51") //10101010 00111111 11110000 00110011
+	t.testMaskedIncompatibleAddress("*.*/63.240.51.202", "0.0.0.0", "63.240.51.202")
+	t.testMaskedIncompatibleAddress("*.*/240.51.202.63", "0.0.0.0", "240.51.202.63")
+	t.testMaskedIncompatibleAddress("*.*/51.202.63.240", "0.0.0.0", "51.202.63.240")
+
+	t.testMaskedIncompatibleAddress("*.*.*.*/202.63.240.51", "0.0.0.0", "202.63.240.51")
+	t.testMaskedIncompatibleAddress("*.*.*.*/63.240.51.202", "0.0.0.0", "63.240.51.202")
+	t.testMaskedIncompatibleAddress("*.*.*.*/240.51.202.63", "0.0.0.0", "240.51.202.63")
+	t.testMaskedIncompatibleAddress("*.*.*.*/51.202.63.240", "0.0.0.0", "51.202.63.240")
+
+	t.testMaskedIncompatibleAddress("*:aaaa:bbbb:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"::cccc", "abcd:dcba:aaaa:bbbb:cccc::cccc")
+	t.testMaskedIncompatibleAddress("aaaa:bbbb:*:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"aa88:98ba::cccc", "aa88:98ba:aaaa:bbbb:cccc::cccc")
+	t.testMaskedIncompatibleAddress("aaaa:bbbb:*/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"aa88:98ba::", "aa88:98ba:aaaa:bbbb:cccc::dddd")
+
+	t.testMaskedIncompatibleAddress("*.*/63.255.15.0", "0.0.0.0", "63.255.15.0")
+
+	t.testSubnetStringRange1("*.*/63.15.255.255",
+		"0.0.0.0", "63.15.255.255",
+		[]interface{}{[]int{0, 63}, []int{0, 0xfffff}},
+		nil, false)
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
@@ -1691,6 +1837,14 @@ func (t ipAddressRangeTester) run() {
 	//testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
 
 	t.ipAddressTester.run()
+}
+
+func setBigString(str string, base int) *big.Int {
+	res, b := new(big.Int).SetString(str, base)
+	if !b {
+		panic("bad string for big int")
+	}
+	return res
 }
 
 func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {

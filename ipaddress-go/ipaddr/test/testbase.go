@@ -837,6 +837,7 @@ type failure struct {
 	addrStr    *ipaddr.IPAddressString
 	macAddr    *ipaddr.MACAddress
 	macAddrStr *ipaddr.MACAddressString
+	rng        *ipaddr.IPAddressSeqRange
 	//ipseries   ipaddr.ExtendedIPSegmentSeries
 	//exseries     ipaddr.ExtendedSegmentSeries
 	series ipaddr.AddressSegmentSeries //TODO fold the addresses into this
@@ -926,6 +927,13 @@ func newSegmentSeriesFailure(str string, series ipaddr.AddressSegmentSeries) fai
 	}
 }
 
+func newSeqRangeFailure(str string, rng *ipaddr.IPAddressSeqRange) failure {
+	return failure{
+		str: str,
+		rng: rng,
+	}
+}
+
 //func newSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
 //	return failure{
 //		str:    str,
@@ -967,4 +975,14 @@ var one = bigOne()
 
 func bigOneConst() *big.Int {
 	return one
+}
+
+func bigZero() *big.Int {
+	return new(big.Int)
+}
+
+var zero = bigZero()
+
+func bigZeroConst() *big.Int {
+	return zero
 }

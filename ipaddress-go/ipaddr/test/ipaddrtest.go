@@ -2213,6 +2213,51 @@ func (t ipAddressTester) run() {
 	t.testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::")
 	t.testRangeExtend("1:2:5:6::", "", "1:2:3:4::", "", "1:2:3:4::", "1:2:5:6::")
 	t.testRangeExtend("1:2:5:6::", "", "1:2:3:4::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::")
+
+	t.testAddressStringRange1("1.2.3.4", []interface{}{1, 2, 3, 4})
+	t.testAddressStringRange1("a:b:cc:dd:e:f:1.2.3.4", []interface{}{0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4})
+	t.testAddressStringRange1("1:2:4:5:6:7:8:f", []interface{}{1, 2, 4, 5, 6, 7, 8, 0xf})
+	t.testAddressStringRange1("1:2:4:5::", []interface{}{1, 2, 4, 5, 0})
+	t.testAddressStringRange1("::1:2:4:5", []interface{}{0, 1, 2, 4, 5})
+	t.testAddressStringRange1("1:2:4:5::6", []interface{}{1, 2, 4, 5, 0, 6})
+
+	t.testAddressStringRange1("a:b:c::cc:d:1.255.3.128", []interface{}{0xa, 0xb, 0xc, 0x0, 0xcc, 0xd, 1, 255, 3, 128}) //[a, b, c, 0-ffff, cc, d, e, f]
+	t.testAddressStringRange1("a::cc:d:1.255.3.128", []interface{}{0xa, 0x0, 0xcc, 0xd, 1, 255, 3, 128})               //[a, 0-ffffffffffff, cc, d, e, f]
+	t.testAddressStringRange1("::cc:d:1.255.3.128", []interface{}{0x0, 0xcc, 0xd, 1, 255, 3, 128})                     //[0-ffffffffffffffff, cc, d, e, f]
+
+	// with prefix lengths
+
+	p15 := cacheTestBits(15)
+	p16 := cacheTestBits(16)
+	p31 := cacheTestBits(31)
+	p63 := cacheTestBits(63)
+	p64 := cacheTestBits(64)
+	p127 := cacheTestBits(127)
+
+	t.testAddressStringRange("1.2.3.4/31", []interface{}{1, 2, 3, []uint{4, 5}}, p31)
+	t.testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/127", []interface{}{0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, []uint{4, 5}}, p127)
+	t.testAddressStringRange("1:2:4:5::/64", []interface{}{1, 2, 4, 5, []*big.Int{bigZeroConst(), setBigString("ffffffffffffffff", 16)}}, p64)
+
+	t.testAddressStringRange("1.2.3.4/15", []interface{}{1, 2, 3, 4}, p15)
+	t.testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", []interface{}{0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, p63)
+	t.testAddressStringRange("1:2:4:5::/63", []interface{}{1, 2, 4, 5, 0}, p63)
+	t.testAddressStringRange("::cc:d:1.255.3.128/16", []interface{}{0x0, 0xcc, 0xd, 1, 255, 3, 128}, p16) //[0-ffffffffffffffff, cc, d, e, f]
+
+	// with masks
+
+	t.testSubnetStringRange2("::aaaa:bbbb:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"::cccc", "::cccc", []interface{}{0, 0, 0, 0xcccc})
+	t.testSubnetStringRange2("::aaaa:bbbb:cccc/abcd:abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"::8888:0:cccc", "::8888:0:cccc", []interface{}{0, 0x8888, 0, 0xcccc})
+	t.testSubnetStringRange2("aaaa:bbbb::cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"aa88:98ba::cccc", "aa88:98ba::cccc", []interface{}{0xaa88, 0x98ba, 0, 0xcccc})
+	t.testSubnetStringRange2("aaaa:bbbb::/abcd:dcba:aaaa:bbbb:cccc::dddd",
+		"aa88:98ba::", "aa88:98ba::", []interface{}{0xaa88, 0x98ba, 0})
+
+	t.testSubnetStringRange1("3.3.3.3/175.80.81.83",
+		"3.0.1.3", "3.0.1.3",
+		[]interface{}{3, 0, 1, 3},
+		nil, true)
 }
 
 func one28() *big.Int {
@@ -4999,6 +5044,215 @@ func (t ipAddressTester) testRangeSubtract(lower1, higher1, lower2, higher2 stri
 	}
 	t.incrementTestCount()
 }
+
+// divs is an array with the series of values or range of values in the grouping
+// divs must be an []interface{} with each element a *big.Int/int/uint/uint64 or an array of two *big.Int/int/uint/uint64
+// Alternatively, instead of supplying Object[1] you can supply the first and only element instead
+func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleAddress, isMaskedIncompatibleAddress bool, lowerAddress, upperAddress string, divs interface{}, prefixLength ipaddr.PrefixLen, isSequential *bool) {
+	addrStr := t.createAddress(address)
+	//TODO LATER this code and the calling tests are all ready to go once I support toDivisionGrouping,
+	//just a little more Java to go translation in here is needed, but not much.  I left some of the Java types to help with clarity.
+
+	//IPAddressDivisionSeries s, err := addrStr.ToDivisionGrouping();
+	//if err != nil {
+	//			if !isMaskedIncompatibleAddress {
+	//				t.addFailure(newFailure("address " + addrStr.String() + " produced error " + e.Error() + " when getting grouping ", addrStr));
+	//			}
+	//} else if(isMaskedIncompatibleAddress) {
+	//	t.addFailure(newFailure("masked incompatible address " + addrStr.String() + " did not produce error when getting grouping " + s.String(), addrStr));
+	//}
+	var divisions []interface{}
+	if bidivs, ok := divs.([2]*big.Int); ok {
+		divisions = []interface{}{bidivs}
+	} else if bidiv, ok := divs.(*big.Int); ok {
+		divisions = []interface{}{bidiv}
+	} else if intdivs, ok := divs.([2]int); ok {
+		divisions = []interface{}{intdivs}
+	} else if intdiv, ok := divs.(int); ok {
+		divisions = []interface{}{intdiv}
+	} else if uintdivs, ok := divs.([2]uint); ok {
+		divisions = []interface{}{uintdivs}
+	} else if uintdiv, ok := divs.(uint); ok {
+		divisions = []interface{}{uintdiv}
+	} else if uint64divs, ok := divs.([2]uint64); ok {
+		divisions = []interface{}{uint64divs}
+	} else if uint64div, ok := divs.(uint64); ok {
+		divisions = []interface{}{uint64div}
+	} else {
+		divisions = divs.([]interface{})
+	}
+	//if s.getDivisionCount() != len(divisions) {
+	//	t.addFailure(newFailure("grouping " + s.String() + " for " + addrStr.String() + " does not have expected length " + strconv.Itoa(len(divisions)), addrStr));
+	//}
+	var totalBits ipaddr.BitCount
+	for i := 0; i < len(divisions); i++ {
+		//IPAddressGenericDivision d = s.GetDivision(i);
+		//int divBits = d.getBitCount();
+		//totalBits += divBits;
+		//BigInteger val := d.GetValue();
+		//BigInteger upperVal := d.GetUpperValue();
+		expectedDivision := divisions[i]
+		var expectedUpper, expectedLower *big.Int
+		if expected, ok := expectedDivision.(int); ok {
+			expectedUpper = new(big.Int).SetInt64(int64(expected))
+			expectedLower = expectedUpper
+		} else if expected, ok := expectedDivision.([]int); ok {
+			expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
+			expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
+		} else if expected, ok := expectedDivision.(uint); ok {
+			expectedUpper = new(big.Int).SetUint64(uint64(expected))
+			expectedLower = expectedUpper
+		} else if expected, ok := expectedDivision.([]uint); ok {
+			expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
+			expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
+		} else if expected, ok := expectedDivision.(uint64); ok {
+			expectedUpper = new(big.Int).SetUint64(expected)
+			expectedLower = expectedUpper
+		} else if expected, ok := expectedDivision.([]uint64); ok {
+			expectedUpper = new(big.Int).SetUint64(expected[0])
+			expectedLower = new(big.Int).SetUint64(expected[1])
+		} else if expected, ok := expectedDivision.([]*big.Int); ok {
+			expectedLower = expected[0]
+			expectedUpper = expected[1]
+		} else if expected, ok := expectedDivision.(*big.Int); ok {
+			expectedUpper = expectedLower
+			expectedLower = expected
+		}
+		//if val.Cmp(expectedLower) != 0 {
+		//	t.addFailure(newFailure("division val " + val.String() + " for " + addrStr.String() + " is not expected val " + expectedLower.String(), addrStr));
+		//} else if(upperVal.Cmp(expectedUpper) != 0) {
+		//	t.addFailure(newFailure("upper division val " + upperVal.String() + " for " + addrStr.String() + " is not expected val " + expectedUpper.String(), addrStr));
+		//}
+	}
+	var expectedBitCount ipaddr.BitCount
+	if addrStr.IsIPv4() {
+		expectedBitCount = ipaddr.IPv4BitCount
+	} else {
+		expectedBitCount = ipaddr.IPv6BitCount
+	}
+	if totalBits != expectedBitCount {
+		//t.addFailure(newFailure("bit count " + totalBits.String() + " for " + addrStr.String() + " is not expected " + expectedBitCount.String(), addrStr));
+	}
+	//if !s.GetPrefixLen().Equal(prefixLength) {
+	//	t.addFailure(newFailure("prefix length " + s.GetPrefixLen().String() + " for " + s.String() + " is not expected " + prefixLength.String(), addrStr));
+	//}
+
+	rangeString := t.createAddress(address)
+	// go directly to getting the range which should never throw IncompatibleAddressException even for incompatible addresses
+	range1 := rangeString.GetSequentialRange()
+	low := t.createAddress(lowerAddress).GetAddress().GetLower() // getLower() needed for auto subnets
+	up := t.createAddress(upperAddress).GetAddress().GetUpper()  // getUpper() needed for auto subnets
+	if !range1.GetLower().Equals(low) {
+		t.addFailure(newSeqRangeFailure("range lower "+range1.GetLower().String()+" does not match expected "+low.String(), range1))
+	}
+	if !range1.GetUpper().Equals(up) {
+		t.addFailure(newSeqRangeFailure("range upper "+range1.GetUpper().String()+" does not match expected "+up.String(), range1))
+	}
+	addrStr = t.createAddress(address)
+	// now we should throw IncompatibleAddressException if address is incompatible
+	addr, err := addrStr.ToAddress()
+	if err != nil {
+		if !isIncompatibleAddress {
+			t.addFailure(newFailure("address "+addrStr.String()+" identified as an incompatible address", addrStr))
+		}
+		addrRange, err := addrStr.ToSequentialRange()
+		if err != nil {
+			t.addFailure(newFailure("unexpected error getting range from "+addrStr.String(), addrStr))
+		}
+		if !range1.Equals(addrRange) || !addrRange.Equals(range1) {
+			t.addFailure(newFailure("address range from "+addrStr.String()+" ("+addrRange.GetLower().String()+","+addrRange.GetUpper().String()+")"+
+				" does not match range from address string "+rangeString.String()+" ("+range1.GetLower().String()+","+range1.GetUpper().String()+")", addrStr))
+		}
+	} else {
+		if isIncompatibleAddress {
+			t.addFailure(newFailure("address "+addrStr.String()+" not identified as an incompatible address, instead it is "+addr.String(), addrStr))
+		}
+		if isSequential != nil {
+			if *isSequential != addr.IsSequential() {
+				t.addFailure(newIPAddrFailure("sequential mismatch, unexpectedly: "+addr.String(), addr))
+			}
+		}
+		addrRange := addr.ToSequentialRange()
+		if !range1.Equals(addrRange) || !addrRange.Equals(range1) {
+			t.addFailure(newIPAddrFailure("address range from "+addr.String()+" ("+addrRange.GetLower().String()+","+addrRange.GetUpper().String()+")"+
+				" does not match range from address string "+rangeString.String()+" ("+range1.GetLower().String()+","+range1.GetUpper().String()+")", addr))
+		}
+		// now get the range from rangeString after you get the address, which should get it a different way, from the address
+		after := rangeString.GetAddress()
+		lowerFromSeqRange := after.GetLower()
+		upperFromSeqRange := after.GetUpper()
+		lowerFromAddr := addr.GetLower()
+		upperFromAddr := addr.GetUpper()
+		if !lowerFromSeqRange.Equals(lowerFromAddr) || !lowerFromSeqRange.GetNetworkPrefixLen().Equals(lowerFromAddr.GetNetworkPrefixLen()) {
+			t.addFailure(newIPAddrFailure("lower from range "+lowerFromSeqRange.String()+" does not match lower from address "+lowerFromAddr.String(), lowerFromSeqRange))
+		}
+		if !upperFromSeqRange.Equals(upperFromAddr) || !upperFromSeqRange.GetNetworkPrefixLen().Equals(upperFromAddr.GetNetworkPrefixLen()) {
+			t.addFailure(newIPAddrFailure("upper from range "+upperFromSeqRange.String()+" does not match upper from address "+upperFromAddr.String(), upperFromSeqRange))
+		}
+		// now get the range from a string after you get the address first, which should get it a different way, from the address
+		oneMore := t.createAddress(address)
+		oneMore.GetAddress()
+		rangeAfterAddr := oneMore.GetSequentialRange()
+		if !range1.Equals(rangeAfterAddr) || !rangeAfterAddr.Equals(range1) {
+			t.addFailure(newIPAddrFailure("address range from "+rangeString.String()+" after address ("+rangeAfterAddr.GetLower().String()+","+rangeAfterAddr.GetUpper().String()+")"+
+				" does not match range from address string "+rangeString.String()+" before address ("+range1.GetLower().String()+","+range1.GetUpper().String()+")", addr))
+		}
+		if !addrRange.Equals(rangeAfterAddr) || !rangeAfterAddr.Equals(addrRange) {
+			t.addFailure(newIPAddrFailure("address range from "+rangeString.String()+" after address ("+rangeAfterAddr.GetLower().String()+","+rangeAfterAddr.GetUpper().String()+")"+
+				" does not match range from address string "+addr.String()+" ("+addrRange.GetLower().String()+","+addrRange.GetUpper().String()+")", addr))
+		}
+
+	}
+
+	//seqStr := t.createAddress(address)
+	//if isSequential != nil {
+	//if *isSequential != seqStr.IsSequential() {
+	//	t.addFailure(newFailure("sequential mismatch, unexpectedly: "+seqStr.String(), seqStr))
+	//}
+	//if !isMaskedIncompatibleAddress && isSequential != seqStr.ToDivisionGrouping().IsSequential() {
+	//	t.addFailure(newFailure("sequential grouping mismatch, unexpectedly, " + seqStr.String() + " and " + seqStr.ToDivisionGrouping().String()  , seqStr));
+	//}
+	//}
+	t.incrementTestCount()
+}
+
+func (t ipAddressTester) testMaskedIncompatibleAddress(address, lower, upper string) {
+	t.testAddressStringRangeP(address, true, true, lower, upper, nil, nil, nil)
+}
+
+func (t ipAddressTester) testIncompatibleAddress2(address, lower, upper string, divisions interface{}) {
+	t.testIncompatibleAddress(address, lower, upper, divisions, nil)
+}
+
+func (t ipAddressTester) testIncompatibleAddress(address, lower, upper string, divisions interface{}, prefixLength ipaddr.PrefixLen) {
+	t.testAddressStringRangeP(address, true, false, lower, upper, divisions, prefixLength, nil)
+}
+
+func (t ipAddressTester) testIncompatibleAddress1(address, lower, upper string, divisions interface{}, prefixLength ipaddr.PrefixLen, isSequential bool) {
+	t.testAddressStringRangeP(address, true, false, lower, upper, divisions, prefixLength, &isSequential)
+}
+
+func (t ipAddressTester) testSubnetStringRange2(address, lower, upper string, divisions interface{}) {
+	t.testSubnetStringRange(address, lower, upper, divisions, nil)
+}
+
+func (t ipAddressTester) testSubnetStringRange(address, lower, upper string, divisions interface{}, prefixLength ipaddr.PrefixLen) {
+	t.testAddressStringRangeP(address, false, false, lower, upper, divisions, prefixLength, nil)
+}
+
+func (t ipAddressTester) testSubnetStringRange1(address, lower, upper string, divisions interface{}, prefixLength ipaddr.PrefixLen, isSequential bool) {
+	t.testAddressStringRangeP(address, false, false, lower, upper, divisions, prefixLength, &isSequential)
+}
+
+func (t ipAddressTester) testAddressStringRange1(address string, divisions interface{}) {
+	t.testAddressStringRangeP(address, false, false, address, address, divisions, nil, &trueVal)
+}
+
+func (t ipAddressTester) testAddressStringRange(address string, divisions interface{}, prefixLength ipaddr.PrefixLen) {
+	t.testAddressStringRangeP(address, false, false, address, address, divisions, prefixLength, &trueVal)
+}
+
+var trueVal = true
 
 var conv = ipaddr.DefaultAddressConverter{}
 

@@ -292,6 +292,44 @@ func (parseData *parsedIPAddress) getProviderNetworkPrefixLen() PrefixLen {
 	return parseData.getQualifier().getEquivalentPrefixLen()
 }
 
+// TODO LATER getDivisionGrouping
+//func (parseData *parsedIPAddress)   groupingIsSequential() bool {
+//		try {
+//			return getDivisionGrouping().isSequential();
+//		} catch(IncompatibleAddressException e) {
+//			// division groupings avoid all IncompatibleAddressException caused by regrouping the values into segments of different size
+//			// that takes care of two of the sources of IncompatibleAddressException: joining mixed segs, and expanding inet_aton ipv4 or single-segment ipv6 into the standard number of ipv4 or ipv6 segments
+//
+//			// Those remaining are the IncompatibleAddressException caused by masks, which are the result of individual divisions becoming non-sequential
+//			// So in such cases, you know we are not sequential.  So we return false.
+//			// the usual caveat is that this cannot happen with standard network or host masks
+//			return false;
+//		}
+//	}
+//
+//func (parseData *parsedIPAddress) IsSequential() bool {
+//		TranslatedResult<?,?> val = values;
+//		if(val != null) {
+//			// check address first
+//			if(!val.withoutSections()) {
+//				// address already there, use it if we can
+//				if(val.withoutAddressException()) {
+//					return val.getAddress().isSequential();
+//				}
+//				return groupingIsSequential();
+//			}
+//			if(!val.withoutGrouping()) {
+//				return groupingIsSequential();
+//			}
+//		}
+//		// neither address nor grouping is there, create the address
+//		val = getCachedAddresses(false);
+//		if(val.withoutAddressException()) {
+//			return val.getAddress().isSequential();
+//		}
+//		return groupingIsSequential();
+//	}
+
 func (parseData *parsedIPAddress) contains(other string) (res boolSetting) {
 	pd := parseData.getAddressParseData()
 	segmentData := pd.getSegmentData() //grab this field for thread safety, other threads can make it disappear
