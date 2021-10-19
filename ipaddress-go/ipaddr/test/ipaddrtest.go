@@ -5061,82 +5061,83 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 	//} else if(isMaskedIncompatibleAddress) {
 	//	t.addFailure(newFailure("masked incompatible address " + addrStr.String() + " did not produce error when getting grouping " + s.String(), addrStr));
 	//}
-	var divisions []interface{}
-	if bidivs, ok := divs.([2]*big.Int); ok {
-		divisions = []interface{}{bidivs}
-	} else if bidiv, ok := divs.(*big.Int); ok {
-		divisions = []interface{}{bidiv}
-	} else if intdivs, ok := divs.([2]int); ok {
-		divisions = []interface{}{intdivs}
-	} else if intdiv, ok := divs.(int); ok {
-		divisions = []interface{}{intdiv}
-	} else if uintdivs, ok := divs.([2]uint); ok {
-		divisions = []interface{}{uintdivs}
-	} else if uintdiv, ok := divs.(uint); ok {
-		divisions = []interface{}{uintdiv}
-	} else if uint64divs, ok := divs.([2]uint64); ok {
-		divisions = []interface{}{uint64divs}
-	} else if uint64div, ok := divs.(uint64); ok {
-		divisions = []interface{}{uint64div}
-	} else {
-		divisions = divs.([]interface{})
-	}
-	//if s.getDivisionCount() != len(divisions) {
-	//	t.addFailure(newFailure("grouping " + s.String() + " for " + addrStr.String() + " does not have expected length " + strconv.Itoa(len(divisions)), addrStr));
-	//}
-	var totalBits ipaddr.BitCount
-	for i := 0; i < len(divisions); i++ {
-		//IPAddressGenericDivision d = s.GetDivision(i);
-		//int divBits = d.getBitCount();
-		//totalBits += divBits;
-		//BigInteger val := d.GetValue();
-		//BigInteger upperVal := d.GetUpperValue();
-		expectedDivision := divisions[i]
-		var expectedUpper, expectedLower *big.Int
-		if expected, ok := expectedDivision.(int); ok {
-			expectedUpper = new(big.Int).SetInt64(int64(expected))
-			expectedLower = expectedUpper
-		} else if expected, ok := expectedDivision.([]int); ok {
-			expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
-			expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
-		} else if expected, ok := expectedDivision.(uint); ok {
-			expectedUpper = new(big.Int).SetUint64(uint64(expected))
-			expectedLower = expectedUpper
-		} else if expected, ok := expectedDivision.([]uint); ok {
-			expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
-			expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
-		} else if expected, ok := expectedDivision.(uint64); ok {
-			expectedUpper = new(big.Int).SetUint64(expected)
-			expectedLower = expectedUpper
-		} else if expected, ok := expectedDivision.([]uint64); ok {
-			expectedUpper = new(big.Int).SetUint64(expected[0])
-			expectedLower = new(big.Int).SetUint64(expected[1])
-		} else if expected, ok := expectedDivision.([]*big.Int); ok {
-			expectedLower = expected[0]
-			expectedUpper = expected[1]
-		} else if expected, ok := expectedDivision.(*big.Int); ok {
-			expectedUpper = expectedLower
-			expectedLower = expected
+	if !isMaskedIncompatibleAddress {
+		var divisions []interface{}
+		if bidivs, ok := divs.([2]*big.Int); ok {
+			divisions = []interface{}{bidivs}
+		} else if bidiv, ok := divs.(*big.Int); ok {
+			divisions = []interface{}{bidiv}
+		} else if intdivs, ok := divs.([2]int); ok {
+			divisions = []interface{}{intdivs}
+		} else if intdiv, ok := divs.(int); ok {
+			divisions = []interface{}{intdiv}
+		} else if uintdivs, ok := divs.([2]uint); ok {
+			divisions = []interface{}{uintdivs}
+		} else if uintdiv, ok := divs.(uint); ok {
+			divisions = []interface{}{uintdiv}
+		} else if uint64divs, ok := divs.([2]uint64); ok {
+			divisions = []interface{}{uint64divs}
+		} else if uint64div, ok := divs.(uint64); ok {
+			divisions = []interface{}{uint64div}
+		} else {
+			divisions = divs.([]interface{})
 		}
-		//if val.Cmp(expectedLower) != 0 {
-		//	t.addFailure(newFailure("division val " + val.String() + " for " + addrStr.String() + " is not expected val " + expectedLower.String(), addrStr));
-		//} else if(upperVal.Cmp(expectedUpper) != 0) {
-		//	t.addFailure(newFailure("upper division val " + upperVal.String() + " for " + addrStr.String() + " is not expected val " + expectedUpper.String(), addrStr));
+		//if s.getDivisionCount() != len(divisions) {
+		//	t.addFailure(newFailure("grouping " + s.String() + " for " + addrStr.String() + " does not have expected length " + strconv.Itoa(len(divisions)), addrStr));
+		//}
+		var totalBits ipaddr.BitCount
+		for i := 0; i < len(divisions); i++ {
+			//IPAddressGenericDivision d = s.GetDivision(i);
+			//int divBits = d.getBitCount();
+			//totalBits += divBits;
+			//BigInteger val := d.GetValue();
+			//BigInteger upperVal := d.GetUpperValue();
+			expectedDivision := divisions[i]
+			var expectedUpper, expectedLower *big.Int
+			if expected, ok := expectedDivision.(int); ok {
+				expectedUpper = new(big.Int).SetInt64(int64(expected))
+				expectedLower = expectedUpper
+			} else if expected, ok := expectedDivision.([]int); ok {
+				expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
+				expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
+			} else if expected, ok := expectedDivision.(uint); ok {
+				expectedUpper = new(big.Int).SetUint64(uint64(expected))
+				expectedLower = expectedUpper
+			} else if expected, ok := expectedDivision.([]uint); ok {
+				expectedUpper = new(big.Int).SetUint64(uint64(expected[0]))
+				expectedLower = new(big.Int).SetUint64(uint64(expected[1]))
+			} else if expected, ok := expectedDivision.(uint64); ok {
+				expectedUpper = new(big.Int).SetUint64(expected)
+				expectedLower = expectedUpper
+			} else if expected, ok := expectedDivision.([]uint64); ok {
+				expectedUpper = new(big.Int).SetUint64(expected[0])
+				expectedLower = new(big.Int).SetUint64(expected[1])
+			} else if expected, ok := expectedDivision.([]*big.Int); ok {
+				expectedLower = expected[0]
+				expectedUpper = expected[1]
+			} else if expected, ok := expectedDivision.(*big.Int); ok {
+				expectedUpper = expectedLower
+				expectedLower = expected
+			}
+			//if val.Cmp(expectedLower) != 0 {
+			//	t.addFailure(newFailure("division val " + val.String() + " for " + addrStr.String() + " is not expected val " + expectedLower.String(), addrStr));
+			//} else if(upperVal.Cmp(expectedUpper) != 0) {
+			//	t.addFailure(newFailure("upper division val " + upperVal.String() + " for " + addrStr.String() + " is not expected val " + expectedUpper.String(), addrStr));
+			//}
+		}
+		var expectedBitCount ipaddr.BitCount
+		if addrStr.IsIPv4() {
+			expectedBitCount = ipaddr.IPv4BitCount
+		} else {
+			expectedBitCount = ipaddr.IPv6BitCount
+		}
+		if totalBits != expectedBitCount {
+			//t.addFailure(newFailure("bit count " + totalBits.String() + " for " + addrStr.String() + " is not expected " + expectedBitCount.String(), addrStr));
+		}
+		//if !s.GetPrefixLen().Equal(prefixLength) {
+		//	t.addFailure(newFailure("prefix length " + s.GetPrefixLen().String() + " for " + s.String() + " is not expected " + prefixLength.String(), addrStr));
 		//}
 	}
-	var expectedBitCount ipaddr.BitCount
-	if addrStr.IsIPv4() {
-		expectedBitCount = ipaddr.IPv4BitCount
-	} else {
-		expectedBitCount = ipaddr.IPv6BitCount
-	}
-	if totalBits != expectedBitCount {
-		//t.addFailure(newFailure("bit count " + totalBits.String() + " for " + addrStr.String() + " is not expected " + expectedBitCount.String(), addrStr));
-	}
-	//if !s.GetPrefixLen().Equal(prefixLength) {
-	//	t.addFailure(newFailure("prefix length " + s.GetPrefixLen().String() + " for " + s.String() + " is not expected " + prefixLength.String(), addrStr));
-	//}
-
 	rangeString := t.createAddress(address)
 	// go directly to getting the range which should never throw IncompatibleAddressException even for incompatible addresses
 	range1 := rangeString.GetSequentialRange()
@@ -5145,7 +5146,7 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 	if !range1.GetLower().Equals(low) {
 		t.addFailure(newSeqRangeFailure("range lower "+range1.GetLower().String()+" does not match expected "+low.String(), range1))
 	}
-	if !range1.GetUpper().Equals(up) {
+	if !range1.GetUpper().Equals(up) { //TODO range upper 255.0.255.255 does not match expected 255.1.255.255
 		t.addFailure(newSeqRangeFailure("range upper "+range1.GetUpper().String()+" does not match expected "+up.String(), range1))
 	}
 	addrStr = t.createAddress(address)
@@ -5184,6 +5185,7 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 		lowerFromAddr := addr.GetLower()
 		upperFromAddr := addr.GetUpper()
 		if !lowerFromSeqRange.Equals(lowerFromAddr) || !lowerFromSeqRange.GetNetworkPrefixLen().Equals(lowerFromAddr.GetNetworkPrefixLen()) {
+			// TODO both shuold have prefix, lowerFromAddr has it, lowerFromSeqRange does not, after does
 			t.addFailure(newIPAddrFailure("lower from range "+lowerFromSeqRange.String()+" does not match lower from address "+lowerFromAddr.String(), lowerFromSeqRange))
 		}
 		if !upperFromSeqRange.Equals(upperFromAddr) || !upperFromSeqRange.GetNetworkPrefixLen().Equals(upperFromAddr.GetNetworkPrefixLen()) {

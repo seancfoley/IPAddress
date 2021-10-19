@@ -233,8 +233,9 @@ func (parseData *parsedIPAddress) getCachedAddresses(forHostAddr bool) *sectionR
 				if forHostAddr {
 					dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&sections.hostAddress))
 				} else {
-					// if range created first, stick the lower and upper into the address cache
-					if rng := val.rng; rng != nil {
+					// if range created first, stick the lower and upper into the address cache,
+					// but only if the address no prefix, because the range never has prefix lengths
+					if rng := val.rng; rng != nil && !addr.IsPrefixed() {
 						cache := addr.cache
 						if cache != nil {
 							cache.addrsCache = &addrsCache{
