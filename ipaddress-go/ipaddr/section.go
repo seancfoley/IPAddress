@@ -131,8 +131,11 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 				section.isMultiple = true
 			}
 			if isMultiple && !isBlock && !checkAllSegs {
-				break
+				break // isMultiple is known, isBlock is completed, and we don't need to verify the segs for nil
 			}
+		}
+		if isBlock {
+			section.prefixLength = cacheBitCount(0)
 		}
 	}
 	return nil
@@ -1025,7 +1028,7 @@ func (section *addressSectionInternal) setPrefixLength(
 	if existingPrefixLength != nil {
 		verifyMask = true
 		existingPrefLen := *existingPrefixLength
-		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment)
+		existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment) // can be -1 if existingPrefLen is 0
 		if prefIndex > existingPrefIndex {
 			maxPrefIndex = prefIndex
 			minPrefIndex = existingPrefIndex

@@ -7,9 +7,49 @@ import (
 	"unsafe"
 )
 
+// option 1
+//type PrefixLen struct {
+//	bitCount *BitCount
+//}
+//
+// option 2
+//type BitCount struct {
+//	bitCount int16
+//}
+// type PrefixLen *BitCount
+
 type addressDivisionGroupingBase struct {
 	// the non-cacheBitCountx elements are assigned at creation and are immutable
-	divisions    divArray  // either standard or large
+	divisions divArray // either standard or large
+
+	//  in places where you assign prefix length, you need to use our own cached values, because the pointed prefix value can change.
+	// We already do this for cached segments using cacheBitCount.
+	// Not only that, wherever you return prefix lengths, you have the same problem, the returned value points to the stored field.
+	// Callers could then change the stored field.  So you'd have to allocate a new int on the heap and point to it!  ouch.
+	// This is just bad all around.  How did you not think of this before?  It just goes to show, you need to write code of a library to get a taste for it.
+	//
+	// What if you changed prefixLen to be a struct of a private value?  In fact, it would be a struct of a pointer?
+	// cacheBitCount could be avoided everywhere!
+	// the zero prefix would then be nil!  I like it.
+	// Tempting.  Very tempting.
+	// You could then give it its own methods instead of what you did with BitCount pointer methods.
+	// But then, everywhere you supply nil for a prefix, compile error.  It would have to be replaced with Prefix{}
+	// You could no longer use "nil" which is a bit more intuitive perhaps.
+	// HOwever, you cannot currently do &32 and that is annoying! Makes you do p0, p1, etc which you are doing in the tests.
+	// Soon you could soon do ipaddr.PrefixLength(32) which is nice!
+	// And you could have ipaddr.NoPrefix() which returns Prefix{} - or use a public variable ipaddr.NoPrefix (which is better? hard to say - Both? probably the constant)
+	// YOu can still derefence, you just do *p.bitCount
+	// What we're doing now with the prefix values in tests, p0, p1, ... is what everyone will do, or should do, and that is lame
+	// An altrnative is to change bitcount to be the struct
+	// that way you can still use all the same as now, with nil prefix as zero value, but once again you get the safety
+	// to dereference you do (*p).bitCount
+	// I think the first is a bit better, because the second makes BitCount awkward.
+	// The second means you must define some BitCount struct tht is somewhat meaningless, the thing prefixes point to,
+	// but all your methods thst take BitCount will not want to use this struct instead, so the struct is somewhat lame
+	// The only upside is you can continue using "nil" prefixes
+	// In fact, the second doesn't really work because you can still alter the prefix length pointers
+	// TODO I think I've settle on option 1 above
+
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool
 

@@ -180,6 +180,203 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 	}
 }
 
+func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSeries,
+	prefix, adjustment ipaddr.BitCount,
+	_, _,
+	adjusted,
+	prefixSet,
+	_ ipaddr.ExtendedSegmentSeries) {
+	for j := 0; j < 2; j++ {
+		var removed ipaddr.ExtendedSegmentSeries
+		var err error
+		if j == 0 {
+			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
+			//fmt.Println("beyond " + removed.String())
+			//if removed.IsPrefixed() {
+			//	original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
+			//}
+			//	removed = original.WithoutPrefixLen()
+		} else {
+			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount())
+			//removed = original.AdjustPrefixLen(original.GetBitCount())
+			//fmt.Println("not beyond " + removed.String())
+		}
+		if err != nil {
+			t.addFailure(newSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
+			break
+		}
+		//if j == 1 && original.GetPrefixLen() != nil && *original.GetPrefixLen() == 0 { why was this here?  beats me
+		//	removed = original.AdjustPrefixLen(original.GetBitCount() + 1)
+		//}
+		if original.IsPrefixed() {
+			prefLength := *original.GetPrefixLen()
+			bitsSoFar := ipaddr.BitCount(0)
+			for i := 0; i < removed.GetSegmentCount(); i++ {
+				prevBitsSoFar := bitsSoFar
+				seg := removed.GetSegment(i)
+				bitsSoFar += seg.GetBitCount()
+				if prefLength >= bitsSoFar {
+					if !seg.Equals(original.GetSegment(i)) {
+						t.addFailure(newSegmentSeriesFailure("removed prefix: "+removed.String(), original))
+						break
+					}
+				} else if prefLength <= prevBitsSoFar {
+					if !seg.IsZero() {
+						t.addFailure(newSegmentSeriesFailure("removed prefix all: "+removed.String(), original))
+						break
+					}
+				} else {
+					segPrefix := prefLength - prevBitsSoFar
+					mask := ^ipaddr.SegInt(0) << uint(seg.GetBitCount()-segPrefix)
+					lower := seg.GetSegmentValue()
+					upper := seg.GetUpperSegmentValue()
+					if (lower&mask) != lower || (upper&mask) != upper {
+						//removed = original.removePrefixLength();
+						t.addFailure(newSegmentSeriesFailure("prefix app: "+removed.String()+" "+strconv.Itoa(int(lower&mask))+" "+strconv.Itoa(int(upper&mask)), original))
+						break
+					}
+				}
+			}
+			//if removed.IsPrefixed() {
+			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
+			//}
+		} else if !removed.Equals(original) {
+			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
+		} //else if removed.IsPrefixed() {
+		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
+		//}
+	}
+	//var adjustedSeries ipaddr.ExtendedSegmentSeries
+	//AddressSegmentSeries adjustedSeries = original.adjustPrefixBySegment(true);
+	//Integer nextPrefix = adjustedSeries.getPrefixLength();
+	//if(!adjustedSeries.equals(next)) {
+	//	addFailure(new Failure("prefix next: " + adjustedSeries, next));
+	//} else {
+	//adjustedSeries = original.adjustPrefixBySegment(false);
+	//Integer prevPrefix = adjustedSeries.getPrefixLength();
+	//if(!adjustedSeries.equals(previous)) {
+	//	addFailure(new Failure("prefix previous: " + adjustedSeries, previous));
+	//} else {
+	//adjustedSeries, err := original.AdjustPrefixLenZeroed(adjustment)
+	//if err != nil {
+	//	t.addFailure(newSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
+	//	return
+	//}
+	//adjustedPrefix := adjustedSeries.GetPrefixLen()
+
+	//ok, either I implement all this zero max host shit on mac, or I just have two different test methods
+	//going halfway is senseless
+	//
+	//ok let us go back and remove the toZeroHost and isZeroHost and just use separate methods
+	//
+	//thankfully I have not committed the shit i did so far
+
+	////if original.IsPrefixBlock() && adjustment < 0 {
+	////if original.IsPrefixed() && *adjustedPrefix >= original.GetBitCount()+adjustment {
+	//if (original.IsPrefixed() && adjustedPrefix.Matches(original.GetBitCount()+adjustment)) ||
+	//	(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) { //xxxxx if we do not have prefix block, then our positive adjustment creates what would be one, then our expected is one which is wrong
+	//	//xxx if adjustment is negative and original is pref block xxx
+	//	//  case 3 - original is prefix block, adjustment is negative, so we are not prefix block but expected is
+	//	// either we are converted to prefix block or what? that is the only option
+	//	// OR consider that we do have the correct expected but it is converted to prefix block: 255.96.*.*/11
+	//	// maybe we need to change the fact that address is converted to prefix block
+	//	// I think we do.
+	//
+	//	// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
+	//	adjusted, err = adjusted.ToZeroHost()
+	//	if err != nil {
+	//		t.addFailure(newSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
+	//		return
+	//	}
+	//}
+
+	//if !adjustedSeries.Equals(adjusted) {
+	//	//TWO things wrong: 1. the new series is not a prefix subnet (which is actually correct, I think, since I wanted to stop doing that).  But how am I supposed to specify the result?  I guess with the toZeroHost
+	//	// 2. the canonical string things otherwise!  how is that possible?  wrong, it is correct
+	//	//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
+	//	//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.ToNormalizedWildcardString() + " expected: " + adjusted.ToNormalizedWildcardString() + " increment: " + adjustment.String())
+	//	t.addFailure(newSegmentSeriesFailure("prefix adjusted: "+adjustedSeries.String(), adjusted))
+	//	original.AdjustPrefixLenZeroed(adjustment)
+	//	//a, berr := original.AdjustPrefixLenZeroed(adjustment)
+	//	//_ = berr
+	//	//a.String()
+	//} else {
+	//adjustedSeries, err := original.SetPrefixLenZeroed(prefix)
+	//adjustedSeries = original.SetPrefixLen(prefix)
+	//if err != nil {
+	//	t.addFailure(newSegmentSeriesFailure("set prefix error: "+err.Error(), original))
+	//	return
+	//}
+	////if original.IsPrefixBlock() && original.GetPrefixLen().Exceeds(prefix) {
+	//if (original.IsPrefixed() && original.GetPrefixLen().Matches(original.GetBitCount())) ||
+	//	(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) {
+	//	//xxx if diff between prefix set and original is negative and original is pref block xxx
+	//
+	//	//if original.IsPrefixed() && *original.GetPrefixLen() == original.GetBitCount() && original.GetPrefixLen().Is(original.GetBitCount()) { //TODO we need a method on prefix len to compare with a bit count
+	//	// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
+	//	prefixSet, err = prefixSet.ToZeroHost()
+	//	if err != nil {
+	//		t.addFailure(newSegmentSeriesFailure("set prefix error: "+err.Error(), original))
+	//		return
+	//	}
+	//}
+
+	//setPrefix := adjustedSeries.GetPrefixLen()
+
+	//if !adjustedSeries.Equals(prefixSet) {
+	//	fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + prefix.String())
+	//	t.addFailure(newSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
+	//}
+	//else {
+	//	//adjustedSeries = original.ApplyPrefixLen(prefix);
+	//	//appliedPrefix := adjustedSeries.GetPrefixLen();
+	//	//if(!adjustedSeries.Equals(prefixApplied)) {
+	//	//t.addFailure(newFailure("prefix applied: " + adjustedSeries, prefixApplied));
+	//	//} else {
+	//
+	//	originalPref := original.GetPrefixLen()
+	//	var expected ExpectedPrefixes
+	//	bitLength := original.GetBitCount()
+	//	//segmentBitLength := original.GetBitsPerSegment()
+	//	if originalPref == nil {
+	//		//_, ok := original.Unwrap().(*ipaddr.MACAddress)
+	//		//if ok {
+	//		//	expected.previous = cacheTestBits(bitLength - segmentBitLength)
+	//		//} else {
+	//		//	expected.previous = cacheTestBits(bitLength)
+	//		//}
+	//		if adjustment <= 0 {
+	//			expected.adjusted = cacheTestBits(bitLength + adjustment)
+	//		} else {
+	//			expected.adjusted = cacheTestBits(adjustment)
+	//		}
+	//		expected.set = cacheTestBits(prefix)
+	//	} else {
+	//		//if *originalPref != bitLength {
+	//		//	expected.next = cacheTestBits(min(bitLength, ((*originalPref + segmentBitLength) / segmentBitLength) * segmentBitLength))
+	//		//}
+	//		//expected.previous = cacheTestBits(max(0, ((*originalPref - 1) / segmentBitLength) * segmentBitLength));
+	//		adj := min(max(0, *originalPref+adjustment), original.GetBitCount())
+	//		//if adj <= bitLength {
+	//		expected.adjusted = cacheTestBits(adj)
+	//		//}
+	//		//this.set = set;
+	//		expected.set = cacheTestBits(prefix)
+	//	}
+	//
+	//	////ExpectedPrefixes expected = new ExpectedPrefixes(original instanceof MACAddress, original.getPrefixLength(), original.getBitCount(), original.getBitsPerSegment(), prefix, adjustment);
+	//	//if !expected.compare(adjustedPrefix, setPrefix) {
+	//	//	//if(!expected.compare(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)) {
+	//	//	t.addFailure(newSegmentSeriesFailure("expected: "+expected.adjusted.String()+" actual "+adjustedPrefix.String()+" expected: "+expected.set.String()+" actual "+setPrefix.String(), original))
+	//	//	//t.addFailure(newSegmentSeriesFailure(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)))
+	//	//}
+	//	//}
+	//	//}
+	//}
+	//}
+	//	}
+}
+
 func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	prefix, adjustment ipaddr.BitCount,
 	_, _,
@@ -205,9 +402,9 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			t.addFailure(newSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
 			break
 		}
-		if j == 1 && original.GetPrefixLen() != nil && *original.GetPrefixLen() == 0 {
-			removed = original.AdjustPrefixLen(original.GetBitCount() + 1)
-		}
+		//if j == 1 && original.GetPrefixLen() != nil && *original.GetPrefixLen() == 0 {
+		//	removed = original.AdjustPrefixLen(original.GetBitCount() + 1)
+		//}
 		if original.IsPrefixed() {
 			prefLength := *original.GetPrefixLen()
 			bitsSoFar := ipaddr.BitCount(0)
@@ -808,6 +1005,16 @@ func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expected
 	t.incrementTestCount()
 }
 
+func (t testBase) testPrefix(original ipaddr.AddressSegmentSeries, prefixLength ipaddr.PrefixLen, minPrefix ipaddr.BitCount, equivalentPrefix ipaddr.PrefixLen) {
+	if !original.GetPrefixLen().Equals(prefixLength) {
+		t.addFailure(newSegmentSeriesFailure("prefix: "+original.GetPrefixLen().String()+" expected: "+prefixLength.String(), original))
+	} else if !cacheTestBits(original.GetMinPrefixLenForBlock()).Equals(cacheTestBits(minPrefix)) {
+		t.addFailure(newSegmentSeriesFailure("min prefix: "+strconv.Itoa(int(original.GetMinPrefixLenForBlock()))+" expected: "+minPrefix.String(), original))
+	} else if !original.GetPrefixLenForSingleBlock().Equals(equivalentPrefix) {
+		t.addFailure(newSegmentSeriesFailure("equivalent prefix: "+original.GetPrefixLenForSingleBlock().String()+" expected: "+equivalentPrefix.String(), original))
+	}
+}
+
 func min(a, b ipaddr.BitCount) ipaddr.BitCount {
 	if a < b {
 		return a
@@ -958,6 +1165,36 @@ func initPrefLens() []ipaddr.PrefixLen {
 	}
 	return cachedPrefLens
 }
+
+//var px = ipaddr.PrefixX{}
+//var one ipaddr.BitCount = 1
+//var px = ipaddr.PrefixX{&one}
+
+var (
+	p0   = cacheTestBits(0)
+	p4   = cacheTestBits(4)
+	p8   = cacheTestBits(8)
+	p9   = cacheTestBits(9)
+	p11  = cacheTestBits(11)
+	p15  = cacheTestBits(15)
+	p16  = cacheTestBits(16)
+	p17  = cacheTestBits(17)
+	p23  = cacheTestBits(23)
+	p24  = cacheTestBits(24)
+	p31  = cacheTestBits(31)
+	p32  = cacheTestBits(32)
+	p48  = cacheTestBits(48)
+	p49  = cacheTestBits(49)
+	p56  = cacheTestBits(56)
+	p63  = cacheTestBits(63)
+	p64  = cacheTestBits(64)
+	p65  = cacheTestBits(65)
+	p97  = cacheTestBits(97)
+	p104 = cacheTestBits(104)
+	p112 = cacheTestBits(112)
+	p127 = cacheTestBits(127)
+	p128 = cacheTestBits(128)
+)
 
 func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
 	if i >= 0 && int(i) < len(cachedPrefixLens) {

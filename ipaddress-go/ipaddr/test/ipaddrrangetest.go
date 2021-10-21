@@ -9,10 +9,6 @@ type ipAddressRangeTester struct {
 	ipAddressTester
 }
 
-func (t ipAddressRangeTester) testStrings() {
-
-}
-
 func (t ipAddressRangeTester) run() {
 	t.testEquivalentPrefix("*.*.*.*", 0)
 	t.testEquivalentPrefix("0-127.*.*.*", 1)
@@ -70,6 +66,10 @@ func (t ipAddressRangeTester) run() {
 	t.testEquivalentMinPrefix("1:2:fffc-ffff:0-fffe:*", nil, 64)
 	t.testEquivalentMinPrefix("1:2:fffb-ffff:0-fffe:*", nil, 64)
 	t.testEquivalentMinPrefix("1:2:fffb-ffff:0-ffff:*", nil, 48)
+
+	t.testTrees()
+
+	t.testStrings()
 
 	t.testReverse("1:2:*:4:5:6:a:b", false, false)
 	t.testReverse("1:1:1:1-fffe:2:3:3:3", false, false)                                   // 0x1-0xfffe reverseBitsPerByte throws
@@ -1340,20 +1340,6 @@ func (t ipAddressRangeTester) run() {
 	t.testNormalized("*:1:*", "*:1:*:*:*:*:*:*")
 	t.testNormalized("001-002:0001-0002:01-2:1-02:01-02:*", "1-2:1-2:1-2:1-2:1-2:*:*:*")
 
-	p0 := cacheTestBits(0)
-	p4 := cacheTestBits(4)
-	p11 := cacheTestBits(11)
-	p16 := cacheTestBits(16)
-	p23 := cacheTestBits(23)
-	p24 := cacheTestBits(24)
-	p31 := cacheTestBits(31)
-	p32 := cacheTestBits(32)
-	p48 := cacheTestBits(48)
-	p63 := cacheTestBits(63)
-	p64 := cacheTestBits(64)
-	p65 := cacheTestBits(65)
-	p112 := cacheTestBits(112)
-	p128 := cacheTestBits(128)
 	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
 	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8/0", []ipaddr.BitCount{0, 16, 32, 48, 64, 80, 96, 112, 128})
 	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb/0", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0, p0, p0, p0, p0})
@@ -1826,6 +1812,23 @@ func (t ipAddressRangeTester) run() {
 		[]interface{}{[]int{0, 63}, []int{0, 0xfffff}},
 		nil, false)
 
+	t.testPrefix("25:51:27:*:*:*:*:*", nil, 48, p48)
+	t.testPrefix("25:51:27:*:*:*:*:*/48", p48, 48, p48)
+	t.testPrefix("25:50-51:27::/48", p48, 48, nil)
+	t.testPrefix("25:50-51:27:*:*:*:*:*", nil, 48, nil)
+	t.testPrefix("25:51:27:12:82:55:2:2", nil, 128, p128)
+	t.testPrefix("*:*:*:*:*:*:*:*", nil, 0, p0)
+	t.testPrefix("*:*:*:*:*:*:0-fe:*", nil, 112, nil)
+	t.testPrefix("*:*:*:*:*:*:0-ff:*", nil, 104, nil)
+	t.testPrefix("*:*:*:*:*:*:0-ffff:*", nil, 0, p0)
+	t.testPrefix("*:*:*:*:*:*:0-7fff:*", nil, 97, nil)
+	t.testPrefix("*:*:*:*:*:*:8000-ffff:*", nil, 97, nil)
+	t.testPrefix("*.*.*.*", nil, 0, p0)
+	t.testPrefix("3.*.*.*", nil, 8, p8)
+	t.testPrefix("3.*.*.1-3", nil, 32, nil)
+	t.testPrefix("3.0-127.*.*", nil, 9, p9)
+	t.testPrefix("3.128-255.*.*", nil, 9, p9)
+
 	//TODO soon
 	//testMasked("1.*.3.4", null, null, "1.*.3.4");
 	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
@@ -1878,4 +1881,258 @@ func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, 
 		//do it a second time to test the caching
 		t.iptest(pass, addr, isZero, notBoth, ipv4Test)
 	}
+}
+
+func (t ipAddressRangeTester) testPrefix(original string, prefixLength ipaddr.PrefixLen, minPrefix ipaddr.BitCount, equivalentPrefix ipaddr.PrefixLen) {
+	ipaddr := t.createAddress(original).GetAddress()
+	t.testBase.testPrefix(ipaddr, prefixLength, minPrefix, equivalentPrefix)
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testTrees() {
+
+	t.testTree("1.2.3.4", []string{
+		"1.2.3.4",
+		"1.2.3.*",
+		"1.2.*.*",
+		"1.*.*.*",
+		"*.*.*.*",
+		"*",
+	})
+
+	t.testTree("1.2.3.*", []string{
+		"1.2.3.*",
+		"1.2.*.*",
+		"1.*.*.*",
+		"*.*.*.*",
+		"*",
+	})
+
+	t.testTree("1.2.*.*", []string{
+		"1.2.*.*",
+		"1.*.*.*",
+		"*.*.*.*",
+		"*",
+	})
+
+	t.testTree("a:b:c:d:e:f:a:b", []string{
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a::/112",
+		"a:b:c:d:e:f::/96",
+		"a:b:c:d:e::/80",
+		"a:b:c:d::/64",
+		"a:b:c::/48",
+		"a:b::/32",
+		"a::/16",
+		"::/0",
+		"*",
+	})
+
+	t.testTree("1.2.3.4/28", []string{
+		"1.2.3.4/28",
+		"1.2.3.4/24",
+		"1.2.0.4/16",
+		"1.0.0.4/8",
+		"0.0.0.4/0",
+	})
+	t.testTree("1.2.3.4/17", []string{
+		"1.2.3.4/17",
+		"1.2.3.4/16",
+		"1.0.3.4/8",
+		"0.0.3.4/0",
+	})
+	t.testTree("a:b:c:d:e:f:a:b/97", []string{
+		"a:b:c:d:e:f:a:b/97",
+		"a:b:c:d:e:f:a:b/96",
+		"a:b:c:d:e::a:b/80",
+		"a:b:c:d::a:b/64",
+		"a:b:c::a:b/48",
+		"a:b::a:b/32",
+		"a::a:b/16",
+		"::a:b/0",
+	})
+	t.testTree("a:b:c:d:e:f:ffff:b/97", []string{
+		"a:b:c:d:e:f:ffff:b/97",
+		"a:b:c:d:e:f:7fff:b/96",
+		"a:b:c:d:e::7fff:b/80",
+		"a:b:c:d::7fff:b/64",
+		"a:b:c::7fff:b/48",
+		"a:b::7fff:b/32",
+		"a::7fff:b/16",
+		"::7fff:b/0",
+	})
+	t.testTree("a:b:c:d:e:f:a:b/96", []string{
+		"a:b:c:d:e:f:a:b/96",
+		"a:b:c:d:e::a:b/80",
+		"a:b:c:d::a:b/64",
+		"a:b:c::a:b/48",
+		"a:b::a:b/32",
+		"a::a:b/16",
+		"::a:b/0",
+	})
+
+	t.testTree("a:b:c:d::a:b", []string{
+		"a:b:c:d::a:b",
+		"a:b:c:d:0:0:a::/112",
+		"a:b:c:d::/96",
+		"a:b:c:d::/80",
+		"a:b:c:d::/64",
+		"a:b:c::/48",
+		"a:b::/32",
+		"a::/16",
+		"::/0",
+		"*",
+	})
+	t.testTree("::c:d:e:f:a:b", []string{
+		"::c:d:e:f:a:b",
+		"0:0:c:d:e:f:a::/112",
+		"0:0:c:d:e:f::/96",
+		"0:0:c:d:e::/80",
+		"0:0:c:d::/64",
+		"0:0:c::/48",
+		"::/32",
+		"::/16",
+		"::/0",
+		"*",
+	})
+}
+
+func (t ipAddressRangeTester) testTree(start string, parents []string) {
+
+	str := t.createAddress(start)
+	originaLabelStr := str
+	labelStr := str
+	originalPrefixed := str.IsPrefixed()
+	if !originalPrefixed {
+		address := str.GetAddress()
+		//convert 1.2.3.* to 1.2.3.*/24 which is needed by adjustPrefixBySegment
+		address = address.AssignPrefixForSingleBlock()
+		str = address.ToAddressString()
+	}
+
+	original := str
+
+	i := 0
+	var last *ipaddr.IPAddressString
+	for {
+		label := getLabel(labelStr)
+		expected := parents[i]
+		if label != expected {
+			t.addFailure(newFailure("failed expected: "+expected+" actual: "+label, str))
+			break
+		}
+		last = str
+		str = enlargeSubnetStr(str)
+		if str == nil || last == str {
+			break
+		}
+		labelStr = str
+		i++
+	}
+
+	//now do the same thing but use the IPAddress objects instead
+	labelStr = originaLabelStr
+	str = original
+	i = 0
+	for {
+		label := getLabel(labelStr)
+		expected := parents[i]
+		if label != expected {
+			t.addFailure(newFailure("failed expected: "+expected+" actual: "+label, str))
+			break
+		}
+		labelAddr := enlargeSubnet(str.GetAddress())
+		//IPAddress labelAddr = str.getAddress().adjustPrefixBySegment(false);
+		//IPAddress subnetAddr = labelAddr.toPrefixBlock(labelAddr.getNetworkPrefixLength());
+		//if(labelAddr != subnetAddr) {
+		//addFailure(new Failure("not already a subnet " + labelAddr + " expected: " + subnetAddr, labelAddr));
+		//}
+		str = labelAddr.ToAddressString()
+		labelStr = str
+		if *str.GetNetworkPrefixLen() == 0 { //when network prefix is 0, IPAddress.adjustPrefixBySegment() returns the same address
+			break
+		}
+		i++
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testStrings() {
+	//TODO
+}
+
+/*
+Integer prefix = address.getNetworkPrefixLength();
+		if(!nextSegment && prefix != null && prefix == 0 && address.isMultiple() && address.isPrefixBlock()) {
+			return new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR, validationOptions);
+		}
+
+
+zeroed is true
+*/
+
+//xxxx ok, so I find the code I have in java is jsut too convoluted for ajust by segment xxxxx
+//too many  corner cases
+//but then that leaves the question, how to express the transition from 0 prefix to all address
+//It sort of hinges on the notion of adjusting the prefix as enlarging or reducing a subnet
+//BUT that is a bit of a stretch, which I have mover away from
+//So, you could perhaps use "enlarge" or "shrink" subnet, although shrink we already have as setPrefixLenZeroed
+//Maybe increasePrefixBlockSize?  Or nothing, since it is just a AdjustPrefix along with a ToPrefixBlock?
+//Can you generalize increasePrefixBlockSize to go to '*'?  Not really.  IncreaseSubnetSize?
+//That still does not make sense since it involves expanding to IPv6.
+//	Just do your own.
+
+func enlargeSubnetStr(str *ipaddr.IPAddressString /*boolean nextSegment  false , int bitsPerSegment, /* boolean skipBitCountPrefix false */) *ipaddr.IPAddressString {
+	addr := str.GetAddress()
+	if addr == nil {
+		return nil
+	}
+	res := enlargeSubnet(addr)
+	if res == addr {
+		if !res.IsPrefixBlock() {
+			return nil
+		}
+		return ipaddr.NewIPAddressString(ipaddr.SegmentWildcardStr)
+	}
+	return res.ToAddressString()
+	//prefix := str.GetNetworkPrefixLen()
+	//	addr := str.GetAddress()
+	//	if(prefix == nil) {
+	//		return addr.SetPrefixLen(addr.GetBitCount()).ToAddressString()
+	//	}
+	//	prefLen := *prefix
+	//	if prefLen == 0 {
+	//		return ipaddr.NewIPAddressString(ipaddr.SegmentWildcardStr)
+	//	}
+	//	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
+	//	return addr.SetPrefixLen(prefLen + adjustment).ToPrefixBlock().ToAddressString()
+}
+
+func enlargeSubnet(addr *ipaddr.IPAddress /*boolean nextSegment  false , int bitsPerSegment, /* boolean skipBitCountPrefix false */) *ipaddr.IPAddress {
+	prefix := addr.GetNetworkPrefixLen()
+	if prefix == nil {
+		return addr.SetPrefixLen(addr.GetBitCount())
+	}
+	prefLen := *prefix
+	if prefLen == 0 {
+		return addr
+	}
+	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
+	addr, _ = addr.SetPrefixLenZeroed(prefLen - adjustment)
+	if addr.GetLower().IsZeroHost() {
+		//if addr.IsZeroHost() {xxxx
+		addr = addr.ToPrefixBlock()
+	}
+	return addr
+}
+
+func getLabel(addressString *ipaddr.IPAddressString) string {
+	address := addressString.GetAddress()
+	if address == nil {
+		return addressString.String()
+	}
+	if !address.IsMultiple() {
+		return address.ToPrefixLenString()
+	}
+	return address.ToSubnetString()
 }

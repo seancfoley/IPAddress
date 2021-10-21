@@ -112,14 +112,13 @@ func (t macAddressTester) run() {
 	t.testIncrement("0:0:0:0:1:ff", -0x100, "0:0:0:0:0:ff")
 	t.testIncrement("0:0:0:0:1:ff", -0x101, "0:0:0:0:0:fe")
 
-	//TODO
-	//t.testPrefixes("25:51:27:12:82:55",
-	//	16, -5,
-	//	"25:51:27:12:82:55",
-	//	"25:51:27:12:82:0",
-	//	"25:51:27:12:82:40",
-	//	"25:51:0:0:0:0",
-	//	"25:51:0:0:0:0")
+	t.testPrefixes("25:51:27:12:82:55",
+		16, -5,
+		"25:51:27:12:82:55",
+		"25:51:27:12:82:0",
+		"25:51:27:12:82:40",
+		"25:51:0:0:0:0",
+		"25:51:0:0:0:0")
 
 }
 
@@ -141,20 +140,29 @@ func (t macAddressTester) testIncrement(originalStr string, increment int64, res
 	t.testBase.testIncrement(t.createMACAddress(originalStr).GetAddress().ToAddress(), increment, addr.ToAddress())
 }
 
-//TODO
-//func (t macAddressTester) testPrefixes(original string,
-//	prefix, adjustment ipaddr.BitCount,
-//	next string,
-//	previous,
-//	adjusted,
-//	prefixSet,
-//	prefixApplied string) {
-//	t.testBase.testPrefixes(t.createMACAddress(original).GetAddress().Wrap(),
-//		prefix, adjustment,
-//		t.createMACAddress(next).GetAddress().Wrap(),
-//		t.createMACAddress(previous).GetAddress().Wrap(),
-//		t.createMACAddress(adjusted).GetAddress().Wrap(),
-//		t.createMACAddress(prefixSet).GetAddress().Wrap(),
-//		t.createMACAddress(prefixApplied).GetAddress().Wrap())
-//	t.incrementTestCount()
-//}
+func (t macAddressTester) testPrefix(original string, prefixLength, equivalentPrefix ipaddr.PrefixLen) {
+	mac := t.createMACAddress(original).GetAddress()
+	var bc = mac.GetBitCount()
+	if prefixLength != nil {
+		bc = *prefixLength
+	}
+	t.testBase.testPrefix(mac, prefixLength, bc, equivalentPrefix)
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testPrefixes(original string,
+	prefix, adjustment ipaddr.BitCount,
+	next string,
+	previous,
+	adjusted,
+	prefixSet,
+	prefixApplied string) {
+	t.testBase.testSegmentSeriesPrefixes(t.createMACAddress(original).GetAddress().Wrap(),
+		prefix, adjustment,
+		t.createMACAddress(next).GetAddress().Wrap(),
+		t.createMACAddress(previous).GetAddress().Wrap(),
+		t.createMACAddress(adjusted).GetAddress().Wrap(),
+		t.createMACAddress(prefixSet).GetAddress().Wrap(),
+		t.createMACAddress(prefixApplied).GetAddress().Wrap())
+	t.incrementTestCount()
+}
