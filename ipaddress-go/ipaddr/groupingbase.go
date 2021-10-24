@@ -366,7 +366,7 @@ func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
 type mixedCache struct {
 	defaultMixedAddressSection *IPv6v4MixedAddressGrouping
 	embeddedIPv4Section        *IPv4AddressSection
-	embeddedIPv6Section        *IPv6AddressSection
+	embeddedIPv6Section        *EmbeddedIPv6AddressSection
 }
 
 type valueCache struct {

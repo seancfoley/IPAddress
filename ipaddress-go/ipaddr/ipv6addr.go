@@ -6,20 +6,21 @@ import (
 )
 
 const (
-	IPv6SegmentSeparator                    = ':'
-	IPv6ZoneSeparator                       = '%'
-	IPv6AlternativeZoneSeparator            = '\u00a7'
-	IPv6BitsPerSegment             BitCount = 16
-	IPv6BytesPerSegment                     = 2
-	IPv6SegmentCount                        = 8
-	IPv6MixedReplacedSegmentCount           = 2
-	IPv6MixedOriginalSegmentCount           = 6
-	IPv6ByteCount                           = 16
-	IPv6BitCount                   BitCount = 128
-	IPv6DefaultTextualRadix                 = 16
-	IPv6MaxValuePerSegment                  = 0xffff
-	IPv6ReverseDnsSuffix                    = ".ip6.arpa"
-	IPv6ReverseDnsSuffixDeprecated          = ".ip6.int"
+	IPv6SegmentSeparator                     = ':'
+	IPv6ZoneSeparator                        = '%'
+	IPv6AlternativeZoneSeparator             = '\u00a7'
+	IPv6AlternativeZoneSeparatorStr          = string(IPv6AlternativeZoneSeparator)
+	IPv6BitsPerSegment              BitCount = 16
+	IPv6BytesPerSegment                      = 2
+	IPv6SegmentCount                         = 8
+	IPv6MixedReplacedSegmentCount            = 2
+	IPv6MixedOriginalSegmentCount            = 6
+	IPv6ByteCount                            = 16
+	IPv6BitCount                    BitCount = 128
+	IPv6DefaultTextualRadix                  = 16
+	IPv6MaxValuePerSegment                   = 0xffff
+	IPv6ReverseDnsSuffix                     = ".ip6.arpa"
+	IPv6ReverseDnsSuffixDeprecated           = ".ip6.int"
 
 	IPv6UncSegmentSeparator  = '-'
 	IPv6UncZoneSeparator     = 's'
@@ -31,6 +32,8 @@ const (
 	IPv6SegmentBitsPerChar BitCount = 4
 
 	ipv6BitsToSegmentBitshift = 4
+
+	IPv6AlternativeRangeSeparatorStr = AlternativeRangeSeparatorStr
 )
 
 type Zone string
@@ -59,10 +62,14 @@ func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueErro
 func newIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address {
 	zoneVal := Zone(zone)
 	result := createAddress(section.ToAddressSection(), zoneVal).ToIPv6Address()
-	if zoneVal != NoZone { // will need to cache its own strings
-		result.cache.stringCache = &stringCache{}
-	}
+	assignIPv6Cache(zoneVal, result.cache)
 	return result
+}
+
+func assignIPv6Cache(zoneVal Zone, cache *addressCache) {
+	if zoneVal != NoZone { // will need to cache its own strings
+		cache.stringCache = &stringCache{ipv6StringCache: &ipv6StringCache{}, ipStringCache: &ipStringCache{}}
+	}
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address, AddressValueError) {
@@ -96,6 +103,7 @@ func newIPv6AddressFromZonedIP(bytes net.IP, zone string) (addr *IPv6Address, er
 	addr, err = NewIPv6AddressFromIP(bytes)
 	if err == nil {
 		addr.zone = Zone(zone)
+		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
 }
@@ -108,6 +116,7 @@ func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (
 	addr, err = NewIPv6AddressFromPrefixedIP(ipAddr.IP, prefixLen)
 	if err == nil {
 		addr.zone = Zone(ipAddr.Zone)
+		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
 }
@@ -134,6 +143,7 @@ func NewIPv6AddressFromZonedBigInt(val *big.Int, zone string) (addr *IPv6Address
 	addr, err = NewIPv6AddressFromBigInt(val)
 	if err == nil {
 		addr.zone = Zone(zone)
+		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
 	//return newIPv6AddressFromZonedIP(val.Bytes(), zone)
@@ -143,6 +153,7 @@ func NewIPv6AddressFromPrefixedZonedBigInt(val *big.Int, prefixLength PrefixLen,
 	addr, err = NewIPv6AddressFromPrefixedBigInt(val, prefixLength)
 	if err == nil {
 		addr.zone = Zone(zone)
+		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
 	//return NewIPv6AddressFromPrefixedIPAddr(&net.IPAddr{IP: val.Bytes(), Zone: zone}, prefixLength)
@@ -268,7 +279,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 	prefixSection.copySubSegmentsToSlice(0, 4, segments)
 	res := createIPv6Section(segments)
 	res.isMultiple = suffix.IsMultiple() || prefixSection.isMultipleTo(4)
-	return newIPv6AddressZoned(res, string(zone)), nil
+	return newIPv6AddressZoned(res, zone), nil
 }
 
 // NewIPv6AddressFromMACSection constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address section and an IPv6 address section network prefix.

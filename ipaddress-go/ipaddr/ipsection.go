@@ -1283,12 +1283,65 @@ func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string
 }
 
 func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, IncompatibleAddressError) {
+	var opts StringOptions
 	if with0Prefix {
-		return section.toLongStringZoned(zone, octalPrefixedParams)
+		opts = octalPrefixedParams
+	} else {
+		opts = octalParams
 	}
-	return section.toLongStringZoned(zone, octalParams)
+	if isDual, err := section.isDualString(); err != nil {
+		return "", err
+	} else if isDual {
+		lowerDivs := section.getLower().createNewDivisions(3)
+		upperDivs := section.getUpper().createNewDivisions(3)
+		lowerPart := createInitializedGrouping(lowerDivs, nil, zeroType)
+		upperPart := createInitializedGrouping(upperDivs, nil, zeroType)
+		//sect := section.toAddressSection()
+		//return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+		return toNormalizedStringRange(toZonedParams(opts), lowerPart, upperPart, zone), nil
+	}
+	divs := section.createNewDivisions(3)
+	part := createInitializedGrouping(divs, nil, zeroType)
+	return toZonedParams(opts).toZonedString(part, zone), nil
+	// see createInitializedGrouping
+	//func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
+	//return section.ToCustomString(params), nil
+
+	//	if with0Prefix {
+	//		xxx
+	//		//TODO xxxxx cannot use toLongStringZoned, see protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException { xxx
+	//		return section.toLongStringZoned(zone, octalPrefixedParams)
+	//	}
+	//	return section.toLongStringZoned(zone, octalParams)
 }
 
+/*
+protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
+		if(isDualString()) {
+			IPAddressSection lower = getLower();
+			IPAddressSection upper = getUpper();
+			IPAddressBitsDivision lowerDivs[] = lower.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+			IPAddressStringDivisionSeries lowerPart = new IPAddressDivisionGrouping(lowerDivs, getNetwork());
+			IPAddressBitsDivision upperDivs[] = upper.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+			IPAddressStringDivisionSeries upperPart = new IPAddressDivisionGrouping(upperDivs, getNetwork());
+			return toNormalizedStringRange(toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams), lowerPart, upperPart, zone);
+		}
+		IPAddressBitsDivision divs[] = createNewPrefixedDivisions(3, null, null, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs, getNetwork());
+		return toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams).toZonedString(part, zone);
+	}
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
+	isDual, err := section.isDualString()
+	if err != nil {
+		return "", err
+	}
+	if isDual {
+		sect := section.toAddressSection()
+		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+	}
+	return section.ToCustomString(params), nil
+}
+*/
 func (section *ipAddressSectionInternal) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
 	cache := section.getStringCache()
 	if cache == nil {

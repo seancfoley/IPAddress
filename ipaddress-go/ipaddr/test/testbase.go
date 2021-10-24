@@ -23,14 +23,16 @@ func Test() {
 	startTime := time.Now()
 
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
-	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	tester.run()
+
+	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	macTester.run()
 
 	rangedAddresses := rangedAddresses{addresses}
 	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
-	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	rangeTester.run()
+
+	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	macRangeTester.run()
 
 	allAddresses := allAddresses{rangedAddresses}
@@ -1013,6 +1015,543 @@ func (t testBase) testPrefix(original ipaddr.AddressSegmentSeries, prefixLength 
 	} else if !original.GetPrefixLenForSingleBlock().Equals(equivalentPrefix) {
 		t.addFailure(newSegmentSeriesFailure("equivalent prefix: "+original.GetPrefixLenForSingleBlock().String()+" expected: "+equivalentPrefix.String(), original))
 	}
+}
+
+func (t testBase) testIPv6Strings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPAddress,
+	normalizedString,
+	normalizedWildcardString,
+	canonicalWildcardString,
+	sqlString,
+	fullString,
+	compressedString,
+	canonicalString,
+	subnetString,
+	compressedWildcardString,
+	mixedStringNoCompressMixed,
+	mixedStringNoCompressHost,
+	mixedStringCompressCoveredHost,
+	mixedString,
+	reverseDNSString,
+	uncHostString,
+	base85String,
+	singleHex,
+	singleOctal string) {
+
+	t.testStrings(w, ipAddr, normalizedString, normalizedWildcardString, canonicalWildcardString, sqlString, fullString, compressedString, canonicalString, subnetString, subnetString, compressedWildcardString, reverseDNSString, uncHostString, singleHex, singleOctal)
+
+	//now test some IPv6-only strings
+	t.testIPv6OnlyStrings(w, ipAddr.ToIPv6Address(), mixedStringNoCompressMixed,
+		mixedStringNoCompressHost, mixedStringCompressCoveredHost, mixedString, base85String)
+}
+
+func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPv6Address,
+	mixedStringNoCompressMixed,
+	mixedStringNoCompressHost,
+	mixedStringCompressCoveredHost,
+	mixedString,
+	base85String string) {
+
+	//try {
+	base85 := ""
+	//try { TODO LATER base85
+	//	base85 = ipAddr.toBase85String();
+	//	boolean b85Match = base85.equals(base85String);
+	//	if(!b85Match) {
+	//		addFailure(new Failure("failed expected: " + base85String + " actual: " + base85, w));
+	//	}
+	//} catch(IncompatibleAddressException e) {
+	//	boolean isMatch = base85String == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected non-null, actual: " + e, w));
+	//	}
+	//}
+
+	m, _ := ipAddr.ToMixedString()
+
+	compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.COVERED_BY_HOST)
+	mixedParams := new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	mixedCompressCoveredHost, _ := ipAddr.ToCustomString(mixedParams)
+
+	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.NO_HOST)
+	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	mixedNoCompressHost, _ := ipAddr.ToCustomString(mixedParams)
+
+	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.NO_MIXED_COMPRESSION)
+	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	mixedNoCompressMixed, _ := ipAddr.ToCustomString(mixedParams)
+
+	t.confirmAddrStrings(ipAddr.ToIPAddress(), m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85)
+
+	nMatch := m == (mixedString)
+	if !nMatch {
+		t.addFailure(newFailure("failed expected: "+mixedString+" actual: "+m, w))
+	} else {
+		mccMatch := mixedCompressCoveredHost == (mixedStringCompressCoveredHost)
+		if !mccMatch {
+			t.addFailure(newFailure("failed expected: "+mixedStringCompressCoveredHost+" actual: "+mixedCompressCoveredHost, w))
+		} else {
+			msMatch := mixedNoCompressHost == (mixedStringNoCompressHost)
+			if !msMatch {
+				t.addFailure(newFailure("failed expected: "+mixedStringNoCompressHost+" actual: "+mixedNoCompressHost, w))
+			} else {
+				mncmMatch := mixedNoCompressMixed == (mixedStringNoCompressMixed)
+				if !mncmMatch {
+					t.addFailure(newFailure("failed expected: "+mixedStringNoCompressMixed+" actual: "+mixedNoCompressMixed, w))
+				}
+			}
+		}
+	}
+	//} catch(IncompatibleAddressException e) {
+	//	addFailure(new Failure("unexpected throw " + e.toString()));
+	//}
+	t.incrementTestCount()
+}
+
+func (t testBase) confirmMACAddrStrings(macAddr *ipaddr.MACAddress, strs ...string) bool {
+	for _, str := range strs {
+		addrString := ipaddr.NewMACAddressString(str)
+		addr := addrString.GetAddress()
+		if !macAddr.Equals(addr) {
+			t.addFailure(newSegmentSeriesFailure("failed produced string: "+str, macAddr))
+			return false
+		}
+	}
+	t.incrementTestCount()
+	return true
+}
+
+//private static final IPAddressStringParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
+
+func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) bool {
+	for _, str := range strs {
+		if str == "" {
+			continue
+		}
+
+		addrString := t.createParamsAddress(str, defaultOptions)
+		addr := addrString.GetAddress()
+		if !ipAddr.Equals(addr) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
+			//fmt.Println("failed: " + str)
+			//fmt.Println(fmt.Sprintf("original: "+ipAddr.String()+" others: %v", strs))
+			//t.confirmAddrStrings(ipAddr, strs...)
+			//addrString = createAddress(str, DEFAULT_BASIC_VALIDATION_OPTIONS);
+			//addrString.GetAddress();
+			return false
+		}
+	}
+	t.incrementTestCount()
+	return true
+}
+
+func (t testBase) confirmIPAddrStrings(ipAddr *ipaddr.IPAddress, strs ...*ipaddr.IPAddressString) bool {
+	for _, str := range strs {
+		addr := str.GetAddress()
+		if !ipAddr.Equals(addr) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
+			return false
+		}
+	}
+	t.incrementTestCount()
+	return true
+}
+
+func (t testBase) confirmHostStrings(ipAddr *ipaddr.IPAddress, omitZone bool, strs ...string) bool {
+	for _, str := range strs {
+		hostName := ipaddr.NewHostName(str)
+		a := hostName.GetAddress()
+		if omitZone {
+			ipv6Addr := ipAddr.ToIPv6Address()
+			ipv6Addr, _ = ipaddr.NewIPv6Address(ipv6Addr.GetSection())
+			ipAddr = ipv6Addr.ToIPAddress()
+		}
+		if !ipAddr.Equals(a) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
+			return false
+		}
+		again := hostName.ToNormalizedString()
+		hostName = ipaddr.NewHostName(again)
+		a = hostName.GetAddress()
+		if !ipAddr.Equals(a) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
+			return false
+		}
+	}
+	t.incrementTestCount()
+	return true
+}
+
+func (t testBase) confirmHostNameStrings(ipAddr *ipaddr.IPAddress, strs ...*ipaddr.HostName) bool {
+	for _, str := range strs {
+		a := str.GetAddress()
+		if !ipAddr.Equals(a) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
+			return false
+		}
+		again := str.ToNormalizedString()
+		str = ipaddr.NewHostName(again)
+		a = str.GetAddress()
+		if !ipAddr.Equals(a) {
+			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
+			return false
+		}
+	}
+	t.incrementTestCount()
+	return true
+}
+
+func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
+	ipAddr *ipaddr.MACAddress,
+	normalizedString, //toColonDelimitedString
+	compressedString,
+	canonicalString, //toDashedString
+	dottedString,
+	spaceDelimitedString,
+	singleHex string) {
+	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
+	c := ipAddr.ToCompressedString()
+	canonical := ipAddr.ToCanonicalString()
+	d := ipAddr.ToDashedString()
+	n := ipAddr.ToNormalizedString()
+	cd := ipAddr.ToColonDelimitedString()
+	sd := ipAddr.ToSpaceDelimitedString()
+
+	var hex, hexNoPrefix string
+	var err error
+	//try {
+	hex, err = ipAddr.ToHexString(true)
+	if err != nil {
+		isMatch := singleHex == ""
+		if !isMatch {
+			t.addFailure(newMACFailure("failed expected: "+singleHex+" actual: "+err.Error(), w))
+		}
+	} else {
+		t.confirmMACAddrStrings(ipAddr, hex)
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleHex == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
+	//	}
+	//}
+	//try {
+	hexNoPrefix, err = ipAddr.ToHexString(false)
+	if err != nil {
+		isMatch := singleHex == ""
+		if !isMatch {
+			t.addFailure(newMACFailure("failed expected non-null, actual: "+err.Error(), w))
+		}
+	} else {
+
+		isMatch := singleHex == (hexNoPrefix)
+		if !isMatch {
+			t.addFailure(newMACFailure("failed expected: "+singleHex+" actual: "+hexNoPrefix, w))
+		}
+		t.confirmMACAddrStrings(ipAddr, hexNoPrefix) //For ipv4, no 0x means decimal
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleHex == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected non-null, actual: " + e, w));
+	//	}
+	//}
+
+	t.confirmMACAddrStrings(ipAddr, c, canonical, d, n, cd, sd)
+
+	nMatch := normalizedString == (n)
+	if !nMatch {
+		t.addFailure(newMACFailure("failed expected: "+normalizedString+" actual: "+n, w))
+	} else {
+		nwMatch := normalizedString == (cd)
+		if !nwMatch {
+			t.addFailure(newMACFailure("failed expected: "+normalizedString+" actual: "+cd, w))
+		} else {
+			cawMatch := spaceDelimitedString == (sd)
+			if !cawMatch {
+				t.addFailure(newMACFailure("failed expected: "+spaceDelimitedString+" actual: "+sd, w))
+			} else {
+				cMatch := compressedString == (c)
+				if !cMatch {
+					t.addFailure(newMACFailure("failed expected: "+compressedString+" actual: "+c, w))
+				} else {
+					var sMatch bool
+					var dotted string
+					//try {
+					dotted, err = ipAddr.ToDottedString()
+					if err != nil {
+						sMatch = (dottedString == "")
+					} else {
+						t.confirmMACAddrStrings(ipAddr, dotted)
+						sMatch = dotted == (dottedString)
+					}
+					//} catch(IncompatibleAddressException e) {
+					//	sMatch = (dottedString == null);
+					//}
+					if !sMatch {
+						t.addFailure(newMACFailure("failed expected: "+dottedString+" actual: "+dotted, w))
+					} else {
+						dashedMatch := canonicalString == (d)
+						if !dashedMatch {
+							t.addFailure(newMACFailure("failed expected: "+canonicalString+" actual: "+d, w))
+						} else {
+							canonicalMatch := canonicalString == (canonical)
+							if !canonicalMatch {
+								t.addFailure(newMACFailure("failed expected: "+canonicalString+" actual: "+canonical, w))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t testBase) testHostAddress(addressStr string) {
+	str := t.createAddress(addressStr)
+	address := str.GetAddress()
+	if address != nil {
+		hostAddress := str.GetHostAddress()
+		prefixIndex := strings.IndexByte(addressStr, ipaddr.PrefixLenSeparator)
+		if prefixIndex < 0 {
+			if !address.Equals(hostAddress) || !address.Contains(hostAddress) {
+				t.addFailure(newFailure("failed host address with no prefix: "+hostAddress.String()+" expected: "+address.String(), str))
+			}
+		} else {
+			substr := addressStr[:prefixIndex]
+			str2 := t.createAddress(substr)
+			address2 := str2.GetAddress()
+			if !address2.Equals(hostAddress) {
+				t.addFailure(newFailure("failed host address: "+hostAddress.String()+" expected: "+address2.String(), str))
+			}
+		}
+	}
+}
+
+func (t testBase) testStrings(w *ipaddr.IPAddressString,
+	ipAddr *ipaddr.IPAddress,
+	normalizedString,
+	normalizedWildcardString,
+	canonicalWildcardString,
+	sqlString,
+	fullString,
+	compressedString,
+	canonicalString,
+	subnetString,
+	cidrString,
+	compressedWildcardString,
+	reverseDNSString,
+	uncHostString,
+	singleHex,
+	singleOctal string) {
+	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
+	//try {
+	t.testHostAddress(w.String())
+
+	c := ipAddr.ToCompressedString()
+	canonical := ipAddr.ToCanonicalString()
+	s := ipAddr.ToSubnetString()
+	cidr := ipAddr.ToPrefixLenString()
+	n := ipAddr.ToNormalizedString()
+	nw := ipAddr.ToNormalizedWildcardString()
+	caw := ipAddr.ToCanonicalWildcardString()
+	cw := ipAddr.ToCompressedWildcardString()
+	sql := ipAddr.ToSQLWildcardString()
+	full := ipAddr.ToFullString()
+	//rDNS := ipAddr.ToReverseDNSLookupString(); //TODO LATER reinstate
+	//unc := ipAddr.ToUNCHostName();
+
+	var hex, hexNoPrefix, octal string
+	var err error
+	//try {
+	hex, err = ipAddr.ToHexString(true)
+	if err != nil {
+		isMatch := singleHex == ""
+		if !isMatch {
+			t.addFailure(newFailure("failed expected: "+singleHex+" actual: "+err.Error(), w))
+		}
+	} else {
+		isMatch := singleHex == hex
+		if !isMatch {
+			t.addFailure(newFailure("failed expected: "+singleHex+" actual: "+hex, w))
+		}
+		t.confirmAddrStrings(ipAddr, hex)
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleHex == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
+	//	}
+	//}
+	//try {
+	hexNoPrefix, err = ipAddr.ToHexString(false)
+	if err != nil {
+		isMatch := singleHex == ""
+		if !isMatch {
+			t.addFailure(newFailure("failed expected: "+singleHex+" actual: "+err.Error(), w))
+		}
+	} else {
+		if ipAddr.IsIPv6() {
+			t.confirmAddrStrings(ipAddr, hexNoPrefix) //For ipv4, no 0x means decimal
+		}
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleHex == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected non-null, actual: " + e, w));
+	//	}
+	//}
+	//try {
+	octal, err = ipAddr.ToOctalString(true)
+	if err != nil {
+		isMatch := singleOctal == ""
+		if !isMatch {
+			t.addFailure(newFailure("failed expected: "+singleOctal+" actual: "+err.Error(), w))
+		}
+	} else {
+		isMatch := singleOctal == (octal)
+		if !isMatch {
+			t.addFailure(newFailure("failed expected: "+singleOctal+" actual: "+octal, w))
+		}
+		if ipAddr.IsIPv4() {
+			t.confirmAddrStrings(ipAddr, octal)
+		}
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleOctal == null;
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected: " + singleOctal + " actual: " + e, w));
+	//	}
+	//}
+
+	//try {
+	binary, err := ipAddr.ToBinaryString(false)
+	if err != nil {
+		isMatch := singleHex == "" //iff hex is null is binary null
+		if !isMatch {
+			t.addFailure(newFailure("failed expected non-null binary string but got: "+err.Error(), w))
+		}
+	} else {
+		for i := 0; i < len(binary); i++ {
+			c2 := binary[i]
+			if c2 == '%' || c2 == '/' { //in most cases we handle prefixed strings by printing the whole address as a range.
+				//however, for prefixed non-multiple addresses we still have the prefix
+				next := strings.IndexByte(binary[i+1:], '-')
+				if next >= 0 {
+					i = next + 1
+				} else {
+					if c2 == '/' && len(binary)-i > 4 {
+						t.addFailure(newFailure("failed binary prefix: "+binary, w))
+					}
+					break
+				}
+			}
+			if c2 != '0' && c2 != '1' && c2 != '-' {
+				t.addFailure(newFailure("failed expected non-null binary string but got: "+binary, w))
+				break
+			}
+		}
+
+		var withStrPrefix string
+
+		next := strings.IndexByte(binary, '-')
+		if next >= 0 {
+			withStrPrefix = ipaddr.BinaryPrefix + binary[:next+1] + ipaddr.BinaryPrefix + binary[next+1:]
+		} else {
+			withStrPrefix = ipaddr.BinaryPrefix + binary
+		}
+		t.confirmAddrStrings(ipAddr, withStrPrefix)
+	}
+	//} catch(IncompatibleAddressException | IllegalStateException e) {
+	//	boolean isMatch = singleHex == null;//iff hex is null is binary null
+	//	if(!isMatch) {
+	//		addFailure(new Failure("failed expected non-null binary string but got: " + e, w));
+	//	}
+	//}
+	binary = ipAddr.ToSegmentedBinaryString()
+	t.confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw, binary)
+	if ipAddr.IsIPv6() {
+		t.confirmAddrStrings(ipAddr, full)
+		//t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses //TODO LATER reinstate
+		//t.confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
+	} else {
+		params := new(ipaddr.IPAddressStringParametersBuilder).Allow_inet_aton(false).ToParams()
+		fullAddrString := ipaddr.NewIPAddressStringParams(full, params)
+		t.confirmIPAddrStrings(ipAddr, fullAddrString)
+		//t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses //TODO LATER reinstate
+	}
+	t.confirmHostStrings(ipAddr, false, c, canonical, s, cidr, n, nw, caw, cw)
+	if ipAddr.IsIPv6() {
+		t.confirmHostStrings(ipAddr, false, full)
+	} else {
+		params := new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
+		fullAddrString := ipaddr.NewHostNameParams(full, params)
+		t.confirmHostNameStrings(ipAddr, fullAddrString)
+	}
+
+	nMatch := normalizedString == (n)
+	if !nMatch {
+		t.addFailure(newFailure("failed expected: "+normalizedString+" actual: "+n, w))
+	} else {
+		nwMatch := normalizedWildcardString == (nw)
+		if !nwMatch {
+			t.addFailure(newFailure("failed expected: "+normalizedWildcardString+" actual: "+nw, w))
+		} else {
+			cawMatch := canonicalWildcardString == (caw)
+			if !cawMatch {
+				t.addFailure(newFailure("failed expected: "+canonicalWildcardString+" actual: "+caw, w))
+			} else {
+				cMatch := compressedString == (c)
+				if !cMatch {
+					t.addFailure(newFailure("failed expected: "+compressedString+" actual: "+c, w))
+				} else {
+					sMatch := subnetString == (s)
+					if !sMatch {
+						t.addFailure(newFailure("failed expected: "+subnetString+" actual: "+s, w))
+					} else {
+						cwMatch := compressedWildcardString == (cw)
+						if !cwMatch {
+							t.addFailure(newFailure("failed expected: "+compressedWildcardString+" actual: "+cw, w))
+						} else {
+							wMatch := sqlString == (sql)
+							if !wMatch {
+								t.addFailure(newFailure("failed expected: "+sqlString+" actual: "+sql, w))
+							} else {
+								cidrMatch := cidrString == (cidr)
+								if !cidrMatch {
+									t.addFailure(newFailure("failed expected: "+cidrString+" actual: "+cidr, w))
+								} else {
+									canonicalMatch := canonicalString == (canonical)
+									if !canonicalMatch {
+										t.addFailure(newFailure("failed expected: "+canonicalString+" actual: "+canonical, w))
+									} else {
+										fullMatch := fullString == (full)
+										if !fullMatch {
+											t.addFailure(newFailure("failed expected: "+fullString+" actual: "+full, w))
+										} else {
+											// rdnsMatch := reverseDNSString==rDNS // TODO LATER reinstate
+											//if(!rdnsMatch) {
+											//	t.addFailure(newFailure("failed expected: " + reverseDNSString + " actual: " + rDNS, w));
+											//} else {
+											//	 uncMatch := uncHostString==unc
+											//	if(!uncMatch) {
+											//		t.addFailure(newFailure("failed expected: " + uncHostString + " actual: " + unc, w));
+											//	}
+											//}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure("unexpected throw: " + e));
+	//}
+	t.incrementTestCount()
 }
 
 func min(a, b ipaddr.BitCount) ipaddr.BitCount {

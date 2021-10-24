@@ -120,6 +120,8 @@ func (t macAddressTester) run() {
 		"25:51:0:0:0:0",
 		"25:51:0:0:0:0")
 
+	t.testStrings()
+
 }
 
 func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
@@ -165,4 +167,75 @@ func (t macAddressTester) testPrefixes(original string,
 		t.createMACAddress(prefixSet).GetAddress().Wrap(),
 		t.createMACAddress(prefixApplied).GetAddress().Wrap())
 	t.incrementTestCount()
+}
+
+func (t macAddressTester) testMACStrings(addr,
+	normalizedString, //toColonDelimitedString
+	compressedString,
+	canonicalString, //toDashedString
+	dottedString,
+	spaceDelimitedString,
+	singleHex string) {
+	w := t.createMACAddress(addr)
+	ipAddr := w.GetAddress()
+	t.testBase.testMACStrings(w, ipAddr, normalizedString, compressedString, canonicalString, dottedString, spaceDelimitedString, singleHex)
+}
+
+func (t macAddressTester) testStrings() {
+
+	t.testMACStrings("a:b:c:d:e:f:a:b",
+		"0a:0b:0c:0d:0e:0f:0a:0b", //normalizedString, //toColonDelimitedString
+		"a:b:c:d:e:f:a:b",         //compressedString,
+		"0a-0b-0c-0d-0e-0f-0a-0b", //canonicalString, //toDashedString
+		"0a0b.0c0d.0e0f.0a0b",     //dottedString,
+		"0a 0b 0c 0d 0e 0f 0a 0b", //spaceDelimitedString,
+		"0a0b0c0d0e0f0a0b")        //singleHex
+
+	t.testMACStrings("ab:ab:bc:cd:De:ef",
+		"ab:ab:bc:cd:de:ef", //normalizedString, //toColonDelimitedString
+		"ab:ab:bc:cd:de:ef", //compressedString,
+		"ab-ab-bc-cd-de-ef", //canonicalString, //toDashedString
+		"abab.bccd.deef",    //dottedString,
+		"ab ab bc cd de ef", //spaceDelimitedString,
+		"ababbccddeef")      //singleHex
+
+	t.testMACStrings("ab:AB:bc:cd:de:ef:aB:aB",
+		"ab:ab:bc:cd:de:ef:ab:ab", //normalizedString, //toColonDelimitedString
+		"ab:ab:bc:cd:de:ef:ab:ab", //compressedString,
+		"ab-ab-bc-cd-de-ef-ab-ab", //canonicalString, //toDashedString
+		"abab.bccd.deef.abab",     //dottedString,
+		"ab ab bc cd de ef ab ab", //spaceDelimitedString,
+		"ababbccddeefabab")        //singleHex
+
+	t.testMACStrings("a:b:c:d:0:0",
+		"0a:0b:0c:0d:00:00", //normalizedString, //toColonDelimitedString
+		"a:b:c:d:0:0",       //compressedString,
+		"0a-0b-0c-0d-00-00", //canonicalString, //toDashedString
+		"0a0b.0c0d.0000",    //dottedString,
+		"0a 0b 0c 0d 00 00", //spaceDelimitedString,
+		"0a0b0c0d0000")      //singleHex
+
+	t.testMACStrings("ff:00:10:01:10:11",
+		"ff:00:10:01:10:11", //normalizedString, //toColonDelimitedString
+		"ff:0:10:1:10:11",   //compressedString,
+		"ff-00-10-01-10-11", //canonicalString, //toDashedString
+		"ff00.1001.1011",    //dottedString,
+		"ff 00 10 01 10 11", //spaceDelimitedString,
+		"ff0010011011")      //singleHex
+
+	t.testMACStrings("0aa0bbb00cff",
+		"0a:a0:bb:b0:0c:ff",
+		"a:a0:bb:b0:c:ff",
+		"0a-a0-bb-b0-0c-ff",
+		"0aa0.bbb0.0cff",
+		"0a a0 bb b0 0c ff",
+		"0aa0bbb00cff")
+
+	t.testMACStrings("0aa0bb-b00cff",
+		"0a:a0:bb:b0:0c:ff",
+		"a:a0:bb:b0:c:ff",
+		"0a-a0-bb-b0-0c-ff",
+		"0aa0.bbb0.0cff",
+		"0a a0 bb b0 0c ff",
+		"0aa0bbb00cff")
 }

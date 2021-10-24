@@ -866,6 +866,7 @@ func (addr *IPAddress) Equals(other AddressType) bool {
 	//if addr == nil { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	return other.ToAddress() == nil
 	//}
+	// return other != nil && other.ToAddress() != nil or put this inside the equals call
 	return addr.init().equals(other)
 }
 

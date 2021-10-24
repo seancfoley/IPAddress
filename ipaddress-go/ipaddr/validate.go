@@ -974,9 +974,10 @@ func validateAddress(
 				isSpace = false
 			} else {
 				isRangeChar = currentChar == RangeSeparator
-				if isRangeChar || (isMac && (currentChar == MACDashSegmentSeparator)) {
+				if isRangeChar || (isMac && (currentChar == MacDashedSegmentRangeSeparator)) {
 					isSpace = false
 					isDashedRangeChar = !isRangeChar
+
 					/*
 					 There are 3 cases here, A, B and C.
 					 A - we have two MAC segments a-b-

@@ -1002,28 +1002,41 @@ func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
 	return digs
 }
 
-func getDigitCount(maxValue uint64, bitCount BitCount, radix int) int {
+func getDigitCount(value uint64, bitCount BitCount, radix int) int {
 	result := 1
 	if radix == 16 {
-		return int(bitCount >> 2)
+		for {
+			value >>= 4
+			if value == 0 {
+				break
+			}
+			result++
+		}
 	} else {
 		if radix == 10 {
-			if maxValue < 10 {
+			if value < 10 {
 				return 1
-			} else if maxValue < 100 {
+			} else if value < 100 {
 				return 2
-			} else if maxValue < 1000 {
+			} else if value < 1000 {
 				return 3
 			}
-			maxValue /= 1000
+			value /= 1000
 			result = 3 //we start with 3 in the loop below
 		} else if radix == 8 {
-			return int(bitCount / 3)
+			for {
+				value >>= 3
+				if value == 0 {
+					break
+				}
+				result++
+			}
+			return result
 		}
 		rad64 := uint64(radix)
 		for {
-			maxValue /= rad64
-			if maxValue == 0 {
+			value /= rad64
+			if value == 0 {
 				break
 			}
 			result++
@@ -1031,3 +1044,33 @@ func getDigitCount(maxValue uint64, bitCount BitCount, radix int) int {
 	}
 	return result
 }
+
+//func getDigitCount(maxValue uint64, bitCount BitCount, radix int) int {
+//	result := 1
+//	if radix == 16 {
+//		return int(bitCount >> 2)
+//	} else {
+//		if radix == 10 {
+//			if maxValue < 10 {
+//				return 1
+//			} else if maxValue < 100 {
+//				return 2
+//			} else if maxValue < 1000 {
+//				return 3
+//			}
+//			maxValue /= 1000
+//			result = 3 //we start with 3 in the loop below
+//		} else if radix == 8 {
+//			return int(bitCount / 3)
+//		}
+//		rad64 := uint64(radix)
+//		for {
+//			maxValue /= rad64
+//			if maxValue == 0 {
+//				break
+//			}
+//			result++
+//		}
+//	}
+//	return result
+//}

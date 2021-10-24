@@ -32,7 +32,7 @@ import (
 // Note: For IPv6, translation from options to params is more complicated and requires the section, so it's done in IPv6AddressSection methods
 
 func toNormalizedIPZonedString(opts IPStringOptions, section AddressDivisionSeries, zone Zone) string {
-	return toIPParams(opts).toZonedString(section, zone)
+	return toZonedIPParams(opts).toZonedString(section, zone)
 }
 
 func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) string {
@@ -40,11 +40,21 @@ func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) s
 }
 
 func toNormalizedZonedString(opts StringOptions, section AddressDivisionSeries, zone Zone) string {
-	return toParams(opts).toZonedString(section, zone)
+	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
+	parms := toParams(opts)
+	parms.zoneSeparator = IPv6ZoneSeparator
+	return toZonedParams(opts).toZonedString(section, zone)
 }
 
 func toNormalizedString(opts StringOptions, section AddressDivisionSeries) string {
 	return toParams(opts).toString(section)
+}
+
+func toZonedIPParams(opts IPStringOptions) *ipAddressStringParams {
+	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
+	parms := toIPParams(opts)
+	parms.zoneSeparator = IPv6ZoneSeparator
+	return parms
 }
 
 //protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
@@ -68,8 +78,8 @@ func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
 				segmentStrPrefix: opts.GetSegmentStrPrefix(),
 				reverse:          opts.IsReverse(),
 				//splitDigits:      opts.isSplitDigits(),
-				addressLabel:  opts.GetAddressLabel(),
-				zoneSeparator: opts.GetZoneSeparator(),
+				addressLabel: opts.GetAddressLabel(),
+				//zoneSeparator: opts.GetZoneSeparator(),
 			},
 			wildcardOption: opts.GetWildcardOption(),
 			addressSuffix:  opts.GetAddressSuffix(),
@@ -80,6 +90,13 @@ func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
 		}
 	}
 	return
+}
+
+func toZonedParams(opts StringOptions) (res *addressStringParams) {
+	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
+	parms := toParams(opts)
+	parms.zoneSeparator = IPv6ZoneSeparator
+	return parms
 }
 
 func toParams(opts StringOptions) (res *addressStringParams) {
@@ -131,7 +148,7 @@ func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
 			addressLabel:     opts.GetAddressLabel(),
 			reverse:          opts.IsReverse(),
 			//splitDigits:      opts.isSplitDigits(),
-			zoneSeparator: opts.GetZoneSeparator(),
+			//zoneSeparator: opts.GetZoneSeparator(),
 		}
 		if hasCache {
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
@@ -719,7 +736,12 @@ func (params *addressStringParams) getStringLength(addr AddressDivisionSeries) i
 
 func (params *addressStringParams) appendZone(builder *strings.Builder, zone Zone) *strings.Builder {
 	if zone != NoZone {
+		//if params.zoneSeparator == 0 {
+		//	builder.WriteByte(IPv6ZoneSeparator)
+		//	//params.zoneSeparator = IPv6ZoneSeparator
+		//} else {
 		builder.WriteByte(params.zoneSeparator)
+		//}
 		builder.WriteString(string(zone))
 	}
 	return builder
@@ -969,7 +991,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
 		*divPrefixLen >= div.GetBitCount() ||
-		!part.IsPrefixBlock() /* || params.isSplitDigits() */ {
+		!part.IsPrefixBlock() /* || params.isSplitDigits() */ { //TODO xxx here is the problem - in java we override IsPrefixBlock in EmbeddedIPv6AddressSection xxxx
 		count, _ := writer.getStandardString(segmentIndex, params, builder)
 		return count
 	}
@@ -1106,7 +1128,17 @@ func (params *ipv6StringParams) appendSegment(segmentIndex int, div DivisionType
 	return
 }
 
-func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *IPv6AddressSection) (err IncompatibleAddressError) {
+//TODO we need to pass our EmbeddedIPv6Section type inso appendSegment below, which calls appendSegment just above and that calls appendSegment, both of which use AddressDivisionSeries already
+//TODO you could 1. switch this to IPAddressSegmentSeries - but then you need a way of getting the DivisionType, which means another method added to addresses, which I decided I wanted to avoid
+//Or, 2. you could break up this method and use a variant of it in EmbeddedIPv6AddressSection
+// Or, 3. you define a new type, IPv6AddressSegmentSeries which has a GetSegment method
+// The third is pretty simple really
+// The 4th option of useing GetSegment on IPAddressSegmentSeries, that precules us from using IPv6 or IPV4 types as IPAddressSegmentSeries
+//	In fact, you must pass in the Emebedded type here
+
+//func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPAddressSegmentSeries) (err IncompatibleAddressError) {
+//func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *IPv6AddressSection) (err IncompatibleAddressError) {
+func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPv6AddressSegmentSeries) (err IncompatibleAddressError) {
 	divisionCount := addr.GetDivisionCount()
 	if divisionCount <= 0 {
 		return nil
@@ -1125,7 +1157,7 @@ func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *I
 		}
 		if segIndex < firstCompressedSegmentIndex || segIndex >= nextUncompressedIndex {
 			div := addr.GetSegment(segIndex)
-			prefLen := div.getDivisionPrefixLength()
+			prefLen := div.getDivisionPrefixLength() // Needs to be DivisionType
 			_, err = params.appendSegment(segIndex, div, prefLen, builder, addr)
 			i++
 			if i > lastIndex {
@@ -1154,7 +1186,8 @@ func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *I
 	return
 }
 
-func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection) int {
+func (params *ipv6StringParams) getSegmentsStringLength(part IPv6AddressSegmentSeries) int {
+	//func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection) int {
 	count := 0
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
@@ -1333,7 +1366,8 @@ func (params *ipv6v4MixedParams) requiresPrefixIndicatorIPv4(ipv4Section *IPv4Ad
 	return ipv4Section.IsPrefixed() && !params.ipv4Params.preferWildcards()
 }
 
-func (params *ipv6v4MixedParams) requiresPrefixIndicatorIPv6(ipv6Section *IPv6AddressSection) bool {
+func (params *ipv6v4MixedParams) requiresPrefixIndicatorIPv6(ipv6Section IPv6AddressSegmentSeries) bool {
+	//func (params *ipv6v4MixedParams) requiresPrefixIndicatorIPv6(ipv6Section *IPv6AddressSection) bool {
 	ipv6Params := params.ipv6Params
 	return ipv6Section.IsPrefixed() && (!ipv6Params.preferWildcards() || ipv6Params.hostCompressed)
 }
@@ -1593,7 +1627,7 @@ func (writer stringWriter) getLowerStandardString(segmentIndex int, params addre
 	}
 	radix := params.getRadix()
 	leadingZeroCount := params.getLeadingZeros(segmentIndex)
-	leadingZeroCount = writer.adjustLowerLeadingZeroCount(leadingZeroCount, radix)
+	//leadingZeroCount = writer.adjustLowerLeadingZeroCount(leadingZeroCount, radix)
 	if leadingZeroCount != 0 {
 		if appendable == nil {
 			if leadingZeroCount < 0 {
@@ -1957,7 +1991,23 @@ func getLeadingZeros(leadingZeroCount int, builder *strings.Builder) {
 const zeros = "00000000000000000000"
 
 // used by non-segment string ranges
-func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressSection, zone Zone) string {
+//func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressSection, zone Zone) string {
+//	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
+//	var builder strings.Builder
+//	separator := params.getWildcards().GetRangeSeparator()
+//	if separator != "" {
+//		length += len(separator)
+//		builder.Grow(length)
+//		params.append(&builder, lower).WriteString(separator)
+//		params.appendZoned(&builder, upper, zone)
+//	} else {
+//		builder.Grow(length)
+//		params.appendZoned(params.append(&builder, lower), upper, zone)
+//	}
+//	checkLengths(length, &builder)
+//	return builder.String()
+//}
+func toNormalizedStringRange(params *addressStringParams, lower, upper AddressDivisionSeries, zone Zone) string {
 	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
 	var builder strings.Builder
 	separator := params.getWildcards().GetRangeSeparator()

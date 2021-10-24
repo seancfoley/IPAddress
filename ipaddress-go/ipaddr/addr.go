@@ -27,13 +27,17 @@ const (
 var segmentWildcardStr = SegmentWildcardStr
 
 func createAddress(section *AddressSection, zone Zone) *Address {
-	return &Address{
+	res := &Address{
 		addressInternal{
 			section: section,
 			zone:    zone,
 			cache:   &addressCache{},
 		},
 	}
+	//if zone != NoZone && section.IsIPv6AddressSection() {
+	//	res.cache.stringCache = &stringCache{ipv6StringCache:&ipv6StringCache{}}
+	//}
+	return res
 }
 
 // values that fall outside the segment value type range are truncated using standard golang integer type conversions https://golang.org/ref/spec#Conversions
@@ -437,11 +441,10 @@ func (addr *addressInternal) contains(other AddressType) bool {
 
 func (addr *addressInternal) equals(other AddressType) bool {
 	otherAddr := other.ToAddress()
-	//if otherAddr == nil {
-	//	return false
-	//}
 	if addr.toAddress() == otherAddr {
 		return true
+	} else if otherAddr == nil {
+		return false
 	}
 	otherSection := otherAddr.GetSection()
 	if addr.section == nil {
@@ -456,6 +459,8 @@ func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
 	otherAddr := other.ToAddress()
 	if addr.toAddress() == otherAddr {
 		return true
+	} else if otherAddr == nil {
+		return false
 	}
 	otherSection := otherAddr.GetSection()
 	return addr.section.sameCountTypeEquals(otherSection) &&

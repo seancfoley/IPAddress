@@ -3,6 +3,8 @@ package test
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math/big"
+	"strconv"
+	"strings"
 )
 
 type ipAddressRangeTester struct {
@@ -1884,8 +1886,8 @@ func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, 
 }
 
 func (t ipAddressRangeTester) testPrefix(original string, prefixLength ipaddr.PrefixLen, minPrefix ipaddr.BitCount, equivalentPrefix ipaddr.PrefixLen) {
-	ipaddr := t.createAddress(original).GetAddress()
-	t.testBase.testPrefix(ipaddr, prefixLength, minPrefix, equivalentPrefix)
+	addr := t.createAddress(original).GetAddress()
+	t.testBase.testPrefix(addr, prefixLength, minPrefix, equivalentPrefix)
 	t.incrementTestCount()
 }
 
@@ -1998,7 +2000,6 @@ func (t ipAddressRangeTester) testTrees() {
 }
 
 func (t ipAddressRangeTester) testTree(start string, parents []string) {
-
 	str := t.createAddress(start)
 	originaLabelStr := str
 	labelStr := str
@@ -2011,7 +2012,6 @@ func (t ipAddressRangeTester) testTree(start string, parents []string) {
 	}
 
 	original := str
-
 	i := 0
 	var last *ipaddr.IPAddressString
 	for {
@@ -2057,8 +2057,1357 @@ func (t ipAddressRangeTester) testTree(start string, parents []string) {
 	t.incrementTestCount()
 }
 
+func (t ipAddressRangeTester) testIPv4IPAddrStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPAddress, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString,
+	singleHex,
+	singleOctal string) {
+	t.testBase.testStrings(w, ipAddr, normalizedString, normalizedWildcardString, normalizedWildcardString, sqlString, fullString,
+		normalizedString, normalizedString, normalizedWildcardString, normalizedString, normalizedWildcardString, reverseDNSString, normalizedString,
+		singleHex, singleOctal)
+
+	//now test some IPv4-only strings
+	t.testIPv4OnlyStrings(w, ipAddr.ToIPv4Address(), octalString, hexString)
+	t.testInetAtonCombos(w, ipAddr.ToIPv4Address())
+}
+
+func (t ipAddressRangeTester) testIPv4OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPv4Address, octalString, hexString string) {
+	oct := ipAddr.ToInetAtonString(ipaddr.Inet_aton_radix_octal)
+	hex := ipAddr.ToInetAtonString(ipaddr.Inet_aton_radix_hex)
+	octMatch := oct == octalString
+	if !octMatch {
+		t.addFailure(newFailure("failed expected: "+octalString+" actual: "+oct, w))
+	} else {
+		hexMatch := hex == hexString
+		if !hexMatch {
+			t.addFailure(newFailure("failed expected: "+hexString+" actual: "+hex, w))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPv4Address) {
+	vals := []ipaddr.Inet_aton_radix{ipaddr.Inet_aton_radix_octal, ipaddr.Inet_aton_radix_hex, ipaddr.Inet_aton_radix_decimal}
+	for _, radix := range vals {
+		for i := 0; i < ipaddr.IPv4SegmentCount; i++ {
+			//try {
+			str, e := ipAddr.ToInetAtonJoinedString(radix, i)
+			if e != nil {
+				//verify this case: joining segments results in a joined segment that is not a contiguous range
+				section := ipAddr.GetSection()
+				verifiedIllegalJoin := false
+				for j := section.GetSegmentCount() - i - 1; j < section.GetSegmentCount()-1; j++ {
+					if section.GetSegment(j).IsMultiple() {
+						for j++; j < section.GetSegmentCount(); j++ {
+							if !section.GetSegment(j).IsFullRange() {
+								verifiedIllegalJoin = true
+								break
+							}
+						}
+					}
+				}
+				if !verifiedIllegalJoin {
+					t.addFailure(newFailure("failed expected: "+ipAddr.String()+" actual: "+e.Error(), w))
+				}
+			} else {
+				parsed := ipaddr.NewIPAddressStringParams(str, inetAtonwildcardAndRangeOptions)
+				// try{
+				parsedValue := parsed.GetAddress()
+				if !ipAddr.Equals(parsedValue) {
+					t.addFailure(newFailure("failed expected: "+ipAddr.String()+" actual: "+parsedValue.String(), w))
+				} else {
+					//int pos;
+					origStr := str
+					count := 0
+					pos := -1
+					for pos = strings.IndexByte(str, ipaddr.IPv4SegmentSeparator); pos >= 0 && pos < len(str); {
+						//for ((pos = str.indexOf(ipaddr.IPv4SegmentSeparator)) >= 0){
+						str = str[pos+1:]
+						pos = strings.IndexByte(str, ipaddr.IPv4SegmentSeparator)
+						count++
+					}
+					if ipaddr.IPv4SegmentCount-1-i != count {
+						failStr := "failed expected separator count in " + origStr + ": " + strconv.Itoa(ipaddr.IPv4SegmentCount-1-i) + " actual separator count: " + strconv.Itoa(count)
+						t.addFailure(newFailure(failStr, w))
+
+						//str = origStr
+						//count = 0
+						//pos := -1
+						//for pos = strings.IndexByte(str, ipaddr.IPv4SegmentSeparator); pos >= 0 && pos < len(str); {
+						//	//for ((pos = str.indexOf(ipaddr.IPv4SegmentSeparator)) >= 0){
+						//	str = str[pos+1:]
+						//	count++
+						//}
+						//fmt.Println("WTF")
+					}
+				}
+			}
+			t.incrementTestCount()
+		}
+	}
+}
+
+func (t ipAddressRangeTester) testIPv4Strings(addr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString, singleHex, singleOctal string) {
+	w := t.createAddress(addr)
+	ipAddr := w.GetAddress()
+	//createList(w);
+	t.testIPv4IPAddrStrings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString, singleHex, singleOctal)
+}
+
+func (t ipAddressRangeTester) testIPv6Strings(addr,
+	normalizedString,
+	normalizedWildcardString,
+	canonicalWildcardString,
+	sqlString,
+	fullString,
+	compressedString,
+	canonicalString,
+	subnetString,
+	compressedWildcardString,
+	mixedStringNoCompressMixed,
+	mixedStringNoCompressHost,
+	mixedStringCompressCoveredHost,
+	mixedString,
+	reverseDNSString,
+	uncHostString,
+	base85String,
+	singleHex,
+	singleOctal string) {
+	w := t.createAddress(addr)
+	ipAddr := w.GetAddress()
+
+	//createList(w);
+
+	t.testBase.testIPv6Strings(w,
+		ipAddr,
+		normalizedString,
+		normalizedWildcardString,
+		canonicalWildcardString,
+		sqlString,
+		fullString,
+		compressedString,
+		canonicalString,
+		subnetString,
+		compressedWildcardString,
+		mixedStringNoCompressMixed,
+		mixedStringNoCompressHost,
+		mixedStringCompressCoveredHost,
+		mixedString,
+		reverseDNSString,
+		uncHostString,
+		base85String,
+		singleHex,
+		singleOctal)
+}
+
+//each ipv4 failure is 6, each ipv6 is 10, current total is 520
+
 func (t ipAddressRangeTester) testStrings() {
-	//TODO
+
+	//boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
+	//boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
+
+	t.testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4", "4.3.2.1.in-addr.arpa", "0x01020304", "000100401404")
+
+	t.testIPv4Strings("1.2.3.4/16", "1.2.3.4/16", "1.2.3.4", "1.2.3.4", "001.002.003.004/16", "01.02.03.04/16", "0x1.0x2.0x3.0x4/16", "4.3.2.1.in-addr.arpa", "0x01020304", "000100401404")
+
+	t.testIPv4Strings("1.2.*.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777") //note that wildcards are never converted to CIDR.
+	t.testIPv4Strings("1.2.*", "1.2.*.*", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255", "01.02.*.*", "0x1.0x2.*.*", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777")
+
+	t.testIPv4Strings("1.2.*.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777")
+	t.testIPv4Strings("1.2.*/16", "1.2.0.0/16", "1.2.*.*", "1.2.%.%", "001.002.000.000/16", "01.02.00.00/16", "0x1.0x2.0x0.0x0/16", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777")
+	t.testIPv4Strings("1.*.*/16", "1.*.0.0/16", "1.*.*.*", "1.%.%.%", "001.000-255.000.000/16", "01.*.00.00/16", "0x1.*.0x0.0x0/16", "*.*.*.1.in-addr.arpa", "0x01000000-0x01ffffff", "000100000000-000177777777")
+
+	t.testIPv4Strings("0.0.0.0", "0.0.0.0", "0.0.0.0", "0.0.0.0", "000.000.000.000", "00.00.00.00", "0x0.0x0.0x0.0x0", "0.0.0.0.in-addr.arpa", "0x00000000", "000000000000")
+	t.testIPv4Strings("9.63.127.254", "9.63.127.254", "9.63.127.254", "9.63.127.254", "009.063.127.254", "011.077.0177.0376", "0x9.0x3f.0x7f.0xfe", "254.127.63.9.in-addr.arpa", "0x093f7ffe", "001117677776")
+
+	t.testIPv4Strings("9.63.127.254/16", "9.63.127.254/16", "9.63.127.254", "9.63.127.254", "009.063.127.254/16", "011.077.0177.0376/16", "0x9.0x3f.0x7f.0xfe/16", "254.127.63.9.in-addr.arpa", "0x093f7ffe", "001117677776")
+
+	t.testIPv4Strings("9.63.*.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777") //note that wildcards are never converted to CIDR.
+	t.testIPv4Strings("9.63.*", "9.63.*.*", "9.63.*.*", "9.63.%.%", "009.063.000-255.000-255", "011.077.*.*", "0x9.0x3f.*.*", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777")
+
+	t.testIPv4Strings("9.63.*.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777")
+	t.testIPv4Strings("9.63.*/16", "9.63.0.0/16", "9.63.*.*", "9.63.%.%", "009.063.000.000/16", "011.077.00.00/16", "0x9.0x3f.0x0.0x0/16", "*.*.63.9.in-addr.arpa", "0x093f0000-0x093fffff", "001117600000-001117777777")
+	t.testIPv4Strings("9.*.*/16", "9.*.0.0/16", "9.*.*.*", "9.%.%.%", "009.000-255.000.000/16", "011.*.00.00/16", "0x9.*.0x0.0x0/16", "*.*.*.9.in-addr.arpa", "0x09000000-0x09ffffff", "001100000000-001177777777")
+
+	t.testIPv4Strings("1.2.3.250-255", "1.2.3.250-255", "1.2.3.250-255", "1.2.3.25_", "001.002.003.250-255", "01.02.03.0372-0377", "0x1.0x2.0x3.0xfa-0xff", "250-255.3.2.1.in-addr.arpa", "0x010203fa-0x010203ff", "000100401772-000100401777")
+	t.testIPv4Strings("1.2.3.200-255", "1.2.3.200-255", "1.2.3.200-255", "1.2.3.2__", "001.002.003.200-255", "01.02.03.0310-0377", "0x1.0x2.0x3.0xc8-0xff", "200-255.3.2.1.in-addr.arpa", "0x010203c8-0x010203ff", "000100401710-000100401777")
+	t.testIPv4Strings("1.2.3.100-199", "1.2.3.100-199", "1.2.3.100-199", "1.2.3.1__", "001.002.003.100-199", "01.02.03.0144-0307", "0x1.0x2.0x3.0x64-0xc7", "100-199.3.2.1.in-addr.arpa", "0x01020364-0x010203c7", "000100401544-000100401707")
+	t.testIPv4Strings("100-199.2.3.100-199", "100-199.2.3.100-199", "100-199.2.3.100-199", "1__.2.3.1__", "100-199.002.003.100-199", "0144-0307.02.03.0144-0307", "0x64-0xc7.0x2.0x3.0x64-0xc7", "100-199.3.2.100-199.in-addr.arpa", "", "")
+	t.testIPv4Strings("100-199.2.3.100-198", "100-199.2.3.100-198", "100-199.2.3.100-198", "1__.2.3.100-198", "100-199.002.003.100-198", "0144-0307.02.03.0144-0306", "0x64-0xc7.0x2.0x3.0x64-0xc6", "100-198.3.2.100-199.in-addr.arpa", "", "")
+	t.testIPv4Strings("1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "1.2.3.0-99", "001.002.003.000-099", "01.02.03.00-0143", "0x1.0x2.0x3.0x0-0x63", "0-99.3.2.1.in-addr.arpa", "0x01020300-0x01020363", "000100401400-000100401543")
+	t.testIPv4Strings("1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "1.2.3.100-155", "001.002.003.100-155", "01.02.03.0144-0233", "0x1.0x2.0x3.0x64-0x9b", "100-155.3.2.1.in-addr.arpa", "0x01020364-0x0102039b", "000100401544-000100401633")
+	t.testIPv4Strings("1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "1.2.3.100-255", "001.002.003.100-255", "01.02.03.0144-0377", "0x1.0x2.0x3.0x64-0xff", "100-255.3.2.1.in-addr.arpa", "0x01020364-0x010203ff", "000100401544-000100401777")
+
+	t.testIPv4Strings("1.129-254.5.5/12", "1.129-254.5.5/12", "1.129-254.5.5", "1.129-254.5.5", "001.129-254.005.005/12", "01.0201-0376.05.05/12", "0x1.0x81-0xfe.0x5.0x5/12", "5.5.129-254.1.in-addr.arpa", "", "")
+	t.testIPv4Strings("1.2__.5.5/14", "1.200-255.5.5/14", "1.200-255.5.5", "1.2__.5.5", "001.200-255.005.005/14", "01.0310-0377.05.05/14", "0x1.0xc8-0xff.0x5.0x5/14", "5.5.200-255.1.in-addr.arpa", "", "")
+	t.testIPv4Strings("1.*.5.5/12", "1.*.5.5/12", "1.*.5.5", "1.%.5.5", "001.000-255.005.005/12", "01.*.05.05/12", "0x1.*.0x5.0x5/12", "5.5.*.1.in-addr.arpa", "", "")
+	//OK we are testing 01.*.02405/12 and our bounds check for inet_aton does not work because later when creating address it is not treated as inet_aton due to the *
+	//so when we do the bounds checking for inet_aton we need to check for * and only test with single segment boundaries
+	//also check for that setting where * extends beyond single segment
+
+	t.testIPv6Strings("::",
+		"0:0:0:0:0:0:0:0",
+		"0:0:0:0:0:0:0:0",
+		"::",
+		"0:0:0:0:0:0:0:0",
+		"0000:0000:0000:0000:0000:0000:0000:0000",
+		"::",
+		"::",
+		"::",
+		"::",
+		"::0.0.0.0",
+		"::",
+		"::",
+		"::",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-0-0-0-0-0.ipv6-literal.net",
+		"00000000000000000000",
+		"0x00000000000000000000000000000000",
+		"00000000000000000000000000000000000000000000")
+
+	t.testIPv6Strings("::2",
+		"0:0:0:0:0:0:0:2",
+		"0:0:0:0:0:0:0:2",
+		"::2",
+		"0:0:0:0:0:0:0:2",
+		"0000:0000:0000:0000:0000:0000:0000:0002",
+		"::2",
+		"::2",
+		"::2",
+		"::2",
+		"::0.0.0.2",
+		"::0.0.0.2",
+		"::0.0.0.2",
+		"::0.0.0.2",
+		"2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-0-0-0-0-2.ipv6-literal.net",
+		"00000000000000000002",
+		"0x00000000000000000000000000000002",
+		"00000000000000000000000000000000000000000002")
+
+	t.testIPv6Strings("::7fff:ffff:ffff:ffff",
+		"0:0:0:0:7fff:ffff:ffff:ffff",
+		"0:0:0:0:7fff:ffff:ffff:ffff",
+		"::7fff:ffff:ffff:ffff",
+		"0:0:0:0:7fff:ffff:ffff:ffff",
+		"0000:0000:0000:0000:7fff:ffff:ffff:ffff",
+		"::7fff:ffff:ffff:ffff",
+		"::7fff:ffff:ffff:ffff",
+		"::7fff:ffff:ffff:ffff",
+		"::7fff:ffff:ffff:ffff",
+		"::7fff:ffff:255.255.255.255",
+		"::7fff:ffff:255.255.255.255",
+		"::7fff:ffff:255.255.255.255",
+		"::7fff:ffff:255.255.255.255",
+		"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.7.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-0-7fff-ffff-ffff-ffff.ipv6-literal.net",
+		"0000000000d*-h_{Y}sg",
+		"0x00000000000000007fffffffffffffff",
+		"00000000000000000000000777777777777777777777")
+
+	t.testIPv6Strings("0:0:0:1::",
+		"0:0:0:1:0:0:0:0",
+		"0:0:0:1:0:0:0:0",
+		"0:0:0:1::",
+		"0:0:0:1:0:0:0:0",
+		"0000:0000:0000:0001:0000:0000:0000:0000",
+		"0:0:0:1::",
+		"0:0:0:1::",
+		"0:0:0:1::",
+		"0:0:0:1::",
+		"::1:0:0:0.0.0.0",
+		"0:0:0:1::",
+		"0:0:0:1::",
+		"0:0:0:1::",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-1-0-0-0-0.ipv6-literal.net",
+		"0000000000_sw2=@*|O1",
+		"0x00000000000000010000000000000000",
+		"00000000000000000000002000000000000000000000")
+
+	t.testIPv6Strings("::8fff:ffff:ffff:ffff",
+		"0:0:0:0:8fff:ffff:ffff:ffff",
+		"0:0:0:0:8fff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff",
+		"0:0:0:0:8fff:ffff:ffff:ffff",
+		"0000:0000:0000:0000:8fff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff",
+		"::8fff:ffff:255.255.255.255",
+		"::8fff:ffff:255.255.255.255",
+		"::8fff:ffff:255.255.255.255",
+		"::8fff:ffff:255.255.255.255",
+		"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-0-8fff-ffff-ffff-ffff.ipv6-literal.net",
+		"0000000000i(`c)xypow",
+		"0x00000000000000008fffffffffffffff",
+		"00000000000000000000001077777777777777777777")
+
+	t.testIPv6Strings("::8fff:ffff:ffff:ffff:ffff",
+		"0:0:0:8fff:ffff:ffff:ffff:ffff",
+		"0:0:0:8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff:ffff",
+		"0:0:0:8fff:ffff:ffff:ffff:ffff",
+		"0000:0000:0000:8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:ffff:ffff",
+		"::8fff:ffff:ffff:255.255.255.255",
+		"::8fff:ffff:ffff:255.255.255.255",
+		"::8fff:ffff:ffff:255.255.255.255",
+		"::8fff:ffff:ffff:255.255.255.255",
+		"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.8.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-0-8fff-ffff-ffff-ffff-ffff.ipv6-literal.net",
+		"00000004&U-n{rbbza$w",
+		"0x0000000000008fffffffffffffffffff",
+		"00000000000000000217777777777777777777777777")
+
+	t.testIPv6Strings("a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"000a:000b:000c:000d:000e:000f:000a:000b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:0.10.0.11",
+		"a:b:c:d:e:f:0.10.0.11",
+		"a:b:c:d:e:f:0.10.0.11",
+		"a:b:c:d:e:f:0.10.0.11",
+		"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-e-f-a-b.ipv6-literal.net",
+		"00|N0s0$ND2DCD&%D3QB",
+		"0x000a000b000c000d000e000f000a000b",
+		"00000240001300006000032000160000740002400013")
+
+	t.testIPv6Strings("a:b:c:d:e:f:a:b/64",
+		"a:b:c:d:e:f:a:b/64",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:a:b",
+		"000a:000b:000c:000d:000e:000f:000a:000b/64",
+		"a:b:c:d:e:f:a:b/64",
+		"a:b:c:d:e:f:a:b/64",
+		"a:b:c:d:e:f:a:b/64",
+		"a:b:c:d:e:f:a:b",
+		"a:b:c:d:e:f:0.10.0.11/64",
+		"a:b:c:d:e:f:0.10.0.11/64",
+		"a:b:c:d:e:f:0.10.0.11/64",
+		"a:b:c:d:e:f:0.10.0.11/64",
+		"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-e-f-a-b.ipv6-literal.net/64",
+		"00|N0s0$ND2DCD&%D3QB/64",
+		"0x000a000b000c000d000e000f000a000b",
+		"00000240001300006000032000160000740002400013")
+	t.testIPv6Strings("::c:d:e:f:a:b/64",
+		"0:0:c:d:e:f:a:b/64",
+		"0:0:c:d:e:f:a:b",
+		"::c:d:e:f:a:b",
+		"0:0:c:d:e:f:a:b",
+		"0000:0000:000c:000d:000e:000f:000a:000b/64",
+		"::c:d:e:f:a:b/64",
+		"::c:d:e:f:a:b/64",
+		"::c:d:e:f:a:b/64",
+		"::c:d:e:f:a:b",
+		"::c:d:e:f:0.10.0.11/64",
+		"::c:d:e:f:0.10.0.11/64",
+		"::c:d:e:f:0.10.0.11/64",
+		"::c:d:e:f:0.10.0.11/64",
+		"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-c-d-e-f-a-b.ipv6-literal.net/64",
+		"0000001G~Ie^C9jXExx>/64",
+		"0x00000000000c000d000e000f000a000b",
+		"00000000000000006000032000160000740002400013")
+
+	t.testIPv6Strings("::c:d:e:f:a:b",
+		"0:0:c:d:e:f:a:b",
+		"0:0:c:d:e:f:a:b",
+		"::c:d:e:f:a:b",
+		"0:0:c:d:e:f:a:b",
+		"0000:0000:000c:000d:000e:000f:000a:000b",
+		"::c:d:e:f:a:b",
+		"::c:d:e:f:a:b",
+		"::c:d:e:f:a:b",
+		"::c:d:e:f:a:b",
+		"::c:d:e:f:0.10.0.11",
+		"::c:d:e:f:0.10.0.11",
+		"::c:d:e:f:0.10.0.11",
+		"::c:d:e:f:0.10.0.11",
+		"b.0.0.0.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa",
+		"0-0-c-d-e-f-a-b.ipv6-literal.net",
+		"0000001G~Ie^C9jXExx>",
+		"0x00000000000c000d000e000f000a000b",
+		"00000000000000006000032000160000740002400013")
+
+	t.testIPv6Strings("a:b:c:d::",
+		"a:b:c:d:0:0:0:0",
+		"a:b:c:d:0:0:0:0",
+		"a:b:c:d::",
+		"a:b:c:d:0:0:0:0",
+		"000a:000b:000c:000d:0000:0000:0000:0000",
+		"a:b:c:d::",
+		"a:b:c:d::",
+		"a:b:c:d::",
+		"a:b:c:d::",
+		"a:b:c:d::0.0.0.0",
+		"a:b:c:d::",
+		"a:b:c:d::",
+		"a:b:c:d::",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-0-0-0-0.ipv6-literal.net",
+		"00|N0s0$ND2BxK96%Chk",
+		"0x000a000b000c000d0000000000000000",
+		"00000240001300006000032000000000000000000000")
+
+	t.testIPv6Strings("a:b:c:d::/64",
+		"a:b:c:d:0:0:0:0/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:%:%:%:%",
+		"000a:000b:000c:000d:0000:0000:0000:0000/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+		"00|N0s0$ND2BxK96%Chk/64",
+		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+		"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777")
+
+	t.testIPv6Strings("a::d:*:*:*:*/65",
+		"a:0:0:d:0-8000:0:0:0/65",
+		"a:0:0:d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a:0:0:d:%:%:%:%",
+		"000a:0000:0000:000d:0000-8000:0000:0000:0000/65",
+		"a:0:0:d:0-8000::/65",
+		"a:0:0:d:0-8000::/65",
+		"a:0:0:d:0-8000::/65",
+		"a::d:*:*:*:*",
+		"a::d:0-8000:0:0.0.0.0/65",
+		"a::d:0-8000:0:0.0.0.0/65",
+		"a:0:0:d:0-8000::/65",
+		"a:0:0:d:0-8000::/65",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-0"+ipaddr.IPv6AlternativeRangeSeparatorStr+"8000-0-0-0.ipv6-literal.net/65",
+		"00|M>t|tt+WbKhfd5~qN"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|tt+;M72aZe}L&/65",
+		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+		"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777")
+
+	t.testIPv6Strings("a::d:0-7fff:*:*:*/65",
+		"a:0:0:d:0:0:0:0/65",
+		"a:0:0:d:0-7fff:*:*:*",
+		"a::d:0-7fff:*:*:*",
+		"a:0:0:d:0-7fff:%:%:%",
+		"000a:0000:0000:000d:0000:0000:0000:0000/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"a::d:0-7fff:*:*:*",
+		"a::d:0:0:0.0.0.0/65",
+		"a::d:0:0:0.0.0.0/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0-7.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-0-0-0-0.ipv6-literal.net/65",
+		"00|M>t|tt+WbKhfd5~qN/65",
+		"0x000a00000000000d0000000000000000-0x000a00000000000d7fffffffffffffff",
+		"00000240000000000000032000000000000000000000-00000240000000000000032777777777777777777777")
+
+	t.testIPv6Strings("a::d:0:0:0:0/65",
+		"a:0:0:d:0:0:0:0/65",
+		"a:0:0:d:0-7fff:*:*:*",
+		"a::d:0-7fff:*:*:*",
+		"a:0:0:d:0-7fff:%:%:%",
+		"000a:0000:0000:000d:0000:0000:0000:0000/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"a::d:0-7fff:*:*:*",
+		"a::d:0:0:0.0.0.0/65",
+		"a::d:0:0:0.0.0.0/65",
+		"a:0:0:d::/65",
+		"a:0:0:d::/65",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0-7.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-0-0-0-0.ipv6-literal.net/65",
+		"00|M>t|tt+WbKhfd5~qN/65",
+		"0x000a00000000000d0000000000000000-0x000a00000000000d7fffffffffffffff",
+		"00000240000000000000032000000000000000000000-00000240000000000000032777777777777777777777")
+
+	t.testIPv6Strings("a::d:*:*:*:0/65",
+		"a:0:0:d:*:*:*:0/65",
+		"a:0:0:d:*:*:*:0",
+		"a::d:*:*:*:0",
+		"a:0:0:d:%:%:%:0",
+		"000a:0000:0000:000d:0000-ffff:0000-ffff:0000-ffff:0000/65",
+		"a::d:*:*:*:0/65",
+		"a::d:*:*:*:0/65",
+		"a:0:0:d:*:*:*::/65",
+		"a::d:*:*:*:0",
+		"a::d:*:*:*.*.0.0/65",
+		"a::d:*:*:*.*.0.0/65",
+		"a::d:*:*:*.*.0.0/65",
+		"a::d:*:*:*.*.0.0/65",
+		"0.0.0.0.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-*-*-*-0.ipv6-literal.net/65",
+		"",
+		"",
+		"")
+
+	t.testIPv6Strings("a::d:0:*:0:*/65",
+		"a:0:0:d:0:*:0:*/65",
+		"a:0:0:d:0:*:0:*",
+		"a::d:0:*:0:*",
+		"a:0:0:d:0:%:0:%",
+		"000a:0000:0000:000d:0000:0000-ffff:0000:0000-ffff/65",
+		"a::d:0:*:0:*/65",
+		"a::d:0:*:0:*/65",
+		"a:0:0:d:0:*::*/65",
+		"a::d:0:*:0:*",
+		"a::d:0:*:0.0.*.*/65",
+		"a::d:0:*:0.0.*.*/65",
+		"a::d:0:*:0.0.*.*/65",
+		"a::d:0:*:0.0.*.*/65",
+		"*.*.*.*.0.0.0.0.*.*.*.*.0.0.0.0.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-0-*-0-*.ipv6-literal.net/65",
+		"",
+		"",
+		"")
+
+	t.testIPv6Strings("a::d:*:0:0:0/65",
+		"a:0:0:d:*:0:0:0/65",
+		"a:0:0:d:*:0:0:0",
+		"a:0:0:d:*::",
+		"a:0:0:d:%:0:0:0",
+		"000a:0000:0000:000d:0000-ffff:0000:0000:0000/65",
+		"a:0:0:d:*::/65",
+		"a:0:0:d:*::/65",
+		"a:0:0:d:*::/65",
+		"a:0:0:d:*::",
+		"a::d:*:0:0.0.0.0/65",
+		"a::d:*:0:0.0.0.0/65",
+		"a:0:0:d:*::/65",
+		"a:0:0:d:*::/65",
+		"0.0.0.0.0.0.0.0.0.0.0.0.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-*-0-0-0.ipv6-literal.net/65",
+		"",
+		"",
+		"")
+
+	t.testIPv6Strings("a:b:c:d:*::/64",
+		"a:b:c:d:*:0:0:0/64",
+		"a:b:c:d:*:0:0:0",
+		"a:b:c:d:*::",
+		"a:b:c:d:%:0:0:0",
+		"000a:000b:000c:000d:0000-ffff:0000:0000:0000/64",
+		"a:b:c:d:*::/64",
+		"a:b:c:d:*::/64",
+		"a:b:c:d:*::/64",
+		"a:b:c:d:*::",
+		"a:b:c:d:*::0.0.0.0/64",
+		"a:b:c:d:*::0.0.0.0/64",
+		"a:b:c:d:*::/64",
+		"a:b:c:d:*::/64",
+		"0.0.0.0.0.0.0.0.0.0.0.0.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-*-0-0-0.ipv6-literal.net/64",
+		"",
+		"",
+		"")
+
+	t.testIPv6Strings("a:0:c:d:e:f:0:0/97",
+		"a:0:c:d:e:f:0:0/97",
+		"a:0:c:d:e:f:0-7fff:*",
+		"a:0:c:d:e:f:0-7fff:*",
+		"a:0:c:d:e:f:0-7fff:%",
+		"000a:0000:000c:000d:000e:000f:0000:0000/97",
+		"a:0:c:d:e:f::/97",
+		"a:0:c:d:e:f::/97",
+		"a:0:c:d:e:f::/97",
+		"a::c:d:e:f:0-7fff:*",
+		"a::c:d:e:f:0.0.0.0/97",
+		"a::c:d:e:f:0.0.0.0/97",
+		"a::c:d:e:f:0.0.0.0/97",
+		"a:0:c:d:e:f::/97",
+		"*.*.*.*.*.*.*.0-7.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-e-f-0-0.ipv6-literal.net/97",
+		"00|M>t};s?v~hFl`j3_$/97",
+		"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000f7fffffff",
+		"00000240000000006000032000160000740000000000-00000240000000006000032000160000757777777777")
+
+	t.testIPv6Strings("a:0:c:d:e:f:0:0/96",
+		"a:0:c:d:e:f:0:0/96",
+		"a:0:c:d:e:f:*:*",
+		"a:0:c:d:e:f:*:*",
+		"a:0:c:d:e:f:%:%",
+		"000a:0000:000c:000d:000e:000f:0000:0000/96",
+		"a:0:c:d:e:f::/96",
+		"a:0:c:d:e:f::/96",
+		"a:0:c:d:e:f::/96",
+		"a::c:d:e:f:*:*",
+		"a::c:d:e:f:0.0.0.0/96",
+		"a::c:d:e:f:0.0.0.0/96",
+		"a:0:c:d:e:f::/96",
+		"a:0:c:d:e:f::/96",
+		"*.*.*.*.*.*.*.*.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-e-f-0-0.ipv6-literal.net/96",
+		"00|M>t};s?v~hFl`j3_$/96",
+		"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000fffffffff",
+		"00000240000000006000032000160000740000000000-00000240000000006000032000160000777777777777")
+
+	t.testIPv6Strings("a:0:c:d:e:f:1:0/112",
+		"a:0:c:d:e:f:1:0/112",
+		"a:0:c:d:e:f:1:*",
+		"a:0:c:d:e:f:1:*",
+		"a:0:c:d:e:f:1:%",
+		"000a:0000:000c:000d:000e:000f:0001:0000/112",
+		"a::c:d:e:f:1:0/112",     //compressed
+		"a:0:c:d:e:f:1:0/112",    //canonical (only zeros are single so not compressed)
+		"a:0:c:d:e:f:1::/112",    //subnet
+		"a::c:d:e:f:1:*",         //compressed wildcard
+		"a::c:d:e:f:0.1.0.0/112", //mixed, no compress
+		"a::c:d:e:f:0.1.0.0/112", //mixed, no compress host
+		"a::c:d:e:f:0.1.0.0/112",
+		"a::c:d:e:f:0.1.0.0/112",
+		"*.*.*.*.1.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-e-f-1-0.ipv6-literal.net/112",
+		"00|M>t};s?v~hFl`jD0%/112",
+		"0x000a0000000c000d000e000f00010000-0x000a0000000c000d000e000f0001ffff",
+		"00000240000000006000032000160000740000200000-00000240000000006000032000160000740000377777") //mixed
+
+	t.testIPv6Strings("a:0:c:d:0:0:1:0/112",
+		"a:0:c:d:0:0:1:0/112", //normalized
+		"a:0:c:d:0:0:1:*",     //normalized wildcard
+		"a:0:c:d::1:*",        //canonical wildcard
+		"a:0:c:d:0:0:1:%",     //sql
+		"000a:0000:000c:000d:0000:0000:0001:0000/112", //full
+		"a:0:c:d::1:0/112",                            //compressed
+		"a:0:c:d::1:0/112",                            //canonical
+		"a:0:c:d:0:0:1::/112",                         //subnet
+		"a:0:c:d::1:*",                                //compressed wildcard
+		"a:0:c:d::0.1.0.0/112",                        //mixed, no compress
+		"a:0:c:d::0.1.0.0/112",                        //mixed, no compress host
+		"a:0:c:d::0.1.0.0/112",
+		"a:0:c:d::0.1.0.0/112",
+		"*.*.*.*.1.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-0-0-1-0.ipv6-literal.net/112",
+		"00|M>t};s?v}5L>MDR^a/112",
+		"0x000a0000000c000d0000000000010000-0x000a0000000c000d000000000001ffff",
+		"00000240000000006000032000000000000000200000-00000240000000006000032000000000000000377777") //mixed
+
+	t.testIPv6Strings("a:b:c:*::/64",
+		"a:b:c:*:0:0:0:0/64",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:%:%:%:%:%",
+		"000a:000b:000c:0000-ffff:0000:0000:0000:0000/64",
+		"a:b:c:*::/64",
+		"a:b:c:*::/64",
+		"a:b:c:*::/64",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*::0.0.0.0/64",
+		"a:b:c:*::0.0.0.0/64",
+		"a:b:c:*::/64",
+		"a:b:c:*::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-*-0-0-0-0.ipv6-literal.net/64",
+		"00|N0s0$N0-%*(tF5l-X"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|N0s0;%Z;E{Rk+ZU@X/64",
+		"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
+		"00000240001300006000000000000000000000000000-00000240001300006377777777777777777777777777")
+
+	t.testIPv6Strings("a::/64",
+		"a:0:0:0:0:0:0:0/64",
+		"a:0:0:0:*:*:*:*",
+		"a::*:*:*:*",
+		"a:0:0:0:%:%:%:%",
+		"000a:0000:0000:0000:0000:0000:0000:0000/64",
+		"a::/64",
+		"a::/64",
+		"a::/64",
+		"a::*:*:*:*",
+		"a::0.0.0.0/64",
+		"a::0.0.0.0/64",
+		"a::/64",
+		"a::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-0-0-0-0-0.ipv6-literal.net/64",
+		"00|M>t|ttwH6V62lVY`A/64",
+		"0x000a0000000000000000000000000000-0x000a000000000000ffffffffffffffff",
+		"00000240000000000000000000000000000000000000-00000240000000000000001777777777777777777777")
+
+	t.testIPv6Strings("a:0:0:d:e:f:0:0/112",
+		"a:0:0:d:e:f:0:0/112",
+		"a:0:0:d:e:f:0:*",
+		"a::d:e:f:0:*",
+		"a:0:0:d:e:f:0:%",
+		"000a:0000:0000:000d:000e:000f:0000:0000/112",
+		"a::d:e:f:0:0/112",
+		"a::d:e:f:0:0/112",
+		"a:0:0:d:e:f::/112",
+		"a::d:e:f:0:*",
+		"a::d:e:f:0.0.0.0/112",
+		"a::d:e:f:0.0.0.0/112",
+		"a::d:e:f:0.0.0.0/112",
+		"a:0:0:d:e:f::/112",
+		"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-e-f-0-0.ipv6-literal.net/112",
+		"00|M>t|tt+WcwbECb*xq/112",
+		"0x000a00000000000d000e000f00000000-0x000a00000000000d000e000f0000ffff",
+		"00000240000000000000032000160000740000000000-00000240000000000000032000160000740000177777")
+
+	t.testIPv6Strings("a:0:c:d:e:f:0:0/112",
+		"a:0:c:d:e:f:0:0/112",
+		"a:0:c:d:e:f:0:*",
+		"a:0:c:d:e:f:0:*",
+		"a:0:c:d:e:f:0:%",
+		"000a:0000:000c:000d:000e:000f:0000:0000/112",
+		"a:0:c:d:e:f::/112",
+		"a:0:c:d:e:f::/112",
+		"a:0:c:d:e:f::/112",
+		"a::c:d:e:f:0:*",
+		"a::c:d:e:f:0.0.0.0/112",
+		"a::c:d:e:f:0.0.0.0/112",
+		"a::c:d:e:f:0.0.0.0/112",
+		"a:0:c:d:e:f::/112",
+		"*.*.*.*.0.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-e-f-0-0.ipv6-literal.net/112",
+		"00|M>t};s?v~hFl`j3_$/112",
+		"0x000a0000000c000d000e000f00000000-0x000a0000000c000d000e000f0000ffff",
+		"00000240000000006000032000160000740000000000-00000240000000006000032000160000740000177777")
+
+	t.testIPv6Strings("a:0:c:d:e:f:a:0/112",
+		"a:0:c:d:e:f:a:0/112",
+		"a:0:c:d:e:f:a:*",
+		"a:0:c:d:e:f:a:*",
+		"a:0:c:d:e:f:a:%",
+		"000a:0000:000c:000d:000e:000f:000a:0000/112",
+		"a::c:d:e:f:a:0/112",
+		"a:0:c:d:e:f:a:0/112",
+		"a:0:c:d:e:f:a::/112",
+		"a::c:d:e:f:a:*",
+		"a::c:d:e:f:0.10.0.0/112",
+		"a::c:d:e:f:0.10.0.0/112",
+		"a::c:d:e:f:0.10.0.0/112",
+		"a::c:d:e:f:0.10.0.0/112",
+		"*.*.*.*.a.0.0.0.f.0.0.0.e.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-e-f-a-0.ipv6-literal.net/112",
+		"00|M>t};s?v~hFl`k9s=/112",
+		"0x000a0000000c000d000e000f000a0000-0x000a0000000c000d000e000f000affff",
+		"00000240000000006000032000160000740002400000-00000240000000006000032000160000740002577777")
+
+	t.testIPv6Strings("a:0:c:d:0:0:0:100/120",
+		"a:0:c:d:0:0:0:100/120",                       //normalized
+		"a:0:c:d:0:0:0:100-1ff",                       //normalized wildcard
+		"a:0:c:d::100-1ff",                            //canonical wildcard
+		"a:0:c:d:0:0:0:1__",                           //sql
+		"000a:0000:000c:000d:0000:0000:0000:0100/120", //full
+		"a:0:c:d::100/120",                            //compressed
+		"a:0:c:d::100/120",                            //canonical
+		"a:0:c:d::100/120",                            //subnet
+		"a:0:c:d::100-1ff",                            //compressed wildcard
+		"a:0:c:d::0.0.1.0/120",                        //mixed, no compress
+		"a:0:c:d::0.0.1.0/120",                        //mixed, no compress host
+		"a:0:c:d::0.0.1.0/120",
+		"a:0:c:d::0.0.1.0/120",
+		"*.*.1.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.c.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-c-d-0-0-0-100.ipv6-literal.net/120",
+		"00|M>t};s?v}5L>MDI>a/120",
+		"0x000a0000000c000d0000000000000100-0x000a0000000c000d00000000000001ff",
+		"00000240000000006000032000000000000000000400-00000240000000006000032000000000000000000777") //mixed
+
+	t.testIPv6Strings("a:b:c:d:*/64",
+		"a:b:c:d:0:0:0:0/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:%:%:%:%",
+		"000a:000b:000c:000d:0000:0000:0000:0000/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+		"00|N0s0$ND2BxK96%Chk/64",
+		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+		"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777")
+
+	t.testIPv6Strings("a:b:c:d:*:*:*:*/64",
+		"a:b:c:d:0:0:0:0/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:%:%:%:%",
+		"000a:000b:000c:000d:0000:0000:0000:0000/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::0.0.0.0/64",
+		"a:b:c:d::/64",
+		"a:b:c:d::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-0-0-0-0.ipv6-literal.net/64",
+		"00|N0s0$ND2BxK96%Chk/64",
+		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+		"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777")
+
+	t.testIPv6Strings("a::d:*:*:*:*/64",
+		"a:0:0:d:0:0:0:0/64",
+		"a:0:0:d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a:0:0:d:%:%:%:%",
+		"000a:0000:0000:000d:0000:0000:0000:0000/64",
+		"a:0:0:d::/64",
+		"a:0:0:d::/64",
+		"a:0:0:d::/64",
+		"a::d:*:*:*:*",
+		"a::d:0:0:0.0.0.0/64",
+		"a::d:0:0:0.0.0.0/64",
+		"a:0:0:d::/64",
+		"a:0:0:d::/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-0-0-0-0.ipv6-literal.net/64",
+		"00|M>t|tt+WbKhfd5~qN/64",
+		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+		"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777")
+
+	t.testIPv6Strings("1::/32",
+		"1:0:0:0:0:0:0:0/32",
+		"1:0:*:*:*:*:*:*",
+		"1:0:*:*:*:*:*:*",
+		"1:0:%:%:%:%:%:%",
+		"0001:0000:0000:0000:0000:0000:0000:0000/32",
+		"1::/32",
+		"1::/32",
+		"1::/32",
+		"1::*:*:*:*:*:*",
+		"1::0.0.0.0/32",
+		"1::0.0.0.0/32",
+		"1::/32",
+		"1::/32",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.1.0.0.0.ip6.arpa",
+		"1-0-0-0-0-0-0-0.ipv6-literal.net/32",
+		"008JOm8Mm5*yBppL!sg1/32",
+		"0x00010000000000000000000000000000-0x00010000ffffffffffffffffffffffff",
+		"00000020000000000000000000000000000000000000-00000020000077777777777777777777777777777777")
+
+	t.testIPv6Strings("ffff::/104",
+		"ffff:0:0:0:0:0:0:0/104",
+		"ffff:0:0:0:0:0:0-ff:*",
+		"ffff::0-ff:*",
+		"ffff:0:0:0:0:0:0-ff:%",
+		"ffff:0000:0000:0000:0000:0000:0000:0000/104",
+		"ffff::/104",
+		"ffff::/104",
+		"ffff::/104",
+		"ffff::0-ff:*",
+		"ffff::0.0.0.0/104",
+		"ffff::0.0.0.0/104",
+		"ffff::0.0.0.0/104",
+		"ffff::/104",
+		"*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104",
+		"=q{+M|w0(OeO5^EGP660/104",
+		"0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff",
+		"03777760000000000000000000000000000000000000-03777760000000000000000000000000000077777777")
+
+	t.testIPv6Strings("ffff::/108",
+		"ffff:0:0:0:0:0:0:0/108",
+		"ffff:0:0:0:0:0:0-f:*",
+		"ffff::0-f:*",
+		"ffff:0:0:0:0:0:_:%",
+		"ffff:0000:0000:0000:0000:0000:0000:0000/108",
+		"ffff::/108",
+		"ffff::/108",
+		"ffff::/108",
+		"ffff::0-f:*",
+		"ffff::0.0.0.0/108",
+		"ffff::0.0.0.0/108",
+		"ffff::0.0.0.0/108",
+		"ffff::/108",
+		"*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-0-0.ipv6-literal.net/108",
+		"=q{+M|w0(OeO5^EGP660/108",
+		"0xffff0000000000000000000000000000-0xffff00000000000000000000000fffff",
+		"03777760000000000000000000000000000000000000-03777760000000000000000000000000000003777777")
+
+	t.testIPv6Strings("ffff::1000:0/108",
+		"ffff:0:0:0:0:0:1000:0/108",
+		"ffff:0:0:0:0:0:1000-100f:*",
+		"ffff::1000-100f:*",
+		"ffff:0:0:0:0:0:100_:%",
+		"ffff:0000:0000:0000:0000:0000:1000:0000/108",
+		"ffff::1000:0/108",
+		"ffff::1000:0/108",
+		"ffff:0:0:0:0:0:1000::/108",
+		"ffff::1000-100f:*",
+		"ffff::16.0.0.0/108",
+		"ffff::16.0.0.0/108",
+		"ffff::16.0.0.0/108",
+		"ffff::16.0.0.0/108",
+		"*.*.*.*.*.0.0.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-1000-0.ipv6-literal.net/108",
+		"=q{+M|w0(OeO5^ELbE%G/108",
+		"0xffff0000000000000000000010000000-0xffff00000000000000000000100fffff",
+		"03777760000000000000000000000000002000000000-03777760000000000000000000000000002003777777")
+
+	t.testIPv6Strings("ffff::a000:0/108",
+		"ffff:0:0:0:0:0:a000:0/108",
+		"ffff:0:0:0:0:0:a000-a00f:*",
+		"ffff::a000-a00f:*",
+		"ffff:0:0:0:0:0:a00_:%",
+		"ffff:0000:0000:0000:0000:0000:a000:0000/108",
+		"ffff::a000:0/108",
+		"ffff::a000:0/108",
+		"ffff:0:0:0:0:0:a000::/108",
+		"ffff::a000-a00f:*",
+		"ffff::160.0.0.0/108",
+		"ffff::160.0.0.0/108",
+		"ffff::160.0.0.0/108",
+		"ffff::160.0.0.0/108",
+		"*.*.*.*.*.0.0.a.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-a000-0.ipv6-literal.net/108",
+		"=q{+M|w0(OeO5^E(z82>/108",
+		"0xffff00000000000000000000a0000000-0xffff00000000000000000000a00fffff",
+		"03777760000000000000000000000000024000000000-03777760000000000000000000000000024003777777")
+
+	t.testIPv6Strings("ffff::/107",
+		"ffff:0:0:0:0:0:0:0/107",
+		"ffff:0:0:0:0:0:0-1f:*",
+		"ffff::0-1f:*",
+		"ffff:0:0:0:0:0:0-1f:%",
+		"ffff:0000:0000:0000:0000:0000:0000:0000/107",
+		"ffff::/107",
+		"ffff::/107",
+		"ffff::/107",
+		"ffff::0-1f:*",
+		"ffff::0.0.0.0/107",
+		"ffff::0.0.0.0/107",
+		"ffff::0.0.0.0/107",
+		"ffff::/107",
+		"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-0-0.ipv6-literal.net/107",
+		"=q{+M|w0(OeO5^EGP660/107",
+		"0xffff0000000000000000000000000000-0xffff00000000000000000000001fffff",
+		"03777760000000000000000000000000000000000000-03777760000000000000000000000000000007777777")
+
+	t.testIPv6Strings("abcd::/107",
+		"abcd:0:0:0:0:0:0:0/107",
+		"abcd:0:0:0:0:0:0-1f:*",
+		"abcd::0-1f:*",
+		"abcd:0:0:0:0:0:0-1f:%",
+		"abcd:0000:0000:0000:0000:0000:0000:0000/107",
+		"abcd::/107",
+		"abcd::/107",
+		"abcd::/107",
+		"abcd::0-1f:*",
+		"abcd::0.0.0.0/107",
+		"abcd::0.0.0.0/107",
+		"abcd::0.0.0.0/107",
+		"abcd::/107",
+		"*.*.*.*.*.0-1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.c.b.a.ip6.arpa",
+		"abcd-0-0-0-0-0-0-0.ipv6-literal.net/107",
+		"o6)n`s#^$cP5&p^H}p=a/107",
+		"0xabcd0000000000000000000000000000-0xabcd00000000000000000000001fffff",
+		"02536320000000000000000000000000000000000000-02536320000000000000000000000000000007777777")
+
+	t.testIPv6Strings("1:2:3:4::/80",
+		"1:2:3:4:0:0:0:0/80", //normalized
+		"1:2:3:4:0:*:*:*",    //normalizedWildcards
+		"1:2:3:4:0:*:*:*",    //canonicalWildcards
+		"1:2:3:4:0:%:%:%",    //sql
+		"0001:0002:0003:0004:0000:0000:0000:0000/80",
+		"1:2:3:4::/80", //compressed
+		"1:2:3:4::/80",
+		"1:2:3:4::/80",
+		"1:2:3:4::*:*:*",
+		"1:2:3:4::0.0.0.0/80", //mixed no compress
+		"1:2:3:4::0.0.0.0/80", //mixedNoCompressHost
+		"1:2:3:4::/80",
+		"1:2:3:4::/80",
+		"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-0-0-0.ipv6-literal.net/80",
+		"008JQWOV7Skb)C|ve)jA/80",
+		"0x00010002000300040000000000000000-0x00010002000300040000ffffffffffff",
+		"00000020000200001400010000000000000000000000-00000020000200001400010000007777777777777777")
+
+	t.testIPv6Strings("a:b:c:*:*:*:*:*", //as noted above, addresses are not converted to prefix if starting as wildcards.
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:%:%:%:%:%",
+		"000a:000b:000c:0000-ffff:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*:*",
+		"a:b:c:*:*:*:*.*.*.*",
+		"a:b:c:*:*:*:*.*.*.*",
+		"a:b:c:*:*:*:*.*.*.*",
+		"a:b:c:*:*:*:*.*.*.*",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-*-*-*-*-*.ipv6-literal.net",
+		"00|N0s0$N0-%*(tF5l-X"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|N0s0;%a&*sUa#KSGX",
+		"0x000a000b000c00000000000000000000-0x000a000b000cffffffffffffffffffff",
+		"00000240001300006000000000000000000000000000-00000240001300006377777777777777777777777777")
+
+	t.testIPv6Strings("a:b:c:d:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:%:%:%:%",
+		"000a:000b:000c:000d:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-*-*-*-*.ipv6-literal.net",
+		"00|N0s0$ND2BxK96%Chk"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|N0s0$ND{&WM}~o9(k",
+		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+		"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777")
+
+	t.testIPv6Strings("a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:%:%:%:%",
+		"000a:000b:000c:000d:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*:*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"a:b:c:d:*:*:*.*.*.*",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.c.0.0.0.b.0.0.0.a.0.0.0.ip6.arpa",
+		"a-b-c-d-*-*-*-*.ipv6-literal.net",
+		"00|N0s0$ND2BxK96%Chk"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|N0s0$ND{&WM}~o9(k",
+		"0x000a000b000c000d0000000000000000-0x000a000b000c000dffffffffffffffff",
+		"00000240001300006000032000000000000000000000-00000240001300006000033777777777777777777777")
+
+	t.testIPv6Strings("a::c:d:*",
+		"a:0:0:0:0:c:d:*",
+		"a:0:0:0:0:c:d:*",
+		"a::c:d:*",
+		"a:0:0:0:0:c:d:%",
+		"000a:0000:0000:0000:0000:000c:000d:0000-ffff",
+		"a::c:d:*",
+		"a::c:d:*",
+		"a::c:d:*",
+		"a::c:d:*",
+		"a::c:0.13.*.*",
+		"a::c:0.13.*.*",
+		"a::c:0.13.*.*",
+		"a::c:0.13.*.*",
+		"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-0-0-c-d-*.ipv6-literal.net",
+		"00|M>t|ttwH6V6EEzblZ"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|ttwH6V6EEzkrZ",
+		"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
+		"00000240000000000000000000000000600003200000-00000240000000000000000000000000600003377777")
+
+	t.testIPv6Strings("a::d:*:*:*:*",
+		"a:0:0:d:*:*:*:*",
+		"a:0:0:d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a:0:0:d:%:%:%:%",
+		"000a:0000:0000:000d:0000-ffff:0000-ffff:0000-ffff:0000-ffff",
+		"a::d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a::d:*:*:*:*",
+		"a::d:*:*:*.*.*.*",
+		"a::d:*:*:*.*.*.*",
+		"a::d:*:*:*.*.*.*",
+		"a::d:*:*:*.*.*.*",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.d.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-d-*-*-*-*.ipv6-literal.net",
+		"00|M>t|tt+WbKhfd5~qN"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|tt-R6^kVV>{?N",
+		"0x000a00000000000d0000000000000000-0x000a00000000000dffffffffffffffff",
+		"00000240000000000000032000000000000000000000-00000240000000000000033777777777777777777777")
+
+	t.testIPv6Strings("a::c:d:*/64",
+		"a:0:0:0:0:c:d:*/64",
+		"a:0:0:0:0:c:d:*",
+		"a::c:d:*",
+		"a:0:0:0:0:c:d:%",
+		"000a:0000:0000:0000:0000:000c:000d:0000-ffff/64",
+		"a::c:d:*/64",
+		"a::c:d:*/64",
+		"a::c:d:*/64",
+		"a::c:d:*",
+		"a::c:0.13.*.*/64",
+		"a::c:0.13.*.*/64",
+		"a::c:0.13.*.*/64",
+		"a::c:0.13.*.*/64",
+		"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-0-0-c-d-*.ipv6-literal.net/64",
+		"00|M>t|ttwH6V6EEzblZ"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|ttwH6V6EEzkrZ/64",
+		"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
+		"00000240000000000000000000000000600003200000-00000240000000000000000000000000600003377777")
+
+	t.testIPv6Strings("a::c:d:*/80", //similar to above, but allows us to test the base 85 string with non-64 bit prefix
+		"a:0:0:0:0:c:d:*/80",
+		"a:0:0:0:0:c:d:*",
+		"a::c:d:*",
+		"a:0:0:0:0:c:d:%",
+		"000a:0000:0000:0000:0000:000c:000d:0000-ffff/80",
+		"a::c:d:*/80",
+		"a::c:d:*/80",
+		"a::c:d:*/80",
+		"a::c:d:*",
+		"a::c:0.13.*.*/80",
+		"a::c:0.13.*.*/80",
+		"a::c:0.13.*.*/80",
+		"a::c:0.13.*.*/80",
+		"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-0-0-c-d-*.ipv6-literal.net/80",
+		"00|M>t|ttwH6V6EEzblZ"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|ttwH6V6EEzkrZ/80",
+		"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
+		"00000240000000000000000000000000600003200000-00000240000000000000000000000000600003377777")
+
+	t.testIPv6Strings("a::c:d:*/48", //similar to above, but allows us to test the base 85 string with non-64 bit prefix
+		"a:0:0:0:0:c:d:*/48",
+		"a:0:0:0:0:c:d:*",
+		"a::c:d:*",
+		"a:0:0:0:0:c:d:%",
+		"000a:0000:0000:0000:0000:000c:000d:0000-ffff/48",
+		"a::c:d:*/48",
+		"a::c:d:*/48",
+		"a::c:d:*/48",
+		"a::c:d:*",
+		"a::c:0.13.*.*/48",
+		"a::c:0.13.*.*/48",
+		"a::c:0.13.*.*/48",
+		"a::c:0.13.*.*/48",
+		"*.*.*.*.d.0.0.0.c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0.ip6.arpa",
+		"a-0-0-0-0-c-d-*.ipv6-literal.net/48",
+		"00|M>t|ttwH6V6EEzblZ"+ipaddr.IPv6AlternativeRangeSeparatorStr+"00|M>t|ttwH6V6EEzkrZ/48",
+		"0x000a0000000000000000000c000d0000-0x000a0000000000000000000c000dffff",
+		"00000240000000000000000000000000600003200000-00000240000000000000000000000000600003377777")
+
+	t.testIPv4Strings("1.2.0.4/16", "1.2.0.4/16", "1.2.0.4", "1.2.0.4", "001.002.000.004/16", "01.02.00.04/16", "0x1.0x2.0x0.0x4/16", "4.0.2.1.in-addr.arpa", "0x01020004", "000100400004")
+	t.testIPv4Strings("1.2.3.0/16", "1.2.3.0/16", "1.2.3.0", "1.2.3.0", "001.002.003.000/16", "01.02.03.00/16", "0x1.0x2.0x3.0x0/16", "0.3.2.1.in-addr.arpa", "0x01020300", "000100401400")
+	t.testIPv4Strings("1.2.0.0/14", "1.2.0.0/14", "1.2.0.0", "1.2.0.0", "001.002.000.000/14", "01.02.00.00/14", "0x1.0x2.0x0.0x0/14", "0.0.2.1.in-addr.arpa", "0x01020000", "000100400000")
+
+	t.testIPv4Strings("1.2.*.4/16", "1.2.*.4/16", "1.2.*.4", "1.2.%.4", "001.002.000-255.004/16", "01.02.*.04/16", "0x1.0x2.*.0x4/16", "4.*.2.1.in-addr.arpa", "", "")
+	t.testIPv4Strings("1.2.3.*/16", "1.2.3.*/16", "1.2.3.*", "1.2.3.%", "001.002.003.000-255/16", "01.02.03.*/16", "0x1.0x2.0x3.*/16", "*.3.2.1.in-addr.arpa", "0x01020300-0x010203ff", "000100401400-000100401777")
+	t.testIPv4Strings("1.2.*.*/14", "1.2.*.*/14", "1.2.*.*", "1.2.%.%", "001.002.000-255.000-255/14", "01.02.*.*/14", "0x1.0x2.*.*/14", "*.*.2.1.in-addr.arpa", "0x01020000-0x0102ffff", "000100400000-000100577777") //000100400000-000100400000/14"
+
+	t.testIPv6Strings("ffff::/8",
+		"ffff:0:0:0:0:0:0:0/8",
+		"ffff:0:0:0:0:0:0:0",
+		"ffff::",
+		"ffff:0:0:0:0:0:0:0",
+		"ffff:0000:0000:0000:0000:0000:0000:0000/8",
+		"ffff::/8",
+		"ffff::/8",
+		"ffff::/8",
+		"ffff::",
+		"ffff::0.0.0.0/8",
+		"ffff::0.0.0.0/8",
+		"ffff::/8",
+		"ffff::/8",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-0-0.ipv6-literal.net/8",
+		"=q{+M|w0(OeO5^EGP660/8",
+		"0xffff0000000000000000000000000000",
+		"03777760000000000000000000000000000000000000")
+
+	t.testIPv6Strings("ffff::eeee:eeee/108",
+		"ffff:0:0:0:0:0:eeee:eeee/108",
+		"ffff:0:0:0:0:0:eeee:eeee",
+		"ffff::eeee:eeee",
+		"ffff:0:0:0:0:0:eeee:eeee",
+		"ffff:0000:0000:0000:0000:0000:eeee:eeee/108",
+		"ffff::eeee:eeee/108",
+		"ffff::eeee:eeee/108",
+		"ffff::eeee:eeee/108",
+		"ffff::eeee:eeee",
+		"ffff::238.238.238.238/108",
+		"ffff::238.238.238.238/108",
+		"ffff::238.238.238.238/108",
+		"ffff::238.238.238.238/108",
+		"e.e.e.e.e.e.e.e.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+		"ffff-0-0-0-0-0-eeee-eeee.ipv6-literal.net/108",
+		"=q{+M|w0(OeO5^F87dpH/108",
+		"0xffff00000000000000000000eeeeeeee",
+		"03777760000000000000000000000000035673567356")
+
+	t.testIPv6Strings("1:2:3:4::%x%x%", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone x%x%
+		"1:2:3:4:0:0:0:0%x%x%", //normalized
+		"1:2:3:4:0:0:0:0%x%x%", //normalizedWildcards
+		"1:2:3:4::%x%x%",       //canonicalWildcards
+		"1:2:3:4:0:0:0:0%x%x%", //sql
+		"0001:0002:0003:0004:0000:0000:0000:0000%x%x%",
+		"1:2:3:4::%x%x%",        //compressed
+		"1:2:3:4::%x%x%",        //canonical
+		"1:2:3:4::%x%x%",        //subnet
+		"1:2:3:4::%x%x%",        //compressed wildcard
+		"1:2:3:4::0.0.0.0%x%x%", //mixed no compress
+		"1:2:3:4::%x%x%",        //mixedNoCompressHost
+		"1:2:3:4::%x%x%",
+		"1:2:3:4::%x%x%",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-0-0-0sxsxs.ipv6-literal.net",
+		"008JQWOV7Skb)C|ve)jA"+ipaddr.IPv6AlternativeZoneSeparatorStr+"x%x%",
+		"0x00010002000300040000000000000000%x%x%",
+		"00000020000200001400010000000000000000000000%x%x%") //mixed
+
+	t.testIPv6Strings("1:2:3:4:5:6:7:8%a/64", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
+		"1:2:3:4:5:6:7:8%a/64", //normalized
+		"1:2:3:4:5:6:7:8%a",    //normalizedWildcards
+		"1:2:3:4:5:6:7:8%a",    //canonicalWildcards
+		"1:2:3:4:5:6:7:8%a",    //sql
+		"0001:0002:0003:0004:0005:0006:0007:0008%a/64",
+		"1:2:3:4:5:6:7:8%a/64",     //compressed
+		"1:2:3:4:5:6:7:8%a/64",     //canonical
+		"1:2:3:4:5:6:7:8%a/64",     //subnet
+		"1:2:3:4:5:6:7:8%a",        //compressed wildcard
+		"1:2:3:4:5:6:0.7.0.8%a/64", //mixed no compress
+		"1:2:3:4:5:6:0.7.0.8%a/64", //mixedNoCompressHost
+		"1:2:3:4:5:6:0.7.0.8%a/64",
+		"1:2:3:4:5:6:0.7.0.8%a/64",
+		"8.0.0.0.7.0.0.0.6.0.0.0.5.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-5-6-7-8sa.ipv6-literal.net/64",
+		"008JQWOV7SkcR4tS1R_a"+ipaddr.IPv6AlternativeZoneSeparatorStr+"a/64",
+		"0x00010002000300040005000600070008%a",
+		"00000020000200001400010000050000300001600010%a")
+
+	t.testIPv6Strings("1:2:3:4::%a/64", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone :%:%
+		"1:2:3:4:0:0:0:0%a/64", //normalized
+		"1:2:3:4:*:*:*:*%a",    //normalizedWildcards
+		"1:2:3:4:*:*:*:*%a",    //canonicalWildcards
+		"1:2:3:4:%:%:%:%%a",    //sql
+		"0001:0002:0003:0004:0000:0000:0000:0000%a/64",
+		"1:2:3:4::%a/64",        //compressed
+		"1:2:3:4::%a/64",        //canonical
+		"1:2:3:4::%a/64",        //subnet
+		"1:2:3:4:*:*:*:*%a",     //compressed wildcard
+		"1:2:3:4::0.0.0.0%a/64", //mixed no compress
+		"1:2:3:4::0.0.0.0%a/64", //mixedNoCompressHost
+		"1:2:3:4::%a/64",
+		"1:2:3:4::%a/64",
+		"*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-0-0-0sa.ipv6-literal.net/64",
+		"008JQWOV7Skb)C|ve)jA"+ipaddr.IPv6AlternativeZoneSeparatorStr+"a/64",
+		"0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff%a",
+		"00000020000200001400010000000000000000000000-00000020000200001400011777777777777777777777%a")
+
+	t.testIPv6Strings("1:2:3:4::%.a.a", //Note: % is the zone character (not sql wildcard), so this is handled as 1:2:3:4:: with zone .a.a
+		"1:2:3:4:0:0:0:0%.a.a", //normalized
+		"1:2:3:4:0:0:0:0%.a.a", //normalizedWildcards
+		"1:2:3:4::%.a.a",       //canonicalWildcards
+		"1:2:3:4:0:0:0:0%.a.a", //sql
+		"0001:0002:0003:0004:0000:0000:0000:0000%.a.a",
+		"1:2:3:4::%.a.a",        //compressed
+		"1:2:3:4::%.a.a",        //canonical
+		"1:2:3:4::%.a.a",        //subnet
+		"1:2:3:4::%.a.a",        //compressed wildcard
+		"1:2:3:4::0.0.0.0%.a.a", //mixed no compress
+		"1:2:3:4::%.a.a",        //mixedNoCompressHost
+		"1:2:3:4::%.a.a",
+		"1:2:3:4::%.a.a",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-0-0-0s.a.a.ipv6-literal.net",
+		"008JQWOV7Skb)C|ve)jA"+ipaddr.IPv6AlternativeZoneSeparatorStr+".a.a",
+		"0x00010002000300040000000000000000%.a.a",
+		"00000020000200001400010000000000000000000000%.a.a") //mixed
+	t.testIPv6Strings("1:2:3:4::*:*:*",
+		"1:2:3:4:0:*:*:*", //normalized
+		"1:2:3:4:0:*:*:*", //normalizedWildcards
+		"1:2:3:4:0:*:*:*", //canonicalWildcards
+		"1:2:3:4:0:%:%:%", //sql
+		"0001:0002:0003:0004:0000:0000-ffff:0000-ffff:0000-ffff",
+		"1:2:3:4::*:*:*",     //compressed
+		"1:2:3:4:0:*:*:*",    //canonical
+		"1:2:3:4::*:*:*",     //subnet
+		"1:2:3:4::*:*:*",     //compressed wildcard
+		"1:2:3:4::*:*.*.*.*", //mixed no compress
+		"1:2:3:4::*:*.*.*.*", //mixedNoCompressHost
+		"1:2:3:4::*:*.*.*.*",
+		"1:2:3:4::*:*.*.*.*",
+		"*.*.*.*.*.*.*.*.*.*.*.*.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-*-*-*.ipv6-literal.net",
+		"008JQWOV7Skb)C|ve)jA"+ipaddr.IPv6AlternativeRangeSeparatorStr+"008JQWOV7Skb?_P3;X#A",
+		"0x00010002000300040000000000000000-0x00010002000300040000ffffffffffff",
+		"00000020000200001400010000000000000000000000-00000020000200001400010000007777777777777777")
+
+	t.testIPv6Strings("1:2:3:4::",
+		"1:2:3:4:0:0:0:0", //normalized
+		"1:2:3:4:0:0:0:0", //normalizedWildcards
+		"1:2:3:4::",       //canonicalWildcards
+		"1:2:3:4:0:0:0:0", //sql
+		"0001:0002:0003:0004:0000:0000:0000:0000",
+		"1:2:3:4::", //compressed
+		"1:2:3:4::",
+		"1:2:3:4::",
+		"1:2:3:4::",
+		"1:2:3:4::0.0.0.0", //mixed no compress
+		"1:2:3:4::",        //mixedNoCompressHost
+		"1:2:3:4::",
+		"1:2:3:4::",
+		"0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-0-0-0.ipv6-literal.net",
+		"008JQWOV7Skb)C|ve)jA",
+		"0x00010002000300040000000000000000",
+		"00000020000200001400010000000000000000000000") //mixed
+
+	t.testIPv6Strings("1:2:3:4:0:6::",
+		"1:2:3:4:0:6:0:0", //normalized
+		"1:2:3:4:0:6:0:0", //normalizedWildcards
+		"1:2:3:4:0:6::",   //canonicalWildcards
+		"1:2:3:4:0:6:0:0", //sql
+		"0001:0002:0003:0004:0000:0006:0000:0000",
+		"1:2:3:4:0:6::", //compressed
+		"1:2:3:4:0:6::",
+		"1:2:3:4:0:6::",      //subnet
+		"1:2:3:4:0:6::",      //compressedWildcard
+		"1:2:3:4::6:0.0.0.0", //mixed no compress
+		"1:2:3:4:0:6::",      //mixedNoCompressHost
+		"1:2:3:4:0:6::",
+		"1:2:3:4:0:6::",
+		"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-4-0-6-0-0.ipv6-literal.net",
+		"008JQWOV7Skb)D3fCrWG",
+		"0x00010002000300040000000600000000",
+		"00000020000200001400010000000000300000000000")
+	t.testIPv6Strings("1:2:3:0:0:6::",
+		"1:2:3:0:0:6:0:0", //normalized
+		"1:2:3:0:0:6:0:0", //normalizedWildcards
+		"1:2:3::6:0:0",    //canonicalWildcards
+		"1:2:3:0:0:6:0:0", //sql
+		"0001:0002:0003:0000:0000:0006:0000:0000",
+		"1:2:3::6:0:0", //compressed
+		"1:2:3::6:0:0",
+		"1:2:3::6:0:0",     //subnet
+		"1:2:3::6:0:0",     //compressedWildcard
+		"1:2:3::6:0.0.0.0", //mixed no compress
+		"1:2:3::6:0.0.0.0", //mixedNoCompressHost
+		"1:2:3::6:0.0.0.0",
+		"1:2:3:0:0:6::",
+		"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+		"1-2-3-0-0-6-0-0.ipv6-literal.net",
+		"008JQWOV7O(=61h*;$LC",
+		"0x00010002000300000000000600000000",
+		"00000020000200001400000000000000300000000000")
 }
 
 /*

@@ -740,7 +740,7 @@ func (div *addressDivisionInternal) adjustUpperLeadingZeroCount(leadingZeroCount
 
 func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int, value DivInt, radix int) int {
 	if leadingZeroCount < 0 {
-		width := getDigitCount(value, div.GetBitCount(), radix) //static
+		width := getDigitCount(value, div.GetBitCount(), radix) //static //TODO remove bit count arg
 		num := div.getMaxDigitCountRadix(radix) - width
 		if num < 0 {
 			return 0

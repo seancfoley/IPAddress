@@ -206,12 +206,22 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }
 
-var _, _, _, _, _, _ IPAddressSegmentSeries = &IPAddress{},
+var _, _, _, _ IPAddressSegmentSeries = &IPAddress{},
 	&IPv4Address{},
-	&IPv6Address{},
 	&IPAddressSection{},
-	&IPv4AddressSection{},
-	&IPv6AddressSection{}
+	&IPv4AddressSection{}
+
+type IPv6AddressSegmentSeries interface {
+	IPAddressSegmentSeries
+	// TODO lots more methods here
+	GetSegment(index int) *IPv6AddressSegment
+}
+
+// TODO equivalent of IPv6AddressSegmentSeries for ipv4 and mac
+
+var _, _, _ IPv6AddressSegmentSeries = &IPv6Address{},
+	&IPv6AddressSection{},
+	&EmbeddedIPv6AddressSection{}
 
 // GenericGroupingType represents any division grouping, including groupings of both standard and large divisions
 type GenericGroupingType interface {

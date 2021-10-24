@@ -1329,15 +1329,13 @@ func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone 
 }
 
 func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
-	isDual, err := section.isDualString()
-	if err != nil {
+	if isDual, err := section.isDualString(); err != nil {
 		return "", err
-	}
-	if isDual {
+	} else if isDual {
 		sect := section.toAddressSection()
-		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+		return toNormalizedStringRange(toZonedParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
 	}
-	return section.ToCustomString(params), nil
+	return section.toCustomString(params, zone), nil
 }
 
 //func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
@@ -1368,12 +1366,12 @@ func (section *addressSectionInternal) toCustomString(stringOptions StringOption
 
 func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
 	count := section.GetSegmentCount()
-	for i := 0; i < count; i++ {
+	for i := 0; i < count; i++ { //TODO check !ismultiple to start
 		division := section.GetSegment(i)
 		if division.isMultiple() {
-			//at this point we know we will return true, but we determine now if we must throw IncompatibleAddressError
+			//at this point we know we will return true, but we determine now if we must return IncompatibleAddressError
 			isLastFull := true
-			for j := count - 1; j >= 0; j-- {
+			for j := count - 1; j >= i; j-- {
 				division = section.GetSegment(j)
 				if division.isMultiple() {
 					if !isLastFull {

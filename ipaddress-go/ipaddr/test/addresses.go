@@ -86,6 +86,8 @@ type testAddresses interface {
 
 	createParametrizedAddress(string, ipaddr.RangeParameters) *ipaddr.IPAddressString
 
+	createParamsAddress(string, ipaddr.IPAddressStringParameters) *ipaddr.IPAddressString
+
 	createAddressFromIP(ip net.IP) *ipaddr.IPAddress
 
 	createIPv4Address(uint32) *ipaddr.IPv4Address
@@ -121,6 +123,10 @@ func (t *addresses) createParametrizedAddress(str string, params ipaddr.RangePar
 	}
 	return ipaddr.NewIPAddressStringParams(str, opts)
 
+}
+
+func (t *addresses) createParamsAddress(str string, opts ipaddr.IPAddressStringParameters) *ipaddr.IPAddressString {
+	return ipaddr.NewIPAddressStringParams(str, opts)
 }
 
 func (t *addresses) createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString {

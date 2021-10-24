@@ -215,7 +215,7 @@ func getMACDefaults(hasSeparator *bool, separator byte) (*bool, byte) {
 		hasSeparator = &trueVal
 	}
 	if separator == 0 {
-		separator = MacDottedSegmentSeparator
+		separator = MACColonSegmentSeparator
 	}
 	return hasSeparator, separator
 }
@@ -397,7 +397,7 @@ type IPStringOptions interface {
 
 	GetWildcardOption() WildcardOption
 
-	GetZoneSeparator() byte
+	//GetZoneSeparator() byte
 }
 
 type ipStringOptions struct {
@@ -646,6 +646,8 @@ type IPv6StringOptions interface {
 	IsSplitDigits() bool // can produce IncompatibleAddressError for ranged series
 
 	IsMixed() bool // can produce IncompatibleAddressError for ranges in the IPv4 part of the series
+
+	GetZoneSeparator() byte
 }
 
 func isCacheable(options IPv6StringOptions) bool {

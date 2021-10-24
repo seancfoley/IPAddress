@@ -29,8 +29,8 @@ const (
 	MacSpaceSegmentSeparator  = space
 	MacDottedSegmentSeparator = dot
 
-	MacDashedSegmentRangeSeparator           = '|'
-	MacDashedSegmentRangeSeparatorStr string = string(MacDashedSegmentRangeSeparator)
+	MacDashedSegmentRangeSeparator    = '|'
+	MacDashedSegmentRangeSeparatorStr = string(MacDashedSegmentRangeSeparator)
 
 	macBitsToSegmentBitshift = 3
 )

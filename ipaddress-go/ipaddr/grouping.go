@@ -38,6 +38,8 @@ func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, 
 	return result
 }
 
+//TODO need a NewDivisionGrouping so people can create their own, and probably also a NewDivision that calls createAddressDivision
+
 var (
 	emptyBytes = []byte{}
 )
@@ -711,6 +713,133 @@ func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingTyp
 		}
 	}
 	return true
+}
+
+//protected static interface GroupingCreator<S extends AddressDivisionBase> {
+//		S createDivision(long value, long upperValue, int bitCount, int radix);
+//	}
+
+func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit BitCount) []*AddressDivision {
+	return grouping.createNewPrefixedDivisions(bitsPerDigit, nil)
+}
+
+//protected static interface PrefixedGroupingCreator<S extends AddressDivisionBase> {
+//	S createDivision(long value, long upperValue, int bitCount, int radix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength);
+//}
+
+//TODO this should return an error in the usual case where we divide a ranged segment and the lower part is not full range, but right now this is fine because we never call with ranged segments
+
+func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) []*AddressDivision {
+	//if(bitsPerDigit >= Integer.SIZE) {
+	//	//keep in mind once you hit 5 bits per digit, radix 32, you need 32 different digits, and there are only 26 alphabet characters and 10 digit chars, so 36
+	//	//so once you get higher than that, you need a new character set.
+	//	//AddressLargeDivision allows all the way up to base 85
+	//	throw new AddressValueException(bitsPerDigit);
+	//}
+	bitCount := grouping.GetBitCount()
+	//List<Integer> bitDivs = new ArrayList<Integer>(bitsPerDigit);
+	var bitDivs []BitCount
+
+	// here we divide into divisions, each with an exact number of digits.
+	// Each digit takes 3 bits.  So the division bit-sizes are a multiple of 3 until the last one.
+
+	//ipv6 octal:
+	//seg bit counts: 63, 63, 2
+	//ipv4 octal:
+	//seg bit counts: 30, 2
+
+	largestBitCount := BitCount(64) // uint64, size of DivInt
+
+	//int largestBitCount = Long.SIZE - 1;
+	largestBitCount -= largestBitCount % bitsPerDigit // round off to a multiple of 3 bits
+	for {
+		if bitCount <= largestBitCount {
+			mod := bitCount % bitsPerDigit
+			secondLast := bitCount - mod
+			if secondLast > 0 {
+				//bitDivs.add(cacheBits(secondLast));
+				bitDivs = append(bitDivs, secondLast)
+			}
+			if mod > 0 {
+				bitDivs = append(bitDivs, mod)
+				//bitDivs.add(cacheBits(mod));
+			}
+			break
+		} else {
+			bitCount -= largestBitCount
+			bitDivs = append(bitDivs, largestBitCount)
+			//bitDivs.add(cacheBits(largestBitCount));
+		}
+	}
+
+	// at this point bitDivs has our division sizes
+
+	divCount := len(bitDivs)
+	divs := make([]*AddressDivision, divCount)
+	//S divs[] = groupingArrayCreator.apply(divCount);
+	currentSegmentIndex := 0
+	seg := grouping.getDivision(currentSegmentIndex)
+	segLowerVal := seg.GetDivisionValue()
+	segUpperVal := seg.GetUpperDivisionValue()
+	segBits := seg.GetBitCount()
+	bitsSoFar := BitCount(0)
+
+	// 2 to the x is all ones shift left x, then not, then add 1
+	// so, for x == 1, 1111111 -> 1111110 -> 0000001 -> 0000010
+	radix := ^(^(0) << uint(bitsPerDigit)) + 1
+	//int radix = AddressDivision.getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
+	//fill up our new divisions, one by one
+	for i := divCount - 1; i >= 0; i-- {
+		//int originalDivBitSize, divBitSize;
+		divBitSize := bitDivs[i]
+		originalDivBitSize := divBitSize
+		//long divLowerValue, divUpperValue;
+		//divLowerValue = divUpperValue = 0;
+		var divLowerValue, divUpperValue uint64
+		for {
+			if segBits >= divBitSize {
+				diff := uint(segBits - divBitSize)
+				//udiff := uint(diff);
+				divLowerValue |= segLowerVal >> diff
+				shift := ^(^uint64(0) << diff)
+				segLowerVal &= shift
+				divUpperValue |= segUpperVal >> diff
+				segUpperVal &= shift
+				segBits = BitCount(diff)
+				var segPrefixBits PrefixLen
+				if networkPrefixLength != nil {
+					segPrefixBits = getDivisionPrefixLength(originalDivBitSize, *networkPrefixLength-bitsSoFar)
+				}
+				//Integer segPrefixBits = networkPrefixLength == null ? null : getSegmentPrefixLength(originalDivBitSize, networkPrefixLength - bitsSoFar);
+				div := NewRangePrefixDivision(divLowerValue, divUpperValue, segPrefixBits, originalDivBitSize, radix)
+				//S div = groupingCreator.createDivision(divLowerValue, divUpperValue, originalDivBitSize, radix, network, segPrefixBits);
+				divs[divCount-i-1] = div
+				if segBits == 0 && i > 0 {
+					//get next seg
+					currentSegmentIndex++
+					seg = grouping.getDivision(currentSegmentIndex)
+					segLowerVal = seg.getDivisionValue()
+					segUpperVal = seg.getUpperDivisionValue()
+					segBits = seg.getBitCount()
+				}
+				break
+			} else {
+				diff := uint(divBitSize - segBits)
+				divLowerValue |= segLowerVal << diff
+				divUpperValue |= segUpperVal << diff
+				divBitSize = BitCount(diff)
+
+				//get next seg
+				currentSegmentIndex++
+				seg = grouping.getDivision(currentSegmentIndex)
+				segLowerVal = seg.getDivisionValue()
+				segUpperVal = seg.getUpperDivisionValue()
+				segBits = seg.getBitCount()
+			}
+		}
+		bitsSoFar += originalDivBitSize
+	}
+	return divs
 }
 
 type AddressDivisionGrouping struct {

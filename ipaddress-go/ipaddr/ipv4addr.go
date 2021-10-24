@@ -7,6 +7,7 @@ import (
 
 const (
 	IPv4SegmentSeparator               = '.'
+	IPv4SegmentSeparatorStr            = string(IPv4SegmentSeparator)
 	IPv4BitsPerSegment        BitCount = 8
 	IPv4BytesPerSegment                = 1
 	IPv4SegmentCount                   = 4
