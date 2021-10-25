@@ -843,8 +843,35 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
+//TODO equals nil:
+// CompareTo and Equals
+// How will it work?  I will need to add them to all subtypes everywhere: groupings, segments, addresses, ranges
+// I tossed the idea of changing init() everywhere, seems like overkill.
+// I need to consider both the nil interface and the underlying value nil.
+//if interface is nil, probable return false?  CompareTo is what?
+// if interface value is nil, then we do a comparison where nil is smaller than non-nil?
+// What about PrefixEquals?  Contains?  PrefixContains?
+
+// Equals, CompareTo, PrefixEquals, PrefixContains, Contains
+
+// we want equals consistent with compare
+// we want equals to imply prefixEquals (prefix of nil is nil)
+// we want equals to imply contains
+// we want contains to imply prefixContains (prefix of nil is nil)
+
+// nil cannot contain anything (same is true of prefixContains)
+// nil is contained by anything, including prefixes (prefixContains)
+// nil equals itself (also prefixEquals itself)
+// I am leaning towards treating interface nil same as interface value nil.
+// One reason is that value types are interchangeable anyway (ie Address/IPv6Address/IPAddress etc are all interchangeable when it comes to nil).
+// And so, it the type means nothing really, then a nil interface value and a nil value to an interface are really equivalent if you ignore the type
+// Another reason is that the concept of "nil" is the same for both.
+
+// with groupings, there is the question of comparable sizes, so, nil no longer contains everything, and not everything contains nil
+// does that make sense?  the address contains nil, the corresponding section does not?  I think nil should be contained by all sections I guess
+
 func (addr *IPAddress) CompareTo(item AddressItem) int {
-	//if addr != nil { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 - I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
+	//if addr != nil { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 - I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	addr = addr.init()
 	//}
 	return CountComparator.Compare(addr.init(), item)
@@ -863,7 +890,7 @@ func (addr *IPAddress) Contains(other AddressType) bool {
 }
 
 func (addr *IPAddress) Equals(other AddressType) bool {
-	//if addr == nil { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
+	//if addr == nil { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	return other.ToAddress() == nil
 	//}
 	// return other != nil && other.ToAddress() != nil or put this inside the equals call
@@ -993,7 +1020,7 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) { //TODO consider dropping the error
+func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) { //TODO consider dropping the error, when spanning different versions you just get nil
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil

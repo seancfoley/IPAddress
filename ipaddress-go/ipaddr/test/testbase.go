@@ -1722,6 +1722,7 @@ var (
 	p24  = cacheTestBits(24)
 	p31  = cacheTestBits(31)
 	p32  = cacheTestBits(32)
+	p33  = cacheTestBits(33)
 	p48  = cacheTestBits(48)
 	p49  = cacheTestBits(49)
 	p56  = cacheTestBits(56)

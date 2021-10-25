@@ -1831,15 +1831,54 @@ func (t ipAddressRangeTester) run() {
 	t.testPrefix("3.0-127.*.*", nil, 9, p9)
 	t.testPrefix("3.128-255.*.*", nil, 9, p9)
 
-	//TODO soon
-	//testMasked("1.*.3.4", null, null, "1.*.3.4");
-	//testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", null, "1.*.1.0");
-	//testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", 23, false ? "1.*.2.0/23" : "1.*.3.4/23");
-	//
-	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", null, null, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", null, "0:101:0:101:0:101:0:101");
-	//testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", 33, false ? "ffff:ffff:8000::/33" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33");
-	//testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", 33, "ffff:ffff::/33");
+	t.testMasked("1.*.3.4", "", nil, "1.*.3.4")
+	t.testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", nil, "1.*.1.0")
+	t.testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", p23, "1.*.3.4/23")
+
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "", nil, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", nil, "0:101:0:101:0:101:0:101")
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", p33, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33")
+	t.testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", p33, "ffff:ffff::/33")
+
+	t.testIPv4Wildcarded("1.2.3.4", 8, "1.2.3.4", "1.2.3.4")
+	t.testIPv4Wildcarded("1.2.3.4", 9, "1.2.3.4", "1.2.3.4")
+	t.testIPv4Wildcarded("1.2.3.4", 15, "1.2.3.4", "1.2.3.4")
+	t.testIPv4Wildcarded("1.3.3.4", 15, "1.3.3.4", "1.3.3.4")
+	t.testIPv4Wildcarded("1.2.3.4", 16, "1.2.3.4", "1.2.3.4")
+	t.testWildcarded("1::1", 16, "1::1/16", "1:0:0:0:0:0:0:1", "1::1", "1::1", "1:0:0:0:0:0:0:1")
+	t.testIPv4Wildcarded("1.3.0.0", 15, "1.3.0.0", "1.3.0.0")
+
+	t.testIPv4Wildcarded("1.0.0.0", 8, "1.*.*.*", "1.%.%.%")
+	t.testIPv4Wildcarded("1.0.0.0", 9, "1.0-127.*.*", "1.0-127.%.%")
+	t.testIPv4Wildcarded("1.2.0.0", 15, "1.2-3.*.*", "1.2-3.%.%")
+	t.testIPv4Wildcarded("1.2.0.0", 16, "1.2.*.*", "1.2.%.%")
+
+	t.testWildcarded("1:0::", 32, "1::/32", "1:0:*:*:*:*:*:*", "1:0:*:*:*:*:*:*", "1::*:*:*:*:*:*", "1:0:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1::", 16, "1::/16", "1:*:*:*:*:*:*:*", "1:%:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1::", 20, "1::/20", "1:0-fff:*:*:*:*:*:*", "1:0-fff:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:f000::", 20, "1:f000::/20", "1:f000-ffff:*:*:*:*:*:*", "1:f___:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1::", 17, "1::/17", "1:0-7fff:*:*:*:*:*:*", "1:0-7fff:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:10::", 28, "1:10::/28", "1:10-1f:*:*:*:*:*:*", "1:1_:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1::", 28, "1::/28", "1:0-f:*:*:*:*:*:*", "1:_:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1::", 31, "1::/31", "1:0-1:*:*:*:*:*:*", "1:0-1:%:%:%:%:%:%")
+	t.testWildcarded("1::", 36, "1::/36", "1:0:0-fff:*:*:*:*:*", "1:0:0-fff:*:*:*:*:*", "1::0-fff:*:*:*:*:*", "1:0:0-fff:%:%:%:%:%")
+	t.testWildcarded("1::", 52, "1::/52", "1:0:0:0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1:0:0:0-fff:%:%:%:%")
+	t.testWildcarded("1::", 60, "1::/60", "1:0:0:0-f:*:*:*:*", "1::0-f:*:*:*:*", "1::0-f:*:*:*:*", "1:0:0:_:%:%:%:%")
+
+	t.testIPv4Wildcarded("1.*.*.*", 8, "1.*.*.*", "1.%.%.%")
+	t.testIPv4Wildcarded("1.0-127.*.*", 9, "1.0-127.*.*", "1.0-127.%.%")
+	t.testWildcarded("1:0:*", 32, "1::/32", "1:0:*:*:*:*:*:*", "1:0:*:*:*:*:*:*", "1::*:*:*:*:*:*", "1:0:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:*", 16, "1::/16", "1:*:*:*:*:*:*:*", "1:%:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:0-fff:*", 20, "1::/20", "1:0-fff:*:*:*:*:*:*", "1:0-fff:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:f000-ffff:*", 20, "1:f000::/20", "1:f000-ffff:*:*:*:*:*:*", "1:f___:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:8000-ffff:*", 17, "1:8000::/17", "1:8000-ffff:*:*:*:*:*:*", "1:8000-ffff:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:10-1f:*", 28, "1:10::/28", "1:10-1f:*:*:*:*:*:*", "1:1_:%:%:%:%:%:%")
+
+	t.testIPv6Wildcarded("1:0-f:*", 28, "1::/28", "1:0-f:*:*:*:*:*:*", "1:_:%:%:%:%:%:%")
+	t.testIPv6Wildcarded("1:0-1:*", 31, "1::/31", "1:0-1:*:*:*:*:*:*", "1:0-1:%:%:%:%:%:%")
+	t.testWildcarded("1:0:0-fff:*", 36, "1::/36", "1:0:0-fff:*:*:*:*:*", "1:0:0-fff:*:*:*:*:*", "1::0-fff:*:*:*:*:*", "1:0:0-fff:%:%:%:%:%")
+	t.testWildcarded("1:0:0:0-fff:*", 52, "1::/52", "1:0:0:0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1:0:0:0-fff:%:%:%:%")
+	t.testWildcarded("1:0:0:0-f:*", 60, "1::/60", "1:0:0:0-f:*:*:*:*", "1::0-f:*:*:*:*", "1::0-f:*:*:*:*", "1:0:0:_:%:%:%:%")
 
 	t.ipAddressTester.run()
 }
@@ -1888,6 +1927,101 @@ func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, 
 func (t ipAddressRangeTester) testPrefix(original string, prefixLength ipaddr.PrefixLen, minPrefix ipaddr.BitCount, equivalentPrefix ipaddr.PrefixLen) {
 	addr := t.createAddress(original).GetAddress()
 	t.testBase.testPrefix(addr, prefixLength, minPrefix, equivalentPrefix)
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testMasked(masked, mask string, prefixLength ipaddr.PrefixLen, result string) {
+	maskedAddrStr := t.createAddress(masked)
+	maskedAddr := maskedAddrStr.GetAddress()
+	var maskAddr *ipaddr.IPAddress
+	if mask != "" {
+		maskAddr = t.createAddress(mask).GetAddress()
+	}
+	resultAddr := t.createAddress(result).GetAddress()
+
+	if !maskedAddr.Equals(resultAddr) {
+		t.addFailure(newIPAddrFailure("masked "+maskedAddr.String()+" instead of expected "+resultAddr.String(), maskedAddr))
+	}
+
+	//TODO change the test below back to once we support nils with Equals
+	//if (!maskAddr.Equals(maskedAddrStr.GetMask()) {
+	//	t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
+	//}
+	if maskAddr == nil {
+		if maskedAddrStr.GetMask() != nil {
+			t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
+		}
+	} else {
+		if !maskAddr.Equals(maskedAddrStr.GetMask()) {
+			t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
+		}
+	}
+	//
+	if !resultAddr.GetNetworkPrefixLen().Equals(prefixLength) {
+		t.addFailure(newIPAddrFailure("masked prefix length was "+resultAddr.GetNetworkPrefixLen().String()+" instead of expected "+prefixLength.String(), maskedAddr))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testIPv4Wildcarded(original string, bits ipaddr.BitCount, expected, expectedSQL string) {
+	t.testWildcarded(original, bits, expected, expected, expected, expected, expectedSQL)
+}
+
+func (t ipAddressRangeTester) testIPv6Wildcarded(original string, bits ipaddr.BitCount, expectedSubnet, expectedNormalizedCompressedCanonical, expectedSQL string) {
+	all := expectedNormalizedCompressedCanonical
+	t.testWildcarded(original, bits, expectedSubnet, all, all, all, expectedSQL)
+}
+
+func (t ipAddressRangeTester) testWildcarded(original string, bits ipaddr.BitCount, expectedSubnet, expectedNormalized, expectedCanonical, expectedCompressed, expectedSQL string) {
+	w := t.createAddress(original)
+	addr := w.GetAddress()
+	if addr.GetNetworkPrefixLen() == nil || *addr.GetNetworkPrefixLen() > bits {
+		addr = addr.SetPrefixLen(bits)
+		if addr.IsZeroHost() {
+			addr = addr.ToPrefixBlock()
+		}
+	}
+	string := addr.ToCompressedWildcardString()
+	if string != (expectedCompressed) {
+		t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+string, w))
+	} else {
+		w2 := t.createAddress(original + "/" + strconv.Itoa(int(bits)))
+		addr2 := w2.GetAddress()
+		string = addr2.ToCompressedWildcardString()
+		if string != expectedCompressed {
+			t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+string, w))
+		} else {
+			string = addr.ToNormalizedWildcardString()
+			if string != (expectedNormalized) {
+				t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+string, w))
+			} else {
+				string = addr2.ToNormalizedWildcardString()
+				if string != (expectedNormalized) {
+					t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+string, w))
+				} else {
+					string = addr.ToCanonicalWildcardString()
+					if string != (expectedCanonical) {
+						t.addFailure(newFailure("failed expected: "+expectedCanonical+" actual: "+string, w))
+					} else {
+						string = addr.ToSubnetString()
+						if string != (expectedSubnet) {
+							t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+string, w))
+						} else {
+							string = addr2.ToSubnetString()
+							if string != (expectedSubnet) {
+								t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+string, w))
+							} else {
+								string = addr2.ToSQLWildcardString()
+								if string != (expectedSQL) {
+									t.addFailure(newFailure("failed expected: "+expectedSQL+" actual: "+string, w))
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	t.incrementTestCount()
 }
 

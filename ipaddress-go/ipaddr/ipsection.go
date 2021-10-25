@@ -136,9 +136,6 @@ func (section *ipAddressSectionInternal) GetBlockMaskPrefixLen(network bool) Pre
 	if network {
 		return cache.cachedMaskLens.networkMaskLen
 	}
-	networkMaskLen, hostMaskLen := section.checkForPrefixMask() //TODO remove
-	_ = networkMaskLen
-	_ = hostMaskLen
 	return cache.cachedMaskLens.hostMaskLen
 }
 

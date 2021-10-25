@@ -20,7 +20,6 @@ type IPv6AddressSeqRange struct {
 
 func (rng *IPv6AddressSeqRange) init() *IPv6AddressSeqRange {
 	if rng.lower == nil {
-		//if rng != nil && rng.lower == nil {TODO init() nil
 		return zeroIPv6Range
 	}
 	return rng

@@ -666,7 +666,6 @@ type IPAddressSeqRange struct {
 
 func (rng *IPAddressSeqRange) init() *IPAddressSeqRange {
 	if rng.lower == nil {
-		//if rng != nil && rng.lower == nil {TODO init() nil
 		return zeroRange
 	}
 	return rng

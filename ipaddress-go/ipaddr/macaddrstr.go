@@ -55,7 +55,6 @@ type MACAddressString struct {
 
 func (addrStr *MACAddressString) init() *MACAddressString {
 	if addrStr.macAddrStringCache == nil {
-		//if addrStr != nil && addrStr.macAddrStringCache == nil {TODO init() nil
 		return zeroMACAddressString
 	}
 	return addrStr

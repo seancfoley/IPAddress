@@ -126,7 +126,6 @@ type MACAddressSegment struct {
 
 func (seg *MACAddressSegment) init() *MACAddressSegment {
 	if seg.divisionValues == nil {
-		//if seg != nil && seg.divisionValues == nil {TODO init() nil
 		return zeroMACSeg
 	}
 	return seg

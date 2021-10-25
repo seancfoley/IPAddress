@@ -346,6 +346,13 @@ func main() {
 	//masker = ipaddr.TestMaskRange(16, 32, mask, maxVal)
 	//fmt.Printf("masked vals 16 to 32 masked with %v (should be 0 to 15): %v %v\n", mask, masker.GetMaskedLower(16, mask), masker.GetMaskedUpper(32, mask))
 
+	// iterate on nil - just checking what happens.  it panics, not surprisingly.
+	//var niladdr *ipaddr.IPAddress
+	//itr := niladdr.Iterator()
+	//for itr.HasNext() {
+	//	fmt.Printf("%v ", itr.Next())
+	//}
+
 	fmt.Printf("\n\n")
 	//_ = getDoc()
 }

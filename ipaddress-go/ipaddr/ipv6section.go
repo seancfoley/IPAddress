@@ -553,11 +553,11 @@ func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
 
 //TODO just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
 //But does this lead to hidden conversion bugs large ints?
-//Maybe just using int for BitCount would be better!  But that doesn't seem to work.
+//Maybe just using int for BitCount would be better!  But that doesn't seem to work when it comes to automatic conversions.
 //Why not?  you can always pass in []byte for net.IP, or maybe it's the other way around, net.Ip for []byte
 // It works OK with type BitCount = int16, but then you cannot have the method set
 // But for net.IP, it works with type IP []byte
-// Is it something abotu slices?  Maybe, because with ints you really have a different type possibly, not with slices
+// Is it something abotu slices?  Maybe, because with ints you really have a different type possibly, not with slices, which is same underlying type.  Must be about same underlying type.
 
 //
 func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {

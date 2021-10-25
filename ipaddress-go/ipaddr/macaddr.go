@@ -174,7 +174,6 @@ func (addr *MACAddress) GetBytesPerSegment() int {
 
 func (addr *MACAddress) init() *MACAddress {
 	if addr.section == nil {
-		//if addr != nil && addr.section == nil {TODO init() nil
 		return zeroMAC
 	}
 	return addr
@@ -697,7 +696,7 @@ func (addr *MACAddress) ToAddress() *Address {
 	return (*Address)(addr)
 }
 
-func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  Maybe this is a snake pit.
+func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  It is a conversion after all.  And not doing that is setting callers up!
 	return WrappedAddress{addr.ToAddress()}
 }
 

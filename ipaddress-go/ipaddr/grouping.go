@@ -728,6 +728,11 @@ func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit
 //}
 
 //TODO this should return an error in the usual case where we divide a ranged segment and the lower part is not full range, but right now this is fine because we never call with ranged segments
+// If two multi divisions are in sequence and the second is not full range, then they must originate from separate segments
+// so, when you create a division you know the current segment index, now you keep track of the segment index for the last division,
+// and you can do this check when creating each division
+// Additionally, you need another check, when you are handling the case where the division has more bits left than the segment,
+// then you must check that the existing division values are not multi, OR the new segment values are full range
 
 func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) []*AddressDivision {
 	//if(bitsPerDigit >= Integer.SIZE) {
@@ -790,6 +795,7 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 	//int radix = AddressDivision.getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
 	//fill up our new divisions, one by one
 	for i := divCount - 1; i >= 0; i-- {
+
 		//int originalDivBitSize, divBitSize;
 		divBitSize := bitDivs[i]
 		originalDivBitSize := divBitSize
@@ -797,7 +803,7 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 		//divLowerValue = divUpperValue = 0;
 		var divLowerValue, divUpperValue uint64
 		for {
-			if segBits >= divBitSize {
+			if segBits >= divBitSize { // this segment fills the remainder of this division
 				diff := uint(segBits - divBitSize)
 				//udiff := uint(diff);
 				divLowerValue |= segLowerVal >> diff

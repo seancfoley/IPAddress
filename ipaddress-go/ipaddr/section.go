@@ -1015,7 +1015,6 @@ func (section *addressSectionInternal) setPrefixLength(
 		res = section.toAddressSection()
 		return
 	}
-	//checkSubnet(section, networkPrefixLength) TODO remove?
 	var minPrefIndex, maxPrefIndex int
 	var minPrefLen, maxPrefLen BitCount
 	verifyMask := false

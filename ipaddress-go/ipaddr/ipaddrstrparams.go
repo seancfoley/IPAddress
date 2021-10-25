@@ -305,7 +305,7 @@ type IPAddressStringParametersBuilder struct {
 	parent *HostNameParametersBuilder
 }
 
-//TODO move the Builder converters to Set methods
+//TODO move the Builder converters to Set methods (update: I think I completed this, but I cannot check right now)
 //xxxx why is the followin not a method on IPAddressStringParameters ? xxxx
 //xxxx obviosuly in Java there are not global functions, and this is almost certainly not static in Java
 //xxxx oh because you then force the implementors of the interface xxxx

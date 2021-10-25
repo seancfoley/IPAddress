@@ -48,7 +48,7 @@ type addressDivisionGroupingBase struct {
 	// but all your methods thst take BitCount will not want to use this struct instead, so the struct is somewhat lame
 	// The only upside is you can continue using "nil" prefixes
 	// In fact, the second doesn't really work because you can still alter the prefix length pointers
-	// TODO I think I've settle on option 1 above
+	// TODO PrefixLen: I think I've settle on option 1 above
 
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool

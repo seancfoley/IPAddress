@@ -991,7 +991,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
 		*divPrefixLen >= div.GetBitCount() ||
-		!part.IsPrefixBlock() /* || params.isSplitDigits() */ { //TODO xxx here is the problem - in java we override IsPrefixBlock in EmbeddedIPv6AddressSection xxxx
+		!part.IsPrefixBlock() /* || params.isSplitDigits() */ {
 		count, _ := writer.getStandardString(segmentIndex, params, builder)
 		return count
 	}
@@ -1128,16 +1128,6 @@ func (params *ipv6StringParams) appendSegment(segmentIndex int, div DivisionType
 	return
 }
 
-//TODO we need to pass our EmbeddedIPv6Section type inso appendSegment below, which calls appendSegment just above and that calls appendSegment, both of which use AddressDivisionSeries already
-//TODO you could 1. switch this to IPAddressSegmentSeries - but then you need a way of getting the DivisionType, which means another method added to addresses, which I decided I wanted to avoid
-//Or, 2. you could break up this method and use a variant of it in EmbeddedIPv6AddressSection
-// Or, 3. you define a new type, IPv6AddressSegmentSeries which has a GetSegment method
-// The third is pretty simple really
-// The 4th option of useing GetSegment on IPAddressSegmentSeries, that precules us from using IPv6 or IPV4 types as IPAddressSegmentSeries
-//	In fact, you must pass in the Emebedded type here
-
-//func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPAddressSegmentSeries) (err IncompatibleAddressError) {
-//func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr *IPv6AddressSection) (err IncompatibleAddressError) {
 func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPv6AddressSegmentSeries) (err IncompatibleAddressError) {
 	divisionCount := addr.GetDivisionCount()
 	if divisionCount <= 0 {

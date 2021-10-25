@@ -18,7 +18,6 @@ type IPv4AddressSeqRange struct {
 
 func (rng *IPv4AddressSeqRange) init() *IPv4AddressSeqRange {
 	if rng.lower == nil {
-		//if rng != nil && rng.lower == nil {TODO init() nil
 		return zeroIPv4Range
 	}
 	return rng

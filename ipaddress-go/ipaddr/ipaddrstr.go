@@ -265,16 +265,18 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 //func (addrStr *IPAddressString) IsSequential() bool {
 //	addrStr = addrStr.init()
 //	return addrStr.IsValid() && addrStr.addressProvider.isSequential()
-//} // TODO LATER this needs ToAddressDivisionGrouping
+//} // TODO LATER this needs ToAddressDivisionGrouping which we have delayed til later
+// Also restore this part of the godoc below:
+//
+// The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
+// Otherwise, the range includes addresses not specified by the address string.
+//
 
 // GetSequentialRange returns the range of sequential addresses from the lowest address specified in this address string to the highest.
 //
 // Since not all IPAddressString instances describe a sequential series of addresses,
 // this does not necessarily match the exact set of addresses specified by the string.
 // For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 to 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
-//
-// The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.
-// Otherwise, the range includes addresses not specified by the address string.
 //
 // This method can also produce a range for a string for which no IPAddress instance can be created,
 // those cases where IsValid() returns true but ToAddress() returns IncompatibleAddressError and GetAddress() returns null.
@@ -359,7 +361,7 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
 func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
-	//if addrStr == other { //TODO consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
+	//if addrStr == other { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
 	//	return 0
 	//} else if addrStr == nil {
 	//	return -1
