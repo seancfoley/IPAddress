@@ -616,6 +616,10 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	return addr.ToAddressString(), nil
 }
 
+func (addrStr *IPAddressString) Wrap() ExtendedIdentifierString {
+	return WrappedIPAddressString{addrStr}
+}
+
 func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
 	return validator.validatePrefixLenStr(str, version)
 }

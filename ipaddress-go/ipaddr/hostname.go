@@ -895,6 +895,10 @@ func (host *HostName) compareTo(other *HostName) int {
 	return strings.Compare(host.String(), other.String())
 }
 
+func (host *HostName) Wrap() ExtendedIdentifierString {
+	return WrappedHostName{host}
+}
+
 func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) {
 	//This is particularly targeted towards the zone
 	if !addr.HasZone() {

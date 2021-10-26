@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math"
 )
 
 type macAddressRangeTester struct {
@@ -136,6 +137,20 @@ func (t macAddressRangeTester) run() {
 		"3.8000-ffff.*.*")
 
 	t.testStrings()
+
+	t.testMACCount("11:22:33:44:55:ff", 1)
+	t.testMACCount("11:22:*:0-2:55:ff", 3*0x100)
+	t.testMACCount("11:22:2:0-2:55:*", 3*0x100)
+	t.testMACCount("11:2-4:1:0-2:55:ff", 9)
+	t.testMACCount("112-114.1.0-2.55ff", 9)
+	t.testMACCount("*.1.0-2.55ff", 3*0x10000)
+	t.testMACCount("1-2.1-2.1-2.2-3", 16)
+	t.testMACCount("1-2.1.*.2-3", 4*0x10000)
+	t.testMACCount("11:*:*:0-2:55:ff", 3*0x100*0x100)
+
+	t.testMACPrefixCount("11:22:*:0-2:55:ff", 3*0x100)
+	t.testMACPrefixCount("11:22:*:0-2:55:*", 3*0x100)
+	t.testMACPrefixCount("11:22:1:2:55:*", 1)
 }
 
 func (t macAddressRangeTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {
@@ -159,6 +174,24 @@ func (t macAddressRangeTester) testEquivalentMinPrefix(host string, equivPrefix 
 		}
 	}
 	t.incrementTestCount()
+}
+
+func (t macAddressRangeTester) testMACCount(original string, number uint64) {
+	w := t.createMACAddress(original)
+	t.testMACCountRedirect(w, number)
+}
+
+func (t macAddressRangeTester) testMACCountRedirect(w *ipaddr.MACAddressString, number uint64) {
+	t.testCountRedirect(w.Wrap(), number, math.MaxUint64)
+}
+
+func (t macAddressRangeTester) testMACPrefixCount(original string, number uint64) {
+	w := t.createMACAddress(original)
+	t.testMACPrefixCountImpl(w, number)
+}
+
+func (t macAddressRangeTester) testMACPrefixCountImpl(w *ipaddr.MACAddressString, number uint64) {
+	t.testPrefixCountImpl(w.Wrap(), number)
 }
 
 func (t macAddressRangeTester) testStrings() {

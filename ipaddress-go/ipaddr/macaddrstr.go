@@ -229,6 +229,10 @@ func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
 	return false
 }
 
+func (addrStr *MACAddressString) Wrap() ExtendedIdentifierString {
+	return WrappedMACAddressString{addrStr}
+}
+
 func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
 	if p, ok := orig.(*macAddressStringParameters); ok {
 		return p

@@ -171,14 +171,14 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 	AddressSegmentSeries
 
-	IncludesZeroHostLen(prefLen BitCount) bool
-	IncludesMaxHostLen(prefLen BitCount) bool
 	IncludesZeroHost() bool
+	IncludesZeroHostLen(prefLen BitCount) bool
 	IncludesMaxHost() bool
-	IsZeroHostLen(BitCount) bool
-	IsMaxHostLen(BitCount) bool
+	IncludesMaxHostLen(prefLen BitCount) bool
 	IsZeroHost() bool
+	IsZeroHostLen(BitCount) bool
 	IsMaxHost() bool
+	IsMaxHostLen(BitCount) bool
 	IsSingleNetwork() bool
 
 	GetSequentialBlockIndex() int
@@ -213,7 +213,7 @@ var _, _, _, _ IPAddressSegmentSeries = &IPAddress{},
 
 type IPv6AddressSegmentSeries interface {
 	IPAddressSegmentSeries
-	// TODO lots more methods here
+	// TODO we can lots more methods here, anything ipv6 specific but commone to sections and addresses
 	GetSegment(index int) *IPv6AddressSegment
 }
 
@@ -229,7 +229,7 @@ type GenericGroupingType interface {
 
 	getAddrType() addrType
 
-	Equals(GenericGroupingType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627
+	Equals(GenericGroupingType) bool //TODO maybe rename to Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627
 }
 
 // StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
@@ -281,15 +281,17 @@ var _, _, _, _, _ AddressSectionType = &AddressSection{},
 
 // AddressType represents any address, all of which can be represented by the base type Address.
 // This includes IPAddress, IPv4Address, IPv6Address, and MACAddress.
+// It can be useful as a parameter for functions to take any address type, while inside the function you can convert to *Address using ToAddress()
 type AddressType interface {
 	AddressSegmentSeries
 
-	getAddrType() addrType
+	getAddrType() addrType //TODO get rid of this and make callers call ToAddress().getAddrType()
 
-	Equals(AddressType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual too
+	Equals(AddressType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual should drop the 's' too
 	PrefixEquals(AddressType) bool
 	Contains(AddressType) bool
 	PrefixContains(AddressType) bool
+
 	ToAddress() *Address
 }
 

@@ -1880,6 +1880,200 @@ func (t ipAddressRangeTester) run() {
 	t.testWildcarded("1:0:0:0-fff:*", 52, "1::/52", "1:0:0:0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1::0-fff:*:*:*:*", "1:0:0:0-fff:%:%:%:%")
 	t.testWildcarded("1:0:0:0-f:*", 60, "1::/60", "1:0:0:0-f:*:*:*:*", "1::0-f:*:*:*:*", "1::0-f:*:*:*:*", "1:0:0:_:%:%:%:%")
 
+	t.testPrefixCount("1.2.3.*/31", 128)
+	t.testPrefixCount("1.2.3.*/25", 2)
+	t.testPrefixCount("1.2.*.4/31", 256)
+	t.testPrefixCount("1.2.*.5/31", 256)
+	t.testPrefixCount("1.2.*.4/23", 128)
+	t.testPrefixCount("::1:2:*:4/111", 65536>>1)
+	t.testPrefixCount("::1:2:*:4/107", 2048)
+	t.testPrefixCount("*.2.*.4/23", 128*256)
+	t.testPrefixCount("*.2.3.*/7", 128)
+	t.testPrefixCount("2-3.2.3.*/8", 2)
+	t.testPrefixCount("2-3.3-4.3.*/16", 4)
+	t.testPrefixCount("2-3.3-4.3.*/12", 2)
+	t.testPrefixCount("2-3.3-4.3.*", 256*2*2)
+	t.testPrefixCount("2-3.3-4.3.*/32", 256*2*2)
+	t.testPrefixCount("192.168.0.0-8/29", 2)
+	t.testPrefixCount("192.168.0.0-15/29", 2)
+	t.testPrefixCount("1.2.3.*/0", 1)
+	t.testPrefixCount("1.2.3.4/0", 1)
+
+	t.testPrefixCount("*.*/0", 1)
+	t.testPrefixCount("*:*/0", 1)
+	t.testPrefixCount("*.*/1", 2)
+	t.testPrefixCount("*:*/1", 2)
+
+	t.testCountExcludeZeros("1.2.3.4", 1, 1)
+	t.testCountExcludeZeros("1.2.3.4/0", 1, 1)
+
+	t.testCountExcludeZeros("1.2.3.4/32", 1, 0)
+	t.testCountExcludeZeros("1.2.3.5/31", 1, 1)
+	t.testCountExcludeZeros("1.2.3.4/31", 2, 1)
+	t.testCountExcludeZeros("1.2.3.4/30", 4, 3)
+	t.testCountExcludeZeros("1.2.3.6/30", 1, 1)
+	t.testCountRangeParams("1.1-2.3.4", 2, 2, ipaddr.WildcardAndRange)
+	t.testCountExcludeZeros("1.2.3.0/24", 256, 255)
+	t.testCountExcludeZeros("1.*.3.4", 256, 256)
+	t.testCountExcludeZeros("1.2.252.0/22", 4*256, (4*256)-1)
+	t.testCountExcludeZeros("1-2.2.252.0/22", 2*4*256, 2*((4*256)-1))
+
+	t.testRangeBlocks("1.1-3.*.*", 2, 3)
+	t.testRangeBlocks("5-9.1-3.*.*", 2, 15)
+	t.testRangeBlocks("1.1-3.*.1", 2, 3)
+	t.testRangeBlocks("5-9.1-3.1.*", 2, 15)
+
+	t.testRangeBlocks("5-9.0.0.0/9", 2, 5*128)
+	t.testRangeBlocks("4-8.0.0.0/7", 2, 6*256)
+	t.testRangeBlocks("1.128.0.0/12", 2, 16)
+
+	t.testRangeBlocks("1.128.0.0/20", 2, 1)
+
+	t.testRangeBlocks("5-9.1-3.1.0/9", 2, 15)
+	t.testRangeBlocks("5-9.1-3.1.0/7", 2, 15)
+	t.testRangeBlocks("5-9.0.0.0/7", 2, 5)
+	t.testRangeBlocks("1.128.0.0/4", 2, 1)
+
+	t.testRangeBlocks("1-3.1-3.1-3.1-3", 1, 3)
+	t.testRangeBlocks("1-3.1-3.1-3.1-3", 2, 9)
+	t.testRangeBlocks("1-3.1-3.1-3.1-3", 3, 27)
+	t.testRangeBlocks("1-3.1-3.1-3.1-3", 4, 81)
+
+	t.testRangeBlocks("1-3:1-3:1-3:1-3::", 1, 3)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3::", 2, 9)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3::", 3, 27)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3::", 4, 81)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3:*", 1, 3)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3:*", 2, 9)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3:*", 3, 27)
+	t.testRangeBlocks("1-3:1-3:1-3:1-3:*", 4, 81)
+
+	t.testRangeBlocks("::1-3:1-3:1-3:1-3", 5, 3)
+	t.testRangeBlocks("::1-3:1-3:1-3:1-3", 6, 9)
+	t.testRangeBlocks("::1-3:1-3:1-3:1-3", 7, 27)
+	t.testRangeBlocks("::1-3:1-3:1-3:1-3", 8, 81)
+
+	t.testRangeBlocks("1-3:1-3:1-3:1-3:1-3:1-3:1-3:1-3", 8, 81*81)
+
+	t.testRangeBlocks("5-9:0:0:0::/17", 2, 5*0x8000)
+	t.testRangeBlocks("4-8:0:0:0::/15", 2, 6*0x10000)
+	t.testRangeBlocks("1:100:0:0::/24", 2, 256)
+
+	t.testRangeBlocks("1:128:0:0::/36", 2, 1)
+
+	t.testRangeBlocks("5-9:1-3:1:0::/17", 2, 15)
+	t.testRangeBlocks("5-9:1-3:1:0::/15", 2, 15)
+	t.testRangeBlocks("5-9:0:0:0::/15", 2, 5)
+	t.testRangeBlocks("1:128:0:0::/12", 2, 1)
+	t.testRangeBlocks("1:128:0:0::/24", 2, 1)
+
+	t.testRangeCount("1.2.3.4", "1.2.3.4", 1)
+	t.testRangeCount("1.2.3.4", "1.2.3.5", 2)
+	t.testRangeCount("1.2.3.4", "1.2.3.6", 3)
+	t.testRangeCount("1.2.3.255", "1.2.4.1", 3)
+	t.testRangeCount("1.2.3.254", "1.2.4.0", 3)
+	t.testRangeCount("1.2.3.254", "1.3.4.0", 3+256*256) //on the slow side, generating 180k+ addresses
+	t.testRangeCountBig("0.0.0.0", "255.255.255.255", new(big.Int).SetUint64(256*256*256*256))
+	t.testRangeCountBig("0.0.0.0", "255.253.255.255", new(big.Int).SetUint64(255*16777216+253*65536+255*256+255+1))
+	bi := new(big.Int).SetUint64(255*16777216 + 253*65536 + 255*256 + 252)
+	bi2 := new(big.Int).SetUint64(2*16777216 + 256)
+	bi.Sub(bi, bi2)
+	bi.Add(bi, bigOneConst())
+	t.testRangeCountBig("2.0.1.0", "255.253.255.252", bi)
+
+	t.testRangeCount("::1:2:3:4", "::1:2:3:4", 1)
+	t.testRangeCount("::1:2:3:4", "::1:2:3:5", 2)
+	t.testRangeCount("::1:2:3:4", "::1:2:3:6", 3)
+	t.testRangeCount("::1:2:3:ffff", "::1:2:4:1", 3)
+	t.testRangeCount("::1:2:3:fffe", "::1:2:4:0", 3)
+
+	t.testRangeCount("::1:2:3:4:1", "::1:2:3:4:1", 1)
+	t.testRangeCount("::1:2:3:4:1", "::1:2:3:5:1", 0x10000+1)
+	t.testRangeCount("::1:2:3:4:1", "::1:2:3:6:1", 2*0x10000+1)
+	t.testRangeCount("::1:2:3:4:0", "::1:2:3:5:1", 0x10000+2)
+	t.testRangeCount("::1:2:3:4:0", "::1:2:3:6:1", 2*0x10000+2)
+	t.testRangeCount("::1:2:3:4:1", "::1:2:3:5:3", 0x10000+3)
+	t.testRangeCount("::1:2:3:4:1", "::1:2:3:6:3", 2*0x10000+3)
+
+	t.testRangeCount("::1:2:3:fffe", "::1:2:5:0", 3+0x10000)
+	t.testRangeCount("::1:2:3:fffe", "::1:2:6:0", 3+0x20000)
+
+	t.testRangePrefixCount("1.2.3.4", "1.2.3.4", 24, 1)
+	t.testRangePrefixCount("1.2.3.4", "1.2.3.6", 24, 1)
+	t.testRangePrefixCount("1.2.3.4", "1.2.3.6", 23, 1)
+	t.testRangePrefixCount("1.2.3.4", "1.2.3.6", 25, 1)
+
+	t.testRangePrefixCount("2.3.4.5", "2.3.6.5", 24, 3)
+	t.testRangePrefixCount("2.3.4.5", "2.3.6.5", 22, 1)
+	t.testRangePrefixCount("2.3.4.5", "2.3.6.5", 23, 2)
+
+	t.testRangePrefixCount("2.3.255.5", "2.4.1.5", 25, 5)
+	t.testRangePrefixCount("2.3.255.5", "2.4.0.5", 24, 2)
+	t.testRangePrefixCount("2.3.255.5", "2.4.1.5", 24, 3)
+
+	t.testRangePrefixCount("::1:2:3:fffe", "::1:2:5:0", 112, 3)
+
+	if t.fullTest {
+		t.testRangePrefixCount("::1:2:3:fffe", "::1:2:5:0", 128, 3+0x10000)
+		t.testRangePrefixCount("::1:2:3:fffe", "::1:2:6:0", 128, 3+0x20000)
+	}
+
+	t.testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 49, 5)
+	t.testRangePrefixCount("2:3:ffff:5::", "2:4:0:5::", 48, 2)
+	t.testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 48, 3)
+
+	//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
+	t.testCountRangeParams("1.*.11-200.4", 190*256, 190*256, ipaddr.WildcardAndRange)
+	t.testCountExcludeZeros("1.3.*.4/16", 256, 256)
+	t.testCountRangeParams("1.2.*.1-3/25", 256*3, 256*3, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1.2.*.0-2/25", 256*3, (256*3)-256, ipaddr.WildcardAndRange)
+
+	t.testCountRangeParams("11-13.*.0.0/23", 3*256*2*256,
+		((3*256)*(2*256))-(3*256), ipaddr.WildcardAndRange)
+
+	//this one test can take a while, since it generates (0xffff + 1) = 65536 addresses
+	t.testCountExcludeZeros("*::1", 0xffff+1, 0xffff+1)
+
+	t.testCountRangeParams("1-3::1", 3, 3, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("0-299::1", 0x299+1, 0x299+1, ipaddr.WildcardAndRange)
+
+	//this one test can take a while, since it generates 3 * (0xffff + 1) = 196606 addresses
+	t.testCountRangeParams("1:2:4:*:0-2::1", 3*(0xffff+1), 3*(0xffff+1), ipaddr.WildcardAndRange)
+
+	t.testCountRangeParams("1:2:4:0-2:0-2::1", 3*3, 3*3, ipaddr.WildcardAndRange)
+	t.testCountExcludeZeros("1::2:3", 1, 1)
+	t.testCountExcludeZeros("1::2:3/128", 1, 0)
+	t.testCountExcludeZeros("1::2:3/127", 1, 1)
+
+	t.testPrefixCount("1::2/128", 1)
+	t.testPrefixCount("1::2:*/127", 0x8000)
+	t.testPrefixCount("1::2:*/113", 2)
+	t.testPrefixCount("1::2:*/112", 1)
+	t.testPrefixCount("*::2:*/112", 0x10000)
+	t.testPrefixCount("*:1-3::2:*/112", 0x10000*3)
+	t.testPrefixCount("*:1-3::2:*/0", 1)
+
+	t.testCountExcludeZeros("1:2::fffc:0/110", 4*0x10000, (4*0x10000)-1)
+	t.testCountExcludeZeros("1-2:2::fffc:0/110", 2*4*0x10000, 2*((4*0x10000)-1))
+	t.testCountExcludeZeros("*::", 0xffff+1, 0xffff+1)
+	t.testCountExcludeZeros("::*", 0xffff+1, 0xffff+1)
+	t.testCountExcludeZeros("0-199::0-199", (0x19a)*(0x19a), (0x19a)*(0x19a))
+
+	//bi := new(big.Int).SetUint64(255 * 16777216 + 253 * 65536 + 255 * 256 + 252)
+	//bi2 := new(big.Int).SetUint64(2 * 16777216+ 256)
+	//bi.Sub(bi, bi2)
+	//bi.Add(bi, bigOneConst())
+
+	bi, _ = new(big.Int).SetString("ffffffffffffffffffffffffffffffff", 16)
+	bi.Add(bi, bigOneConst())
+	t.testCountBig("*:*", bi, bi)
+
+	bi, _ = new(big.Int).SetString("10000", 16)
+	full := bi.Exp(bi, new(big.Int).SetInt64(8), nil)
+	bi, _ = new(big.Int).SetString("10000", 16)
+	half := bi.Exp(bi, new(big.Int).SetInt64(4), nil)
+	t.testCountBig("*:*/64", full, new(big.Int).Sub(full, half))
+
 	t.ipAddressTester.run()
 }
 
@@ -1943,7 +2137,7 @@ func (t ipAddressRangeTester) testMasked(masked, mask string, prefixLength ipadd
 		t.addFailure(newIPAddrFailure("masked "+maskedAddr.String()+" instead of expected "+resultAddr.String(), maskedAddr))
 	}
 
-	//TODO change the test below back to once we support nils with Equals
+	//TODO change the test below back, once we support nils with Equals
 	//if (!maskAddr.Equals(maskedAddrStr.GetMask()) {
 	//	t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
 	//}
@@ -2021,6 +2215,338 @@ func (t ipAddressRangeTester) testWildcarded(original string, bits ipaddr.BitCou
 				}
 			}
 		}
+	}
+	t.incrementTestCount()
+}
+
+const countLimit = 1024
+
+func (t ipAddressRangeTester) testPrefixCount(original string, number uint64) {
+	w := t.createAddress(original)
+	t.testPrefixCountImpl(w.Wrap(), number)
+}
+
+func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions ipaddr.RangeParameters) {
+	w := t.createParametrizedAddress(original, rangeOptions)
+	t.testCountRedirect(w.Wrap(), number, excludeZerosNumber)
+}
+
+func (t ipAddressRangeTester) testCountExcludeZeros(original string, number, excludeZerosNumber uint64) {
+	w := t.createAddress(original)
+	t.testCountRedirect(w.Wrap(), number, excludeZerosNumber)
+}
+
+func (t ipAddressRangeTester) testCountBig(original string, number, excludeZerosNumber *big.Int) {
+	w := t.createAddress(original)
+	t.testCountBigExcludeZeros(w, number, false)
+	if excludeZerosNumber.Sign() != -1 {
+		t.testCountBigExcludeZeros(w, excludeZerosNumber, true)
+	}
+}
+
+func getNonZeroHostCount(val *ipaddr.IPAddress) *big.Int {
+	count := val.GetCount()
+	if !val.IsPrefixed() || *val.GetNetworkPrefixLen() >= val.GetBitCount() {
+		return count
+	}
+	if !val.IncludesZeroHost() {
+		return bigZeroConst()
+	}
+	return val.GetPrefixCount()
+}
+
+func (t ipAddressRangeTester) testCountBigExcludeZeros(w *ipaddr.IPAddressString, number *big.Int, excludeZeroHosts bool) {
+	val := w.GetAddress()
+	var count *big.Int
+	if excludeZeroHosts {
+		count = getNonZeroHostCount(val)
+	} else {
+		count = val.GetCount()
+	}
+	if count.Cmp(number) != 0 {
+		t.addFailure(newFailure("big count was "+count.String(), w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testRangeCount(low, high string, number uint64) {
+	w := t.createAddress(low)
+	w2 := t.createAddress(high)
+	t.testRangeCountImpl(w, w2, number)
+}
+
+func (t ipAddressRangeTester) testRangeCountBig(low, high string, number *big.Int) {
+	w := t.createAddress(low)
+	w2 := t.createAddress(high)
+	t.testRangeCountR(w, w2, number)
+}
+
+func (t ipAddressRangeTester) testRangeCountR(w, high *ipaddr.IPAddressString, number *big.Int) {
+	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	count := val.GetCount()
+	if count.Cmp(number) != 0 {
+		t.addFailure(newFailure("big count was "+count.String(), w))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testRangeCountImpl(w, high *ipaddr.IPAddressString, number uint64) {
+	if !t.fullTest && number > countLimit {
+		return
+	}
+	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	count := val.GetCount()
+	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
+		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
+	} else {
+		addrIterator := val.Iterator()
+		var counter uint64
+		var set []*ipaddr.IPAddress
+		//Set<Address> set = new HashSet<Address>();
+		var next *ipaddr.IPAddress
+		for addrIterator.HasNext() {
+			next = addrIterator.Next()
+			if counter == 0 {
+				lower := val.GetLower()
+				if !next.Equals(lower) {
+					t.addFailure(newIPAddrFailure("lowest: "+lower.String()+" next: "+next.String(), next))
+				}
+			}
+			set = append(set, next)
+			counter++
+		}
+		if number < uint64(maxInt) && len(set) != int(number) {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if counter != number {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if number > 0 {
+			if !next.Equals(val.GetUpper()) {
+				t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String(), next))
+			} else {
+				lower := val.GetLower()
+				if counter == 1 && !val.GetUpper().Equals(lower) {
+					t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String()+" lowest: "+val.GetLower().String(), next))
+				}
+			}
+		} else {
+			t.addFailure(newFailure("unexpected zero count "+val.String(), w))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testRangePrefixCount(low, high string, prefixLength ipaddr.BitCount, number uint64) {
+	w := t.createAddress(low)
+	w2 := t.createAddress(high)
+	t.testRangePrefixCountImpl(w, w2, prefixLength, number)
+}
+
+func (t ipAddressRangeTester) testRangePrefixCountImpl(w, high *ipaddr.IPAddressString, prefixLength ipaddr.BitCount, number uint64) {
+	if !t.fullTest && number > countLimit {
+		return
+	}
+	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	count := val.GetPrefixCountLen(prefixLength)
+	//		Set<IPAddress> prefixBlockSet = new HashSet<IPAddress>();
+	//		Set<IPAddressSeqRange> prefixSet = new HashSet<IPAddressSeqRange>();
+	var prefixSet, prefixBlockSet []ipaddr.AddressItem
+	//Set<AddressItem> prefixBlockSet = new HashSet<AddressItem>();
+	//Set<AddressItem> prefixSet = new HashSet<AddressItem>();
+	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
+		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
+	} else {
+		addrIterator := val.PrefixBlockIterator(prefixLength)
+		var counter uint64
+		//IPAddress next = null, previous = null;
+		var next, previous *ipaddr.IPAddress
+		set := prefixBlockSet
+		for addrIterator.HasNext() {
+			next = addrIterator.Next()
+			if !next.IsPrefixBlock() {
+				t.addFailure(newIPAddrFailure("not prefix block next: "+next.String(), next))
+				break
+			}
+			if !next.IsSinglePrefixBlock() {
+				t.addFailure(newIPAddrFailure("not single prefix block next: "+next.String(), next))
+				break
+			}
+			if previous != nil && next.Intersect(previous) != nil {
+				t.addFailure(newIPAddrFailure("intersection of "+previous.String()+" when iterating: "+next.Intersect(previous).String(), next))
+				break
+			}
+			set = append(set, next)
+			previous = next
+			//System.out.println(next);
+			counter++
+		}
+		if number < uint64(maxInt) && len(set) != int(number) {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if counter != number {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if number < 0 {
+			t.addFailure(newSeqRangeFailure("unexpected zero count ", val))
+		}
+
+		totalCount := val.GetCount()
+		countedCount := bigZero()
+		rangeIterator := val.PrefixIterator(prefixLength)
+		//var counter uint64
+		counter = 0
+		rangeSet := prefixSet
+		var nextRange, previousRange *ipaddr.IPAddressSeqRange
+		//int i = 0;
+		for rangeIterator.HasNext() {
+			nextRange = rangeIterator.Next()
+			//System.out.println(++i + " " + nextRange);
+			blocks := nextRange.SpanWithPrefixBlocks()
+			if previous != nil && addrIterator.HasNext() {
+				if len(blocks) != 1 {
+					t.addFailure(newSeqRangeFailure("not prefix next: "+nextRange.String(), nextRange))
+					break
+				}
+				if !blocks[0].IsSinglePrefixBlock() {
+					t.addFailure(newSeqRangeFailure("not single prefix next: "+nextRange.String(), nextRange))
+					break
+				}
+			}
+			countedCount.Add(countedCount, nextRange.GetCount())
+			if previousRange != nil && nextRange.Intersect(previousRange) != nil {
+				t.addFailure(newSeqRangeFailure("intersection of "+previousRange.String()+" when iterating: "+nextRange.Intersect(previousRange).String(), nextRange))
+				break
+			}
+			rangeSet = append(rangeSet, nextRange)
+			previousRange = nextRange
+			//System.out.println(next);
+			counter++
+		}
+		if number < uint64(maxInt) && len(rangeSet) != int(number) {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(rangeSet))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if counter != number {
+			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(rangeSet))+" instead of expected "+strconv.FormatUint(number, 10), val))
+		} else if number < 0 {
+			t.addFailure(newSeqRangeFailure("unexpected zero count ", val))
+		} else if countedCount.Cmp(totalCount) != 0 {
+			t.addFailure(newSeqRangeFailure("count mismatch, expected "+totalCount.String()+" got "+countedCount.String(), val))
+		}
+
+		//Function<IPAddressSeqRange, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc =
+		//		range -> range.prefixBlockSpliterator(prefixLength);
+		//
+		//testSpliterate(t, val, 0, number, spliteratorFunc);
+		//testSpliterate(t, val, 1, number, spliteratorFunc);
+		//testSpliterate(t, val, 8, number, spliteratorFunc);
+		//testSpliterate(t, val, -1, number, spliteratorFunc);
+		//
+		//spliteratorFunc = range -> range.prefixSpliterator(prefixLength);
+		//
+		//testSpliterate(t, val, 0, number, spliteratorFunc);
+		//testSpliterate(t, val, 1, number, spliteratorFunc);
+		//testSpliterate(t, val, 8, number, spliteratorFunc);
+		//testSpliterate(t, val, -1, number, spliteratorFunc);
+		//
+		//testStream(t, val, prefixSet, range -> range.prefixStream(prefixLength));
+		//testStream(t, val, prefixBlockSet, range -> range.prefixBlockStream(prefixLength));
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testRangeBlocks(original string, segmentCount int, number uint64) {
+	w := t.createAddress(original)
+	t.testRangeBlocksImpl(w, segmentCount, number)
+}
+
+func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, segmentCount int, number uint64) {
+	if !t.fullTest && number > countLimit {
+		return
+	}
+	val := w.GetAddress()
+	count := val.GetPrefixCountLen(ipaddr.BitCount(segmentCount) * val.GetBitsPerSegment()) //TODO we should probably have GetBlockCOunt since we have the BLockIterator.  In any case, it is not complicated, like the sequentialBlockCOunt
+	//BigInteger count = val.GetBlockCount(segmentCount); //GetSequentialBlockCount? nope
+	var set []ipaddr.AddressItem
+	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
+		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
+	} else {
+		addrIterator := val.BlockIterator(segmentCount)
+		var counter, sectionCounter uint64
+		valSection := val.GetSubSection(0, segmentCount)
+		sectionIterator := valSection.Iterator()
+		var next *ipaddr.IPAddress
+		var nextSection *ipaddr.IPAddressSection
+		for addrIterator.HasNext() {
+			next = addrIterator.Next()
+			nextSection = sectionIterator.Next()
+			if counter == 0 {
+				lower := val.GetLower()
+				lowerSection := lower.GetSubSection(0, segmentCount)
+				nextAddrSection := next.GetSubSection(0, segmentCount)
+				if !nextAddrSection.Equals(lowerSection) || !lowerSection.Equals(nextAddrSection) {
+					t.addFailure(newSegmentSeriesFailure("lowest: "+lower.String()+" next addr: "+nextAddrSection.String(), nextAddrSection))
+				}
+				if !nextSection.Equals(lowerSection) || !lowerSection.Equals(nextSection) {
+					t.addFailure(newSegmentSeriesFailure("lowest: "+lower.String()+" next sectiob: "+nextSection.String(), nextSection))
+				}
+				if !nextSection.Equals(nextAddrSection) || !nextAddrSection.Equals(nextSection) {
+					t.addFailure(newSegmentSeriesFailure("nextAddrSection: "+nextAddrSection.String()+" next section: "+nextSection.String(), nextSection))
+				}
+				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" lowest prefix length: "+next.GetPrefixLen().String(), next))
+				}
+				if !lower.GetPrefixLen().Equals(val.GetPrefixLen()) {
+					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" lowest prefix length: "+lower.GetPrefixLen().String(), lower))
+				}
+			} else if counter == 1 {
+				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" next prefix length: "+next.GetPrefixLen().String(), next))
+				}
+			}
+			set = append(set, next)
+			counter++
+			sectionCounter++
+		}
+		if number < uint64(maxInt) && len(set) != int(number) {
+			//if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
+			t.addFailure(newFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.Itoa(int(number)), w))
+		} else if sectionIterator.HasNext() {
+			//for {
+			//	sectionCounter++;
+			//	if !sectionIterator.HasNext() {
+			//		break
+			//	}
+			//}
+			t.addFailure(newFailure("counter mismatch, count was "+strconv.FormatUint(counter, 10)+" section count "+strconv.FormatUint(sectionCounter, 10), w))
+		} else if number > 0 {
+			upperSection := val.GetUpper().GetSubSection(0, segmentCount)
+			nextAddrSection := next.GetSubSection(0, segmentCount)
+			if !nextAddrSection.Equals(upperSection) || !upperSection.Equals(nextAddrSection) {
+				t.addFailure(newSegmentSeriesFailure("highest: "+upperSection.String()+" next addr: "+nextAddrSection.String(), nextAddrSection))
+			}
+			if !nextSection.Equals(upperSection) || !upperSection.Equals(nextSection) {
+				t.addFailure(newSegmentSeriesFailure("highest: "+upperSection.String()+" next section: "+nextSection.String(), nextSection))
+			} else {
+				lower := val.GetLower()
+				lowerSection := lower.GetSubSection(0, segmentCount)
+				if counter == 1 && !upperSection.Equals(lowerSection) {
+					t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String()+" lowest: "+val.GetLower().String(), next))
+				}
+				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+					t.addFailure(newIPAddrFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
+				}
+				if !val.GetUpper().GetPrefixLen().Equals(val.GetPrefixLen()) {
+					t.addFailure(newIPAddrFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+val.GetUpper().GetPrefixLen().String(), next))
+				}
+			}
+		} else {
+			t.addFailure(newIPAddrFailure("unexpected zero count ", val))
+		}
+
+		//Function<IPAddress, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = addr -> addr.blockSpliterator(segmentCount);
+		//
+		//testSpliterate(t, val, 0, number, spliteratorFunc);
+		//testSpliterate(t, val, 1, number, spliteratorFunc);
+		//testSpliterate(t, val, 5, number, spliteratorFunc);
+		//testSpliterate(t, val, -1, number, spliteratorFunc);
+		//
+		//testStream(t, val, set, addr -> addr.blockStream(segmentCount));
 	}
 	t.incrementTestCount()
 }

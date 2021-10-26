@@ -215,3 +215,11 @@ type ipsectionSeriesIterator struct {
 func (iter ipsectionSeriesIterator) Next() ExtendedIPSegmentSeries {
 	return WrappedIPAddressSection{iter.IPSectionIterator.Next()}
 }
+
+type UnwrappedIPddressIterator struct {
+	IPAddressIterator
+}
+
+func (iter UnwrappedIPddressIterator) Next() *Address {
+	return iter.IPAddressIterator.Next().ToAddress()
+}

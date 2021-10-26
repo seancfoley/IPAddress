@@ -9,12 +9,6 @@ type ipAddressAllTester struct {
 	ipAddressRangeTester
 }
 
-func (t ipAddressAllTester) testStrings() {
-	t.ipAddressRangeTester.testStrings()
-
-	// TODO strings tests go here
-}
-
 func (t ipAddressAllTester) run() {
 	t.testStrings()
 
@@ -66,10 +60,8 @@ func (t ipAddressAllTester) run() {
 	//t.testMatches(true, "4)+k&C#VzJ4br>0wv%Yp", "1080::8:800:200c:417a")
 	//t.testMatches(true, "=r54lj&NUUO~Hi%c2ym0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
 	//t.testMatches(true, "=r54lj&NUUO~Hi%c2yl0"+ipaddr.AlternativeRangeSeparatorStr+"=r54lj&NUUO~Hi%c2ym0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffaa-ffff")
-
-	// TODO LATER base85
-	//testMatches(true, "ef86:1dc3:deba:d48:612d:f19c:de7d:e89c", "********************") // base 85
-	//testMatches(true, "--------------------", "f677:73f6:11b4:5073:4a06:76c2:ceae:1474")
+	//t.testMatches(true, "ef86:1dc3:deba:d48:612d:f19c:de7d:e89c", "********************") // base 85
+	//t.testMatches(true, "--------------------", "f677:73f6:11b4:5073:4a06:76c2:ceae:1474")
 
 	t.ipv6test(true, "0x00010002000300040000000000000000-0x0001000200030004ffffffffffffffff")
 	t.ipv6test(true, "0x0001000200030004ffffffffffffffff-0x00010002000300040000000000000000")
@@ -238,6 +230,8 @@ func (t ipAddressAllTester) run() {
 		[]interface{}{[]*big.Int{setBigString("1234567890abcdef1234567890abcdef", 16), setBigString("2234567890abcdef1234567890abcdef", 16)}},
 		p64, true)
 
+	t.testStrings()
+
 	t.ipAddressRangeTester.run()
 }
 
@@ -248,4 +242,72 @@ func (t ipAddressAllTester) testAllContains(cidr1, cidr2 string, result bool) {
 	t.testStringContains(result, false, wstr, w2str)
 
 	t.incrementTestCount()
+}
+
+func (t ipAddressAllTester) testStrings() {
+	//super.testStrings();
+
+	/* TODO LATER base 85
+	//It is good to have at least one base 85 input test, since we have code that caches base 85 input strings for output
+	t.testIPv6Strings("4)+k&C#VzJ4br>0wv%Yp",
+		"1080:0:0:0:8:800:200c:417a", //normalized
+		"1080:0:0:0:8:800:200c:417a", //normalizedWildcards
+		"1080::8:800:200c:417a",      //canonicalWildcards
+		"1080:0:0:0:8:800:200c:417a", //sql
+		"1080:0000:0000:0000:0008:0800:200c:417a",
+		"1080::8:800:200c:417a", //compressed
+		"1080::8:800:200c:417a",
+		"1080::8:800:200c:417a",    //subnet
+		"1080::8:800:200c:417a",    //compressedWildcard
+		"1080::8:800:32.12.65.122", //mixed no compress
+		"1080::8:800:32.12.65.122", //mixedNoCompressHost
+		"1080::8:800:32.12.65.122",
+		"1080::8:800:32.12.65.122",
+		"a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa",
+		"1080-0-0-0-8-800-200c-417a.ipv6-literal.net",
+		"4)+k&C#VzJ4br>0wv%Yp",
+		"0x108000000000000000080800200c417a",
+		"00204000000000000000000000100200004003040572")
+
+	t.testIPv6Strings("008JOm8Mm5*yBppL!sg0",
+		"0:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //normalized
+		"0:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //normalizedWildcards
+		"0:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //canonicalWildcards
+		"0:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //sql
+		"0000:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		"::ffff:ffff:ffff:ffff:ffff:ffff:ffff", //compressed
+		"0:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		"::ffff:ffff:ffff:ffff:ffff:ffff:ffff",       //subnet
+		"::ffff:ffff:ffff:ffff:ffff:ffff:ffff",       //compressedWildcard
+		"::ffff:ffff:ffff:ffff:ffff:255.255.255.255", //mixed no compress
+		"::ffff:ffff:ffff:ffff:ffff:255.255.255.255", //mixedNoCompressHost
+		"::ffff:ffff:ffff:ffff:ffff:255.255.255.255",
+		"::ffff:ffff:ffff:ffff:ffff:255.255.255.255",
+		"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.0.0.0.0.ip6.arpa",
+		"0-ffff-ffff-ffff-ffff-ffff-ffff-ffff.ipv6-literal.net",
+		"008JOm8Mm5*yBppL!sg0",
+		"0x0000ffffffffffffffffffffffffffff",
+		"00000017777777777777777777777777777777777777")
+
+	t.testIPv6Strings("=r54lj&NUUO~Hi%c2ym0",
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //normalized
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //normalizedWildcards
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //canonicalWildcards
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //sql
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", //compressed
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",       //subnet
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",       //compressedWildcard
+		"ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255", //mixed no compress
+		"ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255", //mixedNoCompressHost
+		"ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255",
+		"ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255",
+		"f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.f.ip6.arpa",
+		"ffff-ffff-ffff-ffff-ffff-ffff-ffff-ffff.ipv6-literal.net",
+		"=r54lj&NUUO~Hi%c2ym0",
+		"0xffffffffffffffffffffffffffffffff",
+		"03777777777777777777777777777777777777777777")
+
+	*/
 }
