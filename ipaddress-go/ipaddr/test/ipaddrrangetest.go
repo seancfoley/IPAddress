@@ -2102,7 +2102,6 @@ func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options ipaddr.
 }
 
 func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {
-
 	addr := t.createDoubleParametrizedAddress(x, ipv4RangeOptions, ipv6RangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2244,15 +2243,19 @@ func (t ipAddressRangeTester) testCountBig(original string, number, excludeZeros
 	}
 }
 
+func getNonZeroHostIterator(val *ipaddr.IPAddress) ipaddr.IPAddressIterator {
+	return ipaddr.NewFilteredIPAddrIterator(val.Iterator(), (*ipaddr.IPAddress).IsZeroHost)
+}
+
 func getNonZeroHostCount(val *ipaddr.IPAddress) *big.Int {
 	count := val.GetCount()
-	if !val.IsPrefixed() || *val.GetNetworkPrefixLen() >= val.GetBitCount() {
+	if !val.IsPrefixed() || *val.GetNetworkPrefixLen() > val.GetBitCount() {
 		return count
 	}
 	if !val.IncludesZeroHost() {
-		return bigZeroConst()
+		return count
 	}
-	return val.GetPrefixCount()
+	return new(big.Int).Sub(val.GetCount(), val.GetPrefixCount())
 }
 
 func (t ipAddressRangeTester) testCountBigExcludeZeros(w *ipaddr.IPAddressString, number *big.Int, excludeZeroHosts bool) {

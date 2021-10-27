@@ -187,6 +187,7 @@ type multiSectionIterator struct {
 	original        *AddressSection
 	iterator        SegmentsIterator
 	valsAreMultiple bool
+	prefixLen       PrefixLen
 }
 
 func (it *multiSectionIterator) HasNext() bool {
@@ -197,7 +198,7 @@ func (it *multiSectionIterator) Next() (res *AddressSection) {
 	if it.HasNext() {
 		segs := it.iterator.Next()
 		original := it.original
-		res = createSection(segs, original.prefixLength, original.addrType)
+		res = createSection(segs, it.prefixLen, original.addrType)
 		res.isMultiple = it.valsAreMultiple
 	}
 	return
@@ -216,6 +217,7 @@ func sectIterator(
 		original:        original,
 		iterator:        iterator,
 		valsAreMultiple: valsAreMultiple,
+		prefixLen:       original.GetPrefixLen(),
 	}
 }
 
@@ -223,6 +225,7 @@ type prefixSectionIterator struct {
 	original   *AddressSection
 	iterator   SegmentsIterator
 	isNotFirst bool
+	prefixLen  PrefixLen
 }
 
 func (it *prefixSectionIterator) HasNext() bool {
@@ -233,7 +236,7 @@ func (it *prefixSectionIterator) Next() (res *AddressSection) {
 	if it.HasNext() {
 		segs := it.iterator.Next()
 		original := it.original
-		res = createSection(segs, original.prefixLength, original.addrType)
+		res = createSection(segs, it.prefixLen, original.addrType)
 		if !it.isNotFirst {
 			res.initMultiple() // sets isMultiple
 			it.isNotFirst = true
@@ -255,8 +258,9 @@ func prefixSectIterator(
 		return &singleSectionIterator{original: original}
 	}
 	return &prefixSectionIterator{
-		original: original,
-		iterator: iterator,
+		original:  original,
+		iterator:  iterator,
+		prefixLen: original.GetPrefixLen(),
 	}
 }
 

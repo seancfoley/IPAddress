@@ -457,9 +457,9 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 	lower := rng.lower
 	if !rng.IsMultiple() {
 		return &singleAddrIterator{original: lower.ToPrefixBlockLen(prefLength).ToAddress()}
-	} else if prefLength >= lower.GetBitCount() {
-		return rng.iterator()
-	}
+	} //else if prefLength > lower.GetBitCount() {
+	//return rng.iterator()
+	//}
 	prefLength = checkSubnet(lower, prefLength)
 	bitsPerSegment := lower.GetBitsPerSegment()
 	bytesPerSegment := lower.GetBytesPerSegment()
@@ -477,6 +477,7 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 	hostSegIndex := getHostSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
 	return rng.rangeIterator(
 		true,
+		cacheBitCount(prefLength),
 		(*IPAddress).GetSegment,
 		func(seg *IPAddressSegment, index int) IPSegmentIterator {
 			return seg.Iterator()
@@ -511,6 +512,7 @@ func (rng *ipAddressSeqRangeInternal) iterator() AddressIterator {
 	divCount := lower.GetSegmentCount()
 	return rng.rangeIterator(
 		false,
+		nil,
 		//lower.getAddrType().getCreator(),
 		(*IPAddress).GetSegment,
 		func(seg *IPAddressSegment, index int) IPSegmentIterator {
@@ -527,6 +529,7 @@ func (rng *ipAddressSeqRangeInternal) iterator() AddressIterator {
 func (rng *ipAddressSeqRangeInternal) rangeIterator(
 	//creator parsedAddressCreator, /* nil for zero sections */
 	valsAreMultiple bool,
+	prefixLen PrefixLen,
 	segProducer func(addr *IPAddress, index int) *IPAddressSegment,
 	segmentIteratorProducer func(seg *IPAddressSegment, index int) IPSegmentIterator,
 	segValueComparator func(seg1, seg2 *IPAddress, index int) bool,
@@ -647,6 +650,7 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 	return rangeAddrIterator(
 		false,
 		lower.ToAddress(),
+		prefixLen,
 		valsAreMultiple,
 		rangeSegmentsIterator(
 			divCount,

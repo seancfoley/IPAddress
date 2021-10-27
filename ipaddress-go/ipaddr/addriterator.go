@@ -38,28 +38,31 @@ func (it multiAddrIterator) Next() (res *Address) {
 func addrIterator(
 	single bool,
 	original *Address,
+	prefixLen PrefixLen,
 	valsAreMultiple bool,
 	iterator SegmentsIterator) AddressIterator {
 	if single {
 		return &singleAddrIterator{original: original}
 	}
-	var zone Zone
-	if original != nil {
-		zone = original.zone
-	}
+	//var zone Zone= original.zone
+	//if original != nil {
+	//	zone = original.zone
+	//}
 	return multiAddrIterator{
 		SectionIterator: &multiSectionIterator{
 			original:        original.section,
 			iterator:        iterator,
 			valsAreMultiple: valsAreMultiple,
+			prefixLen:       prefixLen,
 		},
-		zone: zone,
+		zone: original.zone,
 	}
 }
 
 func prefixAddrIterator(
 	single bool,
 	original *Address,
+	prefixLen PrefixLen,
 	iterator SegmentsIterator) AddressIterator {
 	if single {
 		return &singleAddrIterator{original: original}
@@ -70,8 +73,9 @@ func prefixAddrIterator(
 	}
 	return multiAddrIterator{
 		SectionIterator: &prefixSectionIterator{
-			original: original.section,
-			iterator: iterator,
+			original:  original.section,
+			iterator:  iterator,
+			prefixLen: prefixLen,
 		},
 		zone: zone,
 	}
@@ -81,9 +85,10 @@ func prefixAddrIterator(
 func rangeAddrIterator(
 	single bool,
 	original *Address,
+	prefixLen PrefixLen,
 	valsAreMultiple bool,
 	iterator SegmentsIterator) AddressIterator {
-	return addrIterator(single, original, valsAreMultiple, iterator)
+	return addrIterator(single, original, prefixLen, valsAreMultiple, iterator)
 }
 
 // IPv4AddressIterator iterates through IP addresses, subnets and ranges

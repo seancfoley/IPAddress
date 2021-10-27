@@ -1583,7 +1583,7 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 	} else {
 		var addrIterator ipaddr.AddressIterator
 		if excludeZeroHosts {
-			addrIterator = ipaddr.UnwrappedIPddressIterator{ipaddr.NewFilteredIPAddrIterator(val.ToAddress().ToIPAddress().Iterator(), (*ipaddr.IPAddress).IsZeroHost)} // need to create a iterator that takes a functor to alter an existing iterator, FilteredIPAddrIterator
+			addrIterator = ipaddr.UnwrappedIPddressIterator{getNonZeroHostIterator(val.ToAddress().ToIPAddress())}
 		} else {
 			addrIterator = val.ToAddress().Iterator()
 		}
@@ -1627,8 +1627,15 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 				t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String(), next))
 			} else {
 				lower := val.ToAddress().GetLower()
-				if counter == 1 && !val.ToAddress().GetUpper().Equals(lower) {
-					t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
+				if excludeZeroHosts {
+					addr := val.ToAddress().ToIPAddress()
+					if counter == 1 && (!addr.GetUpper().Equals(lower) && !addr.GetUpper().IsZeroHost() && !lower.ToIPAddress().IsZeroHost()) {
+						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
+					}
+				} else {
+					if counter == 1 && !val.ToAddress().GetUpper().Equals(lower) {
+						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
+					}
 				}
 				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
@@ -1733,6 +1740,7 @@ func (t testBase) testPrefixCountImpl(w ipaddr.ExtendedIdentifierString, number 
 					if isPrefixed {
 						if !next.IsPrefixBlock() {
 							t.addFailure(newSegmentSeriesFailure("not prefix block next: "+next.String(), next))
+							//fmt.Println(next.IsPrefixBlock()) //TODO remove
 							break
 						}
 						if !next.IsSinglePrefixBlock() {

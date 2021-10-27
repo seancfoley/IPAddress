@@ -149,7 +149,7 @@ func (addr *addressInternal) IsSinglePrefixBlock() bool {
 
 func (addr *addressInternal) IsPrefixBlock() bool {
 	prefLen := addr.GetPrefixLen()
-	return prefLen != nil && addr.section.IsPrefixBlock()
+	return prefLen != nil && addr.section.ContainsPrefixBlock(*prefLen)
 }
 
 func (addr *addressInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -541,6 +541,7 @@ func (addr *addressInternal) addrIterator(excludeFunc func([]*AddressDivision) b
 	return addrIterator(
 		useOriginal,
 		original,
+		original.GetPrefixLen(),
 		false,
 		iterator)
 }
@@ -554,7 +555,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 	if isBlockIterator {
 		useOriginal = addr.IsSinglePrefixBlock()
 	} else {
-		useOriginal = addr.GetPrefixCount().CmpAbs(bigOneConst()) == 0
+		useOriginal = addr.GetPrefixCount().Cmp(bigOneConst()) == 0
 	}
 	prefLength := *prefLen
 	bitsPerSeg := addr.GetBitsPerSegment()
@@ -568,11 +569,23 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 		var hostSegIteratorProducer func(index int) SegmentIterator
 		if isBlockIterator {
 			hostSegIteratorProducer = func(index int) SegmentIterator {
-				return address.GetSegment(index).prefixBlockIterator()
+				seg := address.GetSegment(index)
+				if seg.isPrefixed() { // IP address segments know their own prefix, MAC segments do not
+					return seg.prefixBlockIterator()
+				}
+				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)
+				//return address.GetSegment(index).prefixBlockIterator() //call prefixedBlockIterator xxx for mac this is wrong , need to pass in the prefix len
+				return seg.prefixedBlockIterator(*segPref)
 			}
 		} else {
 			hostSegIteratorProducer = func(index int) SegmentIterator {
-				return address.GetSegment(index).prefixIterator()
+				seg := address.GetSegment(index)
+				if seg.isPrefixed() { // IP address segments know their own prefix, MAC segments do not
+					return seg.prefixIterator()
+				}
+				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)
+				//return address.GetSegment(index).prefixIterator() // call prefixedIterator xxx for mac this is wrong , need to pass in the prefix len
+				return seg.prefixedIterator(*segPref)
 			}
 		}
 		iterator = segmentsIterator(
@@ -588,12 +601,14 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 		return addrIterator(
 			useOriginal,
 			address,
+			address.GetPrefixLen(),
 			prefLength < addr.GetBitCount(),
 			iterator)
 	}
 	return prefixAddrIterator(
 		useOriginal,
 		address,
+		address.GetPrefixLen(),
 		iterator)
 }
 
@@ -628,6 +643,7 @@ func (addr *addressInternal) blockIterator(segmentCount int) AddressIterator {
 	return addrIterator(
 		useOriginal,
 		address,
+		address.GetPrefixLen(),
 		addr.section.isMultipleFrom(segmentCount),
 		iterator)
 }

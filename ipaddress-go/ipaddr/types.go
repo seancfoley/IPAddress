@@ -97,7 +97,7 @@ func cacheBitCount(i BitCount) PrefixLen {
 		result := cachedPrefixLens[i]
 		return result
 	}
-	bc := BitCount(i)
+	bc := i
 	return &bc
 }
 
