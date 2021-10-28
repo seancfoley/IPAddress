@@ -843,9 +843,10 @@ func (rng *IPAddressSeqRange) SpanWithSequentialBlocks() []*IPAddress {
 // Joins the given ranges into the fewest number of ranges.
 // The returned array will be sorted by ascending lowest range value.
 func (rng *IPAddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPAddressSeqRange {
-	origLen := len(ranges)
-	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
-	ranges[origLen] = rng
+	//origLen := len(ranges)
+	ranges = append(append(make([]*IPAddressSeqRange, 0, len(ranges)+1), ranges...), rng)
+	//ranges[origLen] = rng
+	//fmt.Printf("about to join %v\n", ranges)
 	return join(ranges)
 }
 
@@ -956,22 +957,26 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 	}
 	rangesLen = rangesLen - joinedCount
 	ranges = ranges[:rangesLen]
+	//fmt.Printf("following nil replacement: %v\n", ranges)
 	joinedCount = 0
 	sort.Slice(ranges, func(i, j int) bool {
 		return LowValueComparator.CompareRanges(ranges[i], ranges[j]) < 0
 	})
+	//fmt.Printf("following sort: %v\n", ranges)
 	for i := 0; i < rangesLen; i++ {
 		rng := ranges[i]
 		if rng == nil {
 			continue
 		}
 		currentLower, currentUpper := rng.GetLower(), rng.GetUpper()
-		var isMultiJoin, doJoin bool
+		var isMultiJoin, didJoin bool
 		for j := i + 1; j < rangesLen; j++ {
 			rng2 := ranges[j]
 			nextLower := rng2.GetLower()
-			doJoin = compareLowIPAddressValues(currentUpper, nextLower) >= 0
+			//fmt.Printf("comparing: %v and %v\n", currentUpper, nextLower)
+			doJoin := compareLowIPAddressValues(currentUpper, nextLower) >= 0
 			if !doJoin {
+				//fmt.Printf("comparing incremented: %v and %v\n", currentUpper.increment(1), nextLower)
 				doJoin = currentUpper.increment(1).equals(nextLower)
 				isMultiJoin = true
 			}
@@ -984,14 +989,17 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 				ranges[j] = nil
 				isMultiJoin = isMultiJoin || rng.isMultiple || rng2.isMultiple
 				joinedCount++
+				didJoin = true
 			} else {
 				break
 			}
 		}
-		if doJoin {
+		if didJoin {
 			ranges[i] = newSeqRangeUnchecked(currentLower, currentUpper, isMultiJoin)
+			//fmt.Printf("new joined is %v\n", ranges[i])
 		}
 	}
+	//fmt.Printf("following joins: %v\n", ranges)
 	finalLen := rangesLen - joinedCount
 	for i, j := 0, 0; i < rangesLen; i++ {
 		rng := ranges[i]
@@ -1004,7 +1012,9 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 			break
 		}
 	}
-	return ranges[:finalLen]
+	ret := ranges[:finalLen]
+	//fmt.Printf("final: %v\n", ret)
+	return ret
 }
 
 func compareLowValues(one, two *Address) int {

@@ -160,7 +160,7 @@ func checkPrefixBlockContainment(
 		//	func(series AddressSegmentSeries) AddressSegmentSeries { return prefixAdder(series.(*IPAddressSection)) },
 		//))
 	} else if other.Contains(first) {
-		return checkPrefixBlockFormat(first, other, false)
+		return checkPrefixBlockFormat(other, first, false)
 		//return checkPrefixBlockFormat(other, first, false, prefixAdder, arrayProducer);
 		//return cloneToIPSections(checkPrefixBlockFormat(other, first, false,
 		//	func(series AddressSegmentSeries) AddressSegmentSeries { return prefixAdder(series.(*IPAddressSection)) },

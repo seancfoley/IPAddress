@@ -1,10 +1,15 @@
 package test
 
 import (
+	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math/big"
+	"math/rand"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ipAddressRangeTester struct {
@@ -2074,6 +2079,220 @@ func (t ipAddressRangeTester) run() {
 	half := bi.Exp(bi, new(big.Int).SetInt64(4), nil)
 	t.testCountBig("*:*/64", full, new(big.Int).Sub(full, half))
 
+	t.testMerge("192.168.0.0/28", "192.168.0.0/29", "192.168.0.8/29")
+	t.testMerge("1:2:3:4::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66")
+	t.testMerge("1:2:3:4::/64", "1:2:3:4::/66", "1:2:3:4:8000::/65", "1:2:3:4:4000::/66")
+	t.testMerge("1:2:3:4::/64", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:4:8000::/65")
+	t.testMerge("1:2:3:4::/64", "1:2:3:4:4000::/66", "1:2:3:4::/66", "1:2:3:4:8000::/65")
+
+	t.testMerge("1:2:3:4::/63", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:5:4000::/66", "1:2:3:5::/66", "1:2:3:5:8000::/65")
+
+	t.testMerge("1:2:3:4::/63", "1:2:3:4-5::/66", "1:2:3:4-5:8000::/65", "1:2:3:4-5:4000::/66") //[1:2:3:5::/65]
+
+	//testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
+	t.testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65")
+
+	t.testMerge2("1.2.1.*", "1.2.2.*", "1.2.1.0", "1.2.2.0", "1.2.1-2.1-255")
+	t.testMergeRange("1.2.1-2.*", "1.2.1.0", "1.2.2.0", "1.2.1-2.1-255")
+
+	t.testMerge("*.*", "*.*", "1.2.3.4")
+	t.testMerge("*.*", "1.2.3.4", "*.*")
+	t.testMerge("*.*", "*.*", "*.*")
+
+	t.testMerge("*:*", "*:*", "::")
+	t.testMerge("*:*", "::", "*:*")
+	t.testMerge("*:*", "*:*", "*:*")
+
+	t.testMerge("*.*", "0.0.0.0/1", "128.0.0.0/1")
+	t.testMerge("*.*", "128.0.0.0/1", "0.0.0.0/1")
+	t.testMerge("128.0.0.0/1", "128.0.0.0/1", "128.0.0.0/1")
+	t.testMerge("0.0.0.0/1", "0.0.0.0/1", "0.0.0.0/1")
+
+	t.testMergeRange("*.*", "0.0.0.0/1", "128.0.0.0/1")
+	t.testMergeRange("*.*", "128.0.0.0/1", "0.0.0.0/1")
+	t.testMergeRange("128.0.0.0/1", "128.0.0.0/1", "128.0.0.0/1")
+	t.testMergeRange("0.0.0.0/1", "0.0.0.0/1", "0.0.0.0/1")
+
+	t.testMerge("*:*", "::/1", "8000::/1")
+	t.testMerge("*:*", "8000::/1", "::/1")
+	t.testMerge("8000::/1", "8000::/1", "8000::/1")
+	t.testMerge("::/1", "::/1", "::/1")
+
+	t.testMergeRange("*:*", "::/1", "8000::/1")
+	t.testMergeRange("*:*", "8000::/1", "::/1")
+	t.testMergeRange("8000::/1", "8000::/1", "8000::/1")
+	t.testMergeRange("::/1", "::/1", "::/1")
+
+	t.testMerge("0-127.*", "0-127.*", "1.2.3.4")
+
+	t.testMergeRange("*.*", "*.*", "1.2.3.4")
+	t.testMergeRange("*.*", "1.2.3.4", "*.*")
+	t.testMergeRange("*.*", "*.*", "*.*")
+
+	t.testMergeRange("*:*", "*:*", "::")
+	t.testMergeRange("*:*", "::", "*:*")
+	t.testMergeRange("*:*", "*:*", "*:*")
+
+	t.testMergeRange("0-127.*", "0-127.*", "1.2.3.4")
+
+	t.testMerge("1.2.3.4/32", "1.2.3.4")
+	t.testMergeRange("1.2.3.4", "1.2.3.4")
+
+	t.testMerge("192.168.0.0/28", "192.168.0.0", "192.168.0.1", "192.168.0.2",
+		"192.168.0.3", "192.168.0.4", "192.168.0.5",
+		"192.168.0.6", "192.168.0.7", "192.168.0.8",
+		"192.168.0.9", "192.168.0.10", "192.168.0.11",
+		"192.168.0.12", "192.168.0.13", "192.168.0.14",
+		"192.168.0.15")
+
+	t.testMerge("192.168.0.0/20",
+		"192.168.12.*", "192.168.13.*", "192.168.14.*",
+		"192.168.6.*", "192.168.7.*", "192.168.8.*",
+		"192.168.3.*", "192.168.4.*", "192.168.5.*",
+		"192.168.15.*",
+		"192.168.9.*", "192.168.10.*", "192.168.11.*",
+		"192.168.0.*", "192.168.1.*", "192.168.2.*")
+
+	t.testMerge("0.0.0.0/4",
+		"15.*",
+		"12.*", "13.*", "14.*",
+		"9.*", "10.*", "11.*",
+		"6.*", "7.*", "8.*",
+		"3.*", "4.*", "5.*",
+		"0.*", "1.*", "2.*")
+
+	t.testMerge("192.168.0.0/28", "192.168.0.0/29", "192.168.0.1/29", "192.168.0.2/29",
+		"192.168.0.3/29", "192.168.0.4/29", "192.168.0.5/29",
+		"192.168.0.6/29", "192.168.0.7/29", "192.168.0.8/29",
+		"192.168.0.9/29", "192.168.0.10/29", "192.168.0.11/29",
+		"192.168.0.12/29", "192.168.0.13/29", "192.168.0.14/29",
+		"192.168.0.15/29")
+
+	t.testMerge("1.2.2.0/23", "1.2.3.0/24", "1.2.2.0/24")   //prefix at segment boundary
+	t.testMerge("1.2.3.0/24", "1.2.3.128/25", "1.2.3.0/25") //prefix just beyond segment boundary
+	t.testMerge("1.2.2.0/23", "1.2.3.0/24", "1.2.2.0/23")
+	t.testMerge("1.2.2.0/23", "1.2.2.0/23", "1.2.3.0/24")
+	t.testMerge("1.2.0.0/16", "1.2.0.0/16", "1.2.3.0/24")
+	t.testMerge("1.2.3.0/24", "1.2.3.0/24", "1.2.3.0/24")
+
+	t.testMerge2("1.2.3.0/24", "1.1.2.0/24", "1.2.3.0/24", "1.1.2.0/24")
+	t.testMerge2("1.2.3.0/24", "1.2.6.0/24", "1.2.3.0/24", "1.2.6.0/24")
+	t.testMerge2("1.2.3.0/24", "1.2.7.0/24", "1.2.3.0/24", "1.2.7.0/24")
+	t.testMerge2("1.2.3.128/25", "1.2.2.0/25", "1.2.3.128/25", "1.2.2.0/25")
+
+	t.testMerge("1.2.2-3.*/23", "1.2.3.*", "1.2.2.*")         //prefix at segment boundary
+	t.testMerge("1.2.3.*/24", "1.2.3.128-255", "1.2.3.0-127") //prefix just beyond segment boundary
+	t.testMerge("1.2.2-3.*/23", "1.2.2-3.*", "1.2.3.*/24")
+	t.testMerge("1.2.*.*/16", "1.2.*.*/16", "1.2.3.*/24")
+	t.testMerge("1.2.3.*/24", "1.2.3.*/24", "1.2.3.*/24")
+	t.testMerge("1.2.3.*/24", "1.2.3.*", "1.2.3.*")
+	t.testMerge2("1.2.3.1/32", "1.2.3.2/32", "1.2.3.1-2")
+
+	t.testMerge2("1.2.3.*/24", "1.1.2.*/24", "1.2.3.*/24", "1.1.2.*/24")
+	t.testMerge2("1.2.3.*/24", "1.2.6.*/24", "1.2.3.*/24", "1.2.6.*/24")
+	t.testMerge2("1.2.3.*/24", "1.2.7.*/24", "1.2.3.*/24", "1.2.7.*/24")
+	t.testMerge2("1.2.3.128-255/25", "1.2.2.0-127/25", "1.2.3.128-255/25", "1.2.2.0-127/25")
+
+	t.testMergeRange("1.2.3-4.*", "1.2.3.*", "1.2.4.*")
+	t.testMergeRange("1.2.3-4.*", "1.2.3-4.*", "1.2.4.*")
+	t.testMergeRange2("1.2.3-4.*", "2.2.3.*", "1-2.2.3.*", "1.2.4.*")
+	t.testMergeRange2("1.2.3-4.*", "2.2.3.*", "1.2.3-4.*", "2.2.3.*")
+
+	t.testMergeRange("1.0-25.*", "1.0-6.*", "1.4-25.*")
+	t.testMergeRange("1-2.*", "1.0-6.*", "1.4-255.*", "2.*")
+	t.testMergeRange("1-2:*", "1:0-6:*", "1:4-ffff:*", "2:*")
+	t.testMergeRange("3.1-2.*", "3.1.0-6.*", "3.1.4-255.*", "3.2.*")
+	t.testMergeRange("3:1-2:*", "3:1:0-6:*", "3:1:4-ffff:*", "3:2:*")
+	t.testMergeRange("1.2.3.1-2", "1.2.3.1-2")
+	t.testMergeRange2("1.2.2.1", "1.2.3.1", "1.2.2-3.1")
+
+	t.testMergeRange2("1.2.3-4.*", "2.2.3-4.*", "1-2.2.3-4.*")
+	t.testMergeRange2("1:2:3-4:*", "2:2:3-4:*", "1-2:2:3-4:*")
+
+	//the following 4 are an example where prefix blocks require more addresses
+
+	t.testMerge2("1.2.3.0/24", "1.2.4.0/23", "1.2.3.0/24", "1.2.4.0/24", "1.2.5.0/24")
+	t.testMergeRange("1.2.3-5.*", "1.2.3.0/24", "1.2.4.0/24", "1.2.5.0/24")
+
+	t.testMerge2("1.2.3.*", "1.2.4-5.*", "1.2.3.*", "1.2.4.*", "1.2.5.*")
+	t.testMergeRange("1.2.3-5.*", "1.2.3.*", "1.2.4.*", "1.2.5.*")
+
+	t.testMergeRange("1.2.3-5.*", "1.2.3.*", "1.2.4.*", "1.2.4.1-255", "1.2.5.*")
+	t.testMergeRange2("1.2.3-5.*", "8.2.3-5.*", "1.2.3.*", "8.2.3.*", "1.2.4.*", "8.2.4.*", "8.2.5.*", "1.2.5.*")
+	t.testMergeRange2("1.2.3-5.*", "1.7.4.1-255", "1.2.3.*", "1.2.4.*", "1.7.4.1-255", "1.2.5.*")
+
+	t.testMergeRange2("1.2.3-5.*", "1.2.7.*", "1.2.3.*", "1.2.4.*", "1.2.7.*", "1.2.5.*")
+
+	t.testMergeRange2("1::2:3-5:*", "8::2:3-5:*", "1::2:3:*", "8::2:3:*", "1::2:4:*", "8::2:4:*", "8::2:5:*", "1::2:5:*")
+	t.testMergeRange2("1::2:3-5:*", "1::7:4:1-255", "1::2:3:*", "1::2:4:*", "1::7:4:1-255", "1::2:5:*")
+	t.testMergeRange2("1:2:3-5:*", "8:2:3-5:*", "1:2:3:*", "8:2:3:*", "1:2:4:*", "8:2:4:*", "8:2:5:*", "1:2:5:*")
+	t.testMergeRange2("1:2:3-5:*", "1:7:4:1-255:*", "1:2:3:*", "1:2:4:*", "1:7:4:1-255:*", "1:2:5:*")
+
+	t.testMergeRange("1:2:2-9:*", "1:2:8-9:*", "1:2:6-8:*", "1:2:5-7:*", "1:2:2-4:*")
+	t.testMergeRange2("1:2:2-9:*", "1:2:11-12:*", "1:2:8-9:*", "1:2:6-8:*", "1:2:11-12:*", "1:2:5-7:*", "1:2:2-4:*")
+
+	t.testMergeRange("2-9:*", "8-9:*", "6-8:*", "5-7:*", "2-4:*")
+	t.testMergeRange("::1:2:2-9:*", "::1:2:8-9:*", "::1:2:6-8:*", "::1:2:5-7:*", "::1:2:2-4:*")
+	t.testMergeRange("::1:2:2-9", "::1:2:8-9", "::1:2:6-8", "::1:2:5-7", "::1:2:2-4")
+
+	t.testMergeRange2("1.2.3.1-199", "1.2.3.201-255", "1.2.3.1-3", "1.2.3.4-199", "1.2.3.201-220", "1.2.3.210-255")
+
+	if t.fullTest {
+		t.testMergeSingles("1.2.3.*")
+		t.testMergeSingles("1::2:*")
+
+		t.testMerge("1.*.*.*", "1.1-254.1-254.*", "1.1-254.0-1.*", "1.1-254.255.*", "1.0.*.*", "1.253-255.*.*")
+		t.testMergeRange("1.*.*.*", "1.1-254.1-254.*", "1.1-254.0-1.*", "1.1-254.255.*", "1.0.*.*", "1.253-255.*.*")
+
+		t.testMerge2("1:1:*", "1:2:*", "1:2:1-fffe:*", "1:2:0-1:*", "1:2:ffff:*", "1:1:*")
+		t.testMergeRange("1:1-2:*", "1:2:1-fffe:*", "1:2:0-1:*", "1:2:ffff:*", "1:1:*")
+
+		t.testMerge("1:0-ff:*", "1:2:1-fffe:*", "1:2:0-1:*", "1:2:ffff:*", "1:1:*", "1:3-ff:*", "1:0:*")
+		t.testMergeRange("1:0-ff:*", "1:2:1-fffe:*", "1:2:0-1:*", "1:2:ffff:*", "1:1:*", "1:3-ff:*", "1:0:*")
+
+		t.testMerge("1:0-ff:*", "1:1-fe:1-fffe:*", "1:1-fe:0-1:*", "1:1-fe:ffff:*", "1:0:*", "1:0-ff:*")
+		t.testMergeRange("1:0-ff:*", "1:1-fe:1-fffe:*", "1:1-fe:0-1:*", "1:1-fe:ffff:*", "1:0:*", "1:0-ff:*")
+	}
+
+	t.testSpanAndMerge("1.2.3.0", "1.2.3.1", 1, []string{"1.2.3.0/31"}, 1, []string{"1.2.3.0-1"}) //rangeCount
+	t.testSpanAndMerge("1.2.3.4", "1.2.5.8", 9, []string{"1.2.3.4-7/30", "1.2.3.8-15/29", "1.2.3.16-31/28", "1.2.3.32-63/27", "1.2.3.64-127/26", "1.2.3.128-255/25", "1.2.4.0-255/24", "1.2.5.0-7/29", "1.2.5.8"}, 3, []string{"1.2.3.4-255", "1.2.4.*", "1.2.5.0-8"})
+
+	t.testSpanAndMerge("a:b:c:d:1::", "a:b:c:d:10::", 5,
+		[]string{"a:b:c:d:1::/80", "a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, []string{"a:b:c:d:1-f:*:*:*", "a:b:c:d:10::"}) //[a:b:c:d:1::/80, a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::]
+	t.testSpanAndMerge("a:b:c:d:1::/80", "a:b:c:d:10::", 5,
+		[]string{"a:b:c:d:1::/80", "a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, []string{"a:b:c:d:1-f:*:*:*", "a:b:c:d:10::"})
+	t.testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::", 4,
+		[]string{"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::"}, 2, []string{"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"})
+	t.testSpanAndMerge("a:b:c:d:2::", "a:b:c:d:10::/76", 4,
+		[]string{"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::/76"},
+		1, []string{"a:b:c:d:2-1f:*:*:*"})
+	t.testSpanAndMerge("a:b:c:d:2::/79", "a:b:c:d:10::/76", 4,
+		[]string{"a:b:c:d:2::/79", "a:b:c:d:4::/78", "a:b:c:d:8::/77", "a:b:c:d:10::/76"},
+		1, []string{"a:b:c:d:2-1f:*:*:*"}) //[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
+
+	t.testSpanAndMerge("1.2.3.0", "1.2.3.*", 1, []string{"1.2.3.*/24"}, 1, []string{"1.2.3.*/24"}) //rangeCount
+
+	t.testCover("1.2.3.4", "1.2.4.4", "1.2.0.0/21")
+	t.testCoverSingle("1.10-11.3.4", "1.10.0.0/15")
+	t.testCover("0.0.1.1", "128.0.0.0", "*.*/0")
+	t.testCover("0.0.1.1", "0.0.1.1", "0.0.1.1/32")
+	t.testCover("0-1.0.1.1", "0-1.0.1.1", "0.0.0.0/7")
+	t.testCoverSingle("0.0.1.1", "0.0.1.1/32")
+	t.testCover("0.0.1.1", "0.0.1.0", "0.0.1.0-1/31")
+	t.testCoverSingle("1.2.0.0/16", "1.2.0.0/16")
+	t.testCoverSingle("1.2.0.1/16", "1.2.0.1/32")
+
+	t.testCoverSingle("8000:a:b:c::/64", "8000:a:b:c::/64")
+	t.testCover("8000::", "::", "*:*/0")
+	t.testCover("*:0:*:0:*:0:*:0", "0:*:0:*:0:*:0:*", "*:*/0")
+	t.testCover("0:0:*:0:*:0:*:0", "0:*:0:*:0:*:0:*", "0:*/16")
+	t.testCover("0:0:0-63:0:*:0:*:0", "0:0:64:*:0:*:0:*", "0:0:0-7f:*/41")
+	t.testCover("8000::/1", "::", "*:*/0")
+	t.testCover("8000::/1", "::/64", "*:*/0")
+	t.testCover("::1:ffff", "::1:ffff", "::1:ffff/128")
+	t.testCover("::1", "::", "::0-1/127")
+	t.testCoverSingle("ffff:ffff:ffff:ffff::/64", "ffff:ffff:ffff:ffff:*/64")
+
 	t.ipAddressTester.run()
 }
 
@@ -2550,6 +2769,408 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 		//testSpliterate(t, val, -1, number, spliteratorFunc);
 		//
 		//testStream(t, val, set, addr -> addr.blockStream(segmentCount));
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count int, expected []string, rangeCount int, rangeExpected []string) {
+	string1 := t.createAddress(address1)
+	string2 := t.createAddress(address2)
+	addr1 := string1.GetAddress()
+	addr2 := string2.GetAddress()
+	result, _ := addr1.SpanWithPrefixBlocksTo(addr2)
+	resultList := result
+	var expectedList []*ipaddr.IPAddress
+	//List<IPAddress> resultList = Arrays.asList(result);
+	//List<IPAddress> expectedList = new ArrayList<>();
+	for _, s := range expected {
+		expectedList = append(expectedList, t.createAddress(s).GetAddress())
+	}
+	if !AddrsMatchOrdered(resultList, expectedList) {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected "+asSliceString(expectedList), addr1))
+	}
+	if count != len(result) {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected count of "+strconv.Itoa(count), addr1))
+	}
+	for _, addr := range result {
+		if !addr.IsPrefixed() || !addr.IsPrefixBlock() {
+			t.addFailure(newIPAddrFailure("merged addr "+addr.String()+" is not prefix block", addr))
+		}
+	}
+	result2, _ := addr1.SpanWithSequentialBlocksTo(addr2)
+	resultList = result2
+	expectedList = expectedList[:0]
+	for _, s := range rangeExpected {
+		expectedList = append(expectedList, t.createAddress(s).GetAddress())
+	}
+	if !AddrsMatchOrdered(resultList, expectedList) {
+		t.addFailure(newIPAddrFailure("range merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected "+asSliceString(expectedList), addr1))
+	}
+	if rangeCount != len(result2) {
+		t.addFailure(newIPAddrFailure("range merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected count of "+strconv.Itoa(rangeCount), addr1))
+	}
+	for _, addr := range result2 {
+		if addr.IsPrefixed() {
+			t.addFailure(newIPAddrFailure("merged addr "+addr.String()+" is prefixed", addr))
+		}
+	}
+
+	backAgain, _ := result[0].MergeToPrefixBlocks(result...)
+	matches := AddrsMatchOrdered(result, backAgain)
+	//boolean matches = Arrays.deepEquals(result, backAgain);
+	if !matches {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
+	}
+	backAgain, _ = result[len(result)-1].MergeToPrefixBlocks(result...)
+	matches = AddrsMatchOrdered(result, backAgain)
+	//matches = Arrays.deepEquals(result, backAgain);
+	if !matches {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
+	}
+	if len(result) > 2 {
+		backAgain, _ = result[len(result)/2].MergeToPrefixBlocks(result...)
+		matches = AddrsMatchOrdered(result, backAgain)
+		//matches = Arrays.deepEquals(result, backAgain);
+		if !matches {
+			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
+		}
+	}
+
+	backAgain, _ = result2[0].MergeToSequentialBlocks(result2...)
+	matches = AddrsMatchOrdered(result2, backAgain)
+	//matches = Arrays.deepEquals(result2, backAgain);
+	if !matches {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
+	}
+	backAgain, _ = result2[len(result2)-1].MergeToSequentialBlocks(result2...)
+	matches = AddrsMatchOrdered(result2, backAgain)
+	//matches = Arrays.deepEquals(result2, backAgain);
+	if !matches {
+		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
+	}
+	if len(result2) > 2 {
+		backAgain, _ = result2[len(result2)/2].MergeToSequentialBlocks(result2...)
+		matches = AddrsMatchOrdered(result2, backAgain)
+		//matches = Arrays.deepEquals(result2, backAgain);
+		if !matches {
+			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
+		}
+	}
+
+	//List<IPAddressSeqRange> rangeList = new ArrayList<>();
+	var rangeList []*ipaddr.IPAddressSeqRange
+	for _, a := range result {
+		rng := a.ToSequentialRange()
+		rangeList = append(rangeList, rng)
+	}
+	joined := rangeList[0].Join(rangeList...)
+	//IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equals(addr1.GetLower()) || !joined[0].GetUpper().Equals(addr2.GetUpper()) {
+		t.addFailure(newIPAddrFailure("joined range "+asRangeSliceString(joined)+" did not match "+addr1.String()+" and "+addr2.String(), addr1))
+	}
+	rangeList = rangeList[:0]
+	for _, a := range result2 {
+		rng := a.ToSequentialRange()
+		rangeList = append(rangeList, rng)
+	}
+	joined = rangeList[0].Join(rangeList...)
+	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equals(addr1.GetLower()) || !joined[0].GetUpper().Equals(addr2.GetUpper()) {
+		t.addFailure(newIPAddrFailure("joined range "+asRangeSliceString(joined)+" did not match "+addr1.String()+" and "+addr2.String(), addr1))
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testMergeSingles(addrStr string) {
+	resultStr := t.createAddress(addrStr)
+	addr := resultStr.GetAddress()
+	iter := addr.Iterator()
+	var addrs []*ipaddr.IPAddress
+	//ArrayList<IPAddress> addrs = new ArrayList<>();
+	for iter.HasNext() {
+		addrs = append(addrs, iter.Next())
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(addrs), func(i, j int) { addrs[i], addrs[j] = addrs[j], addrs[i] })
+
+	//Collections.shuffle(addrs); //TODO goes go have something like this?
+	//IPAddress[] arr = addrs.toArray(new IPAddress[addrs.size()]);
+
+	arr := addrs
+	first := addrs[len(addrs)/2]
+	result, _ := first.MergeToPrefixBlocks(arr...)
+	if len(result) != 1 {
+		t.addFailure(newIPAddrFailure("merged addresses "+asSliceString(result)+" is not "+addrStr, addr))
+	} else if !addr.Equals(result[0]) {
+		t.addFailure(newIPAddrFailure("merged address "+result[0].String()+" is not "+addrStr, addr))
+	}
+	merged2 := getMergedPrefixBlocksAltMerge(arr)
+	merged3 := getMergedPrefixBlocksAltRange(arr)
+	merged4 := getMergedPrefixBlocksAltRange2(arr)
+	if len(merged2) != 1 || !result[0].Equals(merged2[0]) {
+		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged2), result[0]))
+	}
+	if len(merged3) != 1 || !result[0].Equals(merged3[0]) {
+		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged3), result[0]))
+	}
+	if len(merged4) != 1 || !result[0].Equals(merged4[0]) {
+		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged4), result[0]))
+	}
+	result, _ = addrs[len(addrs)/2].MergeToSequentialBlocks(arr...)
+	if len(result) != 1 {
+		t.addFailure(newIPAddrFailure("merged addresses "+asSliceString(result)+" is not "+addrStr, addr))
+	} else if !addr.Equals(result[0]) {
+		t.addFailure(newIPAddrFailure("merged address "+result[0].String()+" is not "+addrStr, addr))
+	}
+
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testMergeRange(result string, addresses ...string) {
+	t.testMergeImpl(result, false, addresses...)
+}
+
+func (t ipAddressRangeTester) testMergeRange2(result string, result2 string, addresses ...string) {
+	t.testMerge2Impl(result, result2, false, addresses...)
+}
+
+func (t ipAddressRangeTester) testMerge(result string, addresses ...string) {
+	t.testMergeImpl(result, true, addresses...)
+}
+
+func (t ipAddressRangeTester) testMerge2(result string, result2 string, addresses ...string) {
+	t.testMerge2Impl(result, result2, true, addresses...)
+}
+
+func getMergedPrefixBlocksAlt(mergedBlocks []*ipaddr.IPAddress) (result []*ipaddr.IPAddress) {
+	for _, series := range mergedBlocks {
+		result = append(result, series.SpanWithPrefixBlocks()...)
+	}
+	return
+}
+
+func getMergedPrefixBlocksAltRange(addresses []*ipaddr.IPAddress) (result []*ipaddr.IPAddress) {
+	//fmt.Printf("\nstarting with %v\n", addresses)
+	var ranges []*ipaddr.IPAddressSeqRange
+	for _, addr := range addresses {
+		iter := addr.SequentialBlockIterator()
+		for iter.HasNext() {
+			next := iter.Next().ToSequentialRange()
+			ranges = append(ranges, next)
+		}
+	}
+	//fmt.Printf("joining %v\n", ranges)
+	joined := ranges[0].Join(ranges...)
+	//fmt.Printf("result %v\n", joined)
+	for _, rng := range joined {
+		joins := rng.SpanWithPrefixBlocks()
+		for _, join := range joins {
+			result = append(result, join)
+		}
+	}
+	//fmt.Printf("spanned result %v\n", result)
+	return
+}
+
+func getMergedPrefixBlocksAltRange2(addresses []*ipaddr.IPAddress) (result []*ipaddr.IPAddress) {
+	var ranges []*ipaddr.IPAddressSeqRange
+	//	ArrayList<IPAddressSeqRange> ranges = new ArrayList<>(addresses.length << 3);
+	for _, addr := range addresses {
+		iter := addr.SequentialBlockIterator()
+		for iter.HasNext() {
+			next := iter.Next().ToSequentialRange()
+			ranges = append(ranges, next)
+		}
+	}
+	sort.Slice(ranges, func(i, j int) bool {
+		return ipaddr.LowValueComparator.CompareRanges(ranges[i], ranges[j]) < 0
+	})
+	//sort.Slice(ranges, less func(i, j int) bool)
+	//ranges.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
+	for i := 0; i < len(ranges); i++ {
+		one := ranges[i]
+		if one == nil {
+			continue
+		}
+		for j := i + 1; j < len(ranges); j++ {
+			two := ranges[j]
+			if two == nil {
+				continue
+			}
+			joined := one.JoinTo(two)
+			if joined == nil {
+				continue
+			}
+			ranges[j] = nil
+			ranges[i] = joined
+			one = joined
+			i = -1
+			break
+		}
+	}
+
+	//ArrayList<IPAddressSegmentSeries> result = new ArrayList<>(ranges.size());
+	for i := 0; i < len(ranges); i++ {
+		one := ranges[i]
+		if one == nil {
+			continue
+		}
+		joins := one.SpanWithPrefixBlocks()
+		for _, join := range joins {
+			result = append(result, join)
+		}
+	}
+	return
+}
+
+func getMergedPrefixBlocksAltMerge(addresses []*ipaddr.IPAddress) []*ipaddr.IPAddress {
+	merged, _ := addresses[0].MergeToSequentialBlocks(addresses...)
+	return getMergedPrefixBlocksAlt(merged)
+}
+
+func joinAddrToAddresses(addresses []*ipaddr.IPAddress, another *ipaddr.IPAddress) []*ipaddr.IPAddress {
+	result := make([]*ipaddr.IPAddress, len(addresses)+1)
+	copy(result, addresses)
+	result[len(addresses)] = another
+	//result = append(result, another)
+	return result
+}
+
+func (t ipAddressRangeTester) testMergeImpl(result string, prefix bool, addresses ...string) {
+	resultStr := t.createAddress(result)
+	string2 := t.createAddress(addresses[0])
+	resultAddr := resultStr.GetAddress()
+	addr2 := string2.GetAddress()
+	mergers := make([]*ipaddr.IPAddress, len(addresses)-1)
+	for i := 0; i < len(mergers); i++ {
+		mergers[i] = t.createAddress(addresses[i+1]).GetAddress()
+	}
+
+	merged, err := addr2.MergeToSequentialBlocks(mergers...)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
+	}
+	if prefix {
+		merged2 := getMergedPrefixBlocksAlt(merged)
+		merged3 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
+		merged4 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
+		merged, _ = addr2.MergeToPrefixBlocks(mergers...)
+		if len(merged2) != 1 || !resultAddr.Equals(merged2[0]) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged2), resultAddr))
+		}
+		if len(merged3) != 1 || !resultAddr.Equals(merged3[0]) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged3), resultAddr))
+		}
+		if len(merged4) != 1 || !resultAddr.Equals(merged4[0]) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged4), resultAddr))
+		}
+	}
+	if len(merged) != 1 || !resultAddr.Equals(merged[0]) {
+		t.addFailure(newIPAddrFailure("mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged), resultAddr))
+	}
+	for _, m := range merged {
+		if prefix {
+			if !m.IsPrefixed() || !m.IsPrefixBlock() {
+				t.addFailure(newIPAddrFailure("merged addr "+m.String()+" is not prefix block", m))
+			}
+		} else {
+			if m.IsPrefixed() {
+				t.addFailure(newIPAddrFailure("merged addr "+m.String()+" is prefixed", m))
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+//like testMerge but the merge results in two addresses
+func (t ipAddressRangeTester) testMerge2Impl(result, result2 string, prefix bool, addresses ...string) {
+	resultStr := t.createAddress(result)
+	resultStr2 := t.createAddress(result2)
+	string2 := t.createAddress(addresses[0])
+	resultAddr := resultStr.GetAddress()
+	resultAddr2 := resultStr2.GetAddress()
+	addr2 := string2.GetAddress()
+	mergers := make([]*ipaddr.IPAddress, len(addresses)-1)
+	for i := 0; i < len(mergers); i++ {
+		mergers[i] = t.createAddress(addresses[i+1]).GetAddress()
+	}
+	seqMerged, err := addr2.MergeToSequentialBlocks(mergers...)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
+	}
+	var merged []*ipaddr.IPAddress
+
+	if prefix {
+		merged, err = addr2.MergeToPrefixBlocks(mergers...)
+		if err != nil {
+			t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
+		}
+	} else {
+		merged = seqMerged
+	}
+
+	//HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
+	//HashSet<IPAddress> expected = new HashSet<IPAddress>();
+	var all, expected []*ipaddr.IPAddress
+	all = append(all, merged...)
+	expected = append(append(expected, resultAddr), resultAddr2)
+
+	if !AddrsMatchUnordered(all, expected) {
+		t.addFailure(newIPAddrFailure("mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(all), resultAddr))
+	}
+
+	if prefix {
+		merged2 := getMergedPrefixBlocksAlt(merged)
+		merged3 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
+		merged4 := getMergedPrefixBlocksAltRange2(joinAddrToAddresses(mergers, addr2))
+		if len(merged2) != 2 || !AddrsMatchOrdered(merged, merged2) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged2), resultAddr))
+		}
+		//merge prefix mismatch merging 1:2:3:4:8000::/65,1:2:3:4::/66,1:2:3:4:4000::/66,1:2:3:6:4000::/66,1:2:3:6::/66,1:2:3:6:8000::/65
+		//expected [1:2:3:4:*:*:*:* 1:2:3:6:*:*:*:*]
+		//got [1:2:3:4:0-3fff:*:*:* 1:2:3:6:*:*:*:*]
+		if len(merged3) != 2 || !AddrsMatchOrdered(merged, merged3) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged3), resultAddr))
+			merged3 = getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
+		}
+		if len(merged4) != 2 || !AddrsMatchOrdered(merged, merged4) {
+			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged4), resultAddr))
+		}
+	}
+
+	for _, m := range merged {
+		if prefix {
+			if !m.IsPrefixed() || !m.IsPrefixBlock() {
+				t.addFailure(newIPAddrFailure("merged addr "+m.String()+" is not prefix block", m))
+			}
+		} else {
+			if m.IsPrefixed() {
+				t.addFailure(newIPAddrFailure("merged addr "+m.String()+" is prefixed", m))
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testCoverSingle(oneStr, resultStr string) {
+	oneAddr := t.createAddress(oneStr).GetAddress()
+	resultAddr := t.createAddress(resultStr).GetAddress()
+	result := oneAddr.CoverWithPrefixBlock()
+	if !result.Equals(resultAddr) {
+		t.addFailure(newIPAddrFailure("cover was "+result.String()+" instead of expected "+resultAddr.String(), oneAddr))
+	}
+	t.testCover(oneAddr.GetUpper().String(), oneAddr.GetLower().String(), resultStr)
+	t.testCover(oneAddr.GetUpper().String(), oneStr, resultStr)
+	t.incrementTestCount()
+}
+
+func (t ipAddressRangeTester) testCover(oneStr, twoStr, resultStr string) {
+	oneAddr := t.createAddress(oneStr).GetAddress()
+	twoAddr := t.createAddress(twoStr).GetAddress()
+	resultAddr := t.createAddress(resultStr).GetAddress()
+	result, _ := oneAddr.CoverWithPrefixBlockTo(twoAddr)
+	if !result.Equals(resultAddr) || !resultAddr.GetNetworkPrefixLen().Equals(result.GetNetworkPrefixLen()) {
+		t.addFailure(newIPAddrFailure("cover was "+result.String()+" instead of expected "+resultAddr.String(), oneAddr))
 	}
 	t.incrementTestCount()
 }
@@ -4147,4 +4768,80 @@ func getLabel(addressString *ipaddr.IPAddressString) string {
 		return address.ToPrefixLenString()
 	}
 	return address.ToSubnetString()
+}
+
+//TODO maybe add the funcs below to the library
+
+// AddrsMatch checks if the two slices cannot the same list of addresses in any order, using address equality.
+// The function can handle duplicates and nil addresses.
+func AddrsMatchUnordered(addrs1, addrs2 []*ipaddr.IPAddress) (result bool) {
+	len1 := len(addrs1)
+	len2 := len(addrs2)
+	sameLen := len1 == len2
+	if len1 == 0 || len2 == 0 {
+		result = sameLen
+	} else if len1 == 1 && sameLen {
+		result = addrs1[0].Equals(addrs2[0])
+	} else if len1 == 2 && sameLen {
+		if addrs1[0].Equals(addrs2[0]) {
+			result = addrs1[1].Equals(addrs2[1])
+		} else if result = addrs1[0].Equals(addrs2[1]); result {
+			result = addrs1[1].Equals(addrs2[0])
+		}
+	} else {
+		result = reflect.DeepEqual(asMap(addrs1), asMap(addrs2))
+	}
+	return
+}
+
+func AddrsMatchOrdered(addrs1, addrs2 []*ipaddr.IPAddress) (result bool) {
+	len1 := len(addrs1)
+	len2 := len(addrs2)
+	if len1 != len2 {
+		return
+	}
+	for i, addr := range addrs1 {
+		if !addr.Equals(addrs2[i]) {
+			return
+		}
+	}
+	return true
+}
+
+func asMap(addrs []*ipaddr.IPAddress) (result map[string]struct{}) {
+	if addrLen := len(addrs); addrLen > 0 {
+		result = make(map[string]struct{})
+		for _, addr := range addrs {
+			result[addr.ToNormalizedWildcardString()] = struct{}{}
+		}
+	}
+	return
+}
+
+func asSlice(addrs []*ipaddr.IPAddress) (result []string) {
+	if addrLen := len(addrs); addrLen > 0 {
+		result = make([]string, 0, addrLen)
+		for _, addr := range addrs {
+			result = append(result, addr.ToNormalizedWildcardString())
+		}
+	}
+	return
+}
+
+func asSliceString(addrs []*ipaddr.IPAddress) string {
+	return fmt.Sprintf("%v", asSlice(addrs))
+}
+
+func asRangeSlice(addrs []*ipaddr.IPAddressSeqRange) (result []string) {
+	if addrLen := len(addrs); addrLen > 0 {
+		result = make([]string, 0, addrLen)
+		for _, addr := range addrs {
+			result = append(result, addr.ToNormalizedString())
+		}
+	}
+	return
+}
+
+func asRangeSliceString(addrs []*ipaddr.IPAddressSeqRange) string {
+	return fmt.Sprintf("%v", asRangeSlice(addrs))
 }

@@ -18,7 +18,8 @@ import (
 func Test() {
 	var acc testAccumulator
 	var addresses addresses
-	fullTest := true
+	//fullTest := true
+	fullTest := false
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
 
@@ -40,7 +41,7 @@ func Test() {
 	allTester.run()
 
 	endTime := time.Now().Sub(startTime)
-	fmt.Printf("TestRunner\ntest count: %d\nfail count:%d\n", acc.counter, len(acc.failures))
+	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
 	if len(acc.failures) > 0 {
 		fmt.Printf("%v\n", acc.failures)
 	}
