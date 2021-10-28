@@ -10,7 +10,6 @@ type ipAddressAllTester struct {
 }
 
 func (t ipAddressAllTester) run() {
-	t.testStrings()
 
 	t.testMatches(true, "-", "*.*")
 	t.testMatches(true, "-", "*.*.*.*")
@@ -230,9 +229,92 @@ func (t ipAddressAllTester) run() {
 		[]interface{}{[]*big.Int{setBigString("1234567890abcdef1234567890abcdef", 16), setBigString("2234567890abcdef1234567890abcdef", 16)}},
 		p64, true)
 
+	//TODO testMaskedRange
+
 	t.testStrings()
 
+	t.testBackAndForth()
+
 	t.ipAddressRangeTester.run()
+}
+
+func (t ipAddressAllTester) testBackAndForth() {
+	t.testBackAndForthIPv4("127.0.0.1")
+	t.testBackAndForthIPv4("128.0.0.1")
+	t.testBackAndForthIPv4("255.255.255.255")
+	t.testBackAndForthIPv4("128.255.255.255")
+	t.testBackAndForthIPv6("::1")
+	t.testBackAndForthIPv6("8000::1")
+	t.testBackAndForthIPv6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testBackAndForthIPv6("ffff:a:b:c:d:e:f:cccc")
+	t.testBackAndForthIPv6("cfff:a:b:c:d:e:f:cccc")
+	t.testBackAndForthIPv6("7fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+}
+
+func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
+	// agnostic BigInteger and back
+	addr := ipaddr.NewIPAddressString(addrStr).GetAddress()
+	value := addr.GetValue()
+	bigIntBytes := value.Bytes()
+	byteCount := addr.GetByteCount()
+	if len(bigIntBytes) < byteCount { // want correct byte length
+		bytes := make([]byte, byteCount)
+		copy(bytes[len(bytes)-len(bigIntBytes):], bigIntBytes)
+		bigIntBytes = bytes
+	}
+	andAgain := ipaddr.FromIP(bigIntBytes)
+	if !andAgain.Equals(addr) {
+		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
+	}
+
+	// byte[] and back
+	bytes := addr.GetBytes()
+	backAgain := ipaddr.FromIP(bytes)
+	if !backAgain.Equals(addr) {
+		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
+	}
+
+	// IPv4 int and back
+	addrv4 := addr.ToIPv4Address()
+	val := addrv4.Uint32Value()
+	backAgainv4 := ipaddr.NewIPv4AddressFromUint32(val)
+	if !backAgainv4.Equals(addrv4) {
+		t.addFailure(newIPAddrFailure("int result was "+backAgainv4.String()+" original was "+addrv4.String(), addrv4.ToIPAddress()))
+	}
+}
+
+func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
+	// agnostic BigInteger and back
+	addr := ipaddr.NewIPAddressString(addrStr).GetAddress()
+	value := addr.GetValue()
+	bigIntBytes := value.Bytes()
+	byteCount := addr.GetByteCount()
+	if len(bigIntBytes) < byteCount { // want correct byte length
+		bytes := make([]byte, byteCount)
+		copy(bytes[len(bytes)-len(bigIntBytes):], bigIntBytes)
+		bigIntBytes = bytes
+	}
+	andAgain := ipaddr.FromIP(bigIntBytes)
+	if !andAgain.Equals(addr) {
+		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
+	}
+
+	// byte[] and back
+	bytes := addr.GetBytes()
+	backAgain := ipaddr.FromIP(bytes)
+	if !backAgain.Equals(addr) {
+		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
+	}
+
+	// IPv6 BigInteger and back
+	addrv6 := addr.ToIPv6Address()
+	value = addrv6.GetValue()
+	backAgainv6, err := ipaddr.NewIPv6AddressFromBigInt(value)
+	if err != nil {
+		t.addFailure(newIPAddrFailure("got error creating from bytes "+value.String()+" err: "+err.Error(), addr))
+	} else if !backAgainv6.Equals(addrv6) {
+		t.addFailure(newIPAddrFailure("int result was "+backAgainv6.String()+" original was "+addrv6.String(), addrv6.ToIPAddress()))
+	}
 }
 
 func (t ipAddressAllTester) testAllContains(cidr1, cidr2 string, result bool) {
