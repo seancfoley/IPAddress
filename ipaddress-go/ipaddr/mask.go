@@ -298,7 +298,7 @@ func maskExtendedRange(
 	extendedDiffering := extendedValue ^ extendedUpperValue
 	if extendedDiffering == 0 {
 		// the top is single-valued so just need to check the lower part
-		masker := maskRange(value, upperValue, maskValue, maxValue)
+		masker := MaskRange(value, upperValue, maskValue, maxValue)
 		if masker == defaultMasker {
 			return defaultMasker
 		}
@@ -527,15 +527,15 @@ func maskExtendedRange(
 	//return nil
 }
 
-//func maskRange(value, upperValue, maskValue uint64) Masker {
-//	return maskRange(value, upperValue, maskValue, 0xffffffffffffffff)
+//func MaskRange(value, upperValue, maskValue uint64) Masker {
+//	return MaskRange(value, upperValue, maskValue, 0xffffffffffffffff)
 //}
 
 //func TestMaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
-//	return maskRange(value, upperValue, maskValue, maxValue)
+//	return MaskRange(value, upperValue, maskValue, maxValue)
 //}
 
-func maskRange(value, upperValue, maskValue, maxValue uint64) Masker {
+func MaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 	if value == upperValue {
 		return defaultMasker
 	}

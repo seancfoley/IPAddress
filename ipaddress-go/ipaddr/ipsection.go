@@ -1016,7 +1016,7 @@ func (section *ipAddressSectionInternal) getHostSectionLen(networkPrefixLength B
 		divUpper := uint64(firstSeg.getUpperDivisionValue())
 		divMask := uint64(mask)
 		maxVal := uint64(^SegInt(0))
-		masker := maskRange(divLower, divUpper, divMask, maxVal)
+		masker := MaskRange(divLower, divUpper, divMask, maxVal)
 		lower, upper := masker.GetMaskedLower(divLower, divMask), masker.GetMaskedUpper(divUpper, divMask)
 		segLower, segUpper := SegInt(lower), SegInt(upper)
 		if prefixedSegmentIndex == 0 && segsSame(segPrefLength, firstSeg.GetSegmentPrefixLen(), segLower, firstSeg.getSegmentValue(), segUpper, firstSeg.getUpperSegmentValue()) {

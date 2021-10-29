@@ -362,7 +362,7 @@ func (div *addressDivisionInternal) matchesValsWithMask(lowerValue, upperValue, 
 	}
 	thisValue := div.getDivisionValue()
 	thisUpperValue := div.getUpperDivisionValue()
-	masker := maskRange(thisValue, thisUpperValue, mask, div.getMaxValue())
+	masker := MaskRange(thisValue, thisUpperValue, mask, div.getMaxValue())
 	if !masker.IsSequential() {
 		return false
 	}
@@ -428,7 +428,7 @@ func (div *addressDivisionInternal) toHostDivision(divPrefixLength PrefixLen, wi
 	}
 	divMask := uint64(mask)
 	maxVal := uint64(^SegInt(0))
-	masker := maskRange(lower, upper, divMask, maxVal)
+	masker := MaskRange(lower, upper, divMask, maxVal)
 	newLower, newUpper := masker.GetMaskedLower(lower, divMask), masker.GetMaskedUpper(upper, divMask)
 	if !withPrefixLength {
 		divPrefixLength = nil

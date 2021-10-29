@@ -1554,7 +1554,7 @@ func (section *addressSectionInternal) getSubnetSegments( // called by methods t
 			mask64 := uint64(maskValue)
 			val64 := uint64(value)
 			upperVal64 := uint64(upperValue)
-			masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
+			masker := MaskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 			if !masker.IsSequential() {
 				err = &incompatibleAddressError{addressError{key: "ipaddress.error.maskMismatch"}}
 				return
@@ -1579,7 +1579,7 @@ func (section *addressSectionInternal) getSubnetSegments( // called by methods t
 					mask64 := uint64(maskValue)
 					val64 := uint64(value)
 					upperVal64 := uint64(upperValue)
-					masker := maskRange(val64, upperVal64, mask64, seg.GetMaxValue())
+					masker := MaskRange(val64, upperVal64, mask64, seg.GetMaxValue())
 					if !masker.IsSequential() {
 						err = &incompatibleAddressError{addressError{key: "ipaddress.error.maskMismatch"}}
 						return
