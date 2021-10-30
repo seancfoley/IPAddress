@@ -343,6 +343,18 @@ func (t macAddressRangeTester) run() {
 	t.testLongShort2("ee:ff:aa:*:dd:ee:ff", "ee:ff:a-b:*:dd", true)
 	t.testLongShort2("e:f:a:b:c:d:e:e-f", "e:*", true)
 
+	t.testSections("00-1:21-ff:*:10")
+	t.testSections("00-1:21-ff:2f:*:10")
+	t.testSections("*-A7-94-07-CB-*")
+	t.testSections("aa-*")
+	t.testSections("aa-bb-*")
+	t.testSections("aa-bb-cc-*")
+	t.testSections("8-9:a0-ae:1-3:20-26:0:1")
+	t.testSections("fe-ef-39-*-94-07-b|C-D0")
+	t.testSections("5634-5678.*.7feb.6b40")
+	t.testSections("ff:0:1:*")
+	t.testSections("ff:0:1:*:*:*:*:*")
+
 	t.macAddressTester.run()
 }
 

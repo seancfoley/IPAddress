@@ -18,10 +18,9 @@ func (t macAddressTester) run() {
 	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest,
 	// testRadices, testNormalized, testCanonical, testMatches, testDelimitedCount, testContains, testNotContains,
 	// testLongShort
-	// NEXT:
+	// NEXT: testSections
 	// testMACIPv6 (this is a bad boy),
-	// testSections, testInsertAndAppend, testReplace,
-	// testInvalidMACValues, testMACValues
+	// testInsertAndAppend, testReplace, testInvalidMACValues, testMACValues
 
 	t.mactest(true, "aa:b:cc:d:ee:f")
 	t.mactest(false, "aaa:b:cc:d:ee:f")
@@ -547,7 +546,86 @@ func (t macAddressTester) run() {
 	t.testLongShort("ee:ff:aa:bb:cc:dd:ee:ff", "ee:ff:aa:bb:cc:dd")
 	t.testLongShort("e:f:a:b:c:d:e:f", "e:f:a:b:c:d")
 
+	t.testSections("00:21:2f:b5:6e:10")
+	t.testSections("39-A7-94-07-CB-D0")
+	t.testSections("0012.7feb.6b40")
+	t.testSections("fe:ef:00:21:2f:b5:6e:10")
+	t.testSections("fe-ef-39-A7-94-07-CB-D0")
+	t.testSections("1234.0012.7feb.6b40")
+
 	t.testStrings()
+}
+
+func (t macAddressTester) testSections(addrString string) {
+	w := t.createMACAddress(addrString)
+	v := w.GetAddress()
+	odiSection := v.GetODISection()
+	ouiSection := v.GetOUISection()
+	front := v.GetSubSection(0, 3)
+	back := v.GetTrailingSection(front.GetSegmentCount())
+	first := !ouiSection.Equals(front)
+	if (first) || !all3Equals(ouiSection.GetPrefixLen(), front.GetPrefixLen(), prefixAdjust(v.GetPrefixLen(), 24, 0)) {
+		if first {
+			t.addFailure(newMACFailure("failed oui "+ouiSection.String()+" expected "+front.String(), w))
+		} else {
+			t.addFailure(newMACFailure("failed oui pref "+ouiSection.GetPrefixLen().String()+" expected "+prefixAdjust(v.GetPrefixLen(), 24, 0).String()+" for "+front.String(), w))
+		}
+	} else {
+		first = !odiSection.Equals(back)
+		if (first) || !all3Equals(odiSection.GetPrefixLen(), back.GetPrefixLen(), prefixAdjust(v.GetPrefixLen(), 64, -24)) {
+			if first {
+				t.addFailure(newMACFailure("failed odi "+odiSection.String()+" expected "+back.String(), w))
+			} else {
+				t.addFailure(newMACFailure("failed odi pref "+odiSection.GetPrefixLen().String()+" expected "+prefixAdjust(v.GetPrefixLen(), 64, -24).String()+" for "+back.String(), w))
+			}
+		} else {
+			middle := v.GetSubSection(1, 5)
+			odiSection2 := odiSection.GetSubSection(0, 5-ouiSection.GetSegmentCount())
+			ouiSection2 := ouiSection.GetTrailingSection(1)
+			odiSection = middle.GetTrailingSection(2)
+			ouiSection = middle.GetSubSection(0, 2)
+			if !ouiSection.Equals(ouiSection2) || !ouiSection.GetPrefixLen().Equals(ouiSection2.GetPrefixLen()) {
+				t.addFailure(newMACFailure("failed odi "+ouiSection.String()+" expected "+ouiSection2.String(), w))
+			} else if !odiSection.Equals(odiSection2) || !odiSection.GetPrefixLen().Equals(odiSection2.GetPrefixLen()) {
+				t.addFailure(newMACFailure("failed odi "+odiSection.String()+" expected "+odiSection2.String(), w))
+			} else if ouiSection.GetSegmentCount() != 2 || ouiSection2.GetSegmentCount() != 2 {
+				t.addFailure(newMACFailure("failed oui count "+strconv.Itoa(ouiSection.GetSegmentCount())+" expected 2", w))
+			} else if odiSection.GetSegmentCount() != 2 || odiSection2.GetSegmentCount() != 2 {
+				t.addFailure(newMACFailure("failed oui count "+strconv.Itoa(odiSection.GetSegmentCount())+" expected 2", w))
+			} else {
+				odiEmpty := odiSection.GetSubSection(0, 0)
+				ouiEmpty := ouiSection.GetSubSection(0, 0)
+				if !odiEmpty.Equals(ouiEmpty) || odiEmpty.GetSegmentCount() > 0 || ouiEmpty.GetSegmentCount() > 0 {
+					t.addFailure(newMACFailure("failed odi empty "+odiEmpty.String()+" oui empty "+ouiEmpty.String(), w))
+				} else {
+					midEmpty := middle.GetSubSection(0, 0)
+					if !ouiEmpty.Equals(midEmpty) || midEmpty.GetSegmentCount() != 0 {
+						t.addFailure(newMACFailure("failed odi empty "+midEmpty.String()+" expected "+ouiEmpty.String(), w))
+					} else {
+						midEmpty2 := middle.GetSubSection(1, 1)
+						if !ouiEmpty.Equals(midEmpty2) || midEmpty2.GetSegmentCount() != 0 {
+							t.addFailure(newMACFailure("failed odi empty "+midEmpty2.String()+" expected "+ouiEmpty.String(), w))
+						}
+					}
+				}
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+func prefixAdjust(existing ipaddr.PrefixLen, max, adj ipaddr.BitCount) ipaddr.PrefixLen {
+	if existing == nil {
+		return nil
+	}
+	if *existing > max {
+		return nil
+	}
+	res := *existing + adj
+	if res < 0 {
+		return cacheTestBits(0)
+	}
+	return cacheTestBits(res)
 }
 
 func (t macAddressTester) testLongShort(longAddr, shortAddr string) {
@@ -972,4 +1050,8 @@ func (t macAddressTester) testStrings() {
 		"0aa0.bbb0.0cff",
 		"0a a0 bb b0 0c ff",
 		"0aa0bbb00cff")
+}
+
+func all3Equals(one, two, three ipaddr.PrefixLen) bool {
+	return one.Equals(two) && one.Equals(three)
 }
