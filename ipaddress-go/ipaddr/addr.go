@@ -570,7 +570,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 		if isBlockIterator {
 			hostSegIteratorProducer = func(index int) SegmentIterator {
 				seg := address.GetSegment(index)
-				if seg.isPrefixed() { // IP address segments know their own prefix, MAC segments do not
+				if seg.isPrefixed() { // IP address segments know their own prefix, MACSize segments do not
 					return seg.prefixBlockIterator()
 				}
 				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)
@@ -580,7 +580,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 		} else {
 			hostSegIteratorProducer = func(index int) SegmentIterator {
 				seg := address.GetSegment(index)
-				if seg.isPrefixed() { // IP address segments know their own prefix, MAC segments do not
+				if seg.isPrefixed() { // IP address segments know their own prefix, MACSize segments do not
 					return seg.prefixIterator()
 				}
 				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)

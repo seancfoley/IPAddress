@@ -207,7 +207,7 @@ var strVals = `validation options do no allow single character wildcard segments
 	`please supply an address, not a full URL` +
 	`segment too long` +
 	`IPv4 segment contains hexadecimal value` +
-	`MAC address has invalid segment count` +
+	`MACSize address has invalid segment count` +
 	`segment value missing at index` +
 	`mask must specify a single IP address` +
 	`invalid format of IPv4 (255.255.255.255) address` +
@@ -244,7 +244,7 @@ var strVals = `validation options do no allow single character wildcard segments
 	`IPv6 CIDR prefix length starts with zero` +
 	`no ipv6 zone allowed` +
 	`the universal address is not allowed` +
-	`MAC address has invalid byte count` +
+	`MACSize address has invalid byte count` +
 	`An IPv6 address cannot start with a single colon, it must start with either two colons or with the first segment` +
 	`only ipv6 can have a zone specified` +
 	`with a zone you must specify an address` +
@@ -260,7 +260,7 @@ var strVals = `validation options do no allow single character wildcard segments
 	`invalid decimal digit` +
 	`invalid format of IPv6 (ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff) address` +
 	`service name must have at least one letter` +
-	`MAC address cannot be converted to EUI 64` +
+	`MACSize address cannot be converted to EUI 64` +
 	`address has too few segments` +
 	`invalid character number` +
 	`too many segments` +

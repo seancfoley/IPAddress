@@ -49,8 +49,8 @@ type addressDivisionGroupingInternal struct {
 
 	// get rid of addressSegmentIndex and isExtended
 	// You just don't need positionality from sections.
-	// Being mixed or converting to IPv6 from MAC are properties of the address.
-	// isExtended really only used for IPv6/MAC conversion.
+	// Being mixed or converting to IPv6 from MACSize are properties of the address.
+	// isExtended really only used for IPv6/MACSize conversion.
 	// addressSegmentindex really only used for mixed
 	// Both of those are really "address-level" concepts.
 	//

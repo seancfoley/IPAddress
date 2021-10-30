@@ -43,9 +43,9 @@ package ipaddr
 type MACAddressSize string
 
 const (
-	MAC   MACAddressSize = "MAC"
-	EUI64 MACAddressSize = "EUI64"
-	ANY   MACAddressSize = ""
+	MACSize            MACAddressSize = "MACSize"
+	EUI64Size          MACAddressSize = "EUI64Size"
+	UnspecifiedMACSize MACAddressSize = ""
 )
 
 type MACAddressStringParameters interface {
@@ -194,6 +194,7 @@ func (builder *MACAddressStringParametersBuilder) AllowAll(allow bool) *MACAddre
 	return builder
 }
 
+//TODO this applies only to "all" addresses, ie "*", so you need to rename
 func (builder *MACAddressStringParametersBuilder) SetAddressSize(size MACAddressSize) *MACAddressStringParametersBuilder {
 	builder.params.allAddresses = size
 	return builder

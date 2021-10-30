@@ -433,8 +433,8 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 		for i := 1; i <= byteCount; i++ {
 			bitShift := i << 3
 			shift := (bitCount - BitCount(bitShift))
-			byteVal := 0xff & (val >> uint(shift))
-			upperByteVal := 0xff & (upperVal >> uint(shift))
+			byteVal := val >> uint(shift)
+			upperByteVal := upperVal >> uint(shift)
 			if byteVal != upperByteVal {
 				if byteVal > 1 || upperByteVal < 254 {
 					return false
@@ -446,8 +446,8 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 					for {
 						bitShift = i << 3
 						shift = bitCount - BitCount(bitShift)
-						byteVal = 0xff & (val >> uint(shift))
-						upperByteVal = 0xff & (upperVal >> uint(shift))
+						byteVal = val >> uint(shift)
+						upperByteVal = upperVal >> uint(shift)
 						if lowerIsZero {
 							if byteVal != 0 {
 								return

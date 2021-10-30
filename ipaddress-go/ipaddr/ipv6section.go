@@ -1543,7 +1543,7 @@ var ffMACSeg, feMACSeg = NewMACSegment(0xff), NewMACSegment(0xfe)
 
 func toIPv6SegmentsFromEUI(
 	segments []*AddressDivision,
-	ipv6StartIndex int, // the index into the IPv6 segment array to put the MAC-based IPv6 segments
+	ipv6StartIndex int, // the index into the IPv6 segment array to put the MACSize-based IPv6 segments
 	eui *MACAddressSection, // must be full 6 or 8 mac sections
 	prefixLength PrefixLen) IncompatibleAddressError {
 	euiSegmentIndex := 0
@@ -1578,7 +1578,7 @@ func toIPv6SegmentsFromEUI(
 	seg7 := eui.GetSegment(euiSegmentIndex)
 	var currentPrefix PrefixLen
 	if prefixLength != nil {
-		//since the prefix comes from the ipv6 section and not the MAC section, any segment prefix for the MAC section is 0 or null
+		//since the prefix comes from the ipv6 section and not the MACSize section, any segment prefix for the MACSize section is 0 or null
 		//prefixes across segments have the pattern: null, null, ..., null, 0-16, 0, 0, ..., 0
 		//So if the overall prefix is 0, then the prefix of every segment is 0
 		currentPrefix = cacheBitCount(0)

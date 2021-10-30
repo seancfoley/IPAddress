@@ -830,8 +830,8 @@ func NewRangePrefixDivision(val, upperVal DivInt, prefixLen PrefixLen, bitCount 
 }
 
 // AddressDivision represents an arbitrary division in an address or address division grouping.
-// Divisions that were converted from IPv4, IPv6 or MAC segments can be converted back to the same segment type and version.
-// Divisions that were not converted from IPv4, IPv6 or MAC cannot be converted to segments.
+// Divisions that were converted from IPv4, IPv6 or MACSize segments can be converted back to the same segment type and version.
+// Divisions that were not converted from IPv4, IPv6 or MACSize cannot be converted to segments.
 type AddressDivision struct {
 	addressDivisionInternal
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // returns true for overflow
-func checkOverflow( // used by IPv4 and MAC
+func checkOverflow( // used by IPv4 and MACSize
 	increment int64,
 	lowerValue,
 	upperValue,
@@ -31,7 +31,7 @@ func checkOverflow( // used by IPv4 and MAC
 	return false
 }
 
-func checkOverflowBig( // used by MAC and IPv6
+func checkOverflowBig( // used by MACSize and IPv6
 	increment int64,
 	bigIncrement,
 	lowerValue,
@@ -104,7 +104,7 @@ func fastIncrement( // used by IPv6
 }
 
 //this does not handle overflow, overflow should be checked before calling this
-func increment( // used by IPv4 and MAC
+func increment( // used by IPv4 and MACSize
 	section *AddressSection,
 	increment int64,
 	creator addressSegmentCreator,
@@ -136,7 +136,7 @@ func increment( // used by IPv4 and MAC
 }
 
 //this does not handle overflow, overflow should be checked before calling this
-func incrementBig( // used by MAC and IPv6
+func incrementBig( // used by MACSize and IPv6
 	section *AddressSection,
 	increment int64,
 	bigIncrement *big.Int,

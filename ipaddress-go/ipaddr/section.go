@@ -25,7 +25,7 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 	return sect
 }
 
-//TODO I call this createSection, and createInitializedSection directly from a couple MAC places, maybe I should not do that, instead use the derive methods?
+//TODO I call this createSection, and createInitializedSection directly from a couple MACSize places, maybe I should not do that, instead use the derive methods?
 func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
 	result.isMultiple = isMultiple
@@ -164,8 +164,8 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 			//Across an address prefixes are:
 			//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 			//or IPv4: ...(null).(1 to 8).(0)...
-			//For MAC, all segs have nil prefix since prefix is not segment-level
-			//For MAC, prefixes must be derived in other ways, not from individual segment prefix values,
+			//For MACSize, all segs have nil prefix since prefix is not segment-level
+			//For MACSize, prefixes must be derived in other ways, not from individual segment prefix values,
 			// either using
 			segPrefix := segment.getDivisionPrefixLength()
 			if previousSegmentPrefix == nil {

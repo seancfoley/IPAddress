@@ -317,9 +317,9 @@ func validateAddress(
 						if isDoubleSeg && !firstSegmentDashedRange { //checks for *-abcdef and abcdef-* and abcdef-abcdef and *-* two segment addresses
 							// firstSegmentDashedRange means that the range character is '|'
 							addressSize := macOptions.AddressSize()
-							if addressSize == EUI64 && totalDigits == macDoubleSegmentDigitCount {
+							if addressSize == EUI64Size && totalDigits == macDoubleSegmentDigitCount {
 								return &addressStringError{addressError{str: str, key: "ipaddress.error.too.few.segments"}}
-							} else if addressSize == MAC && totalDigits == macExtendedDoubleSegmentDigitCount {
+							} else if addressSize == MACSize && totalDigits == macExtendedDoubleSegmentDigitCount {
 								return &addressStringError{addressError{str: str, key: "ipaddress.error.too.many.segments"}}
 							}
 							// we have aaaaaa-bbbbbb
@@ -487,7 +487,7 @@ func validateAddress(
 							index}
 					}
 					var limit int
-					if macOptions.AddressSize() == MAC {
+					if macOptions.AddressSize() == MACSize {
 						limit = MediaAccessControlDottedSegmentCount
 					} else {
 						limit = MediaAccessControlDotted64SegmentCount
@@ -964,10 +964,10 @@ func validateAddress(
 			segmentStartIndex = index
 			// end of IPv4 segments and mac segments with '.' separators
 		} else {
-			//checking for all IPv6 and MAC segments, as well as the front range of all segments IPv4, IPv6, and MAC
-			//the range character '-' is the same as one of the separators '-' for MAC,
-			//so further work is required to distinguish between the front of IPv6/IPv4/MAC range and MAC segment
-			//we also handle IPv6 segment and MAC segment in the same place to avoid code duplication
+			//checking for all IPv6 and MACSize segments, as well as the front range of all segments IPv4, IPv6, and MACSize
+			//the range character '-' is the same as one of the separators '-' for MACSize,
+			//so further work is required to distinguish between the front of IPv6/IPv4/MACSize range and MACSize segment
+			//we also handle IPv6 segment and MACSize segment in the same place to avoid code duplication
 			var isSpace, isDashedRangeChar, isRangeChar bool
 			if currentChar == IPv6SegmentSeparator {
 				isRangeChar = false
@@ -980,16 +980,16 @@ func validateAddress(
 
 					/*
 					 There are 3 cases here, A, B and C.
-					 A - we have two MAC segments a-b-
-					 B - we have the front of a range segment, either a-b which is MAC or ipv6AddrType,  or a|b or a<space>b which is MAC
-					 C - we have a single segment, either a MAC segment a- or an IPv6 or MAC segment a:
+					 A - we have two MACSize segments a-b-
+					 B - we have the front of a range segment, either a-b which is MACSize or ipv6AddrType,  or a|b or a<space>b which is MACSize
+					 C - we have a single segment, either a MACSize segment a- or an IPv6 or MACSize segment a:
 					*/
 
 					/*
 					 Here we have either a '-' or '|' character or a space ' '
 
 					 If we have a '-' character:
-					 For MAC address, the cases are:
+					 For MACSize address, the cases are:
 					 1. we did not previously set macFormat and we did not previously encounter '|'
 					 		-if rangeWildcardIndex >= 0 we have dashed a-b- we treat as two segments, case A (we cannot have a|b because that would have set macFormat previously)
 					 		-if rangeWildcardIndex < 0, we treat as front of range, case B, later we will know for sure if really front of range
@@ -1000,7 +1000,7 @@ func validateAddress(
 
 					 For IPv6, this is always front of range, case B
 
-					 If we have a '|' character, we have front of range MAC, case B
+					 If we have a '|' character, we have front of range MACSize, case B
 					*/
 					// we know either isRangeChar or isDashedRangeChar is true at this point
 					endOfHexSegment := false
@@ -1351,7 +1351,7 @@ func validateAddress(
 							index}
 					}
 					var segLimit int
-					if macOptions.AddressSize() == MAC {
+					if macOptions.AddressSize() == MACSize {
 						segLimit = MediaAccessControlSegmentCount
 					} else {
 						segLimit = ExtendedUniqueIdentifier64SegmentCount
@@ -1765,7 +1765,7 @@ func validateAddress(
 			index++
 			segmentValueStartIndex = index
 			segmentStartIndex = segmentValueStartIndex
-			// end of IPv6 and MAC segments
+			// end of IPv6 and MACSize segments
 		} // end of all cases
 	} // end of character loop
 	return nil
@@ -2812,7 +2812,7 @@ func checkMACSegments(
 		//note that too many segments is checked inside the general parsing method
 		segCount := addressParseData.getSegmentCount()
 		if format == dotted {
-			if segCount <= MediaAccessControlDottedSegmentCount && validationOptions.AddressSize() != EUI64 {
+			if segCount <= MediaAccessControlDottedSegmentCount && validationOptions.AddressSize() != EUI64Size {
 				if !hasWildcardSeparator && segCount != MediaAccessControlDottedSegmentCount {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
@@ -2822,7 +2822,7 @@ func checkMACSegments(
 				parseData.setExtended(true)
 			}
 		} else if segCount > 2 {
-			if segCount <= MediaAccessControlSegmentCount && validationOptions.AddressSize() != EUI64 {
+			if segCount <= MediaAccessControlSegmentCount && validationOptions.AddressSize() != EUI64Size {
 				if !hasWildcardSeparator && segCount != MediaAccessControlSegmentCount {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
@@ -2873,7 +2873,7 @@ func checkMACSegments(
 			} else if !hasWildcardSeparator {
 				return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 			}
-			if validationOptions.AddressSize() == EUI64 {
+			if validationOptions.AddressSize() == EUI64Size {
 				parseData.setExtended(true)
 			}
 		}

@@ -65,9 +65,9 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueEr
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
 }
 
-func NewMACAddressFromUint64(val uint64) *MACAddress {
-	return NewMACAddressFromUint64Ext(val, false)
-}
+//func NewMACAddressFromUint64(val uint64) *MACAddress {
+//	return NewMACAddressFromUint64Ext(val, false)
+//}
 
 func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
 	section := NewMACSectionFromUint64(val, getMacSegCount(isExtended))
@@ -392,7 +392,7 @@ func (addr *MACAddress) PrefixContains(other AddressType) bool {
 }
 
 func (addr *MACAddress) Contains(other AddressType) bool {
-	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MAC
+	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().contains(other)
 }
 
@@ -400,7 +400,7 @@ func (addr *MACAddress) Equals(other AddressType) bool {
 	//if addr == nil {
 	//	return other.ToAddress() == nil
 	//}
-	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MAC
+	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().equals(other)
 }
 
@@ -408,7 +408,7 @@ func (addr *MACAddress) GetMaxSegmentValue() SegInt {
 	return addr.init().getMaxSegmentValue()
 }
 
-// Multicast MAC addresses have the least significant bit of the first octet set to 1.
+// Multicast MACSize addresses have the least significant bit of the first octet set to 1.
 func (addr *MACAddress) IsMulticast() bool {
 	return addr.GetSegment(0).MatchesWithMask(1, 0x1)
 }
@@ -417,12 +417,12 @@ func (addr *MACAddress) IsUnicast() bool {
 	return !addr.IsMulticast()
 }
 
-// Universal MAC addresses have second the least significant bit of the first octet set to 0.
+// Universal MACSize addresses have second the least significant bit of the first octet set to 0.
 func (addr *MACAddress) IsUniversal() bool {
 	return !addr.IsLocal()
 }
 
-// Local MAC addresses have the second least significant bit of the first octet set to 1.
+// Local MACSize addresses have the second least significant bit of the first octet set to 1.
 func (addr *MACAddress) IsLocal() bool {
 	return addr.GetSegment(0).MatchesWithMask(2, 0x2)
 }
@@ -533,7 +533,7 @@ func createLinkLocalPrefix() *IPv6AddressSection {
 	return newIPv6SectionSimple(segs)
 }
 
-// ToLinkLocalIPv6 converts to a link-local Ipv6 address.  Any MAC prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
+// ToLinkLocalIPv6 converts to a link-local Ipv6 address.  Any MACSize prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
 // This will provide the latter 4 segments of an IPv6 address, to be paired with the link-local IPv6 prefix of 4 segments.
 func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressError) {
 	sect, err := addr.ToEUI64IPv6()
@@ -543,15 +543,15 @@ func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressErro
 	return newIPv6Address(IPv6LinkLocalPrefix.Append(sect)), nil
 }
 
-// ToEUI64IPv6 converts to an Ipv6 address section.  Any MAC prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
+// ToEUI64IPv6 converts to an Ipv6 address section.  Any MACSize prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
 // This will provide the latter 4 segments of an IPv6 address, to be paired with an IPv6 prefix of 4 segments.
 func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, IncompatibleAddressError) {
 	return NewIPv6SectionFromMAC(addr.init())
 }
 
-// IsEUI64 returns whether this section is consistent with an IPv6 EUI64 section,
+// IsEUI64 returns whether this section is consistent with an IPv6 EUI64Size section,
 // which means it came from an extended 8 byte address,
-// and the corresponding segments in the middle match 0xff and 0xff/fe for MAC/not-MAC
+// and the corresponding segments in the middle match 0xff and 0xff/fe for MACSize/not-MACSize
 func (addr *MACAddress) IsEUI64(asMAC bool) bool {
 	if addr.GetSegmentCount() == ExtendedUniqueIdentifier64SegmentCount { //getSegmentCount() == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT
 		section := addr.GetSection()
@@ -571,8 +571,8 @@ func (addr *MACAddress) IsEUI64(asMAC bool) bool {
 //
 // http://standards.ieee.org/develop/regauth/tut/eui64.pdf
 //
-// If asMAC if true, this address is considered MAC and the EUI-64 is extended using ff-ff, otherwise this address is considered EUI-48 and extended using ff-fe
-// Note that IPv6 treats MAC as EUI-48 and extends MAC to IPv6 addresses using ff-fe
+// If asMAC if true, this address is considered MACSize and the EUI-64 is extended using ff-ff, otherwise this address is considered EUI-48 and extended using ff-fe
+// Note that IPv6 treats MACSize as EUI-48 and extends MACSize to IPv6 addresses using ff-fe
 func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressError) {
 	section := addr.GetSection()
 	if addr.GetSegmentCount() == ExtendedUniqueIdentifier48SegmentCount { //getSegmentCount() == EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT
@@ -670,6 +670,10 @@ func (addr *MACAddress) ToDashedString() string {
 
 func (addr *MACAddress) ToColonDelimitedString() string {
 	return addr.init().GetSection().ToColonDelimitedString()
+}
+
+func (addr *MACAddress) ToCustomString(stringOptions StringOptions) string {
+	return addr.init().GetSection().ToCustomString(stringOptions)
 }
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {

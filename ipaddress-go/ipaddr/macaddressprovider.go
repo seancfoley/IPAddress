@@ -33,7 +33,7 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAd
 			size := validationOptions.AddressSize()
 			creator := macType.getNetwork().getAddressCreator()
 			var segCount int
-			if size == EUI64 {
+			if size == EUI64Size {
 				segCount = ExtendedUniqueIdentifier64SegmentCount
 			} else {
 				segCount = MediaAccessControlSegmentCount

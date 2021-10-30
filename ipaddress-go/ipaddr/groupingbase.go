@@ -53,7 +53,7 @@ type addressDivisionGroupingBase struct {
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMultiple   bool
 
-	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MAC,
+	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MACSize,
 	// and determines if an *AddressDivisionGrouping can be converted back to a section of the original type.
 	//
 	// Type-specific functions in IPAddressSection and lower levels, such as functions returning strings,

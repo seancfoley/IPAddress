@@ -90,10 +90,10 @@ type StringOptions interface {
 	GetRadix() int
 
 	// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
-	// the default is a space, unless built using a MAC, IPv6 or IPv4 options builder in which case the separator is ':' for MAC and IPv6 wand '.' for IPv4
+	// the default is a space, unless built using a MACSize, IPv6 or IPv4 options builder in which case the separator is ':' for MACSize and IPv6 wand '.' for IPv4
 	GetSeparator() byte
 
-	// default is false, no separator, unless built using a MAC, IPv6 or IPv4 options builder in which case there is a default separator
+	// default is false, no separator, unless built using a MACSize, IPv6 or IPv4 options builder in which case there is a default separator
 	HasSeparator() bool
 
 	GetAddressLabel() string
@@ -610,8 +610,8 @@ func (builder *IPv4StringOptionsBuilder) ToOptions() IPStringOptions {
 //If you do that, maybe you remove the default separator
 //but then, you already have hex as the default radix - so not so sure
 //hmmmmm
-//Let us wrap both MAC and IPv4
-//and then all three MAC/IPv4/6 will all have their own getDefaults
+//Let us wrap both MACSize and IPv4
+//and then all three MACSize/IPv4/6 will all have their own getDefaults
 //xxx
 
 //// NewIPv4StringOptionsBuilder returns a builder with default options set to create a specific type of IPv4 address string.
@@ -620,7 +620,7 @@ func (builder *IPv4StringOptionsBuilder) ToOptions() IPStringOptions {
 //	return opts.SetRadix(IPv4DefaultTextualRadix).SetSeparator(IPv4SegmentSeparator)
 //}
 //
-//// NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MAC address string.
+//// NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MACSize address string.
 //func NewMACStringOptionsBuilder() *StringOptionsBuilder {
 //	opts := StringOptionsBuilder{}
 //	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)

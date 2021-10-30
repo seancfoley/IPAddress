@@ -306,7 +306,7 @@ func (iter ipv6SectionIterator) Next() *IPv6AddressSection {
 	return iter.SectionIterator.Next().ToIPv6AddressSection()
 }
 
-// MACSectionIterator iterates through MAC address and subnet sections
+// MACSectionIterator iterates through MACSize address and subnet sections
 type MACSectionIterator interface {
 	iteratorBase
 	Next() *MACAddressSection

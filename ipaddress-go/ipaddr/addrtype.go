@@ -8,7 +8,7 @@ const (
 	ipv4Type        addrType = "IPv4"        // ipv4 segments
 	ipv6Type        addrType = "IPv6"        // ipv6 segments
 	ipv6v4MixedType addrType = "IPv6v4Mixed" // ipv6-v4 mixed segments
-	macType         addrType = "MAC"         // mac segments
+	macType         addrType = "MACSize"     // mac segments
 )
 
 func (a addrType) isNil() bool {

@@ -24,22 +24,21 @@ func (parseData *ParsedMACAddress) getMACAddressParseData() *macAddressParseData
 
 func (parseData *ParsedMACAddress) getAddress() (*MACAddress, IncompatibleAddressError) {
 	addr := parseData.address
+	var err IncompatibleAddressError
 	if addr == nil {
 		parseData.creationLock.Lock()
 		addr = parseData.address
 		if addr == nil {
-			var err IncompatibleAddressError
 			addr, err = parseData.createAddress()
-			if err != nil {
-				return nil, err
+			if err == nil {
+				parseData.segmentData = nil // no longer needed
+				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&parseData.address))
+				atomic.StorePointer(dataLoc, unsafe.Pointer(addr))
 			}
-			parseData.segmentData = nil // no longer needed
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&parseData.address))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(addr))
 		}
 		parseData.creationLock.Unlock()
 	}
-	return addr, nil
+	return addr, err
 }
 
 func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAddressError) {

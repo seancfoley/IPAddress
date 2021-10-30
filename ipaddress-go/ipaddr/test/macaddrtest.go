@@ -5,6 +5,7 @@ import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -14,10 +15,12 @@ type macAddressTester struct {
 
 func (t macAddressTester) run() {
 
-	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest
+	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest,
+	// testRadices, testNormalized, testCanonical, testMatches, testDelimitedCount, testContains, testNotContains,
+	// testLongShort
 	// NEXT:
-	// testMatches, testDelimitedCount, testLongShort, testMACIPv6 (this is a bad boy),
-	// testContains, testNotContains, , testSections, testInsertAndAppend, testReplace,
+	// testMACIPv6 (this is a bad boy),
+	// testSections, testInsertAndAppend, testReplace,
 	// testInvalidMACValues, testMACValues
 
 	t.mactest(true, "aa:b:cc:d:ee:f")
@@ -516,8 +519,173 @@ func (t macAddressTester) run() {
 	t.testCanonical("0001000200030000", "00-01-00-02-00-03-00-00")
 	t.testCanonical("000100020003", "00-01-00-02-00-03")
 
-	t.testStrings()
+	t.testMatches(true, "0A0B0C0D0E0F", "0a0b0c-0d0e0f")
+	t.testMatches(true, "0A0B0C0D0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testMatches(true, "0A 0B 0C 0D 0E 0F", "0a:0b:0c:0d:0e:0f")
+	t.testMatches(true, "0A 0B 0C 0D 0E 0F", "0a-0b-0c-0d-0e-0f")
+	t.testMatches(true, "0A 0B 0C 0D 0E 0F", "a-b-c-d-e-f")
+	t.testMatches(false, "0A 0B 0C 0D 0E 0F", "a-b-c-d-e-f-a-b")
 
+	t.testMatches(true, "0A0B.0C0D.0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testMatches(false, "0A0B.1C0D.0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testMatches(false, "0A0B.1C0D.0E0F", "aa:bb:0a:0b:0c:0d:0e:0f")
+
+	t.testDelimitedCount("1,2-3-4,5-6-7-8", 4)            //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+	t.testDelimitedCount("1,2-3,6-7-8-4,5-6,8", 16)       //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+	t.testDelimitedCount("1:2:3:6:4:5", 1)                //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+	t.testDelimitedCount("1:2,3,4:3:6:4:5,ff,7,8,99", 15) //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
+
+	t.testContains("1.2.3.4", "1.2.3.4", true)
+	t.testContains("1111.2222.3333", "1111.2222.3333", true)
+	t.testNotContains("1111.2222.3333", "1111.2222.3233")
+	t.testContains("a:b:c:d:e:f:a:b", "a:b:c:d:e:f:a:b", true)
+
+	t.testLongShort("ff:ff:ff:ff:ff:ff:ff:ff", "ff:ff:ff:ff:ff:ff")
+	t.testLongShort("12-cd-cc-dd-ee-ff-aa-bb", "12-cd-cc-dd-ee-ff")
+	t.testLongShort("12CD.CCdd.EefF.a", "12CD.EefF.a")
+	t.testLongShort("0A0B0C-0D0E0F0A0B", "0A0B0C-0D0E0F")
+	t.testLongShort("ee:ff:aa:bb:cc:dd:ee:ff", "ee:ff:aa:bb:cc:dd")
+	t.testLongShort("e:f:a:b:c:d:e:f", "e:f:a:b:c:d")
+
+	t.testStrings()
+}
+
+func (t macAddressTester) testLongShort(longAddr, shortAddr string) {
+	t.testLongShort2(longAddr, shortAddr, false)
+}
+
+func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeLong bool) {
+	params := new(ipaddr.MACAddressStringParametersBuilder).SetAddressSize(ipaddr.MACSize).ToParams()
+	longString := ipaddr.NewMACAddressStringParams(longAddr, params)
+	shortString := ipaddr.NewMACAddressStringParams(shortAddr, params)
+	if !shortString.IsValid() {
+		t.addFailure(newMACFailure("short not valid "+shortString.String(), shortString))
+	}
+	if longString.IsValid() {
+		t.addFailure(newMACFailure("long valid "+longString.String(), longString))
+	}
+	params = new(ipaddr.MACAddressStringParametersBuilder).SetAddressSize(ipaddr.EUI64Size).ToParams()
+	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
+	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
+	isValid := shortString.IsValid()
+	if shortCanBeLong {
+		isValid = !isValid
+	}
+	if isValid {
+		t.addFailure(newMACFailure("short valid "+shortString.String(), shortString))
+	}
+	if !longString.IsValid() {
+		t.addFailure(newMACFailure("long not valid "+longString.String(), longString))
+	}
+	if longString.GetAddress().GetSegmentCount() != ipaddr.ExtendedUniqueIdentifier64SegmentCount {
+		t.addFailure(newMACFailure("long not enough segments "+longString.String(), longString))
+	}
+	if shortCanBeLong && shortString.GetAddress().GetSegmentCount() != ipaddr.ExtendedUniqueIdentifier64SegmentCount {
+		t.addFailure(newMACFailure("also not enough segments "+shortString.String(), shortString))
+	}
+	params = new(ipaddr.MACAddressStringParametersBuilder).SetAddressSize(ipaddr.UnspecifiedMACSize).ToParams()
+	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
+	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
+	if !shortString.IsValid() {
+		t.addFailure(newMACFailure("short not valid "+shortString.String(), shortString))
+	}
+	if !longString.IsValid() {
+		t.addFailure(newMACFailure("long not valid "+longString.String(), longString))
+	}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testContains(addr1, addr2 string, equal bool) {
+	//try {
+	w := t.createMACAddress(addr1).GetAddress()
+	w2 := t.createMACAddress(addr2).GetAddress()
+	if !w.Contains(w2) {
+		t.addFailure(newSegmentSeriesFailure("failed "+w2.String(), w))
+	} else {
+		otherContains := w2.Contains(w)
+		if equal {
+			otherContains = !otherContains
+		}
+		if otherContains {
+			t.addFailure(newSegmentSeriesFailure("failed "+w.String(), w2))
+			//					if(equal) {
+			//						System.out.println("containment: " + !w2.contains(w));
+			//					} else {
+			//						System.out.println("containment: " + w2.contains(w));
+			//					}
+		}
+	}
+	//} catch(AddressStringException e) {
+	//	addFailure(new Failure("failed " + e));
+	//}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testNotContains(cidr1, cidr2 string) {
+	//try {
+	w := t.createMACAddress(cidr1).GetAddress()
+	w2 := t.createMACAddress(cidr2).GetAddress()
+	if w.Contains(w2) {
+		t.addFailure(newSegmentSeriesFailure("failed "+w2.String(), w))
+	} else if w2.Contains(w) {
+		t.addFailure(newSegmentSeriesFailure("failed "+w.String(), w2))
+	}
+	//} catch(AddressStringException e) {
+	//	addFailure(new Failure("failed " + e, new MACAddressString(cidr1)));
+	//}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testDelimitedCount(str string, expectedCount int) {
+	strings := ipaddr.ParseDelimitedSegments(str)
+	var set []*ipaddr.MACAddress
+	count := 0
+	//try {
+	for strings.HasNext() {
+		addr, err := t.createMACAddress(strings.Next()).ToAddress()
+		if addr == nil || err != nil {
+			t.addFailure(newFailure("unexpected error "+err.Error(), nil))
+			return
+		}
+		set = append(set, addr)
+		count++
+	}
+	if count != expectedCount || len(set) != count || count != ipaddr.CountDelimitedAddresses(str) {
+		t.addFailure(newFailure("count mismatch, count: "+strconv.Itoa(count)+" set count: "+strconv.Itoa(len(set))+" calculated count: "+strconv.Itoa(ipaddr.CountDelimitedAddresses(str))+" expected: "+strconv.Itoa(expectedCount), nil))
+	}
+	//} catch (AddressStringException | IncompatibleAddressException e) {
+	//	addFailure(new Failure("threw unexpectedly " + str));
+	//}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testMatches(matches bool, host1Str, host2Str string) {
+	h1 := t.createMACAddress(host1Str)
+	h2 := t.createMACAddress(host2Str)
+	if matches != h1.Equals(h2) {
+		t.addFailure(newMACFailure("failed: match with "+h2.String(), h1))
+	} else {
+		if matches != h2.Equals(h1) {
+			t.addFailure(newMACFailure("failed: match with "+h1.String(), h2))
+		} else {
+			comparison := h1.CompareTo(h2) == 0
+			if matches {
+				comparison = !comparison
+			}
+			if comparison {
+				t.addFailure(newMACFailure("failed: match with "+h1.String(), h2))
+			} else {
+				comparison := h2.CompareTo(h1) == 0
+				if matches {
+					comparison = !comparison
+				}
+				if comparison {
+					t.addFailure(newMACFailure("failed: match with "+h2.String(), h1))
+				}
+			}
+		}
+	}
+	t.incrementTestCount()
 }
 
 func (t macAddressTester) testNormalized(original, expected string) {
