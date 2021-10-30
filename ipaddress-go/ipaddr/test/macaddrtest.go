@@ -1,8 +1,11 @@
 package test
 
 import (
+	"bytes"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
+	"net"
+	"strings"
 )
 
 type macAddressTester struct {
@@ -10,6 +13,211 @@ type macAddressTester struct {
 }
 
 func (t macAddressTester) run() {
+
+	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest
+	// NEXT:
+	// testMatches, testDelimitedCount, testLongShort, testMACIPv6 (this is a bad boy),
+	// testContains, testNotContains, , testSections, testInsertAndAppend, testReplace,
+	// testInvalidMACValues, testMACValues
+
+	t.mactest(true, "aa:b:cc:d:ee:f")
+	t.mactest(false, "aaa:b:cc:d:ee:f")
+	t.mactest(false, "aa:bbb:cc:d:ee:f")
+	t.mactest(false, "aa:bb:ccc:d:ee:f")
+	t.mactest(false, "aa:bb:cc:ddd:ee:f")
+	t.mactest(false, "aa:bb:cc:dd:eee:f")
+	t.mactest(false, "aa:bb:cc:dd:ee:fff")
+	t.mactest(false, "aa:bb:cc:dd:ee:ff:eee:aa")
+	t.mactest(false, "aa:bb:cc:dd:ee:ff:ee:aaa")
+	t.mactest(true, "aa:bb:cc:dd:ee:ff:ee:aa")
+	t.mactest(false, "0xaa:b:cc:d:ee:f")
+	t.mactest(false, "aa:0xb:cc:d:ee:f")
+	t.mactest(false, "aa:b:0xcc:d:ee:f")
+	t.mactest(false, "aa:b:cx:d:ee:f")
+	t.mactest(false, "aa:b:cx:d:ee:fg")
+
+	t.mactest(true, "aa-b-cc-d-ee-f")
+	t.mactest(false, "aaa-b-cc-d-ee-f")
+	t.mactest(false, "aa-bbb-cc-d-ee-f")
+	t.mactest(false, "aa-bb-ccc-d-ee-f")
+	t.mactest(false, "aa-bb-cc-ddd-ee-f")
+	t.mactest(false, "aa-bb-cc-dd-eee-f")
+	t.mactest(false, "aa-bb-cc-dd-ee-fff")
+	t.mactest(false, "aa-bb-cc-dd-ee-ff-eee-aa")
+	t.mactest(false, "aa-bb-cc-dd-ee-ff-ee-aaa")
+	t.mactest(true, "aa-bb-cc-dd-ee-ff-ee-aa")
+	t.mactest(false, "0xaa-b-cc-d-ee-f")
+	t.mactest(false, "xaa-b-cc-d-ee-f")
+	t.mactest(false, "aa-b-cc-d-ee-0xf")
+	t.mactest(false, "aa-b-cc-d-ee-0xff")
+	t.mactest(false, "aa-0xb-cc-d-ee-f")
+	t.mactest(false, "aa-b-cx-d-ee-f")
+	t.mactest(false, "aa-b-0xc-d-ee-f")
+	t.mactest(false, "aa-b-cx-d-ee-fg")
+
+	t.mactest(true, "aabb.ccdd.eeff")
+	t.mactest(false, "aabbc.ccdd.eeff")
+	t.mactest(false, "aabb.ccddc.eeff")
+	t.mactest(false, "aabb.ccdd.eeffc")
+	t.mactest(false, "aabb.ccdd.eeff.ccdde")
+	t.mactest(true, "aabb.ccdd.eeff.ccde")
+	t.mactest(false, "aabb.ccdd.eeff.0xccdd")
+	t.mactest(false, "0xaabb.ccdd.eeff.ccdd")
+	t.mactest(false, "aabb.0xccdd.eeff.ccdd")
+	t.mactest(false, "aabb.ccgd.eeff.ccdd")
+
+	t.mactest(true, "1:2:3:4:5:6")
+	t.mactest(true, "11:22:33:44:55:66")
+	t.mactest(false, "11:22:33:444:55:66")
+	t.mactest(false, "aa:x:cc:d:ee:f")
+	t.mactest(false, "aa:g:cc:d:ee:f")
+	t.mactest(t.allowsRange(), "aa:-1:cc:d:ee:f")  //same as "aa:0-1:cc:d:ee:f"
+	t.mactest(t.allowsRange(), "aa:-dd:cc:d:ee:f") //same as "aa:0-dd:cc:d:ee:f"
+	t.mactest(t.allowsRange(), "aa:1-:cc:d:ee:f")  //same as "aa:1-ff:cc:d:ee:f"
+	t.mactest(t.allowsRange(), "-1:aa:cc:d:ee:f")  //same as "aa:0-1:cc:d:ee:f"
+	t.mactest(t.allowsRange(), "1-:aa:cc:d:ee:f")  //same as "aa:0-1:cc:d:ee:f"
+	t.mactest(t.allowsRange(), "aa:cc:d:ee:f:1-")
+	t.mactest(t.allowsRange(), "aa:0-1:cc:d:ee:f")
+	t.mactest(t.allowsRange(), "aa:1-ff:cc:d:ee:f")
+	t.mactest(t.allowsRange(), "aa-|1-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "|1-aa-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "aa-1|-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "1|-aa-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "aa-0|1-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "aa-1|ff-cc-d-ee-f")
+	t.mactest(t.allowsRange(), "aa-ff-cc|dd-d-ee-f")
+	t.mactest(false, "aa-||1-cc-d-ee-f")
+	t.mactest(false, "aa-1||-cc-d-ee-f")
+	t.mactest(true, "a:bb:c:dd:e:ff")
+	t.mactest(true, "aa:bb:cc:dd:ee:ff")
+	t.mactest(false, "aa:bb:cc:dd::ee:ff")
+	t.mactest(false, "aa:bb::dd:ee:ff")
+	t.mactest(false, "aa:bb-cc:dd:ee:ff")
+	t.mactest(true, "aabbcc-ddeeff")
+	t.mactest(false, "aaabbcc-ddeeff")
+	t.mactest(false, "aabbcc-ddeefff")
+	t.mactest(false, "aabbcc-ddeeffff")
+	t.mactest(false, "aabbcc-ddeefffff")
+	t.mactest(true, "aabbcc-ddeeffffff")
+	t.mactest(false, "aaabbcc-ddeeffffff")
+	t.mactest(false, "aaaabbcc-ddeeffffff")
+	t.mactest(false, "aaaaaabbcc-ddeeffffff")
+	t.mactest(false, "aaabbcc-ddeeffff")
+	t.mactest(false, "aabbcc.ddeeff")
+	t.mactest(false, "aabbcc:ddeeff")
+	t.mactest(false, "aabbcc ddeeff")
+	t.mactest(false, "aa-bb-cc dd-ee-ff")
+	t.mactest(false, "aa bb cc dd ee-ff")
+	t.mactest(false, "aa:bb:cc dd:ee:ff")
+	t.mactest(false, "aa bb cc dd ee:ff")
+	t.mactest(false, "aa-bb-cc:dd-ee-ff")
+	t.mactest(false, "aa.b.cc.d.ee.f")
+	t.mactest(false, "aa.bb.cc.dd.ee.ff")
+	t.mactest(false, "aa.bb.cc dd.ee.ff")
+
+	t.mactest(false, "aa-bb-cc-dd:ee-ff")
+	t.mactest(false, "aa-bb-cc-dd-ee:-ff")
+	t.mactest(false, "aa-bb-cc-dd-ee--ff")
+	t.mactest(false, "aa-bb-cc-dd--ee")
+	t.mactest(false, "aa:bb:cc:dd:ee:ff:")
+	t.mactest(false, "aa:bb:cc:dd:ee:ff:aa")
+	t.mactest(false, "ff:aa:bb:cc:dd:ee:ff")
+	t.mactest(true, "aa:bb:cc:dd:ee:ff:aa:bb")
+	t.mactest(true, "ee:ff:aa:bb:cc:dd:ee:ff")
+	t.mactest(false, ":aa:bb:cc:dd:ee:ff:aa:bb")
+	t.mactest(false, "ee:ff:aa:bb:cc:dd:ee:ff:")
+	t.mactest(false, "aa:aa:bb:cc:dd:ee:ff:aa:bb")
+	t.mactest(false, "ee:ff:aa:bb:cc:dd:ee:ff:ee")
+	t.mactest(false, ":aa:bb:cc:dd:ee:ff")
+	t.mactest(false, "aa:bb cc:dd:ee:ff")
+	t.mactest(false, "aa:bb:cc:dd.ee:ff")
+	t.mactest(false, "aaa:bb:cc:dd:ee:ff")
+	t.mactest(false, "aa:bbb:cc:dd:ee:ff")
+	t.mactest(false, "aa:bb:ccc:dd:ee:ff")
+	t.mactest(false, "aa:bb:cc:ddd:ee:ff")
+	t.mactest(false, "aa:bb:cc:dd:eee:ff")
+	t.mactest(false, "aa:bb:cc:dd:ee:fff")
+
+	t.mactest(true, "f-a-b-c-d-e")
+	t.mactest(false, "-a-b-c-d-e")
+	t.mactest(false, "f--b-c-d-e")
+	t.mactest(false, "f-b-c-d-e")
+	t.mactest(false, "f-a-b-c-d-")
+	t.mactest(false, "f-a-b-c--e")
+
+	t.mactestZero(true, "0:0:0:0:0:0", true)
+	t.mactestZero(true, "00:0:0:0:0:0", true)
+	t.mactestZero(true, "0:00:0:0:0:0", true)
+	t.mactestZero(true, "0:0:00:0:0:0", true)
+	t.mactestZero(true, "0:0:0:00:0:0", true)
+	t.mactestZero(true, "0:0:0:0:00:0", true)
+	t.mactestZero(true, "0:0:0:0:0:00", true)
+	t.mactestZero(t.isLenient(), "000:0:0:0:0:0", true)
+	t.mactestZero(t.isLenient(), "0:000:0:0:0:0", true)
+	t.mactestZero(t.isLenient(), "0:0:000:0:0:0", true)
+	t.mactestZero(t.isLenient(), "0:0:0:000:0:0", true)
+	t.mactestZero(t.isLenient(), "0:0:0:0:000:0", true)
+	t.mactestZero(t.isLenient(), "0:0:0:0:0:000", true)
+	t.mactestZero(t.isLenient(), "0:0:0:0:0:0:000:0", true)
+	t.mactestZero(t.isLenient(), "0:0:0:0:0:0:0:000", true)
+	t.mactestZero(t.isLenient(), "000:000:000:000", true)
+
+	t.mactestZero(true, "00.0.0", true)
+	t.mactestZero(true, "0.00.0", true)
+	t.mactestZero(true, "0.0.00", true)
+	t.mactestZero(true, "0.0.0.00", true)
+	t.mactestZero(true, "000.0.0", true)
+	t.mactestZero(true, "0.000.0", true)
+	t.mactestZero(true, "0.00.000", true)
+	t.mactestZero(true, "0000.0.0", true)
+	t.mactestZero(true, "0.0000.0", true)
+	t.mactestZero(true, "0.00.0000", true)
+	t.mactestZero(t.isLenient(), "00000.0.0", true)
+	t.mactestZero(t.isLenient(), "0.00000.0", true)
+	t.mactestZero(t.isLenient(), "0.0.00000", true)
+	t.mactestZero(t.isLenient(), "00000.00000.00000", true)
+	t.mactestZero(t.isLenient(), "00000.00000.00000.00000", true)
+
+	t.mactestZero(true, "3:3:3:3:3:3", false)
+	t.mactestZero(true, "33:3:3:3:3:3", false)
+	t.mactestZero(true, "3:33:3:3:3:3", false)
+	t.mactestZero(true, "3:3:33:3:3:3", false)
+	t.mactestZero(true, "3:3:3:33:3:3", false)
+	t.mactestZero(true, "3:3:3:3:33:3", false)
+	t.mactestZero(true, "3:3:3:3:3:33", false)
+	t.mactestZero(t.isLenient(), "033:3:3:3:3:3", false)
+	t.mactestZero(t.isLenient(), "3:033:3:3:3:3", false)
+	t.mactestZero(t.isLenient(), "3:3:033:3:3:3", false)
+	t.mactestZero(t.isLenient(), "3:3:3:033:3:3", false)
+	t.mactestZero(t.isLenient(), "3:3:3:3:033:3", false)
+	t.mactestZero(t.isLenient(), "3:3:3:3:3:033", false)
+	t.mactestZero(t.isLenient(), "3:3:3:3:3:3:033:3", false)
+	t.mactestZero(t.isLenient(), "3:3:3:3:3:3:3:033", false)
+	t.mactestZero(t.isLenient(), "033:033:033:033", false)
+
+	t.mactestZero(true, "33.3.3", false)
+	t.mactestZero(true, "3.33.3", false)
+	t.mactestZero(true, "3.3.33", false)
+	t.mactestZero(true, "3.3.3.33", false)
+	t.mactestZero(true, "333.3.3", false)
+	t.mactestZero(true, "3.333.3", false)
+	t.mactestZero(true, "3.33.333", false)
+	t.mactestZero(true, "3333.3.3", false)
+	t.mactestZero(true, "3.3333.3", false)
+	t.mactestZero(true, "3.33.3333", false)
+	t.mactestZero(t.isLenient(), "03333.3.3", false)
+	t.mactestZero(t.isLenient(), "3.03333.3", false)
+	t.mactestZero(t.isLenient(), "3.3.03333", false)
+	t.mactestZero(t.isLenient(), "03333.03333.03333", false)
+	t.mactestZero(t.isLenient(), "03333.03333.03333.03333", false)
+
+	eight := [8]byte{}
+	t.testFromBytes([]byte{255, 255, 255, 255, 255, 255}, "ff:ff:ff:ff:ff:ff")
+	t.testFromBytes([]byte{1, 2, 3, 4, 5, 6}, "1:2:3:4:5:6")
+	t.testFromBytes([]byte{0x12, 127, 0xf, 0x7f, 0x7a, 0x7b}, "12:7f:f:7f:7a:7b")
+	t.testFromBytes(eight[:], "0-0-0-0-0-0-0-0")
+	t.testFromBytes([]byte{0, 0, 0, 1, 0, 0, 0, 1}, "0-0-0-1-0-0-0-1")
+	t.testFromBytes([]byte{10, 11, 12, 13, 14, 15, 1, 2}, "a:b:c:d:e:f:1:2")
 
 	t.testReverse("1:2:3:4:5:6", false, false)
 	t.testReverse("1:1:2:2:3:3", false, false)
@@ -120,8 +328,235 @@ func (t macAddressTester) run() {
 		"25:51:0:0:0:0",
 		"25:51:0:0:0:0")
 
+	t.testRadices("11:10:ff:7f:f3:2", "10001:10000:11111111:1111111:11110011:10", 2)
+	t.testRadices("2:fe:7f:ff:10:11", "10:11111110:1111111:11111111:10000:10001", 2)
+	t.testRadices("5:10:5:10:5:10", "101:10000:101:10000:101:10000", 2)
+	t.testRadices("0:1:0:1:0:1:0:1", "0:1:0:1:0:1:0:1", 2)
+	t.testRadices("1:0:1:0:1:0:1:0", "1:0:1:0:1:0:1:0", 2)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 2)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 2)
+
+	t.testRadices("ff:7f:fe:2:7f:fe", "ff:7f:fe:2:7f:fe", 16)
+	t.testRadices("2:fe:7f:ff:7f:fe", "2:fe:7f:ff:7f:fe", 16)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 16)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 16)
+
+	t.testRadices("ff:7f:fe:2:7f:fe", "255:127:254:2:127:254", 10)
+	t.testRadices("2:fe:7f:ff:7f:fe", "2:254:127:255:127:254", 10)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 10)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 10)
+
+	t.testRadices("ff:7f:fe:2:7f:fe", "513:241:512:2:241:512", 7)
+	t.testRadices("2:fe:7f:ff:7f:fe", "2:512:241:513:241:512", 7)
+	t.testRadices("0:1:0:1:0:1:0:1", "0:1:0:1:0:1:0:1", 7)
+	t.testRadices("1:0:1:0:1:0:1:0", "1:0:1:0:1:0:1:0", 7)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 7)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 7)
+
+	t.testRadices("ff:7f:fe:2:7f:fe", "377:177:376:2:177:376", 8)
+	t.testRadices("2:fe:7f:ff:7f:fe", "2:376:177:377:177:376", 8)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 8)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 8)
+
+	t.testRadices("ff:7f:fe:2:7f:fe", "120:87:11e:2:87:11e", 15)
+	t.testRadices("2:fe:7f:ff:7f:fe", "2:11e:87:120:87:11e", 15)
+	t.testRadices("0:1:0:1:0:1", "0:1:0:1:0:1", 15)
+	t.testRadices("1:0:1:0:1:0", "1:0:1:0:1:0", 15)
+
+	t.testNormalized("A:B:C:D:E:F:A:B", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("AB:AB:CC:Dd:Ee:fF:aA:Bb", "ab:ab:cc:dd:ee:ff:aa:bb")
+
+	t.testNormalized("12:CD:CC:dd:Ee:fF:AA:Bb", "12:cd:cc:dd:ee:ff:aa:bb")
+	t.testNormalized("12:CD:CC:dd:Ee:fF", "12:cd:cc:dd:ee:ff")
+
+	t.testNormalized("0:0:0:0:0:0:0:0", "00:00:00:00:00:00:00:00")
+	t.testNormalized("0:0:0:0:0:0", "00:00:00:00:00:00")
+
+	t.testNormalized("0:1:0:2:0:3:0:0", "00:01:00:02:00:03:00:00")
+	t.testNormalized("0:1:0:2:0:3", "00:01:00:02:00:03")
+
+	t.testNormalized("A-B-C-D-E-F-A-B", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("AB-AB-CC-Dd-Ee-fF-aA-Bb", "ab:ab:cc:dd:ee:ff:aa:bb")
+
+	t.testNormalized("12-CD-CC-dd-Ee-fF-AA-Bb", "12:cd:cc:dd:ee:ff:aa:bb")
+	t.testNormalized("12-CD-CC-dd-Ee-fF", "12:cd:cc:dd:ee:ff")
+
+	t.testNormalized("0-0-0-0-0-0-0-0", "00:00:00:00:00:00:00:00")
+	t.testNormalized("0-0-0-0-0-0", "00:00:00:00:00:00")
+
+	t.testNormalized("0-1-0-2-0-3-0-0", "00:01:00:02:00:03:00:00")
+	t.testNormalized("0-1-0-2-0-3", "00:01:00:02:00:03")
+
+	t.testNormalized("A B C D E F A B", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("AB AB CC Dd Ee fF aA Bb", "ab:ab:cc:dd:ee:ff:aa:bb")
+
+	t.testNormalized("12 CD CC dd Ee fF AA Bb", "12:cd:cc:dd:ee:ff:aa:bb")
+	t.testNormalized("12 CD CC dd Ee fF", "12:cd:cc:dd:ee:ff")
+
+	t.testNormalized("0 0 0 0 0 0 0 0", "00:00:00:00:00:00:00:00")
+	t.testNormalized("0 0 0 0 0 0", "00:00:00:00:00:00")
+
+	t.testNormalized("0 1 0 2 0 3 0 0", "00:01:00:02:00:03:00:00")
+	t.testNormalized("0 1 0 2 0 3", "00:01:00:02:00:03")
+
+	t.testNormalized("0A0B.0C0D.0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("A0B.C0D.E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("AB.C00.DE0F", "00:ab:0c:00:de:0f")
+	t.testNormalized("A0.B00.c00d", "00:a0:0b:00:c0:0d")
+
+	t.testNormalized("0A0B.0C0D.0E0F.0a0b", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("A0B.C0D.E0F.1234", "0a:0b:0c:0d:0e:0f:12:34")
+	t.testNormalized("AB.C00.DE0F.123", "00:ab:0c:00:de:0f:01:23")
+	t.testNormalized("A0.B00.c00d.4", "00:a0:0b:00:c0:0d:00:04")
+
+	t.testNormalized("12CD.CCdd.EefF", "12:cd:cc:dd:ee:ff")
+	t.testNormalized("0000.0000.0000", "00:00:00:00:00:00")
+	t.testNormalized("0002.0003.0003", "00:02:00:03:00:03")
+
+	t.testNormalized("0A0B0C-0D0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("0A0B0C-0D0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("0A0B0C-0D0E0F0A0B", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("ABABCC-DdEefFaABb", "ab:ab:cc:dd:ee:ff:aa:bb")
+
+	t.testNormalized("12CDCC-ddEefFAABb", "12:cd:cc:dd:ee:ff:aa:bb")
+	t.testNormalized("12CDCC-ddEefF", "12:cd:cc:dd:ee:ff")
+	t.testNormalized("aaaabb-bbcccc", "aa:aa:bb:bb:cc:cc")
+	t.testNormalized("010233045506", "01:02:33:04:55:06")
+
+	t.testNormalized("000000-0000000000", "00:00:00:00:00:00:00:00")
+	t.testNormalized("000000-000000", "00:00:00:00:00:00")
+
+	t.testNormalized("000100-0200030000", "00:01:00:02:00:03:00:00")
+	t.testNormalized("000100-020003", "00:01:00:02:00:03")
+
+	t.testNormalized("0A0B0C0D0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("0x0A0B0C0D0E0F", "0a:0b:0c:0d:0e:0f")
+	t.testNormalized("0A0B0C0D0E0F0A0B", "0a:0b:0c:0d:0e:0f:0a:0b")
+	t.testNormalized("ABABCCDdEefFaABb", "ab:ab:cc:dd:ee:ff:aa:bb")
+
+	t.testNormalized("12CDCCddEefFAABb", "12:cd:cc:dd:ee:ff:aa:bb")
+	t.testNormalized("12CDCCddEefF", "12:cd:cc:dd:ee:ff")
+
+	t.testNormalized("0000000000000000", "00:00:00:00:00:00:00:00")
+	t.testNormalized("000000000000", "00:00:00:00:00:00")
+
+	t.testNormalized("0001000200030000", "00:01:00:02:00:03:00:00")
+	t.testNormalized("000100020003", "00:01:00:02:00:03")
+
+	t.testCanonical("A:B:C:D:E:F:A:B", "0a-0b-0c-0d-0e-0f-0a-0b")
+	t.testCanonical("AB:AB:CC:Dd:Ee:fF:aA:Bb", "ab-ab-cc-dd-ee-ff-aa-bb")
+
+	t.testCanonical("12:CD:CC:dd:Ee:fF:AA:Bb", "12-cd-cc-dd-ee-ff-aa-bb")
+	t.testCanonical("12:CD:CC:dd:Ee:fF", "12-cd-cc-dd-ee-ff")
+
+	t.testCanonical("0:0:0:0:0:0:0:0", "00-00-00-00-00-00-00-00")
+	t.testCanonical("0:0:0:0:0:0", "00-00-00-00-00-00")
+
+	t.testCanonical("0:1:0:2:0:3:0:0", "00-01-00-02-00-03-00-00")
+	t.testCanonical("0:1:0:2:0:3", "00-01-00-02-00-03")
+
+	t.testCanonical("A-B-C-D-E-F-A-B", "0a-0b-0c-0d-0e-0f-0a-0b")
+	t.testCanonical("AB-AB-CC-Dd-Ee-fF-aA-Bb", "ab-ab-cc-dd-ee-ff-aa-bb")
+
+	t.testCanonical("12-CD-CC-dd-Ee-fF-AA-Bb", "12-cd-cc-dd-ee-ff-aa-bb")
+	t.testCanonical("12-CD-CC-dd-Ee-fF", "12-cd-cc-dd-ee-ff")
+
+	t.testCanonical("0-0-0-0-0-0-0-0", "00-00-00-00-00-00-00-00")
+	t.testCanonical("0-0-0-0-0-0", "00-00-00-00-00-00")
+
+	t.testCanonical("0-1-0-2-0-3-0-0", "00-01-00-02-00-03-00-00")
+	t.testCanonical("0-1-0-2-0-3", "00-01-00-02-00-03")
+
+	t.testCanonical("A B C D E F A B", "0a-0b-0c-0d-0e-0f-0a-0b")
+	t.testCanonical("AB AB CC Dd Ee fF aA Bb", "ab-ab-cc-dd-ee-ff-aa-bb")
+
+	t.testCanonical("12 CD CC dd Ee fF AA Bb", "12-cd-cc-dd-ee-ff-aa-bb")
+	t.testCanonical("12 CD CC dd Ee fF", "12-cd-cc-dd-ee-ff")
+
+	t.testCanonical("0 0 0 0 0 0 0 0", "00-00-00-00-00-00-00-00")
+	t.testCanonical("0 0 0 0 0 0", "00-00-00-00-00-00")
+
+	t.testCanonical("0 1 0 2 0 3 0 0", "00-01-00-02-00-03-00-00")
+	t.testCanonical("0 1 0 2 0 3", "00-01-00-02-00-03")
+
+	t.testCanonical("0A0B.0C0D.0E0F", "0a-0b-0c-0d-0e-0f")
+	t.testCanonical("BA0B.DC0D.FE0F", "ba-0b-dc-0d-fe-0f")
+	t.testCanonical("A0B.C0D.E0F", "0a-0b-0c-0d-0e-0f")
+	t.testCanonical("AB.C00.DE0F", "00-ab-0c-00-de-0f")
+	t.testCanonical("A.B.c", "00-0a-00-0b-00-0c")
+
+	t.testCanonical("12CD.CCdd.EefF", "12-cd-cc-dd-ee-ff")
+	t.testCanonical("0000.0000.0000", "00-00-00-00-00-00")
+	t.testCanonical("0002.0003.0003", "00-02-00-03-00-03")
+	t.testCanonical("0020.0030.0030", "00-20-00-30-00-30")
+
+	t.testCanonical("0A0B0C-0D0E0F", "0a-0b-0c-0d-0e-0f")
+	t.testCanonical("0A0B0C-0D0E0F0A0B", "0a-0b-0c-0d-0e-0f-0a-0b")
+	t.testCanonical("ABABCC-DdEefFaABb", "ab-ab-cc-dd-ee-ff-aa-bb")
+
+	t.testCanonical("12CDCC-ddEefFAABb", "12-cd-cc-dd-ee-ff-aa-bb")
+	t.testCanonical("12CDCC-ddEefF", "12-cd-cc-dd-ee-ff")
+
+	t.testCanonical("000000-0000000000", "00-00-00-00-00-00-00-00")
+	t.testCanonical("000000-000000", "00-00-00-00-00-00")
+
+	t.testCanonical("000100-0200030000", "00-01-00-02-00-03-00-00")
+	t.testCanonical("000100-020003", "00-01-00-02-00-03")
+
+	t.testCanonical("0A0B0C0D0E0F", "0a-0b-0c-0d-0e-0f")
+	t.testCanonical("0A0B0C0D0E0F0A0B", "0a-0b-0c-0d-0e-0f-0a-0b")
+	t.testCanonical("ABABCCDdEefFaABb", "ab-ab-cc-dd-ee-ff-aa-bb")
+
+	t.testCanonical("12CDCCddEefFAABb", "12-cd-cc-dd-ee-ff-aa-bb")
+	t.testCanonical("12CDCCddEefF", "12-cd-cc-dd-ee-ff")
+
+	t.testCanonical("0000000000000000", "00-00-00-00-00-00-00-00")
+	t.testCanonical("000000000000", "00-00-00-00-00-00")
+
+	t.testCanonical("0001000200030000", "00-01-00-02-00-03-00-00")
+	t.testCanonical("000100020003", "00-01-00-02-00-03")
+
 	t.testStrings()
 
+}
+
+func (t macAddressTester) testNormalized(original, expected string) {
+	w := t.createMACAddress(original)
+	val := w.GetAddress()
+	if val == nil {
+		t.addFailure(newMACFailure("normalization was null", w))
+	} else {
+		normalized := val.ToNormalizedString()
+		if expected != normalized {
+			t.addFailure(newMACFailure("mac normalization was "+normalized, w))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testCanonical(original, expected string) {
+	w := t.createMACAddress(original)
+	val := w.GetAddress()
+	if val == nil {
+		t.addFailure(newMACFailure("normalization was null", w))
+	} else {
+		normalized := val.ToCanonicalString()
+		if expected != normalized {
+			t.addFailure(newMACFailure("canonical was "+normalized, w))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) testRadices(original, expected string, radix int) {
+	w := t.createMACAddress(original)
+	val := w.GetAddress()
+	options := new(ipaddr.MACStringOptionsBuilder).SetRadix(radix).ToOptions()
+	normalized := val.ToCustomString(options)
+	if normalized != expected {
+		t.addFailure(newMACFailure("string was "+normalized+" expected was "+expected, w))
+	}
+	t.incrementTestCount()
 }
 
 func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
@@ -179,6 +614,137 @@ func (t macAddressTester) testMACStrings(addr,
 	w := t.createMACAddress(addr)
 	ipAddr := w.GetAddress()
 	t.testBase.testMACStrings(w, ipAddr, normalizedString, compressedString, canonicalString, dottedString, spaceDelimitedString, singleHex)
+}
+
+func (t macAddressTester) mactest(pass bool, x string) {
+	t.mactestZero(pass, x, false)
+}
+
+func (t macAddressTester) mactestZero(pass bool, x string, isZero bool) {
+	t.mactestImpl(pass, t.createMACAddress(x), isZero)
+}
+
+func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, isZero bool) {
+	//notBoth means we validate as IPv4 or as IPv6, we don't validate as either one
+	//try {
+	if t.isNotExpected(pass, addr) {
+		t.addFailure(newMACFailure("parse failure: "+addr.String(), addr))
+	} else {
+		zeroPass := pass && !isZero
+		if t.isNotExpectedNonZero(zeroPass, addr) {
+			t.addFailure(newMACFailure("zero parse failure: "+addr.String(), addr))
+		} else {
+			//test the bytes
+			if pass && len(addr.String()) > 0 && addr.GetAddress() != nil {
+				taddr := addr.GetAddress()
+				if t.allowsRange() && taddr.IsMultiple() {
+
+				} else if !t.testBytes(taddr) {
+					t.addFailure(newMACFailure("parse bytes failure: "+addr.String(), addr))
+				}
+			}
+		}
+	}
+	//} catch(IncompatibleAddressException e) {
+	//	failed = true;
+	//	addFailure(new Failure(e.toString(), addr));
+	//} catch(RuntimeException e) {
+	//	failed = true;
+	//	addFailure(new Failure(e.toString(), addr));
+	//}
+	t.incrementTestCount()
+}
+
+/*
+@Override
+	boolean testBytes(MACAddress origAddr) {
+		boolean failed = false;
+		if(origAddr.isMultiple()) {
+			try {
+				origAddr.getBytes();
+			} catch(IncompatibleAddressException e) {
+				failed = true;
+			}
+		} else {
+			failed = !super.testBytes(origAddr);
+		}
+		return !failed;
+	}
+*/
+func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
+	failed := false
+	macAddrbytes := addr.GetBytes()
+	another := t.createMACAddressFromBytes(macAddrbytes)
+	if !addr.Equals(another) {
+		t.addFailure(newSegmentSeriesFailure(addr.String(), addr))
+	}
+	var builder strings.Builder
+	builder.WriteString(addr.ToColonDelimitedString())
+	if addr.GetSegmentCount() < 8 {
+		builder.WriteString("::")
+	}
+	//try {
+	ipstr := builder.String()
+	inetAddress := net.ParseIP(ipstr)
+	ipv6Bytes := inetAddress
+	macBytes := make([]byte, len(macAddrbytes))
+	for i := 0; i < len(macBytes); i++ {
+		macBytes[i] = ipv6Bytes[(i<<1)+1]
+	}
+	if !bytes.Equal(macBytes, macAddrbytes) {
+		failed = true
+		t.addFailure(newSegmentSeriesFailure("bytes on addr "+inetAddress.String(), addr))
+	}
+	//} catch(UnknownHostException e) {
+	//	failed = true;
+	//	addFailure(new Failure("bytes on addr " + e, addr));
+	//}
+	return !failed
+}
+
+func (t macAddressTester) testFromBytes(bytes []byte, expected string) {
+	addr := t.createMACAddressFromBytes(bytes)
+	addr2 := t.createMACAddress(expected)
+	result := addr.Equals(addr2.GetAddress())
+	if !result {
+		t.addFailure(newSegmentSeriesFailure("created was "+addr.String()+" expected was "+addr2.String(), addr))
+	} else {
+		var val uint64
+		for i := 0; i < len(bytes); i++ {
+			val <<= 8
+			val |= uint64(bytes[i])
+		}
+		addr = t.createMACAddressFromUint64(val, len(bytes) > 6)
+		result = addr.Equals(addr2.GetAddress())
+		if !result {
+			t.addFailure(newSegmentSeriesFailure("created was "+addr.String()+" expected was "+addr2.String(), addr))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t macAddressTester) isNotExpected(expectedPass bool, addr *ipaddr.MACAddressString) bool {
+	//try {
+	err := addr.Validate()
+	if err != nil {
+		return expectedPass
+	}
+	return !expectedPass
+	//} catch(AddressStringException e) {
+	//	return expectedPass;
+	//}
+}
+
+func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.MACAddressString) bool {
+	if !addr.IsValid() {
+		return expectedPass
+	}
+	//if expectedPass is true, we are expecting a non-zero address
+	//return true to indicate we have gotten something not expected
+	if addr.GetAddress() != nil && addr.GetAddress().IsZero() {
+		return expectedPass
+	}
+	return !expectedPass
 }
 
 func (t macAddressTester) testStrings() {

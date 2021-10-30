@@ -151,6 +151,81 @@ func (t macAddressRangeTester) run() {
 	t.testMACPrefixCount("11:22:*:0-2:55:ff", 3*0x100)
 	t.testMACPrefixCount("11:22:*:0-2:55:*", 3*0x100)
 	t.testMACPrefixCount("11:22:1:2:55:*", 1)
+
+	t.testToOUIPrefixed("25:51:27:*:*:*")
+	t.testToOUIPrefixed("*:*:*:*:*:*")
+	t.testToOUIPrefixed("*:*:*:25:51:27")
+	t.testToOUIPrefixed("ff:ee:25:51:27:*:*:*")
+	t.testToOUIPrefixed("*:*:*:*:*:*:*:*")
+	t.testToOUIPrefixed("*:*:*:25:51:27:ff:ee")
+	t.testToOUIPrefixed("123.456.789.abc")
+	t.testToOUIPrefixed("123.456.789.*")
+
+	t.testOUIPrefixed("ff:7f:fe:2:7f:fe", "ff:7f:fe:*", 24)
+	t.testOUIPrefixed("ff:7f:fe:2:7f:*", "ff:7f:fe:*", 24)
+	t.testOUIPrefixed("ff:7f:fe:*", "ff:7f:fe:*", 24)
+	t.testOUIPrefixed("ff:*", "ff:*", 8)
+	t.testOUIPrefixed("ff:7f:fe:2:7f:fe:7f:fe", "ff:7f:fe:*:*:*:*:*", 24)
+	t.testOUIPrefixed("ff:7f:0-f:*", "ff:7f:0-f:*", 20)
+
+	t.testRadices("11:10:*:1-7f:f3:2", "10001:10000:*:1-1111111:11110011:10", 2)
+	t.testRadices("0:1:0:1:0-1:1:0:1", "0:1:0:1:0-1:1:0:1", 2)
+
+	t.testRadices("f3-ff:7f:fe:*:7_:fe", "f3-ff:7f:fe:*:70-7f:fe", 16)
+	t.testRadices("*:1:0:1:0-1:1:0:1", "*:1:0:1:0-1:1:0:1", 16)
+
+	t.testRadices("ff:7f:*:2:7_:fe", "255:127:*:2:112-127:254", 10)
+	t.testRadices("*:1:0:1:0-1:1:0:1", "*:1:0:1:0-1:1:0:1", 10)
+
+	t.testRadices("ff:*:fe:2:7d-7f:fe", "513:*:512:2:236-241:512", 7)
+	t.testRadices("1:0:0-1:0:1:*", "1:0:0-1:0:1:*", 7)
+
+	t.testRadices("ff:70-7f:fe:2:*:fe", "377:160-177:376:2:*:376", 8)
+	t.testRadices("1:0:0-1:0:1:*", "1:0:0-1:0:1:*", 8)
+
+	t.testRadices("ff:7f:fa-fe:2:7f:*", "120:87:11a-11e:2:87:*", 15)
+	t.testRadices("1:0:0-1:0:1:*", "1:0:0-1:0:1:*", 15)
+
+	t.macAddressTester.run()
+}
+
+func (t macAddressRangeTester) testToOUIPrefixed(addrString string) {
+	w := t.createMACAddress(addrString)
+	v := w.GetAddress()
+	suffixSeg := ipaddr.NewMACRangeSegment(0, 0xff)
+	suffixSegs := make([]*ipaddr.MACAddressSegment, v.GetSegmentCount())
+	v.CopySubSegments(0, 3, suffixSegs)
+	for i := 3; i < len(suffixSegs); i++ {
+		suffixSegs[i] = suffixSeg
+	}
+	suffix, err := ipaddr.NewMACSection(suffixSegs)
+	if err != nil {
+		t.addFailure(newMACFailure(err.Error(), w))
+	}
+	suffixed, err := ipaddr.NewMACAddress(suffix)
+	if err != nil {
+		t.addFailure(newMACFailure(err.Error(), w))
+	}
+	prefixed := v.ToOUIPrefixBlock()
+	if !prefixed.Equals(suffixed) {
+		t.addFailure(newMACFailure("failed oui prefixed "+prefixed.String()+" constructed "+suffixed.String(), w))
+	}
+	t.incrementTestCount()
+}
+
+func (t macAddressRangeTester) testOUIPrefixed(original, expected string, expectedPref ipaddr.BitCount) {
+	w := t.createMACAddress(original)
+	val := w.GetAddress()
+	w2 := t.createMACAddress(expected)
+	expectedAddress := w2.GetAddress()
+	prefixed := val.ToOUIPrefixBlock()
+	if !prefixed.Equals(expectedAddress) {
+		t.addFailure(newMACFailure("oui prefixed was "+prefixed.String()+" expected was "+expected, w))
+	}
+	if expectedPref != *prefixed.GetPrefixLen() {
+		t.addFailure(newMACFailure("oui prefix was "+prefixed.GetPrefixLen().String()+" expected was "+expectedPref.String(), w))
+	}
+	t.incrementTestCount()
 }
 
 func (t macAddressRangeTester) testEquivalentPrefix(host string, prefix ipaddr.BitCount) {

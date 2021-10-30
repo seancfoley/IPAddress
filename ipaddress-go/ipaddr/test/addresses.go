@@ -100,6 +100,10 @@ type testAddresses interface {
 
 	createMACAddress(string) *ipaddr.MACAddressString
 
+	createMACAddressFromBytes(bytes net.HardwareAddr) *ipaddr.MACAddress
+
+	createMACAddressFromUint64(bytes uint64, extended bool) *ipaddr.MACAddress
+
 	isLenient() bool
 
 	allowsRange() bool
@@ -170,6 +174,16 @@ func (t *addresses) createIPv6Address(high, low uint64) *ipaddr.IPv6Address {
 
 func (t *addresses) createMACAddress(str string) *ipaddr.MACAddressString {
 	return ipaddr.NewMACAddressStringParams(str, macAddressOptions)
+}
+
+func (t *addresses) createMACAddressFromBytes(bytes net.HardwareAddr) *ipaddr.MACAddress {
+	addr, _ := ipaddr.NewMACAddressFromBytes(bytes)
+	return addr
+}
+
+func (t *addresses) createMACAddressFromUint64(bytes uint64, extended bool) *ipaddr.MACAddress {
+	addr := ipaddr.NewMACAddressFromUint64Ext(bytes, extended)
+	return addr
 }
 
 func (t *addresses) createHost(str string) *ipaddr.HostName {
