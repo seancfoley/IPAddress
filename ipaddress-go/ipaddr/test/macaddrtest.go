@@ -572,6 +572,12 @@ func (t macAddressTester) run() {
 	//BigInteger sixty4 = thirtyTwo.shiftLeft(32).or(thirtyTwo);
 	t.testMACValuesBig([]int{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, sixty4.String(), "-1")
 
+	t.testMACIPv6("aaaa:bbbb:cccc:dddd:0221:2fff:feb5:6e10", "00:21:2f:b5:6e:10")
+	t.testMACIPv6("fe80::0e3a:bbff:fe2a:cd23", "0c:3a:bb:2a:cd:23")
+	t.testMACIPv6("ffff:ffff:ffff:ffff:3BA7:94FF:FE07:CBD0", "39-A7-94-07-CB-D0")
+	t.testMACIPv6("FE80::212:7FFF:FEEB:6B40", "0012.7feb.6b40")
+	t.testMACIPv6("2001:DB8::212:7FFF:FEEB:6B40", "0012.7feb.6b40")
+
 	t.testStrings()
 }
 
@@ -1191,6 +1197,340 @@ func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.M
 		return expectedPass
 	}
 	return !expectedPass
+}
+
+// So what do I have -
+/*
+------
+
+func (addr *IPv6Address) IsEUI64() bool {
+func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
+
+X func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
+func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
+func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
+
+-------
+
+func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err IncompatibleAddressError) {
+
+------
+
+X func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressError) {
+
+X func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, IncompatibleAddressError) {
+
+X func (addr *MACAddress) IsEUI64(asMAC bool) bool {
+
+X func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressError) {
+
+So there is still plenty!
+It is not entirely clear what I need to remove
+The stuff working with mac sections, maybe...
+It is splitting up into mac sections, then creating ipv6 sectiosn from them, then joining the ipv6 sections
+We now only create ipv6 sections from full macs, then it replaces the back end of an ipv6 address
+That's fine, but not the part where we are joining the back end sections, we just need to take the whole mac and make a single ipv6 section
+Whick is what we do with backFromMac I believe
+So I think I've done the heavy lifting, you need to toss the commented out stuff I think
+*/
+func (t macAddressTester) testMACIPv6(ipv6, mac string) {
+	ipv6Str := t.createAddress(ipv6)
+	macStr := t.createMACAddress(mac)
+	addr := ipv6Str.GetAddress().ToIPv6Address()
+	back := addr.GetHostSectionLen(64)
+
+	if !addr.IsEUI64() {
+		t.addFailure(newSegmentSeriesFailure("eui 64 check "+back.String(), back))
+	} else {
+		macAddr := macStr.GetAddress()
+		macBack, err := macAddr.ToEUI64IPv6()
+		if err != nil {
+			t.addFailure(newSegmentSeriesFailure("unexpected error "+err.Error(), macAddr))
+		}
+		linkLocal, err := macAddr.ToLinkLocalIPv6()
+		if err != nil {
+			t.addFailure(newSegmentSeriesFailure("unexpected error for link local "+err.Error(), macAddr))
+		}
+		if !linkLocal.IsLinkLocal() {
+			t.addFailure(newSegmentSeriesFailure("eui 64 conv link local "+macAddr.String(), linkLocal))
+		} else {
+			if !macBack.Equals(back) {
+				t.addFailure(newSegmentSeriesFailure("eui 64 conv "+back.String(), macBack))
+			} else {
+				macAddr64, err := macAddr.ToEUI64(false)
+				if err != nil {
+					t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
+				}
+				if macAddr.IsEUI64(true) || macAddr.IsEUI64(false) || !macAddr64.IsEUI64(false) {
+					t.addFailure(newSegmentSeriesFailure("mac eui test "+macAddr64.String(), macAddr))
+				} else {
+					backFromMac64Addr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr64)
+					if err != nil {
+						t.addFailure(newSegmentSeriesFailure("unexpected error for mac address 64 to EUI64 "+err.Error(), macAddr))
+					}
+					backFromMac64 := backFromMac64Addr.GetHostSectionLen(64)
+					if !backFromMac64.Equals(back) {
+						t.addFailure(newSegmentSeriesFailure("eui 64 conv 2"+back.String(), backFromMac64))
+					} else {
+						backFromMacAddr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr)
+						if err != nil {
+							t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
+						}
+						backFromMac := backFromMacAddr.GetHostSectionLen(64)
+						if !backFromMac.Equals(back) {
+							t.addFailure(newSegmentSeriesFailure("eui 64 conv 3"+back.String(), backFromMac))
+						} else {
+							withPrefix := false //we do the loop twice, once with prefixes, the other without
+							for {
+								frontIpv6 := addr.GetNetworkSectionLen(64)
+								//TODO I believe frontIpv6 will have a prefix len here, if not, the if block can be adjusted
+								if withPrefix {
+									addr = addr.SetPrefixLen(64)
+								} else {
+									frontIpv6.WithoutPrefixLen()
+								}
+								backLinkLocal := linkLocal.GetHostSectionLen(64)
+								backIpv6 := addr.GetHostSectionLen(64)
+								//IPv6Address splitJoined1 = new IPv6Address(frontIpv6, backIpv6.ToEUI(true));
+								//IPv6Address splitJoined2 = new IPv6Address(frontIpv6, backIpv6.ToEUI(false));
+								backIPv6_1, err := addr.ToEUI(true)
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error 1 for address to EUI64 "+err.Error(), addr))
+								}
+								backIPv6_2, err := addr.ToEUI(false)
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error 2 for address to EUI64 "+err.Error(), addr))
+								}
+								splitJoined1, err := ipaddr.NewIPv6AddressFromMACSection(frontIpv6, backIPv6_1.GetSection())
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								splitJoined2, err := ipaddr.NewIPv6AddressFromMACSection(frontIpv6, backIPv6_2.GetSection())
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								splitJoined3, err := ipaddr.NewIPv6Address(frontIpv6.Append(backIpv6))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								//MACAddressSection other = new MACAddressSection(new MACAddressSegment(0xee));
+								//									for(int j = 0; j < 2; j++) {
+								//										MACAddress m;
+								//										if(j == 0) {
+								//											m = macAddr64;
+								//										} else {
+								//											m = macAddr;
+								//										}
+								//										for(int i = 0; i <= m.getSegmentCount(); i++) {
+								//											MACAddressSection backSec = m.getSection(i, m.getSegmentCount());
+								//											MACAddressSection frontSec = m.getSection(0, i);
+								//
+								//											if(j == 1) {
+								//												if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
+								//													addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//												}
+								//												if(i >= 3) {
+								//													MACAddressSection frontSec2 = frontSec.toEUI64(false);
+								//													if(!frontSec2.isEUI64(false)) {
+								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//													}
+								//												}
+								//												if(i <= 3) {
+								//													MACAddressSection backSec2 = backSec.toEUI64(false);
+								//													if(!backSec2.isEUI64(false)) {
+								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//													}
+								//												}
+								//
+								//											} else {
+								//												if(i < 4) {
+								//													if(backSec.isEUI64(true) || !backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
+								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//													} else {
+								//														MACAddressSection backSec2 = backSec.replace(3 - i, other);
+								//														if(backSec2.isEUI64(false)) {
+								//															addFailure(new Failure("eui 64 test " + backSec2, backSec2));
+								//														}
+								//													}
+								//												} else if(i == 4) {
+								//													if(backSec.isEUI64(true) ||
+								//															backSec.isEUI64(false) || !backSec.isEUI64(false, true) ||
+								//															frontSec.isEUI64(true) ||
+								//															frontSec.isEUI64(false) || !frontSec.isEUI64(false, true)) {
+								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//													} else {
+								//														backSec = backSec.toEUI64(false);
+								//														frontSec = frontSec.toEUI64(false);
+								//														if(!backSec.isEUI64(false, true) || backSec.isEUI64(false) || !frontSec.isEUI64(false, true) || frontSec.isEUI64(false)) {
+								//															addFailure(new Failure("eui 64 test " + backSec, frontSec));
+								//														} else {
+								//															MACAddressSection frontSec2 = frontSec.replace(3, other);//take backSec and frontSec, stick something else in the middle other than fffe
+								//															MACAddressSection backSec2 = backSec.replace(4 - i, other);
+								//															if(backSec2.isEUI64(false, true) || frontSec2.isEUI64(false, true)) {
+								//																addFailure(new Failure("eui 64 test " + backSec2, frontSec2));
+								//															}
+								//														}
+								//													}
+								//												} else {
+								//													if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || !frontSec.isEUI64(false)) {
+								//														addFailure(new Failure("eui 64 test " + backSec, backSec));
+								//													} else {
+								//														MACAddressSection frontSec2 = frontSec.replace(4, other);
+								//														if(frontSec2.isEUI64(false)) {
+								//															addFailure(new Failure("eui 64 test " + frontSec2, frontSec2));
+								//														}
+								//													}
+								//												}
+								//											}
+
+								//											IPv6AddressSection backIpv6Sec = new IPv6AddressSection(backSec);
+								//											IPv6AddressSection frontIpv6Sec = new IPv6AddressSection(frontSec);
+								//											IPv6AddressSection both1, both2;
+								//
+								//											//For the blocks below...
+								//											//i is the index where we split the mac address
+								//											//j==1 means mac address is 48 bits, i == 3 is the middle index
+								//											//
+								//											//Start with MAC ff:ff:fa:bf:ff:ff
+								//											//Split at even index like 2: ff:ff  fa:bf:ff:ff
+								//											//Convert each to IPv6: ffff faff:febf:ffff
+								//											//Then we can just append to get the ipv6 segs: ffff:faff:febf:ffff
+								//											//
+								//											//Split at odd index like 1: ff  ff:fa:bf:ff:ff
+								//											//Convert each to IPv6: ff00 00ff:faff:febf:ffff
+								//											//We cannot just append.
+								//											//Instead we must merge with bitwiseOr the segments where we split: ff00 00ff into ffff
+								//											//Then we can append ffff with faff:febf:ffff to get: ffff:faff:febf:ffff
+								//											//
+								//											//Also, if we split at index 3 we get ff:ff:fa  bf:ff:ff
+								//											//Convert each to IPv6: ffff:faff  febf:ffff
+								//											//In this case there are no extra segments and we can just append: ffff:faff:febf:ffff
+								//											if((i % 2 == 0) || ((j == 1) && (i == 3))) {
+								//												//no merging of segments required, see comment below
+								//												//either the MAC segments are split at an even index so the ipv6 conversion segment count is just right,
+								//												//or we split the mac address at i == 3 and the resultant IPv6 will have the ff:ff or ff:fe stuck in there and we will not have extra bits to be merged
+								//												both1 = frontIpv6Sec.append(backIpv6Sec);
+								//												both2 = frontIpv6Sec.append(backIpv6Sec);
+								//											} else {
+								//												//When we are splitting up our MAC address at an odd index,
+								//												//and then we convert each side to IPv6, then we will have 0 bits at the back of the front IPv6 section,
+								//												//and we will have 0 bits at the front of the back IPv6 section,
+								//												//so we can just merge the two segments with a bitWise or back to a single segment (merged)
+								//												int frontCount = frontIpv6Sec.getSegmentCount();
+								//												IPv6AddressSection lastFront = frontIpv6Sec.getSection(frontCount - 1, frontCount);
+								//												IPv6AddressSection frontBack = backIpv6Sec.getSection(0, 1);
+								//												if(frontBack.isMultiple()) {
+								//													//the technique of bitwiseOr won't work when dealing with multiple
+								//													continue;
+								//												}
+								//												if(i == 1 && frontSec.getSegment(0).matchesWithMask(0x2, 0x2)) {
+								//													//the back section will have flipped on the toggle bit since it has the first segment but not the first half of the segment
+								//													//so it will be flipped on when it should remain off
+								//													frontBack = frontBack.mask(new IPv6AddressSection(new IPv6AddressSegment(0xfdff)));
+								//												}
+								//												IPv6AddressSection merged = lastFront.bitwiseOr(frontBack);//frontback has bit flipped on here and it should not
+								//												IPv6AddressSection mergedAll = frontIpv6Sec.replace(frontCount - 1, merged);
+								//												IPv6AddressSection backRes = backIpv6Sec.getSection(1, backIpv6Sec.getSegmentCount());
+								//												both1 = mergedAll.append(backRes);
+								//												both2 = mergedAll.append(backRes);
+								//											}
+								both3 := backFromMac
+								//IPv6Address all[] = new IPv6Address[14];
+								var all []*ipaddr.IPv6Address
+								//											all[0] = new IPv6Address(addr.getSection().replace(4, both1));
+								//											all[1] = new IPv6Address(addr.getSection().replace(4, both2));
+
+								//all[2] = new IPv6Address(addr.getSection().replace(4, both3));
+								ipa, err := ipaddr.NewIPv6Address(addr.GetSection().Replace(4, both3))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
+								}
+								all = append(all, ipa)
+
+								//											all[3] = new IPv6Address(frontIpv6.append(both1));
+								//											all[4] = new IPv6Address(frontIpv6.append(both2));
+								ipa, err = ipaddr.NewIPv6Address(frontIpv6.Append(both3))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
+								}
+								all = append(all, ipa)
+								//											all[6] = new IPv6Address(frontIpv6.append(both1));
+								//											all[7] = new IPv6Address(frontIpv6.append(both2));
+								ipa, err = ipaddr.NewIPv6Address(frontIpv6.Append(both3))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
+								}
+								all = append(all, ipa)
+
+								all = append(all, splitJoined1)
+								all = append(all, splitJoined2)
+								all = append(all, splitJoined3)
+
+								//all[9] = splitJoined1;
+								//all[10] = splitJoined2;
+								//all[11] = splitJoined3;
+
+								ipa, err = ipaddr.NewIPv6Address(addr.GetSection().Replace(4, backLinkLocal))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
+								}
+								all = append(all, ipa)
+
+								ipa, err = ipaddr.NewIPv6Address(frontIpv6.Append(backLinkLocal))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
+								}
+								all = append(all, ipa)
+
+								//all[12] = new IPv6Address(addr.getSection().replace(4, backLinkLocal));
+								//all[13] = new IPv6Address(frontIpv6.append(backLinkLocal));
+
+								//All of these should be equal!
+								//HashSet<IPv6Address> set = new HashSet<IPv6Address>();
+								for i := range all {
+									for j := range all {
+										if !all[i].Equals(all[j]) {
+											t.addFailure(newSegmentSeriesFailure("failure matching "+all[i].String()+" to "+all[j].String(), addr))
+										}
+										if !all[i].GetNetworkPrefixLen().Equals(all[j].GetNetworkPrefixLen()) {
+											t.addFailure(newSegmentSeriesFailure("failure matching "+all[i].GetNetworkPrefixLen().String()+" to "+all[j].GetNetworkPrefixLen().String(), addr))
+										}
+									}
+								}
+								//Integer prefix = all[0].getNetworkPrefixLength();
+								//for(IPv6Address one : all) {
+								//	if(!Objects.equals(prefix, one.getNetworkPrefixLength())) {
+								//		addFailure(new Failure("eui 64 conv set prefix is " + one.getNetworkPrefixLength() + " previous was " + prefix, one));
+								//	}
+								//	set.add(one);
+								//}
+								//if(set.size() != 1) {
+								//	addFailure(new Failure("eui 64 conv set " + set.size() + ' ' + set.toString()));
+								//}
+								//TreeSet<IPv6Address> treeSet = new TreeSet<IPv6Address>();
+								//for(IPv6Address one : all) {
+								//	treeSet.add(one);
+								//}
+								//if(treeSet.size() != 1) {
+								//	addFailure(new Failure("eui 64 conv set " + treeSet.size() + ' ' + treeSet.toString()));
+								//}
+								//										}
+								//									}
+								if withPrefix {
+									break
+								}
+								//if(withPrefix || addr.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
+								//	break;
+								//}
+								withPrefix = true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	t.incrementTestCount()
 }
 
 func (t macAddressTester) testStrings() {

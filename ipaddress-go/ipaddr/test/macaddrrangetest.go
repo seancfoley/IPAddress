@@ -389,6 +389,20 @@ func (t macAddressRangeTester) run() {
 	t.testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8")
 	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*")
 
+	t.testMACIPv6("aaaa:bbbb:cccc:dddd:0221:2fff:fe00-feff:6e10", "00:21:2f:*:6e:10")
+	t.testMACIPv6("*:*:*:*:200-2ff:FF:FE00-FEFF:*", "0:*:0:*:*:*")
+	t.testMACIPv6("*:*:*:*:200-3ff:abFF:FE01-FE03:*", "0-1:*:ab:1-3:*:*")
+	t.testMACIPv6("*:*:*:*:a200-a3ff:abFF:FE01-FE03:*", "a0-a1:*:ab:1-3:*:*")
+	t.testMACIPv6("*:2:*:*:a388-a399:abFF:FE01-FE03:*", "a1:88-99:ab:1-3:*:*")
+	t.testMACIPv6("*:2:*:*:a388-a399:abFF:FE01-FE03:*", "a1:88-99:ab:1-3:*:*")
+	t.testMACIPv6("1:0:0:0:8a0:bbff:fe00-feff:*", "0a:a0:bb:*:*:*") //[1:0:0:0:aa0:bbff:fe00-feff:*, 1:0:0:0:8a0:bbff:fe00-feff:*]
+	t.testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*")
+	t.testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*")
+	t.testMACIPv6("1:0:0:0:c200:aaff:fec0:b00-cff", "c0:00:aa:c0:0b-0c:*")
+	t.testMACIPv6("1:0:0:0:200:aaff:fe00:b00", "00:00:aa:00:0b:00")
+	t.testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*")
+	t.testMACIPv6("1:0:0:0:200:bbff:fe00-feff:*", "00:00:bb:*:*:*")
+
 	t.macAddressTester.run()
 }
 
