@@ -278,6 +278,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 	}
 	prefixSection.copySubSegmentsToSlice(0, 4, segments)
 	res := createIPv6Section(segments)
+	res.prefixLength = prefixLen
 	res.isMultiple = suffix.IsMultiple() || prefixSection.isMultipleTo(4)
 	return newIPv6AddressZoned(res, zone), nil
 }
@@ -1203,19 +1204,19 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	}
 	if extended {
 		macStartIndex += 2
-		if err := seg2.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
+		if err := seg2.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 	} else {
 		first := newSegs[macStartIndex]
-		if err := seg2.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
+		if err := seg2.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 		newSegs[macStartIndex] = first
 	}
 	macStartIndex += 2
 	seg3 := addr.GetSegment(7)
-	if err := seg3.SplitIntoIPv4Segments(newSegs, macStartIndex); err != nil {
+	if err := seg3.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
 		return nil, err
 	}
 	return newSegs, nil

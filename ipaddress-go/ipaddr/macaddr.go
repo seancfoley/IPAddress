@@ -561,7 +561,7 @@ func (addr *MACAddress) IsEUI64(asMAC bool) bool {
 			if asMAC {
 				return seg4.matches(0xff)
 			}
-			seg4.matches(0xfe)
+			return seg4.matches(0xfe)
 		}
 	}
 	return false

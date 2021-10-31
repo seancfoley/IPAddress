@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"math/big"
@@ -1262,6 +1263,11 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 					t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
 				}
 				if macAddr.IsEUI64(true) || macAddr.IsEUI64(false) || !macAddr64.IsEUI64(false) {
+					//TODO not getting past here yet
+					fmt.Printf("%v %v %v\n", macAddr.IsEUI64(true), macAddr.IsEUI64(false), !macAddr64.IsEUI64(false))
+					macAddr.IsEUI64(true)
+					macAddr.IsEUI64(false)
+					macAddr64.IsEUI64(false)
 					t.addFailure(newSegmentSeriesFailure("mac eui test "+macAddr64.String(), macAddr))
 				} else {
 					backFromMac64Addr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr64)
@@ -1281,16 +1287,24 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 							t.addFailure(newSegmentSeriesFailure("eui 64 conv 3"+back.String(), backFromMac))
 						} else {
 							withPrefix := false //we do the loop twice, once with prefixes, the other without
+							origAddr := addr
+							origBackFromMac := backFromMac
 							for {
+								addr = origAddr
+								backFromMac = origBackFromMac
 								frontIpv6 := addr.GetNetworkSectionLen(64)
+
+								backLinkLocal := linkLocal.GetHostSectionLen(64)
+								backIpv6 := addr.GetHostSectionLen(64)
 								//TODO I believe frontIpv6 will have a prefix len here, if not, the if block can be adjusted
 								if withPrefix {
 									addr = addr.SetPrefixLen(64)
 								} else {
-									frontIpv6.WithoutPrefixLen()
+									frontIpv6 = frontIpv6.WithoutPrefixLen()
+									backFromMac = backFromMac.WithoutPrefixLen()
+									backLinkLocal = backLinkLocal.WithoutPrefixLen()
+									backIpv6 = backIpv6.WithoutPrefixLen()
 								}
-								backLinkLocal := linkLocal.GetHostSectionLen(64)
-								backIpv6 := addr.GetHostSectionLen(64)
 								//IPv6Address splitJoined1 = new IPv6Address(frontIpv6, backIpv6.ToEUI(true));
 								//IPv6Address splitJoined2 = new IPv6Address(frontIpv6, backIpv6.ToEUI(false));
 								backIPv6_1, err := addr.ToEUI(true)
