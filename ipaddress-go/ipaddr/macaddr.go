@@ -109,6 +109,16 @@ func NewMACAddressFromRangeExt(vals, upperVals MACSegmentValueProvider, isExtend
 func createMACSectionFromBytes(bytes []byte) (*MACAddressSection, AddressValueError) {
 	var segCount int
 	length := len(bytes)
+
+	/*
+		if len(ip) <= IPv4ByteCount {
+				res, _ := NewIPv4AddressFromIP(ip)
+				return res.ToIPAddress()
+			} else if len(ip) <= IPv6ByteCount {
+				res, _ := NewIPv6AddressFromIPAddr(addr)
+				return res.ToIPAddress()
+			}
+	*/
 	//We round down the bytes to 6 bytes if we can.  Otherwise, we round up.
 	if length < ExtendedUniqueIdentifier64SegmentCount {
 		segCount = MediaAccessControlSegmentCount
@@ -119,7 +129,7 @@ func createMACSectionFromBytes(bytes []byte) (*MACAddressSection, AddressValueEr
 					break
 				}
 				length--
-				if length > MediaAccessControlSegmentCount {
+				if length <= MediaAccessControlSegmentCount {
 					break
 				}
 			}

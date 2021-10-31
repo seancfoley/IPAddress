@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -17,10 +18,8 @@ func (t macAddressTester) run() {
 
 	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest,
 	// testRadices, testNormalized, testCanonical, testMatches, testDelimitedCount, testContains, testNotContains,
-	// testLongShort
-	// NEXT: testSections
-	// testMACIPv6 (this is a bad boy),
-	// testInsertAndAppend, testReplace, testInvalidMACValues, testMACValues
+	// testLongShort, testInsertAndAppend, testReplace, testInvalidMACValues, testMACValues
+	// NEXT:  testMACIPv6 (this is a bad boy),
 
 	t.mactest(true, "aa:b:cc:d:ee:f")
 	t.mactest(false, "aaa:b:cc:d:ee:f")
@@ -553,7 +552,208 @@ func (t macAddressTester) run() {
 	t.testSections("fe-ef-39-A7-94-07-CB-D0")
 	t.testSections("1234.0012.7feb.6b40")
 
+	zerosPref := [9]ipaddr.PrefixLen{}
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8", zerosPref[:])
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8")
+
+	t.testInvalidMACValues()
+
+	var sixZeros [6]int
+	var eightZeros [8]int
+
+	t.testMACValues([]int{1, 2, 3, 4, 5, 6}, "1108152157446")
+	t.testMACValues([]int{1, 2, 3, 4, 5, 6, 7, 8}, "72623859790382856")
+	t.testMACValues(sixZeros[:], "0")
+	t.testMACValues(eightZeros[:], "0")
+	t.testMACValues([]int{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, strconv.Itoa(0xffffffffffff))
+
+	sixty4 := new(big.Int).SetUint64(0xffffffffffffffff)
+	//BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
+	//BigInteger sixty4 = thirtyTwo.shiftLeft(32).or(thirtyTwo);
+	t.testMACValuesBig([]int{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, sixty4.String(), "-1")
+
 	t.testStrings()
+}
+
+func (t macAddressTester) testMACValues(segs []int, decimal string) {
+	t.testMACValuesBig(segs, decimal, "")
+}
+
+func (t macAddressTester) testMACValuesBig(segs []int, decimal, negativeDecimal string) {
+	vals := make([]byte, len(segs))
+	strb := strings.Builder{}
+	var longval uint64
+	bigInteger := bigZero()
+	bitsPerSegment := ipaddr.MACBitsPerSegment
+	for i := 0; i < len(segs); i++ {
+		seg := segs[i]
+		if strb.Len() > 0 {
+			strb.WriteByte(':')
+		}
+		strb.WriteString(strconv.FormatInt(int64(seg), 16))
+		vals[i] = byte(seg)
+		longval = (longval << uint(bitsPerSegment)) | uint64(seg)
+		bigInteger = bigInteger.Add(bigInteger.Lsh(bigInteger, uint(bitsPerSegment)), new(big.Int).SetInt64(int64(seg)))
+	}
+	addr := [3]*ipaddr.MACAddress{}
+	i := 0
+	addr[i] = t.createMACAddressFromBytes(vals)
+	i++
+	addr[i] = t.createMACAddress(strb.String()).GetAddress()
+	i++
+	addr[i] = t.createMACAddressFromUint64(longval, len(segs) == 8)
+	i++
+	for j := 0; j < len(addr); j++ {
+		for k := j; k < len(addr); k++ {
+			if !addr[k].Equals(addr[j]) || !addr[j].Equals(addr[k]) {
+				t.addFailure(newSegmentSeriesFailure("failed equals: "+addr[k].String()+" and "+addr[j].String(), addr[k]))
+			}
+		}
+	}
+	if decimal != "" {
+		for i = 0; i < len(addr); i++ {
+			if decimal != (addr[i].GetValue().String()) {
+				t.addFailure(newSegmentSeriesFailure("failed equals: "+addr[i].GetValue().String()+" and "+decimal, addr[i]))
+			}
+			longVal := addr[i].Uint64Value()
+			lv := strconv.FormatUint(longVal, 10)
+			if longVal < 0 {
+				if lv != negativeDecimal {
+					t.addFailure(newSegmentSeriesFailure("failed equals: "+lv+" and "+decimal, addr[i]))
+				}
+			} else if decimal != lv {
+				t.addFailure(newSegmentSeriesFailure("failed equals: "+lv+" and "+decimal, addr[i]))
+			}
+		}
+	}
+}
+
+func (t macAddressTester) testInvalidMACValues() {
+	/*
+		bytes := []byte{1, 0, 0, 0, 0}
+			bytes[0] = 1
+			addr, err := ipaddr.NewIPv4AddressFromIP(bytes)
+			if err == nil {
+				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
+			}
+	*/
+	//try {
+	bytes := [9]byte{}
+	bytes[0] = 1
+	addr, err := ipaddr.NewMACAddressFromBytes(bytes[:])
+	if err == nil {
+		t.addFailure(newSegmentSeriesFailure("failed expected error for "+addr.String(), addr))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	bytes = [9]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(bytes[:])
+	if err != nil {
+		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
+	}
+	//new MACAddress(new byte[9]);
+	//addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+
+	bytes2 := [8]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(bytes2[:])
+	if err != nil {
+		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
+	}
+	bytes3 := [7]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(bytes3[:])
+	if err != nil {
+		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
+	}
+	bytes4 := [6]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(bytes4[:])
+	if err != nil {
+		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
+	}
+	bytes5 := [5]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(bytes5[:])
+	if err != nil {
+		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
+	}
+
+	addr = ipaddr.NewMACAddressFromVals(func(segmentIndex int) ipaddr.MACSegInt {
+		var val = 256 // will be truncated to 0
+		return ipaddr.MACSegInt(val)
+	})
+	if !addr.IsZero() {
+		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	addr = ipaddr.NewMACAddressFromVals(func(segmentIndex int) ipaddr.MACSegInt {
+		var val = -1 // will be truncated to 0
+		return ipaddr.MACSegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
+	}
+	//} catch(AddressValueException e) {}
+	//try {
+	addr = ipaddr.NewMACAddressFromVals(func(segmentIndex int) ipaddr.MACSegInt {
+		var val = 255 // will be truncated to 0
+		return ipaddr.MACSegInt(val)
+	})
+	if !addr.IsMax() {
+		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
+	}
+
+	//try {
+	//	MACAddress addr = new MACAddress(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return 256;
+	//		}
+	//	});
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	MACAddress addr = new MACAddress(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return -1;
+	//		}
+	//	});
+	//	addFailure(new Failure("failed expected exception for " + addr, addr));
+	//} catch(AddressValueException e) {}
+	//try {
+	//	new MACAddress(new SegmentValueProvider() {
+	//		@Override
+	//		public int getValue(int segmentIndex) {
+	//			return 255;
+	//		}
+	//	});
+	//} catch(AddressValueException e) {
+	//	addFailure(new Failure("unexpected exception " + e));
+	//}
+}
+
+func (t macAddressTester) testInsertAndAppend(front, back string, expectedPref []ipaddr.BitCount) {
+	is := make([]ipaddr.PrefixLen, len(expectedPref))
+	for i := 0; i < len(expectedPref); i++ {
+		is[i] = cacheTestBits(expectedPref[i])
+	}
+	t.testInsertAndAppendPrefs(front, back, is)
+}
+
+func (t macAddressTester) testInsertAndAppendPrefs(front, back string, expectedPref []ipaddr.PrefixLen) {
+	f := t.createMACAddress(front).GetAddress()
+	b := t.createMACAddress(back).GetAddress()
+	t.testAppendAndInsert(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(),
+		ipaddr.MACColonSegmentSeparator, expectedPref, true)
+}
+
+func (t macAddressTester) testReplace(front, back string) {
+	f := t.createMACAddress(front).GetAddress()
+	b := t.createMACAddress(back).GetAddress()
+	t.testBase.testReplace(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(),
+		ipaddr.MACColonSegmentSeparator, true)
 }
 
 func (t macAddressTester) testSections(addrString string) {

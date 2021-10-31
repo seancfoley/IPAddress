@@ -15,6 +15,8 @@ import (
 //TODO I decided to start with IPAddresstester.runTest and go in order there
 //But also handling the same tests in the other testers (so not in order in the other ones)
 // So I will need to survey the other oneslater to see what I missed in the others
+// DONE ipaddress, ipaddressrange, ipaddressall, macaddress
+// to finish: macaddressrange, hostname, hostrange, hostall, specialtypes, addressorder
 
 type ipAddressTester struct {
 	testBase
@@ -5146,7 +5148,7 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 	if !range1.GetLower().Equals(low) {
 		t.addFailure(newSeqRangeFailure("range lower "+range1.GetLower().String()+" does not match expected "+low.String(), range1))
 	}
-	if !range1.GetUpper().Equals(up) { //TODO range upper 255.0.255.255 does not match expected 255.1.255.255
+	if !range1.GetUpper().Equals(up) {
 		t.addFailure(newSeqRangeFailure("range upper "+range1.GetUpper().String()+" does not match expected "+up.String(), range1))
 	}
 	addrStr = t.createAddress(address)
@@ -5185,7 +5187,6 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 		lowerFromAddr := addr.GetLower()
 		upperFromAddr := addr.GetUpper()
 		if !lowerFromSeqRange.Equals(lowerFromAddr) || !lowerFromSeqRange.GetNetworkPrefixLen().Equals(lowerFromAddr.GetNetworkPrefixLen()) {
-			// TODO both shuold have prefix, lowerFromAddr has it, lowerFromSeqRange does not, after does
 			t.addFailure(newIPAddrFailure("lower from range "+lowerFromSeqRange.String()+" does not match lower from address "+lowerFromAddr.String(), lowerFromSeqRange))
 		}
 		if !upperFromSeqRange.Equals(upperFromAddr) || !upperFromSeqRange.GetNetworkPrefixLen().Equals(upperFromAddr.GetNetworkPrefixLen()) {

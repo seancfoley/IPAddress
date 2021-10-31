@@ -742,7 +742,8 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 		if isMac {
 			hostIdStr := t.createMACAddress(str.String())
 			mixed = hostIdStr.GetAddress().ToAddress()
-			if front.IsPrefixed() && *front.GetPrefixLen() <= ipaddr.BitCount(i)*bitsPerSegment {
+			ignoreFrontPrefLen := i == 0 // we ignore the front prefix len if we are taking 0 bits from the front
+			if !ignoreFrontPrefLen && front.IsPrefixed() && *front.GetPrefixLen() <= ipaddr.BitCount(i)*bitsPerSegment {
 				mixed = mixed.SetPrefixLen(*front.GetPrefixLen())
 			} else if back.IsPrefixed() {
 				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, *back.GetPrefixLen()))
@@ -962,8 +963,8 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed2.String(), mixed3))
 			}
 			if !expectedPref[i].Equals(mixed3.GetPrefixLen()) {
-				fmt.Printf("%v\n", splitsJoined)
-				fmt.Printf("%v\n", splits)
+				//fmt.Printf("%v\n", splitsJoined)
+				//fmt.Printf("%v\n", splits)
 				t.addFailure(newSegmentSeriesFailure("mixed3 prefix was "+mixed3.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed3))
 			}
 		}
@@ -2017,6 +2018,8 @@ func initPrefLens() []ipaddr.PrefixLen {
 //var px = ipaddr.PrefixX{&one}
 
 var (
+	pnil ipaddr.PrefixLen = nil
+
 	p0   = cacheTestBits(0)
 	p4   = cacheTestBits(4)
 	p8   = cacheTestBits(8)
@@ -2030,6 +2033,7 @@ var (
 	p31  = cacheTestBits(31)
 	p32  = cacheTestBits(32)
 	p33  = cacheTestBits(33)
+	p40  = cacheTestBits(40)
 	p48  = cacheTestBits(48)
 	p49  = cacheTestBits(49)
 	p56  = cacheTestBits(56)
@@ -2044,6 +2048,7 @@ var (
 )
 
 func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
+	//TODO make this call the new public method I will create, which will be what?  cannot use PrefixLen(), or can I?
 	if i >= 0 && int(i) < len(cachedPrefixLens) {
 		return cachedPrefixLens[i]
 

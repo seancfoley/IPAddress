@@ -355,6 +355,40 @@ func (t macAddressRangeTester) run() {
 	t.testSections("ff:0:1:*")
 	t.testSections("ff:0:1:*:*:*:*:*")
 
+	t.testInsertAndAppend("*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "*:*:*:*:*:*:*:*", []ipaddr.BitCount{0, 8, 16, 24, 32, 40, 48, 56, 64})
+	//t.testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
+	t.testInsertAndAppendPrefs("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0, p0, p0, p0, p0})
+
+	t.testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{32, 32, 32, 32, 32, 32, 32, 32, 32})
+	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{32, 32, 32, 32, 32, 40, 48, 56, 64})
+	t.testInsertAndAppendPrefs("a:b:c:0-1:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{pnil, pnil, pnil, pnil, p31, p31, p31, p31, p31})
+	t.testInsertAndAppendPrefs("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{pnil, pnil, pnil, pnil, p32, p32, p32, p32, p32})
+	t.testInsertAndAppendPrefs("a:b:c:d:0-7f:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{pnil, pnil, pnil, pnil, pnil, p33, p33, p33, p33})
+
+	t.testInsertAndAppend("a:b:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{32, 32, 16, 16, 16, 16, 16, 16, 16})
+	t.testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:*:*:*:*:*:*", []ipaddr.BitCount{16, 16, 16, 24, 32, 32, 32, 32, 32})
+	//t.testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
+	t.testInsertAndAppendPrefs("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.PrefixLen{p32, p0, p0, p0, p0, p0, p0, p0, p0})
+	t.testInsertAndAppendPrefs("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{pnil, pnil, pnil, pnil, p32, p32, p32, p32, p32})
+	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*", []ipaddr.PrefixLen{p32, p32, p32, p32, p32, p40, p48, p56, pnil})
+
+	t.testReplace("*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "*:*:*:*:*:*:*:*")
+	t.testReplace("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8")
+
+	t.testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:*:*:*:*")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*")
+	t.testReplace("a:b:c:0-1:*:*:*:*", "1:2:3:4:5:6:7:8")
+	t.testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8")
+	t.testReplace("a:b:c:d:0-7f:*:*:*", "1:2:3:4:5:6:7:8")
+
+	t.testReplace("a:b:*:*:*:*:*:*", "1:2:3:4:*:*:*:*")
+	t.testReplace("a:b:c:d:*:*:*:*", "1:2:*:*:*:*:*:*")
+	t.testReplace("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*")
+	t.testReplace("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8")
+	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*")
+
 	t.macAddressTester.run()
 }
 
