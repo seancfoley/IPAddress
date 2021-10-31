@@ -16,11 +16,6 @@ type macAddressTester struct {
 
 func (t macAddressTester) run() {
 
-	// TODO I've done testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, mactest,
-	// testRadices, testNormalized, testCanonical, testMatches, testDelimitedCount, testContains, testNotContains,
-	// testLongShort, testInsertAndAppend, testReplace, testInvalidMACValues, testMACValues
-	// NEXT:  testMACIPv6 (this is a bad boy),
-
 	t.mactest(true, "aa:b:cc:d:ee:f")
 	t.mactest(false, "aaa:b:cc:d:ee:f")
 	t.mactest(false, "aa:bbb:cc:d:ee:f")

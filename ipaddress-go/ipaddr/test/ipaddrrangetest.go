@@ -2893,9 +2893,6 @@ func (t ipAddressRangeTester) testMergeSingles(addrStr string) {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(addrs), func(i, j int) { addrs[i], addrs[j] = addrs[j], addrs[i] })
 
-	//Collections.shuffle(addrs); //TODO goes go have something like this?
-	//IPAddress[] arr = addrs.toArray(new IPAddress[addrs.size()]);
-
 	arr := addrs
 	first := addrs[len(addrs)/2]
 	result, _ := first.MergeToPrefixBlocks(arr...)
