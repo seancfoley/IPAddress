@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"math/big"
@@ -1204,16 +1203,16 @@ func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.M
 /*
 ------
 
-func (addr *IPv6Address) IsEUI64() bool {
-func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
+X func (addr *IPv6Address) IsEUI64() bool {
+X func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
 
 X func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
-func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
+X func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
 func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
 
 -------
 
-func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err IncompatibleAddressError) {
+X func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err IncompatibleAddressError) {
 
 ------
 
@@ -1262,12 +1261,12 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
 				}
+
 				if macAddr.IsEUI64(true) || macAddr.IsEUI64(false) || !macAddr64.IsEUI64(false) {
-					//TODO not getting past here yet
-					fmt.Printf("%v %v %v\n", macAddr.IsEUI64(true), macAddr.IsEUI64(false), !macAddr64.IsEUI64(false))
-					macAddr.IsEUI64(true)
-					macAddr.IsEUI64(false)
-					macAddr64.IsEUI64(false)
+					//fmt.Printf("%v %v %v\n", macAddr.IsEUI64(true), macAddr.IsEUI64(false), !macAddr64.IsEUI64(false))
+					//macAddr.IsEUI64(true)
+					//macAddr.IsEUI64(false)
+					//macAddr64.IsEUI64(false)
 					t.addFailure(newSegmentSeriesFailure("mac eui test "+macAddr64.String(), macAddr))
 				} else {
 					backFromMac64Addr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr64)
@@ -1296,7 +1295,6 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 
 								backLinkLocal := linkLocal.GetHostSectionLen(64)
 								backIpv6 := addr.GetHostSectionLen(64)
-								//TODO I believe frontIpv6 will have a prefix len here, if not, the if block can be adjusted
 								if withPrefix {
 									addr = addr.SetPrefixLen(64)
 								} else {
@@ -1324,6 +1322,22 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
 								}
 								splitJoined3, err := ipaddr.NewIPv6Address(frontIpv6.Append(backIpv6))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								bk, err := ipaddr.NewIPv6SectionFromMAC(backIPv6_1)
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								splitJoined4, err := ipaddr.NewIPv6Address(frontIpv6.Append(bk))
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								bk, err = ipaddr.NewIPv6SectionFromMAC(backIPv6_2)
+								if err != nil {
+									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
+								}
+								splitJoined5, err := ipaddr.NewIPv6Address(frontIpv6.Append(bk))
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
 								}
@@ -1479,7 +1493,8 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 								all = append(all, splitJoined1)
 								all = append(all, splitJoined2)
 								all = append(all, splitJoined3)
-
+								all = append(all, splitJoined4)
+								all = append(all, splitJoined5)
 								//all[9] = splitJoined1;
 								//all[10] = splitJoined2;
 								//all[11] = splitJoined3;

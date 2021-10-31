@@ -299,14 +299,24 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 // The error is either an AddressValueError for sections that are of insufficient segment count,
 // or IncompatibleAddressError when attempting to Join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
-	suffixSegCount := suffix.GetSegmentCount()
-	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
-		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
-	}
-	return newIPv6AddressFromMAC(prefix, suffix, NoZone)
+	return newIPv6AddressFromZonedMAC(prefix, suffix, NoZone)
+	//suffixSegCount := suffix.GetSegmentCount()
+	//if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
+	//	return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	//}
+	//return newIPv6AddressFromMAC(prefix, suffix, NoZone)
 }
 
 func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
+	return newIPv6AddressFromZonedMAC(prefix, suffix, zone)
+	//suffixSegCount := suffix.GetSegmentCount()
+	//if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
+	//	return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
+	//}
+	//return newIPv6AddressFromMAC(prefix, suffix, zone)
+}
+
+func newIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
 	suffixSegCount := suffix.GetSegmentCount()
 	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
 		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
