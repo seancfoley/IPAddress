@@ -4750,7 +4750,6 @@ func enlargeSubnet(addr *ipaddr.IPAddress /*boolean nextSegment  false , int bit
 	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
 	addr, _ = addr.SetPrefixLenZeroed(prefLen - adjustment)
 	if addr.GetLower().IsZeroHost() {
-		//if addr.IsZeroHost() {xxxx
 		addr = addr.ToPrefixBlock()
 	}
 	return addr

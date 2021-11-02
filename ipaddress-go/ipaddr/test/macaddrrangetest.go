@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
+	"strconv"
 )
 
 type macAddressRangeTester struct {
@@ -10,13 +11,6 @@ type macAddressRangeTester struct {
 }
 
 func (t macAddressRangeTester) run() {
-
-	// TODO testTrees, testPrefix, testPrefixBlock
-
-	//  I've done for the non range test, so most of this is probably done:
-	// testStrings, testReverse, testIncrement, testPrefixes, testFromBytes, t.mactest,
-	// testRadices, testNormalized, testCanonical, testMatches, testDelimitedCount, testContains, testNotContains,
-	// testLongShort, testInsertAndAppend, testReplace, testInvalidMACValues, testMACValues, testMACIPv6 ,
 
 	t.mactest(true, "*-abcdef|fffffe")        // throws IncompatibleAddressException
 	t.mactest(true, "0|ffffff-abcdef|fffffe") // throws IncompatibleAddressException
@@ -609,6 +603,18 @@ func (t macAddressRangeTester) run() {
 	t.testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*")
 	t.testMACIPv6("1:0:0:0:200:bbff:fe00-feff:*", "00:00:bb:*:*:*")
 
+	t.testPrefixBlock("ff:*:*:*:*:*", 8)
+	t.testPrefixBlock("ff:ff:*:*:*:*", 16)
+	t.testPrefixBlock("ff:fe-ff:*:*:*:*", 15)
+	t.testPrefixBlock("ff:fc-ff:*:*:*:*", 14)
+	t.testPrefixBlock("ff:ff:80-ff:*:*:*", 17)
+	t.testPrefixBlock("ff:ff:0-7f:*:*:*", 17)
+	t.testPrefixBlock("ff:ff:0-3f:*:*:*", 18)
+	t.testPrefixBlock("ff:0:0:ff:0:*", 40)
+	t.testPrefixBlock("ff:0:0:ff:0:fe-ff", 47)
+
+	t.testTrees()
+
 	t.macAddressTester.run()
 }
 
@@ -690,6 +696,97 @@ func (t macAddressRangeTester) testMACPrefixCount(original string, number uint64
 
 func (t macAddressRangeTester) testMACPrefixCountImpl(w *ipaddr.MACAddressString, number uint64) {
 	t.testPrefixCountImpl(w.Wrap(), number)
+}
+
+func (t macAddressRangeTester) testPrefixBlock(prefixedAddressStr string, expectedPref ipaddr.BitCount) {
+	//starting with prefixed address like 1:2:3:*:*:*, get lower (whcih should retain prefix except for allsubnets)
+	//check if prefix block (not), then for all subnets assign prefix, then for all call toPrefixBlock, compare with original and also the prefix
+	prefixedAddressString := t.createMACAddress(prefixedAddressStr)
+	prefixedAddress := prefixedAddressString.GetAddress()
+
+	//a whole bunch of address manipulations, all of which we will reverse and then convert back to the prefix block
+	lower := prefixedAddress.GetLower()
+	upper := prefixedAddress.GetUpper()
+	removedPrefix := prefixedAddress.WithoutPrefixLen()
+	adjustPrefix := prefixedAddress.AdjustPrefixLen(1)
+	adjustPrefix2 := prefixedAddress.AdjustPrefixLen(-1)
+	hostSeg := int((*prefixedAddress.GetPrefixLen() + (ipaddr.MACBitsPerSegment - 1)) / ipaddr.MACBitsPerSegment)
+	replaced := prefixedAddress
+	replacement := t.createMACAddress("1:1:1:1:1:1").GetAddress()
+	for i := hostSeg; i < replaced.GetSegmentCount(); i++ {
+		replaced = replaced.ReplaceLen(i, i+1, replacement, i)
+	}
+	if lower.Equals(upper) {
+		t.addFailure(newSegmentSeriesFailure("lower / upper "+lower.String()+" / "+upper.String(), prefixedAddress))
+	}
+	if !prefixedAddress.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("not prefix block", prefixedAddress))
+	}
+	if !adjustPrefix.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("adjustPrefix is not prefix block: "+adjustPrefix.String(), prefixedAddress))
+	}
+	if !adjustPrefix.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("adjustPrefix not prefixed: "+adjustPrefix.GetPrefixLen().String(), prefixedAddress))
+	}
+	if !adjustPrefix2.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("adjustPrefix2 not prefixed: "+adjustPrefix2.GetPrefixLen().String(), prefixedAddress))
+	}
+	if removedPrefix.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("removedPrefix prefixed: "+removedPrefix.GetPrefixLen().String(), prefixedAddress))
+	}
+	if !replaced.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("replaced prefixed: "+replaced.GetPrefixLen().String(), prefixedAddress))
+	}
+
+	if hostSeg < replaced.GetSegmentCount() && replaced.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("replaced is prefix block: "+replaced.String(), prefixedAddress))
+	}
+	if adjustPrefix2.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("adjustPrefix2 is not prefix block: "+adjustPrefix2.String(), prefixedAddress))
+	}
+	if !lower.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("lower not prefixed: "+lower.String(), prefixedAddress))
+	}
+	if lower.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("lower is prefix block: "+lower.String(), prefixedAddress))
+	}
+	if !upper.IsPrefixed() {
+		t.addFailure(newSegmentSeriesFailure("upper not prefixed: "+upper.String(), prefixedAddress))
+	}
+	if upper.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("upper is prefix block: "+upper.String(), prefixedAddress))
+	}
+	prefixedBlockAgain := lower.ToPrefixBlock()
+	if !prefixedBlockAgain.IsPrefixBlock() {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block not a prefix block: "+prefixedBlockAgain.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.Equals(prefixedAddress) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch: "+prefixedBlockAgain.String()+" original: "+prefixedAddress.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.GetPrefixLen().Equals(prefixedAddress.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block prefix mismatch: "+prefixedBlockAgain.GetPrefixLen().String()+" original: "+prefixedAddress.GetPrefixLen().String(), prefixedAddress))
+	}
+
+	//now revert all our operations, convert them all back to prefix blocks, and compare
+	removedPrefix = removedPrefix.SetPrefixLen(*prefixedAddress.GetPrefixLen())
+	adjustPrefix = adjustPrefix.AdjustPrefixLen(-1)
+	adjustPrefix2 = adjustPrefix2.AdjustPrefixLen(1)
+	if !prefixedBlockAgain.Equals(removedPrefix.ToPrefixBlock()) || !prefixedBlockAgain.GetPrefixLen().Equals(removedPrefix.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch with other: "+prefixedBlockAgain.String()+" other: "+removedPrefix.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.Equals(adjustPrefix.ToPrefixBlock()) || !prefixedBlockAgain.GetPrefixLen().Equals(adjustPrefix.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch with other: "+prefixedBlockAgain.String()+" other: "+adjustPrefix.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.GetPrefixLen().Equals(adjustPrefix2.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch with other: "+prefixedBlockAgain.String()+" other: "+adjustPrefix2.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.Equals(replaced.ToPrefixBlock()) || !prefixedBlockAgain.GetPrefixLen().Equals(replaced.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch with other: "+prefixedBlockAgain.String()+" other: "+replaced.String(), prefixedAddress))
+	}
+	if !prefixedBlockAgain.Equals(upper.ToPrefixBlock()) || !prefixedBlockAgain.GetPrefixLen().Equals(upper.GetPrefixLen()) {
+		t.addFailure(newSegmentSeriesFailure("reconstituted prefix block mismatch with other: "+prefixedBlockAgain.String()+" other: "+upper.String(), prefixedAddress))
+	}
+	t.incrementTestCount()
 }
 
 func (t macAddressRangeTester) testStrings() {
@@ -878,4 +975,143 @@ func (t macAddressRangeTester) testStrings() {
 		"",
 		"* * * 00 0b-0c *",
 		"")
+}
+
+func (t macAddressRangeTester) testTree(start string, parents []string) {
+	//TODO let's go through a second time, but changing to prefix blocks by incrementing i in the right place below=
+	usePrefixBlocks := false
+	for k := 0; k < 2; k++ {
+		if k == 1 {
+			usePrefixBlocks = true
+		}
+		//try {
+		str := t.createMACParamsAddress(start, wildcardAndRangeMACAddressOptions)
+		addr := str.GetAddress()
+		//now do the same thing but use the IPAddress objects instead
+		var i, j int
+		var pref ipaddr.PrefixLen
+		brokeEarly := false
+		for {
+			label := getMACLabel(addr.ToAddressString())
+			expected := parents[i]
+			if label != expected {
+				t.addFailure(newMACFailure("failed expected: "+expected+" actual: "+label, str))
+				brokeEarly = true
+				break
+			}
+			pref = addr.GetPrefixLen()
+			addr = enlargeMACSubnet(addr)
+			//addr = addr.adjustPrefixBySegment(false, false)
+			//if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
+			//	i++;
+			//}
+			if usePrefixBlocks {
+				addr = addr.ToPrefixBlock()
+				i++
+			}
+			j++
+			if pref != nil && *pref == 0 { //when network prefix is 0, Address.toSupernet() returns the same address
+				break
+			}
+		}
+		if !brokeEarly && j != len(parents) {
+			t.addFailure(newMACFailure("failed: invalid label count "+strconv.Itoa(len(parents))+" expected "+strconv.Itoa(j), str))
+		}
+		//} catch(RuntimeException e) {
+		//	addFailure(new Failure("failed: " + e + " " + start));
+		//}
+		t.incrementTestCount()
+	}
+}
+
+func enlargeMACSubnet(addr *ipaddr.MACAddress /*boolean nextSegment  false , int bitsPerSegment, /* boolean skipBitCountPrefix false */) *ipaddr.MACAddress {
+	prefix := addr.GetPrefixLen()
+	if prefix == nil {
+		return addr.SetPrefixLen(addr.GetBitCount() - addr.GetBitsPerSegment())
+	}
+	prefLen := *prefix
+	if prefLen == 0 {
+		return addr
+	}
+	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
+	addr = addr.SetPrefixLen(prefLen - adjustment)
+	//addr, _ = addr.SetPrefixLenZeroed(prefLen - adjustment) xxx
+	//if addr.GetLower().IsZeroHost() {
+	//	addr = addr.ToPrefixBlock()
+	//}
+	return addr
+}
+
+func getMACLabel(addressString *ipaddr.MACAddressString) string {
+	address := addressString.GetAddress()
+	if address == nil {
+		return addressString.String()
+	}
+	return address.ToNormalizedString()
+}
+
+func (t macAddressRangeTester) testTrees() {
+	t.testTree("1:2:0-8f:*", []string{
+		"01:02:00-8f:*:*:*",
+		"01:02:*:*:*:*",
+		"01:*:*:*:*:*",
+		"*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:d:e:f", []string{
+		"0a:0b:0c:0d:0e:0f",
+		"0a:0b:0c:0d:0e:*",
+		"0a:0b:0c:0d:*:*",
+		"0a:0b:0c:*:*:*",
+		"0a:0b:*:*:*:*",
+		"0a:*:*:*:*:*",
+		"*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:d:e:f:a:b", []string{
+		"0a:0b:0c:0d:0e:0f:0a:0b",
+		"0a:0b:0c:0d:0e:0f:0a:*",
+		"0a:0b:0c:0d:0e:0f:*:*",
+		"0a:0b:0c:0d:0e:*:*:*",
+		"0a:0b:0c:0d:*:*:*:*",
+		"0a:0b:0c:*:*:*:*:*",
+		"0a:0b:*:*:*:*:*:*",
+		"0a:*:*:*:*:*:*:*",
+		"*:*:*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:d:e:f:a0-bf:*", []string{ //this one is good now
+		"0a:0b:0c:0d:0e:0f:a0-bf:*",
+		"0a:0b:0c:0d:0e:0f:*:*",
+		"0a:0b:0c:0d:0e:*:*:*",
+		"0a:0b:0c:0d:*:*:*:*",
+		"0a:0b:0c:*:*:*:*:*",
+		"0a:0b:*:*:*:*:*:*",
+		"0a:*:*:*:*:*:*:*",
+		"*:*:*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:d:e:f:a2-a3:*", []string{ //this one is good now
+		"0a:0b:0c:0d:0e:0f:a2-a3:*",
+		"0a:0b:0c:0d:0e:0f:*:*",
+		"0a:0b:0c:0d:0e:*:*:*",
+		"0a:0b:0c:0d:*:*:*:*",
+		"0a:0b:0c:*:*:*:*:*",
+		"0a:0b:*:*:*:*:*:*",
+		"0a:*:*:*:*:*:*:*",
+		"*:*:*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:d:e:f:1f-80:*", []string{
+		"0a:0b:0c:0d:0e:0f:1f-80:*",
+		"0a:0b:0c:0d:0e:0f:*:*",
+		"0a:0b:0c:0d:0e:*:*:*",
+		"0a:0b:0c:0d:*:*:*:*",
+		"0a:0b:0c:*:*:*:*:*",
+		"0a:0b:*:*:*:*:*:*",
+		"0a:*:*:*:*:*:*:*",
+		"*:*:*:*:*:*:*:*",
+	})
+	t.testTree("a:b:c:11-12:*", []string{
+		"0a:0b:0c:11-12:*:*",
+		"0a:0b:0c:*:*:*",
+		"0a:0b:*:*:*:*",
+		"0a:*:*:*:*:*",
+		"*:*:*:*:*:*",
+	})
 }
