@@ -978,7 +978,6 @@ func (t macAddressRangeTester) testStrings() {
 }
 
 func (t macAddressRangeTester) testTree(start string, parents []string) {
-	//TODO let's go through a second time, but changing to prefix blocks by incrementing i in the right place below=
 	usePrefixBlocks := false
 	for k := 0; k < 2; k++ {
 		if k == 1 {

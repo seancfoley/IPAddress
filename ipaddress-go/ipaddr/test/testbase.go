@@ -1895,6 +1895,8 @@ type failure struct {
 	//ipseries   ipaddr.ExtendedIPSegmentSeries
 	//exseries     ipaddr.ExtendedSegmentSeries
 	series ipaddr.AddressSegmentSeries //TODO fold the addresses into this
+
+	host *ipaddr.HostName
 }
 
 func (f failure) String() string {
@@ -1961,12 +1963,20 @@ func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
 	}
 }
 
+func newHostFailure(str string, host *ipaddr.HostName) failure {
+	return failure{
+		str:  str,
+		host: host,
+	}
+}
+
 func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
 	return failure{
 		str:        str,
 		macAddrStr: addrStr,
 	}
 }
+
 func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	return failure{
 		str:     str,
