@@ -45,7 +45,7 @@ func (t hostTester) run() {
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%a", "1:2:3:4:5:6:102:304%a")
 	t.testMatches(false, "1:2:3:4:5:6:1.2.3.4%", "1:2:3:4:5:6:102:304%")
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%%", "1:2:3:4:5:6:102:304%%")
-	t.testMatches(true, `[1:2:3:4:5:6:1.2.3.4%25%31]`, `1:2:3:4:5:6:102:304%1`)
+	t.testMatches(true, "[1:2:3:4:5:6:1.2.3.4%25%31]", "1:2:3:4:5:6:102:304%1")
 	t.testMatches(true, "[1:2:3:4:5:6:102:304%25%31]", "1:2:3:4:5:6:102:304%1")
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%-", "1:2:3:4:5:6:102:304%-")
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%-/64", "1:2:3:4:5:6:102:304%-/64")
@@ -67,6 +67,27 @@ func (t hostTester) run() {
 	t.testMatches(true, "[IPv6:1:2::]/32", "1:2::/32")
 	t.testMatches(true, "[IPv6:::1]", "::1")
 	t.testMatches(true, "[IPv6:1::]", "1::")
+
+	t.testResolved("a::b:c:d:1.2.3.4%x", "a::b:c:d:1.2.3.4%x")
+	t.testResolved("[a::b:c:d:1.2.3.4%x]", "a::b:c:d:1.2.3.4%x")
+	t.testResolved("[a::b:c:d:1.2.3.4]", "a::b:c:d:1.2.3.4") //square brackets can enclose ipv6 in host names but not addresses
+	t.testResolved("2001:0000:1234:0000:0000:C1C0:ABCD:0876%x", "2001:0:1234::c1c0:abcd:876%x")
+	t.testResolved("[2001:0000:1234:0000:0000:C1C0:ABCD:0876%x]", "2001:0:1234::c1c0:abcd:876%x")
+	t.testResolved("[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "2001:0:1234::C1C0:abcd:876") //square brackets can enclose ipv6 in host names but not addresses
+	t.testResolved("2001:0000:1234:0000:0000:C1C0:ABCD:0876", "2001:0:1234::C1C0:abcd:876")   //square brackets can enclose ipv6 in host names but not addresses
+	t.testResolved("1.2.3.04", "1.2.3.4")
+	t.testResolved_inet_aton("1.2.3", "1.2.0.3")
+	t.testResolved("[1.2.3.4]", "1.2.3.4")
+
+	if t.fullTest && runDNS {
+		t.testResolved("espn.com", "199.181.132.250")
+		t.testResolved("espn.com/24", "199.181.132.0/24")
+		t.testResolved("instapundit.com", "72.32.173.45")
+	}
+
+	t.testResolved("9.32.237.26", "9.32.237.26")
+	t.testResolved("9.70.146.84", "9.70.146.84")
+	t.testResolved("", "")
 }
 
 func (t hostTester) testSelf(host string, isSelf bool) {
@@ -77,24 +98,6 @@ func (t hostTester) testSelf(host string, isSelf bool) {
 	t.incrementTestCount()
 }
 
-/*
-func conversionMatches(h1, h2 *ipaddr.IPAddressString) bool {
-	if h1.IsIPv4() {
-		if !h2.IsIPv4() {
-			if h2.GetAddress() != nil && conv.IsIPv4Convertible(h2.GetAddress()) {
-				return h1.GetAddress().Equals(conv.ToIPv4(h2.GetAddress()))
-			}
-		}
-	} else if h1.IsIPv6() {
-		if !h2.IsIPv6() {
-			if h2.GetAddress() != nil && conv.IsIPv6Convertible(h2.GetAddress()) {
-				return h1.GetAddress().Equals(conv.ToIPv6(h2.GetAddress()))
-			}
-		}
-	}
-	return false
-}
-*/
 func hostConversionMatches(host1, host2 *ipaddr.HostName) bool {
 	h1 := host1.AsAddress()
 	if h1 != nil && h1.IsIPv4() {
@@ -188,5 +191,52 @@ func (t hostTester) testNormalizedMatches(h1 *ipaddr.HostName) {
 	if h1Bracketed != normalized {
 		t.addFailure(newHostFailure("failed: bracketed is "+normalized, h1))
 	}
+	t.incrementTestCount()
+}
+
+func (t hostTester) testResolved_inet_aton(original, expectedResolved string) {
+	origAddress := t.createInetAtonHost(original)
+	t.testResolvedHost(origAddress, original, expectedResolved)
+}
+
+func (t hostTester) testResolved(original, expectedResolved string) {
+	origAddress := t.createHost(original)
+	t.testResolvedHost(origAddress, original, expectedResolved)
+}
+
+func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, expectedResolved string) {
+	//try {
+	resolvedAddress := original.GetAddress()
+	var result bool
+	if resolvedAddress == nil && original.IsAllAddresses() && expectedResolved != "" {
+		//special case for "*"
+		exp := t.createAddress(expectedResolved)
+		result = original.AsAddressString().Equals(exp)
+	} else {
+		if resolvedAddress == nil {
+			result = expectedResolved == ""
+		} else {
+			result = resolvedAddress.Equals(t.createAddress(expectedResolved).GetAddress())
+		}
+	}
+	if !result {
+		if resolvedAddress == nil {
+			t.addFailure(newHostFailure("resolved was nil, original was "+originalStr, original))
+		} else {
+			t.addFailure(newHostFailure("resolved was "+resolvedAddress.String()+" original was "+originalStr, original))
+		}
+	} else if resolvedAddress != nil && !(resolvedAddress.IsIPv6() && resolvedAddress.ToIPv6Address().HasZone()) {
+		host := resolvedAddress.ToHostName()
+		if !original.Equals(host) && !original.IsSelf() && !host.IsSelf() {
+			t.addFailure(newHostFailure("reverse was "+host.String()+" original was "+original.String(), original))
+		} else if !original.IsAddress() {
+			//System.out.println("" + resolvedAddress.toCanonicalHostName());
+		}
+	}
+	//} catch(IncompatibleAddressException e) {
+	//	addFailure(new Failure(e.toString(), original));
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure(e.toString(), original));
+	//}
 	t.incrementTestCount()
 }

@@ -42,6 +42,8 @@ var (
 			AllowBinary(true).
 			GetParentBuilder().GetParentBuilder().ToParams()
 
+	hostInetAtonOptions = new(ipaddr.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().Allow_inet_aton(true).AllowSingleSegment(true).GetParentBuilder().ToParams()
+
 	//var addressOptions = ipaddr.ToIPAddressParametersBuilder(hostOptions).ToParams()
 	addressOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostOptions.GetIPAddressParameters()).ToParams()
 
@@ -76,6 +78,8 @@ type testAddresses interface {
 	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString
 
 	createHost(string) *ipaddr.HostName
+
+	createInetAtonHost(string) *ipaddr.HostName
 
 	createParamsHost(string, ipaddr.HostNameParameters) *ipaddr.HostName
 
@@ -177,6 +181,10 @@ func (t *addresses) createHost(str string) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, hostOptions)
 }
 
+func (t *addresses) createInetAtonHost(str string) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, hostInetAtonOptions)
+}
+
 func (t *addresses) createParamsHost(str string, params ipaddr.HostNameParameters) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, params)
 }
@@ -241,7 +249,11 @@ func (t *rangedAddresses) createMACAddress(str string) *ipaddr.MACAddressString 
 }
 
 func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, hostWildcardOptions)
+	return ipaddr.NewHostNameParams(str, hostInetAtonOptions)
+}
+
+func (t *rangedAddresses) createInetAtonHost(str string) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, hostInetAtonwildcardAndRangeOptions)
 }
 
 func (t *rangedAddresses) allowsRange() bool {
@@ -271,6 +283,10 @@ func (t *allAddresses) createInetAtonAddress(str string) *ipaddr.IPAddressString
 }
 
 func (t *allAddresses) createHost(str string) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, defaultHostOptions)
+}
+
+func (t *allAddresses) createInetAtonHost(str string) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, defaultHostOptions)
 }
 
