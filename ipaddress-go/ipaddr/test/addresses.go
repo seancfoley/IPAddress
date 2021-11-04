@@ -56,27 +56,6 @@ var (
 				AllowShortSegments(true).
 				GetParentBuilder().
 				ToParams()
-
-	hostInetAtonwildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).
-						AllowEmpty(false).
-						ParseEmptyStrAs(ipaddr.NoAddress).
-						NormalizeToLowercase(true).
-						AllowBracketedIPv6(true).
-						AllowBracketedIPv4(true).GetIPAddressParametersBuilder().
-						AllowPrefix(true).
-						AllowMask(true).
-						SetRangeParameters(ipaddr.WildcardAndRange).
-						Allow_inet_aton(true).
-						AllowEmpty(false).
-						ParseEmptyStrAs(ipaddr.NoAddress).
-						AllowAll(true). //AllowPrefixOnly(false).
-						GetIPv4AddressParametersBuilder().
-						AllowPrefixLenLeadingZeros(true).
-						AllowPrefixesBeyondAddressSize(false).
-						AllowWildcardedSeparator(true).
-						GetParentBuilder().GetParentBuilder().ToParams()
-
-	inetAtonwildcardAndRangeOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
 )
 
 type testAddresses interface {
@@ -97,6 +76,8 @@ type testAddresses interface {
 	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params ipaddr.RangeParameters) *ipaddr.IPAddressString
 
 	createHost(string) *ipaddr.HostName
+
+	createParamsHost(string, ipaddr.HostNameParameters) *ipaddr.HostName
 
 	createMACAddress(string) *ipaddr.MACAddressString
 
@@ -196,6 +177,10 @@ func (t *addresses) createHost(str string) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, hostOptions)
 }
 
+func (t *addresses) createParamsHost(str string, params ipaddr.HostNameParameters) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, params)
+}
+
 func (t *addresses) isLenient() bool {
 	return false
 }
@@ -216,6 +201,35 @@ var (
 	wildcardAndRangeMACAddressOptions = new(ipaddr.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
 	wildcardOnlyMACAddressOptions     = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.WildcardOnly).GetParentBuilder().ToParams()
 	noRangeMACAddressOptions          = new(ipaddr.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(ipaddr.NoRange).GetParentBuilder().ToParams()
+
+	hostInetAtonwildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).
+						AllowEmpty(false).
+						ParseEmptyStrAs(ipaddr.NoAddress).
+						NormalizeToLowercase(true).
+						AllowBracketedIPv6(true).
+						AllowBracketedIPv4(true).GetIPAddressParametersBuilder().
+						AllowPrefix(true).
+						AllowMask(true).
+						SetRangeParameters(ipaddr.WildcardAndRange).
+						Allow_inet_aton(true).
+						AllowEmpty(false).
+						ParseEmptyStrAs(ipaddr.NoAddress).
+						AllowAll(true). //AllowPrefixOnly(false).
+						GetIPv4AddressParametersBuilder().
+						AllowPrefixLenLeadingZeros(true).
+						AllowPrefixesBeyondAddressSize(false).
+						AllowWildcardedSeparator(true).
+						GetParentBuilder().GetParentBuilder().ToParams()
+
+	inetAtonwildcardAndRangeOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
+
+	hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
+
+	hostWildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
+
+	hostWildcardAndRangeInetAtonOptions = new(ipaddr.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).Allow_inet_aton(true).GetParentBuilder().ToParams()
+
+	addressWildcardOptions = wildcardAndRangeAddressOptions
 )
 
 func (t *rangedAddresses) createAddress(str string) *ipaddr.IPAddressString {
@@ -224,6 +238,10 @@ func (t *rangedAddresses) createAddress(str string) *ipaddr.IPAddressString {
 
 func (t *rangedAddresses) createMACAddress(str string) *ipaddr.MACAddressString {
 	return ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
+}
+
+func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, hostWildcardOptions)
 }
 
 func (t *rangedAddresses) allowsRange() bool {
@@ -235,7 +253,10 @@ func (t *rangedAddresses) allowsRange() bool {
 //	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
 //}
 
-var defaultOptions = new(ipaddr.IPAddressStringParametersBuilder).ToParams()
+var (
+	defaultOptions     = new(ipaddr.IPAddressStringParametersBuilder).ToParams()
+	defaultHostOptions = new(ipaddr.HostNameParametersBuilder).ToParams()
+)
 
 type allAddresses struct {
 	rangedAddresses
@@ -247,6 +268,10 @@ func (t *allAddresses) createAddress(str string) *ipaddr.IPAddressString {
 
 func (t *allAddresses) createInetAtonAddress(str string) *ipaddr.IPAddressString {
 	return t.createAddress(str)
+}
+
+func (t *allAddresses) createHost(str string) *ipaddr.HostName {
+	return ipaddr.NewHostNameParams(str, defaultHostOptions)
 }
 
 func (t *allAddresses) isLenient() bool {

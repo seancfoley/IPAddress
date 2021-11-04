@@ -1385,7 +1385,12 @@ func (addr *IPAddress) ToAddressString() *IPAddressString { //TODO rename FromSt
 	if str, ok := hostIdStr.(*IPAddressString); ok {
 		return str
 	}
-	return hostIdStr.(*HostName).AsAddressString()
+	return newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
+	//xxx
+	//we need a secondary spot in the cache
+	//we cannot go to hostname since hostname goes to us
+	//xxx
+	//return hostIdStr.(*HostName).AsAddressString()
 }
 
 func (addr *IPAddress) ToHostName() *HostName {

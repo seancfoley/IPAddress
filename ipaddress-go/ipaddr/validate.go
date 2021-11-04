@@ -2282,15 +2282,15 @@ func parseEncodedZone(
 			}
 			charArray := chars
 			i++
-			c = byte(charArray[fullAddr[i]]) << 4
+			c = charArray[fullAddr[i]] << 4
 			i++
-			c |= byte(charArray[fullAddr[i]])
+			c |= charArray[fullAddr[i]]
 		} else if c == PrefixLenSeparator {
 			if i == index && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
 				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 				return
 			}
-			if result.Len() > 0 {
+			if result.Cap() > 0 {
 				zone = result.String()
 			} else {
 				zone = fullAddr[index:i]
@@ -2302,7 +2302,7 @@ func parseEncodedZone(
 				i}
 			return
 		}
-		if result.Len() > 0 {
+		if result.Cap() > 0 {
 			result.WriteByte(c)
 		}
 	}

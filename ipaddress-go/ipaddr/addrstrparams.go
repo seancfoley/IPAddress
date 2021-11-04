@@ -59,9 +59,9 @@ var (
 
 	// use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3
 	WildcardOnly RangeParameters = &rangeParameters{
-		noValueRange:     true,
-		noReverseRange:   true,
-		noSingleWildcard: true,
+		noValueRange:   true,
+		noReverseRange: true,
+		//noSingleWildcard: true,
 	}
 
 	// use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff::

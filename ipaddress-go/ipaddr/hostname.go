@@ -13,7 +13,7 @@ const (
 	PortSeparator    = ':'
 	LabelSeparator   = '.'
 	IPv6StartBracket = '['
-	IPv6EndBracket   = '['
+	IPv6EndBracket   = ']'
 )
 
 // NewHostName constructs an HostName that will parse the given string according to the default parameters

@@ -8,6 +8,7 @@ import (
 const (
 	IPv6SegmentSeparator                     = ':'
 	IPv6ZoneSeparator                        = '%'
+	IPv6ZoneSeparatorStr                     = string(IPv6ZoneSeparator)
 	IPv6AlternativeZoneSeparator             = '\u00a7'
 	IPv6AlternativeZoneSeparatorStr          = string(IPv6AlternativeZoneSeparator)
 	IPv6BitsPerSegment              BitCount = 16
@@ -508,7 +509,7 @@ func (addr *IPv6Address) GetGenericSegment(index int) AddressSegmentType {
 
 // GetDivisionCount returns the segment count
 func (addr *IPv6Address) GetDivisionCount() int {
-	return addr.init().GetDivisionCount()
+	return addr.init().getDivisionCount()
 }
 
 func (addr *IPv6Address) GetIPVersion() IPVersion {

@@ -26,6 +26,9 @@ func Test() {
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	tester.run()
 
+	hTester := hostTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	hTester.run()
+
 	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	macTester.run()
 
@@ -33,12 +36,18 @@ func Test() {
 	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
 	rangeTester.run()
 
+	hostRTester := hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
+	hostRTester.run()
+
 	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	macRangeTester.run()
 
 	allAddresses := allAddresses{rangedAddresses}
 	allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses, fullTest: fullTest}}}}
 	allTester.run()
+
+	hostATester := hostAllTester{hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}}
+	hostATester.run()
 
 	endTime := time.Now().Sub(startTime)
 	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
