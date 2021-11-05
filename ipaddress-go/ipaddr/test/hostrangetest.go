@@ -30,9 +30,9 @@ func (t hostRangeTester) run() {
 	t.testResolved("[2001:0000:*:0000:0000:C1C0:ABCD:0876]", "2001:0:*::C1C0:abcd:876")
 	t.testResolved("2001:0000:*:0000:0000:C1C0:ABCD:0876", "2001:0:*::C1C0:abcd:876")
 	t.testResolved("1.2.*.04", "1.2.*.4")
-	t.testResolved("1.*.0-255.3", "1.*.*.3")
+	t.testResolved_inet_aton("1.*.0-255.3", "1.*.*.3")
 	t.testResolved_inet_aton("1.*.3", "1.*.0.3")
-	t.testResolved_inet_aton("[1.2.*.4]", "1.2.*.4")
+	t.testResolved("[1.2.*.4]", "1.2.*.4")
 
 	t.testResolved("espn.*.com", "") //no wildcards for hosts, just addresses
 	t.testResolved("*.instapundit.com", "")

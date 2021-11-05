@@ -215,8 +215,10 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 	} else {
 		if resolvedAddress == nil {
 			result = expectedResolved == ""
-		} else {
-			result = resolvedAddress.Equals(t.createAddress(expectedResolved).GetAddress())
+		} else { //TODO xxx host options above hostWildcardOptions produce 0.0.0.0 but address options wildcardAndRangeAddressOptions produce nil
+			expectedStr := t.createAddress(expectedResolved)
+			expected := expectedStr.GetAddress()
+			result = resolvedAddress.Equals(expected)
 		}
 	}
 	if !result {

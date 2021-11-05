@@ -231,13 +231,13 @@ var (
 
 	inetAtonwildcardAndRangeOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
 
-	hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
+	hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).AllowEmpty(false).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
 
 	hostWildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
 
 	hostWildcardAndRangeInetAtonOptions = new(ipaddr.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).Allow_inet_aton(true).GetParentBuilder().ToParams()
 
-	addressWildcardOptions = wildcardAndRangeAddressOptions
+	//addressWildcardOptions = wildcardAndRangeAddressOptions
 )
 
 func (t *rangedAddresses) createAddress(str string) *ipaddr.IPAddressString {
@@ -249,7 +249,7 @@ func (t *rangedAddresses) createMACAddress(str string) *ipaddr.MACAddressString 
 }
 
 func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, hostInetAtonOptions)
+	return ipaddr.NewHostNameParams(str, hostWildcardOptions)
 }
 
 func (t *rangedAddresses) createInetAtonHost(str string) *ipaddr.HostName {

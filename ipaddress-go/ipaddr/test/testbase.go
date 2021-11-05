@@ -26,6 +26,8 @@ func Test() {
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	tester.run()
 
+	//var hostAddresses hostAddresses
+
 	hTester := hostTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	hTester.run()
 
