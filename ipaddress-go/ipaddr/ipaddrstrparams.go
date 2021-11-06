@@ -104,7 +104,7 @@ type IPAddressStringParameters interface {
 	AllowsPrefix() bool
 
 	// EmptyStrParsedAs determines how an zero-length empty string is translated to an address.
-	// If the option is ZeroAddress or Loopback, then if defers to GetPreferredVersion() for the version.
+	// If the option is ZeroAddressOption or LoopbackOption, then if defers to GetPreferredVersion() for the version.
 	EmptyStrParsedAs() EmptyStrOption
 
 	// EmptyStrParsedAs determines how the "all" string "*" is translated to addresses.
@@ -130,9 +130,9 @@ type IPAddressStringParameters interface {
 type EmptyStrOption string
 
 const (
-	NoAddress   EmptyStrOption = "none"
-	ZeroAddress EmptyStrOption = "" // the default for Go is the zero address, which means zero strings are translated to zero addresses
-	Loopback    EmptyStrOption = "loopback"
+	NoAddressOption   EmptyStrOption = "none"
+	ZeroAddressOption EmptyStrOption = "" // the default for Go is the zero address, which means zero strings are translated to zero addresses
+	LoopbackOption    EmptyStrOption = "loopback"
 )
 
 type AllStrOption string

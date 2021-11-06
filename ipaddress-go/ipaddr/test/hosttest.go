@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//TODO addressordertest, specialtypestest
+//TODO addressordertest
 
 var runDNS = false
 
@@ -88,6 +88,43 @@ func (t hostTester) run() {
 	t.testResolved("9.32.237.26", "9.32.237.26")
 	t.testResolved("9.70.146.84", "9.70.146.84")
 	t.testResolved("", "")
+
+	t.testNormalizedHost(true, "[A::b:c:d:1.2.03.4]", "[a:0:0:b:c:d:102:304]")                                 //square brackets can enclose ipv6 in host names but not addresses
+	t.testNormalizedHost(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "[2001:0:1234:0:0:c1c0:abcd:876]") //square brackets can enclose ipv6 in host names but not addresses
+	t.testNormalizedHost(true, "1.2.3.04", "1.2.3.4")
+
+	t.testCanonical("[A:0::c:d:1.2.03.4]", "a::c:d:102:304")                                   //square brackets can enclose ipv6 in host names but not addresses
+	t.testCanonical("[2001:0000:1234:0000:0000:C1C0:ABCD:0876]", "2001:0:1234::c1c0:abcd:876") //square brackets can enclose ipv6 in host names but not addresses
+	t.testCanonical("1.2.3.04", "1.2.3.4")
+
+	t.testNormalizedHost(true, "WWW.ABC.COM", "www.abc.com")
+	t.testNormalizedHost(true, "WWW.AB-C.COM", "www.ab-c.com")
+
+	t.testURL("http://1.2.3.4")
+	t.testURL("http://[a:a:a:a:b:b:b:b]")
+	t.testURL("http://a:a:a:a:b:b:b:b")
+
+	t.hostLabelsTest("one.two.three.four.five.six.seven.EIGHT", []string{"one", "two", "three", "four", "five", "six", "seven", "eight"})
+	t.hostLabelsTest("one.two.three.four.fIVE.sIX.seven", []string{"one", "two", "three", "four", "five", "six", "seven"})
+	t.hostLabelsTest("one.two.THREE.four.five.six", []string{"one", "two", "three", "four", "five", "six"})
+	t.hostLabelsTest("one.two.three.four.five", []string{"one", "two", "three", "four", "five"})
+	t.hostLabelsTest("one.two.three.four", []string{"one", "two", "three", "four"})
+	t.hostLabelsTest("one.Two.three", []string{"one", "two", "three"})
+	t.hostLabelsTest("onE.two", []string{"one", "two"})
+	t.hostLabelsTest("one", []string{"one"})
+	var emptyLabels []string
+	if t.isLenient() {
+		emptyLabels = []string{"127", "0", "0", "1"}
+	} else {
+		emptyLabels = []string{}
+	}
+	t.hostLabelsTest("", emptyLabels)
+	t.hostLabelsTest(" ", emptyLabels)
+	t.hostLabelsTest("1.2.3.4", []string{"1", "2", "3", "4"})
+	t.hostLabelsTest("1:2:3:4:5:6:7:8", []string{"1", "2", "3", "4", "5", "6", "7", "8"})
+	t.hostLabelsTest("[::]", []string{"0", "0", "0", "0", "0", "0", "0", "0"})
+	t.hostLabelsTest("::", []string{"0", "0", "0", "0", "0", "0", "0", "0"})
+
 }
 
 func (t hostTester) testSelf(host string, isSelf bool) {
@@ -239,6 +276,38 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 	//	addFailure(new Failure(e.toString(), original));
 	//} catch(RuntimeException e) {
 	//	addFailure(new Failure(e.toString(), original));
+	//}
+	t.incrementTestCount()
+}
+
+func (t hostTester) testNormalizedHost(expectMatch bool, original, expected string) {
+	w := t.createHost(original)
+	normalized := w.ToNormalizedString()
+	if (normalized != expected) == expectMatch {
+		t.addFailure(newHostFailure("normalization was "+normalized, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t hostTester) testCanonical(original, expected string) {
+	w := t.createHost(original)
+	canonical := w.AsAddress().ToCanonicalString()
+	if canonical != (expected) {
+		t.addFailure(newHostFailure("canonicalization was "+canonical, w))
+	}
+	t.incrementTestCount()
+}
+
+func (t hostTester) testURL(url string) {
+	w := t.createHost(url)
+	//try {
+	err := w.Validate()
+	if err == nil {
+		t.addFailure(newHostFailure("failed: "+"URL "+url, w))
+	}
+	//} catch(HostNameException e) {
+	////pass
+	//e.getMessage();
 	//}
 	t.incrementTestCount()
 }

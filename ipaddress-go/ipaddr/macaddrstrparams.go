@@ -230,6 +230,17 @@ func (builder *MACAddressStringParametersBuilder) AllowSpaceDelimited(allow bool
 	return builder
 }
 
+// these two are just for convenience
+func (builder *MACAddressStringParametersBuilder) AllowWildcardedSeparator(allow bool) *MACAddressStringParametersBuilder {
+	builder.GetFormatParametersBuilder().AllowWildcardedSeparator(allow)
+	return builder
+}
+
+func (builder *MACAddressStringParametersBuilder) SetRangeParameters(rangeParams RangeParameters) *MACAddressStringParametersBuilder {
+	builder.GetFormatParametersBuilder().SetRangeParameters(rangeParams)
+	return builder
+}
+
 type macAddressStringFormatParameters struct {
 	addressStringFormatParameters
 

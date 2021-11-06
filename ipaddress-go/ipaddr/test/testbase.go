@@ -1873,6 +1873,26 @@ func (t testBase) testPrefixCountImpl(w ipaddr.ExtendedIdentifierString, number 
 	t.incrementTestCount()
 }
 
+func (t testBase) hostLabelsTest(x string, labels []string) {
+	host := t.createHost(x)
+	t.hostLabelsHostTest(host, labels)
+}
+
+func (t testBase) hostLabelsHostTest(host *ipaddr.HostName, labels []string) {
+	normalizedLabels := host.GetNormalizedLabels()
+	if len(normalizedLabels) != len(labels) {
+		t.addFailure(newHostFailure("normalization length "+strconv.Itoa(len(host.GetNormalizedLabels())), host))
+	} else {
+		for i := 0; i < len(labels); i++ {
+			normalizedLabels := host.GetNormalizedLabels()
+			if labels[i] != (normalizedLabels[i]) {
+				t.addFailure(newHostFailure("normalization label "+host.GetNormalizedLabels()[i]+" not expected label "+labels[i], host))
+				break
+			}
+		}
+	}
+	t.incrementTestCount()
+}
 func min(a, b ipaddr.BitCount) ipaddr.BitCount {
 	if a < b {
 		return a

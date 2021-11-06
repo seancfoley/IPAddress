@@ -138,7 +138,7 @@ func (host *parsedHost) buildStrings() *hostStrings {
 		if host.hasEmbeddedAddress() {
 			addressProvider := host.getAddressProvider()
 			addr, err := addressProvider.getProviderAddress()
-			if err == nil {
+			if err == nil && addr != nil {
 				section := addr.GetSection()
 				normalizedLabels = section.GetSegmentStrings()
 				//port was stripped out

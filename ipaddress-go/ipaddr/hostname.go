@@ -18,6 +18,7 @@ const (
 
 // NewHostName constructs an HostName that will parse the given string according to the default parameters
 func NewHostName(str string) *HostName {
+	str = strings.TrimSpace(str)
 	return &HostName{str: str, params: defaultHostParameters, hostCache: &hostCache{}}
 }
 
@@ -29,6 +30,7 @@ func NewHostNameParams(str string, params HostNameParameters) *HostName {
 	} else {
 		prms = getPrivateHostParams(params)
 	}
+	str = strings.TrimSpace(str)
 	return &HostName{str: str, params: prms, hostCache: &hostCache{}}
 }
 
@@ -265,7 +267,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 			validationOptions := host.getParams()
 			if len(strHost) == 0 {
 				emptyStringOpt := validationOptions.EmptyStrParsedAs()
-				if emptyStringOpt != NoAddress {
+				if emptyStringOpt != NoAddressOption {
 					addrFunc, _ := emptyAddressCreator(
 						validationOptions.EmptyStrParsedAs(),
 						validationOptions.GetPreferredVersion(),

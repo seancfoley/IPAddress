@@ -50,6 +50,9 @@ func (t hostRangeTester) run() {
 	t.testResolved("9.*.237.26", "9.*.237.26")
 	t.testResolved("*.70.146.*", "*.70.146.*")
 
+	t.hostLabelsTest("*", []string{"*"})
+	t.hostLabelsTest("**", []string{"*"})
+
 	t.hostTester.run()
 }
 

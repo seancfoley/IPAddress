@@ -515,10 +515,10 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	if emptyStrOption == NoAddress {
+	if emptyStrOption == NoAddressOption {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
-	} else if emptyStrOption == Loopback {
+	} else if emptyStrOption == LoopbackOption {
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneLoop := func() *IPAddress {
@@ -542,7 +542,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 			addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Loop()) }
 			versionedCreator = ipv4Loop
 		}
-	} else { // EmptyStrParsedAs() == ZeroAddress
+	} else { // EmptyStrParsedAs() == ZeroAddressOption
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneZero := func() *IPAddress {

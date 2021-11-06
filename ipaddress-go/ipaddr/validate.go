@@ -2706,7 +2706,7 @@ func chooseIPAddressProvider(
 				return
 			} else {
 				emptyOpt := validationOptions.EmptyStrParsedAs()
-				if emptyOpt == Loopback || emptyOpt == ZeroAddress {
+				if emptyOpt == LoopbackOption || emptyOpt == ZeroAddressOption {
 					res = getLoopbackCreator(validationOptions, qualifier)
 					return
 				}
@@ -3416,8 +3416,10 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 	validationOptions := fromHost.getParams()
 	addrLen := len(str)
 	if addrLen > maxHostLength {
-		err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.invalid.length"}}
-		return
+		if addrLen > maxHostLength+1 || str[maxHostLength] != LabelSeparator {
+			err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.invalid.length"}}
+			return
+		}
 	}
 	var segmentUppercase, isNotNormalized, squareBracketed,
 		tryIPv6, tryIPv4,
@@ -3501,6 +3503,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 					return
 				}
 				isPossiblyIPv4 = false
+				isNotNormalized = true
 			} else {
 				if labelCount < maxLocalLabels {
 					if labelCount < 3 {
@@ -3528,7 +3531,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 					}
 					labelCount++
 				} else if labelCount == maxLocalLabels {
-					separatorIndices := make([]int, maxHostSegments+1)
+					separatorIndices = make([]int, maxHostSegments+1)
 					separatorIndices[labelCount] = index
 					if validationOptions.NormalizesToLowercase() {
 						normalizedFlags = make([]bool, maxHostSegments+1)
