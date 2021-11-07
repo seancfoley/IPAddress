@@ -1995,9 +1995,9 @@ func validatePrefix(
 			// check if we have a port or service.  If not, possibly an IPv6 mask.
 			// Also, parsing for port first (rather than prefix) allows us to call
 			// parseValidatedPrefix with the knowledge that whatever is supplied can only be a prefix.
-			err = parsePortOrService(fullAddr, zone, hostValidationOptions, res, i+1, endIndex)
+			portErr := parsePortOrService(fullAddr, zone, hostValidationOptions, res, i+1, endIndex)
 			//portQualifier, err = parsePortOrService(fullAddr, zone, hostValidationOptions, res, i+1, endIndex)
-			if err != nil {
+			if portErr != nil {
 				return
 			}
 			prefixEndIndex = i
@@ -3956,12 +3956,14 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				normalizedFlags = make([]bool, maxLocalLabels)
 			}
 		} else if labelCount != len(separatorIndices) {
+			//separatorIndices = separatorIndices[:labelCount]
 			trimmedSeparatorIndices := make([]int, labelCount)
-			copy(trimmedSeparatorIndices[maxLocalLabels:], separatorIndices[maxLocalLabels:maxLocalLabels+labelCount])
+			copy(trimmedSeparatorIndices[maxLocalLabels:], separatorIndices[maxLocalLabels:labelCount])
 			separatorIndices = trimmedSeparatorIndices
 			if normalizedFlags != nil {
+				//normalizedFlags = normalizedFlags[:labelCount]
 				trimmedNormalizedFlags := make([]bool, labelCount)
-				copy(trimmedNormalizedFlags[maxLocalLabels:], normalizedFlags[maxLocalLabels:maxLocalLabels+labelCount])
+				copy(trimmedNormalizedFlags[maxLocalLabels:], normalizedFlags[maxLocalLabels:labelCount])
 				normalizedFlags = trimmedNormalizedFlags
 			}
 		}

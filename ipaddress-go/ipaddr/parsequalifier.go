@@ -39,7 +39,10 @@ func (parsedQual *parsedHostIdentifierStringQualifier) merge(other *parsedHostId
 	if parsedQual.mask == nil {
 		parsedQual.mask = other.mask
 	} else {
-		parsedQual.mergedMask, err = parsedQual.getMaskLower().Mask(other.getMaskLower())
+		otherMask := other.getMaskLower()
+		if otherMask != nil {
+			parsedQual.mergedMask, err = parsedQual.getMaskLower().Mask(otherMask)
+		}
 	}
 	return
 }

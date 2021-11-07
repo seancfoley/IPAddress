@@ -53,6 +53,12 @@ func (t hostRangeTester) run() {
 	t.hostLabelsTest("*", []string{"*"})
 	t.hostLabelsTest("**", []string{"*"})
 
+	t.hostTest(true, "1.2.3.4/1.2.3.4")
+	t.hostTest(false, "1.2.3.4/*")
+	t.hostTest(false, "1.*.3.4/*")
+	t.hostTest(true, "1.*.3.4")
+	t.hostTest(true, "1:*:3:4")
+
 	t.hostTester.run()
 }
 

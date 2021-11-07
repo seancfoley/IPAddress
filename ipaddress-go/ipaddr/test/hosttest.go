@@ -125,6 +125,298 @@ func (t hostTester) run() {
 	t.hostLabelsTest("[::]", []string{"0", "0", "0", "0", "0", "0", "0", "0"})
 	t.hostLabelsTest("::", []string{"0", "0", "0", "0", "0", "0", "0", "0"})
 
+	t.hostTest(true, "1.2.3.4/1.2.3.4")
+	t.hostTest(true, "1.2.3.4/255.0.0.0")
+	t.hostTest(true, "abc.com/255.0.0.0")
+	t.hostTest(true, "abc.com/::")
+	t.hostTest(true, "abc.com/::1")
+
+	//Since service names cannot have ':' and can be at most 15 chars, and since all IPv6 must have a ':' or must be at least 32 digits otherwise, there is no ambiguity below
+	//of course, none of the forms below can appear in a URL
+	t.hostTest(true, "abc.com/1::1")     // TODO lin 1864 validate    //this is abc.com with mask 1::1
+	t.hostTest(true, "abc.com/1:1")      //this one is abc.com with prefix 1 and port 1
+	t.hostTest(true, "abc.com/1:abc")    //this one is abc.com with prefix 1 and service abc
+	t.hostTest(true, "abc.com/1.2.3.4")  //this is abc.com with mask 1.2.3.4
+	t.hostTest(true, "abc.com:a1-2-3-4") //this is abc.com with service a1-2-3-4 (note service must have at least one letter)
+
+	t.hostTest(true, "abc.com/1::")
+	t.hostTest(true, "abc.com/32")
+
+	t.hostTest(true, "abc.com.")
+	t.hostTest(true, "abc.com./32")
+
+	t.hostTest(false, "[1.2.3.4")
+	t.hostTest(false, "[1:2:3:4:5:6:7:8")
+	t.hostTest(true, "[a::b:c:d:1.2.3.4]") //square brackets can enclose ipv6 in host names but not addresses
+	t.hostTest(true, "[a::b:c:d:1.2.3.4%x]")
+	t.hostTest(true, "a::b:c:d:1.2.3.4%x")
+	t.hostTest(false, "a:b:c:d:1.2.3.4%x")
+	t.hostTest(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876]")   //square brackets can enclose ipv6 in host names but not addresses
+	t.hostTest(true, "2001:0000:1234:0000:0000:C1C0:ABCD:0876%x")   //ipv6 must be enclosed in []
+	t.hostTest(true, "[2001:0000:1234:0000:0000:C1C0:ABCD:0876%x]") //zones not allowed when using []
+
+	t.hostTest(true, "1:2:3:4:5:6:1.2.3.4%%")       //the % is the zone itself, when treated as an address
+	t.hostTest(false, "[1:2:3:4:5:6:1.2.3.4%%]")    //the % is an encoding, when treated as a host
+	t.hostTest(true, "1:2:3:4:5:6:1.2.3.4%%")       //the % is allowed in zone, when treated as a address
+	t.hostTest(true, "[1:2:3:4:5:6:1.2.3.4%25%31]") //the % is an encoding, when treated as a host, so this is in fact the zone of 1 (%25 is zone char, %31 is 1)
+	t.hostTest(true, "1:2:3:4:5:6:1.2.3.4%25%31")   //this is in fact the zone 25%31
+
+	t.hostTest(true, "1.2.3.4")
+	t.hostTest_inet_aton(true, "1.2.3")
+	t.hostTest(true, "0x1.0x2.0x3.04")
+	t.hostTest(true, "0X1.0x2.0x3.04")
+	t.hostTest(true, "0x1.0x2.0b3.04")
+	t.hostTest(true, "0x1.0x2.0B3.04")
+	t.hostTest(true, "[1.2.3.4]")
+
+	t.hostTest(true, "a_b.com")
+	t.hostTest(true, "_ab.com")
+	t.hostTest(true, "_ab_.com")
+	t.hostTest(false, "-ab-.com")
+	t.hostTest(false, "ab-.com")
+	t.hostTest(false, "-ab.com")
+	t.hostTest(false, "ab.-com")
+	t.hostTest(false, "ab.com-")
+
+	t.hostTest(true, "a9b.com")
+	t.hostTest(true, "9ab.com")
+	t.hostTest(true, "999.com")
+	t.hostTest(true, "ab9.com")
+	t.hostTest(true, "ab9.com9")
+	t.hostTest_inet_aton(true, "999")
+	t.hostTest_inet_aton(true, "111.999")
+	t.hostTest(false, "999.111")
+
+	t.hostTest(false, "a*b.com")
+	t.hostTest(false, "*ab.com")
+	t.hostTest(false, "ab.com*")
+	t.hostTest(false, "*.ab.com")
+	t.hostTest(false, "ab.com.*")
+	t.hostTest(false, "ab.co&m")
+	t.hostTest(false, "#.ab.com")
+	t.hostTest(false, "cd.ab.com.~")
+	t.hostTest(false, "#x.ab.com")
+	t.hostTest(false, "cd.ab.com.x~")
+	t.hostTest(false, "x#.ab.com")
+	t.hostTest(false, "cd.ab.com.~x")
+	t.hostTest(true, "xx.ab.com.xx")
+
+	t.hostTest(true, "ab.cde.fgh.com")
+	t.hostTest(true, "aB.cDE.fgh.COm")
+
+	t.hostTest(true, "123-123456789-123456789-123456789-123456789-123456789-123456789.com")   //label 63 chars
+	t.hostTest(false, "1234-123456789-123456789-123456789-123456789-123456789-123456789.com") //label 64 chars
+	t.hostTest(false, "123.123456789.123456789.123456789.123456789.123456789.123456789.123")  //all numbers
+	t.hostTest(true, "aaa.123456789.123456789.123456789.123456789.123456789.123456789.123")   //numbers everywhere but first label
+
+	t.hostTest(false, "a11"+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"-123456789-123456789-123456789-123456789-123456789") //253 chars, but segments start with -
+
+	t.hostTest(true, "a11"+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-123456789") //253 chars
+
+	t.hostTest(false, "111"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"01234567890123456789012345678901234567890123456789") //all number
+
+	t.hostTest(true, "222"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678f") //not all number, 253 chars
+
+	t.hostTest(false, "a222"+
+		"-123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-12345678."+
+		"0123456789-123456789-123456789-123456789-123456789") //254 chars
+
+	t.hostTest(true, "a33"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789") //253 chars
+
+	t.hostTest(false, "444"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"01234567890123456789012345678901234567890123456789") //all number
+
+	t.hostTest(true, "555"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678f") //not all number
+
+	t.hostTest(true, "777"+
+		"01234567890123456789012345678901234567890123456789"+
+		"0123456789.123456789012345678901234567890123456789"+
+		"012345678901234567890123.5678901234567890123456789"+
+		"01234567890123456789012345678901234567.90123456789"+
+		"0123456789012345678901234567890123456789012345678f") //first 3 segments are 63 chars
+
+	t.hostTest(false, "777"+
+		"01234567890123456789012345678901234567890123456789"+
+		"01234567890.23456789012345678901234567890123456789"+
+		"012345678901234567890123.5678901234567890123456789"+
+		"01234567890123456789012345678901234567.90123456789"+
+		"0123456789012345678901234567890123456789012345678f") //first segment 64 chars
+
+	t.hostTest(false, "a666"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789"+
+		".123456789.123456789.123456789.123456789.123456789") //254 chars
+
+	t.hostTest(true, "a.9."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5") //252 chars, 127 segments
+
+	t.hostTest(false, ".a.7."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5") //252 chars, 127 segments, extra dot at front
+
+	allowTrailingDot2 := true
+
+	t.hostTest(allowTrailingDot2, "222"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678f.") //not all number, 253 chars with trailing dot
+
+	t.hostTest(allowTrailingDot2, "a.8."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5.") //252 chars, 127 segments, extra dot at end
+
+	t.hostTest(false, "a.6."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
+		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5.8") //254 chars, 128 segments
+
+	t.hostTest(false, "a:b:com")
+	t.hostTest(true, "a:b::ccc")
+	t.hostTest(true, "a:b:c:d:e:f:a:b")
+
+	t.hostTest(false, ".as.b.com") //starts with dot
+
+	allowTrailingDot1 := true
+	t.hostTest(allowTrailingDot1, "as.b.com.") //ends with dot
+	t.hostTest(false, ".as.b.com.")            //starts and ends with dot
+	t.hostTest(false, "as..b.com")             //double dot
+	t.hostTest(false, "as.b..com")             //double dot
+	t.hostTest(false, "..as.b.com")            //starts with dots
+	t.hostTest(false, "as.b.com..")            //ends with dots
+
+	t.hostTest(false, "1.2.3.4:123456789012345a")
+	t.hostTest(false, "1.2.3.4:")
+	t.hostTest(false, "1.2.3.4:a-")
+	t.hostTest(false, "1.2.3.4:-a")
+	t.hostTest(false, "1.2.3.4:a--b")
+	t.hostTest(false, "1.2.3.4:x-")
+	t.hostTest(false, "1.2.3.4:-x")
+	t.hostTest(false, "1.2.3.4:x--x")
+
+	allowEmptyZone := true
+
+	t.hostTest(allowEmptyZone, "[::1%25/32]") // empty zone
+	t.hostTest(allowEmptyZone, "::1%/32")     // empty zone
+
+	t.hostTest(false, "[a.b.com]:nfs") //non-Ipv6 inside brackets
+	t.hostTest(true, "[::]:nfs")
+
+	t.hostTest(true, "255.22.2.111.3.in-addr.arpa:35") //not a valid address but still a valid host
+	t.hostTest(false, "[::1]x")
+	t.hostTest(false, "[::1x]")
+	t.hostTest(false, "[::x1]")
+	t.hostTest(false, "x[::1]")
+	t.hostTest(false, "[]")
+	t.hostTest(false, "[a]")
+	t.hostTest(false, "1.2.2.256:33")
+	t.hostTest(true, "f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45") //not an address, but a valid host
+	t.hostTest(true, "f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int")    //not an address, but a valid host
+	t.hostTest(false, "aa-bb-cc-dd-ee-ff-.ipv6-literal.net")
+	t.hostTest(true, "aa-bb-cc-dd-ge-ff.ipv6-literal.net") //not an address but a valid host
+
+	t.hostTest(true, "[1::/16]/32")
+	t.hostTest(true, "[1::/16]/16")
+	t.hostTest(true, "[1.2.3.4/16]/32")
+	t.hostTest(true, "[1.2.3.4/16]/16")
+	t.hostTest(true, "[1.2.3.4/16]/255.255.255.0")
+	t.hostTest(true, "[1.2.3.4/16]/255.255.0.0")
+	t.hostTest(true, "[1.2.3.4/255.255.255.0]/16")
+	t.hostTest(true, "[1.2.3.4/255.255.0.0]/16")
+	t.hostTest(true, "[1.2.3.4/255.255.255.0]/255.255.255.0")
+	t.hostTest(true, "[1.2.3.4/255.255.0.0]/255.255.255.0")
+	t.hostTest(true, "[1.2.3.4/255.255.255.0]/255.255.0.0")
+
+	t.hostTest(allowEmptyZone, "1::%")                // empty zone
+	t.hostTest(allowEmptyZone, "1::%/16")             // empty zone
+	t.hostTest(allowEmptyZone, "a:b:c:d:e:f:a:b%/64") // empty zone
+	t.hostTest(false, "::1:88888")                    //port too large, also too large to be ipv6 segment
+	t.hostTest(false, "::1:88_8")                     //invalid because no letter in service name, nor is it a port
+	t.hostTest(t.isLenient(), "::1:88-8")             //valid because address with ranged segment, but it is not a service because no letter, nor a port
+	t.hostTest(true, "::1:8888")
+	t.hostTest(true, "::1:58888")
+	t.hostTest(true, "::1:8a-8")
+	t.hostTest(t.isLenient(), "::1:-8a88") //this passes if the second segment considered a range
+	t.hostTest(false, "1.2.3.4:-8a8")      //-8a8 can only be a port or service, but leading hyphen not allowed for a service
+	t.hostTest(true, "1.2.3.4:8-a8")
+
+	t.hostTest(t.isLenient(), "::1:8a8-:2")
+	t.hostTest(t.isLenient(), "::1:-8a8:2")
+	t.hostTest(t.isLenient(), "::1:8a8-") //this passes if the second segment considered a range, cannot be a service due to trailing hyphen
+	t.hostTest(t.isLenient(), "::1:-8a8") //this passes if the second segment considered a range, cannot be a service due to leading hyphen
+
+	t.hostTest(true, "[1.2.3.4]/255.255.255.0")
+	t.hostTest(true, "[::]/ffff::")
+	t.hostTest(false, "[::]/255.255.0.0") // prefix len equivalent
+	t.hostTest(false, "[::]/0.255.0.0")   // not prefix len
+	t.hostTest(false, "[1.2.3.4]/ffff::")
+	t.hostTest(false, "[1.2.3.4]/::ffff") // note the colon placement here could be confused with port
+	t.hostTest(false, "[1.2.3.4]/ffff::ffff")
+	//
+	// And now the same but the mask versions don't match
+	t.hostTest(true, "[1.2.3.4/255.0.0.0]/255.255.255.0") // prefix len equivalent
+	t.hostTest(true, "[::/ff::]/ffff::")
+	t.hostTest(false, "[::/ffff::]/255.255.0.0")
+	t.hostTest(false, "[::/ffff::]/0.255.0.0") // not prefix len
+	t.hostTest(false, "[::/::ffff]/0.255.0.0") // not prefix len
+	t.hostTest(false, "[1.2.3.4/0.0.0.255]/ffff::")
+	t.hostTest(false, "[1.2.3.4/0.0.0.255]/::ffff") // note the colon placement here could be confused with port
+	t.hostTest(false, "[1.2.3.4/0.0.0.255]/ffff::ffff")
+	t.hostTest(false, "[1.2.3.4/255.0.0.0]/ffff::")
+	t.hostTest(false, "[1.2.3.4/255.0.0.0]/::ffff") // note the colon placement here could be confused with port
+	t.hostTest(false, "[1.2.3.4/255.0.0.0]/ffff::ffff")
 }
 
 func (t hostTester) testSelf(host string, isSelf bool) {
@@ -310,4 +602,68 @@ func (t hostTester) testURL(url string) {
 	//e.getMessage();
 	//}
 	t.incrementTestCount()
+}
+
+func (t hostTester) hostTest_inet_aton(pass bool, x string) {
+	addr := t.createInetAtonHost(x)
+	t.hostTestDouble(pass, addr, false)
+}
+
+func (t hostTester) hostTest(pass bool, x string) {
+	addr := t.createHost(x)
+	t.hostTestDouble(pass, addr, true)
+}
+
+var i int
+
+func (t hostTester) hostTestDouble(pass bool, addr *ipaddr.HostName, doubleTest bool) {
+	t.hostNameTest(pass, addr)
+	//do it a second time to test the caching
+	t.hostNameTest(pass, addr)
+	if pass && doubleTest {
+		//try {
+		//here we call getHost twice, once after calling getNormalizedLabels and once without calling getNormalizedLabels,
+		//this is because getHost will use the labels but only if they exist already
+		two := t.createParamsHost(addr.String(), addr.GetValidationOptions())
+		var twoString, oneString string
+		if i%2 == 0 {
+			two.GetNormalizedLabels()
+			twoString = two.GetHost()
+			oneString = addr.GetHost()
+		} else {
+			oneString = addr.GetHost()
+			two.GetNormalizedLabels()
+			twoString = two.GetHost()
+		}
+		i++
+		if oneString != twoString {
+			t.addFailure(newHostFailure(oneString+" "+twoString, addr))
+		}
+		//} catch(RuntimeException e) {
+		//	addFailure(new Failure(e.getMessage(), addr));
+		//}
+		t.incrementTestCount()
+	}
+}
+
+func (t hostTester) hostNameTest(pass bool, addr *ipaddr.HostName) {
+	if t.isNotExpected(pass, addr) {
+		t.addFailure(newHostFailure("error parsing host "+addr.String(), addr))
+
+		//this part just for debugging
+		t.isNotExpected(pass, addr)
+	}
+	t.incrementTestCount()
+}
+
+func (t hostTester) isNotExpected(expectedPass bool, addr *ipaddr.HostName) bool {
+	//try {
+	err := addr.Validate()
+	if err != nil {
+		return expectedPass
+	}
+	return !expectedPass
+	//} catch(HostNameException e) {
+	//return expectedPass;
+	//}
 }
