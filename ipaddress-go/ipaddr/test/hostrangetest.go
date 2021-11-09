@@ -1,10 +1,16 @@
 package test
 
+import (
+	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+)
+
 type hostRangeTester struct {
 	hostTester
 }
 
 func (t hostRangeTester) run() {
+
 	t.testMatches(true, "1.*.*.*/255.0.0.0", "1.0.0.0/255.0.0.0")
 	t.testMatches(true, "1.0.0.0/8", "1.0.0.0/255.0.0.0")
 
@@ -59,9 +65,150 @@ func (t hostRangeTester) run() {
 	t.hostTest(true, "1.*.3.4")
 	t.hostTest(true, "1:*:3:4")
 
+	t.testMasked("1.*.3.4", "", nil, "1.*.3.4")
+	t.testMasked("1.*.3.4/255.255.1.0", "255.255.1.0", nil, "1.*.1.0")
+	t.testMasked("1.*.3.4/255.255.254.0", "255.255.254.0", p23, "1.*.3.4/23")
+
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "", nil, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0:101:0:101:0:101:0:101", "0:101:0:101:0:101:0:101", nil, "0:101:0:101:0:101:0:101")
+	t.testMasked("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/ffff:ffff:8000::", "ffff:ffff:8000::", p33, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/33")
+	t.testMasked("ffff:ffff::/ffff:ffff:8000::", "ffff:ffff:8000::", p33, "ffff:ffff::/33")
+
+	t.testMasked("bla.com/ffff:ffff:8000::", "ffff:ffff:8000::", p33, "")
+	t.testMasked("bla.com", "", nil, "")
+
+	t.testHostOrWildcardAddress("1_.2.3.4", 4, "1_.2.3.4", "10-19.2.3.4")
+	t.testHostOrRangeAddress("1-2.2.3.4", 4, "1-2.2.3.4", "1-2.2.3.4")
+	t.testHostOrAddress_inet_aton("1-9.1-2", 2, 4, "1-9.1-2", "1-9.0.0.1-2")
+	t.testHostOrAddress_inet_aton("1-9.0x1-0x22", 2, 4, "1-9.0x1-0x22", "1-9.0.0.1-34")
+	t.testHostOrAddress_inet_aton("1-9.0x1-0x22", 2, 4, "1-9.0x1-0x22", "1-9.0.0.1-34")
+	t.testHostOrAddress_inet_aton("9-1.0X1-0x22", 2, 4, "9-1.0x1-0x22", "1-9.0.0.1-34")
+	t.testHostOrAddress_inet_aton("9-1.0X1-0X22", 2, 4, "9-1.0x1-0x22", "1-9.0.0.1-34")
+	t.testHostOnly("9-1g.0x1-0x22", 2, "9-1g.0x1-0x22", "")
+	t.testHostOrAddress_inet_aton("1-9.0x1-0x22.03.04", 4, 4, "1-9.0x1-0x22.03.04", "1-9.1-34.3.4")
+	t.testAddress("1::2", 8, "[1:0:0:0:0:0:0:2]", "1:0:0:0:0:0:0:2")
+	t.testAddress("1.2.3.4", 4, "1.2.3.4", "1.2.3.4")
+
 	t.hostTester.run()
 }
 
 func (t hostRangeTester) testMatches(matches bool, host1, host2 string) {
 	t.testMatchesParams(matches, host1, host2, hostWildcardOptions)
+}
+
+func (t hostRangeTester) testHostAndAddress(h *ipaddr.HostName, hostLabelCount, addressLabelCount int, isValidHost, isValidAddress bool, normalizedHostString, normalizedAddressString string) {
+	if h.IsValid() != isValidHost {
+		t.addFailure(newHostFailure("unexpected invalid host", h))
+	} else {
+		var expectedLen int
+		if isValidAddress {
+			expectedLen = addressLabelCount
+		} else if isValidHost {
+			expectedLen = hostLabelCount
+		} else {
+			expectedLen = 1
+		}
+		if len(h.GetNormalizedLabels()) != expectedLen {
+			t.addFailure(newHostFailure(fmt.Sprintf("labels length is %v expected %v", len(h.GetNormalizedLabels()), expectedLen), h))
+		} else {
+			addr := h.AsAddress()
+			if isValidAddress != h.IsAddress() {
+				t.addFailure(newHostFailure("not address "+addr.String(), h))
+			} else if isValidAddress != (addr != nil) {
+				t.addFailure(newHostFailure("addr is "+addr.String(), h))
+			} else if isValidAddress && addr.ToNormalizedString() != normalizedAddressString {
+				t.addFailure(newHostFailure("addr string is "+addr.ToNormalizedString()+" expected "+normalizedAddressString, h))
+			} else {
+				nhString := h.ToNormalizedString()
+				var expected string
+				if h.IsAddress() && addr.IsIPv6() {
+					if isValidHost {
+						expected = normalizedHostString
+					} else {
+						expected = h.String()
+					}
+				} else {
+					if isValidAddress {
+						expected = normalizedAddressString
+					} else if isValidHost {
+						expected = normalizedHostString
+					} else {
+						expected = h.String()
+					}
+				}
+				if nhString != expected {
+					t.addFailure(newHostFailure("host string is "+nhString+" expected "+expected, h))
+				}
+			}
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t hostRangeTester) testHostOrAddress_inet_aton(x string, hostLabelCount, addressLabelCount int, normalizedHostString, normalizedAddressString string) {
+	t.testHostAndAddressAll(x, hostLabelCount, addressLabelCount, true, false, false, true, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testHostOrRangeAddress(x string, labelCount int, normalizedHostString, normalizedAddressString string) {
+	t.testHostAndAddressAll(x, labelCount, labelCount, true, false, true, true, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testHostOrWildcardAddress(x string, labelCount int, normalizedHostString, normalizedAddressString string) {
+	t.testHostAndAddressAll(x, labelCount, labelCount, true, true, true, true, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testAddress(x string, labelCount int, normalizedHostString, normalizedAddressString string) {
+	t.testHostAndAddressAll(x, labelCount, labelCount, false, true, true, true, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testHostOnly(x string, labelCount int, normalizedHostString, normalizedAddressString string) {
+	t.testHostAndAddressAll(x, labelCount, labelCount, true, false, false, false, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testHostAndAddressAll(x string, hostLabelCount, addressLabelCount int, isHostName, isAddressNotRanged, isRangeAddress,
+	is_inet_aton_RangeAddress bool,
+	normalizedHostString, normalizedAddressString string) {
+	//we want to handle 4 cases
+	//1. a.b.com host only
+	//2. 1:: address
+	//3. a-b.c__ either way inet_aton
+	//4. a-b.c__.3.4 either way
+
+	h := t.createParamsHost(x, hostOnlyOptions)
+	t.testHostAndAddress(h, hostLabelCount, addressLabelCount, isHostName, false, normalizedHostString, normalizedAddressString)
+
+	isAddress := isAddressNotRanged
+	h = t.createParamsHost(x, hostWildcardOptions)
+	t.testHostAndAddress(h, hostLabelCount, addressLabelCount, isHostName || isAddress, isAddress, normalizedHostString, normalizedAddressString)
+
+	isAddress = isAddressNotRanged || isRangeAddress
+	h = t.createParamsHost(x, hostWildcardAndRangeOptions)
+	t.testHostAndAddress(h, hostLabelCount, addressLabelCount, isHostName || isAddress, isAddress, normalizedHostString, normalizedAddressString)
+
+	isAddress = isAddressNotRanged || isRangeAddress || is_inet_aton_RangeAddress
+	h = t.createParamsHost(x, hostWildcardAndRangeInetAtonOptions)
+	t.testHostAndAddress(h, hostLabelCount, addressLabelCount, isHostName || isAddress, isAddress, normalizedHostString, normalizedAddressString)
+}
+
+func (t hostRangeTester) testMasked(masked, mask string, prefixLength ipaddr.PrefixLen, result string) {
+	maskedHostStr := t.createHost(masked)
+	var maskAddr *ipaddr.IPAddress
+	if mask != "" {
+		maskAddr = t.createAddress(mask).GetAddress()
+	}
+	if result != "" {
+		resultAddr := t.createAddress(result).GetAddress()
+		maskedAddr := maskedHostStr.GetAddress()
+		if !maskedAddr.Equals(resultAddr) {
+			t.addFailure(newIPAddrFailure("masked "+maskedAddr.String()+" instead of expected "+resultAddr.String(), maskedAddr))
+		}
+	}
+	if !addressesEqual(maskAddr, maskedHostStr.GetMask()) {
+		//if !maskAddr.Equals(maskedHostStr.GetMask()) {
+		t.addFailure(newHostFailure("masked "+maskAddr.String()+" instead of expected "+maskedHostStr.GetMask().String(), maskedHostStr))
+	}
+	if !maskedHostStr.GetNetworkPrefixLen().Equals(prefixLength) {
+		t.addFailure(newHostFailure("masked prefix length was "+maskedHostStr.GetNetworkPrefixLen().String()+" instead of expected "+prefixLength.String(), maskedHostStr))
+	}
+	t.incrementTestCount()
 }

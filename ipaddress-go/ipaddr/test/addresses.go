@@ -231,7 +231,12 @@ var (
 
 	inetAtonwildcardAndRangeOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
 
-	hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).AllowEmpty(false).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
+	hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().
+				AllowAll(true).SetRangeParameters(ipaddr.WildcardOnly).GetParentBuilder().ToParams()
+
+	hostOnlyOptions = new(ipaddr.HostNameParametersBuilder).Set(hostOptions).AllowIPAddress(false).ToParams()
+
+	//hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).AllowEmpty(false).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
 
 	hostWildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(ipaddr.WildcardAndRange).GetParentBuilder().ToParams()
 

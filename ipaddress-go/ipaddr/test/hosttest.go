@@ -16,8 +16,6 @@ type hostTester struct {
 	testBase
 }
 
-//TODO need to start like I did with ipaddress, just go through, and while you go, populate hostrange and hostall whenever they have the same tests
-
 func (t hostTester) run() {
 	t.testSelf("1.2.3.4", false)
 	t.testSelf("1::", false)
@@ -488,6 +486,7 @@ func (t hostTester) run() {
 	t.testHostAddressWithService("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:a-b-c", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "a-b-c", "")
 
 	t.testHostPortServZonePref("a.b.c/16:nfs", "a.b.c", "", nil, "nfs", "", p16)
+	t.testHostPortServZonePref("a.b.c./16:nfs", "a.b.c", "", nil, "nfs", "", p16)
 	t.testHostPortServZonePref("a.b.c/16:80", "a.b.c", "", port80, "", "", p16)
 	t.testHostPortServZonePref("a.b.c./16:nfs", "a.b.c", "", nil, "nfs", "", p16)
 	t.testHostPortServZonePref("a.b.c./16:80", "a.b.c", "", port80, "", "", p16)
@@ -495,6 +494,7 @@ func (t hostTester) run() {
 	t.testHostPortServZonePref("a.b.c.:80", "a.b.c", "", port80, "", "", nil)
 	t.testHostWithService("a.b.c:nfs", "a.b.c", "nfs", "")
 	t.testHostWithService("a.b.com:12345678901234a", "a.b.com", "12345678901234a", "")
+	t.testHostWithService("a.b.com.:12345678901234a", "a.b.com", "12345678901234a", "")
 	t.testHostWithService("a.b.com:12345678901234x", "a.b.com", "12345678901234x", "")
 	t.testHostWithService("a.b.com:x12345678901234", "a.b.com", "x12345678901234", "")
 	t.testHostWithService("a.b.com:12345x789012345", "a.b.com", "12345x789012345", "")
@@ -734,7 +734,7 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 	} else {
 		if resolvedAddress == nil {
 			result = expectedResolved == ""
-		} else { //TODO xxx host options above hostWildcardOptions produce 0.0.0.0 but address options wildcardAndRangeAddressOptions produce nil
+		} else {
 			expectedStr := t.createAddress(expectedResolved)
 			expected := expectedStr.GetAddress()
 			result = resolvedAddress.Equals(expected)
