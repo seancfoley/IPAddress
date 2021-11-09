@@ -1,7 +1,9 @@
 package test
 
 import (
+	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -316,6 +318,13 @@ func (t hostTester) run() {
 		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
 		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5.") //252 chars, 127 segments, extra dot at end
 
+	t.hostTest(false, "222"+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678."+
+		"0123456789012345678901234567890123456789012345678..") // double trailing dot
+
 	t.hostTest(false, "a.6."+
 		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
 		"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."+
@@ -417,6 +426,187 @@ func (t hostTester) run() {
 	t.hostTest(false, "[1.2.3.4/255.0.0.0]/ffff::")
 	t.hostTest(false, "[1.2.3.4/255.0.0.0]/::ffff") // note the colon placement here could be confused with port
 	t.hostTest(false, "[1.2.3.4/255.0.0.0]/ffff::ffff")
+
+	portNum1 := ipaddr.PortNum(1)
+	portNum3 := ipaddr.PortNum(3)
+	portNum33 := ipaddr.PortNum(33)
+	//portNum35 := ipaddr.PortNum(35)
+	portNum45 := ipaddr.PortNum(45)
+	portNum80 := ipaddr.PortNum(80)
+	portNum123 := ipaddr.PortNum(123)
+	portNum48888 := ipaddr.PortNum(48888)
+
+	port1 := &portNum1
+	port3 := &portNum3
+	port33 := &portNum33
+	//port35 := &portNum35
+	port45 := &portNum45
+	port80 := &portNum80
+	port123 := &portNum123
+	port48888 := &portNum48888
+
+	//TODO LATER ipv6 literal addresses from hosts
+	//t.testHostAddressPortZone("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", nil, "")
+	//t.testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbbbseth0.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", "aa:bb:cc:dd:ee:ff:aaaa:bbbb%eth0", nil, "eth0")
+	t.testHostPortZone("aa-bb-cc-dd-ee-ff.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", nil, "") //not a valid address, too few segments, but a valid host
+	t.testHostPortZone("aa-Bb-cc-dd-ee-FF.ipv6-literal.net", "aa-bb-cc-dd-ee-ff.ipv6-literal.net", nil, "") //not a valid address, too few segments, but a valid host
+	//TODO LATER ipv6 literal addresses from hosts
+	//t.testHostAddressPortZone("aa-bb-cc-dd-ee-ff-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", nil, "")
+	//t.testHostAddressPortZone("aa-Bb-cc-dd-ee-FF-aaaa-bbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbb", nil, "")
+	//t.testHostAddressPortZone("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.arpa", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", nil, "")
+	//t.testHostAddressPortZone("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", nil, "")
+	//t.testHostAddressPortZone("f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", port45, "")
+	//t.testHostAddressPortZone("F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "cccc:bbbb:aaaa:bbbb:cccc:dddd:ee:ffff", port45, "")
+	t.testHostPortZone("f.F.f.f.F.e.e.0.0.d.D.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.C.ip6.int:45", "f.f.f.f.f.e.e.0.0.d.d.d.d.c.c.c.c.b.b.b.b.a.a.a.a.b.b.b.b.c.c.c.c.ip6.int", port45, "") //not a valid address, but a valid host
+	//TODO LATER ipv6 literal addresses from hosts
+	//t.testHostAddressPortZone("255.22.2.111.in-addr.arpa", "111.2.22.255", nil, "")
+	//t.testHostAddressPortZone("255.22.2.111.in-addr.arpa:35", "111.2.22.255", port35, "")
+	//t.testHostPortZone("255.22.2.111.3.in-addr.arpa:35", "255.22.2.111.3.in-addr.arpa", port35, "")
+	t.testHostAddressPortZone("1.2.2.1:33", "1.2.2.1", port33, "")
+	t.testHostAddressPortZone("[::1]:33", "::1", port33, "")
+	t.testHostAddressPortZone("::1:33", "::1:33", nil, "")
+	t.testHostAddress("::1%eth0", "::1", "::1%eth0", nil, "eth0")
+	t.testHostAddress("[::1%eth0]:33", "::1", "::1%eth0", port33, "eth0")
+	t.testHostPortZone("bla.bla:33", "bla.bla", port33, "")
+	t.testHostPortZone("blA:33", "bla", port33, "")
+	t.testHostPortZone("f:33", "f", port33, "")
+	t.testHostAddressPortZone("f::33", "f::33", nil, "")
+	t.testHostAddressPortZone("::1", "::1", nil, "")
+	t.testHostAddressPortZone("[::1]", "::1", nil, "")
+	// no longer supporting prefix-only addresses?
+	//t.testHostAddressPortZonePref("/16", "/16", nil, "", p16)
+	//t.testHostAddressPortZonePref("/32", "/32", nil, "", p32)
+	//t.testHostAddressPref("/64", "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff::/64", nil, "", p64)
+
+	t.testHostAddressWithService("1.2.3.4:nfs", "1.2.3.4", "nfs", "")
+	t.testHostPortServZonePref("[::1%eth0]:nfs", "::1", "::1%eth0", nil, "nfs", "eth0", nil)
+	t.testHostAddressWithService("1.2.3.4:12345678901234a", "1.2.3.4", "12345678901234a", "")
+	t.testHostAddressWithService("[::1]:12345678901234a", "::1", "12345678901234a", "")
+	t.testHostAddressWithService("[::1]:12345678901234x", "::1", "12345678901234x", "")
+	t.testHostAddressWithService("1.2.3.4:a", "1.2.3.4", "a", "")
+	t.testHostAddressWithService("1.2.3.4:a-b-c", "1.2.3.4", "a-b-c", "")
+	t.testHostAddressWithService("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:a-b-c", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "a-b-c", "")
+
+	t.testHostPortServZonePref("a.b.c/16:nfs", "a.b.c", "", nil, "nfs", "", p16)
+	t.testHostPortServZonePref("a.b.c/16:80", "a.b.c", "", port80, "", "", p16)
+	t.testHostPortServZonePref("a.b.c./16:nfs", "a.b.c", "", nil, "nfs", "", p16)
+	t.testHostPortServZonePref("a.b.c./16:80", "a.b.c", "", port80, "", "", p16)
+	t.testHostPortServZonePref("a.b.c:80", "a.b.c", "", port80, "", "", nil)
+	t.testHostPortServZonePref("a.b.c.:80", "a.b.c", "", port80, "", "", nil)
+	t.testHostWithService("a.b.c:nfs", "a.b.c", "nfs", "")
+	t.testHostWithService("a.b.com:12345678901234a", "a.b.com", "12345678901234a", "")
+	t.testHostWithService("a.b.com:12345678901234x", "a.b.com", "12345678901234x", "")
+	t.testHostWithService("a.b.com:x12345678901234", "a.b.com", "x12345678901234", "")
+	t.testHostWithService("a.b.com:12345x789012345", "a.b.com", "12345x789012345", "")
+	t.testHostWithService("a.b.com:a", "a.b.com", "a", "")
+	t.testHostWithService("a.b.com:a-b-c", "a.b.com", "a-b-c", "")
+	t.testHostWithService("a.b.c:a-b-c", "a.b.c", "a-b-c", "")
+	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:a-b-c", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "a-b-c", "")
+	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:12345x789012345", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "12345x789012345", "")
+
+	expectPortParams := new(ipaddr.HostNameParametersBuilder).Set(hostOptions).ExpectPort(true).ToParams()
+	t.testHostAddressWithService("fe80::6a05:caff:fe3:nfs", "fe80::6a05:caff:fe3", "nfs", "")
+	t.testHostAddressPortZone("fe80::6a05:caff:fe3:123", "fe80::6a05:caff:fe3:123", nil, "")
+	hostName := t.createParamsHost("fe80::6a05:caff:fe3:123", expectPortParams)
+	t.testHostPortServZone(hostName, "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3", port123, "", "")
+
+	t.testHostAddress("[1::%25%241]", "1::", "1::%$1", nil, "$1")
+	t.testHostAddress("[1::%%241]", "1::", "1::%$1", nil, "$1") //when zone marker not %25 we are forgiving
+	t.testHostAddress("[1::%25%241]:123", "1::", "1::%$1", port123, "$1")
+	t.testHostAddress("[1::%%241]:123", "1::", "1::%$1", port123, "$1")
+	t.testHostAddress("1::%25%241:123", "1::", "1::%25%241", port123, "25%241") //%hexhex encoding only when inside '[]' since '[]' is the proper URL format
+	t.testHostAddress("1::%%241:123", "1::", "1::%%241", port123, "%241")
+
+	t.testHostAddressPref("1::%%1/16", "1:*:*:*:*:*:*:*", "1::%%1/16", nil, "%1", p16)
+	t.testHostAddressPref("[1::%251]/16", "1:*:*:*:*:*:*:*", "1::%1/16", nil, "1", p16)
+
+	t.testHostAddressPref("[1::%251/16]:3", "1:*:*:*:*:*:*:*", "1::%1/16", port3, "1", p16)
+	t.testHostAddressPref("1::%1/16:3", "1:*:*:*:*:*:*:*", "1::%1/16", port3, "1", p16)
+	t.testHostAddressPref("1::%%1/16:3", "1:*:*:*:*:*:*:*", "1::%%1/16", port3, "%1", p16) //that's right, zone, prefix and port!
+	t.testHostAddressPref("[1::/16]:3", "1:*:*:*:*:*:*:*", "1::/16", port3, "", p16)
+
+	t.testHostAddressPref("[1::/16]/32", "1:*:*:*:*:*:*:*", "1::/16", nil, "", p16)
+	t.testHostAddressPref("[1::/16]/16", "1:*:*:*:*:*:*:*", "1::/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/16]/32", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/16]/16", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/16]/255.255.255.0", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/255.255.255.0]/16", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/16]/255.255.0.0", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/255.255.0.0]/16", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/255.255.0.0]/255.255.255.0", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/255.255.255.0]/255.255.0.0", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("[1.2.3.4/255.255.0.0]/255.255.255.0", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+
+	t.testHostAddressPref("1::/16:3", "1:*:*:*:*:*:*:*", "1::/16", port3, "", p16)
+	t.testHostAddressPref("[1::%251/16]", "1:*:*:*:*:*:*:*", "1::%1/16", nil, "1", p16)
+	t.testHostAddressPref("[1::%25%241/16]", "1:*:*:*:*:*:*:*", "1::%$1/16", nil, "$1", p16)
+
+	t.testHostAddressPref("1::%1/16", "1:*:*:*:*:*:*:*", "1::%1/16", nil, "1", p16)
+	t.testHostAddressPref("1::%1%1/16", "1:*:*:*:*:*:*:*", "1::%1%1/16", nil, "1%1", p16)
+	t.testHostAddressPref("1.2.3.4/16", "1.2.3.4", "1.2.3.4/16", nil, "", p16)
+	t.testHostAddressPref("1.2.0.0/16", "1.2.*.*", "1.2.0.0/16", nil, "", p16)
+	t.testHostPortServZonePref("a.b.com/24", "a.b.com", "", nil, "", "", p24)
+	t.testHostPortServZonePref("a.b.com./24", "a.b.com", "", nil, "", "", p24)
+	t.testHostPortServZonePref("a.b.com", "a.b.com", "", nil, "", "", nil)
+	t.testHostPortServZonePref("a.b.com.", "a.b.com", "", nil, "", "", nil)
+	t.testHostAddressPref("[fe80::%2]/64", "fe80::*:*:*:*", "fe80::%2/64", nil, "2", p64) //prefix outside the host (can be either inside or outside)
+	t.testHostAddressPref("fe80::%2/64", "fe80::*:*:*:*", "fe80::%2/64", nil, "2", p64)
+
+	t.testHostAddress("[::123%25%25%25aaa%25]", "::123", "::123%%%aaa%", nil, "%%aaa%")
+	t.testHostAddress("[::123%25%25%25%24aa%25]", "::123", "::123%%%$aa%", nil, "%%$aa%")
+	t.testHostAddress("[::123%25%24%25%24aa%25]", "::123", "::123%$%$aa%", nil, "$%$aa%")
+	t.testHostAddress("::123%%%", "::123", "::123%%%", nil, "%%")
+
+	t.testHostAddress("fe80:0:0:0:0:6a05:caff:fe3%x:123", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", port123, "x")
+
+	t.testHostPortServZonePref("fe80:0:0:0:0:6a05:caff:fe3%x:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", nil, "abc", "x", nil)
+	t.testHostPortServZonePref("fe80:0:0:0:0:6a05:caff:fe3%x/64:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x/64", nil, "abc", "x", p64)   //that's right, zone, prefix and service
+	t.testHostPortServZonePref("[fe80:0:0:0:0:6a05:caff:fe3%x/64]:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x/64", nil, "abc", "x", p64) //that's right, zone, prefix and service
+	t.testHostAddress("fe80::6a05:caff:fe3%x:123", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", port123, "x")
+	t.testHostPortServZonePref("fe80::6a05:caff:fe3%x:abc", "fe80::6a05:caff:fe3", "fe80::6a05:caff:fe3%x", nil, "abc", "x", nil)
+
+	t.testHostAddressPortZone("fe80:0:0:0:0:6a05:caff:fe3", "fe80::6a05:caff:fe3", nil, "")
+	t.testHostAddressWithService("fe80:0:0:0:0:0:6a05:caff:fe3", "fe80::6a05:caff", "fe3", "")
+	t.testHostAddressPortZone("fe80:0:0:0:0:6a05:caff:fe3:123", "fe80::6a05:caff:fe3", port123, "")
+	t.testHostAddressWithService("fe80:0:0:0:0:6a05:caff:fe3:*", "fe80::6a05:caff:fe3", "*", "")
+	t.testHostAddressPortZone("::1:8888", "::1:8888", nil, "")
+	t.testHostAddressWithService("::1:88g8", "::1", "88g8", "")
+	t.testHostAddressWithService("::1:88a8", "::1:88a8", "", "")
+	hostName = t.createParamsHost("::1:88a8", expectPortParams)
+	t.testHostPortServZone(hostName, "::1", "::1", nil, "88a8", "")
+	t.testHostAddressPortZone("::1:48888", "::1", port48888, "")
+	t.testHostAddressWithService("::1:nfs", "::1", "nfs", "")
+	t.testHostAddressWithService(":::*", "::", "*", "")
+	t.testHostAddressPortZone(":::1", "::", port1, "")
+	t.testHostAddressPortZone(":::123", "::", port123, "")
+	t.testHostAddressPortZone("[::]:123", "::", port123, "")
+
+	t.testHostInetSocketAddress("1.2.3.4:80", "1.2.3.4", portNum80)
+	t.testHostInetSocketAddress(":::123", "::", portNum123)
+	t.testHostInetSocketAddress("[::]:123", "::", portNum123)
+	//t.testHostInetSocketAddress("a.com:123", "a.com", 123);
+	//t.testHostInetSocketAddress("espn.com:123", "espn.com", 123);
+	//t.testHostInetSocketAddress("foo:123", "foo", 123);
+	t.testNotHostInetSocketAddress("1.2.3.4")
+	t.testNotHostInetSocketAddress("::")
+	t.testNotHostInetSocketAddress("a.com")
+	t.testNotHostInetSocketAddress("foo")
+	t.testHostInetSocketAddressService("1.2.3.4:http", func(s string) ipaddr.Port {
+		if s == "http" {
+			port80 := ipaddr.PortNum(80)
+			return &port80
+		}
+		return nil
+	}, "1.2.3.4", 80)
+	t.testHostInetSocketAddressSA("1.2.3.4:http", func(s string) ipaddr.Port {
+		if s == "htt" {
+			port80 := ipaddr.PortNum(80)
+			return &port80
+		}
+		return nil
+	}, nil)
+	t.testHostInetSocketAddressSA("1.2.3.4:http", nil, nil)
+
 }
 
 func (t hostTester) testSelf(host string, isSelf bool) {
@@ -666,4 +856,160 @@ func (t hostTester) isNotExpected(expectedPass bool, addr *ipaddr.HostName) bool
 	//} catch(HostNameException e) {
 	//return expectedPass;
 	//}
+}
+
+func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortNum) *net.TCPAddr {
+	h := t.createHost(expected)
+	//if(h.IsAddress()) {
+	addr := h.GetAddress()
+	var zone ipaddr.Zone
+	if addr.IsIPv6() {
+		zone = addr.ToIPv6Address().GetZone()
+	}
+	return &net.TCPAddr{
+		IP:   addr.GetIP(),
+		Port: int(expectedPort),
+		Zone: string(zone),
+	} //new InetSocketAddress(h.asInetAddress(), expectedPort);
+	//}
+	//return  &net.TCPAddr{
+	//	IP:   addr.GetIP(),
+	//	Port: expectedPort,
+	//}
+	//new InetSocketAddress(h.getHost(), expectedPort);
+}
+
+func (t hostTester) testNotHostInetSocketAddress(host string) {
+	t.testHostInetSocketAddressSA(host, nil, nil)
+}
+
+func (t hostTester) testHostInetSocketAddress(host, expected string, expectedPort ipaddr.PortNum) {
+	t.testHostInetSocketAddressService(host, nil, expected, expectedPort)
+}
+
+func (t hostTester) testHostInetSocketAddressService(host string, serviceMapper func(string) ipaddr.Port, expected string, expectedPort ipaddr.PortNum) {
+	t.testHostInetSocketAddressSA(host, serviceMapper, t.toExpected(expected, expectedPort))
+}
+
+func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(string) ipaddr.Port, expected *net.TCPAddr) {
+	h := t.createHost(host)
+	socketAddr := h.ToTCPAddrService(serviceMapper)
+	//InetSocketAddress socketAddr = h.asInetSocketAddress(serviceMapper);
+
+	if socketAddr == nil && expected == nil {
+	} else if socketAddr == nil || expected == nil {
+		t.addFailure(newHostFailure(fmt.Sprintf("socket address mismatch, expected: %v  result: ", expected, socketAddr), h))
+	} else if socketAddr.Port != expected.Port || socketAddr.Zone != expected.Zone || !socketAddr.IP.Equal(expected.IP) {
+		t.addFailure(newHostFailure("socket address mismatch, expected: "+expected.String()+" result: "+socketAddr.String(), h))
+	}
+	if socketAddr != nil && h.GetService() == "" {
+		h2 := ipaddr.NewHostNameFromTCPAddr(socketAddr)
+		if !h.Equals(h2) {
+			t.addFailure(newHostFailure("socket address mismatch, expected: "+h.String()+" result: "+h2.String(), h))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t hostTester) testHostAddressWithService(host, hostExpected, serviceExpected string, expectedZone ipaddr.Zone) {
+	t.testHostPortServZonePref(host, hostExpected, hostExpected, nil, serviceExpected, expectedZone, nil)
+}
+
+func (t hostTester) testHostWithService(host, hostExpected, serviceExpected string, expectedZone ipaddr.Zone) {
+	t.testHostPortServZonePref(host, hostExpected, "", nil, serviceExpected, expectedZone, nil)
+}
+
+func (t hostTester) testHostAddressPortZone(host, hostExpected string, portExpected ipaddr.Port, expectedZone ipaddr.Zone) {
+	t.testHostAddress(host, hostExpected, hostExpected, portExpected, expectedZone)
+}
+
+func (t hostTester) testHostAddressPortZonePref(host, hostExpected string, portExpected ipaddr.Port, expectedZone ipaddr.Zone, prefixLength ipaddr.PrefixLen) {
+	t.testHostAddressPref(host, hostExpected, hostExpected, portExpected, expectedZone, prefixLength)
+}
+
+func (t hostTester) testHostPortZone(host, hostExpected string, portExpected ipaddr.Port, expectedZone ipaddr.Zone) {
+	t.testHostPortServZonePref(host, hostExpected, "", portExpected, "", expectedZone, nil)
+}
+
+func (t hostTester) testHostAddress(host, hostExpected, addrExpected string, portExpected ipaddr.Port, expectedZone ipaddr.Zone) {
+	t.testHostPortServZonePref(host, hostExpected, addrExpected, portExpected, "", expectedZone, nil)
+}
+
+func (t hostTester) testHostAddressPref(host, hostExpected, addrExpected string, portExpected ipaddr.Port, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {
+	t.testHostPortServZonePref(host, hostExpected, addrExpected, portExpected, "", expectedZone, prefixLengthExpected)
+}
+
+func (t hostTester) testHostPortServZonePref(host, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {
+	hostName := t.createHost(host)
+	t.testHostAll(hostName, hostExpected, addrExpected, portExpected, serviceExpected, expectedZone, prefixLengthExpected)
+}
+
+func (t hostTester) testHostPortServZone(hostName *ipaddr.HostName, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone) {
+	t.testHostAll(hostName, hostExpected, addrExpected, portExpected, serviceExpected, expectedZone, nil)
+}
+
+func addressesEqual(one, two *ipaddr.IPAddress) bool {
+	//TODO replace with just call to Equals once I have Equals supporting nil
+	if one == nil {
+		return two == nil
+	}
+	return two != nil && one.Equals(two)
+}
+
+func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {
+	//try {
+	h := hostName.GetHost()
+	var addressExpected *ipaddr.IPAddress
+	if addrExpected != "" {
+		addressExpected = t.createAddress(addrExpected).GetAddress()
+	}
+	addrHost := hostName.AsAddress()
+	port := hostName.GetPort()
+	var zone ipaddr.Zone
+	//String zone = null;
+	if addrHost != nil && addrHost.IsIPv6() {
+		zone = addrHost.ToIPv6Address().GetZone()
+	}
+	prefLength := hostName.GetNetworkPrefixLen()
+	if h != hostExpected {
+		t.addFailure(newHostFailure("failed: host is "+h, hostName))
+	} else if !port.Equals(portExpected) {
+		t.addFailure(newHostFailure("failed: port is "+port.String(), hostName))
+	} else if zone != expectedZone {
+		t.addFailure(newHostFailure("failed:  zone is "+zone.String(), hostName))
+	} else if !addressesEqual(addrHost, addressExpected) {
+		t.addFailure(newHostFailure(fmt.Sprintf("failed: address is %v", addrHost), hostName))
+	} else if !prefLength.Equals(prefixLengthExpected) {
+		t.addFailure(newHostFailure("failed: prefix is "+prefLength.String(), hostName))
+	}
+	if addressExpected != nil && addrHost != nil {
+		if serviceExpected == "" {
+			if portExpected != nil {
+				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, int(*portExpected))
+				if !h2.Equals(hostName) {
+					t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
+				}
+				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, int(*portExpected))
+				if !h3.Equals(hostName) {
+					t.addFailure(newHostFailure("failed: host is "+h3.String(), hostName))
+				}
+			} else if expectedZone == "" {
+				if prefixLengthExpected == nil {
+					h2 := ipaddr.NewHostNameFromIP(addrHost.GetIP())
+					if !h2.Equals(hostName) {
+						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
+					}
+				} else {
+					h2 := ipaddr.NewHostNameFromPrefixedIP(addrHost.GetIP(), prefixLengthExpected)
+					if !h2.Equals(hostName) {
+						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
+					}
+				}
+			}
+		}
+	}
+	//} catch(RuntimeException e) {
+	//	addFailure(new Failure(e.getMessage(), hostName));
+	//}
+	t.incrementTestCount()
 }

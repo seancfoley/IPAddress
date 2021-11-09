@@ -66,24 +66,24 @@ func newHostNameFromAddr(hostStr string, addr *IPAddress) *HostName { // same as
 	}
 }
 
-func NewHostNameFromTCPAddr(addr *net.TCPAddr) (*HostName, AddressValueError) {
+func NewHostNameFromTCPAddr(addr *net.TCPAddr) *HostName {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
-func NewHostNameFromUDPAddr(addr *net.UDPAddr) (*HostName, AddressValueError) {
+func NewHostNameFromUDPAddr(addr *net.UDPAddr) *HostName {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
-func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName, err AddressValueError) {
+func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName) {
 	var ipAddr *IPAddress
 	if zone == NoZone {
-		ipAddr, err = addrFromIP(ip)
+		ipAddr = FromIP(ip)
 	} else {
 		var addr6 *IPv6Address
-		addr6, err = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+		addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
 		ipAddr = addr6.ToIPAddress()
 	}
-	if err == nil {
+	if ipAddr != nil {
 		portVal := PortNum(port)
 		hostStr := toNormalizedAddrPortString(ipAddr, portVal)
 		parsedHost := parsedHost{
@@ -100,23 +100,23 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 	return
 }
 
-func NewHostNameFromIP(bytes net.IP) (hostName *HostName, err AddressValueError) {
-	addr, err := addrFromIP(bytes)
-	if err == nil {
+func NewHostNameFromIP(bytes net.IP) (hostName *HostName) {
+	addr := FromIP(bytes)
+	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
 	return
 }
 
-func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName, err AddressValueError) {
-	addr, err := addrFromPrefixedIP(bytes, prefixLen)
-	if err == nil {
+func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName) {
+	addr := FromPrefixedIP(bytes, prefixLen)
+	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
 	return
 }
 
-func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName, err AddressValueError) {
+func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName) {
 	if addr.Zone == NoZone {
 		return NewHostNameFromIP(addr.IP)
 	}
@@ -127,7 +127,7 @@ func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName, err AddressVal
 	return
 }
 
-func NewHostNameFromPrefixedIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName, err AddressValueError) {
+func NewHostNameFromPrefixedIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName) {
 	if addr.Zone == NoZone {
 		return NewHostNameFromPrefixedIP(addr.IP, prefixLen)
 	}
@@ -580,7 +580,7 @@ func (host *HostName) Equals(other *HostName) bool {
 			if parsedHost.isAddressString() {
 				return otherParsedHost.isAddressString() &&
 					parsedHost.asGenericAddressString().Equals(otherParsedHost.asGenericAddressString()) &&
-					PortEquals(parsedHost.getPort(), otherParsedHost.getPort()) &&
+					parsedHost.getPort().Equals(otherParsedHost.getPort()) &&
 					parsedHost.getService() == otherParsedHost.getService()
 			}
 			if otherParsedHost.isAddressString() {
@@ -593,7 +593,7 @@ func (host *HostName) Equals(other *HostName) bool {
 			}
 			return PrefixEquals(parsedHost.getEquivalentPrefixLen(), otherParsedHost.getEquivalentPrefixLen()) &&
 				ipAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
-				PortEquals(parsedHost.getPort(), otherParsedHost.getPort()) &&
+				parsedHost.getPort().Equals(otherParsedHost.getPort()) &&
 				parsedHost.getService() == otherParsedHost.getService()
 		}
 		return false
@@ -665,7 +665,7 @@ TODO LATER isUNCIPv6Literal and isReverseDNS
 func (host *HostName) GetNetworkPrefixLen() PrefixLen {
 	if host.IsAddress() {
 		addr, err := host.parsedHost.asAddress()
-		if err != nil {
+		if err == nil {
 			return addr.GetNetworkPrefixLen()
 		}
 	} else if host.IsAddressString() {
@@ -728,7 +728,7 @@ func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCP
 			}
 		}
 		if port != nil {
-			if addr := host.AsAddress(); addr != nil {
+			if addr := host.GetAddress(); addr != nil {
 				return &net.TCPAddr{
 					IP:   addr.GetIP(),
 					Port: int(*port),
@@ -740,7 +740,8 @@ func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCP
 	return nil
 }
 
-// ToTCPAddr returns the TCPAddr if this HostName both resolves to an address and has an associated port
+// ToTCPAddr returns the TCPAddr if this HostName both resolves to an address and has an associated port.
+// Otherwise, it returns nil.
 func (host *HostName) ToTCPAddr() *net.TCPAddr {
 	return host.ToTCPAddrService(nil)
 }

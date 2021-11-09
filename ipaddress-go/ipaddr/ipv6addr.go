@@ -43,6 +43,10 @@ func (zone Zone) IsEmpty() bool {
 	return zone == ""
 }
 
+func (zone Zone) String() string {
+	return string(zone)
+}
+
 const NoZone = ""
 
 func newIPv6Address(section *IPv6AddressSection) *IPv6Address {

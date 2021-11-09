@@ -1320,7 +1320,7 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 	t.incrementTestCount()
 }
 
-func (t testBase) testHostAddress(addressStr string) {
+func (t testBase) testHostAddressStr(addressStr string) {
 	str := t.createAddress(addressStr)
 	address := str.GetAddress()
 	if address != nil {
@@ -1359,7 +1359,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	singleOctal string) {
 	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
 	//try {
-	t.testHostAddress(w.String())
+	t.testHostAddressStr(w.String())
 
 	c := ipAddr.ToCompressedString()
 	canonical := ipAddr.ToCanonicalString()

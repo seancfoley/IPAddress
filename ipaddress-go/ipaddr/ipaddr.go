@@ -787,7 +787,7 @@ func (addr *IPAddress) GetIPAddr() net.IPAddr {
 	}
 }
 
-func (addr *IPAddress) GetIP() net.IP {
+func (addr *IPAddress) GetIP() net.IP { //TODO think about making this ToIP() to match toInetAddress() in Java
 	return addr.GetBytes()
 }
 
@@ -1847,6 +1847,8 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 
 //TODO you could rename these to "New" methods instead of From, they're no different than the New methods construcitng ipv4/6
 // so that would be NewIPAddressFromIP
+
+//TODO additional ones taking net.IPNet which is prefix length / mask with address
 
 func FromIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)

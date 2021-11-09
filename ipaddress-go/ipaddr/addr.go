@@ -1005,7 +1005,7 @@ func (addr *Address) IsLocal() bool {
 	return false
 }
 
-func (addr Address) String() string {
+func (addr Address) String() string { //TODO the non-pointer receiver means that you get panic for nil pointers - is that OK?  This was added so slices call the Stringer method
 	//if addr == nil {
 	//	return nilAddress
 	//}
