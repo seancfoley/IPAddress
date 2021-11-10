@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-//TODO addressordertest
-
 var runDNS = false
 
 type hostTester struct {

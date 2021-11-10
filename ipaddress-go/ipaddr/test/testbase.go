@@ -51,6 +51,9 @@ func Test() {
 	hostATester := hostAllTester{hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}}
 	hostATester.run()
 
+	sTypesTester := specialTypesTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	sTypesTester.run()
+
 	endTime := time.Now().Sub(startTime)
 	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
 	if len(acc.failures) > 0 {
@@ -1064,6 +1067,10 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 	mixedString,
 	base85String string) {
 
+	if ipAddr == nil {
+		t.addFailure(newFailure("failed expected IPv6 address, got nil ", w))
+		return
+	}
 	//try {
 	base85 := ""
 	//try { TODO LATER base85

@@ -7,21 +7,24 @@ import (
 )
 
 const (
-	HexPrefix                         = "0x"
-	OctalPrefix                       = "0"
-	BinaryPrefix                      = "0b"
-	RangeSeparator               byte = '-'
-	RangeSeparatorStr                 = string(RangeSeparator)
-	AlternativeRangeSeparator    byte = '\u00bb'
-	AlternativeRangeSeparatorStr      = string(AlternativeRangeSeparator)
-	SegmentWildcard              byte = '*'
-	SegmentWildcardStr                = string(SegmentWildcard)
-	AlternativeSegmentWildcard   byte = '¿'
-	SegmentSqlWildcard           byte = '%'
-	SegmentSqlWildcardStr             = string(SegmentSqlWildcard)
-	SegmentSqlSingleWildcard     byte = '_'
-	SegmentSqlSingleWildcardStr       = string(SegmentSqlSingleWildcard)
-	nilAddress                        = "<nil>"
+	HexPrefix                            = "0x"
+	OctalPrefix                          = "0"
+	BinaryPrefix                         = "0b"
+	RangeSeparator                  byte = '-'
+	RangeSeparatorStr                    = string(RangeSeparator)
+	AlternativeRangeSeparator       byte = '\u00bb'
+	AlternativeRangeSeparatorStr         = string(AlternativeRangeSeparator)
+	ExtendedDigitsRangeSeparator         = AlternativeRangeSeparator
+	ExtendedDigitsRangeSeparatorStr      = AlternativeRangeSeparatorStr
+
+	SegmentWildcard             byte = '*'
+	SegmentWildcardStr               = string(SegmentWildcard)
+	AlternativeSegmentWildcard  byte = '¿'
+	SegmentSqlWildcard          byte = '%'
+	SegmentSqlWildcardStr            = string(SegmentSqlWildcard)
+	SegmentSqlSingleWildcard    byte = '_'
+	SegmentSqlSingleWildcardStr      = string(SegmentSqlSingleWildcard)
+	nilAddress                       = "<nil>"
 )
 
 var segmentWildcardStr = SegmentWildcardStr

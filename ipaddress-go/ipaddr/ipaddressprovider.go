@@ -579,15 +579,20 @@ func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackC
 			return
 		},
 	}
-	versionedCreatorFunc := func(version IPVersion) *IPAddress {
+	versionedCreatorFunc := func(v IPVersion) *IPAddress {
 		addresses := cached.addresses
 		if addresses != nil {
 			addr := addresses.address
-			if version == addr.GetIPVersion() {
+			if v == addr.GetIPVersion() {
 				return addr
 			}
 		}
-		return versionedCreator()
+		if v.IsIndeterminate() {
+			return versionedCreator()
+		}
+		_, vCreator := emptyAddressCreator(options.EmptyStrParsedAs(), v, zone)
+		return vCreator()
+		//return versionedCreator() xxxxx
 	}
 	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
 		return versionedCreatorFunc(version), nil

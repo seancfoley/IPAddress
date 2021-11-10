@@ -5,5 +5,5 @@ type hostAllTester struct {
 }
 
 func (t hostAllTester) run() {
-
+	// caches not supported, so nothing to test here
 }
