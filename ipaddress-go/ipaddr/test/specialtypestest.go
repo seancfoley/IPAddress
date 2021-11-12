@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"math/big"
 	"net"
 )
 
@@ -83,6 +84,11 @@ func (t specialTypesTester) run() {
 
 	t.testEmptyValues()
 
+	t.testAllValues()
+	t.testAllValuesVersioned(ipaddr.IPv4, getCount(255, 4))
+	t.testAllValuesVersioned(ipaddr.IPv6, getCount(0xffff, 8))
+	t.testAllMACValues(getCount(0xff, 6), getCount(0xff, 8))
+
 	addressEmpty := t.createParamsHost("", emptyAddressOptions)
 	t.hostLabelsHostTest(addressEmpty, []string{"127", "0", "0", "1"})
 	addressEmpty2 := t.createParamsHost("", emptyAddressNoLoopbackOptions)
@@ -155,7 +161,6 @@ func (t specialTypesTester) testIPv6Strings(addr string,
 }
 
 func (t specialTypesTester) testEmptyValues() {
-	//TODO see //TODO EMPTY
 	//zeroHostOptions := new(ipaddr.HostNameParametersBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
 	zeroHostOptions := new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(ipaddr.LoopbackOption).GetParentBuilder().ToParams()
 	zeroAddrOptions := new(ipaddr.IPAddressStringParametersBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
@@ -407,4 +412,80 @@ func (t specialTypesTester) testValidity() {
 		}
 	}
 	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testAllMACValues(count1, count2 *big.Int) {
+	macAll := t.createMACParamsAddress("*", macOptionsSpecial).GetAddress()
+	macAll2 := t.createMACParamsAddress("*:*:*:*:*:*:*", macOptionsSpecial).GetAddress()
+	address1Str := "*:*:*:*:*:*"
+	address2Str := "*:*:*:*:*:*:*:*"
+	mac1 := t.createMACParamsAddress(address1Str, macOptionsSpecial).GetAddress()
+	mac2 := t.createMACParamsAddress(address2Str, macOptionsSpecial).GetAddress()
+	if !macAll.Equals(mac1) {
+		t.addFailure(newSegmentSeriesFailure("no match "+macAll.String(), mac1))
+	} else if !macAll2.Equals(mac2) {
+		t.addFailure(newSegmentSeriesFailure("no match "+macAll2.String(), mac2))
+	} else if macAll.CompareTo(mac1) != 0 {
+		t.addFailure(newSegmentSeriesFailure("no match "+macAll.String(), mac1))
+	} else if macAll2.CompareTo(mac2) != 0 {
+		t.addFailure(newSegmentSeriesFailure("no match "+macAll2.String(), mac2))
+	} else if macAll.GetCount().Cmp(count1) != 0 {
+		t.addFailure(newSegmentSeriesFailure("no count match ", macAll))
+	} else if macAll2.GetCount().Cmp(count2) != 0 {
+		t.addFailure(newSegmentSeriesFailure("no count match ", macAll2))
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testAllValuesVersioned(version ipaddr.IPVersion, count *big.Int) {
+	hostAll := t.createParamsHost("*", hostOptionsSpecial)
+	addressAllStr := t.createParamsAddress("*", addressOptionsSpecial)
+	addressAll := addressAllStr.GetVersionedAddress(version)
+	var address2Str = "*.*.*.*"
+	if !version.IsIPv4() {
+		address2Str = "*:*:*:*:*:*:*:*"
+	}
+	address := t.createParamsAddress(address2Str, addressOptionsSpecial).GetAddress()
+	if !addressAll.Equals(address) {
+		t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
+	} else if addressAll.CompareTo(address) != 0 {
+		t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
+	} else if addressAll.GetCount().Cmp(count) != 0 {
+		// x := t.createParamsAddress("*", addressOptionsSpecial).GetVersionedAddress(version);
+		//x.GetCount();
+		t.addFailure(newIPAddrFailure("no count match ", addressAll))
+	} else {
+		str := hostAll.AsAddressString()
+		addressAll = str.GetVersionedAddress(version)
+		if !addressAll.Equals(address) {
+			t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
+		} else if addressAll.CompareTo(address) != 0 {
+			t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
+		} else if addressAll.GetCount().Cmp(count) != 0 {
+			t.addFailure(newIPAddrFailure("no count match ", addressAll))
+		}
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testAllValues() {
+	hostAll := t.createParamsHost("*", hostOptionsSpecial)
+	addressAll := t.createParamsAddress("*", addressOptionsSpecial)
+	macAll := t.createMACParamsAddress("*", macOptionsSpecial)
+	if addressAll.GetAddress() != nil {
+		t.addFailure(newFailure("non null", addressAll))
+	} else if hostAll.AsAddress() != nil {
+		t.addFailure(newHostFailure("non null", hostAll))
+	} else if hostAll.GetAddress() != nil {
+		t.addFailure(newHostFailure("non null", hostAll))
+	} else if macAll.GetAddress() == nil {
+		t.addFailure(newMACFailure("null", macAll))
+	}
+	t.incrementTestCount()
+}
+
+func getCount(segmentMax, segmentCount uint64) *big.Int {
+	segMax := new(big.Int).SetUint64(segmentMax + 1)
+	return segMax.Exp(segMax, new(big.Int).SetUint64(segmentCount), nil)
+	//return segMax.pow(segmentCount);
 }

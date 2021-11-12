@@ -3901,7 +3901,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				} else {
 					endIndex = len(str)
 				}
-				if !firstTrySucceeded { //TODO EMPTY here we might parse empty successfully.  BUT should we defer to the host empty setting and not the address?
+				if !firstTrySucceeded {
 					if addrErr = validateIPAddress(addressOptions, str, 0, endIndex, pa.getIPAddressParseData(), false); addrErr == nil {
 						//since no square brackets, we parse as an address (this can affect how zones are parsed)
 						//Also, an address cannot end with a single ':' like a port, so we cannot take a shortcut here and parse for port, we must strip it off first (hence no host parameters passed)
