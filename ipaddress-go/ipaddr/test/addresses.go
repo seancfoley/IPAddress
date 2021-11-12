@@ -8,39 +8,39 @@ import (
 var (
 	hostOptions = new(ipaddr.HostNameParametersBuilder).
 			AllowEmpty(false).
-			ParseEmptyStrAs(ipaddr.NoAddressOption).
-			NormalizeToLowercase(true).
-			AllowPort(true).
-			AllowService(true).
-			AllowBracketedIPv6(true).
-			AllowBracketedIPv4(true).
-			GetIPAddressParametersBuilder(). //GetAddressOptionsBuilder().
-			AllowPrefix(true).
-			AllowMask(true).
-			SetRangeParameters(ipaddr.NoRange).
-			Allow_inet_aton(false).
-			AllowEmpty(false).
-			ParseEmptyStrAs(ipaddr.NoAddressOption).
-			AllowAll(false). //allowPrefixOnly(true).
-			AllowSingleSegment(false).
-			GetIPv4AddressParametersBuilder().
-			AllowLeadingZeros(true).
-			AllowUnlimitedLeadingZeros(false).
-			AllowPrefixLenLeadingZeros(true).
-			AllowPrefixesBeyondAddressSize(false).
-			AllowWildcardedSeparator(true).
-			AllowBinary(true).
-			GetParentBuilder().
-			GetIPv6AddressParametersBuilder().
-			AllowLeadingZeros(true).
-			AllowUnlimitedLeadingZeros(false).
-			AllowPrefixLenLeadingZeros(true).
-			AllowPrefixesBeyondAddressSize(false).
-			AllowWildcardedSeparator(true).
-			AllowMixed(true).
-			AllowZone(true).
-			AllowBinary(true).
-			GetParentBuilder().GetParentBuilder().ToParams()
+		//ParseEmptyStrAs(ipaddr.NoAddressOption).
+		NormalizeToLowercase(true).
+		AllowPort(true).
+		AllowService(true).
+		AllowBracketedIPv6(true).
+		AllowBracketedIPv4(true).
+		GetIPAddressParametersBuilder(). //GetAddressOptionsBuilder().
+		AllowPrefix(true).
+		AllowMask(true).
+		SetRangeParameters(ipaddr.NoRange).
+		Allow_inet_aton(false).
+		AllowEmpty(false).
+		ParseEmptyStrAs(ipaddr.NoAddressOption).
+		AllowAll(false). //allowPrefixOnly(true).
+		AllowSingleSegment(false).
+		GetIPv4AddressParametersBuilder().
+		AllowLeadingZeros(true).
+		AllowUnlimitedLeadingZeros(false).
+		AllowPrefixLenLeadingZeros(true).
+		AllowPrefixesBeyondAddressSize(false).
+		AllowWildcardedSeparator(true).
+		AllowBinary(true).
+		GetParentBuilder().
+		GetIPv6AddressParametersBuilder().
+		AllowLeadingZeros(true).
+		AllowUnlimitedLeadingZeros(false).
+		AllowPrefixLenLeadingZeros(true).
+		AllowPrefixesBeyondAddressSize(false).
+		AllowWildcardedSeparator(true).
+		AllowMixed(true).
+		AllowZone(true).
+		AllowBinary(true).
+		GetParentBuilder().GetParentBuilder().ToParams()
 
 	hostInetAtonOptions = new(ipaddr.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().Allow_inet_aton(true).AllowSingleSegment(true).GetParentBuilder().ToParams()
 
@@ -212,22 +212,22 @@ var (
 
 	hostInetAtonwildcardAndRangeOptions = new(ipaddr.HostNameParametersBuilder).
 						AllowEmpty(false).
-						ParseEmptyStrAs(ipaddr.NoAddressOption).
-						NormalizeToLowercase(true).
-						AllowBracketedIPv6(true).
-						AllowBracketedIPv4(true).GetIPAddressParametersBuilder().
-						AllowPrefix(true).
-						AllowMask(true).
-						SetRangeParameters(ipaddr.WildcardAndRange).
-						Allow_inet_aton(true).
-						AllowEmpty(false).
-						ParseEmptyStrAs(ipaddr.NoAddressOption).
-						AllowAll(true). //AllowPrefixOnly(false).
-						GetIPv4AddressParametersBuilder().
-						AllowPrefixLenLeadingZeros(true).
-						AllowPrefixesBeyondAddressSize(false).
-						AllowWildcardedSeparator(true).
-						GetParentBuilder().GetParentBuilder().ToParams()
+		//ParseEmptyStrAs(ipaddr.NoAddressOption).
+		NormalizeToLowercase(true).
+		AllowBracketedIPv6(true).
+		AllowBracketedIPv4(true).GetIPAddressParametersBuilder().
+		AllowPrefix(true).
+		AllowMask(true).
+		SetRangeParameters(ipaddr.WildcardAndRange).
+		Allow_inet_aton(true).
+		AllowEmpty(false).
+		ParseEmptyStrAs(ipaddr.NoAddressOption).
+		AllowAll(true). //AllowPrefixOnly(false).
+		GetIPv4AddressParametersBuilder().
+		AllowPrefixLenLeadingZeros(true).
+		AllowPrefixesBeyondAddressSize(false).
+		AllowWildcardedSeparator(true).
+		GetParentBuilder().GetParentBuilder().ToParams()
 
 	inetAtonwildcardAndRangeOptions = new(ipaddr.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
 

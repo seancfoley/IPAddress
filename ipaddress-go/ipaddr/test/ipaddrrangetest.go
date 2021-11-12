@@ -386,16 +386,19 @@ func (t ipAddressRangeTester) run() {
 	t.testMatches(true, "::0b0000111100001111-f0f0:3", "::f0f-f0f0:3")
 	t.testMatches(true, "::0B0000111100001111-f0f0:3", "::f0f-f0f0:3")
 
+	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
+	allowsIPv6PrefixBeyondAddressSize := t.createAddress("::1").GetValidationOptions().GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+
 	t.ipv4test(true, "1.2.*.4/1")
 	t.ipv4test(false, "1.2.*.4/-1")
 	t.ipv4test(false, "1.2.*.4/")
 	t.ipv4test(false, "1.2.*.4/x")
-	t.ipv4test(true, "1.2.*.4/33") //we are now allowing extra-large prefixes
+	t.ipv4test(allowsIPv4PrefixBeyondAddressSize, "1.2.*.4/33")
 	t.ipv6test(true, "1:*::1/1")
 	t.ipv6test(false, "1:*::1/-1")
 	t.ipv6test(false, "1:*::1/")
 	t.ipv6test(false, "1:*::1/x")
-	t.ipv6test(false, "1:*::1/129") //we are not allowing extra-large prefixes
+	t.ipv6test(allowsIPv6PrefixBeyondAddressSize, "1:*::1/129")
 
 	//masks that have wildcards in them
 	t.ipv4test(false, "1.2.3.4/*")

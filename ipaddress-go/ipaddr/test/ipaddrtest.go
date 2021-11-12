@@ -425,6 +425,9 @@ func (t ipAddressTester) run() {
 	t.ipv6test(false, "1:2::/1:2::/16")
 	t.ipv6test(false, "1:2::/1.2.3.4") //mask mismatch
 
+	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
+	allowsIPv6PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+
 	//test some valid and invalid prefixes
 	t.ipv4test(true, "1.2.3.4/1")
 	t.ipv4test(false, "1.2.3.4/ 1")
@@ -433,12 +436,12 @@ func (t ipAddressTester) run() {
 	t.ipv4test(false, "1.2.3.4/")
 	t.ipv4test(true, "1.2.3.4/1.2.3.4")
 	t.ipv4test(false, "1.2.3.4/x")
-	t.ipv4test(true, "1.2.3.4/33") //we are now allowing extra-large prefixes
+	t.ipv4test(allowsIPv4PrefixBeyondAddressSize, "1.2.3.4/33") //we are not allowing extra-large prefixes
 	t.ipv6test(true, "1::1/1")
 	t.ipv6test(false, "1::1/-1")
 	t.ipv6test(false, "1::1/")
 	t.ipv6test(false, "1::1/x")
-	t.ipv6test(false, "1::1/129") //we are not allowing extra-large prefixes
+	t.ipv6test(allowsIPv6PrefixBeyondAddressSize, "1::1/129") //we are not allowing extra-large prefixes
 	t.ipv6test(true, "1::1/1::1")
 
 	t.ipv4zerotest(t.isLenient(), "") //this needs special validation options to be valid
@@ -3613,7 +3616,7 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 			} else { //prefix > IPv4Address.BIT_COUNT
 				//try {
 				_, err := ipv4Addr.ToAddress()
-				if err != nil {
+				if err == nil {
 					t.addFailure(newFailure("did not succeed with extra-large prefix", ipv4Addr))
 				}
 
@@ -3636,7 +3639,8 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 		//} catch(AddressStringException e) {
 		_, err = ipv4Addr.ToAddress()
 		if err == nil {
-			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String()+": "+err.Error(), ipv4Addr))
+			//t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String()+": "+err.Error(), ipv4Addr))
+			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String(), ipv4Addr))
 		}
 		//try {
 		//	ipv4Addr.toAddress();

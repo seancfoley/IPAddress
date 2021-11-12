@@ -23,8 +23,13 @@ package ipaddr
 //}
 
 type HostNameParameters interface {
+	// AllowsEmpty determines if an empty host string, when not a valid address, is considered valid.
+	// The parser will first parse as an empty address, if allowed by the nested IPAddressStringParameters.
+	// Otherwise, it will be considered an empty host if this returns true, or an invalid host if it returns false.
 	AllowsEmpty() bool
-	EmptyStrParsedAs() EmptyStrOption
+
+	//xxxx gotta defer to address on this xxx
+	//EmptyStrParsedAs() EmptyStrOption
 
 	// Indicates the version to prefer when resolving host names.
 	GetPreferredVersion() IPVersion
@@ -48,7 +53,7 @@ type HostNameParameters interface {
 type hostNameParameters struct {
 	ipParams ipAddressStringParameters
 
-	emptyStringOption EmptyStrOption
+	//emptyStringOption EmptyStrOption
 
 	preferredVersion IPVersion
 
@@ -64,9 +69,9 @@ func (params *hostNameParameters) AllowsEmpty() bool {
 	return !params.noEmpty
 }
 
-func (params *hostNameParameters) EmptyStrParsedAs() EmptyStrOption {
-	return params.emptyStringOption
-}
+//func (params *hostNameParameters) EmptyStrParsedAs() EmptyStrOption {
+//	return params.emptyStringOption
+//}
 
 func (params *hostNameParameters) GetPreferredVersion() IPVersion {
 	return params.preferredVersion
@@ -163,7 +168,7 @@ func (builder *HostNameParametersBuilder) Set(params HostNameParameters) *HostNa
 		builder.hostNameParameters = *p
 	} else {
 		builder.hostNameParameters = hostNameParameters{
-			emptyStringOption:  params.EmptyStrParsedAs(),
+			//emptyStringOption:  params.EmptyStrParsedAs(),
 			preferredVersion:   params.GetPreferredVersion(),
 			noEmpty:            !params.AllowsEmpty(),
 			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
@@ -194,11 +199,14 @@ func (builder *HostNameParametersBuilder) AllowEmpty(allow bool) *HostNameParame
 //	builder.hostNameParameters.emptyIsNotLoopback = !isLoopback
 //	return builder
 //}
-
-func (builder *HostNameParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParametersBuilder {
-	builder.hostNameParameters.emptyStringOption = option
-	return builder
-}
+//
+//func (builder *HostNameParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParametersBuilder {
+//	builder.hostNameParameters.emptyStringOption = option
+//	if option != NoAddressOption {
+//		builder.AllowEmpty(true)
+//	}
+//	return builder
+//}
 
 func (builder *HostNameParametersBuilder) SetPreferredVersion(version IPVersion) *HostNameParametersBuilder {
 	builder.hostNameParameters.preferredVersion = version

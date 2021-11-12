@@ -422,6 +422,9 @@ func (builder *IPAddressStringParametersBuilder) AllowAll(allow bool) *IPAddress
 
 func (builder *IPAddressStringParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *IPAddressStringParametersBuilder {
 	builder.params.emptyStringOption = option
+	if option != NoAddressOption {
+		builder.AllowEmpty(true)
+	}
 	return builder
 }
 
@@ -481,7 +484,7 @@ func (builder *IPAddressStringParametersBuilder) Allow_inet_aton(allow bool) *IP
 type ipAddressStringFormatParameters struct {
 	addressStringFormatParameters
 
-	allowPrefixesBeyondAddrSize,
+	allowPrefixesBeyondAddrSize, //TODO consider reversing this and defaultParseAllowPrefixBeyondAddressSize
 	noPrefixLengthLeadingZeros,
 	noBinary bool
 }

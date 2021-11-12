@@ -226,7 +226,7 @@ func (host *HostName) IsAllAddresses() bool {
 
 func (host *HostName) IsEmpty() bool {
 	host = host.init()
-	return host.IsValid() && host.parsedHost.getAddressProvider().isProvidingEmpty()
+	return host.IsValid() && ((host.IsAddressString() && host.parsedHost.getAddressProvider().isProvidingEmpty()) || len(host.GetNormalizedLabels()) == 0)
 }
 
 func (host *HostName) GetAddress() *IPAddress {
@@ -266,17 +266,17 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 			strHost := parsedHost.getHost()
 			validationOptions := host.getParams()
 			if len(strHost) == 0 {
-				emptyStringOpt := validationOptions.EmptyStrParsedAs()
-				if emptyStringOpt != NoAddressOption {
-					addrFunc, _ := emptyAddressCreator(
-						validationOptions.EmptyStrParsedAs(),
-						validationOptions.GetPreferredVersion(),
-						NoZone)
-					addr, _ := addrFunc()
-					addrs = []*IPAddress{addr}
-				} else {
-					addrs = []*IPAddress{}
-				}
+				//emptyStringOpt := validationOptions.EmptyStrParsedAs()
+				//if emptyStringOpt != NoAddressOption {
+				//	addrFunc, _ := emptyAddressCreator(
+				//		validationOptions.EmptyStrParsedAs(),
+				//		validationOptions.GetPreferredVersion(),
+				//		NoZone)
+				//	addr, _ := addrFunc()
+				//	addrs = []*IPAddress{addr}
+				//} else {
+				addrs = []*IPAddress{}
+				//}
 			} else {
 				var ips []net.IP
 				ips, lookupErr := net.LookupIP(strHost)

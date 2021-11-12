@@ -287,7 +287,7 @@ func validateAddress(
 					// it could be all addresses like "*", empty "", prefix-only ip address like /64, single segment like 12345, or single segment range like 12345-67890
 					totalCharacterCount := index - strStartIndex
 					if totalCharacterCount == 0 {
-						//it is prefix-only or ""
+						//it is ""
 						if !isMac && ipParseData.hasPrefixSeparator() {
 							//if !validationOptions.AllowsPrefixOnly() {
 							return &addressStringError{addressError{str: str, key: "ipaddress.error.prefix.only"}}
@@ -1916,20 +1916,24 @@ func parseValidatedPrefix(
 		leadingZeros--
 		digitCount++
 	}
-	asIPv4 := ipVersion.IsIndeterminate() && ipVersion.IsIPv4()
+	asIPv4 := ipVersion.IsIPv4()
+	//asIPv4 := ipVersion.IsIndeterminate() && ipVersion.IsIPv4()
 	//tryCache := false
 	if asIPv4 {
 		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLenLeadingZeros() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv4.prefix.leading.zeros"}}
 			return
 		}
-		allowPrefixesBeyondAddressSize := validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
-		if !allowPrefixesBeyondAddressSize && result > IPv4BitCount {
-			if validationOptions.AllowsSingleSegment() {
-				return //treat it as a single segment ipv4 mask
+		if result > IPv4BitCount {
+			allowPrefixesBeyondAddressSize := validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
+			if !allowPrefixesBeyondAddressSize {
+				//if validationOptions.AllowsSingleSegment() {
+				//	return //treat it as a single segment ipv4 mask
+				//}
+				err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.prefixSize"}}
+				return
 			}
-			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.prefixSize"}}
-			return
+			result = IPv4BitCount
 		}
 		//tryCache = result < len(PREFIX_CACHE)
 	} else {
@@ -1937,10 +1941,13 @@ func parseValidatedPrefix(
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv6.prefix.leading.zeros"}}
 			return
 		}
-		allowPrefixesBeyondAddressSize := validationOptions.GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
-		if !allowPrefixesBeyondAddressSize && result > IPv6BitCount {
-			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.prefixSize"}}
-			return
+		if result > IPv6BitCount {
+			allowPrefixesBeyondAddressSize := validationOptions.GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+			if !allowPrefixesBeyondAddressSize {
+				err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.prefixSize"}}
+				return
+			}
+			result = IPv6BitCount
 		}
 		//tryCache = zone.IsEmpty() && result < len(PREFIX_CACHE)
 	}
@@ -3426,7 +3433,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 	}
 	var segmentUppercase, isNotNormalized, squareBracketed,
 		tryIPv6, tryIPv4,
-		isPrefixed, hasPortOrService, addressIsEmpty bool
+		isPrefixed, hasPortOrService, hostIsEmpty bool
 	var isAllDigits, isPossiblyIPv6, isPossiblyIPv4 bool = true, true, true
 	var isSpecialOnlyIndex, qualifierIndex, index, lastSeparatorIndex int = -1, -1, -1, -1
 	labelCount := 0
@@ -3443,7 +3450,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		//grab the character to evaluate
 		if index == addrLen {
 			if index == 0 {
-				addressIsEmpty = true
+				hostIsEmpty = true
 				break
 			}
 			segmentCountMatchesIPv4 :=
@@ -3894,7 +3901,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				} else {
 					endIndex = len(str)
 				}
-				if !firstTrySucceeded {
+				if !firstTrySucceeded { //TODO EMPTY here we might parse empty successfully.  BUT should we defer to the host empty setting and not the address?
 					if addrErr = validateIPAddress(addressOptions, str, 0, endIndex, pa.getIPAddressParseData(), false); addrErr == nil {
 						//since no square brackets, we parse as an address (this can affect how zones are parsed)
 						//Also, an address cannot end with a single ':' like a port, so we cannot take a shortcut here and parse for port, we must strip it off first (hence no host parameters passed)
@@ -3935,7 +3942,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		hostQualifier,
 		isPrefixed,
 		hasPortOrService,
-		addressIsEmpty,
+		hostIsEmpty,
 		qualifierIndex,
 		len(str),
 		IndeterminateIPVersion)
@@ -3943,7 +3950,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		err = &hostAddressNestedError{nested: addrErr}
 		return
 	}
-	if addressIsEmpty {
+	if hostIsEmpty {
 		if !validationOptions.AllowsEmpty() {
 			err = &hostNameError{addressError{str: str, key: "ipaddress.host.error.empty"}}
 			return
