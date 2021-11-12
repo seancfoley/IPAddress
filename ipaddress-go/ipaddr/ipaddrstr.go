@@ -141,6 +141,18 @@ func (addrStr *IPAddressString) GetIPVersion() IPVersion {
 	return IndeterminateIPVersion
 }
 
+// Returns whether this string represents a loopback IP address.
+func (addrStr *IPAddressString) IsLoopback() bool {
+	val := addrStr.GetAddress()
+	return val != nil && val.IsLoopback()
+}
+
+// Returns whether this string represents an IP address whose value is zero.
+func (addrStr *IPAddressString) IsZero() bool {
+	value := addrStr.GetAddress()
+	return value != nil && value.IsZero()
+}
+
 func (addrStr *IPAddressString) String() string {
 	return addrStr.str
 }

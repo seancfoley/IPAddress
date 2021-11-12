@@ -4,6 +4,7 @@ import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math/big"
 	"net"
+	"strconv"
 )
 
 type specialTypesTester struct {
@@ -96,6 +97,27 @@ func (t specialTypesTester) run() {
 	hostEmpty := t.createParamsHost("", hostOptionsSpecial)
 	//t.hostLabelsHostTest(hostEmpty, []string{})
 	t.hostLabelsHostTest(hostEmpty, []string{"127", "0", "0", "1"})
+
+	t.testEmptyIsSelf()
+	t.testSelf("localhost", true)
+	t.testSelf("127.0.0.1", true)
+	t.testSelf("::1", true)
+	t.testSelf("[::1]", true)
+	t.testSelf("*", false)
+	t.testSelf("sean.com", false)
+	t.testSelf("1.2.3.4", false)
+	t.testSelf("::", false)
+	t.testSelf("[::]", false)
+	t.testSelf("[1:2:3:4:1:2:3:4]", false)
+	t.testSelf("1:2:3:4:1:2:3:4", false)
+
+	t.testEmptyLoopback()
+	t.testLoopback("127.0.0.1", true)
+	t.testLoopback("::1", true)
+	t.testLoopback("*", false)
+	t.testLoopback("1.2.3.4", false)
+	t.testLoopback("::", false)
+	t.testLoopback("1:2:3:4:1:2:3:4", false)
 }
 
 func (t specialTypesTester) testIPv4Strings(addr string, explicit bool, normalizedString, normalizedWildcardString, sqlString, fullString, reverseDNSString, singleHex, singleOctal string) {
@@ -480,6 +502,54 @@ func (t specialTypesTester) testAllValues() {
 		t.addFailure(newHostFailure("non null", hostAll))
 	} else if macAll.GetAddress() == nil {
 		t.addFailure(newMACFailure("null", macAll))
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testEmptyIsSelf() {
+	w := t.createParamsHost("", hostOptionsSpecial)
+	if !w.IsSelf() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(w.IsSelf()), w))
+	}
+	w2 := t.createParamsHost("", emptyAddressOptions)
+	if !w2.IsSelf() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(w2.IsSelf()), w2))
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testSelf(host string, isSelf bool) {
+	w := t.createParamsHost(host, hostOptionsSpecial)
+	if isSelf != w.IsSelf() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(isSelf), w))
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testEmptyLoopback() {
+	w := t.createParamsHost("", hostOptionsSpecial)
+	if !w.IsLoopback() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(w.IsSelf()), w))
+	}
+	addressEmptyValue := w.GetAddress()
+	if !addressEmptyValue.IsLoopback() {
+		t.addFailure(newIPAddrFailure("failed: isSelf is "+strconv.FormatBool(addressEmptyValue.IsLoopback()), addressEmptyValue))
+	}
+	w2 := t.createParamsHost("", emptyAddressOptions)
+	if !w2.IsLoopback() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(w2.IsSelf()), w2))
+	}
+	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testLoopback(host string, isSelf bool) {
+	w := t.createParamsHost(host, hostOptionsSpecial)
+	if isSelf != w.IsLoopback() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(isSelf), w))
+	}
+	w2 := t.createParamsAddress(host, addressOptionsSpecial)
+	if isSelf != w2.IsLoopback() {
+		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(isSelf), w))
 	}
 	t.incrementTestCount()
 }
