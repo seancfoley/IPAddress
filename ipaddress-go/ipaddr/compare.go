@@ -25,10 +25,6 @@ type componentComparator interface {
 	compareLargeValues(oneUpper, oneLower, twoUpper, twoLower *big.Int) int
 }
 
-type AddressComparator struct {
-	componentComparator
-}
-
 const (
 	ipv6sectype          = 7
 	ipv6v4groupingtype   = 6
@@ -115,6 +111,10 @@ func mapRange(rngType IPAddressSeqRangeType) int {
 		return ipv6rangetype
 	}
 	return iprangetype
+}
+
+type AddressComparator struct {
+	componentComparator
 }
 
 func (comp AddressComparator) CompareAddresses(one, two AddressType) int {

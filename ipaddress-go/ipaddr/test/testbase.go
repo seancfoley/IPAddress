@@ -54,6 +54,9 @@ func Test() {
 	sTypesTester := specialTypesTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	sTypesTester.run()
 
+	addressOrderTester := addressOrderTest{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	addressOrderTester.run()
+
 	endTime := time.Now().Sub(startTime)
 	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
 	if len(acc.failures) > 0 {
