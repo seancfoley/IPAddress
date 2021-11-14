@@ -8,15 +8,13 @@ import (
 )
 
 const (
-	//TODO rename so not capitalized
+	digits = "0123456789abcdefghijklmnopqrstuvwxyz"
 
-	DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
+	extendedDigits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-';<=>?@^_`{|}~"
 
-	EXTENDED_DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-';<=>?@^_`{|}~"
+	uppercaseDigits = extendedDigits
 
-	UPPERCASE_DIGITS = EXTENDED_DIGITS
-
-	DOUBLE_DIGITS_DEC = "00010203040506070809" +
+	doubleDigitsDecimal = "00010203040506070809" +
 		"10111213141516171819" +
 		"20212223242526272829" +
 		"30313233343536373839" +
@@ -52,30 +50,30 @@ func toUnsignedStringFast(value uint16, radix int, uppercase bool, appendable *s
 	if radix == 10 {
 		// we know value <= 0xffff (ie 16 bits or less)
 		if value < 10 {
-			appendable.WriteByte(DIGITS[value])
+			appendable.WriteByte(digits[value])
 			return true
 		} else if value < 100 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			digIndex := value << 1
 			appendable.WriteByte(dig[digIndex])
 			appendable.WriteByte(dig[digIndex+1])
 			return true
 		} else if value < 200 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			digIndex := (value - 100) << 1
 			appendable.WriteByte('1')
 			appendable.WriteByte(dig[digIndex])
 			appendable.WriteByte(dig[digIndex+1])
 			return true
 		} else if value < 300 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			digIndex := (value - 200) << 1
 			appendable.WriteByte('2')
 			appendable.WriteByte(dig[digIndex])
 			appendable.WriteByte(dig[digIndex+1])
 			return true
 		}
-		dig := DIGITS
+		dig := digits
 		uval := uint(value)
 		var res [5]byte
 		i := 4
@@ -125,7 +123,7 @@ func toUnsignedStringFast(value uint16, radix int, uppercase bool, appendable *s
 		appendable.WriteByte(dig[value&15])
 		return true
 	} else if radix == 8 {
-		dig := DIGITS
+		dig := digits
 		if value < 010 {
 			appendable.WriteByte(dig[value])
 			return true
@@ -226,7 +224,7 @@ func toUnsignedStringSlow(
 	}
 	var bytes [13]byte
 	index := 13
-	dig := EXTENDED_DIGITS
+	dig := extendedDigits
 	rad64 := uint64(radix)
 	for value >= rad64 {
 		val := value
@@ -365,9 +363,9 @@ func toDefaultString(val uint64, radix int) string {
 	var quotient, remainder, value uint //we iterate on //value == quotient * radix + remainder
 	if radix == 10 {
 		if val < 10 {
-			return DIGITS[val : val+1]
+			return digits[val : val+1]
 		} else if val < 100 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			value = uint(val)
 			digIndex := value << 1
 			var builder strings.Builder
@@ -376,7 +374,7 @@ func toDefaultString(val uint64, radix int) string {
 			builder.WriteByte(dig[digIndex+1])
 			return builder.String()
 		} else if val < 200 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			value = uint(val)
 			digIndex := (value - 100) << 1
 			var builder strings.Builder
@@ -385,7 +383,7 @@ func toDefaultString(val uint64, radix int) string {
 			builder.WriteByte(dig[digIndex+1])
 			return builder.String()
 		} else if val < 300 {
-			dig := DOUBLE_DIGITS_DEC
+			dig := doubleDigitsDecimal
 			value = uint(val)
 			digIndex := (value - 200) << 1
 			var builder strings.Builder
@@ -400,7 +398,7 @@ func toDefaultString(val uint64, radix int) string {
 			return strconv.FormatUint(val, 10)
 		}
 		chars := make([]byte, length)
-		dig := DIGITS
+		dig := digits
 		for value != 0 {
 			length--
 			//value == quotient * 10 + remainder
@@ -412,7 +410,7 @@ func toDefaultString(val uint64, radix int) string {
 		return string(chars)
 	} else if radix == 16 {
 		if val < 0x10 {
-			return DIGITS[val : val+1]
+			return digits[val : val+1]
 		}
 		var builder strings.Builder
 		if val < 0x100 {
@@ -430,7 +428,7 @@ func toDefaultString(val uint64, radix int) string {
 		} else {
 			return strconv.FormatUint(val, 16)
 		}
-		dig := DIGITS
+		dig := digits
 		builder.Grow(length)
 		shift := uint(12)
 		for {
@@ -483,8 +481,8 @@ func getDefaultRangeStringVals(strProvider divStringProvider, val1, val2 uint64,
 		charsStr := strings.Builder{}
 		charsStr.Grow(len1 + len2 + 1)
 
-		dig := DIGITS
-		doubleDig := DOUBLE_DIGITS_DEC
+		dig := digits
+		doubleDig := doubleDigitsDecimal
 
 		var quotient, remainder uint
 
@@ -583,7 +581,7 @@ func getDefaultRangeStringVals(strProvider divStringProvider, val1, val2 uint64,
 		value1 = uint(val1)
 		charsStr := strings.Builder{}
 		charsStr.Grow(len1 + len2 + 1)
-		dig := DIGITS
+		dig := digits
 		if val1 < 0x10 {
 			charsStr.WriteByte(dig[value1])
 		} else {
@@ -688,9 +686,9 @@ func getRangeString(
 
 func getDigits(uppercase bool, radix int) string {
 	if uppercase || radix > 36 {
-		return UPPERCASE_DIGITS
+		return uppercaseDigits
 	}
-	return DIGITS
+	return digits
 }
 
 func toSplitUnsignedString(
@@ -823,9 +821,9 @@ func appendDigits(
 	}
 	uradix := uint(radix)
 	rad64 := uint64(radix)
-	dig := DIGITS
+	dig := digits
 	if uppercase {
-		dig = UPPERCASE_DIGITS
+		dig = uppercaseDigits
 	}
 	var index uint
 	prefLen := len(stringPrefix)
@@ -877,9 +875,9 @@ func appendRangeDigits(
 	stringPrefix string,
 	appendable *strings.Builder) IncompatibleAddressError {
 
-	dig := DIGITS
+	dig := digits
 	if uppercase {
-		dig = UPPERCASE_DIGITS
+		dig = uppercaseDigits
 	}
 	previousWasFullRange := true
 	useInts := upper <= uint64(maxUint)
@@ -977,7 +975,7 @@ func appendRangeDigits(
 	return nil
 }
 
-var maxDigitMap = createMap()
+var maxDigitMap = createMap() // we use a pointer so we can overwrite atomically
 
 func createMap() *map[uint64]int {
 	res := make(map[uint64]int)
@@ -991,7 +989,7 @@ func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
 	if digs, ok := theMap[key]; ok {
 		return digs
 	}
-	digs := getDigitCount(maxValue, bitCount, radix)
+	digs := getDigitCount(maxValue, radix)
 	newMaxDigitMap := make(map[uint64]int)
 	for k, val := range theMap {
 		newMaxDigitMap[k] = val
@@ -1002,7 +1000,7 @@ func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
 	return digs
 }
 
-func getDigitCount(value uint64, bitCount BitCount, radix int) int {
+func getDigitCount(value uint64, radix int) int {
 	result := 1
 	if radix == 16 {
 		for {

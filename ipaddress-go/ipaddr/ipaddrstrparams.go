@@ -164,7 +164,7 @@ type IPv4AddressStringParameters interface {
 
 	// Allows ipv4 inet_aton hexadecimal or octal to have leading zeros, such as in the first two segments of 0x0a.00b.c.d
 	// The first 0 is not considered a leading zero, it either denotes octal or hex depending on whether it is followed by an 'x'.
-	// Zeros that appear afterwards are inet_aton leading zeros.
+	// ZerosCompression that appear afterwards are inet_aton leading zeros.
 	Allows_inet_aton_leading_zeros() bool
 }
 

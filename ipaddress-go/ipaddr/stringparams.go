@@ -838,7 +838,7 @@ type ipAddressStringParams struct {
 //}
 
 func (params *ipAddressStringParams) preferWildcards() bool {
-	return params.wildcardOption == WILDCARDS_ALL
+	return params.wildcardOption == WildcardsAll
 }
 
 //public void setWildcardOption(WildcardOption option) {

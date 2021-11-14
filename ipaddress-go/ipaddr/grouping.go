@@ -9,8 +9,6 @@ import (
 
 func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
 	grouping := &AddressDivisionGrouping{
-		//return &AddressSection{
-		//addressSectionInternal{
 		addressDivisionGroupingInternal{
 			addressDivisionGroupingBase: addressDivisionGroupingBase{
 				divisions:    standardDivArray{divs},
@@ -18,9 +16,7 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 				addrType:     addrType,
 				cache:        &valueCache{},
 			},
-			//addressSegmentIndex: startIndex,
 		},
-		//},
 	}
 	assignStringCache(&grouping.addressDivisionGroupingBase, addrType)
 	return grouping

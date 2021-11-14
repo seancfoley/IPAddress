@@ -65,16 +65,10 @@ func mapDivision(genericDiv DivisionType) int {
 			return ipsegtype
 		} else if addrDiv.IsAddressSegment() {
 			return segtype
-		} //} else if(div instanceof IPv4JoinedSegments) {
-		//	return 2;
+		}
 		return standarddivtype
-		//} else if(div instanceof IPAddressBitsDivision) {
-		//	return -2;
-		//} else if(div instanceof AddressBitsDivision) {
-		//	return -3;
-		//}
 	}
-	//else if(div instanceof IPAddressLargeDivision) {
+	//else if(div instanceof IPAddressLargeDivision) { //TODO LATER IPAddressLargeDivisionGrouping
 	//	return -1;
 	//}
 	return standarddivtype
@@ -97,7 +91,7 @@ func mapGrouping(series AddressDivisionSeries) int {
 			return sectype
 		}
 		return standardgroupingtype
-	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO LATER
+	} //} else if(series instanceof IPAddressLargeDivisionGrouping) { TODO LATER IPAddressLargeDivisionGrouping
 	//	return -2;
 	//}
 	return 0
@@ -159,20 +153,6 @@ func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType
 	} else if twoSec == nil {
 		return 1
 	}
-	//if oneIPv6 := oneSec.ToIPv6AddressSection(); oneIPv6 != nil {
-	//	twoIPv6 := twoSec.ToIPv6AddressSection()
-	//	result = int(oneIPv6.addressSegmentIndex - twoIPv6.addressSegmentIndex)
-	//	if result != 0 {
-	//		return result
-	//	}
-	//}
-	//if oneMAC := oneSec.ToMACAddressSection(); oneMAC != nil {
-	//	twoMAC := twoSec.ToMACAddressSection()
-	//	result = int(oneMAC.addressSegmentIndex - twoMAC.addressSegmentIndex)
-	//	if result != 0 {
-	//		return result
-	//	}
-	//}
 	return comp.compareSectionParts(oneSec, twoSec)
 }
 

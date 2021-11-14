@@ -1091,15 +1091,15 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 
 	m, _ := ipAddr.ToMixedString()
 
-	compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.COVERED_BY_HOST)
+	compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.MixedCompressionCoveredByHost)
 	mixedParams := new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedCompressCoveredHost, _ := ipAddr.ToCustomString(mixedParams)
 
-	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.NO_HOST)
+	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.MixedCompressionNoHost)
 	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedNoCompressHost, _ := ipAddr.ToCustomString(mixedParams)
 
-	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZEROS_OR_HOST).SetMixedOptions(ipaddr.NO_MIXED_COMPRESSION)
+	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.NoMixedCompression)
 	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedNoCompressMixed, _ := ipAddr.ToCustomString(mixedParams)
 

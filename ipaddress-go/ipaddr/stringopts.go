@@ -339,13 +339,13 @@ func (builder *MACStringOptionsBuilder) ToOptions() StringOptions {
 
 type WildcardOption string
 
-const ( //TODO rename not all caps
+const (
 
 	// only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
-	WILDCARDS_NETWORK_ONLY WildcardOption = ""
+	WildcardsNetworkOnly WildcardOption = ""
 
 	// print wildcards for any visible (non-compressed) segments
-	WILDCARDS_ALL WildcardOption = "allType"
+	WildcardsAll WildcardOption = "allType"
 )
 
 type WildcardOptions interface {
@@ -404,7 +404,7 @@ type ipStringOptions struct {
 	stringOptions
 
 	addrSuffix     string
-	wildcardOption WildcardOption // default is WILDCARDS_NETWORK_ONLY
+	wildcardOption WildcardOption // default is WildcardsNetworkOnly
 	zoneSeparator  byte           // default is IPv6ZoneSeparator
 
 	cachedIPAddr *ipAddressStringParams
@@ -804,40 +804,36 @@ func (builder *IPv6StringOptionsBuilder) ToOptions() IPv6StringOptions {
 
 type CompressionChoiceOptions string
 
-const ( //TODO rename not all caps
-	HOST_PREFERRED  CompressionChoiceOptions = "host preferred"  //if there is a host section, compress the host along with any adjoining zero segments, otherwise compress a range of zero segments
-	MIXED_PREFERRED CompressionChoiceOptions = "mixed preferred" //if there is a mixed section that is compressible according to the MixedCompressionOptions, compress the mixed section along with any adjoining zero segments, otherwise compress a range of zero segments
-	ZEROS_OR_HOST   CompressionChoiceOptions = ""                //compress the largest range of zero or host segments
-	ZEROS           CompressionChoiceOptions = "zeros"           //compress the largest range of zero segments
+const (
+	HostPreferred    CompressionChoiceOptions = "host preferred"  //if there is a host section, compress the host along with any adjoining zero segments, otherwise compress a range of zero segments
+	MixedPreferred   CompressionChoiceOptions = "mixed preferred" //if there is a mixed section that is compressible according to the MixedCompressionOptions, compress the mixed section along with any adjoining zero segments, otherwise compress a range of zero segments
+	ZerosOrHost      CompressionChoiceOptions = ""                //compress the largest range of zero or host segments
+	ZerosCompression CompressionChoiceOptions = "zeros"           //compress the largest range of zero segments
 )
 
 func (c CompressionChoiceOptions) compressHost() bool {
-	return c != ZEROS
+	return c != ZerosCompression
 }
 
 type MixedCompressionOptions string
 
-const ( //TODO rename not all caps
-	NO_MIXED_COMPRESSION  MixedCompressionOptions = "no mixed compression" //do not allow compression of a mixed section
-	NO_HOST               MixedCompressionOptions = "no host"              ////allow compression of a mixed section when there is no host section
-	COVERED_BY_HOST       MixedCompressionOptions = "covered by host"
-	AllowMixedCompression MixedCompressionOptions = "" //allow compression of a mixed section
+const (
+	NoMixedCompression            MixedCompressionOptions = "no mixed compression" //do not allow compression of a mixed section
+	MixedCompressionNoHost        MixedCompressionOptions = "no host"              ////allow compression of a mixed section when there is no host section
+	MixedCompressionCoveredByHost MixedCompressionOptions = "covered by host"
+	AllowMixedCompression         MixedCompressionOptions = "" //allow compression of a mixed section
 )
 
 func (m MixedCompressionOptions) compressMixed(addressSection *IPv6AddressSection) bool {
 	switch m {
 	case AllowMixedCompression:
 		return true
-	case NO_MIXED_COMPRESSION:
+	case NoMixedCompression:
 		return false
-	case NO_HOST:
+	case MixedCompressionNoHost:
 		return !addressSection.IsPrefixed()
-	case COVERED_BY_HOST:
+	case MixedCompressionCoveredByHost:
 		if addressSection.IsPrefixed() {
-			//mixedDistance := int(IPv6MixedOriginalSegmentCount - addressSection.addressSegmentIndex)
-			//if mixedDistance < 0 {
-			//	mixedDistance = 0
-			//}
 			mixedDistance := IPv6MixedOriginalSegmentCount
 			mixedCount := addressSection.GetSegmentCount() - mixedDistance
 			if mixedCount > 0 {

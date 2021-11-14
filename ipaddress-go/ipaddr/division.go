@@ -740,7 +740,7 @@ func (div *addressDivisionInternal) adjustUpperLeadingZeroCount(leadingZeroCount
 
 func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int, value DivInt, radix int) int {
 	if leadingZeroCount < 0 {
-		width := getDigitCount(value, div.GetBitCount(), radix) //static //TODO remove bit count arg
+		width := getDigitCount(value, radix)
 		num := div.getMaxDigitCountRadix(radix) - width
 		if num < 0 {
 			return 0
@@ -754,14 +754,14 @@ func (div *addressDivisionInternal) getDigitCount(radix int) int {
 	if !div.IsMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
 		return len(div.GetWildcardString())
 	}
-	return getDigitCount(div.getUpperDivisionValue(), div.GetBitCount(), radix) //static
+	return getDigitCount(div.getUpperDivisionValue(), radix)
 }
 
 func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
 	//if radix == 10 || radix == 16 {
 	//	return div.getMaxDigitCount()
 	//}
-	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue()) //static
+	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue())
 }
 
 // returns the number of digits for the maximum possible value of the division when using the default radix

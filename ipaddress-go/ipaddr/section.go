@@ -8,8 +8,6 @@ import (
 
 var zeroSection = createSection(zeroDivs, nil, zeroType)
 
-//var zeroSectionPrefLenZero = createSection(zeroDivs, cacheBitCount(0), zeroType)
-
 func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressSection {
 	sect := &AddressSection{
 		addressSectionInternal{
@@ -1380,23 +1378,25 @@ func (section *addressSectionInternal) toCustomString(stringOptions StringOption
 
 func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
 	count := section.GetSegmentCount()
-	for i := 0; i < count; i++ { //TODO check !ismultiple to start
-		division := section.GetSegment(i)
-		if division.isMultiple() {
-			//at this point we know we will return true, but we determine now if we must return IncompatibleAddressError
-			isLastFull := true
-			for j := count - 1; j >= i; j-- {
-				division = section.GetSegment(j)
-				if division.isMultiple() {
-					if !isLastFull {
-						return false, &incompatibleAddressError{addressError{key: "ipaddress.error.segmentMismatch"}}
+	if section.IsMultiple() {
+		//at this point we know we will return true, but we determine now if we must return IncompatibleAddressError
+		for i := 0; i < count; i++ {
+			division := section.GetSegment(i)
+			if division.isMultiple() {
+				isLastFull := true
+				for j := count - 1; j >= i; j-- {
+					division = section.GetSegment(j)
+					if division.isMultiple() {
+						if !isLastFull {
+							return false, &incompatibleAddressError{addressError{key: "ipaddress.error.segmentMismatch"}}
+						}
+						isLastFull = division.IsFullRange()
+					} else {
+						isLastFull = false
 					}
-					isLastFull = division.IsFullRange()
-				} else {
-					isLastFull = false
 				}
+				return true, nil
 			}
-			return true, nil
 		}
 	}
 	return false, nil

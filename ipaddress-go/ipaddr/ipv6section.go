@@ -661,8 +661,8 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOpti
 		maxCount = 0
 		segmentCount := section.GetSegmentCount()
 		compressMixed := createMixed && options.GetMixedCompressionOptions().compressMixed(section)
-		preferHost := (rangeSelection == HOST_PREFERRED)
-		preferMixed := createMixed && (rangeSelection == MIXED_PREFERRED)
+		preferHost := (rangeSelection == HostPreferred)
+		preferMixed := createMixed && (rangeSelection == MixedPreferred)
 		for i := compressibleSegs.size() - 1; i >= 0; i-- {
 			rng := compressibleSegs.getRange(i)
 			index := rng.index
@@ -965,14 +965,14 @@ func (section *IPv6AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 }
 
 var (
-	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS_OR_HOST).ToOptions()
-	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MIXED_PREFERRED).ToOptions()
-	compressAllNoSingles   = new(CompressOptionsBuilder).SetRangeSelection(ZEROS_OR_HOST).ToOptions()
-	compressHostPreferred  = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(HOST_PREFERRED).ToOptions()
-	compressZeros          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZEROS).ToOptions()
-	compressZerosNoSingles = new(CompressOptionsBuilder).SetRangeSelection(ZEROS).ToOptions()
+	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZerosOrHost).ToOptions()
+	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MixedPreferred).ToOptions()
+	compressAllNoSingles   = new(CompressOptionsBuilder).SetRangeSelection(ZerosOrHost).ToOptions()
+	compressHostPreferred  = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(HostPreferred).ToOptions()
+	compressZeros          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZerosCompression).ToOptions()
+	compressZerosNoSingles = new(CompressOptionsBuilder).SetRangeSelection(ZerosCompression).ToOptions()
 
-	uncWildcards = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_NETWORK_ONLY).SetWildcards(
+	uncWildcards = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsNetworkOnly).SetWildcards(
 		new(WildcardsBuilder).SetRangeSeparator(IPv6UncRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()).ToOptions()
 	base85Wildcards = new(WildcardsBuilder).SetRangeSeparator(AlternativeRangeSeparatorStr).ToWildcards()
 

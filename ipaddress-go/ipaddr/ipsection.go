@@ -1741,9 +1741,9 @@ func (section *IPAddressSection) ReverseSegments() *IPAddressSection {
 
 var (
 	rangeWildcard                 = new(WildcardsBuilder).ToWildcards()
-	allWildcards                  = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).ToOptions()
+	allWildcards                  = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsAll).ToOptions()
 	wildcardsRangeOnlyNetworkOnly = new(WildcardOptionsBuilder).SetWildcards(rangeWildcard).ToOptions()
-	allSQLWildcards               = new(WildcardOptionsBuilder).SetWildcardOptions(WILDCARDS_ALL).SetWildcards(
+	allSQLWildcards               = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsAll).SetWildcards(
 		new(WildcardsBuilder).SetWildcard(SegmentSqlWildcardStr).SetSingleWildcard(SegmentSqlSingleWildcardStr).ToWildcards()).ToOptions()
 )
 
