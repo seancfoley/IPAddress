@@ -1008,7 +1008,31 @@ func (addr *Address) IsLocal() bool {
 	return false
 }
 
-func (addr Address) String() string { //TODO the non-pointer receiver means that you get panic for nil pointers - is that OK?  This was added so slices call the Stringer method
+//TODO look into https://pkg.go.dev/fmt#Formatter and https://pkg.go.dev/go/scanner , both implemented by big.Int
+// https://pkg.go.dev/math/big#Int.Format is the reverse of scan, you write to a fmtState the values, and can be affected by all kinds of "verbs"
+// formats such as 'b' (binary), 'o' (octal with 0 prefix), 'O' (octal with 0o prefix), 'd' (decimal), 'x' (lowercase hexadecimal), and 'X' (uppercase hexadecimal).
+// Also supported are the full suite of package fmt's format flags for integral types, including '+' and ' ' for sign control, '#' for leading zero in octal and for hexadecimal, a leading "0x" or "0X" for "%#x" and "%#X" respectively,
+// specification of minimum digits precision, output field width, space or zero padding, and '-' for left or right justification.
+
+// https://pkg.go.dev/math/big#Int.Scan construct an address from a "scanState" which allows you to read one byte at a time (see bytereader used by big.Int) - just read up to whitespace or newline and then parse
+//  but this breaks immutability... unless i make an exception like for serialization
+
+//TODO the non-pointer receiver means that you get panic for nil pointers - is that OK?  This was added so slices call the Stringer method
+//Take a look at what big.Int does for one thing
+//recheck the different cases - is it just an issue for []Address?  What happens with []*Address?
+/*
+here is the big int string method,
+func (x *Int) Text(base int) string {
+	if x == nil {
+		return "<nil>"
+	}
+	return string(x.abs.itoa(x.neg, base))
+}
+*/
+//so I am leaning towards changing my code here and return "<nil>" as well everywhere
+//but then do I do the same with all string methods?  I guess so
+
+func (addr Address) String() string {
 	//if addr == nil {
 	//	return nilAddress
 	//}

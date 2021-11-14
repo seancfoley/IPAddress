@@ -422,9 +422,9 @@ func (builder *IPAddressStringParametersBuilder) AllowAll(allow bool) *IPAddress
 
 func (builder *IPAddressStringParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *IPAddressStringParametersBuilder {
 	builder.params.emptyStringOption = option
-	if option != NoAddressOption {
-		builder.AllowEmpty(true)
-	}
+	//if option != NoAddressOption {
+	builder.AllowEmpty(true)
+	//}
 	return builder
 }
 
@@ -484,7 +484,7 @@ func (builder *IPAddressStringParametersBuilder) Allow_inet_aton(allow bool) *IP
 type ipAddressStringFormatParameters struct {
 	addressStringFormatParameters
 
-	allowPrefixesBeyondAddrSize, //TODO consider reversing this and defaultParseAllowPrefixBeyondAddressSize
+	allowPrefixesBeyondAddrSize, //TODO consider reversing this and defaultParseAllowPrefixBeyondAddressSize (more I think about it, the more it is fine as is, allowing /129 is weird)
 	noPrefixLengthLeadingZeros,
 	noBinary bool
 }

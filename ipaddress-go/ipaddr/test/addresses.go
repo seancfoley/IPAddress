@@ -20,7 +20,7 @@ var (
 		SetRangeParameters(ipaddr.NoRange).
 		Allow_inet_aton(false).
 		AllowEmpty(false).
-		ParseEmptyStrAs(ipaddr.NoAddressOption).
+		//ParseEmptyStrAs(ipaddr.NoAddressOption).
 		AllowAll(false). //allowPrefixOnly(true).
 		AllowSingleSegment(false).
 		GetIPv4AddressParametersBuilder().
@@ -221,7 +221,7 @@ var (
 		SetRangeParameters(ipaddr.WildcardAndRange).
 		Allow_inet_aton(true).
 		AllowEmpty(false).
-		ParseEmptyStrAs(ipaddr.NoAddressOption).
+		//ParseEmptyStrAs(ipaddr.NoAddressOption).
 		AllowAll(true). //AllowPrefixOnly(false).
 		GetIPv4AddressParametersBuilder().
 		AllowPrefixLenLeadingZeros(true).

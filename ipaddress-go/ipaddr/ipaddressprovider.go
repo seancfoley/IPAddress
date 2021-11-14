@@ -871,8 +871,9 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 
 // TODO NEXT progress
 //
+// TODO  all the TODOs I have piled up (excluding anything LATER)
+// - then you need some concurrency testing - use a map of addresses and the addresses.go framework and the existing tests
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
-// - the test suite is the last big thing
 //
-// Still a lot of work, BUT, you are clearly way past the big hump, way past halfway, on the home stretch
+// on the home stretch

@@ -8,11 +8,19 @@ import (
 	"time"
 )
 
-// TODO after this address order test, all the TODOs, then you need some concurrency testing - use a map of addresses and the addresses.go framework and the existing tests
-// then release!
-
 type OrderingSupplier func(string, int) *Ordering
 type OrderingComparator func(one, two *Ordering) int
+
+var (
+	orderingOpts = new(ipaddr.IPAddressStringParametersBuilder).AllowAll(true).SetRangeParameters(ipaddr.WildcardAndRange).ParseEmptyStrAs(ipaddr.NoAddressOption).GetIPv6AddressParametersBuilder().AllowZone(false).GetParentBuilder().ToParams()
+	//private static final IPAddressStringParameters WILDCARD_AND_RANGE_ADDRESS_OPTIONS = ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).toParams();
+	//private static final IPAddressStringParameters WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS = WILDCARD_AND_RANGE_ADDRESS_OPTIONS.toBuilder().getIPv6AddressParametersBuilder().allowZone(false).getParentBuilder().toParams();
+	//private static final IPAddressStringParameters ORDERING_OPTS = WILDCARD_AND_RANGE_NO_ZONE_ADDRESS_OPTIONS.toBuilder().allowEmpty(true).setEmptyStrOption(EmptyStrOption.NO_ADDRESS).toParams();
+
+	macOrderingOpts = new(ipaddr.MACAddressStringParametersBuilder).AllowAll(true).AllowEmpty(true).SetRangeParameters(ipaddr.WildcardAndRange).ToParams()
+
+//private static final MACAddressStringParameters MAC_ORDERING_OPTS = MAC_ADDRESS_OPTIONS.toBuilder().allowAll(true).setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).allowEmpty(true).toParams();
+)
 
 type addressOrderTest struct {
 	testBase
@@ -25,7 +33,7 @@ func (t addressOrderTest) run() {
 func (t addressOrderTest) testOrder() {
 
 	ipAddressOrderingSupplier := func(str string, i int) *Ordering {
-		addr := t.createAddress(str).GetAddress()
+		addr := t.createParamsAddress(str, orderingOpts).GetAddress()
 		if addr != nil {
 			return &Ordering{
 				nestedType: addr.ToAddress(),
@@ -35,7 +43,7 @@ func (t addressOrderTest) testOrder() {
 		return nil
 	}
 	macAddressOrderingSupplier := func(str string, i int) *Ordering {
-		addr := t.createMACAddress(str).GetAddress()
+		addr := t.createMACParamsAddress(str, macOrderingOpts).GetAddress()
 		if addr != nil {
 			return &Ordering{
 				nestedType: addr.ToAddress(),
@@ -46,13 +54,13 @@ func (t addressOrderTest) testOrder() {
 	}
 	ipaddressStringOrderingSupplier := func(str string, i int) *Ordering {
 		return &Ordering{
-			nestedIPAddrString: ipaddr.NewIPAddressString(str),
+			nestedIPAddrString: ipaddr.NewIPAddressStringParams(str, orderingOpts),
 			order:              i,
 		}
 	}
 	macaddressStringOrderingSupplier := func(str string, i int) *Ordering {
 		return &Ordering{
-			nestedMACAddrString: ipaddr.NewMACAddressString(str),
+			nestedMACAddrString: ipaddr.NewMACAddressStringParams(str, macOrderingOpts),
 			order:               i,
 		}
 	}
@@ -63,23 +71,51 @@ func (t addressOrderTest) testOrder() {
 
 	lowValComparator := ipaddr.LowValueComparator
 	ipAddressLowValComparator := func(one, two *Ordering) int {
-		return lowValComparator.Compare(one.nestedType, two.nestedType)
+		result := lowValComparator.Compare(one.nestedType, two.nestedType)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	lowValComparator.Compare(one.nestedType, two.nestedType)
+		//}
+		return result
 	}
 	ipAddressStringLowValComparator := func(one, two *Ordering) int {
+		var result int
 		oneAddr := one.nestedIPAddrString.GetAddress()
 		twoAddr := two.nestedIPAddrString.GetAddress()
-		if one != nil && two != nil {
-			return lowValComparator.Compare(oneAddr, twoAddr)
+		if oneAddr != nil && twoAddr != nil {
+			result = lowValComparator.Compare(oneAddr, twoAddr)
+		} else {
+			result = one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
 		}
-		return one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	if oneAddr != nil && twoAddr != nil {
+		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
+		//		lowValComparator.Compare(oneAddr, twoAddr)
+		//	} else {
+		//		one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//	}
+		//}
+		return result
 	}
 	macAddressStringLowValComparator := func(one, two *Ordering) int {
+		var result int
 		oneAddr := one.nestedMACAddrString.GetAddress()
 		twoAddr := two.nestedMACAddrString.GetAddress()
-		if one != nil && two != nil {
-			return lowValComparator.Compare(oneAddr, twoAddr)
+		if oneAddr != nil && twoAddr != nil {
+			result = lowValComparator.Compare(oneAddr, twoAddr)
+		} else {
+			result = one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
 		}
-		return one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	if oneAddr != nil && twoAddr != nil {
+		//		lowValComparator.Compare(oneAddr, twoAddr)
+		//	} else {
+		//		one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//	}
+		//}
+		return result
 	}
 
 	t.testLowValueOrder(ipAddressStringLowValComparator, ipaddressStringOrderingSupplier, nilOrderingSupplier)
@@ -89,23 +125,52 @@ func (t addressOrderTest) testOrder() {
 	highValComparator := ipaddr.HighValueComparator
 
 	ipAddressHighValComparator := func(one, two *Ordering) int {
-		return highValComparator.Compare(one.nestedType, two.nestedType)
+		result := highValComparator.Compare(one.nestedType, two.nestedType)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	lowValComparator.Compare(one.nestedType, two.nestedType)
+		//}
+		return result
 	}
 	ipAddressStringHighValComparator := func(one, two *Ordering) int {
+		var result int
 		oneAddr := one.nestedIPAddrString.GetAddress()
 		twoAddr := two.nestedIPAddrString.GetAddress()
-		if one != nil && two != nil {
-			return highValComparator.Compare(oneAddr, twoAddr)
+		if oneAddr != nil && twoAddr != nil {
+			result = highValComparator.Compare(oneAddr, twoAddr)
+		} else {
+			result = one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
 		}
-		return one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	if oneAddr != nil && twoAddr != nil {
+		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
+		//		highValComparator.Compare(oneAddr, twoAddr)
+		//	} else {
+		//		one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//	}
+		//}
+		return result
 	}
 	macAddressStringHighValComparator := func(one, two *Ordering) int {
+		var result int
 		oneAddr := one.nestedMACAddrString.GetAddress()
 		twoAddr := two.nestedMACAddrString.GetAddress()
-		if one != nil && two != nil {
-			return highValComparator.Compare(oneAddr, twoAddr)
+		if oneAddr != nil && twoAddr != nil {
+			result = highValComparator.Compare(oneAddr, twoAddr)
+		} else {
+			result = one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
 		}
-		return one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//expected := one.order - two.order
+		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+		//	if oneAddr != nil && twoAddr != nil {
+		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
+		//		highValComparator.Compare(oneAddr, twoAddr)
+		//	} else {
+		//		one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//	}
+		//}
+		return result
 	}
 	t.testHighValueOrder(ipAddressStringHighValComparator, ipaddressStringOrderingSupplier, nilOrderingSupplier)
 	t.testHighValueOrder(macAddressStringHighValComparator, nilOrderingSupplier, macaddressStringOrderingSupplier)
@@ -126,20 +191,36 @@ type Ordering struct {
 
 func (o *Ordering) getDescription() string {
 	if o.nestedIPAddrString != nil {
-		return fmt.Sprintf("(%d) %v", o.order, o.nestedIPAddrString)
+		return fmt.Sprintf("(expected index %d) %v", o.order, o.nestedIPAddrString)
 	} else if o.nestedMACAddrString != nil {
-		return fmt.Sprintf("(%d) %v", o.order, o.nestedMACAddrString)
+		return fmt.Sprintf("(expected index %d) %v", o.order, o.nestedMACAddrString)
 	}
-	return fmt.Sprintf("(%d) %v", o.order, o.nestedType)
+	return fmt.Sprintf("(expected index %d) %v", o.order, o.nestedType)
 }
 
 func (o *Ordering) CompareTo(other *Ordering) int {
+	var result int
 	if o.nestedIPAddrString != nil {
-		return o.nestedIPAddrString.CompareTo(other.nestedIPAddrString)
+		result = o.nestedIPAddrString.CompareTo(other.nestedIPAddrString)
 	} else if o.nestedMACAddrString != nil {
-		return o.nestedMACAddrString.CompareTo(other.nestedMACAddrString)
+		result = o.nestedMACAddrString.CompareTo(other.nestedMACAddrString)
+	} else {
+		result = o.nestedType.CompareTo(other.nestedType)
 	}
-	return o.nestedType.CompareTo(other.nestedType)
+	//expected := o.order - other.order
+	//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
+	//	if o.nestedIPAddrString != nil {
+	//		fmt.Printf("oops comparing %v and %v\n", o.nestedIPAddrString, other.nestedIPAddrString)
+	//		o.nestedIPAddrString.CompareTo(other.nestedIPAddrString)
+	//	} else if o.nestedMACAddrString != nil {
+	//		fmt.Printf("oops comparing %v and %v\n", o.nestedMACAddrString, other.nestedMACAddrString)
+	//		o.nestedMACAddrString.CompareTo(other.nestedMACAddrString)
+	//	} else {
+	//		fmt.Printf("oops comparing %v and %v\n", o.nestedType, other.nestedType)
+	//		o.nestedType.CompareTo(other.nestedType)
+	//	}
+	//}
+	return result
 }
 
 // The default order goes by count first, and then the count of the more significant segment followed the lower value magnitude in the same segment.
@@ -319,8 +400,8 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("ffff::ffff:ffff:ffff", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*/127", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*", orderNumber))
@@ -329,15 +410,15 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("1::2:1-3:4:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("*::*:*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*::*:%*:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("1:0:*/31", orderNumber))
 	orderNumber++
@@ -358,19 +439,19 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 
 	ordering = append(ordering, ipAddressSupplier("2::/15", orderNumber))
 	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber)) // TODO put this in proper place, note this is anot a prefix subnet
 
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*/16", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
@@ -508,8 +589,9 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	ordering = append(ordering, ipAddressSupplier("1.002.3.*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("1.002.3.*/31", orderNumber))
 	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("1.002.0.*/17", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1.002.0.0/17", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1.002.0-127.*/17", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1.002.0.*/17", orderNumber))//TODO put in proper place, not a prefix subnet
 	orderNumber++
 	ordering = append(ordering, ipAddressSupplier("1.002.0.0/16", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("001.002.000.000/16", orderNumber))
@@ -551,8 +633,9 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	ordering = append(ordering, ipAddressSupplier("1::2:3:4", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("0001:0000::0002:0003:0004", orderNumber))
 	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("1::2:2:*/111", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1::2:2-3:*/111", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1::2:2:0/111", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1::2:2:*/111", orderNumber))// TODO put in proper place, not a prefix subnet
 	orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*/127", orderNumber))
@@ -561,13 +644,13 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 
 	ordering = append(ordering, ipAddressSupplier("1::2:1-3:4:*", orderNumber))
 	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("1::*/31", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1:0-1:*/31", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1::*/31", orderNumber))// TODO put in proper place, not a prefix subnet
 	orderNumber++
 	ordering = append(ordering, ipAddressSupplier("1::/17", orderNumber))
-	ordering = append(ordering, ipAddressSupplier("1::*/17", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("1:0-7fff:*:*/17", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1::*/17", orderNumber)) // TODO put in proper place, not a prefix subnet
 
-	ordering = append(ordering, ipAddressSupplier("1:0:*/17", orderNumber))
 	orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("1::/16", orderNumber))
@@ -581,8 +664,9 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("2::/15", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("2-3:*/15", orderNumber))
 
-	ordering = append(ordering, ipAddressSupplier("2:*/15", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("2:*/15", orderNumber))//TODO put in proper place, not a prefix subnet
 	orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("a1:8000::/17", orderNumber))
@@ -605,27 +689,28 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	ordering = append(ordering, ipAddressSupplier("*:*:a:*:*:*:*:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*/16", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber))// TODO put this in proper place, note this is anot a prefix subnet
 
 	ordering = append(ordering, ipAddressSupplier("*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
-	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
-	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
+	//orderNumber++
+	//
+	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
+	//orderNumber++
+	//
+	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
+	//orderNumber++
+	//
+	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
@@ -797,7 +882,8 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("*::*:%*:*", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber))
+	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*/16", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("*::*:*:*:*:*/16", orderNumber)) // TODO put this in proper place, note this is anot a prefix subnet
 
 	ordering = append(ordering, ipAddressSupplier("*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*", orderNumber))
@@ -822,9 +908,9 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("1::/16", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("0001:0000::0000:0000:0000/16", orderNumber))
 
-	ordering = append(ordering, ipAddressSupplier("1:0::*/16", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1:0::*/16", orderNumber))//TODO put in proper place, not a prefix subnet
 
-	ordering = append(ordering, ipAddressSupplier("1:0:*/16", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("1:0:*/16", orderNumber))//TODO put in proper place, not a prefix subnet
 
 	ordering = append(ordering, ipAddressSupplier("1:*/17", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("1:*/16", orderNumber))
@@ -851,11 +937,9 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 
 	ordering = append(ordering, ipAddressSupplier("2::/15", orderNumber))
 
-	ordering = append(ordering, ipAddressSupplier("2::0:*/15", orderNumber))
-
-	ordering = append(ordering, ipAddressSupplier("2:0:*/15", orderNumber))
-
-	ordering = append(ordering, ipAddressSupplier("2:*/15", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("2::0:*/15", orderNumber))//TODO these three  in proper place, not a prefix subnet
+	//ordering = append(ordering, ipAddressSupplier("2:0:*/15", orderNumber))
+	//ordering = append(ordering, ipAddressSupplier("2:*/15", orderNumber))
 	orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("a1:8000::/17", orderNumber))
@@ -870,27 +954,27 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("ffff::ffff:ffff:ffff", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6, ffff:ffff:8000::/33
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6, ffff:ffff:8000::/33
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("ffff:ffff:ffff::", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6 ffff:ffff:ffff:ffff::
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6 ffff:ffff:ffff:ffff::
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("ffff:ffff:ffff:ffff::1", orderNumber))
 	orderNumber++
 
-	ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	orderNumber++
-
-	ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	orderNumber++
-	ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
+	//orderNumber++
+	//
+	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
+	//orderNumber++
+	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
+	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
@@ -910,6 +994,7 @@ func (t addressOrderTest) checkOrdering(ordering []*Ordering, orderCount int, co
 			for j > i {
 				if ordering[j] != nil {
 					ordering[i] = ordering[j]
+					ordering[j] = nil
 					break
 				}
 				j--
@@ -959,7 +1044,7 @@ func (t addressOrderTest) checkOrdering(ordering []*Ordering, orderCount int, co
 			} else {
 				index = i + 1
 			}
-			sorted = append(sorted, fmt.Sprintf("\n(%v) %v %v", index, o.nestedType, o.getDescription()))
+			sorted = append(sorted, fmt.Sprintf("\n(sorted index %v) %v", index, o.getDescription()))
 			previousOrder = currentOrder
 			lastIndex = index
 		}

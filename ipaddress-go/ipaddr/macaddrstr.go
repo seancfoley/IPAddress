@@ -16,12 +16,12 @@ func NewMACAddressStringParams(str string, params MACAddressStringParameters) *M
 	} else {
 		p = getPrivateMACParams(params)
 	}
-	return &MACAddressString{str: str, params: p, macAddrStringCache: new(macAddrStringCache)}
+	return &MACAddressString{str: strings.TrimSpace(str), params: p, macAddrStringCache: new(macAddrStringCache)}
 }
 
 // NewMACAddressString constructs a MACAddressString that will parse the given string according to the default parameters
 func NewMACAddressString(str string) *MACAddressString {
-	return &MACAddressString{str: str, params: defaultMACAddrParameters, macAddrStringCache: new(macAddrStringCache)}
+	return &MACAddressString{str: strings.TrimSpace(str), params: defaultMACAddrParameters, macAddrStringCache: new(macAddrStringCache)}
 }
 
 func newMACAddressStringFromAddr(str string, addr *MACAddress) *MACAddressString {

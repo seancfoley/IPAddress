@@ -14,12 +14,12 @@ func NewIPAddressStringParams(str string, params IPAddressStringParameters) *IPA
 	} else {
 		p = getPrivateParams(params)
 	}
-	return &IPAddressString{str: str, params: p, ipAddrStringCache: new(ipAddrStringCache)}
+	return &IPAddressString{str: strings.TrimSpace(str), params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
 
 // NewIPAddressString constructs an IPAddressString
 func NewIPAddressString(str string) *IPAddressString {
-	return &IPAddressString{str: str, params: defaultIPAddrParameters, ipAddrStringCache: new(ipAddrStringCache)}
+	return &IPAddressString{str: strings.TrimSpace(str), params: defaultIPAddrParameters, ipAddrStringCache: new(ipAddrStringCache)}
 }
 
 func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
