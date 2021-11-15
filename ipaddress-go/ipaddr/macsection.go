@@ -226,13 +226,13 @@ func (section *MACAddressSection) GetSubSection(index, endIndex int) *MACAddress
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *MACAddressSection) CopySubSegments(start, end int, segs []*MACAddressSegment) (count int) {
-	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *MACAddressSection) CopySegments(segs []*MACAddressSegment) (count int) {
-	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
@@ -645,7 +645,7 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 		//					newSegmentBitCount,
 		//MACDefaultTextualRadix);
 	}
-	grouping := createInitializedGrouping(newSegs, section.GetPrefixLen(), zeroType)
+	grouping := createInitializedGrouping(newSegs, section.GetPrefixLen())
 	return grouping, nil
 	//AddressDivisionGrouping dottedGrouping;
 	//if(cachedPrefixLength == null) {

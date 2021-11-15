@@ -287,13 +287,13 @@ func (section *IPv4AddressSection) GetHostMask() *IPv4AddressSection {
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv4AddressSection) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {
-	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv4AddressSection) CopySegments(segs []*IPv4AddressSegment) (count int) {
-	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
@@ -891,7 +891,7 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 	segs := make([]*AddressDivision, totalCount)
 	section.copySubSegmentsToSlice(0, notJoinedCount, segs)
 	segs[notJoinedCount] = joinedSegment
-	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLen(), zeroType)
+	equivalentPart := createInitializedGrouping(segs, section.GetPrefixLen())
 	//IPAddressDivisionGrouping equivalentPart = new IPAddressDivisionGrouping(segs, getNetwork());
 	return equivalentPart, nil
 	//createInitializedGrouping

@@ -353,110 +353,12 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 }
 
 func (section *addressSectionInternal) copySegmentsToSlice(divs []*AddressDivision) (count int) {
-	return section.visitSegments(func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
-}
-
-func (section *addressSectionInternal) visitSegments(target func(index int, div *AddressDivision) bool, targetLen int) (count int) {
-	if section.hasNoDivisions() {
-		return
-	}
-	count = section.GetDivisionCount()
-	if count > targetLen {
-		count = targetLen
-	}
-	for start := 0; start < count; start++ {
-		if target(start, section.getDivision(start)) {
-			break
-		}
-	}
-	return
+	return section.copyDivisions(divs)
+	//return section.visitDivisions(func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
 }
 
 func (section *addressSectionInternal) copySubSegmentsToSlice(start, end int, divs []*AddressDivision) (count int) {
-	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
-}
-
-// TODO think some more about adjust1To1Indices and adjustIndices.
-// In Java we throw.  Here we could panic, which would match the same behaviour with slices when indices out of bounds.
-// Instead I use two approaches.  When mapping is not 1 to 1, I use adjustIndices, which simply adjusts indices within bounds, no need to keep 1-1 mapping.
-// When mapping is 1-1, I preserve the original mapping, but just adjust indices to account for mappings outside of bounds.
-// Would panic be better?  Hmmmm  I try to stay away from panic.  But am I being overly clever here?
-// And would I want to do the same on the Java side in getSegments() and replace() methods?
-// I think I like this, the difference with slices panic is that there is no mapping going on from one to another
-
-// For a source of items ranging from indices 0 to sourceCount, we want to range over indices start to end,
-// mapping those indices to the corresponging indices starting at targetStart in a target ranging from indices 0 to targetCount.
-// Indices in source or target that are negative or too large will have their mappinps skipped, while preserving the original 1-1 mapping.
-// Adjusts start, end and targetStart to account for indices skipped in source or target.
-func adjust1To1Indices(sourceStart, sourceEnd, sourceCount, targetStart, targetCount int) (newSourceStart, newSourceEnd, newTargetStart int) {
-	//targetIndex := 0
-	if sourceStart < 0 {
-		targetStart -= sourceStart
-		sourceStart = 0
-	}
-	// how many to copy?
-	if sourceEnd > sourceCount { // end index exceeds available
-		sourceEnd = sourceCount
-	}
-	calcCount := sourceEnd - sourceStart
-	if calcCount <= 0 { // end index below start index
-		return sourceStart, sourceStart, targetStart
-	}
-	// if not enough space in target, adjust count and end
-	if space := targetCount - targetStart; calcCount > space {
-		if space <= 0 {
-			return sourceStart, sourceStart, targetStart
-		}
-		sourceEnd = sourceStart + space
-	}
-	return sourceStart, sourceEnd, targetStart
-}
-
-func adjustIndices(
-	startIndex, endIndex, sourceCount,
-	replacementStartIndex, replacementEndIndex, replacementSegmentCount int) (int, int, int, int) {
-	//segmentCount := section.GetSegmentCount()
-	if startIndex < 0 {
-		startIndex = 0
-	} else if startIndex > sourceCount {
-		startIndex = sourceCount
-	}
-	if endIndex < startIndex {
-		endIndex = startIndex
-	} else if endIndex > sourceCount {
-		endIndex = sourceCount
-	}
-	if replacementStartIndex < 0 {
-		replacementStartIndex = 0
-	} else if replacementStartIndex > replacementSegmentCount {
-		replacementStartIndex = replacementSegmentCount
-	}
-	if replacementEndIndex < replacementStartIndex {
-		replacementEndIndex = replacementStartIndex
-	} else if replacementEndIndex > replacementSegmentCount {
-		replacementEndIndex = replacementSegmentCount
-	}
-	return startIndex, endIndex, replacementStartIndex, replacementEndIndex
-}
-
-func (section *addressSectionInternal) visitSubSegments(start, end int, target func(index int, div *AddressDivision) (stop bool), targetLen int) (count int) {
-	if section.hasNoDivisions() {
-		return
-	}
-	targetIndex := 0
-	start, end, targetIndex = adjust1To1Indices(start, end, section.GetDivisionCount(), targetIndex, targetLen)
-
-	// now iterate start to end
-	index := start
-	for index < end {
-		exitEarly := target(targetIndex, section.getDivision(index))
-		index++
-		if exitEarly {
-			break
-		}
-		targetIndex++
-	}
-	return index - start
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
 }
 
 func (section *addressSectionInternal) getLowestHighestSections() (lower, upper *AddressSection) {
@@ -1701,13 +1603,13 @@ func (section *AddressSection) GetSubSection(index, endIndex int) *AddressSectio
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *AddressSection) CopySubSegments(start, end int, segs []*AddressSegment) (count int) {
-	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *AddressSection) CopySegments(segs []*AddressSegment) (count int) {
-	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.

@@ -492,12 +492,16 @@ func (grouping standardDivArray) getGenericDivision(index int) DivisionType {
 	return grouping.divisions[index]
 }
 
-func (grouping standardDivArray) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {
-	return copy(divs, grouping.divisions[start:end])
-}
-
+//func (grouping standardDivArray) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {
+//	return copy(divs, grouping.divisions[start:end])
+//}
+//
 func (grouping standardDivArray) copyDivisions(divs []*AddressDivision) (count int) {
 	return copy(divs, grouping.divisions)
+}
+
+func (grouping standardDivArray) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {
+	return copy(divs, grouping.divisions[start:end])
 }
 
 func (grouping standardDivArray) getSubDivisions(index, endIndex int) (divs []*AddressDivision) {

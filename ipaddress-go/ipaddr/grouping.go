@@ -22,19 +22,24 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 	return grouping
 }
 
-func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressDivisionGrouping {
-	result := createGrouping(divs, prefixLength, addrType)
+func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, isMultiple bool) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, zeroType)
 	result.isMultiple = isMultiple
 	return result
 }
 
-func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
-	result := createGrouping(divs, prefixLength, addrType)
+func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen) *AddressDivisionGrouping {
+	result := createGrouping(divs, prefixLength, zeroType)
 	result.initMultiple() // assigns isMultiple
 	return result
 }
 
-//TODO need a NewDivisionGrouping so people can create their own, and probably also a NewDivision that calls createAddressDivision
+// Creates an arbitrary grouping of divisions.
+// To create address sections or addresses, use the constructors that are specific to the address version or type.
+// The AddressDivision instances can be created with the NewDivision, NewRangeDivision, NewPrefixDivision or NewRangePrefixDivision functions.
+func NewDivisionGrouping(divs []*AddressDivision, prefixLength PrefixLen) *AddressDivisionGrouping {
+	return createInitializedGrouping(divs, prefixLength)
+}
 
 var (
 	emptyBytes = []byte{}
@@ -101,12 +106,119 @@ func (grouping *addressDivisionGroupingInternal) getDivisionCount() int {
 	return 0
 }
 
+func adjust1To1Indices(sourceStart, sourceEnd, sourceCount, targetStart, targetCount int) (newSourceStart, newSourceEnd, newTargetStart int) {
+	//targetIndex := 0
+	if sourceStart < 0 {
+		targetStart -= sourceStart
+		sourceStart = 0
+	}
+	// how many to copy?
+	if sourceEnd > sourceCount { // end index exceeds available
+		sourceEnd = sourceCount
+	}
+	calcCount := sourceEnd - sourceStart
+	if calcCount <= 0 { // end index below start index
+		return sourceStart, sourceStart, targetStart
+	}
+	// if not enough space in target, adjust count and end
+	if space := targetCount - targetStart; calcCount > space {
+		if space <= 0 {
+			return sourceStart, sourceStart, targetStart
+		}
+		sourceEnd = sourceStart + space
+	}
+	return sourceStart, sourceEnd, targetStart
+}
+
+func adjustIndices(
+	startIndex, endIndex, sourceCount,
+	replacementStartIndex, replacementEndIndex, replacementSegmentCount int) (int, int, int, int) {
+	//segmentCount := section.GetSegmentCount()
+	if startIndex < 0 {
+		startIndex = 0
+	} else if startIndex > sourceCount {
+		startIndex = sourceCount
+	}
+	if endIndex < startIndex {
+		endIndex = startIndex
+	} else if endIndex > sourceCount {
+		endIndex = sourceCount
+	}
+	if replacementStartIndex < 0 {
+		replacementStartIndex = 0
+	} else if replacementStartIndex > replacementSegmentCount {
+		replacementStartIndex = replacementSegmentCount
+	}
+	if replacementEndIndex < replacementStartIndex {
+		replacementEndIndex = replacementStartIndex
+	} else if replacementEndIndex > replacementSegmentCount {
+		replacementEndIndex = replacementSegmentCount
+	}
+	return startIndex, endIndex, replacementStartIndex, replacementEndIndex
+}
+
+func (grouping *addressDivisionGroupingInternal) visitDivisions(target func(index int, div *AddressDivision) bool, targetLen int) (count int) {
+	if grouping.hasNoDivisions() {
+		return
+	}
+	count = grouping.GetDivisionCount()
+	if count > targetLen {
+		count = targetLen
+	}
+	for start := 0; start < count; start++ {
+		if target(start, grouping.getDivision(start)) {
+			break
+		}
+	}
+	return
+}
+
+func (grouping *addressDivisionGroupingInternal) visitSubDivisions(start, end int, target func(index int, div *AddressDivision) (stop bool), targetLen int) (count int) {
+	if grouping.hasNoDivisions() {
+		return
+	}
+	targetIndex := 0
+	start, end, targetIndex = adjust1To1Indices(start, end, grouping.GetDivisionCount(), targetIndex, targetLen)
+
+	// now iterate start to end
+	index := start
+	for index < end {
+		exitEarly := target(targetIndex, grouping.getDivision(index))
+		index++
+		if exitEarly {
+			break
+		}
+		targetIndex++
+	}
+	return index - start
+}
+
 // copySubDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (grouping *addressDivisionGroupingInternal) copySubDivisions(start, end int, divs []*AddressDivision) (count int) {
+	//return grouping.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
+	//divsArray := grouping.divisions
+	//if divsArray != nil {
+	//	return divsArray.(standardDivArray).copySubDivisions(start, end, divs)
+	//}
 	divsArray := grouping.divisions
 	if divsArray != nil {
+		targetIndex := 0
+		start, end, targetIndex = adjust1To1Indices(start, end, grouping.GetDivisionCount(), targetIndex, len(divs))
+		//return copy(grouping.divs,divsArray[start:end])
 		return divsArray.(standardDivArray).copySubDivisions(start, end, divs)
+		//xxxx
+	}
+	return
+}
+
+// copyDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
+// into the given slice, as much as can be fit into the slice, returning the number of segments copied
+func (grouping *addressDivisionGroupingInternal) copyDivisions(divs []*AddressDivision) (count int) {
+	//return grouping.visitDivisions(func(index int, div *AddressDivision) bool { divs[index] = div; return false }, len(divs))
+	divsArray := grouping.divisions
+	if divsArray != nil {
+		return divsArray.(standardDivArray).copyDivisions(divs)
 	}
 	return
 }
@@ -119,16 +231,6 @@ func (grouping *addressDivisionGroupingInternal) getSubDivisions(start, end int)
 		panic("invalid subslice")
 	}
 	return make([]*AddressDivision, 0)
-}
-
-// copyDivisions copies the existing segments from the given start index until but not including the segment at the given end index,
-// into the given slice, as much as can be fit into the slice, returning the number of segments copied
-func (grouping *addressDivisionGroupingInternal) copyDivisions(divs []*AddressDivision) (count int) {
-	divsArray := grouping.divisions
-	if divsArray != nil {
-		return divsArray.(standardDivArray).copyDivisions(divs)
-	}
-	return
 }
 
 func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
@@ -847,15 +949,6 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
-
-//TODO we have CopySubDivisions/CopyDivisions.  Used nowhere.
-// We have copySubSegmentsToSlice used in a variety of places.  INcluding CopySubSegments and CopySegments.
-// One big difference is the handling of indices.  copySubSegmentsToSlice is very forgiving, using adjust1To1Indices.
-// But, CopySubDivisions/CopyDivisions uses the copy function, which is a bit forgiving.
-// So, do we need both?
-// I'm thinking that these two here need to go, OR, they need to do the same as copySubSegmentsToSlice.
-// We certainly cannot tolerate behaviour different from CopySubSegments/CopySegments
-// We may be able to just use adjust1To1Indices and thus continue to use "copy"
 
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied

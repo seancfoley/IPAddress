@@ -1291,14 +1291,14 @@ func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zo
 	} else if isDual {
 		lowerDivs := section.getLower().createNewDivisions(3)
 		upperDivs := section.getUpper().createNewDivisions(3)
-		lowerPart := createInitializedGrouping(lowerDivs, nil, zeroType)
-		upperPart := createInitializedGrouping(upperDivs, nil, zeroType)
+		lowerPart := createInitializedGrouping(lowerDivs, nil)
+		upperPart := createInitializedGrouping(upperDivs, nil)
 		//sect := section.toAddressSection()
 		//return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
 		return toNormalizedStringRange(toZonedParams(opts), lowerPart, upperPart, zone), nil
 	}
 	divs := section.createNewDivisions(3)
-	part := createInitializedGrouping(divs, nil, zeroType)
+	part := createInitializedGrouping(divs, nil)
 	return toZonedParams(opts).toZonedString(part, zone), nil
 	// see createInitializedGrouping
 	//func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
@@ -1571,13 +1571,13 @@ func (section *IPAddressSection) GetHostMask() *IPAddressSection {
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPAddressSection) CopySubSegments(start, end int, segs []*IPAddressSegment) (count int) {
-	return section.visitSubSegments(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPAddressSection) CopySegments(segs []*IPAddressSegment) (count int) {
-	return section.visitSegments(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPAddressSegment(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
