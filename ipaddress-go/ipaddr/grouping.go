@@ -817,7 +817,7 @@ func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingTyp
 //		S createDivision(long value, long upperValue, int bitCount, int radix);
 //	}
 
-func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit BitCount) []*AddressDivision {
+func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit BitCount) ([]*AddressDivision, IncompatibleAddressError) {
 	return grouping.createNewPrefixedDivisions(bitsPerDigit, nil)
 }
 
@@ -825,14 +825,7 @@ func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit
 //	S createDivision(long value, long upperValue, int bitCount, int radix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength);
 //}
 
-//TODO this should return an error in the usual case where we divide a ranged segment and the lower part is not full range, but right now this is fine because we never call with ranged segments
-// If two multi divisions are in sequence and the second is not full range, then they must originate from separate segments
-// so, when you create a division you know the current segment index, now you keep track of the segment index for the last division,
-// and you can do this check when creating each division
-// Additionally, you need another check, when you are handling the case where the division has more bits left than the segment,
-// then you must check that the existing division values are not multi, OR the new segment values are full range
-
-func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) []*AddressDivision {
+func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) ([]*AddressDivision, IncompatibleAddressError) {
 	//if(bitsPerDigit >= Integer.SIZE) {
 	//	//keep in mind once you hit 5 bits per digit, radix 32, you need 32 different digits, and there are only 26 alphabet characters and 10 digit chars, so 36
 	//	//so once you get higher than that, you need a new character set.
@@ -903,13 +896,33 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 		for {
 			if segBits >= divBitSize { // this segment fills the remainder of this division
 				diff := uint(segBits - divBitSize)
+				segBits = BitCount(diff)
 				//udiff := uint(diff);
-				divLowerValue |= segLowerVal >> diff
+				segL := segLowerVal >> diff
+				segU := segUpperVal >> diff
+
+				// if the division upper bits are multiple, then the lower bits inserted must be full range
+				if divLowerValue != divUpperValue {
+					if segL != 0 || segU != ^(^uint64(0)<<uint(divBitSize)) {
+						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+					}
+				}
+
+				divLowerValue |= segL
+				divUpperValue |= segU
+
 				shift := ^(^uint64(0) << diff)
 				segLowerVal &= shift
-				divUpperValue |= segUpperVal >> diff
 				segUpperVal &= shift
-				segBits = BitCount(diff)
+
+				// if a segment's bits are split into two divisions, and the bits going into the first division are multi-valued,
+				// then the bits going into the second division must be full range
+				if segL != segU {
+					if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
+						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+					}
+				}
+
 				var segPrefixBits PrefixLen
 				if networkPrefixLength != nil {
 					segPrefixBits = getDivisionPrefixLength(originalDivBitSize, *networkPrefixLength-bitsSoFar)
@@ -928,6 +941,12 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 				}
 				break
 			} else {
+				// if the division upper bits are multiple, then the lower bits inserted must be full range
+				if divLowerValue != divUpperValue {
+					if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
+						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+					}
+				}
 				diff := uint(divBitSize - segBits)
 				divLowerValue |= segLowerVal << diff
 				divUpperValue |= segUpperVal << diff
@@ -943,7 +962,7 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 		}
 		bitsSoFar += originalDivBitSize
 	}
-	return divs
+	return divs, nil
 }
 
 type AddressDivisionGrouping struct {

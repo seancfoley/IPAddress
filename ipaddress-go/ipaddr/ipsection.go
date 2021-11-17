@@ -1289,27 +1289,20 @@ func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zo
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
-		lowerDivs := section.getLower().createNewDivisions(3)
-		upperDivs := section.getUpper().createNewDivisions(3)
+		lowerDivs, _ := section.getLower().createNewDivisions(3)
+		upperDivs, _ := section.getUpper().createNewDivisions(3)
 		lowerPart := createInitializedGrouping(lowerDivs, nil)
 		upperPart := createInitializedGrouping(upperDivs, nil)
 		//sect := section.toAddressSection()
 		//return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
 		return toNormalizedStringRange(toZonedParams(opts), lowerPart, upperPart, zone), nil
 	}
-	divs := section.createNewDivisions(3)
+	divs, _ := section.createNewDivisions(3)
 	part := createInitializedGrouping(divs, nil)
 	return toZonedParams(opts).toZonedString(part, zone), nil
 	// see createInitializedGrouping
 	//func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
 	//return section.ToCustomString(params), nil
-
-	//	if with0Prefix {
-	//		xxx
-	//		//TODO xxxxx cannot use toLongStringZoned, see protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException { xxx
-	//		return section.toLongStringZoned(zone, octalPrefixedParams)
-	//	}
-	//	return section.toLongStringZoned(zone, octalParams)
 }
 
 /*
