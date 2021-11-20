@@ -256,7 +256,7 @@ public class MACAddressString implements HostIdentifierString, Comparable<MACAdd
 			}
 			//we know nothing about this address.  See what it is.
 			try {
-				parsedAddress = getValidator().validateMACAddressStr(this);
+				parsedAddress = getValidator().validateAddress(this);
 				isValid = true;
 			} catch(AddressStringException e) {
 				cachedException = e;

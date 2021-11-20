@@ -127,8 +127,12 @@ public class Validator implements HostIdentifierStringValidator {
 	 * Singleton - this class has no state
 	 */
 	private Validator() {}
-
+	
 	@Override
+	public IPAddressProvider validateAddress(IPAddressString fromString) throws AddressStringException {
+		return validateIPAddressStr(fromString);
+	}
+
 	public IPAddressProvider validateIPAddressStr(IPAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		IPAddressStringParameters validationOptions = fromString.getValidationOptions();
@@ -137,8 +141,12 @@ public class Validator implements HostIdentifierStringValidator {
 		ParsedHostIdentifierStringQualifier parsedQual = parseAddressQualifier(str, validationOptions, null, pa, str.length());
 		return chooseIPAddressProvider(fromString, str, validationOptions, pa, parsedQual);
 	}
-
+	
 	@Override
+	public MACAddressProvider validateAddress(MACAddressString fromString) throws AddressStringException {
+		return validateMACAddressStr(fromString);
+	}
+
 	public MACAddressProvider validateMACAddressStr(MACAddressString fromString) throws AddressStringException {
 		String str = fromString.toString();
 		MACAddressStringParameters validationOptions = fromString.getValidationOptions();
@@ -2035,7 +2043,12 @@ public class Validator implements HostIdentifierStringValidator {
    Problem with '.' is if it follows IPv4
 	 */
 	
-	@Override
+	
+	
+	public int validatePrefix(CharSequence fullAddr, IPVersion version) throws AddressStringException {
+		return validatePrefixLenString(fullAddr, version);
+	}
+	
 	public int validatePrefixLenString(CharSequence fullAddr, IPVersion version) throws AddressStringException {
 		ParsedHostIdentifierStringQualifier qualifier = validatePrefix(fullAddr, null, IPAddressString.DEFAULT_VALIDATION_OPTIONS, null, 0, fullAddr.length(), version);
 		if(qualifier == null) {
@@ -3031,6 +3044,10 @@ public class Validator implements HostIdentifierStringValidator {
 	//So we will follow rfc 1035 and in addition allow the underscore.
 	
 	@Override
+	public ParsedHost validateHost(HostName fromHost) throws HostNameException {
+		return validateHostName(fromHost);
+	}
+	
 	public ParsedHost validateHostName(final HostName fromHost) throws HostNameException {
 		final String str = fromHost.toString();
 		HostNameParameters validationOptions = fromHost.getValidationOptions();

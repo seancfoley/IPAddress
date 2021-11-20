@@ -518,7 +518,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			}
 			//we know nothing about this address.  See what it is.
 			try {
-				addressProvider = getValidator().validateIPAddressStr(this);
+				addressProvider = getValidator().validateAddress(this);
 			} catch(AddressStringException e) {
 				validateException = e;
 				addressProvider = IPAddressProvider.INVALID_PROVIDER;
@@ -537,7 +537,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public static int validateNetworkPrefixLength(IPVersion ipVersion, CharSequence networkPrefixLength) throws PrefixLenException {
 		try {
-			return Validator.VALIDATOR.validatePrefixLenString(networkPrefixLength, ipVersion);
+			return Validator.VALIDATOR.validatePrefix(networkPrefixLength, ipVersion);
 		} catch(AddressStringException e) {
 			throw new PrefixLenException(networkPrefixLength, ipVersion, e);
 		}

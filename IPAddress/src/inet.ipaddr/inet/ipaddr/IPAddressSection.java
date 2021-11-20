@@ -48,6 +48,7 @@ import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
 import inet.ipaddr.IPAddressSeqRange.IPAddressSeqRangeSplitterSink;
 import inet.ipaddr.format.AddressComponentRange;
+import inet.ipaddr.format.AddressDivisionSeries;
 import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.standard.AddressDivisionGrouping;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
@@ -754,12 +755,20 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return original;
 	}
 
+	protected static void checkSubnet(AddressDivisionSeries series, int prefixLength) throws PrefixLenException {
+		AddressDivisionGrouping.checkSubnet(series, prefixLength);
+	}
+	
 	protected static Integer getSegmentPrefixLength(int bitsPerSegment, Integer prefixLength, int segmentIndex) {
 		return AddressDivisionGrouping.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 	}
 
 	protected static Integer getSegmentPrefixLength(int bitsPerSegment, int segmentPrefixedBits) {
 		return AddressDivisionGrouping.getSegmentPrefixLength(bitsPerSegment, segmentPrefixedBits);
+	}
+	
+	protected static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
+		return AddressDivisionGrouping.getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
 	}
 
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R createLowestOrHighestSection(

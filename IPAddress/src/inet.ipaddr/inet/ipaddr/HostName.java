@@ -235,7 +235,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 				throw validationException;
 			}
 			try {
-				parsedHost = getValidator().validateHostName(this);
+				parsedHost = getValidator().validateHost(this);
 			} catch(HostNameException e) {
 				validationException = e;
 				throw e;
