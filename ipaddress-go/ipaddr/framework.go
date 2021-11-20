@@ -65,15 +65,7 @@ type AddressItem interface {
 	fmt.Stringer
 }
 
-// probably does not apply to golang because ranged values are always more specific, I'd have to add new methods with standard return values
-// But I am keeping IPAddressRange
-//type AddressComponentRange interface {
-//
-//	//AddressItem
-//}
-
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
-	//AddressComponentRange
 
 	TestBit(BitCount) bool
 	IsOneBit(BitCount) bool
@@ -86,7 +78,7 @@ type ipAddressRange interface {
 	GetLowerIPAddress() *IPAddress
 	GetUpperIPAddress() *IPAddress
 
-	CopyIP(bytes net.IP) net.IP //TODO make sure this handles the ipv4-mapped ipv4 addresses
+	CopyIP(bytes net.IP) net.IP //TODO make sure this handles the ipv4-mapped ipv4 addresses everywhere
 	CopyUpperIP(bytes net.IP) net.IP
 
 	GetIP() net.IP
@@ -94,33 +86,28 @@ type ipAddressRange interface {
 }
 
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
-	//AddressComponentRange
 
 	ipAddressRange
 
 	IsSequential() bool
 }
 
-//  as discussed in stringparams.go
-// Likely you will eventually merge AddressStringDivisionSeries with AddressDivisionSeries
-// Likely you will merge AddressStringDivision into DivisionType too
+// StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
+// including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
+type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionGrouping
 
-//
-//
-// division series
-//type AddressStringDivisionSeries interface {
-//	GetDivisionCount() int
-//	//GetStringDivision(index int) AddressStringDivision // useful for string generation
-//}
+	AddressDivisionSeries
 
-//type IPAddressStringDivisionSeries interface {
-//	AddressStringDivisionSeries
-//}
+	ToAddressDivisionGrouping() *AddressDivisionGrouping
+}
+
+var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
+	&IPv6v4MixedAddressGrouping{}
 
 // AddressDivisionSeries serves as a common interface to all division groupings (including large) and addresses
 type AddressDivisionSeries interface {
 	AddressItem
-	//AddressStringDivisionSeries
+
 	GetDivisionCount() int
 
 	GetPrefixCount() *big.Int
@@ -137,10 +124,11 @@ type AddressDivisionSeries interface {
 	GetGenericDivision(index int) DivisionType // useful for comparisons
 }
 
-type addrSegmentSeries interface {
+type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries, ExtendedIPSegmentSeries
+
 	AddressComponent
 
-	//IsZeroHost() bool
+	AddressDivisionSeries
 
 	GetMaxSegmentValue() SegInt
 	GetSegmentCount() int
@@ -150,22 +138,10 @@ type addrSegmentSeries interface {
 	ToCanonicalString() string
 	ToCompressedString() string
 
-	//EqualsSeries(AddressSegmentSeries) bool
-
 	GetGenericSegment(index int) AddressSegmentType
 }
 
-type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries, ExtendedIPSegmentSeries
-
-	AddressDivisionSeries
-
-	addrSegmentSeries
-}
-
-var _, _, _, _ AddressSegmentSeries = &Address{},
-	&MACAddress{},
-	&AddressSection{},
-	&MACAddressSection{}
+var _, _ AddressSegmentSeries = &Address{}, &AddressSection{}
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
 
@@ -206,42 +182,73 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }
 
-var _, _, _, _ IPAddressSegmentSeries = &IPAddress{},
-	&IPv4Address{},
-	&IPAddressSection{},
-	&IPv4AddressSection{}
+var _, _ IPAddressSegmentSeries = &IPAddress{}, &IPAddressSection{}
 
 type IPv6AddressSegmentSeries interface {
 	IPAddressSegmentSeries
-	// TODO we can lots more methods here, anything ipv6 specific but commone to sections and addresses
+
+	// GetTrailingSection returns an ending subsection of the full address section
+	GetTrailingSection(index int) *IPv6AddressSection
+
+	// GetSubSection returns a subsection of the full address section
+	GetSubSection(index, endIndex int) *IPv6AddressSection
+
+	GetNetworkSection() *IPv6AddressSection
+	GetHostSection() *IPv6AddressSection
+	GetNetworkSectionLen(BitCount) *IPv6AddressSection
+	GetHostSectionLen(BitCount) *IPv6AddressSection
+
+	GetSegments() []*IPv6AddressSegment
+	CopySegments(segs []*IPv6AddressSegment) (count int)
+	CopySubSegments(start, end int, segs []*IPv6AddressSegment) (count int)
+
 	GetSegment(index int) *IPv6AddressSegment
 }
-
-// TODO equivalent of IPv6AddressSegmentSeries for ipv4 and mac
 
 var _, _, _ IPv6AddressSegmentSeries = &IPv6Address{},
 	&IPv6AddressSection{},
 	&EmbeddedIPv6AddressSection{}
 
-// GenericGroupingType represents any division grouping, including groupings of both standard and large divisions
-type GenericGroupingType interface {
-	AddressDivisionSeries
+type IPv4AddressSegmentSeries interface {
+	IPAddressSegmentSeries
 
-	getAddrType() addrType
+	// GetTrailingSection returns an ending subsection of the full address section
+	GetTrailingSection(index int) *IPv4AddressSection
 
-	Equals(GenericGroupingType) bool //TODO maybe rename to Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627
+	// GetSubSection returns a subsection of the full address section
+	GetSubSection(index, endIndex int) *IPv4AddressSection
+
+	GetNetworkSection() *IPv4AddressSection
+	GetHostSection() *IPv4AddressSection
+	GetNetworkSectionLen(BitCount) *IPv4AddressSection
+	GetHostSectionLen(BitCount) *IPv4AddressSection
+
+	GetSegments() []*IPv4AddressSegment
+	CopySegments(segs []*IPv4AddressSegment) (count int)
+	CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int)
+
+	GetSegment(index int) *IPv4AddressSegment
 }
 
-// StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
-// including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
-type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionGrouping
-	GenericGroupingType
+var _, _ IPv4AddressSegmentSeries = &IPv4Address{}, &IPv4AddressSection{}
 
-	ToAddressDivisionGrouping() *AddressDivisionGrouping
+type MACAddressSegmentSeries interface {
+	AddressSegmentSeries
+
+	// GetTrailingSection returns an ending subsection of the full address section
+	GetTrailingSection(index int) *MACAddressSection
+
+	// GetSubSection returns a subsection of the full address section
+	GetSubSection(index, endIndex int) *MACAddressSection
+
+	GetSegments() []*MACAddressSegment
+	CopySegments(segs []*MACAddressSegment) (count int)
+	CopySubSegments(start, end int, segs []*MACAddressSegment) (count int)
+
+	GetSegment(index int) *MACAddressSegment
 }
 
-var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
-	&IPv6v4MixedAddressGrouping{}
+var _, _ MACAddressSegmentSeries = &MACAddress{}, &MACAddressSection{}
 
 // AddressSectionType represents any address section
 // that can be converted to/from the base type AddressSection,
@@ -249,24 +256,7 @@ var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
 type AddressSectionType interface {
 	StandardDivisionGroupingType
 
-	//TODO I suspect this addrSegmentSeries weirdness could go away if we dropped GenericGroupingType,
-	// because it extends AddressDivisionSeries,
-	// and it doesn't seem to be all that useful anyway.
-	// I did not use it in the comparator.  Using addressDivisionGroupingBases is just as useful, what does the interface give you?
-	// Just a type to use as the argument for Equals(GenericGroupingType).
-	// But equality is a loosy goosey concept anyway for divisions of varying length
-	//
-	// But would I need to make StandardDivisionGroupingType extend AddressDivisionSeries, and thus result in the same dual path to AddressDivisionSeries?
-	// How would you avoid the dual path?  Do you need StandardDivisionGroupingType to extend AddressDivisionSeries?
-	// Without it, AddressSectionType has no path to AddressDivisionSeries, but it would once we put back AddressSegmentSeries
-	// Other than that, the generic grouping code is just used by the equals stuff.  So no, it is not needed, I think you're good if you remove it.
-	//
-	// If I remove it, then rename EqualsSection to Equals, and make it use AddressSectionType
-	// So then you'd have no equals for all division groupings, just sections, but I think I do not care
-	// We still have CompareTo everywhere anyway
-	addrSegmentSeries
-	//AddressSegmentSeries
-
+	Equals(AddressSectionType) bool
 	Contains(AddressSectionType) bool
 	ToAddressSection() *AddressSection
 }
@@ -285,9 +275,7 @@ var _, _, _, _, _ AddressSectionType = &AddressSection{},
 type AddressType interface {
 	AddressSegmentSeries
 
-	getAddrType() addrType //TODO get rid of this and make callers call ToAddress().getAddrType()
-
-	Equals(AddressType) bool //TODO maybe rename Equal() https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual should drop the 's' too
+	Equals(AddressType) bool //TODO maybe rename Equal() everywhere https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual should drop the 's' too
 	PrefixEquals(AddressType) bool
 	Contains(AddressType) bool
 	PrefixContains(AddressType) bool

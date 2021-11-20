@@ -201,7 +201,23 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 	return nil
 }
 
-func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool {
+func (section *addressSectionInternal) matchesTypeAndCount(other *AddressSection) (matches bool, count int) {
+	count = section.GetDivisionCount()
+	if count != other.GetDivisionCount() {
+		return
+	} else if section.getAddrType() != other.getAddrType() {
+		return
+	}
+	matches = true
+	return
+}
+
+//func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool {
+//	matchesStructure, _ := section.matchesTypeAndCount(other)
+//	return matchesStructure && section.sameCountTypeEquals(other)
+//}
+func (section *addressSectionInternal) Equals(otherT AddressSectionType) bool {
+	other := otherT.ToAddressSection()
 	matchesStructure, _ := section.matchesTypeAndCount(other)
 	return matchesStructure && section.sameCountTypeEquals(other)
 }
@@ -1092,7 +1108,7 @@ func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
 		return true
 	}
 	//check if they are comparable first
-	matches, count := section.matchesTypeAndCount(other)
+	matches, count := section.matchesTypeAndCount(otherSection)
 	if !matches {
 		return false
 	} else {

@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-//TODO NEXT you want to reorg the test files so they are in test package and not main
-// that way you can just add new files as needed
-// use a cmd dir for the main package
-
 func Test() {
 	var acc testAccumulator
 	var addresses addresses
@@ -25,8 +21,6 @@ func Test() {
 
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	tester.run()
-
-	//var hostAddresses hostAddresses
 
 	hTester := hostTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	hTester.run()
@@ -397,7 +391,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) {
 			//xxx if diff between prefix set and original is negative and original is pref block xxx
 
-			//if original.IsPrefixed() && *original.GetPrefixLen() == original.GetBitCount() && original.GetPrefixLen().Is(original.GetBitCount()) { //TODO we need a method on prefix len to compare with a bit count
+			//if original.IsPrefixed() && *original.GetPrefixLen() == original.GetBitCount() && original.GetPrefixLen().Is(original.GetBitCount()) {
 			// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
 			prefixSet, err = prefixSet.ToZeroHost()
 			if err != nil {

@@ -785,12 +785,12 @@ func (addr *IPv6Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv6Address) Contains(other AddressType) bool {
-	return other.getAddrType() == ipv6Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection()) &&
+	return other.ToAddress().getAddrType() == ipv6Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection()) &&
 		addr.isSameZone(other.ToAddress())
 }
 
 func (addr *IPv6Address) Equals(other AddressType) bool {
-	return other.getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
+	return other.ToAddress().getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
 		addr.isSameZone(other.ToAddress())
 }
 

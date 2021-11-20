@@ -114,32 +114,32 @@ func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 	return 0
 }
 
-func (grouping *addressDivisionGroupingBase) matchesTypeAndCount(other GenericGroupingType) (matches bool, count int) {
-	count = grouping.GetDivisionCount()
-	if count != other.GetDivisionCount() {
-		return
-	} else if grouping.getAddrType() != other.getAddrType() {
-		return
-	}
-	matches = true
-	return
-}
-
-func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) bool {
-	matches, count := grouping.matchesTypeAndCount(other)
-	if !matches || count != other.GetDivisionCount() {
-		return false
-	} else {
-		for i := 0; i < count; i++ {
-			one := grouping.GetGenericDivision(i)
-			two := other.GetGenericDivision(i)
-			if !one.Equals(two) { //this checks the division types and also the bit counts
-				return false
-			}
-		}
-	}
-	return true
-}
+//func (grouping *addressDivisionGroupingBase) matchesTypeAndCount(other GenericGroupingType) (matches bool, count int) {
+//	count = grouping.GetDivisionCount()
+//	if count != other.GetDivisionCount() {
+//		return
+//	} else if grouping.getAddrType() != other.getAddrType() {
+//		return
+//	}
+//	matches = true
+//	return
+//}
+//
+//func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) bool {
+//	matches, count := grouping.matchesTypeAndCount(other)
+//	if !matches || count != other.GetDivisionCount() {
+//		return false
+//	} else {
+//		for i := 0; i < count; i++ {
+//			one := grouping.GetGenericDivision(i)
+//			two := other.GetGenericDivision(i)
+//			if !one.Equals(two) { //this checks the division types and also the bit counts
+//				return false
+//			}
+//		}
+//	}
+//	return true
+//}
 
 func (grouping *addressDivisionGroupingBase) IsZero() bool {
 	divCount := grouping.GetDivisionCount()

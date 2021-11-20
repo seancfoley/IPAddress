@@ -530,7 +530,7 @@ func (addr *IPv4Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv4Address) Contains(other AddressType) bool {
-	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection())
+	return other.ToAddress().getAddrType() == ipv4Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection())
 }
 
 //func (addr *IPv4Address) Equals(other AddressType) bool {
@@ -540,7 +540,7 @@ func (addr *IPv4Address) Contains(other AddressType) bool {
 //	return other.getAddrType() == ipv4Type && other.ToAddress() != nil && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
 //}
 func (addr *IPv4Address) Equals(other AddressType) bool {
-	return other.getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
+	return other.ToAddress().getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
 }
 
 func (addr *IPv4Address) MatchesWithMask(other *IPv4Address, mask *IPv4Address) bool {

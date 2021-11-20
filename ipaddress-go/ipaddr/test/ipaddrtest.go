@@ -12,12 +12,6 @@ import (
 	"strings"
 )
 
-//TODO I decided to start with IPAddresstester.runTest and go in order there
-//But also handling the same tests in the other testers (so not in order in the other ones)
-// So I will need to survey the other oneslater to see what I missed in the others
-// DONE ipaddress, ipaddressrange, ipaddressall, macaddress
-// to finish: macaddressrange, hostname, hostrange, hostall, specialtypes, addressorder
-
 type ipAddressTester struct {
 	testBase
 }
@@ -3268,7 +3262,6 @@ func (t ipAddressTester) normalizeMask(maskString, ipString string) string {
 		if addressString.IsValid() {
 			//try {
 			version := addressString.GetIPVersion()
-			// validatePrefixLenStr TODO add to IPAddressString
 			prefix, perr := ipaddr.ValidatePrefixLenStr(maskString, version)
 			if perr != nil {
 				t.addFailure(newFailure("prefix string incorrect: "+perr.Error(), addressString))

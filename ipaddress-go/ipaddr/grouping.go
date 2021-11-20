@@ -784,34 +784,34 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	return true
 }
 
-func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingType) bool {
-	// For an identity comparison need to access the *addressDivisionGroupingBase or something
-	//otherSection := other.to
-	//if section.toAddressSection() == otherSection {
-	//	return true
-	//}
-	if section := grouping.toAddressSection(); section != nil {
-		if otherGrouping, ok := other.(StandardDivisionGroupingType); ok {
-			if otherSection := otherGrouping.ToAddressDivisionGrouping().ToAddressSection(); otherSection != nil {
-				return section.EqualsSection(otherSection)
-			}
-		}
-		return false
-	}
-	matchesStructure, count := grouping.matchesTypeAndCount(other)
-	if !matchesStructure {
-		return false
-	} else {
-		for i := 0; i < count; i++ {
-			one := grouping.getDivision(i)
-			two := other.GetGenericDivision(i)
-			if !one.Equals(two) { //this checks the division types and also the bit counts
-				return false
-			}
-		}
-	}
-	return true
-}
+//func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingType) bool {
+//	// For an identity comparison need to access the *addressDivisionGroupingBase or something
+//	//otherSection := other.to
+//	//if section.toAddressSection() == otherSection {
+//	//	return true
+//	//}
+//	if section := grouping.toAddressSection(); section != nil {
+//		if otherGrouping, ok := other.(StandardDivisionGroupingType); ok {
+//			if otherSection := otherGrouping.ToAddressDivisionGrouping().ToAddressSection(); otherSection != nil {
+//				return section.EqualsSection(otherSection)
+//			}
+//		}
+//		return false
+//	}
+//	matchesStructure, count := grouping.matchesTypeAndCount(other)
+//	if !matchesStructure {
+//		return false
+//	} else {
+//		for i := 0; i < count; i++ {
+//			one := grouping.getDivision(i)
+//			two := other.GetGenericDivision(i)
+//			if !one.Equals(two) { //this checks the division types and also the bit counts
+//				return false
+//			}
+//		}
+//	}
+//	return true
+//}
 
 //protected static interface GroupingCreator<S extends AddressDivisionBase> {
 //		S createDivision(long value, long upperValue, int bitCount, int radix);

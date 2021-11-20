@@ -220,20 +220,18 @@ func newError(str string) error {
 	return errors.New(str)
 }
 
-// TODO stuff below should not be public
-
-// Errorf returns a formatted error
-func Errorf(format string, a ...interface{}) error {
+// errorF returns a formatted error
+func errorF(format string, a ...interface{}) error {
 	return errors.New(fmt.Sprintf(format, a...))
 }
 
-// WrapErrf wraps the given error, but only if it is not nil.
-func WrapErrf(err error, format string, a ...interface{}) error {
+// wrapErrf wraps the given error, but only if it is not nil.
+func wrapErrf(err error, format string, a ...interface{}) error {
 	return wrapper(true, err, format, a...)
 }
 
-// WrapToErrf is like wrapErrf but always returns an error
-func WrapToErrf(err error, format string, a ...interface{}) error {
+// wrapToErrf is like wrapErrf but always returns an error
+func wrapToErrf(err error, format string, a ...interface{}) error {
 	return wrapper(false, err, format, a...)
 }
 
@@ -242,11 +240,11 @@ func wrapper(nilIfFirstNil bool, err error, format string, a ...interface{}) err
 		if nilIfFirstNil {
 			return nil
 		}
-		return Errorf(format, a...)
+		return errorF(format, a...)
 	}
 	return &wrappedErr{
 		cause: err,
-		err:   Errorf(format, a...),
+		err:   errorF(format, a...),
 	}
 }
 
@@ -282,8 +280,8 @@ func (merged *mergedErr) Error() (str string) {
 }
 
 // mergeErrs merges an existing error with a new one
-func MergeErrs(err error, format string, a ...interface{}) error {
-	newErr := Errorf(format, a...)
+func mergeErrs(err error, format string, a ...interface{}) error {
+	newErr := errorF(format, a...)
 	if err == nil {
 		return newErr
 	}
@@ -297,7 +295,7 @@ func MergeErrs(err error, format string, a ...interface{}) error {
 }
 
 // mergeErrors merges multiple errors
-func MergeAllErrs(errs ...error) error {
+func mergeAllErrs(errs ...error) error {
 	var all []error
 	allLen := len(errs)
 	if allLen <= 1 {
