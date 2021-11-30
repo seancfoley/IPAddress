@@ -606,7 +606,7 @@ func (t macAddressTester) testMACValuesBig(segs []int, decimal, negativeDecimal 
 	i++
 	for j := 0; j < len(addr); j++ {
 		for k := j; k < len(addr); k++ {
-			if !addr[k].Equals(addr[j]) || !addr[j].Equals(addr[k]) {
+			if !addr[k].Equal(addr[j]) || !addr[j].Equal(addr[k]) {
 				t.addFailure(newSegmentSeriesFailure("failed equals: "+addr[k].String()+" and "+addr[j].String(), addr[k]))
 			}
 		}
@@ -764,7 +764,7 @@ func (t macAddressTester) testSections(addrString string) {
 	ouiSection := v.GetOUISection()
 	front := v.GetSubSection(0, 3)
 	back := v.GetTrailingSection(front.GetSegmentCount())
-	first := !ouiSection.Equals(front)
+	first := !ouiSection.Equal(front)
 	if (first) || !all3Equals(ouiSection.GetPrefixLen(), front.GetPrefixLen(), prefixAdjust(v.GetPrefixLen(), 24, 0)) {
 		if first {
 			t.addFailure(newMACFailure("failed oui "+ouiSection.String()+" expected "+front.String(), w))
@@ -772,7 +772,7 @@ func (t macAddressTester) testSections(addrString string) {
 			t.addFailure(newMACFailure("failed oui pref "+ouiSection.GetPrefixLen().String()+" expected "+prefixAdjust(v.GetPrefixLen(), 24, 0).String()+" for "+front.String(), w))
 		}
 	} else {
-		first = !odiSection.Equals(back)
+		first = !odiSection.Equal(back)
 		if (first) || !all3Equals(odiSection.GetPrefixLen(), back.GetPrefixLen(), prefixAdjust(v.GetPrefixLen(), 64, -24)) {
 			if first {
 				t.addFailure(newMACFailure("failed odi "+odiSection.String()+" expected "+back.String(), w))
@@ -785,9 +785,9 @@ func (t macAddressTester) testSections(addrString string) {
 			ouiSection2 := ouiSection.GetTrailingSection(1)
 			odiSection = middle.GetTrailingSection(2)
 			ouiSection = middle.GetSubSection(0, 2)
-			if !ouiSection.Equals(ouiSection2) || !ouiSection.GetPrefixLen().Equals(ouiSection2.GetPrefixLen()) {
+			if !ouiSection.Equal(ouiSection2) || !ouiSection.GetPrefixLen().Equal(ouiSection2.GetPrefixLen()) {
 				t.addFailure(newMACFailure("failed odi "+ouiSection.String()+" expected "+ouiSection2.String(), w))
-			} else if !odiSection.Equals(odiSection2) || !odiSection.GetPrefixLen().Equals(odiSection2.GetPrefixLen()) {
+			} else if !odiSection.Equal(odiSection2) || !odiSection.GetPrefixLen().Equal(odiSection2.GetPrefixLen()) {
 				t.addFailure(newMACFailure("failed odi "+odiSection.String()+" expected "+odiSection2.String(), w))
 			} else if ouiSection.GetSegmentCount() != 2 || ouiSection2.GetSegmentCount() != 2 {
 				t.addFailure(newMACFailure("failed oui count "+strconv.Itoa(ouiSection.GetSegmentCount())+" expected 2", w))
@@ -796,15 +796,15 @@ func (t macAddressTester) testSections(addrString string) {
 			} else {
 				odiEmpty := odiSection.GetSubSection(0, 0)
 				ouiEmpty := ouiSection.GetSubSection(0, 0)
-				if !odiEmpty.Equals(ouiEmpty) || odiEmpty.GetSegmentCount() > 0 || ouiEmpty.GetSegmentCount() > 0 {
+				if !odiEmpty.Equal(ouiEmpty) || odiEmpty.GetSegmentCount() > 0 || ouiEmpty.GetSegmentCount() > 0 {
 					t.addFailure(newMACFailure("failed odi empty "+odiEmpty.String()+" oui empty "+ouiEmpty.String(), w))
 				} else {
 					midEmpty := middle.GetSubSection(0, 0)
-					if !ouiEmpty.Equals(midEmpty) || midEmpty.GetSegmentCount() != 0 {
+					if !ouiEmpty.Equal(midEmpty) || midEmpty.GetSegmentCount() != 0 {
 						t.addFailure(newMACFailure("failed odi empty "+midEmpty.String()+" expected "+ouiEmpty.String(), w))
 					} else {
 						midEmpty2 := middle.GetSubSection(1, 1)
-						if !ouiEmpty.Equals(midEmpty2) || midEmpty2.GetSegmentCount() != 0 {
+						if !ouiEmpty.Equal(midEmpty2) || midEmpty2.GetSegmentCount() != 0 {
 							t.addFailure(newMACFailure("failed odi empty "+midEmpty2.String()+" expected "+ouiEmpty.String(), w))
 						}
 					}
@@ -941,20 +941,20 @@ func (t macAddressTester) testDelimitedCount(str string, expectedCount int) {
 func (t macAddressTester) testMatches(matches bool, host1Str, host2Str string) {
 	h1 := t.createMACAddress(host1Str)
 	h2 := t.createMACAddress(host2Str)
-	if matches != h1.Equals(h2) {
+	if matches != h1.Equal(h2) {
 		t.addFailure(newMACFailure("failed: match with "+h2.String(), h1))
 	} else {
-		if matches != h2.Equals(h1) {
+		if matches != h2.Equal(h1) {
 			t.addFailure(newMACFailure("failed: match with "+h1.String(), h2))
 		} else {
-			comparison := h1.CompareTo(h2) == 0
+			comparison := h1.Compare(h2) == 0
 			if matches {
 				comparison = !comparison
 			}
 			if comparison {
 				t.addFailure(newMACFailure("failed: match with "+h1.String(), h2))
 			} else {
-				comparison := h2.CompareTo(h1) == 0
+				comparison := h2.Compare(h1) == 0
 				if matches {
 					comparison = !comparison
 				}
@@ -1081,7 +1081,7 @@ func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, 
 		if t.isNotExpectedNonZero(zeroPass, addr) {
 			t.addFailure(newMACFailure("zero parse failure: "+addr.String(), addr))
 		} else {
-			//test the bytes
+			//test the bytess
 			if pass && len(addr.String()) > 0 && addr.GetAddress() != nil {
 				taddr := addr.GetAddress()
 				if t.allowsRange() && taddr.IsMultiple() {
@@ -1122,7 +1122,7 @@ func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 	failed := false
 	macAddrbytes := addr.GetBytes()
 	another := t.createMACAddressFromBytes(macAddrbytes)
-	if !addr.Equals(another) {
+	if !addr.Equal(another) {
 		t.addFailure(newSegmentSeriesFailure(addr.String(), addr))
 	}
 	var builder strings.Builder
@@ -1152,7 +1152,7 @@ func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 func (t macAddressTester) testFromBytes(bytes []byte, expected string) {
 	addr := t.createMACAddressFromBytes(bytes)
 	addr2 := t.createMACAddress(expected)
-	result := addr.Equals(addr2.GetAddress())
+	result := addr.Equal(addr2.GetAddress())
 	if !result {
 		t.addFailure(newSegmentSeriesFailure("created was "+addr.String()+" expected was "+addr2.String(), addr))
 	} else {
@@ -1162,7 +1162,7 @@ func (t macAddressTester) testFromBytes(bytes []byte, expected string) {
 			val |= uint64(bytes[i])
 		}
 		addr = t.createMACAddressFromUint64(val, len(bytes) > 6)
-		result = addr.Equals(addr2.GetAddress())
+		result = addr.Equal(addr2.GetAddress())
 		if !result {
 			t.addFailure(newSegmentSeriesFailure("created was "+addr.String()+" expected was "+addr2.String(), addr))
 		}
@@ -1249,7 +1249,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 		if !linkLocal.IsLinkLocal() {
 			t.addFailure(newSegmentSeriesFailure("eui 64 conv link local "+macAddr.String(), linkLocal))
 		} else {
-			if !macBack.Equals(back) {
+			if !macBack.Equal(back) {
 				t.addFailure(newSegmentSeriesFailure("eui 64 conv "+back.String(), macBack))
 			} else {
 				macAddr64, err := macAddr.ToEUI64(false)
@@ -1269,7 +1269,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 						t.addFailure(newSegmentSeriesFailure("unexpected error for mac address 64 to EUI64 "+err.Error(), macAddr))
 					}
 					backFromMac64 := backFromMac64Addr.GetHostSectionLen(64)
-					if !backFromMac64.Equals(back) {
+					if !backFromMac64.Equal(back) {
 						t.addFailure(newSegmentSeriesFailure("eui 64 conv 2"+back.String(), backFromMac64))
 					} else {
 						backFromMacAddr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr)
@@ -1277,7 +1277,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 							t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
 						}
 						backFromMac := backFromMacAddr.GetHostSectionLen(64)
-						if !backFromMac.Equals(back) {
+						if !backFromMac.Equal(back) {
 							t.addFailure(newSegmentSeriesFailure("eui 64 conv 3"+back.String(), backFromMac))
 						} else {
 							withPrefix := false //we do the loop twice, once with prefixes, the other without
@@ -1513,10 +1513,10 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 								//HashSet<IPv6Address> set = new HashSet<IPv6Address>();
 								for i := range all {
 									for j := range all {
-										if !all[i].Equals(all[j]) {
+										if !all[i].Equal(all[j]) {
 											t.addFailure(newSegmentSeriesFailure("failure matching "+all[i].String()+" to "+all[j].String(), addr))
 										}
-										if !all[i].GetNetworkPrefixLen().Equals(all[j].GetNetworkPrefixLen()) {
+										if !all[i].GetNetworkPrefixLen().Equal(all[j].GetNetworkPrefixLen()) {
 											t.addFailure(newSegmentSeriesFailure("failure matching "+all[i].GetNetworkPrefixLen().String()+" to "+all[j].GetNetworkPrefixLen().String(), addr))
 										}
 									}
@@ -1617,5 +1617,5 @@ func (t macAddressTester) testStrings() {
 }
 
 func all3Equals(one, two, three ipaddr.PrefixLen) bool {
-	return one.Equals(two) && one.Equals(three)
+	return one.Equal(two) && one.Equal(three)
 }

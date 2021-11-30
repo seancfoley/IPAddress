@@ -24,8 +24,8 @@ func cacheBits(i int) PrefixLen {
 	return cacheBitCount(BitCount(i))
 }
 
-// Equals compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
-func (p *BitCount) Equals(other *BitCount) bool {
+// Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
+func (p *BitCount) Equal(other *BitCount) bool {
 	if p == nil {
 		return other == nil
 	}
@@ -110,8 +110,8 @@ type PortNum uint16
 //	return two != nil && *one == *two
 //}
 
-// Equals compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
-func (p *PortNum) Equals(other *PortNum) bool {
+// Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
+func (p *PortNum) Equal(other *PortNum) bool {
 	if p == nil {
 		return other == nil
 	}

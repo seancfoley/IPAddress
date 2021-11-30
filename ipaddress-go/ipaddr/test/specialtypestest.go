@@ -265,13 +265,13 @@ func (t specialTypesTester) testEmptyValuesOpts(hp ipaddr.HostNameParameters, sp
 	//IPAddressNetwork<?, ?, ?, ?, ?> network2 = params2.getNetwork();
 	//IPAddress address2 = network2.getAddressCreator().createAddress(addr2.getAddress());
 
-	if !addressEmpty.GetAddress().Equals(address) {
+	if !addressEmpty.GetAddress().Equal(address) {
 		t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-		//} else if(!addressEmpty.GetAddress().Equals(address2)) {
+		//} else if(!addressEmpty.GetAddress().Equal(address2)) {
 		//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
-	} else if addressEmpty.GetAddress().CompareTo(address) != 0 {
+	} else if addressEmpty.GetAddress().Compare(address) != 0 {
 		t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-		//} else if(addressEmpty.GetAddress().CompareTo(address2) != 0) {
+		//} else if(addressEmpty.GetAddress().Compare(address2) != 0) {
 		//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 	} else if addressEmpty.GetAddress().GetCount().Cmp(bigOneConst()) != 0 {
 		t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
@@ -284,27 +284,27 @@ func (t specialTypesTester) testEmptyValuesOpts(hp ipaddr.HostNameParameters, sp
 		if addressEmpty == nil {
 			t.addFailure(newFailure("host "+hostEmpty.String()+" treated as address "+addressEmpty.String(), addressEmpty))
 			//t.addFailure(newFailure("no match ", addressEmpty))
-			//} else if(!addressEmpty.GetAddress().Equals(address2)) {
+			//} else if(!addressEmpty.GetAddress().Equal(address2)) {
 			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
-		} else if !addressEmpty.GetAddress().Equals(address) {
+		} else if !addressEmpty.GetAddress().Equal(address) {
 			t.addFailure(newFailure("no match "+addressEmpty.GetAddress().String()+" with "+address.String(), addressEmpty))
-			//} else if(!addressEmpty.GetAddress().Equals(address2)) {
+			//} else if(!addressEmpty.GetAddress().Equal(address2)) {
 			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
-		} else if addressEmpty.GetAddress().CompareTo(address) != 0 {
+		} else if addressEmpty.GetAddress().Compare(address) != 0 {
 			t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-			//} else if(addressEmpty.GetAddress().CompareTo(address2) != 0) {
+			//} else if(addressEmpty.GetAddress().Compare(address2) != 0) {
 			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 		} else if addressEmpty.GetAddress().GetCount().Cmp(bigOneConst()) != 0 {
 			t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
 		} else {
 			addressEmptyValue := hostEmpty.GetAddress()
-			if !addressEmptyValue.Equals(address) {
+			if !addressEmptyValue.Equal(address) {
 				t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-				//} else if(!addressEmptyValue.Equals(address2)) {
+				//} else if(!addressEmptyValue.Equal(address2)) {
 				//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
-			} else if addressEmptyValue.CompareTo(address) != 0 {
+			} else if addressEmptyValue.Compare(address) != 0 {
 				t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-				//} else if(addressEmptyValue.CompareTo(address2) != 0) {
+				//} else if(addressEmptyValue.Compare(address2) != 0) {
 				//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 			} else if addressEmptyValue.GetCount().Cmp(bigOneConst()) != 0 {
 				t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
@@ -441,13 +441,13 @@ func (t specialTypesTester) testAllMACValues(count1, count2 *big.Int) {
 	address2Str := "*:*:*:*:*:*:*:*"
 	mac1 := t.createMACParamsAddress(address1Str, macOptionsSpecial).GetAddress()
 	mac2 := t.createMACParamsAddress(address2Str, macOptionsSpecial).GetAddress()
-	if !macAll.Equals(mac1) {
+	if !macAll.Equal(mac1) {
 		t.addFailure(newSegmentSeriesFailure("no match "+macAll.String(), mac1))
-	} else if !macAll2.Equals(mac2) {
+	} else if !macAll2.Equal(mac2) {
 		t.addFailure(newSegmentSeriesFailure("no match "+macAll2.String(), mac2))
-	} else if macAll.CompareTo(mac1) != 0 {
+	} else if macAll.Compare(mac1) != 0 {
 		t.addFailure(newSegmentSeriesFailure("no match "+macAll.String(), mac1))
-	} else if macAll2.CompareTo(mac2) != 0 {
+	} else if macAll2.Compare(mac2) != 0 {
 		t.addFailure(newSegmentSeriesFailure("no match "+macAll2.String(), mac2))
 	} else if macAll.GetCount().Cmp(count1) != 0 {
 		t.addFailure(newSegmentSeriesFailure("no count match ", macAll))
@@ -466,20 +466,20 @@ func (t specialTypesTester) testAllValuesVersioned(version ipaddr.IPVersion, cou
 		address2Str = "*:*:*:*:*:*:*:*"
 	}
 	address := t.createParamsAddress(address2Str, addressOptionsSpecial).GetAddress()
-	if !addressAll.Equals(address) {
+	if !addressAll.Equal(address) {
 		t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
-	} else if addressAll.CompareTo(address) != 0 {
+	} else if addressAll.Compare(address) != 0 {
 		t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
 	} else if addressAll.GetCount().Cmp(count) != 0 {
 		// x := t.createParamsAddress("*", addressOptionsSpecial).GetVersionedAddress(version);
-		//x.GetCount();
+		//x.getCount();
 		t.addFailure(newIPAddrFailure("no count match ", addressAll))
 	} else {
 		str := hostAll.AsAddressString()
 		addressAll = str.GetVersionedAddress(version)
-		if !addressAll.Equals(address) {
+		if !addressAll.Equal(address) {
 			t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
-		} else if addressAll.CompareTo(address) != 0 {
+		} else if addressAll.Compare(address) != 0 {
 			t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
 		} else if addressAll.GetCount().Cmp(count) != 0 {
 			t.addFailure(newIPAddrFailure("no count match ", addressAll))

@@ -228,7 +228,7 @@ func PartitionIpv4WithSpanningBlocks(newAddr *IPv4Address) IPv4Partition {
 //
 // This method iterates through a list of prefix blocks of different sizes that span the entire subnet.
 func partitionWithSpanningBlocks(newAddr *IPAddress) *Partition {
-	if !newAddr.IsMultiple() {
+	if !newAddr.isMultiple() {
 		if !newAddr.IsPrefixed() {
 			return &Partition{
 				original: newAddr,
@@ -277,7 +277,7 @@ func PartitionIPv4WithSingleBlockSize(newAddr *IPv4Address) IPv4Partition {
 // This method chooses the maximum block size for a list of prefix blocks contained by the address or subnet,
 // and then iterates to produce blocks of that size.
 func partitionWithSingleBlockSize(newAddr *IPAddress) *Partition {
-	if !newAddr.IsMultiple() {
+	if !newAddr.isMultiple() {
 		if !newAddr.IsPrefixed() {
 			return &Partition{
 				original: newAddr,
@@ -326,7 +326,7 @@ func CheckBlockOrAddress(addr *IPAddress) *IPAddress {
 
 // Ensures the address is either an individual address or a prefix block subnet.
 func checkBlockOrAddress(addr *IPAddress) (*IPAddress, IncompatibleAddressError) {
-	if !addr.IsMultiple() {
+	if !addr.isMultiple() {
 		if !addr.IsPrefixed() {
 			return addr, nil
 		}

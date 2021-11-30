@@ -2577,7 +2577,7 @@ func parseBase85(
 	//				extendedValue2 = shift64.longValue();
 	//				BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
 	//
-	//				if(val.compareTo(val2) > 0) {
+	//				if(val.Compare(val2) > 0) {
 	//					BigInteger shiftMoreVal = shift64.shiftRight(Long.SIZE);
 	//					if(!ipv6SpecificOptions.rangeOptions.allowsReverseRange()) {
 	//						throw new AddressStringError(str, "ipaddress.error.invalidRange");

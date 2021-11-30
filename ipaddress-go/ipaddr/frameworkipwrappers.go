@@ -2,14 +2,14 @@ package ipaddr
 
 // ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
 // ExtendedIPSegmentSeries can be used to write code that works with both IP Addresses and IP Address Sections,
-// going further than IPAddressSegmentSeries to offer additional methods with the series types in their signature.
+// going further than IPAddressSegmentSeries to offer additional methods, methods with the series types in their signature.
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
 	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
-	Equals(ExtendedIPSegmentSeries) bool
+	Equal(ExtendedIPSegmentSeries) bool
 	Contains(ExtendedIPSegmentSeries) bool
 
 	// GetSection returns the full address section
@@ -200,9 +200,9 @@ func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
 	return ok && w.IPAddress.Contains(addr)
 }
 
-func (w WrappedIPAddress) Equals(other ExtendedIPSegmentSeries) bool {
+func (w WrappedIPAddress) Equal(other ExtendedIPSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.IPAddress.Equals(addr)
+	return ok && w.IPAddress.Equal(addr)
 }
 
 func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
@@ -352,9 +352,10 @@ func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
 	return ok && w.IPAddressSection.Contains(addr)
 }
 
-func (w WrappedIPAddressSection) Equals(other ExtendedIPSegmentSeries) bool {
+func (w WrappedIPAddressSection) Equal(other ExtendedIPSegmentSeries) bool {
+	//TODO I think I need to make Unwrap() handle nil by returning nil
 	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.IPAddressSection.Equals(addr)
+	return ok && w.IPAddressSection.Equal(addr)
 }
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {

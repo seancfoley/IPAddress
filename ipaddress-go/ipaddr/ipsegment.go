@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"math/big"
 	//"net"
 	"math/bits"
 	"strings"
@@ -185,9 +186,9 @@ func (seg *ipAddressSegmentInternal) getStringAsLower() string {
 	return seg.getDefaultLowerString()
 }
 
-func (seg *ipAddressSegmentInternal) GetString() string {
+func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
 	stringer := func() string {
-		if !seg.IsMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMultiple, ie single addresses, when there is no prefix or the prefix is the bit count
+		if !seg.isMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMult, ie single addresses, when there is no prefix or the prefix is the bit count
 			return seg.getDefaultLowerString()
 		} else if seg.IsFullRange() {
 			return seg.getDefaultSegmentWildcardString()
@@ -206,9 +207,9 @@ func (seg *ipAddressSegmentInternal) GetString() string {
 	return stringer()
 }
 
-func (seg *ipAddressSegmentInternal) GetWildcardString() string {
+func (seg *ipAddressSegmentInternal) GetWildcardString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
 	stringer := func() string {
-		if !seg.IsPrefixed() || !seg.IsMultiple() {
+		if !seg.IsPrefixed() || !seg.isMultiple() {
 			return seg.GetString()
 		} else if seg.IsFullRange() {
 			return seg.getDefaultSegmentWildcardString()
@@ -337,16 +338,35 @@ func (seg *IPAddressSegment) GetUpper() *IPAddressSegment {
 	return seg.getUpper().ToIPAddressSegment()
 }
 
-//func (seg *IPAddressSegment) Equals(other DivisionType) bool {
-//	if seg == nil {
-//		return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
-//	}
-//	return seg.equals(other)
-//}
-//
-//func (seg *IPAddressSegment) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(seg, item)
-//}
+func (seg *IPAddressSegment) IsMultiple() bool {
+	return seg != nil && seg.isMultiple()
+}
+
+func (seg *IPAddressSegment) GetCount() *big.Int {
+	if seg == nil {
+		return bigZero()
+	}
+	return seg.getCount()
+}
+
+func (seg *IPAddressSegment) Contains(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressSegment() == nil
+	}
+	return seg.contains(other)
+}
+
+func (seg *IPAddressSegment) Equal(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressDivision() == nil
+		//return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
+	}
+	return seg.equal(other)
+}
+
+func (seg *IPAddressSegment) Compare(item AddressItem) int {
+	return CountComparator.Compare(seg, item)
+}
 
 func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) bool {
 	return seg.containsPrefixBlock(divisionPrefixLen)
@@ -369,6 +389,9 @@ func (seg *IPAddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPAdd
 }
 
 func (seg *IPAddressSegment) Iterator() IPSegmentIterator {
+	if seg == nil {
+		return ipSegmentIterator{nilSegIterator()}
+	}
 	return ipSegmentIterator{seg.iterator()}
 }
 
@@ -416,4 +439,11 @@ func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 		return (*IPv6AddressSegment)(seg)
 	}
 	return nil
+}
+
+func (seg *IPAddressSegment) String() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.toString()
 }

@@ -154,6 +154,9 @@ func (addrStr *IPAddressString) IsZero() bool {
 }
 
 func (addrStr *IPAddressString) String() string {
+	if addrStr == nil {
+		return nilString()
+	}
 	return addrStr.str
 }
 
@@ -372,20 +375,19 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressString
 // All address strings are comparable.  If two address strings are invalid, their strings are compared.
 // Otherwise, address strings are compared according to which type or version of string, and then within each type or version
 // they are compared using the comparison rules for addresses.
-func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
-	//if addrStr == other { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
-	//	return 0
-	//} else if addrStr == nil {
-	//	return -1
-	//} else if other == nil {
-	//	return 1
-	//}
+func (addrStr *IPAddressString) Compare(other *IPAddressString) int {
+	if addrStr == other {
+		return 0
+	} else if addrStr == nil {
+		return -1
+	} else if other == nil {
+		return 1
+	}
 	addrStr = addrStr.init()
 	other = other.init()
 	if addrStr == other {
 		return 0
 	}
-
 	if addrStr.IsValid() {
 		if other.IsValid() {
 			if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
@@ -395,7 +397,7 @@ func (addrStr *IPAddressString) CompareTo(other *IPAddressString) int {
 			//if addr != nil {
 			//	otherAddr := other.GetAddress()
 			//	if otherAddr != nil {
-			//		return addr.CompareTo(otherAddr)
+			//		return addr.Compare(otherAddr)
 			//	}
 			//}
 			// one or the other is null, either empty or IncompatibleAddressException
@@ -540,12 +542,12 @@ func (addrStr *IPAddressString) Contains(other *IPAddressString) bool {
 // Whether one or the other has an associated network prefix length is not considered.
 //
 // If an IPAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
-func (addrStr *IPAddressString) Equals(other *IPAddressString) bool {
-	//if addrStr == nil {
-	//	return other == nil
-	//} else if other == nil {
-	//	return false
-	//}
+func (addrStr *IPAddressString) Equal(other *IPAddressString) bool {
+	if addrStr == nil {
+		return other == nil
+	} else if other == nil {
+		return false
+	}
 	addrStr = addrStr.init()
 	other = other.init()
 	if other == addrStr {

@@ -5,7 +5,6 @@ import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"math/big"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -97,7 +96,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 	for i := 0; i < series.GetSegmentCount(); i++ {
 		seg0 := series.GetSegment(i)
 		seg1 := segmentsReversed.GetSegment(divCount - i - 1)
-		if !seg0.Equals(seg1) {
+		if !seg0.Equal(seg1) {
 			t.addFailure(newSegmentSeriesFailure("reversal: "+series.String()+" "+segmentsReversed.String(), series))
 			return
 		}
@@ -113,7 +112,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		return
 	}
 	bytesReversed = bytesReversed.ReverseSegments()
-	if !series.Equals(bytesReversed) {
+	if !series.Equal(bytesReversed) {
 		t.addFailure(newSegmentSeriesFailure("bytes reversal: "+series.String(), series))
 		return
 	}
@@ -122,7 +121,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
 		return
 	}
-	var equalityResult = series.Equals(bitsReversed)
+	var equalityResult = series.Equal(bitsReversed)
 	if bitsReversedIsSame {
 		equalityResult = !equalityResult
 	}
@@ -136,7 +135,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
 		return
 	}
-	if !series.Equals(bitsReversed) {
+	if !series.Equal(bitsReversed) {
 		t.addFailure(newSegmentSeriesFailure("bit reversal 2: "+series.String(), series))
 		return
 	}
@@ -146,7 +145,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
 		return
 	}
-	equalityResult = series.Equals(bitsReversed2)
+	equalityResult = series.Equal(bitsReversed2)
 	if bitsReversedPerByteIsSame {
 		equalityResult = !equalityResult
 	}
@@ -160,7 +159,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
 		return
 	}
-	if !series.Equals(bitsReversed2) {
+	if !series.Equal(bitsReversed2) {
 		t.addFailure(newSegmentSeriesFailure("bit reversal 3: "+series.String(), series))
 		return
 	}
@@ -227,7 +226,7 @@ func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSerie
 				seg := removed.GetSegment(i)
 				bitsSoFar += seg.GetBitCount()
 				if prefLength >= bitsSoFar {
-					if !seg.Equals(original.GetSegment(i)) {
+					if !seg.Equal(original.GetSegment(i)) {
 						t.addFailure(newSegmentSeriesFailure("removed prefix: "+removed.String(), original))
 						break
 					}
@@ -251,7 +250,7 @@ func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSerie
 			//if removed.IsPrefixed() {
 			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
 			//}
-		} else if !removed.Equals(original) {
+		} else if !removed.Equal(original) {
 			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
 		} //else if removed.IsPrefixed() {
 		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
@@ -295,7 +294,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 				seg := removed.GetSegment(i)
 				bitsSoFar += seg.GetBitCount()
 				if prefLength >= bitsSoFar {
-					if !seg.Equals(original.GetSegment(i)) {
+					if !seg.Equal(original.GetSegment(i)) {
 						t.addFailure(newSegmentSeriesFailure("removed prefix: "+removed.String(), original))
 						break
 					}
@@ -319,7 +318,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			//if removed.IsPrefixed() {
 			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
 			//}
-		} else if !removed.Equals(original) {
+		} else if !removed.Equal(original) {
 			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
 		} //else if removed.IsPrefixed() {
 		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
@@ -369,7 +368,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		}
 	}
 
-	if !adjustedSeries.Equals(adjusted) {
+	if !adjustedSeries.Equal(adjusted) {
 		//TWO things wrong: 1. the new series is not a prefix subnet (which is actually correct, I think, since I wanted to stop doing that).  But how am I supposed to specify the result?  I guess with the toZeroHost
 		// 2. the canonical string things otherwise!  how is that possible?  wrong, it is correct
 		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
@@ -401,13 +400,13 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		}
 
 		setPrefix := adjustedSeries.GetPrefixLen()
-		if !adjustedSeries.Equals(prefixSet) {
+		if !adjustedSeries.Equal(prefixSet) {
 			fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + prefix.String())
 			t.addFailure(newSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
 		} else {
 			//adjustedSeries = original.ApplyPrefixLen(prefix);
 			//appliedPrefix := adjustedSeries.GetPrefixLen();
-			//if(!adjustedSeries.Equals(prefixApplied)) {
+			//if(!adjustedSeries.Equal(prefixApplied)) {
 			//t.addFailure(newFailure("prefix applied: " + adjustedSeries, prefixApplied));
 			//} else {
 
@@ -538,7 +537,7 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 						new1 = frontIPv6.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv6Address(), replaceSourceIndex).ToAddress()
 					}
 				}
-				if !new1.Equals(new2) {
+				if !new1.Equal(new2) {
 					failStr := "Replacement was " + new1.String() + " expected was " + new2.String() + " " + replaceStr
 					t.addFailure(newIPAddrFailure(failStr, front.ToIPAddress()))
 
@@ -813,7 +812,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				}
 			}
 		}
-		if !mixed.Equals(mixed2) {
+		if !mixed.Equal(mixed2) {
 			t.addFailure(newSegmentSeriesFailure("mixed was "+mixed.String()+" expected was "+mixed2.String(), mixed))
 			//hostIdStr = createMACAddress(str.toString());
 			//mixed = hostIdStr.GetAddress();
@@ -827,21 +826,21 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			//System.out.println("mixed is " + mixed);
 			//System.out.println("mixed2 is " + mixed2);
 		}
-		if !expectedPref[i].Equals(mixed.GetPrefixLen()) {
+		if !expectedPref[i].Equal(mixed.GetPrefixLen()) {
 			t.addFailure(newSegmentSeriesFailure("mixed prefix was "+mixed.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed))
 		}
-		if !expectedPref[i].Equals(mixed2.GetPrefixLen()) {
+		if !expectedPref[i].Equal(mixed2.GetPrefixLen()) {
 			t.addFailure(newSegmentSeriesFailure("mixed2 prefix was "+mixed2.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed2))
 		}
 		for o := 0; o < len(splitsJoined); o++ {
 			mixed3 := splitsJoined[o]
-			if !mixed.Equals(mixed3) {
+			if !mixed.Equal(mixed3) {
 				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed.String(), mixed3))
 			}
-			if !mixed3.Equals(mixed2) {
+			if !mixed3.Equal(mixed2) {
 				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed2.String(), mixed3))
 			}
-			if !expectedPref[i].Equals(mixed3.GetPrefixLen()) {
+			if !expectedPref[i].Equal(mixed3.GetPrefixLen()) {
 				//fmt.Printf("%v\n", splitsJoined)
 				//fmt.Printf("%v\n", splits)
 				t.addFailure(newSegmentSeriesFailure("mixed3 prefix was "+mixed3.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed3))
@@ -872,7 +871,7 @@ func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expected
 			t.addFailure(newSegmentSeriesFailure("increment mismatch result "+result.String()+" vs none expected", orig))
 		}
 	} else {
-		if !result.Equals(expectedResult) {
+		if !result.Equal(expectedResult) {
 			t.addFailure(newSegmentSeriesFailure("increment mismatch result "+result.String()+" vs expected "+expectedResult.String(), orig))
 		}
 		if first && !orig.IsMultiple() && increment > math.MinInt64 { //negating Long.MIN_VALUE results in same address
@@ -889,11 +888,11 @@ func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expected
 }
 
 func (t testBase) testPrefix(original ipaddr.AddressSegmentSeries, prefixLength ipaddr.PrefixLen, minPrefix ipaddr.BitCount, equivalentPrefix ipaddr.PrefixLen) {
-	if !original.GetPrefixLen().Equals(prefixLength) {
+	if !original.GetPrefixLen().Equal(prefixLength) {
 		t.addFailure(newSegmentSeriesFailure("prefix: "+original.GetPrefixLen().String()+" expected: "+prefixLength.String(), original))
-	} else if !cacheTestBits(original.GetMinPrefixLenForBlock()).Equals(cacheTestBits(minPrefix)) {
+	} else if !cacheTestBits(original.GetMinPrefixLenForBlock()).Equal(cacheTestBits(minPrefix)) {
 		t.addFailure(newSegmentSeriesFailure("min prefix: "+strconv.Itoa(int(original.GetMinPrefixLenForBlock()))+" expected: "+minPrefix.String(), original))
-	} else if !original.GetPrefixLenForSingleBlock().Equals(equivalentPrefix) {
+	} else if !original.GetPrefixLenForSingleBlock().Equal(equivalentPrefix) {
 		t.addFailure(newSegmentSeriesFailure("equivalent prefix: "+original.GetPrefixLenForSingleBlock().String()+" expected: "+equivalentPrefix.String(), original))
 	}
 }
@@ -996,7 +995,7 @@ func (t testBase) confirmMACAddrStrings(macAddr *ipaddr.MACAddress, strs ...stri
 	for _, str := range strs {
 		addrString := ipaddr.NewMACAddressString(str)
 		addr := addrString.GetAddress()
-		if !macAddr.Equals(addr) {
+		if !macAddr.Equal(addr) {
 			t.addFailure(newSegmentSeriesFailure("failed produced string: "+str, macAddr))
 			return false
 		}
@@ -1015,7 +1014,7 @@ func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) b
 
 		addrString := t.createParamsAddress(str, defaultOptions)
 		addr := addrString.GetAddress()
-		if !ipAddr.Equals(addr) {
+		if !ipAddr.Equal(addr) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
 			//fmt.Println("failed: " + str)
 			//fmt.Println(fmt.Sprintf("original: "+ipAddr.String()+" others: %v", strs))
@@ -1032,7 +1031,7 @@ func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) b
 func (t testBase) confirmIPAddrStrings(ipAddr *ipaddr.IPAddress, strs ...*ipaddr.IPAddressString) bool {
 	for _, str := range strs {
 		addr := str.GetAddress()
-		if !ipAddr.Equals(addr) {
+		if !ipAddr.Equal(addr) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
 			return false
 		}
@@ -1050,14 +1049,14 @@ func (t testBase) confirmHostStrings(ipAddr *ipaddr.IPAddress, omitZone bool, st
 			ipv6Addr, _ = ipaddr.NewIPv6Address(ipv6Addr.GetSection())
 			ipAddr = ipv6Addr.ToIPAddress()
 		}
-		if !ipAddr.Equals(a) {
+		if !ipAddr.Equal(a) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
 			return false
 		}
 		again := hostName.ToNormalizedString()
 		hostName = ipaddr.NewHostName(again)
 		a = hostName.GetAddress()
-		if !ipAddr.Equals(a) {
+		if !ipAddr.Equal(a) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
 			return false
 		}
@@ -1069,14 +1068,14 @@ func (t testBase) confirmHostStrings(ipAddr *ipaddr.IPAddress, omitZone bool, st
 func (t testBase) confirmHostNameStrings(ipAddr *ipaddr.IPAddress, strs ...*ipaddr.HostName) bool {
 	for _, str := range strs {
 		a := str.GetAddress()
-		if !ipAddr.Equals(a) {
+		if !ipAddr.Equal(a) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
 			return false
 		}
 		again := str.ToNormalizedString()
 		str = ipaddr.NewHostName(again)
 		a = str.GetAddress()
-		if !ipAddr.Equals(a) {
+		if !ipAddr.Equal(a) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str.String(), ipAddr))
 			return false
 		}
@@ -1199,14 +1198,14 @@ func (t testBase) testHostAddressStr(addressStr string) {
 		hostAddress := str.GetHostAddress()
 		prefixIndex := strings.IndexByte(addressStr, ipaddr.PrefixLenSeparator)
 		if prefixIndex < 0 {
-			if !address.Equals(hostAddress) || !address.Contains(hostAddress) {
+			if !address.Equal(hostAddress) || !address.Contains(hostAddress) {
 				t.addFailure(newFailure("failed host address with no prefix: "+hostAddress.String()+" expected: "+address.String(), str))
 			}
 		} else {
 			substr := addressStr[:prefixIndex]
 			str2 := t.createAddress(substr)
 			address2 := str2.GetAddress()
-			if !address2.Equals(hostAddress) {
+			if !address2.Equal(hostAddress) {
 				t.addFailure(newFailure("failed host address: "+hostAddress.String()+" expected: "+address2.String(), str))
 			}
 		}
@@ -1480,23 +1479,23 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 			if counter == 0 {
 				lower := val.ToAddress().GetLower()
 				if excludeZeroHosts {
-					if lower.ToIPAddress().IsZeroHost() && next.Equals(lower) {
+					if lower.ToIPAddress().IsZeroHost() && next.Equal(lower) {
 						t.addFailure(newIPAddrFailure("lowest: "+lower.String()+" next: "+next.String(), next.ToIPAddress()))
 					}
 				} else {
-					if !next.Equals(lower) {
+					if !next.Equal(lower) {
 						t.addFailure(newSegmentSeriesFailure("lowest: "+lower.String()+" next: "+next.String(), next))
 					}
 				}
 
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
 				}
-				if !lower.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !lower.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" lowest prefix length: "+lower.GetPrefixLen().String(), lower))
 				}
 			} else if counter == 1 {
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
 				}
 			}
@@ -1508,24 +1507,24 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 		} else if counter != number {
 			t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddress()))
 		} else if number > 0 {
-			if !next.Equals(val.ToAddress().GetUpper()) {
+			if !next.Equal(val.ToAddress().GetUpper()) {
 				t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String(), next))
 			} else {
 				lower := val.ToAddress().GetLower()
 				if excludeZeroHosts {
 					addr := val.ToAddress().ToIPAddress()
-					if counter == 1 && (!addr.GetUpper().Equals(lower) && !addr.GetUpper().IsZeroHost() && !lower.ToIPAddress().IsZeroHost()) {
+					if counter == 1 && (!addr.GetUpper().Equal(lower) && !addr.GetUpper().IsZeroHost() && !lower.ToIPAddress().IsZeroHost()) {
 						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
 					}
 				} else {
-					if counter == 1 && !val.ToAddress().GetUpper().Equals(lower) {
+					if counter == 1 && !val.ToAddress().GetUpper().Equal(lower) {
 						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
 					}
 				}
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
 				}
-				if !val.ToAddress().GetUpper().GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !val.ToAddress().GetUpper().GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+val.ToAddress().GetUpper().GetPrefixLen().String(), next))
 				}
 			}
@@ -1783,28 +1782,26 @@ type ExpectedPrefixes struct {
 }
 
 func (exp ExpectedPrefixes) compare(adjusted, set ipaddr.PrefixLen) bool {
-	return adjusted.Equals(exp.adjusted) && set.Equals(exp.set)
+	return adjusted.Equal(exp.adjusted) && set.Equal(exp.set)
 }
 
 type failure struct {
 	str string
 
-	addr       *ipaddr.IPAddress
-	addrStr    *ipaddr.IPAddressString
-	macAddr    *ipaddr.MACAddress
-	macAddrStr *ipaddr.MACAddressString
-	rng        *ipaddr.IPAddressSeqRange
-	series     ipaddr.AddressSegmentSeries //TODO fold the addresses into this
-
-	host *ipaddr.HostName
+	rng    *ipaddr.IPAddressSeqRange
+	idStr  ipaddr.HostIdentifierString
+	series ipaddr.AddressSegmentSeries
 }
 
 func (f failure) String() string {
-	//if f == nil {
-	//	panic(nil)
-	//}
-	return f.str
-	//return concat( TODO fix this up could not get it to print the strings as I wanted due to interface arg, see below, easy to fix though
+	return concat(
+		concat(
+			concat(f.str, f.series),
+			f.idStr),
+		f.rng)
+	//return f.str
+	//return concat(  fix this up could not get it to print the strings as I wanted due to interface arg, see below, easy to fix though.
+	//					Reinstate when we support printing nil
 	//	concat(
 	//		concat(
 	//			concat(
@@ -1836,52 +1833,21 @@ func isNilFixed(i interface{}) bool {
 }
 */
 func concat(str string, stringer fmt.Stringer) string {
-	val := reflect.ValueOf(stringer)
-	if !val.IsValid() {
-		return str
-	}
+	//val := reflect.ValueOf(stringer)
+	//if !val.IsValid() {
+	//	return str
+	//}
 	if stringer != nil {
+		stringerStr := stringer.String()
+		if stringerStr == "<nil>" {
+			stringerStr = ""
+		}
 		if str != "" {
 			return stringer.String() + ": " + str
 		}
 		return stringer.String()
 	}
 	return str
-}
-
-func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
-	return failure{
-		str:  str,
-		addr: addr,
-	}
-}
-
-func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
-	return failure{
-		str:     str,
-		macAddr: addr,
-	}
-}
-
-func newHostFailure(str string, host *ipaddr.HostName) failure {
-	return failure{
-		str:  str,
-		host: host,
-	}
-}
-
-func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
-	return failure{
-		str:        str,
-		macAddrStr: addrStr,
-	}
-}
-
-func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
-	return failure{
-		str:     str,
-		addrStr: addrStr,
-	}
 }
 
 func newSegmentSeriesFailure(str string, series ipaddr.AddressSegmentSeries) failure {
@@ -1898,19 +1864,32 @@ func newSeqRangeFailure(str string, rng *ipaddr.IPAddressSeqRange) failure {
 	}
 }
 
-//func newSegmentSeriesFailure(str string, series ipaddr.ExtendedSegmentSeries) failure {
-//	return failure{
-//		str:    str,
-//		series: series,
-//	}
-//}
-//
-//func newSegmentSeriesFailure(str string, series ipaddr.ExtendedIPSegmentSeries) failure {
-//	return failure{
-//		str:      str,
-//		series: series,
-//	}
-//}
+func newHostIdFailure(str string, idStr ipaddr.HostIdentifierString) failure {
+	return failure{
+		str:   str,
+		idStr: idStr,
+	}
+}
+
+func newIPAddrFailure(str string, addr *ipaddr.IPAddress) failure {
+	return newSegmentSeriesFailure(str, addr)
+}
+
+func newMACAddrFailure(str string, addr *ipaddr.MACAddress) failure {
+	return newSegmentSeriesFailure(str, addr)
+}
+
+func newHostFailure(str string, host *ipaddr.HostName) failure {
+	return newHostIdFailure(str, host)
+}
+
+func newMACFailure(str string, addrStr *ipaddr.MACAddressString) failure {
+	return newHostIdFailure(str, addrStr)
+}
+
+func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
+	return newHostIdFailure(str, addrStr)
+}
 
 var cachedPrefixLens = initPrefLens()
 

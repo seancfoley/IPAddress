@@ -67,7 +67,7 @@ func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSect
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
 			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
-			if !res.isMultiple { // not a prefix block
+			if !res.isMult { // not a prefix block
 				res.cache.bytesCache.upperBytes = bytes
 			}
 		}
@@ -111,13 +111,42 @@ func NewMACSectionFromRange(vals, upperVals MACSegmentValueProvider, segmentCoun
 	res = createMACSection(segments)
 	if isMultiple {
 		res.initImplicitPrefLen(MACBitsPerSegment)
-		res.isMultiple = true
+		res.isMult = true
 	}
 	return
 }
 
 type MACAddressSection struct {
 	addressSectionInternal
+}
+
+func (section *MACAddressSection) Contains(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.contains(other)
+}
+
+func (section *MACAddressSection) Equal(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.equal(other)
+}
+
+func (section *MACAddressSection) Compare(item AddressItem) int {
+	return CountComparator.Compare(section, item)
+}
+
+func (section *MACAddressSection) CompareSize(other StandardDivisionGroupingType) int {
+	if section == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return section.compareSize(other)
 }
 
 //func (section *MACAddressSection) IsExtended() bool {
@@ -133,11 +162,18 @@ func (section *MACAddressSection) GetBytesPerSegment() int {
 }
 
 func (section *MACAddressSection) GetCount() *big.Int {
+	if section == nil {
+		return bigZero()
+	}
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
 			return section.GetSegment(index).GetValueCount()
 		}, section.GetSegmentCount(), 6, 0x7fffffffffffff)
 	})
+}
+
+func (section *MACAddressSection) IsMultiple() bool {
+	return section != nil && section.isMultiple()
 }
 
 func (section *MACAddressSection) GetPrefixCount() *big.Int {
@@ -162,6 +198,15 @@ func (section *MACAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int
 			}
 			return section.GetSegment(index).GetValueCount()
 		}, networkSegmentIndex+1, 6, 0x7fffffffffffff)
+	})
+}
+
+func (section *MACAddressSection) GetBlockCount(segmentCount int) *big.Int {
+	return section.calcCount(func() *big.Int {
+		return count(func(index int) uint64 {
+			return section.GetSegment(index).GetValueCount()
+		},
+			segmentCount, 6, 0x7fffffffffffff)
 	})
 }
 
@@ -295,6 +340,9 @@ func (section *MACAddressSection) ToBlock(segmentIndex int, lower, upper SegInt)
 }
 
 func (section *MACAddressSection) Iterator() MACSectionIterator {
+	if section == nil {
+		return macSectionIterator{nilSectIterator()}
+	}
 	return macSectionIterator{section.sectionIterator(nil)}
 }
 
@@ -327,7 +375,7 @@ var macMaxValues = []uint64{
 	0xffffffffffffffff}
 
 func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSection {
-	if incrementVal == 0 && !section.IsMultiple() {
+	if incrementVal == 0 && !section.isMultiple() {
 		return section
 	}
 	segCount := section.GetSegmentCount()
@@ -512,7 +560,7 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 //		segIndex++
 //		segment2 := section.GetSegment(segIndex)
 //		segIndex++
-//		if segment1.IsMultiple() && !segment2.IsFullRange() {
+//		if segment1.isMult() && !segment2.IsFullRange() {
 //			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
 //			//throw new IncompatibleAddressException(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 //		}
@@ -677,4 +725,11 @@ func (section *MACAddressSection) ToDashedString() string {
 
 func (section *MACAddressSection) ToColonDelimitedString() string {
 	return section.ToNormalizedString()
+}
+
+func (section *MACAddressSection) String() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toString()
 }

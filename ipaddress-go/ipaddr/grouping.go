@@ -24,13 +24,13 @@ func createGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType ad
 
 func createGroupingMultiple(divs []*AddressDivision, prefixLength PrefixLen, isMultiple bool) *AddressDivisionGrouping {
 	result := createGrouping(divs, prefixLength, zeroType)
-	result.isMultiple = isMultiple
+	result.isMult = isMultiple
 	return result
 }
 
 func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen) *AddressDivisionGrouping {
 	result := createGrouping(divs, prefixLength, zeroType)
-	result.initMultiple() // assigns isMultiple
+	result.initMultiple() // assigns isMult
 	return result
 }
 
@@ -72,8 +72,8 @@ func (grouping *addressDivisionGroupingInternal) initMultiple() {
 	divCount := grouping.getDivisionCount()
 	for i := divCount - 1; i >= 0; i-- {
 		div := grouping.getDivision(i)
-		if div.IsMultiple() {
-			grouping.isMultiple = true
+		if div.isMultiple() {
+			grouping.isMult = true
 			return
 		}
 	}
@@ -261,26 +261,30 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 //	return true
 //}
 
-func (grouping *addressDivisionGroupingInternal) CompareSize(other AddressDivisionSeries) int { // the GetCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
-	if !grouping.IsMultiple() {
+//func (grouping *addressDivisionGroupingInternal) CompareSize(other AddressDivisionSeries) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
+func (grouping *addressDivisionGroupingInternal) compareSize(other StandardDivisionGroupingType) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
+	if other == nil || other.ToAddressDivisionGrouping() == nil {
+		// our size is 1 or greater, other 0
+		return 1
+	}
+	if !grouping.isMultiple() {
 		if other.IsMultiple() {
 			return -1
 		}
 		return 0
-	}
-	if !other.IsMultiple() {
+	} else if !other.IsMultiple() {
 		return 1
 	}
-	return grouping.GetCount().CmpAbs(other.GetCount())
+	return grouping.getCount().CmpAbs(other.GetCount())
 }
 
-func (grouping *addressDivisionGroupingInternal) GetCount() *big.Int {
-	if !grouping.IsMultiple() {
+func (grouping *addressDivisionGroupingInternal) getCount() *big.Int {
+	if !grouping.isMultiple() {
 		return bigOne()
 	} else if section := grouping.toAddressSection(); section != nil {
 		return section.GetCount()
 	}
-	return grouping.addressDivisionGroupingBase.GetCount()
+	return grouping.addressDivisionGroupingBase.getCount()
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixCount() *big.Int {
@@ -379,10 +383,19 @@ func (grouping *addressDivisionGroupingInternal) initDivs() *addressDivisionGrou
 	return grouping
 }
 
-func (grouping addressDivisionGroupingInternal) String() string {
+func (grouping *addressDivisionGroupingInternal) toString() string {
 	if sect := grouping.toAddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	}
+	return fmt.Sprintf("%v", grouping.initDivs().divisions)
+}
+
+func (grouping addressDivisionGroupingInternal) Format(state fmt.State, verb rune) {
+	if sect := grouping.toAddressSection(); sect != nil {
+		sect.Format(state, verb)
+		return
+	}
+
 	return fmt.Sprintf("%v", grouping.initDivs().divisions)
 }
 
@@ -404,7 +417,7 @@ func (grouping *addressDivisionGroupingInternal) ContainsPrefixBlock(prefixLen B
 	if section := grouping.toAddressSection(); section != nil {
 		return section.ContainsPrefixBlock(prefixLen)
 	}
-	prefixLen = checkSubnet(grouping, prefixLen)
+	prefixLen = checkSubnet(grouping.toAddressDivisionGrouping(), prefixLen)
 	divisionCount := grouping.GetDivisionCount()
 	var prevBitCount BitCount
 	for i := 0; i < divisionCount; i++ {
@@ -430,7 +443,7 @@ func (grouping *addressDivisionGroupingInternal) ContainsPrefixBlock(prefixLen B
 }
 
 func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
-	prefixLen = checkSubnet(grouping, prefixLen)
+	prefixLen = checkSubnet(grouping.toAddressDivisionGrouping(), prefixLen)
 	divisionCount := grouping.GetDivisionCount()
 	var prevBitCount BitCount
 	for i := 0; i < divisionCount; i++ {
@@ -601,11 +614,12 @@ func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
 	return bigZero().SetBytes(grouping.getUpperBytes())
 }
 
-func (grouping *addressDivisionGroupingInternal) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(grouping, item)
-}
+//func (grouping *addressDivisionGroupingInternal) Compare(item AddressItem) int {
+//	xxx lowercase it xxxx
+//	return CountComparator.Compare(grouping.toAddressDivisionGrouping(), item)
+//}
 
-//func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingType) bool { xxxx need subs to have this xxxx
+//func (grouping *addressDivisionGroupingInternal) Equal(other GenericGroupingType) bool { xxxx need subs to have this xxxx
 //	// For an identity comparison need to access the *addressDivisionGroupingBase or something
 //	//otherSection := other.to
 //	//if section.toAddressSection() == otherSection {
@@ -625,7 +639,7 @@ func (grouping *addressDivisionGroupingInternal) CompareTo(item AddressItem) int
 //		for i := 0; i < count; i++ {
 //			one := grouping.getDivision(i)
 //			two := other.GetGenericDivision(i)
-//			if !one.Equals(two) { //this checks the division types and also the bit counts
+//			if !one.Equal(two) { //this checks the division types and also the bit counts
 //				return false
 //			}
 //		}
@@ -688,7 +702,7 @@ func (grouping *addressDivisionGroupingInternal) getUpperBytes() (bytes []byte) 
 func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes []byte) {
 	addrType := grouping.getAddrType()
 	divisionCount := grouping.GetDivisionCount()
-	isMultiple := grouping.IsMultiple()
+	isMultiple := grouping.isMultiple()
 	if addrType.isIPv4() || addrType.isMAC() {
 		bytes = make([]byte, divisionCount)
 		if isMultiple {
@@ -771,7 +785,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	count := grouping.GetDivisionCount()
 	if count > 1 {
 		for i := 0; i < count; i++ {
-			if grouping.getDivision(i).IsMultiple() {
+			if grouping.getDivision(i).isMultiple() {
 				for i++; i < count; i++ {
 					if !grouping.getDivision(i).IsFullRange() {
 						return false
@@ -784,7 +798,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 	return true
 }
 
-//func (grouping *addressDivisionGroupingInternal) Equals(other GenericGroupingType) bool {
+//func (grouping *addressDivisionGroupingInternal) Equal(other GenericGroupingType) bool {
 //	// For an identity comparison need to access the *addressDivisionGroupingBase or something
 //	//otherSection := other.to
 //	//if section.toAddressSection() == otherSection {
@@ -805,7 +819,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 //		for i := 0; i < count; i++ {
 //			one := grouping.getDivision(i)
 //			two := other.GetGenericDivision(i)
-//			if !one.Equals(two) { //this checks the division types and also the bit counts
+//			if !one.Equal(two) { //this checks the division types and also the bit counts
 //				return false
 //			}
 //		}
@@ -969,6 +983,32 @@ type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }
 
+func (grouping *AddressDivisionGrouping) Compare(item AddressItem) int {
+	return CountComparator.Compare(grouping, item)
+}
+
+func (grouping *AddressDivisionGrouping) CompareSize(other StandardDivisionGroupingType) int {
+	if grouping == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return grouping.compareSize(other)
+}
+
+func (grouping *AddressDivisionGrouping) GetCount() *big.Int {
+	if grouping == nil {
+		return bigZero()
+	}
+	return grouping.getCount()
+}
+
+func (grouping *AddressDivisionGrouping) IsMultiple() bool {
+	return grouping != nil && grouping.isMultiple()
+}
+
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (grouping *AddressDivisionGrouping) CopySubDivisions(start, end int, divs []*AddressDivision) (count int) {
@@ -1047,4 +1087,11 @@ func (grouping *AddressDivisionGrouping) ToAddressDivisionGrouping() *AddressDiv
 
 func (grouping *AddressDivisionGrouping) GetDivision(index int) *AddressDivision {
 	return grouping.getDivision(index)
+}
+
+func (grouping *AddressDivisionGrouping) String() string {
+	if grouping == nil {
+		return nilString()
+	}
+	return grouping.toString()
 }

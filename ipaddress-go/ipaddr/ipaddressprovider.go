@@ -244,7 +244,7 @@ func providerCompare(p, other ipAddressProvider) (res int, err IncompatibleAddre
 			return
 		}
 		if otherValue != nil {
-			res = value.CompareTo(otherValue)
+			res = value.Compare(otherValue)
 			return
 		}
 	}
@@ -275,7 +275,7 @@ func providerEquals(p, other ipAddressProvider) (res bool, err IncompatibleAddre
 			return
 		}
 		if otherValue != nil {
-			res = value.Equals(otherValue)
+			res = value.Equal(otherValue)
 			return
 		} else {
 			return // returns false

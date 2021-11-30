@@ -35,6 +35,10 @@ func (it multiAddrIterator) Next() (res *Address) {
 	return
 }
 
+func nilAddrIterator() AddressIterator {
+	return &singleAddrIterator{}
+}
+
 func addrIterator(
 	single bool,
 	original *Address,

@@ -131,7 +131,7 @@ func (t hostTester) run() {
 
 	//Since service names cannot have ':' and can be at most 15 chars, and since all IPv6 must have a ':' or must be at least 32 digits otherwise, there is no ambiguity below
 	//of course, none of the forms below can appear in a URL
-	t.hostTest(true, "abc.com/1::1")     // TODO lin 1864 validate    //this is abc.com with mask 1::1
+	t.hostTest(true, "abc.com/1::1")     //this is abc.com with mask 1::1
 	t.hostTest(true, "abc.com/1:1")      //this one is abc.com with prefix 1 and port 1
 	t.hostTest(true, "abc.com/1:abc")    //this one is abc.com with prefix 1 and service abc
 	t.hostTest(true, "abc.com/1.2.3.4")  //this is abc.com with mask 1.2.3.4
@@ -621,14 +621,14 @@ func hostConversionMatches(host1, host2 *ipaddr.HostName) bool {
 		h2 := host2.AsAddress()
 		if !h2.IsIPv4() {
 			if conv.IsIPv4Convertible(h2) {
-				return h1.Equals(conv.ToIPv4(h2))
+				return h1.Equal(conv.ToIPv4(h2))
 			}
 		}
 	} else if h1 != nil && h1.IsIPv6() {
 		h2 := host2.AsAddress()
 		if !h2.IsIPv6() {
 			if conv.IsIPv6Convertible(h2) {
-				return h1.Equals(conv.ToIPv6(h2))
+				return h1.Equal(conv.ToIPv6(h2))
 			}
 		}
 	}
@@ -642,13 +642,13 @@ func (t hostTester) testMatches(matches bool, host1, host2 string) {
 func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options ipaddr.HostNameParameters) {
 	h1 := t.createParamsHost(host1, options)
 	h2 := t.createParamsHost(host2, options)
-	if matches != h1.Equals(h2) && matches != hostConversionMatches(h1, h2) {
+	if matches != h1.Equal(h2) && matches != hostConversionMatches(h1, h2) {
 		t.addFailure(newHostFailure("failed: match with "+host2, h1))
 	} else {
-		if matches != h2.Equals(h1) && matches != hostConversionMatches(h2, h1) {
+		if matches != h2.Equal(h1) && matches != hostConversionMatches(h2, h1) {
 			t.addFailure(newHostFailure("failed: match with "+host1, h2))
 		} else {
-			//if(matches != h1.Equals(h2) && matches != hostConversionMatches(h1, h2)) {
+			//if(matches != h1.Equal(h2) && matches != hostConversionMatches(h1, h2)) {
 			//	addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h1, h2));
 			//} else {
 			t.testNormalizedMatches(h1)
@@ -728,14 +728,14 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 	if resolvedAddress == nil && original.IsAllAddresses() && expectedResolved != "" {
 		//special case for "*"
 		exp := t.createAddress(expectedResolved)
-		result = original.AsAddressString().Equals(exp)
+		result = original.AsAddressString().Equal(exp)
 	} else {
 		if resolvedAddress == nil {
 			result = expectedResolved == ""
 		} else {
 			expectedStr := t.createAddress(expectedResolved)
 			expected := expectedStr.GetAddress()
-			result = resolvedAddress.Equals(expected)
+			result = resolvedAddress.Equal(expected)
 		}
 	}
 	if !result {
@@ -746,7 +746,7 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 		}
 	} else if resolvedAddress != nil && !(resolvedAddress.IsIPv6() && resolvedAddress.ToIPv6Address().HasZone()) {
 		host := resolvedAddress.ToHostName()
-		if !original.Equals(host) && !original.IsSelf() && !host.IsSelf() {
+		if !original.Equal(host) && !original.IsSelf() && !host.IsSelf() {
 			t.addFailure(newHostFailure("reverse was "+host.String()+" original was "+original.String(), original))
 		} else if !original.IsAddress() {
 			//System.out.println("" + resolvedAddress.toCanonicalHostName());
@@ -902,7 +902,7 @@ func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(
 	}
 	if socketAddr != nil && h.GetService() == "" {
 		h2 := ipaddr.NewHostNameFromTCPAddr(socketAddr)
-		if !h.Equals(h2) {
+		if !h.Equal(h2) {
 			t.addFailure(newHostFailure("socket address mismatch, expected: "+h.String()+" result: "+h2.String(), h))
 		}
 	}
@@ -947,11 +947,11 @@ func (t hostTester) testHostPortServZone(hostName *ipaddr.HostName, hostExpected
 }
 
 func addressesEqual(one, two *ipaddr.IPAddress) bool {
-	//TODO replace with just call to Equals once I have Equals supporting nil
+	//TODO replace with just call to Equal once I have Equal supporting nil
 	if one == nil {
 		return two == nil
 	}
-	return two != nil && one.Equals(two)
+	return two != nil && one.Equal(two)
 }
 
 func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {
@@ -971,35 +971,35 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	prefLength := hostName.GetNetworkPrefixLen()
 	if h != hostExpected {
 		t.addFailure(newHostFailure("failed: host is "+h, hostName))
-	} else if !port.Equals(portExpected) {
+	} else if !port.Equal(portExpected) {
 		t.addFailure(newHostFailure("failed: port is "+port.String(), hostName))
 	} else if zone != expectedZone {
 		t.addFailure(newHostFailure("failed:  zone is "+zone.String(), hostName))
 	} else if !addressesEqual(addrHost, addressExpected) {
 		t.addFailure(newHostFailure(fmt.Sprintf("failed: address is %v", addrHost), hostName))
-	} else if !prefLength.Equals(prefixLengthExpected) {
+	} else if !prefLength.Equal(prefixLengthExpected) {
 		t.addFailure(newHostFailure("failed: prefix is "+prefLength.String(), hostName))
 	}
 	if addressExpected != nil && addrHost != nil {
 		if serviceExpected == "" {
 			if portExpected != nil {
 				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, int(*portExpected))
-				if !h2.Equals(hostName) {
+				if !h2.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 				}
 				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, int(*portExpected))
-				if !h3.Equals(hostName) {
+				if !h3.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h3.String(), hostName))
 				}
 			} else if expectedZone == "" {
 				if prefixLengthExpected == nil {
 					h2 := ipaddr.NewHostNameFromIP(addrHost.GetIP())
-					if !h2.Equals(hostName) {
+					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}
 				} else {
 					h2 := ipaddr.NewHostNameFromPrefixedIP(addrHost.GetIP(), prefixLengthExpected)
-					if !h2.Equals(hostName) {
+					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}
 				}

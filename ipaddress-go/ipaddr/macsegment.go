@@ -131,18 +131,24 @@ func (seg *MACAddressSegment) init() *MACAddressSegment {
 	return seg
 }
 
-// We must override getBitCount, getByteCount and others for the case when we construct as the zero value
+func (seg *MACAddressSegment) Contains(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressSegment() == nil
+	}
+	return seg.contains(other)
+}
 
-//func (seg *MACAddressSegment) Equals(other DivisionType) bool {
-//	if seg == nil {
-//		return seg.getAddrType() == macType && other.(StandardDivisionType).ToAddressDivision() == nil
-//	}
-//	return seg.init().equals(other)
-//}
-//
-//func (seg *MACAddressSegment) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(seg, item)
-//}
+func (seg *MACAddressSegment) Equal(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressDivision() == nil
+		//return seg.getAddrType() == macType && other.(StandardDivisionType).ToAddressDivision() == nil
+	}
+	return seg.init().equal(other)
+}
+
+func (seg *MACAddressSegment) Compare(item AddressItem) int {
+	return CountComparator.Compare(seg, item)
+}
 
 func (seg *MACAddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment
@@ -162,6 +168,17 @@ func (seg *MACAddressSegment) GetLower() *MACAddressSegment {
 
 func (seg *MACAddressSegment) GetUpper() *MACAddressSegment {
 	return seg.getUpper().ToMACAddressSegment()
+}
+
+func (seg *MACAddressSegment) IsMultiple() bool {
+	return seg != nil && seg.isMultiple()
+}
+
+func (seg *MACAddressSegment) GetCount() *big.Int {
+	if seg == nil {
+		return bigZero()
+	}
+	return seg.getCount()
 }
 
 func (seg *MACAddressSegment) setString(
@@ -201,14 +218,17 @@ func (seg *MACAddressSegment) setRangeString(
 }
 
 func (seg *MACAddressSegment) Iterator() MACSegmentIterator {
+	if seg == nil {
+		return macSegmentIterator{nilSegIterator()}
+	}
 	return macSegmentIterator{seg.iterator()}
 }
 
-func (seg *MACAddressSegment) prefixBlockIterator(segmentPrefixLen BitCount) MACSegmentIterator {
+func (seg *MACAddressSegment) PrefixBlockIterator(segmentPrefixLen BitCount) MACSegmentIterator {
 	return macSegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
 }
 
-func (seg *MACAddressSegment) prefixIterator(segmentPrefixLen BitCount) MACSegmentIterator {
+func (seg *MACAddressSegment) PrefixIterator(segmentPrefixLen BitCount) MACSegmentIterator {
 	return macSegmentIterator{seg.prefixedIterator(segmentPrefixLen)}
 }
 
@@ -217,7 +237,7 @@ func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err I
 		res = seg
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		if isReversible := seg.isReversibleRange(false); isReversible {
 			res = seg
 			return
@@ -284,6 +304,13 @@ func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 		return nil
 	}
 	return (*AddressSegment)(seg.init())
+}
+
+func (seg *MACAddressSegment) String() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.toString()
 }
 
 func NewMACSegment(val MACSegInt) *MACAddressSegment {

@@ -199,15 +199,15 @@ func (t hostRangeTester) testMasked(masked, mask string, prefixLength ipaddr.Pre
 	if result != "" {
 		resultAddr := t.createAddress(result).GetAddress()
 		maskedAddr := maskedHostStr.GetAddress()
-		if !maskedAddr.Equals(resultAddr) {
+		if !maskedAddr.Equal(resultAddr) {
 			t.addFailure(newIPAddrFailure("masked "+maskedAddr.String()+" instead of expected "+resultAddr.String(), maskedAddr))
 		}
 	}
 	if !addressesEqual(maskAddr, maskedHostStr.GetMask()) {
-		//if !maskAddr.Equals(maskedHostStr.GetMask()) {
+		//if !maskAddr.Equal(maskedHostStr.GetMask()) {
 		t.addFailure(newHostFailure("masked "+maskAddr.String()+" instead of expected "+maskedHostStr.GetMask().String(), maskedHostStr))
 	}
-	if !maskedHostStr.GetNetworkPrefixLen().Equals(prefixLength) {
+	if !maskedHostStr.GetNetworkPrefixLen().Equal(prefixLength) {
 		t.addFailure(newHostFailure("masked prefix length was "+maskedHostStr.GetNetworkPrefixLen().String()+" instead of expected "+prefixLength.String(), maskedHostStr))
 	}
 	t.incrementTestCount()

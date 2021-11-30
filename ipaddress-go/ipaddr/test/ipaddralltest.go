@@ -366,14 +366,14 @@ func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
 		bigIntBytes = bytes
 	}
 	andAgain := ipaddr.FromIP(bigIntBytes)
-	if !andAgain.Equals(addr) {
+	if !andAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
 	}
 
 	// byte[] and back
 	bytes := addr.GetBytes()
 	backAgain := ipaddr.FromIP(bytes)
-	if !backAgain.Equals(addr) {
+	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
 	}
 
@@ -381,7 +381,7 @@ func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
 	addrv4 := addr.ToIPv4Address()
 	val := addrv4.Uint32Value()
 	backAgainv4 := ipaddr.NewIPv4AddressFromUint32(val)
-	if !backAgainv4.Equals(addrv4) {
+	if !backAgainv4.Equal(addrv4) {
 		t.addFailure(newIPAddrFailure("int result was "+backAgainv4.String()+" original was "+addrv4.String(), addrv4.ToIPAddress()))
 	}
 }
@@ -398,14 +398,14 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 		bigIntBytes = bytes
 	}
 	andAgain := ipaddr.FromIP(bigIntBytes)
-	if !andAgain.Equals(addr) {
+	if !andAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
 	}
 
 	// byte[] and back
 	bytes := addr.GetBytes()
 	backAgain := ipaddr.FromIP(bytes)
-	if !backAgain.Equals(addr) {
+	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
 	}
 
@@ -415,7 +415,7 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 	backAgainv6, err := ipaddr.NewIPv6AddressFromBigInt(value)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("got error creating from bytes "+value.String()+" err: "+err.Error(), addr))
-	} else if !backAgainv6.Equals(addrv6) {
+	} else if !backAgainv6.Equal(addrv6) {
 		t.addFailure(newIPAddrFailure("int result was "+backAgainv6.String()+" original was "+addrv6.String(), addrv6.ToIPAddress()))
 	}
 }

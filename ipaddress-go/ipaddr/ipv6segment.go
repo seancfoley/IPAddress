@@ -133,21 +133,26 @@ func (seg *IPv6AddressSegment) init() *IPv6AddressSegment {
 	return seg
 }
 
-// We must override getBitCount, getByteCount and others for the case when we construct as the zero value
+func (seg *IPv6AddressSegment) Contains(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressSegment() == nil
+	}
+	return seg.contains(other)
+}
 
-//func (seg *IPv6AddressSegment) Equals(other DivisionType) bool {
-//	if seg == nil {
-//		return seg.getAddrType() == ipv6Type && other.(StandardDivisionType).ToAddressDivision() == nil
-//	}
-//	return seg.init().equals(other)
-//}
-//
-//func (seg *IPv6AddressSegment) CompareTo(item AddressItem) int {
-//	if seg != nil {
-//		seg = seg.init()
-//	}
-//	return CountComparator.Compare(seg, item)
-//}
+func (seg *IPv6AddressSegment) Equal(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressDivision() == nil
+	}
+	return seg.init().equal(other)
+}
+
+func (seg *IPv6AddressSegment) Compare(item AddressItem) int {
+	if seg != nil {
+		seg = seg.init()
+	}
+	return CountComparator.Compare(seg, item)
+}
 
 func (seg *IPv6AddressSegment) GetBitCount() BitCount {
 	return IPv6BitsPerSegment
@@ -169,6 +174,17 @@ func (seg *IPv6AddressSegment) GetUpper() *IPv6AddressSegment {
 	return seg.getUpper().ToIPv6AddressSegment()
 }
 
+func (seg *IPv6AddressSegment) IsMultiple() bool {
+	return seg != nil && seg.isMultiple()
+}
+
+func (seg *IPv6AddressSegment) GetCount() *big.Int {
+	if seg == nil {
+		return bigZero()
+	}
+	return seg.getCount()
+}
+
 func (seg *IPv6AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
 	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
 }
@@ -186,6 +202,9 @@ func (seg *IPv6AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv
 }
 
 func (seg *IPv6AddressSegment) Iterator() IPv6SegmentIterator {
+	if seg == nil {
+		return ipv6SegmentIterator{nilSegIterator()}
+	}
 	return ipv6SegmentIterator{seg.iterator()}
 }
 
@@ -211,7 +230,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 //// If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
 //// then it is not copied.
 //func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
-//	if !seg.IsMultiple() {
+//	if !seg.isMult() {
 //		bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 //		myPrefix := seg.GetSegmentPrefixLen()
 //		highPrefixBits := getSegmentPrefixLength(bitSizeSplit, myPrefix, 0)
@@ -269,7 +288,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 // Used to create both IPv4 and MACSize segments
 func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) IncompatibleAddressError {
 	//func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		return seg.visitSplitSegmentsMultiple(creator)
 	} else {
 		index := 0
@@ -288,7 +307,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value,
 
 //func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int) IncompatibleAddressError {
 //	//func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
-//	if seg.IsMultiple() {
+//	if seg.isMult() {
 //		return seg.visitSplitSegmentsMultiple(creator, boundaryIndex, index)
 //	} else {
 //		bitSizeSplit := IPv6BitsPerSegment >> 1
@@ -430,7 +449,7 @@ func (seg *IPv6AddressSegment) ReverseBits(perByte bool) (res *IPv6AddressSegmen
 		res = seg
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		var addrSeg *AddressSegment
 		addrSeg, err = seg.reverseMultiValSeg(perByte)
 		res = addrSeg.ToIPv6AddressSegment()
@@ -454,7 +473,7 @@ func (seg *IPv6AddressSegment) ReverseBytes() (res *IPv6AddressSegment, err Inco
 		res = seg
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		var addrSeg *AddressSegment
 		addrSeg, err = seg.reverseMultiValSeg(false)
 		res = addrSeg.ToIPv6AddressSegment()
@@ -483,6 +502,13 @@ func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 		return nil
 	}
 	return (*IPAddressSegment)(seg.init())
+}
+
+func (seg *IPv6AddressSegment) String() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.toString()
 }
 
 func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {

@@ -7,17 +7,19 @@ import (
 )
 
 type AddressItem interface {
-	IsMultiple() bool
-
 	GetValue() *big.Int
 	GetUpperValue() *big.Int
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
-	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes
+	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP
 	GetUpperBytes() []byte
 
+	// GetCount provides the number of address items represented by this AddressItem, for example the subnet size for IP addresses
 	GetCount() *big.Int
+
+	// IsMultiple returns whether the count is larger than 1
+	IsMultiple() bool
 
 	GetByteCount() int
 	GetBitCount() BitCount
@@ -33,7 +35,7 @@ type AddressItem interface {
 	// whether this item contains the prefix block for each and every one of those prefixes.
 	ContainsPrefixBlock(BitCount) bool
 
-	// ContainsSinglePrefixBlock returns  whether the values of this series contains a single prefix block for the given prefix length.
+	// ContainsSinglePrefixBlock returns whether the values of this series contains a single prefix block for the given prefix length.
 	// This means there is only one prefix of the given length in this item, and this item contains the prefix block for that given prefix.
 	ContainsSinglePrefixBlock(BitCount) bool
 
@@ -55,12 +57,8 @@ type AddressItem interface {
 	// The count of the number of distinct values within the prefix part of the range of values for this item
 	GetPrefixCountLen(BitCount) *big.Int
 
-	//TODO consider renaming to Compare to be consistent with package bytes and strings - it seems sometimes methods with the right name gets special treatment https://github.com/google/go-cmp/issues/61
-	// Or maybe Cmp https://pkg.go.dev/math/big#Int.Cmp
-	// Since an address is more like a sequence of bytes, probably want the former, Compare
-
 	// Any address item is comparable to any other
-	CompareTo(item AddressItem) int
+	Compare(item AddressItem) int
 
 	fmt.Stringer
 }
@@ -78,7 +76,7 @@ type ipAddressRange interface {
 	GetLowerIPAddress() *IPAddress
 	GetUpperIPAddress() *IPAddress
 
-	CopyIP(bytes net.IP) net.IP //TODO make sure this handles the ipv4-mapped ipv4 addresses everywhere
+	CopyIP(bytes net.IP) net.IP
 	CopyUpperIP(bytes net.IP) net.IP
 
 	GetIP() net.IP
@@ -98,6 +96,8 @@ type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionG
 
 	AddressDivisionSeries
 
+	CompareSize(StandardDivisionGroupingType) int
+
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
 }
 
@@ -111,6 +111,9 @@ type AddressDivisionSeries interface {
 	GetDivisionCount() int
 
 	GetPrefixCount() *big.Int
+	GetBlockCount(divisionCount int) *big.Int
+	GetSequentialBlockIndex() int
+	GetSequentialBlockCount() *big.Int
 
 	IsSequential() bool
 
@@ -119,7 +122,7 @@ type AddressDivisionSeries interface {
 	IsPrefixed() bool
 	GetPrefixLen() PrefixLen
 
-	CompareSize(AddressDivisionSeries) int
+	//CompareSize(AddressDivisionSeries) int xxxx
 
 	GetGenericDivision(index int) DivisionType // useful for comparisons
 }
@@ -156,9 +159,6 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	IsMaxHost() bool
 	IsMaxHostLen(BitCount) bool
 	IsSingleNetwork() bool
-
-	GetSequentialBlockIndex() int
-	GetSequentialBlockCount() *big.Int
 
 	GetIPVersion() IPVersion
 
@@ -256,8 +256,9 @@ var _, _ MACAddressSegmentSeries = &MACAddress{}, &MACAddressSection{}
 type AddressSectionType interface {
 	StandardDivisionGroupingType
 
-	Equals(AddressSectionType) bool
+	Equal(AddressSectionType) bool
 	Contains(AddressSectionType) bool
+
 	ToAddressSection() *AddressSection
 }
 
@@ -275,9 +276,11 @@ var _, _, _, _, _ AddressSectionType = &AddressSection{},
 type AddressType interface {
 	AddressSegmentSeries
 
-	Equals(AddressType) bool //TODO maybe rename Equal() everywhere https://github.com/google/go-cmp/issues/61#issuecomment-353451627 and then PrefixEqual should drop the 's' too
-	PrefixEquals(AddressType) bool
+	Equal(AddressType) bool
 	Contains(AddressType) bool
+	CompareSize(AddressType) int
+
+	PrefixEquals(AddressType) bool
 	PrefixContains(AddressType) bool
 
 	ToAddress() *Address
@@ -304,7 +307,8 @@ type IPAddressSeqRangeType interface {
 	AddressItem
 	IPAddressRange
 
-	ContainsRange(other IPAddressSeqRangeType) bool
+	CompareSize(IPAddressSeqRangeType) int
+	ContainsRange(IPAddressSeqRangeType) bool
 	Contains(IPAddressType) bool
 	ToIPAddressSeqRange() *IPAddressSeqRange
 }
@@ -321,6 +325,8 @@ type HostIdentifierString interface {
 
 	// returns whether the wrapped string is a valid identifier for a host
 	IsValid() bool
+
+	fmt.Stringer
 }
 
 var _, _, _ HostIdentifierString = &IPAddressString{}, &MACAddressString{}, &HostName{}

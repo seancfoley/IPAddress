@@ -1,8 +1,10 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -46,7 +48,7 @@ func (version IPVersion) index() int {
 	return 2
 }
 
-func (version IPVersion) Equals(other IPVersion) bool {
+func (version IPVersion) Equal(other IPVersion) bool {
 	return strings.EqualFold(string(version), string(other)) || (version.IsIndeterminate() && other.IsIndeterminate())
 }
 
@@ -533,9 +535,9 @@ func (addr *ipAddressInternal) getNetwork() IPAddressNetwork {
 //	return addr.GetSegment(index)
 //}
 
-func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
-	return addr.toIPAddress().CompareSize(other)
-}
+//func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
+//	return addr.toIPAddress().CompareSize(other)
+//}
 
 var zeroIPAddr = createIPAddress(zeroSection, NoZone)
 
@@ -567,11 +569,26 @@ func (addr *IPAddress) getProvider() ipAddressProvider {
 
 }
 
-func (addr IPAddress) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().ipAddressInternal.String()
+func (addr *IPAddress) GetCount() *big.Int {
+	if addr == nil {
+		return bigZero()
+	}
+	return addr.getCount()
+}
+
+func (addr *IPAddress) IsMultiple() bool {
+	return addr != nil && addr.isMultiple()
+}
+
+func (addr IPAddress) Format(state fmt.State, verb rune) {
+	addr.init().format(state, verb)
+}
+
+func (addr *IPAddress) String() string {
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().ipAddressInternal.toString()
 }
 
 func (addr *IPAddress) GetSection() *IPAddressSection {
@@ -767,11 +784,6 @@ func (addr *IPAddress) AssignMinPrefixForBlock() *IPAddress {
 	return addr.init().assignMinPrefixForBlock().ToIPAddress()
 }
 
-// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
-func (addr *IPAddress) CompareSize(other AddressDivisionSeries) int { // this is here to take advantage of the CompareSize in IPAddressSection
-	return addr.GetSection().CompareSize(other)
-}
-
 func (addr *IPAddress) GetValue() *big.Int {
 	return addr.init().section.GetValue()
 }
@@ -787,7 +799,7 @@ func (addr *IPAddress) GetIPAddr() net.IPAddr {
 	}
 }
 
-func (addr *IPAddress) GetIP() net.IP { //TODO think about making this ToIP() to match toInetAddress() in Java
+func (addr *IPAddress) GetIP() net.IP { //TODO think about making this ToIP() to match toInetAddress() in Java - we also suggested changing GetBytes to just Bytes()
 	return addr.GetBytes()
 }
 
@@ -843,40 +855,6 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-//TODO equals nil:
-// CompareTo and Equals
-// How will it work?  I will need to add them to all subtypes everywhere: groupings, segments, addresses, ranges
-// I tossed the idea of changing init() everywhere, seems like overkill.
-// I need to consider both the nil interface and the underlying value nil.
-//if interface is nil, probable return false?  CompareTo is what?
-// if interface value is nil, then we do a comparison where nil is smaller than non-nil?
-// What about PrefixEquals?  Contains?  PrefixContains?
-
-// Equals, CompareTo, PrefixEquals, PrefixContains, Contains
-
-// we want equals consistent with compare
-// we want equals to imply prefixEquals (prefix of nil is nil)
-// we want equals to imply contains
-// we want contains to imply prefixContains (prefix of nil is nil)
-
-// nil cannot contain anything (same is true of prefixContains)
-// nil is contained by anything, including prefixes (prefixContains)
-// nil equals itself (also prefixEquals itself)
-// I am leaning towards treating interface nil same as interface value nil.
-// One reason is that value types are interchangeable anyway (ie Address/IPv6Address/IPAddress etc are all interchangeable when it comes to nil).
-// And so, it the type means nothing really, then a nil interface value and a nil value to an interface are really equivalent if you ignore the type
-// Another reason is that the concept of "nil" is the same for both.
-
-// with groupings, there is the question of comparable sizes, so, nil no longer contains everything, and not everything contains nil
-// does that make sense?  the address contains nil, the corresponding section does not?  I think nil should be contained by all sections I guess
-
-func (addr *IPAddress) CompareTo(item AddressItem) int {
-	//if addr != nil { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 - I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
-	//	addr = addr.init()
-	//}
-	return CountComparator.Compare(addr.init(), item)
-}
-
 func (addr *IPAddress) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -886,16 +864,33 @@ func (addr *IPAddress) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPAddress) Contains(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return addr.init().contains(other)
 }
 
-func (addr *IPAddress) Equals(other AddressType) bool {
-	//if addr == nil { //TODO equals nil: consider putting this back https://github.com/google/go-cmp/issues/61 I think I may have stopped because in segments I had to add Equals and CompareTo everywhere
-	// In general, I have worked out which methods need to support equals, this is documented in ipaddr.go, this file, above
-	//	return other.ToAddress() == nil
-	//}
-	// return other != nil && other.ToAddress() != nil or put this inside the equals call
+func (addr *IPAddress) Compare(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
+func (addr *IPAddress) Equal(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return addr.init().equals(other)
+}
+
+// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPAddress) CompareSize(other AddressType) int { // this is here to take advantage of the CompareSize in IPAddressSection
+	if addr == nil {
+		if other != nil && other.ToAddress() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return addr.init().compareSize(other)
 }
 
 func (addr *IPAddress) MatchesWithMask(other *IPAddress, mask *IPAddress) bool {
@@ -970,6 +965,9 @@ func (addr *IPAddress) GetMaxSegmentValue() SegInt {
 }
 
 func (addr *IPAddress) Iterator() IPAddressIterator {
+	if addr == nil {
+		return ipAddrIterator{nilAddrIterator()}
+	}
 	return ipAddrIterator{addr.init().addrIterator(nil)}
 }
 
@@ -1010,7 +1008,7 @@ func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 
 func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
 	// no prefix, no zone
-	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.IsMultiple())
+	return newSeqRangeUnchecked(addr.GetLower(), addr.GetUpper(), addr.isMultiple())
 }
 
 func (addr *IPAddress) IncrementBoundary(increment int64) *IPAddress {
@@ -1292,70 +1290,121 @@ func (addr *IPAddress) ReverseSegments() *IPAddress {
 }
 
 func (addr *IPAddress) GetSegmentStrings() []string {
+	if addr == nil {
+		return nil
+	}
 	return addr.init().getSegmentStrings()
 }
 
 func (addr *IPAddress) ToCanonicalString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalString()
 }
 
 func (addr *IPAddress) ToCanonicalWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalWildcardString()
 }
 
 func (addr *IPAddress) ToNormalizedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedString()
 }
 
 func (addr *IPAddress) ToCompressedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedString()
 }
 
 func (addr *IPAddress) ToNormalizedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedWildcardString()
 }
 
 func (addr *IPAddress) ToSegmentedBinaryString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSegmentedBinaryString()
 }
 
 func (addr *IPAddress) ToSQLWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSQLWildcardString()
 }
 
 func (addr *IPAddress) ToFullString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toFullString()
 }
 
 func (addr *IPAddress) ToReverseDNSString() (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toReverseDNSString()
 }
 
 func (addr *IPAddress) ToPrefixLenString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPAddress) ToSubnetString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSubnetString()
 }
 
 func (addr *IPAddress) ToCompressedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedWildcardString()
 }
 
 func (addr *IPAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
 func (addr *IPAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
 func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
 func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 
@@ -1407,7 +1456,7 @@ func (addr *IPAddress) ToHostName() *HostName {
 		}
 	}
 	var h *HostName
-	if !addr.IsMultiple() {
+	if !addr.isMultiple() {
 		h, _ = addr.ToCanonicalHostName()
 	}
 	if h == nil {
@@ -1424,7 +1473,7 @@ func (addr *IPAddress) ToCanonicalHostName() (*HostName, error) {
 	}
 	res := cache.canonicalHost
 	if res == nil {
-		if addr.IsMultiple() {
+		if addr.isMultiple() {
 			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.unavailable.numeric"}}
 		}
 		var err error
@@ -1474,7 +1523,7 @@ func ipAddressEquals(one, two *IPAddress) bool {
 	if one == nil {
 		return two == nil
 	}
-	return two != nil && one.Equals(two)
+	return two != nil && one.Equal(two)
 }
 
 type IPAddressValueProvider interface {
@@ -2003,4 +2052,52 @@ func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
 			valueProvider.GetZone()).ToIPAddress()
 	}
 	return nil
+}
+
+// AddrsMatch checks if the two slices share the same list of addresses in any order, using address equality.
+// The function can handle duplicates and nil addresses, which are both ignored.
+func AddrsMatchUnordered(addrs1, addrs2 []*IPAddress) (result bool) {
+	len1 := len(addrs1)
+	len2 := len(addrs2)
+	sameLen := len1 == len2
+	if len1 == 0 || len2 == 0 {
+		result = sameLen
+	} else if len1 == 1 && sameLen {
+		result = addrs1[0].Equal(addrs2[0])
+	} else if len1 == 2 && sameLen {
+		if addrs1[0].Equal(addrs2[0]) {
+			result = addrs1[1].Equal(addrs2[1])
+		} else if result = addrs1[0].Equal(addrs2[1]); result {
+			result = addrs1[1].Equal(addrs2[0])
+		}
+	} else {
+		result = reflect.DeepEqual(asMap(addrs1), asMap(addrs2))
+	}
+	return
+}
+
+// AddrsMatch checks if the two slices share the same ordered list of addresses using address equality.
+func AddrsMatchOrdered(addrs1, addrs2 []*IPAddress) (result bool) {
+	len1 := len(addrs1)
+	len2 := len(addrs2)
+	if len1 != len2 {
+		return
+	}
+	for i, addr := range addrs1 {
+		if !addr.Equal(addrs2[i]) {
+			return
+		}
+	}
+	return true
+}
+
+func asMap(addrs []*IPAddress) (result map[string]struct{}) {
+	if addrLen := len(addrs); addrLen > 0 {
+		result = make(map[string]struct{})
+		for _, addr := range addrs {
+
+			result[addr.ToNormalizedWildcardString()] = struct{}{}
+		}
+	}
+	return
 }

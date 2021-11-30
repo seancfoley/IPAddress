@@ -2,6 +2,10 @@ package ipaddr
 
 import "math/big"
 
+func nilString() string {
+	return "<nil>"
+}
+
 func cloneInts(orig []int) []int {
 	return append(make([]int, 0, len(orig)), orig...)
 }
@@ -34,7 +38,7 @@ func getBytesCopy(bytes, cached []byte) []byte {
 		return cloneBytes(cached)
 	}
 	copy(bytes, cached)
-	return bytes
+	return bytes[:len(cached)]
 }
 
 // note: only to be used when you already know the total size fits into a long
@@ -44,7 +48,7 @@ func longCount(section *AddressSection, segCount int) uint64 {
 }
 
 func getLongCount(segmentCountProvider func(index int) uint64, segCount int) uint64 {
-	if segCount == 0 {
+	if segCount <= 0 {
 		return 1
 	}
 	result := segmentCountProvider(0)
@@ -66,23 +70,26 @@ func longPrefixCount(section *AddressSection, prefixLength BitCount) uint64 {
 			return getPrefixValueCount(section.GetSegment(index), *segmentPrefixLength)
 		}
 		return section.GetSegment(index).GetValueCount()
-	}, networkSegmentIndex+1)
+	},
+		networkSegmentIndex+1)
 }
 
 func mult(currentResult *big.Int, newResult uint64) *big.Int {
-	if newResult == 1 {
+	if currentResult == nil {
+		return bigZero().SetUint64(newResult)
+	} else if newResult == 1 {
 		return currentResult
 	}
 	newBig := bigZero().SetUint64(newResult)
 	return currentResult.Mul(currentResult, newBig)
 }
 
-// only called when isMultiple() is true, so segCount >= 1
+// only called when isMult() is true, so segCount >= 1
 func count(segmentCountProvider func(index int) uint64, segCount, safeMultiplies int, safeLimit uint64) *big.Int {
-	result := bigOne()
-	if segCount == 0 {
-		return result
+	if segCount <= 0 {
+		return bigOne()
 	}
+	var result *big.Int
 	i := 0
 	for {
 		curResult := segmentCountProvider(i)

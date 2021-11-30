@@ -6,8 +6,6 @@ type DivisionType interface {
 
 	getAddrType() addrType
 
-	Equals(DivisionType) bool
-
 	// getStringAsLower caches the string from getDefaultLowerString
 	getStringAsLower() string
 
@@ -39,6 +37,7 @@ type AddressSegmentType interface {
 
 	StandardDivisionType
 
+	Equal(AddressSegmentType) bool
 	Contains(AddressSegmentType) bool
 
 	// GetSegmentValue returns the lower segment value as a SegInt, the same value as the DivInt value returned by getDivisionValue()

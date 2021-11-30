@@ -360,7 +360,7 @@ func maskExtendedRange(
 				//			BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
 				//			BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
 				//			BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-				//			maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
+				//			maskedIsSequential = count.Compare(countRequiredForSequential) >= 0;
 			}
 			//		ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
 			//		ExtendedFullRangeMasker result = cacheBitCountx[highestDifferingBitMasked];
@@ -442,11 +442,11 @@ func maskExtendedRange(
 			//		for(int nextBit = 128 - (highestDifferingBitMasked + 1) - 1; nextBit >= 0; nextBit--) {
 			//			if(maskBig.testBit(nextBit)) {
 			//				BigInteger candidate = upperToBeMaskedBig.setBit(nextBit);
-			//				if(candidate.compareTo(upperBig) <= 0) {
+			//				if(candidate.Compare(upperBig) <= 0) {
 			//					upperToBeMaskedBig = candidate;
 			//				}
 			//				candidate = lowerToBeMaskedBig.clearBit(nextBit);
-			//				if(candidate.compareTo(lowerBig) >= 0) {
+			//				if(candidate.Compare(lowerBig) >= 0) {
 			//					lowerToBeMaskedBig = candidate;
 			//				}
 			//			} //else
@@ -514,7 +514,7 @@ func maskExtendedRange(
 		//	BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
 		//	BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
 		//	BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-		//	maskedIsSequential = count.compareTo(countRequiredForSequential) >= 0;
+		//	maskedIsSequential = count.Compare(countRequiredForSequential) >= 0;
 	}
 	highestDifferingBitMasked = highestDifferingBitMaskedLow + 64
 	//ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;

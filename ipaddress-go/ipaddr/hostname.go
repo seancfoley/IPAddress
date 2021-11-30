@@ -195,6 +195,9 @@ func (host *HostName) Validate() HostNameError {
 }
 
 func (host *HostName) String() string {
+	if host == nil {
+		return nilString()
+	}
 	return host.str
 }
 
@@ -558,16 +561,16 @@ func toNormalizedAddrPortString(addr *IPAddress, port PortNum) string {
 	return builder.String()
 }
 
-// Equals returns true if the given host name matches this one.
+// Equal returns true if the given host name matches this one.
 // For hosts to match, they must represent the same addresses or have the same host names.
 // Hosts are not resolved when matching.  Also, hosts must have the same port and service.  They must have the same masks if they are host names.
 // Even if two hosts are invalid, they match if they have the same invalid string.
-func (host *HostName) Equals(other *HostName) bool {
-	//if host == nil {
-	//	return other == nil
-	//} else if other == nil {
-	//	return false
-	//}
+func (host *HostName) Equal(other *HostName) bool {
+	if host == nil {
+		return other == nil
+	} else if other == nil {
+		return false
+	}
 	host = host.init()
 	other = other.init()
 	if host == other {
@@ -579,8 +582,8 @@ func (host *HostName) Equals(other *HostName) bool {
 			otherParsedHost := other.parsedHost
 			if parsedHost.isAddressString() {
 				return otherParsedHost.isAddressString() &&
-					parsedHost.asGenericAddressString().Equals(otherParsedHost.asGenericAddressString()) &&
-					parsedHost.getPort().Equals(otherParsedHost.getPort()) &&
+					parsedHost.asGenericAddressString().Equal(otherParsedHost.asGenericAddressString()) &&
+					parsedHost.getPort().Equal(otherParsedHost.getPort()) &&
 					parsedHost.getService() == otherParsedHost.getService()
 			}
 			if otherParsedHost.isAddressString() {
@@ -593,7 +596,7 @@ func (host *HostName) Equals(other *HostName) bool {
 			}
 			return PrefixEquals(parsedHost.getEquivalentPrefixLen(), otherParsedHost.getEquivalentPrefixLen()) &&
 				ipAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
-				parsedHost.getPort().Equals(otherParsedHost.getPort()) &&
+				parsedHost.getPort().Equal(otherParsedHost.getPort()) &&
 				parsedHost.getService() == otherParsedHost.getService()
 		}
 		return false
@@ -781,14 +784,21 @@ func (host *HostName) ToIPAddr() *net.IPAddr {
 	return nil
 }
 
-func (host *HostName) compareTo(other *HostName) int {
+func (host *HostName) Compare(other *HostName) int {
+	if host == other {
+		return 0
+	} else if host == nil {
+		return -1
+	} else if other == nil {
+		return 1
+	}
 	if host.IsValid() {
 		if other.IsValid() {
 			parsedHost := host.parsedHost
 			otherParsedHost := other.parsedHost
 			if parsedHost.isAddressString() {
 				if otherParsedHost.isAddressString() {
-					result := parsedHost.asGenericAddressString().CompareTo(otherParsedHost.asGenericAddressString())
+					result := parsedHost.asGenericAddressString().Compare(otherParsedHost.asGenericAddressString())
 					if result != 0 {
 						return result
 					}
@@ -842,7 +852,7 @@ func (host *HostName) compareTo(other *HostName) int {
 					otherMask := otherParsedHost.getMask()
 					if mask != nil {
 						if otherMask != nil {
-							ret := mask.CompareTo(otherMask)
+							ret := mask.Compare(otherMask)
 							if ret != 0 {
 								return ret
 							}

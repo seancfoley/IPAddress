@@ -114,6 +114,10 @@ func (it *segmentPrefIterator) Next() (res *AddressSegment) {
 	return
 }
 
+func nilSegIterator() SegmentIterator {
+	return &singleSegmentIterator{}
+}
+
 func segIterator(
 	original *addressSegmentInternal,
 	originalLower,
@@ -135,7 +139,7 @@ func segIterator(
 		shiftMask = ^SegInt(0) << uint(shiftAdjustment)
 		upperShiftMask = ^shiftMask
 	}
-	if original != nil && !original.IsMultiple() {
+	if original != nil && !original.isMultiple() {
 		seg := original.toAddressSegment()
 		if isBlockIterator {
 			seg = createAddressSegment(

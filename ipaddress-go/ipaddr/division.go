@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -116,7 +117,7 @@ func (div *divValues) calcBytesInternal() (bytes, upperBytes []byte) {
 
 func calcBytesInternal(byteCount int, val, upperVal DivInt) (bytes, upperBytes []byte) {
 	byteIndex := byteCount - 1
-	isMultiple := val != upperVal //seg.isMultiple()
+	isMultiple := val != upperVal //seg.isMult()
 	bytes = make([]byte, byteCount)
 	if isMultiple {
 		upperBytes = make([]byte, byteCount)
@@ -194,11 +195,15 @@ var (
 	decimalParamsDiv = new(IPStringOptionsBuilder).SetRadix(10).SetWildcards(rangeWildcard).ToOptions()
 )
 
+func (div *addressDivisionInternal) String() string {
+	return div.toString()
+}
+
 // String() produces a string that is useful when a division string is provided with no context.
 // It uses a string prefix for octal or hex (0 or 0x), and does not use the wildcard '*', because division size is variable, so '*' is ambiguous.
 // GetWildcardString() is more appropriate in context with other segments or divisions.  It does not use a string prefix and uses '*' for full-range segments.
 // GetString() is more appropriate in context with prefix lengths, it uses zeros instead of wildcards for prefix block ranges.
-func (div *addressDivisionInternal) String() string { // this can be moved to addressDivisionBase when we have ContainsPrefixBlock and similar methods implemented for big.Int in the base
+func (div *addressDivisionInternal) toString() string { // this can be moved to addressDivisionBase when we have ContainsPrefixBlock and similar methods implemented for big.Int in the base
 	radix := div.getDefaultTextualRadix()
 	var opts IPStringOptions
 	switch radix {
@@ -211,14 +216,21 @@ func (div *addressDivisionInternal) String() string { // this can be moved to ad
 	default:
 		opts = new(IPStringOptionsBuilder).SetRadix(radix).SetWildcards(rangeWildcard).ToOptions()
 	}
-	return div.toString(opts)
+	return div.toStringOpts(opts)
 }
 
-func (div *addressDivisionInternal) toString(opts StringOptions) string {
+func (div addressDivisionInternal) Format(state fmt.State, verb rune) {
+	xxxx
+	handle the zero div case by not calling up and printing zero (eg IPv4Segment{})
+	other cases, call up as necessary, although for segments there appears to be no reason, all the String() methods call toString() just above
+	xxxx
+}
+
+func (div *addressDivisionInternal) toStringOpts(opts StringOptions) string {
 	builder := strings.Builder{}
 	params := toParams(opts)
-	builder.Grow(params.getDivisionStringLength(div))
-	params.appendDivision(&builder, div)
+	builder.Grow(params.getDivisionStringLength(div.toAddressDivision()))
+	params.appendDivision(&builder, div.toAddressDivision())
 	return builder.String()
 }
 
@@ -276,12 +288,12 @@ func (div *addressDivisionInternal) isSinglePrefixBlock(divisionValue, upperValu
 }
 
 func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
-	prefixLen = checkDiv(div, prefixLen)
+	prefixLen = checkDiv(div.toAddressDivision(), prefixLen)
 	return div.isPrefixBlockVals(div.getDivisionValue(), div.getUpperDivisionValue(), prefixLen)
 }
 
 func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
-	prefixLen = checkDiv(div, prefixLen)
+	prefixLen = checkDiv(div.toAddressDivision(), prefixLen)
 	return div.isSinglePrefixBlock(div.getDivisionValue(), div.getUpperDivisionValue(), prefixLen)
 }
 
@@ -331,11 +343,11 @@ func (div *addressDivisionInternal) getUpperDivisionValue() DivInt {
 }
 
 func (div *addressDivisionInternal) matches(value DivInt) bool {
-	return !div.IsMultiple() && value == div.getDivisionValue()
+	return !div.isMultiple() && value == div.getDivisionValue()
 }
 
 func (div *addressDivisionInternal) matchesWithMask(value, mask DivInt) bool {
-	if div.IsMultiple() {
+	if div.isMultiple() {
 		//we want to ensure that any of the bits that can change from value to upperValue is masked out (zeroed) by the mask.
 		//In other words, when masked we need all values represented by this segment to become just a single value
 		diffBits := div.getDivisionValue() ^ div.getUpperDivisionValue()
@@ -356,7 +368,7 @@ func (div *addressDivisionInternal) matchesValsWithMask(lowerValue, upperValue, 
 	if lowerValue == upperValue {
 		return div.matchesWithMask(lowerValue, mask)
 	}
-	if !div.IsMultiple() {
+	if !div.isMultiple() {
 		// lowerValue and upperValue are not the same, so impossible to match those two values with a single value
 		return false
 	}
@@ -458,8 +470,8 @@ func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen
 	return createAddressDivision(newVals)
 }
 
-func (div *addressDivisionInternal) GetCount() *big.Int {
-	if !div.IsMultiple() {
+func (div *addressDivisionInternal) getCount() *big.Int {
+	if !div.isMultiple() {
 		return bigOne()
 	}
 	if div.IsFullRange() {
@@ -486,39 +498,35 @@ func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCo
 	return bigZero().SetUint64(count)
 }
 
-func (div *addressDivisionInternal) Equals(other DivisionType) bool {
-	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
-	if otherDiv, ok := other.(StandardDivisionType); ok {
-		//if otherDiv.ToAddressDivision() == nil {
-		//	return false
-		//}
-		if div.IsMultiple() {
-			if other.IsMultiple() {
-				matches, _ := div.matchesStructure(other)
-				if !matches {
-					return false
-				}
-				otherDivision := otherDiv.ToAddressDivision()
-				return divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
-					div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
-			} else {
-				return false
-			}
-		} else if other.IsMultiple() {
-			return false
-		} else {
-			matches, _ := div.matchesStructure(other)
-			otherDivision := otherDiv.ToAddressDivision()
-			return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
-		}
-	}
-	return div.addressDivisionBase.Equals(other)
-	//return div.addressDivisionBase.equals(other)
-}
+//func (div *addressDivisionInternal) equal(other StandardDivisionType) bool {
+//	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
+//	//if otherDiv, ok := other.(StandardDivisionType); ok {
+//	if other == nil || other.ToAddressDivision() == nil {
+//		return false
+//	}
+//	if div.isMultiple() {
+//		if other.IsMultiple() {
+//			matches, _ := div.matchesStructure(other)
+//			otherDivision := other.ToAddressDivision()
+//			return matches && divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
+//				div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
+//		} else {
+//			return false
+//		}
+//	} else if other.IsMultiple() {
+//		return false
+//	} else {
+//		matches, _ := div.matchesStructure(other)
+//		otherDivision := other.ToAddressDivision()
+//		return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
+//	}
+//	//}
+//	//return div.addressDivisionBase.equal(other)
+//}
 
-func (div *addressDivisionInternal) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(div.toAddressDivision(), item)
-}
+//func (div *addressDivisionInternal) Compare(item AddressItem) int {
+//	return CountComparator.Compare(div.toAddressDivision(), item)
+//}
 
 func (div *addressDivisionInternal) matchesIPSegment() bool {
 	return div.divisionValues == nil || div.getAddrType().isIP()
@@ -559,13 +567,13 @@ func (div *addressDivisionInternal) getStringAsLower() string {
 }
 
 func (div *addressDivisionInternal) getString() string {
-	if !div.IsMultiple() {
+	if !div.isMultiple() {
 		return div.getStringFromStringer(div.getDefaultLowerString)
 	} else {
 		return div.getStringFromStringer(div.getDefaultRangeString)
 	}
 	//return div.getStringFromStringer(func() string {
-	//	if !div.IsMultiple() {
+	//	if !div.isMult() {
 	//		return div.getDefaultLowerString()
 	//	} else {
 	//		return div.getDefaultRangeString()
@@ -582,14 +590,14 @@ func (div *addressDivisionInternal) getStringFromStringer(stringer func() string
 	return stringer()
 }
 
-func (div *addressDivisionInternal) GetString() string {
+func (div *addressDivisionInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		return seg.GetString()
 	}
 	return div.getString()
 }
 
-func (div *addressDivisionInternal) GetWildcardString() string {
+func (div *addressDivisionInternal) GetWildcardString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		return seg.GetWildcardString()
 	}
@@ -676,7 +684,7 @@ func (div *addressDivisionInternal) getSplitRangeStringLength(rangeSeparator str
 }
 
 func (div *addressDivisionInternal) getRangeDigitCount(radix int) int {
-	if !div.IsMultiple() {
+	if !div.isMultiple() {
 		return 0
 	}
 	if radix == 16 {
@@ -751,7 +759,7 @@ func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int,
 }
 
 func (div *addressDivisionInternal) getDigitCount(radix int) int {
-	if !div.IsMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
+	if !div.isMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
 		return len(div.GetWildcardString())
 	}
 	return getDigitCount(div.getUpperDivisionValue(), radix)
@@ -848,19 +856,45 @@ func (div *AddressDivision) GetUpperDivisionValue() DivInt {
 	return div.getUpperDivisionValue()
 }
 
-//func (div *AddressDivision) Equals(other DivisionType) bool {
+func (div *AddressDivision) IsMultiple() bool {
+	return div != nil && div.isMultiple()
+}
+
+func (div *AddressDivision) GetCount() *big.Int {
+	if div == nil {
+		return bigZero()
+	}
+	return div.getCount()
+}
+
+//func (div *AddressDivision) Equal(other AddressSegmentType) bool {
 //	if div == nil {
-//		if otherDiv, ok := other.(StandardDivisionType); ok {
-//			return otherDiv.ToAddressDivision() == nil
-//		}
-//		return false
-//	}
-//	return div.equals(other)
-//}
+//		return other == nil || other.ToAddressDivision() == nil
+//		//return other == nil || other.To
+//		//xxx you gotta figure this out xxxx
+//		//xxx ok, this kinda makes sense xxx
+//		//xxx type assertion checks if concrete type implements StandardDivisionType
+//		//xxx and then we can call ToAddressDivision on that concrete type through the interface StandardDivisionType
+//		//xxx BUT THE PROBLEM IS
+//		//xxx What if the thing is not a StandardDivisionType but is also nil?
+//		//xxx There is no way to know!  And nil is nil.  Well, we wanted to think that nil *Ipv6Segment is the same as nil *AddressDivision
+//		//xxx So do we want one nil not equal to some other nil?
+//		//xxx it boils down to the fact we can pass in some types here and we can never get equality for those types
+//		//xxx which in a way is not so bad, that is how equals(Object) works in Java
+//		//
+//		//xxx I think there is no reason not to use StandardDivisionType here xxx
 //
-//func (div *AddressDivision) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(div, item)
+//		//if otherDiv, ok := other.(StandardDivisionType); ok {
+//		//	return otherDiv.ToAddressDivision() == nil
+//		//}
+//		//return false
+//	}
+//	return div.equal(other)
 //}
+
+func (div *AddressDivision) Compare(item AddressItem) int {
+	return CountComparator.Compare(div, item)
+}
 
 func (div *AddressDivision) Matches(value DivInt) bool {
 	return div.matches(value)
@@ -937,12 +971,19 @@ func (div *AddressDivision) ToAddressDivision() *AddressDivision {
 	return div
 }
 
+func (div *AddressDivision) String() string {
+	if div == nil {
+		return nilString()
+	}
+	return div.toString()
+}
+
 func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask DivInt) bool {
 	return lowerValue == (lowerValue&networkMask) && finalUpperValue == (upperValue|hostMask)
 }
 
 func divsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
-	//return onePref.Equals(twoPref) &&
+	//return onePref.Equal(twoPref) &&
 	return PrefixEquals(onePref, twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
 }

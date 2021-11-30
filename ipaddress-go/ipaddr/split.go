@@ -410,7 +410,7 @@ func splitIntoSequentialBlocks(
 				middleLower := bottomUpper.Increment(1)                   //2:4::
 				//fmt.Printf("split %v - %v to %v - %v and %v - %v\n", lower, upper, lower, bottomUpper, topLower, upper)
 				if LowValueComparator.CompareSeries(middleLower, middleUpper) <= 0 {
-					//if(middleLower.compareTo(middleUpper) <= 0) {
+					//if(middleLower.Compare(middleUpper) <= 0) {
 					series := middleLower.ToBlock(
 						segSegment,
 						middleLower.GetGenericSegment(segSegment).GetSegmentValue(),
@@ -562,7 +562,7 @@ func applyOperatorToLowerUpper(
 	var lower, upper ExtendedIPSegmentSeries
 	//isFirst, isOther := true, true
 	if seriesValsSame(first, other) {
-		//if first.Equals(other) {
+		//if first.Equal(other) {
 		if removePrefixes && first.IsPrefixed() {
 			if other.IsPrefixed() {
 				lower = first.WithoutPrefixLen()
@@ -584,7 +584,7 @@ func applyOperatorToLowerUpper(
 		firstUpper := first.GetUpper()
 		otherUpper := other.GetUpper()
 		if LowValueComparator.CompareSeries(firstLower, otherLower) > 0 {
-			//if firstLower.CompareTo(otherLower) > 0 {
+			//if firstLower.Compare(otherLower) > 0 {
 			lower = otherLower
 			//isFirst = false
 		} else {
@@ -592,7 +592,7 @@ func applyOperatorToLowerUpper(
 			//isOther = false
 		}
 		if LowValueComparator.CompareSeries(firstUpper, otherUpper) < 0 {
-			//if firstUpper.CompareTo(otherUpper) < 0 {
+			//if firstUpper.Compare(otherUpper) < 0 {
 			upper = otherUpper
 			//isFirst = false
 		} else {
@@ -630,7 +630,7 @@ func applyOperatorToLowerUpper(
 //	var lower, upper ExtendedIPSegmentSeries
 //	isFirst, isOther := true, true
 //	if seriesValsSame(first, other) {
-//		//if first.Equals(other) {
+//		//if first.Equal(other) {
 //		if removePrefixes && first.IsPrefixed() {
 //			if other.IsPrefixed() {
 //				lower = first.WithoutPrefixLen()
@@ -652,7 +652,7 @@ func applyOperatorToLowerUpper(
 //		firstUpper := first.GetUpper()
 //		otherUpper := other.GetUpper()
 //		if LowValueComparator.CompareSeries(firstLower, otherLower) > 0 {
-//			//if firstLower.CompareTo(otherLower) > 0 {
+//			//if firstLower.Compare(otherLower) > 0 {
 //			lower = otherLower
 //			isFirst = false
 //		} else {
@@ -660,7 +660,7 @@ func applyOperatorToLowerUpper(
 //			isOther = false
 //		}
 //		if LowValueComparator.CompareSeries(firstUpper, otherUpper) < 0 {
-//			//if firstUpper.CompareTo(otherUpper) < 0 {
+//			//if firstUpper.Compare(otherUpper) < 0 {
 //			upper = otherUpper
 //			isFirst = false
 //		} else {

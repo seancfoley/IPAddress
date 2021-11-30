@@ -244,7 +244,7 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 	if result != 0 {
 		return result
 	}
-	if r1Type == ipv4rangetype {
+	if r1Type == ipv4rangetype { // avoid using the large values
 		r1 := one.ToIPAddressSeqRange().ToIPv4SequentialRange()
 		r2 := two.ToIPAddressSeqRange().ToIPv4SequentialRange()
 		if r1 == nil {
@@ -259,9 +259,18 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 	}
 	r1 := one.ToIPAddressSeqRange()
 	r2 := two.ToIPAddressSeqRange()
+	if r1 == nil {
+		if r2 == nil {
+			return 0
+		}
+		return -1
+	} else if r2 == nil {
+		return 1
+	}
 	return comp.compareLargeValues(r1.GetUpperValue(), r1.GetValue(), r2.GetUpperValue(), r2.GetValue())
 }
 
+//TODO must handle nils for any division or seq range - I think we do, but need to be sure.  I think
 func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// Comparison works as follows:
 	// 1. use type assertion with AddressDivisionSeries, covering all addresses and all groupings, including large
@@ -629,7 +638,7 @@ type countComparator struct{}
 func (comp countComparator) compareSectionParts(one, two *AddressSection) int {
 	result := int(one.GetBitCount() - two.GetBitCount())
 	if result == 0 {
-		result = compareCount(one, two)
+		result = compareSectionCount(one, two)
 		if result == 0 {
 			result = comp.compareEqualSizedSections(one, two)
 		}
@@ -897,6 +906,19 @@ func compareDivBitCounts(oneSeries, twoSeries AddressDivisionSeries) int {
 	return result
 }
 
-func compareCount(one, two AddressDivisionSeries) int {
+func compareSectionCount(one, two *AddressSection) int {
 	return one.CompareSize(two)
+}
+
+func compareCount(one, two AddressDivisionSeries) int {
+	if addrSeries1, ok := one.(AddressType); ok {
+		if addrSeries2, ok := two.(AddressType); ok {
+			return addrSeries1.CompareSize(addrSeries2)
+		}
+	} else if grouping1, ok := one.(StandardDivisionGroupingType); ok {
+		if grouping2, ok := two.(StandardDivisionGroupingType); ok {
+			return grouping1.CompareSize(grouping2)
+		}
+	}
+	return one.GetCount().Cmp(two.GetCount())
 }

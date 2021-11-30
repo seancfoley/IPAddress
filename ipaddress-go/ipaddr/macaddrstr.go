@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-var defaultMACAddrParameters *macAddressStringParameters = &macAddressStringParameters{}
+var defaultMACAddrParameters = &macAddressStringParameters{}
 
 // NewMACAddressStringParams constructs a MACAddressString that will parse the given string according to the given parameters
 func NewMACAddressStringParams(str string, params MACAddressStringParameters) *MACAddressString {
@@ -69,6 +69,9 @@ func (addrStr *MACAddressString) GetValidationOptions() MACAddressStringParamete
 }
 
 func (addrStr *MACAddressString) String() string {
+	if addrStr == nil {
+		return nilString()
+	}
 	return addrStr.str
 }
 
@@ -151,14 +154,14 @@ func (addrStr *MACAddressString) Validate() AddressStringError {
 	return data.validateException
 }
 
-func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
-	//if addrStr == other {
-	//	return 0
-	//} else if addrStr == nil {
-	//	return -1
-	//} else if other == nil {
-	//	return 1
-	//}
+func (addrStr *MACAddressString) Compare(other *MACAddressString) int {
+	if addrStr == other {
+		return 0
+	} else if addrStr == nil {
+		return -1
+	} else if other == nil {
+		return 1
+	}
 	addrStr = addrStr.init()
 	other = other.init()
 	if addrStr == other {
@@ -170,7 +173,7 @@ func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
 			if addr != nil {
 				otherAddr := other.GetAddress()
 				if otherAddr != nil {
-					return addr.CompareTo(otherAddr)
+					return addr.Compare(otherAddr)
 				}
 			}
 			// one or the other is null, either empty or IncompatibleAddressException
@@ -186,14 +189,14 @@ func (addrStr *MACAddressString) CompareTo(other *MACAddressString) int {
 // Two MACAddressString objects are equal if they represent the same set of addresses.
 //
 // If a MACAddressString is invalid, it is equal to another address only if the other address was constructed from the same string.
-func (addrStr *MACAddressString) Equals(other *MACAddressString) bool {
-	//if addrStr == nil {
-	//	return other == nil
-	//} else if other == nil {
-	//	return false
-	//}
-	//addrStr = addrStr.init()
-	//other = other.init()
+func (addrStr *MACAddressString) Equal(other *MACAddressString) bool {
+	if addrStr == nil {
+		return other == nil
+	} else if other == nil {
+		return false
+	}
+	addrStr = addrStr.init()
+	other = other.init()
 	if addrStr == other {
 		return true
 	}

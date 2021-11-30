@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 )
@@ -139,6 +140,24 @@ type IPv4Address struct {
 	ipAddressInternal
 }
 
+func (addr *IPv4Address) init() *IPv4Address {
+	if addr.section == nil {
+		return zeroIPv4
+	}
+	return addr
+}
+
+func (addr *IPv4Address) GetCount() *big.Int {
+	if addr == nil {
+		return bigZero()
+	}
+	return addr.getCount()
+}
+
+func (addr *IPv4Address) IsMultiple() bool {
+	return addr != nil && addr.isMultiple()
+}
+
 func (addr *IPv4Address) GetBitCount() BitCount {
 	return IPv4BitCount
 }
@@ -153,13 +172,6 @@ func (addr *IPv4Address) GetBitsPerSegment() BitCount {
 
 func (addr *IPv4Address) GetBytesPerSegment() int {
 	return IPv4BytesPerSegment
-}
-
-func (addr *IPv4Address) init() *IPv4Address {
-	if addr.section == nil {
-		return zeroIPv4
-	}
-	return addr
 }
 
 func (addr *IPv4Address) GetSection() *IPv4AddressSection {
@@ -514,13 +526,6 @@ func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-func (addr *IPv4Address) CompareTo(item AddressItem) int {
-	//if addr != nil {
-	//	addr = addr.init()
-	//}
-	return CountComparator.Compare(addr.init(), item)
-}
-
 func (addr *IPv4Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -530,17 +535,40 @@ func (addr *IPv4Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv4Address) Contains(other AddressType) bool {
-	return other.ToAddress().getAddrType() == ipv4Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection())
+	if other == nil || other.ToAddress() == nil {
+		return true
+	} else if addr == nil {
+		return false
+	}
+	addr = addr.init()
+	otherAddr := other.ToAddress()
+	if addr.ToAddress() == otherAddr {
+		return true
+	}
+	return otherAddr.getAddrType() == ipv4Type && addr.section.sameCountTypeContains(otherAddr.GetSection())
 }
 
-//func (addr *IPv4Address) Equals(other AddressType) bool {
-//	if addr == nil {
-//		return other.ToAddress() == nil
-//	}
-//	return other.getAddrType() == ipv4Type && other.ToAddress() != nil && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
-//}
-func (addr *IPv4Address) Equals(other AddressType) bool {
+func (addr *IPv4Address) Compare(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
+func (addr *IPv4Address) Equal(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return other.ToAddress().getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
+}
+
+// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPv4Address) CompareSize(other AddressType) int {
+	if addr == nil {
+		if other != nil && other.ToAddress() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return addr.init().compareSize(other)
 }
 
 func (addr *IPv4Address) MatchesWithMask(other *IPv4Address, mask *IPv4Address) bool {
@@ -556,7 +584,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 		return nil
 	}
 	addr = addr.init().WithoutPrefixLen()
-	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.IsMultiple()).ToIPv4SequentialRange()
+	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.isMultiple()).ToIPv4SequentialRange()
 }
 
 // ToBroadcastAddress returns the broadcast address.
@@ -656,6 +684,9 @@ func (addr *IPv4Address) IsLoopback() bool {
 }
 
 func (addr *IPv4Address) Iterator() IPv4AddressIterator {
+	if addr == nil {
+		return ipv4AddressIterator{nilAddrIterator()}
+	}
 	return ipv4AddressIterator{addr.init().addrIterator(nil)}
 }
 
@@ -878,87 +909,148 @@ func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4A
 	return
 }
 
-func (addr IPv4Address) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().ipAddressInternal.String()
+func (addr IPv4Address) Format(state fmt.State, verb rune) {
+	addr.init().format(state, verb)
+}
+
+func (addr *IPv4Address) String() string {
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().toString()
 }
 
 func (addr *IPv4Address) GetSegmentStrings() []string {
+	if addr == nil {
+		return nil
+	}
 	return addr.init().getSegmentStrings()
 }
 
 func (addr *IPv4Address) ToCanonicalString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalString()
 }
 
 func (addr *IPv4Address) ToNormalizedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedString()
 }
 
 func (addr *IPv4Address) ToCompressedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedString()
 }
 
 func (addr *IPv4Address) ToCanonicalWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalWildcardString()
 }
 
 func (addr *IPv4Address) ToNormalizedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedWildcardString()
 }
 
 func (addr *IPv4Address) ToSegmentedBinaryString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSegmentedBinaryString()
 }
 
 func (addr *IPv4Address) ToSQLWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSQLWildcardString()
 }
 
 func (addr *IPv4Address) ToFullString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toFullString()
 }
 
 func (addr *IPv4Address) ToReverseDNSString() string {
+	if addr == nil {
+		return nilString()
+	}
 	str, _ := addr.init().toReverseDNSString()
 	return str
 }
 
 func (addr *IPv4Address) ToPrefixLenString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPv4Address) ToSubnetString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSubnetString()
 }
 
 func (addr *IPv4Address) ToCompressedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedWildcardString()
 }
 
 func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
 func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
 func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
 func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.GetSection().ToInetAtonString(radix)
 }
 
 func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.GetSection().ToInetAtonJoinedString(radix, joinedCount)
 }
 
 func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 	"unsafe"
@@ -25,11 +26,32 @@ func (rng *IPv6AddressSeqRange) init() *IPv6AddressSeqRange {
 	return rng
 }
 
-func (rng IPv6AddressSeqRange) String() string {
+func (rng *IPv6AddressSeqRange) GetCount() *big.Int {
+	if rng == nil {
+		return bigZero()
+	}
+	return rng.ipAddressSeqRangeInternal.getCount()
+}
+
+func (rng *IPv6AddressSeqRange) IsMultiple() bool {
+	return rng != nil && rng.isMultiple()
+}
+
+func (rng *IPv6AddressSeqRange) String() string {
+	if rng == nil {
+		return nilString()
+	}
 	return rng.ToString((*IPv6Address).String, DefaultSeqRangeSeparator, (*IPv6Address).String)
 }
 
+func (rng IPv6AddressSeqRange) Format(state fmt.State, verb rune) {
+	rng.init().format(state, verb)
+}
+
 func (rng *IPv6AddressSeqRange) ToString(lowerStringer func(*IPv6Address) string, separator string, upperStringer func(*IPv6Address) string) string {
+	if rng == nil {
+		return nilString()
+	}
 	return rng.init().toString(
 		func(addr *IPAddress) string {
 			return lowerStringer(addr.ToIPv6Address())
@@ -114,28 +136,43 @@ func (rng *IPv6AddressSeqRange) GetUpperValue() *big.Int {
 }
 
 func (rng *IPv6AddressSeqRange) Contains(other IPAddressType) bool {
+	if rng == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return rng.init().contains(other)
 }
 
 func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
+	if rng == nil {
+		return other == nil || other.ToIPAddressSeqRange() == nil
+	}
 	return rng.init().containsRange(other)
 }
 
-func (rng *IPv6AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
-	//if rng == nil {
-	//	return other.ToIPAddressSeqRange() == nil
-	//}
+func (rng *IPv6AddressSeqRange) Equal(other IPAddressSeqRangeType) bool {
+	if rng == nil {
+		return other == nil || other.ToIPAddressSeqRange() == nil
+	}
 	return rng.init().equals(other)
 }
 
-func (rng *IPv6AddressSeqRange) CompareTo(item AddressItem) int {
-	return rng.init().compareTo(item)
-	//return CountComparator.Compare(rng.init().toIPSequentialRange(), item)
+func (rng *IPv6AddressSeqRange) Compare(item AddressItem) int {
+	if rng != nil {
+		rng = rng.init()
+	}
+	return CountComparator.Compare(rng, item)
 }
 
-//func (rng *IPv6AddressSeqRange) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(rng, item)
-//}
+func (rng *IPv6AddressSeqRange) CompareSize(other IPAddressSeqRangeType) int {
+	if rng == nil {
+		if other != nil && other.ToIPAddressSeqRange() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return rng.compareSize(other)
+}
 
 func (rng *IPv6AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return rng.init().ipAddressSeqRangeInternal.ContainsPrefixBlock(prefixLen)
@@ -154,6 +191,9 @@ func (rng *IPv6AddressSeqRange) GetMinPrefixLenForBlock() BitCount {
 }
 
 func (rng *IPv6AddressSeqRange) Iterator() IPv6AddressIterator {
+	if rng == nil {
+		return ipv6AddressIterator{nilAddrIterator()}
+	}
 	return ipv6AddressIterator{rng.init().iterator()}
 }
 

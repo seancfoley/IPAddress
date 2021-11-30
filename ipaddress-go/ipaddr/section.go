@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -27,13 +28,13 @@ func createSection(segments []*AddressDivision, prefixLength PrefixLen, addrType
 
 func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType, isMultiple bool) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
-	result.isMultiple = isMultiple
+	result.isMult = isMultiple
 	return result
 }
 
 func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
-	_ = result.initMultAndPrefLen() // assigns isMultiple and checks prefix length
+	_ = result.initMultAndPrefLen() // assigns isMult and checks prefix length
 	return result
 }
 
@@ -76,9 +77,9 @@ func (section *addressSectionInternal) initMult() AddressValueError {
 			if segment == nil {
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
-			if !isMultiple && segment.IsMultiple() {
+			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
-				section.isMultiple = true
+				section.isMult = true
 			}
 		}
 	}
@@ -125,12 +126,12 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 					isBlock = false
 				}
 			}
-			if !isMultiple && segment.IsMultiple() {
+			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
-				section.isMultiple = true
+				section.isMult = true
 			}
 			if isMultiple && !isBlock && !checkAllSegs {
-				break // isMultiple is known, isBlock is completed, and we don't need to verify the segs for nil
+				break // isMult is known, isBlock is completed, and we don't need to verify the segs for nil
 			}
 		}
 		if isBlock {
@@ -153,9 +154,9 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 
-			if !isMultiple && segment.IsMultiple() {
+			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
-				section.isMultiple = true
+				section.isMult = true
 			}
 
 			//Calculate the segment-level prefix
@@ -212,12 +213,19 @@ func (section *addressSectionInternal) matchesTypeAndCount(other *AddressSection
 	return
 }
 
+
 //func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool {
 //	matchesStructure, _ := section.matchesTypeAndCount(other)
 //	return matchesStructure && section.sameCountTypeEquals(other)
 //}
-func (section *addressSectionInternal) Equals(otherT AddressSectionType) bool {
+func (section *addressSectionInternal) equal(otherT AddressSectionType) bool {
+	if otherT == nil {
+		return false
+	}
 	other := otherT.ToAddressSection()
+	if other == nil {
+		return false
+	}
 	matchesStructure, _ := section.matchesTypeAndCount(other)
 	return matchesStructure && section.sameCountTypeEquals(other)
 }
@@ -361,7 +369,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 		newPrefLen = getAdjustedPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index, endIndex)
 	}
 	addrType := section.getAddrType()
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		return createSection(segs, newPrefLen, addrType)
 	}
 	return createInitializedSection(segs, newPrefLen, addrType)
@@ -377,7 +385,7 @@ func (section *addressSectionInternal) copySubSegmentsToSlice(start, end int, di
 }
 
 func (section *addressSectionInternal) getLowestHighestSections() (lower, upper *AddressSection) {
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		lower = section.toAddressSection()
 		upper = lower
 		return
@@ -402,7 +410,7 @@ func (section *addressSectionInternal) createLowestHighestSections() (lower, upp
 	segmentCount := section.GetSegmentCount()
 	lowSegs := createSegmentArray(segmentCount)
 	var highSegs []*AddressDivision
-	if section.IsMultiple() {
+	if section.isMultiple() {
 		highSegs = createSegmentArray(segmentCount)
 	}
 	for i := 0; i < segmentCount; i++ {
@@ -658,7 +666,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 //		i := prefixedSegmentIndex
 //		div := section.GetSegment(i)
 //		mask := div.GetSegmentHostMask(*segmentPrefixLength)
-//		if div.isMultiple() || (mask&div.getSegmentValue()) != 0 {
+//		if div.isMult() || (mask&div.getSegmentValue()) != 0 {
 //			return false
 //		}
 //		i++
@@ -688,7 +696,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 //		i := prefixedSegmentIndex
 //		div := section.GetSegment(i)
 //		mask := div.GetSegmentHostMask(*segmentPrefixLength)
-//		if div.isMultiple() || (mask&div.getSegmentValue()) != mask {
+//		if div.isMult() || (mask&div.getSegmentValue()) != mask {
 //			return false
 //		}
 //		i++
@@ -770,7 +778,7 @@ func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
 
 func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *AddressSection {
 	//bitCountx := section.GetBitCount()
-	prefLen = checkSubnet(section, prefLen)
+	prefLen = checkSubnet(section.toAddressSection(), prefLen)
 	//if prefLen < 0 {
 	//	prefLen = 0
 	//} else {
@@ -818,7 +826,7 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 		oldSeg := section.getDivision(i)
 		newSegs[i] = oldSeg.toPrefixedNetworkDivision(segPrefLength)
 	}
-	return createSectionMultiple(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.IsMultiple() || prefLen < section.GetBitCount())
+	return createSectionMultiple(newSegs, cacheBitCount(prefLen), section.getAddrType(), section.isMultiple() || prefLen < section.GetBitCount())
 }
 
 func (section *addressSectionInternal) toBlock(segmentIndex int, lower, upper SegInt) *AddressSection {
@@ -867,7 +875,7 @@ func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
 	if sect := section.toIPAddressSection(); sect != nil {
 		return sect.withoutPrefixLen().ToAddressSection()
 	}
-	return createSectionMultiple(section.getDivisionsInternal(), nil, section.getAddrType(), section.IsMultiple())
+	return createSectionMultiple(section.getDivisionsInternal(), nil, section.getAddrType(), section.isMultiple())
 }
 
 func (section *addressSectionInternal) getAdjustedPrefix(adjustment BitCount, floor, ceiling bool) BitCount {
@@ -1102,9 +1110,13 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 	return true
 }
 
-func (section *addressSectionInternal) Contains(other AddressSectionType) bool {
+
+func (section *addressSectionInternal) contains(other AddressSectionType) bool {
+	if other == nil {
+		return true
+	}
 	otherSection := other.ToAddressSection()
-	if section.toAddressSection() == otherSection {
+	if section.toAddressSection() == otherSection || otherSection == nil {
 		return true
 	}
 	//check if they are comparable first
@@ -1195,12 +1207,152 @@ var (
 	binaryPrefixedParams = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
 
-func (grouping *addressSectionInternal) GetSegmentStrings() []string {
-	return grouping.getSegmentStrings()
+func (section *addressSectionInternal) GetSegmentStrings() []string {
+	return section.getSegmentStrings()
 }
 
+// Format is intentionally the only method with non-pointer receivers.  It is not intended to be called directly, it is intended for use by the fmt package.
+// When called by a function in the fmt package, nil values are detected before this method is called, avoiding a panic when calling this method.
+func (section addressSectionInternal) Format(state fmt.State, verb rune) {
+
+	xxxx
+	handle the zero grouping case by not calling up and printing zero (eg IPv4Segment{})
+	other cases, call up as necessary
+	TODO should this be in grouping?  We have the same basic issues for grouping as the rest, that we might implement an interface like Stringer
+	BUT I guess the issues with grouping are that
+	(a) groupings do not have the hex/octal/etc methods (or do they? cannot rememeber, but since I go by bit counts, probably not) and
+	(b) not sure, maybe using a default String() impl might be better there?  You shold defer to slice formatting in there I think, is not that what we do?
+	xxxx
+
+	//switch verb {
+	//case 'b':
+	//	base = 2
+	//case 'o', 'O':
+	//	base = 8
+	//case 'd', 's', 'v':
+	//	base = 10
+	//case 'x', 'X':
+	//	base = 16
+	//default:
+	//	// unknown format
+	//	fmt.Fprintf(s, "%%!%c(big.Int=%s)", ch, x.String())
+	//	return
+	//}
+	//
+	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx xxx
+	//if sect := grouping.toAddressSection(); sect != nil {
+	//	return sect.ToNormalizedString()
+	//}
+	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
+}
+
+/*
+// Format implements fmt.Formatter. It accepts the formats
+// 'b' (binary), 'o' (octal with 0 prefix), 'O' (octal with 0o prefix),
+// 'd' (decimal), 'x' (lowercase hexadecimal), and
+// 'X' (uppercase hexadecimal).
+// Also supported are the full suite of package fmt's format
+// flags for integral types, including '+' and ' ' for sign
+// control, '#' for leading zero in octal and for hexadecimal,
+// a leading "0x" or "0X" for "%#x" and "%#X" respectively,
+// specification of minimum digits precision, output field
+// width, space or zero padding, and '-' for left or right
+// justification.
+//
+func (x *Int) Format(s fmt.State, ch rune) {
+	// determine base
+	var base int
+	switch ch {
+	case 'b':
+		base = 2
+	case 'o', 'O':
+		base = 8
+	case 'd', 's', 'v':
+		base = 10
+	case 'x', 'X':
+		base = 16
+	default:
+		// unknown format
+		fmt.Fprintf(s, "%%!%c(big.Int=%s)", ch, x.String())
+		return
+	}
+
+	if x == nil {
+		fmt.Fprint(s, "<nil>")
+		return
+	}
+
+//TODO can handle this myself unless maybe leading zeros interfere
+	// determine prefix characters for indicating output base
+	prefix := ""
+	if s.Flag('#') {
+		switch ch {
+		case 'b': // binary
+			prefix = "0b"
+		case 'o': // octal
+			prefix = "0"
+		case 'x': // hexadecimal
+			prefix = "0x"
+		case 'X':
+			prefix = "0X"
+		}
+	}
+	if ch == 'O' {
+		prefix = "0o"
+	}
+
+	// number of characters for the three classes of number padding
+	var left int  // space characters to left of digits for right justification ("%8d")
+	var zeros int // zero characters (actually cs[0]) as left-most digits ("%.8d")
+	var right int // space characters to right of digits for left justification ("%-8d")
+
+	// determine number padding from precision: the least number of digits to output
+//TODO I think my single-segment stuff handles leading zeros, but not clear we can use it ahead of time,
+// but also, why would we have a precision that does not match the full width?
+// Still, adding that specific precision allows users to specify the full width
+
+// ALso, this applies only to hex, octal, decimal, but not the default address format with segments
+	precision, precisionSet := s.Precision()
+	if precisionSet {
+		switch {
+		case len(digits) < precision:
+			zeros = precision - len(digits) // count of zero padding
+		case len(digits) == 1 && digits[0] == '0' && precision == 0:
+			return // print nothing if zero value (x == 0) and zero precision ("." or ".0")
+		}
+	}
+
+//TODO we can pad as follows
+
+	// determine field pad from width: the least number of characters to output
+	length := len(sign) + len(prefix) + zeros + len(digits)
+	if width, widthSet := s.Width(); widthSet && length < width { // pad as specified
+		switch d := width - length; {
+		case s.Flag('-'):
+			// pad on the right with spaces; supersedes '0' when both specified
+			right = d
+		case s.Flag('0') && !precisionSet:
+			// pad with zeros unless precision also specified
+			zeros = d
+		default:
+			// pad on the left with spaces
+			left = d
+		}
+	}
+
+	// print number as [left pad][sign][prefix][zero pad][digits][right pad]
+	writeMultiple(s, " ", left)
+	writeMultiple(s, prefix, 1)
+	writeMultiple(s, "0", zeros)
+	s.Write(digits)
+	writeMultiple(s, " ", right)
+}
+ */
+
 func (section *addressSectionInternal) ToCanonicalString() string {
-	if sect := section.toIPv4AddressSection(); sect != nil {
+	if section == nil {
+		return nilString()
+	} else if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
@@ -1212,7 +1364,9 @@ func (section *addressSectionInternal) ToCanonicalString() string {
 }
 
 func (section *addressSectionInternal) ToNormalizedString() string {
-	if sect := section.toIPv4AddressSection(); sect != nil {
+	if section == nil {
+		return nilString()
+	} else if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
@@ -1223,7 +1377,9 @@ func (section *addressSectionInternal) ToNormalizedString() string {
 }
 
 func (section *addressSectionInternal) ToCompressedString() string {
-	if sect := section.toIPv4AddressSection(); sect != nil {
+	if section == nil {
+		return nilString()
+	} else if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCompressedString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToCompressedString()
@@ -1234,6 +1390,9 @@ func (section *addressSectionInternal) ToCompressedString() string {
 }
 
 func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toHexStringZoned(with0xPrefix, NoZone)
@@ -1272,11 +1431,11 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 //}
 
 func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
-	return toNormalizedString(stringOptions, section)
+	return toNormalizedString(stringOptions, section.toAddressSection())
 }
 
 func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
-	return toNormalizedZonedString(stringOptions, section, zone)
+	return toNormalizedZonedString(stringOptions, section.toAddressSection(), zone)
 }
 
 //func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
@@ -1295,7 +1454,7 @@ func (section *addressSectionInternal) toCustomString(stringOptions StringOption
 
 func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
 	count := section.GetSegmentCount()
-	if section.IsMultiple() {
+	if section.isMultiple() {
 		//at this point we know we will return true, but we determine now if we must return IncompatibleAddressError
 		for i := 0; i < count; i++ {
 			division := section.GetSegment(i)
@@ -1330,7 +1489,7 @@ func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddress
 
 // used by iterator() and nonZeroHostIterator() in section classes
 func (section *addressSectionInternal) sectionIterator(excludeFunc func([]*AddressDivision) bool) SectionIterator {
-	useOriginal := !section.IsMultiple()
+	useOriginal := !section.isMultiple()
 	var original = section.toAddressSection()
 	var iterator SegmentsIterator
 	if useOriginal {
@@ -1447,7 +1606,7 @@ func (section *addressSectionInternal) GetSequentialBlockCount() *big.Int {
 
 func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
 	for i := 0; i < segmentCount; i++ {
-		if section.GetSegment(i).IsMultiple() {
+		if section.GetSegment(i).isMultiple() {
 			return true
 		}
 	}
@@ -1457,7 +1616,7 @@ func (section *addressSectionInternal) isMultipleTo(segmentCount int) bool {
 func (section *addressSectionInternal) isMultipleFrom(segmentCount int) bool {
 	segTotal := section.GetSegmentCount()
 	for i := segmentCount; i < segTotal; i++ {
-		if section.GetSegment(i).IsMultiple() {
+		if section.GetSegment(i).isMultiple() {
 			return true
 		}
 	}
@@ -1564,15 +1723,50 @@ type AddressSection struct {
 	addressSectionInternal
 }
 
+func (section *AddressSection) Contains(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.contains(other)
+}
+
+func (section *AddressSection) Equal(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.equal(other)
+}
+
+func (section *AddressSection) Compare(item AddressItem) int {
+	return CountComparator.Compare(section, item)
+}
+
+func (section *AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+	if section == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return section.compareSize(other)
+}
+
 func (section *AddressSection) GetCount() *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if section == nil {
+		return bigZero()
+	} else if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetCount()
 	} else if sect := section.ToIPv6AddressSection(); sect != nil {
 		return sect.GetCount()
 	} else if sect := section.ToMACAddressSection(); sect != nil {
 		return sect.GetCount()
 	}
-	return section.addressDivisionGroupingBase.GetCount()
+	return section.addressDivisionGroupingBase.getCount()
+}
+
+func (section *AddressSection) IsMultiple() bool {
+	return section != nil && section.isMultiple()
 }
 
 func (section *AddressSection) GetPrefixCount() *big.Int {
@@ -1587,9 +1781,7 @@ func (section *AddressSection) GetPrefixCount() *big.Int {
 }
 
 func (section *AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
-	if !section.IsMultiple() {
-		return bigOne()
-	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
 	} else if sect := section.ToIPv6AddressSection(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
@@ -1597,6 +1789,18 @@ func (section *AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 		return sect.GetPrefixCountLen(prefixLen)
 	}
 	return section.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
+}
+
+// GetBlockCount returns the count of values in the initial (higher) count of divisions.
+func (section *AddressSection) GetBlockCount(segmentCount int) *big.Int {
+	if sect := section.ToIPv4AddressSection(); sect != nil {
+		return sect.GetBlockCount(segmentCount)
+	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+		return sect.GetBlockCount(segmentCount)
+	} else if sect := section.ToMACAddressSection(); sect != nil {
+		return sect.GetBlockCount(segmentCount)
+	}
+	return section.addressDivisionGroupingBase.GetBlockCount(segmentCount)
 }
 
 //func (section *AddressSection) CompareSize(other *AddressSection) int {
@@ -1744,6 +1948,9 @@ func (section *AddressSection) Wrap() WrappedAddressSection {
 }
 
 func (section *AddressSection) Iterator() SectionIterator {
+	if section == nil {
+		return nilSectIterator()
+	}
 	return section.sectionIterator(nil)
 }
 
@@ -1788,6 +1995,13 @@ func (section *AddressSection) ReverseSegments() *AddressSection {
 		},
 	)
 	return res
+}
+
+func (section *AddressSection) String() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toString()
 }
 
 func seriesValsSame(one, two AddressSegmentSeries) bool {

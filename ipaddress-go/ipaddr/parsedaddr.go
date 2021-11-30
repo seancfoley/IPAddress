@@ -2089,7 +2089,7 @@ func maskString(lower, upper, maskInt uint64) string {
 func checkExpandedValues(section *IPAddressSection, start, end int) bool {
 	if section != nil && start < end {
 		seg := section.GetSegment(start)
-		lastWasRange := seg.IsMultiple()
+		lastWasRange := seg.isMultiple()
 		for {
 			start++
 			seg = section.GetSegment(start)
@@ -2098,7 +2098,7 @@ func checkExpandedValues(section *IPAddressSection, start, end int) bool {
 					return true
 				}
 			} else {
-				lastWasRange = seg.IsMultiple()
+				lastWasRange = seg.isMultiple()
 			}
 			if start >= end {
 				break

@@ -114,7 +114,7 @@ func increment( // used by IPv4 and MACSize
 	lowerProducer,
 	upperProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		return add(section, lowerValue, increment, creator, prefixLength)
 	}
 	isDecrement := increment <= 0
@@ -144,7 +144,7 @@ func incrementBig( // used by MACSize and IPv6
 	lowerProducer,
 	upperProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		return addBig(section, bigIncrement, creator, prefixLength)
 	}
 	isDecrement := increment <= 0

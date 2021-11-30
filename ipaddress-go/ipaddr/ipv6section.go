@@ -145,7 +145,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
 			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
-			if !res.isMultiple { // not a prefix block
+			if !res.isMult { // not a prefix block
 				res.cache.bytesCache.upperBytes = bytes
 			}
 		}
@@ -286,7 +286,7 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	//if expectedByteCount == len(bytes) {
 	//	bytes = cloneBytes(bytes)
 	//	res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
-	//	if !res.isMultiple { // not a prefix block
+	//	if !res.isMult { // not a prefix block
 	//		res.cache.bytesCache.upperBytes = bytes
 	//	}
 	//}
@@ -320,7 +320,7 @@ func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals IPv6SegmentValueProvi
 		DefaultIPv6Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv6Section(segments)
-	res.isMultiple = isMultiple
+	res.isMult = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 	}
@@ -334,7 +334,7 @@ func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err Incomp
 		return
 	}
 	res = createIPv6Section(segments)
-	res.isMultiple = eui.IsMultiple()
+	res.isMult = eui.isMultiple()
 	return
 }
 
@@ -342,6 +342,35 @@ func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err Incomp
 // The zero values is a section with zero segments.
 type IPv6AddressSection struct {
 	ipAddressSectionInternal
+}
+
+func (section *IPv6AddressSection) Contains(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.contains(other)
+}
+
+func (section *IPv6AddressSection) Equal(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.equal(other)
+}
+
+func (section *IPv6AddressSection) Compare(item AddressItem) int {
+	return CountComparator.Compare(section, item)
+}
+
+func (section *IPv6AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+	if section == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return section.compareSize(other)
 }
 
 func (section *IPv6AddressSection) GetIPVersion() IPVersion {
@@ -357,10 +386,25 @@ func (section *IPv6AddressSection) GetBytesPerSegment() int {
 }
 
 func (section *IPv6AddressSection) GetCount() *big.Int {
+	if section == nil {
+		return bigZero()
+	}
 	return section.cacheCount(func() *big.Int {
 		return count(func(index int) uint64 {
 			return section.GetSegment(index).GetValueCount()
 		}, section.GetSegmentCount(), 2, 0x7fffffffffff)
+	})
+}
+
+func (section *IPv6AddressSection) IsMultiple() bool {
+	return section != nil && section.isMultiple()
+}
+
+func (section *IPv6AddressSection) GetBlockCount(segmentCount int) *big.Int {
+	return section.calcCount(func() *big.Int {
+		return count(func(index int) uint64 {
+			return section.GetSegment(index).GetValueCount()
+		}, segmentCount, 2, 0x7fffffffffff)
 	})
 }
 
@@ -384,7 +428,10 @@ func (section *IPv6AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.In
 				return section.GetSegment(index).GetPrefixValueCount()
 			}
 			return section.GetSegment(index).GetValueCount()
-		}, networkSegmentIndex+1, 2, 0x7fffffffffff)
+		},
+			networkSegmentIndex+1,
+			2,
+			0x7fffffffffff)
 	})
 }
 
@@ -587,6 +634,9 @@ func (section *IPv6AddressSection) AssignMinPrefixForBlock() *IPv6AddressSection
 }
 
 func (section *IPv6AddressSection) Iterator() IPv6SectionIterator {
+	if section == nil {
+		return ipv6SectionIterator{nilSectIterator()}
+	}
 	return ipv6SectionIterator{section.sectionIterator(nil)}
 }
 
@@ -754,7 +804,7 @@ func maxInt(segCount int) *big.Int {
 }
 
 func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSection {
-	if increment == 0 && !section.IsMultiple() {
+	if increment == 0 && !section.isMultiple() {
 		return section
 	}
 	lowerValue := section.GetValue()
@@ -997,10 +1047,20 @@ var (
 					SetExpandedSegments(true).ToOptions()
 )
 
+func (section *IPv6AddressSection) String() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toString()
+}
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToCanonicalString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toCanonicalString(NoZone)
@@ -1015,6 +1075,9 @@ func (section *IPv6AddressSection) ToCanonicalString() string {
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv6AddressSection) ToNormalizedString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(NoZone)
@@ -1026,6 +1089,9 @@ func (section *IPv6AddressSection) ToNormalizedString() string {
 }
 
 func (section *IPv6AddressSection) ToCompressedString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toCompressedString(NoZone)
@@ -1050,6 +1116,9 @@ func (section *IPv6AddressSection) toMixedString() (string, IncompatibleAddressE
 }
 
 func (section *IPv6AddressSection) ToNormalizedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedWildcardStringZoned(NoZone)
@@ -1061,6 +1130,9 @@ func (section *IPv6AddressSection) ToNormalizedWildcardString() string {
 }
 
 func (section *IPv6AddressSection) ToCanonicalWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toCanonicalWildcardStringZoned(NoZone)
@@ -1072,6 +1144,9 @@ func (section *IPv6AddressSection) ToCanonicalWildcardString() string {
 }
 
 func (section *IPv6AddressSection) ToSegmentedBinaryString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toSegmentedBinaryStringZoned(NoZone)
@@ -1083,6 +1158,9 @@ func (section *IPv6AddressSection) ToSegmentedBinaryString() string {
 }
 
 func (section *IPv6AddressSection) ToSQLWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toSQLWildcardStringZoned(NoZone)
@@ -1094,6 +1172,9 @@ func (section *IPv6AddressSection) ToSQLWildcardString() string {
 }
 
 func (section *IPv6AddressSection) ToFullString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toFullStringZoned(NoZone)
@@ -1105,6 +1186,9 @@ func (section *IPv6AddressSection) ToFullString() string {
 }
 
 func (section *IPv6AddressSection) ToReverseDNSString() (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toReverseDNSStringZoned(NoZone)
@@ -1116,6 +1200,9 @@ func (section *IPv6AddressSection) ToReverseDNSString() (string, IncompatibleAdd
 }
 
 func (section *IPv6AddressSection) ToPrefixLenString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toPrefixLenStringZoned(NoZone)
@@ -1127,10 +1214,16 @@ func (section *IPv6AddressSection) ToPrefixLenString() string {
 }
 
 func (section *IPv6AddressSection) ToSubnetString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToPrefixLenString()
 }
 
 func (section *IPv6AddressSection) ToCompressedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toCompressedWildcardStringZoned(NoZone)
@@ -1192,6 +1285,9 @@ func (section *IPv6AddressSection) toCompressedWildcardStringZoned(zone Zone) st
 // ToCustomString produces a string given the string options.
 // Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when the segment ranges are incompatible.
 func (section *IPv6AddressSection) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	return section.toCustomString(stringOptions, NoZone)
 }
 
@@ -1457,7 +1553,7 @@ func createMixedAddressGrouping(divisions []*AddressDivision, mixedCache *mixedC
 	}
 	ipv6Section := mixedCache.embeddedIPv6Section
 	ipv4Section := mixedCache.embeddedIPv4Section
-	grouping.isMultiple = ipv6Section.IsMultiple() || ipv4Section.IsMultiple()
+	grouping.isMult = ipv6Section.isMultiple() || ipv4Section.isMultiple()
 	if ipv6Section.IsPrefixed() {
 		grouping.prefixLength = ipv6Section.GetPrefixLen()
 	} else if ipv4Section.IsPrefixed() {
@@ -1468,7 +1564,7 @@ func createMixedAddressGrouping(divisions []*AddressDivision, mixedCache *mixedC
 
 func newIPv6v4MixedGrouping(ipv6Section *EmbeddedIPv6AddressSection, ipv4Section *IPv4AddressSection) *IPv6v4MixedAddressGrouping {
 	//This cannot be public so we can be sure that the prefix lengths amongst the segments jive
-	// also set isMultiple, prefixLength,
+	// also set isMult, prefixLength,
 	//This is the first attempt to create a division grouping that has no address type.
 	// So what about down-scaling?  Do we allow it?  No.  Unless we add another address type.  But then we'd need to add a ToMixedSection()
 	// It just seems pointless.
@@ -1490,7 +1586,7 @@ func newIPv6v4MixedGrouping(ipv6Section *EmbeddedIPv6AddressSection, ipv4Section
 	//	embeddedIPv6Section: ipv6Section,
 	//	embeddedIPv4Section: ipv4Section,
 	//}
-	//grouping.isMultiple = ipv6Section.IsMultiple() || ipv4Section.IsMultiple()
+	//grouping.isMult = ipv6Section.isMult() || ipv4Section.isMult()
 	//if ipv6Section.IsPrefixed() {
 	//	grouping.prefixLength = ipv6Section.GetPrefixLen()
 	//} else if ipv4Section.IsPrefixed() {
@@ -1502,6 +1598,33 @@ func newIPv6v4MixedGrouping(ipv6Section *EmbeddedIPv6AddressSection, ipv4Section
 // IPv6v4MixedAddressGrouping has divisions which are a mix of IPv6 and IPv4 divisions
 type IPv6v4MixedAddressGrouping struct {
 	addressDivisionGroupingInternal
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) Compare(item AddressItem) int {
+	return CountComparator.Compare(grouping, item)
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) CompareSize(other StandardDivisionGroupingType) int {
+	if grouping == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return grouping.compareSize(other)
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) GetCount() *big.Int {
+	if grouping == nil {
+		return bigZero()
+	}
+	cnt := grouping.GetIPv6AddressSection().GetCount()
+	return cnt.Add(cnt, grouping.GetIPv4AddressSection().GetCount())
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) IsMultiple() bool {
+	return grouping != nil && grouping.isMultiple()
 }
 
 func (grouping *IPv6v4MixedAddressGrouping) ToAddressDivisionGrouping() *AddressDivisionGrouping {
@@ -1529,6 +1652,13 @@ func (grouping *IPv6v4MixedAddressGrouping) GetIPv4AddressSection() *IPv4Address
 	//	return newIPv4SectionParsed(subDivs)
 	//}
 	return grouping.cache.mixed.embeddedIPv4Section
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) String() string {
+	if grouping == nil {
+		return nilString()
+	}
+	return grouping.toString()
 }
 
 //func (sect *IPv6v4MixedAddressGrouping) GetGenericIPDivision(index int) IPAddressGenericDivision {
@@ -1608,7 +1738,7 @@ func toIPv6SegmentsFromEUI(
 //}
 //
 //func joinMacSegsFlip(macSegment0, macSegment1 *MACAddressSegment, flip bool, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
-//	if macSegment0.isMultiple() {
+//	if macSegment0.isMult() {
 //		// if the high segment has a range, the low segment must match the full range,
 //		// otherwise it is not possible to create an equivalent range when joining
 //		if !macSegment1.IsFullRange() {

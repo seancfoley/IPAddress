@@ -172,11 +172,19 @@ func (div *addressDivisionBase) getBytesInternal() (bytes, upperBytes []byte) {
 	return cached.lowerBytes, cached.upperBytes
 }
 
-func (div *addressDivisionBase) GetCount() *big.Int {
-	if !div.IsMultiple() {
+func (div *addressDivisionBase) getCount() *big.Int {
+	if !div.isMultiple() {
 		return bigOne()
 	}
-	return div.getCount()
+	return div.divisionValues.getCount()
+}
+
+func (div *addressDivisionBase) isMultiple() bool {
+	vals := div.divisionValues
+	if vals == nil {
+		return false
+	}
+	return vals.isMultiple()
 }
 
 // The count of the number of distinct values within the prefix part of the address item, the bits that appear within the prefix length.
@@ -186,7 +194,7 @@ func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.In
 	}
 	bitCount := div.GetBitCount()
 	if prefixLength >= bitCount {
-		return div.GetCount()
+		return div.getCount()
 	}
 	ushiftAdjustment := uint(bitCount - prefixLength)
 	lower := div.GetValue()
@@ -198,7 +206,7 @@ func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.In
 }
 
 func (div *addressDivisionBase) IsZero() bool {
-	return !div.IsMultiple() && div.includesZero()
+	return !div.isMultiple() && div.includesZero()
 }
 
 // Returns whether this item includes the value of zero within its range
@@ -212,7 +220,7 @@ func (div *addressDivisionBase) IncludesZero() bool {
 
 // Returns whether this item matches the maximum possible value for the address type or version
 func (div *addressDivisionBase) IsMax() bool {
-	return !div.IsMultiple() && div.includesMax()
+	return !div.isMultiple() && div.includesMax()
 }
 
 // Returns whether this item includes the maximum possible value for the address type or version within its range
@@ -227,14 +235,6 @@ func (div *addressDivisionBase) IncludesMax() bool {
 // whether this address item represents all possible values attainable by an address item of this type
 func (div *addressDivisionBase) IsFullRange() bool {
 	return div.includesZero() && div.includesMax()
-}
-
-func (div *addressDivisionBase) IsMultiple() bool {
-	vals := div.divisionValues
-	if vals == nil {
-		return false
-	}
-	return vals.isMultiple()
 }
 
 func (div *addressDivisionBase) getAddrType() addrType {
@@ -257,17 +257,17 @@ func (div *addressDivisionBase) matchesStructure(other DivisionType) (res bool, 
 	return
 }
 
-func (div *addressDivisionBase) Equals(other DivisionType) (res bool) {
-	//func (div *addressDivisionBase) equals(other DivisionType) (res bool) {
-	matches, _ := div.matchesStructure(other)
-	if div.isMultiple() {
-		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),
-			div.GetUpperValue(), other.GetUpperValue())
-	} else if other.IsMultiple() {
-		return false
-	}
-	return bigDivValSame(div.GetValue(), other.GetValue())
-}
+//func (div *addressDivisionBase) equal(other DivisionType) (res bool) {
+//	//func (div *addressDivisionBase) equals(other DivisionType) (res bool) {
+//	matches, _ := div.matchesStructure(other)
+//	if div.isMultiple() {
+//		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),
+//			div.GetUpperValue(), other.GetUpperValue())
+//	} else if other.IsMultiple() {
+//		return false
+//	}
+//	return bigDivValSame(div.GetValue(), other.GetValue())
+//}
 
 // returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
 func (div *addressDivisionBase) getDefaultTextualRadix() int {

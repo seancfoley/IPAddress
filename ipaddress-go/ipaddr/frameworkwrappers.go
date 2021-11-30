@@ -9,7 +9,7 @@ type ExtendedSegmentSeries interface {
 	// Unwrap returns the wrapped *Address or *AddressSection as an interface, AddressSegmentSeries
 	Unwrap() AddressSegmentSeries
 
-	Equals(ExtendedSegmentSeries) bool
+	Equal(ExtendedSegmentSeries) bool
 	Contains(ExtendedSegmentSeries) bool
 
 	// GetSection returns the full address section
@@ -201,9 +201,9 @@ func (w WrappedAddress) Contains(other ExtendedSegmentSeries) bool {
 	return ok && w.Address.Contains(addr)
 }
 
-func (w WrappedAddress) Equals(other ExtendedSegmentSeries) bool {
+func (w WrappedAddress) Equal(other ExtendedSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.Address.Equals(addr)
+	return ok && w.Address.Equal(addr)
 }
 
 func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
@@ -357,9 +357,9 @@ func (w WrappedAddressSection) Contains(other ExtendedSegmentSeries) bool {
 	return ok && w.AddressSection.Contains(addr)
 }
 
-func (w WrappedAddressSection) Equals(other ExtendedSegmentSeries) bool {
+func (w WrappedAddressSection) Equal(other ExtendedSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.AddressSection.Equals(addr)
+	return ok && w.AddressSection.Equal(addr)
 }
 
 func (w WrappedAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {

@@ -133,21 +133,27 @@ func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
 	return seg
 }
 
-// We must override getBitCount, getByteCount and others for the case when we construct as the zero value and there are no divisionValues
+func (seg *IPv4AddressSegment) Contains(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressSegment() == nil
+	}
+	return seg.contains(other)
+}
 
-//func (seg *IPv4AddressSegment) Equals(other DivisionType) bool {
-//	if seg == nil {
-//		return seg.getAddrType() == ipv4Type && other.(StandardDivisionType).ToAddressDivision() == nil
-//	}
-//	return seg.init().equals(other)
-//}
-//
-//func (seg *IPv4AddressSegment) CompareTo(item AddressItem) int {
-//	if seg != nil {
-//		seg = seg.init()
-//	}
-//	return CountComparator.Compare(seg, item)
-//}
+func (seg *IPv4AddressSegment) Equal(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressDivision() == nil
+		//return seg.getAddrType() == ipv4Type && other.(StandardDivisionType).ToAddressDivision() == nil
+	}
+	return seg.init().equal(other)
+}
+
+func (seg *IPv4AddressSegment) Compare(item AddressItem) int {
+	if seg != nil {
+		seg = seg.init()
+	}
+	return CountComparator.Compare(seg, item)
+}
 
 func (seg *IPv4AddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment
@@ -169,6 +175,17 @@ func (seg *IPv4AddressSegment) GetUpper() *IPv4AddressSegment {
 	return seg.getUpper().ToIPv4AddressSegment()
 }
 
+func (seg *IPv4AddressSegment) IsMultiple() bool {
+	return seg != nil && seg.isMultiple()
+}
+
+func (seg *IPv4AddressSegment) GetCount() *big.Int {
+	if seg == nil {
+		return bigZero()
+	}
+	return seg.getCount()
+}
+
 func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
 	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4AddressSegment()
 }
@@ -186,6 +203,9 @@ func (seg *IPv4AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv
 }
 
 func (seg *IPv4AddressSegment) Iterator() IPv4SegmentIterator {
+	if seg == nil {
+		return ipv4SegmentIterator{nilSegIterator()}
+	}
 	return ipv4SegmentIterator{seg.iterator()}
 }
 
@@ -210,7 +230,7 @@ func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err
 		res = seg
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		if isReversible := seg.isReversibleRange(false); isReversible {
 			res = seg.WithoutPrefixLen()
 			return
@@ -235,7 +255,7 @@ func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, Incompatible
 func (seg *IPv4AddressSegment) isJoinableTo(low *IPv4AddressSegment) bool {
 	// if the high segment has a range, the low segment must match the full range,
 	// otherwise it is not possible to create an equivalent range when joining
-	return !seg.IsMultiple() || low.IsFullRange()
+	return !seg.isMultiple() || low.IsFullRange()
 }
 
 //TODO think some more about whether Join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.  Not sure.
@@ -276,6 +296,13 @@ func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 		return nil
 	}
 	return (*IPAddressSegment)(seg.init())
+}
+
+func (seg *IPv4AddressSegment) String() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.toString()
 }
 
 func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {

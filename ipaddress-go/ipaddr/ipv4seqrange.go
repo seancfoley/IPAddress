@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 	"unsafe"
@@ -23,11 +24,32 @@ func (rng *IPv4AddressSeqRange) init() *IPv4AddressSeqRange {
 	return rng
 }
 
-func (rng IPv4AddressSeqRange) String() string {
+func (rng *IPv4AddressSeqRange) GetCount() *big.Int {
+	if rng == nil {
+		return bigZero()
+	}
+	return rng.ipAddressSeqRangeInternal.getCount()
+}
+
+func (rng *IPv4AddressSeqRange) IsMultiple() bool {
+	return rng != nil && rng.isMultiple()
+}
+
+func (rng *IPv4AddressSeqRange) String() string {
+	if rng == nil {
+		return nilString()
+	}
 	return rng.ToString((*IPv4Address).String, DefaultSeqRangeSeparator, (*IPv4Address).String)
 }
 
+func (rng IPv4AddressSeqRange) Format(state fmt.State, verb rune) {
+	rng.init().format(state, verb)
+}
+
 func (rng *IPv4AddressSeqRange) ToString(lowerStringer func(*IPv4Address) string, separator string, upperStringer func(*IPv4Address) string) string {
+	if rng == nil {
+		return nilString()
+	}
 	return rng.init().toString(
 		func(addr *IPAddress) string {
 			return lowerStringer(addr.ToIPv4Address())
@@ -112,28 +134,43 @@ func (rng *IPv4AddressSeqRange) GetUpperValue() *big.Int {
 }
 
 func (rng *IPv4AddressSeqRange) Contains(other IPAddressType) bool {
+	if rng == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return rng.init().contains(other)
 }
 
 func (rng *IPv4AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
+	if rng == nil {
+		return other == nil || other.ToIPAddressSeqRange() == nil
+	}
 	return rng.init().containsRange(other)
 }
 
-func (rng *IPv4AddressSeqRange) Equals(other IPAddressSeqRangeType) bool {
-	//if rng == nil {
-	//	return other.ToIPAddressSeqRange() == nil
-	//}
+func (rng *IPv4AddressSeqRange) Equal(other IPAddressSeqRangeType) bool {
+	if rng == nil {
+		return other == nil || other.ToIPAddressSeqRange() == nil
+	}
 	return rng.init().equals(other)
 }
 
-func (rng *IPv4AddressSeqRange) CompareTo(item AddressItem) int {
-	return rng.init().compareTo(item)
-	//return CountComparator.Compare(rng.init().toIPSequentialRange(), item)
+func (rng *IPv4AddressSeqRange) Compare(item AddressItem) int {
+	if rng != nil {
+		rng = rng.init()
+	}
+	return CountComparator.Compare(rng, item)
 }
 
-//func (rng *IPv4AddressSeqRange) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(rng, item)
-//}
+func (rng *IPv4AddressSeqRange) CompareSize(other IPAddressSeqRangeType) int {
+	if rng == nil {
+		if other != nil && other.ToIPAddressSeqRange() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return rng.compareSize(other)
+}
 
 func (rng *IPv4AddressSeqRange) ContainsPrefixBlock(prefixLen BitCount) bool {
 	return rng.init().ipAddressSeqRangeInternal.ContainsPrefixBlock(prefixLen)
@@ -152,6 +189,9 @@ func (rng *IPv4AddressSeqRange) GetMinPrefixLenForBlock() BitCount {
 }
 
 func (rng *IPv4AddressSeqRange) Iterator() IPv4AddressIterator {
+	if rng == nil {
+		return ipv4AddressIterator{nilAddrIterator()}
+	}
 	return ipv4AddressIterator{rng.init().iterator()}
 }
 

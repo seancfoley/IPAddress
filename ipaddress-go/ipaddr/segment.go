@@ -31,12 +31,42 @@ func (seg *addressSegmentInternal) sameTypeContains(otherSeg *AddressSegment) bo
 		otherSeg.GetUpperSegmentValue() <= seg.GetUpperSegmentValue()
 }
 
-func (seg *addressSegmentInternal) Contains(other AddressSegmentType) (res bool) {
-	if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
-		otherSeg := other.ToAddressSegment()
+func (seg *addressSegmentInternal) contains(other AddressSegmentType) bool {
+	if other == nil {
+		return true
+	}
+	otherSeg := other.ToAddressSegment()
+	if seg.toAddressSegment() == otherSeg || otherSeg == nil {
+		return true
+	} else if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
 		return seg.sameTypeContains(otherSeg)
 	}
-	return
+	return false
+}
+
+func (div *addressDivisionInternal) equal(other AddressSegmentType) bool {
+	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
+	//if otherDiv, ok := other.(StandardDivisionType); ok {
+	if other == nil || other.ToAddressDivision() == nil {
+		return false
+	}
+	if div.isMultiple() {
+		if other.IsMultiple() {
+			matches, _ := div.matchesStructure(other)
+			otherDivision := other.ToAddressDivision()
+			return matches && divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
+				div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
+		} else {
+			return false
+		}
+	} else if other.IsMultiple() {
+		return false
+	}
+	matches, _ := div.matchesStructure(other)
+	otherDivision := other.ToAddressDivision()
+	return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
+	//}
+	//return div.addressDivisionBase.equal(other)
 }
 
 func (seg *addressSegmentInternal) equalsSegment(other *AddressSegment) bool {
@@ -45,11 +75,11 @@ func (seg *addressSegmentInternal) equalsSegment(other *AddressSegment) bool {
 }
 
 func (seg *addressSegmentInternal) sameTypeEquals(other *AddressSegment) bool {
-	if seg.IsMultiple() {
-		return other.IsMultiple() && segValsSame(seg.getSegmentValue(), other.getSegmentValue(),
+	if seg.isMultiple() {
+		return other.isMultiple() && segValsSame(seg.getSegmentValue(), other.getSegmentValue(),
 			seg.getUpperSegmentValue(), other.getUpperSegmentValue())
 	}
-	return !other.IsMultiple() && seg.getSegmentValue() == other.getSegmentValue()
+	return !other.isMultiple() && seg.getSegmentValue() == other.getSegmentValue()
 }
 
 // PrefixContains returns whether the given prefix range of values contain those of the given segment.
@@ -57,7 +87,7 @@ func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, pref
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
 	if shift <= 0 {
-		return seg.Contains(other)
+		return seg.contains(other)
 	}
 	return (other.GetSegmentValue()>>uint(shift)) >= (seg.GetSegmentValue()>>uint(shift)) &&
 		(other.GetUpperSegmentValue()>>uint(shift)) <= (seg.GetUpperSegmentValue()>>uint(shift))
@@ -140,7 +170,7 @@ func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
 }
 
 func (seg *addressSegmentInternal) getLower() *AddressSegment {
-	if !seg.IsMultiple() {
+	if !seg.isMultiple() {
 		return seg.toAddressSegment()
 	}
 	vals := seg.divisionValues
@@ -152,7 +182,7 @@ func (seg *addressSegmentInternal) getLower() *AddressSegment {
 }
 
 func (seg *addressSegmentInternal) getUpper() *AddressSegment {
-	if !seg.IsMultiple() {
+	if !seg.isMultiple() {
 		return seg.toAddressSegment()
 	}
 	vals := seg.divisionValues
@@ -245,9 +275,9 @@ func (seg *addressSegmentInternal) ToNormalizedString() string {
 	stringer := func() string {
 		switch seg.getDefaultTextualRadix() {
 		case 10:
-			return seg.toString(decimalParamsSeg)
+			return seg.toStringOpts(decimalParamsSeg)
 		default:
-			return seg.toString(macCompressedParams)
+			return seg.toStringOpts(macCompressedParams)
 		}
 	}
 	if seg.divisionValues != nil {
@@ -262,11 +292,11 @@ func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, Incom
 	var stringer func() string
 	if with0xPrefix {
 		stringer = func() string {
-			return seg.toString(hexParamsSeg)
+			return seg.toStringOpts(hexParamsSeg)
 		}
 	} else {
 		stringer = func() string {
-			return seg.toString(macCompressedParams)
+			return seg.toStringOpts(macCompressedParams)
 		}
 	}
 	if seg.divisionValues != nil {
@@ -299,7 +329,7 @@ func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegmen
 		res = seg.toAddressSegment()
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		return seg.reverseMultiValSeg(perByte)
 	}
 	byteCount := seg.GetByteCount()
@@ -341,7 +371,7 @@ func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err Inco
 		res = seg.toAddressSegment()
 		return
 	}
-	if seg.IsMultiple() {
+	if seg.isMultiple() {
 		return seg.reverseMultiValSeg(false)
 	}
 	oldVal := seg.GetSegmentValue()
@@ -489,16 +519,23 @@ type AddressSegment struct {
 	addressSegmentInternal
 }
 
-//func (seg *AddressSegment) Equals(other DivisionType) bool {
-//	if seg == nil {
-//		return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
-//	}
-//	return seg.equals(other)
-//}
-//
-//func (seg *AddressSegment) CompareTo(item AddressItem) int {
-//	return CountComparator.Compare(seg, item)
-//}
+func (seg *AddressSegment) Contains(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressSegment() == nil
+	}
+	return seg.contains(other)
+}
+
+func (seg *AddressSegment) Equal(other AddressSegmentType) bool {
+	if seg == nil {
+		return other == nil || other.ToAddressDivision() == nil
+	}
+	return seg.equal(other)
+}
+
+func (seg *AddressSegment) Compare(item AddressItem) int {
+	return CountComparator.Compare(seg, item)
+}
 
 func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 	return seg.getLower()
@@ -506,6 +543,17 @@ func (seg *addressSegmentInternal) GetLower() *AddressSegment {
 
 func (seg *addressSegmentInternal) GetUpper() *AddressSegment {
 	return seg.getUpper()
+}
+
+func (seg *AddressSegment) IsMultiple() bool {
+	return seg != nil && seg.isMultiple()
+}
+
+func (seg *AddressSegment) GetCount() *big.Int {
+	if seg == nil {
+		return bigZero()
+	}
+	return seg.getCount()
 }
 
 func (seg *AddressSegment) IsIPAddressSegment() bool {
@@ -525,6 +573,9 @@ func (seg *AddressSegment) IsMACAddressSegment() bool {
 }
 
 func (seg *AddressSegment) Iterator() SegmentIterator {
+	if seg == nil {
+		return nilSegIterator()
+	}
 	return seg.iterator()
 }
 
@@ -562,6 +613,13 @@ func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
 
 func (seg *AddressSegment) ToAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(seg))
+}
+
+func (seg *AddressSegment) String() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.toString()
 }
 
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {

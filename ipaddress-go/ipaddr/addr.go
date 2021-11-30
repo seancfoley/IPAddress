@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -96,7 +97,7 @@ func (addr *addressInternal) GetByteCount() int {
 	return section.GetByteCount()
 }
 
-func (addr *addressInternal) GetCount() *big.Int {
+func (addr *addressInternal) getCount() *big.Int {
 	section := addr.section
 	if section == nil {
 		return bigOne()
@@ -120,6 +121,15 @@ func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 	return section.GetPrefixCountLen(prefixLen)
 }
 
+
+func (addr *addressInternal) GetBlockCount( segmentCount int) *big.Int {
+	section := addr.section
+	if section == nil {
+		return bigOne()
+	}
+return section.GetBlockCount(segmentCount);
+}
+
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
 func (addr *addressInternal) testBit(n BitCount) bool {
 	return addr.section.TestBit(n)
@@ -130,8 +140,8 @@ func (addr *addressInternal) isOneBit(bitIndex BitCount) bool {
 	return addr.section.IsOneBit(bitIndex)
 }
 
-func (addr *addressInternal) IsMultiple() bool {
-	return addr.section != nil && addr.section.IsMultiple()
+func (addr *addressInternal) isMultiple() bool {
+	return addr.section != nil && addr.section.isMultiple()
 }
 
 func (addr *addressInternal) IsPrefixed() bool {
@@ -179,18 +189,24 @@ func (addr *addressInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	return section.GetPrefixLenForSingleBlock()
 }
 
-func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
+
+//func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
+func (addr *addressInternal) compareSize(other AddressType) int {
 	section := addr.section
-	if section == nil {
-		if other.IsMultiple() {
-			return -1
-		}
-		return 0
+	//if section == nil {
+	//	if other.IsMultiple() {
+	//		return -1
+	//	}
+	//	return 0
+	//}
+	if other == nil || other.ToAddress() == nil  {
+		// our size is 1 or greater, other 0
+		return 1
 	}
-	return section.CompareSize(other)
+	return section.CompareSize(other.ToAddress().GetSection())
 }
 
-func (addr addressInternal) String() string { // using non-pointer receiver makes it work well with fmt
+func (addr addressInternal) toString() string { // using non-pointer receiver makes it work well with fmt
 	section := addr.section
 	if section == nil {
 		return "0"
@@ -252,7 +268,7 @@ func (addr *addressInternal) getUpper() *Address {
 }
 
 func (addr *addressInternal) getLowestHighestAddrs() (lower, upper *Address) {
-	if !addr.IsMultiple() {
+	if !addr.isMultiple() {
 		lower = addr.toAddress()
 		upper = lower
 		return
@@ -378,26 +394,26 @@ func (addr *addressInternal) reverseSegments() *Address {
 // isIPv4() returns whether this matches an IPv4 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIPv4() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesIPv4AddressType()
+	return addr.section != nil && addr.section.matchesIPv4AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIPv6() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesIPv6AddressType()
+	return addr.section != nil && addr.section.matchesIPv6AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isMAC() bool {
-	return addr != nil && addr.section != nil && addr.section.matchesMACAddressType()
+	return addr.section != nil && addr.section.matchesMACAddressType()
 }
 
 // isIP() returns whether this matches an IP address.
 // It must be IPv4, IPv6, or the zero IPAddress which has no segments
 // we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
 func (addr *addressInternal) isIP() bool {
-	return addr != nil && (addr.section == nil /* zero addr */ || addr.section.matchesIPAddressType())
+	return addr.section == nil /* zero addr */ || addr.section.matchesIPAddressType()
 }
 
 func (addr *addressInternal) prefixEquals(other AddressType) bool {
@@ -429,8 +445,11 @@ func (addr *addressInternal) prefixContains(other AddressType) bool {
 }
 
 func (addr *addressInternal) contains(other AddressType) bool {
+	if other == nil {
+		return true
+	}
 	otherAddr := other.ToAddress()
-	if addr.toAddress() == otherAddr {
+	if addr.toAddress() == otherAddr ||  otherAddr == nil {
 		return true
 	}
 	otherSection := otherAddr.GetSection()
@@ -443,6 +462,9 @@ func (addr *addressInternal) contains(other AddressType) bool {
 }
 
 func (addr *addressInternal) equals(other AddressType) bool {
+	if other == nil {
+		return true
+	}
 	otherAddr := other.ToAddress()
 	if addr.toAddress() == otherAddr {
 		return true
@@ -453,7 +475,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	if addr.section == nil {
 		return otherSection.GetSegmentCount() == 0
 	}
-	return addr.section.Equals(otherSection) &&
+	return addr.section.Equal(otherSection) &&
 		// if it it is IPv6 and has a zone, then it does not equal addresses from other zones
 		addr.isSameZone(otherAddr)
 }
@@ -526,7 +548,7 @@ func (addr *addressInternal) getAddrType() addrType {
 
 // equivalent to section.sectionIterator
 func (addr *addressInternal) addrIterator(excludeFunc func([]*AddressDivision) bool) AddressIterator {
-	useOriginal := !addr.IsMultiple()
+	useOriginal := !addr.isMultiple()
 	original := addr.toAddress()
 	var iterator SegmentsIterator
 	if useOriginal {
@@ -749,6 +771,19 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 	return addr.section.ToHexString(with0xPrefix)
 }
 
+// Format handles formatting for the fmt package.
+// is the only method with a non-pointer receiver.  It is not intended to be called directly.
+// When called by a function in the fmt package, nil values are detected before this method is called,
+// so a nil pointer is never dereferenced to call this method.
+func (addr addressInternal) format(state fmt.State, verb rune) {
+	xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
+	xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
+	if sect := grouping.toAddressSection(); sect != nil {
+		return sect.ToNormalizedString()
+	}
+	return fmt.Sprintf("%v", grouping.initDivs().divisions)
+}
+
 //func (addr *addressInternal) toCustomString(stringOptions StringOptions) string {
 //	return addr.section.toCustomString(stringOptions, addr.zone)
 //}
@@ -766,8 +801,15 @@ func (addr *Address) init() *Address {
 	return addr
 }
 
-func (addr *Address) CompareTo(item AddressItem) int {
-	return CountComparator.Compare(addr, item)
+func (addr *Address) GetCount() *big.Int {
+	if addr == nil {
+		return bigZero()
+	}
+	return addr.getCount()
+}
+
+func (addr *Address) IsMultiple() bool {
+	return addr != nil && addr.isMultiple()
 }
 
 func (addr *Address) PrefixEquals(other AddressType) bool {
@@ -779,14 +821,32 @@ func (addr *Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *Address) Contains(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return addr.init().contains(other)
 }
 
-func (addr *Address) Equals(other AddressType) bool {
-	//if addr == nil {
-	//	return other.ToAddress() == nil
-	//}
+func (addr *Address) Compare(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
+func (addr *Address) Equal(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return addr.init().equals(other)
+}
+
+func (addr *Address) CompareSize(other AddressType) int {
+	if addr == nil {
+		if other != nil && other.ToAddress() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return addr.init().compareSize(other)
 }
 
 func (addr *Address) GetSection() *AddressSection {
@@ -953,6 +1013,9 @@ func (addr *Address) GetMaxSegmentValue() SegInt {
 }
 
 func (addr *Address) Iterator() AddressIterator {
+	if addr == nil {
+		return nilAddrIterator()
+	}
 	return addr.addrIterator(nil)
 }
 
@@ -962,6 +1025,22 @@ func (addr *Address) PrefixIterator() AddressIterator {
 
 func (addr *Address) PrefixBlockIterator() AddressIterator {
 	return addr.prefixIterator(true)
+}
+
+func (addr *Address) BlockIterator(segmentCount int) AddressIterator {
+	return addr.init().blockIterator(segmentCount)
+}
+
+func (addr *Address) SequentialBlockIterator() AddressIterator {
+	return addr.init().sequentialBlockIterator()
+}
+
+func (addr *Address) GetSequentialBlockIndex() int {
+	return addr.getSequentialBlockIndex()
+}
+
+func (addr *Address) GetSequentialBlockCount() *big.Int {
+	return addr.getSequentialBlockCount()
 }
 
 func (addr *Address) IncrementBoundary(increment int64) *Address {
@@ -1008,58 +1087,56 @@ func (addr *Address) IsLocal() bool {
 	return false
 }
 
-//TODO look into https://pkg.go.dev/fmt#Formatter and https://pkg.go.dev/go/scanner , both implemented by big.Int
-// https://pkg.go.dev/math/big#Int.Format is the reverse of scan, you write to a fmtState the values, and can be affected by all kinds of "verbs"
-// formats such as 'b' (binary), 'o' (octal with 0 prefix), 'O' (octal with 0o prefix), 'd' (decimal), 'x' (lowercase hexadecimal), and 'X' (uppercase hexadecimal).
-// Also supported are the full suite of package fmt's format flags for integral types, including '+' and ' ' for sign control, '#' for leading zero in octal and for hexadecimal, a leading "0x" or "0X" for "%#x" and "%#X" respectively,
-// specification of minimum digits precision, output field width, space or zero padding, and '-' for left or right justification.
-
-// https://pkg.go.dev/math/big#Int.Scan construct an address from a "scanState" which allows you to read one byte at a time (see bytereader used by big.Int) - just read up to whitespace or newline and then parse
-//  but this breaks immutability... unless i make an exception like for serialization
-
-//TODO the non-pointer receiver means that you get panic for nil pointers - is that OK?  This was added so slices call the Stringer method
-//Take a look at what big.Int does for one thing
-//recheck the different cases - is it just an issue for []Address?  What happens with []*Address?
-/*
-here is the big int string method,
-func (x *Int) Text(base int) string {
-	if x == nil {
-		return "<nil>"
-	}
-	return string(x.abs.itoa(x.neg, base))
+func (addr Address) Format(state fmt.State, verb rune) {
+	addr.init().format(state, verb)
 }
-*/
-//so I am leaning towards changing my code here and return "<nil>" as well everywhere
-//but then do I do the same with all string methods?  I guess so
 
-func (addr Address) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().addressInternal.String()
+func (addr *Address) String() string {
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().toString()
 }
 
 func (addr *Address) GetSegmentStrings() []string {
+	if addr == nil {
+		return nil
+	}
 	return addr.init().getSegmentStrings()
 }
 
 func (addr *Address) ToCanonicalString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalString()
 }
 
 func (addr *Address) ToNormalizedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedString()
 }
 
 func (addr *Address) ToCompressedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedString()
 }
 
 func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
 func (addr *Address) ToCustomString(stringOptions StringOptions) string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 

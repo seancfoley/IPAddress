@@ -79,7 +79,7 @@ func (t addressOrderTest) testOrder() {
 		if oneAddr != nil && twoAddr != nil {
 			result = lowValComparator.Compare(oneAddr, twoAddr)
 		} else {
-			result = one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+			result = one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		}
 		//expected := one.order - two.order
 		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
@@ -87,7 +87,7 @@ func (t addressOrderTest) testOrder() {
 		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
 		//		lowValComparator.Compare(oneAddr, twoAddr)
 		//	} else {
-		//		one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//		one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		//	}
 		//}
 		return result
@@ -99,14 +99,14 @@ func (t addressOrderTest) testOrder() {
 		if oneAddr != nil && twoAddr != nil {
 			result = lowValComparator.Compare(oneAddr, twoAddr)
 		} else {
-			result = one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+			result = one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		}
 		//expected := one.order - two.order
 		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
 		//	if oneAddr != nil && twoAddr != nil {
 		//		lowValComparator.Compare(oneAddr, twoAddr)
 		//	} else {
-		//		one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//		one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		//	}
 		//}
 		return result
@@ -133,7 +133,7 @@ func (t addressOrderTest) testOrder() {
 		if oneAddr != nil && twoAddr != nil {
 			result = highValComparator.Compare(oneAddr, twoAddr)
 		} else {
-			result = one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+			result = one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		}
 		//expected := one.order - two.order
 		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
@@ -141,7 +141,7 @@ func (t addressOrderTest) testOrder() {
 		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
 		//		highValComparator.Compare(oneAddr, twoAddr)
 		//	} else {
-		//		one.nestedIPAddrString.CompareTo(two.nestedIPAddrString)
+		//		one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		//	}
 		//}
 		return result
@@ -153,7 +153,7 @@ func (t addressOrderTest) testOrder() {
 		if oneAddr != nil && twoAddr != nil {
 			result = highValComparator.Compare(oneAddr, twoAddr)
 		} else {
-			result = one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+			result = one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		}
 		//expected := one.order - two.order
 		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
@@ -161,7 +161,7 @@ func (t addressOrderTest) testOrder() {
 		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
 		//		highValComparator.Compare(oneAddr, twoAddr)
 		//	} else {
-		//		one.nestedMACAddrString.CompareTo(two.nestedMACAddrString)
+		//		one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		//	}
 		//}
 		return result
@@ -195,23 +195,23 @@ func (o *Ordering) getDescription() string {
 func (o *Ordering) CompareTo(other *Ordering) int {
 	var result int
 	if o.nestedIPAddrString != nil {
-		result = o.nestedIPAddrString.CompareTo(other.nestedIPAddrString)
+		result = o.nestedIPAddrString.Compare(other.nestedIPAddrString)
 	} else if o.nestedMACAddrString != nil {
-		result = o.nestedMACAddrString.CompareTo(other.nestedMACAddrString)
+		result = o.nestedMACAddrString.Compare(other.nestedMACAddrString)
 	} else {
-		result = o.nestedType.CompareTo(other.nestedType)
+		result = o.nestedType.Compare(other.nestedType)
 	}
 	//expected := o.order - other.order
 	//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
 	//	if o.nestedIPAddrString != nil {
 	//		fmt.Printf("oops comparing %v and %v\n", o.nestedIPAddrString, other.nestedIPAddrString)
-	//		o.nestedIPAddrString.CompareTo(other.nestedIPAddrString)
+	//		o.nestedIPAddrString.Compare(other.nestedIPAddrString)
 	//	} else if o.nestedMACAddrString != nil {
 	//		fmt.Printf("oops comparing %v and %v\n", o.nestedMACAddrString, other.nestedMACAddrString)
-	//		o.nestedMACAddrString.CompareTo(other.nestedMACAddrString)
+	//		o.nestedMACAddrString.Compare(other.nestedMACAddrString)
 	//	} else {
 	//		fmt.Printf("oops comparing %v and %v\n", o.nestedType, other.nestedType)
-	//		o.nestedType.CompareTo(other.nestedType)
+	//		o.nestedType.Compare(other.nestedType)
 	//	}
 	//}
 	return result

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 )
@@ -284,7 +285,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 	prefixSection.copySubSegmentsToSlice(0, 4, segments)
 	res := createIPv6Section(segments)
 	res.prefixLength = prefixLen
-	res.isMultiple = suffix.IsMultiple() || prefixSection.isMultipleTo(4)
+	res.isMult = suffix.isMultiple() || prefixSection.isMultipleTo(4)
 	return newIPv6AddressZoned(res, zone), nil
 }
 
@@ -346,6 +347,24 @@ type IPv6Address struct {
 	ipAddressInternal
 }
 
+func (addr *IPv6Address) init() *IPv6Address {
+	if addr.section == nil {
+		return zeroIPv6
+	}
+	return addr
+}
+
+func (addr *IPv6Address) GetCount() *big.Int {
+	if addr == nil {
+		return bigZero()
+	}
+	return addr.getCount()
+}
+
+func (addr *IPv6Address) IsMultiple() bool {
+	return addr != nil && addr.isMultiple()
+}
+
 func (addr *IPv6Address) GetBitCount() BitCount {
 	return IPv6BitCount
 }
@@ -360,13 +379,6 @@ func (addr *IPv6Address) GetBitsPerSegment() BitCount {
 
 func (addr *IPv6Address) GetBytesPerSegment() int {
 	return IPv6BytesPerSegment
-}
-
-func (addr *IPv6Address) init() *IPv6Address {
-	if addr.section == nil {
-		return zeroIPv6
-	}
-	return addr
 }
 
 func (addr *IPv6Address) HasZone() bool {
@@ -769,13 +781,6 @@ func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-func (addr *IPv6Address) CompareTo(item AddressItem) int {
-	//if addr != nil {
-	//	addr = addr.init()
-	//}
-	return CountComparator.Compare(addr.init(), item)
-}
-
 func (addr *IPv6Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -785,22 +790,43 @@ func (addr *IPv6Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv6Address) Contains(other AddressType) bool {
-	return other.ToAddress().getAddrType() == ipv6Type && addr.init().section.sameCountTypeContains(other.ToAddress().GetSection()) &&
+	if other == nil || other.ToAddress() == nil {
+		return true
+	} else if addr == nil {
+		return false
+	}
+	addr = addr.init()
+	otherAddr := other.ToAddress()
+	if addr.ToAddress() == otherAddr {
+		return true
+	}
+	return otherAddr.getAddrType() == ipv6Type && addr.section.sameCountTypeContains(otherAddr.GetSection()) &&
 		addr.isSameZone(other.ToAddress())
 }
 
-func (addr *IPv6Address) Equals(other AddressType) bool {
+func (addr *IPv6Address) Compare(item AddressItem) int {
+	return CountComparator.Compare(addr, item)
+}
+
+func (addr *IPv6Address) Equal(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
 	return other.ToAddress().getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
 		addr.isSameZone(other.ToAddress())
 }
 
-//func (addr *IPv6Address) Equals(other AddressType) bool {
-//	if addr == nil {
-//		return other.ToAddress() == nil
-//	}
-//	return other.getAddrType() == ipv6Type && other.ToAddress() != nil && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
-//		addr.isSameZone(other.ToAddress())
-//}
+// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *IPv6Address) CompareSize(other AddressType) int {
+	if addr == nil {
+		if other != nil && other.ToAddress() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return addr.init().compareSize(other)
+}
 
 func (addr *IPv6Address) MatchesWithMask(other *IPv6Address, mask *IPv6Address) bool {
 	return addr.init().GetSection().MatchesWithMask(other.GetSection(), mask.GetSection())
@@ -832,7 +858,7 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	return newSeqRangeUnchecked(
 		addr.GetLowerIPAddress(),
 		addr.GetUpperIPAddress(),
-		addr.IsMultiple()).ToIPv6SequentialRange()
+		addr.isMultiple()).ToIPv6SequentialRange()
 }
 
 func (addr *IPv6Address) ToAddressString() *IPAddressString {
@@ -1015,6 +1041,9 @@ func (addr *IPv6Address) IsLoopback() bool {
 }
 
 func (addr *IPv6Address) Iterator() IPv6AddressIterator {
+	if addr == nil {
+		return ipv6AddressIterator{nilAddrIterator()}
+	}
 	return ipv6AddressIterator{addr.init().addrIterator(nil)}
 }
 
@@ -1237,80 +1266,135 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	return newSegs, nil
 }
 
-func (addr IPv6Address) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().addressInternal.String()
+func (addr IPv6Address) Format(state fmt.State, verb rune) {
+	addr.init().format(state, verb)
+}
+
+func (addr *IPv6Address) String() string {
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().addressInternal.toString()
 }
 
 func (addr *IPv6Address) GetSegmentStrings() []string {
+	if addr == nil {
+		return nil
+	}
 	return addr.init().getSegmentStrings()
 }
 
 func (addr *IPv6Address) ToCanonicalString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalString()
 }
 
 func (addr *IPv6Address) ToNormalizedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedString()
 }
 
 func (addr *IPv6Address) ToCompressedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedString()
 }
 
 func (addr *IPv6Address) ToCanonicalWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalWildcardString()
 }
 
 func (addr *IPv6Address) ToNormalizedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedWildcardString()
 }
 
 func (addr *IPv6Address) ToSegmentedBinaryString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSegmentedBinaryString()
 }
 
 func (addr *IPv6Address) ToSQLWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSQLWildcardString()
 }
 
 func (addr *IPv6Address) ToFullString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toFullString()
 }
 
 func (addr *IPv6Address) ToPrefixLenString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toPrefixLenString()
 }
 
 func (addr *IPv6Address) ToSubnetString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toSubnetString()
 }
 
 func (addr *IPv6Address) ToCompressedWildcardString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedWildcardString()
 }
 
 func (addr *IPv6Address) ToReverseDNSString() (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toReverseDNSString()
 }
 
 func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
 func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
 func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
 // ToMixedString produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
 // For some address sections with ranges of values in the IPv4 part of the address, there is not mixed string, and an error is returned.
 func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
@@ -1332,6 +1416,9 @@ func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 // Options without split digits or mixed addresses do not produce errors.
 // Single addresses do not produce errors.
 func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 

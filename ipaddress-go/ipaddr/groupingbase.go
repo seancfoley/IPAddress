@@ -51,7 +51,7 @@ type addressDivisionGroupingBase struct {
 	// TODO PrefixLen: I think I've settle on option 1 above
 
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
-	isMultiple   bool
+	isMult       bool
 
 	// When a top-level section is created, it is assigned an address type, IPv4, IPv6, or MACSize,
 	// and determines if an *AddressDivisionGrouping can be converted back to a section of the original type.
@@ -125,7 +125,7 @@ func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 //	return
 //}
 //
-//func (grouping *addressDivisionGroupingBase) Equals(other GenericGroupingType) bool {
+//func (grouping *addressDivisionGroupingBase) Equal(other GenericGroupingType) bool {
 //	matches, count := grouping.matchesTypeAndCount(other)
 //	if !matches || count != other.GetDivisionCount() {
 //		return false
@@ -133,7 +133,7 @@ func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
 //		for i := 0; i < count; i++ {
 //			one := grouping.GetGenericDivision(i)
 //			two := other.GetGenericDivision(i)
-//			if !one.Equals(two) { //this checks the division types and also the bit counts
+//			if !one.Equal(two) { //this checks the division types and also the bit counts
 //				return false
 //			}
 //		}
@@ -219,8 +219,8 @@ func (grouping *addressDivisionGroupingBase) getCountBig() *big.Int {
 	if count > 0 {
 		for i := 0; i < count; i++ {
 			div := grouping.getDivision(i)
-			if div.IsMultiple() {
-				res.Mul(res, div.GetCount())
+			if div.isMultiple() {
+				res.Mul(res, div.getCount())
 			}
 		}
 	}
@@ -242,18 +242,18 @@ func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitC
 		return grouping.getCountBig()
 	}
 	res := bigOne()
-	if grouping.IsMultiple() {
+	if grouping.isMultiple() {
 		divisionCount := grouping.GetDivisionCount()
 		divPrefixLength := prefixLen
 		for i := 0; i < divisionCount; i++ {
 			div := grouping.getDivision(i)
 			divBitCount := div.getBitCount()
-			if div.IsMultiple() {
+			if div.isMultiple() {
 				var divCount *big.Int
 				if divPrefixLength < divBitCount {
 					divCount = div.GetPrefixCountLen(divPrefixLength)
 				} else {
-					divCount = div.GetCount()
+					divCount = div.getCount()
 				}
 				res.Mul(res, divCount)
 			}
@@ -266,20 +266,40 @@ func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitC
 	return res
 }
 
-func (grouping *addressDivisionGroupingBase) CompareSize(other AddressDivisionSeries) int {
-	if !grouping.IsMultiple() {
-		if other.IsMultiple() {
-			return -1
+func (grouping *addressDivisionGroupingBase) getBlockCountBig(segmentCount int) *big.Int {
+	if segmentCount <= 0 {
+		return bigOne()
+	}
+	divCount := grouping.GetDivisionCount()
+	if segmentCount >= divCount {
+		return grouping.getCountBig()
+	}
+	res := bigOne()
+	if grouping.isMultiple() {
+		for i := 0; i < divCount; i++ {
+			division := grouping.getDivision(i)
+			if division.isMultiple() {
+				res.Mul(res, division.getCount())
+			}
 		}
-		return 0
 	}
-	if !other.IsMultiple() {
-		return 1
-	}
-	return grouping.GetCount().CmpAbs(other.GetCount())
+	return res
 }
 
-func (grouping *addressDivisionGroupingBase) GetCount() *big.Int {
+//func (grouping *addressDivisionGroupingBase) CompareSize(other AddressDivisionSeries) int {
+//	if !grouping.isMultiple() {
+//		if other.IsMultiple() {
+//			return -1
+//		}
+//		return 0
+//	}
+//	if !other.IsMultiple() {
+//		return 1
+//	}
+//	return grouping.getCount().CmpAbs(other.GetCount())
+//}
+
+func (grouping *addressDivisionGroupingBase) getCount() *big.Int {
 	return grouping.cacheCount(grouping.getCountBig)
 }
 
@@ -291,8 +311,13 @@ func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCoun
 	return grouping.calcCount(func() *big.Int { return grouping.getPrefixCountLenBig(prefixLen) })
 }
 
+// GetBlockCount returns the count of values in the initial (higher) count of divisions.
+func (grouping *addressDivisionGroupingBase) GetBlockCount(divisionCount int) *big.Int {
+	return grouping.calcCount(func() *big.Int { return grouping.getBlockCountBig(divisionCount) })
+}
+
 func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache // IsMultiple checks prior to this ensures cacheBitCountx no nil here
+	cache := grouping.cache // isMult checks prior to this ensures cacheBitCountx no nil here
 	if cache == nil {
 		return grouping.calcCount(counter)
 	}
@@ -306,14 +331,14 @@ func (grouping *addressDivisionGroupingBase) cacheCount(counter func() *big.Int)
 }
 
 func (grouping *addressDivisionGroupingBase) calcCount(counter func() *big.Int) *big.Int {
-	if !grouping.IsMultiple() {
+	if grouping != nil && !grouping.isMultiple() {
 		return bigOne()
 	}
 	return counter()
 }
 
 func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *big.Int) *big.Int {
-	cache := grouping.cache // IsMultiple checks prior to this ensures cache not nil here
+	cache := grouping.cache // isMult checks prior to this ensures cache not nil here
 	if cache == nil {
 		return grouping.calcPrefixCount(counter)
 	}
@@ -327,12 +352,12 @@ func (grouping *addressDivisionGroupingBase) cachePrefixCount(counter func() *bi
 }
 
 func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big.Int) *big.Int {
-	if !grouping.IsMultiple() {
+	if !grouping.isMultiple() {
 		return bigOne()
 	}
 	prefixLen := grouping.prefixLength
 	if prefixLen == nil || *prefixLen >= grouping.GetBitCount() {
-		return grouping.GetCount()
+		return grouping.getCount()
 	}
 	return counter()
 }
@@ -357,10 +382,10 @@ func (grouping *addressDivisionGroupingBase) getCachedBytes(calcBytes func() (by
 	return
 }
 
-// IsMultiple returns whether this address or grouping represents more than one address or grouping.
+// isMultiple returns whether this address or grouping represents more than one address or grouping.
 // Such addresses include CIDR/IP addresses (eg 1.2.3.4/11) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
-func (grouping *addressDivisionGroupingBase) IsMultiple() bool {
-	return grouping.isMultiple
+func (grouping *addressDivisionGroupingBase) isMultiple() bool {
+	return grouping.isMult
 }
 
 type mixedCache struct {

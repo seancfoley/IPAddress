@@ -5,7 +5,6 @@ import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math/big"
 	"math/rand"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -2354,12 +2353,12 @@ func (t ipAddressRangeTester) testMasked(masked, mask string, prefixLength ipadd
 	}
 	resultAddr := t.createAddress(result).GetAddress()
 
-	if !maskedAddr.Equals(resultAddr) {
+	if !maskedAddr.Equal(resultAddr) {
 		t.addFailure(newIPAddrFailure("masked "+maskedAddr.String()+" instead of expected "+resultAddr.String(), maskedAddr))
 	}
 
-	//TODO change the test below back, once we support nils with Equals
-	//if (!maskAddr.Equals(maskedAddrStr.GetMask()) {
+	//TODO change the test below back, once we support nils with Equal
+	//if (!maskAddr.Equal(maskedAddrStr.GetMask()) {
 	//	t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
 	//}
 	if maskAddr == nil {
@@ -2367,12 +2366,12 @@ func (t ipAddressRangeTester) testMasked(masked, mask string, prefixLength ipadd
 			t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
 		}
 	} else {
-		if !maskAddr.Equals(maskedAddrStr.GetMask()) {
+		if !maskAddr.Equal(maskedAddrStr.GetMask()) {
 			t.addFailure(newIPAddrFailure("masked "+maskAddr.String()+" instead of expected "+maskedAddrStr.GetMask().String(), maskedAddr))
 		}
 	}
 	//
-	if !resultAddr.GetNetworkPrefixLen().Equals(prefixLength) {
+	if !resultAddr.GetNetworkPrefixLen().Equal(prefixLength) {
 		t.addFailure(newIPAddrFailure("masked prefix length was "+resultAddr.GetNetworkPrefixLen().String()+" instead of expected "+prefixLength.String(), maskedAddr))
 	}
 	t.incrementTestCount()
@@ -2533,7 +2532,7 @@ func (t ipAddressRangeTester) testRangeCountImpl(w, high *ipaddr.IPAddressString
 			next = addrIterator.Next()
 			if counter == 0 {
 				lower := val.GetLower()
-				if !next.Equals(lower) {
+				if !next.Equal(lower) {
 					t.addFailure(newIPAddrFailure("lowest: "+lower.String()+" next: "+next.String(), next))
 				}
 			}
@@ -2545,11 +2544,11 @@ func (t ipAddressRangeTester) testRangeCountImpl(w, high *ipaddr.IPAddressString
 		} else if counter != number {
 			t.addFailure(newSeqRangeFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val))
 		} else if number > 0 {
-			if !next.Equals(val.GetUpper()) {
+			if !next.Equal(val.GetUpper()) {
 				t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String(), next))
 			} else {
 				lower := val.GetLower()
-				if counter == 1 && !val.GetUpper().Equals(lower) {
+				if counter == 1 && !val.GetUpper().Equal(lower) {
 					t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String()+" lowest: "+val.GetLower().String(), next))
 				}
 			}
@@ -2685,8 +2684,8 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 		return
 	}
 	val := w.GetAddress()
-	count := val.GetPrefixCountLen(ipaddr.BitCount(segmentCount) * val.GetBitsPerSegment()) //TODO we should probably have GetBlockCOunt since we have the BLockIterator.  In any case, it is not complicated, like the sequentialBlockCOunt
-	//BigInteger count = val.GetBlockCount(segmentCount); //GetSequentialBlockCount? nope
+	count := val.GetBlockCount(segmentCount)
+	//count := val.GetPrefixCountLen(ipaddr.BitCount(segmentCount) * val.GetBitsPerSegment())
 	var set []ipaddr.AddressItem
 	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
 		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
@@ -2704,23 +2703,23 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 				lower := val.GetLower()
 				lowerSection := lower.GetSubSection(0, segmentCount)
 				nextAddrSection := next.GetSubSection(0, segmentCount)
-				if !nextAddrSection.Equals(lowerSection) || !lowerSection.Equals(nextAddrSection) {
+				if !nextAddrSection.Equal(lowerSection) || !lowerSection.Equal(nextAddrSection) {
 					t.addFailure(newSegmentSeriesFailure("lowest: "+lower.String()+" next addr: "+nextAddrSection.String(), nextAddrSection))
 				}
-				if !nextSection.Equals(lowerSection) || !lowerSection.Equals(nextSection) {
+				if !nextSection.Equal(lowerSection) || !lowerSection.Equal(nextSection) {
 					t.addFailure(newSegmentSeriesFailure("lowest: "+lower.String()+" next sectiob: "+nextSection.String(), nextSection))
 				}
-				if !nextSection.Equals(nextAddrSection) || !nextAddrSection.Equals(nextSection) {
+				if !nextSection.Equal(nextAddrSection) || !nextAddrSection.Equal(nextSection) {
 					t.addFailure(newSegmentSeriesFailure("nextAddrSection: "+nextAddrSection.String()+" next section: "+nextSection.String(), nextSection))
 				}
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" lowest prefix length: "+next.GetPrefixLen().String(), next))
 				}
-				if !lower.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !lower.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" lowest prefix length: "+lower.GetPrefixLen().String(), lower))
 				}
 			} else if counter == 1 {
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" next prefix length: "+next.GetPrefixLen().String(), next))
 				}
 			}
@@ -2742,21 +2741,21 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 		} else if number > 0 {
 			upperSection := val.GetUpper().GetSubSection(0, segmentCount)
 			nextAddrSection := next.GetSubSection(0, segmentCount)
-			if !nextAddrSection.Equals(upperSection) || !upperSection.Equals(nextAddrSection) {
+			if !nextAddrSection.Equal(upperSection) || !upperSection.Equal(nextAddrSection) {
 				t.addFailure(newSegmentSeriesFailure("highest: "+upperSection.String()+" next addr: "+nextAddrSection.String(), nextAddrSection))
 			}
-			if !nextSection.Equals(upperSection) || !upperSection.Equals(nextSection) {
+			if !nextSection.Equal(upperSection) || !upperSection.Equal(nextSection) {
 				t.addFailure(newSegmentSeriesFailure("highest: "+upperSection.String()+" next section: "+nextSection.String(), nextSection))
 			} else {
 				lower := val.GetLower()
 				lowerSection := lower.GetSubSection(0, segmentCount)
-				if counter == 1 && !upperSection.Equals(lowerSection) {
+				if counter == 1 && !upperSection.Equal(lowerSection) {
 					t.addFailure(newIPAddrFailure("highest: "+val.GetUpper().String()+" lowest: "+val.GetLower().String(), next))
 				}
-				if !next.GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newIPAddrFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
 				}
-				if !val.GetUpper().GetPrefixLen().Equals(val.GetPrefixLen()) {
+				if !val.GetUpper().GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newIPAddrFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+val.GetUpper().GetPrefixLen().String(), next))
 				}
 			}
@@ -2789,7 +2788,7 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	for _, s := range expected {
 		expectedList = append(expectedList, t.createAddress(s).GetAddress())
 	}
-	if !AddrsMatchOrdered(resultList, expectedList) {
+	if !ipaddr.AddrsMatchOrdered(resultList, expectedList) {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected "+asSliceString(expectedList), addr1))
 	}
 	if count != len(result) {
@@ -2806,7 +2805,7 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	for _, s := range rangeExpected {
 		expectedList = append(expectedList, t.createAddress(s).GetAddress())
 	}
-	if !AddrsMatchOrdered(resultList, expectedList) {
+	if !ipaddr.AddrsMatchOrdered(resultList, expectedList) {
 		t.addFailure(newIPAddrFailure("range merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(resultList)+" expected "+asSliceString(expectedList), addr1))
 	}
 	if rangeCount != len(result2) {
@@ -2819,20 +2818,20 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	}
 
 	backAgain, _ := result[0].MergeToPrefixBlocks(result...)
-	matches := AddrsMatchOrdered(result, backAgain)
+	matches := ipaddr.AddrsMatchOrdered(result, backAgain)
 	//boolean matches = Arrays.deepEquals(result, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
 	}
 	backAgain, _ = result[len(result)-1].MergeToPrefixBlocks(result...)
-	matches = AddrsMatchOrdered(result, backAgain)
+	matches = ipaddr.AddrsMatchOrdered(result, backAgain)
 	//matches = Arrays.deepEquals(result, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
 	}
 	if len(result) > 2 {
 		backAgain, _ = result[len(result)/2].MergeToPrefixBlocks(result...)
-		matches = AddrsMatchOrdered(result, backAgain)
+		matches = ipaddr.AddrsMatchOrdered(result, backAgain)
 		//matches = Arrays.deepEquals(result, backAgain);
 		if !matches {
 			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
@@ -2840,20 +2839,20 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	}
 
 	backAgain, _ = result2[0].MergeToSequentialBlocks(result2...)
-	matches = AddrsMatchOrdered(result2, backAgain)
+	matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
 	//matches = Arrays.deepEquals(result2, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
 	}
 	backAgain, _ = result2[len(result2)-1].MergeToSequentialBlocks(result2...)
-	matches = AddrsMatchOrdered(result2, backAgain)
+	matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
 	//matches = Arrays.deepEquals(result2, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
 	}
 	if len(result2) > 2 {
 		backAgain, _ = result2[len(result2)/2].MergeToSequentialBlocks(result2...)
-		matches = AddrsMatchOrdered(result2, backAgain)
+		matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
 		//matches = Arrays.deepEquals(result2, backAgain);
 		if !matches {
 			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
@@ -2868,7 +2867,7 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	}
 	joined := rangeList[0].Join(rangeList...)
 	//IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equals(addr1.GetLower()) || !joined[0].GetUpper().Equals(addr2.GetUpper()) {
+	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equal(addr1.GetLower()) || !joined[0].GetUpper().Equal(addr2.GetUpper()) {
 		t.addFailure(newIPAddrFailure("joined range "+asRangeSliceString(joined)+" did not match "+addr1.String()+" and "+addr2.String(), addr1))
 	}
 	rangeList = rangeList[:0]
@@ -2877,7 +2876,7 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 		rangeList = append(rangeList, rng)
 	}
 	joined = rangeList[0].Join(rangeList...)
-	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equals(addr1.GetLower()) || !joined[0].GetUpper().Equals(addr2.GetUpper()) {
+	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equal(addr1.GetLower()) || !joined[0].GetUpper().Equal(addr2.GetUpper()) {
 		t.addFailure(newIPAddrFailure("joined range "+asRangeSliceString(joined)+" did not match "+addr1.String()+" and "+addr2.String(), addr1))
 	}
 	t.incrementTestCount()
@@ -2901,25 +2900,25 @@ func (t ipAddressRangeTester) testMergeSingles(addrStr string) {
 	result, _ := first.MergeToPrefixBlocks(arr...)
 	if len(result) != 1 {
 		t.addFailure(newIPAddrFailure("merged addresses "+asSliceString(result)+" is not "+addrStr, addr))
-	} else if !addr.Equals(result[0]) {
+	} else if !addr.Equal(result[0]) {
 		t.addFailure(newIPAddrFailure("merged address "+result[0].String()+" is not "+addrStr, addr))
 	}
 	merged2 := getMergedPrefixBlocksAltMerge(arr)
 	merged3 := getMergedPrefixBlocksAltRange(arr)
 	merged4 := getMergedPrefixBlocksAltRange2(arr)
-	if len(merged2) != 1 || !result[0].Equals(merged2[0]) {
+	if len(merged2) != 1 || !result[0].Equal(merged2[0]) {
 		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged2), result[0]))
 	}
-	if len(merged3) != 1 || !result[0].Equals(merged3[0]) {
+	if len(merged3) != 1 || !result[0].Equal(merged3[0]) {
 		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged3), result[0]))
 	}
-	if len(merged4) != 1 || !result[0].Equals(merged4[0]) {
+	if len(merged4) != 1 || !result[0].Equal(merged4[0]) {
 		t.addFailure(newIPAddrFailure("merge prefix mismatch merging, expected "+asSliceString(result)+" got "+asSliceString(merged4), result[0]))
 	}
 	result, _ = addrs[len(addrs)/2].MergeToSequentialBlocks(arr...)
 	if len(result) != 1 {
 		t.addFailure(newIPAddrFailure("merged addresses "+asSliceString(result)+" is not "+addrStr, addr))
-	} else if !addr.Equals(result[0]) {
+	} else if !addr.Equal(result[0]) {
 		t.addFailure(newIPAddrFailure("merged address "+result[0].String()+" is not "+addrStr, addr))
 	}
 
@@ -3055,17 +3054,17 @@ func (t ipAddressRangeTester) testMergeImpl(result string, prefix bool, addresse
 		merged3 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
 		merged4 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
 		merged, _ = addr2.MergeToPrefixBlocks(mergers...)
-		if len(merged2) != 1 || !resultAddr.Equals(merged2[0]) {
+		if len(merged2) != 1 || !resultAddr.Equal(merged2[0]) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged2), resultAddr))
 		}
-		if len(merged3) != 1 || !resultAddr.Equals(merged3[0]) {
+		if len(merged3) != 1 || !resultAddr.Equal(merged3[0]) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged3), resultAddr))
 		}
-		if len(merged4) != 1 || !resultAddr.Equals(merged4[0]) {
+		if len(merged4) != 1 || !resultAddr.Equal(merged4[0]) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged4), resultAddr))
 		}
 	}
-	if len(merged) != 1 || !resultAddr.Equals(merged[0]) {
+	if len(merged) != 1 || !resultAddr.Equal(merged[0]) {
 		t.addFailure(newIPAddrFailure("mismatch merging "+strings.Join(addresses, ",")+" expected "+result+" got "+asSliceString(merged), resultAddr))
 	}
 	for _, m := range merged {
@@ -3115,7 +3114,7 @@ func (t ipAddressRangeTester) testMerge2Impl(result, result2 string, prefix bool
 	all = append(all, merged...)
 	expected = append(append(expected, resultAddr), resultAddr2)
 
-	if !AddrsMatchUnordered(all, expected) {
+	if !ipaddr.AddrsMatchUnordered(all, expected) {
 		t.addFailure(newIPAddrFailure("mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(all), resultAddr))
 	}
 
@@ -3123,17 +3122,17 @@ func (t ipAddressRangeTester) testMerge2Impl(result, result2 string, prefix bool
 		merged2 := getMergedPrefixBlocksAlt(merged)
 		merged3 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
 		merged4 := getMergedPrefixBlocksAltRange2(joinAddrToAddresses(mergers, addr2))
-		if len(merged2) != 2 || !AddrsMatchOrdered(merged, merged2) {
+		if len(merged2) != 2 || !ipaddr.AddrsMatchOrdered(merged, merged2) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged2), resultAddr))
 		}
 		//merge prefix mismatch merging 1:2:3:4:8000::/65,1:2:3:4::/66,1:2:3:4:4000::/66,1:2:3:6:4000::/66,1:2:3:6::/66,1:2:3:6:8000::/65
 		//expected [1:2:3:4:*:*:*:* 1:2:3:6:*:*:*:*]
 		//got [1:2:3:4:0-3fff:*:*:* 1:2:3:6:*:*:*:*]
-		if len(merged3) != 2 || !AddrsMatchOrdered(merged, merged3) {
+		if len(merged3) != 2 || !ipaddr.AddrsMatchOrdered(merged, merged3) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged3), resultAddr))
 			merged3 = getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
 		}
-		if len(merged4) != 2 || !AddrsMatchOrdered(merged, merged4) {
+		if len(merged4) != 2 || !ipaddr.AddrsMatchOrdered(merged, merged4) {
 			t.addFailure(newIPAddrFailure("merge prefix mismatch merging "+strings.Join(addresses, ",")+" expected "+asSliceString(expected)+" got "+asSliceString(merged4), resultAddr))
 		}
 	}
@@ -3156,7 +3155,7 @@ func (t ipAddressRangeTester) testCoverSingle(oneStr, resultStr string) {
 	oneAddr := t.createAddress(oneStr).GetAddress()
 	resultAddr := t.createAddress(resultStr).GetAddress()
 	result := oneAddr.CoverWithPrefixBlock()
-	if !result.Equals(resultAddr) {
+	if !result.Equal(resultAddr) {
 		t.addFailure(newIPAddrFailure("cover was "+result.String()+" instead of expected "+resultAddr.String(), oneAddr))
 	}
 	t.testCover(oneAddr.GetUpper().String(), oneAddr.GetLower().String(), resultStr)
@@ -3169,7 +3168,7 @@ func (t ipAddressRangeTester) testCover(oneStr, twoStr, resultStr string) {
 	twoAddr := t.createAddress(twoStr).GetAddress()
 	resultAddr := t.createAddress(resultStr).GetAddress()
 	result, _ := oneAddr.CoverWithPrefixBlockTo(twoAddr)
-	if !result.Equals(resultAddr) || !resultAddr.GetNetworkPrefixLen().Equals(result.GetNetworkPrefixLen()) {
+	if !result.Equal(resultAddr) || !resultAddr.GetNetworkPrefixLen().Equal(result.GetNetworkPrefixLen()) {
 		t.addFailure(newIPAddrFailure("cover was "+result.String()+" instead of expected "+resultAddr.String(), oneAddr))
 	}
 	t.incrementTestCount()
@@ -3395,7 +3394,7 @@ func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAd
 				parsed := ipaddr.NewIPAddressStringParams(str, inetAtonwildcardAndRangeOptions)
 				// try{
 				parsedValue := parsed.GetAddress()
-				if !ipAddr.Equals(parsedValue) {
+				if !ipAddr.Equal(parsedValue) {
 					t.addFailure(newFailure("failed expected: "+ipAddr.String()+" actual: "+parsedValue.String(), w))
 				} else {
 					//int pos;
@@ -4767,54 +4766,6 @@ func getLabel(addressString *ipaddr.IPAddressString) string {
 		return address.ToPrefixLenString()
 	}
 	return address.ToSubnetString()
-}
-
-//TODO maybe add the funcs below to the library
-
-// AddrsMatch checks if the two slices cannot the same list of addresses in any order, using address equality.
-// The function can handle duplicates and nil addresses.
-func AddrsMatchUnordered(addrs1, addrs2 []*ipaddr.IPAddress) (result bool) {
-	len1 := len(addrs1)
-	len2 := len(addrs2)
-	sameLen := len1 == len2
-	if len1 == 0 || len2 == 0 {
-		result = sameLen
-	} else if len1 == 1 && sameLen {
-		result = addrs1[0].Equals(addrs2[0])
-	} else if len1 == 2 && sameLen {
-		if addrs1[0].Equals(addrs2[0]) {
-			result = addrs1[1].Equals(addrs2[1])
-		} else if result = addrs1[0].Equals(addrs2[1]); result {
-			result = addrs1[1].Equals(addrs2[0])
-		}
-	} else {
-		result = reflect.DeepEqual(asMap(addrs1), asMap(addrs2))
-	}
-	return
-}
-
-func AddrsMatchOrdered(addrs1, addrs2 []*ipaddr.IPAddress) (result bool) {
-	len1 := len(addrs1)
-	len2 := len(addrs2)
-	if len1 != len2 {
-		return
-	}
-	for i, addr := range addrs1 {
-		if !addr.Equals(addrs2[i]) {
-			return
-		}
-	}
-	return true
-}
-
-func asMap(addrs []*ipaddr.IPAddress) (result map[string]struct{}) {
-	if addrLen := len(addrs); addrLen > 0 {
-		result = make(map[string]struct{})
-		for _, addr := range addrs {
-			result[addr.ToNormalizedWildcardString()] = struct{}{}
-		}
-	}
-	return
 }
 
 func asSlice(addrs []*ipaddr.IPAddress) (result []string) {

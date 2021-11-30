@@ -139,7 +139,7 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		if expectedByteCount == len(bytes) {
 			bytes = cloneBytes(bytes)
 			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
-			if !res.isMultiple { // not a prefix block
+			if !res.isMult { // not a prefix block
 				res.cache.bytesCache.upperBytes = bytes
 			}
 		}
@@ -173,7 +173,7 @@ func NewIPv4SectionFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, s
 		DefaultIPv4Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
-	res.isMultiple = isMultiple
+	res.isMult = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
 	}
@@ -184,6 +184,35 @@ func NewIPv4SectionFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, s
 // The zero values is a section with zero segments.
 type IPv4AddressSection struct {
 	ipAddressSectionInternal
+}
+
+func (section *IPv4AddressSection) Contains(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.contains(other)
+}
+
+func (section *IPv4AddressSection) Equal(other AddressSectionType) bool {
+	if section == nil {
+		return other == nil || other.ToAddressSection() == nil
+	}
+	return section.equal(other)
+}
+
+func (section *IPv4AddressSection) Compare(item AddressItem) int {
+	return CountComparator.Compare(section, item)
+}
+
+func (section *IPv4AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+	if section == nil {
+		if other != nil && other.ToAddressDivisionGrouping() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return section.compareSize(other)
 }
 
 func (section *IPv4AddressSection) GetBitsPerSegment() BitCount {
@@ -199,9 +228,16 @@ func (section *IPv4AddressSection) GetIPVersion() IPVersion {
 }
 
 func (section *IPv4AddressSection) GetCount() *big.Int {
+	if section == nil {
+		return bigZero()
+	}
 	return section.cacheCount(func() *big.Int {
 		return bigZero().SetUint64(section.GetIPv4Count())
 	})
+}
+
+func (section *IPv4AddressSection) IsMultiple() bool {
+	return section != nil && section.isMultiple()
 }
 
 func (section *IPv4AddressSection) GetPrefixCount() *big.Int {
@@ -219,12 +255,21 @@ func (section *IPv4AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.In
 	return section.calcCount(func() *big.Int { return new(big.Int).SetUint64(section.GetIPv4PrefixCountLen(prefixLen)) })
 }
 
+func (section *IPv4AddressSection) GetBlockCount(segmentCount int) *big.Int {
+	if segmentCount <= 0 {
+		return bigOne()
+	}
+	return section.calcCount(func() *big.Int { return new(big.Int).SetUint64(section.GetIPv4BlockCount(segmentCount)) })
+}
+
 // GetIPv4PrefixCountLen gives count available as a uint64 instead of big.Int
 func (section *IPv4AddressSection) GetIPv4PrefixCountLen(prefixLength BitCount) uint64 {
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		return 1
 	} else if prefixLength >= section.GetBitCount() {
 		return section.GetIPv4Count()
+	} else if prefixLength < 0 {
+		prefixLength = 0
 	}
 	return longPrefixCount(section.ToAddressSection(), prefixLength)
 }
@@ -238,10 +283,17 @@ func (section *IPv4AddressSection) GetIPv4PrefixCount() uint64 {
 }
 
 func (section *IPv4AddressSection) GetIPv4Count() uint64 {
-	if !section.IsMultiple() {
+	if !section.isMultiple() {
 		return 1
 	}
 	return longCount(section.ToAddressSection(), section.GetSegmentCount())
+}
+
+func (section *IPv4AddressSection) GetIPv4BlockCount(segmentCount int) uint64 {
+	if !section.isMultiple() {
+		return 1
+	}
+	return longCount(section.ToAddressSection(), segmentCount)
 }
 
 func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
@@ -428,7 +480,7 @@ func (section *IPv4AddressSection) getIntValues() (lower, upper uint32) {
 
 func (section *IPv4AddressSection) calcIntValues() (lower, upper uint32) {
 	segCount := section.GetSegmentCount()
-	isMult := section.IsMultiple()
+	isMult := section.isMultiple()
 	if segCount == 4 {
 		lower = (uint32(section.GetSegment(0).GetSegmentValue()) << 24) |
 			(uint32(section.GetSegment(1).GetSegmentValue()) << 16) |
@@ -506,6 +558,9 @@ func (section *IPv4AddressSection) AssignMinPrefixForBlock() *IPv4AddressSection
 }
 
 func (section *IPv4AddressSection) Iterator() IPv4SectionIterator {
+	if section == nil {
+		return ipv4SectionIterator{nilSectIterator()}
+	}
 	return ipv4SectionIterator{section.sectionIterator(nil)}
 }
 
@@ -546,7 +601,7 @@ func getIPv4MaxValueLong(segmentCount int) uint64 {
 }
 
 func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
-	if inc == 0 && !section.IsMultiple() {
+	if inc == 0 && !section.isMultiple() {
 		return section
 	}
 	lowerValue := uint64(section.Uint32Value())
@@ -730,6 +785,9 @@ var (
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToCanonicalString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4CanonicalParams)
@@ -744,14 +802,23 @@ func (section *IPv4AddressSection) ToCanonicalString() string {
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *IPv4AddressSection) ToNormalizedString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToCanonicalString()
 }
 
 func (section *IPv4AddressSection) ToCompressedString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToCanonicalString()
 }
 
 func (section *IPv4AddressSection) ToNormalizedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4NormalizedWildcardParams)
@@ -763,10 +830,16 @@ func (section *IPv4AddressSection) ToNormalizedWildcardString() string {
 }
 
 func (section *IPv4AddressSection) ToCanonicalWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToNormalizedWildcardString()
 }
 
 func (section *IPv4AddressSection) ToSegmentedBinaryString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4SegmentedBinaryParams)
@@ -778,6 +851,9 @@ func (section *IPv4AddressSection) ToSegmentedBinaryString() string {
 }
 
 func (section *IPv4AddressSection) ToSQLWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4SqlWildcardParams)
@@ -789,6 +865,9 @@ func (section *IPv4AddressSection) ToSQLWildcardString() string {
 }
 
 func (section *IPv4AddressSection) ToFullString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4FullParams)
@@ -800,6 +879,9 @@ func (section *IPv4AddressSection) ToFullString() string {
 }
 
 func (section *IPv4AddressSection) ToReverseDNSString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toNormalizedString(ipv4ReverseDNSParams)
@@ -811,18 +893,30 @@ func (section *IPv4AddressSection) ToReverseDNSString() string {
 }
 
 func (section *IPv4AddressSection) ToPrefixLenString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToCanonicalString()
 }
 
 func (section *IPv4AddressSection) ToSubnetString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToNormalizedWildcardString()
 }
 
 func (section *IPv4AddressSection) ToCompressedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToNormalizedWildcardString()
 }
 
 func (section *IPv4AddressSection) ToInetAtonString(radix Inet_aton_radix) string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if radix == Inet_aton_radix_octal {
 		if cache == nil {
@@ -846,6 +940,9 @@ func (section *IPv4AddressSection) ToInetAtonString(radix Inet_aton_radix) strin
 }
 
 func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	if joinedCount <= 0 {
 		return section.ToInetAtonString(radix), nil
 	}
@@ -861,6 +958,9 @@ func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix,
 }
 
 func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStringOptions, joinedCount int) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	if joinedCount <= 0 || section.GetSegmentCount() <= 1 {
 		return section.toNormalizedString(stringParams), nil
 	}
@@ -930,6 +1030,13 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
+}
+
+func (section *IPv4AddressSection) String() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toString()
 }
 
 type Inet_aton_radix int

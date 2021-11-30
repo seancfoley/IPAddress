@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"fmt"
 	"math/big"
 	"net"
 	"sync/atomic"
@@ -152,6 +153,24 @@ type MACAddress struct {
 	addressInternal
 }
 
+func (addr *MACAddress) init() *MACAddress {
+	if addr.section == nil {
+		return zeroMAC
+	}
+	return addr
+}
+
+func (addr *MACAddress) GetCount() *big.Int {
+	if addr == nil {
+		return bigZero()
+	}
+	return addr.getCount()
+}
+
+func (addr *MACAddress) IsMultiple() bool {
+	return addr != nil && addr.isMultiple()
+}
+
 func (addr *MACAddress) IsFullRange() bool {
 	return addr.GetSection().IsFullRange()
 }
@@ -170,13 +189,6 @@ func (addr *MACAddress) GetBitsPerSegment() BitCount {
 
 func (addr *MACAddress) GetBytesPerSegment() int {
 	return MACBytesPerSegment
-}
-
-func (addr *MACAddress) init() *MACAddress {
-	if addr.section == nil {
-		return zeroMAC
-	}
-	return addr
 }
 
 func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
@@ -376,7 +388,7 @@ func (addr *MACAddress) GetPrefixLenForSingleBlock() PrefixLen {
 	return addr.init().addressInternal.GetPrefixLenForSingleBlock()
 }
 
-func (addr *MACAddress) CompareTo(item AddressItem) int {
+func (addr *MACAddress) Compare(item AddressItem) int {
 	//if addr != nil {
 	//	addr = addr.init()
 	//}
@@ -392,16 +404,31 @@ func (addr *MACAddress) PrefixContains(other AddressType) bool {
 }
 
 func (addr *MACAddress) Contains(other AddressType) bool {
-	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MACSize
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
+	// note: we don't use the same optimization as in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().contains(other)
 }
 
-func (addr *MACAddress) Equals(other AddressType) bool {
-	//if addr == nil {
-	//	return other.ToAddress() == nil
-	//}
-	// note: we don't use the same optimization is in IPv4/6 because we do need to check segment count with MACSize
+func (addr *MACAddress) Equal(other AddressType) bool {
+	if addr == nil {
+		return other == nil || other.ToAddress() == nil
+	}
+	// note: we don't use the same optimization as in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().equals(other)
+}
+
+// CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
+func (addr *MACAddress) CompareSize(other AddressType) int { // this is here to take advantage of the CompareSize in IPAddressSection
+	if addr == nil {
+		if other != nil && other.ToAddress() != nil {
+			// we have size 0, other has size >= 1
+			return -1
+		}
+		return 0
+	}
+	return addr.init().compareSize(other)
 }
 
 func (addr *MACAddress) GetMaxSegmentValue() SegInt {
@@ -428,6 +455,9 @@ func (addr *MACAddress) IsLocal() bool {
 }
 
 func (addr *MACAddress) Iterator() MACAddressIterator {
+	if addr == nil {
+		return macAddressIterator{nilAddrIterator()}
+	}
 	return macAddressIterator{addr.init().addrIterator(nil)}
 }
 
@@ -437,6 +467,22 @@ func (addr *MACAddress) PrefixIterator() MACAddressIterator {
 
 func (addr *MACAddress) PrefixBlockIterator() MACAddressIterator {
 	return macAddressIterator{addr.init().prefixIterator(true)}
+}
+
+func (addr *MACAddress) BlockIterator(segmentCount int) MACAddressIterator {
+	return macAddressIterator{addr.init().blockIterator(segmentCount)}
+}
+
+func (addr *MACAddress) SequentialBlockIterator() MACAddressIterator {
+	return macAddressIterator{addr.init().sequentialBlockIterator()}
+}
+
+func (addr *MACAddress) GetSequentialBlockIndex() int {
+	return addr.init().getSequentialBlockIndex()
+}
+
+func (addr *MACAddress) GetSequentialBlockCount() *big.Int {
+	return addr.init().getSequentialBlockCount()
 }
 
 func (addr *MACAddress) IncrementBoundary(increment int64) *MACAddress {
@@ -623,11 +669,15 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressErr
 	//throw new IncompatibleAddressException(this, "ipaddress.mac.error.not.eui.convertible");
 }
 
-func (addr MACAddress) String() string {
-	//if addr == nil {
-	//	return nilAddress
-	//}
-	return addr.init().addressInternal.String()
+func (addr *MACAddress) String() string {
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().addressInternal.toString()
+}
+
+func (addr MACAddress) Format(state fmt.State, verb rune) {
+	addr.init().format(state, verb)
 }
 
 func (addr *MACAddress) GetSegmentStrings() []string {
