@@ -1051,7 +1051,7 @@ func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
 	if addr == nil {
 		return nilString()
 	}
-	return addr.GetSection().toCustomString(stringOptions, addr.zone)
+	return addr.GetSection().toCustomZonedString(stringOptions, addr.zone)
 }
 
 func (addr *IPv4Address) ToAddress() *Address {

@@ -141,6 +141,9 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	ToCanonicalString() string
 	ToCompressedString() string
 
+	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
+	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
+
 	GetGenericSegment(index int) AddressSegmentType
 }
 
@@ -173,11 +176,9 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	ToNormalizedWildcardString() string
 	ToCanonicalWildcardString() string
 	ToCompressedWildcardString() string
-	ToSQLWildcardString() string
-	//ToReverseDNSString() (string, IncompatibleAddressError)
-	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToSegmentedBinaryString() string
-	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
+	ToSQLWildcardString() string
+	//ToReverseDNSString() (string, IncompatibleAddressError) cannot be included in the interface because the ipv4 one has no IncompatibleAddressError TODO add the error to ipv4?  And return nil always?
 
 	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
 }

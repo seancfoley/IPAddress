@@ -681,23 +681,52 @@ func (addr MACAddress) Format(state fmt.State, verb rune) {
 }
 
 func (addr *MACAddress) GetSegmentStrings() []string {
+	if addr == nil {
+		return nil
+	}
 	return addr.init().getSegmentStrings()
 }
 
 func (addr *MACAddress) ToCanonicalString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCanonicalString()
 }
 
 func (addr *MACAddress) ToNormalizedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toNormalizedString()
 }
 
 func (addr *MACAddress) ToCompressedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().toCompressedString()
 }
 
 func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().toHexString(with0xPrefix)
+}
+
+func (addr *MACAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
+	return addr.init().toOctalString(with0Prefix)
+}
+
+func (addr *MACAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
+	return addr.init().toBinaryString(with0bPrefix)
 }
 
 func (addr *MACAddress) GetDottedAddress() (*AddressDivisionGrouping, IncompatibleAddressError) {
@@ -706,24 +735,39 @@ func (addr *MACAddress) GetDottedAddress() (*AddressDivisionGrouping, Incompatib
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
 func (addr *MACAddress) ToDottedString() (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
 	return addr.init().GetSection().ToDottedString()
 }
 
 // ToSpaceDelimitedString produces a string delimited by spaces: aa bb cc dd ee ff
 func (addr *MACAddress) ToSpaceDelimitedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().GetSection().ToSpaceDelimitedString()
 }
 
 func (addr *MACAddress) ToDashedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().GetSection().ToDashedString()
 }
 
 func (addr *MACAddress) ToColonDelimitedString() string {
+	if addr == nil {
+		return nilString()
+	}
 	return addr.init().GetSection().ToColonDelimitedString()
 }
 
 func (addr *MACAddress) ToCustomString(stringOptions StringOptions) string {
-	return addr.init().GetSection().ToCustomString(stringOptions)
+	if addr == nil {
+		return nilString()
+	}
+	return addr.init().GetSection().toCustomString(stringOptions)
 }
 
 func (addr *MACAddress) ToAddressString() *MACAddressString {
@@ -750,7 +794,7 @@ func (addr *MACAddress) ToAddress() *Address {
 	return (*Address)(addr)
 }
 
-func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  It is a conversion after all.  And not doing that is setting callers up!
+func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  It is a conversion after all.  And not doing that is setting callers up for nasty surprise panics!
 	return WrappedAddress{addr.ToAddress()}
 }
 

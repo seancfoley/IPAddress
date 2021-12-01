@@ -9,6 +9,7 @@ import (
 
 const (
 	HexPrefix                            = "0x"
+	HexUppercasePrefix                   = "0X"
 	OctalPrefix                          = "0"
 	BinaryPrefix                         = "0b"
 	RangeSeparator                  byte = '-'
@@ -121,13 +122,12 @@ func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 	return section.GetPrefixCountLen(prefixLen)
 }
 
-
-func (addr *addressInternal) GetBlockCount( segmentCount int) *big.Int {
+func (addr *addressInternal) GetBlockCount(segmentCount int) *big.Int {
 	section := addr.section
 	if section == nil {
 		return bigOne()
 	}
-return section.GetBlockCount(segmentCount);
+	return section.GetBlockCount(segmentCount)
 }
 
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
@@ -189,7 +189,6 @@ func (addr *addressInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	return section.GetPrefixLenForSingleBlock()
 }
 
-
 //func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
 func (addr *addressInternal) compareSize(other AddressType) int {
 	section := addr.section
@@ -199,7 +198,7 @@ func (addr *addressInternal) compareSize(other AddressType) int {
 	//	}
 	//	return 0
 	//}
-	if other == nil || other.ToAddress() == nil  {
+	if other == nil || other.ToAddress() == nil {
 		// our size is 1 or greater, other 0
 		return 1
 	}
@@ -209,7 +208,7 @@ func (addr *addressInternal) compareSize(other AddressType) int {
 func (addr addressInternal) toString() string { // using non-pointer receiver makes it work well with fmt
 	section := addr.section
 	if section == nil {
-		return "0"
+		return "0" //TODO see discussion elsewhere about strings when no divisions
 	} else if addr.isMAC() {
 		return addr.toNormalizedString()
 	}
@@ -449,7 +448,7 @@ func (addr *addressInternal) contains(other AddressType) bool {
 		return true
 	}
 	otherAddr := other.ToAddress()
-	if addr.toAddress() == otherAddr ||  otherAddr == nil {
+	if addr.toAddress() == otherAddr || otherAddr == nil {
 		return true
 	}
 	otherSection := otherAddr.GetSection()
@@ -751,6 +750,46 @@ func (addr *addressInternal) toCompressedString() string {
 	return addr.section.ToCompressedString()
 }
 
+func (addr *addressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.toOctalStringZoned(with0Prefix, addr.zone)
+		}
+		var cacheField **string
+		if with0Prefix {
+			cacheField = &cache.octalStringPrefixed
+		} else {
+			cacheField = &cache.octalString
+		}
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressError) {
+				return addr.section.toOctalStringZoned(with0Prefix, addr.zone)
+			})
+	}
+	return addr.section.ToOctalString(with0Prefix)
+}
+
+func (addr *addressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr.hasZone() {
+		cache := addr.getStringCache()
+		if cache == nil {
+			return addr.section.toBinaryStringZoned(with0bPrefix, addr.zone)
+		}
+		var cacheField **string
+		if with0bPrefix {
+			cacheField = &cache.binaryStringPrefixed
+		} else {
+			cacheField = &cache.binaryString
+		}
+		return cacheStrErr(cacheField,
+			func() (string, IncompatibleAddressError) {
+				return addr.section.toBinaryStringZoned(with0bPrefix, addr.zone)
+			})
+	}
+	return addr.section.ToBinaryString(with0bPrefix)
+}
+
 func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
@@ -775,13 +814,55 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 // is the only method with a non-pointer receiver.  It is not intended to be called directly.
 // When called by a function in the fmt package, nil values are detected before this method is called,
 // so a nil pointer is never dereferenced to call this method.
-func (addr addressInternal) format(state fmt.State, verb rune) {
-	xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
-	xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
-	if sect := grouping.toAddressSection(); sect != nil {
-		return sect.ToNormalizedString()
+func (addr *addressInternal) format(state fmt.State, verb rune) {
+	//fmt.Println("WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT")
+	if addr.hasNoDivisions() {
+		state.Write([]byte("0")) //TODO see the discussion below on returning "0".  Also consider handling the flags, width, precision with this case.
+		return
 	}
-	return fmt.Sprintf("%v", grouping.initDivs().divisions)
+	section := addr.section
+	if !addr.isIP() && !addr.isMAC() {
+		section.defaultFormat(state, verb)
+		return
+	}
+	var str, prefix string
+	var err error
+	var isNormalized bool
+
+	switch verb {
+	case 's', 'v':
+		isNormalized = true
+		str = addr.toString()
+	case 'x', 'X':
+		str, err = addr.toHexString(false) //TODO need to capitalize when X
+	case 'b':
+		str, err = addr.toBinaryString(false)
+	case 'o', 'O':
+		str, err = addr.toOctalString(false)
+	case 'd':
+		//TODO decimal strings
+		err = fmt.Errorf("decimal not supported yet")
+	default:
+		// unknown format
+		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
+		return
+	}
+	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
+		isNormalized = true
+		str = addr.toString()
+	}
+	if isNormalized {
+		state.Write([]byte(str))
+		return
+	}
+	section.writeFmt(state, verb, prefix, str)
+
+	//xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
+	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
+	//if sect := grouping.toAddressSection(); sect != nil {
+	//	return sect.ToNormalizedString()
+	//}
+	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
 }
 
 //func (addr *addressInternal) toCustomString(stringOptions StringOptions) string {
@@ -1133,11 +1214,25 @@ func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddress
 	return addr.init().toHexString(with0xPrefix)
 }
 
+func (addr *Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
+	return addr.init().toOctalString(with0Prefix)
+}
+
+func (addr *Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if addr == nil {
+		return nilString(), nil
+	}
+	return addr.init().toBinaryString(with0bPrefix)
+}
+
 func (addr *Address) ToCustomString(stringOptions StringOptions) string {
 	if addr == nil {
 		return nilString()
 	}
-	return addr.GetSection().toCustomString(stringOptions, addr.zone)
+	return addr.GetSection().toCustomStringZoned(stringOptions, addr.zone)
 }
 
 func (addr *Address) ToAddressString() HostIdentifierString {

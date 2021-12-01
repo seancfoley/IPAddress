@@ -781,6 +781,27 @@ var (
 	ipv4SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv4SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).ToOptions()
 )
 
+func (section *IPv4AddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toHexString(with0xPrefix)
+}
+
+func (section *IPv4AddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toOctalString(with0Prefix)
+}
+
+func (section *IPv4AddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toBinaryString(with0bPrefix)
+}
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.

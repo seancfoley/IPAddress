@@ -423,9 +423,6 @@ type ipStringCache struct {
 
 	reverseDNSString,
 
-	octalString, octalStringPrefixed,
-	binaryString, binaryStringPrefixed,
-
 	segmentedBinaryString *string
 }
 
@@ -454,6 +451,8 @@ type macStringCache struct {
 type stringCache struct {
 	canonicalString *string
 
+	octalString, octalStringPrefixed,
+	binaryString, binaryStringPrefixed,
 	hexString, hexStringPrefixed *string
 
 	*ipv6StringCache

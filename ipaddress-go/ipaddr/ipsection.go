@@ -1268,98 +1268,7 @@ func (section *ipAddressSectionInternal) replaceLen(
 		replacementStartIndex, replacementEndIndex, newPrefixLen).ToIPAddressSection()
 }
 
-func (section *ipAddressSectionInternal) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
-	if section == nil {
-		return nilString(), nil
-	}
-	cache := section.getStringCache()
-	if cache == nil {
-		return section.toOctalStringZoned(with0Prefix, NoZone)
-	}
-	return cacheStrErr(&cache.octalString,
-		func() (string, IncompatibleAddressError) {
-			return section.toOctalStringZoned(with0Prefix, NoZone)
-		})
-}
-
-func (section *ipAddressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, IncompatibleAddressError) {
-	var opts StringOptions
-	if with0Prefix {
-		opts = octalPrefixedParams
-	} else {
-		opts = octalParams
-	}
-	if isDual, err := section.isDualString(); err != nil {
-		return "", err
-	} else if isDual {
-		lowerDivs, _ := section.getLower().createNewDivisions(3)
-		upperDivs, _ := section.getUpper().createNewDivisions(3)
-		lowerPart := createInitializedGrouping(lowerDivs, nil)
-		upperPart := createInitializedGrouping(upperDivs, nil)
-		//sect := section.toAddressSection()
-		//return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
-		return toNormalizedStringRange(toZonedParams(opts), lowerPart, upperPart, zone), nil
-	}
-	divs, _ := section.createNewDivisions(3)
-	part := createInitializedGrouping(divs, nil)
-	return toZonedParams(opts).toZonedString(part, zone), nil
-	// see createInitializedGrouping
-	//func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
-	//return section.ToCustomString(params), nil
-}
-
-/*
-protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
-		if(isDualString()) {
-			IPAddressSection lower = getLower();
-			IPAddressSection upper = getUpper();
-			IPAddressBitsDivision lowerDivs[] = lower.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-			IPAddressStringDivisionSeries lowerPart = new IPAddressDivisionGrouping(lowerDivs, getNetwork());
-			IPAddressBitsDivision upperDivs[] = upper.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-			IPAddressStringDivisionSeries upperPart = new IPAddressDivisionGrouping(upperDivs, getNetwork());
-			return toNormalizedStringRange(toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams), lowerPart, upperPart, zone);
-		}
-		IPAddressBitsDivision divs[] = createNewPrefixedDivisions(3, null, null, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
-		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs, getNetwork());
-		return toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams).toZonedString(part, zone);
-	}
-func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
-	isDual, err := section.isDualString()
-	if err != nil {
-		return "", err
-	}
-	if isDual {
-		sect := section.toAddressSection()
-		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
-	}
-	return section.ToCustomString(params), nil
-}
-*/
-func (section *ipAddressSectionInternal) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
-	if section == nil {
-		return nilString(), nil
-	}
-	cache := section.getStringCache()
-	if cache == nil {
-		return section.toBinaryStringZoned(with0bPrefix, NoZone)
-	}
-	return cacheStrErr(&cache.binaryString,
-		func() (string, IncompatibleAddressError) {
-			return section.toBinaryStringZoned(with0bPrefix, NoZone)
-		})
-}
-
-func (section *ipAddressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zone Zone) (string, IncompatibleAddressError) {
-	if with0bPrefix {
-		return section.toLongStringZoned(zone, binaryPrefixedParams)
-	}
-	return section.toLongStringZoned(zone, binaryParams)
-}
-
-func (section *ipAddressSectionInternal) ToNormalizedWildcardString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toNormalizedWildcardString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1368,10 +1277,7 @@ func (section *ipAddressSectionInternal) ToNormalizedWildcardString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToCanonicalWildcardString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toCanonicalWildcardString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1380,10 +1286,7 @@ func (section *ipAddressSectionInternal) ToCanonicalWildcardString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToSegmentedBinaryString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toSegmentedBinaryString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToSegmentedBinaryString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1392,10 +1295,7 @@ func (section *ipAddressSectionInternal) ToSegmentedBinaryString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToSQLWildcardString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toSQLWildcardString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToSQLWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1404,10 +1304,7 @@ func (section *ipAddressSectionInternal) ToSQLWildcardString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToFullString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toFullString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToFullString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1416,10 +1313,7 @@ func (section *ipAddressSectionInternal) ToFullString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToReverseDNSString() (string, IncompatibleAddressError) {
-	if section == nil {
-		return nilString(), nil
-	}
+func (section *ipAddressSectionInternal) toReverseDNSString() (string, IncompatibleAddressError) { //TODO not sure, did I remove this in some places for later?  Like in the framework?  Should I put it back since clearly it is here?
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToReverseDNSString(), nil
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1428,10 +1322,7 @@ func (section *ipAddressSectionInternal) ToReverseDNSString() (string, Incompati
 	return "0", nil
 }
 
-func (section *ipAddressSectionInternal) ToPrefixLenString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toPrefixLenString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToPrefixLenString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1440,10 +1331,7 @@ func (section *ipAddressSectionInternal) ToPrefixLenString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToSubnetString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toSubnetString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1452,10 +1340,7 @@ func (section *ipAddressSectionInternal) ToSubnetString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToCompressedWildcardString() string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toCompressedWildcardString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCompressedWildcardString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1464,14 +1349,11 @@ func (section *ipAddressSectionInternal) ToCompressedWildcardString() string {
 	return "0"
 }
 
-func (section *ipAddressSectionInternal) ToCustomString(stringOptions IPStringOptions) string {
-	if section == nil {
-		return nilString()
-	}
+func (section *ipAddressSectionInternal) toCustomString(stringOptions IPStringOptions) string {
 	return toNormalizedIPZonedString(stringOptions, section.toIPAddressSection(), NoZone)
 }
 
-func (section *ipAddressSectionInternal) toCustomString(stringOptions IPStringOptions, zone Zone) string {
+func (section *ipAddressSectionInternal) toCustomZonedString(stringOptions IPStringOptions, zone Zone) string {
 	return toNormalizedIPZonedString(stringOptions, section.toIPAddressSection(), zone)
 }
 
@@ -1821,6 +1703,118 @@ func (section *IPAddressSection) String() string {
 		return nilString()
 	}
 	return section.toString()
+}
+
+func (section *IPAddressSection) ToCanonicalString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCanonicalString()
+}
+
+func (section *IPAddressSection) ToNormalizedString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toNormalizedString()
+}
+
+func (section *IPAddressSection) ToCompressedString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCompressedString()
+}
+
+func (section *IPAddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toHexString(with0xPrefix)
+}
+
+func (section *IPAddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toOctalString(with0Prefix)
+}
+
+func (section *IPAddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toBinaryString(with0bPrefix)
+}
+
+func (section *IPAddressSection) ToNormalizedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toNormalizedWildcardString()
+}
+
+func (section *IPAddressSection) ToCanonicalWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCanonicalWildcardString()
+}
+
+func (section *IPAddressSection) ToSegmentedBinaryString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toSegmentedBinaryString()
+}
+
+func (section *IPAddressSection) ToSQLWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toSQLWildcardString()
+}
+
+func (section *IPAddressSection) ToFullString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toFullString()
+}
+
+func (section *IPAddressSection) ToReverseDNSString() (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toReverseDNSString()
+}
+
+func (section *IPAddressSection) ToPrefixLenString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toPrefixLenString()
+}
+
+func (section *IPAddressSection) ToSubnetString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toSubnetString()
+}
+
+func (section *IPAddressSection) ToCompressedWildcardString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCompressedWildcardString()
+}
+
+func (section *IPAddressSection) ToCustomString(stringOptions IPStringOptions) string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCustomString(stringOptions)
 }
 
 var (

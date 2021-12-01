@@ -490,45 +490,78 @@ var (
 	spaceDelimitedParams = new(MACStringOptionsBuilder).SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
 )
 
+func (section *MACAddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toHexString(with0xPrefix)
+}
+
+func (section *MACAddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toOctalString(with0Prefix)
+}
+
+func (section *MACAddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toBinaryString(with0bPrefix)
+}
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.
 func (section *MACAddressSection) ToCanonicalString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
-		return section.ToCustomString(macCanonicalParams)
+		return section.toCustomString(macCanonicalParams)
 	}
 	return cacheStr(&cache.canonicalString,
 		func() string {
-			return section.ToCustomString(macCanonicalParams)
+			return section.toCustomString(macCanonicalParams)
 		})
 }
 
 func (section *MACAddressSection) ToNormalizedString() string {
+	if section == nil {
+		return nilString()
+	}
 	cch := section.getStringCache()
 	if cch == nil {
-		return section.ToCustomString(macNormalizedParams)
+		return section.toCustomString(macNormalizedParams)
 	}
 	strp := &cch.normalizedMACString
 	return cacheStr(strp,
 		func() string {
-			return section.ToCustomString(macNormalizedParams)
+			return section.toCustomString(macNormalizedParams)
 		})
 }
 
 func (section *MACAddressSection) ToCompressedString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
-		return section.ToCustomString(macCompressedParams)
+		return section.toCustomString(macCompressedParams)
 	}
 	return cacheStr(&cache.compressedMACString,
 		func() string {
-			return section.ToCustomString(macCompressedParams)
+			return section.toCustomString(macCompressedParams)
 		})
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
 func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
 	dottedGrouping, err := section.GetDottedGrouping()
 	if err != nil {
 		return "", err
@@ -709,21 +742,30 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 
 // ToSpaceDelimitedString produces a string delimited by spaces: aa bb cc dd ee ff
 func (section *MACAddressSection) ToSpaceDelimitedString() string {
+	if section == nil {
+		return nilString()
+	}
 	cache := section.getStringCache()
 	if cache == nil {
-		return section.ToCustomString(spaceDelimitedParams)
+		return section.toCustomString(spaceDelimitedParams)
 	}
 	return cacheStr(&cache.spaceDelimitedString,
 		func() string {
-			return section.ToCustomString(spaceDelimitedParams)
+			return section.toCustomString(spaceDelimitedParams)
 		})
 }
 
 func (section *MACAddressSection) ToDashedString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToCanonicalString()
 }
 
 func (section *MACAddressSection) ToColonDelimitedString() string {
+	if section == nil {
+		return nilString()
+	}
 	return section.ToNormalizedString()
 }
 

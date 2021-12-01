@@ -213,7 +213,6 @@ func (section *addressSectionInternal) matchesTypeAndCount(other *AddressSection
 	return
 }
 
-
 //func (section *addressSectionInternal) EqualsSection(other *AddressSection) bool {
 //	matchesStructure, _ := section.matchesTypeAndCount(other)
 //	return matchesStructure && section.sameCountTypeEquals(other)
@@ -1110,7 +1109,6 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 	return true
 }
 
-
 func (section *addressSectionInternal) contains(other AddressSectionType) bool {
 	if other == nil {
 		return true
@@ -1187,8 +1185,6 @@ func (section *addressSectionInternal) incrementBoundary(increment int64) *Addre
 
 func (section *addressSectionInternal) increment(increment int64) *AddressSection {
 	if sect := section.toIPv4AddressSection(); sect != nil {
-		//inc := sect.Increment(increment)
-		//return inc.ToAddressSection()
 		return sect.Increment(increment).ToAddressSection()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.Increment(increment).ToAddressSection()
@@ -1214,36 +1210,149 @@ func (section *addressSectionInternal) GetSegmentStrings() []string {
 // Format is intentionally the only method with non-pointer receivers.  It is not intended to be called directly, it is intended for use by the fmt package.
 // When called by a function in the fmt package, nil values are detected before this method is called, avoiding a panic when calling this method.
 func (section addressSectionInternal) Format(state fmt.State, verb rune) {
+	if section.hasNoDivisions() {
+		state.Write([]byte("0")) //TODO see the discussion below on returning "0".  Also consider handling the flags, width, precision with this case.
+		return
+	}
+	sect := section.toAddressSection()
+	if !sect.IsIPAddressSection() && !sect.IsMACAddressSection() {
+		section.defaultFormat(state, verb)
+		return
+	}
+	var str, prefix string
+	var err error
+	var isNormalized bool
 
-	xxxx
-	handle the zero grouping case by not calling up and printing zero (eg IPv4Segment{})
-	other cases, call up as necessary
-	TODO should this be in grouping?  We have the same basic issues for grouping as the rest, that we might implement an interface like Stringer
-	BUT I guess the issues with grouping are that
-	(a) groupings do not have the hex/octal/etc methods (or do they? cannot rememeber, but since I go by bit counts, probably not) and
-	(b) not sure, maybe using a default String() impl might be better there?  You shold defer to slice formatting in there I think, is not that what we do?
-	xxxx
+	switch verb {
+	case 's', 'v':
+		isNormalized = true
+		str = section.toString()
+		//str = section.toNormalizedString()
+	case 'x', 'X':
+		str, err = section.toHexString(false) //TODO need to capitalize when X
+	case 'b':
+		str, err = section.toBinaryString(false)
+	case 'o', 'O':
+		str, err = section.toOctalString(false)
+	case 'd':
+		//TODO decimal strings
+		err = fmt.Errorf("decimal not supported yet")
+	default:
+		// unknown format
+		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
+		return
+	}
+	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
+		isNormalized = true
+		str = section.toString()
+		//str = section.toNormalizedString()
+	}
+	if isNormalized {
+		state.Write([]byte(str))
+		return
+	}
+	section.writeFmt(state, verb, prefix, str)
+}
 
-	//switch verb {
-	//case 'b':
-	//	base = 2
-	//case 'o', 'O':
-	//	base = 8
-	//case 'd', 's', 'v':
-	//	base = 10
-	//case 'x', 'X':
-	//	base = 16
-	//default:
-	//	// unknown format
-	//	fmt.Fprintf(s, "%%!%c(big.Int=%s)", ch, x.String())
-	//	return
-	//}
-	//
-	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx xxx
-	//if sect := grouping.toAddressSection(); sect != nil {
-	//	return sect.ToNormalizedString()
-	//}
-	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
+func (section addressSectionInternal) writeFmt(state fmt.State, verb rune, prefix, str string) {
+	if verb == 'O' {
+		prefix = "0o"
+	} else if state.Flag('#') {
+		switch verb {
+		case 'x':
+			prefix = HexPrefix
+		case 'X':
+			prefix = HexUppercasePrefix
+		case 'b':
+			prefix = BinaryPrefix
+		case 'o':
+			prefix = OctalPrefix
+		}
+	}
+	//secondPass := false
+	isMulti := section.isMultiple()
+	var addrStr, secondStr string
+	var separator byte
+	if isMulti {
+		separatorIndex := len(str) >> 1
+		addrStr = str[:separatorIndex]
+		separator = str[separatorIndex]
+		secondStr = str[separatorIndex+1:]
+	} else {
+		addrStr = str
+	}
+	precision, hasPrecision := state.Precision()
+	width, hasWidth := state.Width()
+	for {
+		var zeroCount, leftPaddingCount, rightPaddingCount int
+		if hasPrecision {
+			if len(addrStr) > precision {
+				frontChar := addrStr[0]
+				if frontChar == '0' {
+					i := 1
+					// eliminate leading zeros to match the precision (all the way to nothing)
+					for len(addrStr) > precision+i {
+						frontChar = addrStr[i]
+						if frontChar != '0' {
+							break
+						}
+						i++
+					}
+					addrStr = addrStr[i:]
+				}
+			} else if len(addrStr) < precision {
+				// expand to match the precision
+				zeroCount = precision - len(addrStr)
+			}
+		}
+		length := len(prefix) + zeroCount + len(addrStr)
+		if hasWidth && length < width { // padding required
+			paddingCount := width - length
+			if state.Flag('-') {
+				// right padding with spaces (takes precedence over '0' flag)
+				rightPaddingCount = paddingCount
+			} else if state.Flag('0') && !hasPrecision {
+				// left padding with zeros
+				zeroCount = paddingCount
+			} else {
+				// left padding with spaces
+				leftPaddingCount = paddingCount
+			}
+		}
+
+		// left padding/prefix/zeros/str/right padding
+		writeBytes(state, ' ', leftPaddingCount)
+		writeStr(state, prefix, 1)
+		writeBytes(state, '0', zeroCount)
+		state.Write([]byte(addrStr))
+		writeBytes(state, ' ', rightPaddingCount)
+
+		if !isMulti {
+			break
+		}
+		addrStr = secondStr
+		isMulti = false
+		state.Write([]byte{separator})
+	}
+}
+
+func writeStr(state fmt.State, str string, count int) {
+	if count > 0 && len(str) > 0 {
+		bytes := []byte(str)
+		for ; count > 0; count-- {
+			state.Write(bytes)
+		}
+	}
+}
+
+func writeBytes(state fmt.State, b byte, count int) {
+	if count > 0 {
+		bytes := make([]byte, count)
+		for i := range bytes {
+			bytes[i] = b
+		}
+		state.Write(bytes)
+	}
 }
 
 /*
@@ -1301,6 +1410,16 @@ func (x *Int) Format(s fmt.State, ch rune) {
 		prefix = "0o"
 	}
 
+digits := x.abs.utoa(base)
+	if ch == 'X' {
+		// faster than bytes.ToUpper
+		for i, d := range digits {
+			if 'a' <= d && d <= 'z' {
+				digits[i] = 'A' + (d - 'a')
+			}
+		}
+	}
+
 	// number of characters for the three classes of number padding
 	var left int  // space characters to left of digits for right justification ("%8d")
 	var zeros int // zero characters (actually cs[0]) as left-most digits ("%.8d")
@@ -1347,12 +1466,10 @@ func (x *Int) Format(s fmt.State, ch rune) {
 	s.Write(digits)
 	writeMultiple(s, " ", right)
 }
- */
+*/
 
-func (section *addressSectionInternal) ToCanonicalString() string {
-	if section == nil {
-		return nilString()
-	} else if sect := section.toIPv4AddressSection(); sect != nil {
+func (section *addressSectionInternal) toCanonicalString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
@@ -1363,10 +1480,8 @@ func (section *addressSectionInternal) ToCanonicalString() string {
 	return "0"
 }
 
-func (section *addressSectionInternal) ToNormalizedString() string {
-	if section == nil {
-		return nilString()
-	} else if sect := section.toIPv4AddressSection(); sect != nil {
+func (section *addressSectionInternal) toNormalizedString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToNormalizedString()
@@ -1376,23 +1491,23 @@ func (section *addressSectionInternal) ToNormalizedString() string {
 	return "0"
 }
 
-func (section *addressSectionInternal) ToCompressedString() string {
-	if section == nil {
-		return nilString()
-	} else if sect := section.toIPv4AddressSection(); sect != nil {
+func (section *addressSectionInternal) toCompressedString() string {
+	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCompressedString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToCompressedString()
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToCompressedString()
 	}
+	//TODO for all the string methods that return "0" when something else, call some common func, I think it may make more sense to return empty string
+	// One thing to look into though, is whether the zero addr Address{} or IPAddress{} always satisfies the first condition as IPV4 (I think it does) in which case what happens in there?
+	// You may want to make this consistent with Format() methods too.  Think about what you would expect the string to be.
+	// Also check what an AddressDivisionGrouping string with no divisions or nil divisions looks like, both string methdods and with Format(), you might want consistency with that
+	// An empty section with no segments does have a value (getValue method), it is 0, so that is likely how you decided on this string "0"
 	return "0"
 }
 
-func (section *addressSectionInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
-	if section == nil {
-		return nilString(), nil
-	}
+func (section *addressSectionInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toHexStringZoned(with0xPrefix, NoZone)
@@ -1416,6 +1531,88 @@ func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone 
 	return section.toLongStringZoned(zone, hexParams)
 }
 
+func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toOctalStringZoned(with0Prefix, NoZone)
+	}
+	return cacheStrErr(&cache.octalString,
+		func() (string, IncompatibleAddressError) {
+			return section.toOctalStringZoned(with0Prefix, NoZone)
+		})
+}
+
+func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, IncompatibleAddressError) {
+	var opts StringOptions
+	if with0Prefix {
+		opts = octalPrefixedParams
+	} else {
+		opts = octalParams
+	}
+	if isDual, err := section.isDualString(); err != nil {
+		return "", err
+	} else if isDual {
+		lowerDivs, _ := section.getLower().createNewDivisions(3)
+		upperDivs, _ := section.getUpper().createNewDivisions(3)
+		lowerPart := createInitializedGrouping(lowerDivs, nil)
+		upperPart := createInitializedGrouping(upperDivs, nil)
+		//sect := section.toAddressSection()
+		//return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+		return toNormalizedStringRange(toZonedParams(opts), lowerPart, upperPart, zone), nil
+	}
+	divs, _ := section.createNewDivisions(3)
+	part := createInitializedGrouping(divs, nil)
+	return toZonedParams(opts).toZonedString(part, zone), nil
+	// see createInitializedGrouping
+	//func createInitializedGrouping(divs []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressDivisionGrouping {
+	//return section.ToCustomString(params), nil
+}
+
+/*
+protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
+		if(isDualString()) {
+			IPAddressSection lower = getLower();
+			IPAddressSection upper = getUpper();
+			IPAddressBitsDivision lowerDivs[] = lower.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+			IPAddressStringDivisionSeries lowerPart = new IPAddressDivisionGrouping(lowerDivs, getNetwork());
+			IPAddressBitsDivision upperDivs[] = upper.createNewDivisions(3, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+			IPAddressStringDivisionSeries upperPart = new IPAddressDivisionGrouping(upperDivs, getNetwork());
+			return toNormalizedStringRange(toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams), lowerPart, upperPart, zone);
+		}
+		IPAddressBitsDivision divs[] = createNewPrefixedDivisions(3, null, null, IPAddressBitsDivision::new, IPAddressBitsDivision[]::new);
+		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs, getNetwork());
+		return toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams).toZonedString(part, zone);
+	}
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
+	isDual, err := section.isDualString()
+	if err != nil {
+		return "", err
+	}
+	if isDual {
+		sect := section.toAddressSection()
+		return toNormalizedStringRange(toParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
+	}
+	return section.ToCustomString(params), nil
+}
+*/
+func (section *addressSectionInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	cache := section.getStringCache()
+	if cache == nil {
+		return section.toBinaryStringZoned(with0bPrefix, NoZone)
+	}
+	return cacheStrErr(&cache.binaryString,
+		func() (string, IncompatibleAddressError) {
+			return section.toBinaryStringZoned(with0bPrefix, NoZone)
+		})
+}
+
+func (section *addressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zone Zone) (string, IncompatibleAddressError) {
+	if with0bPrefix {
+		return section.toLongStringZoned(zone, binaryPrefixedParams)
+	}
+	return section.toLongStringZoned(zone, binaryParams)
+}
+
 func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
@@ -1423,18 +1620,14 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 		sect := section.toAddressSection()
 		return toNormalizedStringRange(toZonedParams(params), sect.GetLower(), sect.GetUpper(), zone), nil
 	}
-	return section.toCustomString(params, zone), nil
+	return section.toCustomStringZoned(params, zone), nil
 }
 
-//func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
-//	return toNormalizedString(stringOptions, section)
-//}
-
-func (section *addressSectionInternal) ToCustomString(stringOptions StringOptions) string {
+func (section *addressSectionInternal) toCustomString(stringOptions StringOptions) string {
 	return toNormalizedString(stringOptions, section.toAddressSection())
 }
 
-func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
+func (section *addressSectionInternal) toCustomStringZoned(stringOptions StringOptions, zone Zone) string {
 	return toNormalizedZonedString(stringOptions, section.toAddressSection(), zone)
 }
 
@@ -2002,6 +2195,55 @@ func (section *AddressSection) String() string {
 		return nilString()
 	}
 	return section.toString()
+}
+
+func (section *AddressSection) ToCanonicalString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCanonicalString()
+}
+
+func (section *AddressSection) ToNormalizedString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toNormalizedString()
+}
+
+func (section *AddressSection) ToCompressedString() string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCompressedString()
+}
+
+func (section *AddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toHexString(with0xPrefix)
+}
+
+func (section *AddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toOctalString(with0Prefix)
+}
+
+func (section *AddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toBinaryString(with0bPrefix)
+}
+
+func (section *AddressSection) ToCustomString(stringOptions StringOptions) string {
+	if section == nil {
+		return nilString()
+	}
+	return section.toCustomString(stringOptions)
 }
 
 func seriesValsSame(one, two AddressSegmentSeries) bool {

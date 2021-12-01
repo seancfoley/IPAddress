@@ -220,10 +220,14 @@ func (div *addressDivisionInternal) toString() string { // this can be moved to 
 }
 
 func (div addressDivisionInternal) Format(state fmt.State, verb rune) {
-	xxxx
-	handle the zero div case by not calling up and printing zero (eg IPv4Segment{})
-	other cases, call up as necessary, although for segments there appears to be no reason, all the String() methods call toString() just above
-	xxxx
+	// we try to filter through the flags provided to the DivInt values, as if the fmt string were applied to the int(s) directly
+	formatStr := flagsFromState(state, verb)
+	if div.isMultiple() {
+		formatStr = fmt.Sprintf("%s%c%s", formatStr, RangeSeparator, formatStr)
+		state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue(), div.getUpperDivisionValue())))
+	} else {
+		state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue())))
+	}
 }
 
 func (div *addressDivisionInternal) toStringOpts(opts StringOptions) string {

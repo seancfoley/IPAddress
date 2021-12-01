@@ -11,6 +11,7 @@ type ExtendedIPSegmentSeries interface {
 
 	Equal(ExtendedIPSegmentSeries) bool
 	Contains(ExtendedIPSegmentSeries) bool
+	CompareSize(ExtendedIPSegmentSeries) int
 
 	// GetSection returns the full address section
 	GetSection() *IPAddressSection
@@ -200,6 +201,13 @@ func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
 	return ok && w.IPAddress.Contains(addr)
 }
 
+func (w WrappedIPAddress) CompareSize(other ExtendedIPSegmentSeries) int {
+	if addr, ok := other.Unwrap().(AddressType); ok {
+		return w.IPAddress.CompareSize(addr)
+	}
+	return w.GetCount().Cmp(other.GetCount())
+}
+
 func (w WrappedIPAddress) Equal(other ExtendedIPSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressType)
 	return ok && w.IPAddress.Equal(addr)
@@ -356,6 +364,13 @@ func (w WrappedIPAddressSection) Equal(other ExtendedIPSegmentSeries) bool {
 	//TODO I think I need to make Unwrap() handle nil by returning nil
 	addr, ok := other.Unwrap().(AddressSectionType)
 	return ok && w.IPAddressSection.Equal(addr)
+}
+
+func (w WrappedIPAddressSection) CompareSize(other ExtendedIPSegmentSeries) int {
+	if addr, ok := other.Unwrap().(AddressSectionType); ok {
+		return w.IPAddressSection.CompareSize(addr)
+	}
+	return w.GetCount().Cmp(other.GetCount())
 }
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {

@@ -96,6 +96,8 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
+	fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
+		pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr)
 	pAddr = addrStr.GetAddress() // test getting it a second time from the cache
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
@@ -132,6 +134,11 @@ func main() {
 	ipv6Addr, ipv6Err := ipaddr.NewIPv6AddressFromIP(net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc})
 	fmt.Printf("%+v %+v\n", ipv6Addr, ipv6Err)
 	fmt.Printf("%+v\n", *ipv6Addr)
+	fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
+		ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr)
+	//ipv6Addr = nil
+	//fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
+	//	ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr)
 
 	ipv6Prefixed := ipv6Addr.ToPrefixBlockLen(32)
 	fmt.Printf("32 block is %+v\n", ipv6Prefixed)

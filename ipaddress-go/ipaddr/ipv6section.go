@@ -1054,6 +1054,27 @@ func (section *IPv6AddressSection) String() string {
 	return section.toString()
 }
 
+func (section *IPv6AddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toHexString(with0xPrefix)
+}
+
+func (section *IPv6AddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toOctalString(with0Prefix)
+}
+
+func (section *IPv6AddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+	if section == nil {
+		return nilString(), nil
+	}
+	return section.toBinaryString(with0bPrefix)
+}
+
 // ToCanonicalString produces a canonical string.
 //
 //If this section has a prefix length, it will be included in the string.
@@ -1259,7 +1280,7 @@ func (section *IPv6AddressSection) toCanonicalWildcardStringZoned(zone Zone) str
 }
 
 func (section *IPv6AddressSection) toSegmentedBinaryStringZoned(zone Zone) string {
-	return section.ipAddressSectionInternal.toCustomString(ipv6SegmentedBinaryParams, zone)
+	return section.ipAddressSectionInternal.toCustomZonedString(ipv6SegmentedBinaryParams, zone)
 }
 
 func (section *IPv6AddressSection) toSQLWildcardStringZoned(zone Zone) string {

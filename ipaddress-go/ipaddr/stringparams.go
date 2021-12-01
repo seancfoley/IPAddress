@@ -723,15 +723,21 @@ func (params *addressStringParams) getZoneLength(zone Zone) int {
 }
 
 func (params *addressStringParams) getZonedStringLength(addr AddressDivisionSeries, zone Zone) int {
-	result := params.getStringLength(addr)
-	if zone != NoZone {
-		result += params.getZoneLength(zone)
+	if addr.GetDivisionCount() > 0 {
+		result := params.getStringLength(addr)
+		if zone != NoZone {
+			result += params.getZoneLength(zone)
+		}
+		return result
 	}
-	return result
+	return 0
 }
 
 func (params *addressStringParams) getStringLength(addr AddressDivisionSeries) int {
-	return params.getAddressLabelLength() + params.getSegmentsStringLength(addr)
+	if addr.GetDivisionCount() > 0 {
+		return params.getAddressLabelLength() + params.getSegmentsStringLength(addr)
+	}
+	return 0
 }
 
 func (params *addressStringParams) appendZone(builder *strings.Builder, zone Zone) *strings.Builder {
@@ -924,10 +930,10 @@ func (params *ipAddressStringParams) getSegmentsStringLength(part AddressDivisio
 	return count
 }
 
-func (params *ipAddressStringParams) getStringLength(addr AddressDivisionSeries) int {
-	count := params.getSegmentsStringLength(addr)
+func (params *ipAddressStringParams) getStringLength(series AddressDivisionSeries) int {
+	count := params.getSegmentsStringLength(series)
 	if !params.reverse && !params.preferWildcards() {
-		count += getPrefixIndicatorStringLength(addr)
+		count += getPrefixIndicatorStringLength(series)
 	}
 	return count + params.getAddressSuffixLength() + params.getAddressLabelLength()
 }
@@ -1007,24 +1013,27 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 }
 
 func (params *ipAddressStringParams) getZonedStringLength(addr AddressDivisionSeries, zone Zone) int {
-	result := params.getStringLength(addr)
-	if zone != NoZone {
-		result += params.getZoneLength(zone)
+	if addr.GetDivisionCount() > 0 {
+		result := params.getStringLength(addr)
+		if zone != NoZone {
+			result += params.getZoneLength(zone)
+		}
+		return result
 	}
-	return result
+	return 0
 }
 
-func (params *ipAddressStringParams) toZonedString(addr AddressDivisionSeries, zone Zone) string {
-	length := params.getZonedStringLength(addr, zone)
+func (params *ipAddressStringParams) toZonedString(series AddressDivisionSeries, zone Zone) string {
+	length := params.getZonedStringLength(series, zone)
 	builder := strings.Builder{}
 	builder.Grow(length)
-	params.append(&builder, addr, zone)
+	params.append(&builder, series, zone)
 	checkLengths(length, &builder)
 	return builder.String()
 }
 
-func (params *ipAddressStringParams) toString(addr AddressDivisionSeries) string {
-	return params.toZonedString(addr, NoZone)
+func (params *ipAddressStringParams) toString(series AddressDivisionSeries) string {
+	return params.toZonedString(series, NoZone)
 }
 
 func (params *ipAddressStringParams) clone() *ipAddressStringParams {
@@ -1223,11 +1232,14 @@ func (params *ipv6StringParams) getStringLength(addr *IPv6AddressSection) int {
 }
 
 func (params *ipv6StringParams) getZonedStringLength(addr *IPv6AddressSection, zone Zone) int {
-	result := params.getStringLength(addr)
-	if zone != NoZone {
-		result += params.getZoneLength(zone)
+	if addr.GetDivisionCount() > 0 {
+		result := params.getStringLength(addr)
+		if zone != NoZone {
+			result += params.getZoneLength(zone)
+		}
+		return result
 	}
-	return result
+	return 0
 }
 
 func (params *ipv6StringParams) toZonedSplitString(addr *IPv6AddressSection, zone Zone) (str string, err IncompatibleAddressError) {
@@ -1277,18 +1289,21 @@ func (params *ipv6v4MixedParams) getTrailingSeparatorCount(addr *IPv6v4MixedAddr
 }
 
 func (params *ipv6v4MixedParams) getStringLength(addr *IPv6v4MixedAddressGrouping, zone Zone) int {
-	ipv6Params := params.ipv6Params
-	ipv6length := ipv6Params.getSegmentsStringLength(addr.GetIPv6AddressSection())
-	ipv4length := params.ipv4Params.getSegmentsStringLength(addr.GetIPv4AddressSection())
-	length := ipv6length + ipv4length
-	if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
-		length++
+	if addr.GetDivisionCount() > 0 {
+		ipv6Params := params.ipv6Params
+		ipv6length := ipv6Params.getSegmentsStringLength(addr.GetIPv6AddressSection())
+		ipv4length := params.ipv4Params.getSegmentsStringLength(addr.GetIPv4AddressSection())
+		length := ipv6length + ipv4length
+		if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
+			length++
+		}
+		length += params.getPrefixStringLength(addr)
+		length += ipv6Params.getZoneLength(zone)
+		length += ipv6Params.getAddressSuffixLength()
+		length += ipv6Params.getAddressLabelLength()
+		return length
 	}
-	length += params.getPrefixStringLength(addr)
-	length += ipv6Params.getZoneLength(zone)
-	length += ipv6Params.getAddressSuffixLength()
-	length += ipv6Params.getAddressLabelLength()
-	return length
+	return 0
 }
 
 func (params *ipv6v4MixedParams) toString(addr *IPv6v4MixedAddressGrouping) string {

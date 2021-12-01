@@ -11,6 +11,7 @@ type ExtendedSegmentSeries interface {
 
 	Equal(ExtendedSegmentSeries) bool
 	Contains(ExtendedSegmentSeries) bool
+	CompareSize(ExtendedSegmentSeries) int
 
 	// GetSection returns the full address section
 	GetSection() *AddressSection
@@ -206,6 +207,13 @@ func (w WrappedAddress) Equal(other ExtendedSegmentSeries) bool {
 	return ok && w.Address.Equal(addr)
 }
 
+func (w WrappedAddress) CompareSize(other ExtendedSegmentSeries) int {
+	if addr, ok := other.Unwrap().(AddressType); ok {
+		return w.Address.CompareSize(addr)
+	}
+	return w.GetCount().Cmp(other.GetCount())
+}
+
 func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
 	return WrappedAddress{w.Address.SetPrefixLen(prefixLen)}
 }
@@ -355,6 +363,13 @@ func (w WrappedAddressSection) WithoutPrefixLen() ExtendedSegmentSeries {
 func (w WrappedAddressSection) Contains(other ExtendedSegmentSeries) bool {
 	addr, ok := other.Unwrap().(AddressSectionType)
 	return ok && w.AddressSection.Contains(addr)
+}
+
+func (w WrappedAddressSection) CompareSize(other ExtendedSegmentSeries) int {
+	if addr, ok := other.Unwrap().(AddressSectionType); ok {
+		return w.AddressSection.CompareSize(addr)
+	}
+	return w.GetCount().Cmp(other.GetCount())
 }
 
 func (w WrappedAddressSection) Equal(other ExtendedSegmentSeries) bool {

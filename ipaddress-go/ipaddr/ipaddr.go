@@ -368,46 +368,6 @@ func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress 
 	return network.GetHostMask(prefLen)
 }
 
-func (addr *ipAddressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
-	if addr.hasZone() {
-		cache := addr.getStringCache()
-		if cache == nil {
-			return addr.getSection().toOctalStringZoned(with0Prefix, addr.zone)
-		}
-		var cacheField **string
-		if with0Prefix {
-			cacheField = &cache.octalStringPrefixed
-		} else {
-			cacheField = &cache.octalString
-		}
-		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
-				return addr.getSection().toOctalStringZoned(with0Prefix, addr.zone)
-			})
-	}
-	return addr.getSection().ToOctalString(with0Prefix)
-}
-
-func (addr *ipAddressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
-	if addr.hasZone() {
-		cache := addr.getStringCache()
-		if cache == nil {
-			return addr.getSection().toBinaryStringZoned(with0bPrefix, addr.zone)
-		}
-		var cacheField **string
-		if with0bPrefix {
-			cacheField = &cache.binaryStringPrefixed
-		} else {
-			cacheField = &cache.binaryString
-		}
-		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
-				return addr.getSection().toBinaryStringZoned(with0bPrefix, addr.zone)
-			})
-	}
-	return addr.getSection().ToBinaryString(with0bPrefix)
-}
-
 func (addr *ipAddressInternal) toCanonicalWildcardString() string {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
@@ -1405,7 +1365,7 @@ func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
 	if addr == nil {
 		return nilString()
 	}
-	return addr.GetSection().toCustomString(stringOptions, addr.zone)
+	return addr.GetSection().toCustomZonedString(stringOptions, addr.zone)
 }
 
 // Retrieves or generates an IPAddressString object for this IPAddress object.
