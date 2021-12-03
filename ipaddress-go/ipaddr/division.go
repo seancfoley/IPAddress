@@ -220,6 +220,11 @@ func (div *addressDivisionInternal) toString() string { // this can be moved to 
 }
 
 func (div addressDivisionInternal) Format(state fmt.State, verb rune) {
+	switch verb {
+	case 's', 'v':
+		state.Write([]byte(div.toString()))
+		return
+	}
 	// we try to filter through the flags provided to the DivInt values, as if the fmt string were applied to the int(s) directly
 	formatStr := flagsFromState(state, verb)
 	if div.isMultiple() {

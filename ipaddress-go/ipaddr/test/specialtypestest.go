@@ -116,6 +116,8 @@ func (t specialTypesTester) run() {
 	t.testLoopback("1.2.3.4", false)
 	t.testLoopback("::", false)
 	t.testLoopback("1:2:3:4:1:2:3:4", false)
+
+	t.testNils()
 }
 
 func (t specialTypesTester) testIPv4Strings(addr string, explicit bool, normalizedString, normalizedWildcardString, sqlString, fullString, reverseDNSString, singleHex, singleOctal string) {
@@ -550,6 +552,54 @@ func (t specialTypesTester) testLoopback(host string, isSelf bool) {
 		t.addFailure(newHostFailure("failed: isSelf is "+strconv.FormatBool(isSelf), w))
 	}
 	t.incrementTestCount()
+}
+
+func (t specialTypesTester) testNils() {
+	var ipRanges []*ipaddr.IPAddressSeqRange
+	//var ipv4Addresses []*ipaddr.IPv4Address
+	ipv4Addr1 := ipaddr.NewIPAddressString("1.2.3.3").GetAddress().ToIPv4Address()
+	ipv4Addr2 := ipaddr.NewIPAddressString("2.2.3.4-5").GetAddress().ToIPv4Address()
+
+	ipRanges = append(ipRanges, nil)
+	ipRanges = append(ipRanges, &ipaddr.IPAddressSeqRange{})
+	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
+	ipRanges = append(ipRanges, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
+	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
+	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIPAddressSeqRange())
+	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIPAddressSeqRange())
+
+	for i := range ipRanges {
+		range1 := ipRanges[i]
+		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
+		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
+		for j := i; j < len(ipRanges); j++ {
+			range2 := ipRanges[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSeqRangeFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSeqRangeFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSeqRangeFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSeqRangeFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	//TODO ipv6 ranges, ipv4 addresses, ipv6 addresses, maybe sections, maybe divisions, then compare everything from one set to each other set
+
 }
 
 func getCount(segmentMax, segmentCount uint64) *big.Int {

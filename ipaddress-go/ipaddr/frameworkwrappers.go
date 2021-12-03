@@ -6,6 +6,8 @@ package ipaddr
 type ExtendedSegmentSeries interface {
 	AddressSegmentSeries
 
+	ToCustomString(stringOptions StringOptions) string
+
 	// Unwrap returns the wrapped *Address or *AddressSection as an interface, AddressSegmentSeries
 	Unwrap() AddressSegmentSeries
 
@@ -122,7 +124,7 @@ func (w WrappedAddress) PrefixBlockIterator() ExtendedSegmentSeriesIterator {
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
 func (w WrappedAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.ToBlock(segmentIndex, lower, upper)}
+	return WrapAddress(w.Address.ToBlock(segmentIndex, lower, upper))
 }
 
 //func (w WrappedAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
@@ -130,7 +132,7 @@ func (w WrappedAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedS
 //}
 
 func (w WrappedAddress) ToPrefixBlock() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.ToPrefixBlock()}
+	return WrapAddress(w.Address.ToPrefixBlock())
 }
 
 //func (w WrappedAddress) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -162,11 +164,11 @@ func (w WrappedAddress) IncrementBoundary(i int64) ExtendedSegmentSeries {
 }
 
 func (w WrappedAddress) GetLower() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.GetLower()}
+	return WrapAddress(w.Address.GetLower())
 }
 
 func (w WrappedAddress) GetUpper() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.GetUpper()}
+	return WrapAddress(w.Address.GetUpper())
 }
 
 func (w WrappedAddress) GetSection() *AddressSection {
@@ -178,11 +180,11 @@ func (w WrappedAddress) AssignPrefixForSingleBlock() ExtendedSegmentSeries {
 }
 
 func (w WrappedAddress) AssignMinPrefixForBlock() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.AssignMinPrefixForBlock()}
+	return WrapAddress(w.Address.AssignMinPrefixForBlock())
 }
 
 func (w WrappedAddress) WithoutPrefixLen() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.WithoutPrefixLen()}
+	return WrapAddress(w.Address.WithoutPrefixLen())
 }
 
 //func (w WrappedAddress) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
@@ -215,7 +217,7 @@ func (w WrappedAddress) CompareSize(other ExtendedSegmentSeries) int {
 }
 
 func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.SetPrefixLen(prefixLen)}
+	return WrapAddress(w.Address.SetPrefixLen(prefixLen))
 }
 
 func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -223,7 +225,7 @@ func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentS
 }
 
 func (w WrappedAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.AdjustPrefixLen(prefixLen)}
+	return WrapAddress(w.Address.AdjustPrefixLen(prefixLen))
 }
 
 func (w WrappedAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -239,11 +241,11 @@ func (w WrappedAddress) ReverseBits(perByte bool) (ExtendedSegmentSeries, Incomp
 	if err != nil {
 		return nil, err
 	}
-	return WrappedAddress{addr}, nil
+	return WrapAddress(addr), nil
 }
 
 func (w WrappedAddress) ReverseSegments() ExtendedSegmentSeries {
-	return WrappedAddress{w.Address.ReverseSegments()}
+	return WrapAddress(w.Address.ReverseSegments())
 }
 
 type WrappedAddressSection struct {
@@ -285,7 +287,7 @@ func (w WrappedAddressSection) PrefixBlockIterator() ExtendedSegmentSeriesIterat
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
 func (w WrappedAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.ToBlock(segmentIndex, lower, upper)}
+	return WrapSection(w.AddressSection.ToBlock(segmentIndex, lower, upper))
 }
 
 //func (w WrappedAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
@@ -293,7 +295,7 @@ func (w WrappedAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) Ex
 //}
 
 func (w WrappedAddressSection) ToPrefixBlock() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.ToPrefixBlock()}
+	return WrapSection(w.AddressSection.ToPrefixBlock())
 }
 
 //func (w WrappedAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -325,11 +327,11 @@ func (w WrappedAddressSection) IncrementBoundary(i int64) ExtendedSegmentSeries 
 }
 
 func (w WrappedAddressSection) GetLower() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.GetLower()}
+	return WrapSection(w.AddressSection.GetLower())
 }
 
 func (w WrappedAddressSection) GetUpper() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.GetUpper()}
+	return WrapSection(w.AddressSection.GetUpper())
 }
 
 func (w WrappedAddressSection) GetSection() *AddressSection {
@@ -341,11 +343,11 @@ func (w WrappedAddressSection) AssignPrefixForSingleBlock() ExtendedSegmentSerie
 }
 
 func (w WrappedAddressSection) AssignMinPrefixForBlock() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.AssignMinPrefixForBlock()}
+	return WrapSection(w.AddressSection.AssignMinPrefixForBlock())
 }
 
 func (w WrappedAddressSection) WithoutPrefixLen() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.WithoutPrefixLen()}
+	return WrapSection(w.AddressSection.WithoutPrefixLen())
 }
 
 //func (w WrappedAddressSection) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
@@ -378,7 +380,7 @@ func (w WrappedAddressSection) Equal(other ExtendedSegmentSeries) bool {
 }
 
 func (w WrappedAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.SetPrefixLen(prefixLen)}
+	return WrapSection(w.AddressSection.SetPrefixLen(prefixLen))
 }
 
 func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -386,7 +388,7 @@ func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedS
 }
 
 func (w WrappedAddressSection) AdjustPrefixLen(adjustment BitCount) ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.AdjustPrefixLen(adjustment)}
+	return WrapSection(w.AddressSection.AdjustPrefixLen(adjustment))
 }
 
 func (w WrappedAddressSection) AdjustPrefixLenZeroed(adjustment BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
@@ -402,7 +404,7 @@ func (w WrappedAddressSection) ReverseBits(perByte bool) (ExtendedSegmentSeries,
 }
 
 func (w WrappedAddressSection) ReverseSegments() ExtendedSegmentSeries {
-	return WrappedAddressSection{w.AddressSection.ReverseSegments()}
+	return WrapSection(w.AddressSection.ReverseSegments())
 }
 
 var _ ExtendedSegmentSeries = WrappedAddress{}
@@ -413,26 +415,34 @@ func convAddrToIntf(addr *Address) ExtendedSegmentSeries {
 	if addr == nil {
 		return nil
 	}
-	return WrappedAddress{addr}
+	return WrapAddress(addr)
 }
 
 func convSectToIntf(sect *AddressSection) ExtendedSegmentSeries {
 	if sect == nil {
 		return nil
 	}
-	return WrappedAddressSection{sect}
+	return WrapSection(sect)
 }
 
 func wrapSectWithErr(section *AddressSection, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedAddressSection{section}, nil
+		return WrapSection(section), nil
 	}
 	return nil, err
 }
 
 func wrapAddrWithErr(addr *Address, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedAddress{addr}, nil
+		return WrapAddress(addr), nil
 	}
 	return nil, err
+}
+
+func WrapAddress(addr *Address) WrappedAddress {
+	return WrappedAddress{addr}
+}
+
+func WrapSection(section *AddressSection) WrappedAddressSection {
+	return WrappedAddressSection{section}
 }

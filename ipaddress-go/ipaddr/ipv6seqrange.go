@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"unsafe"
 )
 
 func NewIPv6SeqRange(one, two *IPv6Address) *IPv6AddressSeqRange {
+	if one == nil && two == nil {
+		one = zeroIPv6
+	}
 	one = one.WithoutZone()
 	two = two.WithoutZone()
 	return newSeqRange(one.ToIPAddress(), two.ToIPAddress()).ToIPv6SequentialRange()
@@ -206,7 +208,10 @@ func (rng *IPv6AddressSeqRange) PrefixIterator(prefLength BitCount) IPv6AddressS
 }
 
 func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
-	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
+	if rng != nil {
+		rng = rng.init()
+	}
+	return (*IPAddressSeqRange)(rng)
 }
 
 func (rng *IPv6AddressSeqRange) Overlaps(other *IPv6AddressSeqRange) bool {

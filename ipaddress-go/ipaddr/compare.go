@@ -270,7 +270,7 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 	return comp.compareLargeValues(r1.GetUpperValue(), r1.GetValue(), r2.GetUpperValue(), r2.GetValue())
 }
 
-//TODO must handle nils for any division or seq range - I think we do, but need to be sure.  I think
+//TODO must handle nils for any division or seq range - I think we do, but need to be sure.  I think.  Adding test to specialtypestest
 func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// Comparison works as follows:
 	// 1. use type assertion with AddressDivisionSeries, covering all addresses and all groupings, including large

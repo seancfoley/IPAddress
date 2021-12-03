@@ -628,11 +628,11 @@ func (section *IPv4AddressSection) SpanWithPrefixBlocks() []*IPv4AddressSection 
 		if section.IsSinglePrefixBlock() {
 			return []*IPv4AddressSection{section}
 		}
-		wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+		wrapped := WrapIPSection(section.ToIPAddressSection())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv4Sections(spanning)
 	}
-	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	wrapped := WrapIPSection(section.ToIPAddressSection())
 	return cloneToIPv4Sections(spanWithPrefixBlocks(wrapped))
 }
 
@@ -642,8 +642,8 @@ func (section *IPv4AddressSection) SpanWithPrefixBlocksTo(other *IPv4AddressSect
 	}
 	return cloneToIPv4Sections(
 		getSpanningPrefixBlocks(
-			WrappedIPAddressSection{section.ToIPAddressSection()},
-			WrappedIPAddressSection{other.ToIPAddressSection()},
+			WrapIPSection(section.ToIPAddressSection()),
+			WrapIPSection(other.ToIPAddressSection()),
 		),
 	), nil
 }
@@ -652,7 +652,7 @@ func (section *IPv4AddressSection) SpanWithSequentialBlocks() []*IPv4AddressSect
 	if section.IsSequential() {
 		return []*IPv4AddressSection{section}
 	}
-	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	wrapped := WrapIPSection(section.ToIPAddressSection())
 	return cloneToIPv4Sections(spanWithSequentialBlocks(wrapped))
 }
 
@@ -662,8 +662,8 @@ func (section *IPv4AddressSection) SpanWithSequentialBlocksTo(other *IPv4Address
 	}
 	return cloneToIPv4Sections(
 		getSpanningSequentialBlocks(
-			WrappedIPAddressSection{section.ToIPAddressSection()},
-			WrappedIPAddressSection{other.ToIPAddressSection()},
+			WrapIPSection(section.ToIPAddressSection()),
+			WrapIPSection(other.ToIPAddressSection()),
 		),
 	), nil
 }
@@ -1058,6 +1058,13 @@ func (section *IPv4AddressSection) String() string {
 		return nilString()
 	}
 	return section.toString()
+}
+
+func (section *IPv4AddressSection) GetSegmentStrings() []string {
+	if section == nil {
+		return nil
+	}
+	return section.getSegmentStrings()
 }
 
 type Inet_aton_radix int

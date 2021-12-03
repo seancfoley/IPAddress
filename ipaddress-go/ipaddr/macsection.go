@@ -253,7 +253,7 @@ func (section *MACAddressSection) ToAddressSection() *AddressSection {
 }
 
 func (section *MACAddressSection) Wrap() WrappedAddressSection {
-	return WrappedAddressSection{section.ToAddressSection()}
+	return WrapSection(section.ToAddressSection())
 }
 
 // Gets the subsection from the series starting from the given index
@@ -774,4 +774,11 @@ func (section *MACAddressSection) String() string {
 		return nilString()
 	}
 	return section.toString()
+}
+
+func (section *MACAddressSection) GetSegmentStrings() []string {
+	if section == nil {
+		return nil
+	}
+	return section.getSegmentStrings()
 }

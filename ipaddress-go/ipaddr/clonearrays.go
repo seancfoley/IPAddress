@@ -8,10 +8,10 @@ func cloneIPv4Sections(sect *IPv4AddressSection, orig []*IPv4AddressSection) []E
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrappedIPAddressSection{sect.ToIPAddressSection()}
+		result[origCount] = WrapIPSection(sect.ToIPAddressSection())
 	}
 	for i := range orig {
-		result[i] = WrappedIPAddressSection{orig[i].ToIPAddressSection()} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPSection(orig[i].ToIPAddressSection()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }
@@ -24,26 +24,27 @@ func cloneIPv6Sections(sect *IPv6AddressSection, orig []*IPv6AddressSection) []E
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrappedIPAddressSection{sect.ToIPAddressSection()}
+		result[origCount] = WrapIPSection(sect.ToIPAddressSection())
 	}
 	for i := range orig {
-		result[i] = WrappedIPAddressSection{orig[i].ToIPAddressSection()} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPSection(orig[i].ToIPAddressSection()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }
 
-func cloneIPAddrs(addr *IPAddress, orig []*IPAddress) []ExtendedIPSegmentSeries {
+func filterCloneIPAddrs(addr *IPAddress, orig []*IPAddress) []ExtendedIPSegmentSeries {
+	if addr == nil {
+		panic("no receiver")
+	}
 	origCount := len(orig)
-	count := origCount
-	if addr != nil {
-		count++
-	}
-	result := make([]ExtendedIPSegmentSeries, count)
-	if addr != nil {
-		result[origCount] = WrappedIPAddress{addr}
-	}
-	for i := range orig {
-		result[i] = WrappedIPAddress{orig[i]} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+	count := origCount + 1
+	result := make([]ExtendedIPSegmentSeries, 0, count)
+	result = append(result, WrapIPAddress(addr))
+	version := addr.getIPVersion()
+	for _, a := range orig {
+		if version.Equal(a.GetIPVersion()) {
+			result = append(result, WrapIPAddress(a))
+		}
 	}
 	return result
 }
@@ -56,10 +57,10 @@ func cloneIPv4Addrs(sect *IPv4Address, orig []*IPv4Address) []ExtendedIPSegmentS
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrappedIPAddress{sect.ToIPAddress()}
+		result[origCount] = WrapIPAddress(sect.ToIPAddress())
 	}
 	for i := range orig {
-		result[i] = WrappedIPAddress{orig[i].ToIPAddress()} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPAddress(orig[i].ToIPAddress()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }
@@ -72,10 +73,10 @@ func cloneIPv6Addrs(sect *IPv6Address, orig []*IPv6Address) []ExtendedIPSegmentS
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrappedIPAddress{sect.ToIPAddress()}
+		result[origCount] = WrapIPAddress(sect.ToIPAddress())
 	}
 	for i := range orig {
-		result[i] = WrappedIPAddress{orig[i].ToIPAddress()} // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPAddress(orig[i].ToIPAddress()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }

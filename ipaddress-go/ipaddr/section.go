@@ -1195,81 +1195,167 @@ func (section *addressSectionInternal) increment(increment int64) *AddressSectio
 }
 
 var (
-	hexParams            = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	hexPrefixedParams    = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
-	octalParams          = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	octalPrefixedParams  = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
-	binaryParams         = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	binaryPrefixedParams = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
+	otherOctalPrefix = "0o"
+	otherHexPrefix   = "0X"
+
+	//decimalParams            = new(StringOptionsBuilder).SetRadix(10).SetExpandedSegments(true).ToOptions()
+	hexParams                  = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	hexUppercaseParams         = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetUppercase(true).ToOptions()
+	hexPrefixedParams          = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	hexPrefixedUppercaseParams = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).SetUppercase(true).ToOptions()
+	octalParams                = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	octalPrefixedParams        = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
+	octal0oPrefixedParams      = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(otherOctalPrefix).ToOptions()
+	binaryParams               = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	binaryPrefixedParams       = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
 
-func (section *addressSectionInternal) GetSegmentStrings() []string {
-	return section.getSegmentStrings()
-}
+//func (section *addressSectionInternal) GetSegmentStrings() []string {
+//	xxx gotta move this func into the 5 subtypes to return nil on nil receiver xxxx
+//	return section.getSegmentStrings()
+//}
 
 // Format is intentionally the only method with non-pointer receivers.  It is not intended to be called directly, it is intended for use by the fmt package.
 // When called by a function in the fmt package, nil values are detected before this method is called, avoiding a panic when calling this method.
 func (section addressSectionInternal) Format(state fmt.State, verb rune) {
+	section.format(state, verb, NoZone, false)
+}
+
+func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Zone, useCanonical bool) {
 	if section.hasNoDivisions() {
-		state.Write([]byte("0")) //TODO see the discussion below on returning "0".  Also consider handling the flags, width, precision with this case.
+		state.Write([]byte(nilSection())) //TODO Consider handling the flags, width, precision with this case.
 		return
 	}
 	sect := section.toAddressSection()
 	if !sect.IsIPAddressSection() && !sect.IsMACAddressSection() {
-		section.defaultFormat(state, verb)
+		//TODO if we handle no-segment sections above, then hard to see why this block is here, we can never get a section with segments if not MAC or IP
+		// Can we jump up here if a division grouping?  Seems as though only if we have zero divisions, in which case above applies
+		// So I think we will want to delete this block.
+		//
+		// TODO check what happens when using x, X, d, o, O with a division grouping, we may wish to revisit this, below we revert to %v in situations of error
+		section.defaultFormat(state, verb) // applies the state to the slice of divisions, which uses the Stringer for the divisions
 		return
 	}
+
 	var str, prefix string
 	var err error
 	var isNormalized bool
 
+	_, hasPrecision := state.Precision()
+	_, hasWidth := state.Width()
+	noExtras := !hasPrecision && !hasWidth && zone == NoZone
+
 	switch verb {
 	case 's', 'v':
+		// TODO for '#v' we should do the same as fmt, see https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go:
+		// fmtQ formats a string as a double-quoted, escaped Go string constant.
+		// If f.sharp is set a raw (backquoted) string may be returned instead
+		// if the string does not contain any control characters other than tab.
+		//func (f *fmt) fmtQ(s string) {
+		// But we are not really a string.  We are supposed to make go syntax.  So probably not.
+
+		//TODO see https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;bpv=1;bpt=1;l=570
+		// and https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;l=437
+		// The latter, fmtString, is used when the arg is a string, using a type switch.
+		// But you can see the same method is used on the result of String() when the arg is not a simple ty.
+		//WHen not using #v (ie v or s) we defer to fmtStr https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/format.go;drc=refs%2Ftags%2Fgo1.17.3;l=357
+		// and this truncates and pads.  Truncate removes the back, based on precision.
+		// pads will expand the width to match the given width.
+		// So I guess we could do the same.
+		// Here are examples: https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/fmt_test.go;l=299;bpv=0;bpt=0
+
+		//TODO 'q' puts quotes around the string https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/fmt_test.go;l=704;bpv=0;bpt=0
 		isNormalized = true
-		str = section.toString()
-		//str = section.toNormalizedString()
-	case 'x', 'X':
-		str, err = section.toHexString(false) //TODO need to capitalize when X
+		if useCanonical {
+			str = section.toCanonicalString()
+		} else {
+			str = section.toNormalizedString()
+		}
+	case 'x':
+		str, err = section.toHexString(noExtras && state.Flag('#'))
+	case 'X':
+		withPrefix := noExtras && state.Flag('#')
+		if withPrefix {
+			str, err = section.toLongStringZoned(NoZone, hexPrefixedUppercaseParams)
+		} else {
+			str, err = section.toLongStringZoned(NoZone, hexUppercaseParams)
+		}
 	case 'b':
-		str, err = section.toBinaryString(false)
-	case 'o', 'O':
-		str, err = section.toOctalString(false)
+		str, err = section.toBinaryString(noExtras && state.Flag('#'))
+	case 'o':
+		str, err = section.toOctalString(noExtras && state.Flag('#'))
+	case 'O':
+		withPrefix := noExtras
+		if withPrefix {
+			str, err = section.toLongOctalStringZoned(NoZone, octal0oPrefixedParams)
+		} else {
+			str, err = section.toLongOctalStringZoned(NoZone, octalParams)
+		}
+		//str, err = section.toOctalString(noExtras)
 	case 'd':
-		//TODO decimal strings
-		err = fmt.Errorf("decimal not supported yet")
+		// TODO LATER decimal strings to replace the inefficient code below, we need large divisions for that because we must go single segment since base not a power of 2, but once we can group into a single large division, we should be good
+		bitCount := section.GetBitCount()
+		maxDigits := getMaxDigitCountx(10, bitCount, func() int {
+			maxVal := bigOne()
+			maxVal.Lsh(maxVal, uint(bitCount)+1)
+			maxVal.Sub(maxVal, bigOneConst())
+			return len(maxVal.Text(10))
+		})
+		addLeadingZeros := func(str string) string {
+			if len(str) < maxDigits {
+				zeroCount := maxDigits - len(str)
+				var zeros []byte
+				for ; zeroCount > 0; zeroCount-- {
+					zeros = append(zeros, '0')
+				}
+				return string(zeros) + str
+			}
+			return str
+		}
+		val := section.GetValue()
+		valStr := addLeadingZeros(val.Text(10))
+		if section.isMultiple() {
+			upperVal := section.GetUpperValue()
+			upperValStr := addLeadingZeros(upperVal.Text(10))
+			str = valStr + RangeSeparatorStr + upperValStr
+		} else {
+			str = valStr
+		}
 	default:
-		// unknown format
+		// format not supported
 		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
 		return
 	}
-	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
+	if err != nil { // could not produce an octal, binary, hex or decimal string, so use default instead
 		isNormalized = true
-		str = section.toString()
-		//str = section.toNormalizedString()
+		if useCanonical {
+			str = section.toCanonicalString()
+		} else {
+			str = section.toNormalizedString()
+		}
 	}
-	if isNormalized {
+	if isNormalized || noExtras {
 		state.Write([]byte(str))
 		return
 	}
-	section.writeFmt(state, verb, prefix, str)
+	section.writeNumberFmt(state, verb, prefix, str, zone)
 }
 
-func (section addressSectionInternal) writeFmt(state fmt.State, verb rune, prefix, str string) {
+func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune, prefix, str string, zone Zone) {
 	if verb == 'O' {
-		prefix = "0o"
+		prefix = otherOctalPrefix // "0o"
 	} else if state.Flag('#') {
 		switch verb {
 		case 'x':
 			prefix = HexPrefix
 		case 'X':
-			prefix = HexUppercasePrefix
+			prefix = otherHexPrefix
 		case 'b':
 			prefix = BinaryPrefix
 		case 'o':
 			prefix = OctalPrefix
 		}
 	}
-	//secondPass := false
 	isMulti := section.isMultiple()
 	var addrStr, secondStr string
 	var separator byte
@@ -1305,7 +1391,7 @@ func (section addressSectionInternal) writeFmt(state fmt.State, verb rune, prefi
 				zeroCount = precision - len(addrStr)
 			}
 		}
-		length := len(prefix) + zeroCount + len(addrStr)
+		length := len(prefix) + zeroCount + len(addrStr) + len(zone)
 		if hasWidth && length < width { // padding required
 			paddingCount := width - length
 			if state.Flag('-') {
@@ -1325,6 +1411,7 @@ func (section addressSectionInternal) writeFmt(state fmt.State, verb rune, prefi
 		writeStr(state, prefix, 1)
 		writeBytes(state, '0', zeroCount)
 		state.Write([]byte(addrStr))
+		state.Write([]byte(zone))
 		writeBytes(state, ' ', rightPaddingCount)
 
 		if !isMulti {
@@ -1355,119 +1442,6 @@ func writeBytes(state fmt.State, b byte, count int) {
 	}
 }
 
-/*
-// Format implements fmt.Formatter. It accepts the formats
-// 'b' (binary), 'o' (octal with 0 prefix), 'O' (octal with 0o prefix),
-// 'd' (decimal), 'x' (lowercase hexadecimal), and
-// 'X' (uppercase hexadecimal).
-// Also supported are the full suite of package fmt's format
-// flags for integral types, including '+' and ' ' for sign
-// control, '#' for leading zero in octal and for hexadecimal,
-// a leading "0x" or "0X" for "%#x" and "%#X" respectively,
-// specification of minimum digits precision, output field
-// width, space or zero padding, and '-' for left or right
-// justification.
-//
-func (x *Int) Format(s fmt.State, ch rune) {
-	// determine base
-	var base int
-	switch ch {
-	case 'b':
-		base = 2
-	case 'o', 'O':
-		base = 8
-	case 'd', 's', 'v':
-		base = 10
-	case 'x', 'X':
-		base = 16
-	default:
-		// unknown format
-		fmt.Fprintf(s, "%%!%c(big.Int=%s)", ch, x.String())
-		return
-	}
-
-	if x == nil {
-		fmt.Fprint(s, "<nil>")
-		return
-	}
-
-//TODO can handle this myself unless maybe leading zeros interfere
-	// determine prefix characters for indicating output base
-	prefix := ""
-	if s.Flag('#') {
-		switch ch {
-		case 'b': // binary
-			prefix = "0b"
-		case 'o': // octal
-			prefix = "0"
-		case 'x': // hexadecimal
-			prefix = "0x"
-		case 'X':
-			prefix = "0X"
-		}
-	}
-	if ch == 'O' {
-		prefix = "0o"
-	}
-
-digits := x.abs.utoa(base)
-	if ch == 'X' {
-		// faster than bytes.ToUpper
-		for i, d := range digits {
-			if 'a' <= d && d <= 'z' {
-				digits[i] = 'A' + (d - 'a')
-			}
-		}
-	}
-
-	// number of characters for the three classes of number padding
-	var left int  // space characters to left of digits for right justification ("%8d")
-	var zeros int // zero characters (actually cs[0]) as left-most digits ("%.8d")
-	var right int // space characters to right of digits for left justification ("%-8d")
-
-	// determine number padding from precision: the least number of digits to output
-//TODO I think my single-segment stuff handles leading zeros, but not clear we can use it ahead of time,
-// but also, why would we have a precision that does not match the full width?
-// Still, adding that specific precision allows users to specify the full width
-
-// ALso, this applies only to hex, octal, decimal, but not the default address format with segments
-	precision, precisionSet := s.Precision()
-	if precisionSet {
-		switch {
-		case len(digits) < precision:
-			zeros = precision - len(digits) // count of zero padding
-		case len(digits) == 1 && digits[0] == '0' && precision == 0:
-			return // print nothing if zero value (x == 0) and zero precision ("." or ".0")
-		}
-	}
-
-//TODO we can pad as follows
-
-	// determine field pad from width: the least number of characters to output
-	length := len(sign) + len(prefix) + zeros + len(digits)
-	if width, widthSet := s.Width(); widthSet && length < width { // pad as specified
-		switch d := width - length; {
-		case s.Flag('-'):
-			// pad on the right with spaces; supersedes '0' when both specified
-			right = d
-		case s.Flag('0') && !precisionSet:
-			// pad with zeros unless precision also specified
-			zeros = d
-		default:
-			// pad on the left with spaces
-			left = d
-		}
-	}
-
-	// print number as [left pad][sign][prefix][zero pad][digits][right pad]
-	writeMultiple(s, " ", left)
-	writeMultiple(s, prefix, 1)
-	writeMultiple(s, "0", zeros)
-	s.Write(digits)
-	writeMultiple(s, " ", right)
-}
-*/
-
 func (section *addressSectionInternal) toCanonicalString() string {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToCanonicalString()
@@ -1477,7 +1451,7 @@ func (section *addressSectionInternal) toCanonicalString() string {
 		return sect.ToCanonicalString()
 	}
 	// zero section
-	return "0"
+	return nilSection()
 }
 
 func (section *addressSectionInternal) toNormalizedString() string {
@@ -1488,7 +1462,7 @@ func (section *addressSectionInternal) toNormalizedString() string {
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	}
-	return "0"
+	return nilSection()
 }
 
 func (section *addressSectionInternal) toCompressedString() string {
@@ -1499,12 +1473,7 @@ func (section *addressSectionInternal) toCompressedString() string {
 	} else if sect := section.toMACAddressSection(); sect != nil {
 		return sect.ToCompressedString()
 	}
-	//TODO for all the string methods that return "0" when something else, call some common func, I think it may make more sense to return empty string
-	// One thing to look into though, is whether the zero addr Address{} or IPAddress{} always satisfies the first condition as IPV4 (I think it does) in which case what happens in there?
-	// You may want to make this consistent with Format() methods too.  Think about what you would expect the string to be.
-	// Also check what an AddressDivisionGrouping string with no divisions or nil divisions looks like, both string methdods and with Format(), you might want consistency with that
-	// An empty section with no segments does have a value (getValue method), it is 0, so that is likely how you decided on this string "0"
-	return "0"
+	return nilSection()
 }
 
 func (section *addressSectionInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
@@ -1536,7 +1505,13 @@ func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, 
 	if cache == nil {
 		return section.toOctalStringZoned(with0Prefix, NoZone)
 	}
-	return cacheStrErr(&cache.octalString,
+	var cacheField **string
+	if with0Prefix {
+		cacheField = &cache.octalStringPrefixed
+	} else {
+		cacheField = &cache.octalString
+	}
+	return cacheStrErr(cacheField,
 		func() (string, IncompatibleAddressError) {
 			return section.toOctalStringZoned(with0Prefix, NoZone)
 		})
@@ -1549,6 +1524,10 @@ func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone
 	} else {
 		opts = octalParams
 	}
+	return section.toLongOctalStringZoned(zone, opts)
+}
+
+func (section *addressSectionInternal) toLongOctalStringZoned(zone Zone, opts StringOptions) (string, IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
@@ -1600,7 +1579,13 @@ func (section *addressSectionInternal) toBinaryString(with0bPrefix bool) (string
 	if cache == nil {
 		return section.toBinaryStringZoned(with0bPrefix, NoZone)
 	}
-	return cacheStrErr(&cache.binaryString,
+	var cacheField **string
+	if with0bPrefix {
+		cacheField = &cache.binaryStringPrefixed
+	} else {
+		cacheField = &cache.binaryString
+	}
+	return cacheStrErr(cacheField,
 		func() (string, IncompatibleAddressError) {
 			return section.toBinaryStringZoned(with0bPrefix, NoZone)
 		})
@@ -2137,7 +2122,7 @@ func (section *AddressSection) ToAddressSection() *AddressSection {
 }
 
 func (section *AddressSection) Wrap() WrappedAddressSection {
-	return WrappedAddressSection{section}
+	return WrapSection(section)
 }
 
 func (section *AddressSection) Iterator() SectionIterator {
@@ -2244,6 +2229,13 @@ func (section *AddressSection) ToCustomString(stringOptions StringOptions) strin
 		return nilString()
 	}
 	return section.toCustomString(stringOptions)
+}
+
+func (section *AddressSection) GetSegmentStrings() []string {
+	if section == nil {
+		return nil
+	}
+	return section.getSegmentStrings()
 }
 
 func seriesValsSame(one, two AddressSegmentSeries) bool {

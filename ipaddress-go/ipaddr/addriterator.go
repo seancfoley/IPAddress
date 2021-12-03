@@ -198,7 +198,7 @@ type addressSeriesIterator struct {
 }
 
 func (iter addressSeriesIterator) Next() ExtendedSegmentSeries {
-	return WrappedAddress{iter.AddressIterator.Next()}
+	return WrapAddress(iter.AddressIterator.Next())
 }
 
 type ipaddressSeriesIterator struct {
@@ -214,7 +214,7 @@ type sectionSeriesIterator struct {
 }
 
 func (iter sectionSeriesIterator) Next() ExtendedSegmentSeries {
-	return WrappedAddressSection{iter.SectionIterator.Next()}
+	return WrapSection(iter.SectionIterator.Next())
 }
 
 type ipsectionSeriesIterator struct {
@@ -222,7 +222,7 @@ type ipsectionSeriesIterator struct {
 }
 
 func (iter ipsectionSeriesIterator) Next() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{iter.IPSectionIterator.Next()}
+	return WrapIPSection(iter.IPSectionIterator.Next())
 }
 
 type UnwrappedIPddressIterator struct {

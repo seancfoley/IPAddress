@@ -1242,8 +1242,8 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	cw := ipAddr.ToCompressedWildcardString()
 	sql := ipAddr.ToSQLWildcardString()
 	full := ipAddr.ToFullString()
-	//rDNS := ipAddr.ToReverseDNSLookupString(); //TODO LATER reinstate
-	//unc := ipAddr.ToUNCHostName();
+	//rDNS := ipAddr.ToReverseDNSLookupString(); //TODO we can test these strings, we just cannot parse them, so put the test back in
+	//unc := ipAddr.ToUNCHostName(); //TODO LATER reinstate
 
 	var hex, hexNoPrefix, octal string
 	var err error

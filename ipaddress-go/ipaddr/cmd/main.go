@@ -96,11 +96,26 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
-	fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
-		pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr)
+	//fmt.Printf("All the formats: %v %x %X %o %O %b %d %#x %#o %#b\n",
+	//	pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr)
+	fmt.Printf("All the formats: default %v\nstring %s\nlowercase hex %x\nuppercase hex %X\nlower hex prefixed %#x\nupper hex prefixed %#X\noctal no prefix %o\noctal prefixed %O\noctal 0 prefix %#o\nbinary %b\nbinary prefixed %#b\ndecimal %d\n\n",
+		pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr, pAddr)
+	//fmt.Printf("All the formats: %v %x %X %o %O %b %d %#x %#o %#b\n",
+	//	*pAddr, *pAddr, *pAddr, *pAddr, *pAddr, *pAddr, *pAddr, *pAddr, *pAddr, *pAddr)
+	//fmt.Printf("octal no prefix %o\n", *pAddr)
+	//fmt.Printf("octal prefixed %O\n", *pAddr)
+	//fmt.Printf("octal 0 prefix %#o\n", *pAddr)
+	//fmt.Printf("binary no prefix %b\n", *pAddr)
+	//fmt.Printf("binary prefixed %#b\n", *pAddr)
+
 	pAddr = addrStr.GetAddress() // test getting it a second time from the cache
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
+
+	cidrStr := ipaddr.NewIPAddressString("255.2.0.0/16")
+	cidr := cidrStr.GetAddress()
+	fmt.Printf("All the formats: default %v\nstring %s\nlowercase hex %x\nuppercase hex %X\nlower hex prefixed %#x\nupper hex prefixed %#X\noctal no prefix %o\noctal prefixed %O\noctal 0 prefix %#o\nbinary %b\nbinary prefixed %#b\ndecimal %d\n\n",
+		cidr, cidr, cidr, cidr, cidr, cidr, cidr, cidr, cidr, cidr, cidr, cidr)
 
 	addrStr = ipaddr.NewIPAddressString("abc.2.3.4")
 	noAddr, err := addrStr.ToAddress()
@@ -134,8 +149,8 @@ func main() {
 	ipv6Addr, ipv6Err := ipaddr.NewIPv6AddressFromIP(net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc})
 	fmt.Printf("%+v %+v\n", ipv6Addr, ipv6Err)
 	fmt.Printf("%+v\n", *ipv6Addr)
-	fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
-		ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr)
+	fmt.Printf("All the formats: default %v\nstring %s\nlowercase hex %x\nuppercase hex %X\nlower hex prefixed %#x\nupper hex prefixed %#X\noctal no prefix %o\noctal prefixed %O\noctal 0 prefix %#o\nbinary %b\nbinary prefixed %#b\ndecimal %d\n\n",
+		ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr)
 	//ipv6Addr = nil
 	//fmt.Printf("All the formats: %v %x %X %o %O %b %#x %#o %#b\n",
 	//	ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr, ipv6Addr)

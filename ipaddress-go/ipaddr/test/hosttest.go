@@ -947,11 +947,7 @@ func (t hostTester) testHostPortServZone(hostName *ipaddr.HostName, hostExpected
 }
 
 func addressesEqual(one, two *ipaddr.IPAddress) bool {
-	//TODO replace with just call to Equal once I have Equal supporting nil
-	if one == nil {
-		return two == nil
-	}
-	return two != nil && one.Equal(two)
+	return one.Equal(two)
 }
 
 func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {

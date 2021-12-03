@@ -186,7 +186,7 @@ func (seg *ipAddressSegmentInternal) getStringAsLower() string {
 	return seg.getDefaultLowerString()
 }
 
-func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
+func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.  Also see the same in division.go
 	stringer := func() string {
 		if !seg.isMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMult, ie single addresses, when there is no prefix or the prefix is the bit count
 			return seg.getDefaultLowerString()

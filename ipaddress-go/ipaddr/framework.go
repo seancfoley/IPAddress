@@ -144,6 +144,8 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
 	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
 
+	GetSegmentStrings() []string
+
 	GetGenericSegment(index int) AddressSegmentType
 }
 

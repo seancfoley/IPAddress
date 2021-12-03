@@ -870,9 +870,18 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //	}
 
 // TODO NEXT progress
+// order of todos:
+// - nil tests in specialtypestest
+// - prefixLen change
+// - portnum change which is similar
+// - format tests and nil string tests (see main.go, "All the formats") notes.go
+// - we ask whether args of type BitCount should be int.  ipv6section.go
+// - GetString and GetWildcardString behaviour on nil ipsegment.go
+// - rename ToIPV6Address, ToMACAddressSection, etc use just ToIPV6, ToIP, ToIPv4, ToMAC.  Also the same for IsIPAddress, etc, I think I did the "is" changes in addresses already
+//
 //
 // - all the TODOs I have piled up (excluding anything LATER)
-// - then you need some concurrency testing - use a map of addresses and the addresses.go framework and the existing tests
+// - then you need some concurrency testing (do we really? I guess) - use a map of addresses and the addresses.go framework and the existing tests
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - go over the goland warnings, they do help a bit to find issues

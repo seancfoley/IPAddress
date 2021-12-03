@@ -484,7 +484,7 @@ func (builder *IPAddressStringParametersBuilder) Allow_inet_aton(allow bool) *IP
 type ipAddressStringFormatParameters struct {
 	addressStringFormatParameters
 
-	allowPrefixesBeyondAddrSize, //TODO consider reversing this and defaultParseAllowPrefixBeyondAddressSize (more I think about it, the more it is fine as is, allowing /129 is weird)
+	allowPrefixesBeyondAddrSize,
 	noPrefixLengthLeadingZeros,
 	noBinary bool
 }

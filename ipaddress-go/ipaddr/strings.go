@@ -983,13 +983,19 @@ func createMap() *map[uint64]int {
 }
 
 func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
+	return getMaxDigitCountx(radix, bitCount, func() int {
+		return getDigitCount(maxValue, radix)
+	})
+}
+
+func getMaxDigitCountx(radix int, bitCount BitCount, calc func() int) int {
 	rad64 := uint64(radix)
 	key := (rad64 << 32) | uint64(bitCount)
 	theMap := *maxDigitMap
 	if digs, ok := theMap[key]; ok {
 		return digs
 	}
-	digs := getDigitCount(maxValue, radix)
+	digs := calc()
 	newMaxDigitMap := make(map[uint64]int)
 	for k, val := range theMap {
 		newMaxDigitMap[k] = val

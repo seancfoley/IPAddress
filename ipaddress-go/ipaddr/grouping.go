@@ -348,7 +348,8 @@ func (grouping *addressSectionInternal) matchesMACAddressType() bool {
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesAddrSectionType() bool {
-	return !grouping.getAddrType().isNil() || grouping.hasNoDivisions()
+	addrType := grouping.getAddrType()
+	return addrType.isIP() || addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6SectionType() bool {
@@ -376,142 +377,45 @@ func (grouping *addressDivisionGroupingInternal) matchesMACSectionType() bool {
 	return addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
 }
 
-func (grouping *addressDivisionGroupingInternal) initDivs() *addressDivisionGroupingInternal {
-	if grouping.divisions == nil {
-		return &zeroSection.addressDivisionGroupingInternal
+// Format implements fmt.Formatter. It accepts the formats
+// 'v' for the default address and section format (either the normalized or canonical string),
+// 's' (string) for the same,
+// 'b' (binary), 'o' (octal with 0 prefix), 'O' (octal with 0o prefix),
+// 'd' (decimal), 'x' (lowercase hexadecimal), and
+// 'X' (uppercase hexadecimal).
+// Also supported are some of fmt's format flags for integral types.
+// Sign control is not supported since addresses and sections are never negative.
+// '#' for alternate format is supported, which is leading zero in octal and for hexadecimal,
+// a leading "0x" or "0X" for "%#x" and "%#X" respectively,
+// Also supported when not using 's' is specification of minimum digits precision, output field
+// width, space or zero padding, and '-' for left or right justification.
+func (grouping addressDivisionGroupingInternal) Format(state fmt.State, verb rune) {
+	if sect := grouping.toAddressSection(); sect != nil {
+		sect.Format(state, verb)
+		return
 	}
-	return grouping
+	// divisions are printed like slices of *AddressDivision (which are Stringers) with division separated by spaces and enclosed in square brackets,
+	// sections are printed like addresses with segments separated by segment separators
+	grouping.defaultFormat(state, verb)
+}
+
+func (grouping addressDivisionGroupingInternal) defaultFormat(state fmt.State, verb rune) {
+	s := flagsFromState(state, verb)
+	state.Write([]byte(fmt.Sprintf(s, grouping.initDivs().divisions.(standardDivArray).divisions)))
 }
 
 func (grouping *addressDivisionGroupingInternal) toString() string {
 	if sect := grouping.toAddressSection(); sect != nil {
 		return sect.ToNormalizedString()
 	}
-	return fmt.Sprintf("%v", grouping.initDivs().divisions) //TODO see how I print with Format, make sure this is consistent
+	return fmt.Sprintf("%v", grouping.initDivs().divisions.(standardDivArray).divisions)
 }
 
-func (grouping addressDivisionGroupingInternal) Format(state fmt.State, verb rune) {
-	if sect := grouping.toAddressSection(); sect != nil {
-		sect.Format(state, verb)
-		return
+func (grouping *addressDivisionGroupingInternal) initDivs() *addressDivisionGroupingInternal {
+	if grouping.divisions == nil {
+		return &zeroSection.addressDivisionGroupingInternal
 	}
-	grouping.defaultFormat(state, verb)
-}
-
-func (grouping addressDivisionGroupingInternal) defaultFormat(state fmt.State, verb rune) {
-	//state.Write([]byte(fmt.Sprintf("%"+string(verb), grouping.initDivs().divisions)))
-	s := flagsFromState(state, verb)
-	state.Write([]byte(fmt.Sprintf(s, grouping.initDivs().divisions.(standardDivArray).divisions)))
-	//return fmt.Sprintf(s, grouping.initDivs().divisions.(standardDivArray).divisions)
-	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
-	//	Line 393 grouping.go
-	//
-	//		see fmtBytes and fmtBytes in fmt printf.go
-	//		xxx can I pass on to the slice?  How do I do that? xxxx
-	//	xxx most likely you just reconstruct the string as it is described xxxx
-	//	xxxx but you know, it really only does cool stuff with []byte
-	//	xxxx which is useless when we are a range and they can use GetBytes to do what they want
-	//	xxxx but even for stringer, it seems that fmtSx does all kinds of cool shit
-	//	xxxx
-	//	xxxx
-	//	for one thing, we can just put the verb there directly, the verb is most of the formatting
-	//	seems bytes uses sharpV with v and d
-	//	shit, it seems there is a lot of shit to cover
-	//	we need to just reproduce
-	//
-	//	java says it is:
-	//	%[flags][width][.precision]conversion-character
-	//	https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
-	//	these seem to apply: '-' '#' ' ' '0' '+'
-	//according to fmt_test, the order is:
-	//	'# '
-	//	'#+'
-	//	'-#20.8X'
-	//	' +.68d'
-	//	'#-014.6U'
-	//	'-020E'
-	//	'#-06v'
-	//	'#+-6d'
-	//	'# 02x'
-	//	'# -010X'
-	//	'# -010X'
-	//	' +07.2f'
-	//	'+07.2f'
-	//	'-05.1f'
-	//	reorderTests seems crazy, skip reorder
-	//
-	//	I think there is no order for the flags
-	//	but go '# +-0' then width then precision
-	//
-	//	then there is this:
-	//
-	//func (flagPrinter) Format(f State, c rune) {
-	//	s := "%"
-	//	for i := 0; i < 128; i++ {
-	//		if f.Flag(i) {
-	//			s += string(i)
-	//		}
-	//	}
-	//	if w, ok := f.Width(); ok {
-	//		s += Sprintf("%d", w)
-	//	}
-	//	if p, ok := f.Precision(); ok {
-	//		s += Sprintf(".%d", p)
-	//	}
-	//	s += string(c)
-	//	io.WriteString(f, "["+s+"]") this seems to be a flag printer thing, just ignore it
-	//}
-
-	/*
-		// For the formats %+v %#v, we set the plusV/sharpV flags
-			// and clear the plus/sharp flags since %+v and %#v are in effect
-			// different, flagless formats set at the top level.
-			plusV  bool
-			sharpV bool
-	*/
-	/*
-		%f     default width, default precision
-		%9f    width 9, default precision
-		%.2f   default width, precision 2
-		%9.2f  width 9, precision 2
-		%9.f   width 9, precision 0
-
-		-	pad with spaces on the right rather than the left (left-justify the field)
-		#	alternate format: add leading 0b for binary (%#b), 0 for octal (%#o),
-			0x or 0X for hex (%#x or %#X); suppress 0x for %p (%#p);
-			for %q, print a raw (backquoted) string if strconv.CanBackquote
-			returns true;
-			always print a decimal point for %e, %E, %f, %F, %g and %G;
-			do not remove trailing zeros for %g and %G;
-			write e.g. U+0078 'x' if the character is printable for %U (%#U).
-		' '	(space) leave a space for elided sign in numbers (% d);
-			put spaces between bytes printing strings or slices in hex (% x, % X)
-		0	pad with leading zeros rather than spaces;
-			for numbers, this moves the padding after the sign
-	*/
-	/*
-		switch verb {
-				case 'v', 's', 'x', 'X', 'q':
-					// Is it an error or Stringer?
-					// The duplication in the bodies is necessary:
-					// setting handled and deferring catchPanic
-					// must happen before calling the method.
-					switch v := p.arg.(type) {
-					case error:
-						handled = true
-						defer p.catchPanic(p.arg, verb, "Error")
-						p.fmtString(v.Error(), verb)
-						return
-
-					case Stringer:
-						handled = true
-						defer p.catchPanic(p.arg, verb, "String")
-						p.fmtString(v.String(), verb)
-						return
-					}
-				}
-	*/
-
+	return grouping
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
@@ -1137,6 +1041,9 @@ func (grouping *AddressDivisionGrouping) CopyDivisions(divs []*AddressDivision) 
 }
 
 func (grouping *AddressDivisionGrouping) GetDivisionStrings() []string {
+	if grouping == nil {
+		return nil
+	}
 	return grouping.getDivisionStrings()
 }
 

@@ -153,16 +153,6 @@ func (rng *ipAddressSeqRangeInternal) toIPSequentialRange() *IPAddressSeqRange {
 	return (*IPAddressSeqRange)(unsafe.Pointer(rng))
 }
 
-func (rng *ipAddressSeqRangeInternal) toString(lowerStringer func(*IPAddress) string, separator string, upperStringer func(*IPAddress) string) string {
-	builder := strings.Builder{}
-	str1, str2, str3 := lowerStringer(rng.lower), separator, upperStringer(rng.upper)
-	builder.Grow(len(str1) + len(str2) + len(str3))
-	builder.WriteString(str1)
-	builder.WriteString(str2)
-	builder.WriteString(str3)
-	return builder.String()
-}
-
 func (rng *ipAddressSeqRangeInternal) overlaps(other *IPAddressSeqRange) bool {
 	return compareLowIPAddressValues(other.GetLower(), rng.upper) <= 0 && compareLowIPAddressValues(other.GetUpper(), rng.lower) >= 0
 }
@@ -446,6 +436,16 @@ func (rng *ipAddressSeqRangeInternal) IncludesMax() bool {
 // whether this address item represents all possible values attainable by an address item of this type
 func (rng *ipAddressSeqRangeInternal) IsFullRange() bool {
 	return rng.IncludesZero() && rng.IncludesMax()
+}
+
+func (rng *ipAddressSeqRangeInternal) toString(lowerStringer func(*IPAddress) string, separator string, upperStringer func(*IPAddress) string) string {
+	builder := strings.Builder{}
+	str1, str2, str3 := lowerStringer(rng.lower), separator, upperStringer(rng.upper)
+	builder.Grow(len(str1) + len(str2) + len(str3))
+	builder.WriteString(str1)
+	builder.WriteString(str2)
+	builder.WriteString(str3)
+	return builder.String()
 }
 
 func (rng *ipAddressSeqRangeInternal) format(state fmt.State, verb rune) {
@@ -868,7 +868,21 @@ func (rng *IPAddressSeqRange) IsIPv6SequentialRange() bool { // returns false wh
 	return rng != nil && rng.GetLower().IsIPv6()
 }
 
+//TODO think about this, I might need to call init() in all upscales.  Why?  Because if you do not,
+// then you upscale, then the init() of the sub gets called on the downscale or on any other call, transforming to the zero value of that subtype.
+// so, for instance, upscaling IPAddress{} to ipv6 creates ::
+// Similarly with the range IPAddressSeqRange{}, the upscale does the same, creating ::->::
+// But confirm this first.  If you are right, then you need blocks like the two commented out blocks below, to init() upscales.
+// And then hou need the same for addresses and segments/divs, since both of them also have init() funcs
+// On the flip side, maybe we disallow such upscales with addresses and segments?  That would make sense,
+// because the original is not compatible really.  Zero range ipv4 ranges have 0.0.0.0 as the boundaries, not an address with no segments.
+// So what I might really need here is code that prvents the upscale, maybe you test one of the addresses to see if the address can upscale.
+// IN fact, I think I do that already, so all of this is MOOT.
+// No problem here.
 func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
+	//if rng != nil {
+	//	rng = rng.init()
+	//}
 	if rng.IsIPv4SequentialRange() {
 		return (*IPv4AddressSeqRange)(rng)
 	}
@@ -876,6 +890,9 @@ func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
 }
 
 func (rng *IPAddressSeqRange) ToIPv6SequentialRange() *IPv6AddressSeqRange {
+	//if rng != nil {
+	//	rng = rng.init()
+	//}
 	if rng.IsIPv6SequentialRange() {
 		return (*IPv6AddressSeqRange)(rng)
 	}
@@ -891,13 +908,11 @@ func (rng *IPAddressSeqRange) Intersect(other *IPAddressSeqRange) *IPAddressSeqR
 }
 
 func (rng *IPAddressSeqRange) CoverWithPrefixBlock() *IPAddress {
-	res, _ := rng.GetLower().CoverWithPrefixBlockTo(rng.GetUpper())
-	return res
+	return rng.GetLower().CoverWithPrefixBlockTo(rng.GetUpper())
 }
 
 func (rng *IPAddressSeqRange) SpanWithPrefixBlocks() []*IPAddress {
-	res, _ := rng.GetLower().SpanWithPrefixBlocksTo(rng.GetUpper())
-	return res
+	return rng.GetLower().SpanWithPrefixBlocksTo(rng.GetUpper())
 }
 
 func (rng *IPAddressSeqRange) SpanWithSequentialBlocks() []*IPAddress {
@@ -959,7 +974,7 @@ func newSeqRangeCheckSize(lower, upper *IPAddress) *IPAddressSeqRange {
 func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
 	var lower, upper *IPAddress
 	var isMult bool
-	if f := first.contains(other); f || other.contains(first) {
+	if f := first.Contains(other); f || other.Contains(first) {
 		var addr *IPAddress
 		if f {
 			addr = first.WithoutPrefixLen()

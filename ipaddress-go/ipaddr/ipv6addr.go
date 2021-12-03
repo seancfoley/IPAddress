@@ -382,10 +382,13 @@ func (addr *IPv6Address) GetBytesPerSegment() int {
 }
 
 func (addr *IPv6Address) HasZone() bool {
-	return addr.zone != NoZone
+	return addr != nil && addr.zone != NoZone
 }
 
 func (addr *IPv6Address) GetZone() Zone {
+	if addr == nil {
+		return NoZone
+	}
 	return addr.zone
 }
 
@@ -1084,19 +1087,19 @@ func (addr *IPv6Address) SpanWithPrefixBlocks() []*IPv6Address {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPv6Address{addr}
 		}
-		wrapped := WrappedIPAddress{addr.ToIPAddress()}
+		wrapped := WrapIPAddress(addr.ToIPAddress())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv6Addrs(spanning)
 	}
-	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	wrapped := WrapIPAddress(addr.ToIPAddress())
 	return cloneToIPv6Addrs(spanWithPrefixBlocks(wrapped))
 }
 
 func (addr *IPv6Address) SpanWithPrefixBlocksTo(other *IPv6Address) []*IPv6Address {
 	return cloneToIPv6Addrs(
 		getSpanningPrefixBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
+			WrapIPAddress(addr.ToIPAddress()),
+			WrapIPAddress(other.ToIPAddress()),
 		),
 	)
 }
@@ -1105,15 +1108,15 @@ func (addr *IPv6Address) SpanWithSequentialBlocks() []*IPv6Address {
 	if addr.IsSequential() {
 		return []*IPv6Address{addr}
 	}
-	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	wrapped := WrapIPAddress(addr.ToIPAddress())
 	return cloneToIPv6Addrs(spanWithSequentialBlocks(wrapped))
 }
 
 func (addr *IPv6Address) SpanWithSequentialBlocksTo(other *IPv6Address) []*IPv6Address {
 	return cloneToIPv6Addrs(
 		getSpanningSequentialBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
+			WrapIPAddress(addr.ToIPAddress()),
+			WrapIPAddress(other.ToIPAddress()),
 		),
 	)
 }
@@ -1434,5 +1437,5 @@ func (addr *IPv6Address) ToIPAddress() *IPAddress {
 }
 
 func (addr *IPv6Address) Wrap() WrappedIPAddress {
-	return WrappedIPAddress{addr.ToIPAddress()}
+	return WrapIPAddress(addr.ToIPAddress())
 }

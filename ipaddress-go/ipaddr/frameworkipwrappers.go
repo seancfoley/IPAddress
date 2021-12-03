@@ -6,6 +6,8 @@ package ipaddr
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
+	ToCustomString(stringOptions IPStringOptions) string
+
 	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries
 
@@ -82,7 +84,7 @@ type ExtendedIPSegmentSeries interface {
 	ReverseSegments() ExtendedIPSegmentSeries
 }
 
-type WrappedIPAddress struct { //TODO replace all the WrappedIPAddress{ you can with Wrap()
+type WrappedIPAddress struct {
 	*IPAddress
 }
 
@@ -91,11 +93,11 @@ func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
 }
 
 func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetNetworkMask()}
+	return WrapIPAddress(w.IPAddress.GetNetworkMask())
 }
 
 func (w WrappedIPAddress) GetHostMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetHostMask()}
+	return WrapIPAddress(w.IPAddress.GetHostMask())
 }
 
 func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
@@ -121,15 +123,15 @@ func (w WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
 func (w WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToBlock(segmentIndex, lower, upper)}
+	return WrapIPAddress(w.IPAddress.ToBlock(segmentIndex, lower, upper))
 }
 
 func (w WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToPrefixBlockLen(bitCount)}
+	return WrapIPAddress(w.IPAddress.ToPrefixBlockLen(bitCount))
 }
 
 func (w WrappedIPAddress) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToPrefixBlock()}
+	return WrapIPAddress(w.IPAddress.ToPrefixBlock())
 }
 
 func (w WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -149,7 +151,7 @@ func (w WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, IncompatibleAddr
 }
 
 func (w WrappedIPAddress) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ToZeroNetwork()} //IPAddress/Section.  ToZeroHost() is in IPAddress/Section/Segment
+	return WrapIPAddress(w.IPAddress.ToZeroNetwork()) //IPAddress/Section.  ToZeroHost() is in IPAddress/Section/Segment
 }
 
 func (w WrappedIPAddress) Increment(i int64) ExtendedIPSegmentSeries {
@@ -161,11 +163,11 @@ func (w WrappedIPAddress) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
 }
 
 func (w WrappedIPAddress) GetLower() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetLower()}
+	return WrapIPAddress(w.IPAddress.GetLower())
 }
 
 func (w WrappedIPAddress) GetUpper() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.GetUpper()}
+	return WrapIPAddress(w.IPAddress.GetUpper())
 }
 
 func (w WrappedIPAddress) GetSection() *IPAddressSection {
@@ -177,11 +179,11 @@ func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
 }
 
 func (w WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.AssignMinPrefixForBlock()}
+	return WrapIPAddress(w.IPAddress.AssignMinPrefixForBlock())
 }
 
 func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.WithoutPrefixLen()}
+	return WrapIPAddress(w.IPAddress.WithoutPrefixLen())
 }
 
 func (w WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
@@ -214,7 +216,7 @@ func (w WrappedIPAddress) Equal(other ExtendedIPSegmentSeries) bool {
 }
 
 func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.SetPrefixLen(prefixLen)}
+	return WrapIPAddress(w.IPAddress.SetPrefixLen(prefixLen))
 }
 
 func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -222,7 +224,7 @@ func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegm
 }
 
 func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.AdjustPrefixLen(prefixLen)}
+	return WrapIPAddress(w.IPAddress.AdjustPrefixLen(prefixLen))
 }
 
 func (w WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -238,7 +240,7 @@ func (w WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, In
 }
 
 func (w WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrappedIPAddress{w.IPAddress.ReverseSegments()}
+	return WrapIPAddress(w.IPAddress.ReverseSegments())
 }
 
 type WrappedIPAddressSection struct {
@@ -250,11 +252,11 @@ func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
 }
 
 func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetNetworkMask()}
+	return WrapIPSection(w.IPAddressSection.GetNetworkMask())
 }
 
 func (w WrappedIPAddressSection) GetHostMask() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetHostMask()}
+	return WrapIPSection(w.IPAddressSection.GetHostMask())
 }
 
 func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
@@ -280,15 +282,15 @@ func (w WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIt
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
 func (w WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToBlock(segmentIndex, lower, upper)}
+	return WrapIPSection(w.IPAddressSection.ToBlock(segmentIndex, lower, upper))
 }
 
 func (w WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlockLen(bitCount)}
+	return WrapIPSection(w.IPAddressSection.ToPrefixBlockLen(bitCount))
 }
 
 func (w WrappedIPAddressSection) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToPrefixBlock()}
+	return WrapIPSection(w.IPAddressSection.ToPrefixBlock())
 }
 
 func (w WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -308,7 +310,7 @@ func (w WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, Incompati
 }
 
 func (w WrappedIPAddressSection) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ToZeroNetwork()}
+	return WrapIPSection(w.IPAddressSection.ToZeroNetwork())
 }
 
 func (w WrappedIPAddressSection) Increment(i int64) ExtendedIPSegmentSeries {
@@ -320,11 +322,11 @@ func (w WrappedIPAddressSection) IncrementBoundary(i int64) ExtendedIPSegmentSer
 }
 
 func (w WrappedIPAddressSection) GetLower() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetLower()}
+	return WrapIPSection(w.IPAddressSection.GetLower())
 }
 
 func (w WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.GetUpper()}
+	return WrapIPSection(w.IPAddressSection.GetUpper())
 }
 
 func (w WrappedIPAddressSection) GetSection() *IPAddressSection {
@@ -336,11 +338,11 @@ func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentS
 }
 
 func (w WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.AssignMinPrefixForBlock()}
+	return WrapIPSection(w.IPAddressSection.AssignMinPrefixForBlock())
 }
 
 func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.WithoutPrefixLen()}
+	return WrapIPSection(w.IPAddressSection.WithoutPrefixLen())
 }
 
 func (w WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
@@ -374,7 +376,7 @@ func (w WrappedIPAddressSection) CompareSize(other ExtendedIPSegmentSeries) int 
 }
 
 func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.SetPrefixLen(prefixLen)}
+	return WrapIPSection(w.IPAddressSection.SetPrefixLen(prefixLen))
 }
 
 func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -382,7 +384,7 @@ func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (Extende
 }
 
 func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.AdjustPrefixLen(prefixLen)}
+	return WrapIPSection(w.IPAddressSection.AdjustPrefixLen(prefixLen))
 }
 
 func (w WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
@@ -398,7 +400,7 @@ func (w WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSer
 }
 
 func (w WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrappedIPAddressSection{w.IPAddressSection.ReverseSegments()}
+	return WrapIPSection(w.IPAddressSection.ReverseSegments())
 }
 
 var _ ExtendedIPSegmentSeries = WrappedIPAddress{}
@@ -409,26 +411,34 @@ func convIPAddrToIntf(addr *IPAddress) ExtendedIPSegmentSeries {
 	if addr == nil {
 		return nil
 	}
-	return WrappedIPAddress{addr}
+	return WrapIPAddress(addr)
 }
 
 func convIPSectToIntf(sect *IPAddressSection) ExtendedIPSegmentSeries {
 	if sect == nil {
 		return nil
 	}
-	return WrappedIPAddressSection{sect}
+	return WrapIPSection(sect)
 }
 
 func wrapIPSectWithErr(section *IPAddressSection, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedIPAddressSection{section}, nil
+		return WrapIPSection(section), nil
 	}
 	return nil, err
 }
 
 func wrapIPAddrWithErr(addr *IPAddress, err IncompatibleAddressError) (ExtendedIPSegmentSeries, IncompatibleAddressError) {
 	if err == nil {
-		return WrappedIPAddress{addr}, nil
+		return WrapIPAddress(addr), nil
 	}
 	return nil, err
+}
+
+func WrapIPAddress(addr *IPAddress) WrappedIPAddress {
+	return WrappedIPAddress{addr}
+}
+
+func WrapIPSection(section *IPAddressSection) WrappedIPAddressSection {
+	return WrappedIPAddressSection{section}
 }

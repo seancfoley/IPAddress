@@ -795,7 +795,7 @@ func (addr *MACAddress) ToAddress() *Address {
 }
 
 func (addr *MACAddress) Wrap() WrappedAddress { //TODO should I return nil when wrapping nil addresses?  It is a conversion after all.  And not doing that is setting callers up for nasty surprise panics!
-	return WrappedAddress{addr.ToAddress()}
+	return WrapAddress(addr.ToAddress())
 }
 
 //func (addr *MACAddress) CompareSize(other *MACAddress) int {

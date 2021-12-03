@@ -917,7 +917,7 @@ func (addr *IPAddress) ToIPv4Address() *IPv4Address {
 }
 
 func (addr *IPAddress) Wrap() WrappedIPAddress {
-	return WrappedIPAddress{addr}
+	return WrapIPAddress(addr)
 }
 
 func (addr *IPAddress) GetMaxSegmentValue() SegInt {
@@ -979,7 +979,8 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) { //TODO consider dropping the error, when spanning different versions you just get nil
+func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
+	//TODO consider dropping the error, when spanning different versions you just get nil
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
@@ -1134,7 +1135,7 @@ func (addr *IPAddress) IsMulticast() bool {
 	return false
 }
 
-// ToUNCHostName //TODO LATER since we are not yet parsing this
+// ToUNCHostName //TODO LATER ToUNCHostName since we are not yet parsing this
 
 func versionsMatch(one, two *IPAddress) bool {
 	return one.getAddrType() == two.getAddrType()
@@ -1154,26 +1155,22 @@ func allVersionsMatch(one *IPAddress, two []*IPAddress) bool {
 // MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressError) { //TODO drop the error, just handle each version separately
-	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
-	}
-	series := cloneIPAddrs(addr, addrs)
+// Arguments that are not the same IP version are ignored.
+func (addr *IPAddress) MergeToSequentialBlocks(addrs ...*IPAddress) []*IPAddress {
+	series := filterCloneIPAddrs(addr, addrs)
 	blocks := getMergedSequentialBlocks(series)
-	return cloneToIPAddrs(blocks), nil
+	return cloneToIPAddrs(blocks)
 }
 
 //
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) ([]*IPAddress, IncompatibleAddressError) { //TODO drop the error, just handle each version separately
-	if !allVersionsMatch(addr, addrs) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
-	}
-	series := cloneIPAddrs(addr, addrs)
+// Arguments that are not the same IP version are ignored.
+func (addr *IPAddress) MergeToPrefixBlocks(addrs ...*IPAddress) []*IPAddress {
+	series := filterCloneIPAddrs(addr, addrs)
 	blocks := getMergedPrefixBlocks(series)
-	return cloneToIPAddrs(blocks), nil
+	return cloneToIPAddrs(blocks)
 }
 
 func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
@@ -1190,23 +1187,25 @@ func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 	return cloneToIPAddrs(spanWithPrefixBlocks(wrapped))
 }
 
-func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) { //TODO drop the error, just handle each version separately
-	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) []*IPAddress {
+	if !addr.GetIPVersion().Equal(other.GetIPVersion()) {
+		return addr.SpanWithPrefixBlocks()
 	}
 	return cloneToIPAddrs(
 		getSpanningPrefixBlocks(
 			addr.init().Wrap(),
 			other.init().Wrap(),
 		),
-	), nil
+	)
 }
 
-func (addr *IPAddress) CoverWithPrefixBlockTo(other *IPAddress) (*IPAddress, IncompatibleAddressError) { //TODO drop the error, just handle each version separately, same with other places we call versionsMatch
-	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+// CoverWithPrefixBlockTo provides a single prefix block that covers both the receiver and the argument.
+// If the argument is not the same IP version as the receiver, the argument is ignored, and the result covers just the receiver.
+func (addr *IPAddress) CoverWithPrefixBlockTo(other *IPAddress) *IPAddress {
+	if !addr.GetIPVersion().Equal(other.GetIPVersion()) {
+		return addr.CoverWithPrefixBlock()
 	}
-	return addr.init().coverWithPrefixBlockTo(other), nil
+	return addr.init().coverWithPrefixBlockTo(other)
 }
 
 func (addr *IPAddress) CoverWithPrefixBlock() *IPAddress {

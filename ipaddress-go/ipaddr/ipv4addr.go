@@ -727,19 +727,19 @@ func (addr *IPv4Address) SpanWithPrefixBlocks() []*IPv4Address {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPv4Address{addr}
 		}
-		wrapped := WrappedIPAddress{addr.ToIPAddress()}
+		wrapped := WrapIPAddress(addr.ToIPAddress())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv4Addrs(spanning)
 	}
-	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	wrapped := WrapIPAddress(addr.ToIPAddress())
 	return cloneToIPv4Addrs(spanWithPrefixBlocks(wrapped))
 }
 
 func (addr *IPv4Address) SpanWithPrefixBlocksTo(other *IPv4Address) []*IPv4Address {
 	return cloneToIPv4Addrs(
 		getSpanningPrefixBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
+			WrapIPAddress(addr.ToIPAddress()),
+			WrapIPAddress(other.ToIPAddress()),
 		),
 	)
 }
@@ -748,15 +748,15 @@ func (addr *IPv4Address) SpanWithSequentialBlocks() []*IPv4Address {
 	if addr.IsSequential() {
 		return []*IPv4Address{addr}
 	}
-	wrapped := WrappedIPAddress{addr.ToIPAddress()}
+	wrapped := WrapIPAddress(addr.ToIPAddress())
 	return cloneToIPv4Addrs(spanWithSequentialBlocks(wrapped))
 }
 
 func (addr *IPv4Address) SpanWithSequentialBlocksTo(other *IPv4Address) []*IPv4Address {
 	return cloneToIPv4Addrs(
 		getSpanningSequentialBlocks(
-			WrappedIPAddress{addr.ToIPAddress()},
-			WrappedIPAddress{other.ToIPAddress()},
+			WrapIPAddress(addr.ToIPAddress()),
+			WrapIPAddress(other.ToIPAddress()),
 		),
 	)
 }
@@ -1066,5 +1066,5 @@ func (addr *IPv4Address) ToIPAddress() *IPAddress {
 }
 
 func (addr *IPv4Address) Wrap() WrappedIPAddress {
-	return WrappedIPAddress{addr.ToIPAddress()}
+	return WrapIPAddress(addr.ToIPAddress())
 }

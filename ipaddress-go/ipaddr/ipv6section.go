@@ -843,11 +843,11 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection 
 		if section.IsSinglePrefixBlock() {
 			return []*IPv6AddressSection{section}
 		}
-		wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+		wrapped := WrapIPSection(section.ToIPAddressSection())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv6Sections(spanning)
 	}
-	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	wrapped := WrapIPSection(section.ToIPAddressSection())
 	return cloneToIPv6Sections(spanWithPrefixBlocks(wrapped))
 }
 
@@ -873,8 +873,8 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSect
 	}
 	return cloneToIPv6Sections(
 		getSpanningPrefixBlocks(
-			WrappedIPAddressSection{section.ToIPAddressSection()},
-			WrappedIPAddressSection{other.ToIPAddressSection()},
+			WrapIPSection(section.ToIPAddressSection()),
+			WrapIPSection(other.ToIPAddressSection()),
 		),
 	), nil
 }
@@ -883,7 +883,7 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocks() []*IPv6AddressSect
 	if section.IsSequential() {
 		return []*IPv6AddressSection{section}
 	}
-	wrapped := WrappedIPAddressSection{section.ToIPAddressSection()}
+	wrapped := WrapIPSection(section.ToIPAddressSection())
 	return cloneToIPv6Sections(spanWithSequentialBlocks(wrapped))
 }
 
@@ -896,8 +896,8 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6Address
 	}
 	return cloneToIPv6Sections(
 		getSpanningSequentialBlocks(
-			WrappedIPAddressSection{section.ToIPAddressSection()},
-			WrappedIPAddressSection{other.ToIPAddressSection()},
+			WrapIPSection(section.ToIPAddressSection()),
+			WrapIPSection(other.ToIPAddressSection()),
 		),
 	), nil
 }
@@ -1398,6 +1398,13 @@ func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4Mi
 	}
 	result := mixedParams.toZonedString(mixed, zone)
 	return result, nil
+}
+
+func (section *IPv6AddressSection) GetSegmentStrings() []string {
+	if section == nil {
+		return nil
+	}
+	return section.getSegmentStrings()
 }
 
 func (section *IPv6AddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {

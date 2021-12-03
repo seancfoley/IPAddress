@@ -9,7 +9,6 @@ import (
 
 const (
 	HexPrefix                            = "0x"
-	HexUppercasePrefix                   = "0X"
 	OctalPrefix                          = "0"
 	BinaryPrefix                         = "0b"
 	RangeSeparator                  byte = '-'
@@ -208,7 +207,7 @@ func (addr *addressInternal) compareSize(other AddressType) int {
 func (addr addressInternal) toString() string { // using non-pointer receiver makes it work well with fmt
 	section := addr.section
 	if section == nil {
-		return "0" //TODO see discussion elsewhere about strings when no divisions
+		return nilSection() // note no zone possible since a zero-address like Address{} or IPAddress{} cannot have a zone
 	} else if addr.isMAC() {
 		return addr.toNormalizedString()
 	}
@@ -810,60 +809,66 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 	return addr.section.ToHexString(with0xPrefix)
 }
 
-// Format handles formatting for the fmt package.
-// is the only method with a non-pointer receiver.  It is not intended to be called directly.
-// When called by a function in the fmt package, nil values are detected before this method is called,
-// so a nil pointer is never dereferenced to call this method.
 func (addr *addressInternal) format(state fmt.State, verb rune) {
-	//fmt.Println("WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT WE ARE ALREADY USING FORMAT")
-	if addr.hasNoDivisions() {
-		state.Write([]byte("0")) //TODO see the discussion below on returning "0".  Also consider handling the flags, width, precision with this case.
-		return
-	}
 	section := addr.section
-	if !addr.isIP() && !addr.isMAC() {
-		section.defaultFormat(state, verb)
-		return
-	}
-	var str, prefix string
-	var err error
-	var isNormalized bool
-
-	switch verb {
-	case 's', 'v':
-		isNormalized = true
-		str = addr.toString()
-	case 'x', 'X':
-		str, err = addr.toHexString(false) //TODO need to capitalize when X
-	case 'b':
-		str, err = addr.toBinaryString(false)
-	case 'o', 'O':
-		str, err = addr.toOctalString(false)
-	case 'd':
-		//TODO decimal strings
-		err = fmt.Errorf("decimal not supported yet")
-	default:
-		// unknown format
-		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
-		return
-	}
-	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
-		isNormalized = true
-		str = addr.toString()
-	}
-	if isNormalized {
-		state.Write([]byte(str))
-		return
-	}
-	section.writeFmt(state, verb, prefix, str)
-
-	//xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
-	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
-	//if sect := grouping.toAddressSection(); sect != nil {
-	//	return sect.ToNormalizedString()
-	//}
-	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
+	section.format(state, verb, addr.zone, addr.isIP())
 }
+
+//func (addr *addressInternal) format(state fmt.State, verb rune) {
+//	if addr.hasNoDivisions() {
+//		state.Write([]byte("0"))
+//		return
+//	}
+//	section := addr.section
+//	if !addr.isIP() && !addr.isMAC() {
+//		section.defaultFormat(state, verb)
+//		return
+//	}
+//	var str, prefix string
+//	var err error
+//	var isNormalized bool
+//
+//	_, hasPrecision := state.Precision()
+//	_, hasWidth := state.Width()
+//	noExtras := !hasPrecision && !hasWidth
+//
+//	xxx
+//
+//	switch verb {
+//	case 's', 'v':
+//		isNormalized = true
+//		str = addr.toString()
+//	case 'x', 'X':
+//		str, err = addr.toHexString(false)
+//	case 'b':
+//		str, err = addr.toBinaryString(false)
+//	case 'o', 'O':
+//		str, err = addr.toOctalString(false)
+//	case 'd':
+//
+//		err = fmt.Errorf("decimal not supported yet")
+//	default:
+//		// unknown format
+//		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
+//		return
+//	}
+//	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
+//		isNormalized = true
+//		str = addr.toString()
+//	}
+//	if isNormalized {
+//		state.Write([]byte(str))
+//		return
+//	}
+//	section.writeNumberFmt(state, verb, prefix, str)
+//
+//	//xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
+//	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
+//	//if sect := grouping.toAddressSection(); sect != nil {
+//	//	return sect.ToNormalizedString()
+//	//}
+//	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
+//}
 
 //func (addr *addressInternal) toCustomString(stringOptions StringOptions) string {
 //	return addr.section.toCustomString(stringOptions, addr.zone)
@@ -1293,5 +1298,5 @@ func (addr *Address) ToMACAddress() *MACAddress {
 }
 
 func (addr *Address) Wrap() WrappedAddress {
-	return WrappedAddress{addr.init()}
+	return WrapAddress(addr.init())
 }
