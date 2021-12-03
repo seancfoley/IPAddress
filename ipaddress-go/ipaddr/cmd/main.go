@@ -418,8 +418,7 @@ func merge(strs ...string) []*ipaddr.IPAddress {
 	for i := range strs {
 		remaining[i] = ipaddr.NewIPAddressString(strs[i]).GetAddress()
 	}
-	res, _ := first.MergeToPrefixBlocks(remaining...)
-	return res
+	return first.MergeToPrefixBlocks(remaining...)
 }
 
 //func foo(bytes []byte) {
