@@ -461,7 +461,7 @@ func (addr *addressInternal) contains(other AddressType) bool {
 
 func (addr *addressInternal) equals(other AddressType) bool {
 	if other == nil {
-		return true
+		return false
 	}
 	otherAddr := other.ToAddress()
 	if addr.toAddress() == otherAddr {

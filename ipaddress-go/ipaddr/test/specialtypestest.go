@@ -564,6 +564,7 @@ func (t specialTypesTester) testNils() {
 	ipRanges = append(ipRanges, &ipaddr.IPAddressSeqRange{})
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
+	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIPAddressSeqRange())
@@ -598,8 +599,186 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	//TODO ipv6 ranges, ipv4 addresses, ipv6 addresses, maybe sections, maybe divisions, then compare everything from one set to each other set
+	//ipRanges = ipRanges[:0]
 
+	ipv6Addr1 := ipaddr.NewIPAddressString("1:2:3:3::").GetAddress().ToIPv6Address()
+	ipv6Addr2 := ipaddr.NewIPAddressString("2:2:3:4-5::").GetAddress().ToIPv6Address()
+
+	var ipRanges2 []*ipaddr.IPAddressSeqRange
+
+	ipRanges2 = append(ipRanges2, nil)
+	ipRanges2 = append(ipRanges2, &ipaddr.IPAddressSeqRange{})
+	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(nil, nil).ToIPAddressSeqRange())
+	ipRanges2 = append(ipRanges2, (&ipaddr.IPv6AddressSeqRange{}).ToIPAddressSeqRange())
+	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(ipv6Addr1, nil).ToIPAddressSeqRange())
+	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(nil, ipv6Addr2).ToIPAddressSeqRange())
+	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(ipv6Addr1, ipv6Addr2).ToIPAddressSeqRange())
+
+	for i := range ipRanges2 {
+		range1 := ipRanges2[i]
+		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
+		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
+		for j := i; j < len(ipRanges2); j++ {
+			range2 := ipRanges2[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSeqRangeFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSeqRangeFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSeqRangeFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSeqRangeFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	for _, range1 := range ipRanges {
+		for _, range2 := range ipRanges2 {
+			// the nils and the blank ranges
+			c1 := range1.Compare(range2)
+			c2 := range2.Compare(range1)
+			if range1 == nil {
+				if range2 == nil {
+					if c1 != 0 || c2 != 0 {
+						t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+					}
+				} else if c1 >= 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				}
+			} else if range2 == nil {
+				if c1 <= 0 || c2 >= 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				}
+			} else if range1.GetByteCount() == 0 {
+				if range2.GetByteCount() == 0 {
+					if c1 != 0 || c2 != 0 {
+						t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+					}
+				} else {
+					if c1 >= 0 || c2 <= 0 {
+						t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+					}
+				}
+			} else if range2.GetByteCount() == 0 {
+				if c1 <= 0 || c2 >= 0 {
+					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				}
+			} else if c1 >= 0 {
+				t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+			} else if c2 <= 0 {
+				t.addFailure(newSeqRangeFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+			}
+		}
+	}
+
+	//TODO same tests bit with left arg non-nil, then ensure all results are negative, then same tests with right arg nil and all results positive
+	nil1 := ipaddr.CountComparator.CompareSeries(nil, nil)
+	nil2 := ipaddr.CountComparator.CompareRanges(nil, nil)
+	nil3 := ipaddr.CountComparator.CompareAddresses(nil, nil)
+	nil4 := ipaddr.CountComparator.CompareDivisions(nil, nil)
+	nil5 := ipaddr.CountComparator.CompareAddressSections(nil, nil)
+	nil6 := ipaddr.CountComparator.CompareSegments(nil, nil)
+	nil7 := ipaddr.CountComparator.Compare(nil, nil)
+	if nil1 != 0 || nil2 != 0 || nil3 != 0 || nil4 != 0 || nil5 != 0 || nil6 != 0 || nil7 != 0 {
+		t.addFailure(newSegmentSeriesFailure("comparison of nils yields non-zero", nil))
+	}
+	/*
+
+		Copied this code over to know how the cmoparisons should shake out in here:
+
+				      if divSeries1, ok := one.(AddressDivisionSeries); ok {
+				      		if divSeries2, ok := two.(AddressDivisionSeries); ok {
+				      			return comp.CompareSeries(divSeries1, divSeries2)
+				      		} else {
+				      			return 1
+				      		}
+				      	} else if div1, ok := one.(DivisionType); ok {
+				      		if div2, ok := two.(DivisionType); ok {
+				      			return comp.CompareDivisions(div1, div2)
+				      		} else {
+				      			return -1
+				      		}
+				      	} else if rng1, ok := one.(IPAddressSeqRangeType); ok {
+				      		if rng2, ok := two.(IPAddressSeqRangeType); ok {
+				      			return comp.CompareRanges(rng1, rng2)
+				      		} else if _, ok := two.(AddressDivisionSeries); ok {
+				      			return -1
+				      		}
+				      		return 1
+				      	}
+				      	// we've covered all known address items for one, so check two
+				      	if _, ok := two.(AddressDivisionSeries); ok {
+				      		return -1
+				      	} else if _, ok := two.(DivisionType); ok {
+				      		return 1
+				      	} else if _, ok := two.(IPAddressSeqRangeType); ok {
+				      		return -1
+				      	}
+
+				so ranges are bigger than the others
+
+				   then
+
+				     if addrSeries1, ok := one.(AddressType); ok {
+						if addrSeries2, ok := two.(AddressType); ok {
+							return comp.CompareAddresses(addrSeries1, addrSeries2)
+						}
+						return 1
+					} else if _, ok := two.(AddressType); ok {
+						return -1
+					}
+					if addrSection1, ok := one.(AddressSectionType); ok {
+						if addrSection2, ok := two.(AddressSectionType); ok {
+							return comp.CompareAddressSections(addrSection1, addrSection2)
+						}
+					}
+
+				addresses are bigger than sections
+
+				   then
+
+				      const (
+				ipv6sectype          = 7
+				ipv6v4groupingtype   = 6
+				ipv4sectype          = 5
+				ipsectype            = 4
+				macsectype           = 3
+				sectype              = 1
+				largegroupingtype    = -2
+				standardgroupingtype = -3
+			)
+
+			const (
+				ipv6segtype     = 6
+				ipv4segtype     = 5
+				ipsegtype       = 4
+				macsegtype      = 3
+				segtype         = 1
+				largedivtype    = -2
+				standarddivtype = 0
+			)
+
+			const (
+				ipv6rangetype = 2
+				ipv4rangetype = 1
+				iprangetype   = 0
+			)
+
+			the above ordering orders the versions/types of each, so ipv6 > ipv4 > ip
+
+	*/
 }
 
 func getCount(segmentMax, segmentCount uint64) *big.Int {

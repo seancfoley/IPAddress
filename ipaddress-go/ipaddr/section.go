@@ -1226,17 +1226,6 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 		state.Write([]byte(nilSection())) //TODO Consider handling the flags, width, precision with this case.
 		return
 	}
-	sect := section.toAddressSection()
-	if !sect.IsIPAddressSection() && !sect.IsMACAddressSection() {
-		//TODO if we handle no-segment sections above, then hard to see why this block is here, we can never get a section with segments if not MAC or IP
-		// Can we jump up here if a division grouping?  Seems as though only if we have zero divisions, in which case above applies
-		// So I think we will want to delete this block.
-		//
-		// TODO check what happens when using x, X, d, o, O with a division grouping, we may wish to revisit this, below we revert to %v in situations of error
-		section.defaultFormat(state, verb) // applies the state to the slice of divisions, which uses the Stringer for the divisions
-		return
-	}
-
 	var str, prefix string
 	var err error
 	var isNormalized bool
@@ -1247,13 +1236,6 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 
 	switch verb {
 	case 's', 'v':
-		// TODO for '#v' we should do the same as fmt, see https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go:
-		// fmtQ formats a string as a double-quoted, escaped Go string constant.
-		// If f.sharp is set a raw (backquoted) string may be returned instead
-		// if the string does not contain any control characters other than tab.
-		//func (f *fmt) fmtQ(s string) {
-		// But we are not really a string.  We are supposed to make go syntax.  So probably not.
-
 		//TODO see https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;bpv=1;bpt=1;l=570
 		// and https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;l=437
 		// The latter, fmtString, is used when the arg is a string, using a type switch.
@@ -1323,7 +1305,7 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 		}
 	default:
 		// format not supported
-		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
+		fmt.Fprintf(state, "%%!%c(address=%s)", verb, section.toString())
 		return
 	}
 	if err != nil { // could not produce an octal, binary, hex or decimal string, so use default instead

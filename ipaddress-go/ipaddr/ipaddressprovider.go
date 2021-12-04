@@ -869,7 +869,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //		}
 //	}
 
-// TODO NEXT progress
+// TODO NEXT progress - WE ARE SO FUCKING CLOSE NOW, SO CLOSE TO READY
 // order of todos:
 // - nil tests in specialtypestest
 // - prefixLen change
@@ -881,7 +881,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //
 //
 // - all the TODOs I have piled up (excluding anything LATER)
-// - then you need some concurrency testing (do we really? I guess) - use a map of addresses and the addresses.go framework and the existing tests
+// - then you need some concurrency testing (do we really? I guess, maybe a simple test of the atomic write I always use is enough, yeah!!! write and read the same field from 1000 goroutines using that technique) - use a map of addresses and the addresses.go framework and the existing tests
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - go over the goland warnings, they do help a bit to find issues

@@ -736,32 +736,37 @@ func (rng *IPAddressSeqRange) ToCanonicalString() string {
 	return rng.ToString((*IPAddress).ToCanonicalString, DefaultSeqRangeSeparator, (*IPAddress).ToCanonicalString)
 }
 
-// GetLowerIPAddress satisfies the IPAddressRange interface
+// GetLowerIPAddress satisfies the IPAddressRange interface, returning the lower address in the range, same as GetLower()
 func (rng *IPAddressSeqRange) GetLowerIPAddress() *IPAddress {
 	return rng.GetLower()
 }
 
-// GetUpperIPAddress satisfies the IPAddressRange interface
+// GetUpperIPAddress satisfies the IPAddressRange interface, returning the upper address in the range, same as GetUpper()
 func (rng *IPAddressSeqRange) GetUpperIPAddress() *IPAddress {
 	return rng.GetUpper()
 }
 
+// GetLower returns the lower IP address in the range
 func (rng *IPAddressSeqRange) GetLower() *IPAddress {
 	return rng.init().lower
 }
 
+// GetUpper returns the upper IP address in the range
 func (rng *IPAddressSeqRange) GetUpper() *IPAddress {
 	return rng.init().upper
 }
 
+// GetBitCount returns the number of bits in each address in the range
 func (rng *IPAddressSeqRange) GetBitCount() BitCount {
 	return rng.GetLower().GetBitCount()
 }
 
+// GetByteCount returns the number of bytes in each address in the range
 func (rng *IPAddressSeqRange) GetByteCount() int {
 	return rng.GetLower().GetByteCount()
 }
 
+// GetIP returns the lower IP address in the range as a net.IP
 func (rng *IPAddressSeqRange) GetIP() net.IP {
 	return rng.GetBytes()
 }
@@ -770,6 +775,7 @@ func (rng *IPAddressSeqRange) CopyIP(bytes net.IP) net.IP {
 	return rng.GetLower().CopyIP(bytes)
 }
 
+// GetUpperIP returns the upper IP address in the range as a net.IP
 func (rng *IPAddressSeqRange) GetUpperIP() net.IP {
 	return rng.GetUpperBytes()
 }
@@ -794,6 +800,7 @@ func (rng *IPAddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
 	return rng.GetUpper().CopyUpperBytes(bytes)
 }
 
+// Contains returns whether the given address is within the range of this sequential range
 func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
 	if rng == nil {
 		return other == nil || other.ToAddress() == nil
@@ -801,6 +808,7 @@ func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
 	return rng.init().contains(other)
 }
 
+// Contains returns whether all the addresses in the given sequential range are also contained in this sequential range
 func (rng *IPAddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
 	if rng == nil {
 		return other == nil || other.ToIPAddressSeqRange() == nil

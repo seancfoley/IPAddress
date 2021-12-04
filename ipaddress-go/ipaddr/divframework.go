@@ -1,6 +1,6 @@
 package ipaddr
 
-// DivisionType serves as a common interface to all divisions, including both standard divisions (<= 64 bits) and large divisions (> 64 bits)
+// DivisionType serves as a common interface to all divisions
 type DivisionType interface {
 	AddressItem
 
@@ -22,7 +22,7 @@ type DivisionType interface {
 	divStringProvider
 }
 
-// Represents any standard address division, all of which can be converted to/from AddressDivision
+// Represents any standard address division, which is a division of size 64 bits or less.  All can be converted to/from AddressDivision
 type StandardDivisionType interface {
 	DivisionType
 
