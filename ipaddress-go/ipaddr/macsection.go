@@ -363,7 +363,10 @@ func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 
 func (section *MACAddressSection) IncrementBoundary(increment int64) *MACAddressSection {
 	return section.incrementBoundary(increment).ToMACAddressSection()
+}
 
+func (section *MACAddressSection) IsZeroGrouping() bool {
+	return section != nil && section.matchesZeroGrouping()
 }
 
 func getMacMaxValueLong(segmentCount int) uint64 {

@@ -269,9 +269,8 @@ func (div *addressDivisionBase) matchesStructure(other DivisionType) (res bool, 
 //	return bigDivValSame(div.GetValue(), other.GetValue())
 //}
 
-// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6)
+// returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6, MAC and other)
 func (div *addressDivisionBase) getDefaultTextualRadix() int {
-	// when we support other division types, there may be more possibilities here
 	addrType := div.getAddrType()
 	if addrType.isIPv4() {
 		return IPv4DefaultTextualRadix

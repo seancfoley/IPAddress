@@ -135,7 +135,7 @@ func (seg *MACAddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
 		return other == nil || other.ToAddressSegment() == nil
 	}
-	return seg.contains(other)
+	return seg.init().contains(other)
 }
 
 func (seg *MACAddressSegment) Equal(other AddressSegmentType) bool {

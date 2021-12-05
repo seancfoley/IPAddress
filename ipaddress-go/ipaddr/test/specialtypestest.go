@@ -555,27 +555,27 @@ func (t specialTypesTester) testLoopback(host string, isSelf bool) {
 }
 
 func (t specialTypesTester) testNils() {
-	var ipRanges []*ipaddr.IPAddressSeqRange
+	var ipRangesIPv4 []*ipaddr.IPAddressSeqRange
 	//var ipv4Addresses []*ipaddr.IPv4Address
 	ipv4Addr1 := ipaddr.NewIPAddressString("1.2.3.3").GetAddress().ToIPv4Address()
 	ipv4Addr2 := ipaddr.NewIPAddressString("2.2.3.4-5").GetAddress().ToIPv4Address()
 
-	ipRanges = append(ipRanges, nil)
-	ipRanges = append(ipRanges, &ipaddr.IPAddressSeqRange{})
-	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, nil)
+	ipRangesIPv4 = append(ipRangesIPv4, &ipaddr.IPAddressSeqRange{})
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
 	//fmt.Println(" it is " + ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange().String())
-	ipRanges = append(ipRanges, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
-	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
-	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
-	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIPAddressSeqRange())
-	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIPAddressSeqRange())
 
-	for i := range ipRanges {
-		range1 := ipRanges[i]
+	for i := range ipRangesIPv4 {
+		range1 := ipRangesIPv4[i]
 		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
 		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
-		for j := i; j < len(ipRanges); j++ {
-			range2 := ipRanges[j]
+		for j := i; j < len(ipRangesIPv4); j++ {
+			range2 := ipRangesIPv4[j]
 			if i == j {
 				if range1.Compare(range2) != 0 {
 					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
@@ -599,28 +599,26 @@ func (t specialTypesTester) testNils() {
 			}
 		}
 	}
-
-	//ipRanges = ipRanges[:0]
 
 	ipv6Addr1 := ipaddr.NewIPAddressString("1:2:3:3::").GetAddress().ToIPv6Address()
 	ipv6Addr2 := ipaddr.NewIPAddressString("2:2:3:4-5::").GetAddress().ToIPv6Address()
 
-	var ipRanges2 []*ipaddr.IPAddressSeqRange
+	var ipRangesIPv6 []*ipaddr.IPAddressSeqRange
 
-	ipRanges2 = append(ipRanges2, nil)
-	ipRanges2 = append(ipRanges2, &ipaddr.IPAddressSeqRange{})
-	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(nil, nil).ToIPAddressSeqRange())
-	ipRanges2 = append(ipRanges2, (&ipaddr.IPv6AddressSeqRange{}).ToIPAddressSeqRange())
-	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(ipv6Addr1, nil).ToIPAddressSeqRange())
-	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(nil, ipv6Addr2).ToIPAddressSeqRange())
-	ipRanges2 = append(ipRanges2, ipaddr.NewIPv6SeqRange(ipv6Addr1, ipv6Addr2).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, nil)
+	ipRangesIPv6 = append(ipRangesIPv6, &ipaddr.IPAddressSeqRange{})
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, nil).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, (&ipaddr.IPv6AddressSeqRange{}).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, nil).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, ipv6Addr2).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, ipv6Addr2).ToIPAddressSeqRange())
 
-	for i := range ipRanges2 {
-		range1 := ipRanges2[i]
+	for i := range ipRangesIPv6 {
+		range1 := ipRangesIPv6[i]
 		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
 		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
-		for j := i; j < len(ipRanges2); j++ {
-			range2 := ipRanges2[j]
+		for j := i; j < len(ipRangesIPv6); j++ {
+			range2 := ipRangesIPv6[j]
 			if i == j {
 				if range1.Compare(range2) != 0 {
 					t.addFailure(newSeqRangeFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
@@ -645,8 +643,8 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	for _, range1 := range ipRanges {
-		for _, range2 := range ipRanges2 {
+	for _, range1 := range ipRangesIPv4 {
+		for _, range2 := range ipRangesIPv6 {
 			// the nils and the blank ranges
 			c1 := range1.Compare(range2)
 			c2 := range2.Compare(range1)
@@ -684,7 +682,6 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	//TODO same tests bit with left arg non-nil, then ensure all results are negative, then same tests with right arg nil and all results positive
 	nil1 := ipaddr.CountComparator.CompareSeries(nil, nil)
 	nil2 := ipaddr.CountComparator.CompareRanges(nil, nil)
 	nil3 := ipaddr.CountComparator.CompareAddresses(nil, nil)
@@ -694,6 +691,142 @@ func (t specialTypesTester) testNils() {
 	nil7 := ipaddr.CountComparator.Compare(nil, nil)
 	if nil1 != 0 || nil2 != 0 || nil3 != 0 || nil4 != 0 || nil5 != 0 || nil6 != 0 || nil7 != 0 {
 		t.addFailure(newSegmentSeriesFailure("comparison of nils yields non-zero", nil))
+	}
+
+	ipv4Section1 := ipv4Addr1.GetSection()
+	ipv6Section1 := ipv6Addr1.GetSection()
+
+	ipv4Range1 := ipRangesIPv4[len(ipRangesIPv4)-1]
+	ipv6Range1 := ipRangesIPv6[len(ipRangesIPv6)-1]
+
+	ipv4Segment1 := ipv4Section1.GetSegment(0)
+	ipv6Segment1 := ipv6Section1.GetSegment(0)
+	ipDivision := ipaddr.NewDivision(11, 8, 0)
+
+	nil1 = ipaddr.CountComparator.CompareSeries(ipv4Addr1, nil)
+	nil11 := ipaddr.CountComparator.CompareSeries(ipv6Addr1, nil)
+	nil2 = ipaddr.CountComparator.CompareRanges(ipv4Range1, nil)
+	nil21 := ipaddr.CountComparator.CompareRanges(ipv6Range1, nil)
+	nil3 = ipaddr.CountComparator.CompareAddresses(ipv4Addr1, nil)
+	nil4 = ipaddr.CountComparator.CompareDivisions(ipv4Segment1, nil)
+	nil400 := ipaddr.CountComparator.CompareDivisions(ipv6Segment1, nil)
+	nil40 := ipaddr.CountComparator.CompareDivisions(ipDivision, nil)
+	nil41 := ipaddr.CountComparator.CompareSeries(ipv4Section1, nil)
+	nil42 := ipaddr.CountComparator.CompareSeries(ipv6Section1, nil)
+	nil5 = ipaddr.CountComparator.CompareAddressSections(ipv4Section1, nil)
+	nil51 := ipaddr.CountComparator.CompareAddressSections(ipv6Section1, nil)
+	nil6 = ipaddr.CountComparator.CompareSegments(ipv4Segment1, nil)
+	nil60 := ipaddr.CountComparator.CompareSegments(ipv6Segment1, nil)
+	nil7 = ipaddr.CountComparator.Compare(ipv4Addr1, nil)
+	if nil1 <= 0 || nil11 <= 0 || nil2 <= 0 || nil21 <= 0 || nil3 <= 0 || nil4 <= 0 || nil400 <= 0 || nil40 <= 0 || nil41 <= 0 || nil42 <= 0 || nil5 <= 0 || nil51 <= 0 || nil6 <= 0 || nil60 <= 0 || nil7 <= 0 {
+		t.addFailure(newSegmentSeriesFailure("comparison of nils yields negative", nil))
+	}
+
+	nil1 = ipaddr.CountComparator.CompareSeries(nil, ipv4Addr1)
+	nil11 = ipaddr.CountComparator.CompareSeries(nil, ipv6Addr1)
+	nil2 = ipaddr.CountComparator.CompareRanges(nil, ipv4Range1)
+	nil21 = ipaddr.CountComparator.CompareRanges(nil, ipv6Range1)
+	nil3 = ipaddr.CountComparator.CompareAddresses(nil, ipv4Addr1)
+	nil4 = ipaddr.CountComparator.CompareDivisions(nil, ipv4Segment1)
+	nil400 = ipaddr.CountComparator.CompareDivisions(nil, ipv6Segment1)
+	nil40 = ipaddr.CountComparator.CompareDivisions(nil, ipDivision)
+	nil41 = ipaddr.CountComparator.CompareSeries(nil, ipv4Section1)
+	nil42 = ipaddr.CountComparator.CompareSeries(nil, ipv6Section1)
+	nil5 = ipaddr.CountComparator.CompareAddressSections(nil, ipv4Section1)
+	nil51 = ipaddr.CountComparator.CompareAddressSections(nil, ipv6Section1)
+	nil6 = ipaddr.CountComparator.CompareSegments(nil, ipv4Segment1)
+	nil60 = ipaddr.CountComparator.CompareSegments(nil, ipv6Segment1)
+	nil7 = ipaddr.CountComparator.Compare(nil, ipv4Addr1)
+	if nil1 >= 0 || nil11 >= 0 || nil2 >= 0 || nil21 >= 0 || nil3 >= 0 || nil4 >= 0 || nil400 >= 0 || nil40 >= 0 || nil41 >= 0 || nil42 >= 0 || nil5 >= 0 || nil51 >= 0 || nil6 >= 0 || nil60 >= 0 || nil7 >= 0 {
+		t.addFailure(newSegmentSeriesFailure("comparison of nils yields positive", nil))
+	}
+
+	noIPV6Error := func(sect *ipaddr.IPv6AddressSection) *ipaddr.IPAddress {
+		ipv6addrx, _ := ipaddr.NewIPv6Address(sect)
+		return ipv6addrx.ToIPAddress()
+	}
+
+	var ipAddressesIPv6 []*ipaddr.IPAddress
+
+	ipAddressesIPv6 = append(ipAddressesIPv6, nil)
+	ipAddressesIPv6 = append(ipAddressesIPv6, &ipaddr.IPAddress{})
+	ipAddressesIPv6 = append(ipAddressesIPv6, (&ipaddr.IPv6Address{}).ToIPAddress())
+	ipAddressesIPv6 = append(ipAddressesIPv6, (&ipaddr.IPv6AddressSeqRange{}).GetLowerIPAddress())
+	ipAddressesIPv6 = append(ipAddressesIPv6, noIPV6Error(nil))
+	ipAddressesIPv6 = append(ipAddressesIPv6, noIPV6Error(ipv6Section1))
+
+	for i := range ipAddressesIPv6 {
+		range1 := ipAddressesIPv6[i]
+		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
+		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
+		for j := i; j < len(ipAddressesIPv6); j++ {
+			range2 := ipAddressesIPv6[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	noIPV4Error := func(sect *ipaddr.IPv4AddressSection) *ipaddr.IPAddress {
+		ipv4addrx, _ := ipaddr.NewIPv4Address(sect)
+		return ipv4addrx.ToIPAddress()
+	}
+
+	var ipAddressesIPv4 []*ipaddr.IPAddress
+
+	ipAddressesIPv4 = append(ipAddressesIPv4, nil)
+	ipAddressesIPv4 = append(ipAddressesIPv4, &ipaddr.IPAddress{})
+	ipAddressesIPv4 = append(ipAddressesIPv4, (&ipaddr.IPv4Address{}).ToIPAddress())
+	ipAddressesIPv4 = append(ipAddressesIPv4, (&ipaddr.IPv4AddressSeqRange{}).GetLowerIPAddress())
+	ipAddressesIPv4 = append(ipAddressesIPv4, noIPV4Error(nil))
+	ipAddressesIPv4 = append(ipAddressesIPv4, noIPV4Error(ipv4Section1))
+
+	for i := range ipAddressesIPv4 {
+		range1 := ipAddressesIPv4[i]
+		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
+		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
+		for j := i; j < len(ipAddressesIPv4); j++ {
+			range2 := ipAddressesIPv4[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
 	}
 
 	//TODO for addresses, when supplying new sections, or nil segment arrays, or nil whatever, I guess we should get the zero address

@@ -137,13 +137,12 @@ func (seg *IPv4AddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
 		return other == nil || other.ToAddressSegment() == nil
 	}
-	return seg.contains(other)
+	return seg.init().contains(other)
 }
 
 func (seg *IPv4AddressSegment) Equal(other AddressSegmentType) bool {
 	if seg == nil {
 		return other == nil || other.ToAddressDivision() == nil
-		//return seg.getAddrType() == ipv4Type && other.(StandardDivisionType).ToAddressDivision() == nil
 	}
 	return seg.init().equal(other)
 }
@@ -166,6 +165,10 @@ func (seg *IPv4AddressSegment) GetByteCount() int {
 func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
+
+//TODO these two and the ones below do not seem to be calling init() as they should.  Not sure why, did I just forget?  In some cases, like isMultiple, maybe getCount(), reverseBits, reverseBytes, isPrefixed, withoutPrefixLen, init() not required.  But others, like GetLower(), sure seems like it is.
+//Also check IPv6 and MAC of course.  Also, where is GetSegmentValue(), or is that another one we don't need to call init() for?  Yes, that is another one, segment value default is 0.  No need for init() call.
+// With addrType in segments, we need to be careful.
 
 func (seg *IPv4AddressSegment) GetLower() *IPv4AddressSegment {
 	return seg.getLower().ToIPv4AddressSegment()

@@ -137,7 +137,7 @@ func (seg *IPv6AddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
 		return other == nil || other.ToAddressSegment() == nil
 	}
-	return seg.contains(other)
+	return seg.init().contains(other)
 }
 
 func (seg *IPv6AddressSegment) Equal(other AddressSegmentType) bool {

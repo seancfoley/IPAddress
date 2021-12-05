@@ -542,14 +542,17 @@ func (div *addressDivisionInternal) matchesIPSegment() bool {
 }
 
 func (div *addressDivisionInternal) matchesIPv4Segment() bool {
+	// the init() methods ensure even zero-IPv4 segments (IPv4Segment{}) have addr type IPv4
 	return div.divisionValues != nil && div.getAddrType().isIPv4()
 }
 
 func (div *addressDivisionInternal) matchesIPv6Segment() bool {
+	// the init() methods ensure even zero IPv6 segments (IPv6Segment{}) have addr type IPv6
 	return div.divisionValues != nil && div.getAddrType().isIPv6()
 }
 
 func (div *addressDivisionInternal) matchesMACSegment() bool {
+	// the init() methods ensure even zero MAC segments (MACSegment{}) have addr type MAC
 	return div.divisionValues != nil && div.getAddrType().isMAC()
 }
 
@@ -581,13 +584,6 @@ func (div *addressDivisionInternal) getString() string {
 	} else {
 		return div.getStringFromStringer(div.getDefaultRangeString)
 	}
-	//return div.getStringFromStringer(func() string {
-	//	if !div.isMult() {
-	//		return div.getDefaultLowerString()
-	//	} else {
-	//		return div.getDefaultRangeString()
-	//	}
-	//})
 }
 
 func (div *addressDivisionInternal) getStringFromStringer(stringer func() string) string {
@@ -825,6 +821,10 @@ func (div *addressDivisionInternal) getDefaultSegmentWildcardString() string {
 func (div *addressDivisionInternal) getDefaultRangeSeparatorString() string {
 	return "-"
 }
+
+//TODO should you not provide these as public with no radix?  And also, you don't actually support all default radices, do you?  ANd do we even use it?
+////it is not used by: func (div *addressDivisionBase) getDefaultTextualRadix() int {
+//OK, seems we do not use it.  So trash it.  It was made obsolete by addrType in divisions, allowing us to differentiate ipv4 and ipv6
 
 func NewDivision(val DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
 	return NewRangePrefixDivision(val, val, nil, bitCount, defaultRadix)

@@ -347,34 +347,42 @@ func (grouping *addressSectionInternal) matchesMACAddressType() bool {
 	return grouping.getAddrType().isMAC()
 }
 
+// The zero grouping, produced by zero sections like IPv4AddressSection{} or AddressDivisionGrouping{}, can represent a zero-length section of any address type,
+// It is not considered equal to constructions of specific zero length sections of groupings like NewIPv4Section(nil) which can only represent a zero-length section of a sinle address type.
+func (grouping *addressDivisionGroupingInternal) matchesZeroGrouping() bool {
+	addrType := grouping.getAddrType()
+	return addrType.isNil() && grouping.hasNoDivisions()
+}
+
 func (grouping *addressDivisionGroupingInternal) matchesAddrSectionType() bool {
 	addrType := grouping.getAddrType()
-	return addrType.isIP() || addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for IPv6/IPV4/MAC sections, a zero-valued IPv6/IPV4/MAC or zero IP section has addr type nil
+	return addrType.isIP() || addrType.isMAC() || grouping.matchesZeroGrouping()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6SectionType() bool {
-	addrType := grouping.getAddrType()
-	return addrType.isIPv6() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for IPv6 sections, a zero-valued IPV6 section has addr type nil
+	return grouping.getAddrType().isIPv6() || grouping.matchesZeroGrouping()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6v4MixedGroupingType() bool {
-	addrType := grouping.getAddrType()
-	return addrType.isIPv6v4Mixed() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for IPv6v4MixedGrouping groupings, a zero-valued IPv6v4MixedGrouping has addr type nil
+	return grouping.getAddrType().isIPv6v4Mixed() || grouping.matchesZeroGrouping()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv4SectionType() bool {
-	addrType := grouping.getAddrType()
-	return addrType.isIPv4() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for IPV4 sections, a zero-valued IPV4 section has addr type nil
+	return grouping.getAddrType().isIPv4() || grouping.matchesZeroGrouping()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPSectionType() bool {
-	addrType := grouping.getAddrType()
-	return addrType.isIP() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for IPv6 or IPV4 sections, a zero-valued IPv4, IPv6 or IP section has addr type nil
+	return grouping.getAddrType().isIP() || grouping.matchesZeroGrouping()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesMACSectionType() bool {
-	addrType := grouping.getAddrType()
-	return addrType.isMAC() || (addrType.isNil() && grouping.hasNoDivisions())
+	// because there are no init() conversions for MAC sections, a zero-valued MAC section has addr type nil
+	return grouping.getAddrType().isMAC() || grouping.matchesZeroGrouping()
 }
 
 // Format implements fmt.Formatter. It accepts the formats
@@ -1054,6 +1062,12 @@ func (grouping *AddressDivisionGrouping) GetDivisionStrings() []string {
 	return grouping.getDivisionStrings()
 }
 
+// The zero grouping, produced by zero sections like IPv4AddressSection{} or AddressDivisionGrouping{}, can represent a zero-length section of any address type,
+// It is not considered equal to constructions of specific zero length sections of groupings like NewIPv4Section(nil) which can only represent a zero-length section of a sinle address type.
+func (grouping *AddressDivisionGrouping) IsZeroGrouping() bool {
+	return grouping != nil && grouping.matchesZeroGrouping()
+}
+
 func (grouping *AddressDivisionGrouping) IsAddressSection() bool {
 	return grouping != nil && grouping.isAddressSection()
 }
@@ -1071,7 +1085,7 @@ func (grouping *AddressDivisionGrouping) IsIPv6AddressSection() bool {
 }
 
 func (grouping *AddressDivisionGrouping) IsIPv6v4MixedAddressGrouping() bool {
-	return grouping.matchesIPv6v4MixedGroupingType()
+	return grouping != nil && grouping.matchesIPv6v4MixedGroupingType()
 }
 
 func (grouping *AddressDivisionGrouping) IsMACAddressSection() bool {

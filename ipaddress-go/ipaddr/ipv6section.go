@@ -1021,6 +1021,10 @@ func (section *IPv6AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 	return section.replaceLen(startIndex, endIndex, replacement.ToIPAddressSection(), replacementStartIndex, replacementEndIndex, ipv6BitsToSegmentBitshift).ToIPv6AddressSection()
 }
 
+func (section *IPv6AddressSection) IsZeroGrouping() bool {
+	return section != nil && section.matchesZeroGrouping()
+}
+
 var (
 	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZerosOrHost).ToOptions()
 	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MixedPreferred).ToOptions()
@@ -1664,6 +1668,10 @@ func (grouping *IPv6v4MixedAddressGrouping) IsMultiple() bool {
 
 func (grouping *IPv6v4MixedAddressGrouping) IsPrefixed() bool {
 	return grouping != nil && grouping.isPrefixed()
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) IsZeroGrouping() bool {
+	return grouping != nil && grouping.matchesZeroGrouping()
 }
 
 func (grouping *IPv6v4MixedAddressGrouping) ToAddressDivisionGrouping() *AddressDivisionGrouping {

@@ -34,6 +34,7 @@ const (
 	ipv6v4groupingtype   = 2
 	largegroupingtype    = -2
 	standardgroupingtype = -3
+	zerogroupingtype     = -4
 )
 
 const (
@@ -75,9 +76,15 @@ func mapDivision(genericDiv DivisionType) int {
 }
 
 func mapGrouping(grouping StandardDivisionGroupingType) int {
-	//if grouping, ok := series.(StandardDivisionGroupingType); ok {
 	group := grouping.ToAddressDivisionGrouping()
-	if group.IsIPv6AddressSection() {
+	if group.IsZeroGrouping() {
+		// The zero grouping can represent a zero-length section of any address type.
+		// This is necessary besause sections and groupings have no init() method to ensure zero-sections are always assigned an address type.
+		// We need the zero grouping to be less than everything else or more than everything else for compares consistency.
+		// Empty sections org groupings that have an address type are not considered equal.  They can represent only one address type.
+		// This is similar to the fact that a MAC section and an IPv4 section can be structurally identical but not equal due to the type.
+		return zerogroupingtype
+	} else if group.IsIPv6AddressSection() {
 		return ipv6sectype
 	} else if group.IsIPv6v4MixedAddressGrouping() {
 		return ipv6v4groupingtype

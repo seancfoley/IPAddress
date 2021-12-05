@@ -1357,11 +1357,6 @@ func (section *ipAddressSectionInternal) toCustomZonedString(stringOptions IPStr
 	return toNormalizedIPZonedString(stringOptions, section.toIPAddressSection(), zone)
 }
 
-//func (section *ipAddressSectionInternal) ToAddressSection() *AddressSection {
-//
-//	return (*AddressSection)(section)
-//}
-
 func (section *ipAddressSectionInternal) Wrap() WrappedIPAddressSection {
 	return WrapIPSection(section.toIPAddressSection())
 }
@@ -1452,6 +1447,10 @@ func (section *IPAddressSection) GetBlockCount(segmentCount int) *big.Int {
 		return sect.GetBlockCount(segmentCount)
 	}
 	return section.addressDivisionGroupingBase.GetBlockCount(segmentCount)
+}
+
+func (section *IPAddressSection) IsZeroGrouping() bool {
+	return section != nil && section.matchesZeroGrouping()
 }
 
 func (section *IPAddressSection) IsIPv4AddressSection() bool {

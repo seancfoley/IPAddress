@@ -90,11 +90,13 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	IsSequential() bool
 }
 
-// StandardDivisionGroupingType represents any standard division grouping (groupings where all divisions are 64 bits or less)
+// StandardDivisionGroupingType represents any standard division grouping (division groupings or address sections where all divisions are 64 bits or less)
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
 type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionGrouping
 
 	AddressDivisionSeries
+
+	IsZeroGrouping() bool
 
 	CompareSize(StandardDivisionGroupingType) int
 

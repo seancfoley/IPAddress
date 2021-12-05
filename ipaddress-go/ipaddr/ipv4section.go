@@ -776,6 +776,10 @@ func (section *IPv4AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 	return section.replaceLen(startIndex, endIndex, replacement.ToIPAddressSection(), replacementStartIndex, replacementEndIndex, ipv4BitsToSegmentBitshift).ToIPv4AddressSection()
 }
 
+func (section *IPv4AddressSection) IsZeroGrouping() bool {
+	return section != nil && section.matchesZeroGrouping()
+}
+
 var (
 	ipv4CanonicalParams          = new(IPv4StringOptionsBuilder).ToOptions()
 	ipv4FullParams               = new(IPv4StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
