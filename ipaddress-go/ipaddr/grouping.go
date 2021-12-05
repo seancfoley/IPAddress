@@ -422,7 +422,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
 	return grouping.prefixLength
 }
 
-func (grouping *addressDivisionGroupingInternal) IsPrefixed() bool {
+func (grouping *addressDivisionGroupingInternal) isPrefixed() bool {
 	return grouping.prefixLength != nil
 }
 
@@ -599,7 +599,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 		} else {
 			// we can also set related cache fields
 			var isSingleBlock *bool
-			if grouping.IsPrefixed() && PrefixEquals(res, grouping.GetPrefixLen()) {
+			if grouping.isPrefixed() && PrefixEquals(res, grouping.GetPrefixLen()) {
 				isSingleBlock = &trueVal
 			} else {
 				isSingleBlock = &falseVal
@@ -1026,6 +1026,13 @@ func (grouping *AddressDivisionGrouping) GetCount() *big.Int {
 
 func (grouping *AddressDivisionGrouping) IsMultiple() bool {
 	return grouping != nil && grouping.isMultiple()
+}
+
+func (grouping *AddressDivisionGrouping) IsPrefixed() bool {
+	if grouping == nil {
+		return false
+	}
+	return grouping.isPrefixed()
 }
 
 // copySubDivisions copies the existing divisions from the given start index until but not including the division at the given end index,

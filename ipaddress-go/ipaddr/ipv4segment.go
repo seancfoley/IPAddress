@@ -221,7 +221,14 @@ func (seg *IPv4AddressSegment) PrefixIterator() IPv4SegmentIterator {
 	return ipv4SegmentIterator{seg.prefixIterator()}
 }
 
+func (seg *IPv4AddressSegment) IsPrefixed() bool {
+	return seg != nil && seg.isPrefixed()
+}
+
 func (seg *IPv4AddressSegment) WithoutPrefixLen() *IPv4AddressSegment {
+	if !seg.IsPrefixed() {
+		return seg
+	}
 	return seg.withoutPrefixLen().ToIPv4AddressSegment()
 }
 

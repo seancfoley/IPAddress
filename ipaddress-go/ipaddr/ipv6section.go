@@ -142,7 +142,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 		}
-		if expectedByteCount == len(bytes) {
+		if expectedByteCount == len(bytes) && len(bytes) > 0 {
 			bytes = cloneBytes(bytes)
 			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
 			if !res.isMult { // not a prefix block
@@ -400,6 +400,10 @@ func (section *IPv6AddressSection) IsMultiple() bool {
 	return section != nil && section.isMultiple()
 }
 
+func (section *IPv6AddressSection) IsPrefixed() bool {
+	return section != nil && section.isPrefixed()
+}
+
 func (section *IPv6AddressSection) GetBlockCount(segmentCount int) *big.Int {
 	return section.calcCount(func() *big.Int {
 		return count(func(index int) uint64 {
@@ -595,6 +599,9 @@ func (section *IPv6AddressSection) ToBlock(segmentIndex int, lower, upper SegInt
 }
 
 func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
+	if !section.IsPrefixed() {
+		return section
+	}
 	return section.withoutPrefixLen().ToIPv6AddressSection()
 }
 
@@ -1653,6 +1660,10 @@ func (grouping *IPv6v4MixedAddressGrouping) GetCount() *big.Int {
 
 func (grouping *IPv6v4MixedAddressGrouping) IsMultiple() bool {
 	return grouping != nil && grouping.isMultiple()
+}
+
+func (grouping *IPv6v4MixedAddressGrouping) IsPrefixed() bool {
+	return grouping != nil && grouping.isPrefixed()
 }
 
 func (grouping *IPv6v4MixedAddressGrouping) ToAddressDivisionGrouping() *AddressDivisionGrouping {

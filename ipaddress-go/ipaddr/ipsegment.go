@@ -19,7 +19,7 @@ type ipAddressSegmentInternal struct {
 //	return (*AddressSegment)(seg)
 //}
 
-func (seg *ipAddressSegmentInternal) IsPrefixed() bool {
+func (seg *ipAddressSegmentInternal) isPrefixed() bool {
 	return seg.GetSegmentPrefixLen() != nil
 }
 
@@ -53,7 +53,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 }
 
 func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
-	if seg.IsPrefixed() {
+	if seg.isPrefixed() {
 		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
 		return createAddressDivision(vals).ToIPAddressSegment()
 	}
@@ -167,7 +167,7 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
 }
 
 func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
-	if seg.IsPrefixed() {
+	if seg.isPrefixed() {
 		upperValue := seg.GetUpperSegmentValue()
 		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
 		upperValue &= mask
@@ -209,7 +209,7 @@ func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other st
 
 func (seg *ipAddressSegmentInternal) GetWildcardString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
 	stringer := func() string {
-		if !seg.IsPrefixed() || !seg.isMultiple() {
+		if !seg.isPrefixed() || !seg.isMultiple() {
 			return seg.GetString()
 		} else if seg.IsFullRange() {
 			return seg.getDefaultSegmentWildcardString()
@@ -407,7 +407,14 @@ func (seg *IPAddressSegment) PrefixIterator() IPSegmentIterator {
 	return ipSegmentIterator{seg.prefixIterator()}
 }
 
+func (seg *IPAddressSegment) IsPrefixed() bool {
+	return seg != nil && seg.isPrefixed()
+}
+
 func (seg *IPAddressSegment) WithoutPrefixLen() *IPAddressSegment {
+	if !seg.IsPrefixed() {
+		return seg
+	}
 	return seg.withoutPrefixLen()
 }
 

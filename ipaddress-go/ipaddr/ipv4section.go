@@ -136,7 +136,7 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		if prefixLength != nil {
 			assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
 		}
-		if expectedByteCount == len(bytes) {
+		if expectedByteCount == len(bytes) && len(bytes) > 0 {
 			bytes = cloneBytes(bytes)
 			res.cache.bytesCache = &bytesCache{lowerBytes: bytes}
 			if !res.isMult { // not a prefix block
@@ -238,6 +238,10 @@ func (section *IPv4AddressSection) GetCount() *big.Int {
 
 func (section *IPv4AddressSection) IsMultiple() bool {
 	return section != nil && section.isMultiple()
+}
+
+func (section *IPv4AddressSection) IsPrefixed() bool {
+	return section != nil && section.isPrefixed()
 }
 
 func (section *IPv4AddressSection) GetPrefixCount() *big.Int {
@@ -528,6 +532,9 @@ func (section *IPv4AddressSection) ToBlock(segmentIndex int, lower, upper SegInt
 }
 
 func (section *IPv4AddressSection) WithoutPrefixLen() *IPv4AddressSection {
+	if !section.IsPrefixed() {
+		return section
+	}
 	return section.withoutPrefixLen().ToIPv4AddressSection()
 }
 

@@ -189,7 +189,7 @@ func (seg *IPv6AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength Pref
 	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
 }
 
-func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment { //TODO rename ToPrefixBlockLen?  What is the diff with ToPrefixedNetworkSegment?
+func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
 	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
 }
 
@@ -220,7 +220,14 @@ func (seg *IPv6AddressSegment) PrefixIterator() IPv6SegmentIterator {
 	return ipv6SegmentIterator{seg.prefixIterator()}
 }
 
+func (seg *IPv6AddressSegment) IsPrefixed() bool {
+	return seg != nil && seg.isPrefixed()
+}
+
 func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
+	if !seg.IsPrefixed() {
+		return seg
+	}
 	return seg.withoutPrefixLen().ToIPv6AddressSegment()
 }
 

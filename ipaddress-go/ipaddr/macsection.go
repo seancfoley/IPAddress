@@ -176,6 +176,10 @@ func (section *MACAddressSection) IsMultiple() bool {
 	return section != nil && section.isMultiple()
 }
 
+func (section *MACAddressSection) IsPrefixed() bool {
+	return section != nil && section.isPrefixed()
+}
+
 func (section *MACAddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
 		return section.GetPrefixCountLen(*section.GetPrefixLen())
@@ -211,6 +215,9 @@ func (section *MACAddressSection) GetBlockCount(segmentCount int) *big.Int {
 }
 
 func (section *MACAddressSection) WithoutPrefixLen() *MACAddressSection {
+	if !section.IsPrefixed() {
+		return section
+	}
 	return section.withoutPrefixLen().ToMACAddressSection()
 }
 

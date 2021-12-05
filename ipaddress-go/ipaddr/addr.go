@@ -143,7 +143,7 @@ func (addr *addressInternal) isMultiple() bool {
 	return addr.section != nil && addr.section.isMultiple()
 }
 
-func (addr *addressInternal) IsPrefixed() bool {
+func (addr *addressInternal) isPrefixed() bool {
 	return addr.section != nil && addr.section.IsPrefixed()
 }
 
@@ -898,6 +898,10 @@ func (addr *Address) IsMultiple() bool {
 	return addr != nil && addr.isMultiple()
 }
 
+func (addr *Address) IsPrefixed() bool {
+	return addr != nil && addr.isPrefixed()
+}
+
 func (addr *Address) PrefixEquals(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
@@ -1064,6 +1068,9 @@ func (addr *Address) ToBlock(segmentIndex int, lower, upper SegInt) *Address {
 }
 
 func (addr *Address) WithoutPrefixLen() *Address {
+	if !addr.IsPrefixed() {
+		return addr
+	}
 	return addr.init().withoutPrefixLen()
 }
 

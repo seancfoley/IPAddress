@@ -412,7 +412,7 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 	// IPv6 BigInteger and back
 	addrv6 := addr.ToIPv6Address()
 	value = addrv6.GetValue()
-	backAgainv6, err := ipaddr.NewIPv6AddressFromBigInt(value)
+	backAgainv6, err := ipaddr.NewIPv6AddressFromInt(value)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("got error creating from bytes "+value.String()+" err: "+err.Error(), addr))
 	} else if !backAgainv6.Equal(addrv6) {

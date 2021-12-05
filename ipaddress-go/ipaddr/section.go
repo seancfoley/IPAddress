@@ -74,7 +74,7 @@ func (section *addressSectionInternal) initMult() AddressValueError {
 		isMultiple := false
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
-			if segment == nil {
+			if segment == nil { //TODO use the zero seg
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 			if !isMultiple && segment.isMultiple() {
@@ -114,7 +114,7 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 		isBlock := true
 		for i := segCount - 1; i >= 0; i-- {
 			segment := section.GetSegment(i)
-			if segment == nil {
+			if segment == nil { //TODO maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 			if isBlock {
@@ -151,6 +151,9 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
 			if segment == nil {
+				//TODO maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
+				// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.  But this contradicts Java?  Check that.
+				// For segments that are missing 0 prefix, just use setPrefixLen
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
 
@@ -434,7 +437,7 @@ func (section *addressSectionInternal) createLowestHighestSections() (lower, upp
 func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*AddressSegment, IncompatibleAddressError)) (res *AddressSection, err IncompatibleAddressError) {
 	count := section.GetSegmentCount()
 	if count == 0 { // case count == 1 we cannot exit early, we need to apply segProducer to each segment
-		if section.IsPrefixed() {
+		if section.isPrefixed() {
 			return section.withoutPrefixLen(), nil
 		}
 		return section.toAddressSection(), nil
@@ -442,7 +445,7 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 	newSegs := createSegmentArray(count)
 	halfCount := count >> 1
 	i := 0
-	isSame := !section.IsPrefixed() //when reversing, the prefix must go
+	isSame := !section.isPrefixed() //when reversing, the prefix must go
 	for j := count - 1; i < halfCount; i, j = i+1, j-1 {
 		var newj, newi *AddressSegment
 		if newj, err = segProducer(i); err != nil {
@@ -477,7 +480,7 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 
 func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSection, err IncompatibleAddressError) {
 	if perByte {
-		isSame := !section.IsPrefixed() //when reversing, the prefix must go
+		isSame := !section.isPrefixed() //when reversing, the prefix must go
 		count := section.GetSegmentCount()
 		newSegs := createSegmentArray(count)
 		for i := 0; i < count; i++ {
@@ -510,7 +513,7 @@ func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSe
 
 func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *AddressSection, err IncompatibleAddressError) {
 	if perSegment {
-		isSame := !section.IsPrefixed() //when reversing, the prefix must go
+		isSame := !section.isPrefixed() //when reversing, the prefix must go
 		count := section.GetSegmentCount()
 		newSegs := createSegmentArray(count)
 		for i := 0; i < count; i++ {
@@ -868,7 +871,7 @@ func (section *addressSectionInternal) toBlock(segmentIndex int, lower, upper Se
 }
 
 func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		return section.toAddressSection()
 	}
 	if sect := section.toIPAddressSection(); sect != nil {
@@ -916,7 +919,7 @@ func (section *addressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount
 }
 
 func (section *addressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*AddressSection, IncompatibleAddressError) {
-	if adjustment == 0 && section.IsPrefixed() {
+	if adjustment == 0 && section.isPrefixed() {
 		return section.toAddressSection(), nil
 	}
 	prefix := section.getAdjustedPrefix(adjustment, true, true)
@@ -2010,6 +2013,10 @@ func (section *AddressSection) GetUpper() *AddressSection {
 //	return section.toZeroHost(false)
 //}
 
+func (section *AddressSection) IsPrefixed() bool {
+	return section != nil && section.isPrefixed()
+}
+
 func (section *AddressSection) ToPrefixBlock() *AddressSection {
 	return section.toPrefixBlock()
 }
@@ -2019,6 +2026,9 @@ func (section *AddressSection) ToPrefixBlockLen(prefLen BitCount) *AddressSectio
 }
 
 func (section *AddressSection) WithoutPrefixLen() *AddressSection {
+	if !section.IsPrefixed() {
+		return section
+	}
 	return section.withoutPrefixLen()
 }
 
@@ -2436,7 +2446,8 @@ func toSegments(
 	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
 
 	segments = createSegmentArray(segmentCount)
-	for byteIndex, segmentIndex := len(bytes), segmentCount-1; ; segmentIndex-- {
+	byteIndex, segmentIndex := len(bytes), segmentCount-1
+	for ; segmentIndex >= 0; segmentIndex-- {
 		var value SegInt
 		k := byteIndex - bytesPerSegment
 		if k < 0 {
@@ -2451,16 +2462,13 @@ func toSegments(
 		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
 		seg := creator.createSegment(value, value, segmentPrefixLength)
 		segments[segmentIndex] = seg
-		if segmentIndex == 0 {
-			// any remaining bytes should be zero
-			for byteIndex--; byteIndex >= 0; byteIndex-- {
-				if bytes[byteIndex] != 0 {
-					err = &addressValueError{
-						addressError: addressError{key: "ipaddress.error.exceeds.size"},
-						val:          int(bytes[byteIndex]),
-					}
-					break
-				}
+	}
+	// any remaining bytes should be zero
+	for byteIndex--; byteIndex >= 0; byteIndex-- {
+		if bytes[byteIndex] != 0 {
+			err = &addressValueError{
+				addressError: addressError{key: "ipaddress.error.exceeds.size"},
+				val:          int(bytes[byteIndex]),
 			}
 			break
 		}

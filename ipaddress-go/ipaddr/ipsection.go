@@ -279,7 +279,7 @@ func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *I
 		return section.toIPAddressSection(), nil
 	}
 	var prefLen BitCount
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		prefLen = *section.GetPrefixLen()
 	}
 	if section.IsZeroHostLen(prefLen) {
@@ -289,7 +289,7 @@ func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *I
 		res = section.getLower().ToIPAddressSection() //cached
 		return
 	}
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		mask := section.addrType.getIPNetwork().GetPrefixedNetworkMask(0)
 		res = mask.GetSubSection(0, segmentCount)
 		return
@@ -316,7 +316,7 @@ func (section *ipAddressSectionInternal) createZeroHost(prefLen BitCount, bounda
 
 func (section *ipAddressSectionInternal) toZeroHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
 	var minIndex int
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		existingPrefLen := *section.GetNetworkPrefixLen()
 		if prefixLength == existingPrefLen {
 			return section.toZeroHost(false)
@@ -343,7 +343,7 @@ func (section *ipAddressSectionInternal) toZeroNetwork() *IPAddressSection {
 	if segmentCount == 0 {
 		return section.toIPAddressSection()
 	}
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		mask := section.addrType.getIPNetwork().GetHostMask(section.GetBitCount())
 		return mask.GetSubSection(0, segmentCount)
 	}
@@ -367,7 +367,7 @@ func (section *ipAddressSectionInternal) toMaxHost() (res *IPAddressSection, err
 	if segmentCount == 0 {
 		return section.toIPAddressSection(), nil
 	}
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		mask := section.addrType.getIPNetwork().GetPrefixedHostMask(0)
 		res = mask.GetSubSection(0, segmentCount)
 		return
@@ -392,7 +392,7 @@ func (section *ipAddressSectionInternal) createMaxHost() (*IPAddressSection, Inc
 }
 
 func (section *ipAddressSectionInternal) toMaxHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
-	if section.IsPrefixed() && prefixLength == *section.GetNetworkPrefixLen() {
+	if section.isPrefixed() && prefixLength == *section.GetNetworkPrefixLen() {
 		return section.toMaxHost()
 	}
 	mask := section.addrType.getIPNetwork().GetHostMask(prefixLength)
@@ -433,7 +433,7 @@ func (section *ipAddressSectionInternal) IsSingleNetwork() bool {
 // whether the host section is the maximum value for this section or all sections in this set of address sections.
 // If the host section is zero length (there are no host bits at all), returns false.
 func (section *ipAddressSectionInternal) IsMaxHost() bool {
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		return false
 	}
 	return section.IsMaxHostLen(*section.GetNetworkPrefixLen())
@@ -475,7 +475,7 @@ func (section *ipAddressSectionInternal) IsMaxHostLen(prefLen BitCount) bool {
 // IsZeroHost returns whether this section has a prefix length and if so,
 // whether the host section is zero for this section or all sections in this set of address sections.
 func (section *ipAddressSectionInternal) IsZeroHost() bool {
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		return false
 	}
 	return section.IsZeroHostLen(*section.GetNetworkPrefixLen())
@@ -514,7 +514,7 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 }
 
 func (section *ipAddressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*IPAddressSection, IncompatibleAddressError) {
-	if adjustment == 0 && section.IsPrefixed() {
+	if adjustment == 0 && section.isPrefixed() {
 		return section.toIPAddressSection(), nil
 	}
 	prefix := section.getAdjustedPrefix(adjustment, true, true)
@@ -558,7 +558,7 @@ func (section *ipAddressSectionInternal) adjustPrefixLenZeroed(adjustment BitCou
 }
 
 func (section *ipAddressSectionInternal) withoutPrefixLen() *IPAddressSection {
-	if !section.IsPrefixed() {
+	if !section.isPrefixed() {
 		return section.toIPAddressSection()
 	}
 	if section.hasNoDivisions() {
@@ -836,7 +836,7 @@ func (section *ipAddressSectionInternal) subtract(
 
 	//apply the prefix to the sections
 	//for each section, we figure out what each prefix length should be
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		thisPrefix := *section.GetNetworkPrefixLen()
 		for i := 0; i < len(sections); i++ {
 			section := sections[i]
@@ -948,7 +948,7 @@ func (section *ipAddressSectionInternal) coverWithPrefixBlockTo(other *IPAddress
 
 func (section *ipAddressSectionInternal) getNetworkSection() *IPAddressSection {
 	var prefLen BitCount
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		prefLen = *section.GetPrefixLen()
 	} else {
 		prefLen = section.GetBitCount()
@@ -989,7 +989,7 @@ func (section *ipAddressSectionInternal) getNetworkSectionLen(networkPrefixLengt
 
 func (section *ipAddressSectionInternal) getHostSection() *IPAddressSection {
 	var prefLen BitCount
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		prefLen = *section.GetPrefixLen()
 	}
 	return section.getHostSectionLen(prefLen)
@@ -1134,7 +1134,7 @@ func (section *ipAddressSectionInternal) getNetwork() IPAddressNetwork {
 
 func (section *ipAddressSectionInternal) getNetworkMask(network IPAddressNetwork) *IPAddressSection {
 	var prefLen BitCount
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		prefLen = *section.GetNetworkPrefixLen()
 	} else {
 		prefLen = section.GetBitCount()
@@ -1144,7 +1144,7 @@ func (section *ipAddressSectionInternal) getNetworkMask(network IPAddressNetwork
 
 func (section *ipAddressSectionInternal) getHostMask(network IPAddressNetwork) *IPAddressSection {
 	var prefLen BitCount
-	if section.IsPrefixed() {
+	if section.isPrefixed() {
 		prefLen = *section.GetNetworkPrefixLen()
 	}
 	return network.GetNetworkMask(prefLen).GetSubSection(0, section.GetSegmentCount())
@@ -1422,6 +1422,10 @@ func (section *IPAddressSection) IsMultiple() bool {
 	return section != nil && section.isMultiple()
 }
 
+func (section *IPAddressSection) IsPrefixed() bool {
+	return section != nil && section.isPrefixed()
+}
+
 func (section *IPAddressSection) GetPrefixCount() *big.Int {
 	if sect := section.ToIPv4AddressSection(); sect != nil {
 		return sect.GetPrefixCount()
@@ -1572,6 +1576,9 @@ func (section *IPAddressSection) ToMaxHostLen(prefixLength BitCount) (*IPAddress
 }
 
 func (section *IPAddressSection) WithoutPrefixLen() *IPAddressSection {
+	if !section.IsPrefixed() {
+		return section
+	}
 	return section.withoutPrefixLen()
 }
 

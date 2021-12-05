@@ -171,6 +171,10 @@ func (addr *MACAddress) IsMultiple() bool {
 	return addr != nil && addr.isMultiple()
 }
 
+func (addr *MACAddress) IsPrefixed() bool {
+	return addr != nil && addr.isPrefixed()
+}
+
 func (addr *MACAddress) IsFullRange() bool {
 	return addr.GetSection().IsFullRange()
 }
@@ -343,6 +347,9 @@ func (addr *MACAddress) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddre
 }
 
 func (addr *MACAddress) WithoutPrefixLen() *MACAddress {
+	if !addr.IsPrefixed() {
+		return addr
+	}
 	return addr.init().withoutPrefixLen().ToMACAddress()
 }
 

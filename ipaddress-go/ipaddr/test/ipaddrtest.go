@@ -4221,7 +4221,7 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 	addr[3] = ip2
 	//addr[2] = new IPv6Address((Inet6Address) inetAddress1);
 	//addr[3] = new IPv6Address((Inet6Address) inetAddress2);
-	ip3, err := ipaddr.NewIPv6AddressFromBigInt(bigInt)
+	ip3, err := ipaddr.NewIPv6AddressFromInt(bigInt)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
 	}
@@ -4348,27 +4348,27 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 	//} catch(AddressValueException e) {
 	//	addFailure(new Failure("unexpected exception " + e));
 	//}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetInt64(-1))
+	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int).SetInt64(-1))
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed, expected error for -1", addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int))
+	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int))
 	if err != nil || !addr.IsZero() {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).String(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(one28())
+	addr, err = ipaddr.NewIPv6AddressFromInt(one28())
 	if err != nil || !addr.IsMax() {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+one28().String(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).Add(one28(), bigOneConst()))
+	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int).Add(one28(), bigOneConst()))
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed, expected error for "+new(big.Int).Add(one28(), bigOneConst()).String(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetUint64(0xffffffff))
+	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int).SetUint64(0xffffffff))
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0xffffffff).String(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromBigInt(new(big.Int).SetUint64(0x1ffffffff))
+	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int).SetUint64(0x1ffffffff))
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0x1ffffffff).String(), addr.ToIPAddress()))
 	}

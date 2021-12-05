@@ -55,6 +55,9 @@ func newIPv6Address(section *IPv6AddressSection) *IPv6Address {
 }
 
 func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueError) {
+	if section == nil {
+		return zeroIPv6, nil
+	}
 	segCount := section.GetSegmentCount()
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -79,6 +82,9 @@ func assignIPv6Cache(zoneVal Zone, cache *addressCache) {
 }
 
 func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address, AddressValueError) {
+	if section == nil {
+		return zeroIPv6.SetZone(zone), nil
+	}
 	segCount := section.GetSegmentCount()
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -127,45 +133,41 @@ func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (
 	return
 }
 
-func NewIPv6AddressFromBigInt(val *big.Int) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromInt(val *big.Int) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6SectionFromBigInt(val, IPv6SegmentCount)
 	if err == nil {
 		addr = newIPv6Address(section)
 	}
 	return
-	//return NewIPv6AddressFromIP(val.Bytes())
 }
 
-func NewIPv6AddressFromPrefixedBigInt(val *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedInt(val *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6SectionFromPrefixedBigInt(val, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv6Address(section)
 	}
 	return
-	//return NewIPv6AddressFromPrefixedIP(val.Bytes(), prefixLength)
 }
 
-func NewIPv6AddressFromZonedBigInt(val *big.Int, zone string) (addr *IPv6Address, err AddressValueError) {
-	addr, err = NewIPv6AddressFromBigInt(val)
+func NewIPv6AddressFromZonedInt(val *big.Int, zone string) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromInt(val)
 	if err == nil {
 		addr.zone = Zone(zone)
 		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
-	//return newIPv6AddressFromZonedIP(val.Bytes(), zone)
 }
 
-func NewIPv6AddressFromPrefixedZonedBigInt(val *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
-	addr, err = NewIPv6AddressFromPrefixedBigInt(val, prefixLength)
+func NewIPv6AddressFromPrefixedZonedInt(val *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromPrefixedInt(val, prefixLength)
 	if err == nil {
 		addr.zone = Zone(zone)
 		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
-	//return NewIPv6AddressFromPrefixedIPAddr(&net.IPAddr{IP: val.Bytes(), Zone: zone}, prefixLength)
 }
 
-func NewIPv6AddressFromSegments(segments []*IPv6AddressSegment) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromSegs(segments []*IPv6AddressSegment) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6Section(segments)
 	if err == nil {
 		return NewIPv6Address(section)
@@ -173,7 +175,7 @@ func NewIPv6AddressFromSegments(segments []*IPv6AddressSegment) (addr *IPv6Addre
 	return
 }
 
-func NewIPv6AddressFromPrefixedSegments(segments []*IPv6AddressSegment, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6PrefixedSection(segments, prefixLength)
 	if err == nil {
 		return NewIPv6Address(section)
@@ -181,7 +183,7 @@ func NewIPv6AddressFromPrefixedSegments(segments []*IPv6AddressSegment, prefixLe
 	return
 }
 
-func NewIPv6AddressFromZonedSegments(segments []*IPv6AddressSegment, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromZonedSegs(segments []*IPv6AddressSegment, zone string) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6Section(segments)
 	if err == nil {
 		return NewIPv6AddressZoned(section, zone)
@@ -189,7 +191,7 @@ func NewIPv6AddressFromZonedSegments(segments []*IPv6AddressSegment, zone string
 	return
 }
 
-func NewIPv6AddressFromPrefixedZonedSegments(segments []*IPv6AddressSegment, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedZonedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6PrefixedSection(segments, prefixLength)
 	if err == nil {
 		return NewIPv6AddressZoned(section, zone)
@@ -363,6 +365,10 @@ func (addr *IPv6Address) GetCount() *big.Int {
 
 func (addr *IPv6Address) IsMultiple() bool {
 	return addr != nil && addr.isMultiple()
+}
+
+func (addr *IPv6Address) IsPrefixed() bool {
+	return addr != nil && addr.isPrefixed()
 }
 
 func (addr *IPv6Address) GetBitCount() BitCount {
@@ -674,6 +680,9 @@ func (addr *IPv6Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv6Add
 }
 
 func (addr *IPv6Address) WithoutPrefixLen() *IPv6Address {
+	if !addr.IsPrefixed() {
+		return addr
+	}
 	return addr.init().withoutPrefixLen().ToIPv6Address()
 }
 

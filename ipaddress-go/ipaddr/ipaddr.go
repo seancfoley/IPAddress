@@ -352,7 +352,7 @@ func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddre
 
 func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
-	if addr.IsPrefixed() {
+	if addr.isPrefixed() {
 		prefLen = *addr.GetNetworkPrefixLen()
 	} else {
 		prefLen = addr.GetBitCount()
@@ -362,7 +362,7 @@ func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddre
 
 func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
-	if addr.IsPrefixed() {
+	if addr.isPrefixed() {
 		prefLen = *addr.GetNetworkPrefixLen()
 	}
 	return network.GetHostMask(prefLen)
@@ -714,7 +714,14 @@ func (addr *IPAddress) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddress
 	return addr.init().toBlock(segmentIndex, lower, upper).ToIPAddress()
 }
 
+func (addr *IPAddress) IsPrefixed() bool {
+	return addr != nil && addr.isPrefixed()
+}
+
 func (addr *IPAddress) WithoutPrefixLen() *IPAddress {
+	if !addr.IsPrefixed() {
+		return addr
+	}
 	return addr.withoutPrefixLen().ToIPAddress()
 }
 

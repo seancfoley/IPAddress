@@ -563,6 +563,7 @@ func (t specialTypesTester) testNils() {
 	ipRanges = append(ipRanges, nil)
 	ipRanges = append(ipRanges, &ipaddr.IPAddressSeqRange{})
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
+	//fmt.Println(" it is " + ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange().String())
 	ipRanges = append(ipRanges, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
 	ipRanges = append(ipRanges, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
@@ -694,6 +695,8 @@ func (t specialTypesTester) testNils() {
 	if nil1 != 0 || nil2 != 0 || nil3 != 0 || nil4 != 0 || nil5 != 0 || nil6 != 0 || nil7 != 0 {
 		t.addFailure(newSegmentSeriesFailure("comparison of nils yields non-zero", nil))
 	}
+
+	//TODO for addresses, when supplying new sections, or nil segment arrays, or nil whatever, I guess we should get the zero address
 	/*
 
 		Copied this code over to know how the cmoparisons should shake out in here:

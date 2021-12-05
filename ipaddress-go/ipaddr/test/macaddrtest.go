@@ -1194,40 +1194,6 @@ func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.M
 	return !expectedPass
 }
 
-// So what do I have -
-/*
-------
-
-X func (addr *IPv6Address) IsEUI64() bool {
-X func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
-
-X func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
-X func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
-func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
-
--------
-
-X func NewIPv6SectionFromMAC(eui *MACAddress) (res *IPv6AddressSection, err IncompatibleAddressError) {
-
-------
-
-X func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressError) {
-
-X func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, IncompatibleAddressError) {
-
-X func (addr *MACAddress) IsEUI64(asMAC bool) bool {
-
-X func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressError) {
-
-So there is still plenty!
-It is not entirely clear what I need to remove
-The stuff working with mac sections, maybe...
-It is splitting up into mac sections, then creating ipv6 sectiosn from them, then joining the ipv6 sections
-We now only create ipv6 sections from full macs, then it replaces the back end of an ipv6 address
-That's fine, but not the part where we are joining the back end sections, we just need to take the whole mac and make a single ipv6 section
-Whick is what we do with backFromMac I believe
-So I think I've done the heavy lifting, you need to toss the commented out stuff I think
-*/
 func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 	ipv6Str := t.createAddress(ipv6)
 	macStr := t.createMACAddress(mac)
