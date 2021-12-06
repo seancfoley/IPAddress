@@ -120,26 +120,6 @@ type MACAddressStringParametersBuilder struct {
 	formatBuilder MACAddressStringFormatParametersBuilder
 }
 
-//func ToMACAddressStringParamsBuilder(params MACAddressStringParameters) *MACAddressStringParametersBuilder {
-//	xxx
-//	var result MACAddressStringParametersBuilder
-//	if p, ok := params.(*macAddressStringParameters); ok {
-//		result.params = *p
-//	} else {
-//		result.params = macAddressStringParameters{
-//			noAllowDashed:         !params.AllowsDashed(),
-//			noAllowSingleDashed:   !params.AllowsSingleDashed(),
-//			noAllowColonDelimited: !params.AllowsColonDelimited(),
-//			noAllowDotted:         !params.AllowsDotted(),
-//			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
-//			allAddresses:          params.AddressSize(),
-//		}
-//	}
-//	result.AddressStringParametersBuilder = *ToAddressStringParamsBuilder(params)
-//	result.formatBuilder = *ToMACAddressStringFormatParamsBuilder(params.GetFormatParameters())
-//	return &result
-//}
-
 func (builder *MACAddressStringParametersBuilder) ToParams() MACAddressStringParameters {
 	// We do not return a pointer to builder.params because that would make it possible to change a macAddressStringParameters
 	// by continuing to use the same builder,
@@ -261,20 +241,6 @@ type MACAddressStringFormatParametersBuilder struct {
 
 	parent *MACAddressStringParametersBuilder
 }
-
-//func ToMACAddressStringFormatParamsBuilder(params MACAddressStringFormatParameters) *MACAddressStringFormatParametersBuilder {
-//	xxx
-//	var result MACAddressStringFormatParametersBuilder
-//	if p, ok := params.(*macAddressStringFormatParameters); ok {
-//		result.params = *p
-//	} else {
-//		result.params = macAddressStringFormatParameters{
-//			noShortSegments: !params.AllowsShortSegments(),
-//		}
-//	}
-//	result.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(params)
-//	return &result
-//}
 
 func (builder *MACAddressStringFormatParametersBuilder) GetParentBuilder() *MACAddressStringParametersBuilder {
 	return builder.parent

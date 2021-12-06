@@ -2494,7 +2494,7 @@ func (t ipAddressRangeTester) testRangeCountBig(low, high string, number *big.In
 }
 
 func (t ipAddressRangeTester) testRangeCountR(w, high *ipaddr.IPAddressString, number *big.Int) {
-	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	val := w.GetAddress().SpanWithRange(high.GetAddress())
 	count := val.GetCount()
 	if count.Cmp(number) != 0 {
 		t.addFailure(newFailure("big count was "+count.String(), w))
@@ -2506,7 +2506,7 @@ func (t ipAddressRangeTester) testRangeCountImpl(w, high *ipaddr.IPAddressString
 	if !t.fullTest && number > countLimit {
 		return
 	}
-	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	val := w.GetAddress().SpanWithRange(high.GetAddress())
 	count := val.GetCount()
 	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
 		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
@@ -2557,7 +2557,7 @@ func (t ipAddressRangeTester) testRangePrefixCountImpl(w, high *ipaddr.IPAddress
 	if !t.fullTest && number > countLimit {
 		return
 	}
-	val, _ := w.GetAddress().SpanWithRange(high.GetAddress())
+	val := w.GetAddress().SpanWithRange(high.GetAddress())
 	count := val.GetPrefixCountLen(prefixLength)
 	//		Set<IPAddress> prefixBlockSet = new HashSet<IPAddress>();
 	//		Set<IPAddressSeqRange> prefixSet = new HashSet<IPAddressSeqRange>();
@@ -2787,7 +2787,7 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 			t.addFailure(newIPAddrFailure("merged addr "+addr.String()+" is not prefix block", addr))
 		}
 	}
-	result2, _ := addr1.SpanWithSequentialBlocksTo(addr2)
+	result2 := addr1.SpanWithSequentialBlocksTo(addr2)
 	resultList = result2
 	expectedList = expectedList[:0]
 	for _, s := range rangeExpected {

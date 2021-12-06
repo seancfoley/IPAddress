@@ -563,7 +563,6 @@ func (t specialTypesTester) testNils() {
 	ipRangesIPv4 = append(ipRangesIPv4, nil)
 	ipRangesIPv4 = append(ipRangesIPv4, &ipaddr.IPAddressSeqRange{})
 	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
-	//fmt.Println(" it is " + ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange().String())
 	ipRangesIPv4 = append(ipRangesIPv4, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
 	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
 	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
@@ -701,7 +700,7 @@ func (t specialTypesTester) testNils() {
 
 	ipv4Segment1 := ipv4Section1.GetSegment(0)
 	ipv6Segment1 := ipv6Section1.GetSegment(0)
-	ipDivision := ipaddr.NewDivision(11, 8, 0)
+	ipDivision := ipaddr.NewDivision(11, 8)
 
 	nil1 = ipaddr.CountComparator.CompareSeries(ipv4Addr1, nil)
 	nil11 := ipaddr.CountComparator.CompareSeries(ipv6Addr1, nil)
@@ -829,7 +828,8 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	//TODO for addresses, when supplying new sections, or nil segment arrays, or nil whatever, I guess we should get the zero address
+	// TODO sections and segments ?
+
 	/*
 
 		Copied this code over to know how the cmoparisons should shake out in here:

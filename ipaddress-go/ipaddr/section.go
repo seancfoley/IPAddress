@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync/atomic"
 	"unsafe"
 )
@@ -152,7 +153,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 			segment := section.GetSegment(i)
 			if segment == nil {
 				//TODO maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
-				// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.  But this contradicts Java?  Check that.
+				// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.  But this contradicts Java?  Check that.  Yeah, if you supply nil prefix but the segments had a prefix, probably defers to the segments.  Check that.
 				// For segments that are missing 0 prefix, just use setPrefixLen
 				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
 			}
@@ -1225,108 +1226,146 @@ func (section addressSectionInternal) Format(state fmt.State, verb rune) {
 }
 
 func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Zone, useCanonical bool) {
-	if section.hasNoDivisions() {
-		state.Write([]byte(nilSection())) //TODO Consider handling the flags, width, precision with this case.
-		return
-	}
-	var str, prefix string
+	var str string
 	var err error
-	var isNormalized bool
+	var isStringFormat bool
 
 	_, hasPrecision := state.Precision()
 	_, hasWidth := state.Width()
-	noExtras := !hasPrecision && !hasWidth && zone == NoZone
-
+	useDefaultStr := !hasPrecision && !hasWidth
 	switch verb {
-	case 's', 'v':
-		//TODO see https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;bpv=1;bpt=1;l=570
-		// and https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/print.go;drc=refs%2Ftags%2Fgo1.17.3;l=437
-		// The latter, fmtString, is used when the arg is a string, using a type switch.
-		// But you can see the same method is used on the result of String() when the arg is not a simple ty.
-		//WHen not using #v (ie v or s) we defer to fmtStr https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/format.go;drc=refs%2Ftags%2Fgo1.17.3;l=357
-		// and this truncates and pads.  Truncate removes the back, based on precision.
-		// pads will expand the width to match the given width.
-		// So I guess we could do the same.
-		// Here are examples: https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/fmt_test.go;l=299;bpv=0;bpt=0
-
-		//TODO 'q' puts quotes around the string https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/fmt/fmt_test.go;l=704;bpv=0;bpt=0
-		isNormalized = true
+	case 's', 'v', 'q':
+		isStringFormat = true
 		if useCanonical {
-			str = section.toCanonicalString()
+			if zone != NoZone {
+				str = section.toAddressSection().ToIPv6AddressSection().toCanonicalString(zone)
+			} else {
+				str = section.toCanonicalString()
+			}
 		} else {
-			str = section.toNormalizedString()
+			if zone != NoZone {
+				str = section.toAddressSection().ToIPv6AddressSection().toNormalizedString(zone)
+			} else {
+				str = section.toNormalizedString()
+			}
+		}
+		if verb == 'q' && useDefaultStr {
+			if state.Flag('#') && (zone == NoZone || strconv.CanBackquote(string(zone))) {
+				str = "`" + str + "`"
+			} else if zone == NoZone {
+				str = `"` + str + `"`
+			} else {
+				str = strconv.Quote(str) // zones should not have special characters, but you cannot be sure
+			}
 		}
 	case 'x':
-		str, err = section.toHexString(noExtras && state.Flag('#'))
+		useDefaultStr = useDefaultStr && zone == NoZone
+		str, err = section.toHexString(useDefaultStr && state.Flag('#'))
 	case 'X':
-		withPrefix := noExtras && state.Flag('#')
-		if withPrefix {
+		useDefaultStr = useDefaultStr && zone == NoZone
+		if useDefaultStr && state.Flag('#') {
 			str, err = section.toLongStringZoned(NoZone, hexPrefixedUppercaseParams)
 		} else {
 			str, err = section.toLongStringZoned(NoZone, hexUppercaseParams)
 		}
 	case 'b':
-		str, err = section.toBinaryString(noExtras && state.Flag('#'))
+		useDefaultStr = useDefaultStr && zone == NoZone
+		str, err = section.toBinaryString(useDefaultStr && state.Flag('#'))
 	case 'o':
-		str, err = section.toOctalString(noExtras && state.Flag('#'))
+		useDefaultStr = useDefaultStr && zone == NoZone
+		str, err = section.toOctalString(useDefaultStr && state.Flag('#'))
 	case 'O':
-		withPrefix := noExtras
-		if withPrefix {
+		useDefaultStr = useDefaultStr && zone == NoZone
+		if useDefaultStr {
 			str, err = section.toLongOctalStringZoned(NoZone, octal0oPrefixedParams)
 		} else {
 			str, err = section.toLongOctalStringZoned(NoZone, octalParams)
 		}
-		//str, err = section.toOctalString(noExtras)
 	case 'd':
 		// TODO LATER decimal strings to replace the inefficient code below, we need large divisions for that because we must go single segment since base not a power of 2, but once we can group into a single large division, we should be good
-		bitCount := section.GetBitCount()
-		maxDigits := getMaxDigitCountx(10, bitCount, func() int {
-			maxVal := bigOne()
-			maxVal.Lsh(maxVal, uint(bitCount)+1)
-			maxVal.Sub(maxVal, bigOneConst())
-			return len(maxVal.Text(10))
-		})
-		addLeadingZeros := func(str string) string {
-			if len(str) < maxDigits {
-				zeroCount := maxDigits - len(str)
-				var zeros []byte
-				for ; zeroCount > 0; zeroCount-- {
-					zeros = append(zeros, '0')
+		if !section.hasNoDivisions() {
+			bitCount := section.GetBitCount()
+			maxDigits := getMaxDigitCountx(10, bitCount, func() int {
+				maxVal := bigOne()
+				maxVal.Lsh(maxVal, uint(bitCount)+1)
+				maxVal.Sub(maxVal, bigOneConst())
+				return len(maxVal.Text(10))
+			})
+			addLeadingZeros := func(str string) string {
+				if len(str) < maxDigits {
+					zeroCount := maxDigits - len(str)
+					var zeros []byte
+					for ; zeroCount > 0; zeroCount-- {
+						zeros = append(zeros, '0')
+					}
+					return string(zeros) + str
 				}
-				return string(zeros) + str
+				return str
 			}
-			return str
-		}
-		val := section.GetValue()
-		valStr := addLeadingZeros(val.Text(10))
-		if section.isMultiple() {
-			upperVal := section.GetUpperValue()
-			upperValStr := addLeadingZeros(upperVal.Text(10))
-			str = valStr + RangeSeparatorStr + upperValStr
-		} else {
-			str = valStr
+			val := section.GetValue()
+			valStr := addLeadingZeros(val.Text(10))
+			if section.isMultiple() {
+				upperVal := section.GetUpperValue()
+				upperValStr := addLeadingZeros(upperVal.Text(10))
+				str = valStr + RangeSeparatorStr + upperValStr
+			} else {
+				str = valStr
+			}
 		}
 	default:
 		// format not supported
 		fmt.Fprintf(state, "%%!%c(address=%s)", verb, section.toString())
 		return
 	}
-	if err != nil { // could not produce an octal, binary, hex or decimal string, so use default instead
-		isNormalized = true
+	if err != nil { // could not produce an octal, binary, hex or decimal string, so use string format instead
+		isStringFormat = true
 		if useCanonical {
 			str = section.toCanonicalString()
 		} else {
 			str = section.toNormalizedString()
 		}
 	}
-	if isNormalized || noExtras {
+	if useDefaultStr {
 		state.Write([]byte(str))
-		return
+	} else if isStringFormat {
+		section.writeStrFmt(state, verb, str, zone)
+	} else {
+		section.writeNumberFmt(state, verb, str, zone)
 	}
-	section.writeNumberFmt(state, verb, prefix, str, zone)
 }
 
-func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune, prefix, str string, zone Zone) {
+func (section addressSectionInternal) writeStrFmt(state fmt.State, verb rune, str string, zone Zone) {
+	if precision, hasPrecision := state.Precision(); hasPrecision && len(str) > precision {
+		str = str[:precision]
+	}
+	if verb == 'q' {
+		if state.Flag('#') && (zone == NoZone || strconv.CanBackquote(string(zone))) {
+			str = "`" + str + "`"
+		} else if zone == NoZone {
+			str = `"` + str + `"`
+		} else {
+			str = strconv.Quote(str) // zones should not have special characters, but you cannot be sure
+		}
+	}
+	var leftPaddingCount, rightPaddingCount int
+	if width, hasWidth := state.Width(); hasWidth && len(str) < width { // padding required
+		paddingCount := width - len(str)
+		if state.Flag('-') {
+			// right padding with spaces (takes precedence over '0' flag)
+			rightPaddingCount = paddingCount
+		} else {
+			// left padding with spaces
+			leftPaddingCount = paddingCount
+		}
+	}
+	// left padding/str/right padding
+	writeBytes(state, ' ', leftPaddingCount)
+	state.Write([]byte(str))
+	writeBytes(state, ' ', rightPaddingCount)
+}
+
+func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune, str string, zone Zone) {
+	var prefix string
 	if verb == 'O' {
 		prefix = otherOctalPrefix // "0o"
 	} else if state.Flag('#') {
@@ -1354,9 +1393,14 @@ func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune,
 	}
 	precision, hasPrecision := state.Precision()
 	width, hasWidth := state.Width()
+	usePrecision := hasPrecision
+	if section.hasNoDivisions() {
+		usePrecision = false
+		prefix = ""
+	}
 	for {
 		var zeroCount, leftPaddingCount, rightPaddingCount int
-		if hasPrecision {
+		if usePrecision {
 			if len(addrStr) > precision {
 				frontChar := addrStr[0]
 				if frontChar == '0' {
@@ -1376,7 +1420,11 @@ func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune,
 				zeroCount = precision - len(addrStr)
 			}
 		}
-		length := len(prefix) + zeroCount + len(addrStr) + len(zone)
+		length := len(prefix) + zeroCount + len(addrStr)
+		zoneRequired := len(zone) > 0
+		if zoneRequired {
+			length += len(zone) + 1
+		}
 		if hasWidth && length < width { // padding required
 			paddingCount := width - length
 			if state.Flag('-') {
@@ -1396,7 +1444,10 @@ func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune,
 		writeStr(state, prefix, 1)
 		writeBytes(state, '0', zeroCount)
 		state.Write([]byte(addrStr))
-		state.Write([]byte(zone))
+		if zoneRequired {
+			state.Write([]byte{IPv6ZoneSeparator})
+			state.Write([]byte(zone))
+		}
 		writeBytes(state, ' ', rightPaddingCount)
 
 		if !isMulti {
@@ -1904,7 +1955,7 @@ func (section *AddressSection) Compare(item AddressItem) int {
 	return CountComparator.Compare(section, item)
 }
 
-func (section *AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+func (section *AddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1

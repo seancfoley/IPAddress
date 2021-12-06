@@ -756,7 +756,7 @@ func (all *allCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hos
 			all.adjustedVersion,
 			&all.qualifier,
 			all.originator)
-		rng, _ = lower.SpanWithRange(upper)
+		rng = lower.SpanWithRange(upper)
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&all.rng))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(rng))
 		addresses := &addressResult{
@@ -869,7 +869,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //		}
 //	}
 
-// TODO NEXT progress - WE ARE SO FUCKING CLOSE NOW, SO CLOSE TO READY
+// TODO NEXT progress - WE ARE CLOSE NOW, SO CLOSE TO READY
 // order of todos:
 // - nil tests in specialtypestest
 // - prefixLen change

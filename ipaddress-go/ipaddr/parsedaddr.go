@@ -40,7 +40,7 @@ func (res *boundaryResult) createRange() *IPAddressSeqRange {
 	} else {
 		rangeUpper = creator.createAddressInternalFromSection(res.upperSection, NoZone, nil)
 	}
-	result, _ := rangeLower.SpanWithRange(rangeUpper)
+	result := rangeLower.SpanWithRange(rangeUpper)
 	return result
 }
 

@@ -75,7 +75,7 @@ func mapDivision(genericDiv DivisionType) int {
 	return standarddivtype
 }
 
-func mapGrouping(grouping StandardDivisionGroupingType) int {
+func mapGrouping(grouping StandardDivGroupingType) int {
 	group := grouping.ToAddressDivisionGrouping()
 	if group.IsZeroGrouping() {
 		// The zero grouping can represent a zero-length section of any address type.
@@ -201,8 +201,8 @@ func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int 
 	// TODO LATER when supporting large divisions, must figure out here whether they are standard div groupings or both are large div groupings - note that if the interface is nil they can be neither
 	// If they were not the same, you'd be done.  If both were standard or both were large, then you would take separate paths.
 	// For now, we can be certain they are both standard.
-	grouping1, _ := one.(StandardDivisionGroupingType) // the underscore is needed to avoid panic on nil
-	grouping2, _ := two.(StandardDivisionGroupingType)
+	grouping1, _ := one.(StandardDivGroupingType) // the underscore is needed to avoid panic on nil
+	grouping2, _ := two.(StandardDivGroupingType)
 	var oneGrouping, twoGrouping *AddressDivisionGrouping
 	if grouping1 != nil {
 		oneGrouping = grouping1.ToAddressDivisionGrouping()
@@ -336,7 +336,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	//			the use mapping to compare address sections (map to type with type switch and ints, then if both same type, use generic compare(AddressSection one, two))
 	//		1c compare division series types
 	//		1d compare division series for general case when 1c types the same
-	//				this checks for both StandardDivisionGroupingType (DONE), so we can use longs,
+	//				this checks for both StandardDivGroupingType (DONE), so we can use longs,
 	//				if either not, then we use bytes and AddressDivisionSeries
 	// 2. type assertion for DivisionType, covering all divisions, including large
 	//		2a check for AddressSegmentType with type assertion
@@ -353,7 +353,7 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// AddressDivisionSeries (split off all division groupings including large)
 	// AddressType to convert to Address
 	// AddressSectionType to convert to AddressSection
-	// StandardDivisionGroupingType (all standard divisons) so we can grab longs when comparing divisions
+	// StandardDivGroupingType (all standard divisons) so we can grab longs when comparing divisions
 	// DivisionType (all divisions including large)
 	// AddressSegmentType to convert to AddressSegment
 	// StandardDivisionType so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
@@ -455,8 +455,8 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 	}
 	compareHigh := comp.compareHighValue
 	var one, two *AddressDivisionGrouping
-	if o, ok := oneSeries.(StandardDivisionGroupingType); ok {
-		if t, ok := twoSeries.(StandardDivisionGroupingType); ok {
+	if o, ok := oneSeries.(StandardDivGroupingType); ok {
+		if t, ok := twoSeries.(StandardDivGroupingType); ok {
 			one = o.ToAddressDivisionGrouping()
 			two = t.ToAddressDivisionGrouping()
 		}
@@ -741,8 +741,8 @@ func (comp countComparator) compareParts(one, two AddressDivisionSeries) int {
 
 func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries AddressDivisionSeries) int {
 	var one, two *AddressDivisionGrouping
-	if o, ok := oneSeries.(StandardDivisionGroupingType); ok {
-		if t, ok := twoSeries.(StandardDivisionGroupingType); ok {
+	if o, ok := oneSeries.(StandardDivGroupingType); ok {
+		if t, ok := twoSeries.(StandardDivGroupingType); ok {
 			one = o.ToAddressDivisionGrouping()
 			two = t.ToAddressDivisionGrouping()
 		}
@@ -980,8 +980,8 @@ func compareCount(one, two AddressDivisionSeries) int {
 		if addrSeries2, ok := two.(AddressType); ok {
 			return addrSeries1.CompareSize(addrSeries2)
 		}
-	} else if grouping1, ok := one.(StandardDivisionGroupingType); ok {
-		if grouping2, ok := two.(StandardDivisionGroupingType); ok {
+	} else if grouping1, ok := one.(StandardDivGroupingType); ok {
+		if grouping2, ok := two.(StandardDivGroupingType); ok {
 			return grouping1.CompareSize(grouping2)
 		}
 	}

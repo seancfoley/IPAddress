@@ -98,7 +98,7 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLen() PrefixLen {
 //	if !other.isMult() {
 //		return 1
 //	}
-//	if otherGrouping, ok := other.(StandardDivisionGroupingType); ok { Without caching, this is no faster
+//	if otherGrouping, ok := other.(StandardDivGroupingType); ok { Without caching, this is no faster
 //		otherSeries := otherGrouping.ToAddressDivisionGrouping()
 //		if section.IsSinglePrefixBlock() && otherSeries.IsSinglePrefixBlock() {
 //			bits := section.GetBitCount() - section.GetPrefixLen()
@@ -1391,7 +1391,7 @@ func (section *IPAddressSection) Compare(item AddressItem) int {
 	return CountComparator.Compare(section, item)
 }
 
-func (section *IPAddressSection) CompareSize(other StandardDivisionGroupingType) int {
+func (section *IPAddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1

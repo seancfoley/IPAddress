@@ -52,16 +52,17 @@ type divisionValues interface {
 	segmentValues
 }
 
-func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount, defaultRadix int) *divValues {
+func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount) *divValues {
+	//func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount, defaultRadix int) *divValues {
 	if value > upperValue {
 		value, upperValue = upperValue, value
 	}
 	return &divValues{
-		value:        value,
-		upperValue:   upperValue,
-		prefLen:      prefLen,
-		bitCount:     bitCount,
-		defaultRadix: defaultRadix,
+		value:      value,
+		upperValue: upperValue,
+		prefLen:    prefLen,
+		bitCount:   bitCount,
+		//defaultRadix: defaultRadix,
 	}
 }
 
@@ -69,8 +70,8 @@ type divValues struct {
 	bitCount          BitCount
 	value, upperValue DivInt
 	prefLen           PrefixLen
-	defaultRadix      int
-	cache             divCache
+	//defaultRadix      int
+	cache divCache
 }
 
 func (div *divValues) getBitCount() BitCount {
@@ -155,7 +156,8 @@ func (div *divValues) getUpperDivisionValue() DivInt {
 }
 
 func (div *divValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
-	return NewRangePrefixDivision(val, upperVal, prefLen, div.bitCount, div.defaultRadix)
+	return NewRangePrefixDivision(val, upperVal, prefLen, div.bitCount)
+	//return NewRangePrefixDivision(val, upperVal, prefLen, div.bitCount, div.defaultRadix)
 }
 
 func (div *divValues) getSegmentValue() SegInt {
@@ -167,11 +169,13 @@ func (div *divValues) getUpperSegmentValue() SegInt {
 }
 
 func (div *divValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
-	return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen, div.bitCount, div.defaultRadix)
+	return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen, div.bitCount)
+	//return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen, div.bitCount, div.defaultRadix)
 }
 
 func (div *divValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
-	return NewPrefixDivision(DivInt(val), prefLen, div.bitCount, div.defaultRadix)
+	return NewPrefixDivision(DivInt(val), prefLen, div.bitCount)
+	//return NewPrefixDivision(DivInt(val), prefLen, div.bitCount, div.defaultRadix)
 }
 
 var _ divisionValues = &divValues{}
@@ -822,26 +826,22 @@ func (div *addressDivisionInternal) getDefaultRangeSeparatorString() string {
 	return "-"
 }
 
-//TODO should you not provide these as public with no radix?  And also, you don't actually support all default radices, do you?  ANd do we even use it?
-////it is not used by: func (div *addressDivisionBase) getDefaultTextualRadix() int {
-//OK, seems we do not use it.  So trash it.  It was made obsolete by addrType in divisions, allowing us to differentiate ipv4 and ipv6
-
-func NewDivision(val DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
-	return NewRangePrefixDivision(val, val, nil, bitCount, defaultRadix)
+func NewDivision(val DivInt, bitCount BitCount) *AddressDivision {
+	return NewRangePrefixDivision(val, val, nil, bitCount)
 }
 
-func NewRangeDivision(val, upperVal DivInt, bitCount BitCount, defaultRadix int) *AddressDivision {
-	return NewRangePrefixDivision(val, upperVal, nil, bitCount, defaultRadix)
+func NewRangeDivision(val, upperVal DivInt, bitCount BitCount) *AddressDivision {
+	return NewRangePrefixDivision(val, upperVal, nil, bitCount)
 }
 
-func NewPrefixDivision(val DivInt, prefixLen PrefixLen, bitCount BitCount, defaultRadix int) *AddressDivision {
-	return NewRangePrefixDivision(val, val, prefixLen, bitCount, defaultRadix)
+func NewPrefixDivision(val DivInt, prefixLen PrefixLen, bitCount BitCount) *AddressDivision {
+	return NewRangePrefixDivision(val, val, prefixLen, bitCount)
 }
 
-func NewRangePrefixDivision(val, upperVal DivInt, prefixLen PrefixLen, bitCount BitCount, defaultRadix int) *AddressDivision {
+func NewRangePrefixDivision(val, upperVal DivInt, prefixLen PrefixLen, bitCount BitCount) *AddressDivision {
 	return &AddressDivision{
 		addressDivisionInternal{
-			addressDivisionBase{newDivValues(val, upperVal, prefixLen, bitCount, defaultRadix)},
+			addressDivisionBase{newDivValues(val, upperVal, prefixLen, bitCount)},
 		},
 	}
 }

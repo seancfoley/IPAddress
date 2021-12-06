@@ -204,7 +204,7 @@ func (section *IPv4AddressSection) Compare(item AddressItem) int {
 	return CountComparator.Compare(section, item)
 }
 
-func (section *IPv4AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+func (section *IPv4AddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1
@@ -703,7 +703,7 @@ func (section *IPv4AddressSection) checkSectionCounts(sections []*IPv4AddressSec
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, IncompatibleAddressError) {
+func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
@@ -716,7 +716,7 @@ func (section *IPv4AddressSection) MergeToSequentialBlocks(sections ...*IPv4Addr
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, IncompatibleAddressError) {
+func (section *IPv4AddressSection) MergeToPrefixBlocks(sections ...*IPv4AddressSection) ([]*IPv4AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
@@ -1057,7 +1057,8 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 			}
 		}
 	}
-	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
+	//return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
+	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3), nil
 }
 
 func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {

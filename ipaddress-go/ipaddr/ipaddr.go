@@ -677,11 +677,6 @@ func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHost(false)
 }
 
-//func (addr *IPAddress) ToZeroHost() (*IPAddress, IncompatibleAddressError) {
-//	res, err := addr.init().toZeroHost(false)
-//	return res.ToIPAddress(), err
-//}
-
 func (addr *IPAddress) ToZeroHostLen(prefixLength BitCount) (*IPAddress, IncompatibleAddressError) {
 	return addr.init().toZeroHostLen(prefixLength)
 }
@@ -986,18 +981,19 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 	return addr.init().increment(increment).ToIPAddress()
 }
 
-func (addr *IPAddress) SpanWithRange(other *IPAddress) (*IPAddressSeqRange, IncompatibleAddressError) {
-	//TODO consider dropping the error, when spanning different versions you just get nil
+// SpanWithRange produces an IPAddressRange instance that spans this subnet to the given subnet.
+// If the other address is a different version than this, then the other is ignored, and the result is equivalent to calling ToSequentialRange()
+func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
 		if oth := other.ToIPv4Address(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
 	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
 		if oth := other.ToIPv6Address(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange(), nil
+			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
 	}
-	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+	return addr.ToSequentialRange()
 }
 
 // Mask applies the given mask to all addresses represented by this IPAddress.
@@ -1033,10 +1029,6 @@ func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAdd
 func (addr *IPAddress) BitwiseOr(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
-
-//func (addr *IPAddress) BitwiseOrPrefixed(other *IPAddress) (masked *IPAddress, err IncompatibleAddressError) {
-//	return addr.bitwiseOrPrefixed(other, true)
-//}
 
 func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
@@ -1195,7 +1187,8 @@ func (addr *IPAddress) SpanWithPrefixBlocks() []*IPAddress {
 }
 
 func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) []*IPAddress {
-	if !addr.GetIPVersion().Equal(other.GetIPVersion()) {
+	//if !addr.GetIPVersion().Equal(other.GetIPVersion()){
+	if !versionsMatch(addr, other) {
 		return addr.SpanWithPrefixBlocks()
 	}
 	return cloneToIPAddrs(
@@ -1209,7 +1202,7 @@ func (addr *IPAddress) SpanWithPrefixBlocksTo(other *IPAddress) []*IPAddress {
 // CoverWithPrefixBlockTo provides a single prefix block that covers both the receiver and the argument.
 // If the argument is not the same IP version as the receiver, the argument is ignored, and the result covers just the receiver.
 func (addr *IPAddress) CoverWithPrefixBlockTo(other *IPAddress) *IPAddress {
-	if !addr.GetIPVersion().Equal(other.GetIPVersion()) {
+	if !versionsMatch(addr, other) {
 		return addr.CoverWithPrefixBlock()
 	}
 	return addr.init().coverWithPrefixBlockTo(other)
@@ -1227,18 +1220,16 @@ func (addr *IPAddress) SpanWithSequentialBlocks() []*IPAddress {
 	return cloneToIPAddrs(spanWithSequentialBlocks(addr.Wrap()))
 }
 
-func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) ([]*IPAddress, IncompatibleAddressError) {
-	addr = addr.init()
-	other = other.init()
+func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) []*IPAddress {
 	if !versionsMatch(addr, other) {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipVersionMismatch"}}
+		return addr.SpanWithSequentialBlocks()
 	}
 	return cloneToIPAddrs(
 		getSpanningSequentialBlocks(
-			addr.ToIPAddress().Wrap(),
-			other.ToIPAddress().Wrap(),
+			addr.init().Wrap(),
+			other.init().Wrap(),
 		),
-	), nil
+	)
 }
 
 func (addr *IPAddress) ReverseBytes() (*IPAddress, IncompatibleAddressError) {
@@ -1374,7 +1365,8 @@ func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
 	return addr.GetSection().toCustomZonedString(stringOptions, addr.zone)
 }
 
-// Retrieves or generates an IPAddressString object for this IPAddress object.
+// ToAddressString retrieves or generates an IPAddressString object for this IPAddress object.
+// This may be the IPAddressString this instance was generated from, if it was generated from an IPAddressString.
 //
 // In general, users are intended to create IPAddress objects from IPAddressString objects,
 // while the reverse direction is generally not all that useful, except under specific circumstances.
@@ -1383,7 +1375,7 @@ func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
 //
 // So it may be useful to store a set of address strings as a collection of IPAddressString objects, rather than IPAddress objects,
 // which is one reason you might wish to obtain an IPAddressString from an IPAddress.
-func (addr *IPAddress) ToAddressString() *IPAddressString { //TODO rename FromString()
+func (addr *IPAddress) ToAddressString() *IPAddressString {
 	addr = addr.init()
 	cache := addr.cache
 	if cache == nil {
@@ -1402,11 +1394,6 @@ func (addr *IPAddress) ToAddressString() *IPAddressString { //TODO rename FromSt
 		return str
 	}
 	return newIPAddressStringFromAddr(addr.toCanonicalString(), addr)
-	//xxx
-	//we need a secondary spot in the cache
-	//we cannot go to hostname since hostname goes to us
-	//xxx
-	//return hostIdStr.(*HostName).AsAddressString()
 }
 
 func (addr *IPAddress) ToHostName() *HostName {
@@ -1493,8 +1480,6 @@ func ipAddressEquals(one, two *IPAddress) bool {
 }
 
 type IPAddressValueProvider interface {
-	//PrefixedAddressValueProvider
-
 	AddressValueProvider
 
 	GetPrefixLen() PrefixLen // return nil if none
@@ -1503,229 +1488,6 @@ type IPAddressValueProvider interface {
 
 	GetZone() string // return "" or NoZone if none
 }
-
-//type PrefixedAddressValueProvider interface {
-//	AddressValueProvider
-//
-//	GetPrefixLen() PrefixLen // return nil if none
-//}
-
-////// IPv4AddressValueProvider wraps a PrefixedAddressValueProvider to prodice an IPAddressValueProvider
-////type IPv4AddressValueProvider struct {
-////	PrefixedAddressValueProvider
-////}
-////
-////func (IPv4AddressValueProvider) GetIPVersion() IPVersion {
-////	return IPv4
-////}
-////
-////func (IPv4AddressValueProvider) GetZone() string {
-////	return NoZone
-////}
-////
-////// IPv6AddressValueProvider wraps a PrefixedAddressValueProvider to produce an IPAddressValueProvider with no zone
-////type IPv6AddressValueProvider struct {
-////	PrefixedAddressValueProvider
-////}
-////
-////func (IPv6AddressValueProvider) GetIPVersion() IPVersion {
-////	return IPv6
-////}
-////
-////func (IPv6AddressValueProvider) GetZone() string {
-////	return NoZone
-////}
-//
-//// BuildNormalizedString allows for the creation of a normalized string without creating a full IP address object first.
-//// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
-//// The string is appended to the provided Builder instance.
-//func BuildNormalizedString(provider IPAddressValueProvider, builder *strings.Builder) {
-//	version := provider.GetIPVersion()
-//	if version.IsIPv4() {
-//		BuildNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), builder)
-//	} else if version.IsIPv6() {
-//		BuildNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), provider.GetZone(), builder)
-//	}
-//}
-//
-////// ToNormalizedString Allows for the creation of a normalized string without creating a full IP address object first.
-////// Instead you can implement the IPAddressValueProvider interface in whatever way is most efficient.
-////func ToNormalizedString(provider IPAddressValueProvider) string {
-////	version := provider.GetIPVersion()
-////	if version.IsIPv4() {
-////		return ToNormalizedIPv4String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen())
-////	} else if version.IsIPv6() {
-////		return ToNormalizedIPv6String(provider.GetValues(), provider.GetUpperValues(), provider.GetPrefixLen(), provider.GetZone())
-////	}
-////	return ""
-////}
-//
-////// Creates a normalized IPv4 string for an address without having to create the address objects first.
-////func ToNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) string {
-////	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "")
-////}
-////
-////// Creates a normalized IPv6 string for an address without having to create the address objects first.
-////func ToNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) string {
-////	return createNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone)
-////}
-//
-//// Builds a normalized IPv4 string for an address without having to create the address objects first.
-//func BuildNormalizedIPv4String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, builder *strings.Builder) {
-//	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv4SegmentCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, IPv4SegmentSeparator, IPv4DefaultTextualRadix, "", builder)
-//}
-//
-//// Builds a normalized IPv6 string for an address without having to create the address objects first.
-//func BuildNormalizedIPv6String(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string, builder *strings.Builder) {
-//	buildNormalizedString(lowerValueProvider, upperValueProvider, prefixLength, IPv6SegmentCount, IPv6BytesPerSegment, IPv6BitsPerSegment, IPv6MaxValuePerSegment, IPv6SegmentSeparator, IPv6DefaultTextualRadix, zone, builder)
-//}
-//
-//// Creates the normalized string for an address without having to create the address objects first.
-//func createNormalizedString(
-//	lowerValueProvider,
-//	upperValueProvider SegmentValueProvider,
-//	prefixLength PrefixLen,
-//	segmentCount,
-//	bytesPerSegment int,
-//	bitsPerSegment BitCount,
-//	segmentMaxValue SegInt,
-//	separator byte,
-//	radix int,
-//	zone string) string {
-//	length := buildNormalizedString(
-//		lowerValueProvider,
-//		upperValueProvider,
-//		prefixLength,
-//		segmentCount,
-//		bytesPerSegment,
-//		bitsPerSegment,
-//		segmentMaxValue,
-//		separator,
-//		radix,
-//		zone,
-//		nil)
-//	var builder strings.Builder
-//	builder.Grow(length)
-//	buildNormalizedString(
-//		lowerValueProvider,
-//		upperValueProvider,
-//		prefixLength,
-//		segmentCount,
-//		bytesPerSegment,
-//		bitsPerSegment,
-//		segmentMaxValue,
-//		separator,
-//		radix,
-//		zone,
-//		&builder)
-//	checkLengths(length, &builder)
-//	return builder.String()
-//}
-//
-//// you could call isPrefixSubnet to do prefixed strings, but then the strings not unique anymore
-//// then just prior to the check if value == value2 {
-////Integer segmentPrefixLength = IPAddressSection.getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex);
-////if(segmentPrefixLength != null) {
-////	int mask = ~0 << (bitsPerSegment - segmentPrefixLength);
-////	value &= mask;
-////	value2 &= mask;
-////}
-////this func (params *ipAddressStringParams) appendSegment shows how we normally do it, checking for prefix block and then single prefix block
-//// But instead, here we can just check for the single prefix like in the above blurb
-//// And I would like to change that appendSegment method too, no need to check for prefix block twice
-//
-//xxxxx change name to normalizedWildcardString then xxxxx
-//xxxxx maybe you should cache the seg values rather than calling the provider multiple times
-//xxxxx The more I think about this the more I dislike.  So do you want to avoid compression?
-//xxxxx And then thre is the caching, with prefixsubnet check you would be getting values three times, unless cached.
-//xxxxx getCompressIndexAndCount handles compression
-//xxxxx You wanted this for keys to maps.  Not so sure going further is much benefit.  Maybe you should toss this whole thing.
-//
-//
-//func buildNormalizedString(
-//	lowerValueProvider,
-//	upperValueProvider SegmentValueProvider,
-//	prefixLength PrefixLen,
-//	segmentCount,
-//	bytesPerSegment int,
-//	bitsPerSegment BitCount,
-//	segmentMaxValue SegInt,
-//	separator byte,
-//	radix int,
-//	zone string,
-//	builder *strings.Builder) int {
-//	var segmentIndex, count int
-//	for {
-//		var value, value2 SegInt
-//		if lowerValueProvider == nil {
-//			value = upperValueProvider(segmentIndex)
-//			value2 = value
-//		} else {
-//			value = lowerValueProvider(segmentIndex)
-//			if upperValueProvider != nil {
-//				value2 = upperValueProvider(segmentIndex)
-//			} else {
-//				value2 = value
-//			}
-//		}
-//			if value == value2 {
-//				if builder == nil {
-//					count += toUnsignedStringLength(uint64(value), radix)
-//				} else {
-//					toUnsignedString(uint64(value), radix, builder)
-//				}
-//			} else {
-//				if value > value2 {
-//					value, value2 = value2, value
-//				}
-//				if value == 0 && value2 == segmentMaxValue {
-//					if builder == nil {
-//						count++ // len(SegmentWildcardStr)
-//					} else {
-//						builder.WriteByte(SegmentWildcard)
-//					}
-//				} else {
-//					if builder == nil {
-//						count += toUnsignedStringLength(uint64(value), radix) +
-//							toUnsignedStringLength(uint64(value2), radix) +
-//							1 // len(RangeSeparatorStr)
-//					} else {
-//						toUnsignedString(uint64(value), radix, builder)
-//						builder.WriteByte(RangeSeparator)
-//						toUnsignedString(uint64(value2), radix, builder)
-//					}
-//				}
-//			}
-//		segmentIndex++
-//		if segmentIndex >= segmentCount {
-//			break
-//		}
-//		if builder != nil {
-//			builder.WriteByte(separator)
-//		} // else counting the separators happens just once outside the loop, just below
-//	}
-//	if builder == nil {
-//		count += segmentCount // separators
-//		count--               // no ending separator
-//	}
-//	if zone != "" {
-//		if builder == nil {
-//			count += len(zone) + 1
-//		} else {
-//			builder.WriteByte(IPv6ZoneSeparator)
-//			builder.WriteString(zone)
-//		}
-//	}
-//	if prefixLength != nil {
-//		if builder == nil {
-//			count += toUnsignedStringLength(uint64(*prefixLength), 10) + 1
-//		} else {
-//			builder.WriteByte(PrefixLenSeparator)
-//			toUnsignedString(uint64(*prefixLength), 10, builder)
-//		}
-//	}
-//	return count
-//}
 
 func addrFromIP(ip net.IP) (addr *IPAddress, err AddressValueError) {
 	if ipv4 := ip.To4(); ipv4 != nil {
@@ -1863,6 +1625,7 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 
 //TODO you could rename these to "New" methods instead of From, they're no different than the New methods construcitng ipv4/6
 // so that would be NewIPAddressFromIP
+// FromValueProvider, FromVals, FromPrefixedVals, FromPrefixedZonedVals,FromPrefixedIPAddr,FromIPAddr,FromPrefixedIP,FromIP
 
 //TODO additional ones taking net.IPNet which is prefix length / mask with address
 
@@ -1993,16 +1756,6 @@ func NewIPAddressFromPrefixedSegments(segments []*IPAddressSegment, prefixLength
 		}
 	})
 }
-
-/*
-func NewIPv4Section(segments []*IPv4AddressSegment) (res *IPv4AddressSection, err AddressValueError) {
-	return newIPv4Section(cloneIPv4SegsToDivs(segments), true)
-}
-
-func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLength PrefixLen) (res *IPv4AddressSection, err AddressValueError) {
-	return newIPv4PrefixedSection(cloneIPv4SegsToDivs(segments), prefixLen)
-}
-*/
 
 func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
 	if valueProvider.GetIPVersion().IsIPv4() {

@@ -2013,18 +2013,22 @@ const zeros = "00000000000000000000"
 //	return builder.String()
 //}
 func toNormalizedStringRange(params *addressStringParams, lower, upper AddressDivisionSeries, zone Zone) string {
-	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
-	var builder strings.Builder
-	separator := params.getWildcards().GetRangeSeparator()
-	if separator != "" {
-		length += len(separator)
-		builder.Grow(length)
-		params.append(&builder, lower).WriteString(separator)
-		params.appendZoned(&builder, upper, zone)
-	} else {
-		builder.Grow(length)
-		params.appendZoned(params.append(&builder, lower), upper, zone)
+	if lower.GetDivisionCount() > 0 {
+		var builder strings.Builder
+		length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
+		separator := params.getWildcards().GetRangeSeparator()
+		if separator != "" {
+			length += len(separator)
+			builder.Grow(length)
+			params.append(&builder, lower).WriteString(separator)
+			params.appendZoned(&builder, upper, zone)
+
+		} else {
+			builder.Grow(length)
+			params.appendZoned(params.append(&builder, lower), upper, zone)
+		}
+		checkLengths(length, &builder)
+		return builder.String()
 	}
-	checkLengths(length, &builder)
-	return builder.String()
+	return ""
 }

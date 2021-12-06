@@ -4970,7 +4970,7 @@ func (t ipAddressTester) testRangeExtendImpl(lower1, higher1, lower2, higher2, r
 		range1 = addr.ToSequentialRange()
 	} else {
 		addr2 = t.createAddress(higher1).GetAddress()
-		range1, _ = addr.SpanWithRange(addr2)
+		range1 = addr.SpanWithRange(addr2)
 	}
 
 	addr = t.createAddress(lower2).GetAddress()
@@ -4979,7 +4979,7 @@ func (t ipAddressTester) testRangeExtendImpl(lower1, higher1, lower2, higher2, r
 		range2 = addr.ToSequentialRange()
 	} else {
 		addr2 = t.createAddress(higher2).GetAddress()
-		range2, _ = addr.SpanWithRange(addr2)
+		range2 = addr.SpanWithRange(addr2)
 	}
 
 	result := range1.Extend(range2)
@@ -4995,7 +4995,7 @@ func (t ipAddressTester) testRangeExtendImpl(lower1, higher1, lower2, higher2, r
 	} else {
 		addr = t.createAddress(resultLower).GetAddress()
 		addr2 = t.createAddress(resultHigher).GetAddress()
-		expectedResult, _ := addr.SpanWithRange(addr2)
+		expectedResult := addr.SpanWithRange(addr2)
 		if !result.Equal(expectedResult) {
 			t.addFailure(newIPAddrFailure("mismatch result '"+result.String()+"' expected '"+expectedResult.String()+"' extending '"+range1.String()+"' with '"+range2.String()+"'", addr))
 		}
@@ -5011,11 +5011,11 @@ func (t ipAddressTester) testRangeJoin(lower1, higher1, lower2, higher2, resultL
 func (t ipAddressTester) testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
 	addr := t.createAddress(lower1).GetAddress()
 	addr2 := t.createAddress(higher1).GetAddress()
-	range1, _ := addr.SpanWithRange(addr2)
+	range1 := addr.SpanWithRange(addr2)
 
 	addr = t.createAddress(lower2).GetAddress()
 	addr2 = t.createAddress(higher2).GetAddress()
-	range2, _ := addr.SpanWithRange(addr2)
+	range2 := addr.SpanWithRange(addr2)
 
 	result := range1.JoinTo(range2)
 	if resultLower == "" {
@@ -5025,7 +5025,7 @@ func (t ipAddressTester) testRangeJoinImpl(lower1, higher1, lower2, higher2, res
 	} else {
 		addr = t.createAddress(resultLower).GetAddress()
 		addr2 = t.createAddress(resultHigher).GetAddress()
-		expectedResult, _ := addr.SpanWithRange(addr2)
+		expectedResult := addr.SpanWithRange(addr2)
 		if !result.Equal(expectedResult) {
 			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' joining '"+addr.String()+"' with '"+addr2.String()+"'", result), addr))
 		}
@@ -5042,11 +5042,11 @@ func (t ipAddressTester) testRangeIntersect(lower1, higher1, lower2, higher2, re
 func (t ipAddressTester) testRangeIntersectImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher string) {
 	addr := t.createAddress(lower1).GetAddress()
 	addr2 := t.createAddress(higher1).GetAddress()
-	range1, _ := addr.SpanWithRange(addr2)
+	range1 := addr.SpanWithRange(addr2)
 
 	addr = t.createAddress(lower2).GetAddress()
 	addr2 = t.createAddress(higher2).GetAddress()
-	range2, _ := addr.SpanWithRange(addr2)
+	range2 := addr.SpanWithRange(addr2)
 
 	result := range1.Intersect(range2)
 	if resultLower == "" {
@@ -5056,7 +5056,7 @@ func (t ipAddressTester) testRangeIntersectImpl(lower1, higher1, lower2, higher2
 	} else {
 		addr := t.createAddress(resultLower).GetAddress()
 		addr2 := t.createAddress(resultHigher).GetAddress()
-		expectedResult, _ := addr.SpanWithRange(addr2)
+		expectedResult := addr.SpanWithRange(addr2)
 		if !result.Equal(expectedResult) {
 			t.addFailure(newIPAddrFailure("mismatch result '"+result.String()+"' expected '"+expectedResult.String()+"' intersecting '"+addr.String()+"' with '"+addr2.String()+"'", addr))
 		}
@@ -5067,11 +5067,11 @@ func (t ipAddressTester) testRangeIntersectImpl(lower1, higher1, lower2, higher2
 func (t ipAddressTester) testRangeSubtract(lower1, higher1, lower2, higher2 string, resultPairs ...string) {
 	addr := t.createAddress(lower1).GetAddress()
 	addr2 := t.createAddress(higher1).GetAddress()
-	range1, _ := addr.SpanWithRange(addr2)
+	range1 := addr.SpanWithRange(addr2)
 
 	addr = t.createAddress(lower2).GetAddress()
 	addr2 = t.createAddress(higher2).GetAddress()
-	range2, _ := addr.SpanWithRange(addr2)
+	range2 := addr.SpanWithRange(addr2)
 
 	result := range1.Subtract(range2)
 	if len(resultPairs) == 0 {
@@ -5081,13 +5081,13 @@ func (t ipAddressTester) testRangeSubtract(lower1, higher1, lower2, higher2 stri
 	} else { //resultPairs.length >= 2
 		addr = t.createAddress(resultPairs[0]).GetAddress()
 		addr2 = t.createAddress(resultPairs[1]).GetAddress()
-		expectedResult, _ := addr.SpanWithRange(addr2)
+		expectedResult := addr.SpanWithRange(addr2)
 		if len(result) == 0 || !result[0].Equal(expectedResult) {
 			t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result), addr))
 		} else if len(resultPairs) == 4 {
 			addr = t.createAddress(resultPairs[2]).GetAddress()
 			addr2 = t.createAddress(resultPairs[3]).GetAddress()
-			expectedResult, _ = addr.SpanWithRange(addr2)
+			expectedResult = addr.SpanWithRange(addr2)
 			if len(result) == 1 || !result[1].Equal(expectedResult) {
 				t.addFailure(newIPAddrFailure(fmt.Sprintf("mismatch result %v expected '"+expectedResult.String()+"' subtracting '"+addr2.String()+"' from '"+addr.String()+"'", result), addr))
 			}

@@ -12,7 +12,7 @@ type AddressItem interface {
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
-	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP
+	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP, GetValue() and GetUpperValue()
 	GetUpperBytes() []byte
 
 	// GetCount provides the number of address items represented by this AddressItem, for example the subnet size for IP addresses
@@ -90,20 +90,21 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 	IsSequential() bool
 }
 
-// StandardDivisionGroupingType represents any standard division grouping (division groupings or address sections where all divisions are 64 bits or less)
+// StandardDivGroupingType represents any standard division grouping (division groupings or address sections where all divisions are 64 bits or less)
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, MACAddressSection, and AddressDivisionGrouping
-type StandardDivisionGroupingType interface { //TODO rename to StandardDivisionGrouping
-
+type StandardDivGroupingType interface {
 	AddressDivisionSeries
 
+	// IsZeroGrouping returns true if the division grouping was originally created as a zero-valued section or grouping (eg IPv4AddressSection{})
+	// Such a grouping has no divisions or segments, and is convertible to any type or version, whether IPv6, IPv4, MAC, etc
 	IsZeroGrouping() bool
 
-	CompareSize(StandardDivisionGroupingType) int
+	CompareSize(StandardDivGroupingType) int
 
 	ToAddressDivisionGrouping() *AddressDivisionGrouping
 }
 
-var _, _ StandardDivisionGroupingType = &AddressDivisionGrouping{},
+var _, _ StandardDivGroupingType = &AddressDivisionGrouping{},
 	&IPv6v4MixedAddressGrouping{}
 
 // AddressDivisionSeries serves as a common interface to all division groupings (including large) and addresses
@@ -259,7 +260,7 @@ var _, _ MACAddressSegmentSeries = &MACAddress{}, &MACAddressSection{}
 // that can be converted to/from the base type AddressSection,
 // including AddressSection, IPAddressSection, IPv4AddressSection, IPv6AddressSection, and MACAddressSection
 type AddressSectionType interface {
-	StandardDivisionGroupingType
+	StandardDivGroupingType
 
 	Equal(AddressSectionType) bool
 	Contains(AddressSectionType) bool

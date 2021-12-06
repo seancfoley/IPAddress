@@ -362,7 +362,7 @@ func (section *IPv6AddressSection) Compare(item AddressItem) int {
 	return CountComparator.Compare(section, item)
 }
 
-func (section *IPv6AddressSection) CompareSize(other StandardDivisionGroupingType) int {
+func (section *IPv6AddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1
@@ -871,7 +871,7 @@ func (section *IPv6AddressSection) SpanWithPrefixBlocks() []*IPv6AddressSection 
 //	return
 //}
 
-func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+func (section *IPv6AddressSection) SpanWithPrefixBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
 	//if err := section.checkIndex(other); err != nil {
 	//	return nil, err
 	//} else
@@ -894,7 +894,7 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocks() []*IPv6AddressSect
 	return cloneToIPv6Sections(spanWithSequentialBlocks(wrapped))
 }
 
-func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
 	//if err := section.checkIndex(other); err != nil {
 	//	return nil, err
 	//} else
@@ -909,7 +909,7 @@ func (section *IPv6AddressSection) SpanWithSequentialBlocksTo(other *IPv6Address
 	), nil
 }
 
-func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, IncompatibleAddressError) {
+func (section *IPv6AddressSection) CoverWithPrefixBlockTo(other *IPv6AddressSection) (*IPv6AddressSection, SizeMismatchError) {
 	//if err := section.checkIndex(other); err != nil {
 	//	return nil, err
 	//}
@@ -921,7 +921,7 @@ func (section *IPv6AddressSection) CoverWithPrefixBlock() *IPv6AddressSection {
 	return section.coverWithPrefixBlock().ToIPv6AddressSection()
 }
 
-func (section *IPv6AddressSection) checkSectionCounts(sections []*IPv6AddressSection) IncompatibleAddressError {
+func (section *IPv6AddressSection) checkSectionCounts(sections []*IPv6AddressSection) SizeMismatchError {
 	segCount := section.GetSegmentCount()
 	//addressSegmentIndex := section.addressSegmentIndex
 	length := len(sections)
@@ -949,7 +949,7 @@ func (section *IPv6AddressSection) checkSectionCounts(sections []*IPv6AddressSec
 // MergeToSequentialBlocks merges this with the list of sections to produce the smallest array of blocks that are sequential
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
@@ -962,7 +962,7 @@ func (section *IPv6AddressSection) MergeToSequentialBlocks(sections ...*IPv6Addr
 // MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
-func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, IncompatibleAddressError) {
+func (section *IPv6AddressSection) MergeToPrefixBlocks(sections ...*IPv6AddressSection) ([]*IPv6AddressSection, SizeMismatchError) {
 	if err := section.checkSectionCounts(sections); err != nil {
 		return nil, err
 	}
@@ -1643,7 +1643,7 @@ func (grouping *IPv6v4MixedAddressGrouping) Compare(item AddressItem) int {
 	return CountComparator.Compare(grouping, item)
 }
 
-func (grouping *IPv6v4MixedAddressGrouping) CompareSize(other StandardDivisionGroupingType) int {
+func (grouping *IPv6v4MixedAddressGrouping) CompareSize(other StandardDivGroupingType) int {
 	if grouping == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1

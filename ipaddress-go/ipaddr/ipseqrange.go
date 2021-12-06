@@ -924,7 +924,7 @@ func (rng *IPAddressSeqRange) SpanWithPrefixBlocks() []*IPAddress {
 }
 
 func (rng *IPAddressSeqRange) SpanWithSequentialBlocks() []*IPAddress {
-	res, _ := rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
+	res := rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
 	return res
 }
 

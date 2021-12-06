@@ -138,7 +138,7 @@ func (section *MACAddressSection) Compare(item AddressItem) int {
 	return CountComparator.Compare(section, item)
 }
 
-func (section *MACAddressSection) CompareSize(other StandardDivisionGroupingType) int {
+func (section *MACAddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1
@@ -697,7 +697,7 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 		}
 		val := (segment1.GetSegmentValue() << uint(bitsPerSeg)) | segment2.GetSegmentValue()
 		upperVal := (segment1.GetUpperSegmentValue() << uint(bitsPerSeg)) | segment2.GetUpperSegmentValue()
-		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
+		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount)
 
 		//vals := &bitsDivisionVals{
 		//	value:      DivInt((segment1.GetSegmentValue() << bitsPerSeg) | segment2.GetSegmentValue()),
@@ -720,7 +720,7 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 		segment := section.GetSegment(segIndex)
 		val := segment.GetSegmentValue() << uint(bitsPerSeg)
 		upperVal := segment.GetUpperSegmentValue() << uint(bitsPerSeg)
-		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount, MACDefaultTextualRadix)
+		vals := NewRangeDivision(DivInt(val), DivInt(upperVal), newSegmentBitCount)
 		//vals := &bitsDivisionVals{
 		//	value:      DivInt(segment.GetSegmentValue() << bitsPerSeg),
 		//	upperValue: DivInt(segment.GetUpperSegmentValue() << bitsPerSeg),

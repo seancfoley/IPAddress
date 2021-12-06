@@ -262,7 +262,7 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 //}
 
 //func (grouping *addressDivisionGroupingInternal) CompareSize(other AddressDivisionSeries) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
-func (grouping *addressDivisionGroupingInternal) compareSize(other StandardDivisionGroupingType) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
+func (grouping *addressDivisionGroupingInternal) compareSize(other StandardDivGroupingType) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
 	if other == nil || other.ToAddressDivisionGrouping() == nil {
 		// our size is 1 or greater, other 0
 		return 1
@@ -653,7 +653,7 @@ func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
 //	//	return true
 //	//}
 //	if section := grouping.toAddressSection(); section != nil {
-//		if otherGrp, ok := other.(StandardDivisionGroupingType); ok {
+//		if otherGrp, ok := other.(StandardDivGroupingType); ok {
 //			otherSect := otherGrp.ToAddressDivisionGrouping().ToAddressSection()
 //			return otherSect != nil && section.EqualsSection(otherSect)
 //		}
@@ -832,7 +832,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 //	//	return true
 //	//}
 //	if section := grouping.toAddressSection(); section != nil {
-//		if otherGrouping, ok := other.(StandardDivisionGroupingType); ok {
+//		if otherGrouping, ok := other.(StandardDivGroupingType); ok {
 //			if otherSection := otherGrouping.ToAddressDivisionGrouping().ToAddressSection(); otherSection != nil {
 //				return section.EqualsSection(otherSection)
 //			}
@@ -913,66 +913,88 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 
 	divCount := len(bitDivs)
 	divs := make([]*AddressDivision, divCount)
-	//S divs[] = groupingArrayCreator.apply(divCount);
-	currentSegmentIndex := 0
-	seg := grouping.getDivision(currentSegmentIndex)
-	segLowerVal := seg.GetDivisionValue()
-	segUpperVal := seg.GetUpperDivisionValue()
-	segBits := seg.GetBitCount()
-	bitsSoFar := BitCount(0)
+	if divCount > 0 {
+		//S divs[] = groupingArrayCreator.apply(divCount);
+		currentSegmentIndex := 0
+		seg := grouping.getDivision(currentSegmentIndex)
+		segLowerVal := seg.GetDivisionValue()
+		segUpperVal := seg.GetUpperDivisionValue()
+		segBits := seg.GetBitCount()
+		bitsSoFar := BitCount(0)
 
-	// 2 to the x is all ones shift left x, then not, then add 1
-	// so, for x == 1, 1111111 -> 1111110 -> 0000001 -> 0000010
-	radix := ^(^(0) << uint(bitsPerDigit)) + 1
-	//int radix = AddressDivision.getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
-	//fill up our new divisions, one by one
-	for i := divCount - 1; i >= 0; i-- {
+		// 2 to the x is all ones shift left x, then not, then add 1
+		// so, for x == 1, 1111111 -> 1111110 -> 0000001 -> 0000010
+		//radix := ^(^(0) << uint(bitsPerDigit)) + 1
 
-		//int originalDivBitSize, divBitSize;
-		divBitSize := bitDivs[i]
-		originalDivBitSize := divBitSize
-		//long divLowerValue, divUpperValue;
-		//divLowerValue = divUpperValue = 0;
-		var divLowerValue, divUpperValue uint64
-		for {
-			if segBits >= divBitSize { // this segment fills the remainder of this division
-				diff := uint(segBits - divBitSize)
-				segBits = BitCount(diff)
-				//udiff := uint(diff);
-				segL := segLowerVal >> diff
-				segU := segUpperVal >> diff
+		//int radix = AddressDivision.getRadixPower(BigInteger.valueOf(2), bitsPerDigit).intValue();
+		//fill up our new divisions, one by one
+		for i := divCount - 1; i >= 0; i-- {
 
-				// if the division upper bits are multiple, then the lower bits inserted must be full range
-				if divLowerValue != divUpperValue {
-					if segL != 0 || segU != ^(^uint64(0)<<uint(divBitSize)) {
-						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+			//int originalDivBitSize, divBitSize;
+			divBitSize := bitDivs[i]
+			originalDivBitSize := divBitSize
+			//long divLowerValue, divUpperValue;
+			//divLowerValue = divUpperValue = 0;
+			var divLowerValue, divUpperValue uint64
+			for {
+				if segBits >= divBitSize { // this segment fills the remainder of this division
+					diff := uint(segBits - divBitSize)
+					segBits = BitCount(diff)
+					//udiff := uint(diff);
+					segL := segLowerVal >> diff
+					segU := segUpperVal >> diff
+
+					// if the division upper bits are multiple, then the lower bits inserted must be full range
+					if divLowerValue != divUpperValue {
+						if segL != 0 || segU != ^(^uint64(0)<<uint(divBitSize)) {
+							return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+						}
 					}
-				}
 
-				divLowerValue |= segL
-				divUpperValue |= segU
+					divLowerValue |= segL
+					divUpperValue |= segU
 
-				shift := ^(^uint64(0) << diff)
-				segLowerVal &= shift
-				segUpperVal &= shift
+					shift := ^(^uint64(0) << diff)
+					segLowerVal &= shift
+					segUpperVal &= shift
 
-				// if a segment's bits are split into two divisions, and the bits going into the first division are multi-valued,
-				// then the bits going into the second division must be full range
-				if segL != segU {
-					if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
-						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+					// if a segment's bits are split into two divisions, and the bits going into the first division are multi-valued,
+					// then the bits going into the second division must be full range
+					if segL != segU {
+						if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
+							return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+						}
 					}
-				}
 
-				var segPrefixBits PrefixLen
-				if networkPrefixLength != nil {
-					segPrefixBits = getDivisionPrefixLength(originalDivBitSize, *networkPrefixLength-bitsSoFar)
-				}
-				//Integer segPrefixBits = networkPrefixLength == null ? null : getSegmentPrefixLength(originalDivBitSize, networkPrefixLength - bitsSoFar);
-				div := NewRangePrefixDivision(divLowerValue, divUpperValue, segPrefixBits, originalDivBitSize, radix)
-				//S div = groupingCreator.createDivision(divLowerValue, divUpperValue, originalDivBitSize, radix, network, segPrefixBits);
-				divs[divCount-i-1] = div
-				if segBits == 0 && i > 0 {
+					var segPrefixBits PrefixLen
+					if networkPrefixLength != nil {
+						segPrefixBits = getDivisionPrefixLength(originalDivBitSize, *networkPrefixLength-bitsSoFar)
+					}
+					//Integer segPrefixBits = networkPrefixLength == null ? null : getSegmentPrefixLength(originalDivBitSize, networkPrefixLength - bitsSoFar);
+					div := NewRangePrefixDivision(divLowerValue, divUpperValue, segPrefixBits, originalDivBitSize)
+					//S div = groupingCreator.createDivision(divLowerValue, divUpperValue, originalDivBitSize, radix, network, segPrefixBits);
+					divs[divCount-i-1] = div
+					if segBits == 0 && i > 0 {
+						//get next seg
+						currentSegmentIndex++
+						seg = grouping.getDivision(currentSegmentIndex)
+						segLowerVal = seg.getDivisionValue()
+						segUpperVal = seg.getUpperDivisionValue()
+						segBits = seg.getBitCount()
+					}
+					break
+				} else {
+					// if the division upper bits are multiple, then the lower bits inserted must be full range
+					if divLowerValue != divUpperValue {
+						if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
+							return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
+						}
+					}
+					diff := uint(divBitSize - segBits)
+					divLowerValue |= segLowerVal << diff
+					divUpperValue |= segUpperVal << diff
+					divBitSize = BitCount(diff)
+
 					//get next seg
 					currentSegmentIndex++
 					seg = grouping.getDivision(currentSegmentIndex)
@@ -980,28 +1002,9 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 					segUpperVal = seg.getUpperDivisionValue()
 					segBits = seg.getBitCount()
 				}
-				break
-			} else {
-				// if the division upper bits are multiple, then the lower bits inserted must be full range
-				if divLowerValue != divUpperValue {
-					if segLowerVal != 0 || segUpperVal != ^(^uint64(0)<<uint(segBits)) {
-						return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalid.joined.ranges"}}
-					}
-				}
-				diff := uint(divBitSize - segBits)
-				divLowerValue |= segLowerVal << diff
-				divUpperValue |= segUpperVal << diff
-				divBitSize = BitCount(diff)
-
-				//get next seg
-				currentSegmentIndex++
-				seg = grouping.getDivision(currentSegmentIndex)
-				segLowerVal = seg.getDivisionValue()
-				segUpperVal = seg.getUpperDivisionValue()
-				segBits = seg.getBitCount()
 			}
+			bitsSoFar += originalDivBitSize
 		}
-		bitsSoFar += originalDivBitSize
 	}
 	return divs, nil
 }
@@ -1014,7 +1017,7 @@ func (grouping *AddressDivisionGrouping) Compare(item AddressItem) int {
 	return CountComparator.Compare(grouping, item)
 }
 
-func (grouping *AddressDivisionGrouping) CompareSize(other StandardDivisionGroupingType) int {
+func (grouping *AddressDivisionGrouping) CompareSize(other StandardDivGroupingType) int {
 	if grouping == nil {
 		if other != nil && other.ToAddressDivisionGrouping() != nil {
 			// we have size 0, other has size >= 1
