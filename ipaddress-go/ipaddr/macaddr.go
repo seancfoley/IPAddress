@@ -80,10 +80,11 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, Addr
 	if segsLen != MediaAccessControlSegmentCount && segsLen != ExtendedUniqueIdentifier64SegmentCount {
 		return nil, &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.mac.invalid.segment.count"}}
 	}
-	section, err := NewMACSection(segments)
-	if err != nil {
-		return nil, err
-	}
+	//section, err := NewMACSection(segments)
+	//if err != nil {
+	//	return nil, err
+	//}
+	section := NewMACSection(segments)
 	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
 }
 
@@ -143,9 +144,11 @@ func getMacSegCount(isExtended bool) (segmentCount int) {
 var zeroMAC = createMACZero()
 
 func createMACZero() *MACAddress {
-	div := NewMACSegment(0).ToAddressDivision()
-	segs := []*AddressDivision{div, div, div, div, div, div}
-	section, _ := newMACSection(segs)
+	segs := []*MACAddressSegment{zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg}
+	section := NewMACSection(segs)
+	//div := NewMACSegment(0).ToAddressDivision()
+	//segs := []*AddressDivision{div, div, div, div, div, div}
+	//section, _ := newMACSection(segs)
 	return newMACAddress(section)
 }
 

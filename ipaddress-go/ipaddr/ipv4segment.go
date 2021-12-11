@@ -121,6 +121,8 @@ func (seg *ipv4SegmentValues) calcBytesInternal() (bytes, upperBytes []byte) {
 var _ divisionValues = &ipv4SegmentValues{}
 
 var zeroIPv4Seg = NewIPv4Segment(0)
+var zeroIPv4SegZeroPrefix = NewIPv4PrefixedSegment(0, cacheBitCount(0))
+var zeroIPv4SegPrefixBlock = NewIPv4RangePrefixedSegment(0, IPv4MaxValuePerSegment, cacheBitCount(0))
 
 type IPv4AddressSegment struct {
 	ipAddressSegmentInternal
@@ -314,6 +316,8 @@ func (seg *IPv4AddressSegment) String() string {
 	}
 	return seg.toString()
 }
+
+// TODO rename Segment to Seg in these constructors and others
 
 func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentVal(val))

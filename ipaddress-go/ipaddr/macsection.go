@@ -22,24 +22,25 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 	}
 }
 
-// error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
-func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
-	segsLen := len(segments)
-	if segsLen > ExtendedUniqueIdentifier64SegmentCount {
-		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
-		return
-	}
-	res = createMACSection(segments)
-	if err = res.initMultAndImplicitPrefLen(MACBitsPerSegment, true); err != nil {
-		res = nil
-		return
-	}
-	return
-}
+//// error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
+//func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
+//	segsLen := len(segments)
+//	if segsLen > ExtendedUniqueIdentifier64SegmentCount {
+//		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+//		return
+//	}
+//	res = createMACSection(segments)
+//	if err = res.initMultAndImplicitPrefLen(MACBitsPerSegment, true); err != nil {
+//		res = nil
+//		return
+//	}
+//	return
+//}
 
-func NewMACSection(segments []*MACAddressSegment) (res *MACAddressSection, err AddressValueError) {
-	res, err = newMACSection(cloneMACSegsToDivs(segments))
-	return
+func NewMACSection(segments []*MACAddressSegment) *MACAddressSection {
+	return createMACSectionFromSegs(segments)
+	//res, err = newMACSection(cloneMACSegsToDivs(segments))
+	//return
 }
 
 func newMACSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {

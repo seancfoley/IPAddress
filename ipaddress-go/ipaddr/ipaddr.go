@@ -1612,34 +1612,30 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 //}
 
 func (creator IPAddressCreator) NewIPAddressFromVals(lowerValueProvider SegmentValueProvider) *IPAddress {
-	return FromVals(creator.IPVersion, lowerValueProvider)
+	return NewIPAddressFromVals(creator.IPVersion, lowerValueProvider)
 }
 
 func (creator IPAddressCreator) NewIPAddressFromPrefixedVals(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
-	return FromPrefixedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength)
+	return NewIPAddressFromPrefixedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength)
 }
 
 func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
-	return FromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
+	return NewIPAddressFromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
 }
-
-//TODO you could rename these to "New" methods instead of From, they're no different than the New methods construcitng ipv4/6
-// so that would be NewIPAddressFromIP
-// FromValueProvider, FromVals, FromPrefixedVals, FromPrefixedZonedVals,FromPrefixedIPAddr,FromIPAddr,FromPrefixedIP,FromIP
 
 //TODO additional ones taking net.IPNet which is prefix length / mask with address
 
-func FromIP(ip net.IP) *IPAddress {
+func NewIPAddressFromIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
 	return addr
 }
 
-func FromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
+func NewIPAddressFromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
 	addr, _ := addrFromPrefixedIP(ip, prefixLength)
 	return addr
 }
 
-func FromIPAddr(addr *net.IPAddr) *IPAddress {
+func NewIPAddressFromIPAddr(addr *net.IPAddr) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
@@ -1654,7 +1650,7 @@ func FromIPAddr(addr *net.IPAddr) *IPAddress {
 	return nil
 }
 
-func FromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
+func NewIPAddressFromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
@@ -1669,7 +1665,7 @@ func FromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
 	return nil
 }
 
-func FromVals(version IPVersion, lowerValueProvider SegmentValueProvider) *IPAddress {
+func NewIPAddressFromVals(version IPVersion, lowerValueProvider SegmentValueProvider) *IPAddress {
 	if version.IsIPv4() {
 		return NewIPv4AddressFromVals(WrappedSegmentValueProviderForIPv4(lowerValueProvider)).ToIPAddress()
 	} else if version.IsIPv6() {
@@ -1678,11 +1674,11 @@ func FromVals(version IPVersion, lowerValueProvider SegmentValueProvider) *IPAdd
 	return nil
 }
 
-func FromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
-	return FromPrefixedZonedVals(version, lowerValueProvider, upperValueProvider, prefixLength, "")
+func NewIPAddressFromPrefixedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen) *IPAddress {
+	return NewIPAddressFromPrefixedZonedVals(version, lowerValueProvider, upperValueProvider, prefixLength, "")
 }
 
-func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
+func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProvider SegmentValueProvider, prefixLength PrefixLen, zone string) *IPAddress {
 	if version.IsIPv4() {
 		return NewIPv4AddressFromPrefixedRange(
 			WrappedSegmentValueProviderForIPv4(lowerValueProvider),
@@ -1698,66 +1694,145 @@ func FromPrefixedZonedVals(version IPVersion, lowerValueProvider, upperValueProv
 	return nil
 }
 
-func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection) (res *IPAddress) {
-	if len(segs) > 0 {
-		if segs[0].IsIPv4AddressSegment() {
-			for _, seg := range segs[1:] {
-				if !seg.IsIPv4AddressSegment() {
-					return nil
-				}
-			}
-			sect := sectionCreator(true, cloneIPSegsToDivs(segs))
-			addr, err := NewIPv4Address(sect.ToIPv4AddressSection())
-			if err == nil {
-				res = addr.ToIPAddress()
-			}
-		} else if segs[0].IsIPv6AddressSegment() {
-			for _, seg := range segs[1:] {
-				if !seg.IsIPv6AddressSegment() {
-					return nil
-				}
-			}
-			sect := sectionCreator(false, cloneIPSegsToDivs(segs))
-			addr, err := NewIPv6Address(sect.ToIPv6AddressSection())
-			if err == nil {
-				res = addr.ToIPAddress()
-			}
-		}
-	}
-	return res
-}
+//func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection) (res *IPAddress) {
+//	xxx
+//	if len(segs) > 0 {
+//		if segs[0].IsIPv4AddressSegment() {
+//			for _, seg := range segs[1:] {
+//				if !seg.IsIPv4AddressSegment() {
+//					return nil
+//				}
+//			}
+//			xxxxx sect := sectionCreator(true, cloneIPSegsToDivs(segs))
+//			addr, err := NewIPv4Address(sect.ToIPv4AddressSection())
+//			if err == nil {
+//				res = addr.ToIPAddress()
+//			}
+//		} else if segs[0].IsIPv6AddressSegment() {
+//			for _, seg := range segs[1:] {
+//				if !seg.IsIPv6AddressSegment() {
+//					return nil
+//				}
+//			}
+//			xxxxx sect := sectionCreator(false, cloneIPSegsToDivs(segs))
+//			addr, err := NewIPv6Address(sect.ToIPv6AddressSection())
+//			if err == nil {
+//				res = addr.ToIPAddress()
+//			}
+//		}
+//	}
+//	return res
+//}
+//
+//// NewIPAddressFromSegments creates an address from the given segments.
+//// If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
+//// then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
+//func NewIPAddressFromSegments(segments []*IPAddressSegment) *IPAddress {
+//	xxx
+//	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
+//		if isIPv4 {
+//			sect, _ := newIPv4Section(segs, true)
+//			return sect.ToIPAddressSection()
+//		} else {
+//			sect, _ := newIPv6Section(segs, true)
+//			return sect.ToIPAddressSection()
+//		}
+//	})
+//}
+//
+//// newIPAddressFromSegments creates an address from the given segments and prefix length.
+//// If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
+//// then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
+//func NewIPAddressFromPrefixedSegments(segments []*IPAddressSegment, prefixLength PrefixLen) *IPAddress {
+//	xxx
+//	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
+//		if isIPv4 {
+//			sect, _ := newIPv4PrefixedSection(segs, prefixLength)
+//			return sect.ToIPAddressSection()
+//		} else {
+//			sect, _ := newIPv6PrefixedSection(segs, prefixLength)
+//			return sect.ToIPAddressSection()
+//		}
+//	})
+//}
+//
+//func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*IPAddressSegment) *IPAddressSection) (res *IPAddress) {
+//	if len(segs) > 0 {
+//		if segs[0].IsIPv4AddressSegment() {
+//			for _, seg := range segs[1:] {
+//				if !seg.IsIPv4AddressSegment() {
+//					return nil
+//				}
+//			}
+//			sect := sectionCreator(true, segs)
+//			addr, err := NewIPv4Address(sect.ToIPv4AddressSection())
+//			if err == nil {
+//				res = addr.ToIPAddress()
+//			}
+//		} else if segs[0].IsIPv6AddressSegment() {
+//			for _, seg := range segs[1:] {
+//				if !seg.IsIPv6AddressSegment() {
+//					return nil
+//				}
+//			}
+//			sect := sectionCreator(false, segs)
+//			addr, err := NewIPv6Address(sect.ToIPv6AddressSection())
+//			if err == nil {
+//				res = addr.ToIPAddress()
+//			}
+//		}
+//	}
+//	return res
+//}
 
 // NewIPAddressFromSegments creates an address from the given segments.
 // If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
 // then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
-func NewIPAddressFromSegments(segments []*IPAddressSegment) (res *IPAddress) {
-	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
-		if isIPv4 {
-			sect, _ := newIPv4Section(segs, true) //TODO the plan is to change newIPv4Section to return no error
-			return sect.ToIPAddressSection()
-		} else {
-			sect, _ := newIPv6Section(segs, true)
-			return sect.ToIPAddressSection()
-		}
-	})
+func NewIPAddressFromSegments(segments []*IPAddressSegment) (res *IPAddress, err AddressValueError) {
+	return NewIPAddressFromPrefixedSegments(segments, nil)
 }
 
 // newIPAddressFromSegments creates an address from the given segments and prefix length.
 // If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
 // then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
-func NewIPAddressFromPrefixedSegments(segments []*IPAddressSegment, prefixLength PrefixLen) *IPAddress {
-	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
-		if isIPv4 {
-			sect, _ := newIPv4PrefixedSection(segs, prefixLength) //TODO the plan is to change to return no error
-			return sect.ToIPAddressSection()
-		} else {
-			sect, _ := newIPv6PrefixedSection(segs, prefixLength)
-			return sect.ToIPAddressSection()
+func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength PrefixLen) (res *IPAddress, err AddressValueError) {
+	if len(segs) > 0 {
+		if segs[0].IsIPv4AddressSegment() {
+			for _, seg := range segs[1:] {
+				if !seg.IsIPv4AddressSegment() {
+					return
+				}
+			}
+			sect := createIPSectionFromSegs(true, segs, prefixLength)
+			//sect := sectionCreator(true, segs)
+			addr, addrErr := NewIPv4Address(sect.ToIPv4AddressSection())
+			//if err == nil {
+			res, err = addr.ToIPAddress(), addrErr
+			//}
+		} else if segs[0].IsIPv6AddressSegment() {
+			for _, seg := range segs[1:] {
+				if !seg.IsIPv6AddressSegment() {
+					return
+				}
+			}
+			sect := createIPSectionFromSegs(false, segs, prefixLength)
+			//sect := sectionCreator(false, segs)
+			addr, addrErr := NewIPv6Address(sect.ToIPv6AddressSection())
+			//if err == nil {
+			//res = addr.ToIPAddress()
+			//}
+			res, err = addr.ToIPAddress(), addrErr
 		}
-	})
+	}
+	return
+
+	//return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*IPAddressSegment) *IPAddressSection {
+	//	return createIPSectionFromSegs(isIPv4, segments, prefixLength)
+	//
+	//})
 }
 
-func FromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
+func NewIPAddressFromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {
 	if valueProvider.GetIPVersion().IsIPv4() {
 		return NewIPv4AddressFromPrefixedRange(
 			WrappedSegmentValueProviderForIPv4(valueProvider.GetValues()),

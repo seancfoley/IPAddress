@@ -627,10 +627,10 @@ func (t macAddressRangeTester) testToOUIPrefixed(addrString string) {
 	for i := 3; i < len(suffixSegs); i++ {
 		suffixSegs[i] = suffixSeg
 	}
-	suffix, err := ipaddr.NewMACSection(suffixSegs)
-	if err != nil {
-		t.addFailure(newMACFailure(err.Error(), w))
-	}
+	suffix := ipaddr.NewMACSection(suffixSegs)
+	//if err != nil {
+	//	t.addFailure(newMACFailure(err.Error(), w))
+	//}
 	suffixed, err := ipaddr.NewMACAddress(suffix)
 	if err != nil {
 		t.addFailure(newMACFailure(err.Error(), w))

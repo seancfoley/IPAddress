@@ -27,19 +27,19 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 
 func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
 	result := createIPSection(segments, prefixLength, addrType)
-	_ = result.initMultAndPrefLen() // assigns isMult and checks prefix length
+	result.initMultAndPrefLen() // assigns isMult and checks prefix length
 	return result
 }
 
 func deriveIPAddressSection(from *IPAddressSection, segments []*AddressDivision) (res *IPAddressSection) {
 	res = createIPSection(segments, nil, from.getAddrType())
-	_ = res.initMultAndPrefLen()
+	res.initMultAndPrefLen()
 	return
 }
 
 func deriveIPAddressSectionPrefLen(from *IPAddressSection, segments []*AddressDivision, prefixLength PrefixLen) (res *IPAddressSection) {
 	res = createIPSection(segments, prefixLength, from.getAddrType())
-	_ = res.initMultAndPrefLen()
+	res.initMultAndPrefLen()
 	return
 }
 
@@ -49,13 +49,13 @@ func deriveIPAddressSectionPrefLen(from *IPAddressSection, segments []*AddressDi
 //	return
 //}
 
-func deriveIPAddressSectionSingle(from *IPAddressSection, segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPAddressSection) {
-	res = deriveIPAddressSectionPrefLen(from, segments, prefixLength)
-	if prefixLength != nil && !singleOnly {
-		assignPrefixSubnet(prefixLength, segments, res)
-	}
-	return
-}
+//func deriveIPAddressSectionSingle(from *IPAddressSection, segments []*AddressDivision /* cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPAddressSection) {
+//	res = deriveIPAddressSectionPrefLen(from, segments, prefixLength)
+//	if prefixLength != nil && !singleOnly {
+//		assignPrefixSubnet(prefixLength, segments, res)
+//	}
+//	return
+//}
 
 //
 //
@@ -1845,37 +1845,37 @@ func BitsPerSegment(version IPVersion) BitCount {
 	return IPv6BitsPerSegment
 }
 
-func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection) {
-	segLen := len(segments)
-	if segLen > 0 {
-		prefLen := *prefixLength
-		if isPrefixSubnetSegs(segments, prefLen) {
-			applyPrefixToSegments(
-				prefLen,
-				segments,
-				res.GetBitsPerSegment(),
-				res.GetBytesPerSegment(),
-				(*AddressDivision).toPrefixedNetworkDivision)
-			if !res.isMult {
-				res.isMult = res.GetSegment(segLen - 1).isMultiple()
-			}
-		}
-	}
-	return
-}
+//func assignPrefixSubnet(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection) {
+//	segLen := len(segments)
+//	if segLen > 0 {
+//		prefLen := *prefixLength
+//		if isPrefixSubnetSegs(segments, prefLen) {
+//			applyPrefixToSegments(
+//				prefLen,
+//				segments,
+//				res.GetBitsPerSegment(),
+//				res.GetBytesPerSegment(),
+//				(*AddressDivision).toPrefixedNetworkDivision)
+//			if !res.isMult {
+//				res.isMult = res.GetSegment(segLen - 1).isMultiple()
+//			}
+//		}
+//	}
+//	return
+//}
 
-// handles prefix blocks subnets, and ensures segment prefixes match the section prefix
+// handles prefix block subnets, and ensures segment prefixes match the section prefix
 func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection, singleOnly bool, boundaryBits BitCount) {
 	prefLen := *prefixLength
 	if prefLen < 0 {
 		prefLen = 0
 	} else if prefLen > boundaryBits {
 		prefLen = boundaryBits
-		prefixLength = &boundaryBits
+		prefixLength = cacheBitCount(boundaryBits)
 	}
 	segLen := len(segments)
 	if segLen > 0 {
-		segsPrefLen := res.prefixLength
+		segsPrefLen := res.prefixLength //TODO this is no longer necessary, all the callers will not create segs with pref len
 		if segsPrefLen != nil {
 			sp := *segsPrefLen
 			if sp < prefLen { //if the segments have a shorter prefix length, then use that
@@ -1884,7 +1884,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			}
 		}
 		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
-		applyPrefixSubnet := !singleOnly && isPrefixSubnetSegs(segments, prefLen)
+		applyPrefixSubnet := !singleOnly && isPrefixSubnetDivs(segments, prefLen)
 		if applyPrefixSubnet {
 			segProducer = (*AddressDivision).toPrefixedNetworkDivision
 		} else {
@@ -1896,7 +1896,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			res.GetBitsPerSegment(),
 			res.GetBytesPerSegment(),
 			segProducer)
-		if applyPrefixSubnet && !res.isMult {
+		if applyPrefixSubnet && !res.isMult { //TODO the res.isMult will become unnecessary
 			res.isMult = res.GetSegment(segLen - 1).isMultiple()
 		}
 	}
@@ -1910,7 +1910,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 // Note that this includes sections where hosts are all zeros, or sections where hosts are full range of values,
 // so the sequence of zeros can be empty and the sequence of where low values are zero and high values are 1 can be empty as well.
 // However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
-func isPrefixSubnetSegs(sectionSegments []*AddressDivision, networkPrefixLength BitCount) bool {
+func isPrefixSubnetDivs(sectionSegments []*AddressDivision, networkPrefixLength BitCount) bool {
 	segmentCount := len(sectionSegments)
 	if segmentCount == 0 {
 		return false

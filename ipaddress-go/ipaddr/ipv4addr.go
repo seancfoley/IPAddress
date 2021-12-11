@@ -48,11 +48,13 @@ func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, Addre
 			val:          segCount,
 		}
 	}
-	section, err := NewIPv4Section(segments)
-	if err != nil {
-		return nil, err
-	}
+	section := NewIPv4Section(segments)
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	//section, err := NewIPv4Section(segments)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
 }
 
 func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
@@ -63,11 +65,13 @@ func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength
 			val:          segCount,
 		}
 	}
-	section, err := NewIPv4PrefixedSection(segments, prefixLength)
-	if err != nil {
-		return nil, err
-	}
+	section := NewIPv4PrefixedSection(segments, prefixLength)
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	//section, err := NewIPv4PrefixedSection(segments, prefixLength)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
 }
 
 func NewIPv4AddressFromUint32(val uint32) *IPv4Address {
@@ -125,9 +129,9 @@ func NewIPv4AddressFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, p
 var zeroIPv4 = initZeroIPv4()
 
 func initZeroIPv4() *IPv4Address {
-	div := NewIPv4Segment(0).ToAddressDivision()
-	segs := []*AddressDivision{div, div, div, div}
-	section, _ := newIPv4Section(segs, false)
+	div := zeroIPv4Seg
+	segs := []*IPv4AddressSegment{div, div, div, div}
+	section := NewIPv4Section(segs)
 	return newIPv4Address(section)
 }
 

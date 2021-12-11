@@ -89,7 +89,11 @@ type WrappedIPAddress struct {
 }
 
 func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
-	return w.IPAddress
+	res := w.IPAddress
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
@@ -248,7 +252,11 @@ type WrappedIPAddressSection struct {
 }
 
 func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
-	return w.IPAddressSection
+	res := w.IPAddressSection
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
@@ -363,7 +371,6 @@ func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
 }
 
 func (w WrappedIPAddressSection) Equal(other ExtendedIPSegmentSeries) bool {
-	//TODO I think I need to make Unwrap() handle nil by returning nil
 	addr, ok := other.Unwrap().(AddressSectionType)
 	return ok && w.IPAddressSection.Equal(addr)
 }

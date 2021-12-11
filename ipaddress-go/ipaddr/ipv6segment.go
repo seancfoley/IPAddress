@@ -121,6 +121,8 @@ func (seg *ipv6SegmentValues) getCache() *divCache {
 var _ divisionValues = &ipv6SegmentValues{}
 
 var zeroIPv6Seg = NewIPv6Segment(0)
+var zeroIPv6SegZeroPrefix = NewIPv6PrefixedSegment(0, cacheBitCount(0))
+var zeroIPv6SegPrefixBlock = NewIPv6RangePrefixedSegment(0, IPv6MaxValuePerSegment, cacheBitCount(0))
 
 type IPv6AddressSegment struct {
 	ipAddressSegmentInternal

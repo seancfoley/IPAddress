@@ -1156,6 +1156,8 @@ func allocateSegments(
 
 func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundaries, withUpper bool) (sections sectionResult, boundaries boundaryResult) {
 	qualifier := parseData.getQualifier()
+	prefLen := getPrefixLength(qualifier)
+
 	mask := parseData.getProviderMask()
 	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
@@ -1243,7 +1245,8 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 				count := missingCount
 				for count >= 0 { //add the missing segments
 					shift -= IPv4BitsPerSegment
-					currentPrefix := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv4BitsPerSegment, qualifier)
+					currentPrefix := getSegmentPrefixLength(IPv4BitsPerSegment, prefLen, normalizedSegmentIndex)
+					//currentPrefix := getQualifierSegmentPrefixLength(normalizedSegmentIndex, , qualifier)
 					hostSegLower := SegInt((lower >> uint(shift)) & IPv4MaxValuePerSegment)
 					var hostSegUpper SegInt
 					if lower == upper {
@@ -1351,7 +1354,8 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 			unmasked = hostLower == lower && hostUpper == upper
 			maskedIsDifferent = maskedIsDifferent || !unmasked
 		}
-		segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv4BitsPerSegment, qualifier)
+		segmentPrefixLength := getSegmentPrefixLength(IPv4BitsPerSegment, prefLen, normalizedSegmentIndex)
+		//segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv4BitsPerSegment, qualifier)
 		if doSections {
 			if maskedIsDifferent || segmentPrefixLength != nil {
 				hostSegments = allocateSegments(hostSegments, segments, IPv4SegmentCount, normalizedSegmentIndex)
@@ -1490,6 +1494,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 
 func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundaries, withUpper bool) (sections sectionResult, boundaries boundaryResult) {
 	qualifier := parseData.getQualifier()
+	prefLen := getPrefixLength(qualifier)
 	mask := parseData.getProviderMask()
 	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
@@ -1674,7 +1679,8 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 				count := missingSegmentCount
 				for count >= 0 { // add the missing segments
 					// func getSegmentPrefixLength(bitsPerSegment BitCount, prefixLength PrefixLen, segmentIndex int)
-					currentPrefix := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
+					currentPrefix := getSegmentPrefixLength(IPv6BitsPerSegment, prefLen, normalizedSegmentIndex)
+					//currentPrefix := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
 					var hostSegLower, hostSegUpper, maskedSegLower, maskedSegUpper uint64
 					if !isCompressed {
 						shift -= IPv6BitsPerSegment
@@ -1808,7 +1814,8 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 			unmasked = hostLower == lower && hostUpper == upper
 			maskedIsDifferent = maskedIsDifferent || !unmasked
 		}
-		segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
+		segmentPrefixLength := getSegmentPrefixLength(IPv6BitsPerSegment, prefLen, normalizedSegmentIndex)
+		//segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
 		if doSections {
 			if maskedIsDifferent || segmentPrefixLength != nil {
 				hostSegments = allocateSegments(hostSegments, segments, ipv6SegmentCount, normalizedSegmentIndex)
@@ -1878,7 +1885,8 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 		}
 		for n := 0; n < 2; n++ {
 			m := n << 1
-			segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
+			segmentPrefixLength := getSegmentPrefixLength(IPv6BitsPerSegment, prefLen, normalizedSegmentIndex)
+			//segmentPrefixLength := getQualifierSegmentPrefixLength(normalizedSegmentIndex, IPv6BitsPerSegment, qualifier)
 			o := m + 1
 			oneLow := ipv4Range.GetLower().GetSegment(m)
 			twoLow := ipv4Range.GetLower().GetSegment(o)
@@ -2281,6 +2289,8 @@ func createAllAddress(
 	//	}
 	//} else {
 	hasMask := mask != nil
+	prefLen := getPrefixLength(qualifier)
+	bitsPerSegment := BitsPerSegment(version)
 	for i := 0; i < segmentCount; i++ {
 		var segmentMask *SegInt
 		if hasMask {
@@ -2292,7 +2302,8 @@ func createAllAddress(
 			0,
 			segMaxVal,
 			i,
-			getSegmentVersionedPrefixLength(i, version, qualifier),
+			getSegmentPrefixLength(bitsPerSegment, prefLen, i),
+			//getSegmentVersionedPrefixLength(i, version, qualifier),
 			segmentMask,
 			creator)
 		if rngErr != nil && err == nil {
@@ -2305,8 +2316,8 @@ func createAllAddress(
 	}
 	//}
 	if err == nil {
-		section := creator.createSectionInternal(segments)
-		res = creator.createAddressInternalFromSection(section.ToIPAddressSection(), qualifier.getZone(), originator).ToIPAddress()
+		section := creator.createPrefixedSectionInternal(segments, prefLen)
+		res = creator.createAddressInternalFromSection(section, qualifier.getZone(), originator).ToIPAddress()
 	}
 	hostSection := creator.createSectionInternal(hostSegments)
 	hostAddr = creator.createAddressInternal(hostSection.ToAddressSection(), nil).ToIPAddress()
@@ -2321,28 +2332,28 @@ func getPrefixLength(qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
 	return qualifier.getEquivalentPrefixLen()
 }
 
-/**
- * Across the address prefixes are:
- * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
- * or IPv4: ...(null).(1 to 8).(0)...
- *
- * @param segmentIndex
- * @return
- */
-func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
-	bits := getPrefixLength(qualifier)
-	return getSegmentPrefixLength(bitsPerSegment, bits, segmentIndex)
-}
+///**
+// * Across the address prefixes are:
+// * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+// * or IPv4: ...(null).(1 to 8).(0)...
+// *
+// * @param segmentIndex
+// * @return
+// */
+//func getQualifierSegmentPrefixLength(segmentIndex int, bitsPerSegment BitCount, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
+//	bits := getPrefixLength(qualifier)
+//	return getSegmentPrefixLength(bitsPerSegment, bits, segmentIndex)
+//}
 
-/**
- * Across the address prefixes are:
- * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
- * or IPv4: ...(null).(1 to 8).(0)...
- *
- * @param segmentIndex
- * @param version
- * @return
- */
-func getSegmentVersionedPrefixLength(segmentIndex int, version IPVersion, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
-	return getQualifierSegmentPrefixLength(segmentIndex, BitsPerSegment(version), qualifier)
-}
+///**
+// * Across the address prefixes are:
+// * IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+// * or IPv4: ...(null).(1 to 8).(0)...
+// *
+// * @param segmentIndex
+// * @param version
+// * @return
+// */
+//func getSegmentVersionedPrefixLength(segmentIndex int, version IPVersion, qualifier *parsedHostIdentifierStringQualifier) PrefixLen {
+//	return getQualifierSegmentPrefixLength(segmentIndex, BitsPerSegment(version), qualifier)
+//}

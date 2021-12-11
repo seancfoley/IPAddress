@@ -300,11 +300,6 @@ const (
 	zerosOrFullRange
 )
 
-//TODO consider making isPrefixSubnet public, there was one test with the zerosToFullRange pattern and i was thinking about checking for that pattern
-// Basically I had enlarged a prefix block, and wanted to know if that was what I had done so I can make the new one a prefix block,
-// just like the zeroing prefix adjustment used to do.  So, do I want to make this public?  Or do I want an enlargePrefixBLock function?
-// See enlargeSubnet in the tests.
-
 //
 // For explicit prefix config this always returns false.
 // For all prefix subnets config this always returns true if the prefix length does not extend beyond the address end.

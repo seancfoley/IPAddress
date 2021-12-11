@@ -77,13 +77,11 @@ func (creator *ipv6AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6SectionSingle(segments, prefixLength, false)
-	return sec.ToIPAddressSection()
+	return newPrefixedIPv6SectionParsed(segments, prefixLength, false).ToIPAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv6SectionSingle(segments, prefixLength, true)
-	return sec.ToIPAddressSection()
+	return newPrefixedIPv6SectionParsed(segments, prefixLength, true).ToIPAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
@@ -156,13 +154,11 @@ func (creator *ipv4AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv4SectionSingle(segments, prefixLength, false)
-	return sec.ToIPAddressSection()
+	return newPrefixedIPv4SectionParsed(segments, prefixLength, false).ToIPAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	sec, _ := newIPv4SectionSingle(segments, prefixLength, true)
-	return sec.ToIPAddressSection()
+	return newPrefixedIPv4SectionParsed(segments, prefixLength, true).ToIPAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {

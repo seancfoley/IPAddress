@@ -90,7 +90,11 @@ type WrappedAddress struct {
 }
 
 func (w WrappedAddress) Unwrap() AddressSegmentSeries {
-	return w.Address
+	res := w.Address
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 //func (w WrappedAddress) GetNetworkMask() ExtendedSegmentSeries {
@@ -253,7 +257,11 @@ type WrappedAddressSection struct {
 }
 
 func (w WrappedAddressSection) Unwrap() AddressSegmentSeries {
-	return w.AddressSection
+	res := w.AddressSection
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 //func (w WrappedAddressSection) GetNetworkMask() ExtendedSegmentSeries {

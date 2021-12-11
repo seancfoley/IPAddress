@@ -245,7 +245,7 @@ func (t specialTypesTester) testEmptyValuesOpts(hp ipaddr.HostNameParameters, sp
 		}
 		return
 	}
-	address := ipaddr.FromIP(addr)
+	address := ipaddr.NewIPAddressFromIP(addr)
 	//xxxx so we created the inetaddress, then creating an address from that, and expected equality with the address created directly
 	//xxxx so here we could get the equivalent net.IP, and create an address from that
 	////try {

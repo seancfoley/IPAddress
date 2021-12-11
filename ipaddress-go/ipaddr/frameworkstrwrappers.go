@@ -20,7 +20,11 @@ type WrappedIPAddressString struct {
 }
 
 func (w WrappedIPAddressString) Unwrap() HostIdentifierString {
-	return w.IPAddressString
+	res := w.IPAddressString
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 func (w WrappedIPAddressString) ToAddress() (AddressType, error) {
@@ -37,7 +41,11 @@ type WrappedMACAddressString struct {
 }
 
 func (w WrappedMACAddressString) Unwrap() HostIdentifierString {
-	return w.MACAddressString
+	res := w.MACAddressString
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 func (w WrappedMACAddressString) ToAddress() (AddressType, error) {
@@ -54,7 +62,11 @@ type WrappedHostName struct {
 }
 
 func (w WrappedHostName) Unwrap() HostIdentifierString {
-	return w.HostName
+	res := w.HostName
+	if res == nil {
+		return nil
+	}
+	return res
 }
 
 func (w WrappedHostName) ToAddress() (AddressType, error) {

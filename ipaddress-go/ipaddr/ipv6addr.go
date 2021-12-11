@@ -168,35 +168,72 @@ func NewIPv6AddressFromPrefixedZonedInt(val *big.Int, prefixLength PrefixLen, zo
 }
 
 func NewIPv6AddressFromSegs(segments []*IPv6AddressSegment) (addr *IPv6Address, err AddressValueError) {
-	section, err := NewIPv6Section(segments)
-	if err == nil {
-		return NewIPv6Address(section)
+	segCount := len(segments)
+	if segCount != IPv6SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
 	}
-	return
+	section := NewIPv6Section(segments)
+	return NewIPv6Address(section)
+	//section, err := NewIPv6Section(segments)
+	//if err == nil {
+	//	return NewIPv6Address(section)
+	//}
+	//return
 }
 
 func NewIPv6AddressFromPrefixedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
-	section, err := NewIPv6PrefixedSection(segments, prefixLength)
-	if err == nil {
-		return NewIPv6Address(section)
+	segCount := len(segments)
+	if segCount != IPv6SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
 	}
-	return
+	section := NewIPv6PrefixedSection(segments, prefixLength)
+	return NewIPv6Address(section)
+	//section, err := NewIPv6PrefixedSection(segments, prefixLength)
+	//if err == nil {
+	//	return NewIPv6Address(section)
+	//}
+	//return
 }
 
 func NewIPv6AddressFromZonedSegs(segments []*IPv6AddressSegment, zone string) (addr *IPv6Address, err AddressValueError) {
-	section, err := NewIPv6Section(segments)
-	if err == nil {
-		return NewIPv6AddressZoned(section, zone)
+	segCount := len(segments)
+	if segCount != IPv6SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
 	}
-	return
+	section := NewIPv6Section(segments)
+	return NewIPv6AddressZoned(section, zone)
+	//
+	//section, err := NewIPv6Section(segments)
+	//if err == nil {
+	//	return NewIPv6AddressZoned(section, zone)
+	//}
+	//return
 }
 
 func NewIPv6AddressFromPrefixedZonedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
-	section, err := NewIPv6PrefixedSection(segments, prefixLength)
-	if err == nil {
-		return NewIPv6AddressZoned(section, zone)
+	segCount := len(segments)
+	if segCount != IPv6SegmentCount {
+		return nil, &addressValueError{
+			addressError: addressError{key: "ipaddress.error.invalid.size"},
+			val:          segCount,
+		}
 	}
-	return
+	section := NewIPv6PrefixedSection(segments, prefixLength)
+	return NewIPv6AddressZoned(section, zone)
+	//section, err := NewIPv6PrefixedSection(segments, prefixLength)
+	//if err == nil {
+	//	return NewIPv6AddressZoned(section, zone)
+	//}
+	//return
 }
 
 func NewIPv6AddressFromUint64(highBytes, lowBytes uint64) *IPv6Address {
@@ -335,9 +372,9 @@ func newIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSe
 var zeroIPv6 = initZeroIPv6()
 
 func initZeroIPv6() *IPv6Address {
-	div := zeroIPv6Seg.ToAddressDivision()
-	segs := []*AddressDivision{div, div, div, div, div, div, div, div}
-	section := newIPv6SectionParsed(segs)
+	div := zeroIPv6Seg
+	segs := []*IPv6AddressSegment{div, div, div, div, div, div, div, div}
+	section := NewIPv6Section(segs)
 	return newIPv6Address(section)
 }
 

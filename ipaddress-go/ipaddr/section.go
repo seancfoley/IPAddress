@@ -35,7 +35,7 @@ func createSectionMultiple(segments []*AddressDivision, prefixLength PrefixLen, 
 
 func createInitializedSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *AddressSection {
 	result := createSection(segments, prefixLength, addrType)
-	_ = result.initMultAndPrefLen() // assigns isMult and checks prefix length
+	result.initMultAndPrefLen() // assigns isMult and checks prefix length
 	return result
 }
 
@@ -68,24 +68,24 @@ type addressSectionInternal struct {
 	addressDivisionGroupingInternal
 }
 
-// error returned for nil sements
-func (section *addressSectionInternal) initMult() AddressValueError {
-	segCount := section.GetSegmentCount()
-	if segCount != 0 {
-		isMultiple := false
-		for i := 0; i < segCount; i++ {
-			segment := section.GetSegment(i)
-			if segment == nil { //TODO use the zero seg
-				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
-			}
-			if !isMultiple && segment.isMultiple() {
-				isMultiple = true
-				section.isMult = true
-			}
-		}
-	}
-	return nil
-}
+//// error returned for nil sements
+//func (section *addressSectionInternal) initMult() AddressValueError {
+//	segCount := section.GetSegmentCount()
+//	if segCount != 0 {
+//		isMultiple := false
+//		for i := 0; i < segCount; i++ {
+//			segment := section.GetSegment(i)
+//			if segment == nil {
+//				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+//			}
+//			if !isMultiple && segment.isMultiple() {
+//				isMultiple = true
+//				section.isMult = true
+//			}
+//		}
+//	}
+//	return nil
+//}
 
 func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCount) {
 	segCount := section.GetSegmentCount()
@@ -107,7 +107,7 @@ func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCou
 	}
 }
 
-// error returned for nil sements, or inconsistent prefixes
+// error returned for nil sements
 func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment BitCount, checkAllSegs bool) AddressValueError {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
@@ -142,8 +142,7 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 	return nil
 }
 
-// error returned for nil sements, or inconsistent prefixes
-func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
+func (section *addressSectionInternal) initMultAndPrefLen() {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		var previousSegmentPrefix PrefixLen
@@ -151,12 +150,46 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 		bitsPerSegment := section.GetBitsPerSegment()
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
-			if segment == nil {
-				//TODO maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
-				// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.  But this contradicts Java?  Check that.  Yeah, if you supply nil prefix but the segments had a prefix, probably defers to the segments.  Check that.
-				// For segments that are missing 0 prefix, just use setPrefixLen
-				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
-			}
+			//if segment == nil {
+			//	//xxx yeah, do that, let us continue the work removing errors in constructors xxx
+			//	//] maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
+			//	// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.
+			//	// But this contradicts Java?  Check that.
+			//	// Yeah, if you supply nil prefix but the segments had a prefix, probably defers to the segments.  Check that.
+			//	// CHecked it, code is below, it does choose the shorter prefix length.  And it also changes the segments if necessary.
+			//	// For segments that are missing 0 prefix, just use setPrefixLen
+			//
+			//	/*
+			//		if(networkPrefixLength != null) {
+			//				if(networkPrefixLength < 0) {
+			//					throw new PrefixLenException(networkPrefixLength);
+			//				}
+			//				int max = segments.length << 4;
+			//				if(networkPrefixLength > max) {
+			//					if(networkPrefixLength > IPv6Address.BIT_COUNT) {
+			//						throw new PrefixLenException(networkPrefixLength);
+			//					}
+			//					networkPrefixLength = max;
+			//				}
+			//				if(segments.length > 0) {
+			//					if(cachedPrefixLength != NO_PREFIX_LENGTH && cachedPrefixLength < networkPrefixLength) {//if the segments have a shorter prefix length, then use that
+			//						networkPrefixLength = cachedPrefixLength;
+			//					}
+			//					IPv6AddressNetwork network = getNetwork();
+			//					setPrefixedSegments(
+			//							network,
+			//							networkPrefixLength,
+			//							getSegmentsInternal(),
+			//							getBitsPerSegment(),
+			//							getBytesPerSegment(),
+			//							network.getAddressCreator(),
+			//							!singleOnly && isPrefixSubnetSegs(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
+			//				}
+			//				cachedPrefixLength = networkPrefixLength;
+			//			} //else the cached prefix has already been set to the proper value
+			//	*/
+			//	return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+			//}
 
 			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
@@ -176,35 +209,663 @@ func (section *addressSectionInternal) initMultAndPrefLen() AddressValueError {
 				if segPrefix != nil {
 					pref := *segPrefix
 					newPref := getNetworkPrefixLen(bitsPerSegment, pref, i)
-					// if a section prefix was supplied, it will be assigned already and must align with the segments
-					if section.prefixLength != nil {
-						if *section.prefixLength != *newPref {
-							return &inconsistentPrefixError{
-								addressValueError{
-									addressError: addressError{
-										key: "ipaddress.error.inconsistent.prefixes",
-									},
-								},
-							}
-						}
-					} else {
-						section.prefixLength = newPref
-					}
-				}
-			} else if segPrefix == nil || *segPrefix != 0 {
-				return &inconsistentPrefixError{
-					addressValueError{
-						addressError: addressError{
-							key: "ipaddress.error.inconsistent.prefixes",
-						},
-					},
+					//if section.prefixLength != nil {
+					//
+					//	if *section.prefixLength != *newPref {
+					//		return &inconsistentPrefixError{
+					//			addressValueError{
+					//				addressError: addressError{
+					//					key: "ipaddress.error.inconsistent.prefixes",
+					//				},
+					//			},
+					//		}
+					//	}
+					//} else {
+					section.prefixLength = newPref
+					//}
 				}
 			}
+			//else if segPrefix == nil || *segPrefix != 0 {
+			//	return &inconsistentPrefixError{
+			//		addressValueError{
+			//			addressError: addressError{
+			//				key: "ipaddress.error.inconsistent.prefixes",
+			//			},
+			//		},
+			//	}
+			//}
 			previousSegmentPrefix = segPrefix
 		}
 	}
-	return nil
+	return
 }
+
+//Calculate the segment-level prefix
+//
+//Across an address prefixes are:
+//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+//or IPv4: ...(null).(1 to 8).(0)...
+//For MACSize, all segs have nil prefix since prefix is not segment-level
+//For MACSize, prefixes must be derived in other ways, not from individual segment prefix values,
+
+//	case 2: segments provided, prefix assigned.
+//		We want to do all three at the same time, copy, repair, apply prefix.
+//		So, we check for prefix subnet on the incoming segments.  But, this also requires that we delay the check til we encounter the prefix,
+//		eitehr the segments one, or the one we have been assigned.
+//		So this one is only different is a prefix is supplied.
+//
+//		If so, then we wait til we hit the prefixed seg.  In the case we see a prefixed segment, we adjust the supplied (only if not nil).
+//		When we hit it, we check for prefix subnet using the existing?  I guess so.
+//		Our prefix subnet func is pretty fancy.
+
+//func createSectionFromIPv4Segs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
+//	segCount := len(orig)
+//	newSegs := make([]*AddressDivision, segCount)
+//	var isMultiple, previousSegPrefixed bool
+//	var newPref PrefixLen
+//	prefixedSegment := -1
+//	if prefLen != nil {
+//		p := *prefLen
+//		if p < 0 {
+//			p = 0
+//			prefLen = cacheBitCount(p)
+//		} else {
+//			boundaryBits := BitCount(len(orig) << ipv4BitsToSegmentBitshift)
+//			if p > boundaryBits {
+//				p = boundaryBits
+//				prefLen = cacheBitCount(p)
+//			}
+//		}
+//		prefixedSegment = getNetworkSegmentIndex(p, IPv4BytesPerSegment, IPv4BitsPerSegment)
+//	}
+//	var lastSegment *IPv4AddressSegment
+//	for i, segment := range orig {
+//		if segment == nil {
+//			if previousSegPrefixed {
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//			} else if i == prefixedSegment {
+//				newPref = prefLen
+//				segPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
+//				if isPrefixSubnetSegs(orig[i+1:], 0) {
+//					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
+//					i++
+//					isMultiple = isMultiple || i < len(newSegs) || *segPref < IPv4BitsPerSegment
+//					for ; i < len(newSegs); i++ {
+//						newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//					}
+//					break
+//				} else {
+//					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
+//				}
+//			} else {
+//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//			}
+//		} else {
+//			segPrefix := segment.getDivisionPrefixLength()
+//			segIsPrefixed := segPrefix != nil
+//			if previousSegPrefixed {
+//				if !segIsPrefixed || *segPrefix != 0 {
+//					newSegs[i] = createAddressDivision(
+//						segment.deriveNewMultiSeg(
+//							segment.GetSegmentValue(),
+//							segment.GetUpperSegmentValue(),
+//							cacheBitCount(0)))
+//				} else {
+//					newSegs[i] = segment.ToAddressDivision()
+//				}
+//			} else {
+//				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
+//					assignedSegPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
+//					if segIsPrefixed {
+//						if assignedSegPref == nil || *segPrefix < *assignedSegPref {
+//							if *segPrefix == 0 && i > 0 {
+//								// normalize boundaries by looking back
+//								if !lastSegment.IsPrefixed() {
+//									newSegs[i-1] = createAddressDivision(
+//										lastSegment.deriveNewMultiSeg(
+//											lastSegment.GetSegmentValue(),
+//											lastSegment.GetUpperSegmentValue(),
+//											cacheBitCount(IPv4BitsPerSegment)))
+//								}
+//							}
+//							//assignedSegPref = segPrefix
+//							newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
+//						} else {
+//							newPref = prefLen
+//						}
+//					} else {
+//						newPref = prefLen
+//					}
+//					if isPrefixSubnetSegs(orig, *newPref) {
+//						newSegs[i] = segment.toPrefixedNetworkDivision(assignedSegPref)
+//						i++
+//						isMultiple = isMultiple || i < len(newSegs) || *newPref < IPv4BitsPerSegment
+//						for ; i < len(newSegs); i++ {
+//							newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//						}
+//						break
+//					}
+//					previousSegPrefixed = true
+//				} else if segIsPrefixed {
+//					if *segPrefix == 0 && i > 0 {
+//						// normalize boundaries by looking back
+//						if !lastSegment.IsPrefixed() {
+//							newSegs[i-1] = createAddressDivision(
+//								lastSegment.deriveNewMultiSeg(
+//									lastSegment.GetSegmentValue(),
+//									lastSegment.GetUpperSegmentValue(),
+//									cacheBitCount(IPv4BitsPerSegment)))
+//						}
+//					}
+//					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
+//					previousSegPrefixed = true
+//				}
+//				newSegs[i] = segment.ToAddressDivision()
+//			}
+//			isMultiple = isMultiple || segment.isMultiple()
+//		}
+//		lastSegment = segment
+//	}
+//	result = createIPv4Section(newSegs)
+//	result.prefixLength = newPref
+//	result.isMult = isMultiple
+//	return
+//}
+//
+//func createDivisionsFromSegs(
+//	segProvider func(index int) *IPAddressSegment,
+//	segCount int,
+//	prefLen PrefixLen) (result *IPv4AddressSection) {
+//	//segCount := len(orig)
+//	//segCount := segProvider.GetSegmentCount()
+//	newSegs := make([]*AddressDivision, segCount)
+//	var isMultiple, previousSegPrefixed bool
+//	var newPref PrefixLen
+//	prefixedSegment := -1
+//	if prefLen != nil {
+//		p := *prefLen
+//		if p < 0 {
+//			p = 0
+//			prefLen = cacheBitCount(p)
+//		} else {
+//			boundaryBits := BitCount(segCount << ipv4BitsToSegmentBitshift)
+//			if p > boundaryBits {
+//				p = boundaryBits
+//				prefLen = cacheBitCount(p)
+//			}
+//		}
+//		prefixedSegment = getNetworkSegmentIndex(p, IPv4BytesPerSegment, IPv4BitsPerSegment)
+//	}
+//	var lastSegment *IPAddressSegment
+//	for i := 0; i < segCount; i++ {
+//		segment := segProvider(i)
+//		//for i, segmentx := range orig {
+//		if segment == nil {
+//			if previousSegPrefixed {
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//			} else if i == prefixedSegment {
+//				newPref = prefLen
+//				segPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
+//				if i+1 < segCount && isPrefixSubnet(
+//					func(segmentIndex int) SegInt {
+//						seg := segProvider(segmentIndex + i + 1)
+//						if seg == nil {
+//							return 0
+//						}
+//						return seg.GetSegmentValue()
+//					},
+//					func(segmentIndex int) SegInt {
+//						seg := segProvider(segmentIndex + i + 1)
+//						if seg == nil {
+//							return 0
+//						}
+//						return seg.GetUpperSegmentValue()
+//					},
+//					segCount-(i+1), IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, 0, zerosOnly) {
+//					//if isPrefixSubnetSegs(orig[i+1:], 0) {
+//					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
+//					i++
+//					isMultiple = isMultiple || i < len(newSegs) || *segPref < IPv4BitsPerSegment
+//					for ; i < len(newSegs); i++ {
+//						newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//					}
+//					break
+//				} else {
+//					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
+//				}
+//			} else {
+//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//			}
+//		} else {
+//			segPrefix := segment.getDivisionPrefixLength()
+//			segIsPrefixed := segPrefix != nil
+//			if previousSegPrefixed {
+//				if !segIsPrefixed || *segPrefix != 0 {
+//					newSegs[i] = createAddressDivision(
+//						segment.deriveNewMultiSeg(
+//							segment.GetSegmentValue(),
+//							segment.GetUpperSegmentValue(),
+//							cacheBitCount(0)))
+//				} else {
+//					newSegs[i] = segment.ToAddressDivision()
+//				}
+//			} else {
+//				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
+//					assignedSegPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
+//					if segIsPrefixed {
+//						if assignedSegPref == nil || *segPrefix < *assignedSegPref {
+//							if *segPrefix == 0 && i > 0 {
+//								// normalize boundaries by looking back
+//								if !lastSegment.IsPrefixed() {
+//									newSegs[i-1] = createAddressDivision(
+//										lastSegment.deriveNewMultiSeg(
+//											lastSegment.GetSegmentValue(),
+//											lastSegment.GetUpperSegmentValue(),
+//											cacheBitCount(IPv4BitsPerSegment)))
+//								}
+//							}
+//							//assignedSegPref = segPrefix
+//							newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
+//						} else {
+//							newPref = prefLen
+//						}
+//					} else {
+//						newPref = prefLen
+//					}
+//					if isPrefixSubnet(
+//						func(segmentIndex int) SegInt {
+//							seg := segProvider(segmentIndex)
+//							if seg == nil {
+//								return 0
+//							}
+//							return seg.GetSegmentValue()
+//						},
+//						func(segmentIndex int) SegInt {
+//							seg := segProvider(segmentIndex)
+//							if seg == nil {
+//								return 0
+//							}
+//							return seg.GetUpperSegmentValue()
+//						},
+//						segCount, IPv4BytesPerSegment, IPv4BitsPerSegment, IPv4MaxValuePerSegment, *newPref, zerosOnly) {
+//						//	if isPrefixSubnetSegs(orig, *newPref) {
+//						newSegs[i] = segment.toPrefixedNetworkDivision(assignedSegPref)
+//						i++
+//						isMultiple = isMultiple || i < len(newSegs) || *newPref < IPv4BitsPerSegment
+//						for ; i < len(newSegs); i++ {
+//							newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//						}
+//						break
+//					}
+//					previousSegPrefixed = true
+//				} else if segIsPrefixed {
+//					if *segPrefix == 0 && i > 0 {
+//						// normalize boundaries by looking back
+//						if !lastSegment.IsPrefixed() {
+//							newSegs[i-1] = createAddressDivision(
+//								lastSegment.deriveNewMultiSeg(
+//									lastSegment.GetSegmentValue(),
+//									lastSegment.GetUpperSegmentValue(),
+//									cacheBitCount(IPv4BitsPerSegment)))
+//						}
+//					}
+//					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
+//					previousSegPrefixed = true
+//				}
+//				newSegs[i] = segment.ToAddressDivision()
+//			}
+//			isMultiple = isMultiple || segment.isMultiple()
+//		}
+//		lastSegment = segment
+//	}
+//	result = createIPv4Section(newSegs)
+//	result.prefixLength = newPref
+//	result.isMult = isMultiple
+//	return
+//}
+
+//xxxx these babies are ready to go!!!!!! xxxxx
+
+//TODO move these babies elsewhere
+
+func createIPv6SectionFromSegs(orig []*IPv6AddressSegment, prefLen PrefixLen) (result *IPv6AddressSection) {
+	divs, newPref, isMultiple := createDivisionsFromSegs(
+		func(index int) *IPAddressSegment {
+			return orig[index].ToIPAddressSegment()
+		},
+		len(orig),
+		ipv6BitsToSegmentBitshift,
+		IPv6BitsPerSegment,
+		IPv6BytesPerSegment,
+		IPv6MaxValuePerSegment,
+		zeroIPv6Seg.ToIPAddressSegment(),
+		zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
+		zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
+		prefLen)
+	result = createIPv6Section(divs)
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
+}
+
+func createIPv4SectionFromSegs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
+	divs, newPref, isMultiple := createDivisionsFromSegs(
+		func(index int) *IPAddressSegment {
+			return orig[index].ToIPAddressSegment()
+		},
+		len(orig),
+		ipv4BitsToSegmentBitshift,
+		IPv4BitsPerSegment,
+		IPv4BytesPerSegment,
+		IPv4MaxValuePerSegment,
+		zeroIPv4Seg.ToIPAddressSegment(),
+		zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
+		zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
+		prefLen)
+	result = createIPv4Section(divs)
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
+}
+
+func createIPSectionFromSegs(isIPv4 bool, orig []*IPAddressSegment, prefLen PrefixLen) (result *IPAddressSection) {
+	segProvider := func(index int) *IPAddressSegment {
+		return orig[index]
+	}
+	var divs []*AddressDivision
+	var newPref PrefixLen
+	var isMultiple bool
+	if isIPv4 {
+		divs, newPref, isMultiple = createDivisionsFromSegs(
+			segProvider,
+			len(orig),
+			ipv4BitsToSegmentBitshift,
+			IPv4BitsPerSegment,
+			IPv4BytesPerSegment,
+			IPv4MaxValuePerSegment,
+			zeroIPv4Seg.ToIPAddressSegment(),
+			zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
+			zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
+			prefLen)
+		result = createIPv4Section(divs).ToIPAddressSection()
+	} else {
+		divs, newPref, isMultiple = createDivisionsFromSegs(
+			func(index int) *IPAddressSegment {
+				return orig[index]
+			},
+			len(orig),
+			ipv6BitsToSegmentBitshift,
+			IPv6BitsPerSegment,
+			IPv6BytesPerSegment,
+			IPv6MaxValuePerSegment,
+			zeroIPv6Seg.ToIPAddressSegment(),
+			zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
+			zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
+			prefLen)
+		result = createIPv6Section(divs).ToIPAddressSection()
+	}
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
+}
+
+func createDivisionsFromSegs(
+	segProvider func(index int) *IPAddressSegment,
+	segCount int,
+	bitsToSegmentShift uint,
+	bitsPerSegment BitCount,
+	bytesPerSegment int,
+	maxValuePerSegment SegInt,
+	zeroSeg, zeroSegZeroPrefix, zeroSegPrefixBlock *IPAddressSegment,
+	prefLen PrefixLen) (divs []*AddressDivision, newPref PrefixLen, isMultiple bool) {
+	//segCount := len(orig)
+	//segCount := segProvider.GetSegmentCount()
+	divs = make([]*AddressDivision, segCount)
+	var previousSegPrefixed bool
+	//var newPref PrefixLen
+	prefixedSegment := -1
+	if prefLen != nil {
+		p := *prefLen
+		if p < 0 {
+			p = 0
+			prefLen = cacheBitCount(p)
+		} else {
+			boundaryBits := BitCount(segCount << bitsToSegmentShift)
+			if p > boundaryBits {
+				p = boundaryBits
+				prefLen = cacheBitCount(p)
+			}
+		}
+		prefixedSegment = getNetworkSegmentIndex(p, bytesPerSegment, bitsPerSegment)
+	}
+	var lastSegment *IPAddressSegment
+	for i := 0; i < segCount; i++ {
+		segment := segProvider(i)
+		//for i, segmentx := range orig {
+		if segment == nil {
+			if previousSegPrefixed {
+				divs[i] = zeroSegZeroPrefix.ToAddressDivision()
+			} else if i == prefixedSegment {
+				newPref = prefLen
+				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, *prefLen, prefixedSegment)
+				if i+1 < segCount && isPrefixSubnet(
+					func(segmentIndex int) SegInt {
+						seg := segProvider(segmentIndex + i + 1)
+						if seg == nil {
+							return 0
+						}
+						return seg.GetSegmentValue()
+					},
+					func(segmentIndex int) SegInt {
+						seg := segProvider(segmentIndex + i + 1)
+						if seg == nil {
+							return 0
+						}
+						return seg.GetUpperSegmentValue()
+					},
+					segCount-(i+1), bytesPerSegment, bitsPerSegment, maxValuePerSegment, 0, zerosOnly) {
+					//if isPrefixSubnetSegs(orig[i+1:], 0) {
+					divs[i] = zeroSeg.toPrefixedNetworkDivision(segPref)
+					i++
+					isMultiple = isMultiple || i < len(divs) || *segPref < bitsPerSegment
+					for ; i < len(divs); i++ {
+						divs[i] = zeroSegPrefixBlock.ToAddressDivision()
+					}
+					break
+				} else {
+					divs[i] = zeroSeg.toPrefixedNetworkDivision(segPref)
+				}
+			} else {
+				divs[i] = zeroSeg.ToAddressDivision()
+			}
+		} else {
+			segPrefix := segment.getDivisionPrefixLength()
+			segIsPrefixed := segPrefix != nil
+			if previousSegPrefixed {
+				if !segIsPrefixed || *segPrefix != 0 {
+					divs[i] = createAddressDivision(
+						segment.deriveNewMultiSeg(
+							segment.GetSegmentValue(),
+							segment.GetUpperSegmentValue(),
+							cacheBitCount(0)))
+				} else {
+					divs[i] = segment.ToAddressDivision()
+				}
+			} else {
+				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
+					assignedSegPref := getPrefixedSegmentPrefixLength(bitsPerSegment, *prefLen, prefixedSegment)
+					if segIsPrefixed {
+						if assignedSegPref == nil || *segPrefix < *assignedSegPref {
+							if *segPrefix == 0 && i > 0 {
+								// normalize boundaries by looking back
+								if !lastSegment.IsPrefixed() {
+									divs[i-1] = createAddressDivision(
+										lastSegment.deriveNewMultiSeg(
+											lastSegment.GetSegmentValue(),
+											lastSegment.GetUpperSegmentValue(),
+											cacheBitCount(bitsPerSegment)))
+								}
+							}
+							//assignedSegPref = segPrefix
+							newPref = getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
+						} else {
+							newPref = prefLen
+						}
+					} else {
+						newPref = prefLen
+					}
+					if isPrefixSubnet(
+						func(segmentIndex int) SegInt {
+							seg := segProvider(segmentIndex)
+							if seg == nil {
+								return 0
+							}
+							return seg.GetSegmentValue()
+						},
+						func(segmentIndex int) SegInt {
+							seg := segProvider(segmentIndex)
+							if seg == nil {
+								return 0
+							}
+							return seg.GetUpperSegmentValue()
+						},
+						segCount, bytesPerSegment, bitsPerSegment, maxValuePerSegment, *newPref, zerosOnly) {
+						//	if isPrefixSubnetSegs(orig, *newPref) {
+						divs[i] = segment.toPrefixedNetworkDivision(assignedSegPref)
+						i++
+						isMultiple = isMultiple || i < len(divs) || *newPref < bitsPerSegment
+						for ; i < len(divs); i++ {
+							divs[i] = zeroSegPrefixBlock.ToAddressDivision()
+						}
+						break
+					}
+					previousSegPrefixed = true
+				} else if segIsPrefixed {
+					if *segPrefix == 0 && i > 0 {
+						// normalize boundaries by looking back
+						if !lastSegment.IsPrefixed() {
+							divs[i-1] = createAddressDivision(
+								lastSegment.deriveNewMultiSeg(
+									lastSegment.GetSegmentValue(),
+									lastSegment.GetUpperSegmentValue(),
+									cacheBitCount(bitsPerSegment)))
+						}
+					}
+					newPref = getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
+					previousSegPrefixed = true
+				}
+				divs[i] = segment.ToAddressDivision()
+			}
+			isMultiple = isMultiple || segment.isMultiple()
+		}
+		lastSegment = segment
+	}
+	return
+}
+
+// Starting from the first host bit according to the prefix, if the section is a sequence of zeros in both low and high values,
+// followed by a sequence where low values are zero and high values are 1, then the section is a subnet prefix.
+//
+// Note that this includes sections where hosts are all zeros, or sections where hosts are full range of values,
+// so the sequence of zeros can be empty and the sequence of where low values are zero and high values are 1 can be empty as well.
+// However, if they are both empty, then this returns false, there must be at least one bit in the sequence.
+//func isPrefixSubnetSegs(sectionSegmentsx []*IPv4AddressSegment, networkPrefixLength BitCount) bool {
+//	return len(sectionSegments) > 0 && isPrefixSubnet(
+//		func(segmentIndex int) SegInt {
+//			return sectionSegments[segmentIndex].GetSegmentValue()
+//		},
+//		func(segmentIndex int) SegInt {
+//			return sectionSegments[segmentIndex].GetUpperSegmentValue()
+//		},
+//		len(sectionSegments),
+//		IPv4BytesPerSegment,
+//		IPv4BitsPerSegment,
+//		IPv4MaxValuePerSegment,
+//		networkPrefixLength,
+//		zerosOnly)
+//}
+
+func createMACSectionFromSegs(orig []*MACAddressSegment) *MACAddressSection {
+	segCount := len(orig)
+	newSegs := make([]*AddressDivision, segCount)
+	//	var isMultiple, isPrefixed bool
+	var newPref PrefixLen
+	//segCount := section.GetSegmentCount()
+	isMultiple := false
+	if segCount != 0 {
+		isBlock := true
+		for i := segCount - 1; i >= 0; i-- {
+			segment := orig[i]
+			//segment := section.GetSegment(i)
+			if segment == nil {
+				segment = zeroMACSeg
+				//return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+				if isBlock && i != segCount-1 {
+					newPref = getNetworkPrefixLen(MACBitsPerSegment, MACBitsPerSegment, i)
+					isBlock = false
+				}
+			} else {
+				if isBlock {
+					minPref := segment.GetMinPrefixLenForBlock()
+					if minPref > 0 {
+						if minPref != MACBitsPerSegment || i != segCount-1 {
+							newPref = getNetworkPrefixLen(MACBitsPerSegment, minPref, i)
+						}
+						isBlock = false
+					}
+				}
+				isMultiple = isMultiple || segment.isMultiple()
+			}
+			newSegs[i] = segment.ToAddressDivision()
+		}
+		if isBlock {
+			newPref = cacheBitCount(0)
+		}
+	}
+	res := createMACSection(newSegs)
+	res.isMult = isMultiple
+	res.prefixLength = newPref
+	return res
+}
+
+//func createSectionFromIPv4Segs(orig []*IPv4AddressSegment) (result *IPv4AddressSection) {
+//	segCount := len(orig)
+//	newSegs := make([]*AddressDivision, segCount)
+//	var isMultiple, isPrefixed bool
+//	var newPref PrefixLen
+//	for i, segment := range orig {
+//		if segment == nil {
+//			if isPrefixed {
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//			} else {
+//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//			}
+//		} else {
+//			if !isMultiple && segment.isMultiple() {
+//				isMultiple = true
+//			}
+//			segPrefix := segment.getDivisionPrefixLength()
+//			if isPrefixed && (segPrefix == nil || *segPrefix != 0) {
+//				segPrefix = cacheBitCount(0)
+//				newSegs[i] = createAddressDivision(
+//					segment.deriveNewMultiSeg(
+//						segment.GetSegmentValue(),
+//						segment.GetUpperSegmentValue(),
+//						segPrefix))
+//			} else {
+//				if !isPrefixed && segPrefix != nil {
+//					isPrefixed = true
+//					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
+//				}
+//				newSegs[i] = orig[i].ToAddressDivision()
+//			}
+//		}
+//	}
+//	result = createIPv4Section(newSegs)
+//	result.prefixLength = newPref
+//	result.isMult = isMultiple
+//	return
+//}
 
 func (section *addressSectionInternal) matchesTypeAndCount(other *AddressSection) (matches bool, count int) {
 	count = section.GetDivisionCount()

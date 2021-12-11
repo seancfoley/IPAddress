@@ -77,7 +77,7 @@ func NewHostNameFromUDPAddr(addr *net.UDPAddr) *HostName {
 func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName) {
 	var ipAddr *IPAddress
 	if zone == NoZone {
-		ipAddr = FromIP(ip)
+		ipAddr = NewIPAddressFromIP(ip)
 	} else {
 		var addr6 *IPv6Address
 		addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
@@ -101,7 +101,7 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 }
 
 func NewHostNameFromIP(bytes net.IP) (hostName *HostName) {
-	addr := FromIP(bytes)
+	addr := NewIPAddressFromIP(bytes)
 	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
@@ -109,7 +109,7 @@ func NewHostNameFromIP(bytes net.IP) (hostName *HostName) {
 }
 
 func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName) {
-	addr := FromPrefixedIP(bytes, prefixLen)
+	addr := NewIPAddressFromPrefixedIP(bytes, prefixLen)
 	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
