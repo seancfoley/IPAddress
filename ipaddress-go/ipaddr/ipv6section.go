@@ -76,7 +76,7 @@ func newIPv6SectionParsed(segments []*AddressDivision) (res *IPv6AddressSection)
 func newPrefixedIPv6SectionParsed(segments []*AddressDivision /* , startIndex int /*cloneSegments bool,*/, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection) {
 	//res = newIPv6Section(segments /*, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
 	res = createIPv6Section(segments)
-	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  In fact, the prefix check is not necessary!  Just assign it!
+	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  In fact, the prefix check is not necessary!  Just assign it! assign prefix and the supplied isMult.
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv6BitsToSegmentBitshift))
 	}

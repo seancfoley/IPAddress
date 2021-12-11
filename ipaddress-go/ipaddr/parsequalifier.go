@@ -72,19 +72,11 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getEquivalentPrefixLen() 
 	return pref
 }
 
+// we distinguish callers with empty zones vs callers in which there was no zone indicator
 func (parsedQual *parsedHostIdentifierStringQualifier) setZone(z *Zone) {
-	//xxxx we must distinguish callers with empty zones vs callers in which there was no zone indicator
-	//former: parseEncodedZone, parseZone
-	//xxxx parsePrefix is the culprit, some callers have zones, some have none
-	//xxxx we never actually encounter zones when parsing prefixes and ports and so on
-	//xxxx isZoned in parseData can tell us
-	//xxxx this issue unique to golang because no null string, just empty
-	//xxxxx so how do we distonguish?  pointers?  that should work
-
 	if z != nil {
 		parsedQual.zone = *z
-		//parsedQual.isZoned = !z.IsEmpty()
-		parsedQual.isZoned = true // parseValidatedPrefix call is our issue
+		parsedQual.isZoned = true
 	}
 }
 

@@ -1875,14 +1875,6 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 	}
 	segLen := len(segments)
 	if segLen > 0 {
-		segsPrefLen := res.prefixLength //TODO this is no longer necessary, all the callers will not create segs with pref len
-		if segsPrefLen != nil {
-			sp := *segsPrefLen
-			if sp < prefLen { //if the segments have a shorter prefix length, then use that
-				prefLen = sp
-				prefixLength = segsPrefLen
-			}
-		}
 		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
 		applyPrefixSubnet := !singleOnly && isPrefixSubnetDivs(segments, prefLen)
 		if applyPrefixSubnet {
@@ -1896,7 +1888,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			res.GetBitsPerSegment(),
 			res.GetBytesPerSegment(),
 			segProducer)
-		if applyPrefixSubnet && !res.isMult { //TODO the res.isMult will become unnecessary
+		if applyPrefixSubnet && !res.isMult { //TODO the res.isMult check will become unnecessary
 			res.isMult = res.GetSegment(segLen - 1).isMultiple()
 		}
 	}
