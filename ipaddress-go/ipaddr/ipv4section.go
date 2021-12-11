@@ -35,9 +35,9 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 //	return
 //}
 
-func newIPv4SectionParsed(segments []*AddressDivision) (res *IPv4AddressSection) {
+func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv4AddressSection) {
 	res = createIPv4Section(segments)
-	res.initMultiple() //TODO the parser knows if we are multiple, so pass that along
+	res.isMult = isMultiple
 	return
 }
 
@@ -67,10 +67,10 @@ func newIPv4SectionParsed(segments []*AddressDivision) (res *IPv4AddressSection)
 //}
 
 // this one is used by that parsing code when there are prefix lengths to be applied
-func newPrefixedIPv4SectionParsed(segments []*AddressDivision, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection) {
+func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection) {
 	//res = newIPv4Section(segments /*cloneSegments,*/, prefixLength == nil)
 	res = createIPv4Section(segments)
-	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  In fact, the prefix check in initMultAndPrefLen is not necessary!  Just assign the prefix!  in the case of no prefix subnets, no need in assignPrefix to iterate through the segs.
+	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  Use isMultiple. In fact, the prefix check in initMultAndPrefLen is not necessary!  Just assign the prefix!  in the case of no prefix subnets, no need in assignPrefix to iterate through the segs.
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
 	}

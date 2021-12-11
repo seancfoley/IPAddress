@@ -58,6 +58,8 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 	addressParseData := parseData.getAddressParseData()
 	actualInitialSegmentCount := addressParseData.getSegmentCount()
 	creator := macType.getNetwork().getAddressCreator()
+	isMultiple := false
+	var segIsMult bool
 	//creator := parseData.getMACAddressCreator()
 	format := parseData.getFormat()
 	var finalSegmentCount, initialSegmentCount int
@@ -110,7 +112,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 			if lowerHalfLower != lowerHalfUpper && adjustedUpper2-adjustedLower2 != 0xff {
 				return nil, &incompatibleAddressError{addressError{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
 			}
-			segments[normalizedSegmentIndex] = createSegment(
+			segments[normalizedSegmentIndex], segIsMult = createSegment(
 				addressString,
 				lowerHalfLower,
 				lowerHalfUpper,
@@ -119,7 +121,8 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 				i,
 				creator)
 			normalizedSegmentIndex++
-			segments[normalizedSegmentIndex] = createSegment(
+			isMultiple = isMultiple || segIsMult
+			segments[normalizedSegmentIndex], segIsMult = createSegment(
 				addressString,
 				adjustedLower2,
 				adjustedUpper2,
@@ -127,6 +130,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 				addressParseData,
 				i,
 				creator)
+			isMultiple = isMultiple || segIsMult
 		} else {
 			if addressParseData.isSingleSegment() || parseData.isDoubleSegment() {
 				useStringIndicators := true
@@ -172,7 +176,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 							useStringIndicators = false
 						}
 					}
-					segments[normalizedSegmentIndex] = createSegment(
+					segments[normalizedSegmentIndex], segIsMult = createSegment(
 						addressString,
 						SegInt(newLower),
 						SegInt(newUpper),
@@ -180,12 +184,13 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 						addressParseData,
 						i,
 						creator)
+					isMultiple = isMultiple || segIsMult
 					normalizedSegmentIndex++
 					count--
 				}
 				continue
 			} //end joined segments
-			segments[normalizedSegmentIndex] = createSegment(
+			segments[normalizedSegmentIndex], segIsMult = createSegment(
 				addressString,
 				SegInt(lower),
 				SegInt(upper),
@@ -193,6 +198,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 				addressParseData,
 				i,
 				creator)
+			isMultiple = isMultiple || segIsMult
 		}
 		if !expandedSegments {
 			//check for any missing segments that we should account for here
@@ -209,7 +215,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 					count := missingCount
 					for ; count > 0; count-- { //add the missing segments
 						if format == dotted {
-							seg := createSegment(
+							seg, _ := createSegment(
 								addressString,
 								0,
 								MACMaxValuePerSegment,
@@ -223,7 +229,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 							segments[normalizedSegmentIndex] = seg
 						} else {
 							normalizedSegmentIndex++
-							segments[normalizedSegmentIndex] = createSegment(
+							segments[normalizedSegmentIndex], _ = createSegment(
 								addressString,
 								0,
 								MACMaxValuePerSegment,
@@ -232,6 +238,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 								i,
 								creator)
 						}
+						isMultiple = true
 					}
 				}
 			}
@@ -239,7 +246,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 		normalizedSegmentIndex++
 	}
 	////		parsedAddressCreator<?, MACAddressSection, ?, MACAddressSegment> addressCreator = creator;
-	return creator.createSectionInternal(segments).ToMACAddressSection(), nil
+	return creator.createSectionInternal(segments, isMultiple).ToMACAddressSection(), nil
 	//		MACAddressSection result = addressCreator.createSectionInternal(segments);
 	//		return result;
 }
@@ -251,9 +258,9 @@ func createSegment(
 	useFlags bool,
 	parseData *addressParseData,
 	parsedSegIndex int,
-	creator parsedAddressCreator) *AddressDivision {
+	creator parsedAddressCreator) (div *AddressDivision, isMultiple bool) {
 	if val != upperVal {
-		return createRangeSegment(addressString, val, upperVal, useFlags, parseData, parsedSegIndex, creator)
+		return createRangeSegment(addressString, val, upperVal, useFlags, parseData, parsedSegIndex, creator), true
 	}
 	var result *AddressDivision
 	if !useFlags {
@@ -268,7 +275,7 @@ func createSegment(
 			parseData.getIndex(parsedSegIndex, keyLowerStrStartIndex),
 			parseData.getIndex(parsedSegIndex, keyLowerStrEndIndex))
 	}
-	return result
+	return result, false
 }
 
 func createRangeSegment(

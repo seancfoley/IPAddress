@@ -892,7 +892,7 @@ func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4A
 		newIPv6Divisions[6] = seg.ToAddressDivision()
 		if seg, err = ipv4Section.GetSegment(2).Join(ipv4Section.GetSegment(3)); err == nil {
 			newIPv6Divisions[7] = seg.ToAddressDivision()
-			res = newIPv6SectionParsed(newIPv6Divisions)
+			res = newIPv6SectionMixed(newIPv6Divisions)
 			if res.cache != nil {
 				nonMixedSection := res.createNonMixedSection()
 				mixedGrouping := newIPv6v4MixedGrouping(

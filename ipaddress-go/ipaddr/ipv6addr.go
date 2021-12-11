@@ -1257,7 +1257,7 @@ func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressE
 	if err != nil {
 		return nil, err
 	}
-	sect := newMACSectionParsed(segs)
+	sect := newMACSectionEUI(segs)
 	return newMACAddress(sect), nil
 }
 

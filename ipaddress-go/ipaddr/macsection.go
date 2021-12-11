@@ -43,7 +43,13 @@ func NewMACSection(segments []*MACAddressSegment) *MACAddressSection {
 	//return
 }
 
-func newMACSectionParsed(segments []*AddressDivision) (res *MACAddressSection) {
+func newMACSectionParsed(segments []*AddressDivision, isMultiple bool) (res *MACAddressSection) {
+	res = createMACSection(segments)
+	_ = res.initMultAndImplicitPrefLen(MACBitsPerSegment, false)
+	return
+}
+
+func newMACSectionEUI(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
 	_ = res.initMultAndImplicitPrefLen(MACBitsPerSegment, false)
 	return

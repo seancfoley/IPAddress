@@ -20,15 +20,15 @@ type addressSegmentCreator interface {
 type parsedAddressCreator interface {
 	addressSegmentCreator
 
-	createSectionInternal(segments []*AddressDivision) *AddressSection
+	createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection
 
 	createAddressInternal(section *AddressSection, identifier HostIdentifierString) *Address
 }
 
 type parsedIPAddressCreator interface {
-	createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection
+	createPrefixedSectionInternalSingle(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection
 
-	createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection
+	createPrefixedSectionInternal(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection
 
 	createAddressInternalFromSection(*IPAddressSection, Zone, HostIdentifierString) *IPAddress
 }
@@ -76,16 +76,16 @@ func (creator *ipv6AddressCreator) createPrefixSegment(value SegInt, segmentPref
 	return NewIPv6PrefixedSegment(IPv6SegInt(value), segmentPrefixLength).ToAddressDivision()
 }
 
-func (creator *ipv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv6SectionParsed(segments, prefixLength, false).ToIPAddressSection()
+func (creator *ipv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
+	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, false).ToIPAddressSection()
 }
 
-func (creator *ipv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv6SectionParsed(segments, prefixLength, true).ToIPAddressSection()
+func (creator *ipv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
+	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, true).ToIPAddressSection()
 }
 
-func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newIPv6SectionParsed(segments).ToAddressSection()
+func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
+	return newIPv6SectionParsed(segments, isMultiple).ToAddressSection()
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone Zone) *IPAddress {
@@ -153,16 +153,16 @@ func (creator *ipv4AddressCreator) createPrefixSegment(value SegInt, segmentPref
 	//return creator.createIPv4PrefixSegment(ToIPv4SegInt(value), segmentPrefixLength)
 }
 
-func (creator *ipv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv4SectionParsed(segments, prefixLength, false).ToIPAddressSection()
+func (creator *ipv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
+	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, false).ToIPAddressSection()
 }
 
-func (creator *ipv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv4SectionParsed(segments, prefixLength, true).ToIPAddressSection()
+func (creator *ipv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
+	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, true).ToIPAddressSection()
 }
 
-func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newIPv4SectionParsed(segments).ToAddressSection()
+func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
+	return newIPv4SectionParsed(segments, isMultiple).ToAddressSection()
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, _ Zone) *IPAddress {
@@ -235,8 +235,8 @@ func (creator *macAddressCreator) createPrefixSegment(value SegInt, _ PrefixLen)
 //	return NewMACRangeSegment(MACSegInt(lower), MACSegInt(upper)).ToAddressDivision()
 //}
 
-func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision) *AddressSection {
-	return newMACSectionParsed(segments).ToAddressSection()
+func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
+	return newMACSectionParsed(segments, isMultiple).ToAddressSection()
 }
 
 func (creator *macAddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
