@@ -529,7 +529,7 @@ func (addr *IPv6Address) GetEmbeddedIPv4AddressAt(byteIndex int) (*IPv4Address, 
 
 // GetIPv6Address creates an IPv6 mixed address using the given address for the trailing embedded IPv4 segments
 func (addr *IPv6Address) GetIPv6Address(embedded IPv4Address) (*IPv6Address, IncompatibleAddressError) {
-	return embedded.getIPv6Address(addr.init().getDivisionsInternal())
+	return embedded.getIPv6Address(addr.WithoutPrefixLen().getDivisionsInternal())
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,

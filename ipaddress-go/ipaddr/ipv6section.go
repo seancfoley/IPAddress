@@ -62,18 +62,29 @@ func createIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 //	return
 //}
 
-func newIPv6SectionSimple(segments []*AddressDivision) *IPv6AddressSection {
+func newIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 	return createIPv6Section(segments)
 
 }
 
 func newIPv6SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv6AddressSection) {
+	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
+		panic("huh") //TODO remove
+	}
 	res = createIPv6Section(segments)
 	res.isMult = isMultiple
 	return
 }
 
-func newIPv6SectionMixed(segments []*AddressDivision) (res *IPv6AddressSection) {
+func newIPv6SectionFromMixed(segments []*AddressDivision) (res *IPv6AddressSection) {
+	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
+		panic("huh")
+		//TODO also check whether you might still need to normalize boundaries with
+		//		normalizePrefixBoundary(*prefLen, segments, IPv6BitsPerSegment, IPv6BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
+		//			return NewIPv6RangePrefixedSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
+		//		})
+		// BUT it seems there is no longer a candidate function, none of the ones take prefixed divisions
+	}
 	res = createIPv6Section(segments)
 	res.initMultiple()
 	return
@@ -82,9 +93,12 @@ func newIPv6SectionMixed(segments []*AddressDivision) (res *IPv6AddressSection) 
 func newPrefixedIPv6SectionParsed(segments []*AddressDivision /* , startIndex int /*cloneSegments bool,*/, isMultiple bool, prefixLength PrefixLen, singleOnly bool) (res *IPv6AddressSection) {
 	//res = newIPv6Section(segments /*, startIndex /*cloneSegments,*/, prefixLength == nil /* no need to normalize segment prefix lens if we are supplying a prefix len */)
 	res = createIPv6Section(segments)
-	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  Use isMultiple. In fact, the prefix check is not necessary!  Just assign it! assign prefix and the supplied isMult.
+	res.isMult = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv6BitsToSegmentBitshift))
+	}
+	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() && prefixLength == nil {
+		panic("huh")
 	}
 	return
 }

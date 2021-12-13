@@ -1888,9 +1888,10 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 			res.GetBitsPerSegment(),
 			res.GetBytesPerSegment(),
 			segProducer)
-		if applyPrefixSubnet && !res.isMult { //TODO the res.isMult check will become unnecessary
-			res.isMult = res.GetSegment(segLen - 1).isMultiple()
-		}
+		//if applyPrefixSubnet && !res.isMult {
+		//	res.isMult = res.GetSegment(segLen - 1).isMultiple()
+		//}
+		res.isMult = res.isMult || applyPrefixSubnet && res.GetSegment(segLen-1).isMultiple()
 	}
 	res.prefixLength = prefixLength
 	return

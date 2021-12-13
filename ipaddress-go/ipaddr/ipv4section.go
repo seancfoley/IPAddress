@@ -36,6 +36,9 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 //}
 
 func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv4AddressSection) {
+	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
+		panic("huh") //TODO remove
+	}
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	return
@@ -70,9 +73,12 @@ func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IP
 func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection) {
 	//res = newIPv4Section(segments /*cloneSegments,*/, prefixLength == nil)
 	res = createIPv4Section(segments)
-	res.initMultAndPrefLen() //TODO next step is to combine this baby with a new version of assignPrefix.  Use isMultiple. In fact, the prefix check in initMultAndPrefLen is not necessary!  Just assign the prefix!  in the case of no prefix subnets, no need in assignPrefix to iterate through the segs.
+	res.isMult = isMultiple
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
+	}
+	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() && prefixLength == nil {
+		panic("huh")
 	}
 	return
 }

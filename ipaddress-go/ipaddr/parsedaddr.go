@@ -1992,6 +1992,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 						twoUpper,
 						segmentPrefixLength,
 						creator)
+					isMultiple = true
 				}
 			}
 			if doRangeBoundaries {
@@ -2334,9 +2335,9 @@ func createAllAddress(
 	}
 	hostSection := creator.createSectionInternal(hostSegments, true)
 	hostAddr = creator.createAddressInternal(hostSection.ToAddressSection(), nil).ToIPAddress()
-	lowerSection := creator.createSectionInternal(lowerSegments, false)
+	lowerSection := creator.createPrefixedSectionInternal(lowerSegments, false, prefLen)
 	lower = creator.createAddressInternal(lowerSection.ToAddressSection(), nil).ToIPAddress()
-	upperSection := creator.createSectionInternal(upperSegments, false)
+	upperSection := creator.createPrefixedSectionInternal(upperSegments, false, prefLen)
 	upper = creator.createAddressInternal(upperSection.ToAddressSection(), nil).ToIPAddress()
 	return
 }

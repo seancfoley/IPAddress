@@ -845,15 +845,20 @@ func (addr *IPv4Address) GetNetwork() IPAddressNetwork {
 	return DefaultIPv4Network
 }
 
-// GetIPv6Addresscreates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
-func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
-	if len(segs) < IPv6MixedOriginalSegmentCount {
+// GetIPv6Address creates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
+func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressError) {
+	//func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
+	//if len(segs) < IPv6MixedOriginalSegmentCount {
+	if section.GetSegmentCount() < IPv6MixedOriginalSegmentCount {
 		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
 	}
 	newSegs := createSegmentArray(IPv6SegmentCount)
-	for i, seg := range segs[:IPv6MixedOriginalSegmentCount] {
-		newSegs[i] = seg.ToAddressDivision()
-	}
+	section = section.WithoutPrefixLen()
+	section.copyDivisions(newSegs)
+	//for i, seg := range segs[:IPv6MixedOriginalSegmentCount] {
+	//	newSegs[i] = seg.ToAddressDivision()
+	//}
+	//xxx I think I want to drop this one, unless I use a section, which I can remove prefix from xxxx
 	sect, err := createMixedSection(newSegs, addr)
 	if err != nil {
 		return nil, err
@@ -867,7 +872,7 @@ func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, IncompatibleAddre
 	segs[0], segs[1], segs[2], segs[3], segs[4] = zero, zero, zero, zero, zero
 	segs[5] = NewIPv6Segment(IPv6MaxValuePerSegment).ToAddressDivision()
 	var sect *IPv6AddressSection
-	sect, err := createMixedSection(segs, addr)
+	sect, err := createMixedSection(segs, addr.WithoutPrefixLen())
 	if err != nil {
 		return nil, err
 	}
@@ -886,13 +891,13 @@ func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Addre
 }
 
 func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4Address) (res *IPv6AddressSection, err IncompatibleAddressError) {
-	ipv4Section := mixedSection.GetSection()
+	ipv4Section := mixedSection.GetSection().WithoutPrefixLen()
 	var seg *IPv6AddressSegment
 	if seg, err = ipv4Section.GetSegment(0).Join(ipv4Section.GetSegment(1)); err == nil {
 		newIPv6Divisions[6] = seg.ToAddressDivision()
 		if seg, err = ipv4Section.GetSegment(2).Join(ipv4Section.GetSegment(3)); err == nil {
 			newIPv6Divisions[7] = seg.ToAddressDivision()
-			res = newIPv6SectionMixed(newIPv6Divisions)
+			res = newIPv6SectionFromMixed(newIPv6Divisions)
 			if res.cache != nil {
 				nonMixedSection := res.createNonMixedSection()
 				mixedGrouping := newIPv6v4MixedGrouping(

@@ -586,7 +586,7 @@ func createLinkLocalPrefix() *IPv6AddressSection {
 		zeroSeg,
 		zeroSeg,
 	}
-	return newIPv6SectionSimple(segs)
+	return newIPv6Section(segs)
 }
 
 // ToLinkLocalIPv6 converts to a link-local Ipv6 address.  Any MACSize prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
