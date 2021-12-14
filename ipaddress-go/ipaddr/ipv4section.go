@@ -935,18 +935,20 @@ func (section *IPv4AddressSection) ToFullString() string {
 		})
 }
 
-func (section *IPv4AddressSection) ToReverseDNSString() string {
+// ToReverseDNSString returns the reverse DNS string.
+// The method helps implement the IPAddressSegmentSeries interface.  For IPV4, the error is always nil.
+func (section *IPv4AddressSection) ToReverseDNSString() (string, IncompatibleAddressError) {
 	if section == nil {
-		return nilString()
+		return nilString(), nil
 	}
 	cache := section.getStringCache()
 	if cache == nil {
-		return section.toNormalizedString(ipv4ReverseDNSParams)
+		return section.toNormalizedString(ipv4ReverseDNSParams), nil
 	}
 	return cacheStr(&cache.reverseDNSString,
 		func() string {
 			return section.toNormalizedString(ipv4ReverseDNSParams)
-		})
+		}), nil
 }
 
 func (section *IPv4AddressSection) ToPrefixLenString() string {

@@ -183,9 +183,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	ToCompressedWildcardString() string
 	ToSegmentedBinaryString() string
 	ToSQLWildcardString() string
-	//ToReverseDNSString() (string, IncompatibleAddressError) cannot be included in the interface because the ipv4 one has no IncompatibleAddressError TODO add the error to ipv4?  And return nil always?
-
-	//GetGenericIPDivision(index int) IPAddressGenericDivision remove this I think, we have GetGenericDivision(index int) DivisionType
+	ToReverseDNSString() (string, IncompatibleAddressError)
 }
 
 var _, _ IPAddressSegmentSeries = &IPAddress{}, &IPAddressSection{}

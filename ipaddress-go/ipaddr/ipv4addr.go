@@ -990,12 +990,14 @@ func (addr *IPv4Address) ToFullString() string {
 	return addr.init().toFullString()
 }
 
-func (addr *IPv4Address) ToReverseDNSString() string {
+// ToReverseDNSString returns the reverse DNS string.
+// The method helps implement the IPAddressSegmentSeries interface.  For IPV4, the error is always nil.
+func (addr *IPv4Address) ToReverseDNSString() (string, IncompatibleAddressError) {
 	if addr == nil {
-		return nilString()
+		return nilString(), nil
 	}
 	str, _ := addr.init().toReverseDNSString()
-	return str
+	return str, nil
 }
 
 func (addr *IPv4Address) ToPrefixLenString() string {

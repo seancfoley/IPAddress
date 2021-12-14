@@ -1356,7 +1356,7 @@ func (section *ipAddressSectionInternal) toFullString() string {
 
 func (section *ipAddressSectionInternal) toReverseDNSString() (string, IncompatibleAddressError) {
 	if sect := section.toIPv4AddressSection(); sect != nil {
-		return sect.ToReverseDNSString(), nil
+		return sect.ToReverseDNSString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
 		return sect.ToReverseDNSString()
 	}
@@ -1983,22 +1983,22 @@ func applyPrefixToSegments(
 	}
 }
 
-func normalizePrefixBoundary(
-	sectionPrefixBits BitCount,
-	segments []*AddressDivision,
-	segmentBitCount BitCount,
-	segmentByteCount int,
-	segmentCreator func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision) {
-	//we've already verified segment prefixes.  We simply need to check the case where the prefix is at a segment boundary,
-	//whether the network side has the correct prefix
-	networkSegmentIndex := getNetworkSegmentIndex(sectionPrefixBits, segmentByteCount, segmentBitCount)
-	if networkSegmentIndex >= 0 {
-		segment := segments[networkSegmentIndex].ToIPAddressSegment()
-		if !segment.IsPrefixed() {
-			segments[networkSegmentIndex] = segmentCreator(segment.GetSegmentValue(), segment.GetUpperSegmentValue(), cacheBitCount(segmentBitCount))
-		}
-	}
-}
+//func normalizePrefixBoundary(
+//	sectionPrefixBits BitCount,
+//	segments []*AddressDivision,
+//	segmentBitCount BitCount,
+//	segmentByteCount int,
+//	segmentCreator func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision) {
+//	//we've already verified segment prefixes.  We simply need to check the case where the prefix is at a segment boundary,
+//	//whether the network side has the correct prefix
+//	networkSegmentIndex := getNetworkSegmentIndex(sectionPrefixBits, segmentByteCount, segmentBitCount)
+//	if networkSegmentIndex >= 0 {
+//		segment := segments[networkSegmentIndex].ToIPAddressSegment()
+//		if !segment.IsPrefixed() {
+//			segments[networkSegmentIndex] = segmentCreator(segment.GetSegmentValue(), segment.GetUpperSegmentValue(), cacheBitCount(segmentBitCount))
+//		}
+//	}
+//}
 
 func createSegmentsUint64(
 	//segments []*AddressDivision,
