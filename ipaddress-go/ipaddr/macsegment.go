@@ -306,6 +306,20 @@ func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
 	return (*AddressSegment)(seg.init())
 }
 
+func (seg *MACAddressSegment) GetString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getString()
+}
+
+func (seg *MACAddressSegment) GetWildcardString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getWildcardString()
+}
+
 func (seg *MACAddressSegment) String() string {
 	if seg == nil {
 		return nilString()

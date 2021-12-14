@@ -9,7 +9,7 @@ type DivisionType interface {
 	// getStringAsLower caches the string from getDefaultLowerString
 	getStringAsLower() string
 
-	// GetString produces a string that avoids wildcards when using prefix length.  Equivalent to GetWildcardString if the prefix length is not part of the string.
+	// GetString produces a string that avoids wildcards when a prefix length is part of the string.  Equivalent to GetWildcardString when the prefix length is not part of the string.
 	GetString() string
 
 	// GetWildcardString produces a string that uses wildcards and avoids prefix length

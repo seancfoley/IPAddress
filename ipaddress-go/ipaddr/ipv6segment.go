@@ -513,6 +513,20 @@ func (seg *IPv6AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	return (*IPAddressSegment)(seg.init())
 }
 
+func (seg *IPv6AddressSegment) GetString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getString()
+}
+
+func (seg *IPv6AddressSegment) GetWildcardString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getWildcardString()
+}
+
 func (seg *IPv6AddressSegment) String() string {
 	if seg == nil {
 		return nilString()

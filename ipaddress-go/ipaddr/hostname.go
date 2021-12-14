@@ -949,5 +949,4 @@ func getPrivateHostParams(orig HostNameParameters) *hostNameParameters {
 		return p
 	}
 	return new(HostNameParametersBuilder).Set(orig).ToParams().(*hostNameParameters)
-	//return ToHostNameParametersBuilder(orig).ToParams().(*hostNameParameters)
 }

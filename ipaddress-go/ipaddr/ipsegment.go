@@ -186,7 +186,7 @@ func (seg *ipAddressSegmentInternal) getStringAsLower() string {
 	return seg.getDefaultLowerString()
 }
 
-func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.  Also see the same in division.go
+func (seg *ipAddressSegmentInternal) getString() string {
 	stringer := func() string {
 		if !seg.isMultiple() || seg.IsSinglePrefixBlock() { //covers the case of !isMult, ie single addresses, when there is no prefix or the prefix is the bit count
 			return seg.getDefaultLowerString()
@@ -207,10 +207,10 @@ func (seg *ipAddressSegmentInternal) GetString() string { //TODO unlike other st
 	return stringer()
 }
 
-func (seg *ipAddressSegmentInternal) GetWildcardString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
+func (seg *ipAddressSegmentInternal) getWildcardString() string {
 	stringer := func() string {
 		if !seg.isPrefixed() || !seg.isMultiple() {
-			return seg.GetString()
+			return seg.getString()
 		} else if seg.IsFullRange() {
 			return seg.getDefaultSegmentWildcardString()
 		}
@@ -446,6 +446,20 @@ func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
 		return (*IPv6AddressSegment)(seg)
 	}
 	return nil
+}
+
+func (seg *IPAddressSegment) GetString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getString()
+}
+
+func (seg *IPAddressSegment) GetWildcardString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getWildcardString()
 }
 
 func (seg *IPAddressSegment) String() string {

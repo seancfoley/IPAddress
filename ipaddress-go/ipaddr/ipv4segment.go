@@ -310,6 +310,20 @@ func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
 	return (*IPAddressSegment)(seg.init())
 }
 
+func (seg *IPv4AddressSegment) GetString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getString()
+}
+
+func (seg *IPv4AddressSegment) GetWildcardString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getWildcardString()
+}
+
 func (seg *IPv4AddressSegment) String() string {
 	if seg == nil {
 		return nilString()

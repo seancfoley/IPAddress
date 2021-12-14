@@ -615,6 +615,20 @@ func (seg *AddressSegment) ToAddressDivision() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(seg))
 }
 
+func (seg *AddressSegment) GetString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getString()
+}
+
+func (seg *AddressSegment) GetWildcardString() string {
+	if seg == nil {
+		return nilString()
+	}
+	return seg.getWildcardString()
+}
+
 func (seg *AddressSegment) String() string {
 	if seg == nil {
 		return nilString()

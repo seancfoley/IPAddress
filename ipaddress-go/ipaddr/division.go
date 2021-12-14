@@ -226,16 +226,16 @@ func (div *addressDivisionInternal) toString() string { // this can be moved to 
 func (div addressDivisionInternal) Format(state fmt.State, verb rune) {
 	switch verb {
 	case 's', 'v':
-		state.Write([]byte(div.toString()))
+		_, _ = state.Write([]byte(div.toString()))
 		return
 	}
 	// we try to filter through the flags provided to the DivInt values, as if the fmt string were applied to the int(s) directly
 	formatStr := flagsFromState(state, verb)
 	if div.isMultiple() {
 		formatStr = fmt.Sprintf("%s%c%s", formatStr, RangeSeparator, formatStr)
-		state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue(), div.getUpperDivisionValue())))
+		_, _ = state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue(), div.getUpperDivisionValue())))
 	} else {
-		state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue())))
+		_, _ = state.Write([]byte(fmt.Sprintf(formatStr, div.getDivisionValue())))
 	}
 }
 
@@ -582,7 +582,7 @@ func (div *addressDivisionInternal) getStringAsLower() string {
 	return div.getStringFromStringer(div.getDefaultLowerString)
 }
 
-func (div *addressDivisionInternal) getString() string {
+func (div *addressDivisionInternal) getDivString() string {
 	if !div.isMultiple() {
 		return div.getStringFromStringer(div.getDefaultLowerString)
 	} else {
@@ -599,18 +599,18 @@ func (div *addressDivisionInternal) getStringFromStringer(stringer func() string
 	return stringer()
 }
 
-func (div *addressDivisionInternal) GetString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
+func (div *addressDivisionInternal) getString() string {
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		return seg.GetString()
 	}
-	return div.getString()
+	return div.getDivString()
 }
 
-func (div *addressDivisionInternal) GetWildcardString() string { //TODO unlike other string methods, panics on nil.  Maybe make non-public.  Remember this satisifes an interface.
+func (div *addressDivisionInternal) getWildcardString() string {
 	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
 		return seg.GetWildcardString()
 	}
-	return div.getString() // same string as GetString() when not an IP segment
+	return div.getDivString() // same string as GetString() when not an IP segment
 }
 
 func (div *addressDivisionInternal) getDefaultRangeStringVals(val1, val2 uint64, radix int) string {
@@ -769,7 +769,7 @@ func (div *addressDivisionInternal) adjustLeadingZeroCount(leadingZeroCount int,
 
 func (div *addressDivisionInternal) getDigitCount(radix int) int {
 	if !div.isMultiple() && radix == div.getDefaultTextualRadix() { //optimization - just get the string, which is cached, which speeds up further calls to this or getString()
-		return len(div.GetWildcardString())
+		return len(div.getWildcardString())
 	}
 	return getDigitCount(div.getUpperDivisionValue(), radix)
 }
@@ -978,6 +978,20 @@ func (div *AddressDivision) ToAddressSegment() *AddressSegment {
 
 func (div *AddressDivision) ToAddressDivision() *AddressDivision {
 	return div
+}
+
+func (div *AddressDivision) GetString() string {
+	if div == nil {
+		return nilString()
+	}
+	return div.getString()
+}
+
+func (div *AddressDivision) GetWildcardString() string {
+	if div == nil {
+		return nilString()
+	}
+	return div.getWildcardString()
 }
 
 func (div *AddressDivision) String() string {
