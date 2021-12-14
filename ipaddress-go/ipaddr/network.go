@@ -86,7 +86,7 @@ func (network *IPv6AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddr
 
 var _ IPAddressNetwork = &IPv6AddressNetwork{}
 
-var DefaultIPv6Network = &IPv6AddressNetwork{ //TODO rename, remove "Default"
+var IPv6Network = &IPv6AddressNetwork{
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv6BitCount+1),
 		make([]*IPAddress, IPv6BitCount+1),
@@ -156,7 +156,7 @@ func (network *IPv4AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddr
 
 var _ IPAddressNetwork = &IPv4AddressNetwork{}
 
-var DefaultIPv4Network = &IPv4AddressNetwork{ //TODO rename this and the other default networks, to IPv4Network
+var IPv4Network = &IPv4AddressNetwork{
 	ipAddressNetwork: ipAddressNetwork{
 		make([]*IPAddress, IPv4BitCount+1),
 		make([]*IPAddress, IPv4BitCount+1),
@@ -427,7 +427,7 @@ func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 //	return network.GetMACAddressCreator()
 //}
 
-var DefaultMACNetwork = &MACAddressNetwork{}
+var MACNetwork = &MACAddressNetwork{}
 
 var _ addressNetwork = &MACAddressNetwork{}
 
@@ -435,11 +435,11 @@ var ipv4loopback = createIPv4Loopback().ToIPAddress()
 var ipv6loopback = createIPv6Loopback().ToIPAddress()
 
 func createIPv6Loopback() *IPv6Address {
-	ipv6loopback, _ := NewIPv6AddressFromIP(net.IPv6loopback)
+	ipv6loopback, _ := NewIPv6AddressFromBytes(net.IPv6loopback)
 	return ipv6loopback
 }
 
 func createIPv4Loopback() *IPv4Address {
-	ipv4loopback, _ := NewIPv4AddressFromIP([]byte{127, 0, 0, 1})
+	ipv4loopback, _ := NewIPv4AddressFromBytes([]byte{127, 0, 0, 1})
 	return ipv4loopback
 }

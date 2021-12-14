@@ -36,9 +36,6 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 //}
 
 func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv4AddressSection) {
-	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
-		panic("huh") //TODO remove
-	}
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	return
@@ -77,9 +74,6 @@ func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, 
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
 	}
-	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() && prefixLength == nil {
-		panic("huh")
-	}
 	return
 }
 
@@ -91,6 +85,26 @@ func NewIPv4Section(segments []*IPv4AddressSegment) *IPv4AddressSection {
 func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLen PrefixLen) *IPv4AddressSection {
 	return createIPv4SectionFromSegs(segments, prefixLen)
 	//return newIPv4PrefixedSection(cloneIPv4SegsToDivs(segments), prefixLen)
+}
+
+func createIPv4SectionFromSegs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
+	divs, newPref, isMultiple := createDivisionsFromSegs(
+		func(index int) *IPAddressSegment {
+			return orig[index].ToIPAddressSegment()
+		},
+		len(orig),
+		ipv4BitsToSegmentBitshift,
+		IPv4BitsPerSegment,
+		IPv4BytesPerSegment,
+		IPv4MaxValuePerSegment,
+		zeroIPv4Seg.ToIPAddressSegment(),
+		zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
+		zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
+		prefLen)
+	result = createIPv4Section(divs)
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
 }
 
 func NewIPv4SectionFromUint32(bytes uint32, segmentCount int) (res *IPv4AddressSection) {
@@ -107,7 +121,7 @@ func NewIPv4SectionFromPrefixedUint32(bytes uint32, segmentCount int, prefixLeng
 		uint64(bytes),
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
-		DefaultIPv4Network.getIPAddressCreator(),
+		IPv4Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
 	if prefixLength != nil {
@@ -140,7 +154,7 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
 		//expectedByteCount,
-		DefaultIPv4Network.getIPAddressCreator(),
+		IPv4Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv4Section(segments)
@@ -181,7 +195,7 @@ func NewIPv4SectionFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, s
 		WrappedIPv4SegmentValueProvider(upperVals),
 		segmentCount,
 		IPv4BitsPerSegment,
-		DefaultIPv4Network.getIPAddressCreator(),
+		IPv4Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
@@ -344,11 +358,11 @@ func (section *IPv4AddressSection) GetHostSectionLen(prefLen BitCount) *IPv4Addr
 }
 
 func (section *IPv4AddressSection) GetNetworkMask() *IPv4AddressSection {
-	return section.getNetworkMask(DefaultIPv4Network).ToIPv4AddressSection()
+	return section.getNetworkMask(IPv4Network).ToIPv4AddressSection()
 }
 
 func (section *IPv4AddressSection) GetHostMask() *IPv4AddressSection {
-	return section.getHostMask(DefaultIPv4Network).ToIPv4AddressSection()
+	return section.getHostMask(IPv4Network).ToIPv4AddressSection()
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -632,7 +646,7 @@ func (section *IPv4AddressSection) Increment(inc int64) *IPv4AddressSection {
 	return increment(
 		section.ToAddressSection(),
 		inc,
-		DefaultIPv4Network.getIPAddressCreator(),
+		IPv4Network.getIPAddressCreator(),
 		count-1,
 		lowerValue,
 		upperValue,

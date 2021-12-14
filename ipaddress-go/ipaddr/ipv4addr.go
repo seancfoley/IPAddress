@@ -84,22 +84,22 @@ func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4A
 	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
 }
 
-func NewIPv4AddressFromIP(ip net.IP) (addr *IPv4Address, err AddressValueError) {
-	if ipv4 := ip.To4(); ipv4 != nil {
-		ip = ipv4
+func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err AddressValueError) {
+	if ipv4 := net.IP(bytes).To4(); ipv4 != nil {
+		bytes = ipv4
 	}
-	section, err := NewIPv4SectionFromSegmentedBytes(ip, IPv4SegmentCount)
+	section, err := NewIPv4SectionFromSegmentedBytes(bytes, IPv4SegmentCount)
 	if err == nil {
 		addr = newIPv4Address(section)
 	}
 	return
 }
 
-func NewIPv4AddressFromPrefixedIP(ip net.IP, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
-	if ipv4 := ip.To4(); ipv4 != nil {
-		ip = ipv4
+func NewIPv4AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
+	if ipv4 := net.IP(bytes).To4(); ipv4 != nil {
+		bytes = ipv4
 	}
-	section, err := NewIPv4SectionFromPrefixedBytes(ip, IPv4SegmentCount, prefixLength)
+	section, err := NewIPv4SectionFromPrefixedBytes(bytes, IPv4SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv4Address(section)
 	}
@@ -214,11 +214,11 @@ func (addr *IPv4Address) GetHostSectionLen(prefLen BitCount) *IPv4AddressSection
 }
 
 func (addr *IPv4Address) GetNetworkMask() *IPv4Address {
-	return addr.getNetworkMask(DefaultIPv4Network).ToIPv4Address()
+	return addr.getNetworkMask(IPv4Network).ToIPv4Address()
 }
 
 func (addr *IPv4Address) GetHostMask() *IPv4Address {
-	return addr.getHostMask(DefaultIPv4Network).ToIPv4Address()
+	return addr.getHostMask(IPv4Network).ToIPv4Address()
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -842,7 +842,7 @@ func (addr *IPv4Address) GetTrailingBitCount(ones bool) BitCount {
 }
 
 func (addr *IPv4Address) GetNetwork() IPAddressNetwork {
-	return DefaultIPv4Network
+	return IPv4Network
 }
 
 // GetIPv6Address creates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments

@@ -3084,7 +3084,7 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 	sampleIpv6 := t.createAddress("1234:abcd:cdef:5678:9abc:def0:1234:5678").GetAddress().ToIPv6Address()
 	sampleIpv4 := t.createAddress("123.156.178.201").GetAddress().ToIPv4Address()
 
-	ipv6Network := ipaddr.DefaultIPv6Network
+	ipv6Network := ipaddr.IPv6Network
 	//IPv6AddressNetwork ipv6Network = ADDRESS_OPTIONS.getIPv6Parameters().getNetwork();
 	ipv6SampleNetMask := sampleIpv6.GetNetworkMask()
 	ipv6SampleHostMask := sampleIpv6.GetHostMask()
@@ -3098,7 +3098,7 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 	}
 
 	//IPv4AddressNetwork ipv4Network = ADDRESS_OPTIONS.getIPv4Parameters().getNetwork();
-	ipv4Network := ipaddr.DefaultIPv4Network
+	ipv4Network := ipaddr.IPv4Network
 	ipv4SampleNetMask := sampleIpv4.GetNetworkMask()
 	ipv4SampleHostMask := sampleIpv4.GetHostMask()
 	onesNetworkMaskv4 := ipv4Network.GetNetworkMask(ipaddr.IPv4BitCount)
@@ -3269,7 +3269,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		bytes := address.GetBytes()
 		var another *ipaddr.IPAddress
 		// if address.IsIPv4() {
-		//ipaddr.DefaultIPv4Network.
+		//ipaddr.IPv4Network.
 		if network {
 			another = ipaddr.NewIPAddressFromPrefixedIP(bytes, cacheTestBits(prefixBits))
 		} else {
@@ -4038,13 +4038,13 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	//try {
 	bytes := []byte{1, 0, 0, 0, 0}
 	bytes[0] = 1
-	addr, err := ipaddr.NewIPv4AddressFromIP(bytes)
+	addr, err := ipaddr.NewIPv4AddressFromBytes(bytes)
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
 	}
 	//} catch(AddressValueException e) {}
 	//try {
-	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
@@ -4053,7 +4053,7 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	//}
 	//try {
 	//new IPv4Address(new byte[4]);
-	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
@@ -4062,7 +4062,7 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	//}
 	//try {
 	//new IPv4Address(new byte[3]);
-	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0, 0})
+	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
@@ -4070,7 +4070,7 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	//	addFailure(new Failure("unexpected exception " + e));
 	//}
 	//try {
-	addr, err = ipaddr.NewIPv4AddressFromIP([]byte{0, 0})
+	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
@@ -4147,11 +4147,11 @@ func (t ipAddressTester) testIPv4Values(segs []int, decimal string) {
 	ips2 := net.IPv4(vals[0], vals[1], vals[2], vals[3])
 	//InetAddress inetAddress1 = InetAddress.getByName(strbStr);
 	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
-	ip, err := ipaddr.NewIPv4AddressFromIP(ips)
+	ip, err := ipaddr.NewIPv4AddressFromBytes(ips)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIPAddress()))
 	}
-	ip2, err := ipaddr.NewIPv4AddressFromIP(ips2)
+	ip2, err := ipaddr.NewIPv4AddressFromBytes(ips2)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
 	}
@@ -4209,11 +4209,11 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 	ips2 := net.IP{vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15]}
 	//InetAddress inetAddress1 = InetAddress.getByName(strb.toString());
 	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
-	ip, err := ipaddr.NewIPv6AddressFromIP(ips)
+	ip, err := ipaddr.NewIPv6AddressFromBytes(ips)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIPAddress()))
 	}
-	ip2, err := ipaddr.NewIPv6AddressFromIP(ips2)
+	ip2, err := ipaddr.NewIPv6AddressFromBytes(ips2)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIPAddress()))
 	}
@@ -4232,11 +4232,11 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 					addr[2] = t.createIPv4Address(intval);
 					ips := net.ParseIP(strbStr)
 					ips2 := net.IPv4(vals[0],vals[1],vals[2],vals[3])
-			ip, err := ipaddr.NewIPv4AddressFromIP(ips);
+			ip, err := ipaddr.NewIPv4AddressFromBytes(ips);
 			if err != nil {
 				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip.ToIPAddress()));
 			}
-			ip2, err := ipaddr.NewIPv4AddressFromIP(ips2);
+			ip2, err := ipaddr.NewIPv4AddressFromBytes(ips2);
 			if err != nil {
 				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip2.ToIPAddress()));
 			}
@@ -4281,23 +4281,23 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 func (t ipAddressTester) testInvalidIpv6Values() {
 	bytes := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	bytes[0] = 1
-	addr, err := ipaddr.NewIPv6AddressFromIP(bytes)
+	addr, err := ipaddr.NewIPv6AddressFromBytes(bytes)
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv6AddressFromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv6AddressFromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv6AddressFromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
-	addr, err = ipaddr.NewIPv6AddressFromIP([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	addr, err = ipaddr.NewIPv6AddressFromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIPAddress()))
 	}
@@ -4634,7 +4634,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 	var all []*ipaddr.IPAddress
 	if addr.IsIPv4() {
 		for _, byteRepresentation := range byteRepresentations {
-			ipv4Addr, err := ipaddr.NewIPv4AddressFromIP(byteRepresentation)
+			ipv4Addr, err := ipaddr.NewIPv4AddressFromBytes(byteRepresentation)
 			if err != nil {
 				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
 			}
@@ -4646,7 +4646,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 			//ipv4Addr = new IPv4Address(bytes, 5, 5 + byteRepresentation.length);
 
 			//bytes := make([]byte, 32);
-			//ipv4Addr, err = ipaddr.NewIPv4AddressFromIP(bytes);
+			//ipv4Addr, err = ipaddr.NewIPv4AddressFromBytes(bytes);
 			//if err != nil {
 			//	t.addFailure(newIPAddrFailure("failed unexpected error for "+addrString+" error: "+err.Error(), ipv4Addr.ToIPAddress()))
 			//}
@@ -4663,7 +4663,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				if len(byts) != ipaddr.IPv4ByteCount {
 					t.addFailure(newFailure("bytes length "+strconv.Itoa(len(byts)), addrStr))
 				}
-				ipv4Addr, err := ipaddr.NewIPv4AddressFromIP(byts)
+				ipv4Addr, err := ipaddr.NewIPv4AddressFromBytes(byts)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
 				}
@@ -4676,7 +4676,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 		}
 	} else {
 		for _, byteRepresentation := range byteRepresentations {
-			ipv6Addr, err := ipaddr.NewIPv6AddressFromIP(byteRepresentation)
+			ipv6Addr, err := ipaddr.NewIPv6AddressFromBytes(byteRepresentation)
 			if err != nil {
 				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
 			}
@@ -4700,7 +4700,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				if len(byts) != ipaddr.IPv6ByteCount {
 					t.addFailure(newFailure("bytes length "+strconv.Itoa(len(byts)), addrStr))
 				}
-				ipv6Addr, err := ipaddr.NewIPv6AddressFromIP(byts)
+				ipv6Addr, err := ipaddr.NewIPv6AddressFromBytes(byts)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
 				}
@@ -4711,7 +4711,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				//ipv6Addr = new IPv6Address(b);
 				all = append(all, ipv6Addr.ToIPAddress())
 				bs := b.Bytes()
-				ipv6Addr, err = ipaddr.NewIPv6AddressFromIP(bs)
+				ipv6Addr, err = ipaddr.NewIPv6AddressFromBytes(bs)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
 				}

@@ -89,7 +89,7 @@ func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivi
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone Zone) *IPAddress {
-	addr, _ := newIPv6AddressFromZonedIP(bytes, string(zone))
+	addr, _ := NewIPv6AddressFromZonedBytes(bytes, string(zone))
 	return addr.ToIPAddress()
 }
 
@@ -166,7 +166,7 @@ func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivi
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, _ Zone) *IPAddress {
-	addr, _ := NewIPv4AddressFromIP(bytes)
+	addr, _ := NewIPv4AddressFromBytes(bytes)
 	return addr.ToIPAddress()
 }
 

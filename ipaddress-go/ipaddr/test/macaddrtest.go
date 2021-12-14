@@ -633,7 +633,7 @@ func (t macAddressTester) testInvalidMACValues() {
 	/*
 		bytes := []byte{1, 0, 0, 0, 0}
 			bytes[0] = 1
-			addr, err := ipaddr.NewIPv4AddressFromIP(bytes)
+			addr, err := ipaddr.NewIPv4AddressFromBytes(bytes)
 			if err == nil {
 				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
 			}

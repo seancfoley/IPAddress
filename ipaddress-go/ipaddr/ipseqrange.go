@@ -876,17 +876,6 @@ func (rng *IPAddressSeqRange) IsIPv6SequentialRange() bool { // returns false wh
 	return rng != nil && rng.GetLower().IsIPv6()
 }
 
-//TODO think about this, I might need to call init() in all upscales.  Why?  Because if you do not,
-// then you upscale, then the init() of the sub gets called on the downscale or on any other call, transforming to the zero value of that subtype.
-// so, for instance, upscaling IPAddress{} to ipv6 creates ::
-// Similarly with the range IPAddressSeqRange{}, the upscale does the same, creating ::->::
-// But confirm this first.  If you are right, then you need blocks like the two commented out blocks below, to init() upscales.
-// And then hou need the same for addresses and segments/divs, since both of them also have init() funcs
-// On the flip side, maybe we disallow such upscales with addresses and segments?  That would make sense,
-// because the original is not compatible really.  Zero range ipv4 ranges have 0.0.0.0 as the boundaries, not an address with no segments.
-// So what I might really need here is code that prvents the upscale, maybe you test one of the addresses to see if the address can upscale.
-// IN fact, I think I do that already, so all of this is MOOT.
-// No problem here.
 func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
 	//if rng != nil {
 	//	rng = rng.init()

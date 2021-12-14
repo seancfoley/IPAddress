@@ -317,7 +317,7 @@ func (seg *IPv4AddressSegment) String() string {
 	return seg.toString()
 }
 
-// TODO rename Segment to Seg in these constructors and others
+// TODO rename Segment to Seg in these constructors and others (not sure about this though)
 
 func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentVal(val))

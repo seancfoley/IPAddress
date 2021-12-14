@@ -146,14 +146,14 @@ func main() {
 	fmt.Printf("%+v\n", *pAddr)
 	fmt.Printf("%+v\n", pAddr)
 
-	ipv4Addr, _ := ipaddr.NewIPv4AddressFromIP([]byte{1, 0, 1, 0})
+	ipv4Addr, _ := ipaddr.NewIPv4AddressFromBytes([]byte{1, 0, 1, 0})
 	fmt.Printf("%+v\n", ipv4Addr)
 	fmt.Printf("%+v\n", *ipv4Addr)
 
-	ipv4Addr, ipv4Err := ipaddr.NewIPv4AddressFromIP([]byte{1, 1, 0, 1, 0})
+	ipv4Addr, ipv4Err := ipaddr.NewIPv4AddressFromBytes([]byte{1, 1, 0, 1, 0})
 	fmt.Printf("%+v %+v\n", ipv4Addr, ipv4Err)
 
-	ipv6Addr, ipv6Err := ipaddr.NewIPv6AddressFromIP(net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc})
+	ipv6Addr, ipv6Err := ipaddr.NewIPv6AddressFromBytes(net.IP{1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc, 1, 0, 1, 0, 0xff, 0xa, 0xb, 0xc})
 	fmt.Printf("%+v %+v\n", ipv6Addr, ipv6Err)
 	fmt.Printf("%+v\n", *ipv6Addr)
 	fmt.Printf("All the formats: default %v\nstring %s\nlowercase hex %x\nuppercase hex %X\nlower hex prefixed %#x\nupper hex prefixed %#X\noctal no prefix %o\noctal prefixed %O\noctal 0 prefix %#o\nbinary %b\nbinary prefixed %#b\ndecimal %d\n\n",

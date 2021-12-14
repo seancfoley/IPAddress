@@ -17,6 +17,7 @@ const (
 	IPv6SegmentCount                         = 8
 	IPv6MixedReplacedSegmentCount            = 2
 	IPv6MixedOriginalSegmentCount            = 6
+	IPv6MixedOriginalByteCount               = IPv6MixedOriginalSegmentCount << 1
 	IPv6ByteCount                            = 16
 	IPv6BitCount                    BitCount = 128
 	IPv6DefaultTextualRadix                  = 16
@@ -95,7 +96,7 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address
 	return newIPv6AddressZoned(section, zone), nil
 }
 
-func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromBytes(bytes []byte) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6SectionFromSegmentedBytes(bytes, IPv6SegmentCount)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -103,7 +104,7 @@ func NewIPv6AddressFromIP(bytes net.IP) (addr *IPv6Address, err AddressValueErro
 	return
 }
 
-func NewIPv6AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6SectionFromPrefixedBytes(bytes, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -111,8 +112,8 @@ func NewIPv6AddressFromPrefixedIP(bytes net.IP, prefixLength PrefixLen) (addr *I
 	return
 }
 
-func newIPv6AddressFromZonedIP(bytes net.IP, zone string) (addr *IPv6Address, err AddressValueError) {
-	addr, err = NewIPv6AddressFromIP(bytes)
+func NewIPv6AddressFromZonedBytes(bytes []byte, zone string) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromBytes(bytes)
 	if err == nil {
 		addr.zone = Zone(zone)
 		assignIPv6Cache(addr.zone, addr.cache)
@@ -120,18 +121,29 @@ func newIPv6AddressFromZonedIP(bytes net.IP, zone string) (addr *IPv6Address, er
 	return
 }
 
-func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
-	return newIPv6AddressFromZonedIP(ipAddr.IP, ipAddr.Zone)
-}
-
-func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err AddressValueError) {
-	addr, err = NewIPv6AddressFromPrefixedIP(ipAddr.IP, prefixLen)
+func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+	addr, err = NewIPv6AddressFromPrefixedBytes(bytes, prefixLength)
 	if err == nil {
-		addr.zone = Zone(ipAddr.Zone)
+		addr.zone = Zone(zone)
 		assignIPv6Cache(addr.zone, addr.cache)
 	}
 	return
 }
+
+//
+//func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
+//	return newIPv6AddressFromZonedIP(ipAddr.IP, ipAddr.Zone)
+//}
+//
+//
+//func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err AddressValueError) {
+//	addr, err = NewIPv6AddressFromPrefixedBytes(ipAddr.IP, prefixLen)
+//	if err == nil {
+//		addr.zone = Zone(ipAddr.Zone)
+//		assignIPv6Cache(addr.zone, addr.cache)
+//	}
+//	return
+//}
 
 func NewIPv6AddressFromInt(val *big.Int) (addr *IPv6Address, err AddressValueError) {
 	section, err := NewIPv6SectionFromBigInt(val, IPv6SegmentCount)
@@ -468,11 +480,11 @@ func (addr *IPv6Address) GetHostSectionLen(prefLen BitCount) *IPv6AddressSection
 }
 
 func (addr *IPv6Address) GetNetworkMask() *IPv6Address {
-	return addr.getNetworkMask(DefaultIPv6Network).ToIPv6Address()
+	return addr.getNetworkMask(IPv6Network).ToIPv6Address()
 }
 
 func (addr *IPv6Address) GetHostMask() *IPv6Address {
-	return addr.getHostMask(DefaultIPv6Network).ToIPv6Address()
+	return addr.getHostMask(IPv6Network).ToIPv6Address()
 }
 
 func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping, IncompatibleAddressError) {
@@ -1241,7 +1253,7 @@ func (addr *IPv6Address) GetTrailingBitCount(ones bool) BitCount {
 }
 
 func (addr *IPv6Address) GetNetwork() IPAddressNetwork {
-	return DefaultIPv6Network
+	return IPv6Network
 }
 
 func (addr *IPv6Address) IsEUI64() bool {

@@ -75,14 +75,15 @@ func NewHostNameFromUDPAddr(addr *net.UDPAddr) *HostName {
 }
 
 func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName) {
-	var ipAddr *IPAddress
-	if zone == NoZone {
-		ipAddr = NewIPAddressFromIP(ip)
-	} else {
-		var addr6 *IPv6Address
-		addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
-		ipAddr = addr6.ToIPAddress()
-	}
+	ipAddr := NewIPAddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+	//var ipAddr *IPAddress
+	//if zone == NoZone {
+	//	ipAddr = NewIPAddressFromIP(ip)
+	//} else {
+	//	var addr6 *IPv6Address
+	//	addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+	//	ipAddr = addr6.ToIPAddress()
+	//}
 	if ipAddr != nil {
 		portVal := PortNum(port)
 		hostStr := toNormalizedAddrPortString(ipAddr, portVal)
@@ -117,24 +118,34 @@ func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *Hos
 }
 
 func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName) {
-	if addr.Zone == NoZone {
-		return NewHostNameFromIP(addr.IP)
+	ipAddr := NewIPAddressFromIPAddr(addr)
+	if ipAddr != nil {
+		hostName = NewHostNameFromAddr(ipAddr)
 	}
-	addr6, err := NewIPv6AddressFromIPAddr(addr)
-	if err == nil {
-		hostName = NewHostNameFromAddr(addr6.ToIPAddress())
-	}
+	//if addr.Zone == NoZone {
+	//	return NewHostNameFromIP(addr.IP)
+	//}
+	//addr6, err := NewIPv6AddressFromIPAddr(addr)
+	//if err == nil {
+	//	hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	//}
 	return
 }
 
 func NewHostNameFromPrefixedIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName) {
-	if addr.Zone == NoZone {
-		return NewHostNameFromPrefixedIP(addr.IP, prefixLen)
+	ipAddr := NewIPAddressFromPrefixedIPAddr(addr, prefixLen)
+	if ipAddr != nil {
+		hostName = NewHostNameFromAddr(ipAddr)
 	}
-	addr6, err := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLen)
-	if err == nil {
-		hostName = NewHostNameFromAddr(addr6.ToIPAddress())
-	}
+	//xxxx just use NewIPAddressFromIPAddr xxxx
+	//
+	//if addr.Zone == NoZone {
+	//	return NewHostNameFromPrefixedIP(addr.IP, prefixLen)
+	//}
+	//addr6, err := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLen)
+	//if err == nil {
+	//	hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	//}
 	return
 }
 
@@ -312,7 +323,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						}
 					}
 					if byteLen == IPv6ByteCount {
-						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedIP(ip, networkPrefixLength) // AddressValueError
+						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedBytes(ip, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
 							errs = append(errs, addrErr)
 						} else {
@@ -326,7 +337,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
 							networkPrefixLength = cacheBitCount(IPv4BitCount)
 						}
-						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedIP(ip, networkPrefixLength) // AddressValueError
+						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedBytes(ip, networkPrefixLength) // AddressValueError
 						if addrErr != nil {
 							errs = append(errs, addrErr)
 						} else {

@@ -43,15 +43,59 @@ func NewMACSection(segments []*MACAddressSegment) *MACAddressSection {
 	//return
 }
 
+func createMACSectionFromSegs(orig []*MACAddressSegment) *MACAddressSection {
+	segCount := len(orig)
+	newSegs := make([]*AddressDivision, segCount)
+	//	var isMultiple, isPrefixed bool
+	var newPref PrefixLen
+	//segCount := section.GetSegmentCount()
+	isMultiple := false
+	if segCount != 0 {
+		isBlock := true
+		for i := segCount - 1; i >= 0; i-- {
+			segment := orig[i]
+			//segment := section.GetSegment(i)
+			if segment == nil {
+				segment = zeroMACSeg
+				//return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+				if isBlock && i != segCount-1 {
+					newPref = getNetworkPrefixLen(MACBitsPerSegment, MACBitsPerSegment, i)
+					isBlock = false
+				}
+			} else {
+				if isBlock {
+					minPref := segment.GetMinPrefixLenForBlock()
+					if minPref > 0 {
+						if minPref != MACBitsPerSegment || i != segCount-1 {
+							newPref = getNetworkPrefixLen(MACBitsPerSegment, minPref, i)
+						}
+						isBlock = false
+					}
+				}
+				isMultiple = isMultiple || segment.isMultiple()
+			}
+			newSegs[i] = segment.ToAddressDivision()
+		}
+		if isBlock {
+			newPref = cacheBitCount(0)
+		}
+	}
+	res := createMACSection(newSegs)
+	res.isMult = isMultiple
+	res.prefixLength = newPref
+	return res
+}
+
 func newMACSectionParsed(segments []*AddressDivision, isMultiple bool) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	_ = res.initMultAndImplicitPrefLen(MACBitsPerSegment, false)
+	//TODO use isMultiple, and in fact, not so sure I need to calculate isMult anymore
+	res.initMultAndImplicitPrefLen(MACBitsPerSegment)
 	return
 }
 
 func newMACSectionEUI(segments []*AddressDivision) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	_ = res.initMultAndImplicitPrefLen(MACBitsPerSegment, false)
+	res.initMultAndImplicitPrefLen(MACBitsPerSegment)
 	return
 }
 
@@ -66,7 +110,7 @@ func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSect
 		MACBytesPerSegment,
 		MACBitsPerSegment,
 		//expectedByteCount,
-		DefaultMACNetwork.getAddressCreator(),
+		MACNetwork.getAddressCreator(),
 		nil)
 	if err == nil {
 		// note prefix len is nil
@@ -92,7 +136,7 @@ func NewMACSectionFromUint64(bytes uint64, segmentCount int) (res *MACAddressSec
 		uint64(bytes),
 		MACBytesPerSegment,
 		MACBitsPerSegment,
-		DefaultMACNetwork.getAddressCreator(),
+		MACNetwork.getAddressCreator(),
 		nil)
 	// note prefix len is nil
 	res = createMACSection(segments)
@@ -113,7 +157,7 @@ func NewMACSectionFromRange(vals, upperVals MACSegmentValueProvider, segmentCoun
 		WrappedMACSegmentValueProvider(upperVals),
 		segmentCount,
 		MACBitsPerSegment,
-		DefaultMACNetwork.getAddressCreator(),
+		MACNetwork.getAddressCreator(),
 		nil)
 	res = createMACSection(segments)
 	if isMultiple {
@@ -407,7 +451,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	return increment(
 		section.ToAddressSection(),
 		incrementVal,
-		DefaultMACNetwork.getAddressCreator(),
+		MACNetwork.getAddressCreator(),
 		countMinus1,
 		section.Uint64Value(),
 		section.UpperUint64Value(),

@@ -37,20 +37,20 @@ func (a addrType) isMAC() bool {
 
 func (a addrType) getIPNetwork() (network IPAddressNetwork) {
 	if a.isIPv6() {
-		network = DefaultIPv6Network
+		network = IPv6Network
 	} else if a.isIPv4() {
-		network = DefaultIPv4Network
+		network = IPv4Network
 	}
 	return
 }
 
 func (a addrType) getNetwork() (network addressNetwork) {
 	if a.isIPv6() {
-		network = DefaultIPv6Network
+		network = IPv6Network
 	} else if a.isIPv4() {
-		network = DefaultIPv4Network
+		network = IPv4Network
 	} else if a.isMAC() {
-		network = DefaultMACNetwork
+		network = MACNetwork
 	}
 	return
 }

@@ -522,7 +522,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneLoop := func() *IPAddress {
-					network := DefaultIPv6Network
+					network := IPv6Network
 					creator := network.getIPAddressCreator()
 					return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
 				}
@@ -530,14 +530,14 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneLoop()) }
 			} else {
 				ipv6Loop := func() *IPAddress {
-					return DefaultIPv6Network.GetLoopback()
+					return IPv6Network.GetLoopback()
 				}
 				versionedCreator = ipv6Loop
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Loop()) }
 			}
 		} else {
 			ipv4Loop := func() *IPAddress {
-				return DefaultIPv4Network.GetLoopback()
+				return IPv4Network.GetLoopback()
 			}
 			addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Loop()) }
 			versionedCreator = ipv4Loop
@@ -546,7 +546,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneZero := func() *IPAddress {
-					network := DefaultIPv6Network
+					network := IPv6Network
 					creator := network.getIPAddressCreator()
 					return creator.createAddressInternalFromBytes(zeroIPv6.GetBytes(), zone)
 				}
@@ -656,10 +656,10 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 	}
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
-			network := DefaultIPv4Network
+			network := IPv4Network
 			return network.GetNetworkMask(*prefLen)
 		} else if version == IPv6 {
-			network := DefaultIPv6Network
+			network := IPv6Network
 			return network.GetNetworkMask(*prefLen)
 		}
 		return nil
@@ -870,11 +870,11 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //	}
 
 // TODO NEXT progress - WE ARE CLOSE NOW, SO CLOSE TO READY
-// order of todos:
-// - nil tests in specialtypestest
+// lsit of larger-size todos:
+// - nil tests in specialtypestest - still not finished
 // - prefixLen change
 // - portnum change which is similar
-// - format tests and nil string tests (see main.go, "All the formats") notes.go
+// - format tests and nil string tests (see main.go, "All the formats") notes.go - just missing tests at this point
 // - we ask whether args of type BitCount should be int.  ipv6section.go
 // - GetString and GetWildcardString behaviour on nil ipsegment.go
 // - rename ToIPV6Address, ToMACAddressSection, etc use just ToIPV6, ToIP, ToIPv4, ToMAC.  Also the same for IsIPAddress, etc, I think I did the "is" changes in addresses already
@@ -887,4 +887,3 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - go over the goland warnings, they do help a bit to find issues
 // - the go.mod file and any other module-related stuff
 //
-// on the home stretch

@@ -68,23 +68,12 @@ func newIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 }
 
 func newIPv6SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv6AddressSection) {
-	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
-		panic("huh") //TODO remove
-	}
 	res = createIPv6Section(segments)
 	res.isMult = isMultiple
 	return
 }
 
 func newIPv6SectionFromMixed(segments []*AddressDivision) (res *IPv6AddressSection) {
-	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() {
-		panic("huh")
-		//TODO also check whether you might still need to normalize boundaries with
-		//		normalizePrefixBoundary(*prefLen, segments, IPv6BitsPerSegment, IPv6BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-		//			return NewIPv6RangePrefixedSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
-		//		})
-		// BUT it seems there is no longer a candidate function, none of the ones take prefixed divisions
-	}
 	res = createIPv6Section(segments)
 	res.initMultiple()
 	return
@@ -97,9 +86,6 @@ func newPrefixedIPv6SectionParsed(segments []*AddressDivision /* , startIndex in
 	if prefixLength != nil {
 		assignPrefix(prefixLength, segments, res.ToIPAddressSection(), singleOnly, BitCount(len(segments)<<ipv6BitsToSegmentBitshift))
 	}
-	if len(segments) > 0 && segments[len(segments)-1].isPrefixed() && prefixLength == nil {
-		panic("huh")
-	}
 	return
 }
 
@@ -111,6 +97,26 @@ func NewIPv6Section(segments []*IPv6AddressSegment) *IPv6AddressSection {
 func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLen PrefixLen) *IPv6AddressSection {
 	return createIPv6SectionFromSegs(segments, prefixLen)
 	//return newIPv4PrefixedSection(cloneIPv4SegsToDivs(segments), prefixLen)
+}
+
+func createIPv6SectionFromSegs(orig []*IPv6AddressSegment, prefLen PrefixLen) (result *IPv6AddressSection) {
+	divs, newPref, isMultiple := createDivisionsFromSegs(
+		func(index int) *IPAddressSegment {
+			return orig[index].ToIPAddressSegment()
+		},
+		len(orig),
+		ipv6BitsToSegmentBitshift,
+		IPv6BitsPerSegment,
+		IPv6BytesPerSegment,
+		IPv6MaxValuePerSegment,
+		zeroIPv6Seg.ToIPAddressSegment(),
+		zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
+		zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
+		prefLen)
+	result = createIPv6Section(divs)
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
 }
 
 //func NewIPv6Section(segments []*IPv6AddressSegment) (*IPv6AddressSection, AddressValueError) {
@@ -169,7 +175,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
 		//expectedByteCount,
-		DefaultIPv6Network.getIPAddressCreator(),
+		IPv6Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv6Section(segments)
@@ -199,7 +205,7 @@ func newIPv6SectionFromWords(words []big.Word, segmentCount int, prefixLength Pr
 		//IPv6BytesPerSegment,
 		//IPv6BitsPerSegment,
 		//expectedByteCount,
-		//DefaultIPv6Network.getIPAddressCreator(),
+		//IPv6Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
 		res = createIPv6Section(segments)
@@ -301,7 +307,7 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 		lowBytes,
 		IPv6BytesPerSegment,
 		IPv6BitsPerSegment,
-		DefaultIPv6Network.getIPAddressCreator(),
+		IPv6Network.getIPAddressCreator(),
 		prefixLength)
 	//expectedByteCount := segmentCount << 1
 	//segments, err := toSegments(
@@ -310,7 +316,7 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	//	IPv6BytesPerSegment,
 	//	IPv6BitsPerSegment,
 	//	//expectedByteCount,
-	//	DefaultIPv6Network.getIPAddressCreator(),
+	//	IPv6Network.getIPAddressCreator(),
 	//	prefixLength)
 	//if err == nil {
 	res = createIPv6Section(segments)
@@ -351,7 +357,7 @@ func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals IPv6SegmentValueProvi
 		WrappedIPv6SegmentValueProvider(upperVals),
 		segmentCount,
 		IPv6BitsPerSegment,
-		DefaultIPv6Network.getIPAddressCreator(),
+		IPv6Network.getIPAddressCreator(),
 		prefixLength)
 	res = createIPv6Section(segments)
 	res.isMult = isMultiple
@@ -510,11 +516,11 @@ func (section *IPv6AddressSection) GetHostSectionLen(prefLen BitCount) *IPv6Addr
 }
 
 func (section *IPv6AddressSection) GetNetworkMask() *IPv6AddressSection {
-	return section.getNetworkMask(DefaultIPv6Network).ToIPv6AddressSection()
+	return section.getNetworkMask(IPv6Network).ToIPv6AddressSection()
 }
 
 func (section *IPv6AddressSection) GetHostMask() *IPv6AddressSection {
-	return section.getHostMask(DefaultIPv6Network).ToIPv6AddressSection()
+	return section.getHostMask(IPv6Network).ToIPv6AddressSection()
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -640,7 +646,7 @@ func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
 }
 
 //TODO just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
-//But does this lead to hidden conversion bugs large ints?
+//But does this lead to hidden conversion bugs with large ints?
 //Maybe just using int for BitCount would be better!  But that doesn't seem to work when it comes to automatic conversions.
 //Why not?  you can always pass in []byte for net.IP, or maybe it's the other way around, net.Ip for []byte
 // It works OK with type BitCount = int16, but then you cannot have the method set
@@ -861,7 +867,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	result := fastIncrement(
 		section.ToAddressSection(),
 		increment,
-		DefaultIPv6Network.getIPAddressCreator(),
+		IPv6Network.getIPAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength)
@@ -873,7 +879,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 		section.ToAddressSection(),
 		increment,
 		&bigIncrement,
-		DefaultIPv6Network.getIPAddressCreator(),
+		IPv6Network.getIPAddressCreator(),
 		section.getLower,
 		section.getUpper,
 		prefixLength).ToIPv6AddressSection()

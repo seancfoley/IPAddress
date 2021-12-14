@@ -58,9 +58,9 @@ func (version IPVersion) String() string {
 
 func (version IPVersion) getNetwork() (network IPAddressNetwork) {
 	if version.IsIPv6() {
-		network = DefaultIPv6Network
+		network = IPv6Network
 	} else if version.IsIPv4() {
-		network = DefaultIPv4Network
+		network = IPv4Network
 	}
 	return
 }
@@ -761,7 +761,13 @@ func (addr *IPAddress) GetIPAddr() net.IPAddr {
 	}
 }
 
-func (addr *IPAddress) GetIP() net.IP { //TODO think about making this ToIP() to match toInetAddress() in Java - we also suggested changing GetBytes to just Bytes()
+//TODO think about making this ToIP() to match toInetAddress() in Java - we also suggested changing GetBytes to just Bytes().
+//But I am also thinking of renaming ToIPAddress to ToIP.
+//Maybe use toNetIP?  Need a way to differentiate the two.
+// I think I want to make ToIPAddress() into ToIP(), so this thing here needs a different name.
+// GetGolangIP() ?  BytesIP()?  I think bytes IP is pretty good!  Yeah.  And CopyBytesIP, UpperBytesIP, and CopyUpperBytesIP
+
+func (addr *IPAddress) GetIP() net.IP {
 	return addr.GetBytes()
 }
 
@@ -896,12 +902,16 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 }
 
 //TODO maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+// BUT remember I am also consider renaming GetIP to ToIP()
 // This also makes sense because "ToIPv6Address" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
 // Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
 // ALso consider code like this:
 // t.createAddress(originalStr).GetAddress().ToAddress()
 // the combination of using GetAddress/ToAddress in IPAddressString and the name ToAddress to downgrade to *Address is ugly.
 // Maybe drop the "To" in this case?  Just .Address()?  or AsAddress?  nah to AsAddress, it's already an address.
+// No, I need a better ToXXX really.
+//
+//Also, for sections, do ToIPSection, ToIPv6Section, ToIPv4Section (drop the "Address" part), ToDivisionGrouping
 
 //
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
@@ -1493,14 +1503,18 @@ func addrFromIP(ip net.IP) (addr *IPAddress, err AddressValueError) {
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
 	}
+	return addrFromBytes(ip)
+}
+
+func addrFromBytes(ip []byte) (addr *IPAddress, err AddressValueError) {
 	addrLen := len(ip)
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
-		addr4, err = NewIPv4AddressFromIP(ip)
+		addr4, err = NewIPv4AddressFromBytes(ip)
 		addr = addr4.ToIPAddress()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
-		addr6, err = NewIPv6AddressFromIP(ip)
+		addr6, err = NewIPv6AddressFromBytes(ip)
 		addr = addr6.ToIPAddress()
 	}
 	return
@@ -1513,11 +1527,11 @@ func addrFromPrefixedIP(ip net.IP, prefixLen PrefixLen) (addr *IPAddress, err Ad
 	addrLen := len(ip)
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
-		addr4, err = NewIPv4AddressFromPrefixedIP(ip, prefixLen)
+		addr4, err = NewIPv4AddressFromPrefixedBytes(ip, prefixLen)
 		addr = addr4.ToIPAddress()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
-		addr6, err = NewIPv6AddressFromPrefixedIP(ip, prefixLen)
+		addr6, err = NewIPv6AddressFromPrefixedBytes(ip, prefixLen)
 		addr = addr6.ToIPAddress()
 	}
 	return
@@ -1591,10 +1605,10 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 // so, the creator is not needed for these two, you can just call the public functions
 //func (creator IPAddressCreator) NewIPAddressFromIP(bytes net.IP) *IPAddress {
 //	if creator.IsIPv4() {
-//		addr, _ := NewIPv4AddressFromIP(bytes)
+//		addr, _ := NewIPv4AddressFromBytes(bytes)
 //		return addr.ToIPAddress()
 //	} else if creator.IsIPv6() {
-//		addr, _ := NewIPv6AddressFromIP(bytes)
+//		addr, _ := NewIPv6AddressFromBytes(bytes)
 //		return addr.ToIPAddress()
 //	}
 //	return nil
@@ -1602,10 +1616,10 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 //
 //func (creator IPAddressCreator) NewIPAddressFromPrefixedIP(bytes net.IP, prefLen PrefixLen) *IPAddress {
 //	if creator.IsIPv4() {
-//		addr, _ := NewIPv4AddressFromPrefixedIP(bytes, prefLen)
+//		addr, _ := NewIPv4AddressFromPrefixedBytes(bytes, prefLen)
 //		return addr.ToIPAddress()
 //	} else if creator.IsIPv6() {
-//		addr, _ := NewIPv6AddressFromPrefixedIP(bytes, prefLen)
+//		addr, _ := NewIPv6AddressFromPrefixedBytes(bytes, prefLen)
 //		return addr.ToIPAddress()
 //	}
 //	return nil
@@ -1623,7 +1637,10 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 	return NewIPAddressFromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
 }
 
-//TODO additional ones taking net.IPNet which is prefix length / mask with address
+func NewIPAddressFromIPMask(ip net.IPMask) *IPAddress {
+	addr, _ := addrFromBytes(ip)
+	return addr
+}
 
 func NewIPAddressFromIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
@@ -1641,10 +1658,10 @@ func NewIPAddressFromIPAddr(addr *net.IPAddr) *IPAddress {
 		ip = ipv4
 	}
 	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromIP(ip)
+		res, _ := NewIPv4AddressFromBytes(ip)
 		return res.ToIPAddress()
 	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromIPAddr(addr)
+		res, _ := NewIPv6AddressFromZonedBytes(ip, addr.Zone)
 		return res.ToIPAddress()
 	}
 	return nil
@@ -1656,13 +1673,39 @@ func NewIPAddressFromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *I
 		ip = ipv4
 	}
 	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromPrefixedIP(ip, prefixLength)
+		res, _ := NewIPv4AddressFromPrefixedBytes(ip, prefixLength)
 		return res.ToIPAddress()
 	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLength)
+		res, _ := NewIPv6AddressFromPrefixedZonedBytes(ip, prefixLength, addr.Zone)
 		return res.ToIPAddress()
 	}
 	return nil
+}
+
+func NewIPAddressFromIPNet(ipnet net.IPNet) (*IPAddress, IncompatibleAddressError) {
+	ip := ipnet.IP
+	maskIp := ipnet.Mask
+	if ipv4 := ip.To4(); ipv4 != nil {
+		ip = ipv4
+		if len(maskIp) == net.IPv6len {
+			maskIp = maskIp[IPv6MixedOriginalByteCount:]
+		}
+	}
+	addr, _ := addrFromBytes(ip)
+	if addr == nil {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
+	}
+	mask := NewIPAddressFromIPMask(maskIp)
+	if mask == nil {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
+	} else if !addr.GetIPVersion().Equal(mask.GetIPVersion()) {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
+	}
+	prefLen := mask.GetBlockMaskPrefixLen(true)
+	if prefLen == nil {
+		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.notNetworkMask"}}
+	}
+	return addr.ToPrefixBlockLen(*prefLen), nil
 }
 
 func NewIPAddressFromVals(version IPVersion, lowerValueProvider SegmentValueProvider) *IPAddress {

@@ -25,6 +25,47 @@ func createIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrTy
 	return sect
 }
 
+func createIPSectionFromSegs(isIPv4 bool, orig []*IPAddressSegment, prefLen PrefixLen) (result *IPAddressSection) {
+	segProvider := func(index int) *IPAddressSegment {
+		return orig[index]
+	}
+	var divs []*AddressDivision
+	var newPref PrefixLen
+	var isMultiple bool
+	if isIPv4 {
+		divs, newPref, isMultiple = createDivisionsFromSegs(
+			segProvider,
+			len(orig),
+			ipv4BitsToSegmentBitshift,
+			IPv4BitsPerSegment,
+			IPv4BytesPerSegment,
+			IPv4MaxValuePerSegment,
+			zeroIPv4Seg.ToIPAddressSegment(),
+			zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
+			zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
+			prefLen)
+		result = createIPv4Section(divs).ToIPAddressSection()
+	} else {
+		divs, newPref, isMultiple = createDivisionsFromSegs(
+			func(index int) *IPAddressSegment {
+				return orig[index]
+			},
+			len(orig),
+			ipv6BitsToSegmentBitshift,
+			IPv6BitsPerSegment,
+			IPv6BytesPerSegment,
+			IPv6MaxValuePerSegment,
+			zeroIPv6Seg.ToIPAddressSegment(),
+			zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
+			zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
+			prefLen)
+		result = createIPv6Section(divs).ToIPAddressSection()
+	}
+	result.prefixLength = newPref
+	result.isMult = isMultiple
+	return result
+}
+
 func createInitializedIPSection(segments []*AddressDivision, prefixLength PrefixLen, addrType addrType) *IPAddressSection {
 	result := createIPSection(segments, prefixLength, addrType)
 	result.initMultAndPrefLen() // assigns isMult and checks prefix length
@@ -1125,9 +1166,9 @@ func (section *ipAddressSectionInternal) getOredSegments(
 
 func (section *ipAddressSectionInternal) getNetwork() IPAddressNetwork {
 	if addrType := section.getAddrType(); addrType.isIPv4() {
-		return DefaultIPv4Network
+		return IPv4Network
 	} else if addrType.isIPv6() {
-		return DefaultIPv6Network
+		return IPv6Network
 	}
 	return nil
 }

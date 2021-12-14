@@ -108,16 +108,13 @@ func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCou
 }
 
 // error returned for nil sements
-func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment BitCount, checkAllSegs bool) AddressValueError {
+func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment BitCount) {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
 		isMultiple := false
 		isBlock := true
 		for i := segCount - 1; i >= 0; i-- {
 			segment := section.GetSegment(i)
-			if segment == nil { //TODO maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
-				return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
-			}
 			if isBlock {
 				minPref := segment.GetMinPrefixLenForBlock()
 				if minPref > 0 {
@@ -125,23 +122,26 @@ func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment
 						section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
 					}
 					isBlock = false
+					if isMultiple { // nothing left to do
+						return
+					}
 				}
 			}
 			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
 				section.isMult = true
-			}
-			if isMultiple && !isBlock && !checkAllSegs {
-				break // isMult is known, isBlock is completed, and we don't need to verify the segs for nil
+				if !isBlock { // nothing left to do
+					return
+				}
 			}
 		}
 		if isBlock {
 			section.prefixLength = cacheBitCount(0)
 		}
 	}
-	return nil
 }
 
+// this is used by methods that are used by both mac and ipv4/6, even though the prefix length assignment does not apply to MAC
 func (section *addressSectionInternal) initMultAndPrefLen() {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
@@ -150,50 +150,12 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 		bitsPerSegment := section.GetBitsPerSegment()
 		for i := 0; i < segCount; i++ {
 			segment := section.GetSegment(i)
-			//if segment == nil {
-			//	//xxx yeah, do that, let us continue the work removing errors in constructors xxx
-			//	//] maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
-			//	// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.
-			//	// But this contradicts Java?  Check that.
-			//	// Yeah, if you supply nil prefix but the segments had a prefix, probably defers to the segments.  Check that.
-			//	// CHecked it, code is below, it does choose the shorter prefix length.  And it also changes the segments if necessary.
-			//	// For segments that are missing 0 prefix, just use setPrefixLen
-			//
-			//	/*
-			//		if(networkPrefixLength != null) {
-			//				if(networkPrefixLength < 0) {
-			//					throw new PrefixLenException(networkPrefixLength);
-			//				}
-			//				int max = segments.length << 4;
-			//				if(networkPrefixLength > max) {
-			//					if(networkPrefixLength > IPv6Address.BIT_COUNT) {
-			//						throw new PrefixLenException(networkPrefixLength);
-			//					}
-			//					networkPrefixLength = max;
-			//				}
-			//				if(segments.length > 0) {
-			//					if(cachedPrefixLength != NO_PREFIX_LENGTH && cachedPrefixLength < networkPrefixLength) {//if the segments have a shorter prefix length, then use that
-			//						networkPrefixLength = cachedPrefixLength;
-			//					}
-			//					IPv6AddressNetwork network = getNetwork();
-			//					setPrefixedSegments(
-			//							network,
-			//							networkPrefixLength,
-			//							getSegmentsInternal(),
-			//							getBitsPerSegment(),
-			//							getBytesPerSegment(),
-			//							network.getAddressCreator(),
-			//							!singleOnly && isPrefixSubnetSegs(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
-			//				}
-			//				cachedPrefixLength = networkPrefixLength;
-			//			} //else the cached prefix has already been set to the proper value
-			//	*/
-			//	return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
-			//}
-
 			if !isMultiple && segment.isMultiple() {
 				isMultiple = true
 				section.isMult = true
+				if section.prefixLength != nil { // nothing left to do
+					break
+				}
 			}
 
 			//Calculate the segment-level prefix
@@ -202,43 +164,119 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 			//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 			//or IPv4: ...(null).(1 to 8).(0)...
 			//For MACSize, all segs have nil prefix since prefix is not segment-level
-			//For MACSize, prefixes must be derived in other ways, not from individual segment prefix values,
-			// either using
 			segPrefix := segment.getDivisionPrefixLength()
 			if previousSegmentPrefix == nil {
 				if segPrefix != nil {
-					pref := *segPrefix
-					newPref := getNetworkPrefixLen(bitsPerSegment, pref, i)
-					//if section.prefixLength != nil {
-					//
-					//	if *section.prefixLength != *newPref {
-					//		return &inconsistentPrefixError{
-					//			addressValueError{
-					//				addressError: addressError{
-					//					key: "ipaddress.error.inconsistent.prefixes",
-					//				},
-					//			},
-					//		}
-					//	}
-					//} else {
+					newPref := getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
 					section.prefixLength = newPref
-					//}
+					if isMultiple { // nothing left to do
+						break
+					}
 				}
 			}
-			//else if segPrefix == nil || *segPrefix != 0 {
-			//	return &inconsistentPrefixError{
-			//		addressValueError{
-			//			addressError: addressError{
-			//				key: "ipaddress.error.inconsistent.prefixes",
-			//			},
-			//		},
-			//	}
-			//}
 			previousSegmentPrefix = segPrefix
 		}
 	}
 	return
 }
+
+//func (section *addressSectionInternal) initMultAndPrefLen() {
+//	segCount := section.GetSegmentCount()
+//	if segCount != 0 {
+//		var previousSegmentPrefix PrefixLen
+//		isMultiple := false
+//		bitsPerSegment := section.GetBitsPerSegment()
+//		for i := 0; i < segCount; i++ {
+//			segment := section.GetSegment(i)
+//			//if segment == nil {
+//			//	//xxx yeah, do that, let us continue the work removing errors in constructors xxx
+//			//	//] maybe nil segments become the zero segment?  Could allow us to eliminate errors on some constructors
+//			//	// For prefixes that do not align, just use the shorter one.  NO: use the one supplied.
+//			//	// But this contradicts Java?  Check that.
+//			//	// Yeah, if you supply nil prefix but the segments had a prefix, probably defers to the segments.  Check that.
+//			//	// CHecked it, code is below, it does choose the shorter prefix length.  And it also changes the segments if necessary.
+//			//	// For segments that are missing 0 prefix, just use setPrefixLen
+//			//
+//			//	/*
+//			//		if(networkPrefixLength != null) {
+//			//				if(networkPrefixLength < 0) {
+//			//					throw new PrefixLenException(networkPrefixLength);
+//			//				}
+//			//				int max = segments.length << 4;
+//			//				if(networkPrefixLength > max) {
+//			//					if(networkPrefixLength > IPv6Address.BIT_COUNT) {
+//			//						throw new PrefixLenException(networkPrefixLength);
+//			//					}
+//			//					networkPrefixLength = max;
+//			//				}
+//			//				if(segments.length > 0) {
+//			//					if(cachedPrefixLength != NO_PREFIX_LENGTH && cachedPrefixLength < networkPrefixLength) {//if the segments have a shorter prefix length, then use that
+//			//						networkPrefixLength = cachedPrefixLength;
+//			//					}
+//			//					IPv6AddressNetwork network = getNetwork();
+//			//					setPrefixedSegments(
+//			//							network,
+//			//							networkPrefixLength,
+//			//							getSegmentsInternal(),
+//			//							getBitsPerSegment(),
+//			//							getBytesPerSegment(),
+//			//							network.getAddressCreator(),
+//			//							!singleOnly && isPrefixSubnetSegs(segments, networkPrefixLength, network, false) ? IPv6AddressSegment::toNetworkSegment : IPv6AddressSegment::toPrefixedSegment);
+//			//				}
+//			//				cachedPrefixLength = networkPrefixLength;
+//			//			} //else the cached prefix has already been set to the proper value
+//			//	*/
+//			//	return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
+//			//}
+//
+//			if !isMultiple && segment.isMultiple() {
+//				isMultiple = true
+//				section.isMult = true
+//			}
+//
+//			//Calculate the segment-level prefix
+//			//
+//			//Across an address prefixes are:
+//			//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
+//			//or IPv4: ...(null).(1 to 8).(0)...
+//			//For MACSize, all segs have nil prefix since prefix is not segment-level
+//			//For MACSize, prefixes must be derived in other ways, not from individual segment prefix values,
+//			// either using
+//			segPrefix := segment.getDivisionPrefixLength()
+//			if previousSegmentPrefix == nil {
+//				if segPrefix != nil {
+//					pref := *segPrefix
+//					newPref := getNetworkPrefixLen(bitsPerSegment, pref, i)
+//					//if section.prefixLength != nil {
+//					//
+//					//	if *section.prefixLength != *newPref {
+//					//		return &inconsistentPrefixError{
+//					//			addressValueError{
+//					//				addressError: addressError{
+//					//					key: "ipaddress.error.inconsistent.prefixes",
+//					//				},
+//					//			},
+//					//		}
+//					//	}
+//					//} else {
+//					section.prefixLength = newPref
+//					//}
+//				}
+//			}
+//			//else if segPrefix == nil || *segPrefix != 0 {
+//			//	return &inconsistentPrefixError{
+//			//		addressValueError{
+//			//			addressError: addressError{
+//			//				key: "ipaddress.error.inconsistent.prefixes",
+//			//			},
+//			//		},
+//			//	}
+//			//}
+//			previousSegmentPrefix = segPrefix
+//		}
+//	}
+//	return
+//}
 
 //Calculate the segment-level prefix
 //
@@ -524,91 +562,6 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //	return
 //}
 
-//xxxx these babies are ready to go!!!!!! xxxxx
-
-//TODO move these babies elsewhere
-
-func createIPv6SectionFromSegs(orig []*IPv6AddressSegment, prefLen PrefixLen) (result *IPv6AddressSection) {
-	divs, newPref, isMultiple := createDivisionsFromSegs(
-		func(index int) *IPAddressSegment {
-			return orig[index].ToIPAddressSegment()
-		},
-		len(orig),
-		ipv6BitsToSegmentBitshift,
-		IPv6BitsPerSegment,
-		IPv6BytesPerSegment,
-		IPv6MaxValuePerSegment,
-		zeroIPv6Seg.ToIPAddressSegment(),
-		zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
-		zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
-		prefLen)
-	result = createIPv6Section(divs)
-	result.prefixLength = newPref
-	result.isMult = isMultiple
-	return result
-}
-
-func createIPv4SectionFromSegs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
-	divs, newPref, isMultiple := createDivisionsFromSegs(
-		func(index int) *IPAddressSegment {
-			return orig[index].ToIPAddressSegment()
-		},
-		len(orig),
-		ipv4BitsToSegmentBitshift,
-		IPv4BitsPerSegment,
-		IPv4BytesPerSegment,
-		IPv4MaxValuePerSegment,
-		zeroIPv4Seg.ToIPAddressSegment(),
-		zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
-		zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
-		prefLen)
-	result = createIPv4Section(divs)
-	result.prefixLength = newPref
-	result.isMult = isMultiple
-	return result
-}
-
-func createIPSectionFromSegs(isIPv4 bool, orig []*IPAddressSegment, prefLen PrefixLen) (result *IPAddressSection) {
-	segProvider := func(index int) *IPAddressSegment {
-		return orig[index]
-	}
-	var divs []*AddressDivision
-	var newPref PrefixLen
-	var isMultiple bool
-	if isIPv4 {
-		divs, newPref, isMultiple = createDivisionsFromSegs(
-			segProvider,
-			len(orig),
-			ipv4BitsToSegmentBitshift,
-			IPv4BitsPerSegment,
-			IPv4BytesPerSegment,
-			IPv4MaxValuePerSegment,
-			zeroIPv4Seg.ToIPAddressSegment(),
-			zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
-			zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
-			prefLen)
-		result = createIPv4Section(divs).ToIPAddressSection()
-	} else {
-		divs, newPref, isMultiple = createDivisionsFromSegs(
-			func(index int) *IPAddressSegment {
-				return orig[index]
-			},
-			len(orig),
-			ipv6BitsToSegmentBitshift,
-			IPv6BitsPerSegment,
-			IPv6BytesPerSegment,
-			IPv6MaxValuePerSegment,
-			zeroIPv6Seg.ToIPAddressSegment(),
-			zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
-			zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
-			prefLen)
-		result = createIPv6Section(divs).ToIPAddressSection()
-	}
-	result.prefixLength = newPref
-	result.isMult = isMultiple
-	return result
-}
-
 func createDivisionsFromSegs(
 	segProvider func(index int) *IPAddressSegment,
 	segCount int,
@@ -784,49 +737,6 @@ func createDivisionsFromSegs(
 //		networkPrefixLength,
 //		zerosOnly)
 //}
-
-func createMACSectionFromSegs(orig []*MACAddressSegment) *MACAddressSection {
-	segCount := len(orig)
-	newSegs := make([]*AddressDivision, segCount)
-	//	var isMultiple, isPrefixed bool
-	var newPref PrefixLen
-	//segCount := section.GetSegmentCount()
-	isMultiple := false
-	if segCount != 0 {
-		isBlock := true
-		for i := segCount - 1; i >= 0; i-- {
-			segment := orig[i]
-			//segment := section.GetSegment(i)
-			if segment == nil {
-				segment = zeroMACSeg
-				//return &addressValueError{addressError: addressError{key: "ipaddress.error.null.segment"}}
-				if isBlock && i != segCount-1 {
-					newPref = getNetworkPrefixLen(MACBitsPerSegment, MACBitsPerSegment, i)
-					isBlock = false
-				}
-			} else {
-				if isBlock {
-					minPref := segment.GetMinPrefixLenForBlock()
-					if minPref > 0 {
-						if minPref != MACBitsPerSegment || i != segCount-1 {
-							newPref = getNetworkPrefixLen(MACBitsPerSegment, minPref, i)
-						}
-						isBlock = false
-					}
-				}
-				isMultiple = isMultiple || segment.isMultiple()
-			}
-			newSegs[i] = segment.ToAddressDivision()
-		}
-		if isBlock {
-			newPref = cacheBitCount(0)
-		}
-	}
-	res := createMACSection(newSegs)
-	res.isMult = isMultiple
-	res.prefixLength = newPref
-	return res
-}
 
 //func createSectionFromIPv4Segs(orig []*IPv4AddressSegment) (result *IPv4AddressSection) {
 //	segCount := len(orig)
