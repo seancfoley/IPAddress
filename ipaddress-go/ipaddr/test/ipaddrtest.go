@@ -1618,7 +1618,7 @@ func (t ipAddressTester) run() {
 	t.testURL("http://[a:a:a:a:b:b:b:b]")
 	t.testURL("http://a:a:a:a:b:b:b:b")
 
-	//TODO LATER maybe - test sections works with getStartsWithSQLClause
+	//TODO LATER maybe - testSections works with getStartsWithSQLClause
 	//testSections("9.129.237.26", 0, 1)
 	//testSections("9.129.237.26", 8, 1 /* 2 */)
 	//testSections("9.129.237.26", 16, 1 /* 2 */)

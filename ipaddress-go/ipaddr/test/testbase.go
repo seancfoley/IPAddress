@@ -1242,7 +1242,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	cw := ipAddr.ToCompressedWildcardString()
 	sql := ipAddr.ToSQLWildcardString()
 	full := ipAddr.ToFullString()
-	//rDNS := ipAddr.ToReverseDNSLookupString(); //TODO we can test these strings, we just cannot parse them, so put the test back in
+	rDNS, _ := ipAddr.ToReverseDNSString()
 	//unc := ipAddr.ToUNCHostName(); //TODO LATER reinstate
 
 	var hex, hexNoPrefix, octal string
@@ -1413,15 +1413,15 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 										if !fullMatch {
 											t.addFailure(newFailure("failed expected: "+fullString+" actual: "+full, w))
 										} else {
-											// rdnsMatch := reverseDNSString==rDNS // TODO LATER reinstate
-											//if(!rdnsMatch) {
-											//	t.addFailure(newFailure("failed expected: " + reverseDNSString + " actual: " + rDNS, w));
-											//} else {
-											//	 uncMatch := uncHostString==unc
-											//	if(!uncMatch) {
-											//		t.addFailure(newFailure("failed expected: " + uncHostString + " actual: " + unc, w));
-											//	}
-											//}
+											rdnsMatch := reverseDNSString == rDNS
+											if !rdnsMatch {
+												t.addFailure(newFailure("failed expected: "+reverseDNSString+" actual: "+rDNS, w))
+											} else {
+												//	 uncMatch := uncHostString==unc // TODO LATER reinstate
+												//	if(!uncMatch) {
+												//		t.addFailure(newFailure("failed expected: " + uncHostString + " actual: " + unc, w));
+												//	}
+											}
 										}
 									}
 								}

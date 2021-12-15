@@ -869,7 +869,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //		}
 //	}
 
-// TODO NEXT progress - WE ARE CLOSE NOW, SO CLOSE TO READY
+// TODO NEXT progress
 // lsit of larger-size todos:
 // - prefixLen change
 // - portnum change which is similar

@@ -439,16 +439,6 @@ func (addr *ipAddressInternal) toFullString() string {
 }
 
 func (addr *ipAddressInternal) toReverseDNSString() (string, IncompatibleAddressError) {
-	if addr.hasZone() {
-		cache := addr.getStringCache()
-		if cache == nil {
-			return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
-		}
-		return cacheStrErr(&cache.reverseDNSString,
-			func() (string, IncompatibleAddressError) {
-				return addr.section.ToIPv6AddressSection().toReverseDNSStringZoned(addr.zone)
-			})
-	}
 	return addr.getSection().ToReverseDNSString()
 }
 

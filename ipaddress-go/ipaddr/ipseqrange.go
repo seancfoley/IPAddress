@@ -28,10 +28,10 @@ func (rng *ipAddressSeqRangeInternal) isMultiple() bool {
 }
 
 func (rng *ipAddressSeqRangeInternal) getCount() *big.Int {
-	return rng.GetCachedCount(true)
+	return rng.getCachedCount(true)
 }
 
-func (rng *ipAddressSeqRangeInternal) GetCachedCount(copy bool) (res *big.Int) { //TODO xxx why public? xxx
+func (rng *ipAddressSeqRangeInternal) getCachedCount(copy bool) (res *big.Int) {
 	cache := rng.cache
 	count := cache.cachedCount
 	if count == nil {
@@ -104,7 +104,7 @@ func (rng *ipAddressSeqRangeInternal) compareSize(other IPAddressSeqRangeType) i
 	} else if !other.IsMultiple() {
 		return 1
 	}
-	return rng.GetCachedCount(false).CmpAbs(other.ToIPAddressSeqRange().GetCachedCount(false))
+	return rng.getCachedCount(false).CmpAbs(other.ToIPAddressSeqRange().getCachedCount(false))
 }
 
 func (rng *ipAddressSeqRangeInternal) contains(other IPAddressType) bool {
