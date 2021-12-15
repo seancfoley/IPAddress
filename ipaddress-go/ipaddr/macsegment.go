@@ -191,7 +191,6 @@ func (seg *MACAddressSegment) setString(
 		if cache.cachedString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cacheStrPtr(&cache.cachedString, &str)
-			//cache.cachedString = &str
 		}
 	}
 }
@@ -207,11 +206,9 @@ func (seg *MACAddressSegment) setRangeString(
 		if cache.cachedString == nil {
 			if seg.IsFullRange() {
 				cacheStrPtr(&cache.cachedString, &segmentWildcardStr)
-				//cache.cachedString = &segmentWildcardStr
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {
 				str := addressStr[lowerStringStartIndex:upperStringEndIndex]
 				cacheStrPtr(&cache.cachedString, &str)
-				//cache.cachedString = &str
 			}
 		}
 	}
@@ -259,15 +256,13 @@ func (seg *MACAddressSegment) ReverseBytes() (*MACAddressSegment, IncompatibleAd
 	return seg, nil
 }
 
-// Join joins with another MACSize segment to produce a IPv6 segment.
-func (seg *MACAddressSegment) Join(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+// join joins with another MACSize segment to produce a IPv6 segment.
+func (seg *MACAddressSegment) join(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
 	return seg.joinSegs(macSegment1, false, prefixLength)
 }
 
-//TODO think a bit more about making these two above and below public
-
-// Join joins with another MACSize segment to produce a IPv6 segment with the second bit flipped from 1 to 0.
-func (seg *MACAddressSegment) JoinAndFlip2ndBit(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+// join joins with another MACSize segment to produce a IPv6 segment with the second bit flipped from 1 to 0.
+func (seg *MACAddressSegment) joinAndFlip2ndBit(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
 	return seg.joinSegs(macSegment1, true, prefixLength)
 }
 
