@@ -88,8 +88,8 @@ func createMACSectionFromSegs(orig []*MACAddressSegment) *MACAddressSection {
 
 func newMACSectionParsed(segments []*AddressDivision, isMultiple bool) (res *MACAddressSection) {
 	res = createMACSection(segments)
-	//TODO use isMultiple, and in fact, not so sure I need to calculate isMult anymore
-	res.initMultAndImplicitPrefLen(MACBitsPerSegment)
+	res.initImplicitPrefLen(MACBitsPerSegment)
+	res.isMult = isMultiple
 	return
 }
 

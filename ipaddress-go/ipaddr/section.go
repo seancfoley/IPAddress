@@ -87,27 +87,43 @@ type addressSectionInternal struct {
 //	return nil
 //}
 
+//func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCount) {
+//	segCount := section.GetSegmentCount()
+//	if segCount != 0 {
+//		isBlock := true
+//		for i := segCount - 1; i >= 0; i-- {
+//			segment := section.GetSegment(i)
+//			if isBlock {
+//				minPref := segment.GetMinPrefixLenForBlock()
+//				if minPref > 0 {
+//					if minPref != bitsPerSegment || i != segCount-1 {
+//						section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
+//					}
+//					isBlock = false
+//					break
+//				}
+//			}
+//		}
+//	}
+//}
+
 func (section *addressSectionInternal) initImplicitPrefLen(bitsPerSegment BitCount) {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {
-		isBlock := true
 		for i := segCount - 1; i >= 0; i-- {
 			segment := section.GetSegment(i)
-			if isBlock {
-				minPref := segment.GetMinPrefixLenForBlock()
-				if minPref > 0 {
-					if minPref != bitsPerSegment || i != segCount-1 {
-						section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
-					}
-					isBlock = false
-					break
+			minPref := segment.GetMinPrefixLenForBlock()
+			if minPref > 0 {
+				if minPref != bitsPerSegment || i != segCount-1 {
+					section.prefixLength = getNetworkPrefixLen(bitsPerSegment, minPref, i)
 				}
+				return
 			}
 		}
+		section.prefixLength = cacheBitCount(0)
 	}
 }
 
-// error returned for nil sements
 func (section *addressSectionInternal) initMultAndImplicitPrefLen(bitsPerSegment BitCount) {
 	segCount := section.GetSegmentCount()
 	if segCount != 0 {

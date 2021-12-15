@@ -871,12 +871,10 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 
 // TODO NEXT progress - WE ARE CLOSE NOW, SO CLOSE TO READY
 // lsit of larger-size todos:
-// - nil tests in specialtypestest - still not finished
 // - prefixLen change
 // - portnum change which is similar
-// - format tests and nil string tests (see main.go, "All the formats") notes.go - just missing tests at this point
+// - format tests and nil string tests (see main.go, "All the formats") notes.go - just missing tests at this point, grab stuff from main.go
 // - we ask whether args of type BitCount should be int.  ipv6section.go
-// - GetString and GetWildcardString behaviour on nil ipsegment.go
 // - rename ToIPV6Address, ToMACAddressSection, etc use just ToIPV6, ToIP, ToIPv4, ToMAC.  Also the same for IsIPAddress, etc, I think I did the "is" changes in addresses already
 //
 //

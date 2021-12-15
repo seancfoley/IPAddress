@@ -32,7 +32,7 @@ func (rng *IPv6AddressSeqRange) GetCount() *big.Int {
 	if rng == nil {
 		return bigZero()
 	}
-	return rng.ipAddressSeqRangeInternal.getCount()
+	return rng.init().getCount()
 }
 
 func (rng *IPv6AddressSeqRange) IsMultiple() bool {
