@@ -703,7 +703,7 @@ func (rng *IPAddressSeqRange) GetCount() *big.Int {
 	if rng == nil {
 		return bigZero()
 	}
-	return rng.ipAddressSeqRangeInternal.getCount()
+	return rng.init().getCount()
 }
 
 func (rng *IPAddressSeqRange) IsMultiple() bool {

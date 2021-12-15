@@ -79,8 +79,8 @@ func mapGrouping(grouping StandardDivGroupingType) int {
 	group := grouping.ToAddressDivisionGrouping()
 	if group.IsZeroGrouping() {
 		// The zero grouping can represent a zero-length section of any address type.
-		// This is necessary besause sections and groupings have no init() method to ensure zero-sections are always assigned an address type.
-		// We need the zero grouping to be less than everything else or more than everything else for compares consistency.
+		// This is necessary because sections and groupings have no init() method to ensure zero-sections are always assigned an address type.
+		// We need the zero grouping to be less than everything else or more than everything else for comparison consistency.
 		// Empty sections org groupings that have an address type are not considered equal.  They can represent only one address type.
 		// This is similar to the fact that a MAC section and an IPv4 section can be structurally identical but not equal due to the type.
 		return zerogroupingtype
@@ -358,6 +358,17 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 	// AddressSegmentType to convert to AddressSegment
 	// StandardDivisionType so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
 	// IPAddressSeqRangeType (split off all ranges)
+	// At this point the only possibility is that they are both nil.  If one was non-nil it would have satisifed one of the above if blocks.
+	// In any case, we'll still do the same checks as before, not assuming both are nil, in the event we change the blocks above to cover less cases, or we add more types.
+	if one == nil {
+		if two == nil {
+			return 0
+		}
+		return -1
+	} else if two == nil {
+		return 1
+	}
+
 	if divSeries1, ok := one.(AddressDivisionSeries); ok {
 		if divSeries2, ok := two.(AddressDivisionSeries); ok {
 			return comp.CompareSeries(divSeries1, divSeries2)
@@ -385,16 +396,6 @@ func (comp AddressComparator) Compare(one, two AddressItem) int {
 		return 1
 	} else if _, ok := two.(IPAddressSeqRangeType); ok {
 		return -1
-	}
-	// At this point the only possibility is that they are both nil.  If one was non-nil it would have satisifed one of the above if blocks.
-	// In any case, we'll still do the same checks as before, not assuming both are nil, in the event we change the blocks above to cover less cases, or we add more types.
-	if one == nil {
-		if two == nil {
-			return 0
-		}
-		return -1
-	} else if two == nil {
-		return 1
 	}
 	// neither are a known AddressItem type
 	return int(one.GetBitCount() - two.GetBitCount())

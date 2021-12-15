@@ -879,11 +879,11 @@ func (addr *IPAddress) MatchesWithMask(other *IPAddress, mask *IPAddress) bool {
 }
 
 func (addr *IPAddress) IsIPv4() bool {
-	return addr.isIPv4()
+	return addr != nil && addr.isIPv4()
 }
 
 func (addr *IPAddress) IsIPv6() bool {
-	return addr.isIPv6()
+	return addr != nil && addr.isIPv6()
 }
 
 func (addr *IPAddress) GetIPVersion() IPVersion {

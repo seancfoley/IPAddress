@@ -1257,19 +1257,19 @@ func (addr *Address) ToAddressString() HostIdentifierString {
 }
 
 func (addr *Address) IsIPv4() bool {
-	return addr.isIPv4()
+	return addr != nil && addr.isIPv4()
 }
 
 func (addr *Address) IsIPv6() bool {
-	return addr.isIPv6()
+	return addr != nil && addr.isIPv6()
 }
 
 func (addr *Address) IsIP() bool {
-	return addr.isIP()
+	return addr != nil && addr.isIP()
 }
 
 func (addr *Address) IsMAC() bool {
-	return addr.isMAC()
+	return addr != nil && addr.isMAC()
 }
 
 func (addr *Address) ToAddress() *Address {

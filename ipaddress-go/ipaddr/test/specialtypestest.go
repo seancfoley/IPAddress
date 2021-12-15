@@ -828,93 +828,269 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	// TODO sections and segments ?
+	var ipSectionsIPv6 []*ipaddr.IPAddressSection
 
-	/*
+	ipSectionsIPv6 = append(ipSectionsIPv6, nil)
+	ipSectionsIPv6 = append(ipSectionsIPv6, &ipaddr.IPAddressSection{})
+	ipSectionsIPv6 = append(ipSectionsIPv6, (&ipaddr.IPv6AddressSection{}).ToIPAddressSection()) // note that this IP section can be any section type
+	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Section1.ToIPAddressSection())
+	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Addr2.GetSection().ToIPAddressSection())
 
-		Copied this code over to know how the cmoparisons should shake out in here:
+	for i := range ipSectionsIPv6 {
+		range1 := ipSectionsIPv6[i]
+		for j := i; j < len(ipSectionsIPv6); j++ {
+			range2 := ipSectionsIPv6[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
 
-				      if divSeries1, ok := one.(AddressDivisionSeries); ok {
-				      		if divSeries2, ok := two.(AddressDivisionSeries); ok {
-				      			return comp.CompareSeries(divSeries1, divSeries2)
-				      		} else {
-				      			return 1
-				      		}
-				      	} else if div1, ok := one.(DivisionType); ok {
-				      		if div2, ok := two.(DivisionType); ok {
-				      			return comp.CompareDivisions(div1, div2)
-				      		} else {
-				      			return -1
-				      		}
-				      	} else if rng1, ok := one.(IPAddressSeqRangeType); ok {
-				      		if rng2, ok := two.(IPAddressSeqRangeType); ok {
-				      			return comp.CompareRanges(rng1, rng2)
-				      		} else if _, ok := two.(AddressDivisionSeries); ok {
-				      			return -1
-				      		}
-				      		return 1
-				      	}
-				      	// we've covered all known address items for one, so check two
-				      	if _, ok := two.(AddressDivisionSeries); ok {
-				      		return -1
-				      	} else if _, ok := two.(DivisionType); ok {
-				      		return 1
-				      	} else if _, ok := two.(IPAddressSeqRangeType); ok {
-				      		return -1
-				      	}
+	//noIPV4Error := func(sect *ipaddr.IPv4AddressSection) *ipaddr.IPAddress {
+	//	ipv4addrx, _ := ipaddr.NewIPv4Address(sect)
+	//	return ipv4addrx.ToIPAddress()
+	//}
 
-				so ranges are bigger than the others
+	var ipSectionsIPv4 []*ipaddr.IPAddressSection
 
-				   then
+	ipSectionsIPv4 = append(ipSectionsIPv4, nil)
+	ipSectionsIPv4 = append(ipSectionsIPv4, &ipaddr.IPAddressSection{})
+	ipSectionsIPv4 = append(ipSectionsIPv4, (&ipaddr.IPv4AddressSection{}).ToIPAddressSection())
+	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Section1.ToIPAddressSection())
+	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Addr2.GetSection().ToIPAddressSection())
 
-				     if addrSeries1, ok := one.(AddressType); ok {
-						if addrSeries2, ok := two.(AddressType); ok {
-							return comp.CompareAddresses(addrSeries1, addrSeries2)
-						}
-						return 1
-					} else if _, ok := two.(AddressType); ok {
-						return -1
+	for i := range ipSectionsIPv4 {
+		range1 := ipSectionsIPv4[i]
+		for j := i; j < len(ipSectionsIPv4); j++ {
+			range2 := ipSectionsIPv4[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newSegmentSeriesFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newSegmentSeriesFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newSegmentSeriesFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	var ipSegmentsIPv6 []*ipaddr.AddressSegment
+
+	ipv6SegMult := ipv6Addr2.GetSegment(3)
+
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, nil)
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, &ipaddr.AddressSegment{})
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPAddressSegment{}).ToAddressSegment())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPv6AddressSegment{}).ToAddressSegment())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6Segment1.ToAddressSegment())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6SegMult.ToAddressSegment())
+
+	for i := range ipSegmentsIPv6 {
+		range1 := ipSegmentsIPv6[i]
+		for j := i; j < len(ipSegmentsIPv6); j++ {
+			range2 := ipSegmentsIPv6[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newDivisionFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newDivisionFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newDivisionFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newDivisionFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	var ipSegmentsIPv4 []*ipaddr.AddressSegment
+
+	ipv4SegMult := ipv4Addr2.GetSegment(3)
+
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, nil)
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, &ipaddr.AddressSegment{})
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPAddressSegment{}).ToAddressSegment())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPv4AddressSegment{}).ToAddressSegment())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4Segment1.ToAddressSegment())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4SegMult.ToAddressSegment())
+
+	for i := range ipSegmentsIPv4 {
+		range1 := ipSegmentsIPv4[i]
+		for j := i; j < len(ipSegmentsIPv4); j++ {
+			range2 := ipSegmentsIPv4[j]
+			if i == j {
+				if range1.Compare(range2) != 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if range2.Compare(range1) != 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if !range1.Equal(range2) {
+					t.addFailure(newDivisionFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if !range2.Equal(range1) {
+					t.addFailure(newDivisionFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			} else {
+				if c := range1.Compare(range2); c > 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+				} else if c == 0 && !range1.Equal(range2) {
+					t.addFailure(newDivisionFailure(range1.String()+" and "+range2.String()+" not equal", range1))
+				} else if c2 := range2.Compare(range1); c2 < 0 {
+					t.addFailure(newDivisionFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if c2 == 0 && (!range2.Equal(range1) || c != 0) {
+					t.addFailure(newDivisionFailure(range2.String()+" and "+range1.String()+" not equal", range1))
+				}
+			}
+		}
+	}
+
+	var ipv4AddressItems, ipv6AddressItems, ipv4RangeItems, ipv6RangeItems, ipv4SectionItems, ipv6SectionItems,
+		ipv4SegmentItems, ipv6SegmentItems []ipaddr.AddressItem
+
+	for _, item := range ipAddressesIPv4 {
+		ipv4AddressItems = append(ipv4AddressItems, item)
+	}
+	for _, item := range ipAddressesIPv6 {
+		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
+		if item.IsIPv6() {
+			ipv6AddressItems = append(ipv6AddressItems, item)
+		}
+	}
+	for _, item := range ipRangesIPv4 {
+		ipv4RangeItems = append(ipv4RangeItems, item)
+	}
+	for _, item := range ipRangesIPv6 {
+		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
+		if item.IsIPv6SequentialRange() {
+			ipv6RangeItems = append(ipv6RangeItems, item)
+		}
+	}
+	for _, item := range ipSectionsIPv4 {
+		ipv4SectionItems = append(ipv4SectionItems, item)
+	}
+	for _, item := range ipSectionsIPv6 {
+		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
+
+		if item.IsIPv6AddressSection() && !item.IsZeroGrouping() {
+			ipv6SectionItems = append(ipv6SectionItems, item)
+		}
+	}
+	for _, item := range ipSegmentsIPv4 {
+		ipv4SegmentItems = append(ipv4SegmentItems, item)
+	}
+	for _, item := range ipSegmentsIPv6 {
+		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
+		if item.IsIPv6AddressSegment() {
+			ipv6SegmentItems = append(ipv6SegmentItems, item)
+		}
+	}
+
+	// addresses > sections/groupings > seq ranges > divisions
+	// ipv6 > ipv4s
+
+	var allLists [][]ipaddr.AddressItem
+
+	allLists = append(allLists, []ipaddr.AddressItem{nil})
+
+	allLists = append(allLists, ipv4SegmentItems)
+	allLists = append(allLists, ipv6SegmentItems)
+
+	allLists = append(allLists, ipv4RangeItems)
+	allLists = append(allLists, ipv6RangeItems)
+
+	allLists = append(allLists, ipv4SectionItems)
+	allLists = append(allLists, ipv6SectionItems)
+
+	allLists = append(allLists, ipv4AddressItems)
+	allLists = append(allLists, ipv6AddressItems)
+
+	for i, list1 := range allLists {
+		for j := i + 1; j < len(allLists); j++ {
+			t.compareLists(list1, allLists[j])
+		}
+	}
+}
+
+func (t specialTypesTester) compareLists(items1, items2 []ipaddr.AddressItem) {
+	for _, range1 := range items1 {
+		for _, range2 := range items2 {
+			// the nils and the blank ranges
+			var c1, c2 int
+			if range1 == nil || range2 == nil {
+				c1 = ipaddr.CountComparator.Compare(range1, range2)
+				c2 = ipaddr.CountComparator.Compare(range2, range1)
+			} else {
+				c1 = range1.Compare(range2)
+				c2 = range2.Compare(range1)
+			}
+			if range1 == nil {
+				if range2 == nil {
+					if c1 != 0 || c2 != 0 {
+						t.addFailure(newAddressItemFailure("comparison of nil with nil", range1))
 					}
-					if addrSection1, ok := one.(AddressSectionType); ok {
-						if addrSection2, ok := two.(AddressSectionType); ok {
-							return comp.CompareAddressSections(addrSection1, addrSection2)
-						}
-					}
-
-				addresses are bigger than sections
-
-				   then
-
-				      const (
-				ipv6sectype          = 7
-				ipv6v4groupingtype   = 6
-				ipv4sectype          = 5
-				ipsectype            = 4
-				macsectype           = 3
-				sectype              = 1
-				largegroupingtype    = -2
-				standardgroupingtype = -3
-			)
-
-			const (
-				ipv6segtype     = 6
-				ipv4segtype     = 5
-				ipsegtype       = 4
-				macsegtype      = 3
-				segtype         = 1
-				largedivtype    = -2
-				standarddivtype = 0
-			)
-
-			const (
-				ipv6rangetype = 2
-				ipv4rangetype = 1
-				iprangetype   = 0
-			)
-
-			the above ordering orders the versions/types of each, so ipv6 > ipv4 > ip
-
-	*/
+				} else if c1 >= 0 {
+					ipaddr.CountComparator.Compare(range1, range2)
+					t.addFailure(newAddressItemFailure("comparison of nil with "+range2.String(), range1))
+				}
+			} else if range2 == nil {
+				if c1 <= 0 || c2 >= 0 {
+					t.addFailure(newAddressItemFailure("comparison of "+range1.String()+" with nil", range1))
+				}
+			} else if c1 > 0 {
+				range1.Compare(range2)
+				t.addFailure(newAddressItemFailure("comparison of "+range1.String()+" with "+range2.String()+" yields "+strconv.Itoa(range1.Compare(range2)), range1))
+			} else if c2 < 0 {
+				t.addFailure(newAddressItemFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+			} else if c1 == 0 {
+				if c2 != 0 {
+					t.addFailure(newAddressItemFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if range1.GetCount().BitLen() != 0 && !range1.IsZero() {
+					t.addFailure(newAddressItemFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				} else if range2.GetCount().BitLen() != 0 && !range2.IsZero() {
+					t.addFailure(newAddressItemFailure("comparison of "+range2.String()+" with "+range1.String()+" yields "+strconv.Itoa(range2.Compare(range1)), range1))
+				}
+			}
+		}
+	}
 }
 
 func getCount(segmentMax, segmentCount uint64) *big.Int {

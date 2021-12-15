@@ -1791,47 +1791,22 @@ type failure struct {
 	rng    *ipaddr.IPAddressSeqRange
 	idStr  ipaddr.HostIdentifierString
 	series ipaddr.AddressSegmentSeries
+	div    ipaddr.DivisionType
+	item   ipaddr.AddressItem
 }
 
 func (f failure) String() string {
 	return concat(
 		concat(
-			concat(f.str, f.series),
-			f.idStr),
-		f.rng)
-	//return f.str
-	//return concat(  fix this up could not get it to print the strings as I wanted due to interface arg, see below, easy to fix though.
-	//					Reinstate when we support printing nil
-	//	concat(
-	//		concat(
-	//			concat(
-	//				concat(
-	//					concat(f.str, f.addr),
-	//					f.addrStr),
-	//				f.macAddr),
-	//			f.macAddrStr),
-	//		f.ipseries),
-	//	f.series)
+			concat(
+				concat(
+					concat(f.str, f.series),
+					f.idStr),
+				f.rng),
+			f.div),
+		f.item)
 }
 
-/*
-https://groups.google.com/g/golang-nuts/c/wnH302gBa4I
-https://stackoverflow.com/questions/13476349/check-for-nil-and-nil-interface-in-go
-func isNil(a interface{}) bool {
-  defer func() { recover() }()
-  return a == nil || reflect.ValueOf(a).IsNil()
-}
-func isNilFixed(i interface{}) bool {
-   if i == nil {
-      return true
-   }
-   switch reflect.TypeOf(i).Kind() {
-   case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
-      return reflect.ValueOf(i).IsNil()
-   }
-   return false
-}
-*/
 func concat(str string, stringer fmt.Stringer) string {
 	//val := reflect.ValueOf(stringer)
 	//if !val.IsValid() {
@@ -1848,6 +1823,20 @@ func concat(str string, stringer fmt.Stringer) string {
 		return stringer.String()
 	}
 	return str
+}
+
+func newAddressItemFailure(str string, item ipaddr.AddressItem) failure {
+	return failure{
+		str:  str,
+		item: item,
+	}
+}
+
+func newDivisionFailure(str string, div ipaddr.DivisionType) failure {
+	return failure{
+		str: str,
+		div: div,
+	}
 }
 
 func newSegmentSeriesFailure(str string, series ipaddr.AddressSegmentSeries) failure {

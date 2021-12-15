@@ -206,7 +206,7 @@ func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.In
 }
 
 func (div *addressDivisionBase) IsZero() bool {
-	return !div.isMultiple() && div.includesZero()
+	return !div.isMultiple() && div.IncludesZero()
 }
 
 // Returns whether this item includes the value of zero within its range
