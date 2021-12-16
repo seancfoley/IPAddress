@@ -419,7 +419,6 @@ func lowByteIpv6(value SegInt) SegInt {
 // If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
 // then it is not copied.
 func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
-	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
 			segs[ind] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
@@ -434,7 +433,7 @@ func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, star
 //	}, len(segs), index)
 //}
 
-//TODO these should not be public,  The first duplicates the above.  Both use AddressDivision rather than the more specific type MACSegment or IPV4Segment.  So you might want to create a mac equivlaent to the above.
+//TODO these should not be public,  The first duplicates the above.  Both use AddressDivision rather than the more specific type MACSegment or IPV4Segment.  So you might want to create a mac equivlaent to the above method GetSplitSegments.  But even that one maybe should not be public.
 func (seg *IPv6AddressSegment) SplitIntoIPv4Segments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {

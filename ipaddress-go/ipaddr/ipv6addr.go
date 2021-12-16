@@ -312,7 +312,7 @@ func NewIPv6AddressFromPrefixedZonedRange(vals, upperVals IPv6SegmentValueProvid
 // Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
 // The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to Join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// or IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
 	zone := prefix.GetZone()
 	zoneStr := NoZone
@@ -354,7 +354,7 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 // Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
 // The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to Join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// or IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
 	return newIPv6AddressFromZonedMAC(prefix, suffix, NoZone)
 	//suffixSegCount := suffix.GetSegmentCount()

@@ -1277,28 +1277,28 @@ func (addr *Address) ToAddress() *Address {
 }
 
 func (addr *Address) ToIPAddress() *IPAddress {
-	if addr != nil && addr.isIP() {
+	if addr.IsIP() {
 		return (*IPAddress)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv6Address() *IPv6Address {
-	if addr != nil && addr.isIPv6() {
+	if addr.IsIPv6() {
 		return (*IPv6Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToIPv4Address() *IPv4Address {
-	if addr != nil && addr.isIPv4() {
+	if addr.IsIPv4() {
 		return (*IPv4Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
 func (addr *Address) ToMACAddress() *MACAddress {
-	if addr != nil && addr.isMAC() {
+	if addr.IsMAC() {
 		return (*MACAddress)(addr)
 	}
 	return nil

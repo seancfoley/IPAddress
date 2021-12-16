@@ -905,14 +905,14 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 
 //
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
-	if addr != nil && addr.IsIPv6() {
+	if addr.IsIPv6() {
 		return (*IPv6Address)(addr)
 	}
 	return nil
 }
 
 func (addr *IPAddress) ToIPv4Address() *IPv4Address {
-	if addr != nil && addr.IsIPv4() {
+	if addr.IsIPv4() {
 		return (*IPv4Address)(addr)
 	}
 	return nil

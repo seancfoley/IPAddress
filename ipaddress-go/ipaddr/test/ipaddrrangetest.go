@@ -4660,6 +4660,7 @@ func (t ipAddressRangeTester) testStrings() {
 		"008JQWOV7Skb)D3fCrWG",
 		"0x00010002000300040000000600000000",
 		"00000020000200001400010000000000300000000000")
+
 	t.testIPv6Strings("1:2:3:0:0:6::",
 		"1:2:3:0:0:6:0:0", //normalized
 		"1:2:3:0:0:6:0:0", //normalizedWildcards
@@ -4679,6 +4680,198 @@ func (t ipAddressRangeTester) testStrings() {
 		"008JQWOV7O(=61h*;$LC",
 		"0x00010002000300000000000600000000",
 		"00000020000200001400000000000000300000000000")
+
+	t.testFmtStrings("1.2.3.4",
+		"1.2.3.4",
+		"1.2.3.4",
+		"01020304",
+		"01020304",
+		"0x01020304",
+		"0x01020304",
+		"00100401404",
+		"0o00100401404",
+		"000100401404",
+		"00000001000000100000001100000100",
+		"0b00000001000000100000001100000100",
+		"0016909060")
+
+	t.testFmtStrings("255.2.0.0/16",
+		"255.2.0.0/16",
+		"255.2.0.0/16",
+		"ff020000-ff02ffff",
+		"FF020000-FF02FFFF",
+		"0xff020000-0xff02ffff",
+		"0xFF020000-0xFF02FFFF",
+		"37700400000-37700577777",
+		"0o37700400000-0o37700577777",
+		"037700400000-037700577777",
+		"11111111000000100000000000000000-11111111000000101111111111111111",
+		"0b11111111000000100000000000000000-0b11111111000000101111111111111111",
+		"4278321152-4278386687")
+
+	//fmt.Println("default addr is: " + ipaddr.NewIPAddressString("").GetAddress().String()) 0.0.0.0
+
+	t.testFmtStringsIP(&ipaddr.IPAddress{},
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"")
+
+	t.testFmtStrings("100:100:ff0a:b0c:100:100:ff0a:b0c",
+		"100:100:ff0a:b0c:100:100:ff0a:b0c",
+		"100:100:ff0a:b0c:100:100:ff0a:b0c",
+		"01000100ff0a0b0c01000100ff0a0b0c",
+		"01000100FF0A0B0C01000100FF0A0B0C",
+		"0x01000100ff0a0b0c01000100ff0a0b0c",
+		"0x01000100FF0A0B0C01000100FF0A0B0C",
+		"0010000040077605013030004000020037702405414",
+		"0o0010000040077605013030004000020037702405414",
+		"00010000040077605013030004000020037702405414",
+		"00000001000000000000000100000000111111110000101000001011000011000000000100000000000000010000000011111111000010100000101100001100",
+		"0b00000001000000000000000100000000111111110000101000001011000011000000000100000000000000010000000011111111000010100000101100001100",
+		"001329248357125338454677668972538235660")
+}
+
+func (t ipAddressRangeTester) testFmtStrings(
+	addr string,
+	//ipAddress *ipaddr.IPAddressString,
+	defaultStr,
+	strString,
+	//quotedStr,
+	//backtickStr,
+	lowerHex,
+	upperHex,
+	lowerHexPrefixed,
+	upperHexPrefixed,
+	octalNoPrefix,
+	octalPrefixed,
+	octalOPrefix,
+	binary,
+	binaryPrefixed,
+	decimal string) {
+
+	w := t.createAddress(addr)
+	ipAddress := w.GetAddress()
+	t.testFmtStringsIP(ipAddress,
+		defaultStr,
+		strString,
+		//quotedStr,
+		//backtickStr,
+		lowerHex,
+		upperHex,
+		lowerHexPrefixed,
+		upperHexPrefixed,
+		octalNoPrefix,
+		octalPrefixed,
+		octalOPrefix,
+		binary,
+		binaryPrefixed,
+		decimal)
+}
+
+func (t ipAddressRangeTester) testFmtStringsIP(
+	//addr string,
+	ipAddress *ipaddr.IPAddress,
+	defaultStr,
+	strString,
+	//quotedStr,
+	//backtickStr,
+	lowerHex,
+	upperHex,
+	lowerHexPrefixed,
+	upperHexPrefixed,
+	octalNoPrefix,
+	octalPrefixed,
+	octalOPrefix,
+	binary,
+	binaryPrefixed,
+	decimal string) {
+
+	quotedStr := "\"" + defaultStr + "\""
+	backtickStr := "`" + defaultStr + "`"
+	expectedString := defaultStr + " " +
+		strString + " " +
+		quotedStr + " " +
+		backtickStr + " " +
+		lowerHex + " " +
+		upperHex + " " +
+		lowerHexPrefixed + " " +
+		upperHexPrefixed + " " +
+		octalNoPrefix + " " +
+		octalPrefixed + " " +
+		octalOPrefix + " " +
+		binary + " " +
+		binaryPrefixed + " " +
+		decimal
+	formatString := "%v %s %q %#q %x %X %#x %#X %o %O %#o %b %#b %d"
+	var ipaddrs1, ipaddrs2, ipaddrs3, ipaddrs4 []interface{}
+	var slice1 []ipaddr.IPAddress
+	var slice2 []*ipaddr.IPAddress
+	var slice3 []ipaddr.Address
+	var slice4 []*ipaddr.Address
+	var slice5 []interface{}
+
+	var expectedDefaults string = "["
+	for i := 0; i < 14; i++ {
+		ipaddrs1 = append(ipaddrs1, ipAddress)
+		ipaddrs2 = append(ipaddrs2, *ipAddress)
+		ipaddrs3 = append(ipaddrs3, ipAddress.ToAddress())
+		ipaddrs4 = append(ipaddrs4, *ipAddress.ToAddress())
+		slice1 = append(slice1, *ipAddress)
+		slice2 = append(slice2, ipAddress)
+		slice3 = append(slice3, *ipAddress.ToAddress())
+		slice4 = append(slice4, ipAddress.ToAddress())
+		if i%4 == 0 {
+			slice5 = append(slice5, *ipAddress)
+		} else if i%4 == 1 {
+			slice5 = append(slice5, ipAddress)
+		} else if i%4 == 2 {
+			slice5 = append(slice5, *ipAddress.ToAddress())
+		} else if i%4 == 3 {
+			slice5 = append(slice5, ipAddress.ToAddress())
+		}
+		expectedDefaults += ipAddress.String()
+		if i < 13 {
+			expectedDefaults += " "
+		}
+	}
+	expectedDefaults += "]"
+	result1 := fmt.Sprintf(formatString, ipaddrs1...)
+	result2 := fmt.Sprintf(formatString, ipaddrs2...)
+	result3 := fmt.Sprintf(formatString, ipaddrs3...)
+	result4 := fmt.Sprintf(formatString, ipaddrs4...)
+	result5 := fmt.Sprintf("%v", slice1)
+	result6 := fmt.Sprintf("%v", slice2)
+	result7 := fmt.Sprintf("%v", slice3)
+	result8 := fmt.Sprintf("%v", slice4)
+	result9 := fmt.Sprintf("%v", slice5)
+	if result1 != expectedString {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result1, ipAddress))
+	} else if result2 != expectedString {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result2, ipAddress))
+	} else if result3 != expectedString {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result3, ipAddress))
+	} else if result4 != expectedString {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result4, ipAddress))
+	} else if result5 != expectedDefaults {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result5, ipAddress))
+	} else if result6 != expectedDefaults {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result6, ipAddress))
+	} else if result7 != expectedDefaults {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result7, ipAddress))
+	} else if result8 != expectedDefaults {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result8, ipAddress))
+	} else if result9 != expectedDefaults {
+		t.addFailure(newIPAddrFailure("failed expected: "+expectedString+" actual: "+result9, ipAddress))
+	}
 }
 
 /*

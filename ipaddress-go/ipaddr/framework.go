@@ -12,7 +12,7 @@ type AddressItem interface {
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
-	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP, GetValue() and GetUpperValue()
+	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP (actually, this one not so sure, clashes with ToIP), GetValue() and GetUpperValue()
 	GetUpperBytes() []byte
 
 	// GetCount provides the number of address items represented by this AddressItem, for example the subnet size for IP addresses

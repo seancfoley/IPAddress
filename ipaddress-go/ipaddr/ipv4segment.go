@@ -168,7 +168,9 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
 
-//TODO these two and the ones below do not seem to be calling init() as they should.  Not sure why, did I just forget?  In some cases, like isMultiple, maybe getCount(), reverseBits, reverseBytes, isPrefixed, withoutPrefixLen, init() not required.  But others, like GetLower(), sure seems like it is.
+//TODO these two and the ones below do not seem to be calling init() as they should.  Not sure why, did I just forget?
+//In some cases, like isMultiple, maybe getCount(), reverseBits, reverseBytes, isPrefixed, withoutPrefixLen, init() not required.
+//But others, like GetLower(), sure seems like it is.
 //Also check IPv6 and MAC of course.  Also, where is GetSegmentValue(), or is that another one we don't need to call init() for?  Yes, that is another one, segment value default is 0.  No need for init() call.
 // With addrType in segments, we need to be careful.
 
@@ -270,7 +272,7 @@ func (seg *IPv4AddressSegment) isJoinableTo(low *IPv4AddressSegment) bool {
 	return !seg.isMultiple() || low.IsFullRange()
 }
 
-//TODO think some more about whether Join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.  Not sure.
+//TODO think some more about whether join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.  Not sure.
 
 // Join joins with another IPv4 segment to produce a IPv6 segment.
 func (seg *IPv4AddressSegment) Join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {

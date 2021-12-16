@@ -1801,16 +1801,16 @@ func toIPv6SegmentsFromEUI(
 		currentPrefix = cacheBitCount(0)
 	}
 	var seg *IPv6AddressSegment
-	if seg, err = seg0.JoinAndFlip2ndBit(seg1, currentPrefix); /* only this first one gets the flipped bit */ err == nil {
+	if seg, err = seg0.joinAndFlip2ndBit(seg1, currentPrefix); /* only this first one gets the flipped bit */ err == nil {
 		segments[ipv6StartIndex] = seg.ToAddressDivision()
 		ipv6StartIndex++
-		if seg, err = seg2.Join(seg3, currentPrefix); err == nil {
+		if seg, err = seg2.join(seg3, currentPrefix); err == nil {
 			segments[ipv6StartIndex] = seg.ToAddressDivision()
 			ipv6StartIndex++
-			if seg, err = seg4.Join(seg5, currentPrefix); err == nil {
+			if seg, err = seg4.join(seg5, currentPrefix); err == nil {
 				segments[ipv6StartIndex] = seg.ToAddressDivision()
 				ipv6StartIndex++
-				if seg, err = seg6.Join(seg7, currentPrefix); err == nil {
+				if seg, err = seg6.join(seg7, currentPrefix); err == nil {
 					segments[ipv6StartIndex] = seg.ToAddressDivision()
 					return nil
 				}

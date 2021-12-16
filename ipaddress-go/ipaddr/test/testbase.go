@@ -1230,6 +1230,23 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	singleOctal string) {
 	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
 	//try {
+
+	if !ipAddr.IsIPv6() || !ipAddr.ToIPv6Address().HasZone() {
+		if singleHex != "" && singleOctal != "" {
+			fmtStr := fmt.Sprintf("%s %v %#x %#o", ipAddr, ipAddr, ipAddr, ipAddr)
+			expectedFmtStr := canonicalString + " " + canonicalString + " " + singleHex + " " + singleOctal
+			if fmtStr != expectedFmtStr {
+				t.addFailure(newFailure("failed expected: "+expectedFmtStr+" actual: "+fmtStr, w))
+			}
+		} else if singleHex == "" && singleOctal == "" {
+			fmtStr := fmt.Sprintf("%s %v", ipAddr, ipAddr)
+			expectedFmtStr := canonicalString + " " + canonicalString
+			if fmtStr != expectedFmtStr {
+				t.addFailure(newFailure("failed expected: "+expectedFmtStr+" actual: "+fmtStr, w))
+			}
+		}
+	}
+
 	t.testHostAddressStr(w.String())
 
 	c := ipAddr.ToCompressedString()
