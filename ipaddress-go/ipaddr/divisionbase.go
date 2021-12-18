@@ -83,7 +83,7 @@ func (div *addressDivisionBase) GetBitCount() BitCount {
 }
 
 func (div *addressDivisionBase) GetByteCount() int {
-	vals := div.divisionValues
+	vals := div.divisionValues //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	if vals == nil {
 		return 0
 	}
@@ -107,7 +107,7 @@ func (div *addressDivisionBase) GetUpperValue() *BigDivInt {
 }
 
 func (div *addressDivisionBase) GetBytes() []byte {
-	if div.divisionValues == nil {
+	if div.divisionValues == nil { //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 		return emptyBytes
 	}
 	cached := div.getBytes()
@@ -115,7 +115,7 @@ func (div *addressDivisionBase) GetBytes() []byte {
 }
 
 func (div *addressDivisionBase) GetUpperBytes() []byte {
-	if div.divisionValues == nil {
+	if div.divisionValues == nil { //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 		return emptyBytes
 	}
 	cached := div.getUpperBytes()
@@ -123,7 +123,7 @@ func (div *addressDivisionBase) GetUpperBytes() []byte {
 }
 
 func (div *addressDivisionBase) CopyBytes(bytes []byte) []byte {
-	if div.divisionValues == nil {
+	if div.divisionValues == nil { //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 		if bytes != nil {
 			return bytes
 		}
@@ -134,7 +134,7 @@ func (div *addressDivisionBase) CopyBytes(bytes []byte) []byte {
 }
 
 func (div *addressDivisionBase) CopyUpperBytes(bytes []byte) []byte {
-	if div.divisionValues == nil {
+	if div.divisionValues == nil { //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 		if bytes != nil {
 			return bytes
 		}

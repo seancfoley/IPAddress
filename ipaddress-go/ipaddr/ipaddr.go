@@ -755,7 +755,13 @@ func (addr *IPAddress) GetIPAddr() net.IPAddr {
 //But I am also thinking of renaming ToIPAddress to ToIP.
 //Maybe use toNetIP?  Need a way to differentiate the two.
 // I think I want to make ToIPAddress() into ToIP(), so this thing here needs a different name.
-// GetGolangIP() ?  BytesIP()?  I think bytes IP is pretty good!  Yeah.  And CopyBytesIP, UpperBytesIP, and CopyUpperBytesIP
+// GetGolangIP() ?  BytesIP()?  I think bytesIP is pretty good!  Yeah.  And CopyBytesIP, UpperBytesIP, and CopyUpperBytesIP
+// NetIP()? CopyNetIP()? now I think I like this one better
+//
+// For the other I've settled on ToAddrBase, ToIP, ToIPv6, ToMac.  So for here, maybe keep it as Get, maybe GetNetIp()
+// GetNetIPAddr
+//Then change all the constructors that take net.IP or net.IPAddr or other - NAH
+// But you do have to change these same methods in the range types and in the framework
 
 func (addr *IPAddress) GetIP() net.IP {
 	return addr.GetBytes()
@@ -900,10 +906,28 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 // the combination of using GetAddress/ToAddress in IPAddressString and the name ToAddress to downgrade to *Address is ugly.
 // Maybe drop the "To" in this case?  Just .Address()?  or AsAddress?  nah to AsAddress, it's already an address.
 // No, I need a better ToXXX really.
+// ToBase()?  ToGeneric()?
+// For sections and segments, use the same ToIPv6, ToMAC, ToIP(),
+// There there are ToAddress(), ToSection(), ToDivGrouping(), ToSegment(), ToDiv()
+// Is there some other common word I can use for ToAddress(), ToSection(), ToSegment()?  Because the ones above like ToIP() are all common.
+// A word to say "no protocol"
+// ToGen() for general or generic?  ToShared?  UnSpecified()? ToIndeterminate()?  ToIndistinct?  ToUnstipulated?
+// I think there is a word for something that is not yet distinguished?  ToIndistinghuished?  nah, some other word
+// A word for someone who has not yet become more ... what, unique?  Undiversified?  ToInterchangeable? ToUndifferentiated?  ToAdaptive?
+// There is a word, something not yet specified... ToUndiversified?  ToCommon?  ToHomogenous?  ToUniform?  ToIndistinct?  ToNeutral?
+// ToUnderived?  ToStandard?  toindisparate?  ToIndivergent?  ToUndifferentiated?  toindistinct?  ToUniform?  ToRegular?
+// ToUndistinguised?  TOUnspecific?  ToCustomary?
+// ToBasic is good  ToBase?  I kinda like ToBase
+// ToUniform is good
+// ToGeneric?  ToGenericAddr?
 //
-//Also, for sections, do ToIPSection, ToIPv6Section, ToIPv4Section (drop the "Address" part), ToDivisionGrouping
+// I think I have settled on ToAddressBase, ToSectionBase, ToSegmentBase, ToDivGrouping, ToDiv
+// ToIPv6, ToMAC, ToIP()
+//
+// and I think I want to change the other names to GetNetIp, CopyNetIp, GetUpperNetIp, CopyUpperNetIp, GetNetIPAddr
+// and whether I do the same for all constructors of the form "...FromIP..." I am not sure - maybe, since it adds only 3 letters
+//
 
-//
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
 	if addr.IsIPv6() {
 		return (*IPv6Address)(addr)

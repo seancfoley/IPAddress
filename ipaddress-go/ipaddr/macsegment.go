@@ -163,11 +163,11 @@ func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 }
 
 func (seg *MACAddressSegment) GetLower() *MACAddressSegment {
-	return seg.getLower().ToMACAddressSegment()
+	return seg.init().getLower().ToMACAddressSegment()
 }
 
 func (seg *MACAddressSegment) GetUpper() *MACAddressSegment {
-	return seg.getUpper().ToMACAddressSegment()
+	return seg.init().getUpper().ToMACAddressSegment()
 }
 
 func (seg *MACAddressSegment) IsMultiple() bool {
@@ -218,15 +218,15 @@ func (seg *MACAddressSegment) Iterator() MACSegmentIterator {
 	if seg == nil {
 		return macSegmentIterator{nilSegIterator()}
 	}
-	return macSegmentIterator{seg.iterator()}
+	return macSegmentIterator{seg.init().iterator()}
 }
 
 func (seg *MACAddressSegment) PrefixBlockIterator(segmentPrefixLen BitCount) MACSegmentIterator {
-	return macSegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
+	return macSegmentIterator{seg.init().prefixedBlockIterator(segmentPrefixLen)}
 }
 
 func (seg *MACAddressSegment) PrefixIterator(segmentPrefixLen BitCount) MACSegmentIterator {
-	return macSegmentIterator{seg.prefixedIterator(segmentPrefixLen)}
+	return macSegmentIterator{seg.init().prefixedIterator(segmentPrefixLen)}
 }
 
 func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err IncompatibleAddressError) {
@@ -305,21 +305,21 @@ func (seg *MACAddressSegment) GetString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getString()
+	return seg.init().getString()
 }
 
 func (seg *MACAddressSegment) GetWildcardString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getWildcardString()
+	return seg.init().getWildcardString()
 }
 
 func (seg *MACAddressSegment) String() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.toString()
+	return seg.init().toString()
 }
 
 func NewMACSegment(val MACSegInt) *MACAddressSegment {

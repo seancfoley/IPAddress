@@ -893,9 +893,9 @@ func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Addre
 func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4Address) (res *IPv6AddressSection, err IncompatibleAddressError) {
 	ipv4Section := mixedSection.GetSection().WithoutPrefixLen()
 	var seg *IPv6AddressSegment
-	if seg, err = ipv4Section.GetSegment(0).Join(ipv4Section.GetSegment(1)); err == nil {
+	if seg, err = ipv4Section.GetSegment(0).join(ipv4Section.GetSegment(1)); err == nil {
 		newIPv6Divisions[6] = seg.ToAddressDivision()
-		if seg, err = ipv4Section.GetSegment(2).Join(ipv4Section.GetSegment(3)); err == nil {
+		if seg, err = ipv4Section.GetSegment(2).join(ipv4Section.GetSegment(3)); err == nil {
 			newIPv6Divisions[7] = seg.ToAddressDivision()
 			res = newIPv6SectionFromMixed(newIPv6Divisions)
 			if res.cache != nil {

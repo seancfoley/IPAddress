@@ -61,7 +61,7 @@ func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
-	prefixLength := seg.GetSegmentPrefixLen()
+	prefixLength := seg.GetSegmentPrefixLen() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
@@ -73,7 +73,7 @@ func (seg *ipAddressSegmentInternal) GetSegmentPrefixLen() PrefixLen {
 }
 
 func (seg *ipAddressSegmentInternal) MatchesWithPrefixMask(value SegInt, networkBits BitCount) bool {
-	mask := seg.GetSegmentNetworkMask(networkBits)
+	mask := seg.GetSegmentNetworkMask(networkBits) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	matchingValue := value & mask
 	return matchingValue == (seg.GetSegmentValue()&mask) && matchingValue == (seg.GetUpperSegmentValue()&mask)
 }
@@ -121,7 +121,7 @@ func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostM
 //
 // This method applies only to the lower value of the range if this section represents multiple values.
 func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
-	hostLength := seg.GetTrailingBitCount(network)
+	hostLength := seg.GetTrailingBitCount(network) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	var shifted SegInt
 	val := seg.GetSegmentValue()
 	if network {
@@ -141,7 +141,7 @@ func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) Pref
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
 func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
-	val := seg.GetSegmentValue()
+	val := seg.GetSegmentValue() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	if ones {
 		// trailing ones
 		return BitCount(bits.TrailingZeros32(uint32(^val)))
@@ -156,7 +156,7 @@ func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
 func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
-	extraLeading := 32 - seg.GetBitCount()
+	extraLeading := 32 - seg.GetBitCount() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
 	val := seg.GetSegmentValue()
 	if ones {
 		//leading ones

@@ -53,7 +53,7 @@ func (seg *ipv4SegmentValues) isMultiple() bool {
 }
 
 func (seg *ipv4SegmentValues) getCount() *big.Int {
-	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
+	return big.NewInt(int64(seg.upperValue-seg.value) + 1)
 }
 
 func (seg *ipv4SegmentValues) getBitCount() BitCount {
@@ -168,18 +168,12 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 	return 0xff
 }
 
-//TODO these two and the ones below do not seem to be calling init() as they should.  Not sure why, did I just forget?
-//In some cases, like isMultiple, maybe getCount(), reverseBits, reverseBytes, isPrefixed, withoutPrefixLen, init() not required.
-//But others, like GetLower(), sure seems like it is.
-//Also check IPv6 and MAC of course.  Also, where is GetSegmentValue(), or is that another one we don't need to call init() for?  Yes, that is another one, segment value default is 0.  No need for init() call.
-// With addrType in segments, we need to be careful.
-
 func (seg *IPv4AddressSegment) GetLower() *IPv4AddressSegment {
-	return seg.getLower().ToIPv4AddressSegment()
+	return seg.init().getLower().ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) GetUpper() *IPv4AddressSegment {
-	return seg.getUpper().ToIPv4AddressSegment()
+	return seg.init().getUpper().ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) IsMultiple() bool {
@@ -194,38 +188,38 @@ func (seg *IPv4AddressSegment) GetCount() *big.Int {
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4AddressSegment()
+	return seg.init().toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+	return seg.init().toNetworkDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPv4AddressSegment()
+	return seg.init().toPrefixedHostDivision(segmentPrefixLength).ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.toHostDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+	return seg.init().toHostDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
 }
 
 func (seg *IPv4AddressSegment) Iterator() IPv4SegmentIterator {
 	if seg == nil {
 		return ipv4SegmentIterator{nilSegIterator()}
 	}
-	return ipv4SegmentIterator{seg.iterator()}
+	return ipv4SegmentIterator{seg.init().iterator()}
 }
 
 func (seg *IPv4AddressSegment) PrefixBlockIterator() IPv4SegmentIterator {
-	return ipv4SegmentIterator{seg.prefixBlockIterator()}
+	return ipv4SegmentIterator{seg.init().prefixBlockIterator()}
 }
 
 func (seg *IPv4AddressSegment) PrefixedBlockIterator(segmentPrefixLen BitCount) IPv4SegmentIterator {
-	return ipv4SegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
+	return ipv4SegmentIterator{seg.init().prefixedBlockIterator(segmentPrefixLen)}
 }
 
 func (seg *IPv4AddressSegment) PrefixIterator() IPv4SegmentIterator {
-	return ipv4SegmentIterator{seg.prefixIterator()}
+	return ipv4SegmentIterator{seg.init().prefixIterator()}
 }
 
 func (seg *IPv4AddressSegment) IsPrefixed() bool {
@@ -272,10 +266,8 @@ func (seg *IPv4AddressSegment) isJoinableTo(low *IPv4AddressSegment) bool {
 	return !seg.isMultiple() || low.IsFullRange()
 }
 
-//TODO think some more about whether join should be public.  The case in MACAddressSegment might be stronger.  Public seems ok here.  Not sure.
-
-// Join joins with another IPv4 segment to produce a IPv6 segment.
-func (seg *IPv4AddressSegment) Join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {
+// join joins with another IPv4 segment to produce a IPv6 segment.
+func (seg *IPv4AddressSegment) join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {
 	prefixLength := seg.getJoinedSegmentPrefixLen(low.GetSegmentPrefixLen())
 	if !seg.isJoinableTo(low) {
 		return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalidMixedRange"}}
@@ -316,24 +308,22 @@ func (seg *IPv4AddressSegment) GetString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getString()
+	return seg.init().getString()
 }
 
 func (seg *IPv4AddressSegment) GetWildcardString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getWildcardString()
+	return seg.init().getWildcardString()
 }
 
 func (seg *IPv4AddressSegment) String() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.toString()
+	return seg.init().toString()
 }
-
-// TODO rename Segment to Seg in these constructors and others (not sure about this though)
 
 func NewIPv4Segment(val IPv4SegInt) *IPv4AddressSegment {
 	return newIPv4Segment(newIPv4SegmentVal(val))

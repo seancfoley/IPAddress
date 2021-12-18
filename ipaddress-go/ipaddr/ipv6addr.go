@@ -1289,7 +1289,7 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	}
 	newSegs := createSegmentArray(macSegCount)
 	seg0 := addr.GetSegment(4)
-	if err := seg0.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
+	if err := seg0.splitIntoMACSegments(newSegs, macStartIndex); err != nil {
 		return nil, err
 	}
 	//toggle the u/l bit
@@ -1304,24 +1304,24 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	upper0 ^= mask2ndBit
 	newSegs[0] = NewMACRangeSegment(MACSegInt(lower0), MACSegInt(upper0)).ToAddressDivision()
 	macStartIndex += 2
-	if err := seg1.SplitIntoMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
+	if err := seg1.splitIntoMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
 		return nil, err
 	}
 	if extended {
 		macStartIndex += 2
-		if err := seg2.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
+		if err := seg2.splitIntoMACSegments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 	} else {
 		first := newSegs[macStartIndex]
-		if err := seg2.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
+		if err := seg2.splitIntoMACSegments(newSegs, macStartIndex); err != nil {
 			return nil, err
 		}
 		newSegs[macStartIndex] = first
 	}
 	macStartIndex += 2
 	seg3 := addr.GetSegment(7)
-	if err := seg3.SplitIntoMACSegments(newSegs, macStartIndex); err != nil {
+	if err := seg3.splitIntoMACSegments(newSegs, macStartIndex); err != nil {
 		return nil, err
 	}
 	return newSegs, nil

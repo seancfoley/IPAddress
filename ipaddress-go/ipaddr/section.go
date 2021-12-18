@@ -1869,7 +1869,7 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 			str, err = section.toLongOctalStringZoned(NoZone, octalParams)
 		}
 	case 'd':
-		// TODO LATER decimal strings to replace the inefficient code below, we need large divisions for that because we must go single segment since base not a power of 2, but once we can group into a single large division, we should be good
+		// TODO LATER decimal strings to replace the less efficient code below, we need large divisions for that because we must go single segment since base not a power of 2, but once we can group into a single large division, we should be good
 		if !section.hasNoDivisions() {
 			bitCount := section.GetBitCount()
 			maxDigits := getMaxDigitCountx(10, bitCount, func() int {

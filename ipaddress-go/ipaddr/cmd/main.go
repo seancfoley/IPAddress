@@ -382,6 +382,10 @@ func main() {
 	//	fmt.Printf("%v ", itr.Next())
 	//}
 
+	s := ipaddr.IPv4AddressSegment{}
+	res := s.PrefixContains(&s, 6)
+	fmt.Printf(`Zero seg pref contains %v\n`, res)
+
 	fmt.Printf("\n\n")
 	//_ = getDoc()
 }

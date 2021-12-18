@@ -53,7 +53,7 @@ func (seg *ipv6SegmentValues) isMultiple() bool {
 }
 
 func (seg *ipv6SegmentValues) getCount() *big.Int {
-	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
+	return big.NewInt(int64(seg.upperValue-seg.value) + 1)
 }
 
 func (seg *ipv6SegmentValues) getBitCount() BitCount {
@@ -169,11 +169,11 @@ func (seg *IPv6AddressSegment) GetMaxValue() IPv6SegInt {
 }
 
 func (seg *IPv6AddressSegment) GetLower() *IPv6AddressSegment {
-	return seg.getLower().ToIPv6AddressSegment()
+	return seg.init().getLower().ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) GetUpper() *IPv6AddressSegment {
-	return seg.getUpper().ToIPv6AddressSegment()
+	return seg.init().getUpper().ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) IsMultiple() bool {
@@ -188,38 +188,38 @@ func (seg *IPv6AddressSegment) GetCount() *big.Int {
 }
 
 func (seg *IPv6AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
-	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
+	return seg.init().toPrefixedNetworkDivision(segmentPrefixLength).ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
-	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
+	return seg.init().toNetworkDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
-	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPv6AddressSegment()
+	return seg.init().toPrefixedHostDivision(segmentPrefixLength).ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv6AddressSegment {
-	return seg.toHostDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
+	return seg.init().toHostDivision(segmentPrefixLength, false).ToIPv6AddressSegment()
 }
 
 func (seg *IPv6AddressSegment) Iterator() IPv6SegmentIterator {
 	if seg == nil {
 		return ipv6SegmentIterator{nilSegIterator()}
 	}
-	return ipv6SegmentIterator{seg.iterator()}
+	return ipv6SegmentIterator{seg.init().iterator()}
 }
 
 func (seg *IPv6AddressSegment) PrefixBlockIterator() IPv6SegmentIterator {
-	return ipv6SegmentIterator{seg.prefixBlockIterator()}
+	return ipv6SegmentIterator{seg.init().prefixBlockIterator()}
 }
 
 func (seg *IPv6AddressSegment) PrefixedBlockIterator(segmentPrefixLen BitCount) IPv6SegmentIterator {
-	return ipv6SegmentIterator{seg.prefixedBlockIterator(segmentPrefixLen)}
+	return ipv6SegmentIterator{seg.init().prefixedBlockIterator(segmentPrefixLen)}
 }
 
 func (seg *IPv6AddressSegment) PrefixIterator() IPv6SegmentIterator {
-	return ipv6SegmentIterator{seg.prefixIterator()}
+	return ipv6SegmentIterator{seg.init().prefixIterator()}
 }
 
 func (seg *IPv6AddressSegment) IsPrefixed() bool {
@@ -418,7 +418,7 @@ func lowByteIpv6(value SegInt) SegInt {
 //
 // If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
 // then it is not copied.
-func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
 			segs[ind] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
@@ -426,15 +426,14 @@ func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, star
 	})
 }
 
-//func (seg *IPv6AddressSegment) GetSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
+//func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
 //	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div }, len(segs), index)
 //	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 //		segs[index] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
 //	}, len(segs), index)
 //}
 
-//TODO these should not be public,  The first duplicates the above.  Both use AddressDivision rather than the more specific type MACSegment or IPV4Segment.  So you might want to create a mac equivlaent to the above method GetSplitSegments.  But even that one maybe should not be public.
-func (seg *IPv6AddressSegment) SplitIntoIPv4Segments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) splitIntoIPv4Segments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
@@ -443,7 +442,7 @@ func (seg *IPv6AddressSegment) SplitIntoIPv4Segments(segs []*AddressDivision, st
 	})
 }
 
-func (seg *IPv6AddressSegment) SplitIntoMACSegments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) splitIntoMACSegments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToAddressDivision() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
@@ -516,21 +515,21 @@ func (seg *IPv6AddressSegment) GetString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getString()
+	return seg.init().getString()
 }
 
 func (seg *IPv6AddressSegment) GetWildcardString() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.getWildcardString()
+	return seg.init().getWildcardString()
 }
 
 func (seg *IPv6AddressSegment) String() string {
 	if seg == nil {
 		return nilString()
 	}
-	return seg.toString()
+	return seg.init().toString()
 }
 
 func NewIPv6Segment(val IPv6SegInt) *IPv6AddressSegment {

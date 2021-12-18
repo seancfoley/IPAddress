@@ -645,13 +645,14 @@ func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
 	return section.withoutPrefixLen().ToIPv6AddressSection()
 }
 
-//TODO just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
+// just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
 //But does this lead to hidden conversion bugs with large ints?
 //Maybe just using int for BitCount would be better!  But that doesn't seem to work when it comes to automatic conversions.
 //Why not?  you can always pass in []byte for net.IP, or maybe it's the other way around, net.Ip for []byte
 // It works OK with type BitCount = int16, but then you cannot have the method set
 // But for net.IP, it works with type IP []byte
 // Is it something abotu slices?  Maybe, because with ints you really have a different type possibly, not with slices, which is same underlying type.  Must be about same underlying type.
+// TODO For Bitcount you should drop the method set and use type BitCount = int16 in combination with the change to PrefixLen, which will gain the method set
 
 //
 func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {
@@ -1528,14 +1529,14 @@ func (section *IPv6AddressSection) GetIPv4AddressSection(startByteIndex, endByte
 	if i%bytesPerSegment == 1 {
 		ipv6Segment := section.GetSegment(i >> 1)
 		i++
-		if err := ipv6Segment.SplitIntoIPv4Segments(segments, j-1); err != nil {
+		if err := ipv6Segment.splitIntoIPv4Segments(segments, j-1); err != nil {
 			return nil, err
 		}
 		j++
 	}
 	for ; i < endByteIndex; i, j = i+bytesPerSegment, j+bytesPerSegment {
 		ipv6Segment := section.GetSegment(i >> 1)
-		if err := ipv6Segment.SplitIntoIPv4Segments(segments, j); err != nil {
+		if err := ipv6Segment.splitIntoIPv4Segments(segments, j); err != nil {
 			return nil, err
 		}
 	}
@@ -1600,7 +1601,7 @@ func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv
 	} else if mixedCount == 1 {
 		mixed = make([]*AddressDivision, section.GetBytesPerSegment())
 		last := section.GetSegment(lastIndex)
-		if err := last.SplitIntoIPv4Segments(mixed, 0); err != nil {
+		if err := last.splitIntoIPv4Segments(mixed, 0); err != nil {
 			return nil, err
 		}
 	} else {
@@ -1608,10 +1609,10 @@ func (section *IPv6AddressSection) createEmbeddedIPv4AddressSection() (sect *IPv
 		mixed = make([]*AddressDivision, bytesPerSeg<<1)
 		low := section.GetSegment(lastIndex)
 		high := section.GetSegment(lastIndex - 1)
-		if err := high.SplitIntoIPv4Segments(mixed, 0); err != nil {
+		if err := high.splitIntoIPv4Segments(mixed, 0); err != nil {
 			return nil, err
 		}
-		if err := low.SplitIntoIPv4Segments(mixed, bytesPerSeg); err != nil {
+		if err := low.splitIntoIPv4Segments(mixed, bytesPerSeg); err != nil {
 			return nil, err
 		}
 	}

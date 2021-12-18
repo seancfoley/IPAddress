@@ -4525,7 +4525,7 @@ func (t ipAddressTester) testZeroHost(addrString, zeroHostString string) {
 	//for i := 0; i < addr.GetSegmentCount(); i++ {
 	//	seg := addr.GetSegment(i)
 	//	for j := 0; j < 2; j++ {
-	//TODO consider re-adding toZeroHost on segments, and then if you do, put back the old tests here using it
+	//TODO LATER consider re-adding toZeroHost on segments, and then if you do, put back the old tests here using it
 	//IPAddressSegment newSeg = seg.toZeroHost();
 	//if(seg.isPrefixed()) {
 	//	Integer segPrefix = seg.getSegmentPrefixLength();

@@ -83,7 +83,7 @@ func (seg *addressSegmentInternal) sameTypeEquals(other *AddressSegment) bool {
 }
 
 // PrefixContains returns whether the given prefix range of values contain those of the given segment.
-func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
+func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool { //TODO try this out with ipv4segment{} to confirm we need not override - OK, it does not crash but I do not think it works
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
 	if shift <= 0 {
@@ -94,7 +94,7 @@ func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, pref
 }
 
 // PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
-func (seg *addressSegmentInternal) PrefixEquals(other AddressSegmentType, prefixLength BitCount) bool {
+func (seg *addressSegmentInternal) PrefixEquals(other AddressSegmentType, prefixLength BitCount) bool { //TODO same as above
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
 	if shift <= 0 {
@@ -647,5 +647,8 @@ func segValsSame(oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
 
 func getPrefixValueCount(segment *AddressSegment, segmentPrefixLength BitCount) SegIntCount {
 	shiftAdjustment := segment.GetBitCount() - segmentPrefixLength
+	if shiftAdjustment <= 0 {
+		return SegIntCount(segment.GetUpperSegmentValue()) - SegIntCount(segment.GetSegmentValue()) + 1
+	}
 	return SegIntCount(segment.GetUpperSegmentValue()>>uint(shiftAdjustment)) - SegIntCount(segment.GetSegmentValue()>>uint(shiftAdjustment)) + 1
 }

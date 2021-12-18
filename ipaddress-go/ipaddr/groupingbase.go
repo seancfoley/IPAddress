@@ -17,7 +17,12 @@ import (
 //	bitCount int16
 //}
 // type PrefixLen *BitCount
-
+//
+// option 3
+//type PrefixLen struct {
+// isSet bool
+// bitCount BitCount
+//}
 type addressDivisionGroupingBase struct {
 	// the non-cacheBitCountx elements are assigned at creation and are immutable
 	divisions divArray // either standard or large
@@ -48,7 +53,7 @@ type addressDivisionGroupingBase struct {
 	// but all your methods thst take BitCount will not want to use this struct instead, so the struct is somewhat lame
 	// The only upside is you can continue using "nil" prefixes
 	// In fact, the second doesn't really work because you can still alter the prefix length pointers
-	// TODO PrefixLen: I think I've settle on option 1 above
+	// TODO PrefixLen: I think I've settle on option 1 above Actually maybe 3 is better, avoids ptr dereference, takes advantage of memory localization
 
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMult       bool
