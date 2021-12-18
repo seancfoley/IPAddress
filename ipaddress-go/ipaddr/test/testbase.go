@@ -931,10 +931,11 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 	mixedString,
 	base85String string) {
 
-	if ipAddr == nil {
-		t.addFailure(newFailure("failed expected IPv6 address, got nil ", w))
-		return
-	}
+	//if ipAddr == nil {
+	//	t.addFailure(newFailure("failed expected IPv6 address, got nil ", w))
+	//	return
+	//}
+
 	//try {
 	base85 := ""
 	//try { TODO LATER base85
@@ -1331,6 +1332,10 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		isMatch := singleHex == "" //iff hex is null is binary null
 		if !isMatch {
 			t.addFailure(newFailure("failed expected non-null binary string but got: "+err.Error(), w))
+		}
+	} else if ipAddr == nil {
+		if binary != "<nil>" {
+			t.addFailure(newFailure("failed expected <nil> for nil binary string but got: "+binary, w))
 		}
 	} else {
 		for i := 0; i < len(binary); i++ {

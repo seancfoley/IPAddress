@@ -3420,6 +3420,12 @@ func (t ipAddressRangeTester) testIPv4Strings(addr, normalizedString, normalized
 	w := t.createAddress(addr)
 	ipAddr := w.GetAddress()
 	//createList(w);
+
+	if ipAddr == nil {
+		t.addFailure(newFailure("failed expected IPv4 address, got nil ", w))
+		return
+	}
+
 	t.testIPv4IPAddrStrings(w, ipAddr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString, singleHex, singleOctal)
 }
 
@@ -3444,6 +3450,11 @@ func (t ipAddressRangeTester) testIPv6Strings(addr,
 	singleOctal string) {
 	w := t.createAddress(addr)
 	ipAddr := w.GetAddress()
+
+	if ipAddr == nil {
+		t.addFailure(newFailure("failed expected IPv6 address, got nil ", w))
+		return
+	}
 
 	//createList(w);
 

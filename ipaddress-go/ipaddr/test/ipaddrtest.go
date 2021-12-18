@@ -2708,7 +2708,7 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 						//		}
 						//	}
 						//} else {
-						if !h1.PrefixEquals(h2) {
+						if !h1.PrefixEqual(h2) {
 							t.addFailure(newFailure("failed: prefix match fail with "+h1.String(), h2))
 						} else {
 							//this three step test is done so we try it before validation, and then try again before address creation, due to optimizations in IPAddressString
@@ -2721,17 +2721,17 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 							}
 							//h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
 							//h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
-							if !h1.PrefixEquals(h2) {
+							if !h1.PrefixEqual(h2) {
 								t.addFailure(newFailure("failed: prefix match fail with "+h1.String(), h2))
 							}
 							h1.IsValid()
 							h2.IsValid()
-							if !h1.PrefixEquals(h2) {
+							if !h1.PrefixEqual(h2) {
 								t.addFailure(newFailure("failed: 2 prefix match fail with "+h1.String(), h2))
 							}
 							h1.GetAddress()
 							h2.GetAddress()
-							if !h1.PrefixEquals(h2) {
+							if !h1.PrefixEqual(h2) {
 								t.addFailure(newFailure("failed: 3 prefix match fail with "+h1.String(), h2))
 							}
 						}
@@ -3499,16 +3499,16 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 			// again do testing on the prefix block, allowing us to test prefixEquals
 			wstr = t.createAddress(wstr.GetAddress().ToPrefixBlock().String())
 			w2str = t.createAddress(w2str.GetAddress().ToPrefixBlock().String())
-			prefEquals := wstr.PrefixEquals(w2str)
+			prefEquals := wstr.PrefixEqual(w2str)
 
 			wstr.IsValid()
 			w2str.IsValid()
-			prefEquals2 := wstr.PrefixEquals(w2str)
+			prefEquals2 := wstr.PrefixEqual(w2str)
 
 			w = wstr.GetAddress()
 			w2 = w2str.GetAddress()
-			origEquals := w.PrefixEquals(w2)
-			prefEquals3 := wstr.PrefixEquals(w2str)
+			origEquals := w.PrefixEqual(w2)
+			prefEquals3 := wstr.PrefixEqual(w2str)
 			if !origEquals {
 				// if the prefix block does not contain, then prefix should also not contain other prefix
 				if prefEquals {
@@ -3524,7 +3524,7 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 				// if prefix blocks are equal, then prefix should also equal other prefix
 				if !prefEquals {
 					fmt.Printf("prefix equals: %v %v\n", w, w2)
-					w.PrefixEquals(w2)
+					w.PrefixEqual(w2)
 					t.addFailure(newIPAddrFailure("str prefix equality failed "+w2.String(), w))
 				}
 				if !prefEquals2 {

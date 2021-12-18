@@ -873,8 +873,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // lsit of larger-size todos:
 // - prefixLen change
 // - portnum change which is similar
-// - format tests and nil string tests (see main.go, "All the formats") notes.go - just missing tests at this point, grab stuff from main.go
-// - we ask whether args of type BitCount should be int.  ipv6section.go
+// - we ask whether args of type BitCount should be int.  ipv6section.go  After some thought, this can be linked to PrefixLen change
 // - rename ToIPV6Address, ToMACAddressSection, etc use just ToIPV6, ToIP, ToIPv4, ToMAC.  Also the same for IsIPAddress, etc, I think I did the "is" changes in addresses already
 //
 //

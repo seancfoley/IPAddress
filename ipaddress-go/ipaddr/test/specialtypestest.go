@@ -77,6 +77,27 @@ func (t specialTypesTester) run() {
 
 	t.testIPv6Strings("", true, "0:0:0:0:0:0:0:1", "0:0:0:0:0:0:0:1", "::1", "0:0:0:0:0:0:0:1", "0000:0000:0000:0000:0000:0000:0000:0001", "::1", "::1", "::1", "::1", "::0.0.0.1", "::0.0.0.1", "::0.0.0.1", "::0.0.0.1", "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", "0-0-0-0-0-0-0-1.ipv6-literal.net", "00000000000000000001", "0x00000000000000000000000000000001", "00000000000000000000000000000000000000000001")
 
+	nilStr := `<nil>`
+	t.testBase.testIPv6Strings(nil, nil,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr,
+		nilStr)
+
 	t.testInvalidValues()
 
 	t.testValidity()
