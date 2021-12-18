@@ -819,7 +819,7 @@ func (addr *IPAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-func (addr *IPAddress) PrefixEquals(other AddressType) bool {
+func (addr *IPAddress) PrefixEqual(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
 

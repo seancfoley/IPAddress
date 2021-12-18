@@ -423,7 +423,7 @@ func (addr *addressInternal) prefixEquals(other AddressType) bool {
 	if addr.section == nil {
 		return otherSection.GetSegmentCount() == 0
 	}
-	return addr.section.PrefixEquals(otherSection) &&
+	return addr.section.PrefixEqual(otherSection) &&
 		// if it is IPv6 and has a zone, then it does not contain addresses from other zones
 		addr.isSameZone(otherAddr)
 }
@@ -902,7 +902,7 @@ func (addr *Address) IsPrefixed() bool {
 	return addr != nil && addr.isPrefixed()
 }
 
-func (addr *Address) PrefixEquals(other AddressType) bool {
+func (addr *Address) PrefixEqual(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
 

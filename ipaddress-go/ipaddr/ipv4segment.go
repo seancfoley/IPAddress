@@ -156,6 +156,16 @@ func (seg *IPv4AddressSegment) Compare(item AddressItem) int {
 	return CountComparator.Compare(seg, item)
 }
 
+// PrefixEquals returns whether the range of the given prefix bits contains the same bits of the given segment.
+func (seg *IPv4AddressSegment) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.init().ipAddressSegmentInternal.PrefixContains(other, prefixLength)
+}
+
+// PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
+func (seg *IPv4AddressSegment) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.init().ipAddressSegmentInternal.PrefixEqual(other, prefixLength)
+}
+
 func (seg *IPv4AddressSegment) GetBitCount() BitCount {
 	return IPv4BitsPerSegment
 }
@@ -185,6 +195,77 @@ func (seg *IPv4AddressSegment) GetCount() *big.Int {
 		return bigZero()
 	}
 	return seg.getCount()
+}
+
+func (seg *IPv4AddressSegment) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
+	return seg.init().ipAddressSegmentInternal.GetPrefixCountLen(segmentPrefixLength)
+}
+
+func (seg *IPv4AddressSegment) GetPrefixValueCountLen(segmentPrefixLength BitCount) SegIntCount {
+	return seg.init().ipAddressSegmentInternal.GetPrefixValueCountLen(segmentPrefixLength)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (seg *IPv4AddressSegment) IsOneBit(segmentBitIndex BitCount) bool {
+	return seg.init().ipAddressSegmentInternal.IsOneBit(segmentBitIndex)
+}
+
+func (seg *IPv4AddressSegment) GetBytes() []byte {
+	return seg.init().ipAddressSegmentInternal.GetBytes()
+}
+
+func (seg *IPv4AddressSegment) GetUpperBytes() []byte {
+	return seg.init().ipAddressSegmentInternal.GetUpperBytes()
+}
+
+func (seg *IPv4AddressSegment) CopyBytes(bytes []byte) []byte {
+	return seg.init().ipAddressSegmentInternal.CopyBytes(bytes)
+}
+
+func (seg *IPv4AddressSegment) CopyUpperBytes(bytes []byte) []byte {
+	return seg.init().ipAddressSegmentInternal.CopyUpperBytes(bytes)
+}
+
+func (seg *IPv4AddressSegment) GetPrefixValueCount() SegIntCount {
+	return seg.init().ipAddressSegmentInternal.GetPrefixValueCount()
+}
+
+func (seg *IPv4AddressSegment) MatchesWithPrefixMask(value IPv4SegInt, networkBits BitCount) bool {
+	return seg.init().ipAddressSegmentInternal.MatchesWithPrefixMask(SegInt(value), networkBits)
+}
+
+// GetBlockMaskPrefixLen returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
+// Otherwise, it returns null.
+// A CIDR network mask is an address with all 1s in the network section and then all 0s in the host section.
+// A CIDR host mask is an address with all 0s in the network section and then all 1s in the host section.
+// The prefix length is the length of the network section.
+//
+// Also, keep in mind that the prefix length returned by this method is not equivalent to the prefix length of this object,
+// indicating the network and host section of this address.
+// The prefix length returned here indicates the whether the value of this address can be used as a mask for the network and host
+// section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
+//
+// This method applies only to the lower value of the range if this section represents multiple values.
+func (seg *IPv4AddressSegment) GetBlockMaskPrefixLen(network bool) PrefixLen {
+	return seg.init().ipAddressSegmentInternal.GetBlockMaskPrefixLen(network)
+}
+
+// GetTrailingBitCount returns the number of consecutive trailing one or zero bits.
+// If ones is true, returns the number of consecutive trailing zero bits.
+// Otherwise, returns the number of consecutive trailing one bits.
+//
+// This method applies only to the lower value of the range if this segment represents multiple values.
+func (seg *IPv4AddressSegment) GetTrailingBitCount(ones bool) BitCount {
+	return seg.init().ipAddressSegmentInternal.GetTrailingBitCount(ones)
+}
+
+//	GetLeadingBitCount returns the number of consecutive leading one or zero bits.
+// If ones is true, returns the number of consecutive leading one bits.
+// Otherwise, returns the number of consecutive leading zero bits.
+//
+// This method applies only to the lower value of the range if this segment represents multiple values.
+func (seg *IPv4AddressSegment) GetLeadingBitCount(ones bool) BitCount {
+	return seg.init().ipAddressSegmentInternal.GetLeadingBitCount(ones)
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {

@@ -1635,7 +1635,7 @@ func (section *addressSectionInternal) assignMinPrefixForBlock() *AddressSection
 	return section.setPrefixLen(section.GetMinPrefixLenForBlock())
 }
 
-func (section *addressSectionInternal) PrefixEquals(other AddressSectionType) (res bool) {
+func (section *addressSectionInternal) PrefixEqual(other AddressSectionType) (res bool) {
 	o := other.ToAddressSection()
 	if section.toAddressSection() == o {
 		return true
@@ -1678,7 +1678,7 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 					return
 				}
 			} else {
-				if !one.PrefixEquals(two, *segPrefixLength) {
+				if !one.PrefixEqual(two, *segPrefixLength) {
 					return
 				}
 			}

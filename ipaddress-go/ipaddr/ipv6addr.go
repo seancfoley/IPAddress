@@ -842,7 +842,7 @@ func (addr *IPv6Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-func (addr *IPv6Address) PrefixEquals(other AddressType) bool {
+func (addr *IPv6Address) PrefixEqual(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
 

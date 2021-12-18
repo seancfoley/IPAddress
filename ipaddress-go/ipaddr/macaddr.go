@@ -405,7 +405,7 @@ func (addr *MACAddress) Compare(item AddressItem) int {
 	return CountComparator.Compare(addr.init(), item)
 }
 
-func (addr *MACAddress) PrefixEquals(other AddressType) bool {
+func (addr *MACAddress) PrefixEqual(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
 

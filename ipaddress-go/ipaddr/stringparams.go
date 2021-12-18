@@ -1632,7 +1632,6 @@ func (writer stringWriter) getLowerStandardString(segmentIndex int, params addre
 	}
 	radix := params.getRadix()
 	leadingZeroCount := params.getLeadingZeros(segmentIndex)
-	//leadingZeroCount = writer.adjustLowerLeadingZeroCount(leadingZeroCount, radix)
 	if leadingZeroCount != 0 {
 		if appendable == nil {
 			if leadingZeroCount < 0 {

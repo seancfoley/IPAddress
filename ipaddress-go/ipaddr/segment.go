@@ -83,7 +83,7 @@ func (seg *addressSegmentInternal) sameTypeEquals(other *AddressSegment) bool {
 }
 
 // PrefixContains returns whether the given prefix range of values contain those of the given segment.
-func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool { //TODO try this out with ipv4segment{} to confirm we need not override - OK, it does not crash but I do not think it works
+func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
 	if shift <= 0 {
@@ -94,7 +94,7 @@ func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, pref
 }
 
 // PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
-func (seg *addressSegmentInternal) PrefixEquals(other AddressSegmentType, prefixLength BitCount) bool { //TODO same as above
+func (seg *addressSegmentInternal) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
 	if shift <= 0 {
@@ -141,10 +141,10 @@ func (seg *addressSegmentInternal) MatchesValsWithMask(lowerValue, upperValue, m
 }
 
 func (seg *addressSegmentInternal) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
-	return bigZero().SetUint64(seg.GetPrefixValueCount(segmentPrefixLength))
+	return bigZero().SetUint64(seg.GetPrefixValueCountLen(segmentPrefixLength))
 }
 
-func (seg *addressSegmentInternal) GetPrefixValueCount(segmentPrefixLength BitCount) SegIntCount {
+func (seg *addressSegmentInternal) GetPrefixValueCountLen(segmentPrefixLength BitCount) SegIntCount {
 	return getPrefixValueCount(seg.toAddressSegment(), segmentPrefixLength)
 }
 
@@ -270,6 +270,8 @@ var (
 	hexParamsSeg     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).ToOptions()
 	decimalParamsSeg = new(IPStringOptionsBuilder).SetRadix(10).ToOptions()
 )
+
+// We do not need to "override" ToNormalizedString() and ToHexString(bool) because neither prints leading zeros according to bit count, so zero segments of type IPv4/IPv6/MAC are printed consistently
 
 func (seg *addressSegmentInternal) ToNormalizedString() string {
 	stringer := func() string {

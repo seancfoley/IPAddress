@@ -313,7 +313,7 @@ func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount
 func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
 	cache := div.getCache()
 	if cache == nil {
-		return GetMinPrefixLenForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong without values initialized
+		return GetMinPrefixLenForBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
 	}
 	res := cache.minPrefLenForBlock
 	if res == nil {
@@ -325,7 +325,7 @@ func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
 }
 
 func (div *addressDivisionInternal) GetPrefixLenForSingleBlock() PrefixLen {
-	return GetPrefixLenForSingleBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount()) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong without values initialized
+	return GetPrefixLenForSingleBlock(div.getDivisionValue(), div.getUpperDivisionValue(), div.GetBitCount())
 }
 
 // return whether the division range includes the block of values for the division prefix length,

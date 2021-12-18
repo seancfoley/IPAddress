@@ -426,7 +426,7 @@ func (addrStr *IPAddressString) Compare(other *IPAddressString) int {
 // If an address has no prefix length, the whole address is used as the prefix.
 //
 // If this address string or the given address string is invalid, returns false.
-func (addrStr *IPAddressString) PrefixEquals(other *IPAddressString) bool {
+func (addrStr *IPAddressString) PrefixEqual(other *IPAddressString) bool {
 	// getting the prefix
 	addrStr = addrStr.init()
 	other = other.init()

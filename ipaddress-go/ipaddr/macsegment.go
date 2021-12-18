@@ -146,6 +146,16 @@ func (seg *MACAddressSegment) Equal(other AddressSegmentType) bool {
 	return seg.init().equal(other)
 }
 
+// PrefixEquals returns whether the range of the given prefix bits contains the same bits of the given segment.
+func (seg *MACAddressSegment) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.init().addressSegmentInternal.PrefixContains(other, prefixLength)
+}
+
+// PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
+func (seg *MACAddressSegment) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.init().addressSegmentInternal.PrefixEqual(other, prefixLength)
+}
+
 func (seg *MACAddressSegment) Compare(item AddressItem) int {
 	return CountComparator.Compare(seg, item)
 }
@@ -179,6 +189,35 @@ func (seg *MACAddressSegment) GetCount() *big.Int {
 		return bigZero()
 	}
 	return seg.getCount()
+}
+
+func (seg *MACAddressSegment) GetBytes() []byte {
+	return seg.init().addressSegmentInternal.GetBytes()
+}
+
+func (seg *MACAddressSegment) GetUpperBytes() []byte {
+	return seg.init().addressSegmentInternal.GetUpperBytes()
+}
+
+func (seg *MACAddressSegment) CopyBytes(bytes []byte) []byte {
+	return seg.init().addressSegmentInternal.CopyBytes(bytes)
+}
+
+func (seg *MACAddressSegment) CopyUpperBytes(bytes []byte) []byte {
+	return seg.init().addressSegmentInternal.CopyUpperBytes(bytes)
+}
+
+func (seg *MACAddressSegment) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
+	return seg.init().addressSegmentInternal.GetPrefixCountLen(segmentPrefixLength)
+}
+
+func (seg *MACAddressSegment) GetPrefixValueCountLen(segmentPrefixLength BitCount) SegIntCount {
+	return seg.init().addressSegmentInternal.GetPrefixValueCountLen(segmentPrefixLength)
+}
+
+// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+func (seg *MACAddressSegment) IsOneBit(segmentBitIndex BitCount) bool {
+	return seg.init().addressSegmentInternal.IsOneBit(segmentBitIndex)
 }
 
 func (seg *MACAddressSegment) setString(

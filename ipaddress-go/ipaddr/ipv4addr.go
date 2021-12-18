@@ -528,7 +528,7 @@ func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
 
-func (addr *IPv4Address) PrefixEquals(other AddressType) bool {
+func (addr *IPv4Address) PrefixEqual(other AddressType) bool {
 	return addr.init().prefixEquals(other)
 }
 

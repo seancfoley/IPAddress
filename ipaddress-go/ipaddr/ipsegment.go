@@ -61,7 +61,7 @@ func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 }
 
 func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
-	prefixLength := seg.GetSegmentPrefixLen() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
+	prefixLength := seg.GetSegmentPrefixLen()
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
@@ -73,7 +73,7 @@ func (seg *ipAddressSegmentInternal) GetSegmentPrefixLen() PrefixLen {
 }
 
 func (seg *ipAddressSegmentInternal) MatchesWithPrefixMask(value SegInt, networkBits BitCount) bool {
-	mask := seg.GetSegmentNetworkMask(networkBits) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
+	mask := seg.GetSegmentNetworkMask(networkBits)
 	matchingValue := value & mask
 	return matchingValue == (seg.GetSegmentValue()&mask) && matchingValue == (seg.GetUpperSegmentValue()&mask)
 }
@@ -108,7 +108,7 @@ func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostM
 	return
 }
 
-// GetBlockMaskPrefixLength returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
+// GetBlockMaskPrefixLen returns the prefix length if this address section is equivalent to the mask for a CIDR prefix block.
 // Otherwise, it returns null.
 // A CIDR network mask is an address with all 1s in the network section and then all 0s in the host section.
 // A CIDR host mask is an address with all 0s in the network section and then all 1s in the host section.
@@ -120,12 +120,13 @@ func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostM
 // section of any other address.  Therefore the two values can be different values, or one can be null while the other is not.
 //
 // This method applies only to the lower value of the range if this section represents multiple values.
-func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) PrefixLen {
-	hostLength := seg.GetTrailingBitCount(network) //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
+func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLen(network bool) PrefixLen {
+	hostLength := seg.GetTrailingBitCount(!network)
 	var shifted SegInt
 	val := seg.GetSegmentValue()
 	if network {
-		shifted = (^val & seg.GetMaxValue()) >> uint(hostLength)
+		maxVal := seg.GetMaxValue()
+		shifted = (^val & maxVal) >> uint(hostLength)
 	} else {
 		shifted = val >> uint(hostLength)
 	}
@@ -141,13 +142,14 @@ func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLength(network bool) Pref
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
 func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
-	val := seg.GetSegmentValue() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
+	val := seg.GetSegmentValue()
 	if ones {
 		// trailing ones
 		return BitCount(bits.TrailingZeros32(uint32(^val)))
 	}
 	//trailing zeros
-	return BitCount(bits.TrailingZeros32(uint32(val | (^SegInt(0) << uint(seg.GetBitCount())))))
+	bitCount := uint(seg.GetBitCount())
+	return BitCount(bits.TrailingZeros32(uint32(val | (1 << bitCount))))
 }
 
 //	GetLeadingBitCount returns the number of consecutive leading one or zero bits.
@@ -156,7 +158,7 @@ func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
 //
 // This method applies only to the lower value of the range if this segment represents multiple values.
 func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
-	extraLeading := 32 - seg.GetBitCount() //TODO must override this method in ipv4/6/mac because otherwise bit count will be wrong with values initialized
+	extraLeading := 32 - seg.GetBitCount()
 	val := seg.GetSegmentValue()
 	if ones {
 		//leading ones

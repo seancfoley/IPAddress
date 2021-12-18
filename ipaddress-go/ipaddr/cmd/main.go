@@ -384,7 +384,38 @@ func main() {
 
 	s := ipaddr.IPv4AddressSegment{}
 	res := s.PrefixContains(&s, 6)
-	fmt.Printf(`Zero seg pref contains %v\n`, res)
+	fmt.Printf("Zero seg pref contains %v\n", res)
+
+	// check is we need to "override" methods like ToHexString
+	str, _ = ipaddr.NewIPv4Segment(3).ToHexString(true)
+	fmt.Println("leading zeros?  Hope not: " + str)
+	str, _ = (&ipaddr.IPv4AddressSegment{}).ToHexString(true)
+	fmt.Println("leading zeros?  Hope not: " + str)
+
+	// check is we need to "override" methods like ToNormalizedString
+	str = ipaddr.NewIPv4Segment(3).ToNormalizedString()
+	fmt.Println("leading zeros?  Hope not: " + str)
+	str = (&ipaddr.IPv4AddressSegment{}).ToNormalizedString()
+	fmt.Println("leading zeros?  Hope not: " + str)
+
+	sega := ipaddr.NewIPv4Segment(128)
+	segb := ipaddr.NewIPv4Segment(127)
+	seg1 := ipaddr.NewIPv4Segment(3)
+	seg2 := ipaddr.NewIPv4Segment(0)
+	seg3 := &ipaddr.IPv4AddressSegment{}
+
+	fmt.Printf("compare values: 1? %v nil? %v nil? %v 0? %v 0? %v nil? %v 1? %v 6? %v 8? %v 8? %v\n",
+		sega.GetBlockMaskPrefixLen(true),  // should be 1
+		segb.GetBlockMaskPrefixLen(true),  // should be nil
+		seg1.GetBlockMaskPrefixLen(true),  // should be nil
+		seg2.GetBlockMaskPrefixLen(true),  // should be 0 - either 0 or nil
+		seg3.GetBlockMaskPrefixLen(true),  // should be 0 - either 0 or nil
+		sega.GetBlockMaskPrefixLen(false), // should be nil
+		segb.GetBlockMaskPrefixLen(false), // should be 1
+		seg1.GetBlockMaskPrefixLen(false), // should be 6
+		seg2.GetBlockMaskPrefixLen(false), // should be 8 - either 8 or nil
+		seg3.GetBlockMaskPrefixLen(false), // should be 8 - either 8 or nil
+	)
 
 	fmt.Printf("\n\n")
 	//_ = getDoc()

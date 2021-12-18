@@ -284,7 +284,7 @@ type AddressType interface {
 	Contains(AddressType) bool
 	CompareSize(AddressType) int
 
-	PrefixEquals(AddressType) bool
+	PrefixEqual(AddressType) bool
 	PrefixContains(AddressType) bool
 
 	ToAddress() *Address

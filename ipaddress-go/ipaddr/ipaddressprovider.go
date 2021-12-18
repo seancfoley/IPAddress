@@ -844,9 +844,9 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //			IPAddressNetwork<?, ?, ?, ?, ?> network = adjustedVersion.IsIPv4() ?
 //					options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
 //			IPAddress mask = getProviderMask();
-//			if(mask != null && mask.getBlockMaskPrefixLength(true) == null) {
+//			if(mask != null && mask.getBlockMaskPrefixLen(true) == null) {
 //				// there is a mask
-//				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLength(false);
+//				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLen(false);
 //				if(hostMaskPrefixLen == null) { // not a host mask
 //					throw new IncompatibleAddressError(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
 //				}
