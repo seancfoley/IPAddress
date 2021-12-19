@@ -472,23 +472,23 @@ func (addr *IPv4Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *IPv4Address) GetIP() net.IP {
+func (addr *IPv4Address) GetNetIP() net.IP {
 	return addr.GetBytes()
 }
 
-func (addr *IPv4Address) CopyIP(ip net.IP) net.IP {
-	if ipv4 := ip.To4(); ipv4 != nil {
+func (addr *IPv4Address) CopyNetIP(ip net.IP) net.IP {
+	if ipv4 := ip.To4(); ipv4 != nil { // this shrinks the arg to 4 bytes if it was 16
 		ip = ipv4
 	}
 	return addr.CopyBytes(ip)
 }
 
-func (addr *IPv4Address) GetUpperIP() net.IP {
+func (addr *IPv4Address) GetUpperNetIP() net.IP {
 	return addr.GetUpperBytes()
 }
 
-func (addr *IPv4Address) CopyUpperIP(ip net.IP) net.IP {
-	if ipv4 := ip.To4(); ipv4 != nil {
+func (addr *IPv4Address) CopyUpperNetIP(ip net.IP) net.IP {
+	if ipv4 := ip.To4(); ipv4 != nil { // this shrinks the arg to 4 bytes if it was 16
 		ip = ipv4
 	}
 	return addr.CopyUpperBytes(ip)

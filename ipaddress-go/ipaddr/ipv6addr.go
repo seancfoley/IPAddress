@@ -785,26 +785,26 @@ func (addr *IPv6Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *IPv6Address) GetIPAddr() net.IPAddr {
+func (addr *IPv6Address) GetNetIPAddr() net.IPAddr {
 	return net.IPAddr{
-		IP:   addr.GetIP(),
+		IP:   addr.GetNetIP(),
 		Zone: string(addr.GetZone()),
 	}
 }
 
-func (addr *IPv6Address) GetIP() net.IP {
+func (addr *IPv6Address) GetNetIP() net.IP {
 	return addr.GetBytes()
 }
 
-func (addr *IPv6Address) CopyIP(bytes net.IP) net.IP {
+func (addr *IPv6Address) CopyNetIP(bytes net.IP) net.IP {
 	return addr.CopyBytes(bytes)
 }
 
-func (addr *IPv6Address) GetUpperIP() net.IP {
+func (addr *IPv6Address) GetUpperNetIP() net.IP {
 	return addr.GetUpperBytes()
 }
 
-func (addr *IPv6Address) CopyUpperIP(bytes net.IP) net.IP {
+func (addr *IPv6Address) CopyUpperNetIP(bytes net.IP) net.IP {
 	return addr.CopyUpperBytes(bytes)
 }
 

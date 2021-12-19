@@ -744,43 +744,31 @@ func (addr *IPAddress) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *IPAddress) GetIPAddr() net.IPAddr {
+func (addr *IPAddress) GetNetIPAddr() net.IPAddr {
 	return net.IPAddr{
-		IP:   addr.GetIP(),
+		IP:   addr.GetNetIP(),
 		Zone: string(addr.zone),
 	}
 }
 
-//TODO think about making this ToIP() to match toInetAddress() in Java - we also suggested changing GetBytes to just Bytes().
-//But I am also thinking of renaming ToIPAddress to ToIP.
-//Maybe use toNetIP?  Need a way to differentiate the two.
-// I think I want to make ToIPAddress() into ToIP(), so this thing here needs a different name.
-// GetGolangIP() ?  BytesIP()?  I think bytesIP is pretty good!  Yeah.  And CopyBytesIP, UpperBytesIP, and CopyUpperBytesIP
-// NetIP()? CopyNetIP()? now I think I like this one better
-//
-// For the other I've settled on ToAddrBase, ToIP, ToIPv6, ToMac.  So for here, maybe keep it as Get, maybe GetNetIp()
-// GetNetIPAddr
-//Then change all the constructors that take net.IP or net.IPAddr or other - NAH
-// But you do have to change these same methods in the range types and in the framework
-
-func (addr *IPAddress) GetIP() net.IP {
+func (addr *IPAddress) GetNetIP() net.IP {
 	return addr.GetBytes()
 }
 
-func (addr *IPAddress) CopyIP(ip net.IP) net.IP {
+func (addr *IPAddress) CopyNetIP(ip net.IP) net.IP {
 	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
-		return ipv4Addr.CopyBytes(ip)
+		return ipv4Addr.CopyNetIP(ip) // this shrinks the arg to 4 bytes if it was 16, we need only 4
 	}
 	return addr.CopyBytes(ip)
 }
 
-func (addr *IPAddress) GetUpperIP() net.IP {
+func (addr *IPAddress) GetUpperNetIP() net.IP {
 	return addr.GetUpperBytes()
 }
 
-func (addr *IPAddress) CopyUpperIP(ip net.IP) net.IP {
+func (addr *IPAddress) CopyUpperNetIP(ip net.IP) net.IP {
 	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
-		return ipv4Addr.CopyBytes(ip)
+		return ipv4Addr.CopyUpperNetIP(ip) // this shrinks the arg to 4 bytes if it was 16, we need only 4
 	}
 	return addr.CopyUpperBytes(ip)
 }
@@ -897,7 +885,7 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 	return addr
 }
 
-//TODO maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+// maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
 // BUT remember I am also consider renaming GetIP to ToIP()
 // This also makes sense because "ToIPv6Address" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
 // Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
@@ -921,11 +909,8 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 // ToUniform is good
 // ToGeneric?  ToGenericAddr?
 //
-// I think I have settled on ToAddressBase, ToSectionBase, ToSegmentBase, ToDivGrouping, ToDiv
-// ToIPv6, ToMAC, ToIP()
-//
-// and I think I want to change the other names to GetNetIp, CopyNetIp, GetUpperNetIp, CopyUpperNetIp, GetNetIPAddr
-// and whether I do the same for all constructors of the form "...FromIP..." I am not sure - maybe, since it adds only 3 letters
+// TODO I think I have settled on ToAddressBase, ToSectionBase, ToSegmentBase, ToDivGrouping, ToDiv
+// ToIPv6, ToIPv4, ToMAC, ToIP()
 //
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
@@ -1651,22 +1636,22 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 	return NewIPAddressFromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
 }
 
-func NewIPAddressFromIPMask(ip net.IPMask) *IPAddress {
+func NewIPAddressFromNetIPMask(ip net.IPMask) *IPAddress {
 	addr, _ := addrFromBytes(ip)
 	return addr
 }
 
-func NewIPAddressFromIP(ip net.IP) *IPAddress {
+func NewIPAddressFromNetIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
 	return addr
 }
 
-func NewIPAddressFromPrefixedIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
+func NewIPAddressFromPrefixedNetIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
 	addr, _ := addrFromPrefixedIP(ip, prefixLength)
 	return addr
 }
 
-func NewIPAddressFromIPAddr(addr *net.IPAddr) *IPAddress {
+func NewIPAddressFromNetIPAddr(addr *net.IPAddr) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
@@ -1681,7 +1666,7 @@ func NewIPAddressFromIPAddr(addr *net.IPAddr) *IPAddress {
 	return nil
 }
 
-func NewIPAddressFromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
+func NewIPAddressFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
@@ -1696,7 +1681,7 @@ func NewIPAddressFromPrefixedIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *I
 	return nil
 }
 
-func NewIPAddressFromIPNet(ipnet net.IPNet) (*IPAddress, IncompatibleAddressError) {
+func NewIPAddressFromNetIPNet(ipnet net.IPNet) (*IPAddress, IncompatibleAddressError) {
 	ip := ipnet.IP
 	maskIp := ipnet.Mask
 	if ipv4 := ip.To4(); ipv4 != nil {
@@ -1709,7 +1694,7 @@ func NewIPAddressFromIPNet(ipnet net.IPNet) (*IPAddress, IncompatibleAddressErro
 	if addr == nil {
 		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
 	}
-	mask := NewIPAddressFromIPMask(maskIp)
+	mask := NewIPAddressFromNetIPMask(maskIp)
 	if mask == nil {
 		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
 	} else if !addr.GetIPVersion().Equal(mask.GetIPVersion()) {

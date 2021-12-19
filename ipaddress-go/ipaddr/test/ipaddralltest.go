@@ -365,14 +365,14 @@ func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
 		copy(bytes[len(bytes)-len(bigIntBytes):], bigIntBytes)
 		bigIntBytes = bytes
 	}
-	andAgain := ipaddr.NewIPAddressFromIP(bigIntBytes)
+	andAgain := ipaddr.NewIPAddressFromNetIP(bigIntBytes)
 	if !andAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
 	}
 
 	// byte[] and back
 	bytes := addr.GetBytes()
-	backAgain := ipaddr.NewIPAddressFromIP(bytes)
+	backAgain := ipaddr.NewIPAddressFromNetIP(bytes)
 	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
 	}
@@ -397,14 +397,14 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 		copy(bytes[len(bytes)-len(bigIntBytes):], bigIntBytes)
 		bigIntBytes = bytes
 	}
-	andAgain := ipaddr.NewIPAddressFromIP(bigIntBytes)
+	andAgain := ipaddr.NewIPAddressFromNetIP(bigIntBytes)
 	if !andAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("BigInteger result was "+andAgain.String()+" original was "+addr.String(), addr))
 	}
 
 	// byte[] and back
 	bytes := addr.GetBytes()
-	backAgain := ipaddr.NewIPAddressFromIP(bytes)
+	backAgain := ipaddr.NewIPAddressFromNetIP(bytes)
 	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
 	}

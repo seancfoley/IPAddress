@@ -767,21 +767,21 @@ func (rng *IPAddressSeqRange) GetByteCount() int {
 }
 
 // GetIP returns the lower IP address in the range as a net.IP
-func (rng *IPAddressSeqRange) GetIP() net.IP {
-	return rng.GetBytes()
+func (rng *IPAddressSeqRange) GetNetIP() net.IP {
+	return rng.GetLower().GetNetIP()
 }
 
-func (rng *IPAddressSeqRange) CopyIP(bytes net.IP) net.IP {
-	return rng.GetLower().CopyIP(bytes)
+func (rng *IPAddressSeqRange) CopyNetIP(bytes net.IP) net.IP {
+	return rng.GetLower().CopyNetIP(bytes) // this changes the arg to 4 bytes if 16 bytes and ipv4
 }
 
 // GetUpperIP returns the upper IP address in the range as a net.IP
-func (rng *IPAddressSeqRange) GetUpperIP() net.IP {
-	return rng.GetUpperBytes()
+func (rng *IPAddressSeqRange) GetUpperNetIP() net.IP {
+	return rng.GetUpper().GetUpperNetIP()
 }
 
-func (rng *IPAddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
-	return rng.GetUpper().CopyUpperIP(bytes)
+func (rng *IPAddressSeqRange) CopyUpperNetIP(bytes net.IP) net.IP {
+	return rng.GetUpper().CopyUpperNetIP(bytes) // this changes the arg to 4 bytes if 16 bytes and ipv4
 }
 
 func (rng *IPAddressSeqRange) GetBytes() []byte {

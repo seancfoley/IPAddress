@@ -2917,7 +2917,7 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 			failed = true
 		}
 		bytesToUse := make([]byte, ipaddr.IPv6ByteCount)
-		b2 = addr.GetLower().CopyIP(bytesToUse)
+		b2 = addr.GetLower().CopyNetIP(bytesToUse)
 		if !bytes.Equal(b, b2) {
 			t.addFailure(newIPAddrFailure("bytes on addr "+addr.String(), addr.ToIPAddress()))
 			failed = true
@@ -2972,7 +2972,7 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	}
 
 	bytesToUse = make([]byte, ipaddr.IPv6ByteCount)
-	b4 = addr.CopyIP(bytesToUse)
+	b4 = addr.CopyNetIP(bytesToUse)
 	if !bytes.Equal(inetAddress, b4) {
 		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
 	}
@@ -3271,9 +3271,9 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		// if address.IsIPv4() {
 		//ipaddr.IPv4Network.
 		if network {
-			another = ipaddr.NewIPAddressFromPrefixedIP(bytes, cacheTestBits(prefixBits))
+			another = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, cacheTestBits(prefixBits))
 		} else {
-			another = ipaddr.NewIPAddressFromIP(bytes)
+			another = ipaddr.NewIPAddressFromNetIP(bytes)
 			if another.IsIPv4() && prefixBits > ipaddr.IPv4BitCount {
 				// ::ffff:ffff:ffff is interpreted as IPv4-mapped and gives the IPv4 address 255.255.255.255, so we flip it back to IPv6
 				another = ipaddr.DefaultAddressConverter{}.ToIPv6(another).ToIPAddress()
@@ -5383,7 +5383,7 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 				j += bytesPerSegment
 			}
 			//directAddress = creator.NewIPAddressFromPrefixedIP(bytes, pref)
-			directAddress = ipaddr.NewIPAddressFromPrefixedIP(bytes, pref)
+			directAddress = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, pref)
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]

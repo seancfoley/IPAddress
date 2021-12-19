@@ -97,20 +97,20 @@ func (rng *IPv6AddressSeqRange) GetUpper() *IPv6Address {
 	return rng.init().upper.ToIPv6Address()
 }
 
-func (rng *IPv6AddressSeqRange) GetIP() net.IP {
-	return rng.GetBytes()
+func (rng *IPv6AddressSeqRange) GetNetIP() net.IP {
+	return rng.GetLower().GetNetIP()
 }
 
-func (rng *IPv6AddressSeqRange) CopyIP(bytes net.IP) net.IP {
-	return rng.GetLower().CopyIP(bytes)
+func (rng *IPv6AddressSeqRange) CopyNetIP(bytes net.IP) net.IP {
+	return rng.GetLower().CopyNetIP(bytes)
 }
 
-func (rng *IPv6AddressSeqRange) GetUpperIP() net.IP {
-	return rng.GetUpperBytes()
+func (rng *IPv6AddressSeqRange) GetUpperNetIP() net.IP {
+	return rng.GetUpper().GetUpperNetIP()
 }
 
-func (rng *IPv6AddressSeqRange) CopyUpperIP(bytes net.IP) net.IP {
-	return rng.GetUpper().CopyUpperIP(bytes)
+func (rng *IPv6AddressSeqRange) CopyUpperNetIP(bytes net.IP) net.IP {
+	return rng.GetUpper().CopyUpperNetIP(bytes)
 }
 
 func (rng *IPv6AddressSeqRange) GetBytes() []byte {

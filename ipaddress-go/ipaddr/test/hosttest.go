@@ -865,7 +865,7 @@ func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortNum) *ne
 		zone = addr.ToIPv6Address().GetZone()
 	}
 	return &net.TCPAddr{
-		IP:   addr.GetIP(),
+		IP:   addr.GetNetIP(),
 		Port: int(expectedPort),
 		Zone: string(zone),
 	} //new InetSocketAddress(h.asInetAddress(), expectedPort);
@@ -891,7 +891,7 @@ func (t hostTester) testHostInetSocketAddressService(host string, serviceMapper 
 
 func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(string) ipaddr.Port, expected *net.TCPAddr) {
 	h := t.createHost(host)
-	socketAddr := h.ToTCPAddrService(serviceMapper)
+	socketAddr := h.ToNetTCPAddrService(serviceMapper)
 	//InetSocketAddress socketAddr = h.asInetSocketAddress(serviceMapper);
 
 	if socketAddr == nil && expected == nil {
@@ -901,7 +901,7 @@ func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(
 		t.addFailure(newHostFailure("socket address mismatch, expected: "+expected.String()+" result: "+socketAddr.String(), h))
 	}
 	if socketAddr != nil && h.GetService() == "" {
-		h2 := ipaddr.NewHostNameFromTCPAddr(socketAddr)
+		h2 := ipaddr.NewHostNameFromNetTCPAddr(socketAddr)
 		if !h.Equal(h2) {
 			t.addFailure(newHostFailure("socket address mismatch, expected: "+h.String()+" result: "+h2.String(), h))
 		}
@@ -989,12 +989,12 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 				}
 			} else if expectedZone == "" {
 				if prefixLengthExpected == nil {
-					h2 := ipaddr.NewHostNameFromIP(addrHost.GetIP())
+					h2 := ipaddr.NewHostNameFromNetIP(addrHost.GetNetIP())
 					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}
 				} else {
-					h2 := ipaddr.NewHostNameFromPrefixedIP(addrHost.GetIP(), prefixLengthExpected)
+					h2 := ipaddr.NewHostNameFromPrefixedNetIP(addrHost.GetNetIP(), prefixLengthExpected)
 					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}

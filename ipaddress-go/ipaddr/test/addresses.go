@@ -148,7 +148,7 @@ func (t *addresses) createInetAtonAddress(str string) *ipaddr.IPAddressString {
 }
 
 func (t *addresses) createAddressFromIP(ip net.IP) *ipaddr.IPAddress {
-	return ipaddr.NewIPAddressFromIP(ip)
+	return ipaddr.NewIPAddressFromNetIP(ip)
 }
 
 func (t *addresses) createIPv4Address(val uint32) *ipaddr.IPv4Address {

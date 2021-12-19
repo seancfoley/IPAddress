@@ -76,11 +76,11 @@ type ipAddressRange interface {
 	GetLowerIPAddress() *IPAddress
 	GetUpperIPAddress() *IPAddress
 
-	CopyIP(bytes net.IP) net.IP
-	CopyUpperIP(bytes net.IP) net.IP
+	CopyNetIP(bytes net.IP) net.IP
+	CopyUpperNetIP(bytes net.IP) net.IP
 
-	GetIP() net.IP
-	GetUpperIP() net.IP
+	GetNetIP() net.IP
+	GetUpperNetIP() net.IP
 }
 
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
@@ -124,8 +124,6 @@ type AddressDivisionSeries interface {
 	IsSinglePrefixBlock() bool
 	IsPrefixed() bool
 	GetPrefixLen() PrefixLen
-
-	//CompareSize(AddressDivisionSeries) int xxxx
 
 	GetGenericDivision(index int) DivisionType // useful for comparisons
 }

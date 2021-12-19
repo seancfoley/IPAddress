@@ -66,16 +66,16 @@ func newHostNameFromAddr(hostStr string, addr *IPAddress) *HostName { // same as
 	}
 }
 
-func NewHostNameFromTCPAddr(addr *net.TCPAddr) *HostName {
+func NewHostNameFromNetTCPAddr(addr *net.TCPAddr) *HostName {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
-func NewHostNameFromUDPAddr(addr *net.UDPAddr) *HostName {
+func NewHostNameFromNetUDPAddr(addr *net.UDPAddr) *HostName {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
 func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName) {
-	ipAddr := NewIPAddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+	ipAddr := NewIPAddressFromNetIPAddr(&net.IPAddr{IP: ip, Zone: zone})
 	//var ipAddr *IPAddress
 	//if zone == NoZone {
 	//	ipAddr = NewIPAddressFromIP(ip)
@@ -101,24 +101,24 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 	return
 }
 
-func NewHostNameFromIP(bytes net.IP) (hostName *HostName) {
-	addr := NewIPAddressFromIP(bytes)
+func NewHostNameFromNetIP(bytes net.IP) (hostName *HostName) {
+	addr := NewIPAddressFromNetIP(bytes)
 	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
 	return
 }
 
-func NewHostNameFromPrefixedIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName) {
-	addr := NewIPAddressFromPrefixedIP(bytes, prefixLen)
+func NewHostNameFromPrefixedNetIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName) {
+	addr := NewIPAddressFromPrefixedNetIP(bytes, prefixLen)
 	if addr != nil {
 		hostName = NewHostNameFromAddr(addr)
 	}
 	return
 }
 
-func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName) {
-	ipAddr := NewIPAddressFromIPAddr(addr)
+func NewHostNameFromNetIPAddr(addr *net.IPAddr) (hostName *HostName) {
+	ipAddr := NewIPAddressFromNetIPAddr(addr)
 	if ipAddr != nil {
 		hostName = NewHostNameFromAddr(ipAddr)
 	}
@@ -132,8 +132,8 @@ func NewHostNameFromIPAddr(addr *net.IPAddr) (hostName *HostName) {
 	return
 }
 
-func NewHostNameFromPrefixedIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName) {
-	ipAddr := NewIPAddressFromPrefixedIPAddr(addr, prefixLen)
+func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName) {
+	ipAddr := NewIPAddressFromPrefixedNetIPAddr(addr, prefixLen)
 	if ipAddr != nil {
 		hostName = NewHostNameFromAddr(ipAddr)
 	}
@@ -732,7 +732,7 @@ func (host *HostName) IsLoopback() bool {
 }
 
 // ToTCPAddrService returns the TCPAddr if this HostName both resolves to an address and has an associated service or port
-func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCPAddr {
+func (host *HostName) ToNetTCPAddrService(serviceMapper func(string) Port) *net.TCPAddr {
 	if host.IsValid() {
 		port := host.GetPort()
 		if port == nil && serviceMapper != nil {
@@ -744,7 +744,7 @@ func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCP
 		if port != nil {
 			if addr := host.GetAddress(); addr != nil {
 				return &net.TCPAddr{
-					IP:   addr.GetIP(),
+					IP:   addr.GetNetIP(),
 					Port: int(*port),
 					Zone: string(addr.zone),
 				}
@@ -756,13 +756,13 @@ func (host *HostName) ToTCPAddrService(serviceMapper func(string) Port) *net.TCP
 
 // ToTCPAddr returns the TCPAddr if this HostName both resolves to an address and has an associated port.
 // Otherwise, it returns nil.
-func (host *HostName) ToTCPAddr() *net.TCPAddr {
-	return host.ToTCPAddrService(nil)
+func (host *HostName) ToNetTCPAddr() *net.TCPAddr {
+	return host.ToNetTCPAddrService(nil)
 }
 
 // ToUDPAddrService returns the UDPAddr if this HostName both resolves to an address and has an associated service or port
-func (host *HostName) ToUDPAddrService(serviceMapper func(string) Port) *net.UDPAddr {
-	tcpAddr := host.ToTCPAddrService(serviceMapper)
+func (host *HostName) ToNetUDPAddrService(serviceMapper func(string) Port) *net.UDPAddr {
+	tcpAddr := host.ToNetTCPAddrService(serviceMapper)
 	if tcpAddr != nil {
 		return &net.UDPAddr{
 			IP:   tcpAddr.IP,
@@ -774,21 +774,21 @@ func (host *HostName) ToUDPAddrService(serviceMapper func(string) Port) *net.UDP
 }
 
 // ToUDPAddr returns the UDPAddr if this HostName both resolves to an address and has an associated port
-func (host *HostName) ToUDPAddr(serviceMapper func(string) Port) *net.UDPAddr {
-	return host.ToUDPAddrService(serviceMapper)
+func (host *HostName) ToNetUDPAddr(serviceMapper func(string) Port) *net.UDPAddr {
+	return host.ToNetUDPAddrService(serviceMapper)
 }
 
-func (host *HostName) ToIP() net.IP {
+func (host *HostName) ToNetIP() net.IP {
 	if addr, err := host.ToAddress(); addr != nil && err == nil {
-		return addr.GetIP()
+		return addr.GetNetIP()
 	}
 	return nil
 }
 
-func (host *HostName) ToIPAddr() *net.IPAddr {
+func (host *HostName) ToNetIPAddr() *net.IPAddr {
 	if addr, err := host.ToAddress(); addr != nil && err == nil {
 		return &net.IPAddr{
-			IP:   addr.GetIP(),
+			IP:   addr.GetNetIP(),
 			Zone: string(addr.zone),
 		}
 	}
