@@ -378,11 +378,11 @@ func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
 	}
 
 	// IPv4 int and back
-	addrv4 := addr.ToIPv4Address()
+	addrv4 := addr.ToIPv4()
 	val := addrv4.Uint32Value()
 	backAgainv4 := ipaddr.NewIPv4AddressFromUint32(val)
 	if !backAgainv4.Equal(addrv4) {
-		t.addFailure(newIPAddrFailure("int result was "+backAgainv4.String()+" original was "+addrv4.String(), addrv4.ToIPAddress()))
+		t.addFailure(newIPAddrFailure("int result was "+backAgainv4.String()+" original was "+addrv4.String(), addrv4.ToIP()))
 	}
 }
 
@@ -410,13 +410,13 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 	}
 
 	// IPv6 BigInteger and back
-	addrv6 := addr.ToIPv6Address()
+	addrv6 := addr.ToIPv6()
 	value = addrv6.GetValue()
 	backAgainv6, err := ipaddr.NewIPv6AddressFromInt(value)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("got error creating from bytes "+value.String()+" err: "+err.Error(), addr))
 	} else if !backAgainv6.Equal(addrv6) {
-		t.addFailure(newIPAddrFailure("int result was "+backAgainv6.String()+" original was "+addrv6.String(), addrv6.ToIPAddress()))
+		t.addFailure(newIPAddrFailure("int result was "+backAgainv6.String()+" original was "+addrv6.String(), addrv6.ToIP()))
 	}
 }
 

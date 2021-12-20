@@ -3336,8 +3336,8 @@ func (t ipAddressRangeTester) testIPv4IPAddrStrings(w *ipaddr.IPAddressString, i
 		singleHex, singleOctal)
 
 	//now test some IPv4-only strings
-	t.testIPv4OnlyStrings(w, ipAddr.ToIPv4Address(), octalString, hexString)
-	t.testInetAtonCombos(w, ipAddr.ToIPv4Address())
+	t.testIPv4OnlyStrings(w, ipAddr.ToIPv4(), octalString, hexString)
+	t.testInetAtonCombos(w, ipAddr.ToIPv4())
 }
 
 func (t ipAddressRangeTester) testIPv4OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPv4Address, octalString, hexString string) {
@@ -4834,20 +4834,20 @@ func (t ipAddressRangeTester) testFmtStringsIP(
 	for i := 0; i < 14; i++ {
 		ipaddrs1 = append(ipaddrs1, ipAddress)
 		ipaddrs2 = append(ipaddrs2, *ipAddress)
-		ipaddrs3 = append(ipaddrs3, ipAddress.ToAddress())
-		ipaddrs4 = append(ipaddrs4, *ipAddress.ToAddress())
+		ipaddrs3 = append(ipaddrs3, ipAddress.ToAddressBase())
+		ipaddrs4 = append(ipaddrs4, *ipAddress.ToAddressBase())
 		slice1 = append(slice1, *ipAddress)
 		slice2 = append(slice2, ipAddress)
-		slice3 = append(slice3, *ipAddress.ToAddress())
-		slice4 = append(slice4, ipAddress.ToAddress())
+		slice3 = append(slice3, *ipAddress.ToAddressBase())
+		slice4 = append(slice4, ipAddress.ToAddressBase())
 		if i%4 == 0 {
 			slice5 = append(slice5, *ipAddress)
 		} else if i%4 == 1 {
 			slice5 = append(slice5, ipAddress)
 		} else if i%4 == 2 {
-			slice5 = append(slice5, *ipAddress.ToAddress())
+			slice5 = append(slice5, *ipAddress.ToAddressBase())
 		} else if i%4 == 3 {
-			slice5 = append(slice5, ipAddress.ToAddress())
+			slice5 = append(slice5, ipAddress.ToAddressBase())
 		}
 		expectedDefaults += ipAddress.String()
 		if i < 13 {

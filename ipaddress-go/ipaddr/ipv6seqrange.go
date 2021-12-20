@@ -12,7 +12,7 @@ func NewIPv6SeqRange(one, two *IPv6Address) *IPv6AddressSeqRange {
 	}
 	one = one.WithoutZone()
 	two = two.WithoutZone()
-	return newSeqRange(one.ToIPAddress(), two.ToIPAddress()).ToIPv6SequentialRange()
+	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv6SequentialRange()
 }
 
 var zeroIPv6Range = NewIPv6SeqRange(zeroIPv6, zeroIPv6)
@@ -56,11 +56,11 @@ func (rng *IPv6AddressSeqRange) ToString(lowerStringer func(*IPv6Address) string
 	}
 	return rng.init().toString(
 		func(addr *IPAddress) string {
-			return lowerStringer(addr.ToIPv6Address())
+			return lowerStringer(addr.ToIPv6())
 		},
 		separator,
 		func(addr *IPAddress) string {
-			return upperStringer(addr.ToIPv6Address())
+			return upperStringer(addr.ToIPv6())
 		},
 	)
 }
@@ -90,11 +90,11 @@ func (rng *IPv6AddressSeqRange) GetUpperIPAddress() *IPAddress {
 }
 
 func (rng *IPv6AddressSeqRange) GetLower() *IPv6Address {
-	return rng.init().lower.ToIPv6Address()
+	return rng.init().lower.ToIPv6()
 }
 
 func (rng *IPv6AddressSeqRange) GetUpper() *IPv6Address {
-	return rng.init().upper.ToIPv6Address()
+	return rng.init().upper.ToIPv6()
 }
 
 func (rng *IPv6AddressSeqRange) GetNetIP() net.IP {
@@ -139,7 +139,7 @@ func (rng *IPv6AddressSeqRange) GetUpperValue() *big.Int {
 
 func (rng *IPv6AddressSeqRange) Contains(other IPAddressType) bool {
 	if rng == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return rng.init().contains(other)
 }
@@ -207,6 +207,7 @@ func (rng *IPv6AddressSeqRange) PrefixIterator(prefLength BitCount) IPv6AddressS
 	return &ipv6RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
+//TODO rename this one
 func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	if rng != nil {
 		rng = rng.init()

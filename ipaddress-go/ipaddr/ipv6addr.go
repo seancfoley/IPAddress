@@ -52,7 +52,7 @@ func (zone Zone) String() string {
 const NoZone = ""
 
 func newIPv6Address(section *IPv6AddressSection) *IPv6Address {
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv6Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv6()
 }
 
 func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueError) {
@@ -66,12 +66,12 @@ func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueErro
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv6Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv6(), nil
 }
 
 func newIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address {
 	zoneVal := Zone(zone)
-	result := createAddress(section.ToSectionBase(), zoneVal).ToIPv6Address()
+	result := createAddress(section.ToSectionBase(), zoneVal).ToIPv6()
 	assignIPv6Cache(zoneVal, result.cache)
 	return result
 }
@@ -480,11 +480,11 @@ func (addr *IPv6Address) GetHostSectionLen(prefLen BitCount) *IPv6AddressSection
 }
 
 func (addr *IPv6Address) GetNetworkMask() *IPv6Address {
-	return addr.getNetworkMask(IPv6Network).ToIPv6Address()
+	return addr.getNetworkMask(IPv6Network).ToIPv6()
 }
 
 func (addr *IPv6Address) GetHostMask() *IPv6Address {
-	return addr.getHostMask(IPv6Network).ToIPv6Address()
+	return addr.getHostMask(IPv6Network).ToIPv6()
 }
 
 func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping, IncompatibleAddressError) {
@@ -667,21 +667,21 @@ func (addr *IPv6Address) SpanWithRange(other *IPv6Address) *IPv6AddressSeqRange 
 }
 
 func (addr *IPv6Address) GetLower() *IPv6Address {
-	return addr.init().getLower().ToIPv6Address()
+	return addr.init().getLower().ToIPv6()
 }
 
 func (addr *IPv6Address) GetUpper() *IPv6Address {
-	return addr.init().getUpper().ToIPv6Address()
+	return addr.init().getUpper().ToIPv6()
 }
 
 // GetLowerIPAddress implements the IPAddressRange interface
 func (addr *IPv6Address) GetLowerIPAddress() *IPAddress {
-	return addr.GetLower().ToIPAddress()
+	return addr.GetLower().ToIP()
 }
 
 // GetUpperIPAddress implements the IPAddressRange interface
 func (addr *IPv6Address) GetUpperIPAddress() *IPAddress {
-	return addr.GetUpper().ToIPAddress()
+	return addr.GetUpper().ToIP()
 }
 
 func (addr *IPv6Address) IsZeroHostLen(prefLen BitCount) bool {
@@ -690,16 +690,16 @@ func (addr *IPv6Address) IsZeroHostLen(prefLen BitCount) bool {
 
 func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) ToZeroNetwork() *IPv6Address {
-	return addr.init().toZeroNetwork().ToIPv6Address()
+	return addr.init().toZeroNetwork().ToIPv6()
 }
 
 func (addr *IPv6Address) IsMaxHostLen(prefLen BitCount) bool {
@@ -708,57 +708,57 @@ func (addr *IPv6Address) IsMaxHostLen(prefLen BitCount) bool {
 
 func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) ToPrefixBlock() *IPv6Address {
-	return addr.init().toPrefixBlock().ToIPv6Address()
+	return addr.init().toPrefixBlock().ToIPv6()
 }
 
 func (addr *IPv6Address) ToPrefixBlockLen(prefLen BitCount) *IPv6Address {
-	return addr.init().toPrefixBlockLen(prefLen).ToIPv6Address()
+	return addr.init().toPrefixBlockLen(prefLen).ToIPv6()
 }
 
 func (addr *IPv6Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv6Address {
-	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv6Address()
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv6()
 }
 
 func (addr *IPv6Address) WithoutPrefixLen() *IPv6Address {
 	if !addr.IsPrefixed() {
 		return addr
 	}
-	return addr.init().withoutPrefixLen().ToIPv6Address()
+	return addr.init().withoutPrefixLen().ToIPv6()
 }
 
 func (addr *IPv6Address) SetPrefixLen(prefixLen BitCount) *IPv6Address {
-	return addr.init().setPrefixLen(prefixLen).ToIPv6Address()
+	return addr.init().setPrefixLen(prefixLen).ToIPv6()
 }
 
 func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) AdjustPrefixLen(prefixLen BitCount) *IPv6Address {
-	return addr.init().adjustPrefixLen(prefixLen).ToIPv6Address()
+	return addr.init().adjustPrefixLen(prefixLen).ToIPv6()
 }
 
 func (addr *IPv6Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
-	return res.ToIPv6Address(), err
+	return res.ToIPv6(), err
 }
 
 func (addr *IPv6Address) AssignPrefixForSingleBlock() *IPv6Address {
-	return addr.init().assignPrefixForSingleBlock().ToIPv6Address()
+	return addr.init().assignPrefixForSingleBlock().ToIPv6()
 }
 
 func (addr *IPv6Address) AssignMinPrefixForBlock() *IPv6Address {
-	return addr.init().assignMinPrefixForBlock().ToIPv6Address()
+	return addr.init().assignMinPrefixForBlock().ToIPv6()
 }
 
 func (addr *IPv6Address) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -851,18 +851,18 @@ func (addr *IPv6Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv6Address) Contains(other AddressType) bool {
-	if other == nil || other.ToAddress() == nil {
+	if other == nil || other.ToAddressBase() == nil {
 		return true
 	} else if addr == nil {
 		return false
 	}
 	addr = addr.init()
-	otherAddr := other.ToAddress()
-	if addr.ToAddress() == otherAddr {
+	otherAddr := other.ToAddressBase()
+	if addr.ToAddressBase() == otherAddr {
 		return true
 	}
 	return otherAddr.getAddrType() == ipv6Type && addr.section.sameCountTypeContains(otherAddr.GetSection()) &&
-		addr.isSameZone(other.ToAddress())
+		addr.isSameZone(other.ToAddressBase())
 }
 
 func (addr *IPv6Address) Compare(item AddressItem) int {
@@ -871,16 +871,16 @@ func (addr *IPv6Address) Compare(item AddressItem) int {
 
 func (addr *IPv6Address) Equal(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
-	return other.ToAddress().getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection()) &&
-		addr.isSameZone(other.ToAddress())
+	return other.ToAddressBase().getAddrType() == ipv6Type && addr.init().section.sameCountTypeEquals(other.ToAddressBase().GetSection()) &&
+		addr.isSameZone(other.ToAddressBase())
 }
 
 // CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *IPv6Address) CompareSize(other AddressType) int {
 	if addr == nil {
-		if other != nil && other.ToAddress() != nil {
+		if other != nil && other.ToAddressBase() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -923,7 +923,7 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 }
 
 func (addr *IPv6Address) ToAddressString() *IPAddressString {
-	return addr.init().ToIPAddress().ToAddressString()
+	return addr.init().ToIP().ToAddressString()
 }
 
 func (addr *IPv6Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
@@ -1133,11 +1133,11 @@ func (addr *IPv6Address) GetSequentialBlockCount() *big.Int {
 }
 
 func (addr *IPv6Address) IncrementBoundary(increment int64) *IPv6Address {
-	return addr.init().incrementBoundary(increment).ToIPv6Address()
+	return addr.init().incrementBoundary(increment).ToIPv6()
 }
 
 func (addr *IPv6Address) Increment(increment int64) *IPv6Address {
-	return addr.init().increment(increment).ToIPv6Address()
+	return addr.init().increment(increment).ToIPv6()
 }
 
 func (addr *IPv6Address) SpanWithPrefixBlocks() []*IPv6Address {
@@ -1145,19 +1145,19 @@ func (addr *IPv6Address) SpanWithPrefixBlocks() []*IPv6Address {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPv6Address{addr}
 		}
-		wrapped := WrapIPAddress(addr.ToIPAddress())
+		wrapped := WrapIPAddress(addr.ToIP())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv6Addrs(spanning)
 	}
-	wrapped := WrapIPAddress(addr.ToIPAddress())
+	wrapped := WrapIPAddress(addr.ToIP())
 	return cloneToIPv6Addrs(spanWithPrefixBlocks(wrapped))
 }
 
 func (addr *IPv6Address) SpanWithPrefixBlocksTo(other *IPv6Address) []*IPv6Address {
 	return cloneToIPv6Addrs(
 		getSpanningPrefixBlocks(
-			WrapIPAddress(addr.ToIPAddress()),
-			WrapIPAddress(other.ToIPAddress()),
+			WrapIPAddress(addr.ToIP()),
+			WrapIPAddress(other.ToIP()),
 		),
 	)
 }
@@ -1166,25 +1166,25 @@ func (addr *IPv6Address) SpanWithSequentialBlocks() []*IPv6Address {
 	if addr.IsSequential() {
 		return []*IPv6Address{addr}
 	}
-	wrapped := WrapIPAddress(addr.ToIPAddress())
+	wrapped := WrapIPAddress(addr.ToIP())
 	return cloneToIPv6Addrs(spanWithSequentialBlocks(wrapped))
 }
 
 func (addr *IPv6Address) SpanWithSequentialBlocksTo(other *IPv6Address) []*IPv6Address {
 	return cloneToIPv6Addrs(
 		getSpanningSequentialBlocks(
-			WrapIPAddress(addr.ToIPAddress()),
-			WrapIPAddress(other.ToIPAddress()),
+			WrapIPAddress(addr.ToIP()),
+			WrapIPAddress(other.ToIP()),
 		),
 	)
 }
 
 func (addr *IPv6Address) CoverWithPrefixBlockTo(other *IPv6Address) *IPv6Address {
-	return addr.init().coverWithPrefixBlockTo(other.ToIPAddress()).ToIPv6Address()
+	return addr.init().coverWithPrefixBlockTo(other.ToIP()).ToIPv6()
 }
 
 func (addr *IPv6Address) CoverWithPrefixBlock() *IPv6Address {
-	return addr.init().coverWithPrefixBlock().ToIPv6Address()
+	return addr.init().coverWithPrefixBlock().ToIPv6()
 }
 
 // MergeToSequentialBlocks merges this with the list of addresses to produce the smallest array of blocks that are sequential
@@ -1483,11 +1483,11 @@ func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string
 	return addr.GetSection().toCustomString(stringOptions, addr.zone)
 }
 
-func (addr *IPv6Address) ToAddress() *Address {
-	return addr.ToIPAddress().ToAddress()
+func (addr *IPv6Address) ToAddressBase() *Address {
+	return addr.ToIP().ToAddressBase()
 }
 
-func (addr *IPv6Address) ToIPAddress() *IPAddress {
+func (addr *IPv6Address) ToIP() *IPAddress {
 	if addr != nil {
 		addr = addr.init()
 	}
@@ -1495,5 +1495,5 @@ func (addr *IPv6Address) ToIPAddress() *IPAddress {
 }
 
 func (addr *IPv6Address) Wrap() WrappedIPAddress {
-	return WrapIPAddress(addr.ToIPAddress())
+	return WrapIPAddress(addr.ToIP())
 }

@@ -578,8 +578,8 @@ func (t specialTypesTester) testLoopback(host string, isSelf bool) {
 func (t specialTypesTester) testNils() {
 	var ipRangesIPv4 []*ipaddr.IPAddressSeqRange
 	//var ipv4Addresses []*ipaddr.IPv4Address
-	ipv4Addr1 := ipaddr.NewIPAddressString("1.2.3.3").GetAddress().ToIPv4Address()
-	ipv4Addr2 := ipaddr.NewIPAddressString("2.2.3.4-5").GetAddress().ToIPv4Address()
+	ipv4Addr1 := ipaddr.NewIPAddressString("1.2.3.3").GetAddress().ToIPv4()
+	ipv4Addr2 := ipaddr.NewIPAddressString("2.2.3.4-5").GetAddress().ToIPv4()
 
 	ipRangesIPv4 = append(ipRangesIPv4, nil)
 	ipRangesIPv4 = append(ipRangesIPv4, &ipaddr.IPAddressSeqRange{})
@@ -620,8 +620,8 @@ func (t specialTypesTester) testNils() {
 		}
 	}
 
-	ipv6Addr1 := ipaddr.NewIPAddressString("1:2:3:3::").GetAddress().ToIPv6Address()
-	ipv6Addr2 := ipaddr.NewIPAddressString("2:2:3:4-5::").GetAddress().ToIPv6Address()
+	ipv6Addr1 := ipaddr.NewIPAddressString("1:2:3:3::").GetAddress().ToIPv6()
+	ipv6Addr2 := ipaddr.NewIPAddressString("2:2:3:4-5::").GetAddress().ToIPv6()
 
 	var ipRangesIPv6 []*ipaddr.IPAddressSeqRange
 
@@ -763,14 +763,14 @@ func (t specialTypesTester) testNils() {
 
 	noIPV6Error := func(sect *ipaddr.IPv6AddressSection) *ipaddr.IPAddress {
 		ipv6addrx, _ := ipaddr.NewIPv6Address(sect)
-		return ipv6addrx.ToIPAddress()
+		return ipv6addrx.ToIP()
 	}
 
 	var ipAddressesIPv6 []*ipaddr.IPAddress
 
 	ipAddressesIPv6 = append(ipAddressesIPv6, nil)
 	ipAddressesIPv6 = append(ipAddressesIPv6, &ipaddr.IPAddress{})
-	ipAddressesIPv6 = append(ipAddressesIPv6, (&ipaddr.IPv6Address{}).ToIPAddress())
+	ipAddressesIPv6 = append(ipAddressesIPv6, (&ipaddr.IPv6Address{}).ToIP())
 	ipAddressesIPv6 = append(ipAddressesIPv6, (&ipaddr.IPv6AddressSeqRange{}).GetLowerIPAddress())
 	ipAddressesIPv6 = append(ipAddressesIPv6, noIPV6Error(nil))
 	ipAddressesIPv6 = append(ipAddressesIPv6, noIPV6Error(ipv6Section1))
@@ -807,14 +807,14 @@ func (t specialTypesTester) testNils() {
 
 	noIPV4Error := func(sect *ipaddr.IPv4AddressSection) *ipaddr.IPAddress {
 		ipv4addrx, _ := ipaddr.NewIPv4Address(sect)
-		return ipv4addrx.ToIPAddress()
+		return ipv4addrx.ToIP()
 	}
 
 	var ipAddressesIPv4 []*ipaddr.IPAddress
 
 	ipAddressesIPv4 = append(ipAddressesIPv4, nil)
 	ipAddressesIPv4 = append(ipAddressesIPv4, &ipaddr.IPAddress{})
-	ipAddressesIPv4 = append(ipAddressesIPv4, (&ipaddr.IPv4Address{}).ToIPAddress())
+	ipAddressesIPv4 = append(ipAddressesIPv4, (&ipaddr.IPv4Address{}).ToIP())
 	ipAddressesIPv4 = append(ipAddressesIPv4, (&ipaddr.IPv4AddressSeqRange{}).GetLowerIPAddress())
 	ipAddressesIPv4 = append(ipAddressesIPv4, noIPV4Error(nil))
 	ipAddressesIPv4 = append(ipAddressesIPv4, noIPV4Error(ipv4Section1))
@@ -887,7 +887,7 @@ func (t specialTypesTester) testNils() {
 
 	//noIPV4Error := func(sect *ipaddr.IPv4AddressSection) *ipaddr.IPAddress {
 	//	ipv4addrx, _ := ipaddr.NewIPv4Address(sect)
-	//	return ipv4addrx.ToIPAddress()
+	//	return ipv4addrx.ToIP()
 	//}
 
 	var ipSectionsIPv4 []*ipaddr.IPAddressSection

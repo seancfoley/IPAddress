@@ -23,7 +23,7 @@ const (
 )
 
 func newIPv4Address(section *IPv4AddressSection) *IPv4Address {
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4()
 }
 
 func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueError) {
@@ -37,7 +37,7 @@ func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueErro
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
 func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
@@ -49,12 +49,12 @@ func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, Addre
 		}
 	}
 	section := NewIPv4Section(segments)
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 	//section, err := NewIPv4Section(segments)
 	//if err != nil {
 	//	return nil, err
 	//}
-	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
+	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
 func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
@@ -66,22 +66,22 @@ func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength
 		}
 	}
 	section := NewIPv4PrefixedSection(segments, prefixLength)
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 	//section, err := NewIPv4PrefixedSection(segments, prefixLength)
 	//if err != nil {
 	//	return nil, err
 	//}
-	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
+	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
 func NewIPv4AddressFromUint32(val uint32) *IPv4Address {
 	section := NewIPv4SectionFromUint32(val, IPv4SegmentCount)
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4()
 }
 
 func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4Address {
 	section := NewIPv4SectionFromPrefixedUint32(val, IPv4SegmentCount, prefixLength)
-	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4()
 }
 
 func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err AddressValueError) {
@@ -214,11 +214,11 @@ func (addr *IPv4Address) GetHostSectionLen(prefLen BitCount) *IPv4AddressSection
 }
 
 func (addr *IPv4Address) GetNetworkMask() *IPv4Address {
-	return addr.getNetworkMask(IPv4Network).ToIPv4Address()
+	return addr.getNetworkMask(IPv4Network).ToIPv4()
 }
 
 func (addr *IPv4Address) GetHostMask() *IPv4Address {
-	return addr.getHostMask(IPv4Network).ToIPv4Address()
+	return addr.getHostMask(IPv4Network).ToIPv4()
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -346,21 +346,21 @@ func (addr *IPv4Address) SpanWithRange(other *IPv4Address) *IPv4AddressSeqRange 
 }
 
 func (addr *IPv4Address) GetLower() *IPv4Address {
-	return addr.init().getLower().ToIPv4Address()
+	return addr.init().getLower().ToIPv4()
 }
 
 func (addr *IPv4Address) GetUpper() *IPv4Address {
-	return addr.init().getUpper().ToIPv4Address()
+	return addr.init().getUpper().ToIPv4()
 }
 
 // GetLowerIPAddress implements the IPAddressRange interface
 func (addr *IPv4Address) GetLowerIPAddress() *IPAddress {
-	return addr.GetLower().ToIPAddress()
+	return addr.GetLower().ToIP()
 }
 
 // GetUpperIPAddress implements the IPAddressRange interface
 func (addr *IPv4Address) GetUpperIPAddress() *IPAddress {
-	return addr.GetUpper().ToIPAddress()
+	return addr.GetUpper().ToIP()
 }
 
 func (addr *IPv4Address) IsZeroHostLen(prefLen BitCount) bool {
@@ -369,16 +369,16 @@ func (addr *IPv4Address) IsZeroHostLen(prefLen BitCount) bool {
 
 func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) ToZeroNetwork() *IPv4Address {
-	return addr.init().toZeroNetwork().ToIPv4Address()
+	return addr.init().toZeroNetwork().ToIPv4()
 }
 
 func (addr *IPv4Address) IsMaxHostLen(prefLen BitCount) bool {
@@ -387,12 +387,12 @@ func (addr *IPv4Address) IsMaxHostLen(prefLen BitCount) bool {
 
 func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) Uint32Value() uint32 {
@@ -404,48 +404,48 @@ func (addr *IPv4Address) UpperUint32Value() uint32 {
 }
 
 func (addr *IPv4Address) ToPrefixBlock() *IPv4Address {
-	return addr.init().toPrefixBlock().ToIPv4Address()
+	return addr.init().toPrefixBlock().ToIPv4()
 }
 
 func (addr *IPv4Address) ToPrefixBlockLen(prefLen BitCount) *IPv4Address {
-	return addr.init().toPrefixBlockLen(prefLen).ToIPv4Address()
+	return addr.init().toPrefixBlockLen(prefLen).ToIPv4()
 }
 
 func (addr *IPv4Address) ToBlock(segmentIndex int, lower, upper SegInt) *IPv4Address {
-	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv4Address()
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIPv4()
 }
 
 func (addr *IPv4Address) WithoutPrefixLen() *IPv4Address {
 	if !addr.IsPrefixed() {
 		return addr
 	}
-	return addr.init().withoutPrefixLen().ToIPv4Address()
+	return addr.init().withoutPrefixLen().ToIPv4()
 }
 
 func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
-	return addr.init().setPrefixLen(prefixLen).ToIPv4Address()
+	return addr.init().setPrefixLen(prefixLen).ToIPv4()
 }
 
 func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) AdjustPrefixLen(prefixLen BitCount) *IPv4Address {
-	return addr.init().adjustPrefixLen(prefixLen).ToIPv4Address()
+	return addr.init().adjustPrefixLen(prefixLen).ToIPv4()
 }
 
 func (addr *IPv4Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
-	return res.ToIPv4Address(), err
+	return res.ToIPv4(), err
 }
 
 func (addr *IPv4Address) AssignPrefixForSingleBlock() *IPv4Address {
-	return addr.init().assignPrefixForSingleBlock().ToIPv4Address()
+	return addr.init().assignPrefixForSingleBlock().ToIPv4()
 }
 
 func (addr *IPv4Address) AssignMinPrefixForBlock() *IPv4Address {
-	return addr.init().assignMinPrefixForBlock().ToIPv4Address()
+	return addr.init().assignMinPrefixForBlock().ToIPv4()
 }
 
 func (addr *IPv4Address) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -537,14 +537,14 @@ func (addr *IPv4Address) PrefixContains(other AddressType) bool {
 }
 
 func (addr *IPv4Address) Contains(other AddressType) bool {
-	if other == nil || other.ToAddress() == nil {
+	if other == nil || other.ToAddressBase() == nil {
 		return true
 	} else if addr == nil {
 		return false
 	}
 	addr = addr.init()
-	otherAddr := other.ToAddress()
-	if addr.ToAddress() == otherAddr {
+	otherAddr := other.ToAddressBase()
+	if addr.ToAddressBase() == otherAddr {
 		return true
 	}
 	return otherAddr.getAddrType() == ipv4Type && addr.section.sameCountTypeContains(otherAddr.GetSection())
@@ -556,15 +556,15 @@ func (addr *IPv4Address) Compare(item AddressItem) int {
 
 func (addr *IPv4Address) Equal(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
-	return other.ToAddress().getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddress().GetSection())
+	return other.ToAddressBase().getAddrType() == ipv4Type && addr.init().section.sameCountTypeEquals(other.ToAddressBase().GetSection())
 }
 
 // CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *IPv4Address) CompareSize(other AddressType) int {
 	if addr == nil {
-		if other != nil && other.ToAddress() != nil {
+		if other != nil && other.ToAddressBase() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -586,7 +586,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 		return nil
 	}
 	addr = addr.init().WithoutPrefixLen()
-	return newSeqRangeUnchecked(addr.GetLower().ToIPAddress(), addr.GetUpper().ToIPAddress(), addr.isMultiple()).ToIPv4SequentialRange()
+	return newSeqRangeUnchecked(addr.GetLower().ToIP(), addr.GetUpper().ToIP(), addr.isMultiple()).ToIPv4SequentialRange()
 }
 
 // ToBroadcastAddress returns the broadcast address.
@@ -606,7 +606,7 @@ func (addr *IPv4Address) ToNetworkAddress() (*IPv4Address, IncompatibleAddressEr
 }
 
 func (addr *IPv4Address) ToAddressString() *IPAddressString {
-	return addr.init().ToIPAddress().ToAddressString()
+	return addr.init().ToIP().ToAddressString()
 }
 
 func (addr *IPv4Address) IncludesZeroHostLen(networkPrefixLength BitCount) bool {
@@ -717,11 +717,11 @@ func (addr *IPv4Address) GetSequentialBlockCount() *big.Int {
 }
 
 func (addr *IPv4Address) IncrementBoundary(increment int64) *IPv4Address {
-	return addr.init().incrementBoundary(increment).ToIPv4Address()
+	return addr.init().incrementBoundary(increment).ToIPv4()
 }
 
 func (addr *IPv4Address) Increment(increment int64) *IPv4Address {
-	return addr.init().increment(increment).ToIPv4Address()
+	return addr.init().increment(increment).ToIPv4()
 }
 
 func (addr *IPv4Address) SpanWithPrefixBlocks() []*IPv4Address {
@@ -729,19 +729,19 @@ func (addr *IPv4Address) SpanWithPrefixBlocks() []*IPv4Address {
 		if addr.IsSinglePrefixBlock() {
 			return []*IPv4Address{addr}
 		}
-		wrapped := WrapIPAddress(addr.ToIPAddress())
+		wrapped := WrapIPAddress(addr.ToIP())
 		spanning := getSpanningPrefixBlocks(wrapped, wrapped)
 		return cloneToIPv4Addrs(spanning)
 	}
-	wrapped := WrapIPAddress(addr.ToIPAddress())
+	wrapped := WrapIPAddress(addr.ToIP())
 	return cloneToIPv4Addrs(spanWithPrefixBlocks(wrapped))
 }
 
 func (addr *IPv4Address) SpanWithPrefixBlocksTo(other *IPv4Address) []*IPv4Address {
 	return cloneToIPv4Addrs(
 		getSpanningPrefixBlocks(
-			WrapIPAddress(addr.ToIPAddress()),
-			WrapIPAddress(other.ToIPAddress()),
+			WrapIPAddress(addr.ToIP()),
+			WrapIPAddress(other.ToIP()),
 		),
 	)
 }
@@ -750,25 +750,25 @@ func (addr *IPv4Address) SpanWithSequentialBlocks() []*IPv4Address {
 	if addr.IsSequential() {
 		return []*IPv4Address{addr}
 	}
-	wrapped := WrapIPAddress(addr.ToIPAddress())
+	wrapped := WrapIPAddress(addr.ToIP())
 	return cloneToIPv4Addrs(spanWithSequentialBlocks(wrapped))
 }
 
 func (addr *IPv4Address) SpanWithSequentialBlocksTo(other *IPv4Address) []*IPv4Address {
 	return cloneToIPv4Addrs(
 		getSpanningSequentialBlocks(
-			WrapIPAddress(addr.ToIPAddress()),
-			WrapIPAddress(other.ToIPAddress()),
+			WrapIPAddress(addr.ToIP()),
+			WrapIPAddress(other.ToIP()),
 		),
 	)
 }
 
 func (addr *IPv4Address) CoverWithPrefixBlockTo(other *IPv4Address) *IPv4Address {
-	return addr.init().coverWithPrefixBlockTo(other.ToIPAddress()).ToIPv4Address()
+	return addr.init().coverWithPrefixBlockTo(other.ToIP()).ToIPv4()
 }
 
 func (addr *IPv4Address) CoverWithPrefixBlock() *IPv4Address {
-	return addr.init().coverWithPrefixBlock().ToIPv4Address()
+	return addr.init().coverWithPrefixBlock().ToIPv4()
 }
 
 //
@@ -1063,11 +1063,11 @@ func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
 	return addr.GetSection().toCustomZonedString(stringOptions, addr.zone)
 }
 
-func (addr *IPv4Address) ToAddress() *Address {
-	return addr.ToIPAddress().ToAddress()
+func (addr *IPv4Address) ToAddressBase() *Address {
+	return addr.ToIP().ToAddressBase()
 }
 
-func (addr *IPv4Address) ToIPAddress() *IPAddress {
+func (addr *IPv4Address) ToIP() *IPAddress {
 	if addr != nil {
 		addr = addr.init()
 	}
@@ -1075,5 +1075,5 @@ func (addr *IPv4Address) ToIPAddress() *IPAddress {
 }
 
 func (addr *IPv4Address) Wrap() WrappedIPAddress {
-	return WrapIPAddress(addr.ToIPAddress())
+	return WrapIPAddress(addr.ToIP())
 }

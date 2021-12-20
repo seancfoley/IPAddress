@@ -106,7 +106,7 @@ type ipAddrIterator struct {
 }
 
 func (iter ipAddrIterator) Next() *IPAddress {
-	return iter.AddressIterator.Next().ToIPAddress()
+	return iter.AddressIterator.Next().ToIP()
 }
 
 type ipAddrSliceIterator struct {
@@ -136,7 +136,7 @@ type ipv4AddressIterator struct {
 }
 
 func (iter ipv4AddressIterator) Next() *IPv4Address {
-	return iter.AddressIterator.Next().ToIPv4Address()
+	return iter.AddressIterator.Next().ToIPv4()
 }
 
 type ipv4IPAddressIterator struct {
@@ -144,7 +144,7 @@ type ipv4IPAddressIterator struct {
 }
 
 func (iter ipv4IPAddressIterator) Next() *IPv4Address {
-	return iter.IPAddressIterator.Next().ToIPv4Address()
+	return iter.IPAddressIterator.Next().ToIPv4()
 }
 
 // IPv6AddressIterator iterates through IPv4 addresses, subnets and ranges
@@ -158,7 +158,7 @@ type ipv6AddressIterator struct {
 }
 
 func (iter ipv6AddressIterator) Next() *IPv6Address {
-	return iter.AddressIterator.Next().ToIPv6Address()
+	return iter.AddressIterator.Next().ToIPv6()
 }
 
 type ipv6IPAddressIterator struct {
@@ -166,7 +166,7 @@ type ipv6IPAddressIterator struct {
 }
 
 func (iter ipv6IPAddressIterator) Next() *IPv6Address {
-	return iter.IPAddressIterator.Next().ToIPv6Address()
+	return iter.IPAddressIterator.Next().ToIPv6()
 }
 
 // MACAddressIterator iterates through MACSize addresses, subnets and ranges
@@ -180,7 +180,7 @@ type macAddressIterator struct {
 }
 
 func (iter macAddressIterator) Next() *MACAddress {
-	return iter.AddressIterator.Next().ToMACAddress()
+	return iter.AddressIterator.Next().ToMAC()
 }
 
 type ExtendedSegmentSeriesIterator interface {
@@ -230,5 +230,5 @@ type UnwrappedIPddressIterator struct {
 }
 
 func (iter UnwrappedIPddressIterator) Next() *Address {
-	return iter.IPAddressIterator.Next().ToAddress()
+	return iter.IPAddressIterator.Next().ToAddressBase()
 }

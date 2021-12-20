@@ -60,7 +60,7 @@ func main() {
 
 	addr4 := ipaddr.IPv4Address{}
 	fmt.Printf("zero addr is %+v\n", addr4)
-	addr2 := addr4.ToIPAddress()
+	addr2 := addr4.ToIP()
 	fmt.Printf("zero addr is %+v\n", addr2)
 	addr2.String()
 	addr2.GetSection()
@@ -78,7 +78,7 @@ func main() {
 	fmt.Printf("%+v\n", addr5)
 	addr5Upper := addr5.GetUpper()
 	fmt.Printf("%+v\n", addr5Upper) // expecting []
-	addr6 := addr5Upper.ToIPv4Address()
+	addr6 := addr5Upper.ToIPv4()
 	fmt.Printf("%+v\n", addr6) // expecting <nil>
 
 	addrSection := ipaddr.AddressSection{}
@@ -167,13 +167,13 @@ func main() {
 	ipv6Prefixed = ipv6Addr.ToPrefixBlockLen(40)
 	fmt.Printf("40 block is %+v\n", ipv6Prefixed)
 
-	addrDown := ipv6Prefixed.ToAddress()
+	addrDown := ipv6Prefixed.ToAddressBase()
 	fmt.Printf("addr down converted 40 block is %+v\n", addrDown)
 
-	addrUp := addrDown.ToIPv6Address()
+	addrUp := addrDown.ToIPv6()
 	fmt.Printf("addr up converted 40 block is %+v\n", addrUp)
 
-	addrUpNil := addrDown.ToIPv4Address()
+	addrUpNil := addrDown.ToIPv4()
 	fmt.Printf("addr up converted nil is %+v\n", addrUpNil)
 
 	ht := ipaddr.NewHostName("bla.com")
@@ -224,7 +224,7 @@ func main() {
 
 	addrStrPref1 := ipaddr.NewIPAddressString("1.2.3.4")
 	addrStrPref2 := ipaddr.NewIPAddressString("1.2.4.1")
-	rng := addrStrPref1.GetAddress().ToIPv4Address().SpanWithRange(addrStrPref2.GetAddress().ToIPv4Address())
+	rng := addrStrPref1.GetAddress().ToIPv4().SpanWithRange(addrStrPref2.GetAddress().ToIPv4())
 	riter := rng.Iterator()
 	fmt.Printf("\nsequential range iterator:\n")
 	for riter.HasNext() {
@@ -236,15 +236,15 @@ func main() {
 		fmt.Printf("%v ", riter.Next())
 	}
 
-	sect := addrStrPref1.GetAddress().ToIPv4Address().GetSection()
+	sect := addrStrPref1.GetAddress().ToIPv4().GetSection()
 	str := sect.ToCanonicalString()
 	fmt.Printf("\nString is %s", str)
 	addrStrPref6 := ipaddr.NewIPAddressString("1.2.3.4/16")
-	sect = addrStrPref6.GetAddress().ToIPv4Address().GetSection()
+	sect = addrStrPref6.GetAddress().ToIPv4().GetSection()
 	str = sect.ToCanonicalString()
 	fmt.Printf("\nString with prefix length is %s", str)
 
-	ipv4Addr = addrStrPref6.GetAddress().ToIPv4Address()
+	ipv4Addr = addrStrPref6.GetAddress().ToIPv4()
 	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 2)
 	fmt.Printf("\nInet Aton string with prefix length is %s", str)
 	str, _ = ipv4Addr.ToInetAtonJoinedString(ipaddr.Inet_aton_radix_hex, 1)
@@ -253,10 +253,10 @@ func main() {
 	fmt.Printf("\nInet Aton string with prefix length is %s", str)
 
 	addrStrPref7 := ipaddr.NewIPAddressString("1:2:3:4::/64")
-	ipv6Sect := addrStrPref7.GetAddress().ToIPv6Address().GetSection()
+	ipv6Sect := addrStrPref7.GetAddress().ToIPv6().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str, _ = addrStrPref7.GetAddress().ToIPv6Address().ToMixedString()
+	str, _ = addrStrPref7.GetAddress().ToIPv6().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 	str, _ = addrStrPref7.GetAddress().ToBinaryString(true)
 	fmt.Printf("\nIPv6 binary string is %s", str)
@@ -265,10 +265,10 @@ func main() {
 	fmt.Printf("\nIPv6 segmented binary string is %s", str)
 
 	addrStrPref8 := ipaddr.NewIPAddressString("1::4:5:6:7:8fff/64")
-	ipv6Sect = addrStrPref8.GetAddress().ToIPv6Address().GetSection()
+	ipv6Sect = addrStrPref8.GetAddress().ToIPv6().GetSection()
 	str = ipv6Sect.ToCanonicalString()
 	fmt.Printf("\nIPv6 string with prefix length is %s", str)
-	str, _ = addrStrPref8.GetAddress().ToIPv6Address().ToMixedString()
+	str, _ = addrStrPref8.GetAddress().ToIPv6().ToMixedString()
 	fmt.Printf("\nIPv6 mixed string with prefix length is %s", str)
 
 	rangiter := rng.PrefixIterator(28)
@@ -434,13 +434,13 @@ func splitIntoBlocksSeq(one, two string) {
 func split(oneStr, twoStr string) []*ipaddr.IPv4Address {
 	one := ipaddr.NewIPAddressString(oneStr)
 	two := ipaddr.NewIPAddressString(twoStr)
-	return one.GetAddress().ToIPv4Address().SpanWithPrefixBlocksTo(two.GetAddress().ToIPv4Address())
+	return one.GetAddress().ToIPv4().SpanWithPrefixBlocksTo(two.GetAddress().ToIPv4())
 }
 
 func splitSeq(oneStr, twoStr string) []*ipaddr.IPv4Address {
 	one := ipaddr.NewIPAddressString(oneStr)
 	two := ipaddr.NewIPAddressString(twoStr)
-	return one.GetAddress().ToIPv4Address().SpanWithSequentialBlocksTo(two.GetAddress().ToIPv4Address())
+	return one.GetAddress().ToIPv4().SpanWithSequentialBlocksTo(two.GetAddress().ToIPv4())
 }
 
 /*

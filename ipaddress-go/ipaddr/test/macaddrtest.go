@@ -635,7 +635,7 @@ func (t macAddressTester) testInvalidMACValues() {
 			bytes[0] = 1
 			addr, err := ipaddr.NewIPv4AddressFromBytes(bytes)
 			if err == nil {
-				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIPAddress()))
+				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
 			}
 	*/
 	//try {
@@ -746,14 +746,14 @@ func (t macAddressTester) testInsertAndAppend(front, back string, expectedPref [
 func (t macAddressTester) testInsertAndAppendPrefs(front, back string, expectedPref []ipaddr.PrefixLen) {
 	f := t.createMACAddress(front).GetAddress()
 	b := t.createMACAddress(back).GetAddress()
-	t.testAppendAndInsert(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(),
+	t.testAppendAndInsert(f.ToAddressBase(), b.ToAddressBase(), f.GetSegmentStrings(), b.GetSegmentStrings(),
 		ipaddr.MACColonSegmentSeparator, expectedPref, true)
 }
 
 func (t macAddressTester) testReplace(front, back string) {
 	f := t.createMACAddress(front).GetAddress()
 	b := t.createMACAddress(back).GetAddress()
-	t.testBase.testReplace(f.ToAddress(), b.ToAddress(), f.GetSegmentStrings(), b.GetSegmentStrings(),
+	t.testBase.testReplace(f.ToAddressBase(), b.ToAddressBase(), f.GetSegmentStrings(), b.GetSegmentStrings(),
 		ipaddr.MACColonSegmentSeparator, true)
 }
 
@@ -1009,7 +1009,7 @@ func (t macAddressTester) testRadices(original, expected string, radix int) {
 func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	str := t.createMACAddress(addressStr)
 	//try {
-	t.testBase.testReverse(str.GetAddress().ToAddress().Wrap(), bitsReversedIsSame, bitsReversedPerByteIsSame)
+	t.testBase.testReverse(str.GetAddress().ToAddressBase().Wrap(), bitsReversedIsSame, bitsReversedPerByteIsSame)
 	//} catch(RuntimeException e) {
 	//addFailure(new Failure("reversal: " + addressStr));
 	//}
@@ -1021,7 +1021,7 @@ func (t macAddressTester) testIncrement(originalStr string, increment int64, res
 	if resultStr != "" {
 		addr = t.createMACAddress(resultStr).GetAddress()
 	}
-	t.testBase.testIncrement(t.createMACAddress(originalStr).GetAddress().ToAddress(), increment, addr.ToAddress())
+	t.testBase.testIncrement(t.createMACAddress(originalStr).GetAddress().ToAddressBase(), increment, addr.ToAddressBase())
 }
 
 func (t macAddressTester) testPrefix(original string, prefixLength, equivalentPrefix ipaddr.PrefixLen) {
@@ -1197,7 +1197,7 @@ func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.M
 func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 	ipv6Str := t.createAddress(ipv6)
 	macStr := t.createMACAddress(mac)
-	addr := ipv6Str.GetAddress().ToIPv6Address()
+	addr := ipv6Str.GetAddress().ToIPv6()
 	back := addr.GetHostSectionLen(64)
 
 	if !addr.IsEUI64() {

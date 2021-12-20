@@ -141,7 +141,7 @@ type ipAddressInternal struct {
 	addressInternal
 }
 
-//func (addr *ipAddressInternal) ToAddress() *Address {
+//func (addr *ipAddressInternal) ToAddressBase() *Address {
 //	return (*Address)(addr)
 //}
 
@@ -325,8 +325,8 @@ func (addr *ipAddressInternal) coverSeriesWithPrefixBlock() ExtendedIPSegmentSer
 		return addr.toIPAddress().Wrap()
 	}
 	return coverWithPrefixBlock(
-		addr.getLower().ToIPAddress().Wrap(),
-		addr.getUpper().ToIPAddress().Wrap(),
+		addr.getLower().ToIP().Wrap(),
+		addr.getUpper().ToIP().Wrap(),
 	)
 }
 
@@ -336,8 +336,8 @@ func (addr *ipAddressInternal) coverWithPrefixBlock() *IPAddress {
 		return addr.toIPAddress()
 	}
 	res := coverWithPrefixBlock(
-		addr.getLower().ToIPAddress().Wrap(),
-		addr.getUpper().ToIPAddress().Wrap(),
+		addr.getLower().ToIP().Wrap(),
+		addr.getUpper().ToIP().Wrap(),
 	)
 	return res.(WrappedIPAddress).IPAddress
 }
@@ -624,18 +624,18 @@ func (addr *IPAddress) GetDivisionCount() int {
 }
 
 func (addr *IPAddress) GetBitCount() BitCount {
-	if address := addr.ToIPv4Address(); address != nil {
+	if address := addr.ToIPv4(); address != nil {
 		return address.GetBitCount()
-	} else if address := addr.ToIPv6Address(); address != nil {
+	} else if address := addr.ToIPv6(); address != nil {
 		return address.GetBitCount()
 	}
 	return addr.addressInternal.GetBitCount()
 }
 
 func (addr *IPAddress) GetByteCount() int {
-	if address := addr.ToIPv4Address(); address != nil {
+	if address := addr.ToIPv4(); address != nil {
 		return address.GetByteCount()
-	} else if address := addr.ToIPv6Address(); address != nil {
+	} else if address := addr.ToIPv6(); address != nil {
 		return address.GetByteCount()
 	}
 	return addr.addressInternal.GetByteCount()
@@ -652,11 +652,11 @@ func (addr *IPAddress) GetUpperIPAddress() *IPAddress {
 }
 
 func (addr *IPAddress) GetLower() *IPAddress {
-	return addr.init().getLower().ToIPAddress()
+	return addr.init().getLower().ToIP()
 }
 
 func (addr *IPAddress) GetUpper() *IPAddress {
-	return addr.init().getUpper().ToIPAddress()
+	return addr.init().getUpper().ToIP()
 }
 
 func (addr *IPAddress) IsZeroHostLen(prefLen BitCount) bool {
@@ -688,15 +688,15 @@ func (addr *IPAddress) ToMaxHostLen(prefixLength BitCount) (*IPAddress, Incompat
 }
 
 func (addr *IPAddress) ToPrefixBlock() *IPAddress {
-	return addr.init().toPrefixBlock().ToIPAddress()
+	return addr.init().toPrefixBlock().ToIP()
 }
 
 func (addr *IPAddress) ToPrefixBlockLen(prefLen BitCount) *IPAddress {
-	return addr.init().toPrefixBlockLen(prefLen).ToIPAddress()
+	return addr.init().toPrefixBlockLen(prefLen).ToIP()
 }
 
 func (addr *IPAddress) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddress {
-	return addr.init().toBlock(segmentIndex, lower, upper).ToIPAddress()
+	return addr.init().toBlock(segmentIndex, lower, upper).ToIP()
 }
 
 func (addr *IPAddress) IsPrefixed() bool {
@@ -707,33 +707,33 @@ func (addr *IPAddress) WithoutPrefixLen() *IPAddress {
 	if !addr.IsPrefixed() {
 		return addr
 	}
-	return addr.withoutPrefixLen().ToIPAddress()
+	return addr.withoutPrefixLen().ToIP()
 }
 
 func (addr *IPAddress) SetPrefixLen(prefixLen BitCount) *IPAddress {
-	return addr.init().setPrefixLen(prefixLen).ToIPAddress()
+	return addr.init().setPrefixLen(prefixLen).ToIP()
 }
 
 func (addr *IPAddress) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
-	return res.ToIPAddress(), err
+	return res.ToIP(), err
 }
 
 func (addr *IPAddress) AdjustPrefixLen(prefixLen BitCount) *IPAddress {
-	return addr.init().adjustPrefixLen(prefixLen).ToIPAddress()
+	return addr.init().adjustPrefixLen(prefixLen).ToIP()
 }
 
 func (addr *IPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPAddress, IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
-	return res.ToIPAddress(), err
+	return res.ToIP(), err
 }
 
 func (addr *IPAddress) AssignPrefixForSingleBlock() *IPAddress {
-	return addr.init().assignPrefixForSingleBlock().ToIPAddress()
+	return addr.init().assignPrefixForSingleBlock().ToIP()
 }
 
 func (addr *IPAddress) AssignMinPrefixForBlock() *IPAddress {
-	return addr.init().assignMinPrefixForBlock().ToIPAddress()
+	return addr.init().assignMinPrefixForBlock().ToIP()
 }
 
 func (addr *IPAddress) GetValue() *big.Int {
@@ -756,7 +756,7 @@ func (addr *IPAddress) GetNetIP() net.IP {
 }
 
 func (addr *IPAddress) CopyNetIP(ip net.IP) net.IP {
-	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
+	if ipv4Addr := addr.ToIPv4(); ipv4Addr != nil {
 		return ipv4Addr.CopyNetIP(ip) // this shrinks the arg to 4 bytes if it was 16, we need only 4
 	}
 	return addr.CopyBytes(ip)
@@ -767,7 +767,7 @@ func (addr *IPAddress) GetUpperNetIP() net.IP {
 }
 
 func (addr *IPAddress) CopyUpperNetIP(ip net.IP) net.IP {
-	if ipv4Addr := addr.ToIPv4Address(); ipv4Addr != nil {
+	if ipv4Addr := addr.ToIPv4(); ipv4Addr != nil {
 		return ipv4Addr.CopyUpperNetIP(ip) // this shrinks the arg to 4 bytes if it was 16, we need only 4
 	}
 	return addr.CopyUpperBytes(ip)
@@ -817,7 +817,7 @@ func (addr *IPAddress) PrefixContains(other AddressType) bool {
 
 func (addr *IPAddress) Contains(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return addr.init().contains(other)
 }
@@ -828,7 +828,7 @@ func (addr *IPAddress) Compare(item AddressItem) int {
 
 func (addr *IPAddress) Equal(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return addr.init().equals(other)
 }
@@ -836,7 +836,7 @@ func (addr *IPAddress) Equal(other AddressType) bool {
 // CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *IPAddress) CompareSize(other AddressType) int { // this is here to take advantage of the CompareSize in IPAddressSection
 	if addr == nil {
-		if other != nil && other.ToAddress() != nil {
+		if other != nil && other.ToAddressBase() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -846,15 +846,15 @@ func (addr *IPAddress) CompareSize(other AddressType) int { // this is here to t
 }
 
 func (addr *IPAddress) MatchesWithMask(other *IPAddress, mask *IPAddress) bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
-			if msk := mask.ToIPv4Address(); mask != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
+		if oth := other.ToIPv4(); oth != nil {
+			if msk := mask.ToIPv4(); mask != nil {
 				return thisAddr.MatchesWithMask(oth, msk)
 			}
 		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
-			if msk := mask.ToIPv6Address(); mask != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
+		if oth := other.ToIPv6(); oth != nil {
+			if msk := mask.ToIPv6(); mask != nil {
 				return thisAddr.MatchesWithMask(oth, msk)
 			}
 		}
@@ -874,30 +874,30 @@ func (addr *IPAddress) GetIPVersion() IPVersion {
 	return addr.getIPVersion()
 }
 
-func (addr *IPAddress) ToAddress() *Address {
+func (addr *IPAddress) ToAddressBase() *Address {
 	if addr != nil {
 		addr = addr.init()
 	}
 	return (*Address)(unsafe.Pointer(addr))
 }
 
-func (addr *IPAddress) ToIPAddress() *IPAddress {
+func (addr *IPAddress) ToIP() *IPAddress {
 	return addr
 }
 
-// maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddress - for sections youd would have the same and also ToSection() and ToGrouping()
+// maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddressBase - for sections youd would have the same and also ToSection() and ToGrouping()
 // BUT remember I am also consider renaming GetIP to ToIP()
-// This also makes sense because "ToIPv6Address" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
+// This also makes sense because "ToIPv6" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
 // Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
 // ALso consider code like this:
-// t.createAddress(originalStr).GetAddress().ToAddress()
-// the combination of using GetAddress/ToAddress in IPAddressString and the name ToAddress to downgrade to *Address is ugly.
+// t.createAddress(originalStr).GetAddress().ToAddressBase()
+// the combination of using GetAddress/ToAddressBase in IPAddressString and the name ToAddressBase to downgrade to *Address is ugly.
 // Maybe drop the "To" in this case?  Just .Address()?  or AsAddress?  nah to AsAddress, it's already an address.
 // No, I need a better ToXXX really.
 // ToBase()?  ToGeneric()?
 // For sections and segments, use the same ToIPv6, ToMAC, ToIP(),
-// There there are ToAddress(), ToSection(), ToDivGrouping(), ToSegment(), ToDiv()
-// Is there some other common word I can use for ToAddress(), ToSection(), ToSegment()?  Because the ones above like ToIP() are all common.
+// There there are ToAddressBase(), ToSection(), ToDivGrouping(), ToSegment(), ToDiv()
+// Is there some other common word I can use for ToAddressBase(), ToSection(), ToSegment()?  Because the ones above like ToIP() are all common.
 // A word to say "no protocol"
 // ToGen() for general or generic?  ToShared?  UnSpecified()? ToIndeterminate()?  ToIndistinct?  ToUnstipulated?
 // I think there is a word for something that is not yet distinguished?  ToIndistinghuished?  nah, some other word
@@ -909,18 +909,18 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 // ToUniform is good
 // ToGeneric?  ToGenericAddr?
 //
-// TODO I think I have settled on ToAddressBase, ToIPv6, ToIPv4, ToMAC, ToIP()
-// there are also the identity funcs like IsIPv4 to change
+// TODO for addresses and seq ranges: ToIPv6, ToIPv4, ToMAC, ToIP()  (I already did ToAddressBase)
+// there are also the identity funcs like IsIPv4, isIP, IsIPv6, isMAC to change - although seems are are already using these?
 // ToIPAddressSeqRange become ToIP() and you need to change the ipv4/6 ToIP4SeqRange etc as well and the IsXXX too
 
-func (addr *IPAddress) ToIPv6Address() *IPv6Address {
+func (addr *IPAddress) ToIPv6() *IPv6Address {
 	if addr.IsIPv6() {
 		return (*IPv6Address)(addr)
 	}
 	return nil
 }
 
-func (addr *IPAddress) ToIPv4Address() *IPv4Address {
+func (addr *IPAddress) ToIPv4() *IPv4Address {
 	if addr.IsIPv4() {
 		return (*IPv4Address)(addr)
 	}
@@ -969,9 +969,9 @@ func (addr *IPAddress) GetSequentialBlockCount() *big.Int {
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {
-			return addr.ToIPv4Address().ToSequentialRange().ToIPAddressSeqRange()
+			return addr.ToIPv4().ToSequentialRange().ToIPAddressSeqRange()
 		} else if addr.IsIPv6() {
-			return addr.ToIPv6Address().ToSequentialRange().ToIPAddressSeqRange()
+			return addr.ToIPv6().ToSequentialRange().ToIPAddressSeqRange()
 		}
 	}
 	return nil
@@ -983,22 +983,22 @@ func (addr *IPAddress) toSequentialRangeUnchecked() *IPAddressSeqRange {
 }
 
 func (addr *IPAddress) IncrementBoundary(increment int64) *IPAddress {
-	return addr.init().incrementBoundary(increment).ToIPAddress()
+	return addr.init().incrementBoundary(increment).ToIP()
 }
 
 func (addr *IPAddress) Increment(increment int64) *IPAddress {
-	return addr.init().increment(increment).ToIPAddress()
+	return addr.init().increment(increment).ToIP()
 }
 
 // SpanWithRange produces an IPAddressRange instance that spans this subnet to the given subnet.
 // If the other address is a different version than this, then the other is ignored, and the result is equivalent to calling ToSequentialRange()
 func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
+		if oth := other.ToIPv4(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
+		if oth := other.ToIPv6(); oth != nil {
 			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
 		}
 	}
@@ -1021,15 +1021,15 @@ func (addr *IPAddress) Mask(other *IPAddress) (masked *IPAddress, err Incompatib
 //}
 
 func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
+		if oth := other.ToIPv4(); oth != nil {
 			result, err := thisAddr.maskPrefixed(oth, retainPrefix)
-			return result.ToIPAddress(), err
+			return result.ToIP(), err
 		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
+		if oth := other.ToIPv6(); oth != nil {
 			result, err := thisAddr.maskPrefixed(oth, retainPrefix)
-			return result.ToIPAddress(), err
+			return result.ToIP(), err
 		}
 	}
 	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
@@ -1040,28 +1040,28 @@ func (addr *IPAddress) BitwiseOr(other *IPAddress) (masked *IPAddress, err Incom
 }
 
 func (addr *IPAddress) bitwiseOrPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, IncompatibleAddressError) {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
+		if oth := other.ToIPv4(); oth != nil {
 			result, err := thisAddr.bitwiseOrPrefixed(oth, retainPrefix)
-			return result.ToIPAddress(), err
+			return result.ToIP(), err
 		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
+		if oth := other.ToIPv6(); oth != nil {
 			result, err := thisAddr.bitwiseOrPrefixed(oth, retainPrefix)
-			return result.ToIPAddress(), err
+			return result.ToIP(), err
 		}
 	}
 	return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
 }
 
 func (addr *IPAddress) Intersect(other *IPAddress) *IPAddress {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
-		if oth := other.ToIPv4Address(); oth != nil {
-			return thisAddr.Intersect(oth).ToIPAddress()
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
+		if oth := other.ToIPv4(); oth != nil {
+			return thisAddr.Intersect(oth).ToIP()
 		}
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
-		if oth := other.ToIPv6Address(); oth != nil {
-			return thisAddr.Intersect(oth).ToIPAddress()
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
+		if oth := other.ToIPv6(); oth != nil {
+			return thisAddr.Intersect(oth).ToIP()
 		}
 	}
 	return nil
@@ -1092,9 +1092,9 @@ func (addr *IPAddress) Subtract(other *IPAddress) []*IPAddress {
 
 // Returns whether the address is link local, whether unicast or multicast.
 func (addr *IPAddress) IsLinkLocal() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsLinkLocal()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsLinkLocal()
 	}
 	return false
@@ -1103,9 +1103,9 @@ func (addr *IPAddress) IsLinkLocal() bool {
 // IsLocal returns true if the address is link local, site local, organization local, administered locally, or unspecified.
 // This includes both unicast and multicast.
 func (addr *IPAddress) IsLocal() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsLocal()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsLocal()
 	}
 	return false
@@ -1125,9 +1125,9 @@ func (addr *IPAddress) IsAnyLocal() bool {
 // IsLoopback returns whether this address is a loopback address, such as
 // [::1] (aka [0:0:0:0:0:0:0:1]) or 127.0.0.1
 func (addr *IPAddress) IsLoopback() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsLoopback()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsLoopback()
 	}
 	return false
@@ -1135,9 +1135,9 @@ func (addr *IPAddress) IsLoopback() bool {
 
 // IsMulticast returns whether this address is multicast
 func (addr *IPAddress) IsMulticast() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsMulticast()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsMulticast()
 	}
 	return false
@@ -1243,16 +1243,16 @@ func (addr *IPAddress) SpanWithSequentialBlocksTo(other *IPAddress) []*IPAddress
 
 func (addr *IPAddress) ReverseBytes() (*IPAddress, IncompatibleAddressError) {
 	res, err := addr.init().reverseBytes()
-	return res.ToIPAddress(), err
+	return res.ToIP(), err
 }
 
 func (addr *IPAddress) ReverseBits(perByte bool) (*IPAddress, IncompatibleAddressError) {
 	res, err := addr.init().reverseBits(perByte)
-	return res.ToIPAddress(), err
+	return res.ToIP(), err
 }
 
 func (addr *IPAddress) ReverseSegments() *IPAddress {
-	return addr.init().reverseSegments().ToIPAddress()
+	return addr.init().reverseSegments().ToIP()
 }
 
 func (addr *IPAddress) GetSegmentStrings() []string {
@@ -1510,11 +1510,11 @@ func addrFromBytes(ip []byte) (addr *IPAddress, err AddressValueError) {
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
 		addr4, err = NewIPv4AddressFromBytes(ip)
-		addr = addr4.ToIPAddress()
+		addr = addr4.ToIP()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
 		addr6, err = NewIPv6AddressFromBytes(ip)
-		addr = addr6.ToIPAddress()
+		addr = addr6.ToIP()
 	}
 	return
 }
@@ -1527,11 +1527,11 @@ func addrFromPrefixedIP(ip net.IP, prefixLen PrefixLen) (addr *IPAddress, err Ad
 	if addrLen <= IPv4ByteCount {
 		var addr4 *IPv4Address
 		addr4, err = NewIPv4AddressFromPrefixedBytes(ip, prefixLen)
-		addr = addr4.ToIPAddress()
+		addr = addr4.ToIP()
 	} else if addrLen <= IPv6ByteCount {
 		var addr6 *IPv6Address
 		addr6, err = NewIPv6AddressFromPrefixedBytes(ip, prefixLen)
-		addr = addr6.ToIPAddress()
+		addr = addr6.ToIP()
 	}
 	return
 }
@@ -1605,10 +1605,10 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 //func (creator IPAddressCreator) NewIPAddressFromIP(bytes net.IP) *IPAddress {
 //	if creator.IsIPv4() {
 //		addr, _ := NewIPv4AddressFromBytes(bytes)
-//		return addr.ToIPAddress()
+//		return addr.ToIP()
 //	} else if creator.IsIPv6() {
 //		addr, _ := NewIPv6AddressFromBytes(bytes)
-//		return addr.ToIPAddress()
+//		return addr.ToIP()
 //	}
 //	return nil
 //}
@@ -1616,10 +1616,10 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 //func (creator IPAddressCreator) NewIPAddressFromPrefixedIP(bytes net.IP, prefLen PrefixLen) *IPAddress {
 //	if creator.IsIPv4() {
 //		addr, _ := NewIPv4AddressFromPrefixedBytes(bytes, prefLen)
-//		return addr.ToIPAddress()
+//		return addr.ToIP()
 //	} else if creator.IsIPv6() {
 //		addr, _ := NewIPv6AddressFromPrefixedBytes(bytes, prefLen)
-//		return addr.ToIPAddress()
+//		return addr.ToIP()
 //	}
 //	return nil
 //}
@@ -1658,10 +1658,10 @@ func NewIPAddressFromNetIPAddr(addr *net.IPAddr) *IPAddress {
 	}
 	if len(ip) <= IPv4ByteCount {
 		res, _ := NewIPv4AddressFromBytes(ip)
-		return res.ToIPAddress()
+		return res.ToIP()
 	} else if len(ip) <= IPv6ByteCount {
 		res, _ := NewIPv6AddressFromZonedBytes(ip, addr.Zone)
-		return res.ToIPAddress()
+		return res.ToIP()
 	}
 	return nil
 }
@@ -1673,10 +1673,10 @@ func NewIPAddressFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLength PrefixLen)
 	}
 	if len(ip) <= IPv4ByteCount {
 		res, _ := NewIPv4AddressFromPrefixedBytes(ip, prefixLength)
-		return res.ToIPAddress()
+		return res.ToIP()
 	} else if len(ip) <= IPv6ByteCount {
 		res, _ := NewIPv6AddressFromPrefixedZonedBytes(ip, prefixLength, addr.Zone)
-		return res.ToIPAddress()
+		return res.ToIP()
 	}
 	return nil
 }
@@ -1709,9 +1709,9 @@ func NewIPAddressFromNetIPNet(ipnet net.IPNet) (*IPAddress, IncompatibleAddressE
 
 func NewIPAddressFromVals(version IPVersion, lowerValueProvider SegmentValueProvider) *IPAddress {
 	if version.IsIPv4() {
-		return NewIPv4AddressFromVals(WrappedSegmentValueProviderForIPv4(lowerValueProvider)).ToIPAddress()
+		return NewIPv4AddressFromVals(WrappedSegmentValueProviderForIPv4(lowerValueProvider)).ToIP()
 	} else if version.IsIPv6() {
-		return NewIPv6AddressFromVals(WrappedSegmentValueProviderForIPv6(lowerValueProvider)).ToIPAddress()
+		return NewIPv6AddressFromVals(WrappedSegmentValueProviderForIPv6(lowerValueProvider)).ToIP()
 	}
 	return nil
 }
@@ -1725,13 +1725,13 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 		return NewIPv4AddressFromPrefixedRange(
 			WrappedSegmentValueProviderForIPv4(lowerValueProvider),
 			WrappedSegmentValueProviderForIPv4(upperValueProvider),
-			prefixLength).ToIPAddress()
+			prefixLength).ToIP()
 	} else if version.IsIPv6() {
 		return NewIPv6AddressFromPrefixedZonedRange(
 			WrappedSegmentValueProviderForIPv6(lowerValueProvider),
 			WrappedSegmentValueProviderForIPv6(upperValueProvider),
 			prefixLength,
-			zone).ToIPAddress()
+			zone).ToIP()
 	}
 	return nil
 }
@@ -1748,7 +1748,7 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			xxxxx sect := sectionCreator(true, cloneIPSegsToDivs(segs))
 //			addr, err := NewIPv4Address(sect.ToIPv4())
 //			if err == nil {
-//				res = addr.ToIPAddress()
+//				res = addr.ToIP()
 //			}
 //		} else if segs[0].IsIPv6() {
 //			for _, seg := range segs[1:] {
@@ -1759,7 +1759,7 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			xxxxx sect := sectionCreator(false, cloneIPSegsToDivs(segs))
 //			addr, err := NewIPv6Address(sect.ToIPv6())
 //			if err == nil {
-//				res = addr.ToIPAddress()
+//				res = addr.ToIP()
 //			}
 //		}
 //	}
@@ -1809,7 +1809,7 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			sect := sectionCreator(true, segs)
 //			addr, err := NewIPv4Address(sect.ToIPv4())
 //			if err == nil {
-//				res = addr.ToIPAddress()
+//				res = addr.ToIP()
 //			}
 //		} else if segs[0].IsIPv6() {
 //			for _, seg := range segs[1:] {
@@ -1820,7 +1820,7 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			sect := sectionCreator(false, segs)
 //			addr, err := NewIPv6Address(sect.ToIPv6())
 //			if err == nil {
-//				res = addr.ToIPAddress()
+//				res = addr.ToIP()
 //			}
 //		}
 //	}
@@ -1849,7 +1849,7 @@ func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength Pre
 			//sect := sectionCreator(true, segs)
 			addr, addrErr := NewIPv4Address(sect.ToIPv4())
 			//if err == nil {
-			res, err = addr.ToIPAddress(), addrErr
+			res, err = addr.ToIP(), addrErr
 			//}
 		} else if segs[0].IsIPv6() {
 			for _, seg := range segs[1:] {
@@ -1861,9 +1861,9 @@ func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength Pre
 			//sect := sectionCreator(false, segs)
 			addr, addrErr := NewIPv6Address(sect.ToIPv6())
 			//if err == nil {
-			//res = addr.ToIPAddress()
+			//res = addr.ToIP()
 			//}
-			res, err = addr.ToIPAddress(), addrErr
+			res, err = addr.ToIP(), addrErr
 		}
 	}
 	return
@@ -1879,13 +1879,13 @@ func NewIPAddressFromValueProvider(valueProvider IPAddressValueProvider) *IPAddr
 		return NewIPv4AddressFromPrefixedRange(
 			WrappedSegmentValueProviderForIPv4(valueProvider.GetValues()),
 			WrappedSegmentValueProviderForIPv4(valueProvider.GetUpperValues()),
-			valueProvider.GetPrefixLen()).ToIPAddress()
+			valueProvider.GetPrefixLen()).ToIP()
 	} else if valueProvider.GetIPVersion().IsIPv6() {
 		return NewIPv6AddressFromPrefixedZonedRange(
 			WrappedSegmentValueProviderForIPv6(valueProvider.GetValues()),
 			WrappedSegmentValueProviderForIPv6(valueProvider.GetUpperValues()),
 			valueProvider.GetPrefixLen(),
-			valueProvider.GetZone()).ToIPAddress()
+			valueProvider.GetZone()).ToIP()
 	}
 	return nil
 }

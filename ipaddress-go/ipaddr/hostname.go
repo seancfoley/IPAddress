@@ -82,7 +82,7 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 	//} else {
 	//	var addr6 *IPv6Address
 	//	addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
-	//	ipAddr = addr6.ToIPAddress()
+	//	ipAddr = addr6.ToIP()
 	//}
 	if ipAddr != nil {
 		portVal := PortNum(port)
@@ -127,7 +127,7 @@ func NewHostNameFromNetIPAddr(addr *net.IPAddr) (hostName *HostName) {
 	//}
 	//addr6, err := NewIPv6AddressFromIPAddr(addr)
 	//if err == nil {
-	//	hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	//	hostName = NewHostNameFromAddr(addr6.ToIP())
 	//}
 	return
 }
@@ -144,7 +144,7 @@ func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (ho
 	//}
 	//addr6, err := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLen)
 	//if err == nil {
-	//	hostName = NewHostNameFromAddr(addr6.ToIPAddress())
+	//	hostName = NewHostNameFromAddr(addr6.ToIP())
 	//}
 	return
 }
@@ -331,7 +331,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 							if cache != nil {
 								cache.identifierStr = &IdentifierStr{host}
 							}
-							addrs = append(addrs, ipv6Addr.ToIPAddress())
+							addrs = append(addrs, ipv6Addr.ToIP())
 						}
 					} else if byteLen == IPv4ByteCount {
 						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
@@ -345,7 +345,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 							if cache != nil {
 								cache.identifierStr = &IdentifierStr{host}
 							}
-							addrs = append(addrs, ipv4Addr.ToIPAddress())
+							addrs = append(addrs, ipv4Addr.ToIP())
 						}
 					}
 				}
@@ -420,8 +420,8 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 
 //func (host *HostName) ToHostAddress() (*Address, AddressError) {
 //	host = host.init()
-//	addr, err := host.ToAddress()
-//	return addr.ToAddress(), err
+//	addr, err := host.ToAddressBase()
+//	return addr.ToAddressBase(), err
 //}
 
 func (host *HostName) IsValid() bool {
@@ -547,13 +547,13 @@ func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Bui
 			normalized := addr.ToNormalizedString()
 			index := strings.IndexByte(normalized, PrefixLenSeparator)
 			builder.WriteByte(IPv6StartBracket)
-			translateReserved(addr.ToIPv6Address(), normalized[:index], builder)
+			translateReserved(addr.ToIPv6(), normalized[:index], builder)
 			builder.WriteByte(IPv6EndBracket)
 			builder.WriteString(normalized[index:])
 		} else {
 			normalized := addr.ToNormalizedWildcardString()
 			builder.WriteByte(IPv6StartBracket)
-			translateReserved(addr.ToIPv6Address(), normalized, builder)
+			translateReserved(addr.ToIPv6(), normalized, builder)
 			builder.WriteByte(IPv6EndBracket)
 		}
 	} else {

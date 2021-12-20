@@ -554,14 +554,14 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneZero()) }
 			} else {
 				ipv6Zero := func() *IPAddress {
-					return zeroIPv6.ToIPAddress()
+					return zeroIPv6.ToIP()
 				}
 				versionedCreator = ipv6Zero
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6Zero()) }
 			}
 		} else {
 			ipv4Zero := func() *IPAddress {
-				return zeroIPv4.ToIPAddress()
+				return zeroIPv4.ToIP()
 			}
 			addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv4Zero()) }
 			versionedCreator = ipv4Zero

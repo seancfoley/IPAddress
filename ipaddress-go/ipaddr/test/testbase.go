@@ -515,10 +515,10 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 
 				var new1, new2 *ipaddr.Address
 				if isMac {
-					fromMac := front.ToMACAddress()
-					new1 = fromMac.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToMACAddress(), replaceSourceIndex).ToAddress()
+					fromMac := front.ToMAC()
+					new1 = fromMac.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToMAC(), replaceSourceIndex).ToAddressBase()
 					hostIdStr := t.createMACAddress(str.String())
-					new2 = hostIdStr.GetAddress().ToAddress()
+					new2 = hostIdStr.GetAddress().ToAddressBase()
 					if prefix != nil {
 						new2 = new2.SetPrefixLen(*prefix)
 					}
@@ -528,18 +528,18 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 						str.WriteString(prefix.String())
 					}
 					hostIdStr := t.createAddress(str.String())
-					new2 = hostIdStr.GetAddress().ToAddress()
+					new2 = hostIdStr.GetAddress().ToAddressBase()
 					if isIpv4 {
-						frontIPv4 := front.ToIPv4Address()
-						new1 = frontIPv4.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv4Address(), replaceSourceIndex).ToAddress()
+						frontIPv4 := front.ToIPv4()
+						new1 = frontIPv4.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv4(), replaceSourceIndex).ToAddressBase()
 					} else {
-						frontIPv6 := front.ToIPv6Address()
-						new1 = frontIPv6.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv6Address(), replaceSourceIndex).ToAddress()
+						frontIPv6 := front.ToIPv6()
+						new1 = frontIPv6.ReplaceLen(replaceTargetIndex, replaceTargetIndex+replaceCount, back.ToIPv6(), replaceSourceIndex).ToAddressBase()
 					}
 				}
 				if !new1.Equal(new2) {
 					failStr := "Replacement was " + new1.String() + " expected was " + new2.String() + " " + replaceStr
-					t.addFailure(newIPAddrFailure(failStr, front.ToIPAddress()))
+					t.addFailure(newIPAddrFailure(failStr, front.ToIP()))
 
 					//this was debug
 					//IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
@@ -619,7 +619,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 		var mixed, mixed2 *ipaddr.Address
 		if isMac {
 			hostIdStr := t.createMACAddress(str.String())
-			mixed = hostIdStr.GetAddress().ToAddress()
+			mixed = hostIdStr.GetAddress().ToAddressBase()
 			ignoreFrontPrefLen := i == 0 // we ignore the front prefix len if we are taking 0 bits from the front
 			if !ignoreFrontPrefLen && front.IsPrefixed() && *front.GetPrefixLen() <= ipaddr.BitCount(i)*bitsPerSegment {
 				mixed = mixed.SetPrefixLen(*front.GetPrefixLen())
@@ -627,12 +627,12 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, *back.GetPrefixLen()))
 			}
 			sec := frontSection.ToMAC().Append(backSection.ToMAC())
-			//mixed2 = (back.ToMACAddress()).GetNetwork().getAddressCreator().createAddress(sec);
+			//mixed2 = (back.ToMAC()).GetNetwork().getAddressCreator().createAddress(sec);
 			mixed2x, err := ipaddr.NewMACAddress(sec)
 			if err != nil {
 				t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 			}
-			mixed2 = mixed2x.ToAddress()
+			mixed2 = mixed2x.ToAddressBase()
 
 			if frontSectionInvalid != nil && backSectionInvalid != nil {
 				//This doesn't fail anymore because we allow large sections
@@ -680,7 +680,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
-				splitsJoined = append(splitsJoined, mixed3.ToAddress())
+				splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
 			}
 		} else {
 			if front.IsPrefixed() && *front.GetPrefixLen() <= (ipaddr.BitCount(i)*bitsPerSegment) && i > 0 {
@@ -695,16 +695,16 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				}
 			}
 			hostIdStr := t.createAddress(str.String())
-			mixed = hostIdStr.GetAddress().ToAddress()
+			mixed = hostIdStr.GetAddress().ToAddressBase()
 
 			if isIpv4 {
 				sec := (frontSection.ToIPv4()).Append(backSection.ToIPv4())
 				mixed2x, err := ipaddr.NewIPv4Address(sec)
-				//mixed2 = ( back.ToIPv4Address()).GetNetwork().GetAddressCreator().createAddress(sec);
+				//mixed2 = ( back.ToIPv4()).GetNetwork().GetAddressCreator().createAddress(sec);
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
-				mixed2 = mixed2x.ToAddress()
+				mixed2 = mixed2x.ToAddressBase()
 
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
 					//try {
@@ -751,7 +751,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					if err != nil {
 						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 					}
-					splitsJoined = append(splitsJoined, mixed3.ToAddress())
+					splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
 					//IPv4Address mixed3 = ((IPv4Address) back).getNetwork().getAddressCreator().createAddress(sec);
 					//splitsJoined.add(mixed3);
 				}
@@ -762,7 +762,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
-				mixed2 = mixed2x.ToAddress()
+				mixed2 = mixed2x.ToAddressBase()
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
 					//try {
 					newSec := (frontSection.ToIPv6()).Append(backSectionInvalid.ToIPv6())
@@ -806,7 +806,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					if err != nil {
 						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 					}
-					splitsJoined = append(splitsJoined, mixed3.ToAddress())
+					splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
 					//IPv6Address mixed3 = ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
 					//splitsJoined.add(mixed3);
 				}
@@ -920,7 +920,7 @@ func (t testBase) testIPv6Strings(w *ipaddr.IPAddressString, ipAddr *ipaddr.IPAd
 	t.testStrings(w, ipAddr, normalizedString, normalizedWildcardString, canonicalWildcardString, sqlString, fullString, compressedString, canonicalString, subnetString, subnetString, compressedWildcardString, reverseDNSString, uncHostString, singleHex, singleOctal)
 
 	//now test some IPv6-only strings
-	t.testIPv6OnlyStrings(w, ipAddr.ToIPv6Address(), mixedStringNoCompressMixed,
+	t.testIPv6OnlyStrings(w, ipAddr.ToIPv6(), mixedStringNoCompressMixed,
 		mixedStringNoCompressHost, mixedStringCompressCoveredHost, mixedString, base85String)
 }
 
@@ -965,7 +965,7 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedNoCompressMixed, _ := ipAddr.ToCustomString(mixedParams)
 
-	t.confirmAddrStrings(ipAddr.ToIPAddress(), m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85)
+	t.confirmAddrStrings(ipAddr.ToIP(), m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85)
 
 	nMatch := m == (mixedString)
 	if !nMatch {
@@ -1046,9 +1046,9 @@ func (t testBase) confirmHostStrings(ipAddr *ipaddr.IPAddress, omitZone bool, st
 		hostName := ipaddr.NewHostName(str)
 		a := hostName.GetAddress()
 		if omitZone {
-			ipv6Addr := ipAddr.ToIPv6Address()
+			ipv6Addr := ipAddr.ToIPv6()
 			ipv6Addr, _ = ipaddr.NewIPv6Address(ipv6Addr.GetSection())
-			ipAddr = ipv6Addr.ToIPAddress()
+			ipAddr = ipv6Addr.ToIP()
 		}
 		if !ipAddr.Equal(a) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
@@ -1232,7 +1232,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
 	//try {
 
-	if !ipAddr.IsIPv6() || !ipAddr.ToIPv6Address().HasZone() {
+	if !ipAddr.IsIPv6() || !ipAddr.ToIPv6().HasZone() {
 		if singleHex != "" && singleOctal != "" {
 			fmtStr := fmt.Sprintf("%s %v %#x %#o", ipAddr, ipAddr, ipAddr, ipAddr)
 			expectedFmtStr := canonicalString + " " + canonicalString + " " + singleHex + " " + singleOctal
@@ -1474,7 +1474,7 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 	val := w.GetAddress()
 	var count *big.Int
 	if excludeZeroHosts {
-		count = getNonZeroHostCount(val.ToAddress().ToIPAddress())
+		count = getNonZeroHostCount(val.ToAddressBase().ToIP())
 	} else {
 		count = val.GetCount()
 	}
@@ -1489,9 +1489,9 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 	} else {
 		var addrIterator ipaddr.AddressIterator
 		if excludeZeroHosts {
-			addrIterator = ipaddr.UnwrappedIPddressIterator{getNonZeroHostIterator(val.ToAddress().ToIPAddress())}
+			addrIterator = ipaddr.UnwrappedIPddressIterator{getNonZeroHostIterator(val.ToAddressBase().ToIP())}
 		} else {
-			addrIterator = val.ToAddress().Iterator()
+			addrIterator = val.ToAddressBase().Iterator()
 		}
 		//Iterator<? extends Address> addrIterator = excludeZeroHosts ? ((IPAddress)val).nonZeroHostIterator() : val.iterator();
 		var counter uint64
@@ -1499,10 +1499,10 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 		for addrIterator.HasNext() {
 			next = addrIterator.Next()
 			if counter == 0 {
-				lower := val.ToAddress().GetLower()
+				lower := val.ToAddressBase().GetLower()
 				if excludeZeroHosts {
-					if lower.ToIPAddress().IsZeroHost() && next.Equal(lower) {
-						t.addFailure(newIPAddrFailure("lowest: "+lower.String()+" next: "+next.String(), next.ToIPAddress()))
+					if lower.ToIP().IsZeroHost() && next.Equal(lower) {
+						t.addFailure(newIPAddrFailure("lowest: "+lower.String()+" next: "+next.String(), next.ToIP()))
 					}
 				} else {
 					if !next.Equal(lower) {
@@ -1525,35 +1525,35 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 			counter++
 		}
 		if number < uint64(maxInt) && len(set) != int(number) {
-			t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddress()))
+			t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddressBase()))
 		} else if counter != number {
-			t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddress()))
+			t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddressBase()))
 		} else if number > 0 {
-			if !next.Equal(val.ToAddress().GetUpper()) {
-				t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String(), next))
+			if !next.Equal(val.ToAddressBase().GetUpper()) {
+				t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddressBase().GetUpper().String(), next))
 			} else {
-				lower := val.ToAddress().GetLower()
+				lower := val.ToAddressBase().GetLower()
 				if excludeZeroHosts {
-					addr := val.ToAddress().ToIPAddress()
-					if counter == 1 && (!addr.GetUpper().Equal(lower) && !addr.GetUpper().IsZeroHost() && !lower.ToIPAddress().IsZeroHost()) {
-						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
+					addr := val.ToAddressBase().ToIP()
+					if counter == 1 && (!addr.GetUpper().Equal(lower) && !addr.GetUpper().IsZeroHost() && !lower.ToIP().IsZeroHost()) {
+						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddressBase().GetUpper().String()+" lowest: "+val.ToAddressBase().GetLower().String(), next))
 					}
 				} else {
-					if counter == 1 && !val.ToAddress().GetUpper().Equal(lower) {
-						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddress().GetUpper().String()+" lowest: "+val.ToAddress().GetLower().String(), next))
+					if counter == 1 && !val.ToAddressBase().GetUpper().Equal(lower) {
+						t.addFailure(newSegmentSeriesFailure("highest: "+val.ToAddressBase().GetUpper().String()+" lowest: "+val.ToAddressBase().GetLower().String(), next))
 					}
 				}
 				if !next.GetPrefixLen().Equal(val.GetPrefixLen()) {
 					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+next.GetPrefixLen().String(), next))
 				}
-				if !val.ToAddress().GetUpper().GetPrefixLen().Equal(val.GetPrefixLen()) {
-					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+val.ToAddress().GetUpper().GetPrefixLen().String(), next))
+				if !val.ToAddressBase().GetUpper().GetPrefixLen().Equal(val.GetPrefixLen()) {
+					t.addFailure(newSegmentSeriesFailure("val prefix length: "+val.GetPrefixLen().String()+" upper prefix length: "+val.ToAddressBase().GetUpper().GetPrefixLen().String(), next))
 				}
 			}
 		} else {
 			if excludeZeroHosts {
-				if !val.ToAddress().ToIPAddress().IsZeroHost() {
-					t.addFailure(newSegmentSeriesFailure("unexpected non-zero-host: "+val.ToAddress().ToIPAddress().String(), val))
+				if !val.ToAddressBase().ToIP().IsZeroHost() {
+					t.addFailure(newSegmentSeriesFailure("unexpected non-zero-host: "+val.ToAddressBase().ToIP().String(), val))
 				}
 			} else {
 				t.addFailure(newSegmentSeriesFailure("unexpected zero count ", val))
@@ -1633,10 +1633,10 @@ func (t testBase) testPrefixCountImpl(w ipaddr.ExtendedIdentifierString, number 
 			var set []ipaddr.AddressItem
 			if isBlock {
 				set = prefixBlockSet
-				addrIterator = val.ToAddress().PrefixBlockIterator()
+				addrIterator = val.ToAddressBase().PrefixBlockIterator()
 			} else {
 				set = prefixSet
-				addrIterator = val.ToAddress().PrefixIterator()
+				addrIterator = val.ToAddressBase().PrefixIterator()
 			}
 			var counter uint64
 			var previous, next *ipaddr.Address
@@ -1667,8 +1667,8 @@ func (t testBase) testPrefixCountImpl(w ipaddr.ExtendedIdentifierString, number 
 					countedCount.Add(countedCount, next.GetCount())
 				}
 				if isIp && previous != nil {
-					if next.ToIPAddress().Intersect(previous.ToIPAddress()) != nil {
-						t.addFailure(newSegmentSeriesFailure("intersection of "+previous.String()+" when iterating: "+next.ToIPAddress().Intersect(previous.ToIPAddress()).String(), next))
+					if next.ToIP().Intersect(previous.ToIP()) != nil {
+						t.addFailure(newSegmentSeriesFailure("intersection of "+previous.String()+" when iterating: "+next.ToIP().Intersect(previous.ToIP()).String(), next))
 						break
 					}
 				}
@@ -1678,13 +1678,13 @@ func (t testBase) testPrefixCountImpl(w ipaddr.ExtendedIdentifierString, number 
 				previous = next
 			}
 			if number < uint64(maxInt) && len(set) != int(number) {
-				t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddress()))
+				t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddressBase()))
 			} else if counter != number {
-				t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddress()))
+				t.addFailure(newSegmentSeriesFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.FormatUint(number, 10), val.ToAddressBase()))
 			} else if number < 0 {
-				t.addFailure(newSegmentSeriesFailure("unexpected zero count ", val.ToAddress()))
+				t.addFailure(newSegmentSeriesFailure("unexpected zero count ", val.ToAddressBase()))
 			} else if !isBlock && countedCount.Cmp(totalCount) != 0 {
-				t.addFailure(newSegmentSeriesFailure("count mismatch, expected "+totalCount.String()+" got "+countedCount.String(), val.ToAddress()))
+				t.addFailure(newSegmentSeriesFailure("count mismatch, expected "+totalCount.String()+" got "+countedCount.String(), val.ToAddressBase()))
 			}
 
 			//	Function<Address, AddressComponentRangeSpliterator<?,? extends AddressItem>> spliteratorFunc = isBlock ?

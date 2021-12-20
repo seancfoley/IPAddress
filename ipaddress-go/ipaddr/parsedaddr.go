@@ -239,8 +239,8 @@ func (parseData *parsedIPAddress) getCachedAddresses(forHostAddr bool) *sectionR
 						cache := addr.cache
 						if cache != nil {
 							cache.addrsCache = &addrsCache{
-								lower: rng.lower.ToAddress(),
-								upper: rng.upper.ToAddress(),
+								lower: rng.lower.ToAddressBase(),
+								upper: rng.upper.ToAddressBase(),
 							}
 						}
 					}
@@ -2331,14 +2331,14 @@ func createAllAddress(
 	//}
 	if err == nil {
 		section := creator.createPrefixedSectionInternal(segments, true, prefLen)
-		res = creator.createAddressInternalFromSection(section, qualifier.getZone(), originator).ToIPAddress()
+		res = creator.createAddressInternalFromSection(section, qualifier.getZone(), originator).ToIP()
 	}
 	hostSection := creator.createSectionInternal(hostSegments, true)
-	hostAddr = creator.createAddressInternal(hostSection.ToSectionBase(), nil).ToIPAddress()
+	hostAddr = creator.createAddressInternal(hostSection.ToSectionBase(), nil).ToIP()
 	lowerSection := creator.createPrefixedSectionInternal(lowerSegments, false, prefLen)
-	lower = creator.createAddressInternal(lowerSection.ToSectionBase(), nil).ToIPAddress()
+	lower = creator.createAddressInternal(lowerSection.ToSectionBase(), nil).ToIP()
 	upperSection := creator.createPrefixedSectionInternal(upperSegments, false, prefLen)
-	upper = creator.createAddressInternal(upperSection.ToSectionBase(), nil).ToIPAddress()
+	upper = creator.createAddressInternal(upperSection.ToSectionBase(), nil).ToIP()
 	return
 }
 

@@ -111,7 +111,7 @@ func (rng *ipAddressSeqRangeInternal) contains(other IPAddressType) bool {
 	if other == nil {
 		return true
 	}
-	otherAddr := other.ToIPAddress()
+	otherAddr := other.ToIP()
 	if otherAddr == nil {
 		return true
 	}
@@ -480,7 +480,7 @@ func (rng *ipAddressSeqRangeInternal) prefixIterator(prefLength BitCount) IPAddr
 func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) AddressIterator {
 	lower := rng.lower
 	if !rng.isMultiple() {
-		return &singleAddrIterator{original: lower.ToPrefixBlockLen(prefLength).ToAddress()}
+		return &singleAddrIterator{original: lower.ToPrefixBlockLen(prefLength).ToAddressBase()}
 	} //else if prefLength > lower.GetBitCount() {
 	//return rng.iterator()
 	//}
@@ -531,7 +531,7 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 func (rng *ipAddressSeqRangeInternal) iterator() AddressIterator {
 	lower := rng.lower
 	if !rng.isMultiple() {
-		return &singleAddrIterator{original: lower.ToAddress()}
+		return &singleAddrIterator{original: lower.ToAddressBase()}
 	}
 	divCount := lower.GetSegmentCount()
 	return rng.rangeIterator(
@@ -673,7 +673,7 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 	}
 	return rangeAddrIterator(
 		false,
-		lower.ToAddress(),
+		lower.ToAddressBase(),
 		prefixLen,
 		valsAreMultiple,
 		rangeSegmentsIterator(
@@ -803,7 +803,7 @@ func (rng *IPAddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
 // Contains returns whether the given address is within the range of this sequential range
 func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
 	if rng == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return rng.init().contains(other)
 }
@@ -868,6 +868,7 @@ func (rng *IPAddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	return rng
 }
 
+//TODO rename these 4
 func (rng *IPAddressSeqRange) IsIPv4SequentialRange() bool { // returns false when lower is nil
 	return rng != nil && rng.GetLower().IsIPv4()
 }

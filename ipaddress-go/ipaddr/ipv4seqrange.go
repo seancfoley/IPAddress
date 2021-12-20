@@ -10,7 +10,7 @@ func NewIPv4SeqRange(one, two *IPv4Address) *IPv4AddressSeqRange {
 	if one == nil && two == nil {
 		one = zeroIPv4
 	}
-	return newSeqRange(one.ToIPAddress(), two.ToIPAddress()).ToIPv4SequentialRange()
+	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv4SequentialRange()
 }
 
 var zeroIPv4Range = NewIPv4SeqRange(zeroIPv4, zeroIPv4)
@@ -54,11 +54,11 @@ func (rng *IPv4AddressSeqRange) ToString(lowerStringer func(*IPv4Address) string
 	}
 	return rng.init().toString(
 		func(addr *IPAddress) string {
-			return lowerStringer(addr.ToIPv4Address())
+			return lowerStringer(addr.ToIPv4())
 		},
 		separator,
 		func(addr *IPAddress) string {
-			return upperStringer(addr.ToIPv4Address())
+			return upperStringer(addr.ToIPv4())
 		},
 	)
 }
@@ -88,11 +88,11 @@ func (rng *IPv4AddressSeqRange) GetUpperIPAddress() *IPAddress {
 }
 
 func (rng *IPv4AddressSeqRange) GetLower() *IPv4Address {
-	return rng.init().lower.ToIPv4Address()
+	return rng.init().lower.ToIPv4()
 }
 
 func (rng *IPv4AddressSeqRange) GetUpper() *IPv4Address {
-	return rng.init().upper.ToIPv4Address()
+	return rng.init().upper.ToIPv4()
 }
 
 func (rng *IPv4AddressSeqRange) GetNetIP() net.IP {
@@ -137,7 +137,7 @@ func (rng *IPv4AddressSeqRange) GetUpperValue() *big.Int {
 
 func (rng *IPv4AddressSeqRange) Contains(other IPAddressType) bool {
 	if rng == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return rng.init().contains(other)
 }
@@ -205,6 +205,7 @@ func (rng *IPv4AddressSeqRange) PrefixIterator(prefLength BitCount) IPv4AddressS
 	return &ipv4RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
+//TODO rename this one
 func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 	if rng != nil {
 		rng = rng.init()

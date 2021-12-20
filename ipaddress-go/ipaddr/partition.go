@@ -20,7 +20,7 @@ type IPv6Partition struct {
 
 func (p IPv6Partition) ForEach(action func(*IPv6Address)) {
 	p.p.ForEach(func(address *IPAddress) {
-		action(address.ToIPv6Address())
+		action(address.ToIPv6())
 	})
 }
 
@@ -32,7 +32,7 @@ func (p IPv6Partition) Iterator() IPv6AddressIterator {
 // returning true if they all return true, false otherwise
 func (p IPv6Partition) PredicateForEach(predicate func(*IPv6Address) bool) bool {
 	return p.p.PredicateForEach(func(address *IPAddress) bool {
-		return predicate(address.ToIPv6Address())
+		return predicate(address.ToIPv6())
 	})
 }
 
@@ -42,7 +42,7 @@ func (p IPv6Partition) PredicateForEach(predicate func(*IPv6Address) bool) bool 
 // The method returns when one application of the predicate returns false (determining the overall result)
 func (p IPv6Partition) PredicateForEachEarly(predicate func(*IPv6Address) bool) bool {
 	return p.p.PredicateForEachEarly(func(address *IPAddress) bool {
-		return predicate(address.ToIPv6Address())
+		return predicate(address.ToIPv6())
 	})
 }
 
@@ -52,7 +52,7 @@ func (p IPv6Partition) PredicateForEachEarly(predicate func(*IPv6Address) bool) 
 // The method returns when one application of the predicate returns true (determining the overall result)
 func (p IPv6Partition) PredicateForAnyEarly(predicate func(*IPv6Address) bool) bool {
 	return p.p.PredicateForAnyEarly(func(address *IPAddress) bool {
-		return predicate(address.ToIPv6Address())
+		return predicate(address.ToIPv6())
 	})
 }
 
@@ -60,7 +60,7 @@ func (p IPv6Partition) PredicateForAnyEarly(predicate func(*IPv6Address) bool) b
 // returning true if the given predicate returns true for any of the elements.
 func (p IPv6Partition) PredicateForAny(predicate func(*IPv6Address) bool) bool {
 	return p.p.PredicateForAny(func(address *IPAddress) bool {
-		return predicate(address.ToIPv6Address())
+		return predicate(address.ToIPv6())
 	})
 }
 
@@ -70,7 +70,7 @@ type IPv4Partition struct {
 
 func (p IPv4Partition) ForEach(action func(*IPv4Address)) {
 	p.p.ForEach(func(address *IPAddress) {
-		action(address.ToIPv4Address())
+		action(address.ToIPv4())
 	})
 }
 
@@ -82,7 +82,7 @@ func (p IPv4Partition) Iterator() IPv4AddressIterator {
 // returning true if they all return true, false otherwise
 func (p IPv4Partition) PredicateForEach(predicate func(*IPv4Address) bool) bool {
 	return p.p.PredicateForEach(func(address *IPAddress) bool {
-		return predicate(address.ToIPv4Address())
+		return predicate(address.ToIPv4())
 	})
 }
 
@@ -92,7 +92,7 @@ func (p IPv4Partition) PredicateForEach(predicate func(*IPv4Address) bool) bool 
 // The method returns when one application of the predicate returns false (determining the overall result)
 func (p IPv4Partition) PredicateForEachEarly(predicate func(*IPv4Address) bool) bool {
 	return p.p.PredicateForEachEarly(func(address *IPAddress) bool {
-		return predicate(address.ToIPv4Address())
+		return predicate(address.ToIPv4())
 	})
 }
 
@@ -102,7 +102,7 @@ func (p IPv4Partition) PredicateForEachEarly(predicate func(*IPv4Address) bool) 
 // The method returns when one application of the predicate returns true (determining the overall result)
 func (p IPv4Partition) PredicateForAnyEarly(predicate func(*IPv4Address) bool) bool {
 	return p.p.PredicateForAnyEarly(func(address *IPAddress) bool {
-		return predicate(address.ToIPv4Address())
+		return predicate(address.ToIPv4())
 	})
 }
 
@@ -110,7 +110,7 @@ func (p IPv4Partition) PredicateForAnyEarly(predicate func(*IPv4Address) bool) b
 // returning true if the given predicate returns true for any of the elements.
 func (p IPv4Partition) PredicateForAny(predicate func(*IPv4Address) bool) bool {
 	return p.p.PredicateForAny(func(address *IPAddress) bool {
-		return predicate(address.ToIPv4Address())
+		return predicate(address.ToIPv4())
 	})
 }
 
@@ -149,7 +149,7 @@ func (p *Partition) Iterator() IPAddressIterator {
 	if p.iterator == nil {
 		item := p.single
 		if item != nil {
-			return &ipAddrIterator{&singleAddrIterator{item.ToAddress()}}
+			return &ipAddrIterator{&singleAddrIterator{item.ToAddressBase()}}
 			item = nil
 		}
 		return nil
@@ -214,14 +214,14 @@ func (p *Partition) predicateForAny(predicate func(address *IPAddress) bool, ret
 //
 // This method iterates through a list of prefix blocks of different sizes that span the entire subnet.
 func PartitionIpv6WithSpanningBlocks(newAddr *IPv6Address) IPv6Partition {
-	return IPv6Partition{partitionWithSpanningBlocks(newAddr.ToIPAddress())}
+	return IPv6Partition{partitionWithSpanningBlocks(newAddr.ToIP())}
 }
 
 // PartitionWithSpanningBlocks partitions the address series into prefix blocks and single addresses.
 //
 // This method iterates through a list of prefix blocks of different sizes that span the entire subnet.
 func PartitionIpv4WithSpanningBlocks(newAddr *IPv4Address) IPv4Partition {
-	return IPv4Partition{partitionWithSpanningBlocks(newAddr.ToIPAddress())}
+	return IPv4Partition{partitionWithSpanningBlocks(newAddr.ToIP())}
 }
 
 // PartitionWithSpanningBlocks partitions the address series into prefix blocks and single addresses.
@@ -261,7 +261,7 @@ func partitionWithSpanningBlocks(newAddr *IPAddress) *Partition {
 // This method chooses the maximum block size for a list of prefix blocks contained by the address or subnet,
 // and then iterates to produce blocks of that size.
 func PartitionIPv6WithSingleBlockSize(newAddr *IPv6Address) IPv6Partition {
-	return IPv6Partition{partitionWithSingleBlockSize(newAddr.ToIPAddress())}
+	return IPv6Partition{partitionWithSingleBlockSize(newAddr.ToIP())}
 }
 
 // PartitionIPv4WithSingleBlockSize partitions the address series into prefix blocks and single addresses.
@@ -269,7 +269,7 @@ func PartitionIPv6WithSingleBlockSize(newAddr *IPv6Address) IPv6Partition {
 // This method chooses the maximum block size for a list of prefix blocks contained by the address or subnet,
 // and then iterates to produce blocks of that size.
 func PartitionIPv4WithSingleBlockSize(newAddr *IPv4Address) IPv4Partition {
-	return IPv4Partition{partitionWithSingleBlockSize(newAddr.ToIPAddress())}
+	return IPv4Partition{partitionWithSingleBlockSize(newAddr.ToIP())}
 }
 
 // PartitionWithSingleBlockSize partitions the address series into prefix blocks and single addresses.

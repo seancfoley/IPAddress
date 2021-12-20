@@ -30,7 +30,7 @@ func (t addressOrderTest) testOrder() {
 		addr := t.createParamsAddress(str, orderingOpts).GetAddress()
 		if addr != nil {
 			return &Ordering{
-				nestedType: addr.ToAddress(),
+				nestedType: addr.ToAddressBase(),
 				order:      i,
 			}
 		}
@@ -40,7 +40,7 @@ func (t addressOrderTest) testOrder() {
 		addr := t.createMACParamsAddress(str, macOrderingOpts).GetAddress()
 		if addr != nil {
 			return &Ordering{
-				nestedType: addr.ToAddress(),
+				nestedType: addr.ToAddressBase(),
 				order:      i,
 			}
 		}

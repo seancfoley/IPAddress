@@ -696,10 +696,10 @@ func translateReserved(addr *ipaddr.IPv6Address, str string) string {
 func (t hostTester) testNormalizedMatches(h1 *ipaddr.HostName) {
 	var normalized string
 	if h1.IsAddress() && h1.AsAddress().IsPrefixed() && h1.AsAddress().IsIPv6() {
-		addr := h1.AsAddress().GetLower().WithoutPrefixLen().ToIPv6Address()
+		addr := h1.AsAddress().GetLower().WithoutPrefixLen().ToIPv6()
 		normalized = "[" + translateReserved(addr, addr.ToNormalizedString()) + "]/" + h1.AsAddress().GetNetworkPrefixLen().String()
 	} else if h1.IsAddress() && h1.AsAddress().IsIPv6() {
-		addr := h1.AsAddress().ToIPv6Address()
+		addr := h1.AsAddress().ToIPv6()
 		normalized = "[" + translateReserved(addr, addr.ToNormalizedWildcardString()) + "]"
 	} else {
 		normalized = h1.ToNormalizedString()
@@ -744,7 +744,7 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 		} else {
 			t.addFailure(newHostFailure("resolved was "+resolvedAddress.String()+" original was "+originalStr, original))
 		}
-	} else if resolvedAddress != nil && !(resolvedAddress.IsIPv6() && resolvedAddress.ToIPv6Address().HasZone()) {
+	} else if resolvedAddress != nil && !(resolvedAddress.IsIPv6() && resolvedAddress.ToIPv6().HasZone()) {
 		host := resolvedAddress.ToHostName()
 		if !original.Equal(host) && !original.IsSelf() && !host.IsSelf() {
 			t.addFailure(newHostFailure("reverse was "+host.String()+" original was "+original.String(), original))
@@ -862,7 +862,7 @@ func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortNum) *ne
 	addr := h.GetAddress()
 	var zone ipaddr.Zone
 	if addr.IsIPv6() {
-		zone = addr.ToIPv6Address().GetZone()
+		zone = addr.ToIPv6().GetZone()
 	}
 	return &net.TCPAddr{
 		IP:   addr.GetNetIP(),
@@ -962,7 +962,7 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	var zone ipaddr.Zone
 	//String zone = null;
 	if addrHost != nil && addrHost.IsIPv6() {
-		zone = addrHost.ToIPv6Address().GetZone()
+		zone = addrHost.ToIPv6().GetZone()
 	}
 	prefLength := hostName.GetNetworkPrefixLen()
 	if h != hostExpected {

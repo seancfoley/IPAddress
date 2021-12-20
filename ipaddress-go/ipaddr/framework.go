@@ -284,7 +284,7 @@ type AddressType interface {
 	PrefixEqual(AddressType) bool
 	PrefixContains(AddressType) bool
 
-	ToAddress() *Address
+	ToAddressBase() *Address
 }
 
 var _, _ AddressType = &Address{}, &MACAddress{}
@@ -296,7 +296,7 @@ type IPAddressType interface {
 	ipAddressRange
 
 	Wrap() WrappedIPAddress
-	ToIPAddress() *IPAddress
+	ToIP() *IPAddress
 	ToAddressString() *IPAddressString
 }
 

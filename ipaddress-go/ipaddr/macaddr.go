@@ -37,7 +37,7 @@ const (
 )
 
 func newMACAddress(section *MACAddressSection) *MACAddress {
-	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress()
+	return createAddress(section.ToSectionBase(), NoZone).ToMAC()
 }
 
 func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) {
@@ -48,7 +48,7 @@ func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) 
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
 
 func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueError) {
@@ -63,7 +63,7 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueEr
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
 
 //func NewMACAddressFromUint64(val uint64) *MACAddress {
@@ -72,7 +72,7 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueEr
 
 func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
 	section := NewMACSectionFromUint64(val, getMacSegCount(isExtended))
-	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress()
+	return createAddress(section.ToSectionBase(), NoZone).ToMAC()
 }
 
 func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, AddressValueError) {
@@ -85,7 +85,7 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, Addr
 	//	return nil, err
 	//}
 	section := NewMACSection(segments)
-	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
 
 func NewMACAddressFromVals(vals MACSegmentValueProvider) (addr *MACAddress) {
@@ -342,44 +342,44 @@ func (addr *MACAddress) GetDivisionCount() int {
 }
 
 func (addr *MACAddress) ToPrefixBlock() *MACAddress {
-	return addr.init().toPrefixBlock().ToMACAddress()
+	return addr.init().toPrefixBlock().ToMAC()
 }
 
 func (addr *MACAddress) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddress {
-	return addr.init().toBlock(segmentIndex, lower, upper).ToMACAddress()
+	return addr.init().toBlock(segmentIndex, lower, upper).ToMAC()
 }
 
 func (addr *MACAddress) WithoutPrefixLen() *MACAddress {
 	if !addr.IsPrefixed() {
 		return addr
 	}
-	return addr.init().withoutPrefixLen().ToMACAddress()
+	return addr.init().withoutPrefixLen().ToMAC()
 }
 
 func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {
-	return addr.init().setPrefixLen(prefixLen).ToMACAddress()
+	return addr.init().setPrefixLen(prefixLen).ToMAC()
 }
 
 func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
-	return res.ToMACAddress(), err
+	return res.ToMAC(), err
 }
 
 func (addr *MACAddress) AdjustPrefixLen(prefixLen BitCount) *MACAddress {
-	return addr.init().adjustPrefixLen(prefixLen).ToMACAddress()
+	return addr.init().adjustPrefixLen(prefixLen).ToMAC()
 }
 
 func (addr *MACAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
-	return res.ToMACAddress(), err
+	return res.ToMAC(), err
 }
 
 func (addr *MACAddress) AssignPrefixForSingleBlock() *MACAddress {
-	return addr.init().assignPrefixForSingleBlock().ToMACAddress()
+	return addr.init().assignPrefixForSingleBlock().ToMAC()
 }
 
 func (addr *MACAddress) AssignMinPrefixForBlock() *MACAddress {
-	return addr.init().assignMinPrefixForBlock().ToMACAddress()
+	return addr.init().assignMinPrefixForBlock().ToMAC()
 }
 
 func (addr *MACAddress) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -415,7 +415,7 @@ func (addr *MACAddress) PrefixContains(other AddressType) bool {
 
 func (addr *MACAddress) Contains(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	// note: we don't use the same optimization as in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().contains(other)
@@ -423,7 +423,7 @@ func (addr *MACAddress) Contains(other AddressType) bool {
 
 func (addr *MACAddress) Equal(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	// note: we don't use the same optimization as in IPv4/6 because we do need to check segment count with MACSize
 	return addr.init().equals(other)
@@ -432,7 +432,7 @@ func (addr *MACAddress) Equal(other AddressType) bool {
 // CompareSize returns whether this subnet has more elements than the other, returning -1 if this subnet has less, 1 if more, and 0 if both have the same count of individual addresses
 func (addr *MACAddress) CompareSize(other AddressType) int { // this is here to take advantage of the CompareSize in IPAddressSection
 	if addr == nil {
-		if other != nil && other.ToAddress() != nil {
+		if other != nil && other.ToAddressBase() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -496,11 +496,11 @@ func (addr *MACAddress) GetSequentialBlockCount() *big.Int {
 }
 
 func (addr *MACAddress) IncrementBoundary(increment int64) *MACAddress {
-	return addr.init().incrementBoundary(increment).ToMACAddress()
+	return addr.init().incrementBoundary(increment).ToMAC()
 }
 
 func (addr *MACAddress) Increment(increment int64) *MACAddress {
-	return addr.init().increment(increment).ToMACAddress()
+	return addr.init().increment(increment).ToMAC()
 }
 
 func (addr *MACAddress) ReverseBytes() *MACAddress {
@@ -797,7 +797,7 @@ func (addr *MACAddress) ToAddressString() *MACAddressString {
 	return hostIdStr.(*MACAddressString)
 }
 
-func (addr *MACAddress) ToAddress() *Address {
+func (addr *MACAddress) ToAddressBase() *Address {
 	if addr != nil {
 		addr = addr.init()
 	}
@@ -805,5 +805,5 @@ func (addr *MACAddress) ToAddress() *Address {
 }
 
 func (addr *MACAddress) Wrap() WrappedAddress {
-	return WrapAddress(addr.ToAddress())
+	return WrapAddress(addr.ToAddressBase())
 }

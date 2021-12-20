@@ -131,7 +131,7 @@ func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
 }
 
 //func (network *IPv4AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
-//	return network.GetNetworkIPv4Address(prefLen).ToIPAddress()
+//	return network.GetNetworkIPv4Address(prefLen).ToIP()
 //}
 //func (network *IPv4AddressNetwork) GetNetworkIPv4Address(prefLen PrefixLen) *IPv4Address {
 //	// get the ipv4 network address for a given prefix len, which is the all ones host (but for what address?)
@@ -431,8 +431,8 @@ var MACNetwork = &MACAddressNetwork{}
 
 var _ addressNetwork = &MACAddressNetwork{}
 
-var ipv4loopback = createIPv4Loopback().ToIPAddress()
-var ipv6loopback = createIPv6Loopback().ToIPAddress()
+var ipv4loopback = createIPv4Loopback().ToIP()
+var ipv6loopback = createIPv6Loopback().ToIP()
 
 func createIPv6Loopback() *IPv6Address {
 	ipv6loopback, _ := NewIPv6AddressFromBytes(net.IPv6loopback)

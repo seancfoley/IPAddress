@@ -121,10 +121,10 @@ type AddressComparator struct {
 func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 	var oneAddr, twoAddr *Address
 	if one != nil {
-		oneAddr = one.ToAddress()
+		oneAddr = one.ToAddressBase()
 	}
 	if two != nil {
-		twoAddr = two.ToAddress()
+		twoAddr = two.ToAddressBase()
 	}
 	if oneAddr == nil {
 		if twoAddr == nil {
@@ -136,8 +136,8 @@ func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 	}
 	result := comp.CompareAddressSections(oneAddr.GetSection(), twoAddr.GetSection())
 	if result == 0 {
-		if oneIPv6 := oneAddr.ToIPv6Address(); oneIPv6 != nil {
-			twoIPv6 := twoAddr.ToIPv6Address()
+		if oneIPv6 := oneAddr.ToIPv6(); oneIPv6 != nil {
+			twoIPv6 := twoAddr.ToIPv6()
 			oneZone := oneIPv6.zone
 			twoZone := twoIPv6.zone
 			if oneZone == twoZone {

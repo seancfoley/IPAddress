@@ -47,7 +47,7 @@ func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAdd
 	if err != nil {
 		return nil, err
 	}
-	return creator.createAddressInternal(sect.ToSectionBase(), parseData.originator).ToMACAddress(), nil
+	return creator.createAddressInternal(sect.ToSectionBase(), parseData.originator).ToMAC(), nil
 }
 
 func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, IncompatibleAddressError) {

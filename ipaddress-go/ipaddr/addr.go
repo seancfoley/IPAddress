@@ -197,11 +197,11 @@ func (addr *addressInternal) compareSize(other AddressType) int {
 	//	}
 	//	return 0
 	//}
-	if other == nil || other.ToAddress() == nil {
+	if other == nil || other.ToAddressBase() == nil {
 		// our size is 1 or greater, other 0
 		return 1
 	}
-	return section.CompareSize(other.ToAddress().GetSection())
+	return section.CompareSize(other.ToAddressBase().GetSection())
 }
 
 func (addr addressInternal) toString() string { // using non-pointer receiver makes it work well with fmt
@@ -390,32 +390,32 @@ func (addr *addressInternal) reverseSegments() *Address {
 }
 
 // isIPv4() returns whether this matches an IPv4 address.
-// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+// we allow nil receivers to allow this to be called following a failed conversion like ToIP()
 func (addr *addressInternal) isIPv4() bool {
 	return addr.section != nil && addr.section.matchesIPv4AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
-// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+// we allow nil receivers to allow this to be called following a failed conversion like ToIP()
 func (addr *addressInternal) isIPv6() bool {
 	return addr.section != nil && addr.section.matchesIPv6AddressType()
 }
 
 // isIPv6() returns whether this matches an IPv6 address.
-// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+// we allow nil receivers to allow this to be called following a failed conversion like ToIP()
 func (addr *addressInternal) isMAC() bool {
 	return addr.section != nil && addr.section.matchesMACAddressType()
 }
 
 // isIP() returns whether this matches an IP address.
 // It must be IPv4, IPv6, or the zero IPAddress which has no segments
-// we allow nil receivers to allow this to be called following a failed conversion like ToIPAddress()
+// we allow nil receivers to allow this to be called following a failed conversion like ToIP()
 func (addr *addressInternal) isIP() bool {
 	return addr.section == nil /* zero addr */ || addr.section.matchesIPAddressType()
 }
 
 func (addr *addressInternal) prefixEquals(other AddressType) bool {
-	otherAddr := other.ToAddress()
+	otherAddr := other.ToAddressBase()
 	if addr.toAddress() == otherAddr {
 		return true
 	}
@@ -429,7 +429,7 @@ func (addr *addressInternal) prefixEquals(other AddressType) bool {
 }
 
 func (addr *addressInternal) prefixContains(other AddressType) bool {
-	otherAddr := other.ToAddress()
+	otherAddr := other.ToAddressBase()
 	if addr.toAddress() == otherAddr {
 		return true
 	}
@@ -446,7 +446,7 @@ func (addr *addressInternal) contains(other AddressType) bool {
 	if other == nil {
 		return true
 	}
-	otherAddr := other.ToAddress()
+	otherAddr := other.ToAddressBase()
 	if addr.toAddress() == otherAddr || otherAddr == nil {
 		return true
 	}
@@ -463,7 +463,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 	if other == nil {
 		return false
 	}
-	otherAddr := other.ToAddress()
+	otherAddr := other.ToAddressBase()
 	if addr.toAddress() == otherAddr {
 		return true
 	} else if otherAddr == nil {
@@ -479,7 +479,7 @@ func (addr *addressInternal) equals(other AddressType) bool {
 }
 
 func (addr *IPAddress) equalsSameVersion(other *IPAddress) bool {
-	otherAddr := other.ToAddress()
+	otherAddr := other.ToAddressBase()
 	if addr.toAddress() == otherAddr {
 		return true
 	} else if otherAddr == nil {
@@ -534,7 +534,7 @@ func (addr *addressInternal) assignMinPrefixForBlock() *Address {
 }
 
 func (addr *addressInternal) isSameZone(other *Address) bool {
-	return addr.zone == other.ToAddress().zone
+	return addr.zone == other.ToAddressBase().zone
 }
 
 func (addr *addressInternal) getAddrType() addrType {
@@ -912,7 +912,7 @@ func (addr *Address) PrefixContains(other AddressType) bool {
 
 func (addr *Address) Contains(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return addr.init().contains(other)
 }
@@ -923,14 +923,14 @@ func (addr *Address) Compare(item AddressItem) int {
 
 func (addr *Address) Equal(other AddressType) bool {
 	if addr == nil {
-		return other == nil || other.ToAddress() == nil
+		return other == nil || other.ToAddressBase() == nil
 	}
 	return addr.init().equals(other)
 }
 
 func (addr *Address) CompareSize(other AddressType) int {
 	if addr == nil {
-		if other != nil && other.ToAddress() != nil {
+		if other != nil && other.ToAddressBase() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -1083,12 +1083,12 @@ func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, Incompati
 }
 
 func (addr *Address) AdjustPrefixLen(prefixLen BitCount) *Address {
-	return addr.adjustPrefixLen(prefixLen).ToAddress()
+	return addr.adjustPrefixLen(prefixLen).ToAddressBase()
 }
 
 func (addr *Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
 	res, err := addr.adjustPrefixLenZeroed(prefixLen)
-	return res.ToAddress(), err
+	return res.ToAddressBase(), err
 }
 
 func (addr *Address) AssignPrefixForSingleBlock() *Address {
@@ -1158,11 +1158,11 @@ func (addr *Address) ReverseSegments() *Address {
 
 // IsMulticast returns whether this address is multicast
 func (addr *Address) IsMulticast() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsMulticast()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsMulticast()
-	} else if thisAddr := addr.ToMACAddress(); thisAddr != nil {
+	} else if thisAddr := addr.ToMAC(); thisAddr != nil {
 		return thisAddr.IsMulticast()
 	}
 	return false
@@ -1170,11 +1170,11 @@ func (addr *Address) IsMulticast() bool {
 
 // IsLocal returns whether the address can be considered a local address (as opposed to a global one)
 func (addr *Address) IsLocal() bool {
-	if thisAddr := addr.ToIPv4Address(); thisAddr != nil {
+	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		return thisAddr.IsLocal()
-	} else if thisAddr := addr.ToIPv6Address(); thisAddr != nil {
+	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		return thisAddr.IsLocal()
-	} else if thisAddr := addr.ToMACAddress(); thisAddr != nil {
+	} else if thisAddr := addr.ToMAC(); thisAddr != nil {
 		return thisAddr.IsLocal()
 	}
 	return false
@@ -1249,9 +1249,9 @@ func (addr *Address) ToCustomString(stringOptions StringOptions) string {
 
 func (addr *Address) ToAddressString() HostIdentifierString {
 	if addr.isIP() {
-		return addr.toAddress().ToIPAddress().ToAddressString()
+		return addr.toAddress().ToIP().ToAddressString()
 	} else if addr.isMAC() {
-		return addr.toAddress().ToMACAddress().ToAddressString()
+		return addr.toAddress().ToMAC().ToAddressString()
 	}
 	return nil
 }
@@ -1272,32 +1272,32 @@ func (addr *Address) IsMAC() bool {
 	return addr != nil && addr.isMAC()
 }
 
-func (addr *Address) ToAddress() *Address {
+func (addr *Address) ToAddressBase() *Address {
 	return addr
 }
 
-func (addr *Address) ToIPAddress() *IPAddress {
+func (addr *Address) ToIP() *IPAddress {
 	if addr.IsIP() {
 		return (*IPAddress)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
-func (addr *Address) ToIPv6Address() *IPv6Address {
+func (addr *Address) ToIPv6() *IPv6Address {
 	if addr.IsIPv6() {
 		return (*IPv6Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
-func (addr *Address) ToIPv4Address() *IPv4Address {
+func (addr *Address) ToIPv4() *IPv4Address {
 	if addr.IsIPv4() {
 		return (*IPv4Address)(unsafe.Pointer(addr))
 	}
 	return nil
 }
 
-func (addr *Address) ToMACAddress() *MACAddress {
+func (addr *Address) ToMAC() *MACAddress {
 	if addr.IsMAC() {
 		return (*MACAddress)(addr)
 	}
